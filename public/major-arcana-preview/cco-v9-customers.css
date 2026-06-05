@@ -3,6 +3,62 @@
  * Gate: html[data-v9-enabled="on"]
  */
 
+/* ORD-25 Fas A — v11 kundkort design-tokens (additivt, ingen visuell effekt än) */
+html[data-v9-enabled="on"] {
+  --v11-ink: #2b251f;
+  --v11-ink-soft: rgba(70, 60, 50, 0.6);
+  --v11-ink-mute: rgba(70, 60, 50, 0.42);
+  --v11-vellum: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.88));
+  --v11-vellum-border: 1px solid rgba(255, 255, 255, 0.7);
+  --v11-card-rule: 1px solid rgba(180, 160, 140, 0.18);
+  --v11-lila-strong: #7c3aed;
+  --v11-lila-text: #3d2576;
+  --v11-lila-pill: linear-gradient(180deg, rgba(244, 237, 253, 0.95), rgba(220, 210, 250, 0.7));
+  --v11-lila-pill-border: 1px solid rgba(124, 58, 237, 0.28);
+  --v11-lila-wash: linear-gradient(180deg, rgba(244, 237, 253, 0.95), rgba(220, 210, 250, 0.55));
+  --v11-gron-text: #1f5236;
+  --v11-gron-grad: linear-gradient(180deg, #5fae84, #3e8a5e);
+  --v11-gron-pill: linear-gradient(180deg, rgba(220, 238, 228, 0.95), rgba(190, 224, 206, 0.7));
+  --v11-gron-pill-border: 1px solid rgba(74, 130, 104, 0.32);
+  --v11-gron-wash: linear-gradient(180deg, rgba(220, 238, 228, 0.85), rgba(190, 224, 206, 0.55));
+  --v11-amber-text: #7a4014;
+  --v11-amber-grad: linear-gradient(180deg, #f4cc80, #dc9640);
+  --v11-amber-wash: linear-gradient(180deg, rgba(252, 238, 218, 0.92), rgba(247, 228, 196, 0.82));
+  --v11-amber-border: 1px solid rgba(200, 130, 30, 0.3);
+  --v11-shadow-base:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset, 0 2px 6px rgba(56, 40, 28, 0.05),
+    0 1px 2px rgba(56, 40, 28, 0.03);
+  --v11-shadow-lift:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 10px 28px rgba(56, 40, 28, 0.08),
+    0 3px 8px rgba(56, 40, 28, 0.05);
+  --v11-fs-label: 10px;
+  --v11-fs-fine: 11px;
+  --v11-fs-body: 13px;
+  --v11-fs-section: 16px;
+  --v11-fs-hero: 22px;
+  --v11-gap-intra: 6px;
+  --v11-gap-card: 14px;
+  --v11-gap-zone: 18px;
+}
+
+html[data-v9-enabled="on"] .v11-hairstrand {
+  display: block;
+  width: 100%;
+  height: 24px;
+  margin: var(--v11-gap-card, 14px) 0;
+  padding: 0;
+  border: 0;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 24' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%23d4af5a' stop-opacity='0'/%3E%3Cstop offset='18%25' stop-color='%23d4af5a' stop-opacity='0.45'/%3E%3Cstop offset='50%25' stop-color='%23c9a24e' stop-opacity='0.82'/%3E%3Cstop offset='82%25' stop-color='%23d4af5a' stop-opacity='0.45'/%3E%3Cstop offset='100%25' stop-color='%23d4af5a' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 18 C 90 6 130 6 200 12 S 310 20 400 8' fill='none' stroke='url(%23g)' stroke-width='1.4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+html[data-v9-enabled="on"] hr.v11-hairstrand {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 /* Page canvas + panel shells → cco-v9-shell-overrides.css (loads last) */
 
 /* ─── Steg 2: hide legacy header chrome when v9 is on ─── */
@@ -3107,11 +3163,7 @@ html[data-v9-enabled="on"] .v9-journey-step__dot {
   justify-content: center;
   font-size: 12px;
   font-weight: 800;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.92),
-    rgba(247, 241, 236, 0.86)
-  );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 241, 236, 0.86));
   color: var(--v9-text-tertiary, #8a8174);
   border: 1.5px solid rgba(180, 160, 140, 0.35);
   font-variant-numeric: tabular-nums;
@@ -3146,12 +3198,7 @@ html[data-v9-enabled="on"] .v9-journey-step:hover .v9-journey-step__dot {
 
 /* DONE — rose-gold/champagne fill, satin shadow */
 html[data-v9-enabled="on"] .v9-journey-step--done .v9-journey-step__dot {
-  background: linear-gradient(
-    180deg,
-    #f0d4b4 0%,
-    #d8a878 55%,
-    #b8855a 100%
-  );
+  background: linear-gradient(180deg, #f0d4b4 0%, #d8a878 55%, #b8855a 100%);
   color: #fff;
   border-color: rgba(120, 70, 30, 0.42);
   text-shadow: 0 1px 0 rgba(80, 50, 20, 0.35);
@@ -3167,11 +3214,7 @@ html[data-v9-enabled="on"] .v9-journey-step--done .v9-journey-step__label {
 
 /* ACTIVE — amber-pulse keyframe, samma DNA som watch-alert */
 html[data-v9-enabled="on"] .v9-journey-step--active .v9-journey-step__dot {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 200, 120, 0.98),
-    rgba(220, 150, 60, 0.96)
-  );
+  background: linear-gradient(180deg, rgba(255, 200, 120, 0.98), rgba(220, 150, 60, 0.96));
   color: #2a1d10;
   border-color: rgba(200, 130, 30, 0.55);
   box-shadow:
@@ -3185,7 +3228,8 @@ html[data-v9-enabled="on"] .v9-journey-step--active .v9-journey-step__label {
 }
 
 @keyframes v9JourneyActivePulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 4px 12px rgba(200, 130, 30, 0.36),
       inset 0 1px 0 rgba(255, 230, 190, 0.55),
@@ -3236,11 +3280,7 @@ html[data-v9-enabled="on"] .v9-journal-tile {
   position: relative;
   padding: 12px 14px 14px;
   border-radius: 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.94),
-    rgba(247, 241, 236, 0.86)
-  );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
   border: 1px solid rgba(255, 255, 255, 0.55);
   box-shadow:
     0 3px 10px rgba(56, 40, 28, 0.08),
@@ -3368,11 +3408,7 @@ html[data-v9-enabled="on"] .v9-journal-tile__action {
   transition: all 0.15s ease;
 }
 html[data-v9-enabled="on"] .v9-journal-tile[data-status="missing"] .v9-journal-tile__action {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 200, 120, 0.96),
-    rgba(220, 150, 60, 0.94)
-  );
+  background: linear-gradient(180deg, rgba(255, 200, 120, 0.96), rgba(220, 150, 60, 0.94));
   color: #2a1d10;
   box-shadow: 0 2px 6px rgba(220, 150, 60, 0.34);
 }
@@ -3412,11 +3448,7 @@ html[data-v9-enabled="on"] .v9-zone1-primary {
   padding: 16px 20px;
   border: 0;
   border-radius: 16px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 200, 120, 0.96) 0%,
-    rgba(220, 150, 60, 0.94) 100%
-  );
+  background: linear-gradient(180deg, rgba(255, 200, 120, 0.96) 0%, rgba(220, 150, 60, 0.94) 100%);
   color: #2a1d10;
   display: flex;
   flex-direction: column;
@@ -3468,11 +3500,7 @@ html[data-v9-enabled="on"] .v9-zone1-primary__label {
 html[data-v9-enabled="on"] .v9-dossier-section {
   margin: 0 0 8px;
   border-radius: 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.86),
-    rgba(247, 241, 236, 0.72)
-  );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(247, 241, 236, 0.72));
   border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow:
     0 2px 6px rgba(56, 40, 28, 0.06),
@@ -3519,7 +3547,9 @@ html[data-v9-enabled="on"] .v9-dossier-section > summary::after {
   font-size: 16px;
   font-weight: 700;
   transform: rotate(90deg);
-  transition: transform 0.22s ease, background 0.15s ease;
+  transition:
+    transform 0.22s ease,
+    background 0.15s ease;
   margin-left: auto;
 }
 html[data-v9-enabled="on"] .v9-dossier-section[open] > summary::after {
@@ -3564,8 +3594,14 @@ html[data-v9-enabled="on"] .v9-dossier-section[open] > *:not(summary) {
   animation: v9AccordionSlide 0.22s ease-out;
 }
 @keyframes v9AccordionSlide {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* === Sticky bottom action-bar === */
