@@ -1623,11 +1623,7 @@
     {
       id: 'view',
       label: 'Vy',
-      options: [
-        { value: 'category', label: 'Per kategori', tone: 'dark', selected: true },
-        { value: 'step', label: 'Per steg', tone: 'neutral' },
-        { value: 'timeline', label: 'Tidslinje', tone: 'neutral' },
-      ],
+      options: [{ value: 'category', label: 'Per kategori', tone: 'dark', selected: true }],
     },
   ]);
 
@@ -1807,25 +1803,121 @@
       </section>`;
   }
 
-  /* ORD-25 Fas D — insikter-strip + sticky */
+  /* ORD-25 Fas D — insikter-strip + sticky · Fas F — automation + requiredFor */
+
+  function signalInsightIcon(signal) {
+    const ruleId = String(signal?.ruleId || '');
+    if (ruleId.startsWith('document.')) return '📄';
+    if (signal?.risk === 'legal_blocker' || signal?.risk === 'legal') return '⚖';
+    if (ruleId.includes('health')) return '✦';
+    if (ruleId.includes('photo')) return '📷';
+    return '!';
+  }
+
+  function signalInsightStateLabel(signal) {
+    if (signal?.risk === 'legal_blocker') return 'Spärr';
+    if (signal?.risk === 'blocker') return 'Nästa steg';
+    if (signal?.risk === 'needs_review') return 'Granska';
+    if (signal?.risk === 'ready') return 'Redo';
+    return 'Insikt';
+  }
+
+  function signalInsightV11Tone(signal) {
+    if (
+      signal?.risk === 'legal_blocker' ||
+      signal?.risk === 'legal' ||
+      signal?.risk === 'blocker'
+    ) {
+      return 'amber';
+    }
+    if (signal?.risk === 'ready') return 'gron';
+    return 'lila';
+  }
+
+  function buildV11AutomationInsightCards(card) {
+    return asArray(card?.automationSignals)
+      .filter((signal) => signal && signal.status === 'active')
+      .sort((a, b) => (Number(b.priority) || 0) - (Number(a.priority) || 0))
+      .slice(0, 3)
+      .map((signal, index) => ({
+        kind: 'automation',
+        id: signal.ruleId || `automation-${index}`,
+        ruleId: signal.ruleId || '',
+        icon: signalInsightIcon(signal),
+        title: signal.what || 'Nästa steg',
+        body: signal.why || signal.next || '',
+        theme: signal.risk === 'ready' ? 'retention' : 'next',
+        tone: signal.risk === 'ready' ? 'done' : 'next',
+        stateLabel: signalInsightStateLabel(signal),
+        v11Tone: signalInsightV11Tone(signal),
+        index,
+      }));
+  }
+
+  function buildV11DrawerIntro(card) {
+    const top = card?.automationTop;
+    if (top?.status === 'active') {
+      const parts = [top.what, top.why, top.next ? `Nästa: ${top.next}` : ''].filter(Boolean);
+      return parts.join(' · ');
+    }
+    const first = asArray(card?.automationSignals).find((signal) => signal?.status === 'active');
+    if (first) {
+      return [first.what, first.why].filter(Boolean).join(' · ');
+    }
+    return 'Hela kundresan — röd nästa, orange på gång, grön klart, lila planerat.';
+  }
+
+  function readV11InsightCardCopy(button) {
+    if (!button) return { title: '', body: '' };
+    return {
+      title:
+        button
+          .querySelector('.v11-insight-card__title, .dossier-insight__title')
+          ?.textContent?.trim() || '',
+      body:
+        button
+          .querySelector('.v11-insight-card__body, .dossier-insight__body')
+          ?.textContent?.trim() || '',
+    };
+  }
 
   function buildV11InsightCards(card, journalEntries) {
-    const featured = buildIntelFeaturedCards(card, journalEntries);
     const stateLabels = {
       next: 'Nästa steg',
       coming: 'På gång',
       response: 'Förberedelse',
       retention: 'Relation',
     };
-    return featured.map((item, index) => ({
+    const merged = [...buildV11AutomationInsightCards(card)];
+    if (merged.length < 3) {
+      for (const item of buildIntelFeaturedCards(card, journalEntries)) {
+        if (merged.length >= 3) break;
+        const key = String(item.title || '')
+          .trim()
+          .toLowerCase();
+        if (
+          !key ||
+          merged.some(
+            (row) =>
+              String(row.title || '')
+                .trim()
+                .toLowerCase() === key
+          )
+        )
+          continue;
+        merged.push(item);
+      }
+    }
+    return merged.slice(0, 3).map((item, index) => ({
       ...item,
-      stateLabel: stateLabels[item.theme] || stateLabels[item.tone] || 'Insikt',
+      stateLabel: item.stateLabel || stateLabels[item.theme] || stateLabels[item.tone] || 'Insikt',
       v11Tone:
-        item.tone === 'next' || item.theme === 'next'
+        item.v11Tone ||
+        (item.tone === 'next' || item.theme === 'next'
           ? 'amber'
           : item.theme === 'retention'
             ? 'gron'
-            : 'lila',
+            : 'lila'),
       index,
     }));
   }
@@ -1839,6 +1931,7 @@
         data-v9-intel-card="${escapeHtml(card.id)}"
         data-v9-intel-kind="${escapeHtml(card.kind || 'ai')}"
         data-insight-theme="${escapeHtml(card.theme || 'next')}"
+        data-v11-insight-rule-id="${escapeHtml(card.ruleId || '')}"
         data-v9-intel-idx="${Number(card.index) || 0}"
       >
         <span class="v11-insight-card__icon" aria-hidden="true">${escapeHtml(card.icon || '★')}</span>
@@ -1868,6 +1961,13 @@
   }
 
   function resolveV11StickyHelper(card, journalEntries) {
+    const top = card?.automationTop;
+    if (top?.status === 'active') {
+      if (top.next) return top.next;
+      if (top.why) return top.why;
+    }
+    const docBlocker = asArray(card?.documentBlockers)[0];
+    if (docBlocker?.reason) return docBlocker.reason;
     const journey = buildIntelligentJourneyBubbles(card, journalEntries);
     if (journey.footer) return journey.footer;
     if (card?.missingHealthDeclaration) {
@@ -1908,17 +2008,14 @@
 
   function renderV11DossierZonesHtml(card, journalEntries, dossierBundle, filterState = {}) {
     if (!isV9On() || !card) return '';
-    const insights = renderV11InsightsStrip(card, journalEntries);
-    const sticky = renderV11StickyActions(card, journalEntries);
-    if (!insights && !sticky) return '';
 
     return `
       <div class="v11-dossier-zones" data-v11-dossier-zones>
         ${renderV11Hairstrand()}
         ${renderV11DocumentSegments(card, dossierBundle, filterState)}
         ${renderV11Hairstrand()}
-        ${insights}
-        ${sticky}
+        ${renderV11InsightsStrip(card, journalEntries)}
+        ${renderV11StickyActions(card, journalEntries)}
       </div>`;
   }
 
@@ -2039,7 +2136,7 @@
       const openAllBtn = event.target.closest('[data-v9-intel-open-all]');
       if (openAllBtn) {
         openDrawer({
-          intro: 'Hela kundresan — röd nästa, orange på gång, grön klart, lila planerat.',
+          intro: buildV11DrawerIntro(card),
         });
         return;
       }
@@ -2048,22 +2145,27 @@
       if (cardBtn) {
         const cardId = cardBtn.getAttribute('data-v9-intel-card') || '';
         const kind = cardBtn.getAttribute('data-v9-intel-kind') || '';
+        const copy = readV11InsightCardCopy(cardBtn);
         if (kind === 'journey') {
           openDrawer({
             focusId: cardId,
-            title:
-              cardBtn.querySelector('.dossier-insight__title')?.textContent?.trim() || 'Kundresa',
+            title: copy.title || 'Kundresa',
             intro: resolveIntelBubbleBody(
               journey.bubbles.find((bubble) => bubble.id === cardId) || {}
             ),
           });
           return;
         }
+        if (kind === 'automation') {
+          openDrawer({
+            title: copy.title || 'Nästa steg',
+            intro: copy.body || buildV11DrawerIntro(card),
+          });
+          return;
+        }
         openDrawer({
-          title:
-            cardBtn.querySelector('.dossier-insight__title')?.textContent?.trim() || 'AI-insikt',
-          intro:
-            cardBtn.querySelector('.dossier-insight__body')?.textContent?.trim() || journey.lead,
+          title: copy.title || 'AI-insikt',
+          intro: copy.body || journey.lead,
         });
         return;
       }

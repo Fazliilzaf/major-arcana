@@ -943,6 +943,14 @@
     );
   }
 
+  /** ORD-25 Fas E — single v11 surface; legacy tabs/workspace stay in DOM for deep-link only. */
+  function usesV11DossierCutover() {
+    return (
+      isV9CustomersEnabled() &&
+      typeof window.CcoV9CustomersParity?.renderV11DossierZonesHtml === 'function'
+    );
+  }
+
   function isV9DemoEnabled() {
     return (
       isV9CustomersEnabled() &&
@@ -3667,16 +3675,17 @@
   ) {
     const normalizedTab = normalizeDetailTab(tab);
     const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
+    const v11Cutover = usesV11DossierCutover();
     return `
-      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis" data-patient-detail>
+      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis${v11Cutover ? ' v9-mockup-dossier--v11-cutover' : ''}" data-patient-detail${v11Cutover ? ' data-v11-cutover="1"' : ''}>
         <div class="v9-dossier-chrome">
           ${renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
           ${renderV9IntelligentBubblesBlock(card, journalEntries)}
-          ${renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
+          ${v11Cutover ? '' : renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
         </div>
         ${renderV9SmartNextStepHtml(card)}
         ${renderV9CapabilityActionsHtml(card)}
-        <div class="v9-dossier-workspace">
+        <div class="v9-dossier-workspace"${v11Cutover ? ' hidden aria-hidden="true" data-v11-workspace-fallback="1"' : ''}>
           ${renderPatientDetailBodyOpen()}
           ${renderV9PatientTabPanelsMarkup(
             card,

@@ -6165,3 +6165,57 @@ html[data-v9-enabled="on"] .v9-mockup-dossier--synthesis .dossier-open-full {
     padding: 14px !important;
   }
 }
+
+/* ORD-25 Fas E — v11 single-surface cutover (hide legacy tabs/workspace/pills) */
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v9-dossier-tabs,
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v9-dossier-workspace,
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v9-dossier-zone3,
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover [data-v9-zone3],
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v9-intel-bubbles {
+  display: none !important;
+}
+
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover {
+  overflow: hidden;
+}
+
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v9-dossier-chrome {
+  position: static;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0;
+  background: transparent;
+}
+
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v11-dossier-hero {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  flex-shrink: 0;
+  margin-bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(251, 249, 246, 0.99) 0%,
+    rgba(251, 249, 246, 0.97) 92%,
+    rgba(251, 249, 246, 0.88) 100%
+  );
+}
+
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v11-dossier-zones {
+  flex: 1 0 auto;
+  min-height: 0;
+  padding-bottom: 4px;
+}
+
+html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v11-sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin-top: auto;
+  padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
+}
