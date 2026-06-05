@@ -810,3 +810,30 @@
     transition: none;
   }
 }
+
+/* ===== Master-detail: 4-kolumnerslista + stort REFERENS-kort dockat höger (desktop) ===== */
+@media (min-width: 1100px) {
+  html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout {
+    grid-template-columns: 180px minmax(0, 1fr) 424px !important;
+    --v9-layout-grid-cols: 180px minmax(0, 1fr) 424px;
+    --v9-layout-grid-cols-dossier: 180px minmax(0, 1fr) 424px;
+  }
+  html[data-v9-enabled="on"] .customers-workspace {
+    display: none !important;
+  }
+  html[data-v9-enabled="on"] .customers-rail {
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  html[data-v9-enabled="on"] .customers-rail .kkref {
+    width: 100%;
+  }
+  html[data-v9-enabled="on"] .customers-rail .kkref .doss {
+    width: 100%;
+    max-width: 100%;
+  }
+}
