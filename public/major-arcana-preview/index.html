@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <script src="./app/cco-v9-flag.js?v=build-1ccb8f9"></script>
-    <!-- ARCANA bundle URLs (content-hash: 210c890a54) -->
+    <!-- ARCANA bundle URLs (content-hash: b12d7f1180) -->
     <script>
       window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.210c890a54.min.js',
-        staffCore: './app.bundle.staff-core.54ef4d48eb.min.js',
+        full: './app.bundle.b12d7f1180.min.js',
+        staffCore: './app.bundle.staff-core.7501879a73.min.js',
         staffDeferred: './app.bundle.staff-deferred.70f30879ad.min.js',
       };
     </script>
@@ -107,6 +107,7 @@
     <link rel="stylesheet" href="./design-tokens.css" />
     <link rel="stylesheet" href="./cco-v9-tokens.css?v=build-1ccb8f9" />
     <link rel="stylesheet" href="./cco-v9-customers.css?v=build-1ccb8f9" />
+    <link rel="stylesheet" href="./cco-kundkort-referens.css?v=ref1" />
     <link rel="stylesheet" href="./cco-kundkort-blueprint.css?v=build-ord28" />
     <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important).
@@ -3568,13 +3569,13 @@
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
                   <script defer src="./app/cco-v9-interactions.js?v=build-1ccb8f9"></script>
+                  <script defer src="./app/cco-kundkort-referens.js?v=ref1"></script>
                   <script defer src="./app/cco-v9-customers-parity.js?v=build-ord24"></script>
                   <script defer src="./app/cco-kunder-smart-next-step.js?v=build-ord3"></script>
+                  <script defer src="./app/cco-kunder-actions.js?v=build-ord3"></script>
                   <script defer src="./app/cco-kundkort-blueprint.js?v=build-ord28"></script>
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
-                  <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
 
                   <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
@@ -11402,12 +11403,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 210c890a54) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: b12d7f1180) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.210c890a54.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.54ef4d48eb.min.js';
+        var fullSrc = urls.full || './app.bundle.b12d7f1180.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.7501879a73.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.70f30879ad.min.js';
 
         function injectScript(src, onload) {

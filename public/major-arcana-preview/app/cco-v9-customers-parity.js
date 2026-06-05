@@ -2962,6 +2962,16 @@
       ),
     ];
 
+    if (typeof window !== 'undefined' && window.__renderReferensKundkort) {
+      return `
+      <div class="kundkort-slide-over kundkort-slide-over--v2 v9-surface-vellum" data-kundkort-slide-over data-v11-dossier-zones>
+        <button type="button" class="dossier-close" data-v9-dossier-close title="Stäng" aria-label="Stäng dossiér" style="position:absolute;top:14px;right:14px;z-index:6">×</button>
+        <div class="kundkort-slide-over__scroll" data-kundkort-slide-over-scroll data-v9-dossier-scroll aria-label="Kunddossiér">
+          <div class="kkref">${window.__renderReferensKundkort(bundleCard, dossierBundle, journalEntries)}</div>
+          ${footer}
+        </div>
+      </div>`;
+    }
     return `
       <div class="kundkort-slide-over kundkort-slide-over--v2 v9-surface-vellum" data-kundkort-slide-over data-v11-dossier-zones>
         ${head}

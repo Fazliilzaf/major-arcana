@@ -1015,13 +1015,18 @@
     const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
     if (!rail || !window.CcoKundkortBlueprint) return false;
     els.patientRail = rail;
-    rail.innerHTML = window.CcoKundkortBlueprint.renderKundkort(
-      card,
-      journalEntries,
-      dossierBundle,
-      occasionTimeline,
-      driveFiles
-    );
+    rail.innerHTML =
+      typeof window !== 'undefined' && window.__renderReferensKundkort
+        ? '<div class="kkref">' +
+          window.__renderReferensKundkort(card, dossierBundle, journalEntries) +
+          '</div>'
+        : window.CcoKundkortBlueprint.renderKundkort(
+            card,
+            journalEntries,
+            dossierBundle,
+            occasionTimeline,
+            driveFiles
+          );
     if (workspace) {
       workspace.innerHTML = window.CcoKundkortBlueprint.renderWorkspace(
         card,
