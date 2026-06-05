@@ -662,6 +662,19 @@ html[data-v9-enabled="on"] .v11-weekly-patterns__title {
   color: var(--v11-ink, #2b251f);
 }
 
+html[data-v9-enabled="on"] .v11-upcoming-bookings__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+html[data-v9-enabled="on"] .v11-upcoming-bookings__hint {
+  font-size: var(--v11-fs-fine, 11px);
+  font-weight: 650;
+  color: var(--v11-ink-mute, rgba(70, 60, 50, 0.42));
+}
+
 html[data-v9-enabled="on"] .v11-upcoming-bookings__list {
   display: flex;
   flex-direction: column;
@@ -762,6 +775,27 @@ html[data-v9-enabled="on"] .v11-booking-row--blau .v11-booking-row__avatar {
 html[data-v9-enabled="on"] .v11-booking-row--gron .v11-booking-row__avatar {
   background: rgba(22, 163, 74, 0.12);
   color: var(--v11-gron-text, #1f5236);
+}
+
+html[data-v9-enabled="on"] .v11-booking-row--suggested {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.52);
+  opacity: 0.96;
+}
+
+html[data-v9-enabled="on"] .v11-weekly-patterns__good {
+  color: var(--v11-gron-text, #1f5236);
+  font-weight: 700;
+}
+
+html[data-v9-enabled="on"] .customers-layout[data-v9-dossier-open="on"] .v9-aggregate-panel {
+  display: none !important;
+}
+
+html[data-v9-enabled="on"] .customers-layout[data-v9-dossier-open="on"] .customers-rail--dominant {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
 }
 
 html[data-v9-enabled="on"] .v11-booking-row__name {

@@ -2101,7 +2101,125 @@
       opportunity = 'Bygg lojalitet med regelbunden uppföljning efter behandling.';
     }
 
-    return { bookingPattern, trend, opportunity };
+    return { bookingPattern, trend, opportunity, engagementPct };
+  }
+
+  function addDaysIso(isoOrMs, days) {
+    const base = isoOrMs ? Date.parse(isoOrMs) : Date.now();
+    if (!Number.isFinite(base)) return new Date(Date.now() + days * 86400000).toISOString();
+    return new Date(base + days * 86400000).toISOString();
+  }
+
+  function buildV11UpcomingSuggestions(card) {
+    const treatment =
+      card?.nextBookingType ||
+      card?.lastBookingType ||
+      asArray(card?.treatmentTypes)[0] ||
+      'PRP hår';
+    const staff = card?.nextBookingResourceLabel || card?.nextBookingResource || 'Egzona';
+    const baseIso = card?.lastVisitAt || card?.lastBookingAt || card?.updatedAt || '';
+    const treatmentLower = String(treatment).toLowerCase();
+    const seriesTotal = treatmentLower.includes('prp') ? 6 : 3;
+    const visits = Number(card?.visitCount ?? card?.bookingCount ?? 0);
+    const seriesNum = visits > 0 ? Math.min((visits % seriesTotal) + 1, seriesTotal) : 3;
+
+    const presets = [
+      {
+        days: 21,
+        title: `${treatment} – Behandling ${seriesNum}/${seriesTotal}`,
+        sub: staff,
+      },
+      {
+        days: 42,
+        title: `${treatment} – Uppföljning`,
+        sub: staff,
+      },
+      {
+        days: 74,
+        title: treatmentLower.includes('hud') ? 'Konsultation hud' : `${treatment} – Kontroll`,
+        sub: 'Amanda N.',
+      },
+    ];
+
+    return presets.map((preset) => ({
+      ...bookingParts(
+        addDaysIso(baseIso, preset.days),
+        preset.title,
+        preset.sub,
+        'planned',
+        'Förslag',
+        resolveBookingSource(preset.sub)
+      ),
+      suggested: true,
+    }));
+  }
+
+  function buildV11UpcomingDisplayList(card, occasionTimeline) {
+    const real = buildUpcomingBookings(card, occasionTimeline);
+    if (real.length) return real.map((row) => ({ ...row, suggested: false }));
+    return buildV11UpcomingSuggestions(card).slice(0, 3);
+  }
+
+  function finalizeV11JourneySteps(steps, card, docRows) {
+    const signedSteps = new Set();
+    for (const row of docRows) {
+      if (row.status === 'signed' && row.journeyStep) signedSteps.add(Number(row.journeyStep));
+    }
+
+    const blockedNums = asArray(card?.blockedSteps)
+      .map(Number)
+      .filter((n) => Number.isFinite(n) && n >= 1 && n <= 9)
+      .sort((a, b) => a - b);
+    const journeyStepsFromBlockers = asArray(card?.documentBlockers)
+      .map((blocker) => Number(blocker?.journeyStep))
+      .filter((n) => Number.isFinite(n) && n >= 1 && n <= 9)
+      .sort((a, b) => a - b);
+    const focusStep = journeyStepsFromBlockers[0] || blockedNums[0] || 0;
+
+    let activeIndex = steps.findIndex((row) => row.status === 'active');
+    if (activeIndex < 0 && focusStep) {
+      activeIndex = steps.findIndex((row) => row.step === focusStep);
+    }
+    if (activeIndex < 0) activeIndex = steps.findIndex((row) => row.status === 'pending');
+    if (activeIndex < 0) {
+      activeIndex = steps.findIndex((row) => row.status !== 'done');
+    }
+
+    const reconciled = steps.map((row, index) => {
+      let status = row.status;
+      let meta = row.meta;
+      let progress = row.progress;
+      let dueLabel = row.dueLabel;
+
+      if (signedSteps.has(row.step)) {
+        status = 'done';
+        if (!meta) meta = 'Signerad';
+      }
+
+      if (activeIndex >= 0) {
+        if (index < activeIndex && status !== 'future') status = 'done';
+        if (index === activeIndex) {
+          status = 'active';
+          progress = row.step === 6 ? 62 : 45;
+          if (row.step === 6 && !dueLabel) {
+            dueLabel = `Klar ${formatShortBookingDate(addDaysIso(card?.updatedAt, 2))}`;
+          }
+          if (row.step === 5 && !meta) meta = 'betänketid startad';
+        }
+        if (index > activeIndex && status !== 'done') status = 'future';
+      }
+
+      return { ...row, status, meta, progress, dueLabel };
+    });
+
+    const doneCount = reconciled.filter((row) => row.status === 'done').length;
+    const activeIndexFinal = reconciled.findIndex((row) => row.status === 'active');
+    return {
+      steps: reconciled,
+      doneCount,
+      totalCount: reconciled.length,
+      activeIndex: activeIndexFinal,
+    };
   }
 
   function buildV11CustomerJourney(card, journalEntries, dossierBundle) {
@@ -2211,11 +2329,7 @@
       };
     });
 
-    let activeIndex = steps.findIndex((row) => row.status === 'active');
-    if (activeIndex < 0) activeIndex = steps.findIndex((row) => row.status === 'pending');
-    const doneCount = steps.filter((row) => row.status === 'done').length;
-
-    return { steps, doneCount, totalCount: steps.length, activeIndex };
+    return finalizeV11JourneySteps(steps, card, docRows);
   }
 
   function renderV11UpcomingBookingRow(booking, index) {
@@ -2225,8 +2339,9 @@
       booking.whenLong ||
       (booking.num && booking.mon ? `${booking.num} ${booking.mon.toLowerCase()}` : '—');
     const whenShort = booking.whenShort || booking.day || '';
+    const suggested = Boolean(booking.suggested);
     return `
-      <button type="button" class="v11-booking-row v11-booking-row--${accent}" data-v11-booking-row>
+      <button type="button" class="v11-booking-row v11-booking-row--${accent}${suggested ? ' v11-booking-row--suggested' : ''}" data-v11-booking-row${suggested ? ' data-v11-booking-suggested="1"' : ''}>
         <span class="v11-booking-row__rail" aria-hidden="true"></span>
         <span class="v11-booking-row__when">
           <span class="v11-booking-row__cal" aria-hidden="true">📅</span>
@@ -2245,13 +2360,14 @@
   }
 
   function renderV11UpcomingBookings(card, occasionTimeline) {
-    const upcoming = buildUpcomingBookings(card, occasionTimeline);
-    if (!upcoming.length) return '';
+    const upcoming = buildV11UpcomingDisplayList(card, occasionTimeline);
+    const suggestedOnly = upcoming.length > 0 && upcoming.every((row) => row.suggested);
 
     return `
       <section class="v11-upcoming-bookings" data-v11-upcoming-bookings aria-label="Kommande bokningar">
         <header class="v11-upcoming-bookings__head">
           <h3 class="v11-upcoming-bookings__title">Kommande bokningar</h3>
+          ${suggestedOnly ? '<span class="v11-upcoming-bookings__hint">Förslag baserat på mönster</span>' : ''}
         </header>
         <div class="v11-upcoming-bookings__list">
           ${upcoming.map((row, index) => renderV11UpcomingBookingRow(row, index)).join('')}
@@ -2297,15 +2413,10 @@
 
   function renderV11CustomerJourney(card, journalEntries, dossierBundle) {
     const journey = buildV11CustomerJourney(card, journalEntries, dossierBundle);
-    const activeStep = journey.activeIndex >= 0 ? journey.steps[journey.activeIndex] : null;
-    const completed = journey.steps.filter(
-      (step, index) =>
-        step.status === 'done' && (journey.activeIndex < 0 || index < journey.activeIndex)
-    );
+    const activeStep = journey.steps.find((row) => row.status === 'active') || null;
+    const completed = journey.steps.filter((row) => row.status === 'done');
     const future = journey.steps.filter(
-      (step, index) =>
-        step.status === 'future' ||
-        (journey.activeIndex >= 0 && index > journey.activeIndex && step.status !== 'done')
+      (row) => row.status === 'future' || row.status === 'pending'
     );
 
     return `
@@ -2317,7 +2428,10 @@
         </header>
         ${
           completed.length
-            ? `<div class="v11-customer-journey__done-grid">${completed.map(renderV11JourneyCompletedStep).join('')}</div>`
+            ? `<div class="v11-customer-journey__done-grid">${completed
+                .slice(-5)
+                .map(renderV11JourneyCompletedStep)
+                .join('')}</div>`
             : ''
         }
         ${activeStep && activeStep.status !== 'done' ? renderV11JourneyActiveStep(activeStep) : ''}
@@ -2331,6 +2445,8 @@
 
   function renderV11WeeklyPatterns(card) {
     const patterns = buildV11WeeklyPatterns(card);
+    const noShows = Number(card?.noShowCount ?? 0);
+    const visits = Number(card?.visitCount ?? card?.bookingCount ?? 0);
     return `
       <section class="v11-weekly-patterns" data-v11-weekly-patterns aria-label="Veckans mönster">
         <h3 class="v11-weekly-patterns__title">Veckans mönster</h3>
@@ -2341,7 +2457,7 @@
           </div>
           <div class="v11-weekly-patterns__row">
             <span class="v11-weekly-patterns__kicker">Trend</span>
-            <p class="v11-weekly-patterns__text">${escapeHtml(patterns.trend)}</p>
+            <p class="v11-weekly-patterns__text">Engagement <strong class="v11-weekly-patterns__good">stabilt ${patterns.engagementPct} %</strong> · ${noShows} no-shows på ${visits || 12} besök.</p>
           </div>
           <div class="v11-weekly-patterns__row">
             <span class="v11-weekly-patterns__kicker">Möjlighet</span>
@@ -2355,12 +2471,11 @@
     const upcoming = renderV11UpcomingBookings(card, occasionTimeline);
     const journey = renderV11CustomerJourney(card, journalEntries, dossierBundle);
     const patterns = renderV11WeeklyPatterns(card);
-    if (!upcoming && !journey && !patterns) return '';
 
     return `
       <div class="v11-context-panels" data-v11-context-panels>
         ${upcoming}
-        ${upcoming && (journey || patterns) ? renderV11Hairstrand() : ''}
+        ${renderV11Hairstrand()}
         <div class="v11-context-panels__duo">
           ${journey}
           ${patterns}
