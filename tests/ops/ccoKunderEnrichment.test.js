@@ -6,6 +6,7 @@ const {
   buildAssetSignalsIndex,
   buildKunderReadout,
   computeSegmentStats,
+  isHealthDeclarationAsset,
   matchSegment,
   getPatientOwnerName,
   buildOwnerFieldInventory,
@@ -41,6 +42,66 @@ describe('ccoKunderEnrichment', () => {
     assert.equal(sig.hasForm, true);
     assert.equal(sig.hasHalso, true);
     assert.equal(sig.needsPhotoReview, true);
+  });
+
+  it('ORD-29 Phase 1 counts m365_halso form/other as health declaration', () => {
+    const index = buildAssetSignalsIndex([
+      {
+        patientId: 'p-halso',
+        category: 'other',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        sourceSystem: 'm365_halso',
+        originalFileName: 'halsodeklaration-2024.html',
+      },
+    ]);
+    const readout = buildKunderReadout(
+      {
+        id: 'p-halso',
+        displayName: 'Halso Import',
+        matchStatus: 'matched',
+        flags: [],
+        fileSummary: {},
+      },
+      index
+    );
+    assert.equal(readout.hasHalso, true);
+    assert.equal(readout.hasForm, true);
+    assert.equal(readout.missingHealthDeclaration, false);
+  });
+
+  it('ORD-29 Phase 1 does not clear missingHealthDeclaration for m365_halso journal assets', () => {
+    const index = buildAssetSignalsIndex([
+      {
+        patientId: 'p-journal-only',
+        category: 'journal',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        sourceSystem: 'm365_halso',
+      },
+    ]);
+    const readout = buildKunderReadout(
+      {
+        id: 'p-journal-only',
+        displayName: 'Journal Only',
+        matchStatus: 'matched',
+        flags: [],
+        fileSummary: {},
+      },
+      index
+    );
+    assert.equal(readout.hasHalso, true);
+    assert.equal(readout.hasForm, false);
+    assert.equal(readout.missingHealthDeclaration, true);
+  });
+
+  it('isHealthDeclarationAsset rejects injektions-journal filenames', () => {
+    assert.equal(
+      isHealthDeclarationAsset({
+        category: 'other',
+        sourceSystem: 'm365_halso',
+        originalFileName: '[Injektions-journal/Webb] patient.html',
+      }),
+      false
+    );
   });
 
   it('matches VIP from pipedrive deals', () => {

@@ -155,6 +155,7 @@ function maskPhone(phone) {
 function emptyAssetSignals() {
   return {
     hasForm: false,
+    hasHealthDeclarationDocument: false,
     hasAgreement: false,
     hasGetAccept: false,
     hasHalso: false,
@@ -167,6 +168,41 @@ function emptyAssetSignals() {
     assetNeedsReview: false,
     assetCount: 0,
   };
+}
+
+function isHealthDeclarationAsset(asset = {}) {
+  const cat = normalizeKey(asset.category);
+  if (cat === 'form') return true;
+
+  const source = normalizeKey(asset.sourceSystem);
+  if (source !== 'm365_halso') return false;
+
+  if (['journal', 'agreement', 'consent'].includes(cat)) return false;
+  if (/^photo_/.test(cat)) return false;
+
+  const haystack = normalizeKey(
+    [
+      asset.originalFileName,
+      asset.originalDrivePath,
+      asset.storageKey,
+      asObject(asset.metadata).documentType,
+      asObject(asset.metadata).documentTypeId,
+      asObject(asset.metadata).subject,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+  if (/injektions.?journal|friskforsak|friskförsäkr|behandlingsavtal|offert/.test(haystack)) {
+    return false;
+  }
+
+  // halso@-import: form/other = hälsodeklaration; aldrig journal/agreement ovan.
+  return cat === 'other' || !cat;
+}
+
+function patientHasHealthDeclarationAsset(sig = null) {
+  const safe = sig || emptyAssetSignals();
+  return Boolean(safe.hasForm || safe.hasHealthDeclarationDocument);
 }
 
 /**
@@ -191,6 +227,7 @@ function buildAssetSignalsIndex(items = [], tenantId = null) {
     const source = normalizeKey(asset.sourceSystem);
 
     if (cat === 'form') sig.hasForm = true;
+    if (isHealthDeclarationAsset(asset)) sig.hasHealthDeclarationDocument = true;
     if (cat === 'agreement' || cat === 'consent') sig.hasAgreement = true;
     if (source === 'getaccept_import') sig.hasGetAccept = true;
     if (source === 'm365_halso') sig.hasHalso = true;
@@ -343,7 +380,7 @@ function matchSegment(
       if (
         booking.hasUpcomingBooking &&
         isBookingWithinDays(booking.nextBookingAt, RISK_BOOKING_WINDOW_DAYS) &&
-        !sig.hasForm
+        !patientHasHealthDeclarationAsset(sig)
       ) {
         return true;
       }
@@ -366,11 +403,11 @@ function matchSegment(
     case 'missing_journal':
       return !hasJournal && !sig.hasDriveJournalAsset;
     case 'missing_health_declaration':
-      return !sig.hasForm;
+      return !patientHasHealthDeclarationAsset(sig);
     case 'missing_encounter':
       return booking.missingEncounterForBooking || sig.needsEncounterReview;
     case 'has_form':
-      return sig.hasForm;
+      return patientHasHealthDeclarationAsset(sig);
     case 'getaccept':
       return sig.hasGetAccept;
     case 'halso':
@@ -455,6 +492,11 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
   const sig = getAssetSignals(assetIndex, base.patientId);
   const fs = asObject(patient.fileSummary);
   const hasJournal = base.hasJournalHistory || sig.hasDriveJournalAsset;
+  const structuredHd = asObject(patient.healthDeclaration);
+  const hasStructuredHd = Boolean(structuredHd.signedAt);
+  const hasHealthDeclaration =
+    patientHasHealthDeclarationAsset(sig) || hasStructuredHd || Boolean(base.hasHealthDeclaration);
+  const hasForm = hasHealthDeclaration;
   const reviewFlags = [];
   if (base.flags?.includes('needs_review')) reviewFlags.push('needs_review');
   if (sig.assetNeedsReview) reviewFlags.push('asset_needs_review');
@@ -479,9 +521,9 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     ),
     hasJournal,
     missingJournal: !hasJournal,
-    hasForm: sig.hasForm,
-    missingForm: !sig.hasForm, // deprecated — use missingHealthDeclaration
-    missingHealthDeclaration: !sig.hasForm,
+    hasForm,
+    missingForm: !hasForm, // deprecated — use missingHealthDeclaration
+    missingHealthDeclaration: !hasHealthDeclaration,
     hasAgreement: sig.hasAgreement,
     missingAgreement: hasJournal && !sig.hasAgreement,
     hasHalso: sig.hasHalso,
@@ -718,7 +760,7 @@ function computeAggInsights(
     const booking = getBookingSignals(bookingIndex, patient.id);
     const name = safeAggPatientName(patient);
 
-    if (booking.todayVisit && !assetSig.hasForm) {
+    if (booking.todayVisit && !patientHasHealthDeclarationAsset(assetSig)) {
       idagCount += 1;
       if (name && idagNames.length < 3) idagNames.push(name);
     }
@@ -810,7 +852,7 @@ function computeUpcomingTreatment(patients, assetIndex, bookingIndex, bookingCov
         startsAtMs,
         treatmentLabel: normalizeText(booking.nextBookingType) || 'Behandling',
         practitionerLabel: normalizeText(booking.nextBookingResourceLabel) || '',
-        missingForm: !assetSig.hasForm,
+        missingForm: !patientHasHealthDeclarationAsset(assetSig),
         engineBookingId: booking.engineBookingId || null,
         bookingCaseId: booking.bookingCaseId || null,
       };
@@ -872,7 +914,7 @@ function computeSegmentStats(
     const booking = getBookingSignals(bookingIndex, patient.id);
     if (hasJournalFromPatient(patient) || sig.hasDriveJournalAsset) withJournal += 1;
     else missingJournal += 1;
-    if (sig.hasForm) withForm += 1;
+    if (patientHasHealthDeclarationAsset(sig)) withForm += 1;
     else missingForm += 1;
     if (
       normalizeKey(patient.matchStatus) === 'needs_review' ||
@@ -1037,9 +1079,11 @@ module.exports = {
   computeUpcomingTreatment,
   computeSegmentStats,
   filterPatientsBySegment,
+  isHealthDeclarationAsset,
   loadAssetSignalsIndex,
   loadKunderBookingIndex,
   matchSegment,
+  patientHasHealthDeclarationAsset,
   getPatientOwnerName,
   auditOwnerFieldsOnPatient,
   buildOwnerFieldInventory,
