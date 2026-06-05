@@ -703,7 +703,7 @@
     ];
 
     if (!synthesisOnly) {
-      primary.push(renderSynthesisBlock('ai', 'AI-insikter', insights.length, aiHtml));
+      primary.push(renderSynthesisBlock('ai', 'Insikter', insights.length, aiHtml));
     }
 
     if (synthesisOnly) {
@@ -1368,7 +1368,7 @@
     return `
       <section class="v9-intel-bubbles v9-intel-bubbles--cards" data-v9-intel-bubbles aria-label="Intelligenta statusbubblor">
         <div class="v9-intel-bubbles__head">
-          <span class="v9-intel-bubbles__kicker">AI-insikter</span>
+          <span class="v9-intel-bubbles__kicker">Insikter</span>
           <button type="button" class="v9-intel-bubbles__all" data-v9-intel-open-all>Visa kundresa ›</button>
         </div>
         <div class="dossier-ai-grid v9-intel-featured-grid">

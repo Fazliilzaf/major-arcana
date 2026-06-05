@@ -3908,6 +3908,177 @@
           </ol>`;
   }
 
+  function buildV9JournalStatusEntries(card) {
+    // Förväntade journal/dokument per Hair TP kundresa.
+    // Heuristik från befintliga signaler; ORD-23 backend ger real fill-audit per entry.
+    const entries = [];
+    const signals = card?.automationSignals || [];
+    const findSig = (key) => signals.find((s) => String(s?.ruleId || '').includes(key));
+    const hasUpcoming = Boolean(card?.hasUpcomingBooking);
+    const hasJournal = Boolean(card?.hasJournal);
+
+    function entry(id, title, icon, status, by, when, actionLabel) {
+      return { id, title, icon, status, by: by || null, when: when || null, actionLabel };
+    }
+
+    // Hälsodeklaration
+    const haelsoSig = findSig('health') || findSig('haelso');
+    entries.push(
+      entry(
+        'health_declaration',
+        'Hälsodeklaration',
+        '📋',
+        card?.missingHealthDeclaration ? 'missing' : haelsoSig ? 'partial' : 'filled',
+        card?.healthDeclarationBy || null,
+        card?.healthDeclarationAt || null,
+        card?.missingHealthDeclaration ? 'Skicka portal-länk' : 'Visa'
+      )
+    );
+
+    // Friskförsäkran
+    entries.push(
+      entry(
+        'fitness_certificate',
+        'Friskförsäkran',
+        '🩺',
+        card?.missingFitnessCertificate ? 'missing' : 'filled',
+        card?.fitnessCertificateBy || null,
+        card?.fitnessCertificateAt || null,
+        card?.missingFitnessCertificate ? (hasUpcoming ? 'Begär signering' : 'Schemalägg') : 'Visa'
+      )
+    );
+
+    // Foto-samtycke
+    const photoSigned = Boolean(card?.photoConsent?.signed);
+    entries.push(
+      entry(
+        'photo_consent',
+        'Foto-samtycke',
+        '📷',
+        photoSigned ? 'filled' : 'missing',
+        card?.photoConsent?.grantedBy || null,
+        card?.photoConsent?.grantedAt || null,
+        photoSigned ? 'Visa' : 'Begär samtycke'
+      )
+    );
+
+    // Pre-op journal
+    entries.push(
+      entry(
+        'preop_journal',
+        'Pre-op journal',
+        '📝',
+        hasJournal ? 'filled' : 'missing',
+        card?.preopBy || null,
+        card?.preopAt || null,
+        hasJournal ? 'Öppna' : 'Skapa'
+      )
+    );
+
+    // Före-bilder
+    const photoCount = Number(card?.fileSummary?.images || 0);
+    entries.push(
+      entry(
+        'before_photos',
+        'Före-bilder',
+        '📸',
+        photoCount >= 4 ? 'filled' : photoCount > 0 ? 'partial' : 'missing',
+        null,
+        null,
+        photoCount >= 4 ? `${photoCount}/4 uppladdade` : 'Ta foto'
+      )
+    );
+
+    // Operations-journal
+    entries.push(
+      entry(
+        'op_journal',
+        'Operations-journal',
+        '⚕',
+        card?.hasCompletedTreatment ? 'filled' : 'pending',
+        null,
+        null,
+        card?.hasCompletedTreatment ? 'Öppna' : 'Schemalagd'
+      )
+    );
+
+    // Efter-bilder
+    entries.push(
+      entry(
+        'after_photos',
+        'Efter-bilder',
+        '📷',
+        card?.hasCompletedTreatment ? 'missing' : 'pending',
+        null,
+        null,
+        card?.hasCompletedTreatment ? 'Ta foto' : 'Efter operation'
+      )
+    );
+
+    // Uppföljnings-journal
+    entries.push(
+      entry(
+        'followup_journal',
+        'Uppfölj-journal',
+        '🔄',
+        card?.hasFollowUpBooking ? 'partial' : 'pending',
+        null,
+        null,
+        card?.hasFollowUpBooking ? 'Fortsätt' : 'Boka uppföljning'
+      )
+    );
+
+    return entries;
+  }
+
+  function formatV9TileDate(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function renderV9JournalStatusGridHtml(card) {
+    if (!isV9CustomersEnabled() || !card) return '';
+    const entries = buildV9JournalStatusEntries(card);
+    if (!entries.length) return '';
+    const filledCount = entries.filter((e) => e.status === 'filled').length;
+    return `
+        <section class="v9-journal-status" data-v9-journal-status aria-label="Journal-status">
+          <header class="v9-journal-status__head">
+            <span>Journal & dokument</span>
+            <span>${filledCount}/${entries.length} klart</span>
+          </header>
+          ${entries
+            .map((e) => {
+              const initial = e.by ? escapeHtml(e.by.slice(0, 2).toUpperCase()) : '';
+              const dateLabel = formatV9TileDate(e.when);
+              return `
+              <article class="v9-journal-tile" data-v9-journal-tile="${escapeHtml(e.id)}" data-status="${escapeHtml(e.status)}">
+                <div class="v9-journal-tile__head">
+                  <span class="v9-journal-tile__icon" aria-hidden="true">${escapeHtml(e.icon)}</span>
+                  <div style="flex:1;min-width:0">
+                    <h4 class="v9-journal-tile__title">${escapeHtml(e.title)}</h4>
+                    <div class="v9-journal-tile__meta">
+                      ${
+                        e.by || dateLabel
+                          ? `<span class="v9-journal-tile__by">${initial ? `<span class="v9-journal-tile__by-avatar">${initial}</span>` : ''}${e.by ? `${escapeHtml(e.by)}` : ''}${dateLabel ? ` · ${escapeHtml(dateLabel)}` : ''}</span>`
+                          : '<span>Inte ifylld ännu</span>'
+                      }
+                    </div>
+                  </div>
+                </div>
+                <button type="button" class="v9-journal-tile__action" data-v9-journal-action="${escapeHtml(e.id)}">${escapeHtml(e.actionLabel)}</button>
+              </article>`;
+            })
+            .join('')}
+        </section>`;
+  }
+
   function renderV9Zone1BlockersHtml(card) {
     const items = collectV9Zone1Blockers(card);
     if (!items.length) return '';
@@ -4086,6 +4257,7 @@
             ${renderV9Zone1BlockersHtml(card)}
             ${renderV9JourneyStepperHtml(card)}
             ${renderV9Zone1PrimaryStepHtml(card, { loading })}
+            ${renderV9JournalStatusGridHtml(card)}
             <div class="dossier-stats">
               ${stats
                 .map(

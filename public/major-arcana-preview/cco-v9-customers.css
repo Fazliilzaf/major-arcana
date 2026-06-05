@@ -3051,19 +3051,33 @@ html[data-v9-enabled="on"] [data-v9-customers-filters] .filter-chip-spacer {
 
 /* ─────────────────────────────────────────────────────────────────
  * Kundresa 9-stegs stepper i dossier (owner-request 2026-06-04)
- * Horisontell rad med 9 steg, färgkodad per state.
+ * Vellum-tile per steg + connecting line + rose-gold done + amber-pulse active.
+ * DESIGN-DNA: depth via gradient+multi-shadow+inset-highlight, ej platt.
  * ───────────────────────────────────────────────────────────────── */
 
 html[data-v9-enabled="on"] .v9-journey-stepper {
   list-style: none;
   display: flex;
-  gap: 4px;
-  margin: 10px 0 6px;
-  padding: 0;
+  gap: 0;
+  margin: 14px 0 10px;
+  padding: 8px 6px;
   align-items: stretch;
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
+  position: relative;
+  /* Subtle connecting line bakom alla steg */
+  background-image: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 20px,
+    rgba(180, 160, 140, 0.22) 20px,
+    rgba(180, 160, 140, 0.22) calc(100% - 20px),
+    transparent calc(100% - 20px)
+  );
+  background-position: center 30px;
+  background-size: 100% 2px;
+  background-repeat: no-repeat;
 }
 html[data-v9-enabled="on"] .v9-journey-stepper::-webkit-scrollbar {
   display: none;
@@ -3071,73 +3085,314 @@ html[data-v9-enabled="on"] .v9-journey-stepper::-webkit-scrollbar {
 
 html[data-v9-enabled="on"] .v9-journey-step {
   flex: 1 1 0;
-  min-width: 56px;
+  min-width: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 4px 8px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px solid rgba(180, 160, 140, 0.18);
+  gap: 6px;
+  padding: 4px 2px 6px;
   position: relative;
+  background: transparent;
+  border: none;
+  cursor: default;
+  transition: transform 0.18s ease;
 }
 
 html[data-v9-enabled="on"] .v9-journey-step__dot {
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  background: var(--v9-bg-surface-sunken, #f5efe6);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(247, 241, 236, 0.86)
+  );
   color: var(--v9-text-tertiary, #8a8174);
-  border: 1.5px solid rgba(180, 160, 140, 0.45);
+  border: 1.5px solid rgba(180, 160, 140, 0.35);
   font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  position: relative;
+  z-index: 1;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 html[data-v9-enabled="on"] .v9-journey-step__label {
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--v9-text-secondary, rgba(70, 60, 50, 0.62));
   text-align: center;
-  line-height: 1.1;
+  line-height: 1.15;
+  max-width: 70px;
+  word-break: keep-all;
 }
 
-/* States */
-html[data-v9-enabled="on"] .v9-journey-step--done {
-  background: rgba(74, 130, 104, 0.12);
-  border-color: rgba(74, 130, 104, 0.35);
+html[data-v9-enabled="on"] .v9-journey-step:hover .v9-journey-step__dot {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 10px rgba(56, 40, 28, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
+
+/* DONE — rose-gold/champagne fill, satin shadow */
 html[data-v9-enabled="on"] .v9-journey-step--done .v9-journey-step__dot {
-  background: #4a8268;
+  background: linear-gradient(
+    180deg,
+    #f0d4b4 0%,
+    #d8a878 55%,
+    #b8855a 100%
+  );
   color: #fff;
-  border-color: #4a8268;
+  border-color: rgba(120, 70, 30, 0.42);
+  text-shadow: 0 1px 0 rgba(80, 50, 20, 0.35);
+  box-shadow:
+    0 3px 10px rgba(180, 130, 80, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    inset 0 -2px 4px rgba(120, 60, 20, 0.18);
 }
 html[data-v9-enabled="on"] .v9-journey-step--done .v9-journey-step__label {
-  color: #2b5a44;
+  color: #6b3d10;
+  font-weight: 800;
 }
 
-html[data-v9-enabled="on"] .v9-journey-step--active {
-  background: rgba(200, 130, 30, 0.14);
-  border-color: rgba(200, 130, 30, 0.5);
-  box-shadow: 0 0 0 2px rgba(200, 130, 30, 0.18);
-}
+/* ACTIVE — amber-pulse keyframe, samma DNA som watch-alert */
 html[data-v9-enabled="on"] .v9-journey-step--active .v9-journey-step__dot {
-  background: var(--v9-calendar-accent, #c8821e);
-  color: #fff;
-  border-color: var(--v9-calendar-accent, #c8821e);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 200, 120, 0.98),
+    rgba(220, 150, 60, 0.96)
+  );
+  color: #2a1d10;
+  border-color: rgba(200, 130, 30, 0.55);
+  box-shadow:
+    0 4px 12px rgba(200, 130, 30, 0.36),
+    inset 0 1px 0 rgba(255, 230, 190, 0.55);
+  animation: v9JourneyActivePulse 2.2s ease-in-out infinite;
 }
 html[data-v9-enabled="on"] .v9-journey-step--active .v9-journey-step__label {
   color: #7a4014;
+  font-weight: 800;
 }
 
+@keyframes v9JourneyActivePulse {
+  0%, 100% {
+    box-shadow:
+      0 4px 12px rgba(200, 130, 30, 0.36),
+      inset 0 1px 0 rgba(255, 230, 190, 0.55),
+      0 0 0 0 rgba(200, 130, 30, 0);
+  }
+  50% {
+    box-shadow:
+      0 4px 12px rgba(200, 130, 30, 0.36),
+      inset 0 1px 0 rgba(255, 230, 190, 0.55),
+      0 0 0 6px rgba(200, 130, 30, 0.18);
+  }
+}
+
+/* PENDING — låg vikt */
 html[data-v9-enabled="on"] .v9-journey-step--pending .v9-journey-step__dot {
+  opacity: 0.55;
+  filter: saturate(0.6);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Journal status-grid — vellum-cards per förväntad journal-typ
+ * Owner-krav: "vilka är ifyllda, av vem, vilka saknas, var fyller jag"
+ * ───────────────────────────────────────────────────────────────── */
+
+html[data-v9-enabled="on"] .v9-journal-status {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 16px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+html[data-v9-enabled="on"] .v9-journal-status__head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--v9-text-tertiary, #8a8174);
+  margin-bottom: 2px;
+}
+
+html[data-v9-enabled="on"] .v9-journal-tile {
+  position: relative;
+  padding: 12px 14px 14px;
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.94),
+    rgba(247, 241, 236, 0.86)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+  overflow: hidden;
+}
+html[data-v9-enabled="on"] .v9-journal-tile:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 18px rgba(56, 40, 28, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+/* Topp-stripe per status (vellum-accent-pattern från story-cards) */
+html[data-v9-enabled="on"] .v9-journal-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+  pointer-events: none;
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="filled"]::before {
+  background: linear-gradient(90deg, #4a8268, rgba(74, 130, 104, 0.45));
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="missing"]::before {
+  background: linear-gradient(90deg, var(--v9-status-warning, #c8821e), rgba(200, 130, 30, 0.45));
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="partial"]::before {
+  background: linear-gradient(90deg, var(--v9-status-info, #4a7ba8), rgba(74, 123, 168, 0.45));
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="pending"]::before {
+  background: linear-gradient(90deg, rgba(140, 130, 120, 0.55), rgba(140, 130, 120, 0.18));
+}
+
+html[data-v9-enabled="on"] .v9-journal-tile__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+html[data-v9-enabled="on"] .v9-journal-tile__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--v9-bg-surface-sunken, #f5efe6);
+  border: 1px solid rgba(180, 160, 140, 0.3);
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="filled"] .v9-journal-tile__icon {
+  background: linear-gradient(180deg, rgba(74, 130, 104, 0.14), rgba(74, 130, 104, 0.08));
+  border-color: rgba(74, 130, 104, 0.32);
+  color: #2b5a44;
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="missing"] .v9-journal-tile__icon {
+  background: linear-gradient(180deg, rgba(200, 130, 30, 0.16), rgba(200, 130, 30, 0.08));
+  border-color: rgba(200, 130, 30, 0.4);
+  color: #7a4014;
+}
+
+html[data-v9-enabled="on"] .v9-journal-tile__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v9-color-brand, #2b251f);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+html[data-v9-enabled="on"] .v9-journal-tile__meta {
+  font-size: 10.5px;
+  color: var(--v9-text-secondary, rgba(70, 60, 50, 0.62));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+html[data-v9-enabled="on"] .v9-journal-tile__by {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--v9-color-brand, #2b251f);
+}
+html[data-v9-enabled="on"] .v9-journal-tile__by-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(180deg, #b8855a, #8a5a30);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+html[data-v9-enabled="on"] .v9-journal-tile__action {
+  appearance: none;
+  border: 0;
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="missing"] .v9-journal-tile__action {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 200, 120, 0.96),
+    rgba(220, 150, 60, 0.94)
+  );
+  color: #2a1d10;
+  box-shadow: 0 2px 6px rgba(220, 150, 60, 0.34);
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="missing"] .v9-journal-tile__action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 150, 60, 0.42);
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="filled"] .v9-journal-tile__action {
+  background: rgba(74, 130, 104, 0.14);
+  color: #2b5a44;
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="pending"] .v9-journal-tile__action {
+  background: rgba(140, 130, 120, 0.16);
+  color: #5a4338;
+  cursor: not-allowed;
   opacity: 0.7;
+}
+html[data-v9-enabled="on"] .v9-journal-tile[data-status="partial"] .v9-journal-tile__action {
+  background: rgba(74, 123, 168, 0.16);
+  color: #2a4a68;
 }
 
 /* ─────────────────────────────────────────────────────────────────
