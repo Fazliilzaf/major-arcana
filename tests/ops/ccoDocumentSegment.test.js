@@ -6,10 +6,12 @@ const {
   getAllDocumentTypes,
   getDocumentTypeById,
   filterDocumentTypes,
+  resolveTypeClinics,
 } = require('../../src/ops/ccoDocumentTypeRegistry');
 const {
   buildPatientDocumentBundle,
   groupForType,
+  typeAppliesToPatient,
 } = require('../../src/ops/ccoPatientDocumentAggregator');
 
 test('document registry exposes 36 Hair TP types', () => {
@@ -58,4 +60,19 @@ test('groupForType maps offers and auto docs', () => {
   assert.equal(groupForType(getDocumentTypeById('offert_tp')), 'offers');
   assert.equal(groupForType(getDocumentTypeById('auto_bokningsbekraftelse')), 'autoDocs');
   assert.equal(groupForType(getDocumentTypeById('journal_tp')), 'journals');
+});
+
+test('shared skin docs apply on both clinics; profhilo is curatiio-only', () => {
+  const prpSkin = getDocumentTypeById('offert_prp_skin');
+  assert.deepEqual(resolveTypeClinics(prpSkin), ['hairtp', 'curatiio']);
+  assert.equal(typeAppliesToPatient(prpSkin, {}, 'prp_skin'), true);
+
+  const profhilo = getDocumentTypeById('offert_profilo');
+  assert.deepEqual(resolveTypeClinics(profhilo), ['curatiio']);
+  assert.equal(typeAppliesToPatient(profhilo, {}, 'profhilo'), true);
+  assert.equal(typeAppliesToPatient(profhilo, {}, 'prp_skin'), false);
+
+  const curatiioSkin = filterDocumentTypes({ clinic: 'curatiio', flow: 'prp_skin' });
+  assert.ok(curatiioSkin.some((row) => row.id === 'offert_prp_skin'));
+  assert.ok(!curatiioSkin.some((row) => row.id === 'offert_tp'));
 });

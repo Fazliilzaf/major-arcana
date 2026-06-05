@@ -17,14 +17,25 @@ function loadCatalog() {
   const parsed = JSON.parse(raw);
   const types = Array.isArray(parsed?.types) ? parsed.types : [];
   cachedCatalog = Object.freeze(
-    types.map((row) => ({
-      ...row,
-      id: normalizeText(row.id),
-      filler: row.filler === 'system_auto' ? 'system_auto' : normalizeText(row.filler) || 'patient',
-      flowApplies: Array.isArray(row.flowApplies) ? row.flowApplies : ['all'],
-      surfaces: Array.isArray(row.surfaces) ? row.surfaces : ['document_group'],
-      requiredFor: Array.isArray(row.requiredFor) ? row.requiredFor : [],
-    }))
+    types.map((row) => {
+      const clinic = normalizeText(row.clinic).toLowerCase() || 'hairtp';
+      const clinics = Array.isArray(row.clinics)
+        ? row.clinics.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
+        : clinic === 'both'
+          ? ['hairtp', 'curatiio']
+          : [clinic];
+      return {
+        ...row,
+        id: normalizeText(row.id),
+        clinic,
+        clinics,
+        filler:
+          row.filler === 'system_auto' ? 'system_auto' : normalizeText(row.filler) || 'patient',
+        flowApplies: Array.isArray(row.flowApplies) ? row.flowApplies : ['all'],
+        surfaces: Array.isArray(row.surfaces) ? row.surfaces : ['document_group'],
+        requiredFor: Array.isArray(row.requiredFor) ? row.requiredFor : [],
+      };
+    })
   );
   return cachedCatalog;
 }
@@ -51,6 +62,19 @@ function matchesSurface(type, surface) {
   return (type.surfaces || []).includes(needle);
 }
 
+function resolveTypeClinics(type = {}) {
+  if (Array.isArray(type.clinics) && type.clinics.length) return type.clinics;
+  const clinic = normalizeText(type.clinic).toLowerCase() || 'hairtp';
+  if (clinic === 'both') return ['hairtp', 'curatiio'];
+  return [clinic];
+}
+
+function matchesClinic(type, clinicFilter) {
+  const needle = normalizeText(clinicFilter).toLowerCase();
+  if (!needle) return true;
+  return resolveTypeClinics(type).includes(needle);
+}
+
 function filterDocumentTypes(filters = {}) {
   const clinic = normalizeText(filters.clinic).toLowerCase();
   const filler = normalizeText(filters.filler).toLowerCase();
@@ -61,7 +85,7 @@ function filterDocumentTypes(filters = {}) {
   const journeyStep = filters.journeyStep;
 
   return loadCatalog().filter((type) => {
-    if (clinic && type.clinic !== clinic) return false;
+    if (clinic && !matchesClinic(type, clinic)) return false;
     if (filler && type.filler !== filler) return false;
     if (category && type.category !== category) return false;
     if (flow && !matchesFlow(type, flow)) return false;
@@ -100,6 +124,8 @@ module.exports = {
   filterDocumentTypes,
   matchesFlow,
   matchesSurface,
+  matchesClinic,
+  resolveTypeClinics,
   mapFillerForUi,
   mapFlowLabel,
 };

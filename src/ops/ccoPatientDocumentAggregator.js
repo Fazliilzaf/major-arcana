@@ -5,6 +5,7 @@ const {
   getDocumentTypeById,
   mapFillerForUi,
   mapFlowLabel,
+  resolveTypeClinics,
 } = require('./ccoDocumentTypeRegistry');
 
 function normalizeText(value) {
@@ -28,13 +29,20 @@ function resolvePrimaryFlow(card = {}) {
 }
 
 function typeAppliesToPatient(type, card, primaryFlow) {
-  if (type.clinic === 'curatiio' && primaryFlow !== 'profhilo') return false;
-  if (type.clinic === 'hairtp' && primaryFlow === 'profhilo' && type.id === 'offert_profilo') {
-    return true;
-  }
   const flows = type.flowApplies || [];
-  if (flows.includes('all')) return true;
-  return flows.includes(primaryFlow);
+  const flowMatch = flows.includes('all') || flows.includes(primaryFlow);
+  if (!flowMatch) return false;
+
+  const clinics = resolveTypeClinics(type);
+  const curatiioOnly = clinics.length === 1 && clinics[0] === 'curatiio';
+  if (curatiioOnly) return primaryFlow === 'profhilo';
+
+  const hairtpOnly = clinics.length === 1 && clinics[0] === 'hairtp';
+  if (primaryFlow === 'profhilo' && hairtpOnly && !flows.includes('profhilo')) {
+    return false;
+  }
+
+  return true;
 }
 
 function mapInstanceUiStatus(status) {
