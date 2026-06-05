@@ -428,6 +428,11 @@ const config = {
     stateRoot,
     fileName: 'cco-patient-master.json',
   }),
+  ccoDocumentInstanceStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_DOCUMENT_INSTANCE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-document-instances.json',
+  }),
   ccoJournalStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_JOURNAL_STORE_PATH,
     stateRoot,

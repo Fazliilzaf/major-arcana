@@ -3354,9 +3354,30 @@
 
   function renderV9IntelligentBubblesBlock(card, journalEntries) {
     if (!isV9CustomersEnabled() || !card) return '';
+    const dossierBundle = runtime.detail?.documentBundle || runtime.detail?.dossierBundle || null;
     return (
-      window.CcoV9CustomersParity?.renderIntelligentJourneyBubblesHtml?.(card, journalEntries) || ''
+      window.CcoV9CustomersParity?.renderIntelligentJourneyBubblesHtml?.(
+        card,
+        journalEntries,
+        dossierBundle
+      ) || ''
     );
+  }
+
+  async function loadPatientDocumentBundle(patientId) {
+    if (!patientId) return null;
+    try {
+      const body = await apiRequest(
+        `/api/v1/cco-patient-master/patient/document-bundle?patientId=${encodeURIComponent(patientId)}`,
+        { cacheKey: `document-bundle:${patientId}`, staleTime: 30_000, gcTime: 120_000 }
+      );
+      if (runtime.detail && normalizeText(runtime.selectedPatientId) === normalizeText(patientId)) {
+        runtime.detail.documentBundle = body;
+      }
+      return body;
+    } catch {
+      return null;
+    }
   }
 
   function renderV9QuickPillsBlock(card) {
@@ -7409,6 +7430,12 @@
       }
       signalDeepLinkDetailReady(patientId);
       void loadScalpProtocolStatus(patientId);
+      if (isV9CustomersEnabled()) {
+        void loadPatientDocumentBundle(patientId).then(() => {
+          if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
+          renderDetailPanel();
+        });
+      }
       if (
         runtime.detailTab === 'journal' ||
         runtime.detailTab === 'tidslinje' ||

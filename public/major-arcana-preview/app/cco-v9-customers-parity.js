@@ -1646,19 +1646,23 @@
   function resolveV11DocumentPayload(card, dossierBundle) {
     const docs = dossierBundle?.documents;
     if (docs && typeof docs === 'object' && dossierBundle?.ready !== false) {
-      const counts = docs.counts || {};
+      const counts = docs.counts || dossierBundle.counts || {};
       return {
         ready: true,
         counts: {
           total: Number(counts.total ?? counts.all ?? 0),
-          done: Number(counts.done ?? counts.signed ?? 0),
-          pending: Number(counts.pending ?? counts.waiting ?? 0),
-          upcoming: Number(counts.upcoming ?? counts.planned ?? 0),
+          done: Number(counts.done ?? counts.klara ?? counts.signed ?? 0),
+          pending: Number(counts.pending ?? counts.vantar ?? counts.waiting ?? 0),
+          upcoming: Number(counts.upcoming ?? counts.kommer ?? counts.planned ?? 0),
         },
         offers: asArray(docs.offers || docs.offerter),
-        healthForms: asArray(docs.healthForms || docs.haelsoSamtycke || docs.consents),
-        journals: asArray(docs.journalStatus?.expected || docs.journaler || docs.journals),
-        autoDocs: asArray(docs.autoDokument || docs.auto || docs.autoDocuments),
+        healthForms: asArray(
+          docs.healthForms || docs.haelsoSamtycke || docs.consents || docs.haelso_samtycke
+        ),
+        journals: asArray(
+          docs.journalStatus?.expected || docs.journaler || docs.journals || docs.journaler
+        ),
+        autoDocs: asArray(docs.autoDokument || docs.auto || docs.autoDocuments || docs.autoDocs),
       };
     }
     return {
@@ -1753,7 +1757,7 @@
     const body =
       rows.length > 0
         ? `<div class="v11-doc-group__rows${grid ? ' v11-doc-group__rows--grid' : ''}">
-            ${rows.map((row) => renderV11DocumentRow(row)).join('')}
+            ${rows.map((row) => renderV11DocumentRow(row.title ? row : mapV11DocumentRow(row))).join('')}
           </div>`
         : `<p class="v11-doc-empty${ready ? '' : ' v11-doc-empty--pending'}">${
             ready
@@ -1779,18 +1783,10 @@
       : '0 dokument · backend ORD-24 saknas';
 
     const rowsByGroup = {
-      offers: payload.offers
-        .map((item) => mapV11DocumentRow(item, { filler: 'patient', flow: 'tp' }))
-        .filter(Boolean),
-      healthForms: payload.healthForms
-        .map((item) => mapV11DocumentRow(item, { filler: 'patient', flow: 'tp' }))
-        .filter(Boolean),
-      journals: payload.journals
-        .map((item) => mapV11DocumentRow(item, { filler: 'staff', flow: 'tp' }))
-        .filter(Boolean),
-      autoDocs: payload.autoDocs
-        .map((item) => mapV11DocumentRow(item, { filler: 'auto', flow: 'tp', status: 'sent' }))
-        .filter(Boolean),
+      offers: payload.offers,
+      healthForms: payload.healthForms,
+      journals: payload.journals,
+      autoDocs: payload.autoDocs,
     };
 
     return `

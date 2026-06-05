@@ -8,10 +8,7 @@ const {
   openZipEntryStream,
   resolveZipPath,
 } = require('../../scripts/migration/lib/migrationZipReader');
-const {
-  isGoogleDriveConfigured,
-  streamDriveFileToResponse,
-} = require('../lib/googleDriveClient');
+const { isGoogleDriveConfigured, streamDriveFileToResponse } = require('../lib/googleDriveClient');
 const {
   buildOccasionTimeline,
   extractFileOccasionContext,
@@ -33,6 +30,8 @@ function createCcoPatientMasterRouter({
   journalStore = null,
   migrationIndexStore = null,
   patientSystemStore = null,
+  documentInstanceStore = null,
+  buildPatientDocumentBundle = null,
   readCache = null,
   authStore,
   config,
@@ -75,8 +74,7 @@ function createCcoPatientMasterRouter({
     async (req, res) =>
       handle(req, res, async (actor) => {
         const cacheKey = readCache ? readCache.buildKey('patient-stats', actor.tenantId) : '';
-        const load = async () =>
-          patientMasterStore.getTenantStats({ tenantId: actor.tenantId });
+        const load = async () => patientMasterStore.getTenantStats({ tenantId: actor.tenantId });
         const stats =
           readCache && cacheKey
             ? (await readCache.wrap(cacheKey, 60_000, load)).value
@@ -157,7 +155,11 @@ function createCcoPatientMasterRouter({
     }
   );
 
-  async function buildPatientPayload(actor, patient, { includeJournal = true, includeDriveFiles = true } = {}) {
+  async function buildPatientPayload(
+    actor,
+    patient,
+    { includeJournal = true, includeDriveFiles = true } = {}
+  ) {
     let journalEntries = [];
     if (includeJournal && journalStore) {
       journalEntries = await journalStore.listEntries({
@@ -252,6 +254,97 @@ function createCcoPatientMasterRouter({
       })
   );
 
+  async function buildDocumentBundlePayload(actor, patient, { journalEntries = [] } = {}) {
+    if (!buildPatientDocumentBundle) {
+      return { ready: false, documents: null, error: 'document_bundle_unavailable' };
+    }
+    const card = patientMasterStore.buildPatientCardReadout(patient);
+    const bundle = await buildPatientDocumentBundle({
+      tenantId: actor.tenantId,
+      patientId: patient.id,
+      card,
+      journalEntries,
+      documentInstanceStore,
+    });
+    return bundle;
+  }
+
+  router.get(
+    '/cco-patient-master/patient/document-bundle',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId: normalizeText(req.query.patientId),
+          personnummer: normalizeText(req.query.personnummer),
+        });
+        if (!patient) {
+          return res.status(404).json({ error: 'Patienten hittades inte.' });
+        }
+        let journalEntries = [];
+        if (journalStore) {
+          journalEntries = await journalStore.listEntries({
+            tenantId: actor.tenantId,
+            patientId: patient.id,
+          });
+        }
+        const bundle = await buildDocumentBundlePayload(actor, patient, { journalEntries });
+        void auditRead(req, actor, patient.id, 'cco.patient_master.document_bundle.read').catch(
+          (error) => {
+            console.error('[cco.patient_master] audit document bundle read failed', error);
+          }
+        );
+        return res.json({
+          patientId: patient.id,
+          ...bundle,
+        });
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/patient/dossier-bundle',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId: normalizeText(req.query.patientId),
+          personnummer: normalizeText(req.query.personnummer),
+        });
+        if (!patient) {
+          return res.status(404).json({ error: 'Patienten hittades inte.' });
+        }
+        const includeJournal = !['0', 'false', 'no', 'off'].includes(
+          String(req.query.includeJournal ?? '1')
+            .trim()
+            .toLowerCase()
+        );
+        const payload = await buildPatientPayload(actor, patient, {
+          includeJournal,
+          includeDriveFiles: false,
+        });
+        const documentBundle = await buildDocumentBundlePayload(actor, patient, {
+          journalEntries: payload.journalEntries,
+        });
+        void auditRead(req, actor, patient.id, 'cco.patient_master.dossier_bundle.read').catch(
+          (error) => {
+            console.error('[cco.patient_master] audit dossier bundle read failed', error);
+          }
+        );
+        return res.json({
+          patientId: patient.id,
+          card: payload.card,
+          journalEntries: payload.journalEntries,
+          ready: true,
+          documents: documentBundle.documents,
+          documentBundle,
+        });
+      })
+  );
+
   router.get(
     '/cco-patient-master/file',
     requireAuth,
@@ -288,7 +381,10 @@ function createCcoPatientMasterRouter({
             if (!res.headersSent) {
               const status = Number(error?.status) === 404 ? 404 : 502;
               return res.status(status).json({
-                error: status === 404 ? 'Filen hittades inte i Google Drive.' : 'Kunde inte streama från Drive.',
+                error:
+                  status === 404
+                    ? 'Filen hittades inte i Google Drive.'
+                    : 'Kunde inte streama från Drive.',
               });
             }
             return;
@@ -413,7 +509,10 @@ function createCcoPatientMasterRouter({
         const body = req.body && typeof req.body === 'object' ? req.body : {};
         const patientId = normalizeText(body.patientId);
         if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
-        const existing = await patientMasterStore.getPatient({ tenantId: actor.tenantId, patientId });
+        const existing = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId,
+        });
         if (!existing) return res.status(404).json({ error: 'Patient hittades inte.' });
         const patient = await patientMasterStore.upsertPatient({
           ...existing,
@@ -551,7 +650,10 @@ function createCcoPatientMasterRouter({
           });
         }
 
-        const patient = await patientMasterStore.getPatient({ tenantId: actor.tenantId, patientId });
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId,
+        });
         if (!patient) return res.status(404).json({ error: 'Patient hittades inte.' });
 
         const anonymizedData = {

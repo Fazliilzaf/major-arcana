@@ -10181,6 +10181,8 @@ const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
 const { createCcoMacroStore } = require('./src/ops/ccoMacroStore');
 const { createCcoCustomerStore } = require('./src/ops/ccoCustomerStore');
 const { createCcoPatientMasterStore } = require('./src/ops/ccoPatientMasterStore');
+const { createCcoDocumentInstanceStore } = require('./src/ops/ccoDocumentInstanceStore');
+const { buildPatientDocumentBundle } = require('./src/ops/ccoPatientDocumentAggregator');
 const { createCcoJournalStore } = require('./src/ops/ccoJournalStore');
 const { createCcoTreatmentEncounterStore } = require('./src/ops/ccoTreatmentEncounterStore');
 const { createCcoJournalPhotoStore } = require('./src/ops/ccoJournalPhotoStore');
@@ -11436,6 +11438,9 @@ process.once('SIGTERM', () => {
   const ccoPatientMasterStore = await createCcoPatientMasterStore({
     filePath: config.ccoPatientMasterStorePath,
   });
+  const ccoDocumentInstanceStore = await createCcoDocumentInstanceStore({
+    filePath: config.ccoDocumentInstanceStorePath,
+  });
   const ccoDashboardSnapshot = createCcoStaffDashboardSnapshot({
     filePath: path.join(config.stateRoot || './data', 'cco-dashboard-snapshot.json'),
     readCache: ccoReadCache,
@@ -12282,6 +12287,8 @@ process.once('SIGTERM', () => {
       journalStore: ccoJournalStore,
       migrationIndexStore: ccoMigrationIndexStore,
       patientSystemStore: ccoPatientSystemStore,
+      documentInstanceStore: ccoDocumentInstanceStore,
+      buildPatientDocumentBundle,
       readCache: ccoReadCache,
       authStore,
       config,
