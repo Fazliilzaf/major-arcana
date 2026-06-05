@@ -823,6 +823,34 @@
   html[data-v9-enabled="on"] .customers-workspace {
     display: none !important;
   }
+  html[data-v9-referens-master-detail="on"] .customers-workspace,
+  html[data-v9-referens-master-detail="on"][data-v9-blueprint="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-workspace {
+    display: none !important;
+  }
+  html[data-v9-referens-master-detail="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout,
+  html[data-v9-referens-master-detail="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v9-dossier-open] {
+    grid-template-columns: 180px minmax(0, 1fr) 424px !important;
+  }
+  html[data-v9-referens-master-detail="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-list {
+    grid-column: 2;
+    max-width: none !important;
+    width: 100% !important;
+  }
+  html[data-v9-referens-master-detail="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail {
+    grid-column: 3;
+    max-width: 424px;
+    width: 100%;
+  }
   html[data-v9-enabled="on"] .customers-rail {
     width: auto !important;
     min-width: 0 !important;

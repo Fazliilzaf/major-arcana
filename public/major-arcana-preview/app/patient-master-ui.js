@@ -967,6 +967,60 @@
     return typeof window.CcoKundkortBlueprint?.renderKundkort === 'function';
   }
 
+  /** REFERENS master-detail — bred lista + stort kort, ingen mitten-workspace. */
+  function usesReferensMasterDetail() {
+    if (!usesBlueprintDesktopLayout()) return false;
+    if (typeof window.__renderReferensKundkort !== 'function') return false;
+    if (
+      typeof window.matchMedia === 'function' &&
+      !window.matchMedia('(min-width: 1100px)').matches
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  function applyReferensMasterDetailLayout() {
+    if (!usesReferensMasterDetail()) return;
+    document.documentElement.setAttribute('data-v9-referens-master-detail', 'on');
+    document.documentElement.removeAttribute('data-v9-blueprint');
+    const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
+    if (workspace) {
+      workspace.innerHTML = '';
+      workspace.hidden = true;
+      workspace.setAttribute('aria-hidden', 'true');
+      workspace.style.setProperty('display', 'none', 'important');
+    }
+    const layout = document.querySelector('.customers-layout');
+    if (layout) {
+      layout.style.setProperty('grid-template-columns', '180px minmax(0, 1fr) 424px', 'important');
+      layout.style.setProperty('gap', '18px', 'important');
+    }
+    const list = document.querySelector('.customers-list');
+    if (list) {
+      list.style.setProperty('max-width', 'none', 'important');
+      list.style.setProperty('width', '100%', 'important');
+    }
+  }
+
+  function clearReferensMasterDetailLayout() {
+    document.documentElement.removeAttribute('data-v9-referens-master-detail');
+    const layout = document.querySelector('.customers-layout');
+    if (layout) {
+      layout.style.removeProperty('grid-template-columns');
+      layout.style.removeProperty('gap');
+    }
+    const list = document.querySelector('.customers-list');
+    if (list) {
+      list.style.removeProperty('max-width');
+      list.style.removeProperty('width');
+    }
+    const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
+    if (workspace) {
+      workspace.style.removeProperty('display');
+    }
+  }
+
   function clearBlueprintWorkspace() {
     const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
     if (workspace) {
@@ -975,6 +1029,7 @@
       workspace.setAttribute('aria-hidden', 'true');
     }
     document.documentElement.removeAttribute('data-v9-blueprint');
+    clearReferensMasterDetailLayout();
   }
 
   function openBlueprintFullDossier(root, ctx) {
@@ -1015,42 +1070,22 @@
     const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
     if (!rail || !window.CcoKundkortBlueprint) return false;
     els.patientRail = rail;
-    // Master-detail: bred lista + stort dockat kort (slår CSS-cascaden)
-    try {
-      if (window.matchMedia('(min-width: 1100px)').matches) {
-        const mdWs = document.querySelector('.customers-workspace');
-        if (mdWs) mdWs.style.setProperty('display', 'none', 'important');
-        const mdLayout = document.querySelector('.customers-layout');
-        if (mdLayout) {
-          mdLayout.style.setProperty(
-            'grid-template-columns',
-            '200px minmax(0, 1fr) 420px',
-            'important'
-          );
-          mdLayout.style.setProperty('gap', '18px', 'important');
-        }
-        const mdList = document.querySelector('.customers-list');
-        if (mdList) {
-          mdList.style.setProperty('max-width', 'none', 'important');
-          mdList.style.setProperty('width', '100%', 'important');
-        }
-      }
-    } catch (mdErr) {
-      /* no-op */
+    const referensMasterDetail = usesReferensMasterDetail();
+    if (referensMasterDetail) {
+      applyReferensMasterDetailLayout();
     }
-    rail.innerHTML =
-      typeof window !== 'undefined' && window.__renderReferensKundkort
-        ? '<div class="kkref">' +
-          window.__renderReferensKundkort(card, dossierBundle, journalEntries) +
-          '</div>'
-        : window.CcoKundkortBlueprint.renderKundkort(
-            card,
-            journalEntries,
-            dossierBundle,
-            occasionTimeline,
-            driveFiles
-          );
-    if (workspace) {
+    rail.innerHTML = referensMasterDetail
+      ? '<div class="kkref">' +
+        window.__renderReferensKundkort(card, dossierBundle, journalEntries) +
+        '</div>'
+      : window.CcoKundkortBlueprint.renderKundkort(
+          card,
+          journalEntries,
+          dossierBundle,
+          occasionTimeline,
+          driveFiles
+        );
+    if (workspace && !referensMasterDetail) {
       workspace.innerHTML = window.CcoKundkortBlueprint.renderWorkspace(
         card,
         journalEntries,
@@ -1060,6 +1095,7 @@
       );
       workspace.hidden = false;
       workspace.setAttribute('aria-hidden', 'false');
+      workspace.style.removeProperty('display');
     }
     window.CcoKundkortBlueprint.bindKundkort(rail, {
       openFullDossier: () =>
@@ -1071,7 +1107,7 @@
           driveFiles,
         }),
     });
-    if (workspace) {
+    if (workspace && !referensMasterDetail) {
       window.CcoKundkortBlueprint.bindWorkspace(workspace, {
         onTabChange: (tab) => {
           runtime.blueprintWorkspaceTab = tab;
@@ -3392,15 +3428,22 @@
         runtime.detailLoading ||
         rail?.querySelector('[data-patient-detail]'))
     );
-    const blueprintOpen = usesBlueprintDesktopLayout() && dossierOpen;
+    const referensMasterDetail = usesReferensMasterDetail();
+    const blueprintOpen = usesBlueprintDesktopLayout() && dossierOpen && !referensMasterDetail;
     if (layout) {
       if (dossierOpen) layout.setAttribute('data-v9-dossier-open', 'on');
       else layout.removeAttribute('data-v9-dossier-open');
     }
     if (blueprintOpen) document.documentElement.setAttribute('data-v9-blueprint', 'on');
     else document.documentElement.removeAttribute('data-v9-blueprint');
-    if (list) list.classList.toggle('customers-list--compact', dossierOpen);
+    if (list)
+      list.classList.toggle('customers-list--compact', dossierOpen && !referensMasterDetail);
     if (rail) rail.classList.toggle('customers-rail--dominant', dossierOpen && !blueprintOpen);
+    if (referensMasterDetail && dossierOpen) {
+      applyReferensMasterDetailLayout();
+    } else if (!dossierOpen) {
+      clearReferensMasterDetailLayout();
+    }
     if (workspace && !blueprintOpen && !dossierOpen) {
       workspace.innerHTML = '';
       workspace.hidden = true;
