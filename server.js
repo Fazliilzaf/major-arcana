@@ -10159,6 +10159,9 @@ const {
   createMicrosoftGraphChangeNotifications,
 } = require('./src/infra/microsoftGraphChangeNotifications');
 const { createCcoMailIngestionRouter } = require('./src/routes/ccoMailIngestion');
+const {
+  createCcoHalsoHealthDeclarationIngest,
+} = require('./src/ops/ccoHalsoHealthDeclarationIngest');
 const { createMessageIntelligenceStore } = require('./src/ops/messageIntelligenceStore');
 const { createCustomerPreferenceStore } = require('./src/ops/customerPreferenceStore');
 const { createClientoBookingStore } = require('./src/ops/clientoBookingStore');
@@ -11438,6 +11441,14 @@ process.once('SIGTERM', () => {
   const ccoPatientMasterStore = await createCcoPatientMasterStore({
     filePath: config.ccoPatientMasterStorePath,
   });
+  const ccoHalsoHealthDeclarationIngest = config.ccoHalsoHealthDeclarationIngestEnabled
+    ? createCcoHalsoHealthDeclarationIngest({
+        config,
+        patientMasterStore: ccoPatientMasterStore,
+        dedupStorePath: config.ccoHalsoHealthDeclarationDedupStorePath,
+        logger: console,
+      })
+    : null;
   const ccoDocumentInstanceStore = await createCcoDocumentInstanceStore({
     filePath: config.ccoDocumentInstanceStorePath,
   });
@@ -11628,12 +11639,14 @@ process.once('SIGTERM', () => {
     ingestionStore: ccoMailIngestionStore,
     truthStore: ccoMailboxTruthStore,
     documentTriage: ccoDocumentTriageEngine,
+    healthDeclarationIngest: ccoHalsoHealthDeclarationIngest,
     patientDirectoryProvider: async () => {
       const tenantId = config.defaultTenantId || 'hair-tp-clinic';
       const listed = await ccoPatientMasterStore.listPatients({ tenantId, limit: 20000 });
       return (listed.patients || []).map((patient) => ({
         id: patient.id,
         patientId: patient.id,
+        personnummer: patient.personnummer,
         primaryEmail: patient.primaryEmail,
         personalEmail: patient.primaryEmail,
         verifiedPersonalEmailNormalized: String(patient.primaryEmail || '')

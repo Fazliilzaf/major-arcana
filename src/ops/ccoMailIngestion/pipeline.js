@@ -165,6 +165,7 @@ async function processRawMessage({
   persist = true,
   documentTriage = null,
   tenantId = '',
+  healthDeclarationIngest = null,
 } = {}) {
   if (!store || !rawMessage?.id) {
     throw new Error('processRawMessage requires store and rawMessage.id');
@@ -214,6 +215,32 @@ async function processRawMessage({
         { persist }
       );
       return { skipped: true, reason: source.reason, ledger: activeLedger, rawMessage };
+    }
+
+    if (
+      healthDeclarationIngest &&
+      typeof healthDeclarationIngest.isHalsoHealthDeclarationMessage === 'function' &&
+      healthDeclarationIngest.isHalsoHealthDeclarationMessage(rawMessage)
+    ) {
+      const hdResult = await healthDeclarationIngest.processRawMessage({
+        rawMessage,
+        mode,
+        tenantId: tenantId || 'hair-tp-clinic',
+        store,
+        ledger: activeLedger,
+        persist,
+      });
+      return {
+        ...hdResult,
+        ledger: store.getLedgerByRawMessageId(rawMessage.id) || activeLedger,
+        classification: {
+          mailType: 'health_declaration',
+          intent: 'health_declaration',
+          messageClassification: 'patient_form',
+          confidence: 1,
+        },
+        source,
+      };
     }
 
     const security = evaluateSecurityFilter(rawMessage);

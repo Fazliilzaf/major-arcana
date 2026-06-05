@@ -343,6 +343,32 @@ function computeFlags(patient) {
   return normalizeFlags(flags);
 }
 
+function normalizeAllergies(existing = [], incoming = []) {
+  return [
+    ...new Set(
+      [...asArray(existing), ...asArray(incoming)]
+        .map((value) => normalizeText(value))
+        .filter(Boolean)
+    ),
+  ];
+}
+
+function normalizeHealthDeclaration(existing = null, incoming = null) {
+  if (!incoming || typeof incoming !== 'object') return existing || null;
+  if (!existing || typeof existing !== 'object') return incoming;
+  const existingTs = Date.parse(existing.signedAt || existing.importedAt || 0);
+  const incomingTs = Date.parse(incoming.signedAt || incoming.importedAt || 0);
+  if (incomingTs >= existingTs) {
+    return {
+      ...existing,
+      ...incoming,
+      answers: asArray(incoming.answers).length ? incoming.answers : existing.answers,
+      flags: asArray(incoming.flags).length ? incoming.flags : existing.flags,
+    };
+  }
+  return existing;
+}
+
 function normalizePatientRecord(input = {}, existing = {}) {
   const safe = asObject(input);
   const existingSafe = asObject(existing);
@@ -405,6 +431,11 @@ function normalizePatientRecord(input = {}, existing = {}) {
     consents: normalizePhotoPublishConsent(safe.consents, existingSafe.consents),
     fortnox: normalizeFortnoxPatientRef(safe.fortnox, existingSafe.fortnox),
     demographics: normalizePatientDemographics(safe.demographics, existingSafe.demographics),
+    healthDeclaration: normalizeHealthDeclaration(
+      existingSafe.healthDeclaration,
+      safe.healthDeclaration
+    ),
+    allergies: normalizeAllergies(existingSafe.allergies, safe.allergies),
     flags: [],
     createdAt: normalizeText(existingSafe.createdAt) || nowIso(),
     updatedAt: nowIso(),
@@ -560,6 +591,10 @@ function buildPatientCardReadout(patient) {
     fortnoxSyncedAt: normalizeText(asObject(safe.fortnox).syncedAt) || null,
     fortnoxSyncError: normalizeText(asObject(safe.fortnox).lastError) || '',
     demographics: buildDemographicsReadout(safe.demographics),
+    healthDeclaration: asObject(safe.healthDeclaration),
+    allergies: asArray(safe.allergies),
+    hasHealthDeclaration: Boolean(asObject(safe.healthDeclaration).signedAt),
+    missingHealthDeclaration: !asObject(safe.healthDeclaration).signedAt,
     updatedAt: safe.updatedAt || null,
   };
 }

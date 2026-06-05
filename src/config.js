@@ -290,6 +290,19 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS,
     120000
   ),
+  ccoHalsoMailboxEmail: asNonEmptyString(
+    process.env.ARCANA_CCO_HALSO_MAILBOX_EMAIL,
+    'halso@hairtpclinic.com'
+  ),
+  ccoHalsoHealthDeclarationIngestEnabled: asBool(
+    process.env.ARCANA_CCO_HALSO_HD_INGEST_ENABLED,
+    true
+  ),
+  ccoHalsoHealthDeclarationDedupStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_HALSO_HD_DEDUP_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-halso-health-declaration-ingest.json',
+  }),
   schedulerCcoMailIngestionQueueIntervalMinutes: asInt(
     process.env.ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES,
     1
@@ -937,6 +950,7 @@ const config = {
           'kons@hairtpclinic.com',
           'info@hairtpclinic.com',
           'contact@hairtpclinic.com',
+          'halso@hairtpclinic.com',
           'egzona@hairtpclinic.com',
           'fazli@hairtpclinic.com',
           'marknad@hairtpclinic.com',

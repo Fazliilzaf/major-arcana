@@ -160,6 +160,7 @@
     "backup:prune:apply": "node ./scripts/prune-backups.js --apply",
     "restore:state": "node ./scripts/restore-state.js",
     "ingest:mails": "node scripts/ingest-mails.js",
+    "ingest:halso-hd": "node scripts/run-halso-health-declaration-ingest.js",
     "mail:seeds:preview": "bash ./scripts/apply-mail-seeds.sh --preview",
     "mail:seeds:apply": "bash ./scripts/apply-mail-seeds.sh --apply",
     "mail:seeds:apply-activate": "node ./scripts/apply-activate-mail-seeds.js --all --limit 50",
