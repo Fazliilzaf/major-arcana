@@ -191,6 +191,7 @@
     selectedPatientId: '',
     detail: null,
     detailTab: 'profil',
+    blueprintWorkspaceTab: 'oversikt',
     v9SortKey: 'activity',
     v9ListView: 'list',
     detailLoading: false,
@@ -898,6 +899,7 @@
     els.v9Filters = document.querySelector('[data-v9-customers-filters]');
     els.v9Sidebar = document.querySelector('[data-v9-segment-sidebar]');
     els.v9AggInsights = document.querySelector('[data-v9-agg-insights]');
+    els.workspace = document.querySelector('[data-customers-workspace]');
     els.title = document.querySelector('#customers-title');
     els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
@@ -947,8 +949,108 @@
   function usesV11DossierCutover() {
     return (
       isV9CustomersEnabled() &&
+      !usesBlueprintDesktopLayout() &&
       typeof window.CcoV9CustomersParity?.renderV11DossierZonesHtml === 'function'
     );
+  }
+
+  /** ORD-28 — desktop 3-kolumn enligt CCO-KUNDKORT-BLUEPRINT.md (>1180 px). */
+  function usesBlueprintDesktopLayout() {
+    if (!isV9CustomersEnabled()) return false;
+    if (document.documentElement.getAttribute('data-cco-mobile-shell') === 'on') return false;
+    if (
+      typeof window.matchMedia === 'function' &&
+      !window.matchMedia('(min-width: 1180px)').matches
+    ) {
+      return false;
+    }
+    return typeof window.CcoKundkortBlueprint?.renderKundkort === 'function';
+  }
+
+  function clearBlueprintWorkspace() {
+    const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
+    if (workspace) {
+      workspace.innerHTML = '';
+      workspace.hidden = true;
+      workspace.setAttribute('aria-hidden', 'true');
+    }
+    document.documentElement.removeAttribute('data-v9-blueprint');
+  }
+
+  function openBlueprintFullDossier(root, ctx) {
+    const { card, journalEntries, dossierBundle, occasionTimeline, driveFiles } = ctx;
+    const deep = root?.querySelector('[data-v9-dossier-deep]');
+    const body = deep?.querySelector('[data-v9-deep-body]');
+    if (!deep || !body) return;
+    const slideOver =
+      window.CcoV9CustomersParity?.renderKundkortSlideOverHtml?.(
+        card,
+        journalEntries,
+        dossierBundle,
+        occasionTimeline,
+        driveFiles
+      ) || '<p class="patient-master-muted">Full dossier kunde inte renderas.</p>';
+    body.innerHTML = slideOver;
+    deep.hidden = false;
+    deep.removeAttribute('aria-hidden');
+    window.CcoV9CustomersParity?.bindKundkortSlideOver?.(body, {
+      switchTab: (tab) => switchDetailTab(tab),
+    });
+    const close = () => {
+      deep.hidden = true;
+      deep.setAttribute('aria-hidden', 'true');
+      body.innerHTML = '';
+    };
+    deep.querySelector('[data-v9-deep-close]')?.addEventListener('click', close, { once: true });
+  }
+
+  function renderBlueprintDetailPanels(
+    card,
+    journalEntries,
+    dossierBundle,
+    occasionTimeline,
+    driveFiles
+  ) {
+    const rail = document.querySelector('[data-patient-master-rail]');
+    const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
+    if (!rail || !window.CcoKundkortBlueprint) return false;
+    els.patientRail = rail;
+    rail.innerHTML = window.CcoKundkortBlueprint.renderKundkort(
+      card,
+      journalEntries,
+      dossierBundle,
+      occasionTimeline,
+      driveFiles
+    );
+    if (workspace) {
+      workspace.innerHTML = window.CcoKundkortBlueprint.renderWorkspace(
+        card,
+        journalEntries,
+        dossierBundle,
+        occasionTimeline,
+        { activeTab: runtime.blueprintWorkspaceTab || 'oversikt' }
+      );
+      workspace.hidden = false;
+      workspace.setAttribute('aria-hidden', 'false');
+    }
+    window.CcoKundkortBlueprint.bindKundkort(rail, {
+      openFullDossier: () =>
+        openBlueprintFullDossier(rail, {
+          card,
+          journalEntries,
+          dossierBundle,
+          occasionTimeline,
+          driveFiles,
+        }),
+    });
+    if (workspace) {
+      window.CcoKundkortBlueprint.bindWorkspace(workspace, {
+        onTabChange: (tab) => {
+          runtime.blueprintWorkspaceTab = tab;
+        },
+      });
+    }
+    return true;
   }
 
   function isV9DemoEnabled() {
@@ -3255,18 +3357,27 @@
     const layout = document.querySelector('.customers-layout');
     const list = document.querySelector('.customers-list');
     const rail = document.querySelector('.customers-rail');
+    const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
     const dossierOpen = Boolean(
       runtime.selectedPatientId &&
       (runtime.detail?.card ||
         runtime.detailLoading ||
         rail?.querySelector('[data-patient-detail]'))
     );
+    const blueprintOpen = usesBlueprintDesktopLayout() && dossierOpen;
     if (layout) {
       if (dossierOpen) layout.setAttribute('data-v9-dossier-open', 'on');
       else layout.removeAttribute('data-v9-dossier-open');
     }
+    if (blueprintOpen) document.documentElement.setAttribute('data-v9-blueprint', 'on');
+    else document.documentElement.removeAttribute('data-v9-blueprint');
     if (list) list.classList.toggle('customers-list--compact', dossierOpen);
-    if (rail) rail.classList.toggle('customers-rail--dominant', dossierOpen);
+    if (rail) rail.classList.toggle('customers-rail--dominant', dossierOpen && !blueprintOpen);
+    if (workspace && !blueprintOpen && !dossierOpen) {
+      workspace.innerHTML = '';
+      workspace.hidden = true;
+      workspace.setAttribute('aria-hidden', 'true');
+    }
   }
 
   function mergeCardWithShellEnrichment(card, patientId) {
@@ -4405,21 +4516,23 @@
 
   function renderV9PatientRowHtml(card, selected) {
     const name = displayNameForList(card);
-    const contact = v9ContactLine(card);
     const state = resolveV9RowState(card);
-    const tags = buildV9RowBadges(card);
-    const lastAt = card.lastVisitAt || card.lastBookingAt || card.updatedAt;
     const treatment =
       asArray(card.treatmentTypes).length > 0
         ? card.treatmentTypes.join(', ')
-        : card.nextBookingType || (card.hasJournal ? 'Journal' : '—');
-    const bookingLine = v9BookingSubline(card);
+        : card.nextBookingType || (card.hasJournal ? 'Journal' : '');
     const revenue = resolveV9Revenue(card);
     const signal = resolveV9ListSignal(card);
+    const pnrDigits = String(card.personnummer || '').replace(/\D/g, '');
+    const birthYear = pnrDigits.length >= 8 ? parseInt(pnrDigits.slice(0, 4), 10) : null;
+    const nowY = new Date().getFullYear();
+    const age = birthYear && birthYear > 1900 && birthYear <= nowY ? nowY - birthYear : null;
+    const subLine =
+      [age ? age + ' år' : null, treatment || null].filter(Boolean).join(' · ') || '—';
 
     return `
           <button
-            class="customer-row customer-row--gloss${selected ? ' is-selected' : ''}"
+            class="customer-row customer-row--gloss cr-ref${selected ? ' is-selected' : ''}"
             type="button"
             data-patient-row="${escapeHtml(card.patientId)}"
             aria-pressed="${selected ? 'true' : 'false'}"
@@ -4427,35 +4540,11 @@
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
-              ${
-                tags.length
-                  ? `<div class="cr-name-tags">${tags
-                      .map(
-                        (tag) =>
-                          `<span class="cr-tag cr-tag--${escapeHtml(tag.kind)}">${escapeHtml(tag.label)}</span>`
-                      )
-                      .join('')}</div>`
-                  : ''
-              }
+              <div class="cr-ref-sub">${escapeHtml(subLine)}</div>
             </div>
-            <div class="cr-meta">
-              <div>${escapeHtml(contact.main)}</div>
-              <div class="cr-meta-sub">${escapeHtml(contact.sub || '—')}</div>
-            </div>
-            <div><span class="cr-status" data-state="${escapeHtml(state.state)}"><span class="dot"></span>${escapeHtml(state.label)}</span></div>
-            <div class="cr-meta">
-              <div class="cr-meta-strong">${escapeHtml(formatV9ListDate(lastAt))}</div>
-              <div class="cr-meta-sub">${escapeHtml(treatment)} · ${escapeHtml(bookingLine)}</div>
-            </div>
-            <div>
-              <div class="cr-revenue" title="${escapeHtml(revenue.title)}">${escapeHtml(revenue.main)}</div>
-              ${
-                revenue.trend
-                  ? `<div class="cr-revenue-trend">${escapeHtml(revenue.trend)}</div>`
-                  : ''
-              }
-            </div>
-            <div><div class="cr-signal" data-tone="${escapeHtml(signal.tone)}">${escapeHtml(signal.text)}</div></div>
+            <div class="cr-ref-step"><span class="cr-step-badge" data-state="${escapeHtml(state.state)}">${escapeHtml(state.label)}</span></div>
+            <div class="cr-ref-next"><span class="cr-next-pill" data-tone="${escapeHtml(signal.tone)}">${escapeHtml(signal.text)}</span></div>
+            <div class="cr-ref-ltv">${escapeHtml(revenue.main)}</div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
         `;
@@ -4463,14 +4552,12 @@
 
   function renderV9ListHeaderHtml() {
     return `
-          <div class="customer-row-head" aria-hidden="true">
+          <div class="customer-row-head cr-ref-head" aria-hidden="true">
             <div></div>
             <div>Kund</div>
-            <div>Kontakt</div>
-            <div>Status</div>
-            <div>Senaste besök</div>
-            <div>Intäkt (LTV)</div>
-            <div>Signal</div>
+            <div>Steg</div>
+            <div>Nästa steg</div>
+            <div>LTV</div>
             <div></div>
           </div>
         `;
@@ -4691,6 +4778,7 @@
     }
     if (isV9CustomersEnabled()) {
       renderV9AggregatePanel();
+      clearBlueprintWorkspace();
       syncV9CustomersLayoutState();
       return;
     }
@@ -6757,6 +6845,15 @@
     const driveFiles = runtime.detail?.driveFiles;
 
     if (isV9CustomersEnabled()) {
+      if (usesBlueprintDesktopLayout()) {
+        renderBlueprintDetailPanels(card, journalEntries, null, occasionTimeline, driveFiles);
+        bindV9MockupDossierHandlers(rail, { card, journalEntries, driveFiles });
+        ensureV9DossierDeepClosed();
+        runtime.detailShellOnly = true;
+        syncV9CustomersLayoutState();
+        syncMobilePatientLayout();
+        return;
+      }
       rail.innerHTML = renderV9MockupDetailShell(
         card,
         journalEntries,
@@ -6856,6 +6953,22 @@
 
     if (isV9CustomersEnabled()) {
       const tab = normalizeDetailTab(runtime.detailTab);
+      const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+      if (usesBlueprintDesktopLayout()) {
+        renderBlueprintDetailPanels(
+          card,
+          journalEntries,
+          dossierBundle,
+          occasionTimeline,
+          driveFiles
+        );
+        bindJournalPhotoOpenLinks(els.patientRail);
+        void hydrateJournalPhotoElements(els.patientRail);
+        void hydratePatientFileImages(els.patientRail);
+        syncV9CustomersLayoutState();
+        syncMobilePatientLayout();
+        return;
+      }
       rail.innerHTML = renderV9MockupDetailShell(
         card,
         journalEntries,

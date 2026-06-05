@@ -226,6 +226,12 @@ html[data-v9-enabled="on"] {
   --v9-layout-grid-cols-dossier: var(--v9-layout-col-segment)
     minmax(var(--v9-layout-col-list-min), var(--v9-layout-col-list-max))
     minmax(var(--v9-layout-col-dossier-min), 2.6fr);
+  /* ORD-28 — blueprint 3-kolumn: segment · lista ~300 · arbetsyta · kundkort 384 */
+  --v9-layout-col-blueprint-list: 300px;
+  --v9-layout-col-blueprint-rail: 384px;
+  --v9-layout-grid-cols-blueprint: var(--v9-layout-col-segment)
+    minmax(260px, var(--v9-layout-col-blueprint-list)) minmax(0, 1fr)
+    minmax(320px, var(--v9-layout-col-blueprint-rail));
   --v9-layout-gap: 16px;
   --v9-layout-gap-dense: 8px;
   --v9-layout-gap-tight: 6px;

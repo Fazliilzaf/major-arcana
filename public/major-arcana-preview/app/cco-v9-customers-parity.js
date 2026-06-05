@@ -3766,6 +3766,8 @@
     renderV11StickyActions,
     renderV11UpcomingBookings,
     renderV11CustomerJourney,
+    buildV11CustomerJourney,
+    buildEconomyFields,
     renderV11WeeklyPatterns,
     renderV11DossierZonesHtml,
     buildIntelligentJourneyBubbles,

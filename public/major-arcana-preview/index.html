@@ -107,6 +107,7 @@
     <link rel="stylesheet" href="./design-tokens.css" />
     <link rel="stylesheet" href="./cco-v9-tokens.css?v=build-1ccb8f9" />
     <link rel="stylesheet" href="./cco-v9-customers.css?v=build-1ccb8f9" />
+    <link rel="stylesheet" href="./cco-kundkort-blueprint.css?v=build-ord28" />
     <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important).
          Fas 30c (FULL REVERT): inline critical CSS rev:t pga konflikt med
@@ -3512,6 +3513,14 @@
                   <p class="patient-master-empty">Öppnar kundregister…</p>
                 </section>
 
+                <main
+                  class="customers-workspace"
+                  data-customers-workspace
+                  hidden
+                  aria-hidden="true"
+                  aria-label="Arbetsyta och tidslinje"
+                ></main>
+
                 <aside class="customers-rail" aria-label="Kundkort och identitet">
                   <section
                     class="patient-master-rail"
@@ -3560,6 +3569,8 @@
                   <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
                   <script defer src="./app/cco-v9-interactions.js?v=build-1ccb8f9"></script>
                   <script defer src="./app/cco-v9-customers-parity.js?v=build-ord24"></script>
+                  <script defer src="./app/cco-kunder-smart-next-step.js?v=build-ord3"></script>
+                  <script defer src="./app/cco-kundkort-blueprint.js?v=build-ord28"></script>
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
