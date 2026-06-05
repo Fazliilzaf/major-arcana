@@ -8936,21 +8936,21 @@ try {
   async function ensureAssetStores() {
     if (!assetStore) {
       assetStore = await createCcoPatientAssetStore({
-        filePath: path.join(__dirname, 'data', 'cco-patient-assets.json'),
+        filePath: config.ccoPatientAssetsPath,
         auditLog: ccoAuditLog,
       });
       app.locals.ccoPatientAssetStore = assetStore;
     }
     if (!importRunStore) {
       importRunStore = await createCcoAssetImportRunStore({
-        filePath: path.join(__dirname, 'data', 'cco-asset-import-runs.json'),
+        filePath: config.ccoAssetImportRunsPath,
         auditLog: ccoAuditLog,
       });
       app.locals.ccoAssetImportRunStore = importRunStore;
     }
     if (!reviewQueueStore) {
       reviewQueueStore = await createCcoAssetReviewQueueStore({
-        filePath: path.join(__dirname, 'data', 'cco-asset-review-queue.json'),
+        filePath: config.ccoAssetReviewQueuePath,
         auditLog: ccoAuditLog,
       });
       app.locals.ccoAssetReviewQueueStore = reviewQueueStore;

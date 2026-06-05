@@ -296,7 +296,7 @@ const config = {
   ),
   ccoHalsoHealthDeclarationIngestEnabled: asBool(
     process.env.ARCANA_CCO_HALSO_HD_INGEST_ENABLED,
-    true
+    false
   ),
   ccoHalsoHealthDeclarationDedupStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_HALSO_HD_DEDUP_STORE_PATH,
@@ -460,6 +460,21 @@ const config = {
     explicitPath: process.env.ARCANA_MIGRATION_INDEX_STORE_PATH,
     stateRoot,
     fileName: 'migration-index.json',
+  }),
+  ccoPatientAssetsPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PATIENT_ASSETS_PATH,
+    stateRoot,
+    fileName: 'cco-patient-assets.json',
+  }),
+  ccoAssetImportRunsPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_ASSET_IMPORT_RUNS_PATH,
+    stateRoot,
+    fileName: 'cco-asset-import-runs.json',
+  }),
+  ccoAssetReviewQueuePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_ASSET_REVIEW_QUEUE_PATH,
+    stateRoot,
+    fileName: 'cco-asset-review-queue.json',
   }),
   ccoPatientSystemStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_PATIENT_SYSTEM_STORE_PATH,

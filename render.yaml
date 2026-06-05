@@ -38,6 +38,14 @@ services:
         value: /var/data/cco-booking.json
       - key: ARCANA_CCO_BOOKING_ENGINE_STORE_PATH
         value: /var/data/cco-booking-engine.json
+      - key: ARCANA_CCO_PATIENT_ASSETS_PATH
+        value: /var/data/cco-patient-assets.json
+      - key: ARCANA_CCO_ASSET_IMPORT_RUNS_PATH
+        value: /var/data/cco-asset-import-runs.json
+      - key: ARCANA_CCO_ASSET_REVIEW_QUEUE_PATH
+        value: /var/data/cco-asset-review-queue.json
+      - key: ARCANA_CCO_HALSO_HD_INGEST_ENABLED
+        value: "false"
       - key: PLAYWRIGHT_BROWSERS_PATH
         value: /var/data/playwright-browsers
       - key: NODE_ENV
