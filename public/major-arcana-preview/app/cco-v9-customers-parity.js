@@ -1576,8 +1576,373 @@
       </div>`;
   }
 
-  function renderIntelligentJourneyBubblesHtml(card, journalEntries) {
+  function renderIntelChromeActionsHtml(card) {
+    const upcoming = buildUpcomingBookings(card, []);
+    const upcomingCount = upcoming.length;
+    const nextDate = formatShortBookingDate(card?.nextBookingAt);
+    const bookLabel = card?.nextBookingAt
+      ? `Boka nästa ${card.nextBookingType || 'PRP'}${nextDate ? ` (${nextDate})` : ''}`
+      : 'Boka nästa tid';
+    const confirmDisabled = upcomingCount === 0;
+
+    return `
+      <div class="v9-intel-actions dossier-actions v9-dossier-actions" data-v9-intel-actions>
+        <button type="button" class="quick-pill dossier-camera-cta full" data-v9-intel-action="photo">📷 Ta bild</button>
+        <button type="button" class="quick-pill quick-pill--ai full" data-v9-intel-action="book">${escapeHtml(bookLabel)}</button>
+        <button
+          type="button"
+          class="quick-pill quick-pill--success full${confirmDisabled ? ' is-disabled' : ''}"
+          data-v9-intel-action="confirm"
+          ${confirmDisabled ? 'disabled aria-disabled="true"' : ''}
+        >✓ Bekräfta tider (${upcomingCount})</button>
+      </div>`;
+  }
+
+  /* ORD-25 Fas C — dokument-segment (shell tills ORD-24) */
+
+  const V11_DOC_FILTER_AXES = Object.freeze([
+    {
+      id: 'filler',
+      label: 'Vem fyller',
+      options: [
+        { value: 'all', label: 'Alla' },
+        { value: 'patient', label: 'Patient', tone: 'lila' },
+        { value: 'staff', label: 'Personal', tone: 'gron' },
+        { value: 'auto', label: 'Auto', tone: 'neutral' },
+      ],
+    },
+    {
+      id: 'flow',
+      label: 'Flöde',
+      options: [
+        { value: 'all', label: 'Alla' },
+        { value: 'tp', label: 'TP', tone: 'vellum' },
+        { value: 'prp_hair', label: 'PRP hår', tone: 'gron' },
+      ],
+    },
+    {
+      id: 'view',
+      label: 'Vy',
+      options: [
+        { value: 'category', label: 'Per kategori', tone: 'dark', selected: true },
+        { value: 'step', label: 'Per steg', tone: 'neutral' },
+        { value: 'timeline', label: 'Tidslinje', tone: 'neutral' },
+      ],
+    },
+  ]);
+
+  const V11_DOC_GROUPS = Object.freeze([
+    { id: 'offers', title: 'Offerter', subtitle: 'commit · steg 5–7', key: 'offers' },
+    {
+      id: 'health',
+      title: 'Hälso- & samtyckesdokument',
+      subtitle: 'kund fyller',
+      key: 'healthForms',
+    },
+    { id: 'journals', title: 'Journaler', subtitle: 'personal fyller', key: 'journals' },
+    { id: 'auto', title: 'Auto-dokument', subtitle: 'system skickar', key: 'autoDocs', grid: true },
+  ]);
+
+  function resolveV11DocumentPayload(card, dossierBundle) {
+    const docs = dossierBundle?.documents;
+    if (docs && typeof docs === 'object' && dossierBundle?.ready !== false) {
+      const counts = docs.counts || {};
+      return {
+        ready: true,
+        counts: {
+          total: Number(counts.total ?? counts.all ?? 0),
+          done: Number(counts.done ?? counts.signed ?? 0),
+          pending: Number(counts.pending ?? counts.waiting ?? 0),
+          upcoming: Number(counts.upcoming ?? counts.planned ?? 0),
+        },
+        offers: asArray(docs.offers || docs.offerter),
+        healthForms: asArray(docs.healthForms || docs.haelsoSamtycke || docs.consents),
+        journals: asArray(docs.journalStatus?.expected || docs.journaler || docs.journals),
+        autoDocs: asArray(docs.autoDokument || docs.auto || docs.autoDocuments),
+      };
+    }
+    return {
+      ready: false,
+      counts: { total: 0, done: 0, pending: 0, upcoming: 0 },
+      offers: [],
+      healthForms: [],
+      journals: [],
+      autoDocs: [],
+    };
+  }
+
+  function renderV11DocumentFilters(active = {}) {
+    return `
+      <div class="v11-doc-filters" data-v11-doc-filters aria-label="Dokumentfilter">
+        ${V11_DOC_FILTER_AXES.map((axis) => {
+          const current = active[axis.id] || (axis.id === 'view' ? 'category' : 'all');
+          return `
+          <div class="v11-doc-filters__axis" data-v11-doc-axis="${escapeHtml(axis.id)}">
+            <span class="v11-doc-filters__axis-label">${escapeHtml(axis.label)}</span>
+            <div class="v11-doc-filters__chips">
+              ${axis.options
+                .map((option) => {
+                  const isActive = current === option.value;
+                  return `
+                <button
+                  type="button"
+                  class="v11-doc-chip v11-doc-chip--${escapeHtml(option.tone || 'neutral')}${isActive ? ' is-active' : ''}"
+                  data-v11-doc-filter="${escapeHtml(axis.id)}"
+                  data-v11-doc-value="${escapeHtml(option.value)}"
+                  aria-pressed="${isActive ? 'true' : 'false'}"
+                >${escapeHtml(option.label)}</button>`;
+                })
+                .join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  function mapV11DocumentRow(item, defaults = {}) {
+    if (!item || typeof item !== 'object') return null;
+    const status = String(item.status || defaults.status || 'planned').toLowerCase();
+    const statusLabels = {
+      signed: 'Signerad',
+      pending: 'Att fylla i',
+      planned: 'Planerad',
+      sent: 'Skickad',
+    };
+    return {
+      title: item.title || item.name || item.label || 'Dokument',
+      flowLabel: item.flowLabel || item.flow || defaults.flowLabel || 'TP',
+      amount: item.amount || item.total || '',
+      status,
+      statusLabel: item.statusLabel || statusLabels[status] || status,
+      filler: item.filler || defaults.filler || 'patient',
+      flow: item.flow || defaults.flow || 'tp',
+      journeyStep: item.journeyStep || defaults.journeyStep || '',
+      dashed: status === 'planned' || item.planned === true,
+    };
+  }
+
+  function renderV11DocumentRow(row) {
+    if (!row) return '';
+    const amountHtml = row.amount
+      ? `<span class="v11-doc-row__amount">${escapeHtml(String(row.amount))}</span>`
+      : '';
+    const stepHtml = row.journeyStep
+      ? `<span class="v11-doc-row__step">steg ${escapeHtml(String(row.journeyStep))}</span>`
+      : '';
+    return `
+      <div
+        class="v11-doc-row${row.dashed ? ' v11-doc-row--planned' : ''}"
+        data-v11-doc-row
+        data-v11-doc-filler="${escapeHtml(row.filler)}"
+        data-v11-doc-flow="${escapeHtml(row.flow)}"
+        data-v11-doc-status="${escapeHtml(row.status)}"
+      >
+        <div class="v11-doc-row__main">
+          <span class="v11-doc-row__title">${escapeHtml(row.title)}</span>
+          ${stepHtml}
+        </div>
+        <div class="v11-doc-row__meta">
+          <span class="v11-doc-row__flow">${escapeHtml(row.flowLabel)}</span>
+          ${amountHtml}
+          <span class="v11-doc-row__pill v11-doc-row__pill--${escapeHtml(row.status)}">${escapeHtml(row.statusLabel)}</span>
+        </div>
+      </div>`;
+  }
+
+  function renderV11DocumentGroup(group, rows, { ready = false, grid = false } = {}) {
+    const body =
+      rows.length > 0
+        ? `<div class="v11-doc-group__rows${grid ? ' v11-doc-group__rows--grid' : ''}">
+            ${rows.map((row) => renderV11DocumentRow(row)).join('')}
+          </div>`
+        : `<p class="v11-doc-empty${ready ? '' : ' v11-doc-empty--pending'}">${
+            ready
+              ? 'Inga dokument i denna grupp.'
+              : 'Dokumentsegment laddas — väntar backend ORD-24.'
+          }</p>`;
+
+    return `
+      <section class="v11-doc-group" data-v11-doc-group="${escapeHtml(group.id)}" aria-label="${escapeHtml(group.title)}">
+        <header class="v11-doc-group__head">
+          <h4 class="v11-doc-group__title">${escapeHtml(group.title)}</h4>
+          <p class="v11-doc-group__subtitle">${escapeHtml(group.subtitle)}</p>
+        </header>
+        ${body}
+      </section>`;
+  }
+
+  function renderV11DocumentSegments(card, dossierBundle, filterState = {}) {
+    const payload = resolveV11DocumentPayload(card, dossierBundle);
+    const counts = payload.counts;
+    const countLine = payload.ready
+      ? `${counts.total} dokument · ${counts.done} klara · ${counts.pending} väntar · ${counts.upcoming} kommer`
+      : '0 dokument · backend ORD-24 saknas';
+
+    const rowsByGroup = {
+      offers: payload.offers
+        .map((item) => mapV11DocumentRow(item, { filler: 'patient', flow: 'tp' }))
+        .filter(Boolean),
+      healthForms: payload.healthForms
+        .map((item) => mapV11DocumentRow(item, { filler: 'patient', flow: 'tp' }))
+        .filter(Boolean),
+      journals: payload.journals
+        .map((item) => mapV11DocumentRow(item, { filler: 'staff', flow: 'tp' }))
+        .filter(Boolean),
+      autoDocs: payload.autoDocs
+        .map((item) => mapV11DocumentRow(item, { filler: 'auto', flow: 'tp', status: 'sent' }))
+        .filter(Boolean),
+    };
+
+    return `
+      <section class="v11-doc-segment" data-v11-doc-segment aria-label="Dokument-segment">
+        <header class="v11-doc-segment__head">
+          <div class="v11-doc-segment__kicker">Dossiér · Dokument-segment</div>
+          <p class="v11-doc-segment__counts">${escapeHtml(countLine)}</p>
+        </header>
+        ${renderV11DocumentFilters(filterState)}
+        <div class="v11-doc-segment__groups" data-v11-doc-groups>
+          ${V11_DOC_GROUPS.map((group) =>
+            renderV11DocumentGroup(group, rowsByGroup[group.key] || [], {
+              ready: payload.ready,
+              grid: Boolean(group.grid),
+            })
+          ).join('')}
+        </div>
+      </section>`;
+  }
+
+  /* ORD-25 Fas D — insikter-strip + sticky */
+
+  function buildV11InsightCards(card, journalEntries) {
+    const featured = buildIntelFeaturedCards(card, journalEntries);
+    const stateLabels = {
+      next: 'Nästa steg',
+      coming: 'På gång',
+      response: 'Förberedelse',
+      retention: 'Relation',
+    };
+    return featured.map((item, index) => ({
+      ...item,
+      stateLabel: stateLabels[item.theme] || stateLabels[item.tone] || 'Insikt',
+      v11Tone:
+        item.tone === 'next' || item.theme === 'next'
+          ? 'amber'
+          : item.theme === 'retention'
+            ? 'gron'
+            : 'lila',
+      index,
+    }));
+  }
+
+  function renderV11InsightCard(card) {
+    return `
+      <button
+        type="button"
+        class="v11-insight-card v11-insight-card--${escapeHtml(card.v11Tone || 'lila')}"
+        data-v11-insight-card
+        data-v9-intel-card="${escapeHtml(card.id)}"
+        data-v9-intel-kind="${escapeHtml(card.kind || 'ai')}"
+        data-insight-theme="${escapeHtml(card.theme || 'next')}"
+        data-v9-intel-idx="${Number(card.index) || 0}"
+      >
+        <span class="v11-insight-card__icon" aria-hidden="true">${escapeHtml(card.icon || '★')}</span>
+        <span class="v11-insight-card__copy">
+          <span class="v11-insight-card__state">${escapeHtml(card.stateLabel || 'Insikt')}</span>
+          <span class="v11-insight-card__title">${escapeHtml(card.title || '')}</span>
+          <span class="v11-insight-card__body">${escapeHtml(card.body || '')}</span>
+        </span>
+      </button>`;
+  }
+
+  function renderV11InsightsStrip(card, journalEntries) {
+    if (!card) return '';
+    const cards = buildV11InsightCards(card, journalEntries);
+    if (!cards.length) return '';
+
+    return `
+      <section class="v11-insights-strip" data-v11-insights-strip aria-label="Insikter">
+        <div class="v11-insights-strip__head">
+          <span class="v11-insights-strip__kicker">Insikter</span>
+          <button type="button" class="v11-insights-strip__link" data-v9-intel-open-all>Visa kundresa ›</button>
+        </div>
+        <div class="v11-insights-strip__grid">
+          ${cards.map((item) => renderV11InsightCard(item)).join('')}
+        </div>
+      </section>`;
+  }
+
+  function resolveV11StickyHelper(card, journalEntries) {
+    const journey = buildIntelligentJourneyBubbles(card, journalEntries);
+    if (journey.footer) return journey.footer;
+    if (card?.missingHealthDeclaration) {
+      return 'Signera hälsodeklarationen innan du skapar behandlingsplan.';
+    }
+    if (card?.missingFitnessCertificate && card?.hasUpcomingBooking) {
+      return 'Friskförsäkran behövs innan behandlingsdagen.';
+    }
+    return '';
+  }
+
+  function renderV11StickyActions(card, journalEntries) {
+    if (!card) return '';
+    const upcoming = buildUpcomingBookings(card, []);
+    const upcomingCount = upcoming.length;
+    const treatment = card?.nextBookingType || asArray(card?.treatmentTypes)[0] || 'PRP';
+    const bookLabel = card?.hasUpcomingBooking
+      ? `Boka nästa ${treatment}`
+      : `Boka nästa ${treatment}`;
+    const confirmDisabled = upcomingCount === 0;
+    const helper = resolveV11StickyHelper(card, journalEntries);
+
+    return `
+      <div class="v11-sticky-actions" data-v11-sticky-actions aria-label="Snabbåtgärder">
+        <div class="v11-sticky-actions__row">
+          <button type="button" class="v11-sticky-actions__hero" data-v9-intel-action="book">${escapeHtml(bookLabel)}</button>
+          <button type="button" class="v11-sticky-actions__assist v11-sticky-actions__assist--vellum" data-v9-intel-action="photo">Ta bild</button>
+          <button
+            type="button"
+            class="v11-sticky-actions__assist v11-sticky-actions__assist--gron${confirmDisabled ? ' is-disabled' : ''}"
+            data-v9-intel-action="confirm"
+            ${confirmDisabled ? 'disabled aria-disabled="true"' : ''}
+          >Bekräfta · ${upcomingCount}</button>
+        </div>
+        ${helper ? `<p class="v11-sticky-actions__helper">${escapeHtml(helper)}</p>` : ''}
+      </div>`;
+  }
+
+  function renderV11DossierZonesHtml(card, journalEntries, dossierBundle, filterState = {}) {
     if (!isV9On() || !card) return '';
+    const insights = renderV11InsightsStrip(card, journalEntries);
+    const sticky = renderV11StickyActions(card, journalEntries);
+    if (!insights && !sticky) return '';
+
+    return `
+      <div class="v11-dossier-zones" data-v11-dossier-zones>
+        ${renderV11Hairstrand()}
+        ${renderV11DocumentSegments(card, dossierBundle, filterState)}
+        ${renderV11Hairstrand()}
+        ${insights}
+        ${sticky}
+      </div>`;
+  }
+
+  function applyV11DocumentFilters(root, filterState) {
+    if (!root) return;
+    const rows = root.querySelectorAll('[data-v11-doc-row]');
+    rows.forEach((row) => {
+      const filler = row.getAttribute('data-v11-doc-filler') || '';
+      const flow = row.getAttribute('data-v11-doc-flow') || '';
+      const fillerOk = filterState.filler === 'all' || filler === filterState.filler;
+      const flowOk = filterState.flow === 'all' || flow === filterState.flow;
+      row.hidden = !(fillerOk && flowOk);
+    });
+  }
+
+  function renderIntelligentJourneyBubblesHtml(card, journalEntries, dossierBundle) {
+    if (!isV9On() || !card) return '';
+    const v11 = renderV11DossierZonesHtml(card, journalEntries, dossierBundle);
+    if (v11) return v11;
+
     const journey = buildIntelligentJourneyBubbles(card, journalEntries);
     const featured = buildIntelFeaturedCards(card, journalEntries);
     if (!featured.length && !journey.bubbles.length) return '';
@@ -1629,6 +1994,7 @@
       journalEntries: ctx?.journalEntries,
       handlers: handlers || {},
     };
+    root._v11DocFilters = root._v11DocFilters || { filler: 'all', flow: 'all', view: 'category' };
 
     if (root.dataset.intelBound === '1') return;
     root.dataset.intelBound = '1';
@@ -1645,7 +2011,24 @@
         return;
       }
 
-      const host = event.target.closest('[data-v9-intel-bubbles]');
+      const filterBtn = event.target.closest('[data-v11-doc-filter]');
+      if (filterBtn) {
+        const axis = filterBtn.getAttribute('data-v11-doc-filter') || '';
+        const value = filterBtn.getAttribute('data-v11-doc-value') || '';
+        if (!axis || !value) return;
+        const state = root._v11DocFilters || { filler: 'all', flow: 'all', view: 'category' };
+        state[axis] = value;
+        root._v11DocFilters = state;
+        root.querySelectorAll(`[data-v11-doc-filter="${axis}"]`).forEach((btn) => {
+          const active = btn.getAttribute('data-v11-doc-value') === value;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        applyV11DocumentFilters(root, state);
+        return;
+      }
+
+      const host = event.target.closest('[data-v11-dossier-zones], [data-v9-intel-bubbles]');
       if (!host) return;
 
       const openDrawer = ({ focusId = '', title = 'Kundresa', intro = journey.lead } = {}) => {
@@ -2284,6 +2667,11 @@
     renderV11MedicalBriefing,
     renderV11StatRow,
     renderV11Hairstrand,
+    renderV11DocumentFilters,
+    renderV11DocumentSegments,
+    renderV11InsightsStrip,
+    renderV11StickyActions,
+    renderV11DossierZonesHtml,
     buildIntelligentJourneyBubbles,
     renderIntelligentJourneyBubblesHtml,
     bindIntelligentJourney,

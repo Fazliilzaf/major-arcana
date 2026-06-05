@@ -3646,8 +3646,8 @@
       <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis" data-patient-detail>
         <div class="v9-dossier-chrome">
           ${renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
-          ${renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
           ${renderV9IntelligentBubblesBlock(card, journalEntries)}
+          ${renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
         </div>
         ${renderV9SmartNextStepHtml(card)}
         ${renderV9CapabilityActionsHtml(card)}
