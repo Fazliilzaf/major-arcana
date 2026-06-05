@@ -1,8 +1,8 @@
 services:
   - type: web
-    # Måste matcha befintlig prod-tjänst (srv-d6b11o0boq4c73chm7f0) så Blueprint
-    # synkar env/build/disk till arcana.hairtpclinic.se — inte duplicerad arcana-cco.
-    name: major-arcana
+    # Frankfurt prod (srv-d8b3i3tckfvc73clgeng) — arcana.hairtpclinic.com
+    # Oregon srv-d6b11o0boq4c73chm7f0 ("major-arcana") är avvecklad/suspended sedan 2026-06-05.
+    name: arcana
     runtime: node
     repo: https://github.com/Fazliilzaf/major-arcana
     branch: main

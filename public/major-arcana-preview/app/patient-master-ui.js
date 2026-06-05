@@ -1017,13 +1017,23 @@
     els.patientRail = rail;
     // Master-detail: bred lista + stort dockat kort (slår CSS-cascaden)
     try {
-      const mdLayout = document.querySelector('.customers-layout');
-      if (mdLayout && window.matchMedia('(min-width: 1100px)').matches) {
-        mdLayout.style.setProperty(
-          'grid-template-columns',
-          '180px minmax(0, 1fr) 424px',
-          'important'
-        );
+      if (window.matchMedia('(min-width: 1100px)').matches) {
+        const mdWs = document.querySelector('.customers-workspace');
+        if (mdWs) mdWs.style.setProperty('display', 'none', 'important');
+        const mdLayout = document.querySelector('.customers-layout');
+        if (mdLayout) {
+          mdLayout.style.setProperty(
+            'grid-template-columns',
+            '200px minmax(0, 1fr) 420px',
+            'important'
+          );
+          mdLayout.style.setProperty('gap', '18px', 'important');
+        }
+        const mdList = document.querySelector('.customers-list');
+        if (mdList) {
+          mdList.style.setProperty('max-width', 'none', 'important');
+          mdList.style.setProperty('width', '100%', 'important');
+        }
       }
     } catch (mdErr) {
       /* no-op */
