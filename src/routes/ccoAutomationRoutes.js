@@ -13,6 +13,7 @@ const {
   loadKunderBookingIndex,
 } = require('../ops/ccoKunderEnrichment');
 const { loadFasAContextForPatients } = require('../ops/ccoKunderFasAReadiness');
+const { buildSmartNextStepReadout } = require('../ops/ccoSmartNextStepStore');
 
 const WORKLIST_QUEUES = Object.freeze({
   health_declaration: 'customer.missing_health_declaration',
@@ -35,8 +36,21 @@ function ruleIdsForQueue(queue) {
 }
 
 function attachAutomationRoutes(router, deps) {
-  const { patientMasterStore, requireAuth, requireRole, ROLE_OWNER, ROLE_STAFF, config, handle } =
-    deps;
+  const {
+    patientMasterStore,
+    documentInstanceStore = null,
+    requireAuth,
+    requireRole,
+    ROLE_OWNER,
+    ROLE_STAFF,
+    config,
+    handle,
+  } = deps;
+
+  async function loadPatientInstances(tenantId, patientId) {
+    if (!documentInstanceStore?.listForPatient) return [];
+    return documentInstanceStore.listForPatient({ tenantId, patientId });
+  }
 
   router.get(
     '/cco/automation/catalog',
@@ -97,9 +111,15 @@ function attachAutomationRoutes(router, deps) {
           fasA: fasAMap.get(patientId),
           agreement,
         });
+        const smartNext = buildSmartNextStepReadout({
+          card: readout,
+          instances: await loadPatientInstances(actor.tenantId, patientId),
+        });
+        Object.assign(readout, smartNext);
         const evaluation = evaluatePatientSignals(readout, {
           agreement,
           bookingCoverage: bookingBundle.coverage,
+          documentReadiness: smartNext.documentReadiness,
         });
         return res.json({
           patientId,
@@ -172,9 +192,15 @@ function attachAutomationRoutes(router, deps) {
             fasA: fasAMap.get(pid),
             agreement,
           });
+          const smartNext = buildSmartNextStepReadout({
+            card: readout,
+            instances: await loadPatientInstances(actor.tenantId, pid),
+          });
+          Object.assign(readout, smartNext);
           const evaluation = evaluatePatientSignals(readout, {
             agreement,
             bookingCoverage: bookingBundle.coverage,
+            documentReadiness: smartNext.documentReadiness,
           });
           const hits = (evaluation.signals || []).filter(
             (signal) => signal.status === 'active' && ruleIds.includes(signal.ruleId)

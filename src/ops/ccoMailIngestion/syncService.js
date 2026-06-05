@@ -1,5 +1,7 @@
 const { createCcoMailboxTruthStore } = require('../ccoMailboxTruthStore');
-const { createMicrosoftGraphMailboxTruthDelta } = require('../../infra/microsoftGraphMailboxTruthDelta');
+const {
+  createMicrosoftGraphMailboxTruthDelta,
+} = require('../../infra/microsoftGraphMailboxTruthDelta');
 const { processRawMessage } = require('./pipeline');
 const { MAILBOX_FOLDER_TYPES } = require('./constants');
 
@@ -21,6 +23,7 @@ function createCcoMailIngestionSyncService({
   ingestionStore = null,
   truthStore = null,
   patientDirectoryProvider = null,
+  documentTriage = null,
   logger = console,
 } = {}) {
   if (!ingestionStore) {
@@ -71,7 +74,7 @@ function createCcoMailIngestionSyncService({
       limit: 0,
     });
 
-    let totalFetched = messages.length;
+    const totalFetched = messages.length;
     let totalSaved = 0;
     let totalDuplicates = 0;
     let saveEvery = 0;
@@ -104,11 +107,7 @@ function createCcoMailIngestionSyncService({
     };
   }
 
-  async function processQueue({
-    mailboxEmail = '',
-    mode = 'read_only',
-    maxMessages = 25,
-  } = {}) {
+  async function processQueue({ mailboxEmail = '', mode = 'read_only', maxMessages = 25 } = {}) {
     const normalizedMailbox = normalizeEmail(mailboxEmail);
     const patientDirectory =
       typeof patientDirectoryProvider === 'function'
@@ -142,6 +141,8 @@ function createCcoMailIngestionSyncService({
           patientDirectory,
           logger,
           persist: false,
+          documentTriage,
+          tenantId: config.defaultTenantId || config.defaultTenant || 'hair-tp-clinic',
         });
         results.push(result);
         if (result.skipped) {

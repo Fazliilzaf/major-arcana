@@ -34,7 +34,8 @@ function evaluateSecurityFilter(rawMessage = {}) {
   const haystack = [rawMessage.subject, rawMessage.bodyPreview, rawMessage.fromEmail]
     .map((item) => normalizeText(item).toLowerCase())
     .join(' ');
-  const suspiciousLink = /https?:\/\/[^\s]+/i.test(haystack) && /bit\.ly|tinyurl|t\.co/i.test(haystack);
+  const suspiciousLink =
+    /https?:\/\/[^\s]+/i.test(haystack) && /bit\.ly|tinyurl|t\.co/i.test(haystack);
   const riskyAttachment =
     rawMessage.hasAttachments === true &&
     RISKY_ATTACHMENT_TYPES.test(normalizeText(rawMessage.subject));
@@ -162,6 +163,8 @@ async function processRawMessage({
   patientDirectory = [],
   logger = console,
   persist = true,
+  documentTriage = null,
+  tenantId = '',
 } = {}) {
   if (!store || !rawMessage?.id) {
     throw new Error('processRawMessage requires store and rawMessage.id');
@@ -177,28 +180,39 @@ async function processRawMessage({
   }
 
   const attempts = Number(activeLedger.attempts || 0) + 1;
-  activeLedger = await store.updateLedger(activeLedger.id, {
-    attempts,
-    lockedAt: new Date().toISOString(),
-    processorVersion: PROCESSOR_VERSION,
-    filterVersion: FILTER_VERSION,
-    matchVersion: MATCH_VERSION,
-  }, { persist });
+  activeLedger = await store.updateLedger(
+    activeLedger.id,
+    {
+      attempts,
+      lockedAt: new Date().toISOString(),
+      processorVersion: PROCESSOR_VERSION,
+      filterVersion: FILTER_VERSION,
+      matchVersion: MATCH_VERSION,
+    },
+    { persist }
+  );
 
   try {
     const source = evaluateSourceFilter(rawMessage);
     if (!source.allowed) {
-      activeLedger = await store.updateLedger(activeLedger.id, {
-        status: 'DUPLICATE_SKIPPED',
-        errorCode: 'source_filter_blocked',
-        errorMessage: source.reason,
-        completedAt: new Date().toISOString(),
-      }, { persist });
-      await store.appendAudit({
-        type: 'mail_ingestion_skipped',
-        rawMessageId: rawMessage.id,
-        reason: source.reason,
-      }, { persist });
+      activeLedger = await store.updateLedger(
+        activeLedger.id,
+        {
+          status: 'DUPLICATE_SKIPPED',
+          errorCode: 'source_filter_blocked',
+          errorMessage: source.reason,
+          completedAt: new Date().toISOString(),
+        },
+        { persist }
+      );
+      await store.appendAudit(
+        {
+          type: 'mail_ingestion_skipped',
+          rawMessageId: rawMessage.id,
+          reason: source.reason,
+        },
+        { persist }
+      );
       return { skipped: true, reason: source.reason, ledger: activeLedger, rawMessage };
     }
 
@@ -206,19 +220,26 @@ async function processRawMessage({
     const classification = classifyMailType(rawMessage);
     const counterpartyEmail = resolveCounterpartyEmail(rawMessage);
     if (isNonPatientCounterpartyEmail(counterpartyEmail)) {
-      activeLedger = await store.updateLedger(activeLedger.id, {
-        status: 'DUPLICATE_SKIPPED',
-        patientMatchStatus: 'DISMISSED',
-        errorCode: 'non_patient_mail',
-        errorMessage: 'non_patient_counterparty',
-        processedAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-      }, { persist });
-      await store.appendAudit({
-        type: 'mail_ingestion_dismissed_non_patient',
-        rawMessageId: rawMessage.id,
-        counterpartyEmail,
-      }, { persist });
+      activeLedger = await store.updateLedger(
+        activeLedger.id,
+        {
+          status: 'DUPLICATE_SKIPPED',
+          patientMatchStatus: 'DISMISSED',
+          errorCode: 'non_patient_mail',
+          errorMessage: 'non_patient_counterparty',
+          processedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+        },
+        { persist }
+      );
+      await store.appendAudit(
+        {
+          type: 'mail_ingestion_dismissed_non_patient',
+          rawMessageId: rawMessage.id,
+          counterpartyEmail,
+        },
+        { persist }
+      );
       return {
         skipped: true,
         reason: 'non_patient_counterparty',
@@ -248,40 +269,86 @@ async function processRawMessage({
       createdAt: new Date().toISOString(),
     };
 
-    activeLedger = await store.updateLedger(activeLedger.id, {
-      status,
-      patientMatchStatus: match.status,
-      patientId: match.patientId,
-      processedAt: new Date().toISOString(),
-      completedAt: ['COMPLETED', 'DUPLICATE_SKIPPED', 'MATCHED', 'UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'].includes(
-        status
-      )
-        ? new Date().toISOString()
-        : null,
-    }, { persist });
+    activeLedger = await store.updateLedger(
+      activeLedger.id,
+      {
+        status,
+        patientMatchStatus: match.status,
+        patientId: match.patientId,
+        processedAt: new Date().toISOString(),
+        completedAt: [
+          'COMPLETED',
+          'DUPLICATE_SKIPPED',
+          'MATCHED',
+          'UNMATCHED',
+          'NEEDS_REVIEW',
+          'SECURITY_REVIEW',
+        ].includes(status)
+          ? new Date().toISOString()
+          : null,
+      },
+      { persist }
+    );
 
     if (mode === 'active' && status === 'MATCHED' && match.patientId) {
-      activeLedger = await store.updateLedger(activeLedger.id, {
-        status: 'ACTION_CREATED',
-        completedAt: new Date().toISOString(),
-      }, { persist });
+      activeLedger = await store.updateLedger(
+        activeLedger.id,
+        {
+          status: 'ACTION_CREATED',
+          completedAt: new Date().toISOString(),
+        },
+        { persist }
+      );
     } else if (mode !== 'dry_run') {
-      activeLedger = await store.updateLedger(activeLedger.id, {
-        status: status === 'DUPLICATE_SKIPPED' ? 'DUPLICATE_SKIPPED' : status,
-        completedAt: new Date().toISOString(),
-      }, { persist });
+      activeLedger = await store.updateLedger(
+        activeLedger.id,
+        {
+          status: status === 'DUPLICATE_SKIPPED' ? 'DUPLICATE_SKIPPED' : status,
+          completedAt: new Date().toISOString(),
+        },
+        { persist }
+      );
     }
 
-    await store.appendAudit({
-      type: 'mail_ingestion_processed',
-      rawMessageId: rawMessage.id,
-      status: activeLedger.status,
-      mailType: classification.mailType,
-      patientMatchStatus: match.status,
-      mode,
-    }, { persist });
+    await store.appendAudit(
+      {
+        type: 'mail_ingestion_processed',
+        rawMessageId: rawMessage.id,
+        status: activeLedger.status,
+        mailType: classification.mailType,
+        patientMatchStatus: match.status,
+        mode,
+      },
+      { persist }
+    );
 
     await store.savePatientMatch(patientMatchRecord, { persist });
+
+    let triageResult = null;
+    if (
+      documentTriage &&
+      match.patientId &&
+      mode !== 'dry_run' &&
+      !security.needsReview &&
+      classification.messageClassification !== 'system_mail'
+    ) {
+      try {
+        triageResult = await documentTriage.triageInboundMail({
+          tenantId: tenantId || 'hair-tp-clinic',
+          patientId: match.patientId,
+          subject: rawMessage.subject,
+          bodyPreview: rawMessage.bodyPreview,
+          bodyText: rawMessage.bodyText,
+          sourceMessageId: rawMessage.id,
+          actor: 'mail_ingestion_triage',
+        });
+      } catch (triageError) {
+        logger?.warn?.(
+          `[mail-ingestion] document triage failed raw=${rawMessage.id}: ${triageError?.message || triageError}`
+        );
+        triageResult = { skipped: true, reason: 'triage_failed' };
+      }
+    }
 
     logger?.log?.(
       `[mail-ingestion] processed raw=${rawMessage.id} status=${activeLedger.status} mailType=${classification.mailType}`
@@ -295,19 +362,27 @@ async function processRawMessage({
       security,
       patientMatch: patientMatchRecord,
       source,
+      triageResult,
     };
   } catch (error) {
-    activeLedger = await store.updateLedger(activeLedger.id, {
-      status: 'FAILED',
-      errorCode: 'processing_failed',
-      errorMessage: normalizeText(error?.message) || 'processing_failed',
-      completedAt: new Date().toISOString(),
-    }, { persist });
-    await store.appendAudit({
-      type: 'mail_ingestion_failed',
-      rawMessageId: rawMessage.id,
-      error: activeLedger.errorMessage,
-    }, { persist });
+    activeLedger = await store.updateLedger(
+      activeLedger.id,
+      {
+        status: 'FAILED',
+        errorCode: 'processing_failed',
+        errorMessage: normalizeText(error?.message) || 'processing_failed',
+        completedAt: new Date().toISOString(),
+      },
+      { persist }
+    );
+    await store.appendAudit(
+      {
+        type: 'mail_ingestion_failed',
+        rawMessageId: rawMessage.id,
+        error: activeLedger.errorMessage,
+      },
+      { persist }
+    );
     throw error;
   }
 }

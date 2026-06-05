@@ -8,6 +8,7 @@ const {
   getCoolingOffMeta,
 } = require('./ccoTreatmentAgreementStore');
 const { resolveTemplateApprovalForAgreement } = require('./ccoTreatmentAgreementTemplateGate');
+const { buildDocumentBlockerSignals } = require('./ccoDocumentReadiness');
 
 let agreementStoreSingleton = null;
 let templateApprovalStoreSingleton = null;
@@ -192,7 +193,11 @@ function evaluatePatientSignals(readout, ctx = {}) {
     return { enabled: false, signals: [], reason: 'ENABLE_AUTOMATION_RUNNER är inte true' };
   }
   const { RULES } = require('./ccoAutomationRegistry');
-  const signals = RULES.map((rule) => evaluateRule(rule, { ...ctx, readout }));
+  const registrySignals = RULES.map((rule) => evaluateRule(rule, { ...ctx, readout }));
+  const documentSignals = buildDocumentBlockerSignals(ctx.documentReadiness, {
+    buildSignal,
+  });
+  const signals = [...registrySignals, ...documentSignals];
   const active = signals.filter((s) => s.status === 'active');
   active.sort((a, b) => b.priority - a.priority);
   return {

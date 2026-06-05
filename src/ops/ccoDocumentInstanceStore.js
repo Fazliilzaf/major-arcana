@@ -49,8 +49,10 @@ async function writeJsonAtomic(filePath, data) {
 function normalizeInstance(input = {}) {
   const tenantId = normalizeText(input.tenantId);
   const patientId = normalizeText(input.patientId);
-  const documentTypeId = normalizeText(input.documentTypeId);
-  if (!tenantId || !patientId || !documentTypeId) return null;
+  const documentTypeId = normalizeText(input.documentTypeId) || null;
+  const needsManualTriage = input.needsManualTriage === true;
+  if (!tenantId || !patientId) return null;
+  if (!documentTypeId && !needsManualTriage) return null;
   const createdAt = normalizeText(input.createdAt) || nowIso();
   const status = ALLOWED_STATUSES.has(input.status) ? input.status : 'pending';
   return {
@@ -58,6 +60,7 @@ function normalizeInstance(input = {}) {
     tenantId,
     patientId,
     documentTypeId,
+    needsManualTriage,
     status,
     createdAt,
     sentAt: normalizeText(input.sentAt) || null,
@@ -65,6 +68,8 @@ function normalizeInstance(input = {}) {
     signedAt: normalizeText(input.signedAt) || null,
     deliveredAt: normalizeText(input.deliveredAt) || null,
     actor: normalizeText(input.actor) || null,
+    sourceMessageId: normalizeText(input.sourceMessageId) || null,
+    triageConfidence: normalizeText(input.triageConfidence) || null,
     payload: input.payload && typeof input.payload === 'object' ? input.payload : null,
     auditRef: normalizeText(input.auditRef) || null,
     updatedAt: normalizeText(input.updatedAt) || createdAt,
@@ -88,14 +93,27 @@ async function createCcoDocumentInstanceStore({ filePath }) {
     return state;
   }
 
-  async function createInstance({ tenantId, patientId, documentTypeId, status, actor, payload }) {
+  async function createInstance({
+    tenantId,
+    patientId,
+    documentTypeId,
+    needsManualTriage = false,
+    status,
+    actor,
+    payload,
+    sourceMessageId = null,
+    triageConfidence = null,
+  }) {
     const row = normalizeInstance({
       tenantId,
       patientId,
       documentTypeId,
+      needsManualTriage,
       status,
       actor,
       payload,
+      sourceMessageId,
+      triageConfidence,
     });
     if (!row) throw new Error('Ogiltig dokumentinstans.');
     const state = await loadState();
@@ -132,10 +150,43 @@ async function createCcoDocumentInstanceStore({ filePath }) {
     return state.instances.filter((row) => row.tenantId === tid && row.patientId === pid);
   }
 
+  async function listForTenant({ tenantId }) {
+    const tid = normalizeText(tenantId);
+    const state = await loadState();
+    return state.instances.filter((row) => row.tenantId === tid);
+  }
+
+  async function findBySourceMessageId(sourceMessageId) {
+    const key = normalizeText(sourceMessageId);
+    if (!key) return null;
+    const state = await loadState();
+    return state.instances.find((row) => row.sourceMessageId === key) || null;
+  }
+
+  async function findOpenForPatientType({ tenantId, patientId, documentTypeId }) {
+    const tid = normalizeText(tenantId);
+    const pid = normalizeText(patientId);
+    const typeId = normalizeText(documentTypeId);
+    if (!tid || !pid || !typeId) return null;
+    const state = await loadState();
+    return (
+      state.instances.find(
+        (row) =>
+          row.tenantId === tid &&
+          row.patientId === pid &&
+          row.documentTypeId === typeId &&
+          !['archived'].includes(row.status)
+      ) || null
+    );
+  }
+
   return {
     createInstance,
     transition,
     listForPatient,
+    listForTenant,
+    findBySourceMessageId,
+    findOpenForPatientType,
   };
 }
 

@@ -24,6 +24,7 @@ const {
   applyFasAReadoutFields,
   loadFasAContextForPatients,
 } = require('../ops/ccoKunderFasAReadiness');
+const { buildSmartNextStepReadout } = require('../ops/ccoSmartNextStepStore');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -37,6 +38,7 @@ function parseIntParam(value, fallback) {
 
 function createCcoStaffRouter({
   patientMasterStore,
+  documentInstanceStore = null,
   readCache = null,
   dashboardSnapshot = null,
   worklistSnapshot = null,
@@ -216,6 +218,18 @@ function createCcoStaffRouter({
             } else {
               const agreementStore = await getTreatmentAgreementStore(config);
               const templateApprovalStore = await getTemplateVersionApprovalStore(config);
+              const instancesByPatient = new Map();
+              if (documentInstanceStore?.listForTenant) {
+                const allInstances = await documentInstanceStore.listForTenant({
+                  tenantId: actor.tenantId,
+                });
+                for (const instance of allInstances) {
+                  const pid = normalizeText(instance.patientId);
+                  if (!pid) continue;
+                  if (!instancesByPatient.has(pid)) instancesByPatient.set(pid, []);
+                  instancesByPatient.get(pid).push(instance);
+                }
+              }
               const enriched = [];
               for (const readout of readouts) {
                 const agreement = await loadAgreementContext(
@@ -225,9 +239,15 @@ function createCcoStaffRouter({
                   readout.patientId
                 );
                 applyFasAReadoutFields(readout, fasAMap.get(readout.patientId), agreement);
+                const smartNext = buildSmartNextStepReadout({
+                  card: readout,
+                  instances: instancesByPatient.get(readout.patientId) || [],
+                });
+                Object.assign(readout, smartNext);
                 const evaluation = evaluatePatientSignals(readout, {
                   agreement,
                   bookingCoverage,
+                  documentReadiness: smartNext.documentReadiness,
                 });
                 enriched.push({
                   ...readout,
@@ -402,6 +422,7 @@ function createCcoStaffRouter({
 
   attachAutomationRoutes(router, {
     patientMasterStore,
+    documentInstanceStore,
     requireAuth,
     requireRole,
     ROLE_OWNER,

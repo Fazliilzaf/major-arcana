@@ -11441,6 +11441,10 @@ process.once('SIGTERM', () => {
   const ccoDocumentInstanceStore = await createCcoDocumentInstanceStore({
     filePath: config.ccoDocumentInstanceStorePath,
   });
+  const { createCcoDocumentTriageEngine } = require('./src/ops/ccoDocumentTriageEngine');
+  const ccoDocumentTriageEngine = createCcoDocumentTriageEngine({
+    documentInstanceStore: ccoDocumentInstanceStore,
+  });
   const ccoDashboardSnapshot = createCcoStaffDashboardSnapshot({
     filePath: path.join(config.stateRoot || './data', 'cco-dashboard-snapshot.json'),
     readCache: ccoReadCache,
@@ -11623,6 +11627,7 @@ process.once('SIGTERM', () => {
     graphReadConnector,
     ingestionStore: ccoMailIngestionStore,
     truthStore: ccoMailboxTruthStore,
+    documentTriage: ccoDocumentTriageEngine,
     patientDirectoryProvider: async () => {
       const tenantId = config.defaultTenantId || 'hair-tp-clinic';
       const listed = await ccoPatientMasterStore.listPatients({ tenantId, limit: 20000 });
@@ -12173,6 +12178,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoStaffRouter({
       patientMasterStore: ccoPatientMasterStore,
+      documentInstanceStore: ccoDocumentInstanceStore,
       readCache: ccoReadCache,
       dashboardSnapshot: ccoDashboardSnapshot,
       worklistSnapshot: ccoWorklistSnapshot,

@@ -66,6 +66,41 @@
     },
   });
 
+  const DOCUMENT_SIGNAL_ACTIONS = Object.freeze({
+    'document.requiredFor.konsultation': {
+      buttonLabel: 'Formulär',
+      disabledReason: 'Hälsodeklaration krävs före konsultation',
+    },
+    'document.requiredFor.konsult': {
+      buttonLabel: 'Journal',
+      disabledReason: 'Konsultationsdokument saknas',
+    },
+    'document.requiredFor.offert': {
+      buttonLabel: 'Offert',
+      disabledReason: 'Offert/behandlingsplan saknas',
+    },
+    'document.requiredFor.avtal': {
+      buttonLabel: 'Avtal',
+      disabledReason: 'Avtal och samtycke saknas',
+    },
+    'document.requiredFor.behandling': {
+      buttonLabel: 'Boka',
+      disabledReason: 'Behandlingsdokument saknas',
+    },
+    'document.requiredFor.op_dag': {
+      buttonLabel: 'Portal-länk',
+      disabledReason: 'Friskförsäkran krävs på operationsdagen',
+    },
+    'document.requiredFor.info_samtycke': {
+      buttonLabel: 'Samtycke',
+      disabledReason: 'Patientsamtycke saknas',
+    },
+    'document.requiredFor.foto_publik': {
+      buttonLabel: 'Samtycke',
+      disabledReason: 'Foto-samtycke för publicering saknas',
+    },
+  });
+
   const FORBIDDEN_COPY = [
     /T-48/i,
     /14 dagar/i,
@@ -148,7 +183,7 @@
   }
 
   function renderSignal(signal) {
-    const action = SIGNAL_ACTIONS[signal.ruleId] || {};
+    const action = SIGNAL_ACTIONS[signal.ruleId] || DOCUMENT_SIGNAL_ACTIONS[signal.ruleId] || {};
     const cls = riskClass(signal.risk);
     const inactive = signal.status !== 'active';
     const what = assertCopySafe(signal.what) ? signal.what : '—';

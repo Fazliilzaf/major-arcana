@@ -236,6 +236,8 @@ module.exports = {
   buildPatientDocumentBundle,
   resolvePrimaryFlow,
   mapInstanceUiStatus,
+  inferStatusFromPatientSignals,
+  typeAppliesToPatient,
   groupForType,
   getDocumentTypeById,
 };

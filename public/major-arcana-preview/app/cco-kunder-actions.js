@@ -30,6 +30,21 @@
 
   const WORKSPACE_ACTION_IDS = ['export', 'merge', 'gdpr', 'access', 'payment'];
 
+  const STEP_TO_ACTION_IDS = {
+    konsultation: ['form'],
+    konsult: ['journal'],
+    offert: ['offer'],
+    avtal: ['agreement', 'book'],
+    behandling: ['book', 'rebook'],
+    op_dag: ['book', 'rebook'],
+    behandlingsdag: ['book', 'rebook'],
+    pre_op: ['book', 'rebook'],
+    accept: ['book', 'rebook'],
+    info_samtycke: ['agreement'],
+    foto_publik: ['photo'],
+    foto_protokoll: ['photo'],
+  };
+
   function escapeHtml(s) {
     return String(s ?? '')
       .replace(/&/g, '&amp;')
@@ -86,6 +101,15 @@
     const role = ctx.role || 'staff';
     const journalBlocked = Boolean(card?.journalBlocked);
     const hasKomm = Boolean(global.CcoKommPanel);
+    const blockedActionIds = Array.isArray(card?.blockedActionIds) ? card.blockedActionIds : [];
+
+    function documentBlocked(actionId, fallbackReason) {
+      if (!blockedActionIds.includes(actionId)) return null;
+      const blocker = (card?.documentBlockers || []).find((row) =>
+        (STEP_TO_ACTION_IDS[row.step] || []).includes(actionId)
+      );
+      return blocker?.reason || fallbackReason || 'Dokument krävs innan nästa steg';
+    }
 
     const journalHref = patientId
       ? `/journal-feed-demo.html?customerId=${encodeURIComponent(patientId)}&tenant=${encodeURIComponent(tenantId)}&role=${encodeURIComponent(role)}`
@@ -163,49 +187,52 @@
       def({
         id: 'book',
         label: 'Boka',
-        status: 'disabled',
-        disabledReason: 'Kräver bokningsdata · Kalender P1',
+        status: documentBlocked('book') ? 'blocked' : 'disabled',
+        disabledReason: documentBlocked('book') || 'Kräver bokningsdata · Kalender P1',
         requiredData: 'booking write GO',
       }),
       def({
         id: 'rebook',
         label: 'Omboka',
-        status: 'disabled',
-        disabledReason: 'Kräver bokningsdata · Kalender P1',
+        status: documentBlocked('rebook') ? 'blocked' : 'disabled',
+        disabledReason: documentBlocked('rebook') || 'Kräver bokningsdata · Kalender P1',
         requiredData: 'booking write GO',
       }),
       def({
         id: 'form',
         label: 'Formulär',
-        status: 'disabled',
-        disabledReason: 'Kräver formulärmotor',
+        status: documentBlocked('form') ? 'blocked' : 'disabled',
+        disabledReason: documentBlocked('form') || 'Kräver formulärmotor',
         requiredData: 'staff formulär route',
       }),
       def({
         id: 'agreement',
         label: 'Avtal',
-        status: card?.hasAgreement ? 'real' : 'disabled',
+        status: documentBlocked('agreement') ? 'blocked' : card?.hasAgreement ? 'real' : 'disabled',
         kind: card?.hasAgreement ? 'handler' : 'button',
         handler: card?.hasAgreement ? 'assets' : undefined,
         route: card?.hasAgreement && patientId ? `/api/v1/cco/patients/${patientId}/assets` : null,
-        disabledReason: 'Kräver avtalsflöde P1',
+        disabledReason:
+          documentBlocked('agreement') || (card?.hasAgreement ? null : 'Kräver avtalsflöde P1'),
         requiredData: card?.hasAgreement ? null : 'agreement document',
       }),
       def({
         id: 'offer',
         label: 'Skapa offert',
-        status: 'disabled',
-        disabledReason: 'Kräver offertmotor · Kommer i P1',
+        status: documentBlocked('offer') ? 'blocked' : 'disabled',
+        disabledReason: documentBlocked('offer') || 'Kräver offertmotor · Kommer i P1',
         requiredData: 'cco-commercial offer route',
       }),
       def({
         id: 'photo',
         label: 'Foto',
-        status: patientId ? 'partial' : 'disabled',
+        status: documentBlocked('photo') ? 'blocked' : patientId ? 'partial' : 'disabled',
         kind: patientId ? 'link' : 'button',
         href: photoHref,
         route: photoHref,
-        disabledReason: patientId ? 'Photo Review kö (read-only)' : 'Saknar patientId',
+        disabledReason:
+          documentBlocked('photo') ||
+          (patientId ? 'Photo Review kö (read-only)' : 'Saknar patientId'),
         requiredData: 'photo-review.html',
         rbac: RBAC.photo,
       }),
@@ -348,5 +375,6 @@
     handlesKunderActions: true,
     DOSSIER_ACTION_IDS,
     WORKSPACE_ACTION_IDS,
+    STEP_TO_ACTION_IDS,
   };
 })(typeof window !== 'undefined' ? window : global);
