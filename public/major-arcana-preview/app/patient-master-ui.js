@@ -1015,6 +1015,19 @@
     const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
     if (!rail || !window.CcoKundkortBlueprint) return false;
     els.patientRail = rail;
+    // Master-detail: bred lista + stort dockat kort (slår CSS-cascaden)
+    try {
+      const mdLayout = document.querySelector('.customers-layout');
+      if (mdLayout && window.matchMedia('(min-width: 1100px)').matches) {
+        mdLayout.style.setProperty(
+          'grid-template-columns',
+          '180px minmax(0, 1fr) 424px',
+          'important'
+        );
+      }
+    } catch (mdErr) {
+      /* no-op */
+    }
     rail.innerHTML =
       typeof window !== 'undefined' && window.__renderReferensKundkort
         ? '<div class="kkref">' +
