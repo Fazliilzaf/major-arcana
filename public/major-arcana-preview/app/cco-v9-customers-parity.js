@@ -2006,11 +2006,380 @@
       </div>`;
   }
 
-  function renderV11DossierZonesHtml(card, journalEntries, dossierBundle, filterState = {}) {
+  /* ORD-25 Fas G — kommande bokningar, kundresan, veckans mönster */
+
+  const V11_BOOKING_ACCENTS = ['lila', 'blau', 'gron'];
+
+  const V11_CANONICAL_JOURNEY = Object.freeze([
+    { step: 1, label: 'Bokning' },
+    { step: 2, label: 'Hälsodeklaration' },
+    { step: 3, label: 'Konsultation' },
+    { step: 4, label: 'Offert / plan' },
+    { step: 5, label: 'Plan accepterad' },
+    { step: 6, label: 'Betänketid (2 dagar)' },
+    { step: 7, label: 'Avtal + samtycke' },
+    { step: 8, label: 'Friskförsäkran · op-dag' },
+    { step: 9, label: 'Foto-samtycke · op-dag' },
+  ]);
+
+  function resolvePatientFirstName(card) {
+    const direct = normalizeIntelText(card?.firstName);
+    if (direct) return direct;
+    const fromName = normalizeIntelText(card?.displayName || card?.name || '').split(/\s+/)[0];
+    return fromName || 'Kunden';
+  }
+
+  function formatPreferredBookingSlot(iso, resourceLabel) {
+    if (!iso) return resourceLabel ? `hos ${resourceLabel}` : 'lämplig tid';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return resourceLabel ? `hos ${resourceLabel}` : 'lämplig tid';
+    const day = DAY_NAMES[d.getDay()];
+    const time = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    return resourceLabel ? `${day} ${time} hos ${resourceLabel}` : `${day} ${time}`;
+  }
+
+  function collectV11DocumentRows(card, dossierBundle) {
+    const payload = resolveV11DocumentPayload(card, dossierBundle);
+    return [
+      ...asArray(payload.offers),
+      ...asArray(payload.healthForms),
+      ...asArray(payload.journals),
+      ...asArray(payload.autoDocs),
+    ]
+      .map((row) => mapV11DocumentRow(row))
+      .filter(Boolean);
+  }
+
+  function docsAtJourneyStep(rows, step) {
+    return rows.filter((row) => String(row.journeyStep) === String(step));
+  }
+
+  function docStepAggregate(rows, step) {
+    const atStep = docsAtJourneyStep(rows, step);
+    if (!atStep.length) return null;
+    if (atStep.some((row) => row.status === 'signed')) return 'done';
+    if (atStep.some((row) => row.status === 'pending')) return 'active';
+    if (atStep.some((row) => row.status === 'planned')) return 'future';
+    return 'pending';
+  }
+
+  function buildV11WeeklyPatterns(card) {
+    const firstName = resolvePatientFirstName(card);
+    const visits = Number(card?.visitCount ?? card?.bookingCount ?? 0);
+    const noShows = Number(card?.noShowCount ?? 0);
+    const ltv = Number(card?.lifetimeValue ?? card?.dealValue ?? card?.pipedriveDealValue ?? 0);
+    const treatment =
+      card?.nextBookingType || card?.lastBookingType || asArray(card?.treatmentTypes)[0] || 'PRP';
+    const treatmentLower = String(treatment).toLowerCase();
+    const seriesTotal = treatmentLower.includes('prp') ? 6 : 4;
+    const seriesCurrent =
+      visits > 0 ? Math.min(Math.max(visits % seriesTotal || seriesTotal, 1), seriesTotal) : 1;
+    const resource = card?.nextBookingResourceLabel || card?.nextBookingResource || 'behandlare';
+    const slotHint = formatPreferredBookingSlot(card?.nextBookingAt || card?.lastVisitAt, resource);
+
+    let bookingPattern = '';
+    if (visits > 0 && treatmentLower.includes('prp')) {
+      bookingPattern = `${firstName} är på ${seriesCurrent}/${seriesTotal} i PRP — föreslå ${Math.min(seriesCurrent + 1, seriesTotal)}:e ~3 v från senaste, helst ${slotHint}.`;
+    } else if (card?.hasUpcomingBooking) {
+      bookingPattern = `${firstName} har ${treatment} bokad — bekräfta ${slotHint}.`;
+    } else {
+      bookingPattern = `${firstName} saknar bokad uppföljning — föreslå nästa ${treatment}.`;
+    }
+
+    const denom = Math.max(visits, 1);
+    const engagementPct = Math.min(100, Math.max(0, Math.round(((denom - noShows) / denom) * 100)));
+    const trend = `Engagement stabilt ${engagementPct} % · ${noShows} no-shows på ${visits || 12} besök.`;
+
+    let opportunity = '';
+    if (!card?.isVip && ltv >= 35000) {
+      opportunity = `Värd att uppgradera till VIP+ — total omsättning passerar ${formatSek(ltv)}.`;
+    } else if (card?.isVip) {
+      opportunity = 'VIP-kund — behåll proaktiv uppföljning och kurplan.';
+    } else if (ltv > 0) {
+      opportunity = `Intäkt ${formatSek(ltv)} — erbjud kurpaket eller uppföljning.`;
+    } else {
+      opportunity = 'Bygg lojalitet med regelbunden uppföljning efter behandling.';
+    }
+
+    return { bookingPattern, trend, opportunity };
+  }
+
+  function buildV11CustomerJourney(card, journalEntries, dossierBundle) {
+    const entries = asArray(journalEntries);
+    const docRows = collectV11DocumentRows(card, dossierBundle);
+    const blockedSteps = new Set(asArray(card?.blockedSteps).map(String));
+    const planEntry = findConsultationPlan(entries);
+    const healthSigned =
+      journalHasType(entries, 'health_declaration', { locked: true }) ||
+      (!card?.missingHealthDeclaration && Boolean(card?.hasForm));
+    const fitnessSigned =
+      journalHasType(entries, 'fitness_certificate', { locked: true }) ||
+      Boolean(card?.fitnessSigned);
+    const hasBooking =
+      Boolean(card?.hasUpcomingBooking) ||
+      Number(card?.visitCount ?? card?.bookingCount ?? 0) > 0 ||
+      Boolean(card?.lastVisitAt || card?.lastBookingAt);
+
+    const resolveStatus = (step) => {
+      const docState = docStepAggregate(docRows, step);
+      if (docState === 'done') return 'done';
+      if (docState === 'active') return 'active';
+      if (docState === 'future') return 'future';
+
+      if (step === 1) return hasBooking ? 'done' : 'pending';
+      if (step === 2) {
+        if (healthSigned) return 'done';
+        if (card?.missingHealthDeclaration || blockedSteps.has('2')) return 'active';
+        return card?.hasUpcomingBooking ? 'pending' : 'future';
+      }
+      if (step === 3) {
+        if (planEntry || journalHasType(entries, 'consultation')) return 'done';
+        if (healthSigned && !planEntry) return 'active';
+        return 'future';
+      }
+      if (step === 4) {
+        if (docsAtJourneyStep(docRows, 4).some((row) => row.status === 'signed')) return 'done';
+        if (planEntry && !planEntry.locked) return 'active';
+        return docState || 'future';
+      }
+      if (step === 5) {
+        if (
+          planEntry?.locked ||
+          docsAtJourneyStep(docRows, 5).some((row) => row.status === 'signed')
+        ) {
+          return 'done';
+        }
+        if (docsAtJourneyStep(docRows, 5).some((row) => row.status === 'pending')) return 'active';
+        return 'future';
+      }
+      if (step === 6) {
+        if (
+          blockedSteps.has('6') ||
+          docsAtJourneyStep(docRows, 6).some((row) => row.status === 'pending')
+        ) {
+          return 'active';
+        }
+        if (docsAtJourneyStep(docRows, 6).some((row) => row.status === 'signed')) return 'done';
+        return 'future';
+      }
+      if (step === 7) {
+        if (blockedSteps.has('7')) return 'active';
+        if (docsAtJourneyStep(docRows, 7).some((row) => row.status === 'signed')) return 'done';
+        return 'future';
+      }
+      if (step === 8) {
+        if (fitnessSigned) return 'done';
+        if (card?.missingFitnessCertificate || blockedSteps.has('8'))
+          return card?.hasUpcomingBooking ? 'active' : 'future';
+        return 'future';
+      }
+      if (step === 9) {
+        if (docsAtJourneyStep(docRows, 9).some((row) => row.status === 'signed')) return 'done';
+        if (docsAtJourneyStep(docRows, 9).some((row) => row.status === 'pending')) return 'active';
+        return 'future';
+      }
+      return 'future';
+    };
+
+    const resolveMeta = (step, status) => {
+      if (status !== 'done') return '';
+      if (step === 2) {
+        const date = journalEntryDate(
+          entries.find((entry) => entry?.journalType === 'health_declaration') || {}
+        );
+        return formatShortBookingDate(date);
+      }
+      if (step === 4 || step === 5) {
+        const signed = docsAtJourneyStep(docRows, step).find((row) => row.status === 'signed');
+        return signed?.statusLabel || '';
+      }
+      if (step === 5 && planEntry?.locked) return 'betänketid startad';
+      return '';
+    };
+
+    const steps = V11_CANONICAL_JOURNEY.map((def) => {
+      const status = resolveStatus(def.step);
+      return {
+        ...def,
+        status,
+        meta: resolveMeta(def.step, status),
+        progress: status === 'active' && def.step === 6 ? 62 : status === 'active' ? 40 : 0,
+        dueLabel:
+          status === 'active' && def.step === 6 && card?.nextBookingAt
+            ? `Klar ${formatShortBookingDate(card.nextBookingAt)}`
+            : '',
+      };
+    });
+
+    let activeIndex = steps.findIndex((row) => row.status === 'active');
+    if (activeIndex < 0) activeIndex = steps.findIndex((row) => row.status === 'pending');
+    const doneCount = steps.filter((row) => row.status === 'done').length;
+
+    return { steps, doneCount, totalCount: steps.length, activeIndex };
+  }
+
+  function renderV11UpcomingBookingRow(booking, index) {
+    const { staff, initials, shortName } = staffFromSub(booking.sub);
+    const accent = V11_BOOKING_ACCENTS[index % V11_BOOKING_ACCENTS.length];
+    const whenLong =
+      booking.whenLong ||
+      (booking.num && booking.mon ? `${booking.num} ${booking.mon.toLowerCase()}` : '—');
+    const whenShort = booking.whenShort || booking.day || '';
+    return `
+      <button type="button" class="v11-booking-row v11-booking-row--${accent}" data-v11-booking-row>
+        <span class="v11-booking-row__rail" aria-hidden="true"></span>
+        <span class="v11-booking-row__when">
+          <span class="v11-booking-row__cal" aria-hidden="true">📅</span>
+          <span class="v11-booking-row__date">${escapeHtml(whenLong)}</span>
+          ${whenShort ? `<span class="v11-booking-row__time">${escapeHtml(whenShort)}</span>` : ''}
+        </span>
+        <span class="v11-booking-row__copy">
+          <span class="v11-booking-row__title">${escapeHtml(booking.title)}</span>
+          ${booking.area ? `<span class="v11-booking-row__sub">${escapeHtml(booking.area)}</span>` : ''}
+        </span>
+        <span class="v11-booking-row__staff" title="${escapeHtml(staff)}">
+          <span class="v11-booking-row__avatar">${escapeHtml(initials)}</span>
+          ${shortName ? `<span class="v11-booking-row__name">${escapeHtml(shortName)}</span>` : ''}
+        </span>
+      </button>`;
+  }
+
+  function renderV11UpcomingBookings(card, occasionTimeline) {
+    const upcoming = buildUpcomingBookings(card, occasionTimeline);
+    if (!upcoming.length) return '';
+
+    return `
+      <section class="v11-upcoming-bookings" data-v11-upcoming-bookings aria-label="Kommande bokningar">
+        <header class="v11-upcoming-bookings__head">
+          <h3 class="v11-upcoming-bookings__title">Kommande bokningar</h3>
+        </header>
+        <div class="v11-upcoming-bookings__list">
+          ${upcoming.map((row, index) => renderV11UpcomingBookingRow(row, index)).join('')}
+        </div>
+      </section>`;
+  }
+
+  function renderV11JourneyCompletedStep(step) {
+    return `
+      <div class="v11-journey-step v11-journey-step--done" data-v11-journey-step="${step.step}">
+        <span class="v11-journey-step__badge" aria-hidden="true">✓</span>
+        <span class="v11-journey-step__copy">
+          <span class="v11-journey-step__num">${step.step}.</span>
+          <span class="v11-journey-step__label">${escapeHtml(step.label)}</span>
+          ${step.meta ? `<span class="v11-journey-step__meta">${escapeHtml(step.meta)}</span>` : ''}
+        </span>
+      </div>`;
+  }
+
+  function renderV11JourneyActiveStep(step) {
+    const progress = Math.max(8, Math.min(100, Number(step.progress) || 40));
+    return `
+      <div class="v11-journey-active" data-v11-journey-active>
+        <div class="v11-journey-active__head">
+          <span class="v11-journey-active__badge">${step.step}</span>
+          <span class="v11-journey-active__status">Pågår · ${step.step === 6 ? '1 dag kvar' : 'Nästa steg'}</span>
+          ${step.dueLabel ? `<span class="v11-journey-active__due">${escapeHtml(step.dueLabel)}</span>` : ''}
+        </div>
+        <div class="v11-journey-active__label">${escapeHtml(step.label)}</div>
+        <div class="v11-journey-active__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}">
+          <span class="v11-journey-active__fill" style="width:${progress}%"></span>
+        </div>
+      </div>`;
+  }
+
+  function renderV11JourneyFutureStep(step) {
+    return `
+      <div class="v11-journey-future" data-v11-journey-step="${step.step}">
+        <span class="v11-journey-future__num">${step.step}.</span>
+        <span class="v11-journey-future__label">${escapeHtml(step.label)}</span>
+      </div>`;
+  }
+
+  function renderV11CustomerJourney(card, journalEntries, dossierBundle) {
+    const journey = buildV11CustomerJourney(card, journalEntries, dossierBundle);
+    const activeStep = journey.activeIndex >= 0 ? journey.steps[journey.activeIndex] : null;
+    const completed = journey.steps.filter(
+      (step, index) =>
+        step.status === 'done' && (journey.activeIndex < 0 || index < journey.activeIndex)
+    );
+    const future = journey.steps.filter(
+      (step, index) =>
+        step.status === 'future' ||
+        (journey.activeIndex >= 0 && index > journey.activeIndex && step.status !== 'done')
+    );
+
+    return `
+      <section class="v11-customer-journey" data-v11-customer-journey aria-label="Kundresan">
+        <header class="v11-customer-journey__head">
+          <h3 class="v11-customer-journey__title">Kundresan</h3>
+          <span class="v11-customer-journey__count">${journey.doneCount} av ${journey.totalCount} klart</span>
+          <button type="button" class="v11-customer-journey__link" data-v9-intel-open-all>Visa detaljer ›</button>
+        </header>
+        ${
+          completed.length
+            ? `<div class="v11-customer-journey__done-grid">${completed.map(renderV11JourneyCompletedStep).join('')}</div>`
+            : ''
+        }
+        ${activeStep && activeStep.status !== 'done' ? renderV11JourneyActiveStep(activeStep) : ''}
+        ${
+          future.length
+            ? `<div class="v11-customer-journey__future-row">${future.slice(0, 3).map(renderV11JourneyFutureStep).join('')}</div>`
+            : ''
+        }
+      </section>`;
+  }
+
+  function renderV11WeeklyPatterns(card) {
+    const patterns = buildV11WeeklyPatterns(card);
+    return `
+      <section class="v11-weekly-patterns" data-v11-weekly-patterns aria-label="Veckans mönster">
+        <h3 class="v11-weekly-patterns__title">Veckans mönster</h3>
+        <div class="v11-weekly-patterns__rows">
+          <div class="v11-weekly-patterns__row">
+            <span class="v11-weekly-patterns__kicker">Bokningsmönster</span>
+            <p class="v11-weekly-patterns__text">${escapeHtml(patterns.bookingPattern)}</p>
+          </div>
+          <div class="v11-weekly-patterns__row">
+            <span class="v11-weekly-patterns__kicker">Trend</span>
+            <p class="v11-weekly-patterns__text">${escapeHtml(patterns.trend)}</p>
+          </div>
+          <div class="v11-weekly-patterns__row">
+            <span class="v11-weekly-patterns__kicker">Möjlighet</span>
+            <p class="v11-weekly-patterns__text">${escapeHtml(patterns.opportunity)}</p>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  function renderV11ContextPanels(card, journalEntries, dossierBundle, occasionTimeline) {
+    const upcoming = renderV11UpcomingBookings(card, occasionTimeline);
+    const journey = renderV11CustomerJourney(card, journalEntries, dossierBundle);
+    const patterns = renderV11WeeklyPatterns(card);
+    if (!upcoming && !journey && !patterns) return '';
+
+    return `
+      <div class="v11-context-panels" data-v11-context-panels>
+        ${upcoming}
+        ${upcoming && (journey || patterns) ? renderV11Hairstrand() : ''}
+        <div class="v11-context-panels__duo">
+          ${journey}
+          ${patterns}
+        </div>
+      </div>`;
+  }
+
+  function renderV11DossierZonesHtml(
+    card,
+    journalEntries,
+    dossierBundle,
+    filterState = {},
+    occasionTimeline = null
+  ) {
     if (!isV9On() || !card) return '';
 
     return `
       <div class="v11-dossier-zones" data-v11-dossier-zones>
+        ${renderV11ContextPanels(card, journalEntries, dossierBundle, occasionTimeline)}
         ${renderV11Hairstrand()}
         ${renderV11DocumentSegments(card, dossierBundle, filterState)}
         ${renderV11Hairstrand()}
@@ -2031,9 +2400,20 @@
     });
   }
 
-  function renderIntelligentJourneyBubblesHtml(card, journalEntries, dossierBundle) {
+  function renderIntelligentJourneyBubblesHtml(
+    card,
+    journalEntries,
+    dossierBundle,
+    occasionTimeline
+  ) {
     if (!isV9On() || !card) return '';
-    const v11 = renderV11DossierZonesHtml(card, journalEntries, dossierBundle);
+    const v11 = renderV11DossierZonesHtml(
+      card,
+      journalEntries,
+      dossierBundle,
+      {},
+      occasionTimeline
+    );
     if (v11) return v11;
 
     const journey = buildIntelligentJourneyBubbles(card, journalEntries);
@@ -2769,6 +3149,9 @@
     renderV11DocumentSegments,
     renderV11InsightsStrip,
     renderV11StickyActions,
+    renderV11UpcomingBookings,
+    renderV11CustomerJourney,
+    renderV11WeeklyPatterns,
     renderV11DossierZonesHtml,
     buildIntelligentJourneyBubbles,
     renderIntelligentJourneyBubblesHtml,

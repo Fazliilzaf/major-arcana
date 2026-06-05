@@ -3364,14 +3364,15 @@
     );
   }
 
-  function renderV9IntelligentBubblesBlock(card, journalEntries) {
+  function renderV9IntelligentBubblesBlock(card, journalEntries, occasionTimeline) {
     if (!isV9CustomersEnabled() || !card) return '';
     const dossierBundle = runtime.detail?.documentBundle || runtime.detail?.dossierBundle || null;
     return (
       window.CcoV9CustomersParity?.renderIntelligentJourneyBubblesHtml?.(
         card,
         journalEntries,
-        dossierBundle
+        dossierBundle,
+        occasionTimeline
       ) || ''
     );
   }
@@ -3680,7 +3681,7 @@
       <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis${v11Cutover ? ' v9-mockup-dossier--v11-cutover' : ''}" data-patient-detail${v11Cutover ? ' data-v11-cutover="1"' : ''}>
         <div class="v9-dossier-chrome">
           ${renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
-          ${renderV9IntelligentBubblesBlock(card, journalEntries)}
+          ${renderV9IntelligentBubblesBlock(card, journalEntries, occasionTimeline)}
           ${v11Cutover ? '' : renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
         </div>
         ${renderV9SmartNextStepHtml(card)}
