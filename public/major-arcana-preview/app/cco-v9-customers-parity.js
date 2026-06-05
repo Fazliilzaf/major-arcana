@@ -700,8 +700,11 @@
       renderSynthesisBlock('filer', 'Filer', realFileCount, filesHtml, {
         headLink: realFileCount > 0 ? 'Visa alla ›' : '',
       }),
-      renderSynthesisBlock('ai', 'AI-insikter', insights.length, aiHtml),
     ];
+
+    if (!synthesisOnly) {
+      primary.push(renderSynthesisBlock('ai', 'AI-insikter', insights.length, aiHtml));
+    }
 
     if (synthesisOnly) {
       return `
@@ -1156,67 +1159,336 @@
     };
   }
 
-  function renderIntelBubbleMarkup(bubble, card) {
+  const INTEL_TONE_LABELS = {
+    next: 'Nästa steg',
+    coming: 'På gång',
+    done: 'Klart',
+    future: 'Planerat framåt',
+    neutral: 'Ej påbörjat',
+  };
+
+  const INTEL_BUBBLE_ICONS = {
+    photo: '📷',
+    gallery: '🖼',
+    plan: '📝',
+    import: '📥',
+    health_tp: '📋',
+    health_bleph: '📋',
+    health_ortho: '📋',
+    health_injection: '📋',
+    health_eng: '📋',
+    fitness_tp: '✓',
+    fitness_bleph: '✓',
+    tp_journal: '✎',
+    prp_journal: '💧',
+    prp_post_tp: '💧',
+    follow_4: '↗',
+    follow_6: '↗',
+    follow_12: '↗',
+    bleph_journal: '✎',
+  };
+
+  function resolveIntelToneTheme(tone) {
+    if (tone === 'next') return 'next';
+    if (tone === 'coming') return 'coming';
+    if (tone === 'done') return 'retention';
+    if (tone === 'future') return 'response';
+    return 'neutral';
+  }
+
+  function resolveIntelBubbleIcon(bubble) {
+    return INTEL_BUBBLE_ICONS[bubble?.id] || '●';
+  }
+
+  function resolveIntelBubbleBody(bubble) {
+    const tone = bubble?.tone || 'neutral';
+    if (tone === 'next') return `${bubble.label} behöver göras som nästa steg i kundresan.`;
+    if (tone === 'coming') return `${bubble.label} ligger på tur efter nuvarande steg.`;
+    if (tone === 'done') return `${bubble.label} är signerad eller klar i CCO.`;
+    if (tone === 'future') return `${bubble.label} är planerad längre fram i behandlingsresan.`;
+    return `${bubble.label} är ännu inte påbörjad.`;
+  }
+
+  function buildIntelFeaturedCards(card, journalEntries) {
+    const { bubbles } = buildIntelligentJourneyBubbles(card, journalEntries);
+    const journeyCards = bubbles
+      .filter((bubble) => bubble.tone === 'next' || bubble.tone === 'coming')
+      .slice(0, 2)
+      .map((bubble) => ({
+        kind: 'journey',
+        id: bubble.id,
+        bubble,
+        icon: resolveIntelBubbleIcon(bubble),
+        title: bubble.label,
+        body: resolveIntelBubbleBody(bubble),
+        theme: resolveIntelToneTheme(bubble.tone),
+        tone: bubble.tone,
+      }));
+
+    const aiCards = buildSynthesisAiInsights(card).map((ins, index) => ({
+      kind: 'ai',
+      id: `ai-${index}`,
+      icon: ins.icon || '★',
+      title: ins.title || 'AI',
+      body: ins.text || '',
+      theme: ['response', 'retention', 'next'][index] || 'next',
+      action: ins.action || '',
+    }));
+
+    const merged = [...journeyCards];
+    for (const aiCard of aiCards) {
+      if (merged.length >= 3) break;
+      merged.push(aiCard);
+    }
+    return merged.slice(0, 3);
+  }
+
+  function renderIntelFeaturedCard(featured, index) {
+    return `
+      <button
+        type="button"
+        class="dossier-insight dossier-insight--synthesis v9-intel-card"
+        data-v9-intel-card="${escapeHtml(featured.id)}"
+        data-v9-intel-kind="${escapeHtml(featured.kind)}"
+        data-insight-theme="${escapeHtml(featured.theme || 'next')}"
+        data-v9-intel-idx="${index}"
+      >
+        <span class="dossier-insight__icon" aria-hidden="true">${escapeHtml(featured.icon || '★')}</span>
+        <span class="dossier-insight__copy">
+          <span class="dossier-insight__title">${escapeHtml(featured.title || '')}</span>
+          <span class="dossier-insight__body">${escapeHtml(featured.body || '')}</span>
+        </span>
+      </button>`;
+  }
+
+  function renderIntelDrawerStep(bubble) {
     const tone = bubble.tone || 'neutral';
-    const className = `v9-intel-bubble v9-intel-bubble--${tone}${bubble.disabled ? ' is-disabled' : ''}`;
-    const titleText =
-      {
-        next: 'Nästa steg',
-        coming: 'På gång',
-        done: 'Klart',
-        future: 'Planerat framåt',
-        neutral: 'Ej påbörjat',
-      }[tone] || '';
-    const titleAttr = titleText ? ` title="${escapeHtml(titleText)}"` : '';
+    const toneLabel = INTEL_TONE_LABELS[tone] || '';
+    const disabled = bubble.disabled ? ' is-disabled' : '';
+    const disabledAttr = bubble.disabled ? ' disabled aria-disabled="true"' : '';
+
+    const actionAttrs = [];
+    if (bubble.action) actionAttrs.push(`data-patient-action="${escapeHtml(bubble.action)}"`);
+    if (bubble.clinicalFormKey) {
+      actionAttrs.push(`data-clinical-form-key="${escapeHtml(bubble.clinicalFormKey)}"`);
+    }
+    if (bubble.prpFormVariant) {
+      actionAttrs.push(`data-prp-form-variant="${escapeHtml(bubble.prpFormVariant)}"`);
+    }
+    if (bubble.followFormVariant) {
+      actionAttrs.push(`data-follow-form-variant="${escapeHtml(bubble.followFormVariant)}"`);
+    }
 
     if (bubble.kind === 'camera') {
       return `
-        <label class="${className}"${titleAttr}>
-          ${escapeHtml(bubble.label)}
+        <label class="v9-intel-drawer-step v9-intel-drawer-step--${tone}${disabled}" data-v9-intel-id="${escapeHtml(bubble.id)}">
+          <span class="v9-intel-drawer-step__icon">${escapeHtml(resolveIntelBubbleIcon(bubble))}</span>
+          <span class="v9-intel-drawer-step__copy">
+            <span class="v9-intel-drawer-step__title">${escapeHtml(bubble.label)}</span>
+            <span class="v9-intel-drawer-step__meta">${escapeHtml(toneLabel)} · ${escapeHtml(resolveIntelBubbleBody(bubble))}</span>
+          </span>
+          <span class="v9-intel-drawer-step__go">Ta bild</span>
           <input type="file" accept="image/*" capture="environment" hidden data-patient-photo-camera${bubble.disabled ? ' disabled' : ''} />
         </label>`;
     }
+
     if (bubble.kind === 'gallery') {
       return `
-        <label class="${className}"${titleAttr}>
-          ${escapeHtml(bubble.label)}
+        <label class="v9-intel-drawer-step v9-intel-drawer-step--${tone}${disabled}" data-v9-intel-id="${escapeHtml(bubble.id)}">
+          <span class="v9-intel-drawer-step__icon">${escapeHtml(resolveIntelBubbleIcon(bubble))}</span>
+          <span class="v9-intel-drawer-step__copy">
+            <span class="v9-intel-drawer-step__title">${escapeHtml(bubble.label)}</span>
+            <span class="v9-intel-drawer-step__meta">${escapeHtml(toneLabel)} · ${escapeHtml(resolveIntelBubbleBody(bubble))}</span>
+          </span>
+          <span class="v9-intel-drawer-step__go">Välj</span>
           <input type="file" accept="image/*,.heic,.heif" multiple hidden data-patient-photo-gallery${bubble.disabled ? ' disabled' : ''} />
         </label>`;
     }
 
-    const attrs = [
-      'type="button"',
-      `class="${className}"`,
-      `data-v9-intel-id="${escapeHtml(bubble.id)}"`,
-    ];
-    if (titleAttr) attrs.push(titleAttr.trim());
-    if (bubble.action) attrs.push(`data-patient-action="${escapeHtml(bubble.action)}"`);
-    if (bubble.clinicalFormKey) {
-      attrs.push(`data-clinical-form-key="${escapeHtml(bubble.clinicalFormKey)}"`);
-    }
-    if (bubble.prpFormVariant) {
-      attrs.push(`data-prp-form-variant="${escapeHtml(bubble.prpFormVariant)}"`);
-    }
-    if (bubble.followFormVariant) {
-      attrs.push(`data-follow-form-variant="${escapeHtml(bubble.followFormVariant)}"`);
-    }
-    if (bubble.disabled) attrs.push('disabled', 'aria-disabled="true"');
-    return `<button ${attrs.join(' ')}>${escapeHtml(bubble.label)}</button>`;
+    return `
+      <button
+        type="button"
+        class="v9-intel-drawer-step v9-intel-drawer-step--${tone}${disabled}"
+        data-v9-intel-id="${escapeHtml(bubble.id)}"
+        ${actionAttrs.join(' ')}${disabledAttr}
+      >
+        <span class="v9-intel-drawer-step__icon">${escapeHtml(resolveIntelBubbleIcon(bubble))}</span>
+        <span class="v9-intel-drawer-step__copy">
+          <span class="v9-intel-drawer-step__title">${escapeHtml(bubble.label)}</span>
+          <span class="v9-intel-drawer-step__meta">${escapeHtml(toneLabel)} · ${escapeHtml(resolveIntelBubbleBody(bubble))}</span>
+        </span>
+        <span class="v9-intel-drawer-step__go">Öppna</span>
+      </button>`;
+  }
+
+  function renderIntelDrawerBodyHtml(state) {
+    const { title, intro, bubbles, focusId } = state;
+    const steps = asArray(bubbles)
+      .map(
+        (bubble) =>
+          `<div class="v9-intel-drawer-step-wrap${bubble.id === focusId ? ' is-focused' : ''}">${renderIntelDrawerStep(bubble)}</div>`
+      )
+      .join('');
+
+    return `
+      <p class="v9-intel-drawer__intro">${escapeHtml(intro || '')}</p>
+      <div class="v9-intel-drawer__steps" data-v9-intel-drawer-steps>
+        ${steps}
+      </div>`;
+  }
+
+  function renderIntelChromeActionsHtml(card) {
+    const upcoming = buildUpcomingBookings(card, []);
+    const upcomingCount = upcoming.length;
+    const nextDate = formatShortBookingDate(card?.nextBookingAt);
+    const bookLabel = card?.nextBookingAt
+      ? `Boka nästa ${card.nextBookingType || 'PRP'}${nextDate ? ` (${nextDate})` : ''}`
+      : 'Boka nästa tid';
+    const confirmDisabled = upcomingCount === 0;
+
+    return `
+      <div class="v9-intel-actions dossier-actions v9-dossier-actions" data-v9-intel-actions>
+        <button type="button" class="quick-pill dossier-camera-cta full" data-v9-intel-action="photo">📷 Ta bild</button>
+        <button type="button" class="quick-pill quick-pill--ai full" data-v9-intel-action="book">${escapeHtml(bookLabel)}</button>
+        <button
+          type="button"
+          class="quick-pill quick-pill--success full${confirmDisabled ? ' is-disabled' : ''}"
+          data-v9-intel-action="confirm"
+          ${confirmDisabled ? 'disabled aria-disabled="true"' : ''}
+        >✓ Bekräfta tider (${upcomingCount})</button>
+      </div>`;
   }
 
   function renderIntelligentJourneyBubblesHtml(card, journalEntries) {
     if (!isV9On() || !card) return '';
-    const { bubbles, lead, footer } = buildIntelligentJourneyBubbles(card, journalEntries);
-    if (!bubbles.length) return '';
+    const journey = buildIntelligentJourneyBubbles(card, journalEntries);
+    const featured = buildIntelFeaturedCards(card, journalEntries);
+    if (!featured.length && !journey.bubbles.length) return '';
 
     return `
-      <section class="v9-intel-bubbles" data-v9-intel-bubbles aria-label="Intelligenta statusbubblor">
-        <p class="v9-intel-bubbles__lead">${escapeHtml(lead)}</p>
-        <div class="v9-intel-bubbles__row">
-          ${bubbles.map((bubble) => renderIntelBubbleMarkup(bubble, card)).join('')}
+      <section class="v9-intel-bubbles v9-intel-bubbles--cards" data-v9-intel-bubbles aria-label="Intelligenta statusbubblor">
+        <div class="v9-intel-bubbles__head">
+          <span class="v9-intel-bubbles__kicker">AI-insikter</span>
+          <button type="button" class="v9-intel-bubbles__all" data-v9-intel-open-all>Visa kundresa ›</button>
         </div>
-        ${footer ? `<p class="v9-intel-bubbles__footer">${escapeHtml(footer)}</p>` : ''}
+        <div class="dossier-ai-grid v9-intel-featured-grid">
+          ${featured.map((item, index) => renderIntelFeaturedCard(item, index)).join('')}
+        </div>
+        ${renderIntelChromeActionsHtml(card)}
+        ${journey.footer ? `<p class="v9-intel-bubbles__footer">${escapeHtml(journey.footer)}</p>` : ''}
       </section>`;
+  }
+
+  function openIntelDrawer(root, state) {
+    const drawer = root?.querySelector('[data-v9-intel-drawer]');
+    const body = drawer?.querySelector('[data-v9-intel-drawer-body]');
+    const title = drawer?.querySelector('[data-v9-intel-drawer-title]');
+    if (!drawer || !body) return;
+    if (title) title.textContent = state.title || 'Kundresa';
+    body.innerHTML = renderIntelDrawerBodyHtml(state);
+    drawer.removeAttribute('hidden');
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    const focusEl = body.querySelector(
+      '.v9-intel-drawer-step-wrap.is-focused .v9-intel-drawer-step:not(.is-disabled)'
+    );
+    (focusEl || drawer.querySelector('[data-v9-intel-drawer-close]'))?.focus?.();
+  }
+
+  function closeIntelDrawer(root) {
+    const drawer = root?.querySelector('[data-v9-intel-drawer]');
+    if (!drawer) return;
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('hidden', '');
+    drawer.setAttribute('aria-hidden', 'true');
+    const body = drawer.querySelector('[data-v9-intel-drawer-body]');
+    if (body) body.innerHTML = '';
+  }
+
+  function bindIntelligentJourney(root, ctx, handlers = {}) {
+    if (!root) return;
+    root._v9IntelCtx = {
+      card: ctx?.card,
+      journalEntries: ctx?.journalEntries,
+      handlers: handlers || {},
+    };
+
+    if (root.dataset.intelBound === '1') return;
+    root.dataset.intelBound = '1';
+
+    root.addEventListener('click', (event) => {
+      const live = root._v9IntelCtx || {};
+      const card = live.card;
+      const journalEntries = live.journalEntries;
+      const liveHandlers = live.handlers || {};
+      const journey = buildIntelligentJourneyBubbles(card, journalEntries);
+
+      if (event.target.closest('[data-v9-intel-drawer-close]')) {
+        closeIntelDrawer(root);
+        return;
+      }
+
+      const host = event.target.closest('[data-v9-intel-bubbles]');
+      if (!host) return;
+
+      const openDrawer = ({ focusId = '', title = 'Kundresa', intro = journey.lead } = {}) => {
+        openIntelDrawer(root, {
+          title,
+          intro,
+          bubbles: journey.bubbles,
+          focusId,
+        });
+      };
+
+      const openAllBtn = event.target.closest('[data-v9-intel-open-all]');
+      if (openAllBtn) {
+        openDrawer({
+          intro: 'Hela kundresan — röd nästa, orange på gång, grön klart, lila planerat.',
+        });
+        return;
+      }
+
+      const cardBtn = event.target.closest('[data-v9-intel-card]');
+      if (cardBtn) {
+        const cardId = cardBtn.getAttribute('data-v9-intel-card') || '';
+        const kind = cardBtn.getAttribute('data-v9-intel-kind') || '';
+        if (kind === 'journey') {
+          openDrawer({
+            focusId: cardId,
+            title:
+              cardBtn.querySelector('.dossier-insight__title')?.textContent?.trim() || 'Kundresa',
+            intro: resolveIntelBubbleBody(
+              journey.bubbles.find((bubble) => bubble.id === cardId) || {}
+            ),
+          });
+          return;
+        }
+        openDrawer({
+          title:
+            cardBtn.querySelector('.dossier-insight__title')?.textContent?.trim() || 'AI-insikt',
+          intro:
+            cardBtn.querySelector('.dossier-insight__body')?.textContent?.trim() || journey.lead,
+        });
+        return;
+      }
+
+      const actionBtn = event.target.closest('[data-v9-intel-action]');
+      if (!actionBtn || actionBtn.disabled) return;
+      const action = actionBtn.getAttribute('data-v9-intel-action') || '';
+      if (action === 'photo') {
+        root.querySelector('.v9-camera-bridge [data-patient-photo-camera]')?.click();
+      } else if (action === 'book') {
+        liveHandlers.openBook?.();
+      } else if (action === 'confirm') {
+        liveHandlers.confirmBookings?.();
+      }
+    });
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (!root.querySelector('[data-v9-intel-drawer].is-open')) return;
+      closeIntelDrawer(root);
+    });
   }
 
   function renderDossierQuickPillsHtml(card) {
@@ -1793,6 +2065,7 @@
     SORT_LABELS,
     buildIntelligentJourneyBubbles,
     renderIntelligentJourneyBubblesHtml,
+    bindIntelligentJourney,
     renderDossierScrollHtml,
     renderDossierQuickPillsHtml,
     bindDossierScroll,

@@ -3373,6 +3373,19 @@
       </label>`;
   }
 
+  function renderV9IntelDrawerShell() {
+    return `
+      <aside class="v9-intel-drawer" data-v9-intel-drawer hidden aria-hidden="true">
+        <div class="v9-intel-drawer__backdrop" data-v9-intel-drawer-close tabindex="-1" aria-hidden="true"></div>
+        <div class="v9-intel-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="v9-intel-drawer-title">
+          <header class="v9-intel-drawer__head">
+            <strong id="v9-intel-drawer-title" data-v9-intel-drawer-title>Kundresa</strong>
+            <button type="button" class="v9-intel-drawer__close" data-v9-intel-drawer-close aria-label="Stäng">✕</button>
+          </header>
+          <div class="v9-intel-drawer__body" data-v9-intel-drawer-body></div>
+        </div>
+      </aside>`;
+  }
   function renderV9MockupDossierDeepShell() {
     return `
       <div class="v9-dossier-deep" data-v9-dossier-deep hidden aria-hidden="true">
@@ -3458,6 +3471,19 @@
       openJournal: () => switchDetailTab('journal'),
       openForm: () => switchDetailTab('journal'),
       switchTab: (tabKey) => switchDetailTab(tabKey),
+    });
+    window.CcoV9CustomersParity?.bindIntelligentJourney?.(root, ctx, {
+      openBook: () => {
+        window.dispatchEvent(
+          new CustomEvent('cco:v9-ghost-booking', {
+            detail: { source: 'intel-action', patientId: ctx.card?.patientId },
+          })
+        );
+      },
+      confirmBookings: () => {
+        setStatus('Öppnar bokningsytan för att bekräfta kommande tider.', 'info');
+        navigateShellView('booking');
+      },
     });
     window.CcoV9CustomersParity?.bindDossierQuickPills?.(root, {
       openPhoto: () => {
@@ -3640,6 +3666,7 @@
         </div>
         ${renderV9QuickPillsBlock(card)}
         ${renderV9HiddenCameraBridge(card)}
+        ${renderV9IntelDrawerShell()}
         ${renderV9MockupDossierDeepShell()}
       </section>`;
   }
