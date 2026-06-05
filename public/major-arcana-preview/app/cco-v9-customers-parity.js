@@ -826,6 +826,399 @@
     return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }).replace('.', '');
   }
 
+  const INTEL_TONE_ORDER = { next: 0, coming: 1, future: 2, done: 3, neutral: 4 };
+
+  function normalizeIntelText(value) {
+    return String(value ?? '').trim();
+  }
+
+  function journalEntryDate(entry) {
+    return (
+      normalizeIntelText(entry?.signedAt) ||
+      normalizeIntelText(entry?.updatedAt) ||
+      normalizeIntelText(entry?.createdAt) ||
+      ''
+    );
+  }
+
+  function journalHasType(entries, journalType, { locked = false } = {}) {
+    return asArray(entries).some((entry) => {
+      if (entry?.journalType !== journalType) return false;
+      return locked ? Boolean(entry.locked) : true;
+    });
+  }
+
+  function clinicalFormState(entries, formKey) {
+    const rows = asArray(entries).filter((entry) => {
+      const key = normalizeIntelText(
+        entry?.clinicalFormKey || entry?.formKey || entry?.metadata?.clinicalFormKey
+      );
+      return key === formKey;
+    });
+    if (rows.some((entry) => entry.locked)) return 'done';
+    if (rows.length) return 'coming';
+    return 'open';
+  }
+
+  function followUpState(entries, variant, { hasTpJournal, lastVisitIso } = {}) {
+    if (
+      journalHasType(entries, 'follow_up', { locked: true }) &&
+      asArray(entries).some(
+        (entry) =>
+          entry.journalType === 'follow_up' &&
+          normalizeIntelText(entry.formVariant) === variant &&
+          entry.locked
+      )
+    ) {
+      return 'done';
+    }
+    if (
+      asArray(entries).some(
+        (entry) =>
+          entry.journalType === 'follow_up' && normalizeIntelText(entry.formVariant) === variant
+      )
+    ) {
+      return 'coming';
+    }
+    if (!hasTpJournal) return 'future';
+    const months = monthsSinceIso(lastVisitIso);
+    const thresholds = { '4_manader': 4, '6_manader': 6, '12_manader': 12 };
+    const threshold = thresholds[variant];
+    if (months == null || threshold == null) return 'future';
+    if (months >= threshold - 0.5) return 'coming';
+    if (months >= threshold - 1) return 'future';
+    return 'future';
+  }
+
+  function monthsSinceIso(iso) {
+    const ms = Date.parse(normalizeIntelText(iso));
+    if (!Number.isFinite(ms)) return null;
+    return (Date.now() - ms) / (30.44 * 24 * 60 * 60 * 1000);
+  }
+
+  function findConsultationPlan(entries) {
+    const rows = asArray(entries);
+    return (
+      rows.find((entry) => entry.journalType === 'consultation_plan' && entry.canEdit) ||
+      rows.find((entry) => entry.journalType === 'consultation_plan') ||
+      null
+    );
+  }
+
+  function planPhotosAnnotated(planEntry) {
+    if (!planEntry) return false;
+    return asArray(planEntry.attachments).some(
+      (item) => item.type === 'consultation_photo' && item.hasAnnotation
+    );
+  }
+
+  function resolveIntelHint() {
+    return 'Ta bild direkt i konsultationen, markera zoner och skapa offert här.';
+  }
+
+  function buildIntelligentJourneyBubbles(card, journalEntries) {
+    const entries = asArray(journalEntries);
+    const brand = resolvePatientBrand(card);
+    const upcoming = Boolean(card?.hasUpcomingBooking);
+    const upcomingSoon =
+      upcoming &&
+      (daysUntilBooking(card?.nextBookingAt) == null ||
+        daysUntilBooking(card?.nextBookingAt) <= 21);
+    const treatmentTypes = asArray(card?.treatmentTypes).map((value) =>
+      String(value).toLowerCase()
+    );
+    const nextType = String(card?.nextBookingType || '').toLowerCase();
+    const planEntry = findConsultationPlan(entries);
+    const planLocked = Boolean(planEntry?.locked);
+    const photosDone = planPhotosAnnotated(planEntry);
+    const healthSigned =
+      journalHasType(entries, 'health_declaration', { locked: true }) ||
+      Boolean(card?.hasForm && !card?.missingHealthDeclaration && !card?.missingForm);
+    const healthDraft = journalHasType(entries, 'health_declaration') && !healthSigned;
+    const missingHealth = Boolean(card?.missingHealthDeclaration || card?.missingForm);
+    const missingFitness = Boolean(card?.missingFitnessCertificate);
+    const fitnessSigned =
+      journalHasType(entries, 'fitness_certificate', { locked: true }) ||
+      Boolean(card?.fitnessSigned);
+    const hasTpJournal = journalHasType(entries, 'tp_treatment');
+    const hasTpLocked = journalHasType(entries, 'tp_treatment', { locked: true });
+    const hasPrpJournal = journalHasType(entries, 'prp_treatment');
+    const hasBlephJournal = journalHasType(entries, 'bleph_treatment');
+    const hasHistoricalImport = journalHasType(entries, 'historical_import');
+    const lastVisitIso =
+      card?.lastVisitAt || card?.lastBookingAt || entries.map(journalEntryDate).sort().pop() || '';
+
+    const toneHealth = () => {
+      if (healthSigned) return 'done';
+      if (upcomingSoon || missingHealth) return 'next';
+      if (healthDraft || upcoming) return 'coming';
+      return 'neutral';
+    };
+
+    const toneFitness = () => {
+      if (fitnessSigned) return 'done';
+      if ((upcomingSoon && healthSigned) || missingFitness) return 'next';
+      if (upcoming) return 'coming';
+      return 'neutral';
+    };
+
+    const tonePlan = () => {
+      if (planLocked) return 'done';
+      if (healthSigned && !planEntry) return 'next';
+      if (healthDraft || (upcomingSoon && !planEntry)) return 'coming';
+      return 'neutral';
+    };
+
+    const tonePhoto = () => {
+      if (photosDone) return 'done';
+      if (planEntry && !photosDone) return 'next';
+      if (upcomingSoon && !photosDone) return 'next';
+      if (upcomingSoon) return 'coming';
+      return 'neutral';
+    };
+
+    const toneJournal = (hasJournal, { afterTp = false, treatmentHint = '' } = {}) => {
+      if (hasJournal) return 'done';
+      const hint = treatmentHint.toLowerCase();
+      if (
+        upcomingSoon &&
+        (treatmentTypes.some((type) => hint && type.includes(hint)) ||
+          (hint && nextType.includes(hint)))
+      ) {
+        return 'next';
+      }
+      if (upcoming || treatmentTypes.some((type) => hint && type.includes(hint))) return 'coming';
+      if (afterTp && hasTpLocked) return 'coming';
+      return 'future';
+    };
+
+    const toneClinical = (formKey) => {
+      const state = clinicalFormState(entries, formKey);
+      if (state === 'done') return 'done';
+      if (state === 'coming') return 'coming';
+      if (brand === 'curatiio' && (upcomingSoon || missingHealth)) return 'next';
+      return brand === 'curatiio' ? 'future' : 'neutral';
+    };
+
+    const bubbles = [
+      {
+        id: 'photo',
+        label: 'Ta bild',
+        tone: tonePhoto(),
+        kind: 'camera',
+        disabled: Boolean(card?.journalBlocked || planLocked),
+      },
+      {
+        id: 'gallery',
+        label: 'Välj från galleri',
+        tone: tonePhoto(),
+        kind: 'gallery',
+        disabled: Boolean(card?.journalBlocked || planLocked),
+      },
+      {
+        id: 'plan',
+        label: 'Behandlingsplan',
+        tone: tonePlan(),
+        action: 'new-consultation-plan',
+        disabled: !healthSigned || Boolean(card?.journalBlocked),
+      },
+      {
+        id: 'import',
+        label: 'Importera historik',
+        tone: hasHistoricalImport ? 'done' : 'neutral',
+        action: 'import-historical',
+        disabled: Boolean(card?.journalBlocked),
+      },
+      {
+        id: 'health_tp',
+        label: 'Hälsodekl TP',
+        tone: brand === 'hair_tp' ? toneHealth() : healthSigned ? 'done' : 'neutral',
+        action: 'new-health-declaration',
+        show: brand === 'hair_tp' || healthSigned || healthDraft,
+      },
+      {
+        id: 'health_bleph',
+        label: 'Hälsodekl ögonlock',
+        tone: toneClinical('health_curatiio_bleph'),
+        action: 'new-clinical-form',
+        clinicalFormKey: 'health_curatiio_bleph',
+        show:
+          brand === 'curatiio' || clinicalFormState(entries, 'health_curatiio_bleph') !== 'open',
+      },
+      {
+        id: 'health_ortho',
+        label: 'Hälsodekl ortopedi',
+        tone: toneClinical('health_curatiio_ortho'),
+        action: 'new-clinical-form',
+        clinicalFormKey: 'health_curatiio_ortho',
+        show:
+          brand === 'curatiio' || clinicalFormState(entries, 'health_curatiio_ortho') !== 'open',
+      },
+      {
+        id: 'health_injection',
+        label: 'Hälsodekl injektion',
+        tone: toneClinical('health_curatiio_injection'),
+        action: 'new-clinical-form',
+        clinicalFormKey: 'health_curatiio_injection',
+        show:
+          brand === 'curatiio' ||
+          clinicalFormState(entries, 'health_curatiio_injection') !== 'open',
+      },
+      {
+        id: 'health_eng',
+        label: 'Hälsodekl ENG',
+        tone: toneClinical('health_eng'),
+        action: 'new-clinical-form',
+        clinicalFormKey: 'health_eng',
+      },
+      {
+        id: 'fitness_tp',
+        label: 'Friskförsäkran TP',
+        tone: brand === 'hair_tp' ? toneFitness() : fitnessSigned ? 'done' : 'neutral',
+        action: 'new-fitness-certificate',
+        show: brand === 'hair_tp' || fitnessSigned,
+      },
+      {
+        id: 'fitness_bleph',
+        label: 'Friskförsäkran ögonlock',
+        tone: toneClinical('fitness_curatiio_bleph'),
+        action: 'new-clinical-form',
+        clinicalFormKey: 'fitness_curatiio_bleph',
+        show:
+          brand === 'curatiio' || clinicalFormState(entries, 'fitness_curatiio_bleph') !== 'open',
+      },
+      {
+        id: 'tp_journal',
+        label: 'TP-journal',
+        tone: toneJournal(hasTpJournal, { treatmentHint: 'fue' }),
+        action: 'new-tp-journal',
+        show: brand === 'hair_tp' || hasTpJournal,
+      },
+      {
+        id: 'prp_journal',
+        label: 'PRP-journal',
+        tone: toneJournal(hasPrpJournal, { treatmentHint: 'prp' }),
+        action: 'new-prp-journal',
+        prpFormVariant: 'prp_skin',
+        show: brand === 'hair_tp' || hasPrpJournal || treatmentTypes.includes('prp'),
+      },
+      {
+        id: 'prp_post_tp',
+        label: 'PRP efter TP',
+        tone: hasPrpJournal ? 'done' : hasTpLocked ? (upcomingSoon ? 'next' : 'coming') : 'future',
+        action: 'new-prp-journal',
+        prpFormVariant: 'tp_post_op',
+        show: brand === 'hair_tp' || hasTpLocked || hasPrpJournal,
+      },
+      {
+        id: 'follow_4',
+        label: 'Uppföljning 4 mån',
+        tone: followUpState(entries, '4_manader', { hasTpJournal: hasTpLocked, lastVisitIso }),
+        action: 'new-follow-up-journal',
+        followFormVariant: '4_manader',
+        show: brand === 'hair_tp' || hasTpLocked,
+      },
+      {
+        id: 'follow_6',
+        label: 'Uppföljning 6 mån',
+        tone: followUpState(entries, '6_manader', { hasTpJournal: hasTpLocked, lastVisitIso }),
+        action: 'new-follow-up-journal',
+        followFormVariant: '6_manader',
+        show: brand === 'hair_tp' || hasTpLocked,
+      },
+      {
+        id: 'follow_12',
+        label: 'Uppföljning 12 mån',
+        tone: followUpState(entries, '12_manader', { hasTpJournal: hasTpLocked, lastVisitIso }),
+        action: 'new-follow-up-journal',
+        followFormVariant: '12_manader',
+        show: brand === 'hair_tp' || hasTpLocked,
+      },
+      {
+        id: 'bleph_journal',
+        label: 'Ögonlocksjournal',
+        tone: toneJournal(hasBlephJournal, { treatmentHint: 'curatiio' }),
+        action: 'new-bleph-journal',
+        show: brand === 'curatiio' || hasBlephJournal,
+      },
+    ].filter((bubble) => bubble.show !== false);
+
+    bubbles.sort(
+      (left, right) =>
+        (INTEL_TONE_ORDER[left.tone] ?? 9) - (INTEL_TONE_ORDER[right.tone] ?? 9) ||
+        left.label.localeCompare(right.label, 'sv')
+    );
+
+    return {
+      bubbles,
+      lead: resolveIntelHint(),
+      footer: !healthSigned ? 'Signera hälsodeklarationen innan du skapar behandlingsplan.' : '',
+    };
+  }
+
+  function renderIntelBubbleMarkup(bubble, card) {
+    const tone = bubble.tone || 'neutral';
+    const className = `v9-intel-bubble v9-intel-bubble--${tone}${bubble.disabled ? ' is-disabled' : ''}`;
+    const titleText =
+      {
+        next: 'Nästa steg',
+        coming: 'På gång',
+        done: 'Klart',
+        future: 'Planerat framåt',
+        neutral: 'Ej påbörjat',
+      }[tone] || '';
+    const titleAttr = titleText ? ` title="${escapeHtml(titleText)}"` : '';
+
+    if (bubble.kind === 'camera') {
+      return `
+        <label class="${className}"${titleAttr}>
+          ${escapeHtml(bubble.label)}
+          <input type="file" accept="image/*" capture="environment" hidden data-patient-photo-camera${bubble.disabled ? ' disabled' : ''} />
+        </label>`;
+    }
+    if (bubble.kind === 'gallery') {
+      return `
+        <label class="${className}"${titleAttr}>
+          ${escapeHtml(bubble.label)}
+          <input type="file" accept="image/*,.heic,.heif" multiple hidden data-patient-photo-gallery${bubble.disabled ? ' disabled' : ''} />
+        </label>`;
+    }
+
+    const attrs = [
+      'type="button"',
+      `class="${className}"`,
+      `data-v9-intel-id="${escapeHtml(bubble.id)}"`,
+    ];
+    if (titleAttr) attrs.push(titleAttr.trim());
+    if (bubble.action) attrs.push(`data-patient-action="${escapeHtml(bubble.action)}"`);
+    if (bubble.clinicalFormKey) {
+      attrs.push(`data-clinical-form-key="${escapeHtml(bubble.clinicalFormKey)}"`);
+    }
+    if (bubble.prpFormVariant) {
+      attrs.push(`data-prp-form-variant="${escapeHtml(bubble.prpFormVariant)}"`);
+    }
+    if (bubble.followFormVariant) {
+      attrs.push(`data-follow-form-variant="${escapeHtml(bubble.followFormVariant)}"`);
+    }
+    if (bubble.disabled) attrs.push('disabled', 'aria-disabled="true"');
+    return `<button ${attrs.join(' ')}>${escapeHtml(bubble.label)}</button>`;
+  }
+
+  function renderIntelligentJourneyBubblesHtml(card, journalEntries) {
+    if (!isV9On() || !card) return '';
+    const { bubbles, lead, footer } = buildIntelligentJourneyBubbles(card, journalEntries);
+    if (!bubbles.length) return '';
+
+    return `
+      <section class="v9-intel-bubbles" data-v9-intel-bubbles aria-label="Intelligenta statusbubblor">
+        <p class="v9-intel-bubbles__lead">${escapeHtml(lead)}</p>
+        <div class="v9-intel-bubbles__row">
+          ${bubbles.map((bubble) => renderIntelBubbleMarkup(bubble, card)).join('')}
+        </div>
+        ${footer ? `<p class="v9-intel-bubbles__footer">${escapeHtml(footer)}</p>` : ''}
+      </section>`;
+  }
+
   function renderDossierQuickPillsHtml(card) {
     if (!isV9On() || !card) return '';
     const upcoming = buildUpcomingBookings(card, []);
@@ -1398,6 +1791,8 @@
 
   global.CcoV9CustomersParity = {
     SORT_LABELS,
+    buildIntelligentJourneyBubbles,
+    renderIntelligentJourneyBubblesHtml,
     renderDossierScrollHtml,
     renderDossierQuickPillsHtml,
     bindDossierScroll,

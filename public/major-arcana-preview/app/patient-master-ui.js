@@ -3352,6 +3352,13 @@
     );
   }
 
+  function renderV9IntelligentBubblesBlock(card, journalEntries) {
+    if (!isV9CustomersEnabled() || !card) return '';
+    return (
+      window.CcoV9CustomersParity?.renderIntelligentJourneyBubblesHtml?.(card, journalEntries) || ''
+    );
+  }
+
   function renderV9QuickPillsBlock(card) {
     if (!isV9CustomersEnabled() || !card) return '';
     return window.CcoV9CustomersParity?.renderDossierQuickPillsHtml?.(card) || '';
@@ -3614,6 +3621,7 @@
         <div class="v9-dossier-chrome">
           ${renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
           ${renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
+          ${renderV9IntelligentBubblesBlock(card, journalEntries)}
         </div>
         ${renderV9SmartNextStepHtml(card)}
         ${renderV9CapabilityActionsHtml(card)}

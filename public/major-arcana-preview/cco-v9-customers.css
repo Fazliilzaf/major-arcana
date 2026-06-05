@@ -1684,6 +1684,89 @@ html[data-v9-enabled="on"] .v9-dossier-capability {
   border-bottom: 1px solid rgba(120, 105, 90, 0.12);
 }
 
+/* Intelligenta statusbubblor — färg i texten */
+html[data-v9-enabled="on"] .v9-intel-bubbles {
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid rgba(120, 105, 90, 0.12);
+  background: rgba(252, 248, 244, 0.72);
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubbles__lead {
+  margin: 0 0 10px;
+  font-size: var(--v9-font-body, 15px);
+  line-height: 1.45;
+  color: var(--v9-text-secondary, rgba(70, 60, 50, 0.72));
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubbles__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubbles__footer {
+  margin: 10px 0 0;
+  font-size: var(--v9-font-body-sm, 14px);
+  line-height: 1.45;
+  color: var(--v9-text-secondary, rgba(70, 60, 50, 0.72));
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 105, 90, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 1px 2px rgba(70, 50, 30, 0.05);
+  font-size: var(--v9-font-body-sm, 14px);
+  font-weight: 650;
+  line-height: 1.1;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease;
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubble:hover:not(.is-disabled):not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 4px 10px rgba(70, 50, 30, 0.08);
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubble--next {
+  color: #b42318;
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubble--coming {
+  color: #c05621;
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubble--done {
+  color: #067647;
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubble--future {
+  color: #6941c6;
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubble--neutral {
+  color: rgba(70, 60, 50, 0.58);
+}
+
+html[data-v9-enabled="on"] .v9-intel-bubble.is-disabled,
+html[data-v9-enabled="on"] .v9-intel-bubble:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+}
+
 html[data-v9-enabled="on"] .v9-dossier-capability__title {
   margin: 0 0 8px;
   font-size: var(--v9-font-kicker);
