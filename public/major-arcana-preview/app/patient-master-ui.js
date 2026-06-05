@@ -3687,12 +3687,12 @@
     return `
       <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis${v11Cutover ? ' v9-mockup-dossier--v11-cutover' : ''}" data-patient-detail${v11Cutover ? ' data-v11-cutover="1"' : ''}>
         <div class="v9-dossier-chrome">
-          ${renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
+          ${v11Cutover ? '' : renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
           ${renderV9IntelligentBubblesBlock(card, journalEntries, occasionTimeline)}
           ${v11Cutover ? '' : renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
         </div>
-        ${renderV9SmartNextStepHtml(card)}
-        ${renderV9CapabilityActionsHtml(card)}
+        ${v11Cutover ? '' : renderV9SmartNextStepHtml(card)}
+        ${v11Cutover ? '' : renderV9CapabilityActionsHtml(card)}
         <div class="v9-dossier-workspace"${v11Cutover ? ' hidden aria-hidden="true" data-v11-workspace-fallback="1"' : ''}>
           ${renderPatientDetailBodyOpen()}
           ${renderV9PatientTabPanelsMarkup(
@@ -3706,7 +3706,7 @@
           )}
           ${renderPatientDetailBodyClose()}
         </div>
-        ${renderV9QuickPillsBlock(card)}
+        ${v11Cutover ? '' : renderV9QuickPillsBlock(card)}
         ${renderV9HiddenCameraBridge(card)}
         ${renderV9IntelDrawerShell()}
         ${renderV9MockupDossierDeepShell()}

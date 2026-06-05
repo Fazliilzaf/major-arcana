@@ -1099,6 +1099,42 @@
       </div>`;
   }
 
+  function renderKundkortSlideOverHead(card, { loading = false } = {}) {
+    if (!card) return '';
+    const name = resolveV11DisplayName(card);
+    const meta = resolveV11ContactMeta(card);
+    const pills = buildV11HeroPills(card);
+    const monogram = resolveV11Monogram(name);
+
+    return `
+      <header class="kundkort-slide-over__head v11-hero-head dossier-head" data-kundkort-slide-head${loading ? ' aria-busy="true"' : ''}>
+        <div class="v11-hero-avatar dossier-avatar" aria-hidden="true">
+          <span class="v11-hero-avatar__ring"></span>
+          <span class="v11-hero-avatar__monogram">${escapeHtml(monogram)}</span>
+        </div>
+        <div class="v11-hero-identity dossier-head-body">
+          <nav class="v9-dossier-crumb" aria-label="Dossiér-navigering">
+            <button type="button" class="v9-dossier-crumb__back" data-v9-nav-back aria-label="Tillbaka till kundlistan">‹ Kunder</button>
+            <span class="v9-dossier-crumb__sep" aria-hidden="true">/</span>
+          </nav>
+          <div class="v11-hero-kicker dossier-kicker">Kunddossiér</div>
+          <h2 class="v11-hero-name dossier-name v9-dossier-crumb__who">${escapeHtml(name)}</h2>
+          <div class="v11-hero-meta dossier-contact">${escapeHtml(meta)}</div>
+          ${
+            pills.length
+              ? `<div class="v11-hero-pills dossier-tags">${pills
+                  .map(
+                    (pill) =>
+                      `<span class="v11-hero-pill dossier-tag dossier-tag--${escapeHtml(pill.tone)} v11-hero-pill--${escapeHtml(pill.tone)}">${escapeHtml(pill.label)}</span>`
+                  )
+                  .join('')}</div>`
+              : ''
+          }
+        </div>
+        <button type="button" class="dossier-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
+      </header>`;
+  }
+
   function renderV11Hero(card, journalEntries = [], { loading = false } = {}) {
     if (!card) return '';
     const name = resolveV11DisplayName(card);
@@ -2896,10 +2932,9 @@
             .join('')
         : '<p class="dossier-empty">Alla formulär och krav är uppfyllda.</p>';
 
-    const docSegments = renderV11DocumentSegments(bundleCard, docsBundle, {});
-    const journey = renderV11CustomerJourney(bundleCard, journalEntries, docsBundle);
     const sticky = renderV11StickyActions(bundleCard, journalEntries);
     const footer = renderKundkortSlideOverFooter(bundleCard);
+    const head = renderKundkortSlideOverHead(bundleCard);
     const lift = renderKundkortLiftPanel(bundleCard, dossierBundle, journalEntries, driveFiles);
 
     const sections = [
@@ -2929,13 +2964,11 @@
 
     return `
       <div class="kundkort-slide-over kundkort-slide-over--v2 v9-surface-vellum" data-kundkort-slide-over data-v11-dossier-zones>
+        ${head}
         ${lift}
         ${renderV11Hairstrand()}
         <div class="kundkort-slide-over__scroll" data-kundkort-slide-over-scroll data-v9-dossier-scroll aria-label="Kunddossiér">
           ${sections.join('')}
-          ${renderV11Hairstrand()}
-          ${docSegments ? `<div data-kundkort-section="dokument">${docSegments}</div>` : ''}
-          ${journey ? `<div data-kundkort-section="kundresan">${journey}</div>` : ''}
           ${renderV11Hairstrand()}
           ${sticky ? `<div data-kundkort-section="actions">${sticky}</div>` : ''}
           ${footer}
