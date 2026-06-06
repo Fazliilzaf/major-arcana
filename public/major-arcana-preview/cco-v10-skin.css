@@ -139,3 +139,206 @@ html[data-v9-enabled="on"] .v9-global-search-kbd {
   font-family: SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.04em;
 }
+
+/* ============================================================
+   Lager 3 — Rubrikraden: knappar · status-pills · filter-chips ·
+   insikts-korten (IDAG/MÖJLIGHET/TREND/RISK). Facit: mockupen.
+   ============================================================ */
+
+html[data-v9-enabled="on"] .nav-btn {
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  min-height: 26px;
+  padding: 0 11px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cco-color-brand);
+  transition: transform 0.1s ease;
+}
+html[data-v9-enabled="on"] .nav-btn:hover {
+  transform: translateY(-1px);
+}
+html[data-v9-enabled="on"] .nav-btn.v9-add-customer {
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  color: var(--cco-status-warning);
+  border-color: rgba(200, 130, 30, 0.32);
+  box-shadow:
+    0 2px 8px rgba(200, 130, 30, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+html[data-v9-enabled="on"] .status-pill {
+  gap: 5px;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  font-size: 10.5px;
+  line-height: 12px;
+  font-weight: 700;
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+}
+html[data-v9-enabled="on"] .status-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+html[data-v9-enabled="on"] .status-pill--success {
+  color: var(--cco-status-success);
+}
+html[data-v9-enabled="on"] .status-pill--success .dot {
+  background: var(--cco-status-success);
+}
+html[data-v9-enabled="on"] .status-pill--warning {
+  color: var(--cco-status-warning);
+}
+html[data-v9-enabled="on"] .status-pill--warning .dot {
+  background: var(--cco-status-warning);
+}
+html[data-v9-enabled="on"] .status-pill--info {
+  color: var(--cco-status-info);
+}
+html[data-v9-enabled="on"] .status-pill--info .dot {
+  background: var(--cco-status-info);
+}
+html[data-v9-enabled="on"] .status-pill--danger {
+  color: var(--cco-status-danger);
+}
+html[data-v9-enabled="on"] .status-pill--danger .dot {
+  background: var(--cco-status-danger);
+}
+html[data-v9-enabled="on"] .status-pill--neutral {
+  color: var(--cco-text-secondary);
+}
+html[data-v9-enabled="on"] .status-pill--neutral .dot {
+  background: var(--cco-text-tertiary);
+}
+
+/* — Filter-chips (Alla/Aktiva/VIP/Risk/Nya/Dormant/Saknar formulär) — */
+html[data-v9-enabled="on"] .filter-chip {
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--cco-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.1s ease;
+}
+html[data-v9-enabled="on"] .filter-chip:hover {
+  transform: translateY(-1px);
+}
+html[data-v9-enabled="on"] .filter-chip.active,
+html[data-v9-enabled="on"] .filter-chip.is-active,
+html[data-v9-enabled="on"] .filter-chip[aria-pressed="true"] {
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  color: var(--cco-status-warning);
+  border-color: rgba(200, 130, 30, 0.34);
+  box-shadow:
+    0 2px 8px rgba(200, 130, 30, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+html[data-v9-enabled="on"] .filter-chip .count {
+  background: rgba(255, 255, 255, 0.5);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--cco-text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+/* — Insikts-korten (samma klassnamn som mockupen: .agg-insight) — */
+html[data-v9-enabled="on"] .agg-insights {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+html[data-v9-enabled="on"] .agg-insight {
+  position: relative;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: var(--panel-card-shadow);
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+  overflow: hidden;
+}
+html[data-v9-enabled="on"] .agg-insight:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--panel-card-shadow-hover);
+}
+html[data-v9-enabled="on"] .agg-insight::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ins-color, var(--cco-status-warning));
+  box-shadow: 0 0 8px var(--ins-color, var(--cco-status-warning));
+}
+html[data-v9-enabled="on"] .agg-insight[data-kind="action"] {
+  --ins-color: var(--cco-status-warning);
+}
+html[data-v9-enabled="on"] .agg-insight[data-kind="risk"] {
+  --ins-color: var(--cco-status-danger);
+}
+html[data-v9-enabled="on"] .agg-insight[data-kind="trend"] {
+  --ins-color: var(--cco-status-success);
+}
+html[data-v9-enabled="on"] .agg-insight[data-kind="opp"] {
+  --ins-color: var(--cco-status-info);
+}
+html[data-v9-enabled="on"] .agg-insight-kicker {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ins-color, var(--cco-status-warning));
+  margin-bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+html[data-v9-enabled="on"] .agg-insight-body {
+  font-size: 11.5px;
+  color: var(--cco-color-brand);
+  line-height: 1.4;
+  font-weight: 500;
+}
+html[data-v9-enabled="on"] .agg-insight-body strong {
+  font-weight: 800;
+}
+html[data-v9-enabled="on"] .agg-insight-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ins-color, var(--cco-status-warning));
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
