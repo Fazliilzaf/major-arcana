@@ -163,14 +163,13 @@
   }
 
   function filterCanonicalSignals(card, bundle) {
+    if (window.CcoKundkortKkx && typeof window.CcoKundkortKkx.resolvePanelSignals === 'function') {
+      return window.CcoKundkortKkx.resolvePanelSignals(card || {});
+    }
     var raw = A((card && card.automationSignals) || bundle.signals);
-    var filtered = raw.filter(function (s) {
+    return raw.filter(function (s) {
       return s && CANONICAL_SIGNAL_IDS[String(s.ruleId || '')];
     });
-    if (window.CcoKunderSmartNextStep?.sortSignals) {
-      return window.CcoKunderSmartNextStep.sortSignals(filtered);
-    }
-    return filtered;
   }
 
   window.__renderReferensKundkort = function (card, bundle, journalEntries, extras) {
@@ -220,7 +219,14 @@
           id: s.step,
           label: s.label,
           note: s.meta || '',
-          state: s.status === 'done' ? 'done' : s.status === 'active' ? 'active' : 'todo',
+          state:
+            s.status === 'done'
+              ? 'done'
+              : s.status === 'active'
+                ? 'active'
+                : s.status === 'neutral'
+                  ? 'neutral'
+                  : 'todo',
         };
       });
       var polished = polishReferensJourney(canonicalJourney, steps, cur, 9);
@@ -374,8 +380,16 @@
       var pct = cur ? Math.round((cur / total) * 100) : 0;
       var stepHtml = steps
         .map(function (s) {
-          var st = s.state === 'done' ? 'done' : s.state === 'active' ? 'act' : 'todo';
-          var mk = st === 'done' ? '✓' : s.id || '';
+          var st =
+            s.state === 'done'
+              ? 'done'
+              : s.state === 'active'
+                ? 'act'
+                : s.state === 'neutral'
+                  ? 'neutral'
+                  : 'todo';
+          var mk =
+            st === 'done' ? '✓' : st === 'neutral' ? '–' : st === 'act' ? s.id || '!' : s.id || '';
           return (
             '<div class="step kkx-step ' +
             st +

@@ -156,6 +156,12 @@
 .kkx-cstep.act::before {
   background: #c8821e;
 }
+.kkx-cstep.neutral::before {
+  background: #a89888;
+}
+.kkref .step.kkx-step.neutral .mk {
+  color: #8a8174;
+}
 .kkx-cstep .ct {
   font-size: 15px;
   font-weight: 800;

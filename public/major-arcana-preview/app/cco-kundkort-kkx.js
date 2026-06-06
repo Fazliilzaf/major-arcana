@@ -113,6 +113,57 @@
     },
   ];
 
+  var CANONICAL_SIGNAL_IDS = {
+    'customer.missing_health_declaration': 1,
+    'customer.missing_journal': 1,
+    'customer.missing_treatment_plan': 1,
+    'customer.cooling_off_active': 1,
+    'customer.cooling_off_passed': 1,
+    'customer.missing_agreement_consent_bundle': 1,
+    'customer.missing_operation_day_insurance': 1,
+    'customer.missing_photo_consent': 1,
+    'customer.has_photo_review': 1,
+    'customer.ready_for_treatment': 1,
+  };
+
+  var SIGNAL_BLURBS = {
+    'customer.missing_health_declaration': {
+      what: 'Hälsodeklaration saknas',
+      why: 'Krävs inför konsultation (steg 3).',
+      risk: 'blocker',
+    },
+    'customer.missing_journal': {
+      what: 'Journal saknas',
+      why: 'Konsultation (steg 4) kräver encounter och journal.',
+      risk: 'blocker',
+    },
+    'customer.missing_treatment_plan': {
+      what: 'Behandlingsplan/offert saknas',
+      why: 'Efter konsult (steg 5) — offert = behandlingsplan.',
+      risk: 'blocker',
+    },
+    'customer.cooling_off_active': {
+      what: 'Betänketid pågår',
+      why: 'Betänketid 2 dagar (steg 6).',
+      risk: 'info',
+    },
+    'customer.missing_agreement_consent_bundle': {
+      what: 'Avtal + samtycke saknas',
+      why: 'Steg 7 — samma transaktion.',
+      risk: 'legal_blocker',
+    },
+    'customer.missing_operation_day_insurance': {
+      what: 'Friskförsäkran saknas',
+      why: 'Operationsdagen — tablet/QR.',
+      risk: 'blocker',
+    },
+    'customer.missing_photo_consent': {
+      what: 'Foto-samtycke saknas',
+      why: 'Vid för-/efterbild — hårlinje/krona.',
+      risk: 'legal',
+    },
+  };
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -122,14 +173,8 @@
   function mapJourneyState(status) {
     if (status === 'done') return 'done';
     if (status === 'active') return 'act';
+    if (status === 'neutral') return 'neutral';
     return '';
-  }
-
-  function signalActive(card, fragment) {
-    var signals = card && card.automationSignals ? card.automationSignals : [];
-    return signals.some(function (s) {
-      return String(s.ruleId || '').indexOf(fragment) >= 0 && (s.status === 'active' || s.level);
-    });
   }
 
   function hasBooking(card) {
@@ -142,67 +187,132 @@
     );
   }
 
-  function resolveStepGateOk(card, def, status) {
-    if (status === 'done') return true;
-    var id = def.ruleId;
-    if (!id) return status === 'done';
-    if (id === 'missing_health_declaration') {
-      return Boolean(
-        card.hasHealthDeclaration ||
-        !card.missingHealthDeclaration ||
-        (card.healthDeclaration &&
-          (card.healthDeclaration.signedAt || card.healthDeclaration.signed))
+  function healthSigned(card) {
+    if (!card) return false;
+    return Boolean(
+      card.hasHealthDeclaration ||
+      card.missingHealthDeclaration === false ||
+      (card.healthDeclaration && (card.healthDeclaration.signedAt || card.healthDeclaration.signed))
+    );
+  }
+
+  function journalSigned(card) {
+    if (!card) return false;
+    if (card.missingJournal === true) return false;
+    return Boolean(card.hasJournal || card.hasJournalHistory);
+  }
+
+  function signalActive(card, fragment) {
+    var signals = card && card.automationSignals ? card.automationSignals : [];
+    return signals.some(function (s) {
+      return (
+        String(s.ruleId || '').indexOf(fragment) >= 0 &&
+        s.status === 'active' &&
+        CANONICAL_SIGNAL_IDS[String(s.ruleId || '')]
       );
-    }
-    if (id === 'missing_journal') return Boolean(card.hasJournal);
-    if (id === 'missing_treatment_plan')
-      return Boolean(card.treatmentPlanStatus && card.treatmentPlanStatus !== 'draft');
-    if (id === 'cooling_off_active') return !signalActive(card, 'cooling_off_active');
-    if (id === 'missing_agreement_consent_bundle')
-      return Boolean(card.agreementSigned) || !card.missingAgreement;
-    if (id === 'missing_operation_day_insurance') return !card.missingFitnessCertificate;
-    if (id === 'missing_photo_consent') {
-      return Boolean(card.photoConsent && card.photoConsent.signed);
-    }
+    });
+  }
+
+  function treatmentPlanDone(card) {
+    var status = String(card.treatmentPlanStatus || '').toLowerCase();
+    if (status && status !== 'draft' && status !== 'missing') return true;
+    return card.missingTreatmentPlan === false;
+  }
+
+  function agreementDone(card) {
+    if (card.agreementSigned === true) return true;
+    if (card.hasAgreement === true && card.missingAgreement === false) return true;
     return false;
   }
 
-  /** Mockup-facit: 9 steg inkl. bekräftelse-mail som steg 2, HD = steg 3. */
+  /**
+   * done | open | neutral | future — open = aktiv blockerare, neutral = steg 2 (–), future = ej nått.
+   * Okänt läge defaultar ALDRIG till done.
+   */
+  function computeStepTruth(card, def) {
+    card = card || {};
+    switch (def.step) {
+      case 1:
+        return hasBooking(card) ? 'done' : 'open';
+      case 2:
+        return hasBooking(card) ? 'neutral' : 'future';
+      case 3:
+        if (healthSigned(card)) return 'done';
+        if (!hasBooking(card)) return 'future';
+        return card.missingHealthDeclaration === true ? 'open' : 'future';
+      case 4:
+        if (!healthSigned(card)) return 'future';
+        if (journalSigned(card)) return 'done';
+        return card.missingJournal === true ? 'open' : 'future';
+      case 5:
+        if (!journalSigned(card) || !healthSigned(card)) return 'future';
+        if (treatmentPlanDone(card)) return 'done';
+        if (card.missingTreatmentPlan === true || signalActive(card, 'missing_treatment_plan')) {
+          return 'open';
+        }
+        return 'future';
+      case 6:
+        if (!journalSigned(card)) return 'future';
+        if (signalActive(card, 'cooling_off_active')) return 'open';
+        if (signalActive(card, 'cooling_off_passed')) return 'done';
+        return 'future';
+      case 7:
+        if (!journalSigned(card)) return 'future';
+        if (agreementDone(card)) return 'done';
+        if (card.missingAgreement === true || signalActive(card, 'missing_agreement')) {
+          return 'open';
+        }
+        return 'future';
+      case 8:
+        if (!journalSigned(card)) return 'future';
+        if (card.fitnessSigned === true) return 'done';
+        if (card.missingFitnessCertificate === true || card.todayVisit === true) {
+          return card.fitnessSigned === true ? 'done' : 'open';
+        }
+        return 'future';
+      case 9:
+        if (!journalSigned(card)) return 'future';
+        if (card.photoConsent && card.photoConsent.signed === true) return 'done';
+        if (card.missingPhotoConsent === true || signalActive(card, 'missing_photo_consent')) {
+          return 'open';
+        }
+        return 'future';
+      default:
+        return 'future';
+    }
+  }
+
+  function overlayGateOk(truth, def) {
+    if (def.step === 1) return truth === 'done';
+    if (def.step === 2) return truth === 'neutral' || truth === 'done';
+    return truth === 'done';
+  }
+
   function buildCanonicalJourneyLive(card, journalEntries, dossierBundle) {
     void journalEntries;
     void dossierBundle;
     card = card || {};
-    var steps = [];
-    var allowActive = true;
-    CANONICAL_COPY.forEach(function (def) {
-      var satisfied;
-      if (def.step === 1 || def.step === 2) {
-        satisfied = hasBooking(card);
-      } else {
-        satisfied = resolveStepGateOk(card, def, 'done');
-      }
+    var rows = CANONICAL_COPY.map(function (def) {
+      return { def: def, truth: computeStepTruth(card, def) };
+    });
+    var activeStep = null;
+    rows.forEach(function (row) {
+      if (row.truth === 'open' && activeStep == null) activeStep = row.def.step;
+    });
+    var steps = rows.map(function (row) {
       var status = 'future';
-      if (satisfied) {
-        status = 'done';
-      } else if (allowActive) {
-        status = 'active';
-        allowActive = false;
-      }
+      if (row.truth === 'done') status = 'done';
+      else if (row.truth === 'neutral') status = 'neutral';
+      else if (row.def.step === activeStep) status = 'active';
       var meta = '';
-      if (
-        status === 'done' &&
-        def.step === 3 &&
-        card.healthDeclaration &&
-        card.healthDeclaration.signedAt
-      ) {
-        meta = 'Signerad';
-      }
-      steps.push({
-        step: def.step,
-        label: def.title,
+      if (status === 'done' && row.def.step === 3) meta = 'Signerad';
+      return {
+        step: row.def.step,
+        label: row.def.title,
         status: status,
         meta: meta,
-      });
+        truth: row.truth,
+      };
     });
     var doneCount = steps.filter(function (s) {
       return s.status === 'done';
@@ -218,6 +328,65 @@
     };
   }
 
+  function makeSyntheticSignal(ruleId) {
+    var blur = SIGNAL_BLURBS[ruleId] || { what: ruleId, why: '', risk: 'info' };
+    return {
+      ruleId: ruleId,
+      what: blur.what,
+      why: blur.why,
+      risk: blur.risk,
+      level: blur.risk,
+      status: 'active',
+    };
+  }
+
+  /** Samma readout-fält som bannern / ccoKunderEnrichment.computeNextStep. */
+  function synthesizeSignalsFromCard(card) {
+    card = card || {};
+    var out = [];
+    if (card.missingHealthDeclaration === true || card.missingForm === true) {
+      out.push(makeSyntheticSignal('customer.missing_health_declaration'));
+    }
+    if (card.missingJournal === true) {
+      out.push(makeSyntheticSignal('customer.missing_journal'));
+    }
+    if (card.missingTreatmentPlan === true) {
+      out.push(makeSyntheticSignal('customer.missing_treatment_plan'));
+    }
+    if (card.missingAgreement === true && card.hasJournal) {
+      out.push(makeSyntheticSignal('customer.missing_agreement_consent_bundle'));
+    }
+    if (card.needsPhotoReview === true) {
+      out.push(makeSyntheticSignal('customer.has_photo_review'));
+    }
+    if (card.readyForTreatment === true) {
+      out.push(makeSyntheticSignal('customer.ready_for_treatment'));
+    }
+    return out;
+  }
+
+  function resolvePanelSignals(card) {
+    card = card || {};
+    var fromApi = (card.automationSignals || []).filter(function (s) {
+      return s && CANONICAL_SIGNAL_IDS[String(s.ruleId || '')] && s.status === 'active';
+    });
+    var synth = synthesizeSignalsFromCard(card);
+    var seen = {};
+    fromApi.forEach(function (s) {
+      seen[String(s.ruleId)] = true;
+    });
+    synth.forEach(function (s) {
+      if (!seen[s.ruleId]) fromApi.push(s);
+    });
+    if (
+      window.CcoKunderSmartNextStep &&
+      typeof window.CcoKunderSmartNextStep.sortSignals === 'function'
+    ) {
+      return window.CcoKunderSmartNextStep.sortSignals(fromApi);
+    }
+    return fromApi;
+  }
+
   function renderCanonicalJourneyBig(card, journalEntries, dossierBundle) {
     var journey = buildCanonicalJourneyLive(card, journalEntries, dossierBundle);
     var stepsByNum = {};
@@ -228,9 +397,9 @@
       '<div class="kkx-canon">Canonical 9 steg (Hair TP) · betänketid 2d · egen sign-flow · aldrig T-48h</div>';
     CANONICAL_COPY.forEach(function (def) {
       var live = stepsByNum[def.step];
-      var status = live ? live.status : 'future';
-      var state = mapJourneyState(status);
-      var gateOk = resolveStepGateOk(card, def, status === 'done' ? 'done' : status);
+      var truth = live ? live.truth : 'future';
+      var state = mapJourneyState(live ? live.status : 'future');
+      var gateOk = overlayGateOk(truth, def);
       html +=
         '<div class="kkx-cstep ' +
         esc(state) +
@@ -429,6 +598,7 @@
     sanitizeCustomerListScope: sanitizeCustomerListScope,
     renderCanonicalJourneyBig: renderCanonicalJourneyBig,
     buildCanonicalJourneyLive: buildCanonicalJourneyLive,
+    resolvePanelSignals: resolvePanelSignals,
     CANONICAL_COPY: CANONICAL_COPY,
   };
 })();
