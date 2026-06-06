@@ -22,7 +22,7 @@ const ROOT = path.join(__dirname, '..');
 const BASE = (
   process.env.BASE ||
   process.env.ARCANA_PROD_URL ||
-  'https://arcana.hairtpclinic.se'
+  'https://arcana.hairtpclinic.com'
 ).replace(/\/+$/, '');
 const TENANT_ID = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 const MASTER_PATH =
@@ -114,6 +114,23 @@ async function fetchProdStats(token) {
   return stats.stats || stats;
 }
 
+async function fetchProdListTotal(token) {
+  const list = await requestJson(
+    'GET',
+    '/api/v1/cco-patient-master/patients?limit=1&offset=0',
+    token
+  );
+  return Number(list.total || 0);
+}
+
+async function fetchProdPatientTotal(token) {
+  const [statsTotal, listTotal] = await Promise.all([
+    fetchProdStats(token).then((stats) => Number(stats.totalPatients) || 0),
+    fetchProdListTotal(token),
+  ]);
+  return Math.max(statsTotal, listTotal);
+}
+
 async function main() {
   const patients = loadClientoCsvPatients();
   console.log(`Cliento CSV-delta → ${BASE}`);
@@ -133,8 +150,7 @@ async function main() {
 
   let beforeTotal = null;
   if (!dryRun) {
-    const before = await fetchProdStats(token);
-    beforeTotal = Number(before.totalPatients) || 0;
+    beforeTotal = await fetchProdPatientTotal(token);
     console.log(`Prod före: ${beforeTotal} patienter\n`);
   }
 
@@ -157,8 +173,7 @@ async function main() {
     CONCURRENCY
   );
 
-  const after = await fetchProdStats(token);
-  const afterTotal = Number(after.totalPatients) || 0;
+  const afterTotal = await fetchProdPatientTotal(token);
   const delta = afterTotal - beforeTotal;
 
   console.log('\n=== RESULTAT ===');
