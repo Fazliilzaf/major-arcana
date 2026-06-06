@@ -4587,7 +4587,6 @@
 
   function renderV9PatientRowHtml(card, selected) {
     const name = displayNameForList(card);
-    const state = resolveV9RowState(card);
     const treatment =
       asArray(card.treatmentTypes).length > 0
         ? card.treatmentTypes.join(', ')
@@ -4600,6 +4599,17 @@
     const age = birthYear && birthYear > 1900 && birthYear <= nowY ? nowY - birthYear : null;
     const subLine =
       [age ? age + ' år' : null, treatment || null].filter(Boolean).join(' · ') || '—';
+    // 9-stegs-position härledd ur list-flaggorna (Nästa steg-pillen ger exakt åtgärd)
+    const jStep =
+      card.missingHealthDeclaration || card.missingForm
+        ? { n: 2, tone: 'amber' }
+        : card.missingJournal || !card.hasJournalHistory
+          ? { n: 3, tone: 'info' }
+          : card.missingAgreement
+            ? { n: 7, tone: 'purple' }
+            : card.hasUpcomingBooking
+              ? { n: 8, tone: 'teal' }
+              : { n: 9, tone: 'ok' };
 
     return `
           <button
@@ -4613,7 +4623,7 @@
               <div class="cr-name">${escapeHtml(name)}</div>
               <div class="cr-ref-sub">${escapeHtml(subLine)}</div>
             </div>
-            <div class="cr-ref-step"><span class="cr-step-badge" data-state="${escapeHtml(state.state)}">${escapeHtml(state.label)}</span></div>
+            <div class="cr-ref-step"><span class="cr-step-badge" data-tone="${jStep.tone}">Steg ${jStep.n}</span></div>
             <div class="cr-ref-next"><span class="cr-next-pill" data-tone="${escapeHtml(signal.tone)}">${escapeHtml(signal.text)}</span></div>
             <div class="cr-ref-ltv">${escapeHtml(revenue.main)}</div>
             <div class="cr-arrow" aria-hidden="true">›</div>

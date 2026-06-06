@@ -867,3 +867,25 @@
     max-width: 100%;
   }
 }
+
+/* ===== Steg N-badge toner (REFERENS bild 1) ===== */
+.customer-row.cr-ref .cr-step-badge[data-tone="amber"] {
+  background: linear-gradient(180deg, #f6e6c6, #efd49f);
+  color: #8a6a16;
+}
+.customer-row.cr-ref .cr-step-badge[data-tone="info"] {
+  background: linear-gradient(180deg, #d4e4f3, #bcd3ec);
+  color: #3f6e9c;
+}
+.customer-row.cr-ref .cr-step-badge[data-tone="purple"] {
+  background: linear-gradient(180deg, #e6d9f5, #d3bdee);
+  color: #6d3aac;
+}
+.customer-row.cr-ref .cr-step-badge[data-tone="teal"] {
+  background: linear-gradient(180deg, #cfe7e9, #b5dade);
+  color: #1f6e7a;
+}
+.customer-row.cr-ref .cr-step-badge[data-tone="ok"] {
+  background: linear-gradient(180deg, #cfe4d3, #b4d3bd);
+  color: #3f7460;
+}
