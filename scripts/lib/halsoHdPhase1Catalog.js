@@ -52,6 +52,7 @@ async function loadProdAssetItems(assetsPath = '') {
   const parsed = JSON.parse(raw);
   if (Array.isArray(parsed)) return parsed;
   if (Array.isArray(parsed.items)) return parsed.items;
+  if (parsed.items && typeof parsed.items === 'object') return Object.values(parsed.items);
   if (Array.isArray(parsed.assets)) return parsed.assets;
   return [];
 }
