@@ -3400,13 +3400,17 @@
   }
 
   function resolveV9Revenue(card) {
+    const raw = Number(
+      card.lifetimeValue ?? card.dealValue ?? card.pipedriveDealValue ?? Number.NaN
+    );
+    const main = formatV9Sek(raw);
     return {
-      main: '—',
+      main,
       trend:
         card.pipedriveLinked && Number(card.pipedriveDealCount) > 0
           ? `${Number(card.pipedriveDealCount)} Pipedrive-affärer`
           : '',
-      title: 'Intäkt (LTV) — saknas i patient-master API',
+      title: main === '—' ? 'Intäkt ej kopplad ännu (Fortnox)' : 'Intäkt (LTV)',
     };
   }
 
