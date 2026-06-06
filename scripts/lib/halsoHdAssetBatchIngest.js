@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * Phase 1 — m365_halso PDF → parse → match → dedup → prod PUT.
- * Samma regler som mailbox-batch: pnr → e-post → telefon → namn, osäker → kö.
+ * Phase 1 — m365_halso PDF → parse (lokal FS) → match prod API → PUT healthDeclaration.
+ * Prod asset-store saknar m365_halso — binärer läses från lokal secure storage.
  */
 const {
   buildHealthDeclarationDedupKeys,
@@ -16,8 +16,9 @@ const {
   loadDedupState,
   saveDedupState,
 } = require('./halsoHdBatchIngest');
-const { fetchPatient, putPatient, fetchAssetBuffer, TENANT_ID } = require('./halsoHdProdClient');
+const { fetchPatient, putPatient, TENANT_ID } = require('./halsoHdProdClient');
 const { extractPdfText } = require('./halsoHdPdfText');
+const { readLocalPdfBuffer } = require('./halsoHdLocalPdfReader');
 
 function emptyAssetStats() {
   return {
@@ -140,6 +141,7 @@ async function processOnePhase1Asset({
   token = '',
   dryRun = true,
   runId = '',
+  storageRoot = '',
 } = {}) {
   if (!asset?.assetId) {
     return {
@@ -148,22 +150,20 @@ async function processOnePhase1Asset({
     };
   }
 
-  let pdfBuffer;
-  try {
-    pdfBuffer = await fetchAssetBuffer(token, asset.assetId);
-  } catch (error) {
+  const localPdf = await readLocalPdfBuffer(asset.storageKey, { storageRoot });
+  if (!localPdf.ok) {
     return {
       status: 'pdf_failed',
       row: summarizeAssetRow({
         asset,
         status: 'pdf_failed',
-        pdfReason: 'download_failed',
-        error: error.message || String(error),
+        pdfReason: localPdf.reason,
+        error: localPdf.error || null,
       }),
     };
   }
 
-  const pdf = await extractPdfText(pdfBuffer);
+  const pdf = await extractPdfText(localPdf.buffer);
   if (!pdf.ok) {
     return {
       status: 'pdf_failed',
@@ -320,10 +320,12 @@ function applyAssetStats(stats, result) {
   }
   if (result.status === 'needs_review') {
     stats.needsReview += 1;
+    if (result.reviewQueued) stats.reviewQueued += 1;
     return;
   }
   if (result.status === 'unmatched') {
     stats.unmatched += 1;
+    if (result.reviewQueued) stats.reviewQueued += 1;
     return;
   }
   if (
@@ -356,6 +358,7 @@ async function runPhase1AssetBatchIngest({
   dryRun = true,
   runId = '',
   token = '',
+  storageRoot = '',
   onProgress = null,
 } = {}) {
   if (!dedupPath) throw new Error('runPhase1AssetBatchIngest requires dedupPath');
@@ -375,6 +378,7 @@ async function runPhase1AssetBatchIngest({
       token,
       dryRun,
       runId,
+      storageRoot,
     });
     if (reviewQueuePath && ['unmatched', 'needs_review'].includes(result.status)) {
       await appendReviewQueueLine(

@@ -79,13 +79,17 @@ const PIPEDRIVE_PHONE_HEADERS = [
 
 function collectPipedriveEmails(row = {}) {
   return [
-    ...new Set(PIPEDRIVE_EMAIL_HEADERS.map((header) => normalizeEmail(row[header])).filter(Boolean)),
+    ...new Set(
+      PIPEDRIVE_EMAIL_HEADERS.map((header) => normalizeEmail(row[header])).filter(Boolean)
+    ),
   ];
 }
 
 function collectPipedrivePhones(row = {}) {
   return [
-    ...new Set(PIPEDRIVE_PHONE_HEADERS.map((header) => normalizePhone(row[header])).filter(Boolean)),
+    ...new Set(
+      PIPEDRIVE_PHONE_HEADERS.map((header) => normalizePhone(row[header])).filter(Boolean)
+    ),
   ];
 }
 
@@ -124,6 +128,13 @@ function isPlausiblePersonnummerDate(yyyymmdd) {
   return Number.isInteger(day) && day >= 1 && day <= 31;
 }
 
+function inferFullYearFromYy(yy) {
+  const now = new Date().getFullYear();
+  const currentYy = now % 100;
+  const century = yy > currentYy + 10 ? 1900 : 2000;
+  return century + yy;
+}
+
 function normalizePersonnummer(value) {
   const raw = normalizeText(value);
   if (!raw) return '';
@@ -131,6 +142,13 @@ function normalizePersonnummer(value) {
   // number earlier in the string doesn't shadow a real pnr later in it.
   for (const match of raw.matchAll(/(\d{8})[- ]?(\d{4})/g)) {
     if (isPlausiblePersonnummerDate(match[1])) return `${match[1]}-${match[2]}`;
+  }
+  for (const match of raw.matchAll(/(?:^|[^\d])(\d{6})[- ]?(\d{4})(?:[^\d]|$)/g)) {
+    const yymmdd = match[1];
+    const yy = Number(yymmdd.slice(0, 2));
+    const fullYear = inferFullYearFromYy(yy);
+    const yyyymmdd = `${fullYear}${yymmdd.slice(2)}`;
+    if (isPlausiblePersonnummerDate(yyyymmdd)) return `${yyyymmdd}-${match[2]}`;
   }
   return '';
 }

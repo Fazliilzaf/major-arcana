@@ -16,11 +16,12 @@ const path = require('node:path');
 const { buildPhase1Catalog } = require('./lib/halsoHdPhase1Catalog');
 
 const ROOT = path.join(__dirname, '..');
+const DEFAULT_ASSETS = path.join(ROOT, 'data/cco-patient-assets.json');
 const DEFAULT_OUT = path.join(ROOT, 'data/reports/halso-hd-phase1-index.jsonl');
 const DEFAULT_CHECKPOINT = path.join(ROOT, 'data/reports/halso-hd-phase1.checkpoint.json');
 
 function parseArgs(argv) {
-  const args = { assetsPath: '', out: DEFAULT_OUT, checkpoint: DEFAULT_CHECKPOINT };
+  const args = { assetsPath: DEFAULT_ASSETS, out: DEFAULT_OUT, checkpoint: DEFAULT_CHECKPOINT };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--assets-path') args.assetsPath = path.resolve(argv[++i] || '');

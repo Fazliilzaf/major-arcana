@@ -107,15 +107,43 @@ function normalizeFieldKey(value = '') {
 
 function extractFieldPairs(text = '') {
   const fields = {};
-  for (const rawLine of String(text || '').split('\n')) {
-    const line = rawLine.trim();
+  const lines = String(text || '')
+    .split('\n')
+    .map((rawLine) => rawLine.trim());
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
     if (!line) continue;
-    const match = line.match(/^([^:\t]{2,120}?)\s*[:\t]\s*(.+)$/);
-    if (!match) continue;
-    const key = normalizeFieldKey(match[1]);
-    const val = match[2].trim();
-    if (!key || !val || val.length > 4000) continue;
-    if (!fields[key]) fields[key] = val;
+
+    const inlineMatch = line.match(/^([^:\t]{2,120}?)\s*[:\t]\s*(.+)$/);
+    if (inlineMatch) {
+      const key = normalizeFieldKey(inlineMatch[1]);
+      const val = inlineMatch[2].trim();
+      if (key && val && val.length <= 4000 && !fields[key]) fields[key] = val;
+      continue;
+    }
+
+    // PDF multiline: "Etikett:" på egen rad, värde på nästa rad (pdf-parse).
+    if (line.endsWith(':') && line.length > 1) {
+      const key = normalizeFieldKey(line.slice(0, -1));
+      if (!key) continue;
+      let j = i + 1;
+      while (j < lines.length && !lines[j]) j += 1;
+      if (j >= lines.length) continue;
+      const val = lines[j];
+      if (!val || val.length > 4000) continue;
+      const looksLikeNextLabel =
+        val.endsWith(':') &&
+        val.length < 100 &&
+        !val.includes('@') &&
+        !/^\+?\d[\d\s-]{5,}$/.test(val) &&
+        !/^\d{6}[-+]?\d{4}$/.test(val.replace(/\D/g, ''));
+      if (looksLikeNextLabel) continue;
+      if (!fields[key]) {
+        fields[key] = val;
+        i = j;
+      }
+    }
   }
   return fields;
 }
@@ -142,6 +170,14 @@ function parseSignedAt(rawValue, fallbackIso = '') {
   if (svMatch) {
     const [, y, m, d, hh = '00', mm = '00'] = svMatch;
     const parsed = Date.parse(`${y}-${m}-${d}T${hh}:${mm}:00`);
+    if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+  }
+  const dmyMatch = value.match(/^(\d{1,2})[/.-](\d{1,2})[-/.](\d{4})$/);
+  if (dmyMatch) {
+    const [, d, m, y] = dmyMatch;
+    const parsed = Date.parse(
+      `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00`
+    );
     if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
   }
   return normalizeText(fallbackIso) || null;

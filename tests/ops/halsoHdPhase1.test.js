@@ -11,6 +11,7 @@ const { selectBatchSlice, emptyAssetStats } = require('../../scripts/lib/halsoHd
 const {
   isHalsoHealthDeclarationSubject,
 } = require('../../src/ops/ccoHalsoHealthDeclarationParser');
+const { resolveSecureStorageRoot } = require('../../scripts/lib/halsoHdLocalPdfReader');
 
 test('isPhase1HalsoAsset accepts m365_halso PDF form/other', () => {
   assert.equal(
@@ -80,4 +81,12 @@ test('emptyAssetStats starts at zero', () => {
 test('HD parser excludes injektions-journal subject', () => {
   assert.equal(isHalsoHealthDeclarationSubject('[Injektions-journal/Webb] Test'), false);
   assert.equal(isHalsoHealthDeclarationSubject('[Hälsodeklaration/Webb] Test'), true);
+});
+
+test('resolveSecureStorageRoot honors explicit env override', () => {
+  const prev = process.env.ARCANA_CCO_SECURE_STORAGE_ROOT;
+  process.env.ARCANA_CCO_SECURE_STORAGE_ROOT = '/tmp/halso-secure-test';
+  assert.equal(resolveSecureStorageRoot(), '/tmp/halso-secure-test');
+  if (prev === undefined) delete process.env.ARCANA_CCO_SECURE_STORAGE_ROOT;
+  else process.env.ARCANA_CCO_SECURE_STORAGE_ROOT = prev;
 });

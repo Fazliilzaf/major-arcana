@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * Phase 1 — m365_halso PDF-katalog (~1660) från prod asset snapshot.
- * Filtrerar enligt ORD-29 / ccoKunderEnrichment.isHealthDeclarationAsset.
+ * Phase 1 — m365_halso PDF-katalog från lokal asset store (87 MB snapshot).
+ * Binärer i lokal secure storage — prod Render-disk saknar m365_halso tills backfill.
  */
 const fs = require('node:fs/promises');
 const os = require('node:os');

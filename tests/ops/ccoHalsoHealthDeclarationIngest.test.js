@@ -64,6 +64,52 @@ test('isHalsoHealthDeclarationMessage requires halso mailbox', () => {
   );
 });
 
+test('extractFieldPairs supports PDF multiline label/value rows', () => {
+  const fields = extractFieldPairs(`
+Namn:
+Jens Bengtsson
+Personnummer:
+750801-3310
+E-post:
+jensmbengtsson@gmail.com
+Telefon:
+0705440481
+Datum:
+5/7-2024
+`);
+  assert.equal(fields.namn, 'Jens Bengtsson');
+  assert.equal(fields.personnummer, '750801-3310');
+  assert.equal(fields['e-post'], 'jensmbengtsson@gmail.com');
+  assert.equal(fields.telefon, '0705440481');
+  assert.equal(fields.datum, '5/7-2024');
+});
+
+test('parseHealthDeclarationFromText parses Phase 1 PDF layout', () => {
+  const {
+    parseHealthDeclarationFromText,
+  } = require('../../src/ops/ccoHalsoHealthDeclarationParser');
+  const parsed = parseHealthDeclarationFromText(
+    `
+Namn:
+Jens Bengtsson
+Personnummer:
+750801-3310
+E-post:
+jensmbengtsson@gmail.com
+Telefon:
+0705440481
+Datum:
+5/7-2024
+Röker du?
+Nej
+`,
+    { subject: 'CF7-1720166520-7103.pdf' }
+  );
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.personnummer, '19750801-3310');
+  assert.equal(parsed.email, 'jensmbengtsson@gmail.com');
+});
+
 test('parseHealthDeclarationMessage extracts identity, answers and risk flags', () => {
   const parsed = parseHealthDeclarationMessage({
     subject: '[Hälsodeklaration/Webb] Hair TP',
