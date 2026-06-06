@@ -342,3 +342,37 @@ html[data-v9-enabled="on"] .agg-insight-action {
   font-weight: 800;
   letter-spacing: 0.04em;
 }
+
+/* ============================================================
+   Lager 4 — Segment-sidopanelen (Kundgrupper/Behandling/Status)
+   Mockupens count-pills + rosa aktiv. ALLA appens rader behålls.
+   ============================================================ */
+
+html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link .count {
+  font-size: 9.5px;
+  color: var(--cco-text-tertiary);
+  background: rgba(255, 255, 255, 0.5);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link.is-active .count,
+html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link.active .count {
+  color: var(--accent-studio);
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+}
+html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link.is-active,
+html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 238, 232, 0.6));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+html[data-v9-enabled="on"] [data-v9-segment-sidebar].side-shell {
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  box-shadow: var(--panel-shell-shadow);
+}
