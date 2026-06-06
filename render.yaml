@@ -186,3 +186,9 @@ services:
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
+      # Scheduler allowlist (steg 2 2026-06-06): alert_probe + backup_prune + dashboard snapshot.
+      # cco_daily_digest medvetet utelämnad tills Graph send är konfigurerad.
+      - key: ARCANA_SCHEDULER_ENABLED
+        value: "true"
+      - key: ARCANA_SCHEDULER_JOBS
+        value: "alert_probe,backup_prune,cco_dashboard_snapshot_refresh"
