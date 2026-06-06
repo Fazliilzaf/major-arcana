@@ -887,6 +887,10 @@ const config = {
   schedulerCcoClientoBackfillCsvPath: asNonEmptyString(
     process.env.ARCANA_SCHEDULER_CCO_CLIENTO_BACKFILL_CSV_PATH
   ),
+  schedulerCcoClientoCustomerDeltaSyncIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_CLIENTO_CUSTOMER_DELTA_SYNC_INTERVAL_HOURS,
+    24
+  ),
   schedulerCcoHistorySyncIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_SYNC_INTERVAL_HOURS,
     6

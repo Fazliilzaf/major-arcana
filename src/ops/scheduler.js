@@ -46,6 +46,7 @@ const { resolveAdaptiveFocusState } = require('../intelligence/adaptiveFocusCont
 const { evaluateRecovery } = require('../intelligence/recoveryEngine');
 const { evaluateStrategicInsights } = require('../intelligence/strategicInsightsEngine');
 const { runClientoBackfill } = require('../../scripts/run-cliento-backfill');
+const { runClientoCustomerDeltaSync } = require('./clientoCustomerDeltaSync');
 const {
   createMicrosoftGraphMailboxTruthDelta,
 } = require('../infra/microsoftGraphMailboxTruthDelta');
@@ -2620,6 +2621,36 @@ function createScheduler({
     };
   }
 
+  async function runCcoClientoCustomerDeltaSync({ tenantId, trigger = 'scheduled' }) {
+    if (!patientMasterStore || typeof patientMasterStore.listPatients !== 'function') {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'patient_master_store_unavailable',
+      };
+    }
+    const report = await runClientoCustomerDeltaSync({
+      patientMasterStore,
+      tenantId,
+      config,
+      dryRun: false,
+      sampleSize: 5,
+    });
+    if (report.skipped) {
+      return {
+        tenantId,
+        trigger,
+        skipped: true,
+        reason: report.reason || 'cliento_delta_sync_skipped',
+      };
+    }
+    return {
+      tenantId,
+      trigger,
+      ...report,
+    };
+  }
+
   async function runCcoShadowRun({ tenantId, trigger = 'scheduled', actorUserId = null }) {
     if (!graphReadConnector || typeof graphReadConnector.fetchInboxSnapshot !== 'function') {
       return {
@@ -4069,6 +4100,15 @@ function createScheduler({
       name: 'CCO Cliento backfill',
       intervalMs: 0, // Cliento bortkopplad 2026-05-23: Hair TP kor egen CCO booking, jobbet avregistrerat
       run: runCcoClientoBackfill,
+    },
+    {
+      id: 'cco_cliento_customer_delta_sync',
+      name: 'CCO Cliento customer delta sync (API → patient-master)',
+      intervalMs:
+        config.clientoApiKey && config.clientoAccountIds?.length && patientMasterStore
+          ? toHoursMs(config.schedulerCcoClientoCustomerDeltaSyncIntervalHours, 24)
+          : 0,
+      run: runCcoClientoCustomerDeltaSync,
     },
     {
       id: 'cco_shadow_run',

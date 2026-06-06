@@ -176,6 +176,70 @@ function pickRefArray(payload, keys = []) {
   return [];
 }
 
+function normalizeClientoCustomerRecord(input = {}, accountId = '') {
+  const safe = asObject(input);
+  const clientoId = normalizeText(
+    safe.id || safe.customerId || safe.clientId || safe.custId || safe.hashId
+  );
+  const name = normalizeText(safe.name || safe.fullName || safe.customerName || safe.label);
+  const email = normalizeEmail(safe.email || safe.customerEmail || safe.mail || safe.primaryEmail);
+  const phone = normalizePhone(safe.phone || safe.mobile || safe.customerPhone || safe.phoneMobile);
+  const altPhone = normalizePhone(safe.altPhone || safe.phoneAlt || safe.otherPhone);
+  const personnummer = normalizeText(
+    safe.personnummer || safe.personalNumber || safe.ssn || safe.socialSecurityNumber
+  );
+  const updatedAt = normalizeText(
+    safe.updatedAt || safe.modifiedAt || safe.changedAt || safe.lastModified
+  );
+  const emails = [...new Set([email].filter(Boolean))];
+  const phones = [...new Set([phone, altPhone].filter(Boolean))];
+  if (!clientoId && !name && !emails.length && !phones.length && !personnummer) {
+    return null;
+  }
+  return {
+    clientoId,
+    accountId: normalizeText(accountId),
+    name,
+    personnummer,
+    emails,
+    primaryEmail: emails[0] || '',
+    phones,
+    primaryPhone: phones[0] || '',
+    updatedAt,
+    raw: safe,
+  };
+}
+
+function normalizeEmail(value) {
+  const normalized = normalizeText(value)
+    .toLowerCase()
+    .replace(/^mailto:/, '');
+  return normalized;
+}
+
+function normalizePhone(value) {
+  return normalizeText(value).replace(/\s+/g, ' ');
+}
+
+function pickCustomersArray(payload) {
+  if (Array.isArray(payload)) return payload;
+  const safe = asObject(payload);
+  for (const candidate of [safe.customers, safe.data, safe.items, safe.results, safe.rows]) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+  const data = asObject(safe.data);
+  for (const candidate of [data.customers, data.items, data.results, data.rows]) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return [];
+}
+
+function normalizeClientoCustomersPayload(payload, accountId = '') {
+  return pickCustomersArray(payload)
+    .map((item) => normalizeClientoCustomerRecord(item, accountId))
+    .filter(Boolean);
+}
+
 function normalizeClientoRefDataPayload(payload) {
   const resources = pickRefArray(payload, ['resources', 'staff', 'employees', 'users', 'resource'])
     .map((item) => normalizeClientoRefItem(item, 'resource'))
@@ -267,6 +331,30 @@ function createClientoApi(
         stars: normalizeCsvParam(stars),
       });
     },
+    getCustomers({ offset = 0, limit = 100, updatedSince = '' } = {}) {
+      return requestJson('/customers/', {
+        offset,
+        limit,
+        updatedSince: normalizeText(updatedSince),
+      });
+    },
+    async listAllCustomers({ pageSize = 100, maxPages = 500, updatedSince = '' } = {}) {
+      const rows = [];
+      let offset = 0;
+      for (let page = 0; page < maxPages; page += 1) {
+        const payload = await this.getCustomers({
+          offset,
+          limit: pageSize,
+          updatedSince,
+        });
+        const batch = normalizeClientoCustomersPayload(payload, partnerId);
+        if (!batch.length) break;
+        rows.push(...batch);
+        if (batch.length < pageSize) break;
+        offset += batch.length;
+      }
+      return rows;
+    },
   };
 }
 
@@ -274,6 +362,8 @@ module.exports = {
   DEFAULT_CLIENTO_API_BASE_URL,
   buildClientoPartnerBaseUrl,
   buildClientoHeaders,
+  normalizeClientoCustomerRecord,
+  normalizeClientoCustomersPayload,
   normalizeClientoSlot,
   normalizeClientoRefDataPayload,
   normalizeClientoSlotsPayload,
