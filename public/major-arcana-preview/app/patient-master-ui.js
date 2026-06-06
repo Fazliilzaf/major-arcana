@@ -1077,17 +1077,19 @@
     if (referensMasterDetail) {
       applyReferensMasterDetailLayout();
     }
-    rail.innerHTML = referensMasterDetail
-      ? '<div class="kkref">' +
-        window.__renderReferensKundkort(card, dossierBundle, journalEntries) +
-        '</div>'
-      : window.CcoKundkortBlueprint.renderKundkort(
-          card,
-          journalEntries,
-          dossierBundle,
-          occasionTimeline,
-          driveFiles
-        );
+    // REFERENS-kortet är designen för panel 4 — oavsett layoutläge (4 paneler eller master-detail)
+    rail.innerHTML =
+      typeof window.__renderReferensKundkort === 'function'
+        ? '<div class="kkref">' +
+          window.__renderReferensKundkort(card, dossierBundle, journalEntries) +
+          '</div>'
+        : window.CcoKundkortBlueprint.renderKundkort(
+            card,
+            journalEntries,
+            dossierBundle,
+            occasionTimeline,
+            driveFiles
+          );
     if (workspace && !referensMasterDetail) {
       workspace.innerHTML = window.CcoKundkortBlueprint.renderWorkspace(
         card,
