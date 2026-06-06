@@ -247,8 +247,9 @@
   /** Banner + computeNextStep — fält kan saknas på detail-card; härled från nextStep/automationTop. */
   function inferMissingJournal(card, journalEntries) {
     card = card || {};
-    if (card.missingJournal === true) return true;
+    if (hasCcoConsultJournal(journalEntries)) return false;
     if (card.missingJournal === false) return false;
+    if (card.hasJournal === true) return false;
     var top = card.automationTop;
     if (top && top.status === 'active') {
       if (String(top.ruleId || '').indexOf('missing_journal') >= 0) return true;
@@ -267,6 +268,7 @@
     if (/saknar journal/i.test(next)) return true;
     if (card.hasJournal === true) return false;
     if (hasCcoConsultJournal(journalEntries)) return false;
+    if (card.missingJournal === true) return true;
     return false;
   }
 
@@ -299,9 +301,10 @@
         ? Object.assign({}, card, dossierBundle.card)
         : card;
     var missingJournal = inferMissingJournal(bundleCard, journalEntries);
+    var hasSignedJournal = hasCcoConsultJournal(journalEntries) || !missingJournal;
     return Object.assign({}, bundleCard, {
       missingJournal: missingJournal,
-      hasJournal: missingJournal ? false : bundleCard.hasJournal === true,
+      hasJournal: hasSignedJournal,
     });
   }
 

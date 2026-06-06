@@ -60,6 +60,7 @@
     "verify:migration-prod": "node ./scripts/verify-migration-prod.js",
     "verify:customer-list-prod": "node ./scripts/verify-customer-list-prod.js",
     "verify:kkx-journey-prod": "node ./scripts/verify-kkx-journey-prod.js",
+    "verify:kkx-journal-workspace-prod": "node ./scripts/verify-kkx-journal-workspace-prod.js",
     "find:offer-patients-prod": "node ./scripts/find-offer-patients-prod.js",
     "push:migration-state-prod": "node ./scripts/push-migration-state-prod.js",
     "trigger:render-prod-deploy": "node ./scripts/trigger-render-prod-deploy.js",

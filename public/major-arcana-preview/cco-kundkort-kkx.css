@@ -385,3 +385,27 @@
   padding: 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 241, 236, 0.78));
 }
+
+.kkx-jfoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.kkx-jrita {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border: 1px dashed rgba(120, 105, 90, 0.28);
+  background: rgba(255, 252, 244, 0.72);
+}
+
+.kkx-jrita:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.kkx-jmall .m {
+  border: 0;
+}

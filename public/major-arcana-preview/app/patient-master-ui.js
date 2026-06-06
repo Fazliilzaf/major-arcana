@@ -197,6 +197,7 @@
     detailLoading: false,
     detailShellOnly: false,
     commercialCase: null,
+    kkxActiveJournalTemplate: 'tp',
     offerDocumentUrl: '',
     offerDocumentPdfUrl: '',
     offerDocumentWordUrl: '',
@@ -1148,6 +1149,69 @@
     attempt(12);
   }
 
+  const KKX_JOURNAL_TEMPLATES = [
+    {
+      id: 'tp',
+      label: 'TP-journal',
+      journalType: 'tp_treatment',
+      formVariant: 'hair_tp',
+      createAction: 'new-tp-journal',
+    },
+    {
+      id: 'prp',
+      label: 'PRP-journal',
+      journalType: 'prp_treatment',
+      formVariant: 'prp_skin',
+      createAction: 'new-prp-journal',
+    },
+    {
+      id: 'follow_4',
+      label: 'Uppföljning',
+      journalType: 'follow_up',
+      formVariant: '4_manader',
+      createAction: 'new-follow-up-journal',
+    },
+    {
+      id: 'pre_health',
+      label: 'Pre-behandling',
+      journalType: 'health_declaration',
+      clinicalFormKey: 'health',
+      createAction: 'new-health-declaration',
+    },
+  ];
+
+  function resolveKkxTemplateForEntry(entry) {
+    if (!entry?.journalType) return null;
+    if (entry.journalType === 'tp_treatment') return 'tp';
+    if (entry.journalType === 'prp_treatment') {
+      return entry.formVariant === 'tp_post_op' ? 'prp' : 'prp';
+    }
+    if (entry.journalType === 'follow_up') return 'follow_4';
+    if (entry.journalType === 'health_declaration') return 'pre_health';
+    if (entry.journalType === 'fitness_certificate') return 'pre_health';
+    return null;
+  }
+
+  function findKkxDraftEntry(entries, template) {
+    if (!template) return null;
+    return (
+      asArray(entries).find((row) => {
+        if (row.locked || !row.canSign) return false;
+        if (row.journalType !== template.journalType) return false;
+        if (template.formVariant && row.formVariant && row.formVariant !== template.formVariant) {
+          return false;
+        }
+        if (template.clinicalFormKey) {
+          const key =
+            window.ArcanaJournalClinicalFormKeys?.resolveEntryFormKey?.(row) ||
+            (row.journalType === 'health_declaration' ? 'health' : 'fitness');
+          return key === template.clinicalFormKey;
+        }
+        return true;
+      }) || null
+    );
+  }
+
   function resolveKkxJournalEditTarget(entries, hintEntryId, hintJournalType) {
     const rows = asArray(entries);
     const normalizedHint = normalizeText(hintEntryId);
@@ -1161,12 +1225,260 @@
       );
       if (byType) return byType;
     }
-    const preferTypes = ['tp_treatment', 'prp_treatment', 'follow_up', 'bleph_treatment'];
+    const activeTemplate = KKX_JOURNAL_TEMPLATES.find(
+      (item) => item.id === runtime.kkxActiveJournalTemplate
+    );
+    const activeDraft = findKkxDraftEntry(rows, activeTemplate);
+    if (activeDraft) return activeDraft;
+    const preferTypes = ['tp_treatment', 'prp_treatment', 'follow_up', 'health_declaration'];
     for (const journalType of preferTypes) {
       const draft = rows.find((entry) => entry.journalType === journalType && !entry.locked);
       if (draft) return draft;
     }
     return rows.find((entry) => !entry.locked && entry.canSign) || null;
+  }
+
+  function renderKkxJournalTemplatePicker(activeTemplateId) {
+    return `
+      <div class="kkx-jmall" data-kkx-journal-templates>
+        ${KKX_JOURNAL_TEMPLATES.map(
+          (template) =>
+            `<button type="button" class="m${template.id === activeTemplateId ? ' act' : ''}" data-kkx-journal-template="${escapeHtml(template.id)}">${escapeHtml(template.label)}</button>`
+        ).join('')}
+      </div>`;
+  }
+
+  function renderKkxJournalFormMarkup(entries, entry) {
+    setRuntimeEditingJournalEntry(entry);
+    return [
+      renderTpJournalSection(entries),
+      renderPrpJournalSection(entries),
+      renderFollowUpJournalSection(entries),
+      renderBlephJournalSection(entries),
+      renderClinicalFormSection(entries),
+    ]
+      .filter(Boolean)
+      .join('');
+  }
+
+  function resolveKkxPlanPhotoTarget(entries) {
+    const planEntry = findConsultationPlanEntry(entries);
+    const photo = asArray(planEntry?.attachments).find(
+      (item) => item.type === 'consultation_photo' && item.photoId
+    );
+    return { planEntry, photo };
+  }
+
+  function renderKkxJournalPhotoShell(entries, entry) {
+    const { planEntry, photo } = resolveKkxPlanPhotoTarget(entries);
+    const photos = asArray(planEntry?.attachments).filter(
+      (item) => item.type === 'consultation_photo' && item.photoId
+    );
+    const tiles = photos
+      .slice(0, 3)
+      .map((item) => {
+        const label =
+          normalizeText(item.label || item.fileName || item.variant || 'Foto') || 'Foto';
+        return `<div class="kkx-jfoto" data-kkx-photo-tile="${escapeHtml(item.photoId)}"><img data-journal-photo-id="${escapeHtml(item.photoId)}" alt="${escapeHtml(label)}" loading="lazy" /><span class="fl">${escapeHtml(label)}</span></div>`;
+      })
+      .join('');
+    const annotateDisabled = !photo ? ' disabled' : '';
+    return `
+      <div class="kkx-jzon">Foton · dagens besök</div>
+      <div class="kkx-jfoton" data-kkx-photo-grid>
+        ${tiles}
+        <label class="kkx-jfoto ny" data-kkx-ta-bild>
+          + Ta bild
+          <input type="file" accept="image/*,.heic,.heif" capture="environment" hidden data-kkx-photo-camera />
+        </label>
+      </div>
+      <button type="button" class="kkx-jrita" data-kkx-open-plan-editor${annotateDisabled}${photo ? ` data-kkx-plan-photo-id="${escapeHtml(photo.photoId)}" data-kkx-plan-entry-id="${escapeHtml(planEntry.entryId)}" data-kkx-plan-attachment-id="${escapeHtml(photo.attachmentId)}"` : ''}>
+        ✎ Rita på foto — hårlinje/krona
+      </button>`;
+  }
+
+  async function persistKkxJournalVisibility(entry, scope) {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    if (!patientId || !entry?.entryId || entry.locked) return;
+    const visibility = scope === 'private' ? 'private_internal' : 'shared';
+    try {
+      await apiRequest('/api/v1/cco-journal/entry', {
+        method: 'PUT',
+        body: {
+          patientId,
+          entryId: entry.entryId,
+          personnummer: card?.personnummer || '',
+          journalType: entry.journalType,
+          formVariant: entry.formVariant || '',
+          sourceQuestionaryId: entry.sourceQuestionaryId || '',
+          title: entry.title || 'Journal',
+          fields: entry.fields || {},
+          visibility,
+        },
+      });
+      entry.visibility = visibility;
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte spara synlighet.', 'error');
+    }
+  }
+
+  function bindKkxNoteVisibilityToggle(root, entry) {
+    const toggle = root?.querySelector('[data-kkx-note-visibility]');
+    if (!toggle) return;
+    const scope = normalizeText(entry?.visibility) === 'private_internal' ? 'private' : 'shared';
+    toggle.querySelectorAll('[data-kkx-note-scope]').forEach((node) => {
+      const active =
+        (node.dataset.kkxNoteScope === 'private' && scope === 'private') ||
+        (node.dataset.kkxNoteScope === 'shared' && scope === 'shared');
+      node.classList.toggle('act', active);
+    });
+    if (toggle.dataset.kkxBound === '1') return;
+    toggle.dataset.kkxBound = '1';
+    toggle.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-kkx-note-scope]');
+      if (!btn || !toggle.contains(btn)) return;
+      const nextScope = btn.dataset.kkxNoteScope === 'private' ? 'private' : 'shared';
+      toggle.querySelectorAll('[data-kkx-note-scope]').forEach((node) => {
+        node.classList.toggle('act', node === btn);
+      });
+      const liveEntry = resolveKkxJournalEditTarget(
+        runtime.detail?.journalEntries,
+        entry?.entryId,
+        entry?.journalType
+      );
+      void persistKkxJournalVisibility(liveEntry, nextScope);
+    });
+  }
+
+  async function activateKkxJournalTemplate(templateId, slot) {
+    const template = KKX_JOURNAL_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) return;
+    runtime.kkxActiveJournalTemplate = templateId;
+    const entries = asArray(runtime.detail?.journalEntries);
+    let entry = findKkxDraftEntry(entries, template);
+    if (!entry) {
+      if (template.createAction === 'new-tp-journal') await createTpJournalDraft();
+      else if (template.createAction === 'new-prp-journal') {
+        await createPrpJournalDraft(template.formVariant || 'prp_skin');
+      } else if (template.createAction === 'new-follow-up-journal') {
+        await createFollowUpJournalDraft(template.formVariant || '4_manader');
+      } else if (template.createAction === 'new-health-declaration') {
+        await createClinicalJournalDraft('health');
+      }
+      entry = findKkxDraftEntry(asArray(runtime.detail?.journalEntries), template);
+    }
+    mountKkxJournalBig(slot, {
+      entryId: entry?.entryId || '',
+      journalType: entry?.journalType || template.journalType,
+      templateId,
+    });
+  }
+
+  function bindKkxJournalWorkspace(root, entry) {
+    if (!root) return;
+    root.querySelectorAll('[data-kkx-journal-template]').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        const templateId = btn.getAttribute('data-kkx-journal-template') || 'tp';
+        const slot = root.closest('[data-kkx-journal-mount]') || root;
+        void activateKkxJournalTemplate(templateId, slot);
+      });
+    });
+    root.querySelector('[data-kkx-photo-camera]')?.addEventListener('change', (event) => {
+      const input = event.target;
+      const file = input?.files?.[0];
+      if (file) void uploadConsultationPhoto(file);
+      if (input) input.value = '';
+    });
+    root.querySelector('[data-kkx-open-plan-editor]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      const btn = event.currentTarget;
+      if (btn.disabled) {
+        setStatus('Ta en bild först — sedan kan du rita hårlinje/krona.', 'info');
+        return;
+      }
+      void openPlanEditor(
+        btn.getAttribute('data-kkx-plan-entry-id') || '',
+        btn.getAttribute('data-kkx-plan-attachment-id') || '',
+        btn.getAttribute('data-kkx-plan-photo-id') || ''
+      );
+    });
+    root.querySelector('[data-kkx-sign-entry]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      const entryId = event.currentTarget.getAttribute('data-kkx-sign-entry');
+      if (!entryId) return;
+      void signJournalEntry(entryId).then(() => {
+        const slot = root.closest('[data-kkx-journal-mount]') || root;
+        if (slot) {
+          mountKkxJournalBig(slot, {
+            entryId,
+            journalType: entry?.journalType || '',
+            templateId: runtime.kkxActiveJournalTemplate,
+          });
+        }
+        if (isV9CustomersEnabled()) renderDetailPanel();
+      });
+    });
+    bindKkxNoteVisibilityToggle(root, entry);
+    void hydrateJournalPhotoElements(root);
+  }
+
+  function mountKkxJournalBig(slot, options = {}) {
+    if (!slot) return;
+    const card = runtime.detail?.card;
+    const entries = asArray(runtime.detail?.journalEntries);
+    const entry = resolveKkxJournalEditTarget(entries, options.entryId, options.journalType);
+    const templateId =
+      options.templateId ||
+      resolveKkxTemplateForEntry(entry) ||
+      runtime.kkxActiveJournalTemplate ||
+      'tp';
+    runtime.kkxActiveJournalTemplate = templateId;
+    setRuntimeEditingJournalEntry(entry);
+    const formMarkup = entry
+      ? renderKkxJournalFormMarkup(entries, entry)
+      : '<p class="patient-master-muted">Välj mall ovan för att skapa journalpost.</p>';
+    const typeLabel =
+      JOURNAL_TYPE_LABELS[entry?.journalType] || entry?.title || entry?.journalType || 'Journal';
+    const ctxLine = [
+      card ? displayNameForList(card) : null,
+      typeLabel,
+      entry?.status || (entry ? 'journal påbörjad' : 'ingen redigerbar post'),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    const visibilityScope =
+      normalizeText(entry?.visibility) === 'private_internal' ? 'private' : 'shared';
+    slot.innerHTML = `
+      <div class="kkx-journal-big v9-surface-vellum" data-kkx-journal-workspace>
+        <div class="kkx-jctx">${escapeHtml(ctxLine)}</div>
+        ${renderKkxJournalTemplatePicker(templateId)}
+        ${renderKkxJournalPhotoShell(entries, entry)}
+        <div class="kkx-jzon">Journalpost · mall</div>
+        <div class="kkx-jslot kkx-jslot--live" data-kkx-form-mount>
+          ${formMarkup}
+        </div>
+        <div class="kkx-jzon">Anteckning · synlighet</div>
+        <div class="kkx-jtog" data-kkx-note-visibility>
+          <button type="button" class="t${visibilityScope === 'private' ? ' act' : ''}" data-kkx-note-scope="private">🔒 Privat intern</button>
+          <button type="button" class="t${visibilityScope === 'shared' ? ' act' : ''}" data-kkx-note-scope="shared">Delad</button>
+        </div>
+        ${
+          entry?.canSign && !entry?.locked
+            ? `<div class="kkx-jfoot">
+                <div class="kkx-jbtn" data-kkx-save-hint>Sparas automatiskt</div>
+                <button type="button" class="kkx-jbtn sign" data-kkx-sign-entry="${escapeHtml(entry.entryId)}">✓ Signera journal</button>
+              </div>
+              <div class="kkx-jeffekt">Vid signering uppdateras kundresa och smart nästa steg automatiskt.</div>`
+            : entry?.locked
+              ? '<div class="kkx-jeffekt">Journalposten är signerad och låst.</div>'
+              : ''
+        }
+      </div>
+    `;
+    bindKkxJournalWorkspace(slot, entry);
+    window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
 
   function setRuntimeEditingJournalEntry(entry) {
@@ -1201,111 +1513,6 @@
       default:
         break;
     }
-  }
-
-  function renderActiveJournalFormMarkup(entries) {
-    return [
-      renderTpJournalSection(entries),
-      renderPrpJournalSection(entries),
-      renderFollowUpJournalSection(entries),
-      renderBlephJournalSection(entries),
-      renderClinicalFormSection(entries),
-    ]
-      .filter(Boolean)
-      .join('');
-  }
-
-  function bindKkxNoteVisibilityToggle(root) {
-    const toggle = root?.querySelector('[data-kkx-note-visibility]');
-    if (!toggle || toggle.dataset.kkxBound === '1') return;
-    toggle.dataset.kkxBound = '1';
-    toggle.addEventListener('click', (event) => {
-      const btn = event.target.closest('[data-kkx-note-scope]');
-      if (!btn || !toggle.contains(btn)) return;
-      toggle.querySelectorAll('[data-kkx-note-scope]').forEach((node) => {
-        node.classList.toggle('act', node === btn);
-      });
-    });
-  }
-
-  function renderKkxJournalPhotoShell(entries, entry) {
-    const planEntry =
-      entry?.journalType === 'consultation_plan'
-        ? entry
-        : entries.find((row) => row?.journalType === 'consultation_plan') || entry;
-    const photos = asArray(planEntry?.photos);
-    const tiles = photos
-      .slice(0, 3)
-      .map((photo) => {
-        const label =
-          normalizeText(photo.label || photo.variant || photo.category || 'Foto') || 'Foto';
-        return `<div class="kkx-jfoto" style="background:radial-gradient(circle at 40% 30%,#caa98a,#7c5a3e)"><span class="fl">${escapeHtml(label)}</span></div>`;
-      })
-      .join('');
-    return `
-      <div class="kkx-jzon">Foton · dagens besök</div>
-      <div class="kkx-jfoton">
-        ${tiles}
-        <button type="button" class="kkx-jfoto ny" data-kkx-ta-bild>+ Ta bild</button>
-      </div>
-      <div class="kkx-jrita">✎ Rita på foto — hårlinje/krona <span style="font-weight:600;color:#8a8174">(plan-editor monteras här)</span></div>`;
-  }
-
-  function bindKkxJournalPhotoShell(root) {
-    root?.querySelector('[data-kkx-ta-bild]')?.addEventListener('click', (event) => {
-      event.preventDefault();
-      const camera = document.querySelector('[data-patient-photo-camera]');
-      if (camera instanceof HTMLInputElement) {
-        camera.click();
-        return;
-      }
-      setStatus('Ta bild — öppna journal i arbetsytan om kameran saknas här.', 'info');
-    });
-  }
-
-  function mountKkxJournalBig(slot, options = {}) {
-    if (!slot) return;
-    const card = runtime.detail?.card;
-    const entries = asArray(runtime.detail?.journalEntries);
-    const entry = resolveKkxJournalEditTarget(entries, options.entryId, options.journalType);
-    setRuntimeEditingJournalEntry(entry);
-    const formMarkup = renderActiveJournalFormMarkup(entries);
-    const typeLabel =
-      JOURNAL_TYPE_LABELS[entry?.journalType] || entry?.title || entry?.journalType || 'Journal';
-    const ctxLine = [
-      card ? displayNameForList(card) : null,
-      typeLabel,
-      entry?.status || (entry ? 'journal påbörjad' : 'ingen redigerbar post'),
-    ]
-      .filter(Boolean)
-      .join(' · ');
-    slot.innerHTML = `
-      <div class="kkx-journal-big v9-surface-vellum">
-        <div class="kkx-jctx">${escapeHtml(ctxLine)}</div>
-        ${renderKkxJournalPhotoShell(entries, entry)}
-        <div class="kkx-jzon">Journalpost · mall</div>
-        <div class="kkx-jslot kkx-jslot--live" data-kkx-form-mount>
-          ${
-            formMarkup ||
-            '<p class="patient-master-muted">Ingen redigerbar journalpost — skapa eller öppna en journal i arbetsytan.</p>'
-          }
-        </div>
-        <div class="kkx-jzon">Anteckning · synlighet</div>
-        <div class="kkx-jtog" data-kkx-note-visibility>
-          <button type="button" class="t act" data-kkx-note-scope="private">🔒 Privat intern</button>
-          <button type="button" class="t" data-kkx-note-scope="shared">Delad</button>
-          <span style="font-size:10px;color:#8a8174;font-weight:600;align-self:center">UI-flagga · backend saknas</span>
-        </div>
-        ${
-          entry?.canSign && !entry?.locked
-            ? '<div class="kkx-jeffekt">Vid signering uppdateras kundresa och smart nästa steg automatiskt.</div>'
-            : ''
-        }
-      </div>
-    `;
-    bindKkxNoteVisibilityToggle(slot);
-    bindKkxJournalPhotoShell(slot);
-    window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
 
   function isV9DemoEnabled() {
@@ -8296,6 +8503,12 @@
       setStatus('Bild sparad i journalen.', 'success');
       runtime.detailTab = 'journal';
       await loadPatientDetail(patientId);
+      const kkxSlot = document.querySelector('[data-kkx-journal-mount]');
+      if (kkxSlot) {
+        mountKkxJournalBig(kkxSlot, {
+          templateId: runtime.kkxActiveJournalTemplate,
+        });
+      }
     } catch (error) {
       setStatus(error.message || 'Uppladdning misslyckades.', 'error');
     }
@@ -8359,6 +8572,12 @@
         });
         setStatus('Behandlingsplan sparad.', 'success');
         await loadPatientDetail(patientId);
+        const kkxSlot = document.querySelector('[data-kkx-journal-mount]');
+        if (kkxSlot) {
+          mountKkxJournalBig(kkxSlot, {
+            templateId: runtime.kkxActiveJournalTemplate,
+          });
+        }
       },
     });
   }

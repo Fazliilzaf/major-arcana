@@ -24,6 +24,17 @@ const JOURNAL_TYPES = Object.freeze([
 
 const JOURNAL_STATUSES = Object.freeze(['draft', 'signed', 'corrected']);
 
+const JOURNAL_VISIBILITY = Object.freeze(['shared', 'private_internal']);
+
+function normalizeJournalVisibility(value, fallback = 'shared') {
+  const key = normalizeKey(value || fallback);
+  return JOURNAL_VISIBILITY.includes(key) ? key : 'shared';
+}
+
+function isPatientPortalJournalVisible(entry) {
+  return normalizeJournalVisibility(entry?.visibility, 'shared') !== 'private_internal';
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -164,9 +175,7 @@ function normalizeJournalEntry(input = {}, existing = {}) {
     ...buildImportMeta(rawImportMeta),
   };
   const sourceQuestionaryIdRaw =
-    safe.sourceQuestionaryId ??
-    existingSafe.sourceQuestionaryId ??
-    importMeta.sourceQuestionaryId;
+    safe.sourceQuestionaryId ?? existingSafe.sourceQuestionaryId ?? importMeta.sourceQuestionaryId;
   if (sourceQuestionaryIdRaw != null && sourceQuestionaryIdRaw !== '') {
     importMeta.sourceQuestionaryId = Number(sourceQuestionaryIdRaw);
   }
@@ -214,12 +223,15 @@ function normalizeJournalEntry(input = {}, existing = {}) {
     signedByName: normalizeText(safe.signedByName || existingSafe.signedByName) || null,
     correctionOfEntryId:
       normalizeText(safe.correctionOfEntryId || existingSafe.correctionOfEntryId) || null,
-    correctionReason:
-      normalizeText(safe.correctionReason || existingSafe.correctionReason) || null,
+    correctionReason: normalizeText(safe.correctionReason || existingSafe.correctionReason) || null,
     correctionCreatedBy:
       normalizeText(safe.correctionCreatedBy || existingSafe.correctionCreatedBy) || null,
     correctionCreatedAt:
       normalizeText(safe.correctionCreatedAt || existingSafe.correctionCreatedAt) || null,
+    visibility: normalizeJournalVisibility(
+      safe.visibility || existingSafe.visibility,
+      existingSafe.visibility || 'shared'
+    ),
     events: asArray(safe.events || existingSafe.events)
       .map(normalizeEvent)
       .filter(Boolean),
@@ -332,6 +344,7 @@ function buildJournalReadout(entry) {
     importMeta: safe.importMeta,
     fields: safe.fields,
     attachments: asArray(safe.attachments),
+    visibility: normalizeJournalVisibility(safe.visibility, 'shared'),
     updatedAt: safe.updatedAt,
     canEdit: !safe.locked,
     canSign: !safe.locked && safe.status === 'draft',
@@ -356,9 +369,7 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
 
   async function listAllEntries({ tenantId } = {}) {
     const t = normalizeText(tenantId);
-    return state.entries
-      .filter((item) => !t || normalizeText(item.tenantId) === t)
-      .map(cloneEntry);
+    return state.entries.filter((item) => !t || normalizeText(item.tenantId) === t).map(cloneEntry);
   }
 
   async function listEntries({ tenantId, patientId, journalType } = {}) {
@@ -371,7 +382,13 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
       .map(cloneEntry);
   }
 
-  async function listEntriesPage({ tenantId, patientId, journalType, limit = 50, offset = 0 } = {}) {
+  async function listEntriesPage({
+    tenantId,
+    patientId,
+    journalType,
+    limit = 50,
+    offset = 0,
+  } = {}) {
     const rows = await listEntries({ tenantId, patientId, journalType });
     const start = Math.max(0, Number(offset) || 0);
     const max = Math.max(1, Math.min(500, Number(limit) || 50));
@@ -525,8 +542,8 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
    * Caller MÅSTE göra RBAC-check (journal.unlock = owner only) + audit innan.
    */
   async function unlockEntry({ tenantId, patientId, entryId, reason, actor = {} } = {}) {
-    const existing = state.entries.find((item) =>
-      entryKey(item) === entryKey({ tenantId, patientId, entryId })
+    const existing = state.entries.find(
+      (item) => entryKey(item) === entryKey({ tenantId, patientId, entryId })
     );
     if (!existing) {
       const error = new Error('Journalposten hittades inte.');
@@ -569,7 +586,14 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     return cloneEntry(existing);
   }
 
-  async function addCorrection({ tenantId, patientId, entryId, fields = {}, reason = null, actor = {} } = {}) {
+  async function addCorrection({
+    tenantId,
+    patientId,
+    entryId,
+    fields = {},
+    reason = null,
+    actor = {},
+  } = {}) {
     const existing = await getEntry({ tenantId, patientId, entryId });
     if (!existing) {
       const error = new Error('Journalposten hittades inte.');
@@ -1081,6 +1105,7 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
 module.exports = {
   JOURNAL_STATUSES,
   JOURNAL_TYPES,
+  JOURNAL_VISIBILITY,
   buildJournalReadout,
   createCcoJournalStore,
   emptyConsultationPlanFields,
@@ -1088,5 +1113,7 @@ module.exports = {
   emptyBlephTreatmentFields,
   emptyPrpTreatmentFields,
   emptyTpTreatmentFields,
+  isPatientPortalJournalVisible,
   isSmokeTestPhotoLabel,
+  normalizeJournalVisibility,
 };

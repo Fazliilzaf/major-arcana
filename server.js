@@ -5800,7 +5800,9 @@ try {
         if (journalStore?.listEntries) {
           try {
             const entries = await journalStore.listEntries({ tenantId, patientId: customerId });
+            const { isPatientPortalJournalVisible } = require('./src/ops/ccoJournalStore');
             for (const e of entries || []) {
+              if (!isPatientPortalJournalVisible(e)) continue;
               events.push({
                 kind: 'journal',
                 subkind: e.journalType || 'general',
@@ -6042,7 +6044,9 @@ try {
         if (journalStore?.listEntries) {
           try {
             const entries = await journalStore.listEntries({ tenantId, patientId: customerId });
+            const { isPatientPortalJournalVisible } = require('./src/ops/ccoJournalStore');
             for (const e of entries || []) {
+              if (!isPatientPortalJournalVisible(e)) continue;
               items.push({
                 source: 'cco_journal',
                 category: 'journal',
@@ -6344,7 +6348,9 @@ try {
           try {
             const entries =
               (await journalStore.listEntries({ tenantId, patientId: customerId })) || [];
+            const { isPatientPortalJournalVisible } = require('./src/ops/ccoJournalStore');
             for (const e of entries) {
+              if (!isPatientPortalJournalVisible(e)) continue;
               journalEntries.push(e);
               const isCorrection = !!e.correctionOfEntryId;
 
