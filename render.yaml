@@ -50,6 +50,9 @@ services:
         value: /var/data/playwright-browsers
       - key: NODE_ENV
         value: production
+      # Pro Plus 8 GB RAM — default V8 heap ~2 GB gav exit 134 vid boot-backfill.
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=6144"
       - key: TRUST_PROXY
         value: "true"
       - key: ARCANA_AI_PROVIDER
