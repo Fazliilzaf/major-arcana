@@ -109,6 +109,7 @@
     "check:cliento-api-key-prod": "node ./scripts/check-cliento-api-key-prod.js",
     "sync:cliento-customers-dry-run": "node ./scripts/run-cliento-customer-delta-sync.js --dry-run",
     "sync:cliento-customers": "node ./scripts/run-cliento-customer-delta-sync.js --commit",
+    "push:cliento-delta-prod": "node ./scripts/push-cliento-delta-prod.js",
     "provision:graph-secret-via-az": "bash ./scripts/provision-graph-secret-via-az.sh",
     "provision:resend-go-live-prod": "bash ./scripts/provision-resend-go-live-prod.sh",
     "verify:staff-ui-prod": "node ./scripts/verify-staff-ui-prod.js",
