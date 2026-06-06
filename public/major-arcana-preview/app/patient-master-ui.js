@@ -4318,6 +4318,15 @@
       closeBtn.dataset.bound = '1';
       closeBtn.addEventListener('click', closeV9DossierDeepPanel);
     }
+    if (root.querySelector('.v9-mockup-dossier--referens .kkref')) {
+      bindKkxReferensPanel(root, {
+        card: ctx.card,
+        journalEntries: ctx.journalEntries,
+        dossierBundle: runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null,
+        extras: { occasionTimeline: ctx.occasionTimeline },
+        mountJournalBig: (slot, opts) => mountKkxJournalBig(slot, opts),
+      });
+    }
   }
 
   function renderV9PatientTabPanelsMarkup(
@@ -4433,6 +4442,21 @@
         </div>`;
   }
 
+  function renderV10ReferensDossierHtml(
+    card,
+    journalEntries,
+    dossierBundle,
+    occasionTimeline,
+    driveFiles
+  ) {
+    if (typeof window.__renderReferensKundkort !== 'function') return '';
+    return window.__renderReferensKundkort(card, dossierBundle, journalEntries, {
+      driveFiles,
+      commercialCase: runtime.commercialCase || null,
+      occasionTimeline,
+    });
+  }
+
   function renderV9MockupDetailShell(
     card,
     journalEntries,
@@ -4447,6 +4471,26 @@
     const v11Cutover = usesV11DossierCutover();
     const v10Facit = usesV10KundkortFacit();
     if (v10Facit && !v11Cutover) {
+      const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+      const referensHtml = renderV10ReferensDossierHtml(
+        card,
+        journalEntries,
+        dossierBundle,
+        occasionTimeline,
+        driveFiles
+      );
+      if (referensHtml) {
+        return `
+      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--v10-facit v9-mockup-dossier--referens" data-patient-detail>
+        <button type="button" class="dossier-close v10-referens-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
+        <div class="v10-dossier-referens" data-v9-dossier-scroll aria-label="Kunddossiér">
+          <div class="kkref">${referensHtml}</div>
+        </div>
+        ${renderV9HiddenCameraBridge(card)}
+        ${renderV9IntelDrawerShell()}
+        ${renderV9MockupDossierDeepShell()}
+      </section>`;
+      }
       return `
       <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--v10-facit" data-patient-detail>
         <div class="v9-dossier-chrome v10-dossier-chrome">
@@ -7740,7 +7784,13 @@
         tab
       );
       bindJournalPhotoOpenLinks(els.patientRail);
-      bindV9MockupDossierHandlers(rail, { card, journalEntries, driveFiles, patient });
+      bindV9MockupDossierHandlers(rail, {
+        card,
+        journalEntries,
+        driveFiles,
+        patient,
+        occasionTimeline,
+      });
       bindV9DossierCapabilityHandlers(rail);
       ensureV9DossierDeepClosed();
       void hydrateJournalPhotoElements(els.patientRail);
@@ -7859,6 +7909,7 @@
 
   async function loadStats() {
     if (needsStaffLogin()) return;
+    if (isV9CustomersEnabled()) return;
     try {
       const payload = await apiRequest('/api/v1/cco-patient-master/stats', {
         cacheKey: 'patient-master:stats',
@@ -8354,6 +8405,15 @@
       }
       syncTimelineFocusFromEntries(payload.journalEntries);
       runtime.detailLoading = false;
+      const v10FacitDesktop =
+        isV9CustomersEnabled() && usesV10KundkortFacit() && !isMobileViewport();
+      if (v10FacitDesktop) {
+        await Promise.all([
+          loadPatientDocumentBundle(patientId),
+          loadPatientCommercialCase(patientId),
+          loadPatientTreatmentAgreement(patientId),
+        ]);
+      }
       if (isMobileViewport() && runtime.preferJournalOnMobile) {
         if (!alreadyHydrated) {
           renderDetailShellLite();
@@ -8367,7 +8427,7 @@
       }
       signalDeepLinkDetailReady(patientId);
       void loadScalpProtocolStatus(patientId);
-      if (isV9CustomersEnabled()) {
+      if (isV9CustomersEnabled() && !v10FacitDesktop) {
         void loadPatientDocumentBundle(patientId).then(() => {
           if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
           renderDetailPanel();
@@ -8398,7 +8458,7 @@
             window.setTimeout(patch, 0);
           }
         });
-      } else {
+      } else if (!v10FacitDesktop) {
         await Promise.all([
           loadPatientCommercialCase(patientId),
           loadPatientTreatmentAgreement(patientId),
