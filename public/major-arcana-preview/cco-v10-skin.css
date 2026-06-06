@@ -581,3 +581,38 @@ html[data-v9-enabled="on"] .cr-v10 .cr-arrow {
   font-size: 18px;
   text-align: center;
 }
+
+/* ============================================================
+   Lager 6 — Panel-skalen: mitten-ytan + högerkolumnen lyfts från
+   bakgrunden som i mockupen (radius 28, shell-gradient, djup skugga).
+   ============================================================ */
+
+html[data-v9-enabled="on"] .customers-shell .customers-surface {
+  position: relative;
+  border-radius: 28px;
+  padding: 20px 22px 14px;
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  box-shadow: var(--panel-shell-shadow-strong);
+  overflow: hidden;
+}
+html[data-v9-enabled="on"] .customers-shell .customers-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.6), transparent 24%),
+    radial-gradient(circle at 56% 10%, rgba(255, 236, 222, 0.32), transparent 24%),
+    radial-gradient(circle at 88% 14%, rgba(255, 228, 238, 0.28), transparent 22%);
+  pointer-events: none;
+}
+html[data-v9-enabled="on"] .customers-shell .customers-surface > * {
+  position: relative;
+}
+
+html[data-v9-enabled="on"] .v9-aggregate-panel {
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  box-shadow: var(--panel-shell-shadow);
+  border: 0;
+}
