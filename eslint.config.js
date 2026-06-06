@@ -136,6 +136,29 @@ module.exports = [
     },
   },
   {
+    files: ['public/major-arcana-preview/app/cco-kundkort-*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+        global: 'readonly',
+        CcoV9CustomersParity: 'readonly',
+        CcoKundkortKkx: 'readonly',
+        CcoKundkortBlueprint: 'readonly',
+        CcoKunderSmartNextStep: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-undef': 'error',
+      'no-redeclare': 'off',
+      'prefer-const': 'off',
+      'no-var': 'off',
+    },
+  },
+  {
     files: ['public/major-arcana-preview/app/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
