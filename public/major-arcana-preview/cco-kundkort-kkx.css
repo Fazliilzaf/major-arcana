@@ -297,6 +297,51 @@
   color: #9a3a3a;
   border-color: rgba(185, 74, 74, 0.3);
 }
+.kkx-jfoton {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+}
+.kkx-jfoto {
+  position: relative;
+  width: 88px;
+  height: 72px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 8px rgba(56, 40, 28, 0.12);
+  overflow: hidden;
+}
+.kkx-jfoto .fl {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 3px 5px;
+  background: rgba(43, 37, 31, 0.55);
+  color: #fff;
+}
+.kkx-jfoto.ny {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 241, 236, 0.78));
+  color: #8a8174;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border-style: dashed;
+}
+.kkx-jrita {
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: linear-gradient(180deg, rgba(255, 252, 244, 0.97), rgba(248, 241, 228, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
 .kkx-jfoot {
   display: flex;
   gap: 10px;

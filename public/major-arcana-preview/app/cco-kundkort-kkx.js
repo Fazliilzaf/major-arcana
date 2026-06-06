@@ -132,11 +132,28 @@
     });
   }
 
+  function hasBooking(card) {
+    if (!card) return false;
+    return Boolean(
+      card.hasUpcomingBooking ||
+      Number(card.visitCount != null ? card.visitCount : card.bookingCount) > 0 ||
+      card.lastVisitAt ||
+      card.lastBookingAt
+    );
+  }
+
   function resolveStepGateOk(card, def, status) {
     if (status === 'done') return true;
     var id = def.ruleId;
     if (!id) return status === 'done';
-    if (id === 'missing_health_declaration') return !card.missingHealthDeclaration;
+    if (id === 'missing_health_declaration') {
+      return Boolean(
+        card.hasHealthDeclaration ||
+        !card.missingHealthDeclaration ||
+        (card.healthDeclaration &&
+          (card.healthDeclaration.signedAt || card.healthDeclaration.signed))
+      );
+    }
     if (id === 'missing_journal') return Boolean(card.hasJournal);
     if (id === 'missing_treatment_plan')
       return Boolean(card.treatmentPlanStatus && card.treatmentPlanStatus !== 'draft');
@@ -150,25 +167,70 @@
     return false;
   }
 
-  function renderCanonicalJourneyBig(card, journalEntries, dossierBundle) {
-    var parity = window.CcoV9CustomersParity;
-    var journey =
-      parity && typeof parity.buildV11CustomerJourney === 'function'
-        ? parity.buildV11CustomerJourney(card, journalEntries, dossierBundle)
-        : null;
-    var stepsByNum = {};
-    if (journey && journey.steps) {
-      journey.steps.forEach(function (s) {
-        stepsByNum[s.step] = s;
+  /** Mockup-facit: 9 steg inkl. bekräftelse-mail som steg 2, HD = steg 3. */
+  function buildCanonicalJourneyLive(card, journalEntries, dossierBundle) {
+    void journalEntries;
+    void dossierBundle;
+    card = card || {};
+    var steps = [];
+    var allowActive = true;
+    CANONICAL_COPY.forEach(function (def) {
+      var satisfied;
+      if (def.step === 1 || def.step === 2) {
+        satisfied = hasBooking(card);
+      } else {
+        satisfied = resolveStepGateOk(card, def, 'done');
+      }
+      var status = 'future';
+      if (satisfied) {
+        status = 'done';
+      } else if (allowActive) {
+        status = 'active';
+        allowActive = false;
+      }
+      var meta = '';
+      if (
+        status === 'done' &&
+        def.step === 3 &&
+        card.healthDeclaration &&
+        card.healthDeclaration.signedAt
+      ) {
+        meta = 'Signerad';
+      }
+      steps.push({
+        step: def.step,
+        label: def.title,
+        status: status,
+        meta: meta,
       });
-    }
+    });
+    var doneCount = steps.filter(function (s) {
+      return s.status === 'done';
+    }).length;
+    var active = steps.find(function (s) {
+      return s.status === 'active';
+    });
+    return {
+      steps: steps,
+      doneCount: doneCount,
+      activeStep: active ? active.step : null,
+      nextLabel: active ? active.label : '',
+    };
+  }
+
+  function renderCanonicalJourneyBig(card, journalEntries, dossierBundle) {
+    var journey = buildCanonicalJourneyLive(card, journalEntries, dossierBundle);
+    var stepsByNum = {};
+    journey.steps.forEach(function (s) {
+      stepsByNum[s.step] = s;
+    });
     var html =
       '<div class="kkx-canon">Canonical 9 steg (Hair TP) · betänketid 2d · egen sign-flow · aldrig T-48h</div>';
     CANONICAL_COPY.forEach(function (def) {
       var live = stepsByNum[def.step];
       var status = live ? live.status : 'future';
       var state = mapJourneyState(status);
-      var gateOk = resolveStepGateOk(card, def, status);
+      var gateOk = resolveStepGateOk(card, def, status === 'done' ? 'done' : status);
       html +=
         '<div class="kkx-cstep ' +
         esc(state) +
@@ -240,9 +302,27 @@
     var nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     nodes.forEach(function (n) {
-      if (!n.textContent || n.textContent.indexOf('★') < 0) return;
-      n.textContent = n.textContent.replace(/★\s*/g, '').replace(/AI-insikter/gi, 'Insikter');
+      if (!n.textContent) return;
+      var t = n.textContent;
+      if (t.indexOf('★') >= 0 || /AI-insikter/i.test(t) || /AI\s*·/i.test(t)) {
+        n.textContent = t
+          .replace(/★\s*/g, '')
+          .replace(/AI-insikter/gi, 'Insikter')
+          .replace(/\bAI\s*·\s*/gi, '');
+      }
     });
+  }
+
+  function summaryTitle(summaryEl) {
+    if (!summaryEl) return '';
+    var clone = summaryEl.cloneNode(true);
+    clone.querySelectorAll('.count, .src, .sb-chip, .kkx-exp').forEach(function (node) {
+      node.remove();
+    });
+    return String(clone.textContent || '')
+      .replace(/⤢|▾/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   function upgradeSectionsToDetails(root) {
@@ -251,7 +331,7 @@
       if (sec.closest('details.dossier-section')) return;
       var lab = sec.querySelector('.lab');
       if (!lab) return;
-      var title = lab.textContent.replace(/▾/g, '').trim();
+      var title = (su.textContent || '').replace(/▾/g, '').trim();
       var countEl = lab.querySelector('.src, .sb-chip, .count');
       var count = countEl ? countEl.textContent.trim() : '';
       var inner = sec.innerHTML.replace(lab.outerHTML, '');
@@ -284,7 +364,7 @@
       btn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var title = (su.textContent || '').replace(/⤢|▾/g, '').trim();
+        var title = summaryTitle(su);
         var isResa = /kundresa/i.test(title);
         var isJournal = /journal/i.test(title);
         var body = d.querySelector('summary ~ *, .lab ~ *');
@@ -348,5 +428,7 @@
     closeBig: closeBig,
     sanitizeCustomerListScope: sanitizeCustomerListScope,
     renderCanonicalJourneyBig: renderCanonicalJourneyBig,
+    buildCanonicalJourneyLive: buildCanonicalJourneyLive,
+    CANONICAL_COPY: CANONICAL_COPY,
   };
 })();

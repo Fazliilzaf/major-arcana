@@ -1082,7 +1082,10 @@
     rail.innerHTML =
       typeof window.__renderReferensKundkort === 'function'
         ? '<div class="kkref">' +
-          window.__renderReferensKundkort(card, dossierBundle, journalEntries) +
+          window.__renderReferensKundkort(card, dossierBundle, journalEntries, {
+            driveFiles,
+            commercialCase: runtime.commercialCase || null,
+          }) +
           '</div>'
         : window.CcoKundkortBlueprint.renderKundkort(
             card,
@@ -1222,6 +1225,41 @@
     });
   }
 
+  function renderKkxJournalPhotoShell(entries, entry) {
+    const planEntry =
+      entry?.journalType === 'consultation_plan'
+        ? entry
+        : entries.find((row) => row?.journalType === 'consultation_plan') || entry;
+    const photos = asArray(planEntry?.photos);
+    const tiles = photos
+      .slice(0, 3)
+      .map((photo) => {
+        const label =
+          normalizeText(photo.label || photo.variant || photo.category || 'Foto') || 'Foto';
+        return `<div class="kkx-jfoto" style="background:radial-gradient(circle at 40% 30%,#caa98a,#7c5a3e)"><span class="fl">${escapeHtml(label)}</span></div>`;
+      })
+      .join('');
+    return `
+      <div class="kkx-jzon">Foton · dagens besök</div>
+      <div class="kkx-jfoton">
+        ${tiles}
+        <button type="button" class="kkx-jfoto ny" data-kkx-ta-bild>+ Ta bild</button>
+      </div>
+      <div class="kkx-jrita">✎ Rita på foto — hårlinje/krona <span style="font-weight:600;color:#8a8174">(plan-editor monteras här)</span></div>`;
+  }
+
+  function bindKkxJournalPhotoShell(root) {
+    root?.querySelector('[data-kkx-ta-bild]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      const camera = document.querySelector('[data-patient-photo-camera]');
+      if (camera instanceof HTMLInputElement) {
+        camera.click();
+        return;
+      }
+      setStatus('Ta bild — öppna journal i arbetsytan om kameran saknas här.', 'info');
+    });
+  }
+
   function mountKkxJournalBig(slot, options = {}) {
     if (!slot) return;
     const card = runtime.detail?.card;
@@ -1241,6 +1279,7 @@
     slot.innerHTML = `
       <div class="kkx-journal-big v9-surface-vellum">
         <div class="kkx-jctx">${escapeHtml(ctxLine)}</div>
+        ${renderKkxJournalPhotoShell(entries, entry)}
         <div class="kkx-jzon">Journalpost · mall</div>
         <div class="kkx-jslot kkx-jslot--live" data-kkx-form-mount>
           ${
@@ -1262,6 +1301,7 @@
       </div>
     `;
     bindKkxNoteVisibilityToggle(slot);
+    bindKkxJournalPhotoShell(slot);
     window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
 

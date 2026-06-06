@@ -3757,6 +3757,7 @@
 
   global.CcoV9CustomersParity = {
     SORT_LABELS,
+    resolveV11DocumentPayload,
     renderV11Hero,
     renderKundkortSlideOverHtml,
     bindKundkortSlideOver,
