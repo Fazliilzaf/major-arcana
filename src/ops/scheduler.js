@@ -337,6 +337,17 @@ function createScheduler({
   if (!templateStore) throw new Error('templateStore saknas för scheduler.');
   const config = { ...defaultSchedulerConfig, ...incomingConfig };
 
+  // ARCANA_SCHEDULER_JOBS: allowlist med jobb-id:n. Tom = alla jobb tillatna.
+  // Manuella triggers (runJob med manual-trigger) paverkas INTE av allowlisten.
+  const jobAllowlist = new Set(
+    (Array.isArray(config.schedulerJobsAllowlist) ? config.schedulerJobsAllowlist : [])
+      .map((id) => String(id).trim())
+      .filter(Boolean)
+  );
+  function isJobAllowed(jobId) {
+    return jobAllowlist.size === 0 || jobAllowlist.has(jobId);
+  }
+
   const timers = new Map();
   let started = false;
   const state = {
@@ -4261,7 +4272,7 @@ function createScheduler({
     state.jobs[job.id] = {
       id: job.id,
       name: job.name,
-      enabled: state.enabled && job.intervalMs > 0,
+      enabled: state.enabled && job.intervalMs > 0 && isJobAllowed(job.id),
       intervalMs: job.intervalMs,
       running: false,
       runCount: 0,
@@ -4281,6 +4292,7 @@ function createScheduler({
       enabled: state.enabled,
       started: started,
       startedAt: state.startedAt,
+      jobsAllowlist: [...jobAllowlist],
       defaultTenantId: config.defaultTenantId,
       sloAutoTicketingEnabled: Boolean(config.schedulerSloAutoTicketingEnabled),
       jobs: Object.values(state.jobs).map((job) => ({ ...job })),
@@ -4467,6 +4479,17 @@ function createScheduler({
     started = true;
     state.startedAt = nowIso();
 
+    if (jobAllowlist.size > 0) {
+      const knownIds = new Set(jobDefinitions.map((job) => job.id));
+      const unknown = [...jobAllowlist].filter((id) => !knownIds.has(id));
+      logger?.log?.(
+        `[scheduler] allowlist aktiv (ARCANA_SCHEDULER_JOBS): ${[...jobAllowlist].join(', ')}`
+      );
+      if (unknown.length > 0) {
+        logger?.warn?.(`[scheduler] allowlist har okanda jobb-id:n: ${unknown.join(', ')}`);
+      }
+    }
+
     const startupDelayMs = Math.max(0, safeInteger(config.schedulerStartupDelaySec, 8) * 1000);
     const jitterSeconds = Math.max(0, safeInteger(config.schedulerJitterSec, 4));
     const runOnStartup = Boolean(config.schedulerRunOnStartup);
@@ -4491,7 +4514,11 @@ function createScheduler({
       `[scheduler] started (jobs=${jobDefinitions.filter((job) => state.jobs[job.id].enabled).length})`
     );
 
-    if (config.graphReadEnabled && config.schedulerCcoInboxBootstrapOnStart !== false) {
+    if (
+      config.graphReadEnabled &&
+      config.schedulerCcoInboxBootstrapOnStart !== false &&
+      isJobAllowed('cco_inbox_enrichment_bootstrap')
+    ) {
       const bootstrapDelayMs = Math.max(15000, startupDelayMs + 5000);
       clearJobTimer('cco_inbox_enrichment_bootstrap_startup');
       setLongTimeout('cco_inbox_enrichment_bootstrap_startup', bootstrapDelayMs, async () => {
@@ -4509,7 +4536,11 @@ function createScheduler({
       });
     }
 
-    if (config.graphReadEnabled && config.schedulerCcoInboxFullBackfillOnStart !== false) {
+    if (
+      config.graphReadEnabled &&
+      config.schedulerCcoInboxFullBackfillOnStart !== false &&
+      isJobAllowed('cco_inbox_enrichment_full_backfill')
+    ) {
       const fullBackfillDelayMs = Math.max(120000, startupDelayMs + 90000);
       clearJobTimer('cco_inbox_enrichment_full_backfill_startup');
       setLongTimeout(
