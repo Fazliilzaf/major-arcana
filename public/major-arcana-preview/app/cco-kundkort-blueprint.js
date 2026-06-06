@@ -185,7 +185,7 @@
         ? { ...card, ...dossierBundle.card }
         : card || {};
     const hd = bundleCard.healthDeclaration;
-    const assetId = normalizeText(hd?.phase1AssetId || hd?.assetId || hd?.documentAssetId);
+    const assetId = String(hd?.phase1AssetId || hd?.assetId || hd?.documentAssetId || '').trim();
     if (assetId) {
       return `/api/v1/cco/assets/${encodeURIComponent(assetId)}/download?inline=1`;
     }
