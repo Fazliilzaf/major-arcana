@@ -171,12 +171,25 @@ async function fetchHalsoMessagesFromInbox(token, { max = 0, since = '' } = {}) 
   return messages;
 }
 
+function normalizeProdPatientRow(row = {}) {
+  return {
+    ...row,
+    id: row.id || row.patientId || '',
+    personnummer: row.personnummer || '',
+    primaryEmail: row.primaryEmail || '',
+    primaryPhone: row.primaryPhone || '',
+    emails: row.emails || [],
+    phones: row.phones || [],
+  };
+}
+
 function getProdToken() {
   if (process.env.ARCANA_OWNER_TOKEN) return process.env.ARCANA_OWNER_TOKEN.trim();
   return execSync(`node "${path.join(__dirname, 'get-prod-auth-token.js')}" --owner`, {
     encoding: 'utf8',
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, ARCANA_PROD_URL: BASE, BASE_URL: BASE },
   }).trim();
 }
 
@@ -200,7 +213,7 @@ async function fetchProdPatients(token) {
       throw new Error(payload.error || `${res.status} patient list`);
     }
     const batch = Array.isArray(payload.patients) ? payload.patients : [];
-    patients.push(...batch);
+    patients.push(...batch.map(normalizeProdPatientRow));
     const total = Number(payload.total || 0);
     offset += batch.length;
     if (!batch.length || (total && offset >= total)) break;

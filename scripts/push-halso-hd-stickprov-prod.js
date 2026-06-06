@@ -41,6 +41,7 @@ function getToken() {
     encoding: 'utf8',
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, ARCANA_PROD_URL: BASE, BASE_URL: BASE },
   }).trim();
 }
 
