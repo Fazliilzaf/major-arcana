@@ -85,6 +85,23 @@
   const V9_FLAG_FILTER_FROM_LABEL = Object.fromEntries(
     Object.entries(V9_FLAG_FILTER_LABELS).map(([flag, label]) => [label.toLowerCase(), flag])
   );
+  /** Owner facit — samma rader som kunder-mockup-v10.html vänster panel */
+  const V10_FACIT_SIDEBAR_IDS = new Set([
+    'all',
+    'mine',
+    'today_visits',
+    'this_week',
+    'waitlist',
+    'treatment_dhi',
+    'treatment_prp',
+    'treatment_microneedling',
+    'treatment_consultation',
+    'vip',
+    'risk',
+    'new',
+    'dormant',
+  ]);
+
   /** Sidebar placement — keep in sync with public/cco-kunder-real.js SEGMENT_UI */
   const V9_SEGMENT_UI = [
     { id: 'all', side: true, chip: 'all', group: 'core' },
@@ -947,17 +964,19 @@
     );
   }
 
-  /** ORD-25 Fas E — single v11 surface; legacy tabs/workspace stay in DOM for deep-link only. */
-  function usesV11DossierCutover() {
-    return (
-      isV9CustomersEnabled() &&
-      !usesBlueprintDesktopLayout() &&
-      typeof window.CcoV9CustomersParity?.renderV11DossierZonesHtml === 'function'
-    );
+  /** Owner facit 2026-06-06: kunder-mockup-v10.html (sätt __ARCANA_V10_KUNDKORT_FACIT=false för att pausa). */
+  function usesV10KundkortFacit() {
+    return window.__ARCANA_V10_KUNDKORT_FACIT !== false;
   }
 
-  /** ORD-28 — desktop 3-kolumn enligt CCO-KUNDKORT-BLUEPRINT.md (>1180 px). */
+  /** v11 cutover av — v10 mockup är canonical kundkort-yta. */
+  function usesV11DossierCutover() {
+    return false;
+  }
+
+  /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
   function usesBlueprintDesktopLayout() {
+    if (usesV10KundkortFacit()) return false;
     if (!isV9CustomersEnabled()) return false;
     if (document.documentElement.getAttribute('data-cco-mobile-shell') === 'on') return false;
     if (
@@ -1561,6 +1580,11 @@
   }
 
   function syncV9CustomersChrome() {
+    if (usesV10KundkortFacit()) {
+      document.documentElement.setAttribute('data-v10-kundkort-facit', 'on');
+    } else {
+      document.documentElement.removeAttribute('data-v10-kundkort-facit');
+    }
     if (!els.v9Header && !els.v9Filters && !els.v9Sidebar && !els.v9AggInsights) return;
     const show = isV9CustomersEnabled() && runtime.mode === 'register';
     if (els.v9Header) {
@@ -1578,6 +1602,7 @@
     if (els.v9Sidebar) {
       els.v9Sidebar.hidden = !show;
       els.v9Sidebar.setAttribute('aria-hidden', show ? 'false' : 'true');
+      els.v9Sidebar.classList.toggle('side-shell--v10-facit', show && usesV10KundkortFacit());
     }
   }
 
@@ -1796,16 +1821,24 @@
         empty: true,
       });
     }
-    return rows.slice(0, 5);
+    return rows.slice(0, usesV10KundkortFacit() ? 6 : 5);
   }
 
   function renderV9PopulationChartHtml(segmentStats, stats) {
+    const v10Facit = usesV10KundkortFacit();
+    const chartTitle = v10Facit ? 'Intäkt / vecka' : 'Kundpopulation (master)';
     const panel = segmentStats?.panel || {};
     const total = Number(stats?.totalPatients ?? panel.totalPatients ?? 0);
+    const totalRevenue = Number(stats?.totalRevenue ?? stats?.revenueTotal ?? 0);
     const trend = segmentStats?.aggInsights?.trend;
     let barsHtml = '';
     let xLabels = '';
-    let chartValue = total ? `${formatMetricNumber(total)} totalt` : '—';
+    let chartValue =
+      v10Facit && totalRevenue > 0
+        ? formatV9Sek(totalRevenue)
+        : total
+          ? `${formatMetricNumber(total)} totalt`
+          : '—';
 
     if (
       trend &&
@@ -1852,7 +1885,7 @@
       return `
         <div class="agg-chart agg-chart--empty">
           <div class="agg-chart-head">
-            <span class="agg-chart-title">Kundpopulation (master)</span>
+            <span class="agg-chart-title">${escapeHtml(chartTitle)}</span>
             <span class="agg-chart-value">—</span>
           </div>
           <p class="patient-master-muted agg-chart-empty">Data saknas</p>
@@ -1862,12 +1895,23 @@
     return `
         <div class="agg-chart" data-v9-population-chart>
           <div class="agg-chart-head">
-            <span class="agg-chart-title">Kundpopulation (master)</span>
+            <span class="agg-chart-title">${escapeHtml(chartTitle)}</span>
             <span class="agg-chart-value">${escapeHtml(chartValue)}</span>
           </div>
           <div class="agg-chart-bars">${barsHtml}</div>
           <div class="agg-chart-x">${xLabels}</div>
         </div>`;
+  }
+
+  function renderV9AggregateActionsHtml(segmentStats) {
+    if (!usesV10KundkortFacit()) return '';
+    const reminderCount = Number(segmentStats?.aggInsights?.risk?.count ?? 0);
+    const reminderDisabled = reminderCount <= 0;
+    return `
+          <div class="agg-actions" data-v9-agg-actions>
+            <button type="button" class="quick-pill quick-pill--ai"${reminderDisabled ? ' disabled aria-disabled="true"' : ''} data-v9-agg-action="mass-reminder">★ Skicka mass-påminnelse${reminderCount > 0 ? ` (${formatMetricNumber(reminderCount)})` : ''}</button>
+            <button type="button" class="quick-pill" data-v9-agg-action="export">↓ Exportera urval</button>
+          </div>`;
   }
 
   function formatV9WatchClock(iso) {
@@ -2028,7 +2072,9 @@
           : '—';
     const activeTrend = active > 0 ? 'Aktiva i register' : '—';
     const vipTrend = vip > 0 ? 'VIP-segment' : '—';
+    const ltv = resolveV9AggregateLtv(stats, segmentStats);
     const insightRows = buildV9AggregateInsightRows(segmentStats);
+    const aiKicker = usesV10KundkortFacit() ? '★ AI · Veckans insikter' : 'Veckans läge';
 
     return `
       <section class="patient-master-card v9-aggregate-panel" data-v9-aggregate-panel>
@@ -2055,13 +2101,13 @@
             </div>
             <div class="agg-stat">
               <div class="agg-stat-label">Snitt LTV</div>
-              <div class="agg-stat-value">—</div>
-              <div class="agg-stat-trend">Intäkt ej kopplad</div>
+              <div class="agg-stat-value">${escapeHtml(ltv.value)}</div>
+              <div class="agg-stat-trend">${escapeHtml(ltv.trend)}</div>
             </div>
           </div>
           ${renderV9PopulationChartHtml(segmentStats, stats)}
           <div>
-            <div class="agg-kicker">Veckans läge</div>
+            <div class="agg-kicker">${escapeHtml(aiKicker)}</div>
           </div>
           <div class="agg-ai-list">
             ${insightRows
@@ -2075,6 +2121,7 @@
               )
               .join('')}
           </div>
+          ${renderV9AggregateActionsHtml(segmentStats)}
           ${renderV9WatchWidgetHtml(segmentStats)}
         </div>
       </section>`;
@@ -2134,6 +2181,7 @@
       if (!ui.side) continue;
       const seg = byId[ui.id];
       if (!seg) continue;
+      if (usesV10KundkortFacit() && !V10_FACIT_SIDEBAR_IDS.has(ui.id)) continue;
       const bucket =
         ui.group === 'core'
           ? 'core'
@@ -2471,6 +2519,32 @@
   function formatMetricNumber(value) {
     const n = Number(value ?? 0);
     return Number.isFinite(n) ? n.toLocaleString('sv-SE') : '0';
+  }
+
+  function formatV10CompactSek(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '—';
+    if (n >= 1000) {
+      const compact = n / 1000;
+      return `${compact.toLocaleString('sv-SE', { maximumFractionDigits: 1 })}k`;
+    }
+    return formatMetricNumber(Math.round(n));
+  }
+
+  function resolveV9AggregateLtv(stats, segmentStats) {
+    const totalRevenue = Number(stats?.totalRevenue ?? stats?.revenueTotal ?? 0);
+    const totalCustomers = Number(stats?.totalPatients ?? segmentStats?.panel?.totalPatients ?? 0);
+    if (totalRevenue > 0 && totalCustomers > 0) {
+      const avg = Math.round(totalRevenue / totalCustomers);
+      const trend = segmentStats?.aggInsights?.trend;
+      let trendLabel = 'Snitt i register';
+      if (trend?.pctChange != null && !trend?.disabled) {
+        const sign = trend.pctChange > 0 ? '+' : '';
+        trendLabel = `${sign}${formatMetricNumber(trend.pctChange)}% besök 4 v`;
+      }
+      return { value: formatV10CompactSek(avg), trend: trendLabel, hasData: true };
+    }
+    return { value: '—', trend: 'Intäkt ej kopplad', hasData: false };
   }
 
   function renderV9MetricHeader(stats, segmentStats) {
@@ -4037,7 +4111,7 @@
     journalEntries,
     occasionTimeline,
     driveFiles,
-    { synthesisOnly = false } = {}
+    { synthesisOnly = false, v10Facit = false } = {}
   ) {
     if (!isV9CustomersEnabled() || !card) return '';
     return (
@@ -4046,7 +4120,7 @@
         journalEntries,
         occasionTimeline,
         driveFiles,
-        { synthesisOnly }
+        { synthesisOnly, v10Facit }
       ) || ''
     );
   }
@@ -4371,8 +4445,24 @@
     const normalizedTab = normalizeDetailTab(tab);
     const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
     const v11Cutover = usesV11DossierCutover();
+    const v10Facit = usesV10KundkortFacit();
+    if (v10Facit && !v11Cutover) {
+      return `
+      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--v10-facit" data-patient-detail>
+        <div class="v9-dossier-chrome v10-dossier-chrome">
+          ${renderPatientDetailHero(card, journalEntries, { loading: lite, occasionTimeline })}
+        </div>
+        ${renderV9DossierScrollBlock(card, journalEntries, occasionTimeline, driveFiles, {
+          v10Facit: true,
+        })}
+        ${renderV9QuickPillsBlock(card)}
+        ${renderV9HiddenCameraBridge(card)}
+        ${renderV9IntelDrawerShell()}
+        ${renderV9MockupDossierDeepShell()}
+      </section>`;
+    }
     return `
-      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis${v11Cutover ? ' v9-mockup-dossier--v11-cutover' : ''}" data-patient-detail${v11Cutover ? ' data-v11-cutover="1"' : ''}>
+      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis${v10Facit ? ' v9-mockup-dossier--v10-facit' : ''}${v11Cutover ? ' v9-mockup-dossier--v11-cutover' : ''}" data-patient-detail${v11Cutover ? ' data-v11-cutover="1"' : ''}>
         <div class="v9-dossier-chrome">
           ${v11Cutover ? '' : renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
           ${renderV9IntelligentBubblesBlock(card, journalEntries, occasionTimeline)}
@@ -4952,16 +5042,61 @@
     }
   }
 
+  function renderV10DossierHeroHtml(
+    card,
+    journalEntries = [],
+    { loading = false, occasionTimeline = null } = {}
+  ) {
+    const name = displayNameForList(card);
+    const contact = v9DossierContactLine(card);
+    const tags = buildV9DossierBadges(card);
+    const stats = resolveV9HeroStats(card, journalEntries, occasionTimeline);
+
+    return `
+        <div class="v9-dossier-zone1 v10-dossier-zone1" data-v9-zone1>
+          <div class="v9-dossier-hero v10-dossier-hero" data-v9-dossier-hero${loading ? ' aria-busy="true"' : ''}>
+            <div class="dossier-head">
+              <div class="dossier-avatar" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</div>
+              <div class="dossier-head-body">
+                <div class="dossier-kicker">★ Kunddossiér</div>
+                <h2 class="dossier-name">${escapeHtml(name)}</h2>
+                <div class="dossier-contact">${escapeHtml(contact)}</div>
+                ${
+                  tags.length
+                    ? `<div class="dossier-tags">${tags
+                        .map(
+                          (tag) =>
+                            `<span class="dossier-tag dossier-tag--${escapeHtml(tag.kind)}">${escapeHtml(tag.label)}</span>`
+                        )
+                        .join('')}</div>`
+                    : ''
+                }
+              </div>
+              <button type="button" class="dossier-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
+            </div>
+            <div class="dossier-stats">
+              ${stats
+                .map(
+                  (stat) => `
+                <div class="dossier-stat dossier-stat--${escapeHtml(stat.iconKey || 'neutral')}">
+                  <div class="dossier-stat-label">${escapeHtml(stat.label)}</div>
+                  <div class="dossier-stat-value">${escapeHtml(stat.value)}</div>
+                  <div class="dossier-stat-trend">${escapeHtml(stat.trend)}</div>
+                </div>`
+                )
+                .join('')}
+            </div>
+          </div>
+        </div>`;
+  }
+
   function renderV9DossierHeroHtml(
     card,
     journalEntries = [],
     { loading = false, occasionTimeline = null } = {}
   ) {
-    if (window.CcoV9CustomersParity?.renderV11Hero) {
-      return window.CcoV9CustomersParity.renderV11Hero(card, journalEntries, {
-        loading,
-        occasionTimeline,
-      });
+    if (usesV10KundkortFacit()) {
+      return renderV10DossierHeroHtml(card, journalEntries, { loading, occasionTimeline });
     }
     const name = displayNameForList(card);
     const contact = v9DossierContactLine(card);
@@ -5812,6 +5947,18 @@
     const rows = asArray(files);
     if (!rows.length) {
       return renderFilesEmpty(card);
+    }
+    const parity = window.CcoV9CustomersParity;
+    if (isV9CustomersEnabled() && usesV10KundkortFacit() && parity?.renderV10DriveFilesHtml) {
+      return groupFilesByOccasion(rows)
+        .map(
+          (group) => `
+        <details class="dossier-section v9-dossier-section" open>
+          <summary>${escapeHtml(group.timelineLabel)} <span class="count">${group.files.length}</span></summary>
+          ${parity.renderV10DriveFilesHtml(group.files, card)}
+        </details>`
+        )
+        .join('');
     }
     return groupFilesByOccasion(rows)
       .map((group) => renderOccasionGroup(group))
@@ -9329,6 +9476,26 @@
       if (aggInsightRow && runtime.mode === 'register' && isV9CustomersEnabled()) {
         applyV9AggInsightAction(normalizeText(aggInsightRow.dataset.v9Agg));
         return;
+      }
+
+      const aggActionBtn = event.target.closest('[data-v9-aggregate-panel] [data-v9-agg-action]');
+      if (aggActionBtn && runtime.mode === 'register' && isV9CustomersEnabled()) {
+        if (aggActionBtn.disabled || aggActionBtn.getAttribute('aria-disabled') === 'true') {
+          return;
+        }
+        const parityApi = {
+          getRuntime: () => runtime,
+          setStatus: (message, tone) => setStatus(message, tone),
+        };
+        const action = normalizeText(aggActionBtn.dataset.v9AggAction);
+        if (action === 'mass-reminder') {
+          window.CcoV9CustomersParity?.runBulkReminder?.(parityApi);
+          return;
+        }
+        if (action === 'export') {
+          window.CcoV9CustomersParity?.runBulkExport?.(parityApi);
+          return;
+        }
       }
 
       const loadMore = event.target.closest('[data-patient-load-more]');

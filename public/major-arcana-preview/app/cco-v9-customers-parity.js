@@ -24,6 +24,84 @@
     return Array.isArray(value) ? value : value == null || value === '' ? [] : [value];
   }
 
+  /** Owner facit: kunder-mockup-v10.html */
+  function usesV10KundkortFacit() {
+    return global.__ARCANA_V10_KUNDKORT_FACIT !== false;
+  }
+
+  function resolveFileViewUrl(file) {
+    if (file?.viewUrl) return String(file.viewUrl);
+    if (file?.id) {
+      return `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`;
+    }
+    return '';
+  }
+
+  function isPreviewableImageFile(file) {
+    const name = String(
+      file?.fileName || file?.relativePath || file?.originalFileName || ''
+    ).toLowerCase();
+    return file?.fileType === 'image' || /\.(jpe?g|png|webp|gif|heic|heif|dng)$/i.test(name);
+  }
+
+  function isJournalPdfFile(file) {
+    const name = String(file?.fileName || file?.relativePath || '').toLowerCase();
+    return file?.fileType === 'journal_pdf' || name.endsWith('.pdf');
+  }
+
+  function shortenFileName(name, max = 28) {
+    const text = String(name || 'Fil').trim() || 'Fil';
+    return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  }
+
+  function renderV10FileTile(file) {
+    const rawName =
+      file.originalFileName || file.fileName || file.relativePath || file.name || 'Fil';
+    const name = String(rawName).trim() || 'Fil';
+    const shortName = shortenFileName(name);
+    const href = resolveFileViewUrl(file);
+    const cat = String(file.category || file.fileType || '').toLowerCase();
+    const icon = fileIconForKind(cat, name);
+    const badge = file.ccoNative ? 'CCO' : isJournalPdfFile(file) ? 'PDF' : '';
+
+    if (isPreviewableImageFile(file) && file.id && href) {
+      return `
+        <a class="dossier-file dossier-file--v10" href="${escapeHtml(href)}" target="_blank" rel="noopener" data-photo="${escapeHtml(file.id)}" title="${escapeHtml(name)}">
+          <img src="" data-patient-file-id="${escapeHtml(file.id)}" alt="${escapeHtml(shortName)}" loading="lazy" decoding="async" />
+          <span class="dossier-file-name">${escapeHtml(shortName)}</span>
+        </a>`;
+    }
+
+    if (href) {
+      return `
+        <a class="dossier-file dossier-file--v10" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="${escapeHtml(name)}">
+          <span class="dossier-file-icon" aria-hidden="true">${icon}</span>
+          <span class="dossier-file-name">${escapeHtml(shortName)}</span>
+          ${badge ? `<span class="dossier-file-badge">${escapeHtml(badge)}</span>` : ''}
+        </a>`;
+    }
+
+    return `
+      <div class="dossier-file dossier-file--v10" title="${escapeHtml(name)}">
+        <span class="dossier-file-icon" aria-hidden="true">${icon}</span>
+        <span class="dossier-file-name">${escapeHtml(shortName)}</span>
+        ${badge ? `<span class="dossier-file-badge">${escapeHtml(badge)}</span>` : ''}
+      </div>`;
+  }
+
+  function renderV10DriveFilesHtml(driveFiles, card, { limit = 0, emptyHtml = '' } = {}) {
+    void card;
+    const rows = asArray(driveFiles);
+    if (!rows.length) {
+      return emptyHtml || '<p class="dossier-empty">Inga filer importerade ännu.</p>';
+    }
+    const visible = limit > 0 ? rows.slice(0, limit) : rows;
+    return `
+      <div class="dossier-files dossier-files--v10">
+        ${visible.map((file) => renderV10FileTile(file)).join('')}
+      </div>`;
+  }
+
   function isV9On() {
     return document.documentElement.getAttribute('data-v9-enabled') === 'on';
   }
@@ -615,7 +693,7 @@
     journalEntries,
     occasionTimeline,
     driveFiles,
-    { synthesisOnly = false } = {}
+    { synthesisOnly = false, v10Facit = false } = {}
   ) {
     const upcoming = buildUpcomingBookings(card, occasionTimeline);
     const history = buildHistoryBookings(card, occasionTimeline);
@@ -633,12 +711,15 @@
           .join('')
       : '<p class="dossier-empty">Inga kommande bokningar.</p>';
 
-    const filesHtml = files.length
-      ? `
+    const filesHtml =
+      asArray(driveFiles).length > 0
+        ? renderV10DriveFilesHtml(driveFiles, card, { limit: 3 })
+        : files.length
+          ? `
       <div class="dossier-files dossier-files--synthesis">
         ${files.map((f) => renderSynthesisFileTile(f)).join('')}
       </div>`
-      : '<p class="dossier-empty">Inga filer importerade ännu.</p>';
+          : '<p class="dossier-empty">Inga filer importerade ännu.</p>';
 
     const aiThemes = ['response', 'retention', 'next'];
     const aiHtml = `
@@ -707,6 +788,41 @@
           )
           .join('')}
       </div>`;
+
+    if (v10Facit) {
+      const notes = buildSlideOverNotes(card, null);
+      const notesHtml = renderSlideOverNotesHtml(notes);
+      const v10FilesHtml =
+        asArray(driveFiles).length > 0
+          ? renderV10DriveFilesHtml(driveFiles, card)
+          : files.length
+            ? `
+      <div class="dossier-files dossier-files--v10">
+        ${files.map((f) => renderSynthesisFileTile(f)).join('')}
+      </div>`
+            : '<p class="dossier-empty">Inga filer importerade ännu.</p>';
+      const v10AiHtml = insights.length
+        ? insights
+            .map(
+              (ins, i) => `
+          <div class="dossier-insight" data-insight-action="${escapeHtml(ins.action || '')}" data-insight-idx="${i}">
+            <strong>${escapeHtml(ins.title || 'Insikt')}</strong> — ${escapeHtml(ins.text)}
+          </div>`
+            )
+            .join('')
+        : '<p class="dossier-empty">Inga AI-insikter ännu.</p>';
+
+      return `
+      <section class="v9-dossier-scroll v10-dossier-scroll dossier-scroll" data-v9-dossier-scroll aria-label="Kunddossiér">
+        ${renderDossierSection('upcoming', 'Kommande bokningar', upcoming.length, upcomingHtml, true)}
+        ${renderDossierSection('historik', 'Historik', history.length, historyHtml, false)}
+        ${renderDossierSection('filer', 'Filer', realFileCount, v10FilesHtml, false)}
+        ${renderDossierSection('anteckningar', 'Anteckningar', notes.length, notesHtml, false)}
+        ${renderDossierSection('kontakt', 'Kommunikation', comm.length, commHtml, false)}
+        ${renderDossierSection('ekonomi', 'Ekonomi', economy.length, economyHtml, false)}
+        ${renderDossierSection('insikter', 'AI-insikter', insights.length, v10AiHtml, true)}
+      </section>`;
+    }
 
     const primary = [
       renderSynthesisBlock('upcoming', 'Kommande bokningar', upcoming.length, upcomingHtml, {
@@ -3025,6 +3141,10 @@
   ) {
     if (!isV9On() || !card) return '';
 
+    if (usesV10KundkortFacit()) {
+      return '';
+    }
+
     const slideOver = renderKundkortSlideOverHtml(
       card,
       journalEntries,
@@ -3787,6 +3907,8 @@
     buildEconomyFields,
     renderV11WeeklyPatterns,
     renderV11DossierZonesHtml,
+    renderV10DriveFilesHtml,
+    usesV10KundkortFacit,
     buildIntelligentJourneyBubbles,
     renderIntelligentJourneyBubblesHtml,
     bindIntelligentJourney,
