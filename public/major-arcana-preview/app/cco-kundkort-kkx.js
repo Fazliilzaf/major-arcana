@@ -202,6 +202,10 @@
     return n;
   }
 
+  function A(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
   function resolveReferensBookingExtras(card, bundle, extras) {
     card = card || {};
     bundle = bundle || {};
