@@ -16,7 +16,7 @@ echo ""
 echo "=== 2. Push endast migration-index (rör ej pilot-journal) ==="
 export ARCANA_OWNER_TOKEN="$(node scripts/get-prod-auth-token.js --owner)"
 npm run push:migration-state-prod -- --index-only
-render restart srv-d6b11o0boq4c73chm7f0 --confirm || true
+render restart srv-d8b3i3tckfvc73clgeng --confirm || true
 for i in 1 2 3 4 5 6 8; do
   curl -fsS https://arcana.hairtpclinic.se/readyz >/dev/null 2>&1 && break
   sleep 15

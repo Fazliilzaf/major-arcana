@@ -4,9 +4,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
+# shellcheck source=render-prod-defaults.sh
+source "$ROOT_DIR/scripts/render-prod-defaults.sh"
 
-BASE_URL="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
-SERVICE_ID="${RENDER_SERVICE_ID:-srv-d6b11o0boq4c73chm7f0}"
+BASE_URL="${ARCANA_PROD_URL:-$RENDER_PROD_URL}"
+SERVICE_ID="${RENDER_SERVICE_ID:-$RENDER_PROD_SERVICE_ID}"
 
 wait_for_prod() {
   local attempt stable=0

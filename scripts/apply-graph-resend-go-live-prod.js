@@ -10,7 +10,7 @@ require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
 
-const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d6b11o0boq4c73chm7f0';
+const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const skipResend = String(process.env.SKIP_RESEND || 'false').toLowerCase() === 'true';
 
 const DEFAULT_TENANT = '90b09262-dfbf-42b7-9c56-1149703a76e5';
@@ -54,11 +54,12 @@ if (!skipResend) {
   resendKeys.RESEND_API_KEY = resendApiKey;
   resendKeys.RESEND_DOMAIN = (process.env.RESEND_DOMAIN || 'notifications.hairtpclinic.com').trim();
   resendKeys.RESEND_FROM = (
-    process.env.RESEND_FROM ||
-    `Hair TP Clinic <booking@${resendKeys.RESEND_DOMAIN}>`
+    process.env.RESEND_FROM || `Hair TP Clinic <booking@${resendKeys.RESEND_DOMAIN}>`
   ).trim();
   resendKeys.RESEND_REPLY_TO = (process.env.RESEND_REPLY_TO || 'contact@hairtpclinic.com').trim();
-  resendKeys.OPERATOR_NOTIFY_TO = (process.env.OPERATOR_NOTIFY_TO || 'contact@hairtpclinic.com').trim();
+  resendKeys.OPERATOR_NOTIFY_TO = (
+    process.env.OPERATOR_NOTIFY_TO || 'contact@hairtpclinic.com'
+  ).trim();
 }
 
 const cliPath = path.join(process.env.HOME, '.render/cli.yaml');
@@ -67,9 +68,12 @@ const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
 if (!apiKey) fail('Saknar Render API key i ~/.render/cli.yaml');
 
 async function main() {
-  const existingRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  const existingRes = await fetch(
+    `https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`,
+    {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    }
+  );
   if (!existingRes.ok) fail(`Render GET env failed: ${existingRes.status}`);
   const existing = await existingRes.json();
   const map = new Map(
@@ -99,7 +103,11 @@ async function main() {
 
   const deployRes = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ clearCache: 'do_not_clear' }),
   });
   const deployText = await deployRes.text();

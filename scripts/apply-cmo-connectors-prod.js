@@ -18,9 +18,12 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d6b11o0boq4c73chm7f0';
+const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const mode = String(process.env.CMO_CONNECTOR_MODE || 'bridge').toLowerCase();
-const baseUrl = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const baseUrl = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
+  /\/+$/,
+  ''
+);
 
 function fail(msg) {
   console.error(`❌ ${msg}`);
@@ -30,22 +33,22 @@ function fail(msg) {
 function hasPlatformGoogle() {
   return Boolean(
     (process.env.ARCANA_MARKETING_GOOGLE_ADS_CUSTOMER_ID || '').trim() &&
-      (process.env.ARCANA_MARKETING_GOOGLE_ADS_DEVELOPER_TOKEN || '').trim() &&
-      (process.env.ARCANA_MARKETING_GOOGLE_ADS_ACCESS_TOKEN || '').trim()
+    (process.env.ARCANA_MARKETING_GOOGLE_ADS_DEVELOPER_TOKEN || '').trim() &&
+    (process.env.ARCANA_MARKETING_GOOGLE_ADS_ACCESS_TOKEN || '').trim()
   );
 }
 
 function hasPlatformMeta() {
   return Boolean(
     (process.env.ARCANA_MARKETING_META_AD_ACCOUNT_ID || '').trim() &&
-      (process.env.ARCANA_MARKETING_META_ACCESS_TOKEN || '').trim()
+    (process.env.ARCANA_MARKETING_META_ACCESS_TOKEN || '').trim()
   );
 }
 
 function hasPlatformLinkedIn() {
   return Boolean(
     (process.env.ARCANA_MARKETING_LINKEDIN_AD_ACCOUNT_ID || '').trim() &&
-      (process.env.ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN || '').trim()
+    (process.env.ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN || '').trim()
   );
 }
 
@@ -124,9 +127,12 @@ async function main() {
   const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
   if (!apiKey) fail('Saknar Render API key i ~/.render/cli.yaml');
 
-  const existingRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  const existingRes = await fetch(
+    `https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`,
+    {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    }
+  );
   if (!existingRes.ok) fail(`Render GET env failed: ${existingRes.status}`);
   const existing = await existingRes.json();
   const map = new Map(
@@ -144,7 +150,9 @@ async function main() {
       console.log('ℹ Återanvänder befintlig ARCANA_MARKETING_BRIDGE_TOKEN från Render');
     } else {
       bridgeToken = crypto.randomBytes(24).toString('hex');
-      console.log('ℹ Genererade ARCANA_MARKETING_BRIDGE_TOKEN — spara i .env för reproducerbar deploy');
+      console.log(
+        'ℹ Genererade ARCANA_MARKETING_BRIDGE_TOKEN — spara i .env för reproducerbar deploy'
+      );
       console.log(`ARCANA_MARKETING_BRIDGE_TOKEN=${bridgeToken}`);
     }
   }
@@ -172,11 +180,17 @@ async function main() {
     fail(`Render env PUT failed: ${putRes.status} ${text.slice(0, 200)}`);
   }
 
-  console.log(`✅ Render CMO connectors env (${mode}) — ${Object.keys(connectorKeys).length} nycklar`);
+  console.log(
+    `✅ Render CMO connectors env (${mode}) — ${Object.keys(connectorKeys).length} nycklar`
+  );
 
   const deployRes = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ clearCache: 'do_not_clear' }),
   });
   const deployText = await deployRes.text();

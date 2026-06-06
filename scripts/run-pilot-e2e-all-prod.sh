@@ -13,7 +13,7 @@ fail() { echo "✗ $1"; exit 1; }
 [[ -f "$PILOT_JSON" ]] || fail "Saknar $PILOT_JSON"
 
 ENV_COUNT="$(curl -fsS -H "Authorization: Bearer $(grep 'key: rnd_' ~/.render/cli.yaml 2>/dev/null | head -1 | awk '{print $2}')" \
-  "https://api.render.com/v1/services/${RENDER_SERVICE_ID:-srv-d6b11o0boq4c73chm7f0}/env-vars" 2>/dev/null | \
+  "https://api.render.com/v1/services/${RENDER_SERVICE_ID:-srv-d8b3i3tckfvc73clgeng}/env-vars" 2>/dev/null | \
   node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).length)}catch{console.log(0)}});" || echo 0)"
 
 if [[ "${ENV_COUNT:-0}" -lt 25 ]]; then

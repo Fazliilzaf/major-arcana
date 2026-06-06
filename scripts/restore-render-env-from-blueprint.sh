@@ -4,7 +4,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SERVICE_ID="${RENDER_SERVICE_ID:-srv-d6b11o0boq4c73chm7f0}"
+# shellcheck source=render-prod-defaults.sh
+source "$ROOT_DIR/scripts/render-prod-defaults.sh"
+SERVICE_ID="${RENDER_SERVICE_ID:-$RENDER_PROD_SERVICE_ID}"
 CLI_YAML="${HOME}/.render/cli.yaml"
 API_KEY="${RENDER_API_KEY:-}"
 

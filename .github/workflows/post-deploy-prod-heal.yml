@@ -16,7 +16,7 @@ jobs:
     if: github.repository == 'Fazliilzaf/major-arcana'
     env:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-      RENDER_SERVICE_ID: srv-d6b11o0boq4c73chm7f0
+      RENDER_SERVICE_ID: srv-d8b3i3tckfvc73clgeng
       RENDER_BLUEPRINT_ID: exs-d6vdjapaae7s7386fum0
       ARCANA_PROD_URL: https://arcana.hairtpclinic.se
       TARGET_SHA: ${{ github.sha }}

@@ -129,7 +129,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] J-0.1 Migration-scripts + npm (`migration:scan`, `migration:import`, `migration:test`)
 - [x] J-0.2 Zip-nedlading ersatt med Drive API / lokal mirror
 - [x] J-0.3 PDL-bedömning — advokatgodkänd 2026-05-24
-- [x] J-0.4 Render EU Frankfurt **cutover KOMPLETT 2026-05-27 ~16:55 CEST** — patientdata nu i EU, srv-d8b3i3tckfvc73clgeng på major-arcana-frankfurt.onrender.com (962 MB /var/data migrerade, 103 envs). Oregon srv-d6b11o0boq4c73chm7f0 suspended som rollback-buffer. Canonical prod-domän: **arcana.hairtpclinic.com** (`resolveLegacyHostRedirectUrl.js` — 301 från `.se`-alias).
+- [x] J-0.4 Render EU Frankfurt **cutover KOMPLETT 2026-05-27 ~16:55 CEST** — patientdata nu i EU, srv-d8b3i3tckfvc73clgeng på major-arcana-frankfurt.onrender.com (962 MB /var/data migrerade, 103 envs). Oregon srv-d6b11o0boq4c73chm7f0 **raderad 2026-06-06**. Canonical prod-domän: **arcana.hairtpclinic.com** (`resolveLegacyHostRedirectUrl.js` — 301 från `.se`-alias).
 - [x] J-0.5 **Pipedrive People+Deals export** (2026-05-24) — `migration/pipedrive/personer-2026-05-24.csv` (**3 693 personer**) + `affarer-2026-05-24.csv` (**3 487 affärer**), validerad enligt [migration/pipedrive/README.md](../../migration/pipedrive/README.md)
 
 > **Scope J-0.5:** export + validering i repo. Valfri berikning av kundmaster: `npm run migration:import-pipedrive` (körs separat, inte blocker för go-live).

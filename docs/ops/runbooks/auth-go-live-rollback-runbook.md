@@ -1,6 +1,6 @@
 # Auth go-live — underhållsfönster & rollback (Arcana prod)
 
-**Tjänst:** `major-arcana` · `srv-d6b11o0boq4c73chm7f0` · https://arcana.hairtpclinic.se  
+**Tjänst:** `arcana` · `srv-d8b3i3tckfvc73clgeng` · https://arcana.hairtpclinic.com  
 **Tenant:** `hair-tp-clinic`  
 **Relaterat:** [ROLLOUT-PLAN.md](../../strategy/ROLLOUT-PLAN.md) Fas 2 · `scripts/verify-auth-go-live-prod.sh`
 
@@ -8,15 +8,15 @@
 
 ## Underhållsfönster (mall)
 
-| Fält | Värde |
-|------|--------|
-| **Syfte** | Byte av auth-env (open access / OWNER MFA / preflight) |
-| **Längd** | ~15 min (max 30) |
-| **Föredragen tid** | Kväll eller helg — utanför klinikens journal-/fototid |
-| **Påverkan** | `/staff` och journal-API kan kräva omstart (~1–2 min 502 efter Render deploy) |
-| **Kommunikation** | Informera STAFF (Slack/SMS): *"Arcana journal ~15 min, logga in igen efteråt"* |
-| **Ägare GO** | OWNER (Fazli) |
-| **Ägare rollback** | OWNER — se [Rollback](#rollback-nödfall) |
+| Fält               | Värde                                                                          |
+| ------------------ | ------------------------------------------------------------------------------ |
+| **Syfte**          | Byte av auth-env (open access / OWNER MFA / preflight)                         |
+| **Längd**          | ~15 min (max 30)                                                               |
+| **Föredragen tid** | Kväll eller helg — utanför klinikens journal-/fototid                          |
+| **Påverkan**       | `/staff` och journal-API kan kräva omstart (~1–2 min 502 efter Render deploy)  |
+| **Kommunikation**  | Informera STAFF (Slack/SMS): _"Arcana journal ~15 min, logga in igen efteråt"_ |
+| **Ägare GO**       | OWNER (Fazli)                                                                  |
+| **Ägare rollback** | OWNER — se [Rollback](#rollback-nödfall)                                       |
 
 ### Före fönster
 
@@ -48,10 +48,10 @@ curl -fsS https://arcana.hairtpclinic.se/readyz
 
 ## Mål-läge (go-live)
 
-| Env | Prod (mål) |
-|-----|------------|
-| `ARCANA_STAFF_JOURNAL_OPEN_ACCESS` | `false` |
-| `ARCANA_AUTH_OWNER_MFA_REQUIRED` | `true` |
+| Env                                 | Prod (mål)                                           |
+| ----------------------------------- | ---------------------------------------------------- |
+| `ARCANA_STAFF_JOURNAL_OPEN_ACCESS`  | `false`                                              |
+| `ARCANA_AUTH_OWNER_MFA_REQUIRED`    | `true`                                               |
 | `ARCANA_PREFLIGHT_READINESS_CHECKS` | `cors_strict,owner_mfa_enforced` (via `render.yaml`) |
 
 **Render Dashboard (obligatoriskt vid go-live):** Sätt ovan i Environment → Deploy. `render.yaml` har fortfarande `ARCANA_AUTH_OWNER_MFA_REQUIRED=false` (byggfas) — synka blueprint efter env-flip. Kör `npm run owner:mfa:setup` **innan** MFA required slås på.
@@ -76,10 +76,10 @@ curl -fsS https://arcana.hairtpclinic.se/readyz
 
 **Snabb rollback (återgå till pilotläge):**
 
-| Env | Rollback-värde | Effekt |
-|-----|----------------|--------|
-| `ARCANA_STAFF_JOURNAL_OPEN_ACCESS` | `true` | Journal nås utan login (endast nödfall) |
-| `ARCANA_AUTH_OWNER_MFA_REQUIRED` | `false` | OWNER login utan MFA tills fixat |
+| Env                                | Rollback-värde | Effekt                                  |
+| ---------------------------------- | -------------- | --------------------------------------- |
+| `ARCANA_STAFF_JOURNAL_OPEN_ACCESS` | `true`         | Journal nås utan login (endast nödfall) |
+| `ARCANA_AUTH_OWNER_MFA_REQUIRED`   | `false`        | OWNER login utan MFA tills fixat        |
 
 **Steg:**
 

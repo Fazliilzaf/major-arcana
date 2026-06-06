@@ -1,7 +1,7 @@
 # Graph read + Resend go-live (Render prod)
 
-**Tjänst:** `major-arcana` (`srv-d6b11o0boq4c73chm7f0`)  
-**URL:** https://arcana.hairtpclinic.se
+**Tjänst:** `arcana` (Frankfurt, `srv-d8b3i3tckfvc73clgeng`)  
+**URL:** https://arcana.hairtpclinic.com
 
 ## 1. Fyll `.env` (lokalt, committas aldrig)
 

@@ -359,7 +359,7 @@ jobs:
         continue-on-error: true
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: srv-d6b11o0boq4c73chm7f0
+          RENDER_SERVICE_ID: srv-d8b3i3tckfvc73clgeng
         run: |
           if [[ -z "${RENDER_API_KEY:-}" ]]; then
             echo "::warning::RENDER_API_KEY saknas — env restore hoppas över."

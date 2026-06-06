@@ -10,7 +10,7 @@ require('dotenv').config({ quiet: true });
 const fs = require('node:fs');
 const path = require('node:path');
 
-const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d6b11o0boq4c73chm7f0';
+const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const enabled = String(process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED || 'false').trim();
 
 function fail(msg) {
@@ -24,9 +24,12 @@ const apiKey = (fs.readFileSync(cliPath, 'utf8').match(/key: (rnd_\S+)/) || [])[
 if (!apiKey) fail('Saknar Render API key i ~/.render/cli.yaml');
 
 async function main() {
-  const existingRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  const existingRes = await fetch(
+    `https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`,
+    {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    }
+  );
   if (!existingRes.ok) fail(`Render GET env failed: ${existingRes.status}`);
   const existing = await existingRes.json();
   const map = new Map(
@@ -54,7 +57,11 @@ async function main() {
 
   const deployRes = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ clearCache: 'do_not_clear' }),
   });
   if (!deployRes.ok && deployRes.status !== 202) {
@@ -63,7 +70,10 @@ async function main() {
   }
   console.log('✅ Deploy startad — väntar på readyz…');
 
-  const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+  const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
+    /\/+$/,
+    ''
+  );
   for (let attempt = 1; attempt <= 30; attempt += 1) {
     const readyRes = await fetch(`${base}/readyz`).catch(() => null);
     if (readyRes?.ok) {

@@ -8,7 +8,7 @@ cd "$ROOT_DIR"
 
 BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
 BASE="${BASE%/}"
-SERVICE_ID="${RENDER_SERVICE_ID:-srv-d6b11o0boq4c73chm7f0}"
+SERVICE_ID="${RENDER_SERVICE_ID:-srv-d8b3i3tckfvc73clgeng}"
 
 pass() { echo "✓ $1"; }
 fail() { echo "✗ $1"; exit 1; }
@@ -19,7 +19,7 @@ node <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 
-const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d6b11o0boq4c73chm7f0';
+const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const cliYaml = fs.readFileSync(path.join(process.env.HOME, '.render/cli.yaml'), 'utf8');
 const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
 if (!apiKey) throw new Error('Saknar Render API key (kör: render login)');

@@ -23,7 +23,7 @@ const ownerEmail = process.env.ARCANA_OWNER_EMAIL || '';
 const ownerPassword = process.env.ARCANA_OWNER_PASSWORD || '';
 let staffEmail = process.env.ARCANA_STAFF_EMAIL || 'staff@hairtpclinic.se';
 const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
-const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d6b11o0boq4c73chm7f0';
+const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 
 if (!ownerEmail || !ownerPassword) {
   console.error('❌ Saknar ARCANA_OWNER_EMAIL/PASSWORD i .env');

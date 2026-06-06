@@ -10,7 +10,7 @@ require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
 
-const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d6b11o0boq4c73chm7f0';
+const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 
 const CLIENTO_KEYS = [
   'CLIENTO_PARTNER_ID',
@@ -48,7 +48,9 @@ if (!clientoKeys.CLIENTO_PARTNER_ID && !clientoKeys.CLIENTO_PARTNER_ID_HAIR_TP_C
   fail('Saknar CLIENTO_PARTNER_ID (eller _HAIR_TP_CLINIC) i .env');
 }
 if (!clientoKeys.CLIENTO_API_KEY && !clientoKeys.CLIENTO_API_KEY_HAIR_TP_CLINIC) {
-  console.warn('⚠ Saknar CLIENTO_API_KEY — slots kan faila tills nyckel läggs i .env och script körs igen');
+  console.warn(
+    '⚠ Saknar CLIENTO_API_KEY — slots kan faila tills nyckel läggs i .env och script körs igen'
+  );
 }
 
 const cliPath = path.join(process.env.HOME, '.render/cli.yaml');
@@ -57,9 +59,12 @@ const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
 if (!apiKey) fail('Saknar Render API key i ~/.render/cli.yaml');
 
 async function main() {
-  const existingRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  const existingRes = await fetch(
+    `https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`,
+    {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    }
+  );
   if (!existingRes.ok) fail(`Render GET env failed: ${existingRes.status}`);
   const existing = await existingRes.json();
   const map = new Map(
@@ -69,20 +74,20 @@ async function main() {
     })
   );
 
-for (const [key, value] of Object.entries(clientoKeys)) {
-  map.set(key, value);
-}
+  for (const [key, value] of Object.entries(clientoKeys)) {
+    map.set(key, value);
+  }
 
-// Global fallback så prod fungerar även om brand-env läses sent vid boot.
-if (!map.get('CLIENTO_PARTNER_ID') && clientoKeys.CLIENTO_PARTNER_ID_HAIR_TP_CLINIC) {
-  map.set('CLIENTO_PARTNER_ID', clientoKeys.CLIENTO_PARTNER_ID_HAIR_TP_CLINIC);
-}
-if (!map.get('CLIENTO_ACCOUNT_IDS') && clientoKeys.CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC) {
-  map.set('CLIENTO_ACCOUNT_IDS', clientoKeys.CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC);
-}
-if (!map.get('CLIENTO_BOOKING_URL') && clientoKeys.CLIENTO_BOOKING_URL_HAIR_TP_CLINIC) {
-  map.set('CLIENTO_BOOKING_URL', clientoKeys.CLIENTO_BOOKING_URL_HAIR_TP_CLINIC);
-}
+  // Global fallback så prod fungerar även om brand-env läses sent vid boot.
+  if (!map.get('CLIENTO_PARTNER_ID') && clientoKeys.CLIENTO_PARTNER_ID_HAIR_TP_CLINIC) {
+    map.set('CLIENTO_PARTNER_ID', clientoKeys.CLIENTO_PARTNER_ID_HAIR_TP_CLINIC);
+  }
+  if (!map.get('CLIENTO_ACCOUNT_IDS') && clientoKeys.CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC) {
+    map.set('CLIENTO_ACCOUNT_IDS', clientoKeys.CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC);
+  }
+  if (!map.get('CLIENTO_BOOKING_URL') && clientoKeys.CLIENTO_BOOKING_URL_HAIR_TP_CLINIC) {
+    map.set('CLIENTO_BOOKING_URL', clientoKeys.CLIENTO_BOOKING_URL_HAIR_TP_CLINIC);
+  }
 
   const payload = JSON.stringify([...map.entries()].map(([key, value]) => ({ key, value })));
   const putRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars`, {
@@ -99,7 +104,11 @@ if (!map.get('CLIENTO_BOOKING_URL') && clientoKeys.CLIENTO_BOOKING_URL_HAIR_TP_C
 
   const deployRes = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ clearCache: 'do_not_clear' }),
   });
   const deployText = await deployRes.text();
@@ -108,7 +117,8 @@ if (!map.get('CLIENTO_BOOKING_URL') && clientoKeys.CLIENTO_BOOKING_URL_HAIR_TP_C
     const deploy = JSON.parse(deployText);
     deployId = deploy.id || deploy.deploy?.id || deployId;
   } catch {
-    if (!deployRes.ok) fail(`Render deploy failed: ${deployRes.status} ${deployText.slice(0, 200)}`);
+    if (!deployRes.ok)
+      fail(`Render deploy failed: ${deployRes.status} ${deployText.slice(0, 200)}`);
   }
   console.log(`✅ Deploy startad: ${deployId}`);
 }

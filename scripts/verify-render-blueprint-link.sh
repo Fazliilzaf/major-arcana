@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SERVICE_ID="${RENDER_SERVICE_ID:-srv-d6b11o0boq4c73chm7f0}"
+SERVICE_ID="${RENDER_SERVICE_ID:-srv-d8b3i3tckfvc73clgeng}"
 BLUEPRINT_ID="${RENDER_BLUEPRINT_ID:-exs-d6vdjapaae7s7386fum0}"
 EXPECTED_SERVICE_NAME="${RENDER_EXPECTED_SERVICE_NAME:-major-arcana}"
 CLI_YAML="${HOME}/.render/cli.yaml"

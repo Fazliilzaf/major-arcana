@@ -6,7 +6,7 @@ cd "$ROOT_DIR"
 
 PORT="${CMO_SMOKE_PORT:-3110}"
 SERVER_PID=""
-REMOTE_URL="${ARCANA_STAGING_URL:-https://arcana-3pji.onrender.com}"
+REMOTE_URL="${ARCANA_STAGING_URL:-https://arcana.hairtpclinic.com}"
 REMOTE_URL="${REMOTE_URL%/}"
 
 SMOKE_OWNER_EMAIL="${ARCANA_OWNER_EMAIL:-fazli@hairtpclinic.com}"

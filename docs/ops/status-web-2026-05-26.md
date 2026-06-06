@@ -1,5 +1,7 @@
 # hairtpclinic.com + Arcana CCO — status 2026-05-26
 
+> **Historisk snapshot.** Aktuell prod: `arcana` (Frankfurt) · https://arcana.hairtpclinic.com. Oregon-tjänsten raderad 2026-06-06.
+
 Datum: 2026-05-26 (planerad publicering; skissat 2026-05-19 efter sista
 rundan av leveranser)
 Föregående: `status-web-2026-05-19.md` (runda I bridge + Fas A/B/C; runda
@@ -29,14 +31,14 @@ curl -sS "https://arcana.hairtpclinic.se/api/public/booking-engine/catalog?host=
 
 ### Resultat 2026-05-19 sen-natt
 
-| Steg | Utfall |
-|------|--------|
-| `curl /api/public/status` (live) | 200 — service uppe, uptime varierar pga OOM-loop |
-| `curl /api/public/booking-engine/catalog` | 200 — 9 services, riktigt Hair TP-team |
-| `curl /api/availability` proxy | `provider: cco_engine, mocked: false, 18 slots` |
-| `curl POST /api/lead { ... arcana:{slot} }` | `{ok:true, arcana:{caseId, reservationId}}` |
-| E2E disk-verifiering (Render shell) | 17 web-cases, leadContext:true på samtliga |
-| Patient-UI `/uppfoljning/:token` med foto-upload | Live, photoCount:1 efter test |
+| Steg                                             | Utfall                                           |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `curl /api/public/status` (live)                 | 200 — service uppe, uptime varierar pga OOM-loop |
+| `curl /api/public/booking-engine/catalog`        | 200 — 9 services, riktigt Hair TP-team           |
+| `curl /api/availability` proxy                   | `provider: cco_engine, mocked: false, 18 slots`  |
+| `curl POST /api/lead { ... arcana:{slot} }`      | `{ok:true, arcana:{caseId, reservationId}}`      |
+| E2E disk-verifiering (Render shell)              | 17 web-cases, leadContext:true på samtliga       |
+| Patient-UI `/uppfoljning/:token` med foto-upload | Live, photoCount:1 efter test                    |
 
 ---
 
@@ -48,6 +50,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
 ### 2.1 Runda II — Webb→CCO bridge live + regression-guard
 
 **Task #100** — `/api/lead` vidarekopplar till Arcana CCO när slot finns:
+
 - `next-app/app/api/lead/route.ts` fick `forwardToArcana()`-helper som
   POSTar till `/api/public/booking-engine/reservations` med
   `{contact, slot, consent, locale}`.
@@ -55,6 +58,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
 - Response inkluderar `arcana: { caseId, reservationId } | null`.
 
 **Task #103** — Tyst regression hittad + fixad:
+
 - Cursor-commit `d82d515` ("Fas 27E asset pipeline") hade skrivit över
   server.js från gammal snapshot och raderat
   `createPublicBookingEngineRouter` + `createPostOpReviewRouter`-mountingen.
@@ -63,6 +67,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
   renderar correct.
 
 **Task #104** — Regression-guard:
+
 - `bin/pre-commit-cco.sh` step [4/4] failar nu commit om mounts saknas.
 - Pre-commit hook redan symlinkad `.git/hooks/pre-commit → bin/pre-commit-cco.sh`.
 - Verifierat: tar bort `createPublicBookingEngineRouter` → step 4 failar.
@@ -70,6 +75,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
 ### 2.2 Runda III — Photo-upload + Cron + HEIC + CCO thumbnails
 
 **Task #106** — Cron för `pruneNoConsentPhotos`:
+
 - `src/ops/scheduler.js` fick `runPostOpPhotoPrune`-funktion + job-entry
   (24h-interval default).
 - Anropar `postOpReviewStore.pruneNoConsentPhotos({ttlDays:365})` + raderar
@@ -78,12 +84,14 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
   automatiskt 12 mån efter submit.
 
 **Task #107** — HEIC/HEIF photo-support:
+
 - `public/uppfoljning/index.html` laddar `heic2any@0.0.4` från CDN async.
 - File-picker accepterar `.heic/.heif`.
 - JS konverterar HEIC → JPEG i browsern innan upload.
 - "Konverterar iPhone-bild…" placeholder i chip-listan medan libheif jobbar.
 
 **Task #108** — Thumbnails i CCO Booking Request-kort:
+
 - `src/routes/postOpReview.js`: 2 nya auth-protected endpoints:
   - `GET /api/v1/cco-bookings/:caseId/post-op-photos` (metadata-array)
   - `GET /api/v1/cco-bookings/:caseId/post-op-photos/:photoId` (stream)
@@ -92,6 +100,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
   som fetchar + renderar 96×96-grid i ny section.
 
 **Task #102** (klart i runda III, redovisas igen) — multer + piexifjs photo-upload:
+
 - POST `/api/v1/post-op-review/:token/photos` (multer.array, memoryStorage).
 - JPEG → `piexif.remove()` strippar EXIF, PNG passar igenom.
 - Storage: `<config.postOpPhotosDir>/<submissionId>/<photoId>.{jpg,png}` mode 0600.
@@ -99,6 +108,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
 ### 2.3 Runda IV — M365 Graph send + lead-context + service cleanup
 
 **Task #109** — M365 Graph auto-send för post-op review:
+
 - `postOpReview.js` tar `graphSendConnector`; om `patientEmail` finns i
   body skickas emailDraft via Graph sendMail istället för copy-paste.
 - Idempotent: kollar `submission.sentAt`, anropar `markSent()` efter lyckad send.
@@ -108,6 +118,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
   📤 (auto) vs 📋 (copy-paste).
 
 **Task #110** — Web-lead context i CCO Booking-vyn:
+
 - Webb-side: `forwardToArcana` skickar `leadContext` med 10 fält
   (service, healthYes, healthNotes, timeWindow, country, city, languagePref,
   photos, marketingConsent, submittedAt).
@@ -117,6 +128,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
   för service/timeWindow; hälsodeklaration-ja markerade med warning-färg.
 
 **Task #111** — Disk-persistence fantom-bug:
+
 - POST /api/lead returnerade success med caseId men disk-check visade inga
   nya cases.
 - Rotorsak: **två Render-services** (arcana-3pji = live, arcana-cco-mmcd =
@@ -126,6 +138,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
   arcana-3pji) har **115 cases, 17 web-cases, leadContext:true** på alla.
 
 **Task #112** — Suspended arcana-cco-mmcd duplicate-service:
+
 - Custom Domains-fliken bekräftade inga production-domains attached.
 - Suspend via dashboard ("sudo suspend web service arcana-cco" confirmation).
 - Sparar ~$25/mån.
@@ -134,6 +147,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
 ### 2.4 Runda V — OOM-fix + cleanup
 
 **Task #114** — Major-arcana OOM SIGABRT 134-loop:
+
 - Återkommande "Exited with status 134" i events-loggen.
 - Diagnos: bootstrap laddar för många mailbox-messages i ETT svep.
 - Fix: satte `ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS=7` (från 90 default)
@@ -141,6 +155,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
 - Deploy triggas automatiskt på env-var save.
 
 **Task #115** — Cleanup test-submission:
+
 - Raderade submission `8e09aacd-…` (E2E thumbnail-test) från
   `/var/data/arcana/post-op-reviews.json` + tillhörande foto-dir.
 
@@ -151,7 +166,7 @@ tasks från runda II (3) + runda III (4) + runda IV (4) + cleanup (3).
 3.1. ✓ Webb→Arcana CCO bridge: lead-payload med slot skapar reservation.
 3.2. ✓ Tyst regression hittad + fixad (Fas 27E-blunder).
 3.3. ✓ Regression-guard i pre-commit catchar `createPublicBookingEngineRouter` +
-     `createPostOpReviewRouter` borttagning.
+`createPostOpReviewRouter` borttagning.
 3.4. ✓ GDPR-cron raderar foton utan consent 12 mån efter submit.
 3.5. ✓ HEIC/HEIF accepteras via heic2any-konvertering i browser.
 3.6. ✓ Operator-thumbnails i CCO Booking Request-kort.
@@ -190,10 +205,12 @@ operatör-auth tillgänglig).
 ## 5. Commit-trace runda II + III + IV (2026-05-19)
 
 Webb-repo (`Fazliilzaf/hairtpclinic-web`):
+
 - `8f656fd` feat(lead): forward web bookings to Arcana CCO when slot picked
 - `f2a3b0e` feat(lead): forward rik leadContext till Arcana CCO
 
 Arcana-repo (`Fazliilzaf/major-arcana`):
+
 - `3e87551` fix(server): restore publicBookingEngine mounting
 - `0d3bd47` fix(server): restore postOpReview mount + add regression-guard
 - `4111dfe` feat(post-op-review): photo-upload Fas 1.B (multer + piexifjs)
@@ -225,23 +242,23 @@ Total: 6 arcana-commits + 2 webb-commits = 8 commits, ~1400 insertions netto.
 
 7.1. **Verifiera OOM-fix håller** — minst 3 dagar stabilt utan status 134.
 7.2. **Visuell E2E thumbnail-render** — Fazli loggar in operatör + testar
-     på riktig PRP-tråd.
+på riktig PRP-tråd.
 7.3. **Veronica/Clara/Wendela/Louise bookable** — beslut om scope (PRP
-     självständigt vs assistans) + lägg in som resources i
-     ccoBookingEngineStore.
+självständigt vs assistans) + lägg in som resources i
+ccoBookingEngineStore.
 7.4. **Photo-thumbnail E2E med riktig HEIC** — iPhone-användare laddar
-     upp via patient-UI, verifierar att heic2any-konvertering går igenom.
+upp via patient-UI, verifierar att heic2any-konvertering går igenom.
 7.5. **Cron `pruneNoConsentPhotos` triggred minst en gång** — verifiera
-     audit-log + att disk-foton faktiskt raderas.
+audit-log + att disk-foton faktiskt raderas.
 
 ---
 
 ## 8. Render-services inventory (2026-05-19 läge)
 
-| Service | URL | Plan | Status | Roll |
-|---------|-----|------|--------|------|
-| major-arcana | arcana-3pji.onrender.com | Pro | ACTIVE (OOM-mitigated) | DNS-mål för arcana.hairtpclinic.se + ma.hairtpclinic.se |
-| arcana-cco | arcana-cco-mmcd.onrender.com | Standard | SUSPENDED 2026-05-19 | Duplicate, ingen custom domain |
+| Service      | URL                          | Plan     | Status                 | Roll                                                    |
+| ------------ | ---------------------------- | -------- | ---------------------- | ------------------------------------------------------- |
+| major-arcana | arcana-3pji.onrender.com     | Pro      | ACTIVE (OOM-mitigated) | DNS-mål för arcana.hairtpclinic.se + ma.hairtpclinic.se |
+| arcana-cco   | arcana-cco-mmcd.onrender.com | Standard | SUSPENDED 2026-05-19   | Duplicate, ingen custom domain                          |
 
 Båda autodeployar från `Fazliilzaf/major-arcana` main. Suspendning av mmcd
 påverkar inte produktion.

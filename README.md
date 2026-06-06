@@ -1,18 +1,19 @@
 # Arcana (Hair TP Clinic)
 
 Node + Express-app med en patientvänlig chatt som:
+
 - har konversationsminne (via `conversationId`)
 - kan öppna bokning via Cliento-widget (”Boka tid”)
 - kan svara utifrån en lokal kunskapsbas (Markdown/TXT)
 
 ## Workspace (2026-05-23)
 
-| Vad | Var |
-| --- | --- |
-| **Git / kod** | `~/Code/major-arcana` → [github.com/Fazliilzaf/major-arcana](https://github.com/Fazliilzaf/major-arcana) |
-| **Prod** | https://arcana.hairtpclinic.se |
-| **Arkiv (Word, SharePoint)** | `~/Code/MA-Archive/` (utanför repo) |
-| **Webb** | `~/Code/hairtpclinic-web` |
+| Vad                          | Var                                                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Git / kod**                | `~/Code/major-arcana` → [github.com/Fazliilzaf/major-arcana](https://github.com/Fazliilzaf/major-arcana) |
+| **Prod**                     | https://arcana.hairtpclinic.se                                                                           |
+| **Arkiv (Word, SharePoint)** | `~/Code/MA-Archive/` (utanför repo)                                                                      |
+| **Webb**                     | `~/Code/hairtpclinic-web`                                                                                |
 
 **Regel:** Jobba alltid i `~/Code` — inte i iCloud (`Major Arcana 2.0`). Push → Render auto-deploy → `bash scripts/post-deploy-prod-heal.sh` vid behov.
 
@@ -20,15 +21,15 @@ Node + Express-app med en patientvänlig chatt som:
 
 Standard sedan 2026-05: **Codex** på Mac Studio (eller annan Mac med `~/Code`) + **GitHub** som source of truth. iCloud-klonen används inte för kod längre.
 
-| Steg | Kommando / var |
-| --- | --- |
-| 1. Öppna repo | `cd ~/Code/major-arcana` i Codex |
-| 2. Synka | `git pull origin main` |
+| Steg            | Kommando / var                                                        |
+| --------------- | --------------------------------------------------------------------- |
+| 1. Öppna repo   | `cd ~/Code/major-arcana` i Codex                                      |
+| 2. Synka        | `git pull origin main`                                                |
 | 3. Lokal server | `bash ~/start-arcana.sh` eller `./start-cco-local.sh` → port **3100** |
-| 4. Admin / CMO | http://127.0.0.1:3100/admin (t.ex. `#cmo-connectors`) |
-| 5. Commit | `git add … && git commit -m "…"` |
-| 6. Push | `git push origin main` → **arcana-ci** på GitHub |
-| 7. Prod | Render auto-deploy → https://arcana.hairtpclinic.se |
+| 4. Admin / CMO  | http://127.0.0.1:3100/admin (t.ex. `#cmo-connectors`)                 |
+| 5. Commit       | `git add … && git commit -m "…"`                                      |
+| 6. Push         | `git push origin main` → **arcana-ci** på GitHub                      |
+| 7. Prod         | Render auto-deploy → https://arcana.hairtpclinic.se                   |
 
 **Lokal inloggning (dev):** `fazli@hairtpclinic.com` / tenant `hair-tp-clinic` (lösenord i `.env`).
 
@@ -42,11 +43,12 @@ npm run demo:cmo-sandbox-publish:e2e  # Fas P admin E2E (seed → approve → sc
 
 **Prod connectors / live publish:** av medvetet tills OWNER go-live (`ARCANA_MARKETING_CONNECTORS_MODE=fixture`, `ARCANA_MARKETING_PUBLISH_LIVE_ENABLED=false`).
 
-**Render env efter deploy:** Blueprint `CCO-Next` synkar `render.yaml` → prod-tjänsten `major-arcana` (autoSync). GitHub workflow `arcana-post-deploy-heal` väntar på blueprint-sync + kör `restore-render-env-from-blueprint.sh` som säkerhetsnät vid push till `main` (kräver `RENDER_API_KEY` i Secrets). Lokalt: `bash scripts/post-deploy-prod-heal.sh`.
+**Render env efter deploy:** Blueprint `CCO-Next` synkar `render.yaml` → prod-tjänsten `arcana` (Frankfurt, `srv-d8b3i3tckfvc73clgeng`). GitHub workflow `arcana-post-deploy-heal` väntar på blueprint-sync + kör `restore-render-env-from-blueprint.sh` som säkerhetsnät vid push till `main` (kräver `RENDER_API_KEY` i Secrets). Lokalt: `bash scripts/post-deploy-prod-heal.sh`.
 
 Mer handoff mellan Codex, Cursor och ChatGPT: [`docs/ops/chatgpt-codex-handoff.md`](docs/ops/chatgpt-codex-handoff.md).
 
 ---
+
 - `docs/major-arcana-index.md` (samlad ingång till Major Arcana-materialet)
 - `docs/architecture/execution-gateway-contract.md`
 - `docs/architecture/capability-framework-contract-v1.md`
@@ -58,19 +60,23 @@ Mer handoff mellan Codex, Cursor och ChatGPT: [`docs/ops/chatgpt-codex-handoff.m
 - `docs/ops/microsoft-graph-readonly-prep-2026-02-26.md` (CCO Block 1.2 prep)
 
 ## Kom igång
-1) Skapa `.env` (utgå från `.env.example`)
-2) Installera deps: `npm install`
-3) Starta: `npm run dev`
+
+1. Skapa `.env` (utgå från `.env.example`)
+2. Installera deps: `npm install`
+3. Starta: `npm run dev`
 
 Öppna sedan `http://localhost:3000`.
 
 ### Offline/CI-läge (utan OpenAI-anrop)
+
 Sätt `ARCANA_AI_PROVIDER=fallback` i `.env` för att köra Arcana utan externa OpenAI-anrop.
 Det är användbart för lokal smoke/CI och kräver då inte `OPENAI_API_KEY`.
 
 ### Deploy på Render (Blueprint)
+
 Repo:t innehåller `render.yaml` kopplad till Blueprint **CCO-Next** → prod-tjänst **major-arcana** (`arcana.hairtpclinic.se`). Tjänstenamnet i yaml måste matcha Render (inte `arcana-cco`, som skapade en duplicerad tjänst).
 I Render: välj **Blueprint** och fyll minst:
+
 - `OPENAI_API_KEY`
 - `ARCANA_OWNER_EMAIL`
 - `ARCANA_OWNER_PASSWORD`
@@ -78,17 +84,21 @@ I Render: välj **Blueprint** och fyll minst:
 - `ARCANA_STATE_ROOT` (rekommenderat: `/var/data/arcana` på persistent disk)
 
 ### Persistenta driftfiler (Render)
+
 För att auth/sessions/backups ska överleva restart/deploy:
-1) Lägg till en persistent disk i Render (mount path: `/var/data`).
-2) Sätt `ARCANA_STATE_ROOT=/var/data/arcana`.
-3) Deploya om tjänsten.
+
+1. Lägg till en persistent disk i Render (mount path: `/var/data`).
+2. Sätt `ARCANA_STATE_ROOT=/var/data/arcana`.
+3. Deploya om tjänsten.
 
 Om `ARCANA_STATE_ROOT` inte sätts används `./data` (lokal utveckling).
 
 ## Steg 1: Foundation (Auth + RBAC + Tenant + Audit)
+
 Arcana har nu en intern API-bas på `/api/v1` för Pilot 0.1.
 
 ### 1) Sätt owner i `.env`
+
 ```env
 ARCANA_DEFAULT_TENANT=hair-tp-clinic
 ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com
@@ -98,11 +108,13 @@ ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false
 ```
 
 ### 2) Starta servern
+
 `npm run dev`
 
 Vid uppstart bootstrapas första OWNER automatiskt om ovan variabler finns.
 
 ### CORS (strict by default)
+
 `CORS_STRICT` defaultar nu till `true` i alla miljöer.
 `CORS_ALLOW_NO_ORIGIN` defaultar till `false`.
 
@@ -119,6 +131,7 @@ CORS_ALLOW_CREDENTIALS=false
 Om `ARCANA_BRAND_BY_HOST` är satt läggs host-keys automatiskt till som `https://<host>` i strict allowlist.
 
 ### Session idle-timeout + API rate limits
+
 Default-värden för hardening:
 
 ```env
@@ -195,6 +208,7 @@ ARCANA_PATIENT_SIGNAL_FRESHNESS_HOURS=72
 - `POST /api/v1/auth/login` och `POST /api/v1/auth/select-tenant` styrs fortsatt av dedikerade auth-limiters
 
 ### OWNER MFA (TOTP + recovery)
+
 - OWNER-login kräver MFA-challenge.
 - `POST /api/v1/auth/login` kan returnera:
   - `requiresMfa: true`
@@ -278,6 +292,7 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 - `monitor/status` exponerar även `observability` (5xx error-rate, latency p95/p99, slow requests) med alerts/trösklar från `ARCANA_OBSERVABILITY_ALERT_*`.
 
 ### Schemalagd drift-gate (GitHub Actions)
+
 - Workflow: `.github/workflows/drift-gate.yml`
 - Kör var 6:e timme (och manuellt via `workflow_dispatch`) och kör `preflight:pilot:report` mot publik miljö (`--skip-local`).
 - Laddar alltid upp artifact: `data/reports/preflight-latest.json`.
@@ -291,10 +306,12 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
   - `ARCANA_DRIFT_ALERT_WEBHOOK_URL`
 
 ### CI-gate (GitHub Actions)
+
 - Workflow: `.github/workflows/ci.yml`
 - Kör nu även `npm run ops:suite:strict` mot lokal runtime (server startas i bakgrunden i CI) utöver syntax, test, no-bypass och smoke.
 
 ### Stabilitetsfönster (GitHub Actions)
+
 - Workflow: `.github/workflows/stability-window.yml`
 - Kör daglig `report:stability-window` mot publik miljö och laddar upp artifact `data/reports/stability-window-latest.json`.
 - Required GitHub Secrets:
@@ -304,6 +321,7 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
   - `ARCANA_OWNER_MFA_SECRET` eller `ARCANA_OWNER_MFA_RECOVERY_CODE`
 
 ### Finalization Sweep (GitHub Actions)
+
 - Workflow: `.github/workflows/finalization-sweep.yml`
 - Kör hela slutkedjan dagligen i lokal runtime:
   - syntax
@@ -318,6 +336,7 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 - Markerar workflow-fel endast vid oväntade interna regressionsfel; kända externa/tidslåsta blocker-steg spåras separat i rapporten.
 
 ### Finalization Sweep Public (GitHub Actions)
+
 - Workflow: `.github/workflows/finalization-sweep-public.yml`
 - Kör samma finalization-sweep dagligen mot publik miljö (`ARCANA_PUBLIC_BASE_URL`).
 - Laddar upp artifact: `data/reports/finalization-sweep-public-latest.json`.
@@ -328,34 +347,40 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
   - `ARCANA_OWNER_MFA_SECRET` eller `ARCANA_OWNER_MFA_RECOVERY_CODE`
 
 `POST /api/v1/auth/change-password` har nu global invalidation som default:
+
 - revokerar alla user-sessioner (alla tenants) vid lösenordsbyte
 - revokerar även aktuell session som default (`requiresReauth=true` i svar)
 - kan overrideas via body-fält (`revokeAllSessions`, `revokeCurrentSession`, `revokeScope`)
 
 Om prod-inloggning fastnar på gammalt lösenord:
-1) Sätt i Render env: `ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD=true`
-2) Deploy
-3) Verifiera login med `ARCANA_OWNER_EMAIL` / `ARCANA_OWNER_PASSWORD`
-4) Sätt tillbaka `ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD=false` och deploy igen
+
+1. Sätt i Render env: `ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD=true`
+2. Deploy
+3. Verifiera login med `ARCANA_OWNER_EMAIL` / `ARCANA_OWNER_PASSWORD`
+4. Sätt tillbaka `ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD=false` och deploy igen
 
 Om OWNER saknar både MFA-app och recovery-koder:
-1) Sätt i Render env: `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true`
-2) Deploy (kontrollerad recovery)
-3) Slutför MFA på nytt med samma konto:
+
+1. Sätt i Render env: `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true`
+2. Deploy (kontrollerad recovery)
+3. Slutför MFA på nytt med samma konto:
    - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup -- --show-recovery-codes`
-4) Spara ny secret/recovery-koder säkert
-5) Sätt tillbaka `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false` och deploy igen
+4. Spara ny secret/recovery-koder säkert
+5. Sätt tillbaka `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false` och deploy igen
 
 Notera:
+
 - Recovery-reset revokerar aktiva sessioner för bootstrap-owner (`revokeReason=bootstrap_owner_mfa_reset`).
 - Lämna aldrig `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true` permanent i produktion.
 
 ### Correlation ID
+
 - Alla requests får/returnerar header `x-correlation-id`.
 - Om klienten skickar `x-correlation-id` återanvänds den, annars genereras en ny.
 - Audit-events inkluderar automatiskt `metadata.correlationId` för spårbarhet.
 
 ### 3) Viktiga endpoints (Foundation)
+
 - `GET /healthz` (liveness)
 - `GET /readyz` (readiness)
 - `POST /api/v1/auth/login`
@@ -413,9 +438,11 @@ Notera:
 - `GET /api/v1/incidents/:incidentId` (OWNER/STAFF)
 
 ## Steg 2: Template Engine (Pilot 0.1)
+
 Template Engine finns nu i `/api/v1` med draft/active-workflow och riskutvärdering.
 
 Tenant-bunden template-policy stöds via `tenant-config`:
+
 - `templateVariableAllowlistByCategory` (extra tillåtna variabler per kategori)
 - `templateRequiredVariablesByCategory` (extra obligatoriska variabler per kategori)
 - `templateSignaturesByChannel` (t.ex. automatisk email-signatur)
@@ -434,9 +461,11 @@ Hel verifiering lokalt:
 `npm run verify`
 
 ## Pilot Go-Live (sista 5%)
+
 Kör detta i ordning:
 
 Snabbaste vägen (allt i ett):
+
 - `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se`
 - Samma med autosparad rapport: `npm run preflight:pilot:report -- --public-url https://arcana.hairtpclinic.se`
 - Advisor (preflight + action-plan i en körning): `npm run preflight:pilot:advisor -- --public-url https://arcana.hairtpclinic.se`
@@ -464,6 +493,7 @@ Snabbaste vägen (allt i ett):
   - Apply: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate -- --apply`
 
 Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
+
 - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public`
 - `pilot:public` kör nu advisor-preflight först (default `--skip-local`) och stoppar vid blocker med action-plan.
 - Heal-varianter: `npm run pilot:public:heal` och `npm run pilot:public:heal:all`
@@ -473,15 +503,18 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Om OWNER kräver MFA: sätt `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>`, `ARCANA_OWNER_MFA_SECRET=<base32-secret>` eller `ARCANA_OWNER_MFA_RECOVERY_CODE=<recovery-kod>` (scriptet försöker även läsa `AUTH_STORE_PATH`, default `./data/auth.json`).
 - För preflight/ops-automation rekommenderas `ARCANA_OWNER_MFA_SECRET` (recovery-koder är engångskoder).
 
-1) Lokal kvalitet:
+1. Lokal kvalitet:
+
 - `npm run verify`
 - `npm run git:check-large`
 
-2) Deploy (Render):
+2. Deploy (Render):
+
 - Pusha branchen till GitHub.
 - Säkerställ env i Render (se `render.yaml`, särskilt `PUBLIC_BASE_URL`, owner-credentials och Cliento-variabler).
 
-3) Verifiera publik drift:
+3. Verifiera publik drift:
+
 - `BASE_URL=https://arcana.hairtpclinic.se npm run smoke:public`
 - För auth-check i samma körning:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run smoke:public`
@@ -515,12 +548,14 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
   - CLI-flaggor: `--use-required-checks`, `--no-use-required-checks`, `--cors-runtime-probe`, `--no-cors-runtime-probe`, `--cors-probe-path /healthz`, `--report-file /tmp/readiness-guard.json`
   - Styr OWNER-gap listing: `ARCANA_PREFLIGHT_READINESS_SHOW_OWNER_MFA_GAPS=true|false`
 
-4) Mail-baserade mallutkast (när export finns):
+4. Mail-baserade mallutkast (när export finns):
+
 - `npm run ingest:mails -- --input ./mail-exports --brand hair-tp-clinic`
 - `npm run mail:seeds:preview`
 - `npm run mail:seeds:apply`
 
-5) Spara pilotrapport automatiskt (utan att skapa otrackade filer i repo-root):
+5. Spara pilotrapport automatiskt (utan att skapa otrackade filer i repo-root):
+
 - `npm run report:pilot`
 - Filen sparas i `data/reports/` (git-ignorerad), t.ex. `data/reports/Pilot_Baseline_14d_YYYYMMDD-HHMMSS.json`.
 - Rapportfilen inkluderar `readinessSnapshot` med Go/No-Go, no-go triggers, prioriterad remediation-lista och readiness-historiktrend.
@@ -590,10 +625,12 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
     - `npm run release:cycle:auto -- --launch --review-now --reality-audit-now --change-governance-version 2026-Q1`
 
 Tips:
+
 - Om `mail/insights` visar `ready:false` saknas ingestad maildata för tenant (det är okej tills ni kör ingest).
 - `finalization:sweep:*:bootstrap` återanvänder befintlig launched cycle som standard (`--bootstrap-mode if_missing`) så stabilitetsfönstret inte nollställs av misstag. Använd `*:bootstrap:fresh` för att tvinga ny cycle.
 
 ### Viktiga endpoints (Template Engine)
+
 - `GET /api/v1/templates/meta`
 - `GET /api/v1/templates`
 - `POST /api/v1/templates`
@@ -616,12 +653,14 @@ Tips:
 - `GET /api/v1/risk/precision/report` (OWNER/STAFF, gold-set confusion matrix)
 
 Owner action `action` (endast OWNER):
+
 - `approve_exception`
 - `mark_false_positive`
 - `request_revision`
 - `escalate`
 
 ## Steg 3: Owner Risk Panel (web)
+
 - Admin UI: `http://localhost:3000/admin`
 - Multi-tenant i UI:
   - login hanterar `requiresTenantSelection` automatiskt
@@ -667,36 +706,39 @@ Owner action `action` (endast OWNER):
   - lista scheduler-rapporter (`GET /api/v1/ops/reports`)
   - prune scheduler-rapporter (`POST /api/v1/ops/reports/prune`)
   - restore preview + restore (`POST /api/v1/ops/state/restore`)
- - Mail insights-panel i UI:
-   - läser anonymiserad mail-kunskap per tenant
-  - endpoint: `GET /api/v1/mail/insights`
-   - seed preview och seed→draft:
-     - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":true}`
-     - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":false}` (OWNER)
- - Orchestrator-panel i UI:
-   - kör intern orchestration och visa trace
-   - metadata (`GET /api/v1/orchestrator/meta`) inkluderar nu agent-roadmap och CFO-capability (`finance_governance`)
- - Risk calibration-panel i UI:
-   - hämta förslag och applicera owner-godkänt förslag
- - Incident-panel i UI/API:
-   - lista incidents (`GET /api/v1/incidents`)
-   - incidentsammanfattning (`GET /api/v1/incidents/summary`)
-   - incidentdetalj (`GET /api/v1/incidents/:incidentId`)
- - Pilot report-panel i UI:
-   - generera KPI-rapport per tidsfönster
+- Mail insights-panel i UI:
+  - läser anonymiserad mail-kunskap per tenant
+- endpoint: `GET /api/v1/mail/insights`
+- seed preview och seed→draft:
+  - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":true}`
+  - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":false}` (OWNER)
+- Orchestrator-panel i UI:
+  - kör intern orchestration och visa trace
+  - metadata (`GET /api/v1/orchestrator/meta`) inkluderar nu agent-roadmap och CFO-capability (`finance_governance`)
+- Risk calibration-panel i UI:
+  - hämta förslag och applicera owner-godkänt förslag
+- Incident-panel i UI/API:
+  - lista incidents (`GET /api/v1/incidents`)
+  - incidentsammanfattning (`GET /api/v1/incidents/summary`)
+  - incidentdetalj (`GET /api/v1/incidents/:incidentId`)
+- Pilot report-panel i UI:
+  - generera KPI-rapport per tidsfönster
 
 ### Public web payload (multi-clinic)
+
 - Endpoint: `GET /api/public/clinics/:clinicId`
 - Returnerar publik payload for kliniksajt (hero, services, trust, contact, theme, updatedAt).
 - `clinicId` kan mappas till tenant via env `ARCANA_PUBLIC_CLINIC_ALIASES`.
 - Alias `hair-to-clinic -> hair-tp-clinic` finns som default.
 
 Exempel:
+
 ```bash
 curl http://localhost:3000/api/public/clinics/hair-to-clinic
 ```
 
 Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
+
 - Endpoint: `PATCH /api/v1/tenant-config`
 - Body-falt: `publicSite` (hela eller delar av objektet)
 - Exempel:
@@ -722,6 +764,7 @@ Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
 ```
 
 ## Steg 4: Risk Calibration (tenant-styrd)
+
 - Risk settings API:
   - `GET /api/v1/risk/settings`
   - `PATCH /api/v1/risk/settings` (OWNER)
@@ -738,6 +781,7 @@ Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
 - Ändringar av `riskSensitivityModifier` versionshanteras per tenant och kan rollbackas till tidigare version.
 
 ## Risk precision benchmark (Gold Set + confusion matrix)
+
 - Versionerat gold set finns i:
   - `docs/risk/gold-set-v1.json` (150 fall: 50 safe, 50 borderline, 50 critical)
 - Generera/uppdatera gold set:
@@ -749,6 +793,7 @@ Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
   - valfri query: `modifier` (override av tenantens risk modifier för rapportkörningen)
 
 ## Steg 5: Activation Gate (Owner-control)
+
 - Om riskbeslut = `review_required` eller `blocked` krävs owner-beslut före aktivering.
 - Tillåtna owner-beslut för aktivering:
   - `approve_exception`
@@ -756,6 +801,7 @@ Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
 - Annars stoppas `POST /api/v1/templates/:templateId/versions/:versionId/activate`.
 
 ## Steg 6: Arcana Orchestrator (intern)
+
 - Orchestrator API:
   - `GET /api/v1/orchestrator/meta`
   - `POST /api/v1/orchestrator/admin-run`
@@ -767,6 +813,7 @@ Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
   - fail-closed + safe fallback om risk/policy blockerar
 
 ## Strategidokument (Phase 2)
+
 - Masterplan för hardening, incident/SLA, automation, riskprecision och Go/No-Go:
   - `docs/strategy/arcana-phase-2-masterplan.md`
   - valda agenter
@@ -775,12 +822,14 @@ Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
   - säkerhetsvaliderad output (risk + policy floor)
 
 ## Arkitekturlåsning (P0)
+
 - ExecutionGateway-kontrakt:
   - `docs/architecture/execution-gateway-contract.md`
 - P0-checklista (commitordning + evidenskrav):
   - `docs/architecture/p0-checklist.md`
 
 ## Steg 7: Pilot Reporting
+
 - Rapport API:
   - `GET /api/v1/reports/pilot?days=14`
 - Rapporten innehåller:
@@ -790,7 +839,9 @@ Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
   - operativa audit events
 
 ## Steg 8: UI/UX Design Pack (Pilot 0.1)
+
 Designleverabler från UI/UX-specen finns i `docs/uiux/`:
+
 - `docs/uiux/sitemap.md` (navigation map)
 - `docs/uiux/wireframes.md` (låg-fidelitet skärmstrukturer)
 - `docs/uiux/component-library.md` (komponentkatalog)
@@ -801,6 +852,7 @@ Designleverabler från UI/UX-specen finns i `docs/uiux/`:
 Tips vid route-fel (`Cannot GET ...`): stoppa alla gamla processer på port 3000 och starta om `npm run dev`.
 
 ## Drift: Backup & Restore
+
 - Skapa backupbundle:
   - `npm run backup:state`
 - Lista senaste backupfiler:
@@ -823,10 +875,12 @@ Tips vid route-fel (`Cannot GET ...`): stoppa alla gamla processer på port 3000
     `{ "fileName": "...", "dryRun": false, "confirmText": "RESTORE <filnamn>" }`
 
 Backup inkluderar:
+
 - `AUTH_STORE_PATH`
 - `TEMPLATE_STORE_PATH`
 
 ## Drift: Load/Soak test
+
 - Kör kapacitetssmoke (default: 60s, concurrency 8, target `/healthz`):
   - `npm run ops:soak -- --baseUrl http://localhost:3000 --path /healthz --durationSec 60 --concurrency 8`
 - Viktiga outputfält:
@@ -840,14 +894,16 @@ Backup inkluderar:
 - `ARCANA_SLO_TICKET_STORE_PATH`
 
 ## Drift: Secrets rotation runbook
+
 - Runbook: `docs/ops/secrets-rotation-runbook.md`
 - Basflöde:
-  1) Roterad nyckel i plattformens secret manager (t.ex. Render env).
-  2) Deploy/restart Arcana.
-  3) Kör `POST /api/v1/ops/secrets/snapshot` med `{"dryRun":false,"note":"rotation ticket ..."}`
-  4) Verifiera `GET /api/v1/ops/secrets/status` och att `staleRequired=0`.
+  1. Roterad nyckel i plattformens secret manager (t.ex. Render env).
+  2. Deploy/restart Arcana.
+  3. Kör `POST /api/v1/ops/secrets/snapshot` med `{"dryRun":false,"note":"rotation ticket ..."}`
+  4. Verifiera `GET /api/v1/ops/secrets/status` och att `staleRequired=0`.
 
 Katalog styrs av:
+
 - `ARCANA_STATE_ROOT` (default: `./data`, rekommenderat i Render: `/var/data/arcana`)
 - `ARCANA_BACKUP_DIR` (default: `<ARCANA_STATE_ROOT>/backups`)
 - `ARCANA_BACKUP_RETENTION_MAX_FILES` (default: `50`)
@@ -857,6 +913,7 @@ Katalog styrs av:
 - `ARCANA_REPORT_RETENTION_MAX_AGE_DAYS` (default: `45`, scheduler-genererade rapporter)
 
 ## Auditkedja (append-only + checksum)
+
 - `AUTH_AUDIT_APPEND_ONLY=true` (default) håller audit-loggen append-only och stoppar trunkering.
 - Sätt `AUTH_AUDIT_APPEND_ONLY=false` endast om du uttryckligen vill tillåta trunkering via `AUTH_AUDIT_MAX_ENTRIES`.
 - Verifiera kedjan via:
@@ -865,9 +922,11 @@ Katalog styrs av:
 - Smoke-test (`npm run smoke:local`) verifierar nu också `audit/integrity`.
 
 ## Lägg in Arcana på hemsidan (WordPress)
+
 Arcana behöver först köras på en publik **HTTPS**-adress (t.ex. `https://arcana.dindomän.se/`).
 
 ### Alternativ 1: Flytande chatt-knapp (rekommenderat)
+
 Lägg in denna rad på er sida (t.ex. i WordPress “Anpassad HTML”-block eller i ett script-inject plugin):
 
 ```html
@@ -875,10 +934,12 @@ Lägg in denna rad på er sida (t.ex. i WordPress “Anpassad HTML”-block elle
 ```
 
 Tips:
+
 - För att tvinga brand (om det behövs): `data-brand="hair-tp-clinic"` eller `data-brand="curatiio"`.
 - För att byta knapptext: `data-button-text="Chatta med oss"`.
 
 ### Alternativ 2: Inline på en sida (iframe)
+
 ```html
 <iframe
   src="https://arcana.dindomän.se/"
@@ -888,6 +949,7 @@ Tips:
 ```
 
 ## Kunskapsbas (från hemsidan)
+
 Fyll `knowledge/` med innehåll. För snabb import kan du testa:
 
 `npm run ingest:hairtpclinic`
@@ -897,16 +959,18 @@ Fyll `knowledge/` med innehåll. För snabb import kan du testa:
 Starta om servern efter import för att indexera nya filer.
 
 ## Mail-ingest (Outlook → anonymiserad kunskap)
+
 Om du vill träna tonalitet, FAQ och templates från gamla mailtrådar:
 
-1) Lägg exporterade filer lokalt (rekommenderat i `./mail-exports/`), t.ex. `.eml`, `.mbox` eller `.json`.
+1. Lägg exporterade filer lokalt (rekommenderat i `./mail-exports/`), t.ex. `.eml`, `.mbox` eller `.json`.
    - Apple Mail `.mbox`-paket (mappar) stöds också; scriptet läser interna `mbox`-filer automatiskt.
-2) Kör ingest:
+2. Kör ingest:
 
 `npm run ingest:mails -- --input ./mail-exports --brand hair-tp-clinic`
 
-3) Output skrivs till:
-`knowledge/hair-tp-clinic/mail/`
+3. Output skrivs till:
+   `knowledge/hair-tp-clinic/mail/`
+
 - `mail-summary.md`
 - `faq-from-mails.md`
 - `tone-style-from-mails.md`
@@ -916,7 +980,7 @@ Om du vill träna tonalitet, FAQ och templates från gamla mailtrådar:
 - `inbound-intents.md` (fungerar även om du bara har Inbox-export)
 - `ingest-report.json`
 
-4) Generera template drafts från seeds (Owner API):
+4. Generera template drafts från seeds (Owner API):
 
 Preview:
 `curl -X POST http://localhost:3000/api/v1/mail/template-seeds/apply -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"dryRun":true,"limit":8}'`
@@ -925,6 +989,7 @@ Skapa drafts:
 `curl -X POST http://localhost:3000/api/v1/mail/template-seeds/apply -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"dryRun":false,"limit":8}'`
 
 Snabbare via npm:
+
 - Preview: `npm run mail:seeds:preview`
 - Skapa drafts: `npm run mail:seeds:apply`
 - Skapa + aktivera auto i batch (alla `allow`; review/block skippas): `npm run mail:seeds:apply-activate`
@@ -938,63 +1003,78 @@ Snabbare via npm:
   - `node ./scripts/apply-activate-mail-seeds.js --all --allow-duplicates`
 
 Viktigt:
+
 - `.olm` läses inte direkt av scriptet. Exportera vidare till `.eml`, `.mbox` eller `.json`.
 - Output anonymiserar e-post, personnummer och telefonnummer.
 - Lägg inte råmail i git (se `.gitignore`).
 
 ### GitHub push-skydd (stora filer)
+
 Kör innan push:
 `npm run git:check-large`
 
 Den checkar både:
+
 - tracked filer i working tree
 - blobbar i Git-historik
 
 Default-gräns är 95 MB (för att ligga under GitHubs 100 MB-gräns).
 
 ## Bokningar
+
 Bokning sker via **Cliento** i en inbyggd modal (widget).
 
 Konfigurera i `.env`:
+
 - `CLIENTO_ACCOUNT_IDS` (kommaseparerad lista). Om du anger två IDs kan användaren välja bolag i widgeten.
   - Om er snippet använder `widget-v3/cliento.js`: sätt `CLIENTO_WIDGET_SRC` (eller brand-variant) till den URL:en.
-Alternativt (fallback):
+    Alternativt (fallback):
 - `CLIENTO_BOOKING_URL` (t.ex. Clientos publika “business”-länk) för att öppna/iframe:a bokningen om ni inte vill använda widget-ID.
 
 ## Två bolag (Hair TP Clinic + Curatiio)
+
 Om du vill köra **en** Arcana-server men ha rätt innehåll/bokning per domän:
-1) Sätt mapping i `.env` med `ARCANA_BRAND_BY_HOST` (host → brand)
-2) Sätt brand-specifika Cliento-värden:
+
+1. Sätt mapping i `.env` med `ARCANA_BRAND_BY_HOST` (host → brand)
+2. Sätt brand-specifika Cliento-värden:
    - `CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC` / `CLIENTO_BOOKING_URL_HAIR_TP_CLINIC`
    - `CLIENTO_ACCOUNT_IDS_CURATIIO` / `CLIENTO_BOOKING_URL_CURATIIO`
 
 Tips:
+
 - Om du kör bakom en reverse proxy: sätt `TRUST_PROXY=true` så `req.hostname` blir rätt.
 - Om Arcana kör på en separat domän men embed:as i en iframe så används `document.referrer` (parent-sidans URL) för att välja brand.
 
 ## QA-checklista (mobil + desktop)
+
 Kör detta efter varje deploy:
 
-1) Verifiera script och cache
+1. Verifiera script och cache
+
 - Kontrollera att `view-source:https://hairtpclinic.se` innehåller `https://arcana.hairtpclinic.se/embed.js`.
 - Purga WordPress-cache/CDN och gör hård omladdning.
 
-2) Verifiera chat-bubbla
+2. Verifiera chat-bubbla
+
 - Bubblan ska synas på både `https://hairtpclinic.se` och `https://www.hairtpclinic.se`.
 - Klick på bubblan ska öppna panel utan överlappande extra `X`.
 
-3) Verifiera bokningsheader
+3. Verifiera bokningsheader
+
 - Loggan i bokningsheader ska vara stor och tydlig.
 - `Stäng`-knappen ska inte krocka med logga eller rubrik.
 
-4) Verifiera Cliento-tema
+4. Verifiera Cliento-tema
+
 - `Välj`/`Fortsätt`-knappar ska följa Arcana-färger (inte blå/lila default).
 - Länkar som `Visa mer` ska följa varumärkesfärgen.
 
-5) Verifiera bolagsfiltrering
+5. Verifiera bolagsfiltrering
+
 - På Hair TP ska endast Hair TP Clinic-innehåll synas i bokningen.
 - Curatiio-namn/tjänster ska inte visas i Hair TP-flödet.
 
-6) Verifiera responsivt
+6. Verifiera responsivt
+
 - Testa minst en mobilbredd (390px) och en desktopbredd (1440px).
 - Kontrollera att modalen kan scrollas utan att sidans bakgrund scrollar.

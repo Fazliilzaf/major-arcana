@@ -16,7 +16,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadServiceAccountFromEnv } = require('../src/lib/googleDriveClient');
 
-const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d6b11o0boq4c73chm7f0';
+const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 
 function fail(message) {
   console.error(`❌ ${message}`);
@@ -37,7 +37,9 @@ async function main() {
   }
 
   const saPath = path.resolve(process.env.ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON || '');
-  const saInline = String(process.env.ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON || '').trim().startsWith('{')
+  const saInline = String(process.env.ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON || '')
+    .trim()
+    .startsWith('{')
     ? String(process.env.ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON).trim()
     : fs.readFileSync(saPath, 'utf8');
 
@@ -52,9 +54,12 @@ async function main() {
   const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
   if (!apiKey) fail('Saknar Render API key i ~/.render/cli.yaml');
 
-  const existingRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  const existingRes = await fetch(
+    `https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`,
+    {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    }
+  );
   if (!existingRes.ok) fail(`Render GET env failed: ${existingRes.status}`);
   const existing = await existingRes.json();
   const map = new Map(

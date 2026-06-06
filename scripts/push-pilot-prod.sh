@@ -10,7 +10,7 @@ BASE_URL="${BASE_URL:-https://arcana.hairtpclinic.se}"
 BASE_URL="${BASE_URL%/}"
 TENANT_ID="${ARCANA_DEFAULT_TENANT:-hair-tp-clinic}"
 PILOT_JSON="${PILOT_JSON:-./data/pilot-patients.json}"
-SERVICE_ID="${RENDER_SERVICE_ID:-srv-d6b11o0boq4c73chm7f0}"
+SERVICE_ID="${RENDER_SERVICE_ID:-srv-d8b3i3tckfvc73clgeng}"
 USE_AUTH="${ARCANA_PUSH_REQUIRE_AUTH:-false}"
 
 fail() { echo "❌ $1"; exit 1; }

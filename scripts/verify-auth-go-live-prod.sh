@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
 BASE="${BASE%/}"
 CLI_YAML="${HOME}/.render/cli.yaml"
-SERVICE_ID="${RENDER_SERVICE_ID:-srv-d6b11o0boq4c73chm7f0}"
+SERVICE_ID="${RENDER_SERVICE_ID:-srv-d8b3i3tckfvc73clgeng}"
 API_KEY="${RENDER_API_KEY:-}"
 
 if [[ -z "$API_KEY" && -f "$CLI_YAML" ]]; then

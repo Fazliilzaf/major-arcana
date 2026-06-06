@@ -21,10 +21,11 @@ const { execSync } = require('node:child_process');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
-const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
-  /\/+$/,
-  ''
-);
+const BASE = (
+  process.env.BASE ||
+  process.env.ARCANA_PROD_URL ||
+  'https://arcana.hairtpclinic.se'
+).replace(/\/+$/, '');
 const TENANT_ID = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 const CONCURRENCY = Math.max(1, Math.min(30, Number(process.env.ARCANA_PUSH_CONCURRENCY) || 12));
 
@@ -60,7 +61,9 @@ async function requestJson(method, route, token, body) {
     parsed = { raw: text.slice(0, 200) };
   }
   if (!res.ok) {
-    const error = new Error(`${method} ${route} -> ${res.status}: ${parsed.error || text.slice(0, 160)}`);
+    const error = new Error(
+      `${method} ${route} -> ${res.status}: ${parsed.error || text.slice(0, 160)}`
+    );
     error.status = res.status;
     throw error;
   }
@@ -71,7 +74,9 @@ async function pushStateFile(token, fileName, filePath) {
   const raw = fs.readFileSync(filePath);
   const gz = zlib.gzipSync(raw);
   const data = gz.toString('base64');
-  console.log(`→ push-state-file ${fileName} (${(raw.length / 1e6).toFixed(2)} MB raw, ${(data.length / 1e6).toFixed(2)} MB b64)`);
+  console.log(
+    `→ push-state-file ${fileName} (${(raw.length / 1e6).toFixed(2)} MB raw, ${(data.length / 1e6).toFixed(2)} MB b64)`
+  );
   return requestJson('POST', '/api/v1/cco-migration/push-state-file', token, {
     fileName,
     encoding: 'gzip-base64',
@@ -109,7 +114,9 @@ async function mapPool(items, worker, concurrency) {
 }
 
 async function pushPatientsViaApi(token) {
-  const master = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/cco-patient-master.json'), 'utf8'));
+  const master = JSON.parse(
+    fs.readFileSync(path.join(ROOT, 'data/cco-patient-master.json'), 'utf8')
+  );
   const patients = master.tenants?.[TENANT_ID]?.patients || [];
   if (!patients.length) throw new Error('Inga patienter i lokal cco-patient-master.json');
 
@@ -187,7 +194,7 @@ async function main() {
       await pushStateFiles(token);
       usedFilePush = true;
       console.log('\n⚠ push-state-file kräver Render restart för att index ska laddas om.');
-      console.log('  Kör: render restart srv-d6b11o0boq4c73chm7f0 --confirm');
+      console.log('  Kör: render restart srv-d8b3i3tckfvc73clgeng --confirm');
     } catch (error) {
       if (error.status === 404) {
         console.warn('push-state-file saknas på prod — kör --api-only eller deploya senaste main.');

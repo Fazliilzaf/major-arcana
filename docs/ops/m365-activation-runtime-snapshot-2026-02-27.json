@@ -23,16 +23,8 @@
       },
       "meta": {
         "status": 200,
-        "capabilityNames": [
-          "GenerateTaskPlan",
-          "SummarizeIncidents",
-          "AnalyzeInbox"
-        ],
-        "agentRoles": [
-          "COO",
-          "CAO",
-          "CCO"
-        ]
+        "capabilityNames": ["GenerateTaskPlan", "SummarizeIncidents", "AnalyzeInbox"],
+        "agentRoles": ["COO", "CAO", "CCO"]
       },
       "ccoRun": {
         "status": 200,
@@ -62,8 +54,9 @@
     },
     {
       "service": "production",
-      "serviceId": "srv-d6b11o0boq4c73chm7f0",
-      "baseUrl": "https://arcana-3pji.onrender.com",
+      "serviceId": "srv-d8b3i3tckfvc73clgeng",
+      "baseUrl": "https://arcana.hairtpclinic.com",
+      "legacyBaseUrlAtCapture": "https://arcana-3pji.onrender.com",
       "graphEnv": {
         "ARCANA_GRAPH_READ_ENABLED": "missing",
         "ARCANA_GRAPH_TENANT_ID": "missing",
@@ -82,14 +75,8 @@
       },
       "meta": {
         "status": 200,
-        "capabilityNames": [
-          "GenerateTaskPlan",
-          "SummarizeIncidents"
-        ],
-        "agentRoles": [
-          "COO",
-          "CAO"
-        ]
+        "capabilityNames": ["GenerateTaskPlan", "SummarizeIncidents"],
+        "agentRoles": ["COO", "CAO"]
       },
       "ccoRun": {
         "status": 404,
