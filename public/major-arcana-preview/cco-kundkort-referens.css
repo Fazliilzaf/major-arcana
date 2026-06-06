@@ -881,3 +881,48 @@
   background: linear-gradient(180deg, #cfe4d3, #b4d3bd);
   color: #3f7460;
 }
+
+/* ===== Kompakt rad-variant för smal lista (4-panelsläget, ~300px) =====
+   Namn + rad 2 ska alltid synas: avatar · namn(rad1)+pill(rad2) · pil. */
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref {
+  grid-template-columns: 44px minmax(0, 1fr) 16px !important;
+  grid-auto-rows: auto;
+  gap: 3px 10px !important;
+  align-items: center !important;
+}
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-avatar {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-name-block {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-arrow {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-ref-step,
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-ref-ltv {
+  display: none !important;
+}
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-ref-next {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+}
+html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-next-pill {
+  max-width: 100%;
+  font-size: 10.5px;
+  padding: 3px 9px;
+}
+html[data-v9-enabled="on"] .customers-list--compact .customer-row-head.cr-ref-head {
+  display: none !important;
+}
