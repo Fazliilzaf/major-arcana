@@ -866,6 +866,9 @@ const config = {
   reportRetentionMaxAgeDays: asInt(process.env.ARCANA_REPORT_RETENTION_MAX_AGE_DAYS, 45),
 
   schedulerEnabled: asBool(process.env.ARCANA_SCHEDULER_ENABLED, true),
+  // Allowlist for schemalagda jobb: kommaseparerade jobb-id:n (se jobDefinitions i src/ops/scheduler.js).
+  // Tom lista = alla jobb tillatna (bakatkompatibelt). Anvands for kontrollerat pa-slag vid lackjakt.
+  schedulerJobsAllowlist: asStringArray(process.env.ARCANA_SCHEDULER_JOBS),
   graphReadEnabled: asBool(process.env.ARCANA_GRAPH_READ_ENABLED, false),
   schedulerReportWindowDays: asInt(process.env.ARCANA_SCHEDULER_REPORT_WINDOW_DAYS, 14),
   schedulerCcoWeeklyBriefIntervalHours: asInt(
