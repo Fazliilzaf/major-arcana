@@ -47,6 +47,7 @@ const { evaluateRecovery } = require('../intelligence/recoveryEngine');
 const { evaluateStrategicInsights } = require('../intelligence/strategicInsightsEngine');
 const { runClientoBackfill } = require('../../scripts/run-cliento-backfill');
 const { runClientoCustomerDeltaSync } = require('./clientoCustomerDeltaSync');
+const { runCcoHalsoHdScheduledMailboxIngest } = require('./ccoHalsoHdScheduledMailboxIngest');
 const {
   createMicrosoftGraphMailboxTruthDelta,
 } = require('../infra/microsoftGraphMailboxTruthDelta');
@@ -2662,6 +2663,16 @@ function createScheduler({
     };
   }
 
+  async function runCcoHalsoHdMailboxIngest({ tenantId, trigger = 'scheduled' }) {
+    return runCcoHalsoHdScheduledMailboxIngest({
+      tenantId: tenantId || config.defaultTenantId,
+      trigger,
+      patientMasterStore,
+      config,
+      logger,
+    });
+  }
+
   async function runCcoShadowRun({ tenantId, trigger = 'scheduled', actorUserId = null }) {
     if (!graphReadConnector || typeof graphReadConnector.fetchInboxSnapshot !== 'function') {
       return {
@@ -4120,6 +4131,15 @@ function createScheduler({
           ? toHoursMs(config.schedulerCcoClientoCustomerDeltaSyncIntervalHours, 24)
           : 0,
       run: runCcoClientoCustomerDeltaSync,
+    },
+    {
+      id: 'cco_halso_hd_mailbox_ingest',
+      name: 'CCO halso@ HD mailbox ingest (löpande ~3/dag)',
+      intervalMs:
+        config.graphReadEnabled && patientMasterStore
+          ? toHoursMs(config.schedulerCcoHalsoHdMailboxIngestIntervalHours, 8)
+          : 0,
+      run: runCcoHalsoHdMailboxIngest,
     },
     {
       id: 'cco_shadow_run',

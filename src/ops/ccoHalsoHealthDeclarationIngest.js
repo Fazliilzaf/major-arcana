@@ -8,6 +8,7 @@ const {
   normalizePersonnummer,
   normalizePhone,
   phoneMatchKey,
+  nameOverlapScore,
 } = require('../../scripts/migration/lib/migrationUtils');
 const { buildPipedrivePatientLookup } = require('./ccoPatientMasterStore');
 const {
@@ -104,23 +105,29 @@ function matchPatientFromParsed(parsed = {}, patients = []) {
   if (parsed.personnummer) {
     const patient = lookup.byPersonnummer.get(parsed.personnummer);
     if (patient) {
+      const patientId = patient.id || patient.patientId;
       return {
         status: 'MATCHED',
         confidence: 0.98,
-        patientId: patient.id,
+        patientId,
         method: 'personnummer',
         reason: 'personnummer_match',
-        candidates: [{ patientId: patient.id, method: 'personnummer', confidence: 0.98 }],
+        candidates: [{ patientId, method: 'personnummer', confidence: 0.98 }],
       };
     }
   }
 
   const matches = new Map();
   const add = (patient, method, confidence) => {
-    if (!patient?.id) return;
-    const existing = matches.get(patient.id);
+    const patientId = patient?.id || patient?.patientId;
+    if (!patientId) return;
+    const existing = matches.get(patientId);
     if (!existing || confidence > existing.confidence) {
-      matches.set(patient.id, { patient, method, confidence });
+      matches.set(patientId, {
+        patient: { ...patient, id: patientId },
+        method,
+        confidence,
+      });
     }
   };
 
@@ -139,6 +146,15 @@ function matchPatientFromParsed(parsed = {}, patients = []) {
     asArray(lookup.byPhone.get(parsed.phoneKey)).forEach((patient) => {
       add(patient, 'phone', 0.85);
     });
+  }
+
+  if (parsed.displayName) {
+    for (const patient of patients) {
+      const pid = patient?.id || patient?.patientId;
+      if (!pid) continue;
+      const score = nameOverlapScore(parsed.displayName, patient.displayName || '');
+      if (score >= 0.85) add(patient, 'displayName', 0.72);
+    }
   }
 
   const candidates = [...matches.values()];

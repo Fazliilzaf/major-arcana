@@ -303,6 +303,19 @@ const config = {
     stateRoot,
     fileName: 'cco-halso-health-declaration-ingest.json',
   }),
+  ccoHalsoHdSchedulerStatePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_HALSO_HD_SCHEDULER_STATE_PATH,
+    stateRoot,
+    fileName: 'cco-halso-hd-scheduler-state.json',
+  }),
+  schedulerCcoHalsoHdMailboxIngestIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_HALSO_HD_MAILBOX_INGEST_INTERVAL_HOURS,
+    8
+  ),
+  schedulerCcoHalsoHdLookbackDays: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_HALSO_HD_LOOKBACK_DAYS,
+    3
+  ),
   schedulerCcoMailIngestionQueueIntervalMinutes: asInt(
     process.env.ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES,
     1

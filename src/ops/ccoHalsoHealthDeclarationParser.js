@@ -281,6 +281,13 @@ function parseHealthDeclarationMessage(rawMessage = {}) {
   };
 }
 
+function parseHealthDeclarationFromText(bodyText = '', rawMessage = {}) {
+  return parseHealthDeclarationMessage({
+    ...rawMessage,
+    bodyText: normalizeText(bodyText) || htmlToText(rawMessage.bodyHtml),
+  });
+}
+
 module.exports = {
   HALSO_MAILBOX,
   buildAnswers,
@@ -289,6 +296,7 @@ module.exports = {
   htmlToText,
   isHalsoHealthDeclarationMessage,
   isHalsoHealthDeclarationSubject,
+  parseHealthDeclarationFromText,
   parseHealthDeclarationMessage,
   parseSignedAt,
 };
