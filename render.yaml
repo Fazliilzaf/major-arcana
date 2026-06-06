@@ -25,7 +25,7 @@ services:
     # parallellt med olika source-states. Source of truth är .js-källfilerna +
     # index.html-script-tag-ordningen.
     buildCommand: npm ci && npm run build:bundle && node ./bin/inject-bundle.js && (PLAYWRIGHT_BROWSERS_PATH=/var/data/playwright-browsers npx playwright install chromium || echo "Playwright install non-fatal, fortsätter ändå")
-    startCommand: npm start
+    startCommand: NODE_OPTIONS='--max-old-space-size=6144' npm start
     disk:
       name: arcana-state
       mountPath: /var/data
