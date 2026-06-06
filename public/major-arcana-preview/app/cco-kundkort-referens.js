@@ -77,6 +77,23 @@
     var steps = journey && A(journey.steps).length ? A(journey.steps) : null;
     var cur = (journey && (journey.currentStep || journey.step)) || null;
     var total = (journey && journey.totalSteps) || 9;
+    var parityJourney =
+      window.CcoV9CustomersParity &&
+      typeof window.CcoV9CustomersParity.buildV11CustomerJourney === 'function'
+        ? window.CcoV9CustomersParity.buildV11CustomerJourney(bcard, journalEntries, bundle)
+        : null;
+    if (parityJourney && parityJourney.steps && parityJourney.steps.length) {
+      steps = parityJourney.steps.map(function (s) {
+        return {
+          id: s.step,
+          label: s.label,
+          note: s.meta || s.dueLabel || '',
+          state: s.status === 'done' ? 'done' : s.status === 'active' ? 'active' : 'todo',
+        };
+      });
+      cur = parityJourney.doneCount != null ? parityJourney.doneCount : cur;
+      total = 9;
+    }
 
     /* ---- health declaration (REAL only) ---- */
     var hd = bcard.healthDeclaration || bundle.healthDeclaration || null;
@@ -288,6 +305,12 @@
 
     /* journaler */
     var jrs = A(journalEntries).length ? A(journalEntries) : A(bundle.journals);
+    function referensJournalVisualState(j) {
+      if (j.locked) return 'done';
+      if (j.canSign || /draft|open|active|utkast/i.test(String(j.status || ''))) return 'act';
+      if (j.state === 'todo') return 'todo';
+      return j.locked ? 'done' : 'act';
+    }
     h += sec(
       'Journaler · personal',
       String(jrs.length),
@@ -295,8 +318,10 @@
         ? jrs
             .slice(0, 8)
             .map(function (j) {
-              var st = j.state === 'active' ? 'act' : j.state === 'todo' ? 'todo' : 'done';
+              var st = referensJournalVisualState(j);
               var ic = st === 'done' ? '✓' : st === 'act' ? '!' : '';
+              var entryId = esc(j.entryId || j.id || '');
+              var jType = esc(j.journalType || '');
               return (
                 '<div class="jr ' +
                 (st === 'done' ? '' : st) +
@@ -319,7 +344,13 @@
                     .join(' · ')
                 ) +
                 '</div></div>' +
-                (st === 'act' ? '<span class="openb">Öppna</span>' : '') +
+                (st === 'act' && entryId
+                  ? '<span class="openb kkx-openb" data-kkx-journal-entry="' +
+                    entryId +
+                    '" data-kkx-journal-type="' +
+                    jType +
+                    '">Öppna</span>'
+                  : '') +
                 '</div>'
               );
             })

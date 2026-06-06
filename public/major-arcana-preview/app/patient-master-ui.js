@@ -1119,7 +1119,149 @@
         },
       });
     }
+    bindKkxReferensPanel(rail, {
+      card,
+      journalEntries,
+      dossierBundle,
+      mountJournalBig: (slot, opts) => mountKkxJournalBig(slot, opts),
+    });
     return true;
+  }
+
+  function bindKkxReferensPanel(rail, ctx) {
+    if (!rail) return;
+    const attempt = (triesLeft) => {
+      const kkref = rail.querySelector('.kkref');
+      if (kkref && window.CcoKundkortKkx?.bindPanel) {
+        window.CcoKundkortKkx.bindPanel(kkref, ctx);
+        return;
+      }
+      if (triesLeft > 0) window.requestAnimationFrame(() => attempt(triesLeft - 1));
+    };
+    attempt(12);
+  }
+
+  function resolveKkxJournalEditTarget(entries, hintEntryId, hintJournalType) {
+    const rows = asArray(entries);
+    const normalizedHint = normalizeText(hintEntryId);
+    if (normalizedHint) {
+      const hit = rows.find((entry) => normalizeText(entry.entryId) === normalizedHint);
+      if (hit) return hit;
+    }
+    if (hintJournalType) {
+      const byType = rows.find(
+        (entry) => entry.journalType === hintJournalType && !entry.locked && entry.canSign
+      );
+      if (byType) return byType;
+    }
+    const preferTypes = ['tp_treatment', 'prp_treatment', 'follow_up', 'bleph_treatment'];
+    for (const journalType of preferTypes) {
+      const draft = rows.find((entry) => entry.journalType === journalType && !entry.locked);
+      if (draft) return draft;
+    }
+    return rows.find((entry) => !entry.locked && entry.canSign) || null;
+  }
+
+  function setRuntimeEditingJournalEntry(entry) {
+    runtime.editingTpEntryId = '';
+    runtime.editingPrpEntryId = '';
+    runtime.editingFollowUpEntryId = '';
+    runtime.editingBlephEntryId = '';
+    runtime.editingClinicalFormKey = '';
+    runtime.editingClinicalEntryId = '';
+    if (!entry?.entryId) return;
+    const formKeyResolver = window.ArcanaJournalClinicalFormKeys?.resolveEntryFormKey;
+    switch (entry.journalType) {
+      case 'tp_treatment':
+        runtime.editingTpEntryId = entry.entryId;
+        break;
+      case 'prp_treatment':
+        runtime.editingPrpEntryId = entry.entryId;
+        break;
+      case 'follow_up':
+        runtime.editingFollowUpEntryId = entry.entryId;
+        break;
+      case 'bleph_treatment':
+        runtime.editingBlephEntryId = entry.entryId;
+        break;
+      case 'health_declaration':
+      case 'fitness_certificate':
+        runtime.editingClinicalFormKey =
+          formKeyResolver?.(entry) ||
+          (entry.journalType === 'health_declaration' ? 'health' : 'fitness');
+        runtime.editingClinicalEntryId = entry.entryId;
+        break;
+      default:
+        break;
+    }
+  }
+
+  function renderActiveJournalFormMarkup(entries) {
+    return [
+      renderTpJournalSection(entries),
+      renderPrpJournalSection(entries),
+      renderFollowUpJournalSection(entries),
+      renderBlephJournalSection(entries),
+      renderClinicalFormSection(entries),
+    ]
+      .filter(Boolean)
+      .join('');
+  }
+
+  function bindKkxNoteVisibilityToggle(root) {
+    const toggle = root?.querySelector('[data-kkx-note-visibility]');
+    if (!toggle || toggle.dataset.kkxBound === '1') return;
+    toggle.dataset.kkxBound = '1';
+    toggle.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-kkx-note-scope]');
+      if (!btn || !toggle.contains(btn)) return;
+      toggle.querySelectorAll('[data-kkx-note-scope]').forEach((node) => {
+        node.classList.toggle('act', node === btn);
+      });
+    });
+  }
+
+  function mountKkxJournalBig(slot, options = {}) {
+    if (!slot) return;
+    const card = runtime.detail?.card;
+    const entries = asArray(runtime.detail?.journalEntries);
+    const entry = resolveKkxJournalEditTarget(entries, options.entryId, options.journalType);
+    setRuntimeEditingJournalEntry(entry);
+    const formMarkup = renderActiveJournalFormMarkup(entries);
+    const typeLabel =
+      JOURNAL_TYPE_LABELS[entry?.journalType] || entry?.title || entry?.journalType || 'Journal';
+    const ctxLine = [
+      card ? displayNameForList(card) : null,
+      typeLabel,
+      entry?.status || (entry ? 'journal påbörjad' : 'ingen redigerbar post'),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    slot.innerHTML = `
+      <div class="kkx-journal-big v9-surface-vellum">
+        <div class="kkx-jctx">${escapeHtml(ctxLine)}</div>
+        <div class="kkx-jzon">Journalpost · mall</div>
+        <div class="kkx-jslot kkx-jslot--live" data-kkx-form-mount>
+          ${
+            formMarkup ||
+            '<p class="patient-master-muted">Ingen redigerbar journalpost — skapa eller öppna en journal i arbetsytan.</p>'
+          }
+        </div>
+        <div class="kkx-jzon">Anteckning · synlighet</div>
+        <div class="kkx-jtog" data-kkx-note-visibility>
+          <button type="button" class="t act" data-kkx-note-scope="private">🔒 Privat intern</button>
+          <button type="button" class="t" data-kkx-note-scope="shared">Delad</button>
+          <span style="font-size:10px;color:#8a8174;font-weight:600;align-self:center">UI-flagga · backend saknas</span>
+        </div>
+        ${
+          entry?.canSign && !entry?.locked
+            ? '<div class="kkx-jeffekt">Vid signering uppdateras kundresa och smart nästa steg automatiskt.</div>'
+            : ''
+        }
+      </div>
+    `;
+    bindKkxNoteVisibilityToggle(slot);
+    window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
 
   function isV9DemoEnabled() {
@@ -4818,6 +4960,7 @@
       }
     }
     syncV9ListChromeLocal();
+    window.CcoKundkortKkx?.sanitizeCustomerListScope?.();
   }
 
   function escapeSelectorValue(value) {
