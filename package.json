@@ -7,7 +7,7 @@
     "node": ">=20.0.0 <23.0.0"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node --max-old-space-size=6144 server.js",
     "dev": "node server.js",
     "scan-pii": "bash scripts/scan-for-pii.sh",
     "cco:live": "PORT=${PORT:-3000} ARCANA_GRAPH_READ_ENABLED=true ARCANA_GRAPH_SEND_ENABLED=true ARCANA_CCO_DELETE_ENABLED=true node server.js",
