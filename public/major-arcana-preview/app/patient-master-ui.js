@@ -1085,6 +1085,7 @@
           window.__renderReferensKundkort(card, dossierBundle, journalEntries, {
             driveFiles,
             commercialCase: runtime.commercialCase || null,
+            occasionTimeline,
           }) +
           '</div>'
         : window.CcoKundkortBlueprint.renderKundkort(
@@ -1127,6 +1128,7 @@
       card,
       journalEntries,
       dossierBundle,
+      extras: { occasionTimeline },
       mountJournalBig: (slot, opts) => mountKkxJournalBig(slot, opts),
     });
     return true;
@@ -3659,13 +3661,23 @@
       'nextRequirement',
       'automationTop',
       'automationSignals',
+      'missingJournal',
+      'hasJournal',
+      'missingHealthDeclaration',
+      'hasHealthDeclaration',
+      'missingForm',
+      'hasForm',
+      'missingAgreement',
+      'hasAgreement',
+      'missingTreatmentPlan',
+      'missingFitnessCertificate',
+      'missingPhotoConsent',
+      'lastEncounterAt',
       'documentBlockers',
       'blockedSteps',
       'blockedActionIds',
       'hasDocumentBlockers',
       'segmentHints',
-      'missingHealthDeclaration',
-      'missingForm',
       'hasUpcomingBooking',
       'nextBookingAt',
       'nextBookingType',
@@ -3674,7 +3686,6 @@
       'bookingCaseStatus',
       'lastVisitAt',
       'lastBookingAt',
-      'lastEncounterAt',
       'onWaitlist',
       'waitingListStatus',
       'patientOrigin',

@@ -162,9 +162,14 @@
     };
   }
 
-  function filterCanonicalSignals(card, bundle) {
+  function filterCanonicalSignals(card, bundle, journalEntries, extras) {
     if (window.CcoKundkortKkx && typeof window.CcoKundkortKkx.resolvePanelSignals === 'function') {
-      return window.CcoKundkortKkx.resolvePanelSignals(card || {});
+      return window.CcoKundkortKkx.resolvePanelSignals(
+        card || {},
+        journalEntries,
+        bundle,
+        extras || {}
+      );
     }
     var raw = A((card && card.automationSignals) || bundle.signals);
     return raw.filter(function (s) {
@@ -209,9 +214,12 @@
     var cur = null;
     var total = 9;
     var nextLabel = '';
+    var ctxExtras = {
+      occasionTimeline: extras.occasionTimeline || bundle.occasionTimeline || null,
+    };
     var canonicalJourney =
       window.CcoKundkortKkx && typeof window.CcoKundkortKkx.buildCanonicalJourneyLive === 'function'
-        ? window.CcoKundkortKkx.buildCanonicalJourneyLive(bcard, journalEntries, bundle)
+        ? window.CcoKundkortKkx.buildCanonicalJourneyLive(bcard, journalEntries, bundle, ctxExtras)
         : null;
     if (canonicalJourney && canonicalJourney.steps && canonicalJourney.steps.length) {
       steps = canonicalJourney.steps.map(function (s) {
@@ -244,7 +252,7 @@
     var allergies = A(bcard.allergies).length ? A(bcard.allergies) : (hd && A(hd.allergies)) || [];
 
     /* ---- canonical signals (10) ---- */
-    var signals = filterCanonicalSignals(bcard, bundle);
+    var signals = filterCanonicalSignals(bcard, bundle, journalEntries, ctxExtras);
 
     /* ---- economy ---- */
     var ltvRaw = bcard.lifetimeValue ?? bcard.dealValue ?? bcard.pipedriveDealValue;

@@ -177,14 +177,82 @@
     return '';
   }
 
-  function hasBooking(card) {
+  function countTimelineBookings(timeline) {
+    var n = 0;
+    (timeline || []).forEach(function (ev) {
+      if (!ev) return;
+      var kind = String(ev.kind || ev.type || '').toLowerCase();
+      if (kind.indexOf('booking') >= 0) n += 1;
+    });
+    return n;
+  }
+
+  function hasCcoConsultJournal(journalEntries) {
+    return (journalEntries || []).some(function (e) {
+      if (!e) return false;
+      var t = String(e.journalType || e.formKey || e.type || '').toLowerCase();
+      return (
+        /tp_treatment|prp_treatment|bleph|consult|konsult/.test(t) &&
+        Boolean(e.signedAt || e.locked)
+      );
+    });
+  }
+
+  /** Banner + computeNextStep — fält kan saknas på detail-card; härled från nextStep/automationTop. */
+  function inferMissingJournal(card, journalEntries) {
+    card = card || {};
+    if (card.missingJournal === true) return true;
+    if (card.missingJournal === false) return false;
+    var top = card.automationTop;
+    if (top && top.status === 'active') {
+      if (String(top.ruleId || '').indexOf('missing_journal') >= 0) return true;
+      if (/journal saknas|saknar journal/i.test(String(top.what || top.summary || ''))) {
+        return true;
+      }
+    }
+    if (
+      (card.automationSignals || []).some(function (s) {
+        return s && s.status === 'active' && String(s.ruleId || '').indexOf('missing_journal') >= 0;
+      })
+    ) {
+      return true;
+    }
+    var next = String(card.nextStep || card.nextRequirement || '');
+    if (/saknar journal/i.test(next)) return true;
+    if (card.hasJournal === true) return false;
+    if (hasCcoConsultJournal(journalEntries)) return false;
+    return false;
+  }
+
+  function hasBooking(card, extras) {
+    extras = extras || {};
     if (!card) return false;
+    if (countTimelineBookings(extras.occasionTimeline) > 0) return true;
+    if (Number(extras.historyBookingCount) > 0) return true;
     return Boolean(
       card.hasUpcomingBooking ||
       Number(card.visitCount != null ? card.visitCount : card.bookingCount) > 0 ||
       card.lastVisitAt ||
-      card.lastBookingAt
+      card.lastBookingAt ||
+      card.lastEncounterAt
     );
+  }
+
+  /**
+   * Enhetlig readout — samma fält som customers-shell / bannern (nextStep, missingJournal, …).
+   */
+  function normalizeKkxReadout(card, journalEntries, dossierBundle, extras) {
+    card = card || {};
+    extras = extras || {};
+    var bundleCard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card;
+    var missingJournal = inferMissingJournal(bundleCard, journalEntries);
+    return Object.assign({}, bundleCard, {
+      missingJournal: missingJournal,
+      hasJournal: missingJournal ? false : bundleCard.hasJournal === true,
+    });
   }
 
   function healthSigned(card) {
@@ -199,7 +267,8 @@
   function journalSigned(card) {
     if (!card) return false;
     if (card.missingJournal === true) return false;
-    return Boolean(card.hasJournal || card.hasJournalHistory);
+    if (card.missingJournal === false) return true;
+    return card.hasJournal === true;
   }
 
   function signalActive(card, fragment) {
@@ -229,16 +298,17 @@
    * done | open | neutral | future — open = aktiv blockerare, neutral = steg 2 (–), future = ej nått.
    * Okänt läge defaultar ALDRIG till done.
    */
-  function computeStepTruth(card, def) {
+  function computeStepTruth(card, def, extras) {
     card = card || {};
+    extras = extras || {};
     switch (def.step) {
       case 1:
-        return hasBooking(card) ? 'done' : 'open';
+        return hasBooking(card, extras) ? 'done' : 'open';
       case 2:
-        return hasBooking(card) ? 'neutral' : 'future';
+        return hasBooking(card, extras) ? 'neutral' : 'future';
       case 3:
         if (healthSigned(card)) return 'done';
-        if (!hasBooking(card)) return 'future';
+        if (!hasBooking(card, extras)) return 'future';
         return card.missingHealthDeclaration === true ? 'open' : 'future';
       case 4:
         if (!healthSigned(card)) return 'future';
@@ -288,12 +358,11 @@
     return truth === 'done';
   }
 
-  function buildCanonicalJourneyLive(card, journalEntries, dossierBundle) {
-    void journalEntries;
-    void dossierBundle;
-    card = card || {};
+  function buildCanonicalJourneyLive(card, journalEntries, dossierBundle, extras) {
+    extras = extras || {};
+    card = normalizeKkxReadout(card, journalEntries, dossierBundle, extras);
     var rows = CANONICAL_COPY.map(function (def) {
-      return { def: def, truth: computeStepTruth(card, def) };
+      return { def: def, truth: computeStepTruth(card, def, extras) };
     });
     var activeStep = null;
     rows.forEach(function (row) {
@@ -341,8 +410,8 @@
   }
 
   /** Samma readout-fält som bannern / ccoKunderEnrichment.computeNextStep. */
-  function synthesizeSignalsFromCard(card) {
-    card = card || {};
+  function synthesizeSignalsFromCard(card, journalEntries, dossierBundle, extras) {
+    card = normalizeKkxReadout(card, journalEntries, dossierBundle, extras || {});
     var out = [];
     if (card.missingHealthDeclaration === true || card.missingForm === true) {
       out.push(makeSyntheticSignal('customer.missing_health_declaration'));
@@ -365,12 +434,12 @@
     return out;
   }
 
-  function resolvePanelSignals(card) {
-    card = card || {};
+  function resolvePanelSignals(card, journalEntries, dossierBundle, extras) {
+    card = normalizeKkxReadout(card, journalEntries, dossierBundle, extras || {});
     var fromApi = (card.automationSignals || []).filter(function (s) {
       return s && CANONICAL_SIGNAL_IDS[String(s.ruleId || '')] && s.status === 'active';
     });
-    var synth = synthesizeSignalsFromCard(card);
+    var synth = synthesizeSignalsFromCard(card, journalEntries, dossierBundle, extras);
     var seen = {};
     fromApi.forEach(function (s) {
       seen[String(s.ruleId)] = true;
@@ -387,8 +456,8 @@
     return fromApi;
   }
 
-  function renderCanonicalJourneyBig(card, journalEntries, dossierBundle) {
-    var journey = buildCanonicalJourneyLive(card, journalEntries, dossierBundle);
+  function renderCanonicalJourneyBig(card, journalEntries, dossierBundle, extras) {
+    var journey = buildCanonicalJourneyLive(card, journalEntries, dossierBundle, extras);
     var stepsByNum = {};
     journey.steps.forEach(function (s) {
       stepsByNum[s.step] = s;
@@ -540,7 +609,7 @@
         if (isResa) {
           openBig(
             title,
-            renderCanonicalJourneyBig(ctx.card, ctx.journalEntries, ctx.dossierBundle)
+            renderCanonicalJourneyBig(ctx.card, ctx.journalEntries, ctx.dossierBundle, ctx.extras)
           );
           return;
         }
@@ -599,6 +668,7 @@
     renderCanonicalJourneyBig: renderCanonicalJourneyBig,
     buildCanonicalJourneyLive: buildCanonicalJourneyLive,
     resolvePanelSignals: resolvePanelSignals,
+    normalizeKkxReadout: normalizeKkxReadout,
     CANONICAL_COPY: CANONICAL_COPY,
   };
 })();
