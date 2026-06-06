@@ -164,20 +164,20 @@ function pickField(fields, aliases = []) {
 function parseSignedAt(rawValue, fallbackIso = '') {
   const value = normalizeText(rawValue);
   if (!value) return normalizeText(fallbackIso) || null;
-  const isoCandidate = Date.parse(value.replace(' ', 'T'));
-  if (Number.isFinite(isoCandidate)) return new Date(isoCandidate).toISOString();
-  const svMatch = value.match(/(\d{4})[-/.](\d{2})[-/.](\d{2})(?:[ T](\d{2}):(\d{2}))?/);
-  if (svMatch) {
-    const [, y, m, d, hh = '00', mm = '00'] = svMatch;
-    const parsed = Date.parse(`${y}-${m}-${d}T${hh}:${mm}:00`);
-    if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
-  }
   const dmyMatch = value.match(/^(\d{1,2})[/.-](\d{1,2})[-/.](\d{4})$/);
   if (dmyMatch) {
     const [, d, m, y] = dmyMatch;
     const parsed = Date.parse(
       `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00`
     );
+    if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+  }
+  const isoCandidate = Date.parse(value.replace(' ', 'T'));
+  if (Number.isFinite(isoCandidate)) return new Date(isoCandidate).toISOString();
+  const svMatch = value.match(/(\d{4})[-/.](\d{2})[-/.](\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+  if (svMatch) {
+    const [, y, m, d, hh = '00', mm = '00'] = svMatch;
+    const parsed = Date.parse(`${y}-${m}-${d}T${hh}:${mm}:00`);
     if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
   }
   return normalizeText(fallbackIso) || null;
