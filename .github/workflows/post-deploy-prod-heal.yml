@@ -5,6 +5,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      restore_env_from_blueprint:
+        description: "FARLIGT — merge PUT env från render.yaml (endast manuell heal)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 permissions:
   contents: read
@@ -69,10 +78,21 @@ jobs:
           echo "::warning::Prod nådde inte ${target_short} inom timeout — fortsätter ändå med heal"
 
       - name: Restore Render env from blueprint
-        if: env.RENDER_API_KEY != ''
+        if: >-
+          env.RENDER_API_KEY != '' &&
+          github.event_name == 'workflow_dispatch' &&
+          inputs.restore_env_from_blueprint == 'true'
         env:
           RENDER_ENV_RESTORE_RESTART: "false"
         run: bash ./scripts/restore-render-env-from-blueprint.sh
+
+      - name: Skip env restore (disabled on push)
+        if: >-
+          env.RENDER_API_KEY != '' &&
+          !(github.event_name == 'workflow_dispatch' && inputs.restore_env_from_blueprint == 'true')
+        run: |
+          echo "Env restore hoppas över (säkerhetslås)."
+          echo "Aktivera endast via workflow_dispatch + restore_env_from_blueprint=true."
 
       - name: Skip env restore (no RENDER_API_KEY)
         if: env.RENDER_API_KEY == ''
@@ -94,15 +114,7 @@ jobs:
 
       - name: Verify Render env count
         if: env.RENDER_API_KEY != ''
-        run: |
-          count="$(curl -fsS -H "Authorization: Bearer ${RENDER_API_KEY}" \
-            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars?limit=100" | \
-            node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).length));")"
-          echo "Render env keys: $count"
-          if [[ "$count" -lt 25 ]]; then
-            echo "::error::För få env-nycklar efter restore ($count)"
-            exit 1
-          fi
+        run: node ./scripts/verify-render-env-count.js
 
       - name: Verify U2.4 field prep (prod)
         if: env.RENDER_API_KEY != ''
