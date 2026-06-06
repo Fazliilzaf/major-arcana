@@ -364,16 +364,18 @@
         if (!hasBooking(card, extras)) return 'future';
         return card.missingHealthDeclaration === true ? 'open' : 'future';
       case 4:
-        if (!healthSigned(card)) return 'future';
+        // Explicit bevis vinner: signerad konsultjournal → steg 4 done även om HD (steg 3) saknas.
         if (journalSigned(card)) return 'done';
+        if (!hasBooking(card, extras)) return 'future';
+        if (!healthSigned(card)) return 'future';
         return card.missingJournal === true ? 'open' : 'future';
       case 5:
-        if (!journalSigned(card) || !healthSigned(card)) return 'future';
+        if (!journalSigned(card)) return 'future';
         if (treatmentPlanDone(card)) return 'done';
         if (card.missingTreatmentPlan === true || signalActive(card, 'missing_treatment_plan')) {
           return 'open';
         }
-        return 'future';
+        return 'open';
       case 6:
         if (!journalSigned(card)) return 'future';
         if (signalActive(card, 'cooling_off_active')) return 'open';
@@ -418,9 +420,22 @@
       return { def: def, truth: computeStepTruth(card, def, extras) };
     });
     var activeStep = null;
-    rows.forEach(function (row) {
-      if (row.truth === 'open' && activeStep == null) activeStep = row.def.step;
+    var step4Done = rows.some(function (row) {
+      return row.def.step === 4 && row.truth === 'done';
     });
+    if (step4Done) {
+      var step5Row = rows.find(function (row) {
+        return row.def.step === 5;
+      });
+      if (step5Row && step5Row.truth !== 'done') {
+        activeStep = 5;
+      }
+    }
+    if (activeStep == null) {
+      rows.forEach(function (row) {
+        if (row.truth === 'open' && activeStep == null) activeStep = row.def.step;
+      });
+    }
     var steps = rows.map(function (row) {
       var status = 'future';
       if (row.truth === 'done') status = 'done';

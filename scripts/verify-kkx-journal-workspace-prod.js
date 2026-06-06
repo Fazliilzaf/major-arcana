@@ -18,7 +18,7 @@ const BASE = (
   process.env.ARCANA_PROD_URL ||
   'https://arcana.hairtpclinic.com'
 ).replace(/\/+$/, '');
-const TEST_PATIENT = process.env.KKX_JOURNAL_TEST_PATIENT || 'cco-pilot-20260602-a';
+const TEST_PATIENT = process.env.KKX_JOURNAL_TEST_PATIENT || 'cco-kkx-uat-del3-a';
 
 function getToken() {
   if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();

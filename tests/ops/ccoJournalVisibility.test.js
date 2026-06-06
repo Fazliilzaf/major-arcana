@@ -56,3 +56,67 @@ test('shared entries remain patient-portal visible', async () => {
   assert.equal(isPatientPortalJournalVisible(entry), true);
   assert.equal(buildJournalReadout(entry).visibility, 'shared');
 });
+
+test('upsertEntry återanvänder öppet utkast per journalType+formVariant', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cco-journal-draft-'));
+  const filePath = path.join(dir, 'journal.json');
+  const store = await createCcoJournalStore({ filePath });
+  const actor = { userId: 'test', role: 'owner', displayName: 'Test' };
+  const first = await store.upsertEntry(
+    {
+      tenantId: 'hairtpclinic',
+      patientId: 'cco-kkx-uat-del3-a',
+      journalType: 'tp_treatment',
+      formVariant: 'hair_tp',
+      title: 'TP A',
+      fields: { a: 1 },
+    },
+    { actor }
+  );
+  const second = await store.upsertEntry(
+    {
+      tenantId: 'hairtpclinic',
+      patientId: 'cco-kkx-uat-del3-a',
+      journalType: 'tp_treatment',
+      formVariant: 'hair_tp',
+      title: 'TP B',
+      fields: { b: 2 },
+    },
+    { actor }
+  );
+  assert.equal(second.entryId, first.entryId);
+  const rows = await store.listEntries({
+    tenantId: 'hairtpclinic',
+    patientId: 'cco-kkx-uat-del3-a',
+    journalType: 'tp_treatment',
+  });
+  assert.equal(rows.length, 1);
+});
+
+test('deleteEntry tillåter radering av olåst utkast', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cco-journal-del-'));
+  const filePath = path.join(dir, 'journal.json');
+  const store = await createCcoJournalStore({ filePath });
+  const actor = { userId: 'test', role: 'owner', displayName: 'Test' };
+  const draft = await store.upsertEntry(
+    {
+      tenantId: 'hairtpclinic',
+      patientId: 'cco-kkx-uat-del3-a',
+      journalType: 'tp_treatment',
+      title: 'Raderas',
+      fields: {},
+    },
+    { actor }
+  );
+  await store.deleteEntry({
+    tenantId: 'hairtpclinic',
+    patientId: 'cco-kkx-uat-del3-a',
+    entryId: draft.entryId,
+    actor,
+  });
+  const rows = await store.listEntries({
+    tenantId: 'hairtpclinic',
+    patientId: 'cco-kkx-uat-del3-a',
+  });
+  assert.equal(rows.length, 0);
+});

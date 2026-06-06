@@ -401,17 +401,52 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
   }
 
   async function upsertEntry(input = {}, { actor = {} } = {}) {
-    const normalizedInput = normalizeJournalEntry(input);
-    if (!normalizedInput.tenantId || !normalizedInput.patientId) {
+    const rawInput = asObject(input);
+    if (!normalizeText(rawInput.tenantId) || !normalizeText(rawInput.patientId)) {
       throw new Error('Journalpost saknar tenantId eller patientId.');
     }
-    const key = entryKey({
-      tenantId: normalizedInput.tenantId,
-      patientId: normalizedInput.patientId,
-      entryId: normalizedInput.entryId,
-    });
-    const index = state.entries.findIndex((item) => entryKey(item) === key);
-    const existing = index >= 0 ? state.entries[index] : null;
+
+    let existing = null;
+    let index = -1;
+    const explicitEntryId = normalizeText(rawInput.entryId);
+    if (explicitEntryId) {
+      const key = entryKey({
+        tenantId: rawInput.tenantId,
+        patientId: rawInput.patientId,
+        entryId: explicitEntryId,
+      });
+      index = state.entries.findIndex((item) => entryKey(item) === key);
+      existing = index >= 0 ? state.entries[index] : null;
+    } else if (normalizeKey(rawInput.status || 'draft') === 'draft') {
+      const draftIndex = state.entries.findIndex(
+        (item) =>
+          item.tenantId === normalizeText(rawInput.tenantId) &&
+          item.patientId === normalizeText(rawInput.patientId) &&
+          normalizeKey(item.journalType) === normalizeKey(rawInput.journalType || 'tp_treatment') &&
+          normalizeKey(item.formVariant || '') ===
+            normalizeKey(
+              rawInput.formVariant ||
+                resolveFormVariantFromMeridiq({
+                  journalType: rawInput.journalType || 'tp_treatment',
+                  formVariant: rawInput.formVariant,
+                  sourceQuestionaryId: rawInput.sourceQuestionaryId,
+                }) ||
+                ''
+            ) &&
+          !item.locked &&
+          normalizeKey(item.status) === 'draft'
+      );
+      if (draftIndex >= 0) {
+        index = draftIndex;
+        existing = state.entries[draftIndex];
+        rawInput.entryId = existing.entryId;
+      }
+    }
+
+    const normalizedInput = normalizeJournalEntry(rawInput, existing || {});
+    if (index < 0 && existing) {
+      index = state.entries.findIndex((item) => entryKey(item) === entryKey(normalizedInput));
+    }
     if (existing?.locked) {
       const error = new Error('Signerad journalpost kan inte ändras. Skapa en rättelse.');
       error.statusCode = 409;
@@ -626,20 +661,22 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
       error.statusCode = 404;
       throw error;
     }
-    if (normalizeKey(existing.journalType) !== 'health_declaration') {
-      const error = new Error('Endast dubbletter av hälsodeklaration kan tas bort.');
+    if (existing.locked) {
+      const error = new Error('Signerade journalposter kan inte raderas.');
       error.statusCode = 409;
       throw error;
     }
-    const siblings = await listEntries({
-      tenantId,
-      patientId,
-      journalType: 'health_declaration',
-    });
-    if (siblings.length <= 1) {
-      const error = new Error('Kan inte ta bort enda hälsodeklarationen.');
-      error.statusCode = 409;
-      throw error;
+    if (normalizeKey(existing.journalType) === 'health_declaration') {
+      const siblings = await listEntries({
+        tenantId,
+        patientId,
+        journalType: 'health_declaration',
+      });
+      if (siblings.length <= 1) {
+        const error = new Error('Kan inte ta bort enda hälsodeklarationen.');
+        error.statusCode = 409;
+        throw error;
+      }
     }
     const key = entryKey({ tenantId, patientId, entryId });
     const index = state.entries.findIndex((item) => entryKey(item) === key);

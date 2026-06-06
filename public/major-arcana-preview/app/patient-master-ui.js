@@ -1196,7 +1196,7 @@
     if (!template) return null;
     return (
       asArray(entries).find((row) => {
-        if (row.locked || !row.canSign) return false;
+        if (row.locked) return false;
         if (row.journalType !== template.journalType) return false;
         if (template.formVariant && row.formVariant && row.formVariant !== template.formVariant) {
           return false;
@@ -1352,76 +1352,95 @@
   }
 
   async function activateKkxJournalTemplate(templateId, slot) {
+    if (runtime.kkxTemplateActivating) return;
     const template = KKX_JOURNAL_TEMPLATES.find((item) => item.id === templateId);
     if (!template) return;
+    runtime.kkxTemplateActivating = true;
     runtime.kkxActiveJournalTemplate = templateId;
-    const entries = asArray(runtime.detail?.journalEntries);
-    let entry = findKkxDraftEntry(entries, template);
-    if (!entry) {
-      if (template.createAction === 'new-tp-journal') await createTpJournalDraft();
-      else if (template.createAction === 'new-prp-journal') {
-        await createPrpJournalDraft(template.formVariant || 'prp_skin');
-      } else if (template.createAction === 'new-follow-up-journal') {
-        await createFollowUpJournalDraft(template.formVariant || '4_manader');
-      } else if (template.createAction === 'new-health-declaration') {
-        await createClinicalJournalDraft('health');
+    try {
+      const entries = asArray(runtime.detail?.journalEntries);
+      let entry = findKkxDraftEntry(entries, template);
+      if (!entry) {
+        if (template.createAction === 'new-tp-journal') await createTpJournalDraft();
+        else if (template.createAction === 'new-prp-journal') {
+          await createPrpJournalDraft(template.formVariant || 'prp_skin');
+        } else if (template.createAction === 'new-follow-up-journal') {
+          await createFollowUpJournalDraft(template.formVariant || '4_manader');
+        } else if (template.createAction === 'new-health-declaration') {
+          await createClinicalJournalDraft('health');
+        }
+        entry = findKkxDraftEntry(asArray(runtime.detail?.journalEntries), template);
       }
-      entry = findKkxDraftEntry(asArray(runtime.detail?.journalEntries), template);
+      mountKkxJournalBig(slot, {
+        entryId: entry?.entryId || '',
+        journalType: entry?.journalType || template.journalType,
+        templateId,
+      });
+    } finally {
+      runtime.kkxTemplateActivating = false;
     }
-    mountKkxJournalBig(slot, {
-      entryId: entry?.entryId || '',
-      journalType: entry?.journalType || template.journalType,
-      templateId,
-    });
   }
 
-  function bindKkxJournalWorkspace(root, entry) {
-    if (!root) return;
-    root.querySelectorAll('[data-kkx-journal-template]').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
+  function bindKkxJournalWorkspace(slot, entry) {
+    if (!slot) return;
+    slot.__kkxActiveEntry = entry || null;
+    if (slot.dataset.kkxJournalBound === '1') return;
+    slot.dataset.kkxJournalBound = '1';
+
+    slot.addEventListener('click', (event) => {
+      const templateBtn = event.target.closest('[data-kkx-journal-template]');
+      if (templateBtn) {
         event.preventDefault();
-        const templateId = btn.getAttribute('data-kkx-journal-template') || 'tp';
-        const slot = root.closest('[data-kkx-journal-mount]') || root;
+        const templateId = templateBtn.getAttribute('data-kkx-journal-template') || 'tp';
         void activateKkxJournalTemplate(templateId, slot);
-      });
-    });
-    root.querySelector('[data-kkx-photo-camera]')?.addEventListener('change', (event) => {
-      const input = event.target;
-      const file = input?.files?.[0];
-      if (file) void uploadConsultationPhoto(file);
-      if (input) input.value = '';
-    });
-    root.querySelector('[data-kkx-open-plan-editor]')?.addEventListener('click', (event) => {
-      event.preventDefault();
-      const btn = event.currentTarget;
-      if (btn.disabled) {
-        setStatus('Ta en bild först — sedan kan du rita hårlinje/krona.', 'info');
         return;
       }
-      void openPlanEditor(
-        btn.getAttribute('data-kkx-plan-entry-id') || '',
-        btn.getAttribute('data-kkx-plan-attachment-id') || '',
-        btn.getAttribute('data-kkx-plan-photo-id') || ''
-      );
-    });
-    root.querySelector('[data-kkx-sign-entry]')?.addEventListener('click', (event) => {
-      event.preventDefault();
-      const entryId = event.currentTarget.getAttribute('data-kkx-sign-entry');
-      if (!entryId) return;
-      void signJournalEntry(entryId).then(() => {
-        const slot = root.closest('[data-kkx-journal-mount]') || root;
-        if (slot) {
+      const planBtn = event.target.closest('[data-kkx-open-plan-editor]');
+      if (planBtn) {
+        event.preventDefault();
+        if (planBtn.disabled) {
+          setStatus('Ta en bild först — sedan kan du rita hårlinje/krona.', 'info');
+          return;
+        }
+        void openPlanEditor(
+          planBtn.getAttribute('data-kkx-plan-entry-id') || '',
+          planBtn.getAttribute('data-kkx-plan-attachment-id') || '',
+          planBtn.getAttribute('data-kkx-plan-photo-id') || ''
+        );
+        return;
+      }
+      const signBtn = event.target.closest('[data-kkx-sign-entry]');
+      if (signBtn) {
+        event.preventDefault();
+        const entryId = signBtn.getAttribute('data-kkx-sign-entry');
+        if (!entryId) return;
+        void signJournalEntry(entryId).then(() => {
+          refreshJournalEnrichmentReadout(runtime.selectedPatientId);
+          const activeEntry =
+            asArray(runtime.detail?.journalEntries).find(
+              (row) => normalizeText(row.entryId) === normalizeText(entryId)
+            ) || slot.__kkxActiveEntry;
           mountKkxJournalBig(slot, {
             entryId,
-            journalType: entry?.journalType || '',
+            journalType: activeEntry?.journalType || '',
             templateId: runtime.kkxActiveJournalTemplate,
           });
-        }
-        if (isV9CustomersEnabled()) renderDetailPanel();
+          if (isV9CustomersEnabled()) renderDetailPanel();
+        });
+      }
+    });
+
+    slot.addEventListener('change', (event) => {
+      const input = event.target.closest('[data-kkx-photo-camera]');
+      if (!input?.files?.[0]) return;
+      if (runtime.kkxPhotoUploadInflight) return;
+      const file = input.files[0];
+      input.value = '';
+      runtime.kkxPhotoUploadInflight = true;
+      void uploadConsultationPhoto(file).finally(() => {
+        runtime.kkxPhotoUploadInflight = false;
       });
     });
-    bindKkxNoteVisibilityToggle(root, entry);
-    void hydrateJournalPhotoElements(root);
   }
 
   function mountKkxJournalBig(slot, options = {}) {
@@ -1478,6 +1497,8 @@
       </div>
     `;
     bindKkxJournalWorkspace(slot, entry);
+    bindKkxNoteVisibilityToggle(slot.querySelector('[data-kkx-journal-workspace]') || slot, entry);
+    void hydrateJournalPhotoElements(slot);
     window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
 
@@ -3853,12 +3874,14 @@
     }
   }
 
-  function mergeCardWithShellEnrichment(card, patientId) {
+  function mergeCardWithShellEnrichment(card, patientId, journalEntries) {
     if (!card) return card;
     const shell = runtime.patients.find(
       (row) => normalizeText(row?.patientId) === normalizeText(patientId || card.patientId)
     );
-    if (!shell) return card;
+    if (!shell) {
+      return reapplyLiveJournalReadout(card, journalEntries);
+    }
     const merged = { ...card };
     const enrichKeys = [
       'phoneMasked',
@@ -3919,7 +3942,68 @@
     if (Array.isArray(shell.flags) && shell.flags.length) {
       merged.flags = shell.flags;
     }
-    return merged;
+    return reapplyLiveJournalReadout(merged, journalEntries);
+  }
+
+  function reapplyLiveJournalReadout(card, journalEntries) {
+    if (!card) return card;
+    const entries = asArray(journalEntries);
+    const kkx = window.CcoKundkortKkx;
+    if (!entries.length || !kkx?.normalizeKkxReadout) return card;
+
+    const live = kkx.normalizeKkxReadout(card, entries, null, {});
+    const next = {
+      ...card,
+      missingJournal: live.missingJournal,
+      hasJournal: live.hasJournal,
+    };
+
+    if (live.missingJournal === false) {
+      if (Array.isArray(next.automationSignals)) {
+        next.automationSignals = next.automationSignals.filter(
+          (signal) =>
+            signal?.status !== 'active' || !String(signal.ruleId || '').includes('missing_journal')
+        );
+      }
+      if (String(next.automationTop?.ruleId || '').includes('missing_journal')) {
+        next.automationTop = next.automationSignals?.[0] || null;
+      }
+      if (/journal saknas|saknar journal/i.test(String(next.nextStep || ''))) {
+        next.nextStep = next.missingHealthDeclaration
+          ? 'Saknar hälsodeklaration (inför konsultation)'
+          : next.hasUpcomingBooking
+            ? `Kommande: ${next.nextBookingType || 'besök'}`
+            : next.nextStep?.replace(/journal saknas|saknar journal/gi, '').trim() || null;
+      }
+      if (kkx.resolvePanelSignals) {
+        next.automationSignals = kkx.resolvePanelSignals(live, entries, null, {});
+        next.automationTop = next.automationSignals[0] || next.automationTop || null;
+      }
+    }
+    return next;
+  }
+
+  function refreshJournalEnrichmentReadout(patientId) {
+    const key = normalizeText(patientId || runtime.selectedPatientId);
+    if (!key || !runtime.detail?.card) return;
+    const journalEntries = asArray(runtime.detail.journalEntries);
+    const patched = reapplyLiveJournalReadout(runtime.detail.card, journalEntries);
+    runtime.detail.card = { ...runtime.detail.card, ...patched };
+
+    const shellRow = runtime.patients.find((row) => normalizeText(row.patientId) === key);
+    if (shellRow) {
+      Object.assign(shellRow, {
+        missingJournal: patched.missingJournal,
+        hasJournal: patched.hasJournal,
+        automationSignals: patched.automationSignals,
+        automationTop: patched.automationTop,
+        nextStep: patched.nextStep,
+      });
+    }
+
+    window.ArcanaCcoData?.invalidate?.('customers-shell');
+    window.ArcanaCcoData?.invalidate?.(`journal:${key}`);
+    renderPatientRows();
   }
 
   function resolveKunderActionContext() {
@@ -5311,7 +5395,8 @@
       runtime.patients.find(
         (row) => normalizeText(row?.patientId) === normalizeText(patientId)
       ) || { patientId, displayName: 'Laddar kund…' },
-      patientId
+      patientId,
+      runtime.detail?.journalEntries
     );
     const heroHtml = isV9CustomersEnabled()
       ? renderV9DossierHeroHtml(cached, [], { loading: true })
@@ -7332,7 +7417,7 @@
     if (!rail || !runtime.detail?.card) return;
     els.patientRail = rail;
     const { card: rawCard } = runtime.detail;
-    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId);
+    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries);
     const journalEntries = asArray(runtime.detail.journalEntries);
     const occasionTimeline = runtime.detail?.occasionTimeline;
     const driveFiles = runtime.detail?.driveFiles;
@@ -7442,7 +7527,7 @@
     runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
     const { card: rawCard, patient, journalEntries, driveFiles, occasionTimeline } = detail;
-    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId);
+    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries);
 
     if (isV9CustomersEnabled()) {
       const tab = normalizeDetailTab(runtime.detailTab);
@@ -8447,6 +8532,7 @@
     }
 
     let uploadFile = file;
+    setStatus('Förbereder bild…', 'loading');
     if (window.ArcanaJournalPhotoClient?.compressForUpload) {
       try {
         uploadFile = await window.ArcanaJournalPhotoClient.compressForUpload(file);
@@ -9004,6 +9090,7 @@
       });
       setStatus('Journal signerad och låst.', 'success');
       await loadPatientDetail(patientId);
+      refreshJournalEnrichmentReadout(patientId);
     } catch (error) {
       setStatus(error.message || 'Signering misslyckades.', 'error');
     }

@@ -12,10 +12,11 @@ const { buildMfaVerifyAttempts } = require('./lib/mfa-totp');
 const ownerMode = process.argv.includes('--owner');
 const forceMode = process.argv.includes('--force');
 const skipIfOpenAccess = process.argv.includes('--skip-if-open-access');
-const base = (process.env.ARCANA_PROD_URL || process.env.BASE_URL || 'https://arcana.hairtpclinic.se').replace(
-  /\/+$/,
-  ''
-);
+const base = (
+  process.env.ARCANA_PROD_URL ||
+  process.env.BASE_URL ||
+  'https://arcana.hairtpclinic.com'
+).replace(/\/+$/, '');
 const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 
 async function fetchJson(path, opts = {}, attempt = 1) {
