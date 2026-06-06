@@ -5,7 +5,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SERVICE_ID="${RENDER_SERVICE_ID:-srv-d8b3i3tckfvc73clgeng}"
 BLUEPRINT_ID="${RENDER_BLUEPRINT_ID:-exs-d6vdjapaae7s7386fum0}"
-EXPECTED_SERVICE_NAME="${RENDER_EXPECTED_SERVICE_NAME:-major-arcana}"
 CLI_YAML="${HOME}/.render/cli.yaml"
 API_KEY="${RENDER_API_KEY:-}"
 
@@ -27,13 +26,16 @@ YAML_NAME="$(node -e "
     if (/^\s*-\s*type:/.test(lines[i])) break;
   }
   process.exit(1);
-")"
-[[ "$YAML_NAME" == "$EXPECTED_SERVICE_NAME" ]] || fail "render.yaml name=$YAML_NAME, förväntat $EXPECTED_SERVICE_NAME"
+")" || fail "Kunde inte läsa web-tjänstens name från render.yaml"
+
+if [[ -n "${RENDER_EXPECTED_SERVICE_NAME:-}" && "$YAML_NAME" != "$RENDER_EXPECTED_SERVICE_NAME" ]]; then
+  fail "render.yaml name=$YAML_NAME, förväntat $RENDER_EXPECTED_SERVICE_NAME (RENDER_EXPECTED_SERVICE_NAME)"
+fi
 
 SERVICE_JSON="$(curl -fsS -H "Authorization: Bearer ${API_KEY}" \
   "https://api.render.com/v1/services/${SERVICE_ID}")"
 ACTUAL_NAME="$(printf '%s' "$SERVICE_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).name));")"
-[[ "$ACTUAL_NAME" == "$EXPECTED_SERVICE_NAME" ]] || fail "Prod-tjänst heter $ACTUAL_NAME, förväntat $EXPECTED_SERVICE_NAME"
+[[ "$ACTUAL_NAME" == "$YAML_NAME" ]] || fail "Prod-tjänst ($SERVICE_ID) heter $ACTUAL_NAME, render.yaml har name=$YAML_NAME"
 
 BP_JSON="$(curl -fsS -H "Authorization: Bearer ${API_KEY}" \
   "https://api.render.com/v1/blueprints/${BLUEPRINT_ID}")"
@@ -43,7 +45,7 @@ IFS='|' read -r BP_AUTO BP_STATE BP_PATH BP_REPO <<< "$BP_STATUS"
 [[ "$BP_PATH" == "render.yaml" ]] || fail "Blueprint path=$BP_PATH, förväntat render.yaml"
 [[ "$BP_REPO" == *"Fazliilzaf/major-arcana"* ]] || fail "Blueprint repo=$BP_REPO"
 
-echo "✅ Blueprint kopplad: $EXPECTED_SERVICE_NAME ($SERVICE_ID), status=$BP_STATE, autoSync=$BP_AUTO"
+echo "✅ Blueprint kopplad: $YAML_NAME ($SERVICE_ID), status=$BP_STATE, autoSync=$BP_AUTO"
 
 if [[ -n "${TARGET_SHA:-}" ]]; then
   target_short="${TARGET_SHA:0:7}"

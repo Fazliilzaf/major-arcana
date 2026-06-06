@@ -18,6 +18,7 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_SERVICE_ID: srv-d8b3i3tckfvc73clgeng
       RENDER_BLUEPRINT_ID: exs-d6vdjapaae7s7386fum0
+      RENDER_EXPECTED_SERVICE_NAME: arcana
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
       ARCANA_PROD_URL: https://arcana.hairtpclinic.se
       TARGET_SHA: ${{ github.sha }}
