@@ -49,13 +49,11 @@ function buildSample() {
 }
 
 function startMemoryTelemetry(options = {}) {
-  const intervalMs = readInt(
-    'ARCANA_MEMORY_TELEMETRY_INTERVAL_MS',
-    options.intervalMs ?? 60000
-  );
-  const enabled = String(process.env.ARCANA_MEMORY_TELEMETRY_ENABLED ?? 'true')
-    .trim()
-    .toLowerCase() !== 'false';
+  const intervalMs = readInt('ARCANA_MEMORY_TELEMETRY_INTERVAL_MS', options.intervalMs ?? 60000);
+  const enabled =
+    String(process.env.ARCANA_MEMORY_TELEMETRY_ENABLED ?? 'true')
+      .trim()
+      .toLowerCase() !== 'false';
   if (!enabled || intervalMs <= 0) {
     return { stop() {} };
   }
@@ -113,31 +111,142 @@ function startMemoryTelemetry(options = {}) {
   };
 }
 
-function installHeapSnapshotHandler(options = {}) {
-  const enabled = String(
-    process.env.ARCANA_HEAP_SNAPSHOT_SIGUSR2_ENABLED ?? 'true'
-  )
-    .trim()
-    .toLowerCase() !== 'false';
-  if (!enabled) return { uninstall() {} };
-  const logger = options.logger || console;
-  const dir =
+function resolveSnapshotDir(options = {}) {
+  return (
     process.env.ARCANA_HEAP_SNAPSHOT_DIR ||
     options.dir ||
-    (fs.existsSync('/var/data') ? '/var/data/heap-snapshots' : path.join(require('node:os').tmpdir(), 'arcana-heap-snapshots'));
-  const handler = () => {
+    (fs.existsSync('/var/data')
+      ? '/var/data/heap-snapshots'
+      : path.join(require('node:os').tmpdir(), 'arcana-heap-snapshots'))
+  );
+}
+
+function writeSnapshotToDisk(dir, label, logger) {
+  fs.mkdirSync(dir, { recursive: true });
+  const filename = `heap-${label}-${new Date()
+    .toISOString()
+    .replace(/[:.]/g, '-')}-pid${process.pid}.heapsnapshot`;
+  const target = path.join(dir, filename);
+  const written = v8.writeHeapSnapshot(target);
+  logger.warn(
+    JSON.stringify({
+      type: 'heap_snapshot_written',
+      ts: new Date().toISOString(),
+      label,
+      path: written,
+    })
+  );
+  return written;
+}
+
+/**
+ * Memory-watchdog: automatisk variant av SIGUSR2-snapshotten.
+ *
+ * - Kollar RSS periodiskt (default 30 s).
+ * - Vid tröskel (default 4096 MB) loggas memory_watchdog status=tripped och
+ *   EN heap-snapshot skrivs (max en auto-snapshot per process-liv, så vi
+ *   aldrig hamnar i snapshot-loop). Fortsatta intervall över tröskeln
+ *   loggas som status=breach utan ny snapshot.
+ * - Vid SIGTERM loggas status=pre_restart, och om RSS >= pre-restart-golvet
+ *   (default 2048 MB) skrivs en pre_restart-snapshot. Golvet skyddar
+ *   vanliga deploy-omstarter (frisk RSS ~900 MB) från långsam shutdown.
+ *
+ * Allt är opt-out via ARCANA_MEMORY_WATCHDOG_ENABLED=false.
+ */
+function startMemoryWatchdog(options = {}) {
+  const enabled =
+    String(process.env.ARCANA_MEMORY_WATCHDOG_ENABLED ?? 'true')
+      .trim()
+      .toLowerCase() !== 'false';
+  if (!enabled) return { stop() {} };
+  const logger = options.logger || console;
+  const intervalMs = readInt('ARCANA_MEMORY_WATCHDOG_INTERVAL_MS', 30000);
+  const thresholdMb = readInt('ARCANA_MEMORY_WATCHDOG_THRESHOLD_MB', 4096);
+  const preRestartFloorMb = readInt('ARCANA_MEMORY_WATCHDOG_PRE_RESTART_FLOOR_MB', 2048);
+  const snapshotEnabled =
+    String(process.env.ARCANA_MEMORY_WATCHDOG_SNAPSHOT_ENABLED ?? 'true')
+      .trim()
+      .toLowerCase() !== 'false';
+  const dir = resolveSnapshotDir(options);
+  let trippedOnce = false;
+
+  const check = () => {
     try {
-      fs.mkdirSync(dir, { recursive: true });
-      const filename = `heap-${new Date().toISOString().replace(/[:.]/g, '-')}-pid${process.pid}.heapsnapshot`;
-      const target = path.join(dir, filename);
-      const written = v8.writeHeapSnapshot(target);
+      const rssMb = toMb(process.memoryUsage().rss);
+      if (rssMb < thresholdMb) return;
+      const status = trippedOnce ? 'breach' : 'tripped';
       logger.warn(
         JSON.stringify({
-          type: 'heap_snapshot_written',
+          type: 'memory_watchdog',
           ts: new Date().toISOString(),
-          path: written,
+          status,
+          rss_mb: rssMb,
+          threshold_mb: thresholdMb,
         })
       );
+      const firstTrip = !trippedOnce;
+      trippedOnce = true;
+      if (firstTrip && snapshotEnabled) {
+        try {
+          writeSnapshotToDisk(dir, 'watchdog', logger);
+        } catch (err) {
+          logger.error(
+            JSON.stringify({
+              type: 'heap_snapshot_error',
+              ts: new Date().toISOString(),
+              label: 'watchdog',
+              error: err && err.message,
+            })
+          );
+        }
+      }
+    } catch (_) {
+      // loggning/snapshot får aldrig krascha appen
+    }
+  };
+  const timer = setInterval(check, intervalMs > 0 ? intervalMs : 30000);
+  if (typeof timer.unref === 'function') timer.unref();
+
+  const onSigterm = () => {
+    try {
+      const rssMb = toMb(process.memoryUsage().rss);
+      logger.warn(
+        JSON.stringify({
+          type: 'memory_watchdog',
+          ts: new Date().toISOString(),
+          status: 'pre_restart',
+          rss_mb: rssMb,
+          pre_restart_floor_mb: preRestartFloorMb,
+        })
+      );
+      if (snapshotEnabled && rssMb >= preRestartFloorMb) {
+        writeSnapshotToDisk(dir, 'pre-restart', logger);
+      }
+    } catch (_) {
+      // får aldrig blockera shutdown
+    }
+  };
+  process.on('SIGTERM', onSigterm);
+
+  return {
+    stop() {
+      clearInterval(timer);
+      process.removeListener('SIGTERM', onSigterm);
+    },
+  };
+}
+
+function installHeapSnapshotHandler(options = {}) {
+  const enabled =
+    String(process.env.ARCANA_HEAP_SNAPSHOT_SIGUSR2_ENABLED ?? 'true')
+      .trim()
+      .toLowerCase() !== 'false';
+  if (!enabled) return { uninstall() {} };
+  const logger = options.logger || console;
+  const dir = resolveSnapshotDir(options);
+  const handler = () => {
+    try {
+      writeSnapshotToDisk(dir, 'sigusr2', logger);
     } catch (err) {
       logger.error(
         JSON.stringify({
@@ -158,5 +267,6 @@ function installHeapSnapshotHandler(options = {}) {
 
 module.exports = {
   startMemoryTelemetry,
+  startMemoryWatchdog,
   installHeapSnapshotHandler,
 };

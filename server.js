@@ -10870,8 +10870,13 @@ server = app.listen(config.port, () => {
 // OOM-läcka tidigt (se project_arcana_oom_134). No-op om
 // ARCANA_MEMORY_TELEMETRY_ENABLED=false.
 try {
-  const { startMemoryTelemetry, installHeapSnapshotHandler } = require('./src/ops/memoryTelemetry');
+  const {
+    startMemoryTelemetry,
+    startMemoryWatchdog,
+    installHeapSnapshotHandler,
+  } = require('./src/ops/memoryTelemetry');
   startMemoryTelemetry({ logger: console });
+  startMemoryWatchdog({ logger: console });
   installHeapSnapshotHandler({ logger: console });
 } catch (err) {
   console.error('[memory-telemetry] init failed:', err && err.message);

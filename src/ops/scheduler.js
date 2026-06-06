@@ -4318,6 +4318,32 @@ function createScheduler({
     runtime.lastError = null;
 
     const startedAtMs = Date.now();
+    const memBefore = process.memoryUsage();
+    // Per-jobb minnesmätning: en JSON-rad per körning så läck-analys kan
+    // aggregera delta_mb per jobId direkt ur Render-loggarna.
+    const logJobMemory = (outcome) => {
+      try {
+        const memAfter = process.memoryUsage();
+        logger?.log?.(
+          JSON.stringify({
+            type: 'scheduler_job_memory',
+            ts: new Date().toISOString(),
+            jobId: job.id,
+            trigger,
+            outcome,
+            duration_ms: Date.now() - startedAtMs,
+            rss_before_mb: Math.round(memBefore.rss / 1048576),
+            rss_after_mb: Math.round(memAfter.rss / 1048576),
+            delta_mb: Math.round((memAfter.rss - memBefore.rss) / 1048576),
+            heap_used_before_mb: Math.round(memBefore.heapUsed / 1048576),
+            heap_used_after_mb: Math.round(memAfter.heapUsed / 1048576),
+            heap_delta_mb: Math.round((memAfter.heapUsed - memBefore.heapUsed) / 1048576),
+          })
+        );
+      } catch (_) {
+        // telemetri får aldrig krascha jobbkörningen
+      }
+    };
     try {
       const result = await job.run({
         tenantId: resolvedTenantId,
@@ -4328,6 +4354,7 @@ function createScheduler({
         targetConversationIds,
       });
       const durationMs = Date.now() - startedAtMs;
+      logJobMemory('success');
       runtime.running = false;
       runtime.runCount += 1;
       runtime.lastDurationMs = durationMs;
@@ -4360,6 +4387,7 @@ function createScheduler({
       };
     } catch (error) {
       const durationMs = Date.now() - startedAtMs;
+      logJobMemory('error');
       const message = sanitizeError(error);
       runtime.running = false;
       runtime.runCount += 1;
