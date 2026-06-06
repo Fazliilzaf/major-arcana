@@ -8611,6 +8611,8 @@
       setStatus('Bild sparad i journalen.', 'success');
       runtime.detailTab = 'journal';
       await loadPatientDetail(patientId);
+      // Forcera färska entries — annars serverar journal-cachen listan utan nya fotot.
+      await loadPatientJournalEntries(patientId, { force: true });
       const kkxSlot = document.querySelector('[data-kkx-journal-mount]');
       if (kkxSlot) {
         mountKkxJournalBig(kkxSlot, {
