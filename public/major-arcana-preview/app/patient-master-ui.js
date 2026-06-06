@@ -5116,9 +5116,24 @@
               ? { n: 8, tone: 'teal' }
               : { n: 9, tone: 'ok' };
 
+    // Lager 5 (v10-skin): mockupens 6 datakolumner. Helpers återanvänds — inga funktioner borttagna.
+    const contact = v9ContactLine(card);
+    const rowState = resolveV9RowState(card);
+    const tags = buildV9RowBadges(card);
+    const lastVisit = card.lastVisitAt ? formatV9ListDate(card.lastVisitAt) : '—';
+    const lastSub = [treatment || null, age ? `${age} år` : null].filter(Boolean).join(' · ');
+    const tagsHtml = tags.length
+      ? `<div class="cr-name-tags">${tags
+          .map(
+            (t) =>
+              `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`
+          )
+          .join('')}</div>`
+      : `<div class="cr-name-tags"><span class="cr-tag cr-tag--cycle">Steg ${jStep.n}</span></div>`;
+
     return `
           <button
-            class="customer-row customer-row--gloss cr-ref${selected ? ' is-selected' : ''}"
+            class="customer-row customer-row--gloss cr-v10${selected ? ' is-selected' : ''}"
             type="button"
             data-patient-row="${escapeHtml(card.patientId)}"
             aria-pressed="${selected ? 'true' : 'false'}"
@@ -5126,11 +5141,21 @@
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
-              <div class="cr-ref-sub">${escapeHtml(subLine)}</div>
+              ${tagsHtml}
             </div>
-            <div class="cr-ref-step"><span class="cr-step-badge" data-tone="${jStep.tone}">Steg ${jStep.n}</span></div>
-            <div class="cr-ref-next"><span class="cr-next-pill" data-tone="${escapeHtml(signal.tone)}">${escapeHtml(signal.text)}</span></div>
-            <div class="cr-ref-ltv">${escapeHtml(revenue.main)}</div>
+            <div class="cr-meta">
+              <div>${escapeHtml(contact.main)}</div>
+              <div class="cr-meta-sub">${escapeHtml(contact.sub)}</div>
+            </div>
+            <div><span class="cr-status" data-state="${escapeHtml(rowState.state)}"><span class="dot"></span>${escapeHtml(rowState.label)}</span></div>
+            <div class="cr-meta">
+              <div class="cr-meta-strong">${escapeHtml(lastVisit)}</div>
+              <div class="cr-meta-sub">${escapeHtml(lastSub)}</div>
+            </div>
+            <div>
+              <div class="cr-revenue">${escapeHtml(revenue.main)}</div>
+            </div>
+            <div><div class="cr-ai">${escapeHtml(signal.text)}</div></div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
         `;
@@ -5138,12 +5163,14 @@
 
   function renderV9ListHeaderHtml() {
     return `
-          <div class="customer-row-head cr-ref-head" aria-hidden="true">
+          <div class="customer-row-head cr-v10-head" aria-hidden="true">
             <div></div>
             <div>Kund</div>
-            <div>Steg</div>
+            <div>Kontakt</div>
+            <div>Status</div>
+            <div>Senaste besök</div>
+            <div>Intäkt (LTV)</div>
             <div>Nästa steg</div>
-            <div>LTV</div>
             <div></div>
           </div>
         `;
