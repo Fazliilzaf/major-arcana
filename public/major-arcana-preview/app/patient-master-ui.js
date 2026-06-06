@@ -969,6 +969,9 @@
 
   /** REFERENS master-detail — bred lista + stort kort, ingen mitten-workspace. */
   function usesReferensMasterDetail() {
+    // Fazli 2026-06-06: 4-panels-layout (sidebar · lista · arbetsyta · kort) är önskat läge.
+    // Master-detail (3 paneler) avstängd. Sätt window.__ARCANA_REFERENS_MASTER_DETAIL = true för att slå på igen.
+    if (window.__ARCANA_REFERENS_MASTER_DETAIL !== true) return false;
     if (!usesBlueprintDesktopLayout()) return false;
     if (typeof window.__renderReferensKundkort !== 'function') return false;
     if (

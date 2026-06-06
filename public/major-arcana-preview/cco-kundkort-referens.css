@@ -813,16 +813,8 @@
 
 /* ===== Master-detail: 4-kolumnerslista + stort REFERENS-kort dockat höger (desktop) ===== */
 @media (min-width: 1100px) {
-  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout {
-    grid-template-columns: 180px minmax(0, 1fr) 424px !important;
-    --v9-layout-grid-cols: 180px minmax(0, 1fr) 424px;
-    --v9-layout-grid-cols-dossier: 180px minmax(0, 1fr) 424px;
-  }
-  html[data-v9-enabled="on"] .customers-workspace {
-    display: none !important;
-  }
+  /* 4-panels-layout återställd (Fazli 2026-06-06): ungated 3-kolumnsregler borttagna.
+     Reglerna nedan är gated på data-v9-referens-master-detail och inerta tills flaggan slås på. */
   html[data-v9-referens-master-detail="on"] .customers-workspace,
   html[data-v9-referens-master-detail="on"][data-v9-blueprint="on"]
     .preview-canvas[data-app-shell-view="customers"]
