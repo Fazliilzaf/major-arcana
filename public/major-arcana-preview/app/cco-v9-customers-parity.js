@@ -395,12 +395,22 @@
     }
     for (const ev of asArray(occasionTimeline)) {
       const kind = String(ev.kind || ev.type || '').toLowerCase();
-      if (!kind.includes('booking')) continue;
-      const ts = ev.ts || ev.occurredAt;
+      const isBookingKind = kind.includes('booking');
+      const isVisitGroup = Boolean(ev.timelineKey || ev.timelineLabel || Number(ev.fileCount) > 0);
+      if (!isBookingKind && !isVisitGroup) continue;
+      const ts =
+        ev.ts ||
+        ev.occurredAt ||
+        ev.capturedAt ||
+        (ev.timelineSort && ev.timelineSort !== '0000-00-00' ? `${ev.timelineSort}T12:00:00` : '');
       if (ts && Date.parse(ts) > Date.now()) continue;
-      rows.push(
-        bookingParts(ts, ev.title || ev.label || 'Historik', ev.summary || '', 'done', 'Klar')
-      );
+      const title =
+        ev.title ||
+        ev.label ||
+        ev.timelineLabel ||
+        ev.occasionLabel ||
+        (isVisitGroup ? 'Besökstillfälle' : 'Historik');
+      rows.push(bookingParts(ts, title, ev.summary || ev.capturedLabel || '', 'done', 'Klar'));
     }
     const seen = new Set();
     return rows
@@ -3770,6 +3780,8 @@
     renderV11InsightsStrip,
     renderV11StickyActions,
     renderV11UpcomingBookings,
+    buildHistoryBookings,
+    buildUpcomingBookings,
     renderV11CustomerJourney,
     buildV11CustomerJourney,
     buildEconomyFields,

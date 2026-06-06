@@ -401,6 +401,17 @@ html[data-v9-blueprint="on"] .bp-doc:first-child {
   border-top: 0;
 }
 
+html[data-v9-blueprint="on"] .bp-doc--clickable {
+  cursor: pointer;
+  border-radius: 12px;
+  margin: 0 -8px;
+  padding: 9px 8px;
+}
+
+html[data-v9-blueprint="on"] .bp-doc--clickable:hover {
+  background: rgba(255, 252, 244, 0.72);
+}
+
 html[data-v9-blueprint="on"] .bp-doc__icon {
   width: 30px;
   height: 30px;

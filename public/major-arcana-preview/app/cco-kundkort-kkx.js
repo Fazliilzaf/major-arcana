@@ -187,6 +187,48 @@
     return n;
   }
 
+  /** Konsultationstillfällen från Drive/file occasion groups (samma som mitten-tidslinjen). */
+  function countVisitOccasions(timeline) {
+    var n = 0;
+    (timeline || []).forEach(function (ev) {
+      if (!ev) return;
+      var kind = String(ev.kind || ev.type || '').toLowerCase();
+      if (kind.indexOf('booking') >= 0) {
+        n += 1;
+        return;
+      }
+      if (ev.timelineKey || ev.timelineLabel || Number(ev.fileCount) > 0) n += 1;
+    });
+    return n;
+  }
+
+  function resolveReferensBookingExtras(card, bundle, extras) {
+    card = card || {};
+    bundle = bundle || {};
+    extras = extras || {};
+    var timeline = extras.occasionTimeline || bundle.occasionTimeline || null;
+    var history = A(bundle.bookings && bundle.bookings.history);
+    if (!history.length) history = A(card.bookingHistory);
+    var upcoming = A(bundle.bookings && bundle.bookings.upcoming);
+    if (!upcoming.length) upcoming = A(card.upcomingBookings);
+    var parity = window.CcoV9CustomersParity;
+    if (parity) {
+      if (!history.length && typeof parity.buildHistoryBookings === 'function') {
+        history = parity.buildHistoryBookings(card, timeline) || [];
+      }
+      if (!upcoming.length && typeof parity.buildUpcomingBookings === 'function') {
+        upcoming = parity.buildUpcomingBookings(card, timeline) || [];
+      }
+    }
+    return {
+      occasionTimeline: timeline,
+      historyBookings: history,
+      upcomingBookings: upcoming,
+      historyBookingCount: history.length,
+      upcomingBookingCount: upcoming.length,
+    };
+  }
+
   function hasCcoConsultJournal(journalEntries) {
     return (journalEntries || []).some(function (e) {
       if (!e) return false;
@@ -227,8 +269,12 @@
   function hasBooking(card, extras) {
     extras = extras || {};
     if (!card) return false;
-    if (countTimelineBookings(extras.occasionTimeline) > 0) return true;
     if (Number(extras.historyBookingCount) > 0) return true;
+    if (Number(extras.upcomingBookingCount) > 0) return true;
+    if (A(extras.historyBookings).length > 0) return true;
+    if (A(extras.upcomingBookings).length > 0) return true;
+    if (countTimelineBookings(extras.occasionTimeline) > 0) return true;
+    if (countVisitOccasions(extras.occasionTimeline) > 0) return true;
     return Boolean(
       card.hasUpcomingBooking ||
       Number(card.visitCount != null ? card.visitCount : card.bookingCount) > 0 ||
@@ -359,7 +405,7 @@
   }
 
   function buildCanonicalJourneyLive(card, journalEntries, dossierBundle, extras) {
-    extras = extras || {};
+    extras = resolveReferensBookingExtras(card, dossierBundle, extras || {});
     card = normalizeKkxReadout(card, journalEntries, dossierBundle, extras);
     var rows = CANONICAL_COPY.map(function (def) {
       return { def: def, truth: computeStepTruth(card, def, extras) };
@@ -435,7 +481,8 @@
   }
 
   function resolvePanelSignals(card, journalEntries, dossierBundle, extras) {
-    card = normalizeKkxReadout(card, journalEntries, dossierBundle, extras || {});
+    extras = resolveReferensBookingExtras(card, dossierBundle, extras || {});
+    card = normalizeKkxReadout(card, journalEntries, dossierBundle, extras);
     var fromApi = (card.automationSignals || []).filter(function (s) {
       return s && CANONICAL_SIGNAL_IDS[String(s.ruleId || '')] && s.status === 'active';
     });
@@ -669,6 +716,7 @@
     buildCanonicalJourneyLive: buildCanonicalJourneyLive,
     resolvePanelSignals: resolvePanelSignals,
     normalizeKkxReadout: normalizeKkxReadout,
+    resolveReferensBookingExtras: resolveReferensBookingExtras,
     CANONICAL_COPY: CANONICAL_COPY,
   };
 })();

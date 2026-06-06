@@ -179,6 +179,54 @@
     return { cls: 'wait', label: 'Väntar' };
   }
 
+  function resolveHealthDocPdfUrl(card, dossierBundle) {
+    const bundleCard =
+      dossierBundle?.card && typeof dossierBundle.card === 'object'
+        ? { ...card, ...dossierBundle.card }
+        : card || {};
+    const hd = bundleCard.healthDeclaration;
+    const assetId = normalizeText(hd?.phase1AssetId || hd?.assetId || hd?.documentAssetId);
+    if (assetId) {
+      return `/api/v1/cco/assets/${encodeURIComponent(assetId)}/download?inline=1`;
+    }
+    return '';
+  }
+
+  async function openHealthDeclarationPdf(patientId, card, dossierBundle) {
+    const direct = resolveHealthDocPdfUrl(card, dossierBundle);
+    if (direct) {
+      window.open(direct, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (!patientId) return;
+    try {
+      const res = await fetch(`/api/v1/cco/patients/${encodeURIComponent(patientId)}/assets`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) return;
+      const payload = await res.json();
+      const items = asArray(payload.items);
+      const match =
+        items.find(
+          (item) =>
+            String(item.mimeType || '').includes('pdf') &&
+            /hälsodekl|health.?decl|halso/i.test(String(item.originalFileName || ''))
+        ) ||
+        items.find((item) => item.sourceSystem === 'm365_halso') ||
+        items.find((item) => item.category === 'form');
+      if (match?.id) {
+        window.open(
+          `/api/v1/cco/assets/${encodeURIComponent(match.id)}/download?inline=1`,
+          '_blank',
+          'noopener,noreferrer'
+        );
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+
   function renderDocumentDossier(card, dossierBundle) {
     return DOC_DOSSIER.map((row) => {
       const st = resolveDocStatus(card, dossierBundle, row.metaKey);
@@ -194,8 +242,12 @@
                 : row.metaKey === 'fitness'
                   ? 'Operationsdagen · day-of'
                   : 'Hårlinje/krona · scope';
+      const openHealth =
+        row.metaKey === 'health' && st.cls === 'ok' && !card?.missingHealthDeclaration;
       return `
-        <div class="bp-doc">
+        <div class="bp-doc${openHealth ? ' bp-doc--clickable' : ''}"${
+          openHealth ? ' data-bp-doc-open-health="1" role="button" tabindex="0"' : ''
+        } data-bp-doc-key="${escapeHtml(row.metaKey)}">
           <div class="bp-doc__icon">${row.icon}</div>
           <div class="bp-doc__copy">
             <div class="bp-doc__title">${escapeHtml(row.title)}</div>
@@ -555,7 +607,7 @@
         ? { ...card, ...dossierBundle.card }
         : card;
     return `
-      <div class="bp-workspace" data-bp-workspace>
+      <div class="bp-workspace" data-bp-workspace data-bp-patient-id="${escapeHtml(String(bundleCard.patientId || bundleCard.id || ''))}">
         <div class="bp-col-label">Mitten · Arbetsyta &amp; tidslinje</div>
         <div class="bp-workspace__card bp-workspace__card--pad">
           ${renderWorkspaceHeader(bundleCard)}
@@ -583,6 +635,25 @@
 
   function bindWorkspace(root, handlers = {}) {
     if (!root) return;
+    const workspace =
+      root.closest('[data-bp-workspace]') || root.querySelector('[data-bp-workspace]') || root;
+    const ctx = handlers.ctx || workspace._bpCtx || {};
+    workspace.querySelectorAll('[data-bp-doc-open-health]').forEach((el) => {
+      if (el.dataset.bpDocBound === '1') return;
+      el.dataset.bpDocBound = '1';
+      const open = () => {
+        const patientId =
+          workspace.getAttribute('data-bp-patient-id') || ctx.card?.patientId || ctx.card?.id || '';
+        void openHealthDeclarationPdf(patientId, ctx.card, ctx.dossierBundle);
+      };
+      el.addEventListener('click', open);
+      el.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          open();
+        }
+      });
+    });
     root.querySelectorAll('[data-bp-workspace-tab]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const tab = btn.getAttribute('data-bp-workspace-tab');

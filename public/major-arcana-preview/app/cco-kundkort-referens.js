@@ -214,9 +214,14 @@
     var cur = null;
     var total = 9;
     var nextLabel = '';
-    var ctxExtras = {
-      occasionTimeline: extras.occasionTimeline || bundle.occasionTimeline || null,
-    };
+    var bookingExtras =
+      window.CcoKundkortKkx &&
+      typeof window.CcoKundkortKkx.resolveReferensBookingExtras === 'function'
+        ? window.CcoKundkortKkx.resolveReferensBookingExtras(bcard, bundle, extras || {})
+        : {
+            occasionTimeline: extras.occasionTimeline || bundle.occasionTimeline || null,
+          };
+    var ctxExtras = bookingExtras;
     var canonicalJourney =
       window.CcoKundkortKkx && typeof window.CcoKundkortKkx.buildCanonicalJourneyLive === 'function'
         ? window.CcoKundkortKkx.buildCanonicalJourneyLive(bcard, journalEntries, bundle, ctxExtras)
@@ -458,17 +463,13 @@
 
     h += '<div class="gthread"></div>';
 
-    var up = A(bundle.bookings && bundle.bookings.upcoming).length
-      ? A(bundle.bookings.upcoming)
-      : A(bcard.upcomingBookings);
+    var hist = A(ctxExtras.historyBookings);
+    var up = A(ctxExtras.upcomingBookings);
     h += sec(
       'Kommande bokningar',
       String(up.length),
       up.length ? up.slice(0, 5).map(bookingRow).join('') : empty('Inga kommande bokningar.')
     );
-    var hist = A(bundle.bookings && bundle.bookings.history).length
-      ? A(bundle.bookings.history)
-      : A(bcard.bookingHistory);
     h += sec(
       'Historik',
       String(hist.length),

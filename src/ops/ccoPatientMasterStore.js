@@ -681,6 +681,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     if (indexedMatches) {
       rows = indexedMatches.map((index) => bucket.patients[index]).filter(Boolean);
     } else if (q) {
+      const tokens = q.split(/\s+/).filter(Boolean);
       rows = rows.filter((item) => {
         const haystack = [
           item.displayName,
@@ -692,7 +693,8 @@ async function createCcoPatientMasterStore({ filePath }) {
         ]
           .map(normalizeKey)
           .join(' ');
-        return haystack.includes(q);
+        if (tokens.length <= 1) return haystack.includes(q);
+        return tokens.every((token) => haystack.includes(token));
       });
     }
     if (flagSet.size) {

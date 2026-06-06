@@ -120,10 +120,14 @@ async function main() {
   record('Timeline bookings', true, String(bookingEvents.length));
 
   const kkx = loadKkx();
-  const extras = { occasionTimeline: timeline };
-  const readout = kkx.normalizeKkxReadout(card, [], null, extras);
-  const journey = kkx.buildCanonicalJourneyLive(card, [], null, extras);
-  const signals = kkx.resolvePanelSignals(card, [], null, extras);
+  const bookingExtras = kkx.resolveReferensBookingExtras?.(card, null, {
+    occasionTimeline: timeline,
+  }) || {
+    occasionTimeline: timeline,
+  };
+  const readout = kkx.normalizeKkxReadout(card, [], null, bookingExtras);
+  const journey = kkx.buildCanonicalJourneyLive(card, [], null, bookingExtras);
+  const signals = kkx.resolvePanelSignals(card, [], null, bookingExtras);
 
   if (
     !record(

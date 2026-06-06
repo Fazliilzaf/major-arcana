@@ -1119,6 +1119,7 @@
     });
     if (workspace && !referensMasterDetail) {
       window.CcoKundkortBlueprint.bindWorkspace(workspace, {
+        ctx: { card, journalEntries, dossierBundle },
         onTabChange: (tab) => {
           runtime.blueprintWorkspaceTab = tab;
         },
