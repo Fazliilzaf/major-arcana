@@ -406,13 +406,6 @@
         .getElementById('v9-voice-overlay')
         ?.classList.contains('is-active');
 
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        if (searchOpen) closeSearch();
-        else openSearch();
-        return;
-      }
-
       if (searchOpen) {
         if (event.key === 'Escape') {
           event.preventDefault();

@@ -60,6 +60,7 @@
     "verify:migration-prod": "node ./scripts/verify-migration-prod.js",
     "verify:customer-list-prod": "node ./scripts/verify-customer-list-prod.js",
     "push:migration-state-prod": "node ./scripts/push-migration-state-prod.js",
+    "trigger:render-prod-deploy": "node ./scripts/trigger-render-prod-deploy.js",
     "sync:notion-master-todo": "node scripts/sync-notion-master-todo.mjs",
     "check:notion-sync-prereqs": "node scripts/check-notion-sync-prereqs.mjs",
     "verify:sharepoint-archive": "node ./scripts/verify-sharepoint-archive.js",

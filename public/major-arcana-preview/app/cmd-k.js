@@ -54,10 +54,80 @@
   let overlayEl = null;
   let inputEl = null;
   let listEl = null;
+  let searchSeq = 0;
+  let searchDebounce = null;
+  let customerServerResults = [];
+  let isSearchingCustomers = false;
 
-  // ============================================================
-  // Sökmotor
-  // ============================================================
+  const CUSTOMER_SEARCH_SELECTORS =
+    '[data-customer-search], [data-v9-global-search-input], [data-v9-search-input]';
+
+  function blurBackgroundSearchFields() {
+    document.querySelectorAll(CUSTOMER_SEARCH_SELECTORS).forEach((el) => {
+      if (typeof el.blur === 'function') el.blur();
+    });
+  }
+
+  function closeV9SearchOverlay() {
+    const overlay = document.getElementById('v9-search-overlay');
+    if (!overlay?.classList.contains('is-visible')) return;
+    overlay.classList.remove('is-visible');
+    overlay.hidden = true;
+    const input = overlay.querySelector('[data-v9-search-input]');
+    if (input) input.value = '';
+  }
+
+  async function ensureCustomersRegisterContext() {
+    const canvas = document.querySelector('.preview-canvas');
+    if (canvas?.dataset?.appShellView !== 'customers') {
+      const navBtn = document.querySelector('[data-nav-view="customers"]');
+      if (navBtn) navBtn.click();
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    }
+    const pmRuntime = window.ArcanaPatientMasterUi?.getRuntime?.();
+    if (pmRuntime && pmRuntime.mode !== 'register') {
+      const registerBtn = document.querySelector('[data-patient-master-mode="register"]');
+      if (registerBtn) registerBtn.click();
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    }
+  }
+
+  function mapPatientsToCustomerResults(patients, query) {
+    return (Array.isArray(patients) ? patients : [])
+      .map((info) => {
+        const id = info?.patientId || info?.id || '';
+        const title = info?.displayName || info?.name || id;
+        const subtitle = info?.primaryEmail || info?.primaryPhone || info?.personnummer || '';
+        const searchText = `${title} ${subtitle} ${info?.personnummer || ''}`;
+        return {
+          type: 'customer',
+          id,
+          title,
+          subtitle,
+          searchText,
+          actionData: { kind: 'customer', id },
+          score: fuzzyMatch(searchText, query) || (query ? 70 : 0),
+        };
+      })
+      .filter((item) => item.id);
+  }
+
+  async function searchCustomersServer(query) {
+    const q = String(query || '').trim();
+    if (!q) {
+      customerServerResults = [];
+      return [];
+    }
+    const api = window.ArcanaPatientMasterUi;
+    if (typeof api?.setCustomerSearchQuery !== 'function') {
+      customerServerResults = searchCustomersLocal(q);
+      return customerServerResults;
+    }
+    await ensureCustomersRegisterContext();
+    const patients = await api.setCustomerSearchQuery(q, { clearSelection: true, force: true });
+    customerServerResults = mapPatientsToCustomerResults(patients, q);
+    return customerServerResults;
+  }
 
   function fuzzyMatch(text, query) {
     if (!text || !query) return 0;
@@ -66,7 +136,6 @@
     if (t === q) return 100;
     if (t.startsWith(q)) return 80;
     if (t.includes(q)) return 60;
-    // Karakterordnad subsequence-match (alla bokstäver i q i samma ordning i t)
     let qi = 0;
     for (let i = 0; i < t.length && qi < q.length; i++) {
       if (t[i] === q[qi]) qi++;
@@ -108,6 +177,13 @@
   }
 
   function searchCustomers(query) {
+    const q = String(query || '').trim();
+    if (!q) return [];
+    if (customerServerResults.length) return customerServerResults;
+    return searchCustomersLocal(q);
+  }
+
+  function searchCustomersLocal(query) {
     const canvas = document.querySelector('.preview-canvas');
     const pmRuntime = window.ArcanaPatientMasterUi?.getRuntime?.();
     if (
@@ -264,12 +340,35 @@
     });
     inputEl.addEventListener('input', () => {
       activeIndex = 0;
-      renderResults(inputEl.value);
+      const query = inputEl.value;
+      renderResults(query);
+      if (searchDebounce) clearTimeout(searchDebounce);
+      const q = String(query || '').trim();
+      if (!q) {
+        customerServerResults = [];
+        isSearchingCustomers = false;
+        return;
+      }
+      const seq = ++searchSeq;
+      isSearchingCustomers = true;
+      renderResults(query);
+      searchDebounce = setTimeout(() => {
+        void searchCustomersServer(q).then(() => {
+          if (seq !== searchSeq || !isOpen) return;
+          isSearchingCustomers = false;
+          renderResults(inputEl.value);
+        });
+      }, 220);
     });
   }
 
   function renderResults(query) {
     currentResults = getResults(query);
+    const q = String(query || '').trim();
+    if (isSearchingCustomers && q && !customerServerResults.length && currentResults.length === 0) {
+      listEl.innerHTML = '<div class="cmd-k-empty">Söker kunder…</div>';
+      return;
+    }
     if (currentResults.length === 0) {
       listEl.innerHTML = '<div class="cmd-k-empty">Inga träffar.</div>';
       return;
@@ -360,12 +459,19 @@
         }
       }, 50);
     } else if (data.kind === 'customer') {
-      if (typeof window.__ccoCustomerList?.selectCustomerKey === 'function') {
-        window.__ccoCustomerList.selectCustomerKey(data.id);
-      } else {
+      void (async () => {
+        await ensureCustomersRegisterContext();
+        if (typeof window.ArcanaPatientMasterUi?.openPatient === 'function') {
+          await window.ArcanaPatientMasterUi.openPatient(data.id);
+          return;
+        }
+        if (typeof window.__ccoCustomerList?.selectCustomerKey === 'function') {
+          window.__ccoCustomerList.selectCustomerKey(data.id);
+          return;
+        }
         const navBtn = document.querySelector('[data-nav-view="customers"]');
         if (navBtn) navBtn.click();
-      }
+      })();
     } else if (data.kind === 'macro') {
       const navBtn = document.querySelector('[data-nav-view="macros"]');
       if (navBtn) navBtn.click();
@@ -384,19 +490,37 @@
     ensureOverlay();
     isOpen = true;
     activeIndex = 0;
+    searchSeq += 1;
+    customerServerResults = [];
+    isSearchingCustomers = false;
+    if (searchDebounce) {
+      clearTimeout(searchDebounce);
+      searchDebounce = null;
+    }
+    closeV9SearchOverlay();
+    blurBackgroundSearchFields();
     overlayEl.setAttribute('data-open', '');
     overlayEl.setAttribute('aria-hidden', 'false');
     if (inputEl) {
       inputEl.value = '';
       renderResults('');
-      // Fokusera input efter en frame så CSS-transition hinner starta
-      requestAnimationFrame(() => inputEl.focus());
+      requestAnimationFrame(() => {
+        blurBackgroundSearchFields();
+        inputEl.focus({ preventScroll: true });
+        requestAnimationFrame(() => inputEl.focus({ preventScroll: true }));
+      });
     }
   }
 
   function close() {
     if (!isOpen) return;
     isOpen = false;
+    searchSeq += 1;
+    isSearchingCustomers = false;
+    if (searchDebounce) {
+      clearTimeout(searchDebounce);
+      searchDebounce = null;
+    }
     if (overlayEl) {
       overlayEl.removeAttribute('data-open');
       overlayEl.setAttribute('aria-hidden', 'true');
@@ -412,31 +536,38 @@
   // Keyboard
   // ============================================================
 
-  document.addEventListener('keydown', (e) => {
-    // Cmd+K (Mac) eller Ctrl+K — öppna/toggle
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      toggle();
-      return;
-    }
-    // Hantering INNE i overlay
-    if (!isOpen) return;
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      close();
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      activeIndex = Math.min(activeIndex + 1, currentResults.length - 1);
-      renderResults(inputEl.value);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      activeIndex = Math.max(activeIndex - 1, 0);
-      renderResults(inputEl.value);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      selectResult(activeIndex);
-    }
-  });
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggle();
+        return;
+      }
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        activeIndex = Math.min(activeIndex + 1, currentResults.length - 1);
+        renderResults(inputEl.value);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        renderResults(inputEl.value);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        selectResult(activeIndex);
+      }
+    },
+    true
+  );
 
   // Exponera för debug
   window.__CmdK = Object.freeze({ open, close, toggle });
