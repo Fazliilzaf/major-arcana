@@ -10277,17 +10277,41 @@ function createRuntimeGraphReadConnector() {
     .toLowerCase();
   if (!['1', 'true', 'yes', 'y', 'on'].includes(graphReadEnabled)) return null;
 
-  return createMicrosoftGraphReadConnector({
-    tenantId: String(process.env.ARCANA_GRAPH_TENANT_ID || '').trim(),
-    clientId: String(process.env.ARCANA_GRAPH_CLIENT_ID || '').trim(),
-    clientSecret: String(process.env.ARCANA_GRAPH_CLIENT_SECRET || '').trim(),
-    userId: String(process.env.ARCANA_GRAPH_USER_ID || '').trim(),
-    fullTenant: true,
-    userScope: 'all',
-    authorityHost: String(process.env.ARCANA_GRAPH_AUTHORITY_HOST || '').trim() || undefined,
-    graphBaseUrl: String(process.env.ARCANA_GRAPH_BASE_URL || '').trim() || undefined,
-    scope: String(process.env.ARCANA_GRAPH_SCOPE || '').trim() || undefined,
-  });
+  const tenantId = String(process.env.ARCANA_GRAPH_TENANT_ID || '').trim();
+  const clientId = String(process.env.ARCANA_GRAPH_CLIENT_ID || '').trim();
+  const clientSecret = String(process.env.ARCANA_GRAPH_CLIENT_SECRET || '').trim();
+  const userId = String(process.env.ARCANA_GRAPH_USER_ID || '').trim();
+  const fullTenant = true;
+  const userScope = 'all';
+  if (!tenantId || !clientId || !clientSecret) {
+    console.warn(
+      '[server] ARCANA_GRAPH_READ_ENABLED=true men saknar tenantId/clientId/clientSecret — graphReadConnector inaktiv'
+    );
+    return null;
+  }
+  if (!(fullTenant && userScope === 'all') && !userId) {
+    console.warn(
+      '[server] ARCANA_GRAPH_READ_ENABLED=true men saknar userId — graphReadConnector inaktiv'
+    );
+    return null;
+  }
+
+  try {
+    return createMicrosoftGraphReadConnector({
+      tenantId,
+      clientId,
+      clientSecret,
+      userId,
+      fullTenant,
+      userScope,
+      authorityHost: String(process.env.ARCANA_GRAPH_AUTHORITY_HOST || '').trim() || undefined,
+      graphBaseUrl: String(process.env.ARCANA_GRAPH_BASE_URL || '').trim() || undefined,
+      scope: String(process.env.ARCANA_GRAPH_SCOPE || '').trim() || undefined,
+    });
+  } catch (err) {
+    console.warn('[server] kunde inte skapa graphReadConnector', err?.message);
+    return null;
+  }
 }
 
 app.get('/', (req, res) => {
