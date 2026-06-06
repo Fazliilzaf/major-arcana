@@ -108,6 +108,32 @@
   }
 
   function searchCustomers(query) {
+    const canvas = document.querySelector('.preview-canvas');
+    const pmRuntime = window.ArcanaPatientMasterUi?.getRuntime?.();
+    if (
+      canvas?.dataset?.appShellView === 'customers' &&
+      pmRuntime?.mode === 'register' &&
+      Array.isArray(pmRuntime.patients)
+    ) {
+      return pmRuntime.patients
+        .map((info) => {
+          const id = info?.patientId || info?.id || '';
+          const title = info?.displayName || info?.name || id;
+          const subtitle = info?.primaryEmail || info?.primaryPhone || '';
+          const searchText = `${title} ${subtitle} ${info?.personnummer || ''}`;
+          return {
+            type: 'customer',
+            id,
+            title,
+            subtitle,
+            searchText,
+            actionData: { kind: 'customer', id },
+            score: fuzzyMatch(searchText, query),
+          };
+        })
+        .filter((item) => item.id && item.score > 0);
+    }
+
     const state = getState();
     if (!state?.customerRuntime?.directory) return [];
     const directory = state.customerRuntime.directory;

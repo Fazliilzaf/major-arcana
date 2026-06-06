@@ -3542,15 +3542,9 @@
     if (!globalInput || !legacyInput) return;
     if (globalInput.dataset.bound === '1') return;
     globalInput.dataset.bound = '1';
-    globalInput.addEventListener('input', () => {
-      legacyInput.value = globalInput.value;
-      legacyInput.dispatchEvent(new Event('input', { bubbles: true }));
-    });
+    // Sök kopplas i patient-master-ui (server q=). Här bara synka värden om legacy skrivs.
     legacyInput.addEventListener('input', () => {
       if (globalInput.value !== legacyInput.value) globalInput.value = legacyInput.value;
-    });
-    globalInput.addEventListener('focus', () => {
-      global.dispatchEvent(new CustomEvent('cco:v9-open-search'));
     });
   }
 

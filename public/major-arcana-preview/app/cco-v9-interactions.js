@@ -143,21 +143,39 @@
     const q = String(query || '')
       .trim()
       .toLowerCase();
-    const rows = Array.from(document.querySelectorAll('[data-customer-list] [data-patient-row]'));
-    return rows
-      .map((row) => {
-        const id = row.getAttribute('data-patient-row') || '';
-        const name = row.querySelector('.cr-name')?.textContent?.trim() || id;
-        const sub =
-          row.querySelector('.cr-meta')?.textContent?.trim() ||
-          row.querySelector('.cr-signal')?.textContent?.trim() ||
-          row.querySelector('.cr-ai')?.textContent?.trim() ||
-          '';
-        const hay = `${name} ${sub} ${row.textContent || ''} ${id}`.toLowerCase();
+    const runtime = window.ArcanaPatientMasterUi?.getRuntime?.();
+    const patients = Array.isArray(runtime?.patients) ? runtime.patients : [];
+    return patients
+      .map((card) => {
+        const id = card.patientId || card.id || '';
+        const name = card.displayName || card.name || id;
+        const sub = card.primaryEmail || card.primaryPhone || card.personnummer || '';
+        const hay = `${name} ${sub} ${id}`.toLowerCase();
         return { id, name, sub, hay };
       })
       .filter((item) => item.id && (!q || item.hay.includes(q)))
       .slice(0, 12);
+  }
+
+  let searchDebounce = null;
+
+  async function refreshSearchResults(query, { clearSelection = false } = {}) {
+    const api = window.ArcanaPatientMasterUi;
+    if (typeof api?.setCustomerSearchQuery === 'function') {
+      const patients = await api.setCustomerSearchQuery(query, { clearSelection, force: true });
+      searchResults = patients
+        .map((card) => ({
+          id: card.patientId || card.id || '',
+          name: card.displayName || card.name || card.patientId || '',
+          sub: card.primaryEmail || card.primaryPhone || card.personnummer || '',
+        }))
+        .filter((item) => item.id)
+        .slice(0, 12);
+    } else {
+      searchResults = collectSearchResults(query);
+    }
+    searchSelectedIdx = 0;
+    renderSearchList();
   }
 
   function renderSearchList() {
@@ -184,9 +202,12 @@
     const input = overlay.querySelector('[data-v9-search-input]');
     overlay.hidden = false;
     overlay.classList.add('is-visible');
-    searchResults = collectSearchResults('');
-    searchSelectedIdx = 0;
-    renderSearchList();
+    const current =
+      document.querySelector('[data-v9-global-search-input]')?.value ||
+      document.querySelector('[data-customer-search]')?.value ||
+      '';
+    if (input) input.value = current;
+    void refreshSearchResults(current, { clearSelection: false });
     window.requestAnimationFrame(() => input?.focus());
   }
 
@@ -203,10 +224,7 @@
 
   function selectSearchResult(patientId) {
     closeSearch();
-    const row = document.querySelector(
-      `[data-patient-row="${String(patientId).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`
-    );
-    if (row) row.click();
+    void window.ArcanaPatientMasterUi?.openPatient?.(patientId);
   }
 
   function stopVoice() {
@@ -368,9 +386,11 @@
 
     document.addEventListener('input', (event) => {
       if (!event.target.matches('[data-v9-search-input]')) return;
-      searchResults = collectSearchResults(event.target.value);
-      searchSelectedIdx = 0;
-      renderSearchList();
+      clearTimeout(searchDebounce);
+      const query = event.target.value;
+      searchDebounce = window.setTimeout(() => {
+        void refreshSearchResults(query, { clearSelection: true });
+      }, 280);
     });
   }
 

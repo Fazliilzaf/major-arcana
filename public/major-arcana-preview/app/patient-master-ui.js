@@ -217,6 +217,7 @@
     draftProposalsPatientId: '',
     preferJournalOnMobile: false,
     pendingPatientId: '',
+    pendingListReload: null,
     pendingPasswordSetup: null,
     editingTpEntryId: '',
     editingPrpEntryId: '',
@@ -7347,13 +7348,18 @@
     }
   }
 
-  async function loadPatientList({ append = false } = {}) {
+  async function loadPatientList({ append = false, force = false } = {}) {
     if (runtime.mode !== 'register') return;
     if (needsStaffLogin()) {
       renderPatientRows();
       return;
     }
-    if (runtime.loading) return;
+    if (runtime.loading) {
+      if (!append) {
+        runtime.pendingListReload = { append: false, force: true };
+      }
+      return;
+    }
     runtime.loading = true;
     runtime.error = '';
     if (!append) {
@@ -7391,6 +7397,7 @@
       const payload = await apiRequest(`/api/v1/cco/staff/customers-shell?${params}`, {
         cacheKey: shellKey,
         staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
+        force: force === true,
       });
       const patientsPayload = payload.patients || payload;
       const batch = filterPilotPatients(asArray(patientsPayload.patients));
@@ -7445,9 +7452,40 @@
       setStatus(runtime.error, 'error');
     } finally {
       runtime.loading = false;
-      renderMetricCards();
-      renderPatientRows();
     }
+    const pending = runtime.pendingListReload;
+    runtime.pendingListReload = null;
+    if (pending) {
+      void loadPatientList(pending);
+      return;
+    }
+    renderMetricCards();
+    renderPatientRows();
+  }
+
+  function syncCustomerSearchInputs(query, exceptEl = null) {
+    const next = normalizeText(query);
+    document
+      .querySelectorAll(
+        '[data-customer-search], [data-v9-global-search-input], [data-v9-search-input]'
+      )
+      .forEach((el) => {
+        if (el === exceptEl || el.value === next) return;
+        el.value = next;
+      });
+    return next;
+  }
+
+  async function setCustomerSearchQuery(query, { clearSelection = true, force = true } = {}) {
+    if (runtime.mode !== 'register') return [];
+    runtime.query = syncCustomerSearchInputs(query);
+    if (clearSelection) {
+      runtime.selectedPatientId = '';
+      runtime.detail = null;
+      renderDetailEmpty();
+    }
+    await loadPatientList({ force: force === true });
+    return runtime.patients.slice();
   }
 
   async function loadOfferTemplates() {
@@ -9190,19 +9228,23 @@
       }
     });
 
-    if (els.search) {
-      els.search.addEventListener('input', () => {
+    function bindCustomerSearchInput(input) {
+      if (!input || input.dataset.patientSearchBound === '1') return;
+      input.dataset.patientSearchBound = '1';
+      input.addEventListener('input', () => {
         if (runtime.mode !== 'register') return;
-        runtime.query = normalizeText(els.search.value);
+        runtime.query = syncCustomerSearchInputs(input.value, input);
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => {
           runtime.selectedPatientId = '';
           runtime.detail = null;
           renderDetailEmpty();
-          void loadPatientList();
+          void loadPatientList({ force: true });
         }, 280);
       });
     }
+    bindCustomerSearchInput(document.querySelector('[data-customer-search]'));
+    bindCustomerSearchInput(document.querySelector('[data-v9-global-search-input]'));
 
     if (els.filter) {
       els.filter.addEventListener('change', () => {
@@ -9540,6 +9582,7 @@
     syncMobilePatientLayout,
     setPatientTab,
     showMobileToast,
+    setCustomerSearchQuery,
     openPatient,
     openPatientByEmail,
   };
@@ -9615,6 +9658,7 @@
     switchDetailTab,
     sortPatients: sortPatientsForV9Display,
     syncListChrome: syncV9ListChromeLocal,
+    setCustomerSearchQuery,
   };
   window.CcoV9CustomersParity?.install?.(window.CcoPatientMasterUi);
   if (document.readyState === 'loading') {
