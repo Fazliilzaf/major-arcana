@@ -331,7 +331,7 @@
       if (sec.closest('details.dossier-section')) return;
       var lab = sec.querySelector('.lab');
       if (!lab) return;
-      var title = (su.textContent || '').replace(/▾/g, '').trim();
+      var title = summaryTitle(lab);
       var countEl = lab.querySelector('.src, .sb-chip, .count');
       var count = countEl ? countEl.textContent.trim() : '';
       var inner = sec.innerHTML.replace(lab.outerHTML, '');
