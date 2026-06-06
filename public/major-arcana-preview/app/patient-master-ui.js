@@ -1437,9 +1437,19 @@
       const file = input.files[0];
       input.value = '';
       runtime.kkxPhotoUploadInflight = true;
-      void uploadConsultationPhoto(file).finally(() => {
-        runtime.kkxPhotoUploadInflight = false;
-      });
+      void uploadConsultationPhoto(file, { defaultLabel: 'Konsultationsbild · dagens besök' })
+        .then(() => {
+          const ws = slot.closest('[data-kkx-journal-mount]') || slot;
+          void hydrateJournalPhotoElements(ws);
+          mountKkxJournalBig(slot, {
+            entryId: slot.__kkxActiveEntry?.entryId || '',
+            journalType: slot.__kkxActiveEntry?.journalType || '',
+            templateId: runtime.kkxActiveJournalTemplate,
+          });
+        })
+        .finally(() => {
+          runtime.kkxPhotoUploadInflight = false;
+        });
     });
   }
 
@@ -7974,7 +7984,11 @@
       runtime.detail.journalEntries = asArray(payload.entries);
       runtime.journalLoaded = true;
       syncTimelineFocusFromEntries(runtime.detail.journalEntries);
-      if (runtime.detailTab === 'journal' || runtime.detailTab === 'tidslinje') {
+      if (
+        runtime.detailTab === 'journal' ||
+        runtime.detailTab === 'tidslinje' ||
+        isV9CustomersEnabled()
+      ) {
         renderDetailPanel();
       }
     } catch (error) {
@@ -8188,8 +8202,10 @@
       if (
         runtime.detailTab === 'journal' ||
         runtime.detailTab === 'tidslinje' ||
-        (isMobileViewport() && runtime.preferJournalOnMobile)
+        (isMobileViewport() && runtime.preferJournalOnMobile) ||
+        isV9CustomersEnabled()
       ) {
+        // v9/kkx: panelens kundresa + signaler behöver journalbevis (signerad TP släcker missing_journal).
         void loadPatientJournalEntries(patientId);
       }
       if (isMobileViewport()) {
@@ -8520,7 +8536,7 @@
     }
   }
 
-  async function uploadConsultationPhoto(file) {
+  async function uploadConsultationPhoto(file, options = {}) {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
     if (!patientId || !file) return;
@@ -8551,8 +8567,14 @@
       return;
     }
 
-    const labelChoice = promptPhotoLabel();
-    if (labelChoice === null) return;
+    let labelChoice;
+    if (options.defaultLabel) {
+      // kkx-arbetsytan: ingen blockerande prompt — default-etikett, kan redigeras i efterhand.
+      labelChoice = options.defaultLabel;
+    } else {
+      labelChoice = promptPhotoLabel();
+      if (labelChoice === null) return;
+    }
 
     const planEntry = findConsultationPlanEntry(runtime.detail?.journalEntries);
     const formData = new FormData();
