@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gemensamt kundkort · Mockup · Arcana</title>
+    <style>
+      :root {
+        --cco-bg-page: #faf6f2;
+        --cco-bg-surface: #ffffff;
+        --cco-bg-surface-sunken: #f5efe6;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+        --cco-status-danger: #b94a4a;
+        --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+        --panel-shell-shadow:
+          0 18px 38px rgba(93, 74, 60, 0.07), 0 6px 18px rgba(156, 145, 166, 0.04),
+          0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        --panel-card-top: rgba(255, 255, 255, 0.94);
+        --panel-card-bottom: rgba(247, 241, 236, 0.86);
+        --panel-card-shadow:
+          0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --accent-studio: #bb4779;
+        --gold: #d4a847;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+          radial-gradient(circle at 50% 100%, rgba(220, 210, 255, 0.18), transparent 48%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          'Segoe UI',
+          -apple-system,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+        min-height: 100vh;
+        padding: 14px;
+      }
+      .demo-badge {
+        position: fixed;
+        top: 10px;
+        right: 12px;
+        z-index: 60;
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 5px 10px;
+        border-radius: 999px;
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+      .kort {
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        border-radius: 18px;
+        box-shadow: var(--panel-shell-shadow);
+        overflow: clip;
+      }
+      /* ── Sticky header ── */
+      .khead {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: linear-gradient(180deg, rgba(250, 246, 242, 0.98), rgba(246, 240, 234, 0.96));
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid rgba(93, 74, 60, 0.08);
+        padding: 14px 18px 0;
+      }
+      .khead-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        background: linear-gradient(135deg, #e8b4c8, var(--accent-studio));
+        color: #fff;
+        font-weight: 800;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .kid {
+        min-width: 0;
+        flex: 1;
+      }
+      .kname {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pill {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 3px 9px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .pill-vip {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+      }
+      .pill-steg {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .kontakt {
+        color: var(--cco-text-secondary);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+      .kontakt a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .kactions {
+        display: flex;
+        gap: 8px;
+        flex: 0 0 auto;
+      }
+      .btn {
+        border: none;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+        box-shadow: var(--panel-card-shadow);
+        color: var(--cco-color-brand);
+      }
+      .btn:hover {
+        box-shadow:
+          0 8px 22px rgba(56, 40, 28, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
+      }
+      .btn-gold {
+        background: linear-gradient(180deg, #f4dca3, #e3bd62);
+        color: #5a4310;
+      }
+      /* Smart sammanfattning */
+      .smartline {
+        margin: 10px 0 0;
+        padding: 9px 12px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, rgba(255, 250, 240, 0.96), rgba(252, 243, 228, 0.92));
+        box-shadow: inset 0 0 0 1px rgba(212, 168, 71, 0.25);
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .smartline .kicker {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-status-warning);
+        flex: 0 0 auto;
+      }
+      .smartline b {
+        font-weight: 700;
+      }
+      /* Sektions-nav */
+      .knav {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 10px 0 12px;
+        scrollbar-width: none;
+      }
+      .knav::-webkit-scrollbar {
+        display: none;
+      }
+      .chip {
+        border: none;
+        cursor: pointer;
+        font: inherit;
+        flex: 0 0 auto;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--cco-text-secondary);
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.6);
+        box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+      }
+      .chip .n {
+        color: var(--cco-text-tertiary);
+        font-weight: 600;
+      }
+      .chip .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--cco-status-warning);
+      }
+      .chip .dot.red {
+        background: var(--cco-status-danger);
+      }
+      .chip.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        box-shadow: inset 0 0 0 1px rgba(187, 71, 121, 0.25);
+      }
+      /* Sektioner */
+      .kbody {
+        padding: 16px 18px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .sek {
+        background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+        border-radius: 14px;
+        box-shadow: var(--panel-card-shadow);
+        padding: 14px 16px;
+        scroll-margin-top: 132px;
+      }
+      .sek h2 {
+        margin: 0 0 10px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sek h2 .pill {
+        margin-left: auto;
+      }
+      .rad {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid rgba(93, 74, 60, 0.06);
+        font-size: 12.5px;
+      }
+      .rad:last-child {
+        border-bottom: none;
+      }
+      .rad .sub {
+        color: var(--cco-text-tertiary);
+        font-size: 11px;
+      }
+      .rad .hl {
+        margin-left: auto;
+      }
+      .tag {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+      }
+      .tag-ok {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .tag-warn {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .tag-risk {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
+      .tag-info {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      /* Kundresa */
+      .resa-bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(93, 74, 60, 0.1);
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .resa-fill {
+        height: 100%;
+        width: 55%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--cco-status-success), var(--gold));
+      }
+      .steg-rad {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 5px 0;
+        font-size: 12.5px;
+      }
+      .steg-ikon {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+      }
+      .steg-klar {
+        background: var(--cco-status-success);
+        color: #fff;
+      }
+      .steg-nu {
+        background: var(--gold);
+        color: #5a4310;
+        box-shadow: 0 0 0 3px rgba(212, 168, 71, 0.25);
+      }
+      .steg-sen {
+        background: rgba(93, 74, 60, 0.1);
+        color: var(--cco-text-tertiary);
+      }
+      /* Historik-verktyg */
+      .hist-tools {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .hist-tools input {
+        flex: 1;
+        font: inherit;
+        font-size: 12px;
+        border: none;
+        border-radius: 999px;
+        padding: 8px 14px;
+        background: rgba(255, 255, 255, 0.8);
+        box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.1);
+        outline: none;
+      }
+      .svar-box {
+        display: none;
+        margin: 4px 0 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--cco-status-info-bg);
+        font-size: 12.5px;
+      }
+      .svar-box.visa {
+        display: block;
+      }
+      .svar-box .kalla {
+        display: inline-block;
+        margin-top: 5px;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.7);
+        padding: 2px 8px;
+        border-radius: 999px;
+        color: var(--cco-status-info);
+      }
+      /* Foto */
+      .foto-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .foto {
+        aspect-ratio: 1;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #d8c4b0, #b09880);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      }
+      .foto span {
+        position: absolute;
+        left: 6px;
+        bottom: 5px;
+        font-size: 9px;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      }
+      /* Overlays */
+      .overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(43, 37, 31, 0.32);
+        backdrop-filter: blur(3px);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .overlay.visa {
+        display: flex;
+      }
+      .opanel {
+        width: min(560px, 94vw);
+        max-height: 84vh;
+        overflow: auto;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        border-radius: 16px;
+        box-shadow: var(--panel-shell-shadow);
+        padding: 18px;
+      }
+      .opanel h3 {
+        margin: 0 0 4px;
+        font-size: 15px;
+      }
+      .opanel .sub {
+        color: var(--cco-text-tertiary);
+        font-size: 11px;
+        margin-bottom: 12px;
+      }
+      .utkast {
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 12px;
+        box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.08);
+        margin: 8px 0;
+      }
+      .atext {
+        color: var(--cco-text-secondary);
+      }
+      @media (max-width: 640px) {
+        .kactions {
+          flex-direction: column;
+        }
+        .foto-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-badge">Mockup · demo-data</div>
+    <div class="wrap">
+      <div class="kort">
+        <!-- ═══ Sticky header: följer med överallt ═══ -->
+        <header class="khead">
+          <div class="khead-row">
+            <div class="avatar">RP</div>
+            <div class="kid">
+              <div class="kname">
+                Robin Pettersson
+                <span class="pill pill-vip">VIP</span>
+                <span class="pill pill-steg">Steg 5 av 9</span>
+              </div>
+              <div class="kontakt">
+                <a href="tel:+46701234567">+46 70 123 45 67</a> ·
+                <a href="mailto:robin.demo@example.se">robin.demo@example.se</a>
+              </div>
+            </div>
+            <div class="kactions">
+              <button class="btn btn-gold" id="btnForbered">Förbered besök</button>
+              <button class="btn" id="btnAtgarder">Åtgärder (2)</button>
+            </div>
+          </div>
+          <div class="smartline">
+            <span class="kicker">Smart sammanfattning</span>
+            <span id="smarttext"
+              ><b>Steg 5 av 9</b> · nästa: Avtal + samtycke skickas för signering</span
+            >
+          </div>
+          <nav class="knav" id="knav">
+            <button class="chip" data-mal="halso">
+              Hälsodeklaration <span class="dot"></span>
+            </button>
+            <button class="chip" data-mal="kundresa">Kundresa <span class="n">9</span></button>
+            <button class="chip" data-mal="nastasteg">
+              Smart nästa steg <span class="dot"></span>
+            </button>
+            <button class="chip" data-mal="bokningar">Bokningar <span class="n">2</span></button>
+            <button class="chip" data-mal="historik">Historik <span class="n">41</span></button>
+            <button class="chip" data-mal="journal">Journal <span class="n">6</span></button>
+            <button class="chip" data-mal="personal">Personal <span class="n">3</span></button>
+            <button class="chip" data-mal="offert">
+              Offert <span class="n">1</span> <span class="dot"></span>
+            </button>
+            <button class="chip" data-mal="auto">Auto <span class="n">4</span></button>
+            <button class="chip" data-mal="dokument">Dokument <span class="n">12</span></button>
+            <button class="chip" data-mal="foto">Foto <span class="n">8</span></button>
+            <button class="chip" data-mal="ekonomi">Ekonomi <span class="dot red"></span></button>
+            <button class="chip" data-mal="tabild">Ta bild</button>
+          </nav>
+        </header>
+
+        <div class="kbody">
+          <section class="sek" id="halso">
+            <h2>Hälsodeklaration <span class="pill tag-ok">Signerad · halso@</span></h2>
+            <div class="rad">Allergier <span class="hl tag tag-ok">Nej</span></div>
+            <div class="rad">Blodförtunnande <span class="hl tag tag-ok">Nej</span></div>
+            <div class="rad">Hudåkommor i hårbotten <span class="hl tag tag-ok">Nej</span></div>
+            <div class="rad">
+              Tidigare transplantation <span class="hl tag tag-info">Ja · 2022</span>
+            </div>
+            <div class="rad">
+              <span class="sub">Signerad 2 jun 2026 · endast visning · medicinsk data</span>
+            </div>
+          </section>
+          <section class="sek" id="kundresa">
+            <h2>Kundresa · 9 steg <span class="pill pill-steg">Steg 5</span></h2>
+            <div class="resa-bar"><div class="resa-fill"></div></div>
+            <div class="steg-rad">
+              <span class="steg-ikon steg-klar">✓</span> Bokning konsultation
+            </div>
+            <div class="steg-rad">
+              <span class="steg-ikon steg-klar">✓</span> Bokningsbekräftelse + pre-info
+            </div>
+            <div class="steg-rad">
+              <span class="steg-ikon steg-klar">✓</span> Konsultation genomförd
+            </div>
+            <div class="steg-rad">
+              <span class="steg-ikon steg-klar">✓</span> Offert = behandlingsplan skickad
+            </div>
+            <div class="steg-rad">
+              <span class="steg-ikon steg-nu">5</span> <b>Avtal + samtycke</b>
+              <span class="hl tag tag-warn">Pågår</span>
+            </div>
+            <div class="steg-rad">
+              <span class="steg-ikon steg-sen">6</span> Operationsdag · friskförsäkran +
+              foto-samtycke
+            </div>
+            <div class="steg-rad"><span class="steg-ikon steg-sen">7</span> Efterkontroll</div>
+            <div class="steg-rad"><span class="steg-ikon steg-sen">8</span> Aftercare-program</div>
+            <div class="steg-rad"><span class="steg-ikon steg-sen">9</span> Omdöme</div>
+          </section>
+
+          <section class="sek" id="nastasteg">
+            <h2>Smart nästa steg</h2>
+            <div class="rad">
+              <b>Skicka avtal + samtycke för signering</b>
+              <span class="hl tag tag-warn">Föreslaget</span>
+            </div>
+            <div class="rad">
+              <span class="atext"
+                >Offerten öppnades igår 19:02 utan svar. Utkast till avtal är klart — granska och
+                skicka.</span
+              >
+            </div>
+            <div class="rad">
+              <button class="btn">Granska utkast</button>
+              <button class="btn btn-gold">Skicka för signering</button>
+            </div>
+          </section>
+
+          <section class="sek" id="bokningar">
+            <h2>Kommande bokningar <span class="pill tag-info">2</span></h2>
+            <div class="rad">
+              <b>Uppföljning konsultation</b> <span class="sub">12 jun · 10:30 · Egzona</span>
+              <span class="hl tag tag-ok">Bekräftad</span>
+            </div>
+            <div class="rad">
+              <b>Operationsdag · DHI</b> <span class="sub">3 jul · 08:00 · Fazli</span>
+              <span class="hl tag tag-warn">Avtal krävs</span>
+            </div>
+          </section>
+
+          <section class="sek" id="historik">
+            <h2>Historik <span class="pill tag-info">41 händelser</span></h2>
+            <div class="hist-tools">
+              <button class="btn" id="btnSammanfatta">Sammanfatta</button>
+              <input
+                id="histSok"
+                placeholder="Fråga historiken… t.ex. 'när gjorde han PRP senast?'"
+              />
+            </div>
+            <div class="svar-box" id="sammanfattning">
+              <b>3 rader i stället för 41:</b> Kund sedan 2024 via Cliento. Konsultation 28 maj →
+              offert (behandlingsplan DHI 2 800 graft) skickad 30 maj, öppnad 2 ggr utan svar.
+              Tidigare PRP-kund (3 behandlingar 2024–2025), alltid betalat i tid, 0 no-shows.
+              <div class="kalla">Källa: 41 händelser 2024-03-11 → 2026-06-07</div>
+            </div>
+            <div class="svar-box" id="histsvar"></div>
+            <div class="rad">
+              <span class="sub">Igår 19:02</span> Offert O-1024 öppnad
+              <span class="hl tag tag-warn">2:a gången</span>
+            </div>
+            <div class="rad"><span class="sub">30 maj</span> Offert O-1024 skickad</div>
+            <div class="rad">
+              <span class="sub">28 maj</span> Konsultation genomförd · journal signerad
+            </div>
+            <div class="rad"><span class="sub">14 mar</span> PRP-behandling #3 · betald</div>
+            <div class="rad"><span class="sub">2 feb</span> PRP-behandling #2 · betald</div>
+            <div class="rad"><span class="sub">11 mar 2024</span> Första kontakt via Cliento</div>
+          </section>
+          <section class="sek" id="journal">
+            <h2>Journal <span class="pill tag-info">6 anteckningar</span></h2>
+            <div class="rad">
+              <b>Konsultation · plan DHI 2 800 graft</b> <span class="sub">28 maj</span>
+              <span class="hl tag tag-ok">Signerad · Fazli</span>
+            </div>
+            <div class="rad">
+              <b>Foto: hårlinje + krona</b> <span class="sub">28 maj</span>
+              <span class="hl tag tag-ok">2 bilder</span>
+            </div>
+            <div class="rad">
+              <b>PRP #3 · behandlingsanteckning</b> <span class="sub">14 mar</span>
+              <span class="hl tag tag-ok">Signerad · Egzona</span>
+            </div>
+          </section>
+
+          <section class="sek" id="personal">
+            <h2>Personal <span class="pill tag-info">3</span></h2>
+            <div class="rad"><b>Fazli</b> <span class="sub">Ansvarig · kirurg</span></div>
+            <div class="rad"><b>Egzona</b> <span class="sub">Konsultation + PRP</span></div>
+            <div class="rad"><b>Reception</b> <span class="sub">Bokningar + påminnelser</span></div>
+          </section>
+
+          <section class="sek" id="offert">
+            <h2>Offert <span class="pill tag-warn">Väntar svar</span></h2>
+            <div class="rad">
+              <b>O-1024 · Behandlingsplan DHI · 2 800 graft</b>
+              <span class="hl"><b>78 500 kr</b></span>
+            </div>
+            <div class="rad">
+              <span class="sub">Skickad 30 maj · öppnad 2 ggr · senast igår 19:02</span>
+              <span class="hl tag tag-warn">Påminnelse föreslås</span>
+            </div>
+            <div class="rad">
+              <button class="btn">Öppna offert</button>
+              <button class="btn btn-gold">Skicka påminnelse</button>
+            </div>
+          </section>
+
+          <section class="sek" id="auto">
+            <h2>Auto <span class="pill tag-ok">4 aktiva</span></h2>
+            <div class="rad">
+              Bokningsbekräftelse + pre-info <span class="hl tag tag-ok">Aktiv</span>
+            </div>
+            <div class="rad">
+              Påminnelse 48 h före besök <span class="hl tag tag-ok">Nästa: 10 jun</span>
+            </div>
+            <div class="rad">
+              Aftercare-schema efter operation <span class="hl tag tag-ok">Aktiv</span>
+            </div>
+            <div class="rad">
+              Omdömes-mail efter avslutad resa <span class="hl tag tag-ok">Aktiv</span>
+            </div>
+          </section>
+
+          <section class="sek" id="dokument">
+            <h2>Dokument <span class="pill tag-info">12 filer</span></h2>
+            <div class="rad">
+              <b>Behandlingsplan-O-1024.pdf</b> <span class="sub">30 maj</span>
+              <span class="hl tag tag-warn">Väntar signering</span>
+            </div>
+            <div class="rad">
+              <b>Hälsodeklaration.pdf</b> <span class="sub">2 jun</span>
+              <span class="hl tag tag-ok">Signerad</span>
+            </div>
+            <div class="rad">
+              <b>Journal-PRP-3.pdf</b> <span class="sub">14 mar</span>
+              <span class="hl tag tag-ok">Arkiverad</span>
+            </div>
+            <div class="rad"><span class="sub">+ 9 till · Drive-kopplade</span></div>
+          </section>
+
+          <section class="sek" id="foto">
+            <h2>Foto <span class="pill tag-info">8 bilder</span></h2>
+            <div class="foto-grid">
+              <div class="foto"><span>Hårlinje · 28 maj</span></div>
+              <div class="foto" style="background: linear-gradient(135deg, #c4b09a, #9a8268)">
+                <span>Krona · 28 maj</span>
+              </div>
+              <div class="foto" style="background: linear-gradient(135deg, #d0bca6, #a89074)">
+                <span>Hårlinje · 2024</span>
+              </div>
+              <div class="foto" style="background: linear-gradient(135deg, #ccb8a2, #a48c70)">
+                <span>Krona · 2024</span>
+              </div>
+            </div>
+            <div class="rad">
+              <b>Before/after-par föreslaget:</b>
+              <span class="atext">Hårlinje 2024 ↔ 28 maj 2026</span>
+              <span class="hl"><button class="btn">Jämför</button></span>
+            </div>
+          </section>
+
+          <section class="sek" id="ekonomi">
+            <h2>Ekonomi <span class="pill tag-risk">Obetalt</span></h2>
+            <div class="rad">
+              <b>Faktura F-2291 · PRP #3</b>
+              <span class="hl"
+                ><b>12 500 kr</b> <span class="tag tag-risk">Förfaller fredag</span></span
+              >
+            </div>
+            <div class="rad">
+              Livstidsvärde (LTV) <span class="hl"><b>55 000 kr</b></span>
+            </div>
+            <div class="rad">
+              Betalplan operation
+              <span class="hl tag tag-info">20% vid avtal · 80% operationsdag</span>
+            </div>
+            <div class="rad"><button class="btn btn-gold">Skicka betalpåminnelse</button></div>
+          </section>
+
+          <section class="sek" id="tabild">
+            <h2>Ta bild</h2>
+            <div class="rad">
+              <span class="atext"
+                >Foto-samtycke finns · scope: hårlinje + krona, aldrig ansikte.</span
+              >
+            </div>
+            <div class="rad">
+              <button class="btn btn-gold">📷 Ta bild nu</button>
+              <span class="sub">Sparas direkt i journalen med etikett</span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Overlay: Förbered besök ═══ -->
+    <div class="overlay" id="ovForbered">
+      <div class="opanel">
+        <h3>Förbered besök · Uppföljning 12 jun 10:30</h3>
+        <div class="sub">Allt inför besöket på en sida — hämtat ur kortet</div>
+        <div class="rad">
+          Hälsodeklaration <span class="hl tag tag-ok">Signerad · inga allergier</span>
+        </div>
+        <div class="rad">
+          Senaste journal <span class="hl tag tag-ok">Konsultation 28 maj · signerad</span>
+        </div>
+        <div class="rad">
+          Senaste foton <span class="hl tag tag-info">Hårlinje + krona · 28 maj</span>
+        </div>
+        <div class="rad">
+          Offert O-1024 <span class="hl tag tag-warn">Öppnad 2 ggr · obesvarad</span>
+        </div>
+        <div class="rad">
+          Ekonomi <span class="hl tag tag-risk">12 500 kr förfaller fredag</span>
+        </div>
+        <div class="rad">
+          <b>Förslag inför besöket:</b>
+          <span class="atext"
+            >gå igenom behandlingsplanen, signera avtal på plats, lös fakturan.</span
+          >
+        </div>
+        <div class="rad">
+          <button class="btn" onclick="stang()">Stäng</button>
+          <button class="btn btn-gold" onclick="window.print()">Skriv ut</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Overlay: Föreslagna åtgärder ═══ -->
+    <div class="overlay" id="ovAtgarder">
+      <div class="opanel">
+        <h3>Föreslagna åtgärder (2)</h3>
+        <div class="sub">Färdiga utkast — granska och skicka med ett klick</div>
+        <div class="rad">
+          <b>1 · Påminnelse om offert</b>
+          <span class="hl tag tag-warn">Öppnad 2 ggr utan svar</span>
+        </div>
+        <div class="utkast">
+          Hej Robin! Hoppas allt är bra. Jag såg att du tittat på behandlingsplanen — har du några
+          frågor är det bara att höra av dig, så bokar vi gärna in ett kort samtal. / Egzona, Hair
+          TP Clinic
+        </div>
+        <div class="rad">
+          <button class="btn">Redigera</button>
+          <button class="btn btn-gold" onclick="mock(this)">Skicka SMS</button>
+        </div>
+        <div class="rad" style="margin-top: 8px">
+          <b>2 · Betalpåminnelse F-2291</b> <span class="hl tag tag-risk">Förfaller fredag</span>
+        </div>
+        <div class="utkast">
+          Hej Robin! En vänlig påminnelse om faktura F-2291 (12 500 kr) som förfaller på fredag.
+          Betala enkelt via Swish 123 456 78 90. Hör av dig om något inte stämmer!
+        </div>
+        <div class="rad">
+          <button class="btn">Redigera</button>
+          <button class="btn btn-gold" onclick="mock(this)">Skicka SMS</button>
+        </div>
+        <div class="rad"><button class="btn" onclick="stang()">Stäng</button></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        'use strict';
+        var smarttext = document.getElementById('smarttext');
+        var texter = {
+          halso: '<b>Hälsodeklaration signerad 2 jun</b> · inga allergier · klar för operation',
+          kundresa: '<b>Steg 5 av 9</b> · nästa: Avtal + samtycke skickas för signering',
+          nastasteg: '<b>Föreslaget:</b> skicka avtal för signering — utkastet är klart',
+          bokningar: '<b>Uppföljning 12 jun 10:30</b> · bekräftad · påminnelse schemalagd 10 jun',
+          historik: '<b>41 händelser sedan 2024</b> · senast: offert öppnad igår 19:02',
+          journal: '<b>6 anteckningar</b> · senaste signerad 28 maj av Fazli',
+          personal: '<b>Ansvarig: Fazli</b> · konsultation + PRP: Egzona',
+          offert: '<b>O-1024 öppnad 2 ggr</b> · obesvarad · påminnelse föreslås',
+          auto: '<b>4 automationer aktiva</b> · nästa: påminnelse 10 jun 10:30',
+          dokument: '<b>12 dokument</b> · avtal väntar signering · resten klart',
+          foto: '<b>8 foton</b> · before/after-par redo: hårlinje 2024 ↔ 2026',
+          ekonomi: '<b>Obetalt: 12 500 kr förfaller fredag</b> · LTV 55 000 kr',
+          tabild: '<b>Foto-samtycke finns</b> · scope: hårlinje + krona — aldrig ansikte',
+        };
+        var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+        function aktivera(id) {
+          chips.forEach(function (c) {
+            c.classList.toggle('active', c.dataset.mal === id);
+          });
+          if (texter[id]) smarttext.innerHTML = texter[id];
+        }
+        chips.forEach(function (c) {
+          c.addEventListener('click', function () {
+            var mal = document.getElementById(c.dataset.mal);
+            if (mal) mal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            aktivera(c.dataset.mal);
+          });
+        });
+        var io = new IntersectionObserver(
+          function (poster) {
+            poster.forEach(function (p) {
+              if (p.isIntersecting) aktivera(p.target.id);
+            });
+          },
+          { rootMargin: '-30% 0px -60% 0px' }
+        );
+        Array.prototype.forEach.call(document.querySelectorAll('.sek'), function (s) {
+          io.observe(s);
+        });
+        aktivera('halso');
+
+        document.getElementById('btnSammanfatta').addEventListener('click', function () {
+          document.getElementById('sammanfattning').classList.toggle('visa');
+        });
+        document.getElementById('histSok').addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter') return;
+          var q = this.value.toLowerCase();
+          var box = document.getElementById('histsvar');
+          var svar =
+            q.indexOf('prp') >= 0
+              ? '<b>PRP senast: 14 mars 2026</b> (behandling #3, Egzona, betald). Totalt 3 PRP-behandlingar 2024–2026.<div class="kalla">Källa: Journal · PRP #3 · 14 mar 2026</div>'
+              : '<b>Svar ur historiken:</b> senaste aktivitet är offert O-1024 som öppnades igår 19:02 utan svar.<div class="kalla">Källa: Händelselogg · igår 19:02</div>';
+          box.innerHTML = svar;
+          box.classList.add('visa');
+        });
+
+        document.getElementById('btnForbered').addEventListener('click', function () {
+          document.getElementById('ovForbered').classList.add('visa');
+        });
+        document.getElementById('btnAtgarder').addEventListener('click', function () {
+          document.getElementById('ovAtgarder').classList.add('visa');
+        });
+        window.stang = function () {
+          Array.prototype.forEach.call(document.querySelectorAll('.overlay'), function (o) {
+            o.classList.remove('visa');
+          });
+        };
+        window.mock = function (btn) {
+          btn.textContent = 'Skickat ✓ (demo)';
+          btn.disabled = true;
+        };
+        Array.prototype.forEach.call(document.querySelectorAll('.overlay'), function (o) {
+          o.addEventListener('click', function (e) {
+            if (e.target === o) stang();
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>
