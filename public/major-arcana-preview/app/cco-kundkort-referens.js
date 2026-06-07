@@ -718,11 +718,22 @@
       if (!doss || doss.querySelector('.kk-nav')) return;
       var head = doss.querySelector('.dhead');
       if (!head) return;
+      // Sektioner kan vara .sec (referens-rå) eller details.dossier-section (kkx-lagret)
+      var noder = doss.querySelectorAll('.sec[data-sek], details.dossier-section');
+      Array.prototype.forEach.call(noder, function (node) {
+        if (node.getAttribute('data-sek')) return;
+        var summary = node.querySelector('summary');
+        var label = summary
+          ? (summary.childNodes[0] && summary.childNodes[0].textContent) || summary.textContent
+          : '';
+        node.setAttribute('data-sek', sekSlug(label));
+      });
       var navHtml = KK_NAV.filter(function (n) {
-        return doss.querySelector('.sec[data-sek="' + n[0] + '"]');
+        return doss.querySelector('[data-sek="' + n[0] + '"]');
       })
         .map(function (n) {
-          var s = doss.querySelector('.sec[data-sek="' + n[0] + '"] .lab .src');
+          var sekEl = doss.querySelector('[data-sek="' + n[0] + '"]');
+          var s = sekEl.querySelector('.lab .src, summary .count');
           var badge = s ? String(s.textContent || '').trim() : '';
           if (badge.length > 10 || badge === '0') badge = '';
           return (
@@ -735,7 +746,16 @@
           );
         })
         .join('');
-      if (!navHtml) return;
+      if (!navHtml) {
+        // sektionerna kan monteras strax efter (kkx) — försök igen, max 8 ggr
+        doss.__kkTry = (doss.__kkTry || 0) + 1;
+        if (doss.__kkTry <= 8) {
+          setTimeout(function () {
+            window.__enhanceReferensKundkort(rootEl);
+          }, 250);
+        }
+        return;
+      }
       var sticky = document.createElement('div');
       sticky.className = 'kk-sticky';
       doss.insertBefore(sticky, head);
@@ -759,8 +779,9 @@
       nav.addEventListener('click', function (e) {
         var chip = e.target.closest('.kk-chip');
         if (!chip) return;
-        var mal = doss.querySelector('.sec[data-sek="' + chip.getAttribute('data-kk-mal') + '"]');
+        var mal = doss.querySelector('[data-sek="' + chip.getAttribute('data-kk-mal') + '"]');
         if (!mal) return;
+        if (mal.tagName === 'DETAILS' && !mal.open) mal.open = true;
         var off = sticky.offsetHeight + 8;
         if (scroller) {
           var top =
@@ -783,12 +804,31 @@
           },
           { root: scroller, rootMargin: '-25% 0px -65% 0px' }
         );
-        doss.querySelectorAll('.sec[data-sek]').forEach(function (s) {
+        doss.querySelectorAll('[data-sek]').forEach(function (s) {
           io.observe(s);
         });
       }
       var first = nav.querySelector('.kk-chip');
       if (first) aktivera(first.getAttribute('data-kk-mal'));
+      // kkx-lagret kan skriva om sektionerna EFTER oss → tagga om nya noder
+      var mo = new MutationObserver(function () {
+        clearTimeout(doss.__kkNavT);
+        doss.__kkNavT = setTimeout(function () {
+          Array.prototype.forEach.call(
+            doss.querySelectorAll('details.dossier-section:not([data-sek])'),
+            function (node) {
+              var summary = node.querySelector('summary');
+              var label = summary
+                ? (summary.childNodes[0] && summary.childNodes[0].textContent) ||
+                  summary.textContent
+                : '';
+              node.setAttribute('data-sek', sekSlug(label));
+              if (typeof io !== 'undefined' && io) io.observe(node);
+            }
+          );
+        }, 120);
+      });
+      mo.observe(doss, { childList: true, subtree: true });
     } catch (err) {
       /* förbättringen får aldrig fälla dossiern */
     }
