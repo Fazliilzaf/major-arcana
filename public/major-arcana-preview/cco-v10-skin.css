@@ -1327,3 +1327,8 @@ html[data-v9-enabled="on"] .kkref .kk-chip.active .kn {
 html[data-v9-enabled="on"] .kkref .sec {
   scroll-margin-top: 120px;
 }
+
+/* Lager 15b: sticky kräver overflow visible på kkref (klipp-guarden behålls på scrollern) */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref {
+  overflow-x: visible;
+}
