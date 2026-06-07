@@ -847,7 +847,10 @@
         chips.forEach(function (c) {
           c.addEventListener('click', function () {
             var mal = document.getElementById(c.dataset.mal);
-            if (mal) mal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (mal) {
+              var top = window.scrollY + mal.getBoundingClientRect().top - 132;
+              window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+            }
             aktivera(c.dataset.mal);
           });
         });
