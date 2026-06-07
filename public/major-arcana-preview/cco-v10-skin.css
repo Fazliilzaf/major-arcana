@@ -1164,3 +1164,15 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
   .customers-rail.intel-shell[data-context="customer"]::before {
   content: none !important;
 }
+
+/* Dossier-innehållet får inte klippas i högerkant efter att yttre ramen togs bort */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .customers-rail.intel-shell[data-context="customer"] {
+  overflow-x: hidden;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
