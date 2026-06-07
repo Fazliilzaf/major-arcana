@@ -1164,6 +1164,9 @@
       const kkref = rail.querySelector('.kkref');
       if (kkref && window.CcoKundkortKkx?.bindPanel) {
         window.CcoKundkortKkx.bindPanel(kkref, ctx);
+        if (typeof window.__enhanceReferensKundkort === 'function') {
+          window.__enhanceReferensKundkort(rail);
+        }
         return;
       }
       if (triesLeft > 0) window.requestAnimationFrame(() => attempt(triesLeft - 1));
