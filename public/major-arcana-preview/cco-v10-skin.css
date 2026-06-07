@@ -1332,3 +1332,8 @@ html[data-v9-enabled="on"] .kkref .sec {
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref {
   overflow-x: visible;
 }
+
+/* Lager 15c: .doss overflow bryter sticky-headern */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .doss {
+  overflow: visible;
+}
