@@ -1635,7 +1635,7 @@
       const head = list.querySelector('.customer-row-head.cr-v10-head');
       if (head) {
         const cols = head.querySelectorAll('div');
-        if (cols[6]) cols[6].textContent = usesV10KundkortFacit() ? 'AI nästa-steg' : 'Nästa steg';
+        if (cols[6]) cols[6].textContent = 'Nästa steg';
       }
 
       if (regHeader && !regHeader.querySelector('.customers-v9-header')) {
@@ -1987,7 +1987,7 @@
     const reminderDisabled = reminderCount <= 0;
     return `
           <div class="agg-actions" data-v9-agg-actions>
-            <button type="button" class="quick-pill quick-pill--ai"${reminderDisabled ? ' disabled aria-disabled="true"' : ''} data-v9-agg-action="mass-reminder">★ Skicka mass-påminnelse${reminderCount > 0 ? ` (${formatMetricNumber(reminderCount)})` : ''}</button>
+            <button type="button" class="quick-pill quick-pill--ai"${reminderDisabled ? ' disabled aria-disabled="true"' : ''} data-v9-agg-action="mass-reminder">Skicka mass-påminnelse${reminderCount > 0 ? ` (${formatMetricNumber(reminderCount)})` : ''}</button>
             <button type="button" class="quick-pill" data-v9-agg-action="export">↓ Exportera urval</button>
           </div>`;
   }
@@ -2152,7 +2152,7 @@
     const vipTrend = vip > 0 ? 'VIP-segment' : '—';
     const ltv = resolveV9AggregateLtv(stats, segmentStats);
     const insightRows = buildV9AggregateInsightRows(segmentStats);
-    const aiKicker = usesV10KundkortFacit() ? '★ AI · Veckans insikter' : 'Veckans läge';
+    const aiKicker = usesV10KundkortFacit() ? 'Veckans insikter' : 'Veckans läge';
 
     return `
       <section class="patient-master-card v9-aggregate-panel" data-v9-aggregate-panel>
@@ -5185,7 +5185,7 @@
             <div class="dossier-head">
               <div class="dossier-avatar" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</div>
               <div class="dossier-head-body">
-                <div class="dossier-kicker">★ Kunddossiér</div>
+                <div class="dossier-kicker">Kunddossiér</div>
                 <h2 class="dossier-name">${escapeHtml(name)}</h2>
                 <div class="dossier-contact">${escapeHtml(contact)}</div>
                 ${
@@ -5424,7 +5424,7 @@
   }
 
   function renderV9ListHeaderHtml() {
-    const nextColLabel = usesV10KundkortFacit() ? 'AI nästa-steg' : 'Nästa steg';
+    const nextColLabel = 'Nästa steg';
     return `
           <div class="customer-row-head cr-v10-head" aria-hidden="true">
             <div></div>

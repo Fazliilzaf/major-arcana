@@ -624,7 +624,7 @@ html[data-v9-enabled="on"] .cr-v10 .cr-ai {
 }
 
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .cr-v10 .cr-ai::before {
-  content: "★ AI";
+  content: none;
   font-size: 8.5px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -960,7 +960,7 @@ html[data-v9-enabled="on"] .v9-mockup-dossier--v10-facit .v10-dossier-hero .doss
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
   .v9-aggregate-panel
   .agg-ai-row:not(.agg-ai-row--empty)::before {
-  content: "★ AI";
+  content: none;
   display: block;
   margin-bottom: 3px;
   color: var(--calendar-accent, var(--v9-calendar-accent, #e8a04e));
