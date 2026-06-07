@@ -1222,3 +1222,50 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-sh
   .customers-rail.intel-shell[data-context="customer"] {
   padding: 0 !important;
 }
+
+/* ============================================================
+   LAGER 14 · En rad: rubrik + chips + Snitt LTV + knappar
+   Fazli 2026-06-07: "kan du inte sätta de raderna i en rad?"
+   ============================================================ */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .customers-center-shell
+  .customers-v9-header {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .customers-center-shell
+  .customers-v9-header
+  .calendar-toolbar {
+  display: contents !important;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .customers-center-shell
+  .customers-v9-header
+  .calendar-toolbar-main {
+  order: 0;
+  flex: 0 0 auto;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .customers-center-shell
+  .customers-v9-header
+  .calendar-status-bar {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .customers-center-shell
+  .customers-v9-header
+  .calendar-toolbar-actions {
+  order: 2;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
