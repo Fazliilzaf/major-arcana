@@ -13,6 +13,7 @@
 require('dotenv').config({ quiet: true });
 
 const fs = require('node:fs/promises');
+const fsSync = require('node:fs');
 const path = require('node:path');
 const { readIndexLines, readJsonFile } = require('./lib/halsoHdGraphInbox');
 const { fetchProdPatients, getProdToken, BASE } = require('./lib/halsoHdProdClient');
@@ -24,6 +25,7 @@ const DEFAULT_CHECKPOINT = path.join(ROOT, 'data/reports/halso-hd-corpus.checkpo
 const DEFAULT_DEDUP = path.join(ROOT, 'data/reports/halso-hd-batch-dedup.json');
 const DEFAULT_REVIEW_QUEUE = path.join(ROOT, 'data/reports/halso-hd-review-queue.jsonl');
 const DEFAULT_REPORT = path.join(ROOT, 'data/reports/halso-hd-batch-report.json');
+const DEFAULT_PATIENT_MASTER = path.join(ROOT, 'data/cco-patient-master.json');
 
 function parseArgs(argv) {
   const args = {
@@ -59,6 +61,13 @@ function parseArgs(argv) {
   return args;
 }
 
+function loadLocalPatientMaster(masterPath = DEFAULT_PATIENT_MASTER) {
+  if (!fsSync.existsSync(masterPath)) return [];
+  const raw = JSON.parse(fsSync.readFileSync(masterPath, 'utf8'));
+  const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
+  return raw.tenants?.[tenantId]?.patients || [];
+}
+
 async function main() {
   const args = parseArgs(process.argv);
   const corpusCheckpoint = await readJsonFile(args.corpusCheckpoint, null);
@@ -78,10 +87,16 @@ async function main() {
   );
   console.error(`Prod: ${BASE} · corpus=${indexEntries.length} mejl`);
 
+  const useLocalPatients =
+    args.dryRun && process.env.HALSO_HD_USE_LOCAL_PATIENT_MASTER === 'true';
   const token = args.dryRun ? '' : getProdToken();
-  console.error('Hämtar prod patient-master (en gång per batch)…');
-  const patients = await fetchProdPatients(token || getProdToken());
-  console.error(`Patienter laddade: ${patients.length}`);
+  console.error(
+    `Hämtar ${useLocalPatients ? 'lokal' : 'prod'} patient-master (en gång per batch)…`
+  );
+  const patients = useLocalPatients
+    ? loadLocalPatientMaster(process.env.CCO_PATIENT_MASTER_PATH || DEFAULT_PATIENT_MASTER)
+    : await fetchProdPatients(token || getProdToken());
+  console.error(`Patienter laddade: ${patients.length}${useLocalPatients ? ' (lokal)' : ''}`);
 
   const runId = `halso-batch-${args.batch}-${new Date().toISOString().slice(0, 10)}`;
   let lastProgress = 0;

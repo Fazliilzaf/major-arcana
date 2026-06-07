@@ -23,6 +23,14 @@ on:
         description: "0 = alla batcher, annars begränsa körningen"
         required: false
         default: "0"
+      sync_cliento_first:
+        description: "Bygg/pusha Cliento-kunder före hälsodeklarationer"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 permissions:
   contents: read
@@ -75,6 +83,12 @@ jobs:
             'ARCANA_GRAPH_BASE_URL',
             'ARCANA_GRAPH_AUTHORITY_HOST',
             'ARCANA_GRAPH_SCOPE',
+            'CLIENTO_ACCOUNT_IDS',
+            'CLIENTO_API_BASE_URL',
+            'CLIENTO_API_KEY',
+            'CLIENTO_API_AUTH_HEADER',
+            'CLIENTO_API_AUTH_SCHEME',
+            'CLIENTO_API_TIMEOUT_MS',
           ];
 
           (async () => {
@@ -111,6 +125,17 @@ jobs:
             echo "ARCANA_TOKEN"
           } >> "$GITHUB_ENV"
           echo "Owner-token OK."
+
+      - name: Build Cliento patient-master locally
+        if: inputs.sync_cliento_first == 'true'
+        run: |
+          test -n "${CLIENTO_API_KEY:-}" || { echo "::error::CLIENTO_API_KEY saknas i Render-env"; exit 1; }
+          test -n "${CLIENTO_ACCOUNT_IDS:-}" || { echo "::error::CLIENTO_ACCOUNT_IDS saknas i Render-env"; exit 1; }
+          npm run sync:cliento-customers -- --sample 0
+
+      - name: Push Cliento delta to prod
+        if: inputs.sync_cliento_first == 'true' && inputs.mode == 'commit'
+        run: npm run push:cliento-delta-prod
 
       - name: Scan halso mailbox corpus
         run: |
@@ -155,6 +180,8 @@ jobs:
               --dry-run \
               --out "data/reports/halso-hd-batch-${batch}-dry-run.json"
           done
+        env:
+          HALSO_HD_USE_LOCAL_PATIENT_MASTER: ${{ inputs.sync_cliento_first }}
 
       - name: Summarize dry-run counters
         run: |
