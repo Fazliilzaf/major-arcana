@@ -1186,3 +1186,16 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
   min-width: 0 !important;
   box-sizing: border-box;
 }
+
+/* Wrappern patient-master-rail var 402px bred i 360-spalt → klippte dossiern */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .customers-rail.intel-shell
+  .patient-master-rail,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .customers-rail.intel-shell
+  [data-patient-master-rail] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
