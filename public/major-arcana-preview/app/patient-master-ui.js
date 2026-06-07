@@ -1579,14 +1579,92 @@
     document.querySelectorAll('.v9-watch-wrap').forEach((node) => node.remove());
   }
 
+  function syncV10FacitIntelShell() {
+    if (!usesV10KundkortFacit() || !isV9CustomersEnabled()) return;
+    const rail = document.querySelector('.customers-rail');
+    if (!rail) return;
+    rail.classList.add('intel-shell');
+    const dossierOpen = Boolean(
+      runtime.selectedPatientId &&
+      (runtime.detail?.card || runtime.detailLoading || rail.querySelector('[data-patient-detail]'))
+    );
+    rail.dataset.context = dossierOpen ? 'customer' : 'booking';
+  }
+
+  function ensureV10FacitAppGrid() {
+    if (!usesV10KundkortFacit() || !isV9CustomersEnabled()) return;
+    const layout = document.querySelector('.customers-layout');
+    const surface = layout?.closest('.customers-surface');
+    if (!layout || !surface) return;
+
+    layout.dataset.v10FacitAppGrid = 'on';
+
+    const workspace = layout.querySelector('[data-customers-workspace]');
+    if (workspace) {
+      workspace.hidden = true;
+      workspace.setAttribute('aria-hidden', 'true');
+      workspace.classList.add('customers-workspace--v10-facit-off');
+    }
+
+    const rail = layout.querySelector('.customers-rail');
+    if (rail) rail.classList.add('intel-shell');
+
+    if (!layout.querySelector('[data-v9-customers-center]')) {
+      const list = layout.querySelector('.customers-list');
+      if (!list) return;
+
+      const center = document.createElement('div');
+      center.className = 'customers-center-shell';
+      center.dataset.v9CustomersCenter = '';
+      layout.insertBefore(center, list);
+
+      const regHeader = surface.querySelector('.customers-register-header');
+      const v9Header =
+        regHeader?.querySelector('.customers-v9-header') ||
+        surface.querySelector('.customers-v9-header');
+      if (v9Header) center.appendChild(v9Header);
+
+      const agg = surface.querySelector('[data-v9-agg-insights]');
+      if (agg) center.appendChild(agg);
+
+      const filters = surface.querySelector('[data-v9-customers-filters]');
+      if (filters) center.appendChild(filters);
+
+      center.appendChild(list);
+
+      const head = list.querySelector('.customer-row-head.cr-v10-head');
+      if (head) {
+        const cols = head.querySelectorAll('div');
+        if (cols[6]) cols[6].textContent = usesV10KundkortFacit() ? 'AI nästa-steg' : 'Nästa steg';
+      }
+
+      if (regHeader && !regHeader.querySelector('.customers-v9-header')) {
+        regHeader.hidden = true;
+        regHeader.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    els.v9Header = document.querySelector('[data-v9-customers-header]');
+    els.v9Filters = document.querySelector('[data-v9-customers-filters]');
+    els.v9AggInsights = document.querySelector('[data-v9-agg-insights]');
+    els.list = document.querySelector('[data-customer-list]');
+    syncV10FacitIntelShell();
+  }
+
   function syncV9CustomersChrome() {
     if (usesV10KundkortFacit()) {
       document.documentElement.setAttribute('data-v10-kundkort-facit', 'on');
     } else {
       document.documentElement.removeAttribute('data-v10-kundkort-facit');
     }
-    if (!els.v9Header && !els.v9Filters && !els.v9Sidebar && !els.v9AggInsights) return;
     const show = isV9CustomersEnabled() && runtime.mode === 'register';
+    if (show && usesV10KundkortFacit()) {
+      ensureV10FacitAppGrid();
+    }
+    if (!els.v9Header && !els.v9Filters && !els.v9Sidebar && !els.v9AggInsights) {
+      resolveElements();
+    }
+    if (!els.v9Header && !els.v9Filters && !els.v9Sidebar && !els.v9AggInsights) return;
     if (els.v9Header) {
       els.v9Header.hidden = !show;
       els.v9Header.setAttribute('aria-hidden', show ? 'false' : 'true');
@@ -3943,9 +4021,14 @@
     }
     if (blueprintOpen) document.documentElement.setAttribute('data-v9-blueprint', 'on');
     else document.documentElement.removeAttribute('data-v9-blueprint');
-    if (list)
-      list.classList.toggle('customers-list--compact', dossierOpen && !referensMasterDetail);
+    if (list) {
+      list.classList.toggle(
+        'customers-list--compact',
+        dossierOpen && !referensMasterDetail && !usesV10KundkortFacit()
+      );
+    }
     if (rail) rail.classList.toggle('customers-rail--dominant', dossierOpen && !blueprintOpen);
+    syncV10FacitIntelShell();
     if (referensMasterDetail && dossierOpen) {
       applyReferensMasterDetailLayout();
     } else if (!dossierOpen) {
@@ -5341,6 +5424,7 @@
   }
 
   function renderV9ListHeaderHtml() {
+    const nextColLabel = usesV10KundkortFacit() ? 'AI nästa-steg' : 'Nästa steg';
     return `
           <div class="customer-row-head cr-v10-head" aria-hidden="true">
             <div></div>
@@ -5349,7 +5433,7 @@
             <div>Status</div>
             <div>Senaste besök</div>
             <div>Intäkt (LTV)</div>
-            <div>Nästa steg</div>
+            <div>${escapeHtml(nextColLabel)}</div>
             <div></div>
           </div>
         `;

@@ -1213,6 +1213,18 @@ const config = {
   })(),
   photoReviewFullCohort: asBool(process.env.PHOTO_REVIEW_FULL_COHORT, false),
   photoReviewCanaryMax: asInt(process.env.PHOTO_REVIEW_CANARY_MAX_DECISIONS, 25),
+  enableDriveJournalNativePilot: asBool(process.env.ENABLE_DRIVE_JOURNAL_NATIVE_PILOT, false),
+  driveJournalNativePilotPatientIds: asStringArray(
+    process.env.DRIVE_JOURNAL_NATIVE_PILOT_PATIENT_IDS
+  ),
+  driveJournalNativePilotManifestPath: asNonEmptyString(
+    process.env.DRIVE_JOURNAL_NATIVE_PILOT_MANIFEST_PATH,
+    path.join(process.cwd(), 'data/drive-journal-native-pilot-patients.json')
+  ),
+  driveJournalNativePilotMaxPatients: asInt(
+    process.env.DRIVE_JOURNAL_NATIVE_PILOT_MAX_PATIENTS,
+    50
+  ),
   enableImportReviewWrite: (() => {
     const master = asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false);
     return master && asBool(process.env.ENABLE_IMPORT_REVIEW_WRITE, false);

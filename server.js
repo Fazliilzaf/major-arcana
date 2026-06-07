@@ -12344,6 +12344,7 @@ process.once('SIGTERM', () => {
       documentInstanceStore: ccoDocumentInstanceStore,
       buildPatientDocumentBundle,
       readCache: ccoReadCache,
+      resolvePatientAssetStore: async () => app.locals.ccoPatientAssetStore || null,
       authStore,
       config,
       requireAuth: auth.requireAuth,

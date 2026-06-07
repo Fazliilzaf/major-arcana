@@ -13,6 +13,11 @@ const {
   buildOccasionTimeline,
   extractFileOccasionContext,
 } = require('../../scripts/migration/lib/migrationUtils');
+const {
+  resolvePilotConfig,
+  applyNativeJournalFilesForPilot,
+  pilotSummary,
+} = require('../ops/ccoDriveJournalNativePilot');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -33,6 +38,7 @@ function createCcoPatientMasterRouter({
   documentInstanceStore = null,
   buildPatientDocumentBundle = null,
   readCache = null,
+  resolvePatientAssetStore = null,
   authStore,
   config,
   requireAuth,
@@ -181,16 +187,49 @@ function createCcoPatientMasterRouter({
       };
     });
 
+    const pilotConfig = resolvePilotConfig(config || {});
+    let filesForUi = enrichedDriveFiles;
+    let nativePilotMeta = null;
+    if (pilotConfig.enabled && typeof resolvePatientAssetStore === 'function') {
+      const assetStore = await resolvePatientAssetStore();
+      if (assetStore) {
+        const merged = applyNativeJournalFilesForPilot({
+          driveFiles: enrichedDriveFiles,
+          patientId: patient.id,
+          assetStore,
+          pilotConfig,
+        });
+        filesForUi = merged.files;
+        if (merged.nativeCount > 0 || merged.replacedCount > 0) {
+          nativePilotMeta = {
+            nativeAssetCount: merged.nativeCount,
+            replacedIndexCount: merged.replacedCount,
+          };
+        }
+      }
+    }
+
     return {
       patient,
       card: patientMasterStore.buildPatientCardReadout(patient),
       journalEntries: journalStore
         ? journalEntries.map((entry) => journalStore.buildJournalReadout(entry))
         : [],
-      driveFiles: enrichedDriveFiles,
-      occasionTimeline: buildOccasionTimeline(enrichedDriveFiles),
+      driveFiles: filesForUi,
+      occasionTimeline: buildOccasionTimeline(filesForUi),
+      driveJournalNativePilot: nativePilotMeta,
     };
   }
+
+  router.get(
+    '/cco/drive-journal-native-pilot/summary',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async () => {
+        return res.json(pilotSummary(resolvePilotConfig(config || {})));
+      })
+  );
 
   router.get(
     '/cco-patient-master/patient/summary',
