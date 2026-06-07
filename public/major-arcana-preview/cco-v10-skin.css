@@ -1149,3 +1149,18 @@ html[data-v9-enabled="on"] .v9-mockup-dossier--v10-facit .v10-dossier-referens .
 html[data-v9-enabled="on"] .customers-center-shell .customers-list {
   top: 0;
 }
+
+/* Fazli 2026-06-07: ta bort yttre inramningen i högerspalten när kund är vald —
+   dossier-kortets egen ram ska vara den enda. */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .customers-rail.intel-shell[data-context="customer"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .customers-rail.intel-shell[data-context="customer"]::before {
+  content: none !important;
+}
