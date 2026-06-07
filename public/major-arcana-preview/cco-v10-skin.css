@@ -1144,3 +1144,8 @@ html[data-v9-enabled="on"] .v9-mockup-dossier--v10-facit .v10-dossier-referens {
 html[data-v9-enabled="on"] .v9-mockup-dossier--v10-facit .v10-dossier-referens .kkref .doss {
   min-height: 0;
 }
+
+/* Facit-grid: neutralisera gammal top-offset på listan (gav 80px-gap under filterraden) */
+html[data-v9-enabled="on"] .customers-center-shell .customers-list {
+  top: 0;
+}
