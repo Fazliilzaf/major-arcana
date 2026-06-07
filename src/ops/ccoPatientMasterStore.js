@@ -1253,10 +1253,12 @@ async function createCcoPatientMasterStore({ filePath }) {
     const kept = [];
     for (const item of asArray(bucket.patients)) {
       const wanted = ids.has(String(item.id));
+      const noContact = !normalizeText(item.primaryEmail) && !normalizeText(item.primaryPhone);
+      const pnrAsName = /^\d{8}-?\d{4}$/.test(normalizeText(item.displayName));
+      const legacyHalsoStub =
+        item.matchStatus === 'needs_review' && pnrAsName && !item.cliento && !item.drive;
       const isStub =
-        asArray(item.flags).includes('halso_import_stub') &&
-        !normalizeText(item.primaryEmail) &&
-        !normalizeText(item.primaryPhone);
+        noContact && (asArray(item.flags).includes('halso_import_stub') || legacyHalsoStub);
       if (wanted && isStub) {
         removed.push(item.id);
         continue;
