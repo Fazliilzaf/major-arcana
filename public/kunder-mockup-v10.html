@@ -7410,7 +7410,7 @@
    KUNDSÖK (Cmd+K)
    ═══════════════════════════════════════════════════════════════ */
 
-      const CUSTOMERS = [
+      let CUSTOMERS = [
         {
           name: 'Anna Karlsson',
           init: 'AK',
@@ -7520,7 +7520,7 @@
           : CUSTOMERS;
         searchPanelKicker.textContent = ql
           ? `${filtered.length} träffar för "${q}"`
-          : 'Senaste · 1 247 kunder totalt';
+          : `Senaste · ${CUSTOMERS.length.toLocaleString('sv-SE')} kunder totalt`;
         if (filtered.length === 0) {
           searchPanelList.innerHTML = `<div class="search-empty">Ingen kund matchar "${q}"</div>`;
           return;
@@ -8105,7 +8105,7 @@
    KUNDER-LISTA — render
    ═══════════════════════════════════════════════════════════════ */
 
-      const CUSTOMER_ROWS = [
+      const CUSTOMER_ROWS_SEED = [
         {
           name: 'Anna Karlsson',
           init: 'AK',
@@ -8348,45 +8348,431 @@
         },
       ];
 
+      let CUSTOMER_ROWS = [];
+
+      const CLIENTO_CUSTOMER_SOURCES = [
+        '/api/v1/cco/customers/state',
+        'cliento-customers.json',
+        'data/cliento-customers.json',
+        'data/cco-customers.json',
+        'data/cco-patient-master.json',
+      ];
+
+      function normalizeText(value) {
+        return String(value || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function normalizeEmail(value) {
+        const email = String(value || '').trim().toLowerCase();
+        return email && !email.includes('…') ? email : '';
+      }
+
+      function normalizePhone(value) {
+        const digits = String(value || '').replace(/\D/g, '');
+        return digits.length >= 7 ? digits : '';
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) =>
+          ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]
+        );
+      }
+
+      function getInitials(name) {
+        const parts = String(name || '')
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+        return (parts[0]?.[0] || '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '');
+      }
+
+      function colorFromName(name) {
+        const palettes = [
+          ['#d8c1f0', '#b48ad6'],
+          ['#c5d8a8', '#92b86e'],
+          ['#f4d4f0', '#d48ac8'],
+          ['#ffe3b8', '#e8a04e'],
+          ['#b8d4e8', '#7aa8d4'],
+          ['#ffd4b5', '#f0a070'],
+          ['#c8e8e0', '#88c8b8'],
+          ['#f4e8c8', '#d4b870'],
+        ];
+        const hash = Array.from(String(name || '')).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        const [top, bottom] = palettes[hash % palettes.length];
+        return `linear-gradient(180deg, ${top}, ${bottom})`;
+      }
+
+      function sourceFromEmail(email) {
+        const normalized = normalizeEmail(email);
+        if (normalized.startsWith('egzona@')) return 'egzona';
+        if (normalized.startsWith('fazli@')) return 'fazli';
+        if (normalized.startsWith('info@')) return 'info';
+        return 'contact';
+      }
+
+      function customerDedupeKeys(customer) {
+        const keys = [];
+        const email = normalizeEmail(customer.email);
+        const phone = normalizePhone(customer.phone);
+        const clientoId = String(customer.clientoId || customer.id || '').trim();
+        if (email) keys.push(`email:${email}`);
+        if (phone) keys.push(`phone:${phone}`);
+        if (clientoId) keys.push(`cliento:${clientoId}`);
+        return keys;
+      }
+
+      function customerNameKey(customer) {
+        const name = normalizeText(customer.name);
+        return name ? `name:${name}` : '';
+      }
+
+      function normalizeClientoCustomer(record) {
+        if (!record || typeof record !== 'object') return null;
+        const firstName = record.firstName || record.first_name || record.firstname || record.givenName;
+        const lastName = record.lastName || record.last_name || record.lastname || record.familyName;
+        const name =
+          record.name ||
+          record.fullName ||
+          record.full_name ||
+          [firstName, lastName].filter(Boolean).join(' ').trim();
+        if (!name) return null;
+
+        const email =
+          record.email ||
+          record.mail ||
+          record.contactEmail ||
+          record.contact_email ||
+          record.customerEmail ||
+          record.primaryEmail ||
+          record.primary_email ||
+          '';
+        const phone =
+          record.phone ||
+          record.mobile ||
+          record.mobilePhone ||
+          record.mobile_phone ||
+          record.telephone ||
+          record.phoneNumber ||
+          record.phone_number ||
+          record.customerPhone ||
+          record.primaryPhone ||
+          record.primary_phone ||
+          '';
+        const treatment = record.treatment || record.latestTreatment || record.lastTreatment || record.lastSub;
+        const lastVisit = record.lastVisit || record.last_visit || record.latestVisit || record.lastAppointment;
+        const revenue = record.revenue || record.ltv || record.totalRevenue;
+        const status = normalizeText(record.status || record.state || '');
+        const state = status.includes('vip')
+          ? 'vip'
+          : status.includes('risk')
+            ? 'risk'
+            : status.includes('new') || status.includes('ny')
+              ? 'new'
+              : status.includes('dormant') || status.includes('inactive')
+                ? 'dormant'
+                : 'active';
+        const stateLabels = { vip: 'VIP', risk: 'Risk', new: 'Ny', dormant: 'Dormant', active: 'Aktiv' };
+
+        return {
+          clientoId:
+            record.id ||
+            record.customerId ||
+            record.customer_id ||
+            record.clientoId ||
+            record.canonicalCustomerId ||
+            record.canonicalContactId ||
+            record.customerKey,
+          name,
+          init: record.init || getInitials(name).toUpperCase(),
+          bg: record.bg || colorFromName(name),
+          email: email || 'contact@…',
+          source: record.source || sourceFromEmail(email),
+          phone: phone || '070-XXX XX XX',
+          state,
+          stateLabel: record.stateLabel || stateLabels[state],
+          lastVisit: lastVisit || '—',
+          lastSub: treatment || 'Cliento-kund',
+          revenue: revenue ? String(revenue) : '—',
+          trend: record.trend || '',
+          trendUp: record.trendUp !== false,
+          ai: record.ai || 'Synkad från Cliento · kontrollera nästa steg',
+          tags: Array.isArray(record.tags)
+            ? record.tags
+            : state === 'vip'
+              ? [{ kind: 'vip', label: 'VIP' }]
+              : state === 'risk'
+                ? [{ kind: 'risk', label: 'Risk' }]
+                : state === 'new'
+                  ? [{ kind: 'new', label: 'Ny' }]
+                  : [],
+          sub: record.sub || `${treatment || 'Cliento-kund'} · ${lastVisit || 'senaste aktivitet okänd'}`,
+          badges: Array.isArray(record.badges) ? record.badges : [],
+        };
+      }
+
+      function mergeCustomer(existing, incoming) {
+        if (!existing) return { ...incoming };
+        return {
+          ...existing,
+          ...Object.fromEntries(
+            Object.entries(incoming).filter(([, value]) => {
+              if (value === undefined || value === null || value === '') return false;
+              if (value === '—' || value === '070-XXX XX XX' || value === 'contact@…') return false;
+              return true;
+            })
+          ),
+          tags: [...(existing.tags || []), ...(incoming.tags || [])].filter(
+            (tag, idx, list) =>
+              idx === list.findIndex((other) => other.kind === tag.kind && other.label === tag.label)
+          ),
+          badges: [...(existing.badges || []), ...(incoming.badges || [])].filter(
+            (badge, idx, list) =>
+              idx === list.findIndex((other) => other.kind === badge.kind && other.label === badge.label)
+          ),
+        };
+      }
+
+      function dedupeCustomers(customers) {
+        const byKey = new Map();
+        const byName = new Map();
+        const unique = [];
+        customers.filter(Boolean).forEach((customer) => {
+          const keys = customerDedupeKeys(customer);
+          const nameKey = customerNameKey(customer);
+          const existingByStrongKey = keys.map((key) => byKey.get(key)).find(Boolean);
+          const existingByName = nameKey ? byName.get(nameKey) : null;
+          const existing =
+            existingByStrongKey ||
+            (existingByName && (!keys.length || !customerDedupeKeys(existingByName).length)
+              ? existingByName
+              : null);
+          const merged = mergeCustomer(existing, customer);
+          if (!existing) unique.push(merged);
+          else Object.assign(existing, merged);
+          customerDedupeKeys(merged).forEach((key) => byKey.set(key, existing || merged));
+          const mergedNameKey = customerNameKey(merged);
+          if (mergedNameKey && !byName.has(mergedNameKey)) byName.set(mergedNameKey, existing || merged);
+        });
+        return unique.sort((a, b) => a.name.localeCompare(b.name, 'sv'));
+      }
+
+      function toSearchCustomer(c) {
+        return {
+          name: c.name,
+          init: c.init || getInitials(c.name).toUpperCase(),
+          bg: c.bg || colorFromName(c.name),
+          sub: c.sub || `${c.lastSub || 'Cliento-kund'} · ${c.lastVisit || '—'}`,
+          badges: c.badges || c.tags || [],
+        };
+      }
+
+      function customersFromCustomerState(customerState) {
+        if (!customerState || typeof customerState !== 'object') return [];
+        const directory = customerState.directory || {};
+        const details = customerState.details || {};
+        const primaryEmailByKey = customerState.primaryEmailByKey || {};
+        const identityByKey = customerState.identityByKey || {};
+
+        return Object.entries(directory)
+          .map(([key, profile]) => {
+            const detail = details[key] || {};
+            const identityEnvelope =
+              identityByKey[key]?.customerIdentity ||
+              identityByKey[key]?.identity ||
+              identityByKey[key] ||
+              {};
+            const email =
+              primaryEmailByKey[key] ||
+              identityEnvelope.customerEmail ||
+              identityEnvelope.verifiedPersonalEmailNormalized ||
+              detail.emails?.[0] ||
+              '';
+            const phone =
+              identityEnvelope.customerPhone ||
+              identityEnvelope.verifiedPhoneE164 ||
+              detail.phone ||
+              '';
+            const name =
+              profile?.name ||
+              identityEnvelope.customerName ||
+              identityEnvelope.name ||
+              key;
+            const value = Number(profile?.customerValue || 0);
+            return {
+              customerKey: key,
+              canonicalCustomerId: identityEnvelope.canonicalCustomerId,
+              canonicalContactId: identityEnvelope.canonicalContactId,
+              name,
+              email,
+              phone,
+              state: profile?.vip ? 'vip' : 'active',
+              stateLabel: profile?.vip ? 'VIP' : 'Aktiv',
+              revenue: value ? `${value.toLocaleString('sv-SE')} kr` : '—',
+              lastSub: `${Number(profile?.totalConversations || 0).toLocaleString('sv-SE')} konversationer`,
+              ai: profile?.duplicateCandidate
+                ? 'Möjlig dublett · granska innan merge'
+                : 'Kundprofil från CCO customer-state',
+              tags: profile?.duplicateCandidate
+                ? [{ kind: 'risk', label: 'Dublett?' }]
+                : profile?.vip
+                  ? [{ kind: 'vip', label: 'VIP' }]
+                  : [],
+              sub: `${email || phone || 'Saknar kontakt'} · CCO customer-state`,
+            };
+          })
+          .filter((record) => record.name);
+      }
+
+      function extractCustomerArray(payload) {
+        if (Array.isArray(payload)) return payload;
+        if (!payload || typeof payload !== 'object') return [];
+        if (payload.customerState) return customersFromCustomerState(payload.customerState);
+        if (payload.tenants && typeof payload.tenants === 'object') {
+          return Object.values(payload.tenants).flatMap((tenant) =>
+            customersFromCustomerState(tenant?.customerState || tenant)
+          );
+        }
+        if (payload.directory || payload.identityByKey || payload.primaryEmailByKey) {
+          return customersFromCustomerState(payload);
+        }
+        return (
+          payload.customers ||
+          payload.data ||
+          payload.items ||
+          payload.records ||
+          payload.patients ||
+          payload.clients ||
+          []
+        );
+      }
+
+      async function loadClientoCustomers() {
+        const inline = extractCustomerArray(window.CLIENTO_CUSTOMERS || window.CCO_CLIENTO_CUSTOMERS);
+        const storedRaw = localStorage.getItem('clientoCustomers') || localStorage.getItem('ccoCustomers');
+        let stored = [];
+        if (storedRaw) {
+          try {
+            stored = extractCustomerArray(JSON.parse(storedRaw));
+          } catch (err) {
+            localStorage.removeItem('clientoCustomers');
+            localStorage.removeItem('ccoCustomers');
+          }
+        }
+        const fetched = [];
+
+        for (const source of CLIENTO_CUSTOMER_SOURCES) {
+          try {
+            const res = await fetch(source, { cache: 'no-store' });
+            if (!res.ok) continue;
+            fetched.push(...extractCustomerArray(await res.json()));
+          } catch (err) {
+            // Valfria datakällor: sidan fungerar även utan exportfil.
+          }
+        }
+
+        return [...inline, ...stored, ...fetched].map(normalizeClientoCustomer).filter(Boolean);
+      }
+
+      function updateCustomerCounts(total) {
+        const counts = CUSTOMER_ROWS.reduce(
+          (acc, c) => {
+            acc[c.state] = (acc[c.state] || 0) + 1;
+            if ((c.tags || []).some((tag) => tag.kind === 'vip') || c.state === 'vip') acc.vip += 1;
+            return acc;
+          },
+          { active: 0, vip: 0, risk: 0, new: 0, dormant: 0 }
+        );
+
+        document.querySelector('.calendar-toolbar-main h2').textContent = `${total.toLocaleString('sv-SE')} kunder`;
+        searchPanelKicker.textContent = `Senaste · ${total.toLocaleString('sv-SE')} kunder totalt`;
+        document.querySelectorAll('.agg-stat').forEach((stat) => {
+          const label = stat.querySelector('.agg-stat-label')?.textContent || '';
+          const value = stat.querySelector('.agg-stat-value');
+          if (!value) return;
+          if (label.includes('Totalt')) value.textContent = total.toLocaleString('sv-SE');
+          if (label.includes('Aktiva')) value.textContent = counts.active.toLocaleString('sv-SE');
+          if (label.includes('VIP')) value.textContent = counts.vip.toLocaleString('sv-SE');
+        });
+        document.querySelectorAll('.side-link').forEach((link) => {
+          const text = link.textContent;
+          const count = link.querySelector('.count');
+          if (!count) return;
+          if (text.includes('Alla kunder')) count.textContent = total.toLocaleString('sv-SE');
+          if (text.includes('VIP')) count.textContent = counts.vip.toLocaleString('sv-SE');
+          if (text.includes('Risk')) count.textContent = counts.risk.toLocaleString('sv-SE');
+          if (text.includes('Nya')) count.textContent = counts.new.toLocaleString('sv-SE');
+          if (text.includes('Dormant')) count.textContent = counts.dormant.toLocaleString('sv-SE');
+        });
+        document.querySelectorAll('.filter-chip').forEach((chip) => {
+          const count = chip.querySelector('.count');
+          if (!count) return;
+          const text = chip.textContent;
+          if (text.includes('Alla')) count.textContent = total.toLocaleString('sv-SE');
+          if (text.includes('Aktiva')) count.textContent = counts.active.toLocaleString('sv-SE');
+          if (text.includes('VIP')) count.textContent = counts.vip.toLocaleString('sv-SE');
+          if (text.includes('Risk')) count.textContent = counts.risk.toLocaleString('sv-SE');
+          if (text.includes('Nya')) count.textContent = counts.new.toLocaleString('sv-SE');
+          if (text.includes('Dormant')) count.textContent = counts.dormant.toLocaleString('sv-SE');
+        });
+      }
+
       function rowHtml(c) {
+        const tags = c.tags || [];
         return `
-    <div class="customer-row" data-name="${c.name}">
-      <span class="cr-avatar" style="background:${c.bg}">${c.init}</span>
+    <div class="customer-row" data-name="${escapeHtml(c.name)}" data-customer-id="${escapeHtml(c.clientoId || c.name)}">
+      <span class="cr-avatar" style="background:${escapeHtml(c.bg)}">${escapeHtml(c.init)}</span>
       <div>
-        <div class="cr-name">${c.name}</div>
-        ${c.tags.length ? `<div class="cr-name-tags">${c.tags.map((t) => `<span class="cr-tag cr-tag--${t.kind}">${t.label}</span>`).join('')}</div>` : ''}
+        <div class="cr-name">${escapeHtml(c.name)}</div>
+        ${tags.length ? `<div class="cr-name-tags">${tags.map((t) => `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`).join('')}</div>` : ''}
       </div>
       <div class="cr-meta">
-        <div>${c.email}</div>
-        <div class="cr-meta-sub">${c.phone}</div>
+        <div>${escapeHtml(c.email)}</div>
+        <div class="cr-meta-sub">${escapeHtml(c.phone)}</div>
       </div>
-      <div><span class="cr-status" data-state="${c.state}"><span class="dot"></span>${c.stateLabel}</span></div>
+      <div><span class="cr-status" data-state="${escapeHtml(c.state)}"><span class="dot"></span>${escapeHtml(c.stateLabel)}</span></div>
       <div class="cr-meta">
-        <div class="cr-meta-strong">${c.lastVisit}</div>
-        <div class="cr-meta-sub">${c.lastSub}</div>
+        <div class="cr-meta-strong">${escapeHtml(c.lastVisit)}</div>
+        <div class="cr-meta-sub">${escapeHtml(c.lastSub)}</div>
       </div>
       <div>
-        <div class="cr-revenue">${c.revenue}</div>
-        <div class="cr-revenue-trend ${c.trendUp ? 'up' : 'down'}">${c.trend}</div>
+        <div class="cr-revenue">${escapeHtml(c.revenue)}</div>
+        <div class="cr-revenue-trend ${c.trendUp ? 'up' : 'down'}">${escapeHtml(c.trend)}</div>
       </div>
-      <div><div class="cr-ai">${c.ai}</div></div>
+      <div><div class="cr-ai">${escapeHtml(c.ai)}</div></div>
       <div class="cr-arrow">›</div>
     </div>
   `;
       }
 
-      document.getElementById('customerList').innerHTML = CUSTOMER_ROWS.map(rowHtml).join('');
+      async function renderCustomerDirectory() {
+        const clientoCustomers = await loadClientoCustomers();
+        CUSTOMER_ROWS = dedupeCustomers([
+          ...CUSTOMER_ROWS_SEED,
+          ...clientoCustomers,
+        ]);
+        CUSTOMERS = dedupeCustomers([...CUSTOMERS, ...CUSTOMER_ROWS]).map(toSearchCustomer);
+        document.getElementById('customerList').innerHTML = CUSTOMER_ROWS.map(rowHtml).join('');
+        updateCustomerCounts(CUSTOMER_ROWS.length);
+      }
 
       // Klick på rad → öppna dossiéren
-      document.querySelectorAll('.customer-row').forEach((row) => {
-        row.addEventListener('click', () => {
+      document.getElementById('customerList').addEventListener('click', (ev) => {
+        const row = ev.target.closest('.customer-row');
+        if (row) {
           document
             .querySelectorAll('.customer-row.selected')
             .forEach((r) => r.classList.remove('selected'));
           row.classList.add('selected');
           openCustomerDossier(row.dataset.name);
-        });
+        }
       });
+
+      renderCustomerDirectory();
 
       // Filter-chips (mock filtrering — bara visuell selection)
       document.querySelectorAll('.filter-chip').forEach((c) => {
