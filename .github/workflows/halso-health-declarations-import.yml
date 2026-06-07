@@ -102,8 +102,14 @@ jobs:
         run: |
           test -n "${ARCANA_OWNER_EMAIL:-}" || { echo "::error::ARCANA_OWNER_EMAIL saknas"; exit 1; }
           test -n "${ARCANA_OWNER_PASSWORD:-}" || { echo "::error::ARCANA_OWNER_PASSWORD saknas"; exit 1; }
-          node scripts/get-prod-auth-token.js --owner >/tmp/arcana-owner-token.txt
-          test -s /tmp/arcana-owner-token.txt
+          token="$(node scripts/get-prod-auth-token.js --owner)"
+          test -n "$token"
+          echo "::add-mask::$token"
+          {
+            echo "ARCANA_OWNER_TOKEN<<ARCANA_TOKEN"
+            echo "$token"
+            echo "ARCANA_TOKEN"
+          } >> "$GITHUB_ENV"
           echo "Owner-token OK."
 
       - name: Scan halso mailbox corpus
