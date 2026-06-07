@@ -1,0 +1,208 @@
+name: cco-halso-health-declarations-import
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run kontrollerar, commit skriver till respektive kund"
+        required: true
+        default: "dry-run"
+        type: choice
+        options:
+          - dry-run
+          - commit
+      since:
+        description: "Första datum att läsa från halso@ (YYYY-MM-DD, tomt = allt)"
+        required: false
+        default: "2019-01-01"
+      batch_size:
+        description: "Antal hälsodeklarationer per batch"
+        required: false
+        default: "75"
+      max_batches:
+        description: "0 = alla batcher, annars begränsa körningen"
+        required: false
+        default: "0"
+
+permissions:
+  contents: read
+
+jobs:
+  import-halso-health-declarations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    if: github.repository == 'Fazliilzaf/major-arcana'
+    env:
+      ARCANA_PROD_URL: https://arcana.hairtpclinic.com
+      BASE_URL: https://arcana.hairtpclinic.com
+      ARCANA_MAILBOX: halso@hairtpclinic.com
+      ARCANA_DEFAULT_TENANT: hair-tp-clinic
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: srv-d8b3i3tckfvc73clgeng
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+      HALSO_HD_INCLUDE_SAMPLE_ROWS: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Load Graph env from Render
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { fetchAllRenderEnvMap, resolveRenderApiKey } = require('./scripts/lib/renderEnvApi');
+
+          const required = [
+            'ARCANA_GRAPH_TENANT_ID',
+            'ARCANA_GRAPH_CLIENT_ID',
+            'ARCANA_GRAPH_CLIENT_SECRET',
+          ];
+          const optional = [
+            'ARCANA_GRAPH_USER_ID',
+            'ARCANA_GRAPH_BASE_URL',
+            'ARCANA_GRAPH_AUTHORITY_HOST',
+            'ARCANA_GRAPH_SCOPE',
+          ];
+
+          (async () => {
+            const apiKey = resolveRenderApiKey();
+            if (!apiKey) throw new Error('RENDER_API_KEY saknas.');
+            const env = await fetchAllRenderEnvMap(process.env.RENDER_SERVICE_ID, apiKey);
+            const missing = required.filter((key) => !String(env.get(key) || '').trim());
+            if (missing.length) throw new Error(`Render saknar Graph-env: ${missing.join(', ')}`);
+
+            const out = process.env.GITHUB_ENV;
+            for (const key of [...required, ...optional]) {
+              const value = String(env.get(key) || '');
+              if (!value) continue;
+              console.log(`::add-mask::${value}`);
+              fs.appendFileSync(out, `${key}<<ARCANA_ENV\n${value}\nARCANA_ENV\n`);
+            }
+            console.log(`Graph-env laddad: ${required.length + optional.filter((key) => env.get(key)).length} nycklar.`);
+          })().catch((error) => {
+            console.error(error.message || error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Validate owner login
+        run: |
+          test -n "${ARCANA_OWNER_EMAIL:-}" || { echo "::error::ARCANA_OWNER_EMAIL saknas"; exit 1; }
+          test -n "${ARCANA_OWNER_PASSWORD:-}" || { echo "::error::ARCANA_OWNER_PASSWORD saknas"; exit 1; }
+          node scripts/get-prod-auth-token.js --owner >/tmp/arcana-owner-token.txt
+          test -s /tmp/arcana-owner-token.txt
+          echo "Owner-token OK."
+
+      - name: Scan halso mailbox corpus
+        run: |
+          args=(--mailbox "${ARCANA_MAILBOX}" --scope mailbox --page-size 100)
+          if [[ -n "${{ inputs.since }}" ]]; then
+            args+=(--since "${{ inputs.since }}")
+          fi
+          npm run scan:halso-hd-corpus -- "${args[@]}"
+
+      - name: Compute batches
+        id: batches
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require('node:fs');
+          const index = 'data/reports/halso-hd-corpus-index.jsonl';
+          const rows = fs.existsSync(index)
+            ? fs.readFileSync(index, 'utf8').split('\n').filter(Boolean).length
+            : 0;
+          const batchSize = Math.max(1, Number(process.env.BATCH_SIZE || '75') || 75);
+          const total = Math.ceil(rows / batchSize);
+          const max = Math.max(0, Number(process.env.MAX_BATCHES || '0') || 0);
+          const runTotal = max > 0 ? Math.min(total, max) : total;
+          console.log(`rows=${rows}`);
+          console.log(`total=${total}`);
+          console.log(`run_total=${runTotal}`);
+          NODE
+        env:
+          BATCH_SIZE: ${{ inputs.batch_size }}
+          MAX_BATCHES: ${{ inputs.max_batches }}
+
+      - name: Dry-run all selected batches
+        run: |
+          total="${{ steps.batches.outputs.run_total }}"
+          if [[ "$total" == "0" ]]; then
+            echo "Inga hälsodeklarationer hittades i valt intervall."
+            exit 0
+          fi
+          for batch in $(seq 1 "$total"); do
+            npm run ingest:halso-hd-batch -- \
+              --batch "$batch" \
+              --batch-size "${{ inputs.batch_size }}" \
+              --dry-run \
+              --out "data/reports/halso-hd-batch-${batch}-dry-run.json"
+          done
+
+      - name: Summarize dry-run counters
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const files = fs.readdirSync('data/reports')
+            .filter((name) => /^halso-hd-batch-\d+-dry-run\.json$/.test(name))
+            .sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
+          const total = {};
+          for (const file of files) {
+            const report = JSON.parse(fs.readFileSync(`data/reports/${file}`, 'utf8'));
+            for (const [key, value] of Object.entries(report.stats || {})) {
+              if (typeof value === 'number') total[key] = (total[key] || 0) + value;
+            }
+          }
+          console.log(JSON.stringify({ batches: files.length, stats: total }, null, 2));
+          if ((total.putFailed || 0) > 0) {
+            throw new Error('Dry-run innehåller putFailed, vilket inte ska kunna ske.');
+          }
+          NODE
+
+      - name: Commit selected batches
+        if: inputs.mode == 'commit'
+        run: |
+          total="${{ steps.batches.outputs.run_total }}"
+          if [[ "$total" == "0" ]]; then
+            echo "Inga hälsodeklarationer att importera."
+            exit 0
+          fi
+          for batch in $(seq 1 "$total"); do
+            npm run ingest:halso-hd-batch -- \
+              --batch "$batch" \
+              --batch-size "${{ inputs.batch_size }}" \
+              --commit \
+              --out "data/reports/halso-hd-batch-${batch}-commit.json"
+          done
+
+      - name: Summarize commit counters
+        if: inputs.mode == 'commit'
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const files = fs.readdirSync('data/reports')
+            .filter((name) => /^halso-hd-batch-\d+-commit\.json$/.test(name))
+            .sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
+          const total = {};
+          for (const file of files) {
+            const report = JSON.parse(fs.readFileSync(`data/reports/${file}`, 'utf8'));
+            for (const [key, value] of Object.entries(report.stats || {})) {
+              if (typeof value === 'number') total[key] = (total[key] || 0) + value;
+            }
+          }
+          console.log(JSON.stringify({ batches: files.length, stats: total }, null, 2));
+          if ((total.putFailed || 0) > 0) {
+            throw new Error(`Importen fick putFailed=${total.putFailed}.`);
+          }
+          NODE

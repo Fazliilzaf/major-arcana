@@ -128,8 +128,10 @@ async function main() {
     batchCount: report.batchCount,
     dryRun: report.dryRun,
     stats: report.stats,
-    sampleRows: report.rows.slice(0, 8),
   };
+  if (process.env.HALSO_HD_INCLUDE_SAMPLE_ROWS === 'true') {
+    safe.sampleRows = report.rows.slice(0, 8);
+  }
   console.log(JSON.stringify(safe, null, 2));
 }
 
