@@ -1199,3 +1199,26 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
   min-width: 0 !important;
   box-sizing: border-box;
 }
+
+/* Fazli 2026-06-07: högerspalten — topplinje med vänsterspalten, bredare (400px),
+   samma kantmarginaler. Kortet fyller spalten utan inre luft. */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] {
+  --v9-layout-col-intel: 400px;
+  --v9-layout-grid-cols: 200px minmax(0, 1fr) 400px;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout[data-v10-facit-app-grid] {
+  grid-template-columns: 200px minmax(0, 1fr) 400px !important;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout[data-v10-facit-app-grid]
+  .customers-rail.intel-shell {
+  max-width: 400px;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-rail.intel-shell[data-context="customer"] {
+  padding: 0 !important;
+}
