@@ -675,6 +675,46 @@ function createCcoPatientMasterRouter({
   );
 
   router.post(
+    '/cco-patient-master/drive-attach/bulk-apply',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const deltas = Array.isArray(req.body?.deltas) ? req.body.deltas : [];
+        if (!deltas.length) return res.status(400).json({ error: 'deltas krävs.' });
+        if (deltas.length > 500) {
+          return res.status(400).json({ error: 'Max 500 deltas per anrop.' });
+        }
+        const confirmText = normalizeText(req.body?.confirmText);
+        if (confirmText !== 'APPLY DRIVE ATTACH') {
+          return res.status(400).json({ error: 'Bekräfta med confirmText: "APPLY DRIVE ATTACH"' });
+        }
+        const result = await patientMasterStore.bulkApplyDriveAttachDeltas({
+          tenantId: actor.tenantId,
+          deltas,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.drive_attach_bulk_apply',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: `${result.updated.length} patienter`,
+          metadata: {
+            updatedCount: result.updated.length,
+            skippedNotFound: result.skippedNotFound,
+          },
+        });
+        return res.json({
+          ok: true,
+          updatedCount: result.updated.length,
+          skippedNotFound: result.skippedNotFound,
+          rollback: result.rollback,
+        });
+      })
+  );
+
+  router.post(
     '/cco-patient-master/stub-patients/hard-delete',
     requireAuth,
     requireRole(ROLE_OWNER),

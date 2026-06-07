@@ -1243,6 +1243,52 @@ async function createCcoPatientMasterStore({ filePath }) {
     };
   }
 
+  async function bulkApplyDriveAttachDeltas({ tenantId, deltas = [] } = {}) {
+    // SÄKERHET: update-only. Patient som inte finns hoppas över — kan ALDRIG
+    // skapa nya poster. Returnerar rollback-data per uppdaterad patient.
+    const bucket = tenantBucket(state, tenantId);
+    const updated = [];
+    const skippedNotFound = [];
+    const rollback = [];
+    for (const delta of asArray(deltas)) {
+      const safe = asObject(delta);
+      const pnr = normalizePersonnummer(safe.personnummer);
+      let index = -1;
+      if (safe.id) index = bucket.patients.findIndex((item) => item.id === safe.id);
+      if (index < 0 && pnr) {
+        index = bucket.patients.findIndex(
+          (item) => normalizePersonnummer(item.personnummer) === pnr
+        );
+      }
+      if (index < 0) {
+        skippedNotFound.push(safe.id || pnr || '?');
+        continue;
+      }
+      const existing = bucket.patients[index];
+      rollback.push({
+        id: existing.id,
+        drive: existing.drive || null,
+        fileSummary: existing.fileSummary || null,
+        matchStatus: existing.matchStatus,
+        matchConfidence: existing.matchConfidence,
+      });
+      bucket.patients[index] = normalizePatientRecord(
+        {
+          id: existing.id,
+          tenantId,
+          drive: safe.drive,
+          fileSummary: safe.fileSummary,
+          matchStatus: safe.matchStatus,
+          matchConfidence: safe.matchConfidence,
+        },
+        existing
+      );
+      updated.push(existing.id);
+    }
+    if (updated.length) await save();
+    return { updated, skippedNotFound, rollback };
+  }
+
   async function hardDeleteStubPatients({ tenantId, patientIds = [] } = {}) {
     // SÄKERHET: raderar ENDAST poster med flaggan 'halso_import_stub' som
     // saknar e-post och telefon. Riktiga kunder kan aldrig raderas här.
@@ -1275,6 +1321,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     assertPatientJournalWritable,
     buildGdprExportPackage,
     buildPatientCardReadout,
+    bulkApplyDriveAttachDeltas,
     dismissMergeReviewGroup,
     findPatientByEmail,
     getPatient,
