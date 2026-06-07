@@ -8651,6 +8651,21 @@
         );
       }
 
+      function getArcanaAuthToken() {
+        const keys = ['ARCANA_ADMIN_TOKEN', 'arcana_admin_token'];
+        for (const storage of [window.localStorage, window.sessionStorage]) {
+          for (const key of keys) {
+            try {
+              const token = String(storage?.getItem(key) || '').trim();
+              if (token && token.toLowerCase() !== 'demo') return token;
+            } catch (err) {
+              // Storage kan vara blockerad i vissa browserlägen.
+            }
+          }
+        }
+        return '';
+      }
+
       async function loadClientoCustomers() {
         const inline = extractCustomerArray(window.CLIENTO_CUSTOMERS || window.CCO_CLIENTO_CUSTOMERS);
         const storedRaw = localStorage.getItem('clientoCustomers') || localStorage.getItem('ccoCustomers');
@@ -8667,7 +8682,11 @@
 
         for (const source of CLIENTO_CUSTOMER_SOURCES) {
           try {
-            const res = await fetch(source, { cache: 'no-store' });
+            const token = source.startsWith('/api/') ? getArcanaAuthToken() : '';
+            const res = await fetch(source, {
+              cache: 'no-store',
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
             if (!res.ok) continue;
             fetched.push(...extractCustomerArray(await res.json()));
           } catch (err) {
