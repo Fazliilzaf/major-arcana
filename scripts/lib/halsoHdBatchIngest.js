@@ -38,6 +38,7 @@ function emptyBatchStats() {
     putFailed: 0,
     skippedCommit: 0,
     reviewQueued: 0,
+    stubCreated: 0,
   };
 }
 
@@ -165,6 +166,7 @@ async function processOneHalsoMessage({
   dryRun = true,
   runId = '',
   graphToken = null,
+  allowUnmatchedStubs = false,
 } = {}) {
   let graphTok = graphToken;
   if (!graphTok) graphTok = await getGraphToken();
@@ -210,6 +212,80 @@ async function processOneHalsoMessage({
     };
   }
   if (match.status === 'UNMATCHED') {
+    if (!dryRun && allowUnmatchedStubs && token) {
+      try {
+        const healthDeclaration = buildHealthDeclarationUpsert({
+          parsed,
+          match: { method: 'unmatched_stub', confidence: 0.3 },
+          rawMessage,
+          runId,
+        });
+        const saved = await putPatient(token, {
+          tenantId: TENANT_ID,
+          personnummer: parsed.personnummer || '',
+          displayName:
+            parsed.displayName ||
+            parsed.email ||
+            parsed.phone ||
+            parsed.personnummer ||
+            'Hälsodeklaration (ogranskad)',
+          firstName: parsed.firstName || '',
+          lastName: parsed.lastName || '',
+          primaryEmail: parsed.email || '',
+          primaryPhone: parsed.phone || '',
+          emails: parsed.email ? [parsed.email] : [],
+          phones: parsed.phone ? [parsed.phone] : [],
+          healthDeclaration: {
+            ...healthDeclaration,
+            reviewRequired: true,
+          },
+          allergies: mergeAllergies([], parsed.allergies),
+          matchStatus: 'needs_review',
+          matchConfidence: 0.3,
+          flags: ['needs_review', 'halso_import_stub'],
+          halsoHdBackfill: {
+            runId,
+            matchMethod: 'unmatched_stub',
+            importedAt: new Date().toISOString(),
+          },
+        });
+        const patientId = saved?.patient?.id || saved?.patient?.patientId || null;
+        await recordDedupEntry(dedupPath, dedupState, dedupKeys, {
+          patientId,
+          signedAt: parsed.signedAt,
+          internetMessageId: parsed.internetMessageId || rawMessage.internetMessageId || '',
+          matchMethod: 'unmatched_stub',
+        });
+        return {
+          status: 'stub_created',
+          parsed,
+          match: { ...match, method: 'unmatched_stub', confidence: 0.3 },
+          patientId,
+          dedupKeys,
+          row: summarizeResultRow({
+            header,
+            parsed,
+            match: { method: 'unmatched_stub', confidence: 0.3 },
+            status: 'stub_created',
+            patientId,
+          }),
+        };
+      } catch (error) {
+        return {
+          status: 'put_failed',
+          parsed,
+          match,
+          error: error.message || String(error),
+          row: summarizeResultRow({
+            header,
+            parsed,
+            match,
+            status: 'put_failed',
+            error: error.message || String(error),
+          }),
+        };
+      }
+    }
     return {
       status: 'unmatched',
       parsed,
@@ -331,6 +407,7 @@ function applyStats(stats, result) {
     stats.matchedByMethod[method] = (stats.matchedByMethod[method] || 0) + 1;
   }
   if (result.status === 'put_ok') stats.putOk += 1;
+  if (result.status === 'stub_created') stats.stubCreated += 1;
   if (result.status === 'put_failed') stats.putFailed += 1;
   if (result.status === 'skipped_commit') stats.skippedCommit += 1;
   if (result.reviewQueued) stats.reviewQueued += 1;
@@ -352,6 +429,7 @@ async function runHalsoBatchIngest({
   runId = '',
   token = '',
   mailbox = DEFAULT_MAILBOX,
+  allowUnmatchedStubs = false,
   onProgress = null,
 } = {}) {
   if (!dedupPath) throw new Error('runHalsoBatchIngest requires dedupPath');
@@ -374,6 +452,7 @@ async function runHalsoBatchIngest({
       dryRun,
       runId,
       graphToken,
+      allowUnmatchedStubs,
     });
     if (reviewQueuePath && ['unmatched', 'needs_review'].includes(result.status)) {
       await appendReviewQueueLine(

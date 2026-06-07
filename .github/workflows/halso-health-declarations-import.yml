@@ -26,6 +26,14 @@ on:
       sync_cliento_first:
         description: "Bygg/pusha Cliento-kunder före hälsodeklarationer"
         required: true
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      commit_unmatched_stubs:
+        description: "I commit-läge: skapa needs_review-kund för parsad deklaration utan match"
+        required: true
         default: "true"
         type: choice
         options:
@@ -218,6 +226,8 @@ jobs:
               --commit \
               --out "data/reports/halso-hd-batch-${batch}-commit.json"
           done
+        env:
+          HALSO_HD_COMMIT_UNMATCHED_STUBS: ${{ inputs.commit_unmatched_stubs }}
 
       - name: Summarize commit counters
         if: inputs.mode == 'commit'

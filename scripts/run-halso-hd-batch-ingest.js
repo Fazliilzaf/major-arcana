@@ -111,6 +111,8 @@ async function main() {
     dryRun: args.dryRun,
     runId,
     token,
+    allowUnmatchedStubs:
+      !args.dryRun && process.env.HALSO_HD_COMMIT_UNMATCHED_STUBS === 'true',
     onProgress: ({ index, total, stats }) => {
       if (index === total || index - lastProgress >= 10) {
         lastProgress = index;
