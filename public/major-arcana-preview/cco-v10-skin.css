@@ -1176,3 +1176,13 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .
   min-width: 0;
   overflow-x: hidden;
 }
+
+/* Dossier-kortet var 402px i 360px-spalten — tvinga till spaltbredden */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .customers-rail.intel-shell[data-context="customer"]
+  .patient-master-card.v9-mockup-dossier {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
