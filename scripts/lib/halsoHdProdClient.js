@@ -38,12 +38,30 @@ function normalizeProdPatientRow(row = {}) {
   };
 }
 
+async function fetchWithRetry(url, options = {}, { attempts = 4, label = 'request' } = {}) {
+  let lastPayload = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const res = await fetch(url, options);
+    const payload = await res.json().catch(() => ({}));
+    if (res.ok) return { res, payload };
+    lastPayload = payload;
+    const retryable = res.status === 429 || res.status >= 500;
+    if (!retryable || attempt >= attempts) {
+      const error = new Error(payload.error || `${res.status} ${label}`);
+      error.status = res.status;
+      throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+  }
+  throw new Error(lastPayload?.error || `${label} failed`);
+}
+
 async function fetchProdPatients(token, { maxPatients = 20000 } = {}) {
   const patients = [];
   let offset = 0;
   const pageSize = 500;
   while (patients.length < maxPatients) {
-    const res = await fetch(
+    const { payload } = await fetchWithRetry(
       `${BASE}/api/v1/cco-patient-master/patients?limit=${pageSize}&offset=${offset}`,
       {
         headers: {
@@ -51,10 +69,9 @@ async function fetchProdPatients(token, { maxPatients = 20000 } = {}) {
           Authorization: `Bearer ${token}`,
           'x-arcana-client': 'major_arcana_admin',
         },
-      }
+      },
+      { label: 'patient list' }
     );
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(payload.error || `${res.status} patient list`);
     const batch = Array.isArray(payload.patients) ? payload.patients : [];
     patients.push(...batch.map(normalizeProdPatientRow));
     const total = Number(payload.total || 0);
@@ -65,7 +82,7 @@ async function fetchProdPatients(token, { maxPatients = 20000 } = {}) {
 }
 
 async function fetchPatient(token, patientId) {
-  const res = await fetch(
+  const { payload } = await fetchWithRetry(
     `${BASE}/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`,
     {
       headers: {
@@ -73,27 +90,28 @@ async function fetchPatient(token, patientId) {
         Authorization: `Bearer ${token}`,
         'x-arcana-client': 'major_arcana_admin',
       },
-    }
+    },
+    { label: `get patient ${patientId}` }
   );
-  const payload = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(payload.error || `${res.status} get patient ${patientId}`);
   const patient = payload.patient || {};
   return { ...patient, id: patient.id || patient.patientId || patientId };
 }
 
 async function putPatient(token, body) {
-  const res = await fetch(`${BASE}/api/v1/cco-patient-master/patient`, {
-    method: 'PUT',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      'x-arcana-client': 'major_arcana_admin',
+  const { payload } = await fetchWithRetry(
+    `${BASE}/api/v1/cco-patient-master/patient`,
+    {
+      method: 'PUT',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-arcana-client': 'major_arcana_admin',
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
-  const payload = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(payload.error || `${res.status} PUT patient ${body.id}`);
+    { label: `PUT patient ${body.id || body.patientId || 'new'}` }
+  );
   return payload;
 }
 
