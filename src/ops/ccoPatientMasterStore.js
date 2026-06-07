@@ -1243,6 +1243,32 @@ async function createCcoPatientMasterStore({ filePath }) {
     };
   }
 
+  async function hardDeleteStubPatients({ tenantId, patientIds = [] } = {}) {
+    // SÄKERHET: raderar ENDAST poster med flaggan 'halso_import_stub' som
+    // saknar e-post och telefon. Riktiga kunder kan aldrig raderas här.
+    const bucket = tenantBucket(state, tenantId);
+    const ids = new Set(asArray(patientIds).map((value) => String(value)));
+    const removed = [];
+    const skipped = [];
+    const kept = [];
+    for (const item of asArray(bucket.patients)) {
+      const wanted = ids.has(String(item.id));
+      const isStub =
+        asArray(item.flags).includes('halso_import_stub') &&
+        !normalizeText(item.primaryEmail) &&
+        !normalizeText(item.primaryPhone);
+      if (wanted && isStub) {
+        removed.push(item.id);
+        continue;
+      }
+      if (wanted) skipped.push(item.id);
+      kept.push(item);
+    }
+    bucket.patients = kept;
+    if (removed.length) await save();
+    return { removed, skipped };
+  }
+
   return {
     assertPatientJournalWritable,
     buildGdprExportPackage,
@@ -1251,6 +1277,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     findPatientByEmail,
     getPatient,
     getTenantStats,
+    hardDeleteStubPatients,
     importClientoRows,
     listPatients,
     listMergeReviewGroups,

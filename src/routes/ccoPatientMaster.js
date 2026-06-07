@@ -675,6 +675,59 @@ function createCcoPatientMasterRouter({
   );
 
   router.post(
+    '/cco-patient-master/stub-patients/hard-delete',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientIds = Array.isArray(req.body?.patientIds) ? req.body.patientIds : [];
+        if (!patientIds.length) return res.status(400).json({ error: 'patientIds krävs.' });
+        const confirmText = normalizeText(req.body?.confirmText);
+        if (confirmText !== 'DELETE STUBS') {
+          return res.status(400).json({ error: 'Bekräfta med confirmText: "DELETE STUBS"' });
+        }
+
+        // Journal-spärr: patient med journalanteckningar får aldrig hård-raderas.
+        const eligible = [];
+        const blockedByJournal = [];
+        for (const patientId of patientIds) {
+          const entries = journalStore?.listEntries
+            ? await journalStore.listEntries({ tenantId: actor.tenantId, patientId })
+            : [];
+          if (Array.isArray(entries) && entries.length) blockedByJournal.push(patientId);
+          else eligible.push(patientId);
+        }
+
+        const result = await patientMasterStore.hardDeleteStubPatients({
+          tenantId: actor.tenantId,
+          patientIds: eligible,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.stub_hard_delete',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: `${result.removed.length} stubbar`,
+          metadata: {
+            removed: result.removed,
+            skippedNotStub: result.skipped,
+            blockedByJournal,
+          },
+        });
+
+        return res.json({
+          ok: true,
+          removedCount: result.removed.length,
+          removed: result.removed,
+          skippedNotStub: result.skipped,
+          blockedByJournal,
+        });
+      })
+  );
+
+  router.post(
     '/cco-patient-master/patient/gdpr-anonymize',
     requireAuth,
     requireRole(ROLE_OWNER),
