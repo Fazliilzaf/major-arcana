@@ -3114,6 +3114,9 @@
 
   function bindKundkortSlideOver(root, handlers = {}, ctx = null) {
     if (!root) return;
+    if (typeof window.__enhanceReferensKundkort === 'function') {
+      window.__enhanceReferensKundkort(root);
+    }
     const liveCtx = ctx || root._v9IntelCtx || { card: null, journalEntries: [] };
     bindIntelligentJourney(root, liveCtx, handlers);
     bindDossierScroll(root, handlers);

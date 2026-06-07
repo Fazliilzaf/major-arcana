@@ -1269,3 +1269,61 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-sh
   flex: 0 0 auto;
   margin-left: auto;
 }
+
+/* ============================================================
+   LAGER 15 · Gemensamt kundkort: sticky header + sektions-chips
+   Fazli 2026-06-08: "porta kundkortet till appen med live-data"
+   ============================================================ */
+html[data-v9-enabled="on"] .kkref .kk-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: linear-gradient(180deg, rgba(250, 246, 242, 0.98), rgba(246, 240, 234, 0.94));
+  backdrop-filter: blur(8px);
+  margin: 0 -4px 10px;
+  padding: 4px 4px 0;
+  border-bottom: 1px solid rgba(93, 74, 60, 0.08);
+}
+html[data-v9-enabled="on"] .kkref .kk-nav {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 8px 0 10px;
+  scrollbar-width: none;
+}
+html[data-v9-enabled="on"] .kkref .kk-nav::-webkit-scrollbar {
+  display: none;
+}
+html[data-v9-enabled="on"] .kkref .kk-chip {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--cco-text-secondary, rgba(70, 60, 50, 0.62));
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+html[data-v9-enabled="on"] .kkref .kk-chip .kn {
+  color: var(--cco-text-tertiary, #8a8174);
+  font-weight: 600;
+  font-size: 10px;
+}
+html[data-v9-enabled="on"] .kkref .kk-chip.active {
+  background: linear-gradient(180deg, rgba(252, 233, 240, 0.98), rgba(241, 207, 220, 0.95));
+  color: var(--accent-studio, #bb4779);
+  box-shadow: inset 0 0 0 1px rgba(187, 71, 121, 0.25);
+}
+html[data-v9-enabled="on"] .kkref .kk-chip.active .kn {
+  color: var(--accent-studio, #bb4779);
+}
+html[data-v9-enabled="on"] .kkref .sec {
+  scroll-margin-top: 120px;
+}

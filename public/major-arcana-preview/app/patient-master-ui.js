@@ -1115,6 +1115,9 @@
             occasionTimeline,
             driveFiles
           );
+    if (typeof window.__enhanceReferensKundkort === 'function') {
+      window.__enhanceReferensKundkort(rail);
+    }
     if (workspace && !referensMasterDetail) {
       workspace.innerHTML = window.CcoKundkortBlueprint.renderWorkspace(
         card,

@@ -39,9 +39,25 @@
     var mark = risk === 'flag' || risk === 'amber' ? '⚠ ' : '';
     return ja ? mark + 'Ja' : 'Nej';
   }
+  function sekSlug(label) {
+    var l = String(label || '').toLowerCase();
+    if (l.indexOf('hälsodek') === 0) return 'halso';
+    if (l.indexOf('kundresa') === 0) return 'kundresa';
+    if (l.indexOf('smart nästa') === 0) return 'nastasteg';
+    if (l.indexOf('kommande') === 0) return 'bokningar';
+    if (l.indexOf('historik') === 0) return 'historik';
+    if (l.indexOf('journal') === 0) return 'journal';
+    if (l.indexOf('offert') === 0) return 'offert';
+    if (l.indexOf('auto') === 0) return 'auto';
+    if (l.indexOf('foto') === 0) return 'foto';
+    if (l.indexOf('ekonomi') === 0) return 'ekonomi';
+    return 'sek';
+  }
   function sec(label, src, inner) {
     return (
-      '<div class="sec"><div class="lab"><span class="car">▾</span> ' +
+      '<div class="sec" data-sek="' +
+      sekSlug(label) +
+      '"><div class="lab"><span class="car">▾</span> ' +
       esc(label) +
       (src ? '<span class="src">' + src + '</span>' : '') +
       '</div>' +
@@ -681,4 +697,100 @@
       '</span></div>'
     );
   }
+
+  /* ===== Gemensamt kundkort: sticky header + sektions-chips (fas 1) ===== */
+  var KK_NAV = [
+    ['halso', 'Hälsodekl.'],
+    ['kundresa', 'Kundresa'],
+    ['nastasteg', 'Nästa steg'],
+    ['bokningar', 'Bokningar'],
+    ['historik', 'Historik'],
+    ['journal', 'Journal'],
+    ['offert', 'Offert'],
+    ['auto', 'Auto'],
+    ['foto', 'Foto'],
+    ['ekonomi', 'Ekonomi'],
+  ];
+  window.__enhanceReferensKundkort = function (rootEl) {
+    try {
+      var root = rootEl && rootEl.querySelector ? rootEl : document;
+      var doss = root.querySelector('.kkref .doss');
+      if (!doss || doss.querySelector('.kk-nav')) return;
+      var head = doss.querySelector('.dhead');
+      if (!head) return;
+      var navHtml = KK_NAV.filter(function (n) {
+        return doss.querySelector('.sec[data-sek="' + n[0] + '"]');
+      })
+        .map(function (n) {
+          var s = doss.querySelector('.sec[data-sek="' + n[0] + '"] .lab .src');
+          var badge = s ? String(s.textContent || '').trim() : '';
+          if (badge.length > 10 || badge === '0') badge = '';
+          return (
+            '<button type="button" class="kk-chip" data-kk-mal="' +
+            n[0] +
+            '">' +
+            n[1] +
+            (badge ? ' <span class="kn">' + esc(badge) + '</span>' : '') +
+            '</button>'
+          );
+        })
+        .join('');
+      if (!navHtml) return;
+      var sticky = document.createElement('div');
+      sticky.className = 'kk-sticky';
+      doss.insertBefore(sticky, head);
+      sticky.appendChild(head);
+      var nav = document.createElement('div');
+      nav.className = 'kk-nav';
+      nav.innerHTML = navHtml;
+      sticky.appendChild(nav);
+      var scroller = doss.parentElement;
+      while (scroller && scroller !== document.body) {
+        var cs = getComputedStyle(scroller);
+        if (/(auto|scroll)/.test(cs.overflowY)) break;
+        scroller = scroller.parentElement;
+      }
+      if (scroller === document.body) scroller = null;
+      function aktivera(slug) {
+        nav.querySelectorAll('.kk-chip').forEach(function (c) {
+          c.classList.toggle('active', c.getAttribute('data-kk-mal') === slug);
+        });
+      }
+      nav.addEventListener('click', function (e) {
+        var chip = e.target.closest('.kk-chip');
+        if (!chip) return;
+        var mal = doss.querySelector('.sec[data-sek="' + chip.getAttribute('data-kk-mal') + '"]');
+        if (!mal) return;
+        var off = sticky.offsetHeight + 8;
+        if (scroller) {
+          var top =
+            mal.getBoundingClientRect().top -
+            scroller.getBoundingClientRect().top +
+            scroller.scrollTop -
+            off;
+          scroller.scrollTo(0, Math.max(0, top));
+        } else {
+          window.scrollTo(0, Math.max(0, window.scrollY + mal.getBoundingClientRect().top - off));
+        }
+        aktivera(chip.getAttribute('data-kk-mal'));
+      });
+      if (typeof IntersectionObserver === 'function') {
+        var io = new IntersectionObserver(
+          function (poster) {
+            poster.forEach(function (p) {
+              if (p.isIntersecting) aktivera(p.target.getAttribute('data-sek'));
+            });
+          },
+          { root: scroller, rootMargin: '-25% 0px -65% 0px' }
+        );
+        doss.querySelectorAll('.sec[data-sek]').forEach(function (s) {
+          io.observe(s);
+        });
+      }
+      var first = nav.querySelector('.kk-chip');
+      if (first) aktivera(first.getAttribute('data-kk-mal'));
+    } catch (err) {
+      /* förbättringen får aldrig fälla dossiern */
+    }
+  };
 })();
