@@ -27,6 +27,17 @@
 - If current implementation, Figma, and uploaded files conflict, report the conflict clearly before removing anything.
 - Keep `/cco` unchanged unless explicitly requested.
 
+## Working-copy rule (no folder forks)
+
+- NEVER duplicate this repo, or any part of it, into a sibling folder
+  (`*-copy`, `*-next`, `*-hydration`, feature-named folders) to do work.
+- All work happens on a git branch. Need a parallel checkout? Use
+  `git worktree add` — never `cp -r`. If it is not in git, it does not exist.
+- Scratch experiments live in `git stash`, a branch, or `/tmp` — never as
+  an untracked folder copy in `~/Code`.
+- If you encounter an untracked folder copy: STOP. Report it, merge anything
+  unique back via branch + PR, then move the folder to `~/Code/_archive/`.
+
 ## Completion rule
 
 - Do not return with partial progress for major first-page work.
