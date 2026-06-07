@@ -767,7 +767,12 @@
       var scroller = doss.parentElement;
       while (scroller && scroller !== document.body) {
         var cs = getComputedStyle(scroller);
-        if (/(auto|scroll)/.test(cs.overflowY)) break;
+        if (
+          /(auto|scroll)/.test(cs.overflowY) &&
+          scroller.scrollHeight > scroller.clientHeight + 4
+        ) {
+          break;
+        }
         scroller = scroller.parentElement;
       }
       if (scroller === document.body) scroller = null;
