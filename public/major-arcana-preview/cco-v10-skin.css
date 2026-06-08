@@ -2292,3 +2292,69 @@ html[data-v9-enabled="on"] .kkref .doss .bk .bm {
   font-size: 10.5px;
   color: #94897b;
 }
+
+/* ============================================================
+   LAGER 24 · Smart nästa steg — åtgärds-knapp (→) + utkast-panel
+   ============================================================ */
+html[data-v9-enabled="on"] .kkref .kk-sig-act {
+  margin-left: 8px;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f4dca3, #e3bd62);
+  color: #5a4310;
+  font-size: 14px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+html[data-v9-enabled="on"] .kkref .kk-sig-act:hover {
+  filter: brightness(0.96);
+}
+#kk-sigact {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(43, 37, 31, 0.4);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+#kk-sigact .kk-sigact-panel {
+  width: min(460px, 94vw);
+  background: linear-gradient(180deg, #faf6f2, #f3ece3);
+  border-radius: 16px;
+  box-shadow: 0 40px 90px rgba(43, 37, 31, 0.3);
+  padding: 18px;
+}
+#kk-sigact .kk-sigact-h {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2b251f;
+}
+#kk-sigact .kk-sigact-sub {
+  font-size: 11px;
+  color: #94897b;
+  margin: 2px 0 12px;
+}
+#kk-sigact .kk-sigact-draft {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #2b251f;
+  box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.1);
+  margin-bottom: 12px;
+}
+#kk-sigact .kk-sigact-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

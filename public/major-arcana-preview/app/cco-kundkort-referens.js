@@ -521,15 +521,21 @@
               tone === 'block'
                 ? '<span class="pill p-block">Blockerare</span>'
                 : '<span class="pill" style="background:var(--info-bg);color:var(--info)">Info</span>';
+            var sig = esc(s.ruleId || s.id || '');
             return (
               '<div class="row acc ' +
               tone +
-              '"><div><div class="rt">' +
+              '"><div style="flex:1"><div class="rt">' +
               esc(s.what || s.label || '—') +
               '</div><div class="rm">' +
-              esc(s.ruleId || s.id || '') +
+              sig +
               '</div></div>' +
               pill +
+              '<button type="button" class="kk-sig-act" data-kk-sig="' +
+              sig +
+              '" data-kk-sig-label="' +
+              esc(s.what || s.label || '') +
+              '" title="Åtgärda">→</button>' +
               '</div>'
             );
           })
@@ -833,6 +839,119 @@
     ['foto', 'Foto'],
     ['ekonomi', 'Ekonomi'],
   ];
+  // ===== Smart nästa steg: åtgärds-utkast per signal (granska & skicka, ej autoskick) =====
+  (function bindSignalActionsOnce() {
+    if (window.__kkSigBound) return;
+    window.__kkSigBound = true;
+    function fnamn() {
+      var dn = document.querySelector('.kkref .doss .dn');
+      var n = dn ? String(dn.textContent || '').trim() : '';
+      return n.split(' ')[0] || 'där';
+    }
+    function utkastFor(sig, label, namn) {
+      var s = String(sig || '').toLowerCase();
+      var l = String(label || '').toLowerCase();
+      if (s.indexOf('operation_day') >= 0 || l.indexOf('friskförs') >= 0)
+        return {
+          rubrik: 'Skicka friskförsäkran (tablet/QR-länk)',
+          kund: true,
+          text:
+            'Hej ' +
+            namn +
+            '! Inför din operation behöver vi din friskförsäkran ifylld. Öppna och signera här: [länk]. Den slutförs på operationsdagen. / Hair TP Clinic',
+        };
+      if (s.indexOf('photo_consent') >= 0 || l.indexOf('foto') >= 0)
+        return {
+          rubrik: 'Begär foto-samtycke',
+          kund: true,
+          text:
+            'Hej ' +
+            namn +
+            '! Vi vill gärna ta före/efter-bilder (hårlinje/krona — aldrig ansikte) för att följa ditt resultat. Godkänn här: [länk]. / Hair TP Clinic',
+        };
+      if (s.indexOf('health_declaration') >= 0 || l.indexOf('hälsodek') >= 0)
+        return {
+          rubrik: 'Skicka hälsodeklaration',
+          kund: true,
+          text:
+            'Hej ' +
+            namn +
+            '! Inför ditt besök behöver vi din hälsodeklaration. Fyll i här (2 min): [länk]. / Hair TP Clinic',
+        };
+      if (
+        s.indexOf('treatment_plan') >= 0 ||
+        l.indexOf('offert') >= 0 ||
+        l.indexOf('behandlingsplan') >= 0
+      )
+        return {
+          rubrik: 'Skicka behandlingsplan/offert',
+          kund: true,
+          text:
+            'Hej ' +
+            namn +
+            '! Här är din behandlingsplan. Du kan läsa och svara här: [länk]. Hör av dig om du har frågor! / Hair TP Clinic',
+        };
+      if (s.indexOf('cooling_off') >= 0 || l.indexOf('avtal') >= 0 || l.indexOf('samtycke') >= 0)
+        return {
+          rubrik: 'Påminn om avtal + samtycke',
+          kund: true,
+          text:
+            'Hej ' +
+            namn +
+            '! Betänketiden har passerat — du kan nu signera avtal + samtycke här: [länk]. / Hair TP Clinic',
+        };
+      if (s.indexOf('journal') >= 0)
+        return {
+          rubrik: 'Journal saknas (intern åtgärd)',
+          kund: false,
+          text: 'Skapa och signera journal för besöket i journal-arbetsytan.',
+        };
+      return {
+        rubrik: label || 'Åtgärd',
+        kund: false,
+        text: 'Granska och åtgärda: ' + (label || sig),
+      };
+    }
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-kk-sig]');
+      if (!btn) return;
+      var u = utkastFor(
+        btn.getAttribute('data-kk-sig'),
+        btn.getAttribute('data-kk-sig-label'),
+        fnamn()
+      );
+      var ov = document.getElementById('kk-sigact');
+      if (ov) ov.remove();
+      ov = document.createElement('div');
+      ov.id = 'kk-sigact';
+      ov.innerHTML =
+        '<div class="kk-sigact-panel">' +
+        '<div class="kk-sigact-h">' +
+        esc(u.rubrik) +
+        '</div>' +
+        '<div class="kk-sigact-sub">' +
+        (u.kund ? 'Färdigt utkast — granska och skicka till kunden' : 'Intern åtgärd') +
+        '</div>' +
+        '<div class="kk-sigact-draft">' +
+        esc(u.text) +
+        '</div>' +
+        '<div class="kk-sigact-row">' +
+        (u.kund
+          ? '<button type="button" class="kk-btn kk-btn-gold" data-kk-sig-copy>Kopiera utkast</button>'
+          : '') +
+        '<button type="button" class="kk-btn" data-kk-sig-close>Stäng</button>' +
+        '</div></div>';
+      document.body.appendChild(ov);
+      ov.addEventListener('click', function (ev) {
+        if (ev.target === ov || ev.target.hasAttribute('data-kk-sig-close')) ov.remove();
+        if (ev.target.hasAttribute('data-kk-sig-copy')) {
+          if (navigator.clipboard) navigator.clipboard.writeText(u.text);
+          ev.target.textContent = 'Kopierat ✓';
+        }
+      });
+    });
+  })();
+
   // ===== Närvaro-markering: Show / No-show → backend + logg =====
   (function bindAttendanceOnce() {
     if (window.__kkAttendBound) return;
