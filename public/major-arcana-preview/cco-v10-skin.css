@@ -2732,3 +2732,25 @@ html[data-v9-enabled="on"] .kkref .doss .kk-besok-body {
   border-left: 2px solid rgba(215, 202, 194, 0.55);
   padding-left: 10px;
 }
+
+/* ============================================================
+   LAGER 33 · Journaler = facit exakt (24px cirkel, 14px radie, flata färger)
+   ============================================================ */
+html[data-v9-enabled="on"] .kkref .doss .jr {
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+html[data-v9-enabled="on"] .kkref .doss .jc {
+  width: 24px;
+  height: 24px;
+  box-shadow: none;
+}
+html[data-v9-enabled="on"] .kkref .doss .jc.done {
+  background: #4a8268;
+}
+html[data-v9-enabled="on"] .kkref .doss .jc.act {
+  background: #c8821e;
+}
+html[data-v9-enabled="on"] .kkref .doss .jr .rt {
+  font-size: 12px;
+}

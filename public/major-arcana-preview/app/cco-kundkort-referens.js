@@ -704,52 +704,78 @@
       if (j.state === 'todo') return 'todo';
       return j.locked ? 'done' : 'act';
     }
-    h += sec(
-      'Journaler · personal',
-      String(jrs.length),
-      jrs.length
-        ? jrs
-            .slice(0, 8)
-            .map(function (j) {
-              var st = referensJournalVisualState(j);
-              var ic = st === 'done' ? '✓' : st === 'act' ? '!' : '';
-              var entryId = esc(j.entryId || j.id || '');
-              var jType = esc(j.journalType || '');
-              return (
-                '<div class="jr ' +
-                (st === 'done' ? '' : st) +
-                '"><div class="jc ' +
-                st +
-                '">' +
-                ic +
-                '</div>' +
-                '<div style="flex:1"><div class="rt">' +
-                esc(j.title || j.journalType || 'Journalanteckning') +
-                '</div>' +
-                '<div class="rm">' +
-                esc(
-                  [
-                    j.step ? 'Steg ' + j.step : '',
-                    j.date || j.signedAt || j.createdAt || '',
-                    j.by || j.authorName || '',
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')
-                ) +
-                '</div></div>' +
-                (st === 'act' && entryId
-                  ? '<span class="openb kkx-openb" data-kkx-journal-entry="' +
-                    entryId +
-                    '" data-kkx-journal-type="' +
-                    jType +
-                    '">Öppna</span>'
-                  : '') +
-                '</div>'
-              );
-            })
-            .join('')
-        : empty('Inga journaler ännu.')
-    );
+    var jDone = 0;
+    var jAct = 0;
+    var jrRows = jrs
+      .slice(0, 8)
+      .map(function (j) {
+        var st = referensJournalVisualState(j);
+        if (st === 'done') jDone++;
+        else if (st === 'act') jAct++;
+        var ic = st === 'done' ? '✓' : st === 'act' ? '!' : '';
+        var entryId = esc(j.entryId || j.id || '');
+        var jType = esc(j.journalType || '');
+        return (
+          '<div class="jr ' +
+          (st === 'done' ? '' : st) +
+          '"><div class="jc ' +
+          st +
+          '">' +
+          ic +
+          '</div>' +
+          '<div style="flex:1"><div class="rt">' +
+          esc(j.title || j.journalType || 'Journalanteckning') +
+          '</div>' +
+          '<div class="rm">' +
+          esc(
+            [
+              j.step ? 'Steg ' + j.step : '',
+              j.date || j.signedAt || j.createdAt || '',
+              j.by || j.authorName || '',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          ) +
+          '</div></div>' +
+          (st === 'act' && entryId
+            ? '<span class="openb kkx-openb" data-kkx-journal-entry="' +
+              entryId +
+              '" data-kkx-journal-type="' +
+              jType +
+              '">Öppna</span>'
+            : '') +
+          '</div>'
+        );
+      })
+      .join('');
+    // "Vad som komma skall": planerade journaler ur kommande bokningar (streckade slots)
+    var plannedB = A(up).slice(0, 4);
+    var plannedRows = plannedB
+      .map(function (b) {
+        var dt = String(b.dateLabel || b.date || b.startAt || '').slice(0, 10);
+        var titel = 'Journal · ' + (b.title || b.serviceName || 'behandling');
+        return (
+          '<div class="jr todo"><div class="jc todo"></div>' +
+          '<div style="flex:1"><div class="rt">' +
+          esc(titel) +
+          '</div><div class="rm">' +
+          esc(dt ? 'Inför ' + dt : 'Kommande') +
+          '</div></div></div>'
+        );
+      })
+      .join('');
+    var jTodo = plannedB.length;
+    var jCount =
+      jrs.length || jTodo
+        ? '<span style="color:#4a8268">' +
+          jDone +
+          '</span>·<span style="color:#c8821e">' +
+          jAct +
+          '</span>·<span style="color:#94897b">' +
+          jTodo +
+          '</span>'
+        : '0';
+    h += sec('Journaler · personal', jCount, jrRows + plannedRows || empty('Inga journaler ännu.'));
 
     if (offers.length) {
       h += sec(
