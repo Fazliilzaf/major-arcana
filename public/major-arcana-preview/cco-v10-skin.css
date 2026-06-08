@@ -1566,3 +1566,22 @@ html[data-v9-enabled="on"] .kk-ov .kk-btn {
     0 3px 10px rgba(56, 40, 28, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
+
+/* Lager 16b: knapparna på egen rad — 400px-spalten klippte dem */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .dhead {
+  flex-wrap: wrap;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .kk-actions {
+  flex-direction: row;
+  margin-left: 0;
+  width: 100%;
+  order: 9;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  .kk-actions
+  .kk-btn {
+  flex: 1;
+  text-align: center;
+}
