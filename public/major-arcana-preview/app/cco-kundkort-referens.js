@@ -1075,8 +1075,15 @@
     });
     /* 5. Snabbknappar (app-funktioner, behålls) flyttas SIST — mockupen
        har sektionerna direkt under chipsen */
-    Array.prototype.forEach.call(doss.querySelectorAll('.v9-zone3-context'), function (block) {
-      container.appendChild(block);
+    Array.prototype.forEach.call(
+      doss.querySelectorAll('.v9-zone3-context, .acts'),
+      function (block) {
+        container.appendChild(block);
+      }
+    );
+    /* gthread-linjerna mellan chips och sektioner bort — mockupen har inga */
+    Array.prototype.forEach.call(doss.querySelectorAll('.gthread'), function (g) {
+      g.remove();
     });
   }
   window.__kkFas2Setup = function (doss, sticky, nav) {
