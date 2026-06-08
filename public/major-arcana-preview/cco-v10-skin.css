@@ -2743,6 +2743,7 @@ html[data-v9-enabled="on"] .kkref .doss .jr {
 html[data-v9-enabled="on"] .kkref .doss .jc {
   width: 24px;
   height: 24px;
+  border-radius: 999px;
   box-shadow: none;
 }
 html[data-v9-enabled="on"] .kkref .doss .jc.done {
