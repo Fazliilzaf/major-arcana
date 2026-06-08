@@ -67,7 +67,9 @@ function createCcoSwishRouter({
       }
       const payeeAlias = normalizePayeeAlias(req.body?.payeeAlias);
       if (!payeeAlias) {
-        return res.status(400).json({ error: 'payeeAlias krävs (10-siffrigt Swish Handelsnummer).' });
+        return res
+          .status(400)
+          .json({ error: 'payeeAlias krävs (10-siffrigt Swish Handelsnummer).' });
       }
       await swishStore.saveConnection({
         tenantId: actor.tenantId,
@@ -141,44 +143,53 @@ function createCcoSwishRouter({
     })
   );
 
-  router.post('/cco-swish/payment-request', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      const amount = req.body?.amount;
-      if (amount === undefined || amount === null || amount === '') {
-        return res.status(400).json({ error: 'amount krävs.' });
-      }
-      const result = await createSwishPaymentRequest({
-        config,
-        swishStore,
-        tenantId: actor.tenantId,
-        actorUserId: actor.userId,
-        amount,
-        message: req.body?.message,
-        patientId: req.body?.patientId,
-        commercialCaseId: req.body?.commercialCaseId,
-        payerAlias: req.body?.payerAlias,
-        payeePaymentReference: req.body?.payeePaymentReference,
-      });
-      await authStore.addAuditEvent({
-        tenantId: actor.tenantId,
-        actorUserId: actor.userId,
-        action: 'cco.swish.payment_request',
-        outcome: 'success',
-        targetType: 'swish_payment',
-        targetId: result.payment.id,
-        metadata: {
-          amount: result.payment.amount,
-          patientId: result.payment.patientId || null,
-        },
-      });
-      return res.status(201).json({
-        ok: true,
-        payment: result.payment,
-        instructionUUID: result.instructionUUID,
-        paymentRequestToken: result.paymentRequestToken,
-        swishUrl: result.swishUrl,
-      });
-    })
+  router.post(
+    '/cco-swish/payment-request',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const amount = req.body?.amount;
+        if (amount === undefined || amount === null || amount === '') {
+          return res.status(400).json({ error: 'amount krävs.' });
+        }
+        const result = await createSwishPaymentRequest({
+          config,
+          swishStore,
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          amount,
+          message: req.body?.message,
+          patientId: req.body?.patientId,
+          commercialCaseId: req.body?.commercialCaseId,
+          payerAlias: req.body?.payerAlias,
+          payeePaymentReference: req.body?.payeePaymentReference,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.swish.payment_request',
+          outcome: 'success',
+          targetType: 'swish_payment',
+          targetId: result.payment.id,
+          metadata: {
+            amount: result.payment.amount,
+            patientId: result.payment.patientId || null,
+          },
+        });
+        return res.status(201).json({
+          ok: true,
+          mode: 'prepare_only',
+          requiresHumanAction: true,
+          autoExecuted: false,
+          payment: result.payment,
+          instructionUUID: result.instructionUUID,
+          paymentRequestToken: result.paymentRequestToken,
+          swishUrl: result.swishUrl,
+          message:
+            'Swish-förfrågan skapad. Personal skickar/länkar manuellt — ingen automatisk debitering.',
+        });
+      })
   );
 
   router.get(
