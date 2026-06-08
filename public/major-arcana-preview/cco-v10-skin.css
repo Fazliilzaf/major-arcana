@@ -1337,3 +1337,232 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .doss {
   overflow: visible;
 }
+
+/* ============================================================
+   LAGER 16 · Dossiern = mockupen (kundkort-mockup-gemensamt.html)
+   Header, smartline, sektionskort, knappar, overlays — live-data
+   ============================================================ */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .dhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 4px 10px;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .dhead .av {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e8b4c8, #bb4779);
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .dhead .dk {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-studio, #bb4779);
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .dhead .dn {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--cco-color-brand, #2b251f);
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .dhead .dc {
+  color: var(--cco-text-secondary, rgba(70, 60, 50, 0.62));
+  font-size: 12px;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .kk-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .kk-btn {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  font-size: 11.5px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  color: var(--cco-color-brand, #2b251f);
+  white-space: nowrap;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  .kk-btn:hover {
+  box-shadow:
+    0 8px 22px rgba(56, 40, 28, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .kk-btn-gold {
+  background: linear-gradient(180deg, #f4dca3, #e3bd62);
+  color: #5a4310;
+}
+
+/* Smartline (mockupens guldram) — i sticky */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  .kk-sticky
+  .summ {
+  margin: 0 0 2px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 250, 240, 0.96), rgba(252, 243, 228, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(212, 168, 71, 0.25);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  .kk-sticky
+  .summ
+  .sk {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cco-status-warning, #c8821e);
+  flex: 0 0 auto;
+}
+
+/* Sektionskorten = mockupens .sek */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  details.dossier-section {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+  border-radius: 14px;
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  padding: 14px 16px;
+  margin: 0 0 12px;
+  border: none;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  details.dossier-section
+  > summary {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cco-text-tertiary, #8a8174);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  details.dossier-section
+  > summary::-webkit-details-marker {
+  display: none;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  details.dossier-section
+  > summary
+  .count {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--cco-status-info-bg, rgba(74, 123, 168, 0.14));
+  color: var(--cco-status-info, #4a7ba8);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Overlays (mockupens paneler) */
+html[data-v9-enabled="on"] .kk-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(43, 37, 31, 0.32);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+html[data-v9-enabled="on"] .kk-opanel {
+  width: min(540px, 94vw);
+  max-height: 84vh;
+  overflow: auto;
+  background: linear-gradient(180deg, rgba(250, 246, 242, 0.98), rgba(244, 238, 233, 0.94));
+  border-radius: 16px;
+  box-shadow:
+    0 32px 70px rgba(93, 74, 60, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.22);
+  padding: 18px;
+}
+html[data-v9-enabled="on"] .kk-oh {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--cco-color-brand, #2b251f);
+}
+html[data-v9-enabled="on"] .kk-osub {
+  color: var(--cco-text-tertiary, #8a8174);
+  font-size: 11px;
+  margin: 2px 0 12px;
+}
+html[data-v9-enabled="on"] .kk-frad {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(93, 74, 60, 0.06);
+  font-size: 12.5px;
+  color: var(--cco-color-brand, #2b251f);
+}
+html[data-v9-enabled="on"] .kk-utkast {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.08);
+  margin: 8px 0;
+  color: var(--cco-color-brand, #2b251f);
+}
+html[data-v9-enabled="on"] .kk-orow {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+}
+html[data-v9-enabled="on"] .kk-ov .kk-btn {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}

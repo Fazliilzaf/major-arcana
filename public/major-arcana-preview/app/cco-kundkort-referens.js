@@ -780,6 +780,9 @@
         nav.querySelectorAll('.kk-chip').forEach(function (c) {
           c.classList.toggle('active', c.getAttribute('data-kk-mal') === slug);
         });
+        if (typeof window.__kkUpdateContext === 'function') {
+          window.__kkUpdateContext(doss, slug);
+        }
       }
       nav.addEventListener('click', function (e) {
         var chip = e.target.closest('.kk-chip');
@@ -834,8 +837,219 @@
         }, 120);
       });
       mo.observe(doss, { childList: true, subtree: true });
+      if (typeof window.__kkFas2Setup === 'function') {
+        window.__kkFas2Setup(doss, sticky, nav);
+      }
     } catch (err) {
       /* förbättringen får aldrig fälla dossiern */
+    }
+  };
+
+  /* ===== Fas 2: kontextsmart rad + Förbered besök + Åtgärder (live-deriverat) ===== */
+  function kkSek(doss, slug) {
+    return doss.querySelector('[data-sek="' + slug + '"]');
+  }
+  function kkBadge(doss, slug) {
+    var el = kkSek(doss, slug);
+    var b = el && el.querySelector('summary .count, .lab .src');
+    return b ? String(b.textContent || '').trim() : '';
+  }
+  function kkFirstText(doss, slug, sel) {
+    var el = kkSek(doss, slug);
+    if (!el) return '';
+    var n = el.querySelector(sel || '.qrow, .hrow, .brow, .jrow, .orow, li, p, div:not(summary)');
+    return n
+      ? String(n.textContent || '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 70)
+      : '';
+  }
+  window.__kkUpdateContext = function (doss, slug) {
+    try {
+      var summ = doss.__kkSumm;
+      if (!summ) return;
+      var t = '';
+      var b = kkBadge(doss, slug);
+      if (slug === 'kundresa' || !slug) t = summ.__kkDefault || '';
+      else if (slug === 'halso') t = '<b>Hälsodeklaration:</b> ' + esc(b || 'status okänd');
+      else if (slug === 'nastasteg')
+        t = '<b>Nästa steg:</b> ' + esc(kkFirstText(doss, 'nastasteg') || b || '—');
+      else if (slug === 'bokningar') t = '<b>Bokningar:</b> ' + esc(b || '0') + ' kommande';
+      else if (slug === 'historik') t = '<b>Historik:</b> ' + esc(b || '0') + ' händelser';
+      else if (slug === 'journal') t = '<b>Journal:</b> ' + esc(b || '0') + ' anteckningar';
+      else if (slug === 'offert') t = '<b>Offerter:</b> ' + esc(b || '0') + ' aktiva';
+      else if (slug === 'auto') t = '<b>Auto:</b> ' + esc(b || '0') + ' systemdokument';
+      else if (slug === 'foto') t = '<b>Foton:</b> ' + esc(b || '0') + ' i journalen';
+      else if (slug === 'ekonomi') t = '<b>Ekonomi:</b> ' + esc(b || '—');
+      if (!t) t = summ.__kkDefault || '';
+      var holder = summ.querySelector('[data-kk-ctx]');
+      if (holder) holder.innerHTML = t;
+    } catch (e) {
+      /* tyst */
+    }
+  };
+  function kkOverlay(doss, id, title, sub, bodyHtml) {
+    var old = doss.querySelector('#' + id);
+    if (old) old.remove();
+    var ov = document.createElement('div');
+    ov.className = 'kk-ov';
+    ov.id = id;
+    ov.innerHTML =
+      '<div class="kk-opanel"><div class="kk-oh">' +
+      esc(title) +
+      '</div><div class="kk-osub">' +
+      esc(sub) +
+      '</div>' +
+      bodyHtml +
+      '<div class="kk-orow"><button type="button" class="kk-btn" data-kk-stang>Stäng</button></div></div>';
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target.hasAttribute('data-kk-stang')) ov.remove();
+    });
+    doss.appendChild(ov);
+    return ov;
+  }
+  function kkRad(label, value) {
+    return (
+      '<div class="kk-frad"><span>' + esc(label) + '</span><b>' + esc(value || '—') + '</b></div>'
+    );
+  }
+  function kkForslag(doss) {
+    var namn = String((doss.querySelector('.dhead .dn') || {}).textContent || 'kund').trim();
+    var fnamn = namn.split(' ')[0];
+    var ut = [];
+    var hb = kkBadge(doss, 'halso');
+    if (/fylla|saknas/i.test(hb)) {
+      ut.push({
+        rubrik: 'Skicka hälsodeklaration',
+        skal: 'Hälsodeklaration saknas — krävs före besök',
+        utkast:
+          'Hej ' +
+          fnamn +
+          '! Inför ditt besök hos Hair TP Clinic behöver vi din hälsodeklaration. Fyll i den här: [länk]. Tar 2 minuter. Tack!',
+      });
+    }
+    var ob = kkBadge(doss, 'offert');
+    if (ob && ob !== '0') {
+      ut.push({
+        rubrik: 'Påminn om offert',
+        skal: ob + ' aktiv offert utan svar',
+        utkast:
+          'Hej ' +
+          fnamn +
+          '! Hoppas allt är bra. Hör gärna av dig om du har frågor kring behandlingsplanen vi skickade — vi bokar gärna ett kort samtal. / Hair TP Clinic',
+      });
+    }
+    var bb = kkBadge(doss, 'bokningar');
+    if (bb && bb !== '0') {
+      ut.push({
+        rubrik: 'Bekräfta kommande tid',
+        skal: bb + ' kommande bokning',
+        utkast:
+          'Hej ' +
+          fnamn +
+          '! En påminnelse om din kommande tid hos Hair TP Clinic. Svara JA för att bekräfta, eller ring oss om tiden inte passar.',
+      });
+    }
+    return ut.slice(0, 3);
+  }
+  window.__kkFas2Setup = function (doss, sticky, nav) {
+    try {
+      if (doss.__kkFas2) return;
+      doss.__kkFas2 = true;
+      /* 1. Smart sammanfattning → sticky + kontextbytare */
+      var summ = doss.querySelector('.summ');
+      if (!summ) {
+        summ = document.createElement('div');
+        summ.className = 'summ kkx-summ';
+        summ.innerHTML = '<span class="sk">SMART SAMMANFATTNING</span>';
+      }
+      var defaultHtml = '';
+      Array.prototype.forEach.call(summ.childNodes, function (n) {
+        if (n.nodeType === 1 && n.className === 'sk') return;
+        defaultHtml += n.nodeType === 1 ? n.outerHTML : esc(n.textContent);
+      });
+      var sk = summ.querySelector('.sk');
+      summ.innerHTML = '';
+      if (sk) summ.appendChild(sk);
+      var ctxHolder = document.createElement('span');
+      ctxHolder.setAttribute('data-kk-ctx', '1');
+      ctxHolder.innerHTML = defaultHtml || 'Kundkortet samlat — välj sektion ovan.';
+      summ.appendChild(ctxHolder);
+      summ.__kkDefault = defaultHtml || 'Kundkortet samlat — välj sektion ovan.';
+      sticky.insertBefore(summ, nav);
+      doss.__kkSumm = summ;
+      /* 2. Knappar i headern */
+      var head = sticky.querySelector('.dhead');
+      if (head && !head.querySelector('.kk-actions')) {
+        var act = document.createElement('div');
+        act.className = 'kk-actions';
+        var antal = kkForslag(doss).length;
+        act.innerHTML =
+          '<button type="button" class="kk-btn kk-btn-gold" data-kk-forbered>Förbered besök</button>' +
+          '<button type="button" class="kk-btn" data-kk-atgarder>Åtgärder' +
+          (antal ? ' (' + antal + ')' : '') +
+          '</button>';
+        head.appendChild(act);
+        act.querySelector('[data-kk-forbered]').addEventListener('click', function () {
+          var namn = String((head.querySelector('.dn') || {}).textContent || '').trim();
+          var body =
+            kkRad('Hälsodeklaration', kkBadge(doss, 'halso')) +
+            kkRad('Kundresa', kkBadge(doss, 'kundresa')) +
+            kkRad('Kommande bokningar', kkBadge(doss, 'bokningar') || '0') +
+            kkRad('Journalanteckningar', kkBadge(doss, 'journal') || '0') +
+            kkRad('Foton', kkBadge(doss, 'foto') || '0') +
+            kkRad('Offerter', kkBadge(doss, 'offert') || '0') +
+            kkRad('Ekonomi', kkBadge(doss, 'ekonomi'));
+          kkOverlay(
+            doss,
+            'kk-ov-forbered',
+            'Förbered besök · ' + namn,
+            'Allt inför besöket — hämtat live ur kortet',
+            body
+          );
+        });
+        act.querySelector('[data-kk-atgarder]').addEventListener('click', function () {
+          var f = kkForslag(doss);
+          var body = f.length
+            ? f
+                .map(function (x, i) {
+                  return (
+                    '<div class="kk-frad"><span><b>' +
+                    (i + 1) +
+                    ' · ' +
+                    esc(x.rubrik) +
+                    '</b><br>' +
+                    esc(x.skal) +
+                    '</span></div><div class="kk-utkast">' +
+                    esc(x.utkast) +
+                    '</div><div class="kk-orow"><button type="button" class="kk-btn" data-kk-kopiera="' +
+                    i +
+                    '">Kopiera utkast</button></div>'
+                  );
+                })
+                .join('')
+            : '<div class="kk-frad"><span>Inga föreslagna åtgärder just nu — allt ser bra ut.</span></div>';
+          var ov = kkOverlay(
+            doss,
+            'kk-ov-atgarder',
+            'Föreslagna åtgärder (' + f.length + ')',
+            'Färdiga utkast utifrån kundens läge — kopiera och skicka',
+            body
+          );
+          ov.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-kk-kopiera]');
+            if (!btn) return;
+            var idx = Number(btn.getAttribute('data-kk-kopiera'));
+            if (navigator.clipboard && f[idx]) {
+              navigator.clipboard.writeText(f[idx].utkast);
+              btn.textContent = 'Kopierat ✓';
+            }
+          });
+        });
+      }
+    } catch (e) {
+      /* tyst */
     }
   };
 })();
