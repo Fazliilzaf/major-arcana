@@ -30,6 +30,23 @@
   function isBlockerSignal(s) {
     return !!(s && BLOCKER_SIGNAL_IDS[String(s.ruleId || s.id || '')]);
   }
+  // Mänsklig svensk undertext per signal (visas i stället för det råa regel-ID:t).
+  var SIGNAL_SUBTEXT = {
+    'customer.missing_health_declaration': 'Krävs före konsultationen',
+    'customer.missing_journal': 'Journal saknas för besöket',
+    'customer.missing_treatment_plan': 'Offert/behandlingsplan saknas',
+    'customer.cooling_off_active': 'Betänketid pågår (2 dygn)',
+    'customer.cooling_off_passed': 'Betänketid passerad — kan signera',
+    'customer.missing_agreement_consent_bundle': 'Avtal + samtycke ej signerat',
+    'customer.missing_operation_day_insurance': 'Friskförsäkran krävs på operationsdagen',
+    'customer.missing_photo_consent': 'Foto-samtycke saknas',
+    'customer.has_photo_review': 'Foton att granska',
+    'customer.ready_for_treatment': 'Allt klart inför behandling',
+  };
+  function signalSub(s) {
+    var id = String((s && (s.ruleId || s.id)) || '');
+    return SIGNAL_SUBTEXT[id] || (s && (s.why || s.detail || s.hint)) || '';
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -133,12 +150,13 @@
   function resolveReferensPhotos(card, driveFiles) {
     var tiles = [];
     A(driveFiles).forEach(function (f) {
-      if (tiles.length >= 3) return;
       var mime = String(f.mimeType || f.contentType || '').toLowerCase();
-      var name = String(f.originalFileName || f.fileName || f.name || '').toLowerCase();
+      var rawName = f.originalFileName || f.fileName || f.name || '';
+      var name = String(rawName).toLowerCase();
       if (!mime.startsWith('image/') && !/\.(jpe?g|png|heic|webp|gif)$/i.test(name)) return;
       tiles.push({
         type: f.category || f.photoType || 'Foto',
+        name: rawName || 'Foto',
         count: 1,
       });
     });
@@ -349,6 +367,10 @@
       bcard.lifetimeValueLabel ||
       (Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0 ? ltvRaw : null) ||
       (bcard.stats && bcard.stats.revenue);
+    var revenueKr =
+      Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0
+        ? Number(ltvRaw).toLocaleString('sv-SE') + ' kr'
+        : (bcard.stats && bcard.stats.revenue) || null;
     var noshow = bcard.noShows != null ? bcard.noShows : bcard.stats && bcard.stats.noShows;
     // FACIT: visa alltid 3 statrutor (Besök/Intäkt/No-shows) med subtext-rad
     h +=
@@ -359,9 +381,9 @@
       (visits != null ? 'totalt' : 'inga än') +
       '</div></div>' +
       '<div class="k"><div class="l">Intäkt</div><div class="v">' +
-      esc(revenue != null ? revenue : '—') +
+      esc(revenueKr != null ? revenueKr : '—') +
       '</div><div class="s">' +
-      (revenue != null ? 'LTV' : '—') +
+      esc(revenueKr != null ? ltvLabel || 'LTV' : '—') +
       '</div></div>' +
       '<div class="k"><div class="l">No-shows</div><div class="v">' +
       esc(noshow != null ? noshow : '0') +
@@ -561,7 +583,7 @@
               '"><div style="flex:1"><div class="rt">' +
               esc(s.what || s.label || '—') +
               '</div><div class="rm">' +
-              sig +
+              esc(signalSub(s)) +
               '</div></div>' +
               pill +
               '<button type="button" class="kk-sig-act" data-kk-sig="' +
@@ -709,28 +731,29 @@
     h += '<div class="gthread"></div>';
 
     if (photos.length) {
-      h += sec(
-        'Foton',
-        String(
-          photos.reduce(function (n, p) {
-            return n + (p.count || 1);
-          }, 0)
-        ),
-        '<div class="files">' +
-          photos
-            .slice(0, 3)
-            .map(function (p) {
-              return (
-                '<div class="fimg"><div class="t" style="background:radial-gradient(circle at 40% 30%,#caa98a,#7c5a3e)"></div>' +
-                (p.count ? '<span class="b">' + esc(p.count) + '</span>' : '') +
-                '<span class="fl">' +
-                esc(p.type || 'Foto') +
-                '</span></div>'
-              );
-            })
-            .join('') +
-          '</div>'
-      );
+      var fotoCount = photos.reduce(function (n, p) {
+        return n + (p.count || 1);
+      }, 0);
+      var fotoRows = photos
+        .slice(0, 6)
+        .map(function (p) {
+          return (
+            '<div class="kk-foto"><span class="kk-foto-ico">🖼</span>' +
+            '<div style="flex:1;min-width:0"><div class="rt">' +
+            esc(p.name || 'Foto') +
+            '</div><div class="rm">' +
+            esc(p.type || 'Foto') +
+            '</div></div></div>'
+          );
+        })
+        .join('');
+      if (fotoCount > photos.slice(0, 6).length) {
+        fotoRows +=
+          '<div class="kk-foto-mer">+' +
+          (fotoCount - photos.slice(0, 6).length) +
+          ' till · öppna ⤢ för galleri</div>';
+      }
+      h += sec('Foton', String(fotoCount), fotoRows);
     } else {
       h += sec('Foton', '0', empty('Inga foton kopplade till patienten ännu.'));
     }
