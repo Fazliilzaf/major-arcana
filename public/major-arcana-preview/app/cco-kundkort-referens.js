@@ -343,7 +343,9 @@
         ? attAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
         : '';
     h +=
-      '<div class="kk-attend" data-patient-id="' +
+      '<div class="kk-attend' +
+      (attStatus ? ' is-' + esc(attStatus) : '') +
+      '" data-patient-id="' +
       esc(bcard.patientId || bcard.id || '') +
       '">' +
       '<div class="kk-attend-status' +
@@ -756,7 +758,8 @@
       if (!pid || !status) return;
       var statusEl = wrap.querySelector('[data-kk-attend-status]');
       var tid = new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-      // optimistisk uppdatering
+      // optimistisk uppdatering — tinta bubblan + statustext
+      wrap.className = 'kk-attend is-' + status;
       if (statusEl) {
         statusEl.className = 'kk-attend-status is-' + status;
         statusEl.textContent =

@@ -1920,3 +1920,17 @@ html[data-v9-enabled="on"] .kkref .kk-att-noshow {
 html[data-v9-enabled="on"] .kkref .kk-att-btn:hover {
   filter: brightness(0.96);
 }
+
+/* Lager 21b: bubblan tintas efter status (Show=grön, No-show=röd) */
+html[data-v9-enabled="on"] .kkref .kk-attend.is-show {
+  background: linear-gradient(180deg, rgba(74, 130, 104, 0.16), rgba(74, 130, 104, 0.09));
+  box-shadow:
+    0 3px 10px rgba(74, 130, 104, 0.12),
+    inset 0 0 0 1px rgba(74, 130, 104, 0.25);
+}
+html[data-v9-enabled="on"] .kkref .kk-attend.is-no_show {
+  background: linear-gradient(180deg, rgba(185, 74, 74, 0.15), rgba(185, 74, 74, 0.08));
+  box-shadow:
+    0 3px 10px rgba(185, 74, 74, 0.12),
+    inset 0 0 0 1px rgba(185, 74, 74, 0.25);
+}
