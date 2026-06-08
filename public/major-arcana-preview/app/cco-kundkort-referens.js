@@ -358,8 +358,8 @@
           : 'Närvaro ej markerad') +
       '</div>' +
       '<div class="kk-attend-btns">' +
-      '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show">✓ Show</button>' +
-      '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show">✕ No-show</button>' +
+      '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Show</button>' +
+      '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> No-show</button>' +
       '</div></div>';
 
     h += '<div class="gthread"></div>';
