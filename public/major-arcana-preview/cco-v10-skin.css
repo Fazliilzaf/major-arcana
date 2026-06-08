@@ -2357,4 +2357,55 @@ html[data-v9-enabled="on"] .kkref .kk-sig-act:hover {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+  flex-wrap: wrap;
+}
+/* Panelen ska kännas som resten (vellum-kort + ring) */
+#kk-sigact .kk-sigact-panel {
+  box-shadow:
+    0 40px 90px rgba(43, 37, 31, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+}
+#kk-sigact .kk-sigact-h {
+  letter-spacing: -0.01em;
+}
+/* Kicker över titeln */
+#kk-sigact .kk-sigact-h::before {
+  content: "SMART ÅTGÄRD";
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #bb4779;
+  margin-bottom: 4px;
+}
+#kk-sigact .kk-sigact-draft {
+  background: linear-gradient(180deg, #ffffff, #faf6f2) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(93, 74, 60, 0.1),
+    0 1px 3px rgba(56, 40, 28, 0.05) !important;
+}
+/* App-pill-knappar (panelen ligger på body — egna regler behövs) */
+#kk-sigact .kk-btn {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.9));
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  color: #2b251f;
+}
+#kk-sigact .kk-btn:hover {
+  box-shadow:
+    0 8px 22px rgba(56, 40, 28, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#kk-sigact .kk-btn-gold {
+  background: linear-gradient(180deg, #f4dca3, #e3bd62);
+  color: #5a4310;
 }
