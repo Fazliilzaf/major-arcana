@@ -702,15 +702,37 @@
       h += sec('Foton', '0', empty('Inga foton kopplade till patienten ännu.'));
     }
 
-    if (ltvLabel || Number.isFinite(Number(ltvRaw))) {
+    var krVal =
+      Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0
+        ? Number(ltvRaw).toLocaleString('sv-SE') + ' kr'
+        : null;
+    var fnxId = bcard.fortnoxCustomerId;
+    var fnxSynced = bcard.fortnoxSyncedAt;
+    if (krVal || ltvLabel || fnxId) {
+      function ekoRow(l, v, sub) {
+        return (
+          '<div class="kk-eko"><div class="kk-eko-l"><div class="kk-eko-k">' +
+          esc(l) +
+          '</div>' +
+          (sub ? '<div class="kk-eko-sub">' + esc(sub) + '</div>' : '') +
+          '</div><div class="kk-eko-v">' +
+          esc(v) +
+          '</div></div>'
+        );
+      }
+      var ekoRows = '';
+      if (krVal) ekoRows += ekoRow('Livstidsvärde', krVal, 'Summa vunna affärer · Pipedrive');
+      if (ltvLabel && ltvLabel !== krVal) ekoRows += ekoRow('Vunna affärer', ltvLabel, '');
+      if (fnxId)
+        ekoRows += ekoRow(
+          'Fortnox',
+          'Kund ' + fnxId,
+          fnxSynced ? 'Synkad ' + String(fnxSynced).slice(0, 10) : 'Kopplad'
+        );
       h += sec(
         'Ekonomi',
-        'Fortnox',
-        '<div class="eg"><div class="k"><div class="l">Total intäkt</div><div class="v">' +
-          esc(revenue != null ? revenue : '—') +
-          '</div></div><div class="k"><div class="l">Livstidsvärde</div><div class="v">' +
-          esc(ltvLabel || '—') +
-          '</div></div></div>'
+        krVal || (fnxId ? 'Fortnox' : '—'),
+        ekoRows || empty('Ingen ekonomidata ännu.')
       );
     }
 
