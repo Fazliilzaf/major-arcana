@@ -717,13 +717,58 @@
     function jDate10(x) {
       return String(x || '').slice(0, 10);
     }
+    // Mina riktigt datum ur filnamnet (YYYY-MM-DD eller unix-epoch) — ej importstämpeln
+    function jMineDate(s) {
+      var str = String(s || '');
+      var m = str.match(/(20\d{2})[-_](\d{2})[-_](\d{2})/);
+      if (m) return m[1] + '-' + m[2] + '-' + m[3];
+      var ep = str.match(/\b(1[0-9]{9})\b/);
+      if (ep) {
+        var d = new Date(Number(ep[1]) * 1000);
+        if (!isNaN(d)) return d.toISOString().slice(0, 10);
+      }
+      return '';
+    }
+    var jNameToks = String(name || '')
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(function (t) {
+        return t.length > 2;
+      });
+    // Ren etikett ur (ofta mojibakat) filnamn — typ-baserad, patientnamn bortstrippat
+    function jCleanTitle(raw, jtype) {
+      var n = String(raw || '');
+      if (/prp/i.test(n)) return 'PRP-journal';
+      if (/friskf/i.test(n)) return 'Friskförsäkran';
+      if (/ordination/i.test(n)) return 'Ordinationsmall';
+      if (/avtal/i.test(n)) return 'Behandlingsavtal';
+      if (/samtycke|consent/i.test(n)) return 'Samtycke';
+      var c = n
+        .replace(/\.(pdf|docx?|jpe?g|png|heic)$/i, '')
+        .replace(/\?{2,}|\+\?/g, ' ')
+        .replace(/\b1[0-9]{9}\b/g, ' ')
+        .replace(/\d{4}[-_]\d{2}[-_]\d{2}/g, ' ')
+        .replace(/[-_]\d{2,4}\b/g, ' ')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      c = c
+        .split(' ')
+        .filter(function (w) {
+          return w && jNameToks.indexOf(w.toLowerCase()) < 0;
+        })
+        .join(' ')
+        .trim();
+      return c || (jtype ? jtype : 'Journal');
+    }
     var jItems = jrs.slice(0, 8).map(function (j) {
       var st = referensJournalVisualState(j);
+      var raw = j.title || j.journalType || '';
       return {
         st: st,
-        date: jDate10(j.date || j.signedAt || j.createdAt),
-        title: j.title || j.journalType || 'Journalanteckning',
-        key: jSeriesKey(j.title || j.journalType),
+        date: jMineDate(raw) || jDate10(j.date || j.signedAt || j.createdAt),
+        title: jCleanTitle(raw, j.journalType),
+        key: jSeriesKey(raw),
         step: j.step,
         by: j.by || j.authorName || '',
         entryId: j.entryId || j.id || '',
