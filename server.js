@@ -11154,6 +11154,7 @@ const { createCcoBookingEngineRouter } = require('./src/routes/ccoBookingEngine'
 const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoFortnoxRouter } = require('./src/routes/ccoFortnox');
 const { createCcoSwishRouter } = require('./src/routes/ccoSwish');
+const { createCcoPaymentsRouter } = require('./src/routes/ccoPayments');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
@@ -13220,6 +13221,17 @@ process.once('SIGTERM', () => {
 
   app.use(
     '/api/v1',
+    createCcoPaymentsRouter({
+      swishStore: ccoSwishStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
     createCcoSettingsRouter({
       settingsStore: ccoSettingsStore,
       bookingEngineStore: ccoBookingEngineStore,
@@ -13288,6 +13300,9 @@ process.once('SIGTERM', () => {
       patientSystemStore: ccoPatientSystemStore,
       documentInstanceStore: ccoDocumentInstanceStore,
       buildPatientDocumentBundle,
+      commercialStore: ccoCommercialStore,
+      swishStore: ccoSwishStore,
+      fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister || null,
       readCache: ccoReadCache,
       resolvePatientAssetStore: resolveSharedPatientAssetStore,
       mailIngestionStore: ccoMailIngestionStore,
