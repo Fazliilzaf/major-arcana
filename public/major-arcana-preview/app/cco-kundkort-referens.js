@@ -1022,19 +1022,21 @@
           var label = k === 'odaterat' ? 'Odaterat' : svDate(k);
           var rows = g.files
             .map(function (f) {
-              var dId = f.driveFileId || f.id || '';
+              var url =
+                f.viewUrl ||
+                (f.id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(f.id) : '');
               var body =
                 '<span class="kk-foto-ico">' +
                 ico(f) +
                 '</span><div style="flex:1;min-width:0"><div class="rt">' +
                 esc(cleanName(f)) +
                 '</div></div>';
-              return dId
+              return url
                 ? '<a class="kk-file" target="_blank" rel="noopener" href="' +
-                    esc(f.viewUrl || 'https://drive.google.com/file/d/' + dId + '/view') +
+                    esc(url) +
                     '">' +
                     body +
-                    '<span class="kk-file-open">Öppna ↗</span></a>'
+                    '<span class="kk-file-open">Öppna</span></a>'
                 : '<div class="kk-file">' + body + '</div>';
             })
             .join('');
@@ -1081,7 +1083,9 @@
             .map(function (f) {
               var fnamn = f.name || f.fileName || f.title || 'Fil';
               var typ = f.fileType || f.category || '';
-              var driveId = f.driveFileId || f.id || '';
+              var url =
+                f.viewUrl ||
+                (f.id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(f.id) : '');
               var meta = '<span class="kk-file-ico">' + fileIco(fnamn) + '</span>';
               var body =
                 '<div style="flex:1;min-width:0"><div class="rt">' +
@@ -1089,14 +1093,14 @@
                 '</div>' +
                 (typ ? '<div class="rm">' + esc(typ) + '</div>' : '') +
                 '</div>';
-              if (driveId) {
+              if (url) {
                 return (
-                  '<a class="kk-file" target="_blank" rel="noopener" href="https://drive.google.com/file/d/' +
-                  esc(driveId) +
-                  '/view">' +
+                  '<a class="kk-file" target="_blank" rel="noopener" href="' +
+                  esc(url) +
+                  '">' +
                   meta +
                   body +
-                  '<span class="kk-file-open">Öppna ↗</span></a>'
+                  '<span class="kk-file-open">Öppna</span></a>'
                 );
               }
               return '<div class="kk-file">' + meta + body + '</div>';
