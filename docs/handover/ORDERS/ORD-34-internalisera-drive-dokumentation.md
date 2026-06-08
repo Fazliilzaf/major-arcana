@@ -54,3 +54,17 @@ Commit-hash + ändrade filer + bevis: (a) dry-run-inventory utan skrivningar, (b
 | Order skapad (repo + Notion)            | KLAR 2026-06-08 |
 | Codex: skala pipeline + native-serve    | Väntar          |
 | Claude UAT (dry-run → ingest → cutover) | Väntar          |
+
+---
+
+## FÖLJDKRAV (Claude PM 2026-06-08) — fånga riktigt datum
+
+Verifierat: `getDriveFileMetadata` (googleDriveClient) hämtar/returnerar **bara `name`**. Internaliseringens `documentDate` faller redan tillbaka på `file.modifiedTime` (rad ~78) men `modifiedTime` fångas aldrig från Drive → de filer som saknar datum i filnamnet (t.ex. "Journal …Kumi.pdf") får importstämpeln, inte sitt riktiga datum.
+
+**Lägg till i PR #106 (litet):**
+
+1. `getDriveFileMetadata`: begär `fields = 'name,modifiedTime,createdTime'` och **returnera** `modifiedTime` + `createdTime` (inte bara `name`).
+2. Internaliseringens ingest (`resolveDriveFileName`/metadata-steget): hämta även `modifiedTime`/`createdTime` och sätt på `sourceRecord` så `documentDate = modifiedTime || createdTime` när filnamnet saknar datum.
+3. Test: fil utan datum i namn → `documentDate` = Drives `modifiedTime`.
+
+Då får alla journaler/filer sitt **riktiga datum** (inte 2026-05-24-importstämpeln) efter internaliseringen.
