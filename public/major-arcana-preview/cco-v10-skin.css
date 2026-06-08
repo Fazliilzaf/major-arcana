@@ -2409,3 +2409,56 @@ html[data-v9-enabled="on"] .kkref .kk-sig-act:hover {
   background: linear-gradient(180deg, #f4dca3, #e3bd62);
   color: #5a4310;
 }
+
+/* ============================================================
+   LAGER 26 · Kommunikation — platta rader, kanalfärgad kant, preview
+   ============================================================ */
+html[data-v9-enabled="on"] .kkref .doss .kk-comm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0 9px 12px;
+  position: relative;
+  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.4);
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm:last-child {
+  box-shadow: none;
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 2px;
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm--mail::before {
+  background: #4a7ba8;
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm--sms::before {
+  background: #4a8268;
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm--call::before {
+  background: #bb4779;
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm-ico {
+  font-size: 14px;
+  flex: none;
+  margin-top: 1px;
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm .rt {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm .rm {
+  font-size: 10.5px;
+  color: #94897b;
+  margin-top: 1px;
+}
+html[data-v9-enabled="on"] .kkref .doss .kk-comm-prev {
+  font-size: 11px;
+  color: #6b6052;
+  margin-top: 3px;
+  line-height: 1.4;
+}

@@ -754,7 +754,52 @@
             .join('')
         : empty('Inga anteckningar ännu.')
     );
-    h += sec('Kommunikation', '0', empty('Ingen kommunikation loggad ännu.'));
+    var komm = A(bundle.communications).length
+      ? A(bundle.communications)
+      : A(ctxExtras.communications);
+    h += sec(
+      'Kommunikation',
+      String(komm.length),
+      komm.length
+        ? komm
+            .slice(0, 6)
+            .map(function (c) {
+              var ch = String(c.channel || c.type || 'mail').toLowerCase();
+              var kanal =
+                ch.indexOf('sms') >= 0
+                  ? 'sms'
+                  : ch.indexOf('call') >= 0 || ch.indexOf('samtal') >= 0
+                    ? 'call'
+                    : 'mail';
+              var ikon = kanal === 'sms' ? '💬' : kanal === 'call' ? '📞' : '✉';
+              var kanalNamn = kanal === 'sms' ? 'SMS' : kanal === 'call' ? 'Samtal' : 'E-post';
+              var ut = /out|utg|sent|skickad/i.test(String(c.direction || c.dir || ''));
+              var riktning = ut ? 'Skickat' : 'Inkommande';
+              var nar = c.when || c.at || c.date || '';
+              var last = c.read || c.readAt;
+              var preview = String(c.preview || c.body || c.text || c.subject || '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 80);
+              return (
+                '<div class="kk-comm kk-comm--' +
+                kanal +
+                '"><span class="kk-comm-ico">' +
+                ikon +
+                '</span><div style="flex:1;min-width:0"><div class="rt">' +
+                esc(c.subject || c.title || preview || kanalNamn) +
+                '</div><div class="rm">' +
+                esc([kanalNamn, riktning, nar, last ? '✓ läst' : ''].filter(Boolean).join(' · ')) +
+                '</div>' +
+                (c.subject && preview
+                  ? '<div class="kk-comm-prev">' + esc(preview) + '</div>'
+                  : '') +
+                '</div></div>'
+              );
+            })
+            .join('')
+        : empty('Ingen kommunikation loggad ännu.')
+    );
     h += sec(
       'Insikter',
       String(signals.length),
