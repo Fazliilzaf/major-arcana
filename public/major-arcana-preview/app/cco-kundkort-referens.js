@@ -54,15 +54,16 @@
     return 'sek';
   }
   function sec(label, src, inner) {
+    // REN v9-DESKTOP: varje sektion = .dossier-section-kort (drop-in CSS, inga lager)
     return (
-      '<div class="sec" data-sek="' +
+      '<details class="dossier-section" data-sek="' +
       sekSlug(label) +
-      '"><div class="lab"><span class="car">▾</span> ' +
+      '" open><summary>' +
       esc(label) +
-      (src ? '<span class="src">' + src + '</span>' : '') +
-      '</div>' +
+      (src ? '<span class="count">' + src + '</span>' : '') +
+      '</summary><div class="dossier-section-body">' +
       inner +
-      '</div>'
+      '</div></details>'
     );
   }
   function empty(t) {
