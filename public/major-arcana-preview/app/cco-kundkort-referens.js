@@ -649,10 +649,20 @@
 
     var hist = A(ctxExtras.historyBookings);
     var up = A(ctxExtras.upcomingBookings);
+    var needsFrisk = gateSignals.some(function (s) {
+      return /operation_day_insurance/.test(String((s && (s.ruleId || s.id)) || ''));
+    });
     h += sec(
       'Kommande bokningar',
       String(up.length),
-      up.length ? up.slice(0, 5).map(bookingRow).join('') : empty('Inga kommande bokningar.')
+      up.length
+        ? up
+            .slice(0, 5)
+            .map(function (b, i) {
+              return bookingRow(b, false, { needsFrisk: needsFrisk && i === 0 });
+            })
+            .join('')
+        : empty('Inga kommande bokningar.')
     );
     var histInner;
     if (hist.length) {
@@ -1012,7 +1022,8 @@
     return h;
   };
 
-  function bookingRow(b, isHist) {
+  function bookingRow(b, isHist, opts) {
+    opts = opts || {};
     var esc2 = esc;
     var d = String(b.date || b.occurredAt || b.startAt || '').match(/(\d{1,2})\D+(\d{1,2})/);
     var months = [
@@ -1032,6 +1043,12 @@
     var day = d ? d[1] : '',
       mon = d ? months[(parseInt(d[2], 10) || 1) - 1] : '';
     var ready = /redo|klar|done|ready/i.test(b.status || '');
+    var pillCls = ready ? 'p-ok' : 'p-warn';
+    var pillTxt = b.status || 'Bokad';
+    if (!isHist && opts.needsFrisk) {
+      pillCls = 'p-warn';
+      pillTxt = '⚠ Friskförs.';
+    }
     return (
       '<div class="row acc kk-rowlink ' +
       (isHist ? 'grey' : 'teal') +
@@ -1051,9 +1068,9 @@
       ) +
       '</div></div>' +
       '<span class="pill ' +
-      (ready ? 'p-ok' : 'p-warn') +
+      pillCls +
       '">' +
-      esc2(b.status || 'Bokad') +
+      esc2(pillTxt) +
       '</span></div>'
     );
   }

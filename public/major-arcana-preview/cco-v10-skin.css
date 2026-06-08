@@ -2653,3 +2653,32 @@ html[data-v9-enabled="on"] .kkref .doss .kk-sum-box {
   color: #2f2a24;
   font-weight: 600;
 }
+
+/* ============================================================
+   LAGER 31 · Bokningskort = facit exakt (proportioner + enfärgad pill)
+   ============================================================ */
+html[data-v9-enabled="on"] .kkref .doss .row.kk-rowlink {
+  border-radius: 14px;
+}
+html[data-v9-enabled="on"] .kkref .doss .row.kk-rowlink .bd .d {
+  font-size: 18px;
+}
+html[data-v9-enabled="on"] .kkref .doss .row.kk-rowlink .bd .m {
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+}
+html[data-v9-enabled="on"] .kkref .doss .row.kk-rowlink .rt {
+  font-size: 12.5px;
+}
+html[data-v9-enabled="on"] .kkref .doss .row.kk-rowlink .rm {
+  font-size: 10.5px;
+}
+/* Enfärgad pill (facit .stp) i stället för gradient */
+html[data-v9-enabled="on"] .kkref .doss .row.kk-rowlink .pill.p-ok {
+  background: #e7f3ec;
+  color: #2e7d52;
+}
+html[data-v9-enabled="on"] .kkref .doss .row.kk-rowlink .pill.p-warn {
+  background: #faf0db;
+  color: #c8821e;
+}

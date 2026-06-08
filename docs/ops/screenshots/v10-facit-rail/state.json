@@ -1,0 +1,12 @@
+{
+  "url": "http://localhost:3100/major-arcana-preview/?v9=on&view=customers",
+  "v9": "on",
+  "v10": "on",
+  "mobile": null,
+  "view": "customers",
+  "railCount": 1,
+  "railVisible": true,
+  "aggCount": 0,
+  "rows": 0,
+  "login": true
+}
