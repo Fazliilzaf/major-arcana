@@ -704,78 +704,111 @@
       if (j.state === 'todo') return 'todo';
       return j.locked ? 'done' : 'act';
     }
-    var jDone = 0;
-    var jAct = 0;
-    var jrRows = jrs
-      .slice(0, 8)
-      .map(function (j) {
-        var st = referensJournalVisualState(j);
-        if (st === 'done') jDone++;
-        else if (st === 'act') jAct++;
-        var ic = st === 'done' ? '✓' : st === 'act' ? '!' : '';
-        var entryId = esc(j.entryId || j.id || '');
-        var jType = esc(j.journalType || '');
+    // ===== Journaler · personal — serie-numrerad (X/N via datum i mappnamnet) =====
+    function jSeriesKey(s) {
+      var t = String(s || '').toLowerCase();
+      if (/prp/.test(t)) return 'PRP';
+      if (/dhi/.test(t)) return 'DHI';
+      if (/\bfue\b/.test(t)) return 'FUE';
+      if (/microneedl|needl/.test(t)) return 'Microneedling';
+      return '';
+    }
+    function jDate10(x) {
+      return String(x || '').slice(0, 10);
+    }
+    var jItems = jrs.slice(0, 8).map(function (j) {
+      var st = referensJournalVisualState(j);
+      return {
+        st: st,
+        date: jDate10(j.date || j.signedAt || j.createdAt),
+        title: j.title || j.journalType || 'Journalanteckning',
+        key: jSeriesKey(j.title || j.journalType),
+        step: j.step,
+        by: j.by || j.authorName || '',
+        entryId: j.entryId || j.id || '',
+        jType: j.journalType || '',
+      };
+    });
+    var jPlanned = A(up)
+      .slice(0, 4)
+      .map(function (b) {
+        return {
+          st: 'todo',
+          planned: true,
+          date: jDate10(b.dateLabel || b.date || b.startAt),
+          title: b.title || b.serviceName || 'behandling',
+          key: jSeriesKey(b.title || b.serviceName),
+        };
+      });
+    var jAll = jItems.concat(jPlanned);
+    // Serie-numrering: gruppera per behandlingsnyckel, numrera kronologiskt X/N
+    var jByKey = {};
+    jAll.forEach(function (it) {
+      if (it.key) (jByKey[it.key] = jByKey[it.key] || []).push(it);
+    });
+    Object.keys(jByKey).forEach(function (k) {
+      var arr = jByKey[k].slice().sort(function (a, b) {
+        return String(a.date).localeCompare(String(b.date));
+      });
+      if (arr.length > 1)
+        arr.forEach(function (it, i) {
+          it.serie = k + '-journal ' + (i + 1) + '/' + arr.length;
+        });
+    });
+    // Rendera kronologiskt (daterat först, odaterat sist)
+    jAll.sort(function (a, b) {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return String(a.date).localeCompare(String(b.date));
+    });
+    var jDone = 0,
+      jAct = 0,
+      jTodo = 0;
+    var jHtml = jAll
+      .map(function (it) {
+        if (it.st === 'done') jDone++;
+        else if (it.st === 'act') jAct++;
+        else jTodo++;
+        var ic = it.st === 'done' ? '✓' : it.st === 'act' ? '!' : '';
+        var titel = it.serie || (it.planned ? 'Journal · ' + it.title : it.title);
+        var meta = it.planned
+          ? it.date
+            ? 'Inför ' + it.date
+            : 'Kommande'
+          : [it.step ? 'Steg ' + it.step : '', it.date, it.by].filter(Boolean).join(' · ');
         return (
           '<div class="jr ' +
-          (st === 'done' ? '' : st) +
+          (it.st === 'done' ? '' : it.st) +
           '"><div class="jc ' +
-          st +
+          it.st +
           '">' +
           ic +
-          '</div>' +
-          '<div style="flex:1"><div class="rt">' +
-          esc(j.title || j.journalType || 'Journalanteckning') +
-          '</div>' +
-          '<div class="rm">' +
-          esc(
-            [
-              j.step ? 'Steg ' + j.step : '',
-              j.date || j.signedAt || j.createdAt || '',
-              j.by || j.authorName || '',
-            ]
-              .filter(Boolean)
-              .join(' · ')
-          ) +
+          '</div><div style="flex:1"><div class="rt">' +
+          esc(titel) +
+          '</div><div class="rm">' +
+          esc(meta) +
           '</div></div>' +
-          (st === 'act' && entryId
+          (it.st === 'act' && it.entryId
             ? '<span class="openb kkx-openb" data-kkx-journal-entry="' +
-              entryId +
+              esc(it.entryId) +
               '" data-kkx-journal-type="' +
-              jType +
+              esc(it.jType) +
               '">Öppna</span>'
             : '') +
           '</div>'
         );
       })
       .join('');
-    // "Vad som komma skall": planerade journaler ur kommande bokningar (streckade slots)
-    var plannedB = A(up).slice(0, 4);
-    var plannedRows = plannedB
-      .map(function (b) {
-        var dt = String(b.dateLabel || b.date || b.startAt || '').slice(0, 10);
-        var titel = 'Journal · ' + (b.title || b.serviceName || 'behandling');
-        return (
-          '<div class="jr todo"><div class="jc todo"></div>' +
-          '<div style="flex:1"><div class="rt">' +
-          esc(titel) +
-          '</div><div class="rm">' +
-          esc(dt ? 'Inför ' + dt : 'Kommande') +
-          '</div></div></div>'
-        );
-      })
-      .join('');
-    var jTodo = plannedB.length;
-    var jCount =
-      jrs.length || jTodo
-        ? '<span style="color:#4a8268">' +
-          jDone +
-          '</span>·<span style="color:#c8821e">' +
-          jAct +
-          '</span>·<span style="color:#94897b">' +
-          jTodo +
-          '</span>'
-        : '0';
-    h += sec('Journaler · personal', jCount, jrRows + plannedRows || empty('Inga journaler ännu.'));
+    var jCount = jAll.length
+      ? '<span style="color:#4a8268">' +
+        jDone +
+        '</span>·<span style="color:#c8821e">' +
+        jAct +
+        '</span>·<span style="color:#94897b">' +
+        jTodo +
+        '</span>'
+      : '0';
+    h += sec('Journaler · personal', jCount, jHtml || empty('Inga journaler ännu.'));
 
     if (offers.length) {
       h += sec(
