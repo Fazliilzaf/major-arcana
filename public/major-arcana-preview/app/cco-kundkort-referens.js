@@ -937,7 +937,8 @@
         '</div>' +
         '<div class="kk-sigact-row">' +
         (u.kund
-          ? '<button type="button" class="kk-btn kk-btn-gold" data-kk-sig-copy>Kopiera utkast</button>'
+          ? '<button type="button" class="kk-btn" data-kk-sig-copy>Kopiera utkast</button>' +
+            '<button type="button" class="kk-btn kk-btn-gold" data-kk-sig-studio>✉ Öppna i Svarstudio</button>'
           : '') +
         '<button type="button" class="kk-btn" data-kk-sig-close>Stäng</button>' +
         '</div></div>';
@@ -947,6 +948,13 @@
         if (ev.target.hasAttribute('data-kk-sig-copy')) {
           if (navigator.clipboard) navigator.clipboard.writeText(u.text);
           ev.target.textContent = 'Kopierat ✓';
+        }
+        if (ev.target.hasAttribute('data-kk-sig-studio')) {
+          // Säkert: kopiera utkastet + öppna Svarstudio (receptionisten granskar & skickar)
+          if (navigator.clipboard) navigator.clipboard.writeText(u.text);
+          ov.remove();
+          var studio = document.querySelector('[data-studio-open]');
+          if (studio) studio.click();
         }
       });
     });
