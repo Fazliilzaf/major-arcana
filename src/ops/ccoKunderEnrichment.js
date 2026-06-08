@@ -461,9 +461,80 @@ function matchSegment(
       if (!assignedOwner) return false;
       return ownerMatchesAssigned(getPatientOwnerName(patient), assignedOwner);
     }
+    // ===== LANES (FACIT 2026-06-08) — kundresans operativa lägen =====
+    case 'lane_agera': {
+      // Agera nu: blockerare som kräver handling
+      if (!patientHasHealthDeclarationAsset(sig) && !hasStructuredHdSigned(patient)) return true;
+      if (!hasJournal && !sig.hasDriveJournalAsset) return true;
+      if (matchStatus === 'needs_review' || flags.has('needs_review')) return true;
+      if (
+        booking.hasUpcomingBooking &&
+        isBookingWithinDays(booking.nextBookingAt, RISK_BOOKING_WINDOW_DAYS) &&
+        !patientHasHealthDeclarationAsset(sig)
+      ) {
+        return true;
+      }
+      return false;
+    }
+    case 'lane_bokningsbar': {
+      // Bokningsbar: aktiv men utan kommande bokning
+      if (booking.hasUpcomingBooking) return false;
+      for (const iso of [booking.lastVisitAt, booking.lastBookingAt, booking.lastActivityAt]) {
+        if (!iso) continue;
+        const d = daysSinceIso(iso);
+        if (d != null && d <= ACTIVE_BOOKING_DAYS) return true;
+      }
+      return updatedDays != null && updatedDays <= ACTIVE_BOOKING_DAYS;
+    }
+    case 'lane_operation': {
+      // Operation (kundresa-steg operationsdag/efterkontroll): kommande kirurgi-bokning
+      if (!booking.hasUpcomingBooking) return false;
+      return laneIsSurgery(
+        normalizeText(booking.nextBookingType) + ' ' + asArray(booking.treatmentTypes).join(' ')
+      );
+    }
+    case 'lane_eftervard': {
+      // Eftervård (aftercare): opererad, ingen kommande kirurgi, senaste besök inom aftercare-fönster
+      const tt = asArray(booking.treatmentTypes).join(' ');
+      if (!laneIsSurgery(tt)) return false;
+      if (booking.hasUpcomingBooking && laneIsSurgery(normalizeText(booking.nextBookingType))) {
+        return false;
+      }
+      const lv = booking.lastVisitAt || booking.lastBookingAt;
+      if (!lv) return false;
+      const d = daysSinceIso(lv);
+      return d != null && d >= 0 && d <= LANE_AFTERCARE_DAYS;
+    }
+    case 'lane_medicinsk': {
+      // Medicinsk: medicinska riskflaggor i hälsodeklarationen
+      if (asArray(patient.allergies).length > 0) return true;
+      const hd = asObject(patient.healthDeclaration);
+      if (asArray(hd.riskFlags).length > 0) return true;
+      if (asArray(hd.flags).length > 0) return true;
+      if (
+        asArray(patient.flags)
+          .map(normalizeKey)
+          .some(
+            (f) =>
+              f.indexOf('allerg') >= 0 || f.indexOf('medical') >= 0 || f.indexOf('risk_med') >= 0
+          )
+      ) {
+        return true;
+      }
+      return false;
+    }
     default:
       return false;
   }
+}
+
+// Lane-hjälpare
+const LANE_AFTERCARE_DAYS = 120;
+function laneIsSurgery(text) {
+  return /dhi|fue|transplant|operation|kirurg/i.test(String(text || ''));
+}
+function hasStructuredHdSigned(patient) {
+  return Boolean(asObject(patient && patient.healthDeclaration).signedAt);
 }
 
 function computeNextStep(readout) {
@@ -650,6 +721,32 @@ function buildSegmentCatalog(bookingCoverage = 'missing', ownerCoverage = 'none'
       filterQuery: calendarStatus === 'real' ? { segment: 'waitlist' } : null,
     },
     ...treatmentSegments,
+    // ===== LANES (FACIT) — kundresans operativa lägen =====
+    { id: 'lane_agera', label: 'Agera nu', status: 'real', filterQuery: { segment: 'lane_agera' } },
+    {
+      id: 'lane_bokningsbar',
+      label: 'Bokningsbar',
+      status: 'real',
+      filterQuery: { segment: 'lane_bokningsbar' },
+    },
+    {
+      id: 'lane_operation',
+      label: 'Operation',
+      status: 'real',
+      filterQuery: { segment: 'lane_operation' },
+    },
+    {
+      id: 'lane_eftervard',
+      label: 'Eftervård',
+      status: 'real',
+      filterQuery: { segment: 'lane_eftervard' },
+    },
+    {
+      id: 'lane_medicinsk',
+      label: 'Medicinsk',
+      status: 'real',
+      filterQuery: { segment: 'lane_medicinsk' },
+    },
     { id: 'active', label: 'Aktiva', status: 'real', filterQuery: { segment: 'active' } },
     { id: 'vip', label: 'VIP', status: 'real', filterQuery: { segment: 'vip' } },
     { id: 'risk', label: 'Risk', status: 'real', filterQuery: { segment: 'risk' } },

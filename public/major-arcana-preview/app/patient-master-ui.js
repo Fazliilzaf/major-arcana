@@ -100,6 +100,11 @@
     'risk',
     'new',
     'dormant',
+    'lane_agera',
+    'lane_bokningsbar',
+    'lane_operation',
+    'lane_eftervard',
+    'lane_medicinsk',
   ]);
 
   /** Sidebar placement — keep in sync with public/cco-kunder-real.js SEGMENT_UI */
@@ -116,6 +121,11 @@
     { id: 'treatment_consultation', side: true, treatment: true, group: 'treatment' },
     { id: 'treatment_followup', side: true, treatment: true, group: 'treatment' },
     { id: 'treatment_curatiio', side: true, treatment: true, group: 'treatment' },
+    { id: 'lane_agera', side: true, group: 'lanes' },
+    { id: 'lane_bokningsbar', side: true, group: 'lanes' },
+    { id: 'lane_operation', side: true, group: 'lanes' },
+    { id: 'lane_eftervard', side: true, group: 'lanes' },
+    { id: 'lane_medicinsk', side: true, group: 'lanes' },
     { id: 'active', chip: 'aktiva' },
     { id: 'vip', side: true, chip: 'vip', group: 'status' },
     { id: 'risk', side: true, chip: 'risk', group: 'status' },
@@ -2260,7 +2270,7 @@
 
   function buildV9SidebarSegmentGroups(segments) {
     const byId = Object.fromEntries((segments || []).map((seg) => [seg.id, seg]));
-    const groups = { core: [], treatment: [], status: [] };
+    const groups = { core: [], treatment: [], lanes: [], status: [] };
     for (const ui of V9_SEGMENT_UI) {
       if (!ui.side) continue;
       const seg = byId[ui.id];
@@ -2269,9 +2279,11 @@
       const bucket =
         ui.group === 'core'
           ? 'core'
-          : ui.treatment || ui.group === 'treatment' || ui.id.startsWith('treatment_')
-            ? 'treatment'
-            : 'status';
+          : ui.group === 'lanes'
+            ? 'lanes'
+            : ui.treatment || ui.group === 'treatment' || ui.id.startsWith('treatment_')
+              ? 'treatment'
+              : 'status';
       groups[bucket].push(seg);
     }
     return groups;
@@ -2319,6 +2331,7 @@
   function renderV9SegmentSidebarStructure(groups, activeId) {
     const coreHtml = renderV9SegmentSidebarListHtml(groups.core, activeId);
     const treatmentHtml = renderV9SegmentSidebarListHtml(groups.treatment, activeId);
+    const lanesHtml = renderV9SegmentSidebarListHtml(groups.lanes, activeId);
     const statusHtml = renderV9SegmentSidebarListHtml(groups.status, activeId);
     return `
       <div class="side-kicker">Segment</div>
@@ -2327,6 +2340,11 @@
       ${
         treatmentHtml
           ? `<div class="side-section"><div class="side-kicker">Behandling</div><div class="side-list" data-v9-segment-group="treatment">${treatmentHtml}</div></div>`
+          : ''
+      }
+      ${
+        lanesHtml
+          ? `<div class="side-section"><div class="side-kicker">Lanes</div><div class="side-list" data-v9-segment-group="lanes">${lanesHtml}</div></div>`
           : ''
       }
       ${
