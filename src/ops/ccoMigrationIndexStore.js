@@ -181,7 +181,64 @@ async function createCcoMigrationIndexStore({ filePath }) {
     return { moved };
   }
 
+  async function bulkUpdateFileNames(deltas = []) {
+    const rollback = [];
+    let changed = 0;
+    let skipped = 0;
+    for (const delta of asArray(deltas)) {
+      const id = normalizeText(delta?.fileId);
+      const nextName = normalizeText(delta?.name);
+      if (!id || !nextName) {
+        skipped += 1;
+        continue;
+      }
+      const file = state.files.find((item) => item.id === id);
+      if (!file) {
+        skipped += 1;
+        continue;
+      }
+      const oldName = normalizeText(file.fileName || file.relativePath);
+      if (oldName === nextName) {
+        skipped += 1;
+        continue;
+      }
+      rollback.push({ fileId: id, oldName, newName: nextName });
+      file.fileName = nextName;
+      changed += 1;
+    }
+    if (changed > 0) {
+      await save();
+    }
+    return { changed, skipped, rollback };
+  }
+
+  async function updateFileName({ fileId, name }) {
+    const id = normalizeText(fileId);
+    const nextName = normalizeText(name);
+    if (!id || !nextName) {
+      return { changed: false, file: null, notFound: false, oldName: null, newName: nextName };
+    }
+    const file = state.files.find((item) => item.id === id);
+    if (!file) {
+      return { changed: false, file: null, notFound: true, oldName: null, newName: nextName };
+    }
+    const oldName = normalizeText(file.fileName || file.relativePath);
+    if (oldName === nextName) {
+      return { changed: false, file, notFound: false, oldName, newName: nextName };
+    }
+    const result = await bulkUpdateFileNames([{ fileId: id, name: nextName }]);
+    return {
+      changed: result.changed > 0,
+      file,
+      notFound: false,
+      oldName,
+      newName: nextName,
+      rollback: result.rollback,
+    };
+  }
+
   return {
+    bulkUpdateFileNames,
     getFileById,
     getFilesForPersonnummer,
     getProfile,
@@ -190,6 +247,7 @@ async function createCcoMigrationIndexStore({ filePath }) {
     listProfiles,
     reassignPersonnummer,
     replaceScanResult,
+    updateFileName,
   };
 }
 

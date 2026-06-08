@@ -8,7 +8,11 @@ const {
   openZipEntryStream,
   resolveZipPath,
 } = require('../../scripts/migration/lib/migrationZipReader');
-const { isGoogleDriveConfigured, streamDriveFileToResponse } = require('../lib/googleDriveClient');
+const {
+  isGoogleDriveConfigured,
+  streamDriveFileToResponse,
+  getDriveFileName,
+} = require('../lib/googleDriveClient');
 const {
   buildOccasionTimeline,
   extractFileOccasionContext,
@@ -28,6 +32,157 @@ function parseIncludeDriveFiles(value) {
     .trim()
     .toLowerCase();
   return !['0', 'false', 'no', 'off'].includes(normalized);
+}
+
+function parseDryRun(value, defaultValue = true) {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  return defaultValue;
+}
+
+function clampBatchSize(value, fallback = 50) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.max(1, Math.min(50, Math.floor(parsed)));
+}
+
+function clampOffset(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return Math.floor(parsed);
+}
+
+function resolveStoredFileName(file) {
+  return normalizeText(file?.fileName || file?.relativePath);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function resolveRepairScopeFiles({
+  scope,
+  patientMasterStore,
+  migrationIndexStore,
+  tenantId,
+  patientId = '',
+  personnummer = '',
+}) {
+  const normalizedScope = normalizeText(scope).toLowerCase() || 'patient';
+  if (normalizedScope === 'all') {
+    return { files: migrationIndexStore.listAllFiles(), scope: 'all' };
+  }
+  if (normalizedScope !== 'patient') {
+    const error = new Error('scope måste vara "patient" eller "all".');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let pnr = normalizeText(personnummer);
+  if (!pnr && patientId) {
+    const patient = await patientMasterStore.getPatient({ tenantId, patientId });
+    if (!patient) {
+      const error = new Error('Patienten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    pnr = normalizeText(patient.personnummer);
+  }
+  if (!pnr) {
+    const error = new Error('patientId eller personnummer krävs för scope=patient.');
+    error.statusCode = 400;
+    throw error;
+  }
+  const files = await migrationIndexStore.getFilesForPersonnummer(pnr);
+  return { files, scope: 'patient', personnummer: pnr };
+}
+
+async function repairFilenamesBatch({
+  files,
+  dryRun = true,
+  batchSize = 50,
+  startOffset = 0,
+  driveDelayMs = 75,
+  env = process.env,
+}) {
+  const eligible = asArray(files).filter((file) => normalizeText(file?.driveFileId));
+  const skippedNoDriveId = asArray(files).length - eligible.length;
+  const offset = clampOffset(startOffset);
+  const limit = clampBatchSize(batchSize);
+  const slice = eligible.slice(offset, offset + limit);
+  const items = [];
+  const applyDeltas = [];
+  let changed = 0;
+  let unchanged = 0;
+  let driveErrors = 0;
+
+  for (let index = 0; index < slice.length; index += 1) {
+    const file = slice[index];
+    const oldName = resolveStoredFileName(file);
+    const driveFileId = normalizeText(file.driveFileId);
+    if (index > 0 && driveDelayMs > 0) {
+      await sleep(driveDelayMs);
+    }
+    const driveResult = await getDriveFileName({
+      driveFileId,
+      env,
+      delayMs: 0,
+    });
+    if (!driveResult.ok) {
+      driveErrors += 1;
+      items.push({
+        id: file.id,
+        driveFileId,
+        old: oldName,
+        new: oldName,
+        changed: false,
+        error: driveResult.error || 'Drive metadata misslyckades.',
+        status: driveResult.status || null,
+      });
+      continue;
+    }
+    const newName = normalizeText(driveResult.name);
+    const nameChanged = Boolean(newName) && newName !== oldName;
+    if (nameChanged) changed += 1;
+    else unchanged += 1;
+    if (nameChanged && !dryRun) {
+      applyDeltas.push({ fileId: file.id, name: newName });
+    }
+    items.push({
+      id: file.id,
+      driveFileId,
+      old: oldName,
+      new: newName || oldName,
+      changed: nameChanged,
+      error: null,
+      status: driveResult.status || null,
+    });
+  }
+
+  return {
+    items,
+    applyDeltas,
+    summary: {
+      changed,
+      unchanged,
+      skippedNoDriveId,
+      driveErrors,
+    },
+    pagination: {
+      batchSize: limit,
+      startOffset: offset,
+      processed: slice.length,
+      totalEligible: eligible.length,
+      nextOffset: offset + slice.length < eligible.length ? offset + slice.length : null,
+      hasMore: offset + slice.length < eligible.length,
+    },
+  };
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function createCcoPatientMasterRouter({
@@ -750,6 +905,98 @@ function createCcoPatientMasterRouter({
   );
 
   router.post(
+    '/cco-patient-master/repair-filenames',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        if (!migrationIndexStore) {
+          return res.status(503).json({ error: 'Migration-index saknas på servern.' });
+        }
+        if (!isGoogleDriveConfigured()) {
+          return res.status(503).json({ error: 'Google Drive API är inte konfigurerad.' });
+        }
+
+        const dryRun = parseDryRun(req.body?.dryRun, true);
+        const batchSize = clampBatchSize(req.body?.batchSize, 50);
+        const startOffset = clampOffset(req.body?.startOffset);
+        const scopeInput = normalizeText(req.body?.scope) || 'patient';
+
+        let scopeResult;
+        try {
+          scopeResult = await resolveRepairScopeFiles({
+            scope: scopeInput,
+            patientMasterStore,
+            migrationIndexStore,
+            tenantId: actor.tenantId,
+            patientId: normalizeText(req.body?.patientId),
+            personnummer: normalizeText(req.body?.personnummer),
+          });
+        } catch (error) {
+          const statusCode = Number(error?.statusCode || 500);
+          return res.status(statusCode).json({ error: error.message });
+        }
+
+        if (!dryRun) {
+          const confirmText = normalizeText(req.body?.confirmText);
+          if (confirmText !== 'REPAIR FILENAMES') {
+            return res.status(400).json({
+              error: 'Bekräfta med confirmText: "REPAIR FILENAMES"',
+            });
+          }
+        }
+
+        const batch = await repairFilenamesBatch({
+          files: scopeResult.files,
+          dryRun,
+          batchSize,
+          startOffset,
+        });
+
+        let applied = { changed: 0, skipped: 0, rollback: [] };
+        if (!dryRun && batch.applyDeltas.length) {
+          applied = await migrationIndexStore.bulkUpdateFileNames(batch.applyDeltas);
+        }
+
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.repair_filenames',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: scopeResult.scope === 'patient' ? scopeResult.personnummer || 'patient' : 'all',
+          metadata: {
+            scope: scopeResult.scope,
+            dryRun,
+            batchSize,
+            startOffset,
+            processed: batch.pagination.processed,
+            changed: dryRun ? batch.summary.changed : applied.changed,
+            driveErrors: batch.summary.driveErrors,
+            skippedNoDriveId: batch.summary.skippedNoDriveId,
+          },
+        });
+
+        return res.json({
+          ok: true,
+          dryRun,
+          scope: scopeResult.scope,
+          personnummer: scopeResult.personnummer || null,
+          batchSize,
+          startOffset,
+          nextOffset: batch.pagination.nextOffset,
+          totalEligible: batch.pagination.totalEligible,
+          processed: batch.pagination.processed,
+          hasMore: batch.pagination.hasMore,
+          summary: batch.summary,
+          items: batch.items,
+          appliedCount: dryRun ? 0 : applied.changed,
+          rollback: dryRun ? [] : applied.rollback,
+        });
+      })
+  );
+
+  router.post(
     '/cco-patient-master/stub-patients/hard-delete',
     requireAuth,
     requireRole(ROLE_OWNER),
@@ -873,4 +1120,7 @@ function createCcoPatientMasterRouter({
 
 module.exports = {
   createCcoPatientMasterRouter,
+  repairFilenamesBatch,
+  resolveRepairScopeFiles,
+  parseDryRun,
 };
