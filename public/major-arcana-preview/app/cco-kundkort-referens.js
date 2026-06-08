@@ -853,8 +853,9 @@
       var l = String(label || '').toLowerCase();
       if (s.indexOf('operation_day') >= 0 || l.indexOf('friskförs') >= 0)
         return {
-          rubrik: 'Skicka friskförsäkran (tablet/QR-länk)',
+          rubrik: 'Skicka friskförsäkran',
           kund: true,
+          link: '/friskforsakran.html',
           text:
             'Hej ' +
             namn +
@@ -926,6 +927,10 @@
         btn.getAttribute('data-kk-sig-label'),
         fnamn()
       );
+      // Byt [länk] mot riktig URL där en publik sida finns (t.ex. friskförsäkran)
+      if (u.link && u.text.indexOf('[länk]') >= 0) {
+        u.text = u.text.replace('[länk]', window.location.origin + u.link);
+      }
       var ov = document.getElementById('kk-sigact');
       if (ov) ov.remove();
       ov = document.createElement('div');
