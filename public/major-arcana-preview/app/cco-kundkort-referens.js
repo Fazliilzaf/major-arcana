@@ -779,7 +779,9 @@
         return (
           '<div class="jr ' +
           (it.st === 'done' ? '' : it.st) +
-          '"><div class="jc ' +
+          '"' +
+          (it.entryId ? ' data-jentry="' + esc(it.entryId) + '"' : '') +
+          '><div class="jc ' +
           it.st +
           '">' +
           ic +
@@ -1582,7 +1584,10 @@
       var op = e.target.closest && e.target.closest('[data-kk-open-storvy]');
       if (op && typeof window.__kkOpenStorvy === 'function') {
         e.preventDefault();
-        window.__kkOpenStorvy(op.getAttribute('data-kk-open-storvy') || '');
+        window.__kkOpenStorvy(
+          op.getAttribute('data-kk-open-storvy') || '',
+          op.getAttribute('data-kk-entry') || ''
+        );
         return;
       }
       // 3) Hoppa till sektion (kundrese-steg)
@@ -1622,34 +1627,62 @@
 
   // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt
   // landat på en sektion (#slug). Används av header-förstoringen OCH sektions-⤢.
-  window.__kkOpenStorvy = function (slug) {
+  window.__kkOpenStorvy = function (slug, entryId) {
     var ov = document.getElementById('kk-storvy');
-    var base = '/kundkort-mockup-gemensamt.html';
-    var src = base + (slug ? '#' + slug : '');
     if (!ov) {
       ov = document.createElement('div');
       ov.id = 'kk-storvy';
       ov.innerHTML =
         '<div class="kk-storvy-panel">' +
         '<button type="button" class="kk-storvy-close" aria-label="Stäng">×</button>' +
-        '<iframe class="kk-storvy-frame" title="Gemensamt kundkort"></iframe>' +
+        '<div class="kk-storvy-body"></div>' +
         '</div>';
       document.body.appendChild(ov);
-      var stang = function () {
-        ov.classList.remove('open');
-      };
       ov.addEventListener('click', function (e) {
-        if (e.target === ov || e.target.classList.contains('kk-storvy-close')) stang();
+        if (e.target === ov || e.target.classList.contains('kk-storvy-close'))
+          ov.classList.remove('open');
       });
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') stang();
+        if (e.key === 'Escape') ov.classList.remove('open');
       });
     }
-    var frame = ov.querySelector('.kk-storvy-frame');
-    // Ladda om/navigera till rätt sektion varje gång
-    if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
-    else if (slug && frame.contentWindow) frame.contentWindow.location.hash = slug;
+    var body = ov.querySelector('.kk-storvy-body');
+    // Rensa ev. gammal klon FÖRST, så vi sen hittar den LEVANDE dossiern (ej en klon)
+    body.innerHTML = '';
+    var live = document.querySelector('.kkref .doss');
+    if (live) {
+      // .kkref-wrapper så scoped dossier-CSS (html[data-v9-enabled] .kkref .doss ...) gäller
+      body.innerHTML = '<div class="kkref"></div>';
+      body.querySelector('.kkref').appendChild(live.cloneNode(true));
+    } else {
+      body.innerHTML = '<div style="padding:28px;color:#6b6052">Öppna en kund först.</div>';
+    }
     ov.classList.add('open');
+    requestAnimationFrame(function () {
+      var esc1 = function (s) {
+        return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"');
+      };
+      var target = null;
+      if (entryId) target = body.querySelector('[data-jentry="' + esc1(entryId) + '"]');
+      if (!target && slug) target = body.querySelector('[data-sek="' + esc1(slug) + '"]');
+      if (target) {
+        var det = target.closest('details');
+        if (det) det.open = true;
+        if (target.tagName === 'DETAILS') target.open = true;
+        var top =
+          target.getBoundingClientRect().top -
+          body.getBoundingClientRect().top +
+          body.scrollTop -
+          14;
+        body.scrollTo({ top: top, behavior: 'smooth' });
+        target.classList.add('kk-flash');
+        setTimeout(function () {
+          target.classList.remove('kk-flash');
+        }, 1200);
+      } else {
+        body.scrollTo({ top: 0 });
+      }
+    });
   };
 
   // Mappar app-sektionens rubrik → gemensamma kortets sektions-slug

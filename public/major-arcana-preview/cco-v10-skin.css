@@ -2754,3 +2754,25 @@ html[data-v9-enabled="on"] .kkref .doss .jc.act {
 html[data-v9-enabled="on"] .kkref .doss .jr .rt {
   font-size: 12px;
 }
+
+/* ============================================================
+   LAGER 34 · Äkta stora kortvyn — klonad verklig dossier i bred vy
+   ============================================================ */
+#kk-storvy .kk-storvy-body {
+  height: 100%;
+  overflow-y: auto;
+  padding: 34px 36px 44px;
+  -webkit-overflow-scrolling: touch;
+}
+#kk-storvy .kk-storvy-body .kkref {
+  width: 100%;
+}
+#kk-storvy .kk-storvy-body .kkref .doss {
+  width: 100%;
+  max-width: none;
+}
+/* Måltavlan blinkar till (sektion ELLER enskild journal via data-jentry) */
+#kk-storvy .kk-flash {
+  animation: kkFlash 1.2s ease;
+  border-radius: 12px;
+}
