@@ -82,6 +82,7 @@
     if (l.indexOf('offert') === 0) return 'offert';
     if (l.indexOf('auto') === 0) return 'auto';
     if (l.indexOf('foto') === 0) return 'foto';
+    if (l.indexOf('betalning') === 0) return 'betalning';
     if (l.indexOf('ekonomi') === 0) return 'ekonomi';
     return 'sek';
   }
@@ -869,7 +870,7 @@
               esc(ok ? '✓ Godkänd' : 'Väntar') +
               '</span>' +
               (ok
-                ? '<button type="button" class="openb" data-kk-open-storvy="ekonomi" title="Gå vidare till betalning">Betalning →</button>'
+                ? '<button type="button" class="openb" data-kk-open-storvy="betalning" title="Gå vidare till betalning">Betalning →</button>'
                 : '<button type="button" class="kk-sig-act" data-kk-sig="customer.missing_treatment_plan" ' +
                   'data-kk-sig-label="Påminn om offert" title="Påminn/skicka">→</button>') +
               '</div>'
@@ -964,6 +965,89 @@
         ekoRows || empty('Ingen ekonomidata ännu.')
       );
     }
+
+    // ===== Betalning: committad offert följer med + status + betalvägar (historik = backend nästa) =====
+    (function renderBetalning() {
+      var cc = commercialCase || {};
+      var ps = String(cc.paymentStatus || '').toLowerCase();
+      // committade (godkända) offerter = det betalningen gäller
+      var paid = offers.filter(function (o) {
+        return /godk|signed|accepted/i.test(o.status || '');
+      });
+      // visa bara sektionen om det finns något ekonomiskt att betala/visa
+      if (!paid.length && !ps && !cc.quotedAmount) return;
+      var statusMap = {
+        paid: ['Betald', '#2e7d52', '#e7f3ec'],
+        ready_for_booking: ['Klar för bokning', '#2e7d52', '#e7f3ec'],
+        partially_paid: ['Delbetald', '#c8821e', '#faf0db'],
+        payment_pending: ['Väntar betalning', '#c8821e', '#faf0db'],
+        pending: ['Väntar betalning', '#c8821e', '#faf0db'],
+        pending_customer: ['Väntar på kund', '#c8821e', '#faf0db'],
+        deposit_pending: ['Deposition väntar', '#c8821e', '#faf0db'],
+        blocked: ['Blockerad', '#b94a4a', '#f6e3e3'],
+      };
+      var stt = statusMap[ps] || ['Ingen betalning startad', '#94897b', 'rgba(215,202,194,0.35)'];
+      var inner = '';
+      // 1) Att betala — offerten/erna följer automatiskt med
+      inner += paid.length
+        ? paid
+            .map(function (o) {
+              var d = String(o.detail || o.amountLabel || '')
+                .replace(/\bgrafts\b/gi, 'graft')
+                .replace(/\bsessions\b/gi, 'sessioner');
+              return (
+                '<div class="kk-eko"><div class="kk-eko-l"><div class="kk-eko-k">Offert · ' +
+                esc(o.type || 'TP') +
+                '</div><div class="kk-eko-sub">' +
+                esc(d) +
+                '</div></div></div>'
+              );
+            })
+            .join('')
+        : '<div class="kk-eko"><div class="kk-eko-l"><div class="kk-eko-k">Offererat belopp</div></div><div class="kk-eko-v">' +
+          esc(cc.quotedAmount || '—') +
+          '</div></div>';
+      // 2) Status-rad
+      inner +=
+        '<div class="kk-eko"><div class="kk-eko-l"><div class="kk-eko-k">Status</div>' +
+        (cc.depositAmount
+          ? '<div class="kk-eko-sub">Deposition: ' + esc(cc.depositAmount) + '</div>'
+          : '') +
+        '</div><span class="pill" style="background:' +
+        stt[2] +
+        ';color:' +
+        stt[1] +
+        '">' +
+        esc(stt[0]) +
+        '</span></div>';
+      // 3) Betalvägar — era erbjudna alternativ (förbered → människa bekräftar, aldrig auto-pengar)
+      var vagar = [
+        ['swish', 'Swish', 'Direktbetalning'],
+        ['mf', 'Medical Finance', 'Delbetalning / finansiering'],
+        ['kort', 'Kort · betalningslänk', 'Stripe/kortlänk'],
+        ['faktura', 'Faktura', 'Fortnox'],
+      ];
+      inner +=
+        '<div class="kk-betvag-h">Betalvägar</div>' +
+        vagar
+          .map(function (v) {
+            return (
+              '<div class="kk-betvag"><div style="flex:1"><div class="rt">' +
+              esc(v[1]) +
+              '</div><div class="rm">' +
+              esc(v[2]) +
+              '</div></div><button type="button" class="openb kk-betvag-btn" data-kk-betvag="' +
+              v[0] +
+              '">Förbered →</button></div>'
+            );
+          })
+          .join('');
+      // 4) Betalningshistorik (kräver Swish/Fortnox-poster = backend)
+      inner +=
+        '<div class="kk-betvag-h">Betalningshistorik</div>' +
+        '<div class="empty">Ingen betalningshistorik kopplad ännu.</div>';
+      h += sec('Betalning', '<span style="color:' + stt[1] + '">' + esc(stt[0]) + '</span>', inner);
+    })();
 
     // ===== Besök · tidslinje: gruppera filer/foton/journaler per BESÖKSDATUM (ej importstämpel) =====
     (function renderBesok() {
@@ -1642,6 +1726,24 @@
             target.classList.remove('kk-flash');
           }, 900);
         }
+        return;
+      }
+      // 3b) Betalväg — förbered (människa bekräftar/slutför, ALDRIG auto-pengar)
+      var bv = e.target.closest && e.target.closest('[data-kk-betvag]');
+      if (bv) {
+        e.preventDefault();
+        var metod =
+          {
+            swish: 'Swish-betalning',
+            mf: 'Medical Finance (delbetalning)',
+            kort: 'kort/betalningslänk',
+            faktura: 'faktura via Fortnox',
+          }[bv.getAttribute('data-kk-betvag')] || 'betalning';
+        window.alert(
+          'Förbered ' +
+            metod +
+            ' — skapa och skicka i respektive system. Automatiskt skick av betalning är avstängt; du bekräftar och slutför själv.'
+        );
         return;
       }
       // 4) Toggla historik-sammanfattning
