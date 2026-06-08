@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CCO Kundkort · Blueprint (responsiv)</title>
+    <style>
+      :root {
+        --bg: #f3f0ea;
+        --surface: #ffffff;
+        --surface-2: #fbfaf6;
+        --ink: #1e232e;
+        --ink-soft: #3a4150;
+        --muted: #6b7280;
+        --faint: #9aa1ac;
+        --line: #eae6dd;
+        --line-soft: #f1eee7;
+        --brand: #1c9e83;
+        --brand-soft: #e7f4f0;
+        --info: #3b7de0;
+        --info-bg: #eaf1fc;
+        --review: #d9892a;
+        --review-bg: #fbf1e2;
+        --blocker: #d8463a;
+        --blocker-bg: #fbe9e7;
+        --legal: #8a3cb5;
+        --legal-bg: #f3e9f8;
+        --ready: #1c9e83;
+        --ready-bg: #e5f3ef;
+        --pink: #e0608a;
+        --blue: #5b8def;
+        --green: #36b37e;
+        --red: #d8463a;
+        --r: 18px;
+        --r-sm: 12px;
+        --shadow: 0 1px 2px rgba(28, 33, 46, 0.04), 0 8px 24px rgba(28, 33, 46, 0.06);
+        --shadow-sm: 0 1px 2px rgba(28, 33, 46, 0.05);
+        font-synthesis: none;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin: 0;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .faint {
+        color: var(--faint);
+      }
+      .mono {
+        font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      }
+      /* ---------- top bar ---------- */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 12px 22px;
+        background: rgba(251, 250, 246, 0.86);
+        backdrop-filter: saturate(1.4) blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .brand .dot {
+        width: 26px;
+        height: 26px;
+        border-radius: 9px;
+        background: radial-gradient(120% 120% at 30% 25%, #57c9ad 0%, var(--brand) 60%);
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 13px;
+        box-shadow: var(--shadow-sm);
+      }
+      .search {
+        flex: 1;
+        max-width: 420px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 9px 12px;
+        color: var(--faint);
+        font-size: 13px;
+      }
+      .nav {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+      }
+      .nav a {
+        padding: 8px 13px;
+        border-radius: 10px;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 550;
+        font-size: 13px;
+      }
+      .nav a.on {
+        background: var(--ink);
+        color: #fff;
+      }
+      .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #d9d2c6;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #5b5346;
+      }
+      /* ---------- layout ---------- */
+      .shell {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 384px;
+        gap: 18px;
+        align-items: start;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+      }
+      .pad {
+        padding: 16px;
+      }
+      .col-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--faint);
+        padding: 2px 4px;
+      }
+      .col-label .pin {
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--muted);
+        font-size: 11px;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 2px 8px;
+      }
+      /* ---------- LEFT: customer list ---------- */
+      .seg {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 12px 12px 4px;
+      }
+      .chip {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 999px;
+        padding: 6px 11px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink-soft);
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        cursor: default;
+      }
+      .chip .n {
+        color: var(--faint);
+        font-weight: 600;
+      }
+      .chip.on {
+        background: #fbefcf;
+        border-color: #f3dfa0;
+        color: #8a6a16;
+      }
+      .clist {
+        padding: 6px;
+      }
+      .crow {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        padding: 10px 10px;
+        border-radius: 12px;
+        cursor: default;
+      }
+      .crow:hover {
+        background: var(--surface-2);
+      }
+      .crow.on {
+        background: var(--brand-soft);
+        box-shadow: inset 0 0 0 1px #cfe9e1;
+      }
+      .crow .pic {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #e7e1d6;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: #6b6354;
+        font-size: 12px;
+        flex: none;
+      }
+      .crow .nm {
+        font-weight: 600;
+        font-size: 13px;
+        line-height: 1.2;
+      }
+      .crow .sub {
+        font-size: 11.5px;
+        color: var(--faint);
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-top: 2px;
+      }
+      .stepbadge {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #fff;
+        background: var(--brand);
+        border-radius: 6px;
+        padding: 1px 6px;
+      }
+      .rdot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex: none;
+      }
+      /* ---------- MIDDLE ---------- */
+      .phead {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      .phead .pic {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: #e7e1d6;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: #6b6354;
+        font-size: 18px;
+        flex: none;
+      }
+      .tags {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+      .tag {
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 7px;
+        padding: 3px 8px;
+      }
+      .tag.vip {
+        background: #fbefcf;
+        color: #8a6a16;
+      }
+      .tag.active {
+        background: var(--ready-bg);
+        color: var(--ready);
+      }
+      .tag.risk {
+        background: var(--blocker-bg);
+        color: var(--blocker);
+      }
+      .kv {
+        display: flex;
+        gap: 22px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+        font-size: 13px;
+      }
+      .kv div span {
+        display: block;
+        color: var(--faint);
+        font-size: 11px;
+        letter-spacing: 0.02em;
+        margin-bottom: 1px;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--line);
+        padding: 0 4px;
+        margin-top: 4px;
+      }
+      .tabs button {
+        appearance: none;
+        border: 0;
+        background: none;
+        padding: 11px 13px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        cursor: default;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+      .tabs button.on {
+        color: var(--ink);
+        border-color: var(--brand);
+      }
+      /* insight cards (middle) */
+      .insight {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 13px 15px 13px 18px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .insight::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+      }
+      .insight.i-idag::before {
+        background: var(--pink);
+      }
+      .insight.i-mojl::before {
+        background: var(--blue);
+      }
+      .insight.i-trend::before {
+        background: var(--green);
+      }
+      .insight.i-risk::before {
+        background: var(--red);
+      }
+      .insight .lbl {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .insight.i-idag .lbl {
+        color: var(--pink);
+      }
+      .insight.i-mojl .lbl {
+        color: var(--blue);
+      }
+      .insight.i-trend .lbl {
+        color: #2c9462;
+      }
+      .insight.i-risk .lbl {
+        color: var(--red);
+      }
+      .insight p {
+        margin: 6px 0 10px;
+        font-size: 13.5px;
+      }
+      .ghostbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 650;
+        color: var(--ink-soft);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 6px 11px;
+      }
+      /* timeline */
+      .tl {
+        position: relative;
+        padding-left: 24px;
+      }
+      .tl::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 4px;
+        bottom: 4px;
+        width: 2px;
+        background: var(--line);
+      }
+      .ev {
+        position: relative;
+        padding: 0 0 16px;
+      }
+      .ev::before {
+        content: '';
+        position: absolute;
+        left: -20px;
+        top: 3px;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2.5px solid var(--brand);
+      }
+      .ev.mail::before {
+        border-color: var(--info);
+      }
+      .ev.doc::before {
+        border-color: var(--review);
+      }
+      .ev.book::before {
+        border-color: var(--green);
+      }
+      .ev .h {
+        font-weight: 650;
+        font-size: 13px;
+      }
+      .ev .meta {
+        font-size: 11.5px;
+        color: var(--faint);
+        margin-top: 1px;
+      }
+      .ev .audit {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-soft);
+        border-radius: 8px;
+        padding: 5px 9px;
+        display: inline-block;
+      }
+      /* ---------- RIGHT: KUNDKORT ---------- */
+      .allergi {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        background: var(--blocker-bg);
+        border: 1px solid #f2c9c4;
+        border-radius: 14px;
+        padding: 12px 14px;
+      }
+      .allergi .ic {
+        width: 22px;
+        height: 22px;
+        border-radius: 7px;
+        background: var(--blocker);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        flex: none;
+        font-weight: 800;
+      }
+      .allergi b {
+        color: #a4291f;
+      }
+      .idblock {
+        display: flex;
+        gap: 13px;
+        align-items: center;
+      }
+      .idblock .pic {
+        width: 52px;
+        height: 52px;
+        border-radius: 15px;
+        background: #e7e1d6;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: #6b6354;
+        font-size: 17px;
+        flex: none;
+      }
+      .idrow {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 0;
+        border-top: 1px solid var(--line-soft);
+        font-size: 12.5px;
+      }
+      .idrow:first-of-type {
+        border-top: 0;
+      }
+      .idrow .k {
+        color: var(--faint);
+      }
+      /* journey stepper */
+      .sec-h {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2px;
+      }
+      .sec-h h4 {
+        font-size: 13px;
+      }
+      .sec-h .hint {
+        font-size: 11px;
+        color: var(--faint);
+        font-weight: 600;
+      }
+      .step {
+        display: flex;
+        gap: 11px;
+        align-items: flex-start;
+        padding: 7px 0;
+        position: relative;
+      }
+      .step + .step {
+        border-top: 1px dashed var(--line);
+      }
+      .step .mk {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        flex: none;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 800;
+        border: 2px solid var(--line);
+        color: var(--faint);
+        background: #fff;
+        margin-top: 1px;
+      }
+      .step.done .mk {
+        background: var(--ready);
+        border-color: var(--ready);
+        color: #fff;
+      }
+      .step.active .mk {
+        border-color: var(--brand);
+        color: var(--brand);
+        box-shadow: 0 0 0 4px var(--brand-soft);
+      }
+      .step.block .mk {
+        background: var(--blocker);
+        border-color: var(--blocker);
+        color: #fff;
+      }
+      .step .t {
+        font-size: 12.5px;
+        font-weight: 600;
+        line-height: 1.25;
+      }
+      .step .s {
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .step.done .s {
+        color: var(--ready);
+      }
+      .step.active .s {
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .step.block .s {
+        color: var(--blocker);
+        font-weight: 600;
+      }
+      .step.todo .s {
+        color: var(--faint);
+      }
+      /* signals */
+      .sig {
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        padding: 11px 12px;
+        background: var(--surface-2);
+      }
+      .sig + .sig {
+        margin-top: 9px;
+      }
+      .sig .top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sig .pill {
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        border-radius: 999px;
+        padding: 3px 9px;
+        text-transform: uppercase;
+      }
+      .pill.info {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .pill.review {
+        background: var(--review-bg);
+        color: var(--review);
+      }
+      .pill.block {
+        background: var(--blocker-bg);
+        color: var(--blocker);
+      }
+      .pill.legal {
+        background: var(--legal-bg);
+        color: var(--legal);
+      }
+      .pill.ready {
+        background: var(--ready-bg);
+        color: var(--ready);
+      }
+      .sig .nm {
+        font-weight: 650;
+        font-size: 12.5px;
+        margin-left: auto;
+        color: var(--ink-soft);
+      }
+      .sig .wn {
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-top: 7px;
+        display: grid;
+        gap: 3px;
+      }
+      .sig .wn b {
+        color: var(--ink-soft);
+        font-weight: 650;
+      }
+      .sig .act {
+        margin-top: 9px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-dis {
+        font-size: 11.5px;
+        font-weight: 650;
+        color: var(--faint);
+        background: #fff;
+        border: 1px dashed var(--line);
+        border-radius: 9px;
+        padding: 6px 10px;
+        cursor: not-allowed;
+      }
+      .reason {
+        font-size: 10.5px;
+        color: var(--faint);
+        font-style: italic;
+      }
+      /* document dossier */
+      .doc {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 9px 0;
+        border-top: 1px solid var(--line-soft);
+      }
+      .doc:first-of-type {
+        border-top: 0;
+      }
+      .doc .di {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        flex: none;
+      }
+      .doc .dn {
+        font-size: 12.5px;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .doc .dm {
+        font-size: 11px;
+        color: var(--faint);
+      }
+      .st {
+        margin-left: auto;
+        font-size: 10.5px;
+        font-weight: 800;
+        border-radius: 7px;
+        padding: 3px 8px;
+        white-space: nowrap;
+      }
+      .st.ok {
+        background: var(--ready-bg);
+        color: var(--ready);
+      }
+      .st.wait {
+        background: var(--review-bg);
+        color: var(--review);
+      }
+      .st.miss {
+        background: var(--blocker-bg);
+        color: var(--blocker);
+      }
+      .st.lock {
+        background: #eef0f3;
+        color: var(--faint);
+      }
+      /* economy */
+      .eco {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12.5px;
+        padding: 6px 0;
+      }
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .actions button {
+        font-size: 12px;
+        font-weight: 650;
+        border-radius: 11px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        color: var(--ink-soft);
+        cursor: default;
+      }
+      .actions button.primary {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      .legend {
+        display: flex;
+        gap: 13px;
+        flex-wrap: wrap;
+        font-size: 11px;
+        color: var(--muted);
+        padding: 2px 4px;
+      }
+      .legend i {
+        width: 9px;
+        height: 9px;
+        border-radius: 3px;
+        display: inline-block;
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+      .note {
+        font-size: 11px;
+        color: var(--faint);
+        text-align: center;
+        padding: 14px 8px 26px;
+      }
+      /* responsive */
+      @media (max-width: 1180px) {
+        .shell {
+          grid-template-columns: minmax(0, 1fr) 384px;
+        }
+        .col-left-wrap {
+          grid-column: 1/-1;
+          order: -1;
+        }
+        .col-left-wrap .clist {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        }
+      }
+      @media (max-width: 880px) {
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .nav {
+          display: none;
+        }
+        .col-left-wrap .clist {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 560px) {
+        .shell {
+          padding: 12px;
+          gap: 12px;
+        }
+        .col-left-wrap .clist {
+          grid-template-columns: 1fr;
+        }
+        .kv {
+          gap: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand">
+        <span class="dot">✦</span> Arcana <span class="muted" style="font-weight: 600">· CCO</span>
+      </div>
+      <div class="search">🔍 Sök kund, personnr, telefon…</div>
+      <nav class="nav">
+        <a>Hem</a><a>Boka</a><a>Kalender</a><a class="on">Kunder</a><a>Journal</a>
+      </nav>
+      <div class="avatar">FA</div>
+    </div>
+
+    <div class="shell">
+      <!-- ================= LEFT ================= -->
+      <div class="col col-left-wrap">
+        <div class="col-label">Vänster · Kundregister <span class="pin">7 217 kunder</span></div>
+        <div class="card">
+          <div class="seg">
+            <span class="chip on">Alla <span class="n">7 217</span></span>
+            <span class="chip">Aktiva <span class="n">2 142</span></span>
+            <span class="chip">★ VIP <span class="n">625</span></span>
+            <span class="chip">⚠ Risk <span class="n">1</span></span>
+            <span class="chip">Nya <span class="n">115</span></span>
+          </div>
+          <div class="clist">
+            <div class="crow on">
+              <div class="pic">EL</div>
+              <div style="flex: 1">
+                <div class="nm">Erik Lindqvist</div>
+                <div class="sub"><span class="stepbadge">Steg 6</span> Betänketid · 1 dag kvar</div>
+              </div>
+              <span class="rdot" style="background: var(--info)"></span>
+            </div>
+            <div class="crow">
+              <div class="pic">SA</div>
+              <div style="flex: 1">
+                <div class="nm">Sara Ahmadi</div>
+                <div class="sub">
+                  <span class="stepbadge" style="background: var(--blocker)">Steg 3</span> Saknar
+                  hälsodekl.
+                </div>
+              </div>
+              <span class="rdot" style="background: var(--blocker)"></span>
+            </div>
+            <div class="crow">
+              <div class="pic">MJ</div>
+              <div style="flex: 1">
+                <div class="nm">Marcus Johansson</div>
+                <div class="sub">
+                  <span class="stepbadge" style="background: var(--ready)">Steg 9</span> Klar för
+                  behandling
+                </div>
+              </div>
+              <span class="rdot" style="background: var(--ready)"></span>
+            </div>
+            <div class="crow">
+              <div class="pic">LN</div>
+              <div style="flex: 1">
+                <div class="nm">Lina Nyberg</div>
+                <div class="sub">
+                  <span class="stepbadge" style="background: var(--review)">Steg 5</span> Offert
+                  väntar svar
+                </div>
+              </div>
+              <span class="rdot" style="background: var(--review)"></span>
+            </div>
+            <div class="crow">
+              <div class="pic">OB</div>
+              <div style="flex: 1">
+                <div class="nm">Omar Belkacem</div>
+                <div class="sub">
+                  <span class="stepbadge" style="background: var(--legal)">Steg 7</span>
+                  Avtal+samtycke
+                </div>
+              </div>
+              <span class="rdot" style="background: var(--legal)"></span>
+            </div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background: var(--info)"></i>info</span>
+          <span><i style="background: var(--review)"></i>granska</span>
+          <span><i style="background: var(--blocker)"></i>blockerare</span>
+          <span><i style="background: var(--legal)"></i>legal</span>
+          <span><i style="background: var(--ready)"></i>klar</span>
+        </div>
+      </div>
+
+      <!-- ================= MIDDLE ================= -->
+      <div class="col">
+        <div class="col-label">Mitten · Arbetsyta &amp; tidslinje</div>
+
+        <div class="card pad">
+          <div class="phead">
+            <div class="pic">EL</div>
+            <div style="flex: 1">
+              <h2 style="font-size: 19px">Erik Lindqvist</h2>
+              <div class="muted" style="font-size: 12.5px; margin-top: 2px">
+                34 år · 19xx-xx-xx-xxxx · Hair TP FUE
+              </div>
+              <div class="tags">
+                <span class="tag vip">★ VIP</span>
+                <span class="tag active">Aktiv</span>
+                <span class="tag" style="background: var(--info-bg); color: var(--info)"
+                  >Steg 6 · Betänketid</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="kv">
+            <div><span>Telefon</span>070-123 45 67</div>
+            <div><span>E-post</span>erik.l@exempel.se</div>
+            <div><span>Behandlare</span>Dr. A. Karim</div>
+            <div><span>Senaste besök</span>3 jun 2026</div>
+            <div><span>Kanal</span>Cliento → CCO</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tabs">
+            <button class="on">Översikt</button>
+            <button>Journal</button>
+            <button>Bokningar</button>
+            <button>Dokument</button>
+            <button>Konversation</button>
+          </div>
+          <div class="pad" style="display: flex; flex-direction: column; gap: 11px">
+            <div class="insight i-risk">
+              <div class="lbl">⚠ Risk · idag</div>
+              <p>
+                Bokning inom 3 dagar men <b>friskförsäkran saknas</b> — signeras på operationsdagen
+                via tablet/QR.
+              </p>
+              <span class="ghostbtn">→ Förbered day-of-flöde</span>
+            </div>
+
+            <div class="insight i-idag">
+              <div class="lbl">★ Nästa steg</div>
+              <p>
+                <b>Betänketid passerar imorgon.</b> Då blir avtal + behandlingssamtycke (bundle)
+                redo att skickas.
+              </p>
+              <span class="ghostbtn">→ Visa bundle-förhandsvisning</span>
+            </div>
+
+            <h4
+              style="
+                font-size: 12px;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--faint);
+                margin-top: 6px;
+              "
+            >
+              Tidslinje
+            </h4>
+            <div class="tl">
+              <div class="ev book">
+                <div class="h">Betänketid startad · 2 dagar</div>
+                <div class="meta">3 jun 2026 · 14:20 · auto (cooling_off_active)</div>
+              </div>
+              <div class="ev doc">
+                <div class="h">Offert = Behandlingsplan skickad</div>
+                <div class="meta">3 jun 2026 · 14:18 · FUE 3000 grafts · 42 000 kr</div>
+                <div class="audit">Skapad av Dr. A. Karim · mall v3 (legal_review ✓)</div>
+              </div>
+              <div class="ev">
+                <div class="h">Journalanteckning signerad</div>
+                <div class="meta">3 jun 2026 · 13:55 · encounter #4471</div>
+                <div class="audit">Ifylld av Dr. A. Karim · 13:40 → signerad 13:55</div>
+              </div>
+              <div class="ev doc">
+                <div class="h">Hälsodeklaration importerad (Meridiq)</div>
+                <div class="meta">1 jun 2026 · 09:12 · inga riskflaggor</div>
+              </div>
+              <div class="ev mail">
+                <div class="h">Bokningsbekräftelse + pre-info skickad</div>
+                <div class="meta">28 maj 2026 · Resend · Nordbro-PDF + Meridiq HD-länk</div>
+              </div>
+              <div class="ev book">
+                <div class="h">Konsultation bokad</div>
+                <div class="meta">28 maj 2026 · via Cliento · auto-bekräftad</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= RIGHT: KUNDKORT ================= -->
+      <div class="col">
+        <div class="col-label">Höger · Kundkort <span class="pin">dossier-bundle</span></div>
+
+        <div class="card pad" style="display: flex; flex-direction: column; gap: 14px">
+          <!-- allergi-banner -->
+          <div class="allergi">
+            <div class="ic">!</div>
+            <div style="font-size: 12.5px; line-height: 1.4">
+              <b>Allergier / medicinsk varning</b><br />
+              Penicillin · Lokalbedövning (lidokain) — verifiera före ingrepp.
+            </div>
+          </div>
+
+          <!-- identitet -->
+          <div class="idblock">
+            <div class="pic">EL</div>
+            <div style="flex: 1">
+              <h3 style="font-size: 15px">Erik Lindqvist</h3>
+              <div class="muted" style="font-size: 12px">Patient-ID · #82e4…2275b77</div>
+            </div>
+            <span class="tag vip" style="align-self: flex-start">★ VIP</span>
+          </div>
+          <div>
+            <div class="idrow">
+              <span class="k">Personnr</span><span class="mono">19xx-xx-xx-xxxx</span>
+            </div>
+            <div class="idrow">
+              <span class="k">Behandling</span><span>Hair TP · FUE 3000</span>
+            </div>
+            <div class="idrow"><span class="k">Behandlare</span><span>Dr. A. Karim</span></div>
+            <div class="idrow"><span class="k">Klinik</span><span>Stockholm</span></div>
+          </div>
+        </div>
+
+        <!-- 9-step journey -->
+        <div class="card pad">
+          <div class="sec-h">
+            <h4>Kundresa · 9 steg</h4>
+            <span class="hint">JourneyAggregator</span>
+          </div>
+          <div style="margin-top: 6px">
+            <div class="step done">
+              <div class="mk">✓</div>
+              <div>
+                <div class="t">1 · Bokning konsultation</div>
+                <div class="s">Klar · 28 maj</div>
+              </div>
+            </div>
+            <div class="step done">
+              <div class="mk">✓</div>
+              <div>
+                <div class="t">2 · Bokningsbekräftelse + pre-info</div>
+                <div class="s">Klar · mail skickat</div>
+              </div>
+            </div>
+            <div class="step done">
+              <div class="mk">✓</div>
+              <div>
+                <div class="t">3 · Hälsodeklaration</div>
+                <div class="s">Klar · inga riskflaggor</div>
+              </div>
+            </div>
+            <div class="step done">
+              <div class="mk">✓</div>
+              <div>
+                <div class="t">4 · Konsultation</div>
+                <div class="s">Klar · journal signerad</div>
+              </div>
+            </div>
+            <div class="step done">
+              <div class="mk">✓</div>
+              <div>
+                <div class="t">5 · Offert = Behandlingsplan</div>
+                <div class="s">Skickad · väntar accept</div>
+              </div>
+            </div>
+            <div class="step active">
+              <div class="mk">6</div>
+              <div>
+                <div class="t">6 · Betänketid 2 dagar</div>
+                <div class="s">Pågår · 1 dag kvar (bookable=false)</div>
+              </div>
+            </div>
+            <div class="step block">
+              <div class="mk">7</div>
+              <div>
+                <div class="t">7 · Avtal + behandlingssamtycke</div>
+                <div class="s">Blockerad · väntar betänketid + legal_review</div>
+              </div>
+            </div>
+            <div class="step todo">
+              <div class="mk">8</div>
+              <div>
+                <div class="t">8 · Friskförsäkran (operationsdagen)</div>
+                <div class="s">Kommande · tablet/QR day-of</div>
+              </div>
+            </div>
+            <div class="step todo">
+              <div class="mk">9</div>
+              <div>
+                <div class="t">9 · Foto-samtycke (hårlinje/krona)</div>
+                <div class="s">Kommande · aldrig ansikte</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- smart nästa steg -->
+        <div class="card pad">
+          <div class="sec-h">
+            <h4>Smart nästa steg</h4>
+            <span class="hint">10 signaler · read-only</span>
+          </div>
+
+          <div style="margin-top: 9px">
+            <div class="sig">
+              <div class="top">
+                <span class="pill info">Info</span><span class="nm">cooling_off_active</span>
+              </div>
+              <div class="wn">
+                <div><b>Vad:</b> Betänketid 2 dagar pågår (1 dag kvar).</div>
+                <div><b>Varför:</b> Kärngate — avtal får inte skickas under aktiv betänketid.</div>
+                <div><b>Nästa:</b> Inväntar tid — inget att göra.</div>
+              </div>
+            </div>
+
+            <div class="sig">
+              <div class="top">
+                <span class="pill legal">Legal</span
+                ><span class="nm">missing_agreement_consent_bundle</span>
+              </div>
+              <div class="wn">
+                <div><b>Vad:</b> Avtal + behandlingssamtycke ej skickat (bundle).</div>
+                <div><b>Varför:</b> Kräver passerad betänketid + legal_review på mall-version.</div>
+                <div><b>Nästa:</b> Owner/legal triggar bundle när steg 6 passerats.</div>
+              </div>
+              <div class="act">
+                <button class="btn-dis">Skicka bundle</button>
+                <span class="reason">låst — betänketid + legal_review krävs</span>
+              </div>
+            </div>
+
+            <div class="sig">
+              <div class="top">
+                <span class="pill block">Blockerare</span
+                ><span class="nm">missing_operation_day_insurance</span>
+              </div>
+              <div class="wn">
+                <div><b>Vad:</b> Friskförsäkran saknas inför operationsdag.</div>
+                <div><b>Varför:</b> Blockerar operationsstart (medicinsk gate, day-of).</div>
+                <div><b>Nästa:</b> Generera tablet/QR-länk på operationsdagen.</div>
+              </div>
+              <div class="act">
+                <button class="btn-dis">Skapa day-of-länk</button>
+                <span class="reason">aktiveras på operationsdagen</span>
+              </div>
+            </div>
+
+            <div class="sig">
+              <div class="top">
+                <span class="pill review">Granska</span
+                ><span class="nm">missing_photo_consent</span>
+              </div>
+              <div class="wn">
+                <div><b>Vad:</b> Foto-samtycke ej inhämtat.</div>
+                <div>
+                  <b>Varför:</b> Krävs för för-/efterbild · scope hårlinje/krona, aldrig ansikte.
+                </div>
+                <div><b>Nästa:</b> Visa prompt på tablet vid första journal-foto.</div>
+              </div>
+            </div>
+
+            <div class="sig">
+              <div class="top">
+                <span class="pill ready">Klar</span><span class="nm">ready_for_treatment</span>
+              </div>
+              <div class="wn">
+                <div><b>Vad:</b> Komposit — alla gates för behandling.</div>
+                <div><b>Status:</b> 5 av 7 gates klara · väntar bundle + friskförsäkran.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- dokument-dossier -->
+        <div class="card pad">
+          <div class="sec-h">
+            <h4>Dokument-dossier</h4>
+            <span class="hint">dossier-bundle endpoint</span>
+          </div>
+          <div style="margin-top: 6px">
+            <div class="doc">
+              <div class="di">🩺</div>
+              <div style="flex: 1">
+                <div class="dn">Hälsodeklaration</div>
+                <div class="dm">Meridiq · 1 jun</div>
+              </div>
+              <span class="st ok">Klar</span>
+            </div>
+            <div class="doc">
+              <div class="di">📝</div>
+              <div style="flex: 1">
+                <div class="dn">Journal / Encounter</div>
+                <div class="dm">Signerad av Dr. Karim</div>
+              </div>
+              <span class="st ok">Klar</span>
+            </div>
+            <div class="doc">
+              <div class="di">📄</div>
+              <div style="flex: 1">
+                <div class="dn">Offert = Behandlingsplan</div>
+                <div class="dm">Skickad · mall v3</div>
+              </div>
+              <span class="st wait">Väntar</span>
+            </div>
+            <div class="doc">
+              <div class="di">🖋️</div>
+              <div style="flex: 1">
+                <div class="dn">Avtal + behandlingssamtycke</div>
+                <div class="dm">Bundle · ej skickat</div>
+              </div>
+              <span class="st miss">Saknas</span>
+            </div>
+            <div class="doc">
+              <div class="di">🏥</div>
+              <div style="flex: 1">
+                <div class="dn">Friskförsäkran</div>
+                <div class="dm">Operationsdagen · day-of</div>
+              </div>
+              <span class="st lock">Låst</span>
+            </div>
+            <div class="doc">
+              <div class="di">📷</div>
+              <div style="flex: 1">
+                <div class="dn">Foto-samtycke</div>
+                <div class="dm">Hårlinje/krona · scope</div>
+              </div>
+              <span class="st lock">Låst</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ekonomi -->
+        <div class="card pad">
+          <div class="sec-h">
+            <h4>Ekonomi</h4>
+            <span class="hint">Fortnox</span>
+          </div>
+          <div style="margin-top: 4px">
+            <div class="eco"><span class="muted">Behandlingsplan</span><b>42 000 kr</b></div>
+            <div class="eco">
+              <span class="muted">Faktura</span
+              ><span class="st lock" style="margin: 0">Ej skapad</span>
+            </div>
+            <div class="eco"><span class="muted">LTV (historik)</span><b>18 400 kr</b></div>
+          </div>
+        </div>
+
+        <div class="card pad">
+          <div class="actions">
+            <button class="primary">Öppna full dossier</button>
+            <button>Lägg i worklist</button>
+          </div>
+        </div>
+
+        <div class="note">Blueprint · exempeldata · Arcana CCO · responsiv 3-kolumn → mobil</div>
+      </div>
+    </div>
+  </body>
+</html>
