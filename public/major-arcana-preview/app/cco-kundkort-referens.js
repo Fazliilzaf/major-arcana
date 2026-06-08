@@ -441,7 +441,35 @@
 
     if (steps) {
       var pct = cur ? Math.round((cur / total) * 100) : 0;
-      var stepHtml = steps
+      // Gruppera intilliggande KLARA steg (facit: 1–4, 6–7). Aktiva/kommande står kvar.
+      function kkMergeDone(run) {
+        if (run.length === 1) return run[0];
+        var first = run[0];
+        var last = run[run.length - 1];
+        var range = (first.id || '') + '–' + (last.id || '');
+        var lbl =
+          range +
+          ' · ' +
+          first.label +
+          (last.label && last.label !== first.label ? ' → ' + last.label : '');
+        return { state: 'done', id: range, label: lbl, note: last.note || 'Klar' };
+      }
+      var groupedSteps = [];
+      var doneRun = [];
+      steps.forEach(function (s) {
+        if (s.state === 'done') {
+          doneRun.push(s);
+        } else {
+          if (doneRun.length) {
+            groupedSteps.push(kkMergeDone(doneRun));
+            doneRun = [];
+          }
+          groupedSteps.push(s);
+        }
+      });
+      if (doneRun.length) groupedSteps.push(kkMergeDone(doneRun));
+
+      var stepHtml = groupedSteps
         .map(function (s) {
           var st =
             s.state === 'done'
