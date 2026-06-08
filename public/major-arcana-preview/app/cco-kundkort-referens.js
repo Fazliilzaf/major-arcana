@@ -85,6 +85,16 @@
     if (l.indexOf('ekonomi') === 0) return 'ekonomi';
     return 'sek';
   }
+  // Kundrese-steg → vilken sektion man hoppar till vid klick.
+  function stepJumpSlug(label) {
+    var l = String(label || '').toLowerCase();
+    if (/hälsodek|halsodek/.test(l)) return 'halso';
+    if (/offert|behandlingsplan/.test(l)) return 'offert';
+    if (/betänketid|betanketid|avtal|samtycke|friskförs|friskfors/.test(l)) return 'nastasteg';
+    if (/foto/.test(l)) return 'foto';
+    if (/bokning|bekräftelse|bekraftelse|konsultation/.test(l)) return 'bokningar';
+    return '';
+  }
   function sec(label, src, inner) {
     // REN v9-DESKTOP: varje sektion = .dossier-section-kort (drop-in CSS, inga lager)
     return (
@@ -345,10 +355,29 @@
       esc(name) +
       '</div>' +
       '<div class="dc">' +
-      (phone ? '📞 ' + esc(phone) : '') +
-      (email ? ' · ✉ ' + esc(email) : '') +
+      (phone
+        ? '<a class="kk-contact" href="tel:' +
+          esc(String(phone).replace(/[^\d+]/g, '')) +
+          '">📞 ' +
+          esc(phone) +
+          '</a>'
+        : '') +
+      (email
+        ? (phone ? ' · ' : '') +
+          '<a class="kk-contact" href="mailto:' +
+          esc(email) +
+          '">✉ ' +
+          esc(email) +
+          '</a>'
+        : '') +
       '</div>' +
-      (addrLine ? '<div class="dc">📍 ' + esc(addrLine) + '</div>' : '') +
+      (addrLine
+        ? '<div class="dc"><span class="kk-contact kk-copy" data-kk-copy="' +
+          esc(addrLine) +
+          '" title="Kopiera adress">📍 ' +
+          esc(addrLine) +
+          ' <span class="kk-copy-ic">⧉</span></span></div>'
+        : '') +
       (tags ? '<div class="dtags">' + tags + '</div>' : '') +
       '</div></div>';
 
@@ -491,7 +520,10 @@
       h += sec(
         'Hälsodeklaration',
         '<span class="sb-chip">Att fylla i</span>',
-        empty('Hälsodeklaration saknas — efterfrågas före behandling.')
+        '<div class="row acc info"><div style="flex:1"><div class="rt">Hälsodeklaration saknas</div>' +
+          '<div class="rm">Efterfrågas före behandling</div></div>' +
+          '<button type="button" class="kk-sig-act" data-kk-sig="customer.missing_health_declaration" ' +
+          'data-kk-sig-label="Skicka hälsodeklaration" title="Skicka">→</button></div>'
       );
     }
 
@@ -537,10 +569,12 @@
                   : 'todo';
           var mk =
             st === 'done' ? '✓' : st === 'neutral' ? '–' : st === 'act' ? s.id || '!' : s.id || '';
+          var jump = stepJumpSlug(s.label);
           return (
             '<div class="step kkx-step ' +
             st +
-            '"><div class="mk kkx-mk">' +
+            (jump ? ' kk-jumpable" data-kk-jump="' + jump + '"' : '"') +
+            '><div class="mk kkx-mk">' +
             esc(mk) +
             '</div><div><div class="t">' +
             esc(s.label) +
@@ -609,18 +643,38 @@
       String(up.length),
       up.length ? up.slice(0, 5).map(bookingRow).join('') : empty('Inga kommande bokningar.')
     );
-    h += sec(
-      'Historik',
-      String(hist.length),
-      hist.length
-        ? hist
-            .slice(0, 6)
-            .map(function (b) {
-              return bookingRow(b, true);
-            })
-            .join('')
-        : empty('Ingen historik ännu.')
-    );
+    var histInner;
+    if (hist.length) {
+      var sen = hist[0] || {};
+      var senNar = sen.date || sen.occurredAt || sen.startAt || '';
+      var typeCount = {};
+      hist.forEach(function (b) {
+        var t = b.title || b.serviceName || 'Besök';
+        typeCount[t] = (typeCount[t] || 0) + 1;
+      });
+      var top = Object.keys(typeCount).sort(function (a, b) {
+        return typeCount[b] - typeCount[a];
+      })[0];
+      var histSum =
+        hist.length +
+        ' besök' +
+        (senNar ? ' · senaste ' + String(senNar).slice(0, 10) : '') +
+        (top ? ' · oftast: ' + top : '');
+      histInner =
+        '<div class="kk-sumbar"><button type="button" class="kk-sum-btn" data-kk-sum>Sammanfatta</button>' +
+        '<span class="kk-sum-box" data-kk-sum-box hidden>' +
+        esc(histSum) +
+        '</span></div>' +
+        hist
+          .slice(0, 6)
+          .map(function (b) {
+            return bookingRow(b, true);
+          })
+          .join('');
+    } else {
+      histInner = empty('Ingen historik ännu.');
+    }
+    h += sec('Historik', String(hist.length), histInner);
 
     var jrs = A(journalEntries).length ? A(journalEntries) : A(bundle.journals);
     function referensJournalVisualState(j) {
@@ -699,7 +753,12 @@
               (ok ? 'p-ok' : 'p-warn') +
               '">' +
               esc(ok ? '✓ Godkänd' : 'Väntar') +
-              '</span></div>'
+              '</span>' +
+              (ok
+                ? ''
+                : '<button type="button" class="kk-sig-act" data-kk-sig="customer.missing_treatment_plan" ' +
+                  'data-kk-sig-label="Påminn om offert" title="Påminn/skicka">→</button>') +
+              '</div>'
             );
           })
           .join('')
@@ -796,17 +855,42 @@
     var filer = driveFiles.slice(0, 10);
     var fileCount =
       (bcard.fileSummary && Number(bcard.fileSummary.totalFiles)) || driveFiles.length || 0;
+    function fileIco(name) {
+      var n = String(name || '').toLowerCase();
+      if (/\.(jpe?g|png|heic|webp|gif)$/.test(n)) return '🖼';
+      if (/\.pdf$/.test(n)) return '📄';
+      if (/\.(docx?|rtf|odt)$/.test(n)) return '📝';
+      if (/\.(xlsx?|csv)$/.test(n)) return '📊';
+      if (/\.(zip|rar|7z)$/.test(n)) return '🗜';
+      return '📎';
+    }
     h += sec(
       'Filer',
       String(fileCount),
       filer.length
         ? filer
             .map(function (f) {
-              return (
-                '<div class="qrow"><div><div class="q">' +
-                esc(f.name || f.fileName || f.title || 'Fil') +
-                '</div></div></div>'
-              );
+              var fnamn = f.name || f.fileName || f.title || 'Fil';
+              var typ = f.fileType || f.category || '';
+              var driveId = f.driveFileId || f.id || '';
+              var meta = '<span class="kk-file-ico">' + fileIco(fnamn) + '</span>';
+              var body =
+                '<div style="flex:1;min-width:0"><div class="rt">' +
+                esc(fnamn) +
+                '</div>' +
+                (typ ? '<div class="rm">' + esc(typ) + '</div>' : '') +
+                '</div>';
+              if (driveId) {
+                return (
+                  '<a class="kk-file" target="_blank" rel="noopener" href="https://drive.google.com/file/d/' +
+                  esc(driveId) +
+                  '/view">' +
+                  meta +
+                  body +
+                  '<span class="kk-file-open">Öppna ↗</span></a>'
+                );
+              }
+              return '<div class="kk-file">' + meta + body + '</div>';
             })
             .join('')
         : empty('Inga filer kopplade ännu.')
@@ -938,8 +1022,10 @@
       mon = d ? months[(parseInt(d[2], 10) || 1) - 1] : '';
     var ready = /redo|klar|done|ready/i.test(b.status || '');
     return (
-      '<div class="row acc ' +
+      '<div class="row acc kk-rowlink ' +
       (isHist ? 'grey' : 'teal') +
+      '" data-kk-open-storvy="' +
+      (isHist ? 'historik' : 'bokningar') +
       '">' +
       '<div class="bd"><div class="d">' +
       esc2(day) +
@@ -1244,6 +1330,75 @@
       }).catch(function () {
         /* nätfel — optimistiska uppdateringen står kvar tills omladdning */
       });
+    });
+  })();
+
+  // Smarta lyft: kopiera-adress, hoppa-till-sektion, öppna-stor-vy, toggla-sammanfattning.
+  (function bindKkLiftsOnce() {
+    if (window.__kkLiftsBound) return;
+    window.__kkLiftsBound = true;
+    function scroller() {
+      return (
+        document.querySelector('.v10-dossier-referens') ||
+        document.querySelector('.kkref .doss') ||
+        document.querySelector('.kkref')
+      );
+    }
+    document.addEventListener('click', function (e) {
+      // 1) Kopiera (adress) till urklipp
+      var cp = e.target.closest && e.target.closest('[data-kk-copy]');
+      if (cp) {
+        var val = cp.getAttribute('data-kk-copy') || '';
+        if (navigator.clipboard) navigator.clipboard.writeText(val).catch(function () {});
+        var ic = cp.querySelector('.kk-copy-ic');
+        if (ic) {
+          var old = ic.textContent;
+          ic.textContent = '✓';
+          setTimeout(function () {
+            ic.textContent = old;
+          }, 1200);
+        }
+        return;
+      }
+      // 2) Öppna stora kortet på rätt sektion (boknings-/historik-rad)
+      var op = e.target.closest && e.target.closest('[data-kk-open-storvy]');
+      if (op && typeof window.__kkOpenStorvy === 'function') {
+        e.preventDefault();
+        window.__kkOpenStorvy(op.getAttribute('data-kk-open-storvy') || '');
+        return;
+      }
+      // 3) Hoppa till sektion (kundrese-steg)
+      var jp = e.target.closest && e.target.closest('[data-kk-jump]');
+      if (jp) {
+        var slug = jp.getAttribute('data-kk-jump');
+        var target = document.querySelector('.kkref .doss [data-sek="' + slug + '"]');
+        if (target) {
+          if (target.tagName === 'DETAILS') target.open = true;
+          var sc = scroller();
+          if (sc && sc.contains(target)) {
+            sc.scrollTo({ top: target.offsetTop - sc.offsetTop - 8, behavior: 'smooth' });
+          } else {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          target.classList.add('kk-flash');
+          setTimeout(function () {
+            target.classList.remove('kk-flash');
+          }, 900);
+        }
+        return;
+      }
+      // 4) Toggla historik-sammanfattning
+      var sm = e.target.closest && e.target.closest('[data-kk-sum]');
+      if (sm) {
+        var box = sm.parentNode && sm.parentNode.querySelector('[data-kk-sum-box]');
+        if (box) {
+          var hidden = box.hasAttribute('hidden');
+          if (hidden) box.removeAttribute('hidden');
+          else box.setAttribute('hidden', '');
+          sm.textContent = hidden ? 'Dölj' : 'Sammanfatta';
+        }
+        return;
+      }
     });
   })();
 
