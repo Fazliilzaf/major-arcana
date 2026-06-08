@@ -788,12 +788,10 @@
           '</div><div class="rm">' +
           esc(meta) +
           '</div></div>' +
-          (it.st === 'act' && it.entryId
-            ? '<span class="openb kkx-openb" data-kkx-journal-entry="' +
-              esc(it.entryId) +
-              '" data-kkx-journal-type="' +
-              esc(it.jType) +
-              '">Öppna</span>'
+          (it.st === 'act'
+            ? '<span class="openb" data-kk-open-storvy="journal" data-kk-entry="' +
+              esc(it.entryId || '') +
+              '" title="Öppna i stora kortet · journal">Öppna</span>'
             : '') +
           '</div>'
         );
