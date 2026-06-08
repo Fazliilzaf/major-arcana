@@ -315,11 +315,6 @@
       (Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0 ? ltvRaw : null) ||
       (bcard.stats && bcard.stats.revenue);
     var noshow = bcard.noShows != null ? bcard.noShows : bcard.stats && bcard.stats.noShows;
-    var showCount =
-      bcard.showCount ??
-      bcard.attendedCount ??
-      bcard.showedUpCount ??
-      (bcard.stats && (bcard.stats.show ?? bcard.stats.attended));
     // FACIT: visa alltid 3 statrutor (Besök/Intäkt/No-shows) med subtext-rad
     h +=
       '<div class="s3">' +
@@ -337,10 +332,33 @@
       esc(noshow != null ? noshow : '0') +
       '</div><div class="s">' +
       (Number(noshow) > 0 ? 'följ upp' : 'klockren') +
-      '</div></div>' +
-      '<div class="k"><div class="l">Show</div><div class="v">' +
-      esc(showCount != null ? showCount : visits != null ? visits : '—') +
-      '</div><div class="s">kommit</div></div></div>';
+      '</div></div></div>';
+
+    // ===== Närvaro: Show / No-show (receptionist markerar, syns för behandlare, loggas) =====
+    var att = bcard.attendance && typeof bcard.attendance === 'object' ? bcard.attendance : {};
+    var attStatus = att.status || '';
+    var attAt = att.at ? new Date(att.at) : null;
+    var attTime =
+      attAt && !isNaN(attAt)
+        ? attAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+        : '';
+    h +=
+      '<div class="kk-attend" data-patient-id="' +
+      esc(bcard.patientId || bcard.id || '') +
+      '">' +
+      '<div class="kk-attend-status' +
+      (attStatus ? ' is-' + esc(attStatus) : '') +
+      '" data-kk-attend-status>' +
+      (attStatus === 'show'
+        ? '✓ Ankommen' + (attTime ? ' ' + esc(attTime) : '') + (att.by ? ' · ' + esc(att.by) : '')
+        : attStatus === 'no_show'
+          ? '✕ No-show · kontakta kunden'
+          : 'Närvaro ej markerad') +
+      '</div>' +
+      '<div class="kk-attend-btns">' +
+      '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show">✓ Show</button>' +
+      '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show">✕ No-show</button>' +
+      '</div></div>';
 
     h += '<div class="gthread"></div>';
 
@@ -724,7 +742,49 @@
     ['foto', 'Foto'],
     ['ekonomi', 'Ekonomi'],
   ];
-  // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfritt
+  // ===== Närvaro-markering: Show / No-show → backend + logg =====
+  (function bindAttendanceOnce() {
+    if (window.__kkAttendBound) return;
+    window.__kkAttendBound = true;
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-kk-attend]');
+      if (!btn) return;
+      var wrap = btn.closest('.kk-attend');
+      if (!wrap) return;
+      var pid = wrap.getAttribute('data-patient-id');
+      var status = btn.getAttribute('data-kk-attend');
+      if (!pid || !status) return;
+      var statusEl = wrap.querySelector('[data-kk-attend-status]');
+      var tid = new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+      // optimistisk uppdatering
+      if (statusEl) {
+        statusEl.className = 'kk-attend-status is-' + status;
+        statusEl.textContent =
+          status === 'show' ? '✓ Ankommen ' + tid + ' · reception' : '✕ No-show · kontakta kunden';
+      }
+      var token = '';
+      try {
+        token = (
+          window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          ''
+        ).trim();
+      } catch (err) {
+        /* ignore */
+      }
+      var headers = { 'Content-Type': 'application/json' };
+      if (token && token !== '__preview_local__') headers.Authorization = 'Bearer ' + token;
+      fetch('/api/v1/cco-patient-master/patient/attendance', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ patientId: pid, status: status }),
+      }).catch(function () {
+        /* nätfel — optimistiska uppdateringen står kvar tills omladdning */
+      });
+    });
+  })();
+
+  // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt
   // landat på en sektion (#slug). Används av header-förstoringen OCH sektions-⤢.
   window.__kkOpenStorvy = function (slug) {
     var ov = document.getElementById('kk-storvy');

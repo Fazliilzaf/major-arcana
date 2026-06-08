@@ -574,6 +574,7 @@ function buildPatientCardReadout(patient) {
     matchConfidence: safe.matchConfidence || 0,
     patientOrigin,
     flags: asArray(safe.flags),
+    attendance: asObject(safe.attendance),
     fileSummary: asObject(safe.fileSummary),
     hasJournalHistory: Number(asObject(safe.fileSummary).journalPdfs) > 0,
     hasImages: Number(asObject(safe.fileSummary).images) > 0,
@@ -1243,6 +1244,28 @@ async function createCcoPatientMasterStore({ filePath }) {
     };
   }
 
+  async function setAttendance({ tenantId, patientId, status, actorName } = {}) {
+    // Närvaro: receptionist markerar Show (ankommen) / No-show. Sparas på kunden
+    // + loggas i historik så behandlare/andra rum ser det.
+    const bucket = tenantBucket(state, tenantId);
+    const idx = bucket.patients.findIndex((item) => item.id === patientId);
+    if (idx < 0) return { ok: false, error: 'not_found' };
+    const norm = normalizeKey(status);
+    if (norm !== 'show' && norm !== 'no_show') return { ok: false, error: 'bad_status' };
+    const at = nowIso();
+    const entry = {
+      status: norm,
+      at,
+      by: normalizeText(actorName) || 'reception',
+    };
+    const patient = bucket.patients[idx];
+    patient.attendance = entry;
+    patient.attendanceLog = asArray(patient.attendanceLog).concat([entry]).slice(-50);
+    patient.updatedAt = at;
+    await save();
+    return { ok: true, attendance: entry };
+  }
+
   async function bulkApplyDriveAttachDeltas({ tenantId, deltas = [] } = {}) {
     // SÄKERHET: update-only. Patient som inte finns hoppas över — kan ALDRIG
     // skapa nya poster. Returnerar rollback-data per uppdaterad patient.
@@ -1322,6 +1345,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     buildGdprExportPackage,
     buildPatientCardReadout,
     bulkApplyDriveAttachDeltas,
+    setAttendance,
     dismissMergeReviewGroup,
     findPatientByEmail,
     getPatient,

@@ -675,6 +675,41 @@ function createCcoPatientMasterRouter({
   );
 
   router.post(
+    '/cco-patient-master/patient/attendance',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.body?.patientId);
+        const status = normalizeText(req.body?.status);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const actorName =
+          normalizeText(req.currentUser?.displayName) ||
+          normalizeText(req.currentUser?.email) ||
+          'reception';
+        const result = await patientMasterStore.setAttendance({
+          tenantId: actor.tenantId,
+          patientId,
+          status,
+          actorName,
+        });
+        if (!result.ok) {
+          return res.status(result.error === 'not_found' ? 404 : 400).json({ error: result.error });
+        }
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.attendance',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+          metadata: { status: result.attendance.status },
+        });
+        return res.json({ ok: true, attendance: result.attendance });
+      })
+  );
+
+  router.post(
     '/cco-patient-master/drive-attach/bulk-apply',
     requireAuth,
     requireRole(ROLE_OWNER),
