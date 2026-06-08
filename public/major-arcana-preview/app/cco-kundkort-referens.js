@@ -676,6 +676,66 @@
       );
     }
 
+    // ===== Saknade kategorier (facit-paritet): Filer · Anteckningar · Kommunikation · Insikter =====
+    var filer = driveFiles.slice(0, 10);
+    var fileCount =
+      (bcard.fileSummary && Number(bcard.fileSummary.totalFiles)) || driveFiles.length || 0;
+    h += sec(
+      'Filer',
+      String(fileCount),
+      filer.length
+        ? filer
+            .map(function (f) {
+              return (
+                '<div class="qrow"><div><div class="q">' +
+                esc(f.name || f.fileName || f.title || 'Fil') +
+                '</div></div></div>'
+              );
+            })
+            .join('')
+        : empty('Inga filer kopplade ännu.')
+    );
+    var notes = A(journalEntries).filter(function (e) {
+      return /note|anteck|privat/i.test(String((e && (e.type || e.journalType)) || ''));
+    });
+    h += sec(
+      'Anteckningar',
+      String(notes.length),
+      notes.length
+        ? notes
+            .slice(0, 6)
+            .map(function (n) {
+              return (
+                '<div class="qrow"><div><div class="q">' +
+                esc(String(n.text || n.summary || n.note || '').slice(0, 140)) +
+                '</div>' +
+                (n.author || n.by ? '<div class="qv">' + esc(n.author || n.by) + '</div>' : '') +
+                '</div></div>'
+              );
+            })
+            .join('')
+        : empty('Inga anteckningar ännu.')
+    );
+    h += sec('Kommunikation', '0', empty('Ingen kommunikation loggad ännu.'));
+    h += sec(
+      'Insikter',
+      String(signals.length),
+      signals.length
+        ? signals
+            .slice(0, 6)
+            .map(function (s) {
+              return (
+                '<div class="qrow"><div><div class="q">' +
+                esc(s.label || s.title || s.text || 'Insikt') +
+                '</div>' +
+                (s.detail ? '<div class="qv">' + esc(s.detail) + '</div>' : '') +
+                '</div></div>'
+              );
+            })
+            .join('')
+        : empty('Inga insikter just nu.')
+    );
+
     h +=
       '<div class="acts"><div class="btn dark">📷 Ta bild · spara i journal</div>' +
       '<div class="btn gold">Boka nästa</div>' +
