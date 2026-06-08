@@ -811,31 +811,65 @@
     h += sec('Journaler · personal', jCount, jHtml || empty('Inga journaler ännu.'));
 
     if (offers.length) {
+      // Färgkodad typ-pill: TP/transplant guld, PRP grön, övrigt neutral
+      function offPill(t) {
+        var x = String(t || '').toLowerCase();
+        if (/prp/.test(x))
+          return 'background:linear-gradient(180deg,#e3f1e8,#cfe7d8);color:#2e7d52';
+        if (/dhi|fue|tp|transplant|hår|har/.test(x))
+          return 'background:linear-gradient(180deg,#f2e6cf,#e0caa0);color:#7a5a16';
+        return 'background:rgba(215,202,194,0.4);color:#6b6052';
+      }
+      function offAmt(o) {
+        var s = String(o.amount != null ? o.amount : o.amountLabel || o.detail || '');
+        var m = s.replace(/\s/g, '').match(/(\d{3,})/);
+        return m ? parseInt(m[1], 10) : 0;
+      }
+      function offOk(o) {
+        return /godk|signed|accepted/i.test(o.status || '');
+      }
+      var approvedSum = offers.filter(offOk).reduce(function (n, o) {
+        return n + offAmt(o);
+      }, 0);
+      var offTotal =
+        approvedSum > 0
+          ? '<span style="color:#2e7d52">' + approvedSum.toLocaleString('sv-SE') + ' kr</span>'
+          : String(offers.length);
       h += sec(
-        'Offerter',
-        String(offers.length),
+        'Offerter · commit',
+        offTotal,
         offers
           .map(function (o) {
-            var ok = /godk|signed|accepted/i.test(o.status || '');
+            var ok = offOk(o);
             var detalj = String(o.detail || o.amountLabel || '')
               .replace(/\bgrafts\b/gi, 'graft')
               .replace(/\bsessions\b/gi, 'sessioner')
               .replace(/\bsession\b/gi, 'session');
+            var godkAt = o.acceptedAt || o.approvedAt || o.signedAt || o.decidedAt || o.date || '';
+            var meta = [
+              detalj,
+              o.step ? 'Steg ' + o.step : '',
+              ok && godkAt ? 'godkänd ' + String(godkAt).slice(0, 10) : '',
+            ]
+              .filter(Boolean)
+              .join(' · ');
             return (
-              '<div class="row"><span class="pill" style="margin:0;background:linear-gradient(180deg,#f2e6cf,#e0caa0);color:#7a5a16">' +
+              '<div class="row"><span class="pill" style="margin:0;' +
+              offPill(o.type) +
+              '">' +
               esc(o.type || 'TP') +
               '</span><div style="flex:1"><div class="rt">' +
               esc(o.title || 'Offert') +
               '</div>' +
               '<div class="rm">' +
-              esc(detalj) +
+              esc(meta) +
               '</div></div><span class="pill ' +
               (ok ? 'p-ok' : 'p-warn') +
               '">' +
               esc(ok ? '✓ Godkänd' : 'Väntar') +
               '</span>' +
               (ok
-                ? ''
+                ? '<button type="button" class="openb" data-kk-open-storvy="ekonomi" title="Gå vidare till betalning">Betalning →</button>'
                 : '<button type="button" class="kk-sig-act" data-kk-sig="customer.missing_treatment_plan" ' +
                   'data-kk-sig-label="Påminn om offert" title="Påminn/skicka">→</button>') +
               '</div>'
