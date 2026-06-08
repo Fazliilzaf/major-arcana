@@ -1073,6 +1073,11 @@
       var el = doss.querySelector('[data-sek="' + slug + '"]');
       if (el) container.appendChild(el);
     });
+    /* 5. Snabbknappar (app-funktioner, behålls) flyttas SIST — mockupen
+       har sektionerna direkt under chipsen */
+    Array.prototype.forEach.call(doss.querySelectorAll('.v9-zone3-context'), function (block) {
+      container.appendChild(block);
+    });
   }
   window.__kkFas2Setup = function (doss, sticky, nav) {
     try {
