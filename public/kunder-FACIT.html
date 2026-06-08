@@ -947,19 +947,12 @@
         cursor: pointer;
       }
       .storvy-body {
-        overflow: auto;
-        padding: 20px 26px 28px;
-        columns: 2;
-        column-gap: 22px;
+        flex: 1;
+        overflow: hidden;
+        min-height: 0;
       }
-      .storvy-body > * {
-        break-inside: avoid;
-        margin-bottom: 14px;
-      }
-      @media (max-width: 760px) {
-        .storvy-body {
-          columns: 1;
-        }
+      .storvy {
+        height: 90vh;
       }
       .dscroll {
         flex: 1;
@@ -2841,7 +2834,14 @@
         </div>
         <button class="storvy-close" id="storvyClose" title="Stäng">×</button>
       </div>
-      <div class="storvy-body" id="storvyBody"></div>
+      <div class="storvy-body" id="storvyBody">
+        <iframe
+          id="storvyFrame"
+          title="Gemensamt kundkort"
+          style="width: 100%; height: 100%; border: 0; border-radius: 0 0 22px 22px"
+          loading="lazy"
+        ></iframe>
+      </div>
     </div>
 
     <!-- ===== DEMO OVERLAYS =====
@@ -2871,11 +2871,11 @@
         var svScrim = document.getElementById('storvyScrim');
         var svBody = document.getElementById('storvyBody');
         var svName = document.getElementById('storvyName');
+        var svFrame = document.getElementById('storvyFrame');
         function openStorvy() {
-          var dscroll = document.querySelector('.dossier .dscroll');
           var dn = document.querySelector('.dossier .dn');
-          if (dscroll) svBody.innerHTML = dscroll.innerHTML;
           if (dn && svName) svName.textContent = dn.textContent;
+          if (svFrame && !svFrame.src) svFrame.src = '/kundkort-mockup-gemensamt.html';
           document.body.classList.add('storvy-open');
         }
         function closeStorvy() {
