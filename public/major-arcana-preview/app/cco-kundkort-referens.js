@@ -712,6 +712,10 @@
     ['ekonomi', 'Ekonomi'],
   ];
   window.__enhanceReferensKundkort = function (rootEl) {
+    // AVSTÄNGD 2026-06-08: enhancern byggde om rail-dossiern till gemensamt-stilen
+    // (chips/smartline/breda läget) vilket var FEL. Rail ska vara ren v9-DESKTOP-
+    // dossier (base-referens). Gemensamt-kortet hör hemma i STOR VY, inte här.
+    if (window.__KK_ENHANCER_PA !== true) return;
     try {
       var root = rootEl && rootEl.querySelector ? rootEl : document;
       var doss = root.querySelector('.kkref .doss');
