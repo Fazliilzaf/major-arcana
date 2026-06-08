@@ -1924,13 +1924,18 @@ html[data-v9-enabled="on"] .kkref .kk-att-btn:hover {
 /* Lager 21b: bubblan tintas efter status (Show=grön, No-show=röd) */
 html[data-v9-enabled="on"] .kkref .kk-attend.is-show {
   background: linear-gradient(180deg, rgba(74, 130, 104, 0.16), rgba(74, 130, 104, 0.09));
-  box-shadow:
-    0 3px 10px rgba(74, 130, 104, 0.12),
-    inset 0 0 0 1px rgba(74, 130, 104, 0.25);
+  border: 1.5px solid rgba(74, 130, 104, 0.55);
+  box-shadow: 0 3px 12px rgba(74, 130, 104, 0.16);
 }
 html[data-v9-enabled="on"] .kkref .kk-attend.is-no_show {
   background: linear-gradient(180deg, rgba(185, 74, 74, 0.15), rgba(185, 74, 74, 0.08));
-  box-shadow:
-    0 3px 10px rgba(185, 74, 74, 0.12),
-    inset 0 0 0 1px rgba(185, 74, 74, 0.25);
+  border: 1.5px solid rgba(185, 74, 74, 0.55);
+  box-shadow: 0 3px 12px rgba(185, 74, 74, 0.16);
+}
+/* icke-vald knapp blir kräm/neutral så valet syns */
+html[data-v9-enabled="on"] .kkref .kk-attend.is-show .kk-att-noshow,
+html[data-v9-enabled="on"] .kkref .kk-attend.is-no_show .kk-att-show {
+  background: rgba(255, 252, 244, 0.9) !important;
+  color: #94897b !important;
+  box-shadow: inset 0 0 0 1px rgba(148, 137, 123, 0.22) !important;
 }
