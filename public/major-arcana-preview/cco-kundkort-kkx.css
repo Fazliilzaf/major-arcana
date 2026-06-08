@@ -318,7 +318,8 @@
   box-shadow: 0 2px 8px rgba(56, 40, 28, 0.12);
   overflow: hidden;
 }
-.kkx-jfoto .fl {
+.kkx-jfoto .fl,
+.kkx-jfoto-label {
   position: absolute;
   left: 0;
   right: 0;
@@ -328,6 +329,29 @@
   padding: 3px 5px;
   background: rgba(43, 37, 31, 0.55);
   color: #fff;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kkx-jfoto-label-input {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 0;
+  padding: 3px 5px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #2b251f;
+  background: rgba(255, 255, 255, 0.96);
 }
 .kkx-jfoto.ny {
   display: grid;

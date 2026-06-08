@@ -838,18 +838,159 @@
     }
   }
 
-  function promptPhotoLabel() {
-    const choice = window.prompt(
-      `Etikett för bilden?\n${PHOTO_LABEL_OPTIONS.map((label, index) => `${index + 1}. ${label}`).join('\n')}\n\nSkriv nummer eller egen text:`,
-      '1'
-    );
-    if (choice === null) return null;
-    const trimmed = normalizeText(choice);
-    const index = Number(trimmed);
-    if (Number.isFinite(index) && index >= 1 && index <= PHOTO_LABEL_OPTIONS.length) {
-      return PHOTO_LABEL_OPTIONS[index - 1];
+  function defaultPhotoLabel() {
+    return PHOTO_LABEL_OPTIONS[0] || 'Front';
+  }
+
+  function resolveKkxTemplateIdFromPatientAction(action, dataset = {}) {
+    switch (normalizeText(action)) {
+      case 'new-tp-journal':
+        return 'tp';
+      case 'new-prp-journal':
+        return 'prp';
+      case 'new-follow-up-journal':
+        return normalizeText(dataset.followFormVariant) === '4_manader' ||
+          !normalizeText(dataset.followFormVariant)
+          ? 'follow_4'
+          : '';
+      case 'new-health-declaration':
+        return 'pre_health';
+      default:
+        return '';
     }
-    return trimmed || 'Konsultationsbild';
+  }
+
+  function ensureKkxJournalMountSlot() {
+    const existing = document.querySelector('[data-kkx-journal-mount]');
+    if (existing) return Promise.resolve(existing);
+    if (!window.CcoKundkortKkx?.openBig) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      window.CcoKundkortKkx.openBig('Journal · arbetsyta', '<div data-kkx-journal-mount></div>', {
+        onMount: (shell) => resolve(shell.querySelector('[data-kkx-journal-mount]')),
+      });
+    });
+  }
+
+  async function handleJournalTemplateAction(action, dataset = {}) {
+    const templateId = resolveKkxTemplateIdFromPatientAction(action, dataset);
+    if (!templateId) return false;
+    switchDetailTab('journal');
+    const slot = await ensureKkxJournalMountSlot();
+    if (!slot) return false;
+    await activateKkxJournalTemplate(templateId, slot, {
+      prpFormVariant: normalizeText(dataset.prpFormVariant) || '',
+    });
+    return true;
+  }
+
+  function resolveKkxTemplateIdFromJournalType(journalType, formVariant = '') {
+    const type = normalizeText(journalType);
+    const variant = normalizeText(formVariant);
+    if (type === 'tp_treatment') return 'tp';
+    if (type === 'prp_treatment') return 'prp';
+    if (type === 'follow_up') return variant === '4_manader' || !variant ? 'follow_4' : '';
+    if (type === 'health_declaration' || type === 'fitness_certificate') return 'pre_health';
+    return '';
+  }
+
+  async function persistConsultationPhotoLabel(entryId, attachmentId, photoId, label) {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    const planEntry = findConsultationPlanEntry(runtime.detail?.journalEntries);
+    if (!patientId || !entryId || !attachmentId || !photoId || !planEntry) return;
+    if (planEntry.entryId !== entryId || planEntry.locked) return;
+    const nextLabel = normalizeText(label) || defaultPhotoLabel();
+    const attachments = asArray(planEntry.attachments).map((item) => {
+      if (normalizeText(item.attachmentId) !== normalizeText(attachmentId)) return item;
+      return { ...item, label: nextLabel };
+    });
+    try {
+      await apiRequest('/api/v1/cco-journal/entry', {
+        method: 'PUT',
+        body: {
+          patientId,
+          entryId: planEntry.entryId,
+          personnummer: card?.personnummer || '',
+          journalType: planEntry.journalType,
+          formVariant: planEntry.formVariant || '',
+          sourceQuestionaryId: planEntry.sourceQuestionaryId || '',
+          title: planEntry.title || 'Behandlingsplan',
+          fields: planEntry.fields || {},
+          attachments,
+        },
+      });
+      await loadPatientDetail(patientId);
+      const kkxSlot = document.querySelector('[data-kkx-journal-mount]');
+      if (kkxSlot) {
+        mountKkxJournalBig(kkxSlot, { templateId: runtime.kkxActiveJournalTemplate });
+      }
+      setStatus('Foto-etikett sparad.', 'success');
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte spara foto-etikett.', 'error');
+    }
+  }
+
+  function startInlinePhotoLabelEdit(labelNode) {
+    if (!labelNode || labelNode.dataset.kkxLabelEditing === '1') return;
+    const tile = labelNode.closest('[data-kkx-photo-tile]');
+    if (!tile) return;
+    const entryId = tile.getAttribute('data-kkx-plan-entry-id') || '';
+    const attachmentId = tile.getAttribute('data-kkx-plan-attachment-id') || '';
+    const photoId = tile.getAttribute('data-kkx-photo-tile') || '';
+    if (!entryId || !attachmentId || !photoId) return;
+
+    labelNode.dataset.kkxLabelEditing = '1';
+    const current = normalizeText(labelNode.textContent) || defaultPhotoLabel();
+    const editor = document.createElement('input');
+    editor.type = 'text';
+    editor.className = 'kkx-jfoto-label-input';
+    editor.value = current;
+    editor.setAttribute('list', 'kkx-photo-label-options');
+    editor.setAttribute('aria-label', 'Foto-etikett');
+    labelNode.replaceWith(editor);
+    editor.focus();
+    editor.select();
+
+    const finish = async (commit) => {
+      if (editor.dataset.kkxLabelDone === '1') return;
+      editor.dataset.kkxLabelDone = '1';
+      const next = commit ? normalizeText(editor.value) || defaultPhotoLabel() : current;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'fl kkx-jfoto-label';
+      button.dataset.kkxPhotoLabelEdit = '1';
+      button.textContent = next;
+      editor.replaceWith(button);
+      if (commit && next !== current) {
+        await persistConsultationPhotoLabel(entryId, attachmentId, photoId, next);
+      }
+    };
+
+    editor.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        void finish(true);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        void finish(false);
+      }
+    });
+    editor.addEventListener('blur', () => {
+      void finish(true);
+    });
+  }
+
+  function ensurePhotoLabelDatalist(root) {
+    const scope = root || document;
+    if (scope.querySelector('#kkx-photo-label-options')) return;
+    const datalist = document.createElement('datalist');
+    datalist.id = 'kkx-photo-label-options';
+    PHOTO_LABEL_OPTIONS.forEach((option) => {
+      const node = document.createElement('option');
+      node.value = option;
+      datalist.appendChild(node);
+    });
+    scope.appendChild(datalist);
   }
 
   function isPlanUploadBlocked(entries) {
@@ -1164,6 +1305,10 @@
       dossierBundle,
       extras: { occasionTimeline },
       mountJournalBig: (slot, opts) => mountKkxJournalBig(slot, opts),
+      activateJournalTemplate: (templateId, slot, opts) =>
+        activateKkxJournalTemplate(templateId, slot, opts),
+      resolveJournalTemplateId: (journalType, formVariant) =>
+        resolveKkxTemplateIdFromJournalType(journalType, formVariant),
     });
     return true;
   }
@@ -1314,7 +1459,8 @@
       .map((item) => {
         const label =
           normalizeText(item.label || item.fileName || item.variant || 'Foto') || 'Foto';
-        return `<div class="kkx-jfoto" data-kkx-photo-tile="${escapeHtml(item.photoId)}"><img data-journal-photo-id="${escapeHtml(item.photoId)}" alt="${escapeHtml(label)}" loading="lazy" /><span class="fl">${escapeHtml(label)}</span></div>`;
+        const { planEntry: photoPlanEntry } = resolveKkxPlanPhotoTarget(entries);
+        return `<div class="kkx-jfoto" data-kkx-photo-tile="${escapeHtml(item.photoId)}" data-kkx-plan-entry-id="${escapeHtml(photoPlanEntry?.entryId || '')}" data-kkx-plan-attachment-id="${escapeHtml(item.attachmentId || '')}"><img data-journal-photo-id="${escapeHtml(item.photoId)}" alt="${escapeHtml(label)}" loading="lazy" /><button type="button" class="fl kkx-jfoto-label" data-kkx-photo-label-edit title="Redigera etikett">${escapeHtml(label)}</button></div>`;
       })
       .join('');
     const annotateDisabled = !photo ? ' disabled' : '';
@@ -1386,7 +1532,7 @@
     });
   }
 
-  async function activateKkxJournalTemplate(templateId, slot) {
+  async function activateKkxJournalTemplate(templateId, slot, options = {}) {
     if (runtime.kkxTemplateActivating) return;
     const template = KKX_JOURNAL_TEMPLATES.find((item) => item.id === templateId);
     if (!template) return;
@@ -1398,7 +1544,9 @@
       if (!entry) {
         if (template.createAction === 'new-tp-journal') await createTpJournalDraft();
         else if (template.createAction === 'new-prp-journal') {
-          await createPrpJournalDraft(template.formVariant || 'prp_skin');
+          await createPrpJournalDraft(
+            normalizeText(options.prpFormVariant) || template.formVariant || 'prp_skin'
+          );
         } else if (template.createAction === 'new-follow-up-journal') {
           await createFollowUpJournalDraft(template.formVariant || '4_manader');
         } else if (template.createAction === 'new-health-declaration') {
@@ -1411,6 +1559,9 @@
         journalType: entry?.journalType || template.journalType,
         templateId,
       });
+      slot
+        .querySelector('[data-kkx-form-mount]')
+        ?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
     } finally {
       runtime.kkxTemplateActivating = false;
     }
@@ -1423,6 +1574,12 @@
     slot.dataset.kkxJournalBound = '1';
 
     slot.addEventListener('click', (event) => {
+      const labelBtn = event.target.closest('[data-kkx-photo-label-edit]');
+      if (labelBtn) {
+        event.preventDefault();
+        startInlinePhotoLabelEdit(labelBtn);
+        return;
+      }
       const templateBtn = event.target.closest('[data-kkx-journal-template]');
       if (templateBtn) {
         event.preventDefault();
@@ -1543,6 +1700,7 @@
     `;
     bindKkxJournalWorkspace(slot, entry);
     bindKkxNoteVisibilityToggle(slot.querySelector('[data-kkx-journal-workspace]') || slot, entry);
+    ensurePhotoLabelDatalist(slot);
     void hydrateJournalPhotoElements(slot);
     window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
@@ -3957,7 +4115,7 @@
       return { state: 'risk', label: 'Risk' };
     }
     if (card.flags?.includes('needs_review') || card.matchStatus === 'needs_review') {
-      return { state: 'risk', label: 'Granska' };
+      return { state: 'risk', label: 'Risk' };
     }
     if (
       card.segmentHints?.new ||
@@ -3969,7 +4127,7 @@
     if (card.segmentHints?.active || card.hasJournal || card.hasJournalHistory) {
       return { state: 'active', label: 'Aktiv' };
     }
-    return { state: 'active', label: MATCH_LABELS[card.matchStatus] || 'Kund' };
+    return { state: 'active', label: 'Aktiv' };
   }
 
   function buildV9RowBadges(card) {
@@ -4432,6 +4590,10 @@
         dossierBundle: runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null,
         extras: { occasionTimeline: ctx.occasionTimeline },
         mountJournalBig: (slot, opts) => mountKkxJournalBig(slot, opts),
+        activateJournalTemplate: (templateId, slot, opts) =>
+          activateKkxJournalTemplate(templateId, slot, opts),
+        resolveJournalTemplateId: (journalType, formVariant) =>
+          resolveKkxTemplateIdFromJournalType(journalType, formVariant),
       });
     }
   }
@@ -5429,9 +5591,9 @@
               <div class="cr-name">${escapeHtml(name)}</div>
               ${tagsHtml}
             </div>
-            <div class="cr-meta">
-              <div>${escapeHtml(contact.main)}</div>
-              <div class="cr-meta-sub">${escapeHtml(contact.sub)}</div>
+            <div class="cr-meta cr-meta--contact">
+              <div class="cr-contact-line">${escapeHtml(contact.main)}</div>
+              <div class="cr-meta-sub cr-contact-line">${escapeHtml(contact.sub)}</div>
             </div>
             <div><span class="cr-status" data-state="${escapeHtml(rowState.state)}"><span class="dot"></span>${escapeHtml(rowState.label)}</span></div>
             <div class="cr-meta">
@@ -8909,14 +9071,7 @@
       return;
     }
 
-    let labelChoice;
-    if (options.defaultLabel) {
-      // kkx-arbetsytan: ingen blockerande prompt — default-etikett, kan redigeras i efterhand.
-      labelChoice = options.defaultLabel;
-    } else {
-      labelChoice = promptPhotoLabel();
-      if (labelChoice === null) return;
-    }
+    const labelChoice = options.defaultLabel || defaultPhotoLabel();
 
     const planEntry = findConsultationPlanEntry(runtime.detail?.journalEntries);
     const formData = new FormData();
@@ -9834,16 +9989,20 @@
       if (actionButton && runtime.mode === 'register') {
         if (actionButton.dataset.patientAction === 'import-historical') {
           void importHistoricalForCurrentPatient();
-        } else if (actionButton.dataset.patientAction === 'new-tp-journal') {
-          void createTpJournalDraft();
-        } else if (actionButton.dataset.patientAction === 'new-prp-journal') {
-          void createPrpJournalDraft(actionButton.dataset.prpFormVariant || 'prp_skin');
-        } else if (actionButton.dataset.patientAction === 'new-follow-up-journal') {
-          void createFollowUpJournalDraft(actionButton.dataset.followFormVariant || '4_manader');
+        } else if (
+          [
+            'new-tp-journal',
+            'new-prp-journal',
+            'new-follow-up-journal',
+            'new-health-declaration',
+          ].includes(actionButton.dataset.patientAction || '')
+        ) {
+          void handleJournalTemplateAction(
+            actionButton.dataset.patientAction,
+            actionButton.dataset
+          );
         } else if (actionButton.dataset.patientAction === 'new-bleph-journal') {
           void createBlephJournalDraft();
-        } else if (actionButton.dataset.patientAction === 'new-health-declaration') {
-          void createClinicalJournalDraft('health');
         } else if (actionButton.dataset.patientAction === 'new-fitness-certificate') {
           void createClinicalJournalDraft('fitness');
         } else if (actionButton.dataset.patientAction === 'new-clinical-form') {

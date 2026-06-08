@@ -1972,3 +1972,53 @@ html[data-v9-enabled="on"] .kkref .kk-attend.is-no_show .kk-att-noshow {
   color: #b94a4a !important;
   box-shadow: inset 0 0 0 1px rgba(185, 74, 74, 0.4) !important;
 }
+
+/* v10-finputs: mockupens 13px-skala på customers-ytan */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .preview-canvas[data-app-shell-view="customers"] {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-center-shell,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] [data-v9-segment-sidebar],
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-rail.intel-shell {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-header .customers-v9-title,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] [data-v9-segment-sidebar] .side-h2 {
+  font-size: 13px;
+}
+
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] [data-v9-segment-sidebar] .side-link {
+  font-size: 11.5px;
+  padding: 6px 9px;
+}
+
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .customers-v9-agg-insights
+  .agg-insight-kicker {
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+}
+
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .customers-v9-agg-insights
+  .agg-insight-body {
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-filters .filter-chip {
+  font-size: 11px;
+}
+
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-header .status-pill {
+  font-size: 10px;
+}
+
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-list {
+  font-size: 13px;
+}

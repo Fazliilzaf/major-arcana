@@ -706,7 +706,16 @@
         openBig('Journal · arbetsyta', '<div data-kkx-journal-mount></div>', {
           onMount: function (shell) {
             var slot = shell.querySelector('[data-kkx-journal-mount]');
-            if (slot) ctx.mountJournalBig(slot, { entryId: entryId, journalType: journalType });
+            if (!slot) return;
+            var templateId =
+              typeof ctx.resolveJournalTemplateId === 'function'
+                ? ctx.resolveJournalTemplateId(journalType, '')
+                : '';
+            if (!entryId && templateId && typeof ctx.activateJournalTemplate === 'function') {
+              ctx.activateJournalTemplate(templateId, slot, {});
+              return;
+            }
+            ctx.mountJournalBig(slot, { entryId: entryId, journalType: journalType });
           },
         });
       });
