@@ -623,11 +623,15 @@
 
     if (offers.length) {
       h += sec(
-        'Offerter · commit',
+        'Offerter',
         String(offers.length),
         offers
           .map(function (o) {
             var ok = /godk|signed|accepted/i.test(o.status || '');
+            var detalj = String(o.detail || o.amountLabel || '')
+              .replace(/\bgrafts\b/gi, 'graft')
+              .replace(/\bsessions\b/gi, 'sessioner')
+              .replace(/\bsession\b/gi, 'session');
             return (
               '<div class="row"><span class="pill" style="margin:0;background:linear-gradient(180deg,#f2e6cf,#e0caa0);color:#7a5a16">' +
               esc(o.type || 'TP') +
@@ -635,7 +639,7 @@
               esc(o.title || 'Offert') +
               '</div>' +
               '<div class="rm">' +
-              esc(o.detail || o.amountLabel || '') +
+              esc(detalj) +
               '</div></div><span class="pill ' +
               (ok ? 'p-ok' : 'p-warn') +
               '">' +
