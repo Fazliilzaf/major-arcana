@@ -2142,7 +2142,9 @@ html[data-v9-enabled="on"] .kkref .doss .step.done .kkx-mk {
   color: #fff;
 }
 html[data-v9-enabled="on"] .kkref .doss .step.active .mk,
-html[data-v9-enabled="on"] .kkref .doss .step.active .kkx-mk {
+html[data-v9-enabled="on"] .kkref .doss .step.active .kkx-mk,
+html[data-v9-enabled="on"] .kkref .doss .step.act .mk,
+html[data-v9-enabled="on"] .kkref .doss .step.act .kkx-mk {
   background: #fff;
   border-color: #c8821e;
   color: #c8821e;
@@ -2160,7 +2162,8 @@ html[data-v9-enabled="on"] .kkref .doss .step .s {
 html[data-v9-enabled="on"] .kkref .doss .step.done .s {
   color: #4a8268;
 }
-html[data-v9-enabled="on"] .kkref .doss .step.active .s {
+html[data-v9-enabled="on"] .kkref .doss .step.active .s,
+html[data-v9-enabled="on"] .kkref .doss .step.act .s {
   color: #c8821e;
   font-weight: 700;
 }

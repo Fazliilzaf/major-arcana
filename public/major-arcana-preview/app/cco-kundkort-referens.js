@@ -579,7 +579,18 @@
             '</div><div><div class="t">' +
             esc(s.label) +
             '</div>' +
-            (s.note ? '<div class="s">' + esc(s.note) + '</div>' : '') +
+            '<div class="s">' +
+            esc(
+              s.note ||
+                (st === 'done'
+                  ? 'Klar'
+                  : st === 'act'
+                    ? 'Pågår · nästa steg'
+                    : st === 'neutral'
+                      ? '—'
+                      : 'Kommande')
+            ) +
+            '</div>' +
             '</div></div>'
           );
         })
