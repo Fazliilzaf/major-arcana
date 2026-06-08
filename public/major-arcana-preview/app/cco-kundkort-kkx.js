@@ -672,25 +672,16 @@
         e.preventDefault();
         e.stopPropagation();
         var title = summaryTitle(su);
-        var isResa = /kundresa/i.test(title);
-        var isJournal = /journal/i.test(title);
+        // FACIT 2026-06-08: alla sektions-⤢ öppnar STORA gemensamma kortet,
+        // landat på just denna sektion. (Ersätter de gamla små per-sektion-rutorna.)
+        if (typeof window.__kkOpenStorvy === 'function') {
+          var slug =
+            typeof window.__kkSlugFromTitle === 'function' ? window.__kkSlugFromTitle(title) : '';
+          window.__kkOpenStorvy(slug);
+          return;
+        }
+        // Fallback (om referens-skriptet ej laddat): gamla beteendet
         var body = d.querySelector('summary ~ *, .lab ~ *');
-        if (isResa) {
-          openBig(
-            title,
-            renderCanonicalJourneyBig(ctx.card, ctx.journalEntries, ctx.dossierBundle, ctx.extras)
-          );
-          return;
-        }
-        if (isJournal && typeof ctx.mountJournalBig === 'function') {
-          openBig('Journal · arbetsyta', '<div data-kkx-journal-mount></div>', {
-            onMount: function (shell) {
-              var slot = shell.querySelector('[data-kkx-journal-mount]');
-              if (slot) ctx.mountJournalBig(slot, {});
-            },
-          });
-          return;
-        }
         openBig(title, body ? body.innerHTML : '');
       });
       su.appendChild(btn);

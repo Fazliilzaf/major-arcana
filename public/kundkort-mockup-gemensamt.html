@@ -867,6 +867,19 @@
         });
         aktivera('halso');
 
+        // Landa på rätt sektion när kortet öppnas via #hash (förstoring från app-panelen)
+        function gaaTillHash() {
+          var slug = (location.hash || '').replace('#', '').trim();
+          if (!slug) return;
+          var mal = document.getElementById(slug);
+          if (!mal) return;
+          var top = window.scrollY + mal.getBoundingClientRect().top - 132;
+          window.scrollTo(0, Math.max(0, top));
+          aktivera(slug);
+        }
+        gaaTillHash();
+        window.addEventListener('hashchange', gaaTillHash);
+
         document.getElementById('btnSammanfatta').addEventListener('click', function () {
           document.getElementById('sammanfattning').classList.toggle('visa');
         });

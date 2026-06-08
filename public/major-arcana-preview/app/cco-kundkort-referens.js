@@ -711,6 +711,56 @@
     ['foto', 'Foto'],
     ['ekonomi', 'Ekonomi'],
   ];
+  // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfritt
+  // landat på en sektion (#slug). Används av header-förstoringen OCH sektions-⤢.
+  window.__kkOpenStorvy = function (slug) {
+    var ov = document.getElementById('kk-storvy');
+    var base = '/kundkort-mockup-gemensamt.html';
+    var src = base + (slug ? '#' + slug : '');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'kk-storvy';
+      ov.innerHTML =
+        '<div class="kk-storvy-panel">' +
+        '<button type="button" class="kk-storvy-close" aria-label="Stäng">×</button>' +
+        '<iframe class="kk-storvy-frame" title="Gemensamt kundkort"></iframe>' +
+        '</div>';
+      document.body.appendChild(ov);
+      var stang = function () {
+        ov.classList.remove('open');
+      };
+      ov.addEventListener('click', function (e) {
+        if (e.target === ov || e.target.classList.contains('kk-storvy-close')) stang();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') stang();
+      });
+    }
+    var frame = ov.querySelector('.kk-storvy-frame');
+    // Ladda om/navigera till rätt sektion varje gång
+    if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
+    else if (slug && frame.contentWindow) frame.contentWindow.location.hash = slug;
+    ov.classList.add('open');
+  };
+
+  // Mappar app-sektionens rubrik → gemensamma kortets sektions-slug
+  window.__kkSlugFromTitle = function (title) {
+    var t = String(title || '').toLowerCase();
+    if (t.indexOf('hälsodek') >= 0) return 'halso';
+    if (t.indexOf('kundresa') >= 0) return 'kundresa';
+    if (t.indexOf('nästa steg') >= 0) return 'nastasteg';
+    if (t.indexOf('bokning') >= 0) return 'bokningar';
+    if (t.indexOf('historik') >= 0) return 'historik';
+    if (t.indexOf('journal') >= 0) return 'journal';
+    if (t.indexOf('personal') >= 0) return 'personal';
+    if (t.indexOf('offert') >= 0) return 'offert';
+    if (t.indexOf('auto') >= 0) return 'auto';
+    if (t.indexOf('dokument') >= 0) return 'dokument';
+    if (t.indexOf('foto') >= 0) return 'foto';
+    if (t.indexOf('ekonomi') >= 0) return 'ekonomi';
+    return '';
+  };
+
   // MINIMAL enhancer (FACIT 2026-06-08): rail = ren v9-dossier. Lägger ENDAST till
   // förstorings-knappen ⤢ i headern → ploppar upp gemensamma kortet (STOR VY via iframe).
   // Bygger ALDRIG om sektionerna (det var det gamla felet).
@@ -727,27 +777,7 @@
       btn.textContent = '⤢';
       head.appendChild(btn);
       btn.addEventListener('click', function () {
-        var ov = document.getElementById('kk-storvy');
-        if (!ov) {
-          ov = document.createElement('div');
-          ov.id = 'kk-storvy';
-          ov.innerHTML =
-            '<div class="kk-storvy-panel">' +
-            '<button type="button" class="kk-storvy-close" aria-label="Stäng">×</button>' +
-            '<iframe class="kk-storvy-frame" title="Gemensamt kundkort" src="/kundkort-mockup-gemensamt.html"></iframe>' +
-            '</div>';
-          document.body.appendChild(ov);
-          var stang = function () {
-            ov.classList.remove('open');
-          };
-          ov.addEventListener('click', function (e) {
-            if (e.target === ov || e.target.classList.contains('kk-storvy-close')) stang();
-          });
-          document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') stang();
-          });
-        }
-        ov.classList.add('open');
+        window.__kkOpenStorvy('');
       });
     } catch (e) {
       /* förstoring får aldrig fälla dossiern */
