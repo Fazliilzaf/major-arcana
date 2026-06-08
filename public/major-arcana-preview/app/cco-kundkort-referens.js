@@ -953,10 +953,132 @@
     }
     return ut.slice(0, 3);
   }
+  var KK_ORDNING = [
+    'halso',
+    'kundresa',
+    'nastasteg',
+    'bokningar',
+    'historik',
+    'journal',
+    'personal',
+    'offert',
+    'auto',
+    'dokument',
+    'foto',
+    'ekonomi',
+    'tabild',
+  ];
+  var KK_RUBRIK = {
+    halso: 'Hälsodeklaration',
+    kundresa: 'Kundresa · 9 steg',
+    nastasteg: 'Smart nästa steg',
+    bokningar: 'Kommande bokningar',
+    historik: 'Historik',
+    journal: 'Journal',
+    personal: 'Personal',
+    offert: 'Offert',
+    auto: 'Auto',
+    dokument: 'Dokument',
+    foto: 'Foto',
+    ekonomi: 'Ekonomi',
+    tabild: 'Ta bild',
+  };
+  function kkMockupParity(doss) {
+    /* Mockupens struktur: rätt ordning, öppna kort, mockup-rubriker,
+       historik-verktyg, Ta bild-sektion. Allt på befintlig live-data. */
+    var seks = Array.prototype.slice.call(
+      doss.querySelectorAll('details.dossier-section[data-sek]')
+    );
+    if (!seks.length) return;
+    var container = seks[0].parentElement;
+    /* 1. Mockup-rubriker + öppna */
+    seks.forEach(function (s) {
+      s.open = true;
+      var slug = s.getAttribute('data-sek');
+      var summary = s.querySelector('summary');
+      if (summary && KK_RUBRIK[slug] && summary.childNodes[0]) {
+        if (summary.childNodes[0].nodeType === 3) {
+          summary.childNodes[0].textContent = KK_RUBRIK[slug] + ' ';
+        }
+      }
+    });
+    /* 2. Ta bild-sektion (kopplar till befintlig kamera-knapp om den finns) */
+    if (!doss.querySelector('[data-sek="tabild"]')) {
+      var tb = document.createElement('details');
+      tb.className = 'dossier-section';
+      tb.setAttribute('data-sek', 'tabild');
+      tb.open = true;
+      tb.innerHTML =
+        '<summary>Ta bild </summary>' +
+        '<div class="kk-tbrad">Foto-samtycke krävs · scope: hårlinje + krona — aldrig ansikte.</div>' +
+        '<button type="button" class="kk-btn kk-btn-gold" data-kk-tabild>📷 Ta bild · spara i journal</button>';
+      container.appendChild(tb);
+      tb.querySelector('[data-kk-tabild]').addEventListener('click', function () {
+        var knapp = document.querySelector(
+          '[data-v9-quick-camera], [data-kkx-camera], .v9-quick-pills button, [data-v9-dossier-camera]'
+        );
+        if (knapp) knapp.click();
+      });
+    }
+    /* 3. Historik-verktyg: Sammanfatta + fritextsök på riktiga rader */
+    var hist = doss.querySelector('[data-sek="historik"]');
+    if (hist && !hist.querySelector('.kk-hverktyg')) {
+      var rader = Array.prototype.slice.call(hist.querySelectorAll('div')).filter(function (d) {
+        return d.children.length === 0 && (d.textContent || '').trim().length > 3;
+      });
+      var verktyg = document.createElement('div');
+      verktyg.className = 'kk-hverktyg';
+      verktyg.innerHTML =
+        '<button type="button" class="kk-btn" data-kk-summera>Sammanfatta</button>' +
+        '<input class="kk-hsok" placeholder="Sök i historiken…" />' +
+        '<div class="kk-hsvar" hidden></div>';
+      var summary = hist.querySelector('summary');
+      if (summary && summary.nextSibling) {
+        hist.insertBefore(verktyg, summary.nextSibling);
+      } else {
+        hist.appendChild(verktyg);
+      }
+      var svar = verktyg.querySelector('.kk-hsvar');
+      verktyg.querySelector('[data-kk-summera]').addEventListener('click', function () {
+        var texter = rader.map(function (r) {
+          return (r.textContent || '').replace(/\s+/g, ' ').trim();
+        });
+        svar.innerHTML =
+          '<b>' +
+          texter.length +
+          ' händelser.</b> Senaste: ' +
+          esc(texter[0] || '—') +
+          (texter.length > 1 ? ' · Äldsta: ' + esc(texter[texter.length - 1]) : '');
+        svar.hidden = false;
+      });
+      verktyg.querySelector('.kk-hsok').addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        var q = String(this.value || '').toLowerCase();
+        var traff = rader.filter(function (r) {
+          return (r.textContent || '').toLowerCase().indexOf(q) >= 0;
+        });
+        svar.innerHTML = traff.length
+          ? '<b>' +
+            traff.length +
+            ' träff' +
+            (traff.length === 1 ? '' : 'ar') +
+            ':</b> ' +
+            esc((traff[0].textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90))
+          : '<b>0 träffar</b> i historiken på "' + esc(q) + '"';
+        svar.hidden = false;
+      });
+    }
+    /* 4. Mockupens sektionsordning */
+    KK_ORDNING.forEach(function (slug) {
+      var el = doss.querySelector('[data-sek="' + slug + '"]');
+      if (el) container.appendChild(el);
+    });
+  }
   window.__kkFas2Setup = function (doss, sticky, nav) {
     try {
       if (doss.__kkFas2) return;
       doss.__kkFas2 = true;
+      kkMockupParity(doss);
       /* 1. Smart sammanfattning → sticky + kontextbytare */
       var summ = doss.querySelector('.summ');
       if (!summ) {
