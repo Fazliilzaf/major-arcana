@@ -463,28 +463,35 @@ function matchSegment(
     }
     // ===== LANES (FACIT 2026-06-08) — kundresans operativa lägen =====
     case 'lane_agera': {
-      // Agera nu: blockerare som kräver handling
-      if (!patientHasHealthDeclarationAsset(sig) && !hasStructuredHdSigned(patient)) return true;
-      if (!hasJournal && !sig.hasDriveJournalAsset) return true;
+      // Agera nu: AKUT handling krävs — inte hela basen som saknar formulär.
+      // (1) behöver granskning, (2) kommande bokning men saknar krav, (3) risk
       if (matchStatus === 'needs_review' || flags.has('needs_review')) return true;
-      if (
-        booking.hasUpcomingBooking &&
-        isBookingWithinDays(booking.nextBookingAt, RISK_BOOKING_WINDOW_DAYS) &&
-        !patientHasHealthDeclarationAsset(sig)
-      ) {
-        return true;
+      if (sig.needsPhotoReview || sig.assetNeedsReview) return true;
+      if (booking.hasUpcomingBooking) {
+        const missingHd = !patientHasHealthDeclarationAsset(sig) && !hasStructuredHdSigned(patient);
+        const missingJournal = !hasJournal && !sig.hasDriveJournalAsset;
+        if (missingHd || missingJournal) return true;
       }
+      const noShowCount = resolveNoShowCount(patient, booking);
+      if (noShowCount >= RISK_NOSHOW_THRESHOLD) return true;
       return false;
     }
     case 'lane_bokningsbar': {
-      // Bokningsbar: aktiv men utan kommande bokning
+      // Bokningsbar: har engagerat sig tidigare (besök/bokning) men har INGEN kommande bokning.
+      // (Inte hela importbasen — kräver verkligt tidigare besök/bokning, ej bara updatedAt.)
       if (booking.hasUpcomingBooking) return false;
-      for (const iso of [booking.lastVisitAt, booking.lastBookingAt, booking.lastActivityAt]) {
+      const engaged =
+        Boolean(booking.lastVisitAt) ||
+        Boolean(booking.lastBookingAt) ||
+        hasJournal ||
+        Number(fs.totalFiles) > 0;
+      if (!engaged) return false;
+      for (const iso of [booking.lastVisitAt, booking.lastBookingAt]) {
         if (!iso) continue;
         const d = daysSinceIso(iso);
-        if (d != null && d <= ACTIVE_BOOKING_DAYS) return true;
+        if (d != null && d <= DORMANT_BOOKING_DAYS) return true;
       }
-      return updatedDays != null && updatedDays <= ACTIVE_BOOKING_DAYS;
+      return false;
     }
     case 'lane_operation': {
       // Operation (kundresa-steg operationsdag/efterkontroll): kommande kirurgi-bokning
