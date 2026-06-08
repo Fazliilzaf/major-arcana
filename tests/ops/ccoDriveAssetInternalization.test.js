@@ -111,7 +111,7 @@ test('commit laddar Drive-binär, använder korrekt Drive-namn med åäö och bl
   try {
     const driveClient = {
       async getFileMetadata() {
-        return { name: 'Journal Åsa Ärlig Örebro.pdf' };
+        return { name: 'Journal Åsa Ärlig Örebro.pdf', modifiedTime: '2024-05-17T12:34:56.000Z' };
       },
       async downloadBuffer() {
         return Buffer.from('pdf body for asa');
@@ -146,6 +146,7 @@ test('commit laddar Drive-binär, använder korrekt Drive-namn med åäö och bl
     assert.equal(assets.length, 1);
     assert.equal(assets[0].originalFileName, 'Journal Åsa Ärlig Örebro.pdf');
     assert.equal(assets[0].originalDriveFileId, 'drive-asa-1');
+    assert.equal(assets[0].documentDate, '2024-05-17');
     assert.ok(assets[0].storageKey);
     assert.ok(assets[0].checksum);
 
@@ -160,6 +161,47 @@ test('commit laddar Drive-binär, använder korrekt Drive-namn med åäö och bl
     });
     assert.equal(second.stats.alreadyInternal, 1);
     assert.equal(second.stats.remaining, 0);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('commit använder Drive createdTime som documentDate när modifiedTime saknas', async () => {
+  const rig = await makeRig();
+  try {
+    const driveClient = {
+      async getFileMetadata() {
+        return { name: 'Journal utan datum.pdf', createdTime: '2024-06-03T08:00:00.000Z' };
+      },
+      async downloadBuffer() {
+        return Buffer.from('created time body');
+      },
+    };
+    const rows = [
+      {
+        patientId: 'patient-created',
+        file: {
+          id: 'idx-created',
+          driveFileId: 'drive-created-1',
+          fileName: 'Journal utan datum.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Juni/Journal utan datum.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ];
+    const report = await internalizeDriveAssets({
+      rows,
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      driveClient,
+      dryRun: false,
+      go: true,
+    });
+    assert.equal(report.stats.imported, 1);
+    assert.equal(report.samples[0].documentDate, '2024-06-03');
+    assert.equal(rig.assetStore.listItemsForEnrichment()[0].documentDate, '2024-06-03');
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });
   }
