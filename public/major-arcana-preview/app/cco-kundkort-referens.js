@@ -711,10 +711,51 @@
     ['foto', 'Foto'],
     ['ekonomi', 'Ekonomi'],
   ];
+  // MINIMAL enhancer (FACIT 2026-06-08): rail = ren v9-dossier. Lägger ENDAST till
+  // förstorings-knappen ⤢ i headern → ploppar upp gemensamma kortet (STOR VY via iframe).
+  // Bygger ALDRIG om sektionerna (det var det gamla felet).
+  function kkAddForstoring(rootEl) {
+    try {
+      var root = rootEl && rootEl.querySelector ? rootEl : document;
+      var head = root.querySelector('.kkref .doss .dhead');
+      if (!head || head.querySelector('.kk-forstoring')) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'kk-forstoring';
+      btn.title = 'Förstora kundkortet';
+      btn.setAttribute('aria-label', 'Förstora kundkortet');
+      btn.textContent = '⤢';
+      head.appendChild(btn);
+      btn.addEventListener('click', function () {
+        var ov = document.getElementById('kk-storvy');
+        if (!ov) {
+          ov = document.createElement('div');
+          ov.id = 'kk-storvy';
+          ov.innerHTML =
+            '<div class="kk-storvy-panel">' +
+            '<button type="button" class="kk-storvy-close" aria-label="Stäng">×</button>' +
+            '<iframe class="kk-storvy-frame" title="Gemensamt kundkort" src="/kundkort-mockup-gemensamt.html"></iframe>' +
+            '</div>';
+          document.body.appendChild(ov);
+          var stang = function () {
+            ov.classList.remove('open');
+          };
+          ov.addEventListener('click', function (e) {
+            if (e.target === ov || e.target.classList.contains('kk-storvy-close')) stang();
+          });
+          document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') stang();
+          });
+        }
+        ov.classList.add('open');
+      });
+    } catch (e) {
+      /* förstoring får aldrig fälla dossiern */
+    }
+  }
   window.__enhanceReferensKundkort = function (rootEl) {
-    // AVSTÄNGD 2026-06-08: enhancern byggde om rail-dossiern till gemensamt-stilen
-    // (chips/smartline/breda läget) vilket var FEL. Rail ska vara ren v9-DESKTOP-
-    // dossier (base-referens). Gemensamt-kortet hör hemma i STOR VY, inte här.
+    // Rail ska vara ren v9-dossier. Enda tillägget: förstorings-knappen.
+    kkAddForstoring(rootEl);
     if (window.__KK_ENHANCER_PA !== true) return;
     try {
       var root = rootEl && rootEl.querySelector ? rootEl : document;
