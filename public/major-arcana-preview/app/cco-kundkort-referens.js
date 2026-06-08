@@ -872,6 +872,135 @@
       );
     }
 
+    // ===== Besök · tidslinje: gruppera filer/foton/journaler per BESÖKSDATUM (ej importstämpel) =====
+    (function renderBesok() {
+      function dateKey(f) {
+        var oc = f && f.occasionContext;
+        if (oc && oc.timelineKey && /^\d{4}-\d{2}-\d{2}$/.test(oc.timelineKey))
+          return oc.timelineKey;
+        var s = String((f && (f.fileName || f.relativePath)) || '');
+        var m = s.match(/(20\d{2})[-_](\d{2})[-_](\d{2})/);
+        if (m) return m[1] + '-' + m[2] + '-' + m[3];
+        var ep = s.match(/\b(1[0-9]{9})\b/);
+        if (ep) {
+          var d = new Date(Number(ep[1]) * 1000);
+          if (!isNaN(d)) return d.toISOString().slice(0, 10);
+        }
+        return '';
+      }
+      function svDate(key) {
+        var mo = [
+          'jan',
+          'feb',
+          'mars',
+          'apr',
+          'maj',
+          'juni',
+          'juli',
+          'aug',
+          'sep',
+          'okt',
+          'nov',
+          'dec',
+        ];
+        var p = key.split('-');
+        return p.length === 3 ? Number(p[2]) + ' ' + mo[Number(p[1]) - 1] + ' ' + p[0] : key;
+      }
+      function cleanName(f) {
+        var n = String((f && f.fileName) || '');
+        if (/\?\?\?|\+\?|�/.test(n)) {
+          var ft = f.fileType || '';
+          return ft === 'journal_pdf'
+            ? 'Journal'
+            : ft === 'image'
+              ? 'Foto'
+              : /friskf/i.test(n)
+                ? 'Friskförsäkran'
+                : 'Dokument';
+        }
+        return n.replace(/\.(pdf|jpe?g|png|heic|webp|docx?)$/i, '');
+      }
+      function ico(f) {
+        var ft = f.fileType || '';
+        return ft === 'image'
+          ? '🖼'
+          : ft === 'journal_pdf'
+            ? '📄'
+            : /friskf/i.test(String(f.fileName || ''))
+              ? '📋'
+              : '📎';
+      }
+      var groups = {};
+      A(driveFiles).forEach(function (f) {
+        var k = dateKey(f) || 'odaterat';
+        if (!groups[k]) groups[k] = { files: [], j: 0, img: 0, journals: [] };
+        groups[k].files.push(f);
+        if (f.fileType === 'journal_pdf') groups[k].j++;
+        if (f.fileType === 'image') groups[k].img++;
+      });
+      A(journalEntries).forEach(function (e) {
+        var dt = String((e && (e.date || e.signedAt || e.createdAt)) || '').slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+          if (!groups[dt]) groups[dt] = { files: [], j: 0, img: 0, journals: [] };
+          groups[dt].journals.push(e);
+        }
+      });
+      var keys = Object.keys(groups).sort(function (a, b) {
+        if (a === 'odaterat') return 1;
+        if (b === 'odaterat') return -1;
+        return b.localeCompare(a);
+      });
+      if (!keys.length) return;
+      var inner = keys
+        .map(function (k) {
+          var g = groups[k];
+          var jtot = g.j + g.journals.length;
+          var parts = [];
+          if (jtot) parts.push(jtot + (jtot === 1 ? ' journal' : ' journaler'));
+          if (g.img) parts.push(g.img + (g.img === 1 ? ' foto' : ' foton'));
+          var others = g.files.length - g.j - g.img;
+          if (others > 0) parts.push(others + ' dokument');
+          var label = k === 'odaterat' ? 'Odaterat' : svDate(k);
+          var rows = g.files
+            .map(function (f) {
+              var dId = f.driveFileId || f.id || '';
+              var body =
+                '<span class="kk-foto-ico">' +
+                ico(f) +
+                '</span><div style="flex:1;min-width:0"><div class="rt">' +
+                esc(cleanName(f)) +
+                '</div></div>';
+              return dId
+                ? '<a class="kk-file" target="_blank" rel="noopener" href="' +
+                    esc(f.viewUrl || 'https://drive.google.com/file/d/' + dId + '/view') +
+                    '">' +
+                    body +
+                    '<span class="kk-file-open">Öppna ↗</span></a>'
+                : '<div class="kk-file">' + body + '</div>';
+            })
+            .join('');
+          return (
+            '<details class="kk-besok"><summary><span class="kk-besok-d">' +
+            esc(label) +
+            '</span><span class="kk-besok-m">' +
+            esc(parts.join(' · ') || g.files.length + ' filer') +
+            '</span></summary><div class="kk-besok-body">' +
+            rows +
+            '</div></details>'
+          );
+        })
+        .join('');
+      h += sec(
+        'Besök',
+        String(
+          keys.filter(function (k) {
+            return k !== 'odaterat';
+          }).length
+        ),
+        inner
+      );
+    })();
+
     // ===== Saknade kategorier (facit-paritet): Filer · Anteckningar · Kommunikation · Insikter =====
     var filer = driveFiles.slice(0, 10);
     var fileCount =
