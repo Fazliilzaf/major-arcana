@@ -14,6 +14,40 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, Math.max(0, Number(ms) || 0));
+  });
+}
+
+function isRetryableDriveError(error = {}) {
+  const code = Number(error.code || error.status || error.statusCode || 0);
+  if (code === 429 || (code >= 500 && code < 600)) return true;
+  const message = normalizeText(error.message).toLowerCase();
+  return /rate|quota|timeout|temporar|econnreset|etimedout/.test(message);
+}
+
+async function withDriveRetry(
+  operation,
+  { attempts = 4, baseDelayMs = 250, maxDelayMs = 5000 } = {}
+) {
+  const totalAttempts = Math.max(1, Number(attempts) || 1);
+  const baseDelay = Math.max(0, Number(baseDelayMs) || 0);
+  const maxDelay = Math.max(baseDelay, Number(maxDelayMs) || baseDelay);
+  let lastError = null;
+  for (let index = 0; index < totalAttempts; index += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (index >= totalAttempts - 1 || !isRetryableDriveError(error)) break;
+      const delay = Math.min(maxDelay, baseDelay * 2 ** index);
+      if (delay > 0) await sleep(delay);
+    }
+  }
+  throw lastError;
+}
+
 function maskValue(value = '', { keepStart = 2, keepEnd = 2 } = {}) {
   const text = normalizeText(value);
   if (!text) return '';
@@ -243,6 +277,10 @@ async function internalizeDriveAssets({
   limit = 0,
   offset = 0,
   sampleSize = 5,
+  driveRetryAttempts = 4,
+  driveRetryBaseDelayMs = 250,
+  driveRetryMaxDelayMs = 5000,
+  driveThrottleMs = 0,
   tenantId = 'hair-tp-clinic',
   actor = { role: 'system', userId: 'ord-34-drive-internalize', tenantId },
 } = {}) {
@@ -280,8 +318,17 @@ async function internalizeDriveAssets({
   for (const row of batch) {
     stats.attempted += 1;
     try {
-      const driveName = await resolveDriveFileName(row, driveClient);
-      const body = await downloadDriveFile(row, driveClient);
+      if (driveThrottleMs > 0 && stats.attempted > 1) await sleep(driveThrottleMs);
+      const retryOptions = {
+        attempts: driveRetryAttempts,
+        baseDelayMs: driveRetryBaseDelayMs,
+        maxDelayMs: driveRetryMaxDelayMs,
+      };
+      const driveName = await withDriveRetry(
+        () => resolveDriveFileName(row, driveClient),
+        retryOptions
+      );
+      const body = await withDriveRetry(() => downloadDriveFile(row, driveClient), retryOptions);
       const result = await pipeline.importSingleAsset({
         sourceSystem: 'drive_import',
         importRunId: runId,

@@ -165,6 +165,69 @@ test('commit laddar Drive-binär, använder korrekt Drive-namn med åäö och bl
   }
 });
 
+test('commit retryar temporära Drive-fel innan import', async () => {
+  const rig = await makeRig();
+  try {
+    let metadataCalls = 0;
+    let downloadCalls = 0;
+    const driveClient = {
+      async getFileMetadata() {
+        metadataCalls += 1;
+        if (metadataCalls === 1) {
+          const error = new Error('rate limit');
+          error.code = 429;
+          throw error;
+        }
+        return { name: 'Retryad journal.pdf' };
+      },
+      async downloadBuffer() {
+        downloadCalls += 1;
+        if (downloadCalls === 1) {
+          const error = new Error('temporary backend error');
+          error.status = 500;
+          throw error;
+        }
+        return Buffer.from('retry body');
+      },
+    };
+    const rows = [
+      {
+        patientId: 'patient-retry',
+        file: {
+          id: 'idx-retry',
+          driveFileId: 'drive-retry-1',
+          fileName: 'gammalt.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Juni/gammalt.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ];
+    const report = await internalizeDriveAssets({
+      rows,
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      driveClient,
+      dryRun: false,
+      go: true,
+      driveRetryAttempts: 3,
+      driveRetryBaseDelayMs: 1,
+      driveRetryMaxDelayMs: 1,
+    });
+    assert.equal(report.stats.imported, 1);
+    assert.equal(report.stats.failed, 0);
+    assert.equal(metadataCalls, 2);
+    assert.equal(downloadCalls, 2);
+    assert.equal(
+      rig.assetStore.listItemsForEnrichment()[0].originalFileName,
+      'Retryad journal.pdf'
+    );
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('commit kräver explicit GO', async () => {
   const rig = await makeRig();
   try {
