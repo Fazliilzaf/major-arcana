@@ -1791,7 +1791,7 @@ html[data-v9-enabled="on"] .kkref .doss .dtag.risk {
 /* Statrutor (.s3 .k) → v9-DESKTOP kpi-look */
 html[data-v9-enabled="on"] .kkref .doss .s3 {
   display: grid !important;
-  grid-template-columns: 1fr 1fr 1fr !important;
+  grid-template-columns: 1fr 1fr 1fr 1fr !important;
   gap: 9px !important;
   margin-bottom: 10px !important;
 }

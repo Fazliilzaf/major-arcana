@@ -315,6 +315,11 @@
       (Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0 ? ltvRaw : null) ||
       (bcard.stats && bcard.stats.revenue);
     var noshow = bcard.noShows != null ? bcard.noShows : bcard.stats && bcard.stats.noShows;
+    var showCount =
+      bcard.showCount ??
+      bcard.attendedCount ??
+      bcard.showedUpCount ??
+      (bcard.stats && (bcard.stats.show ?? bcard.stats.attended));
     // FACIT: visa alltid 3 statrutor (Besök/Intäkt/No-shows) med subtext-rad
     h +=
       '<div class="s3">' +
@@ -332,7 +337,10 @@
       esc(noshow != null ? noshow : '0') +
       '</div><div class="s">' +
       (Number(noshow) > 0 ? 'följ upp' : 'klockren') +
-      '</div></div></div>';
+      '</div></div>' +
+      '<div class="k"><div class="l">Show</div><div class="v">' +
+      esc(showCount != null ? showCount : visits != null ? visits : '—') +
+      '</div><div class="s">kommit</div></div></div>';
 
     h += '<div class="gthread"></div>';
 
