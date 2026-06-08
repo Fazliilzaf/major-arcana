@@ -890,7 +890,7 @@
     }
   };
   function kkOverlay(doss, id, title, sub, bodyHtml) {
-    var old = doss.querySelector('#' + id);
+    var old = document.getElementById(id);
     if (old) old.remove();
     var ov = document.createElement('div');
     ov.className = 'kk-ov';
@@ -906,7 +906,7 @@
     ov.addEventListener('click', function (e) {
       if (e.target === ov || e.target.hasAttribute('data-kk-stang')) ov.remove();
     });
-    doss.appendChild(ov);
+    document.body.appendChild(ov);
     return ov;
   }
   function kkRad(label, value) {
