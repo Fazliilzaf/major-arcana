@@ -36,6 +36,10 @@ function parseArgs(argv) {
     limit: 0,
     offset: 0,
     sampleSize: 5,
+    driveRetryAttempts: 4,
+    driveRetryBaseDelayMs: 250,
+    driveRetryMaxDelayMs: 5000,
+    driveThrottleMs: 0,
     verifyDriveAccess: false,
   };
   for (let i = 2; i < argv.length; i += 1) {
@@ -53,7 +57,15 @@ function parseArgs(argv) {
     else if (flag === '--limit') args.limit = Math.max(0, Number(argv[++i]) || 0);
     else if (flag === '--offset') args.offset = Math.max(0, Number(argv[++i]) || 0);
     else if (flag === '--sample-size') args.sampleSize = Math.max(0, Number(argv[++i]) || 5);
-    else if (flag === '--verify-drive-access') args.verifyDriveAccess = true;
+    else if (flag === '--drive-retry-attempts') {
+      args.driveRetryAttempts = Math.max(1, Number(argv[++i]) || 1);
+    } else if (flag === '--drive-retry-base-delay-ms') {
+      args.driveRetryBaseDelayMs = Math.max(0, Number(argv[++i]) || 0);
+    } else if (flag === '--drive-retry-max-delay-ms') {
+      args.driveRetryMaxDelayMs = Math.max(0, Number(argv[++i]) || 0);
+    } else if (flag === '--drive-throttle-ms') {
+      args.driveThrottleMs = Math.max(0, Number(argv[++i]) || 0);
+    } else if (flag === '--verify-drive-access') args.verifyDriveAccess = true;
   }
   if (!args.dryRun && !args.go) {
     throw new Error('Commit kräver --go. Dry-run är default.');
@@ -209,6 +221,10 @@ async function main() {
       limit: args.limit,
       offset: args.offset,
       sampleSize: args.sampleSize,
+      driveRetryAttempts: args.driveRetryAttempts,
+      driveRetryBaseDelayMs: args.driveRetryBaseDelayMs,
+      driveRetryMaxDelayMs: args.driveRetryMaxDelayMs,
+      driveThrottleMs: args.driveThrottleMs,
     });
     result.drive = { serviceAccountEmail: driveClient.serviceAccountEmail };
     operationalRemainingRows = result.remainingRows || [];
