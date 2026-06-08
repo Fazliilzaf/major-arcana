@@ -15,6 +15,21 @@
     'customer.has_photo_review': 1,
     'customer.ready_for_treatment': 1,
   };
+  // Blockerare/gates = måsten som STOPPAR resan → Smart nästa steg.
+  // Allt annat (positiva lägen, möjligheter) → Insikter.
+  var BLOCKER_SIGNAL_IDS = {
+    'customer.missing_health_declaration': 1,
+    'customer.missing_journal': 1,
+    'customer.missing_treatment_plan': 1,
+    'customer.cooling_off_active': 1,
+    'customer.cooling_off_passed': 1,
+    'customer.missing_agreement_consent_bundle': 1,
+    'customer.missing_operation_day_insurance': 1,
+    'customer.missing_photo_consent': 1,
+  };
+  function isBlockerSignal(s) {
+    return !!(s && BLOCKER_SIGNAL_IDS[String(s.ruleId || s.id || '')]);
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -273,8 +288,27 @@
     var hdSource = hdSourceLabel(hd, bcard);
     var allergies = A(bcard.allergies).length ? A(bcard.allergies) : (hd && A(hd.allergies)) || [];
 
-    /* ---- canonical signals (10) ---- */
+    /* ---- canonical signals (10) — delas i blockerare (gates) vs möjligheter (insikter) ---- */
     var signals = filterCanonicalSignals(bcard, bundle, journalEntries, ctxExtras);
+    var gateSignals = signals.filter(isBlockerSignal);
+    var oppSignals = signals.filter(function (s) {
+      return !isBlockerSignal(s);
+    });
+    // Datadrivna möjligheter (klientsida, ur data vi redan har) — merförsäljning/mönster.
+    (function addComputedInsights() {
+      var up = A(ctxExtras.upcomingBookings);
+      var hist = A(ctxExtras.historyBookings);
+      if (!up.length && hist.length) {
+        var senaste = hist[0] || {};
+        var nar = senaste.dateLabel || senaste.date || senaste.when || '';
+        oppSignals.push({
+          ruleId: 'opportunity.reengage',
+          label: 'Ingen kommande tid bokad',
+          detail:
+            (nar ? 'Senaste besök ' + String(nar).slice(0, 10) + '. ' : '') + 'Föreslå återbesök.',
+        });
+      }
+    })();
 
     /* ---- economy ---- */
     var ltvRaw = bcard.lifetimeValue ?? bcard.dealValue ?? bcard.pipedriveDealValue;
@@ -509,12 +543,11 @@
       );
     }
 
-    if (signals.length) {
+    if (gateSignals.length) {
       h += sec(
         'Smart nästa steg',
-        String(signals.length),
-        signals
-          .slice(0, 4)
+        String(gateSignals.length),
+        gateSignals
           .map(function (s) {
             var tone = /block|legal/.test(s.risk || s.level || '') ? 'block' : 'info';
             var pill =
@@ -824,21 +857,29 @@
     );
     h += sec(
       'Insikter',
-      String(signals.length),
-      signals.length
-        ? signals
-            .slice(0, 6)
+      String(oppSignals.length),
+      oppSignals.length
+        ? oppSignals
             .map(function (s) {
+              var sig = esc(s.ruleId || s.id || '');
+              var lbl = esc(s.label || s.title || s.text || 'Insikt');
               return (
-                '<div class="qrow"><div><div class="q">' +
-                esc(s.label || s.title || s.text || 'Insikt') +
+                '<div class="row acc info"><div style="flex:1"><div class="rt">' +
+                lbl +
                 '</div>' +
-                (s.detail ? '<div class="qv">' + esc(s.detail) + '</div>' : '') +
-                '</div></div>'
+                (s.detail ? '<div class="rm">' + esc(s.detail) + '</div>' : '') +
+                '</div>' +
+                '<span class="pill" style="background:var(--ok-bg,#e7f3ec);color:var(--ok,#2e7d52)">Möjlighet</span>' +
+                '<button type="button" class="kk-sig-act" data-kk-sig="' +
+                sig +
+                '" data-kk-sig-label="' +
+                lbl +
+                '" title="Agera">→</button>' +
+                '</div>'
               );
             })
             .join('')
-        : empty('Inga insikter just nu.')
+        : empty('Inga möjligheter just nu.')
     );
 
     h +=
@@ -983,6 +1024,34 @@
           rubrik: 'Journal saknas (intern åtgärd)',
           kund: false,
           text: 'Skapa och signera journal för besöket i journal-arbetsytan.',
+        };
+      if (
+        s.indexOf('reengage') >= 0 ||
+        l.indexOf('återbesök') >= 0 ||
+        l.indexOf('kommande tid') >= 0
+      )
+        return {
+          rubrik: 'Föreslå återbesök',
+          kund: true,
+          text:
+            'Hej ' +
+            namn +
+            '! Det var ett tag sedan sist — vi har gärna kvar koll på ditt resultat. Vill du boka ett återbesök? Här är tider: [länk]. / Hair TP Clinic',
+        };
+      if (s.indexOf('ready_for_treatment') >= 0 || l.indexOf('redo') >= 0)
+        return {
+          rubrik: 'Boka operation',
+          kund: true,
+          text:
+            'Hej ' +
+            namn +
+            '! Allt är klart inför din behandling. Ska vi boka in operationsdagen? Här är tider: [länk]. / Hair TP Clinic',
+        };
+      if (s.indexOf('photo_review') >= 0 || l.indexOf('granska') >= 0)
+        return {
+          rubrik: 'Granska före/efter-foton',
+          kund: false,
+          text: 'Granska kundens före/efter-bilder och uppdatera resultatuppföljningen.',
         };
       return {
         rubrik: label || 'Åtgärd',
