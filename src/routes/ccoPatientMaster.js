@@ -18,6 +18,10 @@ const {
   extractFileOccasionContext,
 } = require('../../scripts/migration/lib/migrationUtils');
 const {
+  buildCommercialPaymentReadout,
+  buildPatientPaymentHistory,
+} = require('../ops/ccoPatientPaymentHistory');
+const {
   resolvePilotConfig,
   applyNativeJournalFilesForPilot,
   pilotSummary,
@@ -194,6 +198,10 @@ function createCcoPatientMasterRouter({
   buildPatientDocumentBundle = null,
   readCache = null,
   resolvePatientAssetStore = null,
+  swishStore = null,
+  commercialStore = null,
+  fortnoxInvoiceLister = null,
+  fortnoxStore = null,
   authStore,
   config,
   requireAuth,
@@ -373,6 +381,34 @@ function createCcoPatientMasterRouter({
       driveFiles: filesForUi,
       occasionTimeline: buildOccasionTimeline(filesForUi),
       driveJournalNativePilot: nativePilotMeta,
+      ...(await buildPaymentContext(actor, patient)),
+    };
+  }
+
+  async function buildPaymentContext(actor, patient) {
+    const card = patientMasterStore.buildPatientCardReadout(patient);
+    const commercialCase = commercialStore?.getPatientRegisterCase
+      ? await commercialStore.getPatientRegisterCase({
+          tenantId: actor.tenantId,
+          patientId: patient.id,
+        })
+      : null;
+    const paymentReadout = buildCommercialPaymentReadout(commercialCase);
+    const paymentHistoryResult = await buildPatientPaymentHistory({
+      tenantId: actor.tenantId,
+      patientId: patient.id,
+      patientCard: card,
+      swishStore,
+      fortnoxInvoiceLister,
+      fortnoxStore,
+    });
+    return {
+      commercialCase,
+      paymentStatus: paymentReadout.paymentStatus,
+      quotedAmount: paymentReadout.quotedAmount,
+      depositAmount: paymentReadout.depositAmount,
+      paymentHistory: paymentHistoryResult.items,
+      paymentHistoryMeta: paymentHistoryResult.meta,
     };
   }
 
@@ -532,6 +568,12 @@ function createCcoPatientMasterRouter({
           patientId: patient.id,
           card: payload.card,
           journalEntries: payload.journalEntries,
+          commercialCase: payload.commercialCase || null,
+          paymentStatus: payload.paymentStatus || null,
+          quotedAmount: payload.quotedAmount || null,
+          depositAmount: payload.depositAmount || null,
+          paymentHistory: payload.paymentHistory || [],
+          paymentHistoryMeta: payload.paymentHistoryMeta || null,
           ready: true,
           documents: documentBundle.documents,
           documentBundle,

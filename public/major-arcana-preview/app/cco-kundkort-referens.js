@@ -82,6 +82,7 @@
     if (l.indexOf('offert') === 0) return 'offert';
     if (l.indexOf('auto') === 0) return 'auto';
     if (l.indexOf('foto') === 0) return 'foto';
+    if (l.indexOf('betalning') === 0) return 'betalning';
     if (l.indexOf('ekonomi') === 0) return 'ekonomi';
     return 'sek';
   }
@@ -716,13 +717,58 @@
     function jDate10(x) {
       return String(x || '').slice(0, 10);
     }
+    // Mina riktigt datum ur filnamnet (YYYY-MM-DD eller unix-epoch) — ej importstämpeln
+    function jMineDate(s) {
+      var str = String(s || '');
+      var m = str.match(/(20\d{2})[-_](\d{2})[-_](\d{2})/);
+      if (m) return m[1] + '-' + m[2] + '-' + m[3];
+      var ep = str.match(/\b(1[0-9]{9})\b/);
+      if (ep) {
+        var d = new Date(Number(ep[1]) * 1000);
+        if (!isNaN(d)) return d.toISOString().slice(0, 10);
+      }
+      return '';
+    }
+    var jNameToks = String(name || '')
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(function (t) {
+        return t.length > 2;
+      });
+    // Ren etikett ur (ofta mojibakat) filnamn — typ-baserad, patientnamn bortstrippat
+    function jCleanTitle(raw, jtype) {
+      var n = String(raw || '');
+      if (/prp/i.test(n)) return 'PRP-journal';
+      if (/friskf/i.test(n)) return 'Friskförsäkran';
+      if (/ordination/i.test(n)) return 'Ordinationsmall';
+      if (/avtal/i.test(n)) return 'Behandlingsavtal';
+      if (/samtycke|consent/i.test(n)) return 'Samtycke';
+      var c = n
+        .replace(/\.(pdf|docx?|jpe?g|png|heic)$/i, '')
+        .replace(/\?{2,}|\+\?/g, ' ')
+        .replace(/\b1[0-9]{9}\b/g, ' ')
+        .replace(/\d{4}[-_]\d{2}[-_]\d{2}/g, ' ')
+        .replace(/[-_]\d{2,4}\b/g, ' ')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      c = c
+        .split(' ')
+        .filter(function (w) {
+          return w && jNameToks.indexOf(w.toLowerCase()) < 0;
+        })
+        .join(' ')
+        .trim();
+      return c || (jtype ? jtype : 'Journal');
+    }
     var jItems = jrs.slice(0, 8).map(function (j) {
       var st = referensJournalVisualState(j);
+      var raw = j.title || j.journalType || '';
       return {
         st: st,
-        date: jDate10(j.date || j.signedAt || j.createdAt),
-        title: j.title || j.journalType || 'Journalanteckning',
-        key: jSeriesKey(j.title || j.journalType),
+        date: jMineDate(raw) || jDate10(j.date || j.signedAt || j.createdAt),
+        title: jCleanTitle(raw, j.journalType),
+        key: jSeriesKey(raw),
         step: j.step,
         by: j.by || j.authorName || '',
         entryId: j.entryId || j.id || '',
@@ -779,7 +825,9 @@
         return (
           '<div class="jr ' +
           (it.st === 'done' ? '' : it.st) +
-          '"><div class="jc ' +
+          '"' +
+          (it.entryId ? ' data-jentry="' + esc(it.entryId) + '"' : '') +
+          '><div class="jc ' +
           it.st +
           '">' +
           ic +
@@ -788,12 +836,10 @@
           '</div><div class="rm">' +
           esc(meta) +
           '</div></div>' +
-          (it.st === 'act' && it.entryId
-            ? '<span class="openb kkx-openb" data-kkx-journal-entry="' +
-              esc(it.entryId) +
-              '" data-kkx-journal-type="' +
-              esc(it.jType) +
-              '">Öppna</span>'
+          (it.st === 'act'
+            ? '<span class="openb" data-kk-open-storvy="journal" data-kk-entry="' +
+              esc(it.entryId || '') +
+              '" title="Öppna i stora kortet · journal">Öppna</span>'
             : '') +
           '</div>'
         );
@@ -811,31 +857,65 @@
     h += sec('Journaler · personal', jCount, jHtml || empty('Inga journaler ännu.'));
 
     if (offers.length) {
+      // Färgkodad typ-pill: TP/transplant guld, PRP grön, övrigt neutral
+      function offPill(t) {
+        var x = String(t || '').toLowerCase();
+        if (/prp/.test(x))
+          return 'background:linear-gradient(180deg,#e3f1e8,#cfe7d8);color:#2e7d52';
+        if (/dhi|fue|tp|transplant|hår|har/.test(x))
+          return 'background:linear-gradient(180deg,#f2e6cf,#e0caa0);color:#7a5a16';
+        return 'background:rgba(215,202,194,0.4);color:#6b6052';
+      }
+      function offAmt(o) {
+        var s = String(o.amount != null ? o.amount : o.amountLabel || o.detail || '');
+        var m = s.replace(/\s/g, '').match(/(\d{3,})/);
+        return m ? parseInt(m[1], 10) : 0;
+      }
+      function offOk(o) {
+        return /godk|signed|accepted/i.test(o.status || '');
+      }
+      var approvedSum = offers.filter(offOk).reduce(function (n, o) {
+        return n + offAmt(o);
+      }, 0);
+      var offTotal =
+        approvedSum > 0
+          ? '<span style="color:#2e7d52">' + approvedSum.toLocaleString('sv-SE') + ' kr</span>'
+          : String(offers.length);
       h += sec(
-        'Offerter',
-        String(offers.length),
+        'Offerter · commit',
+        offTotal,
         offers
           .map(function (o) {
-            var ok = /godk|signed|accepted/i.test(o.status || '');
+            var ok = offOk(o);
             var detalj = String(o.detail || o.amountLabel || '')
               .replace(/\bgrafts\b/gi, 'graft')
               .replace(/\bsessions\b/gi, 'sessioner')
               .replace(/\bsession\b/gi, 'session');
+            var godkAt = o.acceptedAt || o.approvedAt || o.signedAt || o.decidedAt || o.date || '';
+            var meta = [
+              detalj,
+              o.step ? 'Steg ' + o.step : '',
+              ok && godkAt ? 'godkänd ' + String(godkAt).slice(0, 10) : '',
+            ]
+              .filter(Boolean)
+              .join(' · ');
             return (
-              '<div class="row"><span class="pill" style="margin:0;background:linear-gradient(180deg,#f2e6cf,#e0caa0);color:#7a5a16">' +
+              '<div class="row"><span class="pill" style="margin:0;' +
+              offPill(o.type) +
+              '">' +
               esc(o.type || 'TP') +
               '</span><div style="flex:1"><div class="rt">' +
               esc(o.title || 'Offert') +
               '</div>' +
               '<div class="rm">' +
-              esc(detalj) +
+              esc(meta) +
               '</div></div><span class="pill ' +
               (ok ? 'p-ok' : 'p-warn') +
               '">' +
               esc(ok ? '✓ Godkänd' : 'Väntar') +
               '</span>' +
               (ok
-                ? ''
+                ? '<button type="button" class="openb" data-kk-open-storvy="betalning" title="Gå vidare till betalning">Betalning →</button>'
                 : '<button type="button" class="kk-sig-act" data-kk-sig="customer.missing_treatment_plan" ' +
                   'data-kk-sig-label="Påminn om offert" title="Påminn/skicka">→</button>') +
               '</div>'
@@ -930,6 +1010,89 @@
         ekoRows || empty('Ingen ekonomidata ännu.')
       );
     }
+
+    // ===== Betalning: committad offert följer med + status + betalvägar (historik = backend nästa) =====
+    (function renderBetalning() {
+      var cc = commercialCase || {};
+      var ps = String(cc.paymentStatus || '').toLowerCase();
+      // committade (godkända) offerter = det betalningen gäller
+      var paid = offers.filter(function (o) {
+        return /godk|signed|accepted/i.test(o.status || '');
+      });
+      // visa bara sektionen om det finns något ekonomiskt att betala/visa
+      if (!paid.length && !ps && !cc.quotedAmount) return;
+      var statusMap = {
+        paid: ['Betald', '#2e7d52', '#e7f3ec'],
+        ready_for_booking: ['Klar för bokning', '#2e7d52', '#e7f3ec'],
+        partially_paid: ['Delbetald', '#c8821e', '#faf0db'],
+        payment_pending: ['Väntar betalning', '#c8821e', '#faf0db'],
+        pending: ['Väntar betalning', '#c8821e', '#faf0db'],
+        pending_customer: ['Väntar på kund', '#c8821e', '#faf0db'],
+        deposit_pending: ['Deposition väntar', '#c8821e', '#faf0db'],
+        blocked: ['Blockerad', '#b94a4a', '#f6e3e3'],
+      };
+      var stt = statusMap[ps] || ['Ingen betalning startad', '#94897b', 'rgba(215,202,194,0.35)'];
+      var inner = '';
+      // 1) Att betala — offerten/erna följer automatiskt med
+      inner += paid.length
+        ? paid
+            .map(function (o) {
+              var d = String(o.detail || o.amountLabel || '')
+                .replace(/\bgrafts\b/gi, 'graft')
+                .replace(/\bsessions\b/gi, 'sessioner');
+              return (
+                '<div class="kk-eko"><div class="kk-eko-l"><div class="kk-eko-k">Offert · ' +
+                esc(o.type || 'TP') +
+                '</div><div class="kk-eko-sub">' +
+                esc(d) +
+                '</div></div></div>'
+              );
+            })
+            .join('')
+        : '<div class="kk-eko"><div class="kk-eko-l"><div class="kk-eko-k">Offererat belopp</div></div><div class="kk-eko-v">' +
+          esc(cc.quotedAmount || '—') +
+          '</div></div>';
+      // 2) Status-rad
+      inner +=
+        '<div class="kk-eko"><div class="kk-eko-l"><div class="kk-eko-k">Status</div>' +
+        (cc.depositAmount
+          ? '<div class="kk-eko-sub">Deposition: ' + esc(cc.depositAmount) + '</div>'
+          : '') +
+        '</div><span class="pill" style="background:' +
+        stt[2] +
+        ';color:' +
+        stt[1] +
+        '">' +
+        esc(stt[0]) +
+        '</span></div>';
+      // 3) Betalvägar — era erbjudna alternativ (förbered → människa bekräftar, aldrig auto-pengar)
+      var vagar = [
+        ['swish', 'Swish', 'Direktbetalning'],
+        ['mf', 'Medical Finance', 'Delbetalning / finansiering'],
+        ['kort', 'Kort · betalningslänk', 'Stripe/kortlänk'],
+        ['faktura', 'Faktura', 'Fortnox'],
+      ];
+      inner +=
+        '<div class="kk-betvag-h">Betalvägar</div>' +
+        vagar
+          .map(function (v) {
+            return (
+              '<div class="kk-betvag"><div style="flex:1"><div class="rt">' +
+              esc(v[1]) +
+              '</div><div class="rm">' +
+              esc(v[2]) +
+              '</div></div><button type="button" class="openb kk-betvag-btn" data-kk-betvag="' +
+              v[0] +
+              '">Förbered →</button></div>'
+            );
+          })
+          .join('');
+      // 4) Betalningshistorik (kräver Swish/Fortnox-poster = backend)
+      inner +=
+        '<div class="kk-betvag-h">Betalningshistorik</div>' +
+        '<div class="empty">Ingen betalningshistorik kopplad ännu.</div>';
+      h += sec('Betalning', '<span style="color:' + stt[1] + '">' + esc(stt[0]) + '</span>', inner);
+    })();
 
     // ===== Besök · tidslinje: gruppera filer/foton/journaler per BESÖKSDATUM (ej importstämpel) =====
     (function renderBesok() {
@@ -1584,7 +1747,10 @@
       var op = e.target.closest && e.target.closest('[data-kk-open-storvy]');
       if (op && typeof window.__kkOpenStorvy === 'function') {
         e.preventDefault();
-        window.__kkOpenStorvy(op.getAttribute('data-kk-open-storvy') || '');
+        window.__kkOpenStorvy(
+          op.getAttribute('data-kk-open-storvy') || '',
+          op.getAttribute('data-kk-entry') || ''
+        );
         return;
       }
       // 3) Hoppa till sektion (kundrese-steg)
@@ -1607,6 +1773,24 @@
         }
         return;
       }
+      // 3b) Betalväg — förbered (människa bekräftar/slutför, ALDRIG auto-pengar)
+      var bv = e.target.closest && e.target.closest('[data-kk-betvag]');
+      if (bv) {
+        e.preventDefault();
+        var metod =
+          {
+            swish: 'Swish-betalning',
+            mf: 'Medical Finance (delbetalning)',
+            kort: 'kort/betalningslänk',
+            faktura: 'faktura via Fortnox',
+          }[bv.getAttribute('data-kk-betvag')] || 'betalning';
+        window.alert(
+          'Förbered ' +
+            metod +
+            ' — skapa och skicka i respektive system. Automatiskt skick av betalning är avstängt; du bekräftar och slutför själv.'
+        );
+        return;
+      }
       // 4) Toggla historik-sammanfattning
       var sm = e.target.closest && e.target.closest('[data-kk-sum]');
       if (sm) {
@@ -1624,34 +1808,62 @@
 
   // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt
   // landat på en sektion (#slug). Används av header-förstoringen OCH sektions-⤢.
-  window.__kkOpenStorvy = function (slug) {
+  window.__kkOpenStorvy = function (slug, entryId) {
     var ov = document.getElementById('kk-storvy');
-    var base = '/kundkort-mockup-gemensamt.html';
-    var src = base + (slug ? '#' + slug : '');
     if (!ov) {
       ov = document.createElement('div');
       ov.id = 'kk-storvy';
       ov.innerHTML =
         '<div class="kk-storvy-panel">' +
         '<button type="button" class="kk-storvy-close" aria-label="Stäng">×</button>' +
-        '<iframe class="kk-storvy-frame" title="Gemensamt kundkort"></iframe>' +
+        '<div class="kk-storvy-body"></div>' +
         '</div>';
       document.body.appendChild(ov);
-      var stang = function () {
-        ov.classList.remove('open');
-      };
       ov.addEventListener('click', function (e) {
-        if (e.target === ov || e.target.classList.contains('kk-storvy-close')) stang();
+        if (e.target === ov || e.target.classList.contains('kk-storvy-close'))
+          ov.classList.remove('open');
       });
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') stang();
+        if (e.key === 'Escape') ov.classList.remove('open');
       });
     }
-    var frame = ov.querySelector('.kk-storvy-frame');
-    // Ladda om/navigera till rätt sektion varje gång
-    if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
-    else if (slug && frame.contentWindow) frame.contentWindow.location.hash = slug;
+    var body = ov.querySelector('.kk-storvy-body');
+    // Rensa ev. gammal klon FÖRST, så vi sen hittar den LEVANDE dossiern (ej en klon)
+    body.innerHTML = '';
+    var live = document.querySelector('.kkref .doss');
+    if (live) {
+      // .kkref-wrapper så scoped dossier-CSS (html[data-v9-enabled] .kkref .doss ...) gäller
+      body.innerHTML = '<div class="kkref"></div>';
+      body.querySelector('.kkref').appendChild(live.cloneNode(true));
+    } else {
+      body.innerHTML = '<div style="padding:28px;color:#6b6052">Öppna en kund först.</div>';
+    }
     ov.classList.add('open');
+    requestAnimationFrame(function () {
+      var esc1 = function (s) {
+        return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"');
+      };
+      var target = null;
+      if (entryId) target = body.querySelector('[data-jentry="' + esc1(entryId) + '"]');
+      if (!target && slug) target = body.querySelector('[data-sek="' + esc1(slug) + '"]');
+      if (target) {
+        var det = target.closest('details');
+        if (det) det.open = true;
+        if (target.tagName === 'DETAILS') target.open = true;
+        var top =
+          target.getBoundingClientRect().top -
+          body.getBoundingClientRect().top +
+          body.scrollTop -
+          14;
+        body.scrollTo({ top: top, behavior: 'smooth' });
+        target.classList.add('kk-flash');
+        setTimeout(function () {
+          target.classList.remove('kk-flash');
+        }, 1200);
+      } else {
+        body.scrollTo({ top: 0 });
+      }
+    });
   };
 
   // Mappar app-sektionens rubrik → gemensamma kortets sektions-slug

@@ -10223,6 +10223,7 @@ const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
 const { createCcoCustomerCommRouter } = require('./src/routes/ccoCustomerComm');
 const { createCcoStaffRouter } = require('./src/routes/ccoStaff');
 const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
+const { createCcoPatientPaymentsRouter } = require('./src/routes/ccoPatientPayments');
 const { createCcoReadCache } = require('./src/infra/ccoReadCache');
 const {
   createCcoStaffDashboardSnapshot,
@@ -12345,6 +12346,24 @@ process.once('SIGTERM', () => {
       buildPatientDocumentBundle,
       readCache: ccoReadCache,
       resolvePatientAssetStore: async () => app.locals.ccoPatientAssetStore || null,
+      swishStore: ccoSwishStore,
+      commercialStore: ccoCommercialStore,
+      fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister || null,
+      fortnoxStore: ccoFortnoxStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoPatientPaymentsRouter({
+      patientMasterStore: ccoPatientMasterStore,
+      swishStore: ccoSwishStore,
+      commercialStore: ccoCommercialStore,
+      integrationStore: ccoIntegrationStore,
       authStore,
       config,
       requireAuth: auth.requireAuth,
