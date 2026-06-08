@@ -1500,7 +1500,7 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
 html[data-v9-enabled="on"] .kk-ov {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 9999;
   background: rgba(43, 37, 31, 0.32);
   backdrop-filter: blur(3px);
   display: flex;
