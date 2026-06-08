@@ -137,7 +137,7 @@ function createDriveClientFromEnv() {
     async getFileMetadata(driveFileId) {
       const result = await getDriveFileMetadata({
         driveFileId,
-        fields: 'id,name,mimeType,size,modifiedTime',
+        fields: 'id,name,mimeType,size,modifiedTime,createdTime',
         accessToken: await accessToken(),
       });
       if (!result.ok) throw new Error(result.error || 'Drive metadata misslyckades.');

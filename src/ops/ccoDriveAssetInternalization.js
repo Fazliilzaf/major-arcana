@@ -246,16 +246,31 @@ function inventoryDriveAssets({ rows = [], assetStore = null, sampleSize = 5 } =
   };
 }
 
-async function resolveDriveFileName(row, driveClient) {
+function metadataDocumentDate(row, metadata = {}) {
+  return (
+    normalizeText(metadata.modifiedTime).slice(0, 10) ||
+    normalizeText(metadata.createdTime).slice(0, 10) ||
+    row.documentDate ||
+    null
+  );
+}
+
+async function resolveDriveFileMetadata(row, driveClient) {
   if (typeof driveClient?.getFileMetadata === 'function') {
     const metadata = await driveClient.getFileMetadata(row.driveFileId);
-    return normalizeText(metadata?.name) || row.originalFileName;
+    return {
+      name: normalizeText(metadata?.name) || row.originalFileName,
+      documentDate: metadataDocumentDate(row, metadata),
+    };
   }
   if (typeof driveClient?.getDriveFileName === 'function') {
     const result = await driveClient.getDriveFileName(row.driveFileId);
-    return normalizeText(result?.name) || row.originalFileName;
+    return {
+      name: normalizeText(result?.name) || row.originalFileName,
+      documentDate: row.documentDate || null,
+    };
   }
-  return row.originalFileName;
+  return { name: row.originalFileName, documentDate: row.documentDate || null };
 }
 
 async function downloadDriveFile(row, driveClient) {
@@ -324,8 +339,8 @@ async function internalizeDriveAssets({
         baseDelayMs: driveRetryBaseDelayMs,
         maxDelayMs: driveRetryMaxDelayMs,
       };
-      const driveName = await withDriveRetry(
-        () => resolveDriveFileName(row, driveClient),
+      const driveMetadata = await withDriveRetry(
+        () => resolveDriveFileMetadata(row, driveClient),
         retryOptions
       );
       const body = await withDriveRetry(() => downloadDriveFile(row, driveClient), retryOptions);
@@ -339,9 +354,9 @@ async function internalizeDriveAssets({
           sourceRecordId: row.sourceRecordId,
           originalDriveFileId: row.driveFileId,
           originalDrivePath: row.originalDrivePath,
-          originalFileName: driveName,
+          originalFileName: driveMetadata.name,
           mimeType: row.mimeType,
-          documentDate: row.documentDate,
+          documentDate: driveMetadata.documentDate,
           body,
         },
       });
@@ -354,7 +369,8 @@ async function internalizeDriveAssets({
           patientId: maskValue(row.patientId, { keepStart: 4, keepEnd: 4 }),
           driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
           assetId: maskValue(result.asset?.id, { keepStart: 4, keepEnd: 4 }),
-          name: maskValue(driveName, { keepStart: 1, keepEnd: 1 }),
+          name: maskValue(driveMetadata.name, { keepStart: 1, keepEnd: 1 }),
+          documentDate: driveMetadata.documentDate,
         });
       }
     } catch (error) {
