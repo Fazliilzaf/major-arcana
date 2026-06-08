@@ -886,6 +886,9 @@
         return {
           rubrik: 'Skicka behandlingsplan/offert',
           kund: true,
+          sendEndpoint: '/api/v1/cco-commercial/offer-send-for-sign',
+          sendLabel: 'Skicka offert för signering',
+          urlKey: 'offerSignUrl',
           text:
             'Hej ' +
             namn +
@@ -895,6 +898,9 @@
         return {
           rubrik: 'Påminn om avtal + samtycke',
           kund: true,
+          sendEndpoint: '/api/v1/cco-treatment-agreement/send-for-sign',
+          sendLabel: 'Skicka avtal för signering',
+          urlKey: 'agreementSignUrl',
           text:
             'Hej ' +
             namn +
@@ -938,7 +944,12 @@
         '<div class="kk-sigact-row">' +
         (u.kund
           ? '<button type="button" class="kk-btn" data-kk-sig-copy>Kopiera utkast</button>' +
-            '<button type="button" class="kk-btn kk-btn-gold" data-kk-sig-studio>✉ Öppna i Svarstudio</button>'
+            '<button type="button" class="kk-btn" data-kk-sig-studio>✉ Svarstudio</button>'
+          : '') +
+        (u.sendEndpoint
+          ? '<button type="button" class="kk-btn kk-btn-gold" data-kk-sig-send>' +
+            esc(u.sendLabel || 'Skicka för signering') +
+            '</button>'
           : '') +
         '<button type="button" class="kk-btn" data-kk-sig-close>Stäng</button>' +
         '</div></div>';
@@ -950,11 +961,76 @@
           ev.target.textContent = 'Kopierat ✓';
         }
         if (ev.target.hasAttribute('data-kk-sig-studio')) {
-          // Säkert: kopiera utkastet + öppna Svarstudio (receptionisten granskar & skickar)
           if (navigator.clipboard) navigator.clipboard.writeText(u.text);
           ov.remove();
           var studio = document.querySelector('[data-studio-open]');
           if (studio) studio.click();
+        }
+        if (ev.target.hasAttribute('data-kk-sig-send')) {
+          var pid = (document.querySelector('.kkref .kk-attend') || {}).getAttribute
+            ? document.querySelector('.kkref .kk-attend').getAttribute('data-patient-id')
+            : '';
+          if (!pid) {
+            ev.target.textContent = 'Kund-ID saknas';
+            return;
+          }
+          if (
+            !window.confirm(
+              (u.sendLabel || 'Skicka för signering') +
+                ' till ' +
+                fnamn() +
+                '? Detta startar signeringsflödet.'
+            )
+          )
+            return;
+          var token = '';
+          try {
+            token = (
+              window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+              window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+              ''
+            ).trim();
+          } catch (er) {
+            /* ignore */
+          }
+          var hdrs = { 'Content-Type': 'application/json' };
+          if (token && token !== '__preview_local__') hdrs.Authorization = 'Bearer ' + token;
+          ev.target.textContent = 'Skickar…';
+          fetch(u.sendEndpoint, {
+            method: 'POST',
+            headers: hdrs,
+            body: JSON.stringify({ patientId: pid }),
+          })
+            .then(function (r) {
+              return r.json().then(function (j) {
+                return { status: r.status, j: j };
+              });
+            })
+            .then(function (res) {
+              var draft = ov.querySelector('.kk-sigact-draft');
+              if (res.status === 200) {
+                var url = res.j[u.urlKey] || '';
+                if (draft)
+                  draft.innerHTML =
+                    '<b>✓ Skickat för signering.</b><br>Länk: <span style="word-break:break-all">' +
+                    esc(url) +
+                    '</span>';
+                ev.target.textContent = 'Skickat ✓';
+                ev.target.disabled = true;
+              } else {
+                if (draft)
+                  draft.innerHTML =
+                    '<b>Kunde inte skicka:</b> ' +
+                    esc(res.j.error || 'fel') +
+                    (res.status === 404
+                      ? '<br><span style="color:#94897b">Dokumentet finns inte än — skapa avtal/offert först.</span>'
+                      : '');
+                ev.target.textContent = u.sendLabel || 'Skicka';
+              }
+            })
+            .catch(function () {
+              ev.target.textContent = 'Nätfel — försök igen';
+            });
         }
       });
     });
