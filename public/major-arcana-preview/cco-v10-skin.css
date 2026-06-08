@@ -1457,14 +1457,13 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
   .v10-dossier-referens
   .kkref
   details.dossier-section {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
-  border-radius: 14px;
-  box-shadow:
-    0 3px 10px rgba(56, 40, 28, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
-  padding: 14px 16px;
-  margin: 0 0 12px;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0 0 6px;
   border: none;
+  border-bottom: 1px solid rgba(215, 202, 194, 0.4);
 }
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
   .v10-dossier-referens
@@ -1851,14 +1850,13 @@ html[data-v9-enabled="on"] .kkref .doss .summ .summ-k {
 }
 /* Sektionskort */
 html[data-v9-enabled="on"] .kkref .doss .sec {
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 10px;
-  background: linear-gradient(180deg, #ffffff, #f7f1ec);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow:
-    0 3px 10px rgba(56, 40, 28, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 6px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(215, 202, 194, 0.4);
+  box-shadow: none;
 }
 html[data-v9-enabled="on"] .kkref .doss .sec .lab {
   font-size: 9px;
