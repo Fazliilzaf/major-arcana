@@ -1857,3 +1857,11 @@ html[data-v9-enabled="on"] .kkref .doss .sec .lab {
   text-transform: uppercase;
   color: #94897b;
 }
+
+/* Lager 20b: stat-subtext (.s3 .k .s) som FACIT */
+html[data-v9-enabled="on"] .kkref .doss .s3 .k .s {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #4a8268;
+  margin-top: 1px;
+}
