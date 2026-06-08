@@ -775,11 +775,16 @@
         jType: j.journalType || '',
       };
     });
+    // "Vad som kommer näst": närmaste kommande bokning = AKTIV journal (orange, Inför),
+    // resten = streckade kommande. Hoppa över om det redan finns en aktiv riktig journal.
+    var jHasRealAct = jItems.some(function (it) {
+      return it.st === 'act';
+    });
     var jPlanned = A(up)
       .slice(0, 4)
-      .map(function (b) {
+      .map(function (b, i) {
         return {
-          st: 'todo',
+          st: !jHasRealAct && i === 0 ? 'act' : 'todo',
           planned: true,
           date: jDate10(b.dateLabel || b.date || b.startAt),
           title: b.title || b.serviceName || 'behandling',
