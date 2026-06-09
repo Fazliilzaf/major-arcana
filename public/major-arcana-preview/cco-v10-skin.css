@@ -3096,6 +3096,37 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 #kk-storvy .gk-rad .gk-hl {
   margin-left: auto;
 }
+/* Personal: klickbara namn → åtgärds-rad (#47) */
+#kk-storvy .gk-rad.gk-person {
+  cursor: pointer;
+  border-radius: 7px;
+  padding-left: 6px;
+  padding-right: 6px;
+  margin: 0 -6px;
+  transition: background 0.12s ease;
+}
+#kk-storvy .gk-rad.gk-person:hover,
+#kk-storvy .gk-rad.gk-person:focus-visible {
+  background: rgba(93, 74, 60, 0.06);
+  outline: none;
+}
+#kk-storvy .gk-rad.gk-person .gk-person-chev {
+  margin-left: auto;
+  color: #b7ada0;
+  font-size: 15px;
+  line-height: 1;
+}
+#kk-storvy .gk-person-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px 10px;
+  border-bottom: 1px solid rgba(93, 74, 60, 0.06);
+}
+#kk-storvy .gk-person-actions .gk-person-note {
+  flex-basis: 100%;
+}
 #kk-storvy .gk-tag {
   font-size: 10px;
   font-weight: 700;

@@ -681,12 +681,14 @@
     var persRows = persNames
       .map(function (n) {
         return (
-          '<div class="gk-rad"><b>' +
+          '<div class="gk-rad gk-person" data-gk-person="' +
+          esc(n) +
+          '" role="button" tabindex="0" title="Klicka för åtgärder"><b>' +
           esc(n) +
           '</b> <span class="gk-sub">' +
           persMap[n] +
           (persMap[n] === 1 ? ' journal' : ' journaler') +
-          '</span></div>'
+          '</span><span class="gk-person-chev" aria-hidden="true">›</span></div>'
         );
       })
       .join('');
@@ -769,6 +771,48 @@
         var sel = p.getAttribute('data-gk-proxy');
         var el = document.querySelector('.kkref .doss ' + sel) || document.querySelector(sel);
         if (el && el.click) el.click();
+        return;
+      }
+      // Personal: åtgärds-knapp i öppnad rad (tilldela/kontakta — wiras i nästa steg)
+      var pact = e.target.closest && e.target.closest('[data-gk-person-act]');
+      if (pact) {
+        e.preventDefault();
+        var actKind = pact.getAttribute('data-gk-person-act');
+        var actName = pact.getAttribute('data-name') || '';
+        var note = pact.parentNode && pact.parentNode.querySelector('.gk-person-note');
+        if (note) {
+          note.textContent =
+            (actKind === 'task' ? 'Tilldela uppgift till ' : 'Kontakta ') +
+            actName +
+            ' — kopplas i nästa steg.';
+        }
+        return;
+      }
+      // Personal: klick på namn → toggla åtgärds-rad
+      var per = e.target.closest && e.target.closest('[data-gk-person]');
+      if (per) {
+        e.preventDefault();
+        var nxt = per.nextSibling;
+        if (nxt && nxt.classList && nxt.classList.contains('gk-person-actions')) {
+          nxt.parentNode.removeChild(nxt);
+          return;
+        }
+        [].forEach.call(document.querySelectorAll('.gk-person-actions'), function (o) {
+          if (o.parentNode) o.parentNode.removeChild(o);
+        });
+        var nm = per.getAttribute('data-gk-person') || '';
+        var nmAttr = nm.replace(/"/g, '&quot;');
+        var bar = document.createElement('div');
+        bar.className = 'gk-person-actions';
+        bar.innerHTML =
+          '<button type="button" class="gk-btn" data-gk-person-act="task" data-name="' +
+          nmAttr +
+          '">Tilldela uppgift</button>' +
+          '<button type="button" class="gk-btn" data-gk-person-act="contact" data-name="' +
+          nmAttr +
+          '">Kontakta</button>' +
+          '<span class="gk-person-note gk-sub"></span>';
+        per.parentNode.insertBefore(bar, per.nextSibling);
         return;
       }
       var s = e.target.closest && e.target.closest('[data-gk-sum]');
