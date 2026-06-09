@@ -323,6 +323,15 @@
     var oppSignals = signals.filter(function (s) {
       return !isBlockerSignal(s);
     });
+    // Header-pill: friskförsäkran saknas (ur gate-signal, frontend — VIP/engagemang/PRP-kur via ORD-39)
+    if (
+      gateSignals.some(function (s) {
+        return /operation_day_insurance/.test(String((s && (s.ruleId || s.id)) || ''));
+      })
+    ) {
+      tags +=
+        '<span class="dtag" style="background:#f6e3e3;color:#b94a4a">⚠ Friskförs. saknas</span>';
+    }
     // Datadrivna möjligheter (klientsida, ur data vi redan har) — merförsäljning/mönster.
     (function addComputedInsights() {
       var up = A(ctxExtras.upcomingBookings);
