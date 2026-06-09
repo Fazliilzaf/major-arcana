@@ -104,6 +104,68 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(sig.nextBookingType, 'Konsultation');
     assert.equal(sig.nextBookingResourceLabel, 'Egzona');
     assert.equal(sig.engineBookingId, 'cl-1');
+    assert.equal(sig.upcomingBookings.length, 1);
+    assert.equal(sig.upcomingBookings[0].serviceName, 'Konsultation');
+  });
+
+  it('exposes internal upcomingBookings and dedupes internal over Cliento', () => {
+    const future = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
+    const patients = [
+      { id: 'p37', primaryEmail: 'ord37@example.com', emails: [], flags: [], fileSummary: {} },
+    ];
+    const { index } = buildBookingSignalsIndex({
+      patients,
+      engineBookings: [],
+      bookingCases: [
+        {
+          tenantId: 't1',
+          bookingCaseId: 'case-37',
+          customerEmail: 'ord37@example.com',
+          status: 'confirmed_external',
+          selectedSlots: [
+            {
+              slotId: 'slot-37',
+              startsAt: future,
+              serviceLabel: 'PRP',
+              resourceLabel: 'Fazli',
+            },
+          ],
+        },
+      ],
+      encounters: [],
+      clientoBookings: [
+        {
+          bookingId: 'cl-37',
+          customerEmail: 'ord37@example.com',
+          startsAt: future,
+          status: 'upcoming',
+          serviceLabel: 'PRP',
+          staffName: 'Egzona',
+        },
+      ],
+    });
+    const sig = getBookingSignals(index, 'p37');
+    assert.equal(sig.hasUpcomingBooking, true);
+    assert.equal(sig.upcomingBookings.length, 1);
+    assert.equal(sig.upcomingBookings[0].source, 'cco_booking_store');
+    assert.equal(sig.upcomingBookings[0].staff, 'Fazli');
+    assert.equal(sig.historyBookings.length, 0);
+  });
+
+  it('exposes empty booking lists for patient without bookings', () => {
+    const patients = [
+      { id: 'p-empty', primaryEmail: 'empty@example.com', emails: [], flags: [], fileSummary: {} },
+    ];
+    const { index } = buildBookingSignalsIndex({
+      patients,
+      engineBookings: [],
+      bookingCases: [],
+      encounters: [],
+      clientoBookings: [],
+    });
+    const sig = getBookingSignals(index, 'p-empty');
+    assert.deepEqual(sig.upcomingBookings, []);
+    assert.deepEqual(sig.historyBookings, []);
   });
 
   it('counts Cliento no_show without treating as completed visit', () => {

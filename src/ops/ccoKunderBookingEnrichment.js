@@ -149,6 +149,8 @@ function emptyBookingSignals() {
     readyForTreatment: null,
     conversationId: null,
     engineBookingId: null,
+    upcomingBookings: [],
+    historyBookings: [],
   };
 }
 
@@ -209,6 +211,177 @@ function resolvePatientIdFromClientoBooking(clientoBooking, lookup) {
     return lookup.phoneToPatient.get(phone);
   }
   return null;
+}
+
+function buildBookingDedupeKey(patientId, startsAt, serviceName) {
+  const day = slotDateKey(startsAt);
+  const time = normalizeText(startsAt).slice(11, 16);
+  const type = normalizeKey(serviceName);
+  return [normalizeText(patientId), day, time, type].join('::');
+}
+
+function bookingDateLabel(startsAt) {
+  const day = slotDateKey(startsAt);
+  if (!day) return '';
+  return day;
+}
+
+function bookingTimeLabel(startsAt) {
+  return normalizeText(startsAt).slice(11, 16);
+}
+
+function normalizeBookingReadout({
+  patientId,
+  startsAt,
+  endsAt = '',
+  durationMinutes = null,
+  serviceId = '',
+  serviceLabel = '',
+  resourceLabel = '',
+  status = 'confirmed',
+  source = 'internal',
+  id = '',
+} = {}) {
+  const start = normalizeText(startsAt);
+  const pid = normalizeText(patientId);
+  if (!pid || !start) return null;
+  const title =
+    serviceIdToTreatmentLabel(serviceId) ||
+    normalizeText(serviceLabel) ||
+    encounterTypeToTreatmentLabel(serviceId) ||
+    'Bokning';
+  const end = normalizeText(endsAt);
+  let resolvedDuration = Number(durationMinutes);
+  if (!Number.isFinite(resolvedDuration) && start && end) {
+    const diff = Date.parse(end) - Date.parse(start);
+    if (Number.isFinite(diff) && diff > 0) resolvedDuration = Math.round(diff / 60000);
+  }
+  return {
+    id: normalizeText(id) || buildBookingDedupeKey(pid, start, title),
+    patientId: pid,
+    date: bookingDateLabel(start),
+    dateLabel: bookingDateLabel(start),
+    time: bookingTimeLabel(start),
+    startsAt: start,
+    startAt: start,
+    endsAt: end || null,
+    duration: Number.isFinite(resolvedDuration) ? resolvedDuration : null,
+    durationMinutes: Number.isFinite(resolvedDuration) ? resolvedDuration : null,
+    title,
+    serviceName: title,
+    staff: normalizeText(resourceLabel) || null,
+    resourceLabel: normalizeText(resourceLabel) || null,
+    status: normalizeText(status) || 'confirmed',
+    source,
+  };
+}
+
+function collectBookingReadouts({
+  patients = [],
+  engineBookings = [],
+  bookingCases = [],
+  clientoBookings = [],
+  lookup = buildPatientLookupMaps(patients),
+} = {}) {
+  const emailToPatient = lookup.emailToPatient;
+  const rows = [];
+  const push = (row) => {
+    if (row) rows.push(row);
+  };
+
+  for (const booking of asArray(engineBookings)) {
+    const patientId = emailToPatient.get(normalizeEmail(booking.customerEmail));
+    if (!patientId) continue;
+    const slot = asObject(booking.slot);
+    push(
+      normalizeBookingReadout({
+        patientId,
+        id: booking.bookingId,
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        durationMinutes: slot.durationMinutes,
+        serviceId: slot.serviceId,
+        serviceLabel: slot.serviceLabel,
+        resourceLabel: slot.resourceLabel,
+        status: booking.status,
+        source: 'cco_booking_engine',
+      })
+    );
+  }
+
+  for (const bookingCase of asArray(bookingCases)) {
+    const patientId = emailToPatient.get(normalizeEmail(bookingCase.customerEmail));
+    if (!patientId) continue;
+    for (const slot of asArray(bookingCase.selectedSlots)) {
+      const safeSlot = asObject(slot);
+      push(
+        normalizeBookingReadout({
+          patientId,
+          id: `${normalizeText(bookingCase.bookingCaseId)}:${normalizeText(safeSlot.slotId)}`,
+          startsAt: safeSlot.startsAt,
+          endsAt: safeSlot.endsAt,
+          durationMinutes: safeSlot.durationMinutes,
+          serviceId: safeSlot.serviceId,
+          serviceLabel: safeSlot.serviceLabel,
+          resourceLabel: safeSlot.resourceLabel,
+          status:
+            normalizeKey(bookingCase.status) === 'confirmed_external'
+              ? 'confirmed'
+              : bookingCase.status,
+          source: 'cco_booking_store',
+        })
+      );
+    }
+  }
+
+  for (const clientoBooking of asArray(clientoBookings)) {
+    const patientId = resolvePatientIdFromClientoBooking(clientoBooking, lookup);
+    if (!patientId) continue;
+    if (normalizeKey(clientoBooking.status) === 'cancelled') continue;
+    push(
+      normalizeBookingReadout({
+        patientId,
+        id: clientoBooking.bookingId,
+        startsAt: clientoBooking.startsAt,
+        endsAt: clientoBooking.endsAt,
+        durationMinutes: clientoBooking.durationMinutes,
+        serviceLabel: clientoBooking.serviceLabel,
+        resourceLabel: clientoBooking.staffName,
+        status: clientoBooking.status,
+        source: 'cliento',
+      })
+    );
+  }
+
+  const byPatient = new Map();
+  const sourceRank = {
+    cco_booking_engine: 30,
+    cco_booking_store: 20,
+    cliento: 10,
+  };
+  for (const row of rows) {
+    const key = buildBookingDedupeKey(row.patientId, row.startsAt, row.serviceName || row.title);
+    const existing = byPatient.get(key);
+    if (!existing || (sourceRank[row.source] || 0) > (sourceRank[existing.source] || 0)) {
+      byPatient.set(key, row);
+    }
+  }
+
+  const now = Date.now();
+  const out = new Map();
+  for (const row of byPatient.values()) {
+    if (!out.has(row.patientId)) {
+      out.set(row.patientId, { upcomingBookings: [], historyBookings: [] });
+    }
+    const bucket = out.get(row.patientId);
+    if (isFutureVisit(row.startsAt, now)) bucket.upcomingBookings.push(row);
+    else bucket.historyBookings.push(row);
+  }
+  for (const value of out.values()) {
+    value.upcomingBookings.sort((a, b) => (parseMs(a.startsAt) || 0) - (parseMs(b.startsAt) || 0));
+    value.historyBookings.sort((a, b) => (parseMs(b.startsAt) || 0) - (parseMs(a.startsAt) || 0));
+  }
+  return out;
 }
 
 function bumpActivityAt(sig, iso) {
@@ -318,6 +491,13 @@ function buildBookingSignalsIndex({
   const lookup = buildPatientLookupMaps(patients);
   const emailToPatient = lookup.emailToPatient;
   const conversationToPatient = new Map();
+  const bookingReadoutsByPatient = collectBookingReadouts({
+    patients,
+    engineBookings,
+    bookingCases,
+    clientoBookings,
+    lookup,
+  });
 
   for (const patient of asArray(patients)) {
     const sig = getOrCreate(index, patient.id);
@@ -444,6 +624,13 @@ function buildBookingSignalsIndex({
     sig.readyForTreatment = null;
   }
 
+  for (const [patientId, readouts] of bookingReadoutsByPatient) {
+    const sig = getOrCreate(index, patientId);
+    if (!sig) continue;
+    sig.upcomingBookings = readouts.upcomingBookings;
+    sig.historyBookings = readouts.historyBookings;
+  }
+
   return { index, emailToPatient, conversationToPatient, lookup };
 }
 
@@ -490,6 +677,9 @@ function applyBookingToReadout(readout, bookingSignals) {
   readout.missingEncounterForBooking = sig.missingEncounterForBooking;
   readout.readyForVisit = sig.readyForVisit;
   readout.readyForTreatment = sig.readyForTreatment ?? sig.readyForVisit;
+  readout.upcomingBookings = asArray(sig.upcomingBookings);
+  readout.bookingHistory = asArray(sig.historyBookings);
+  readout.historyBookings = asArray(sig.historyBookings);
   if (sig.onWaitlist)
     readout.reviewFlags = [...new Set([...asArray(readout.reviewFlags), 'waitlist'])];
   if (sig.missingEncounterForBooking) {

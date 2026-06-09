@@ -26,6 +26,11 @@ const {
   applyNativeJournalFilesForPilot,
   pilotSummary,
 } = require('../ops/ccoDriveJournalNativePilot');
+const {
+  applyBookingToReadout,
+  getBookingSignals,
+  loadKunderBookingIndex,
+} = require('../ops/ccoKunderBookingEnrichment');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -329,6 +334,32 @@ function createCcoPatientMasterRouter({
     patient,
     { includeJournal = true, includeDriveFiles = true } = {}
   ) {
+    let card = patientMasterStore.buildPatientCardReadout(patient);
+    let bookingContext = {
+      upcomingBookings: [],
+      historyBookings: [],
+      coverage: 'missing',
+      sources: {},
+    };
+    try {
+      const bookingIndex = await loadKunderBookingIndex(config, actor.tenantId, [patient]);
+      const signals = getBookingSignals(bookingIndex.index, patient.id);
+      card = applyBookingToReadout(card, signals);
+      bookingContext = {
+        upcomingBookings: signals.upcomingBookings || [],
+        historyBookings: signals.historyBookings || [],
+        coverage: bookingIndex.coverage,
+        sources: bookingIndex.sources || {},
+      };
+    } catch {
+      bookingContext = {
+        upcomingBookings: [],
+        historyBookings: [],
+        coverage: 'error',
+        sources: {},
+      };
+    }
+
     let journalEntries = [];
     if (includeJournal && journalStore) {
       journalEntries = await journalStore.listEntries({
@@ -374,12 +405,20 @@ function createCcoPatientMasterRouter({
 
     return {
       patient,
-      card: patientMasterStore.buildPatientCardReadout(patient),
+      card,
       journalEntries: journalStore
         ? journalEntries.map((entry) => journalStore.buildJournalReadout(entry))
         : [],
       driveFiles: filesForUi,
       occasionTimeline: buildOccasionTimeline(filesForUi),
+      bookings: {
+        upcoming: bookingContext.upcomingBookings,
+        history: bookingContext.historyBookings,
+        coverage: bookingContext.coverage,
+        sources: bookingContext.sources,
+      },
+      upcomingBookings: bookingContext.upcomingBookings,
+      historyBookings: bookingContext.historyBookings,
       driveJournalNativePilot: nativePilotMeta,
       ...(await buildPaymentContext(actor, patient)),
     };
@@ -568,6 +607,9 @@ function createCcoPatientMasterRouter({
           patientId: patient.id,
           card: payload.card,
           journalEntries: payload.journalEntries,
+          bookings: payload.bookings,
+          upcomingBookings: payload.upcomingBookings || [],
+          historyBookings: payload.historyBookings || [],
           commercialCase: payload.commercialCase || null,
           paymentStatus: payload.paymentStatus || null,
           quotedAmount: payload.quotedAmount || null,
