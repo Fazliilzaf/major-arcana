@@ -60,11 +60,13 @@ const CCO_LIFECYCLE_AUDIT_STATES = new Set([
   'ARCHIVED',
 ]);
 const ccoLifecycleTrackerByTenant = new Map();
+// info@hairtpclinic.com borttagen 2026-06-09 — mailboxen auto-forwardar
+// till contact@ i M365 men dedupe-nyckeln inkluderar mailboxId, så att läsa
+// info@ utöver contact@ ger dubletter. Allowlist hålls smal medvetet.
 const CCO_GRAPH_READ_DEFAULT_ALLOWLIST = Object.freeze([
   'egzona@hairtpclinic.com',
   'contact@hairtpclinic.com',
   'fazli@hairtpclinic.com',
-  'info@hairtpclinic.com',
   'kons@hairtpclinic.com',
   'marknad@hairtpclinic.com',
   'receipt@hairtpclinic.com',
@@ -74,7 +76,7 @@ const CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET = new Set(
 );
 const CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS = Object.freeze([
   'kons@hairtpclinic.com',
-  'info@hairtpclinic.com',
+  // info@ borttagen 2026-06-09 — auto-forward i M365, dedupe-dubletter
   'contact@hairtpclinic.com',
   'egzona@hairtpclinic.com',
   'fazli@hairtpclinic.com',

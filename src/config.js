@@ -983,7 +983,11 @@ const config = {
       ? configured
       : [
           'kons@hairtpclinic.com',
-          'info@hairtpclinic.com',
+          // 'info@hairtpclinic.com' borttagen 2026-06-09 — auto-forwardar
+          // till contact@ i M365 (Deliver to both = ON), men dedupe-nyckeln
+          // inkluderar mailboxId så samma mejl i info@ + contact@ blir två
+          // separata leads i CCO. info@-läsning lämnas borta tills vidare;
+          // catch-all i M365 är kvar för historisk synlighet.
           'contact@hairtpclinic.com',
           'halso@hairtpclinic.com',
           'egzona@hairtpclinic.com',

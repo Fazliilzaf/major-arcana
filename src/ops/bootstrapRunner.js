@@ -91,10 +91,11 @@ function resolveMailboxIds(customMailboxes) {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
   if (envList.length > 0) return envList;
-  // Sista fallback — Hair TP-mailboxarna
+  // Sista fallback — Hair TP-mailboxarna (info@ borttagen 2026-06-09,
+  // auto-forwardar nu till contact@ i M365; dedupe-nyckel inkluderar
+  // mailboxId så dubbel-läsning ger dubletter — se src/config.js)
   return [
     'contact@hairtpclinic.com',
-    'info@hairtpclinic.com',
     'kons@hairtpclinic.com',
     'egzona@hairtpclinic.com',
     'fazli@hairtpclinic.com',
