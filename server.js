@@ -9162,6 +9162,21 @@ try {
     async (req, res) => {
       try {
         const { backfillAssetThumbnails } = require('./src/ops/ccoAssetThumbnailBackfill');
+        // Läs en rapport-JSON skriven av CLI-job till /var/data (observerbarhet)
+        if (req.query.readReport) {
+          const fsR = require('node:fs');
+          const pathR = require('node:path');
+          const base = pathR.basename(String(req.query.readReport));
+          const fp = pathR.join(process.env.ARCANA_STATE_ROOT || '/var/data', base);
+          try {
+            return res.json({
+              readReport: base,
+              content: JSON.parse(fsR.readFileSync(fp, 'utf8')),
+            });
+          } catch (e) {
+            return res.status(404).json({ error: 'report_not_found', path: fp, detail: e.message });
+          }
+        }
         const stores = await ensureAssetStores();
         const body = req.body || {};
         // Diagnos-läge: visa varför kandidater failar (mime/fil/sharp)
