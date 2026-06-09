@@ -302,21 +302,48 @@
       return (
         '<span class="gk-chip">' +
         esc(label) +
-        (n ? ' <span class="gk-n">' + esc(n) + '</span>' : '') +
-        (dot ? ' <span class="gk-dot"></span>' : '') +
+        (n || n === 0 ? ' <span class="gk-n">' + esc(n) + '</span>' : '') +
+        (dot ? ' <span class="gk-dot' + (dot === 'red' ? ' red' : '') + '"></span>' : '') +
         '</span>'
       );
     }
+    // Statusprickar (facit): orange = kräver åtgärd, röd = obetalt
+    var hdMiss = A2(ctx.gateSignals).some(function (s) {
+      return /missing_health|halso|hälso|health_declaration/i.test(
+        String((s && (s.ruleId || s.id)) || '')
+      );
+    });
+    var offPending = A2(ctx.offers).some(function (o) {
+      return !/godk|signed|accepted/i.test(o.status || '');
+    });
+    var ekoUnpaid = !!(
+      ctx.commercialCase &&
+      /pending|partial|deposit|blocked|väntar|obetal/i.test(
+        String(ctx.commercialCase.paymentStatus || '')
+      )
+    );
+    var persMap = {};
+    A2(ctx.jItems).forEach(function (it) {
+      if (it.by) persMap[it.by] = (persMap[it.by] || 0) + 1;
+    });
+    var persNames = Object.keys(persMap);
+    var autoN = A2(ctx.autoDocs).length;
+    var docN = A2(ctx.driveFiles).length;
     var nav =
       '<nav class="gk-nav">' +
-      chip('Hälsodeklaration') +
+      chip('Hälsodeklaration', '', hdMiss ? 'orange' : '') +
       chip('Kundresa', ctx.total) +
+      chip('Smart nästa steg', '', ctx.nextLabel ? 'orange' : '') +
       chip('Bokningar', A2(ctx.up).length) +
       chip('Historik', A2(ctx.hist).length) +
       chip('Journal', A2(ctx.jItems).length) +
-      chip('Offert', A2(ctx.offers).length) +
+      (persNames.length ? chip('Personal', persNames.length) : '') +
+      chip('Offert', A2(ctx.offers).length, offPending ? 'orange' : '') +
+      (autoN ? chip('Auto', autoN) : '') +
+      (docN ? chip('Dokument', docN) : '') +
       (imgs.length ? chip('Foto', imgs.length) : '') +
-      chip('Ekonomi') +
+      chip('Ekonomi', '', ekoUnpaid ? 'red' : '') +
+      chip('Ta bild') +
       '</nav>';
     var head =
       '<header class="gk-khead"><div class="gk-khead-row"><div class="gk-avatar">' +
@@ -335,12 +362,7 @@
 
     var body = '<div class="gk-body">';
 
-    // Hälsodeklaration
-    var hdMiss = A2(ctx.gateSignals).some(function (s) {
-      return /missing_health|halso|hälso|health_declaration/i.test(
-        String((s && (s.ruleId || s.id)) || '')
-      );
-    });
+    // Hälsodeklaration (hdMiss beräknat ovan)
     body += sek(
       'Hälsodeklaration',
       hdMiss
@@ -529,6 +551,82 @@
         grid
       );
     }
+
+    // Personal (behandlare ur journalerna)
+    if (persNames.length) {
+      var persRows = persNames
+        .map(function (n) {
+          return (
+            '<div class="gk-rad"><b>' +
+            esc(n) +
+            '</b> <span class="gk-sub">' +
+            persMap[n] +
+            (persMap[n] === 1 ? ' journal' : ' journaler') +
+            '</span></div>'
+          );
+        })
+        .join('');
+      body += sek(
+        'Personal',
+        '<span class="gk-pill gk-tag-info">' + persNames.length + '</span>',
+        persRows
+      );
+    }
+
+    // Auto-dokument
+    var autoR = A2(ctx.autoDocs)
+      .map(function (d) {
+        var done =
+          d.planned === false ||
+          /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''));
+        var step = d.journeyStep != null ? d.journeyStep : d.step;
+        return (
+          '<div class="gk-rad"><b>' +
+          esc(d.title || 'Auto-dokument') +
+          '</b>' +
+          (step != null && step !== ''
+            ? ' <span class="gk-sub">Steg ' + esc(step) + '</span>'
+            : '') +
+          ' <span class="gk-hl gk-tag ' +
+          (done ? 'gk-tag-ok' : 'gk-tag-warn') +
+          '">' +
+          (done ? '✓ levererat' : esc(d.statusLabel || 'Planerad')) +
+          '</span></div>'
+        );
+      })
+      .join('');
+    body += sek(
+      'Auto-dokument',
+      autoR ? '<span class="gk-pill gk-tag-info">' + A2(ctx.autoDocs).length + '</span>' : '',
+      autoR
+    );
+
+    // Dokument (alla filer)
+    var docR = A2(ctx.driveFiles)
+      .slice(0, 10)
+      .map(function (f) {
+        var nm = String(f.fileName || 'Fil').replace(/\.[a-z0-9]+$/i, '');
+        return (
+          '<div class="gk-rad"><b>' +
+          esc(nm) +
+          '</b> <span class="gk-hl gk-tag gk-tag-ok">Arkiverad</span></div>'
+        );
+      })
+      .join('');
+    body += sek(
+      'Dokument',
+      docR
+        ? '<span class="gk-pill gk-tag-info">' + A2(ctx.driveFiles).length + ' filer</span>'
+        : '',
+      docR
+    );
+
+    // Ta bild
+    body += sek(
+      'Ta bild',
+      '',
+      '<div class="gk-rad"><span class="gk-sub">Foto-samtycke · scope: hårlinje + krona, aldrig ansikte</span> <span class="gk-hl"><button class="gk-btn gk-btn-gold">📷 Ta bild</button></span></div>'
+    );
 
     body += '</div>';
     return '<div class="gk-kort">' + head + body + '</div>';
@@ -1895,6 +1993,7 @@
         hist: hist,
         gateSignals: gateSignals,
         driveFiles: driveFiles,
+        autoDocs: autoDocs,
         bundle: bundle,
         commercialCase: commercialCase,
       });
