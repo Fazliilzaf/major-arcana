@@ -505,7 +505,7 @@
           '</span></div>';
       }
       hdInner +=
-        '<div class="hdfoot kkx-foot">🔒 Endast visning · medicinsk data · ingen extern AI' +
+        '<div class="hdfoot kkx-foot">Medicinsk data · ingen extern AI' +
         (hdSource ? ' · ' + esc(hdSource) : '') +
         '</div>';
       h += sec('Hälsodeklaration', hdSigned ? esc(hdSource || 'Signerad') : '', hdInner);
