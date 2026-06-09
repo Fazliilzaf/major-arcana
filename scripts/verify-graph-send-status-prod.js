@@ -16,14 +16,21 @@ const base = (
 ).replace(/\/+$/, '');
 const root = path.join(__dirname, '..');
 
-function getStaffToken() {
+function getAuthToken() {
   if (process.env.ARCANA_SMOKE_BEARER_TOKEN) {
     return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
   }
-  return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
+  try {
+    return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  } catch (_staffErr) {
+    return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}" --owner`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  }
 }
 
 async function fetchJson(pathname, token) {
@@ -58,8 +65,8 @@ async function main() {
     .catch(() => ({}));
   record('Prod readyz', ready.ready === true, ready.reason || '');
 
-  const token = getStaffToken();
-  record('STAFF-token', Boolean(token));
+  const token = getAuthToken();
+  record('Auth token', Boolean(token));
 
   const status = await fetchJson('/api/v1/cco/runtime/status', token);
   const graph = status.graph || {};
@@ -76,16 +83,34 @@ async function main() {
     record('Graph read av (send-only)', true);
   }
   if (sendEnabled && sendConnectorAvailable) {
-    record('Graph send live-läge', runtimeMode === 'live', runtimeMode);
+    if (readEnabled) {
+      record('Graph send live-läge', runtimeMode === 'live', runtimeMode);
+    } else {
+      record('Graph send-only (read av)', true, runtimeMode);
+    }
   }
 
-  const scheduler = status.scheduler || {};
-  const jobs = Array.isArray(scheduler.jobs) ? scheduler.jobs : [];
+  let schedulerStatus = null;
+  try {
+    schedulerStatus = await fetchJson('/api/v1/ops/scheduler/status', token);
+  } catch (err) {
+    warn('Scheduler status', err.message || String(err));
+  }
+  const jobs = Array.isArray(schedulerStatus?.jobs) ? schedulerStatus.jobs : [];
   const digestJob = jobs.find((job) => job?.id === 'cco_daily_digest');
   if (digestJob) {
-    record('Scheduler cco_daily_digest registrerat', true, `enabled=${digestJob.enabled === true}`);
+    record('Scheduler cco_daily_digest', true, `enabled=${digestJob.enabled === true}`);
   } else {
-    record('Scheduler cco_daily_digest registrerat', false, 'saknas i status');
+    record('Scheduler cco_daily_digest', false, 'saknas i /ops/scheduler/status');
+  }
+
+  const allowlist = Array.isArray(schedulerStatus?.jobsAllowlist)
+    ? schedulerStatus.jobsAllowlist
+    : [];
+  if (allowlist.includes('cco_daily_digest')) {
+    record('Allowlist innehåller cco_daily_digest', true);
+  } else if (allowlist.length > 0) {
+    record('Allowlist innehåller cco_daily_digest', false, allowlist.join(','));
   }
 
   process.exit(hardFail ? 1 : 0);

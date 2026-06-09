@@ -98,7 +98,8 @@ async function main() {
     token,
     body: patch,
   });
-  const digest = updated?.config?.digest || {};
+  const readBack = await fetchJson('/api/v1/tenant-config', { token });
+  const digest = readBack?.config?.digest || updated?.config?.digest || {};
   if (digest.enabled !== true) fail('digest.enabled inte true efter PATCH');
   if (!Array.isArray(digest.recipients) || digest.recipients.length === 0) {
     fail('digest.recipients tom efter PATCH');
