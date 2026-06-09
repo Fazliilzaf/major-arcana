@@ -3929,3 +3929,37 @@
     runBulkExport,
   };
 })(typeof window !== 'undefined' ? window : global);
+
+/* ============================================================
+   Top-nav kundsök → återanvänder befintlig kundsök (additivt, ingen ny dataväg)
+   Speglar mockupens .global-search. Document-delegerat = timing-säkert.
+   ============================================================ */
+(function wireCcoTopnavSearch() {
+  if (typeof document === 'undefined') return;
+  if (window.__ccoTopnavSearchWired) return;
+  window.__ccoTopnavSearchWired = true;
+  function realInput() {
+    return document.querySelector('[data-v9-global-search-input]');
+  }
+  // Fokus på top-nav-söket → säkerställ att Kunder-vyn är aktiv så söken biter
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || typeof t.matches !== 'function' || !t.matches('[data-cco-topnav-search-input]'))
+      return;
+    if (!realInput()) {
+      var navBtn = document.querySelector('.preview-nav-item[data-nav-view="customers"]');
+      if (navBtn) navBtn.click();
+    }
+  });
+  // Skriv i top-nav-söket → spegla in i den befintliga kundsöken (driver setCustomerSearchQuery)
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t || typeof t.matches !== 'function' || !t.matches('[data-cco-topnav-search-input]'))
+      return;
+    var real = realInput();
+    if (real && real !== t) {
+      real.value = t.value;
+      real.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+})();

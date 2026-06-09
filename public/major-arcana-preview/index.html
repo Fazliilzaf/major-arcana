@@ -126,7 +126,7 @@
     <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-1ccb8f9" />
     <link rel="stylesheet" href="./cco-v9-shell-overrides.css?v=build-1ccb8f9" />
     <link rel="stylesheet" href="./cco-dossier-v9d.css?v=v9d-1" />
-    <link rel="stylesheet" href="./cco-v10-skin.css?v=v10-skin-jc" />
+    <link rel="stylesheet" href="./cco-v10-skin.css?v=v10-skin-36" />
     <script src="./booking-lazy-load.js?v=build-1ccb8f9"></script>
     <script src="./cco-polish.js?v=build-1ccb8f9" defer></script>
     <script src="./cco-mobile-core.js?v=build-1ccb8f9" defer></script>
@@ -454,6 +454,31 @@
                 </div>
               </div>
             </nav>
+            <label
+              class="cco-topnav-search"
+              data-cco-topnav-search
+              aria-label="Sök kund, bokning eller behandling"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="search"
+                data-cco-topnav-search-input
+                placeholder="Sök kund, bokning eller behandling…"
+                autocomplete="off"
+              />
+              <kbd class="cco-topnav-search-kbd">⌘K</kbd>
+            </label>
           </div>
 
           <div class="preview-topbar-right">
@@ -3577,7 +3602,7 @@
                     src="./app/cco-v9-interactions.js?v=build-cmdk-server-search"
                   ></script>
                   <script defer src="./app/cco-kundkort-referens.js?v=jnasta"></script>
-                  <script defer src="./app/cco-v9-customers-parity.js?v=kk-fas1"></script>
+                  <script defer src="./app/cco-v9-customers-parity.js?v=topnavsearch"></script>
                   <script defer src="./app/cco-kundkort-kkx.js?v=v10-finputs-journal-ux"></script>
                   <script defer src="./app/cco-kunder-smart-next-step.js?v=build-ord3"></script>
                   <script defer src="./app/cco-kunder-actions.js?v=build-ord3"></script>
