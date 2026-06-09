@@ -9141,6 +9141,48 @@ try {
     }
   );
 
+  // ── ORD-43: thumbnail-backfill via appens egna stores (observerbart svar) ──
+  // dry-run default; commit kräver confirmText. Kör mot app.locals-stores =
+  // samma sökväg/secure-storage som webb-appen → inga path-gissningar.
+  app.post(
+    '/api/v1/cco/asset-qa/backfill-thumbnails',
+    attachRole,
+    requirePermission('asset.write'),
+    async (req, res) => {
+      try {
+        const { backfillAssetThumbnails } = require('./src/ops/ccoAssetThumbnailBackfill');
+        const stores = await ensureAssetStores();
+        const body = req.body || {};
+        const commit = body.commit === true || String(req.query.commit || '') === '1';
+        const confirmText = body.confirmText || req.query.confirmText || '';
+        if (commit && confirmText !== 'BACKFILL THUMBNAILS') {
+          return res
+            .status(400)
+            .json({ error: 'confirmText_required', expected: 'BACKFILL THUMBNAILS' });
+        }
+        const limit = Math.max(0, Number(body.limit ?? req.query.limit ?? 100) || 0);
+        const offset = Math.max(0, Number(body.offset ?? req.query.offset ?? 0) || 0);
+        const report = await backfillAssetThumbnails({
+          assetStore: stores.assetStore,
+          storage: stores.secureStorage,
+          limit,
+          offset,
+          dryRun: !commit,
+          actor: { role: req.cco?.role || 'unknown', userId: 'ord-43-backfill-endpoint' },
+        });
+        invalidateAssetQaCache();
+        res.json(report);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({
+          error: err.message,
+          stack: String(err.stack || '')
+            .split('\n')
+            .slice(0, 3),
+        });
+      }
+    }
+  );
+
   // ── P0.G: Per-patient asset-listning för patientkort ──
   app.get(
     '/api/v1/cco/patients/:patientId/assets',
