@@ -192,7 +192,11 @@ async function runDigestForTenant({
   });
 
   // Persistera lastSentAt om vi lyckats
-  if (sendResult?.sent && tenantConfigStore && typeof tenantConfigStore.updateTenantConfig === 'function') {
+  if (
+    sendResult?.sent &&
+    tenantConfigStore &&
+    typeof tenantConfigStore.updateTenantConfig === 'function'
+  ) {
     try {
       await tenantConfigStore.updateTenantConfig({
         tenantId: safeTenantId,
@@ -205,7 +209,8 @@ async function runDigestForTenant({
         },
       });
     } catch (err) {
-      if (logger) logger.warn?.('[digest] kunde inte persistera lastSentAt', { error: err?.message });
+      if (logger)
+        logger.warn?.('[digest] kunde inte persistera lastSentAt', { error: err?.message });
     }
   }
 
@@ -243,9 +248,13 @@ async function runDailyDigestForAllTenants({
       continue;
     }
     try {
+      let tenantConfig = t;
+      if (typeof tenantConfigStore.getTenantConfig === 'function') {
+        tenantConfig = await tenantConfigStore.getTenantConfig(tenantId);
+      }
       const r = await runDigestForTenant({
         tenantId,
-        tenantConfig: t,
+        tenantConfig: tenantConfig || {},
         tenantConfigStore,
         ccoHistoryStore,
         graphSendConnector,

@@ -1,6 +1,10 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { TEMPLATE_CATEGORIES, normalizeCategory, isValidCategory } = require('../templates/constants');
+const {
+  TEMPLATE_CATEGORIES,
+  normalizeCategory,
+  isValidCategory,
+} = require('../templates/constants');
 const { VARIABLE_WHITELIST_BY_CATEGORY } = require('../templates/variables');
 const {
   buildDefaultPublicSiteProfile,
@@ -22,17 +26,8 @@ function normalizeText(value) {
   return value.trim();
 }
 
-const MARKETING_CONNECTOR_CHANNELS = Object.freeze([
-  'google_ads',
-  'meta',
-  'linkedin',
-  'mail',
-]);
-const MARKETING_CONNECTOR_PATCH_FIELDS = Object.freeze([
-  'adAccountId',
-  'customerId',
-  'enabled',
-]);
+const MARKETING_CONNECTOR_CHANNELS = Object.freeze(['google_ads', 'meta', 'linkedin', 'mail']);
+const MARKETING_CONNECTOR_PATCH_FIELDS = Object.freeze(['adAccountId', 'customerId', 'enabled']);
 
 function cloneMarketingConfig(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -43,6 +38,117 @@ function cloneMarketingConfig(value) {
   } catch {
     return { connectors: {} };
   }
+}
+
+const DIGEST_LOCALES = Object.freeze(['sv', 'en', 'de', 'dk']);
+const MAX_DIGEST_RECIPIENTS = 20;
+const MAX_DIGEST_SENDER_MAILBOX_LENGTH = 120;
+
+function normalizeDigestEmail(value) {
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    throw new Error(`Ogiltig digest-mottagare "${value}".`);
+  }
+  if (normalized.length > 120) {
+    throw new Error('digest-mottagare är för lång (max 120).');
+  }
+  return normalized;
+}
+
+function normalizeDigestConfig(value, { fallback = {}, strict = false } = {}) {
+  const base = {
+    enabled: false,
+    recipients: [],
+    sendHour: 6,
+    locale: 'sv',
+    senderMailbox: '',
+    lastSentAt: null,
+    lastError: null,
+  };
+  const fb = asPlainObject(fallback);
+  const source = value === undefined || value === null ? {} : asPlainObject(value);
+  if (
+    value !== undefined &&
+    value !== null &&
+    (typeof value !== 'object' || Array.isArray(value))
+  ) {
+    if (strict) throw new Error('digest måste vara ett objekt.');
+    return normalizeDigestConfig(undefined, { fallback: fb, strict: false });
+  }
+
+  const enabled = Object.prototype.hasOwnProperty.call(source, 'enabled')
+    ? source.enabled === true
+    : fb.enabled === true;
+
+  const recipientInput = Object.prototype.hasOwnProperty.call(source, 'recipients')
+    ? source.recipients
+    : fb.recipients;
+  const recipients = [];
+  const seen = new Set();
+  if (Array.isArray(recipientInput)) {
+    for (const raw of recipientInput) {
+      try {
+        const email = normalizeDigestEmail(raw);
+        if (!email || seen.has(email)) continue;
+        seen.add(email);
+        recipients.push(email);
+        if (recipients.length >= MAX_DIGEST_RECIPIENTS) break;
+      } catch (error) {
+        if (strict) throw error;
+      }
+    }
+  } else if (recipientInput !== undefined && recipientInput !== null && strict) {
+    throw new Error('digest.recipients måste vara en array.');
+  }
+
+  let sendHour = Object.prototype.hasOwnProperty.call(source, 'sendHour')
+    ? Number(source.sendHour)
+    : Number(fb.sendHour);
+  if (!Number.isFinite(sendHour)) sendHour = base.sendHour;
+  sendHour = Math.max(0, Math.min(23, Math.trunc(sendHour)));
+
+  const localeRaw = Object.prototype.hasOwnProperty.call(source, 'locale')
+    ? normalizeText(source.locale)
+    : normalizeText(fb.locale);
+  const locale = DIGEST_LOCALES.includes(localeRaw) ? localeRaw : base.locale;
+
+  let senderMailbox = Object.prototype.hasOwnProperty.call(source, 'senderMailbox')
+    ? normalizeText(source.senderMailbox).toLowerCase()
+    : normalizeText(fb.senderMailbox).toLowerCase();
+  if (senderMailbox.length > MAX_DIGEST_SENDER_MAILBOX_LENGTH) {
+    if (strict) throw new Error('digest.senderMailbox är för lång (max 120).');
+    senderMailbox = '';
+  }
+  if (senderMailbox && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderMailbox)) {
+    if (strict) throw new Error(`Ogiltig digest.senderMailbox "${senderMailbox}".`);
+    senderMailbox = '';
+  }
+
+  const lastSentAt = Object.prototype.hasOwnProperty.call(source, 'lastSentAt')
+    ? normalizeText(source.lastSentAt) || null
+    : normalizeText(fb.lastSentAt) || null;
+  const lastError = Object.prototype.hasOwnProperty.call(source, 'lastError')
+    ? source.lastError === null
+      ? null
+      : normalizeText(source.lastError) || null
+    : fb.lastError === null
+      ? null
+      : normalizeText(fb.lastError) || null;
+
+  return {
+    enabled,
+    recipients,
+    sendHour,
+    locale,
+    senderMailbox,
+    lastSentAt,
+    lastError,
+  };
+}
+
+function cloneDigestConfig(value) {
+  return normalizeDigestConfig(value, { strict: false });
 }
 
 function normalizeMarketingConnectorField(field, value) {
@@ -57,7 +163,10 @@ function normalizeMarketingConnectorField(field, value) {
   return text;
 }
 
-function normalizeMarketingConnectors(value, { fallback = { connectors: {} }, strict = true } = {}) {
+function normalizeMarketingConnectors(
+  value,
+  { fallback = { connectors: {} }, strict = true } = {}
+) {
   const base = cloneMarketingConfig(fallback);
   if (value === undefined || value === null) return base;
   if (typeof value !== 'object' || Array.isArray(value)) {
@@ -120,18 +229,8 @@ const TEMPLATE_SIGNATURE_CHANNELS = Object.freeze(['email', 'sms', 'internal']);
 const MAX_VARIABLES_PER_CATEGORY = 120;
 const MAX_SIGNATURE_LENGTH = 2000;
 const VARIABLE_NAME_REGEX = /^[a-z][a-z0-9_]{1,49}$/;
-const BRAND_COLOR_PALETTE_PRIMARY = Object.freeze([
-  '#1A73E8',
-  '#2B7FFF',
-  '#2563EB',
-  '#3B82F6',
-]);
-const BRAND_COLOR_PALETTE_ACCENT = Object.freeze([
-  '#A855F7',
-  '#9333EA',
-  '#8B5CF6',
-  '#C084FC',
-]);
+const BRAND_COLOR_PALETTE_PRIMARY = Object.freeze(['#1A73E8', '#2B7FFF', '#2563EB', '#3B82F6']);
+const BRAND_COLOR_PALETTE_ACCENT = Object.freeze(['#A855F7', '#9333EA', '#8B5CF6', '#C084FC']);
 const DEFAULT_BRAND_PRIMARY_COLOR = '#1A73E8';
 const DEFAULT_BRAND_ACCENT_COLOR = '#A855F7';
 const MAX_BRAND_LOGO_URL_LENGTH = 500;
@@ -162,10 +261,7 @@ async function writeJsonAtomic(filePath, data) {
 
 function cloneCategoryMap(input) {
   const output = {};
-  const source =
-    input && typeof input === 'object' && !Array.isArray(input)
-      ? input
-      : {};
+  const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   for (const category of TEMPLATE_CATEGORIES) {
     const values = Array.isArray(source[category]) ? source[category] : [];
     output[category] = [...values];
@@ -196,12 +292,7 @@ function normalizeBrandLogoUrl(value) {
   return normalized;
 }
 
-function normalizeBrandColor(value, {
-  fieldName,
-  palette,
-  fallback,
-  strict = true,
-} = {}) {
+function normalizeBrandColor(value, { fieldName, palette, fallback, strict = true } = {}) {
   const normalized = normalizeText(value).toUpperCase();
   if (!normalized) return fallback;
   if (!Array.isArray(palette) || !palette.includes(normalized)) {
@@ -228,12 +319,17 @@ function normalizeVariableList(list = [], { fieldName = 'variables', category = 
     output.push(normalized);
   }
   if (output.length > MAX_VARIABLES_PER_CATEGORY) {
-    throw new Error(`${fieldName}.${category} får max innehålla ${MAX_VARIABLES_PER_CATEGORY} variabler.`);
+    throw new Error(
+      `${fieldName}.${category} får max innehålla ${MAX_VARIABLES_PER_CATEGORY} variabler.`
+    );
   }
   return output;
 }
 
-function normalizeCategoryVariableMap(value, { fieldName, fallbackMap = null, strict = true } = {}) {
+function normalizeCategoryVariableMap(
+  value,
+  { fieldName, fallbackMap = null, strict = true } = {}
+) {
   const output = cloneCategoryMap(fallbackMap);
   if (value === undefined || value === null) return output;
 
@@ -264,10 +360,7 @@ function normalizeCategoryVariableMap(value, { fieldName, fallbackMap = null, st
 
 function cloneSignatures(input) {
   const output = {};
-  const source =
-    input && typeof input === 'object' && !Array.isArray(input)
-      ? input
-      : {};
+  const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   for (const channel of TEMPLATE_SIGNATURE_CHANNELS) {
     output[channel] = normalizeText(source[channel]);
   }
@@ -303,16 +396,15 @@ function normalizeSignaturesMap(value, { fieldName, fallbackMap = null, strict =
   return output;
 }
 
-function validateRequiredVariablesAgainstAllowed({
-  allowlistByCategory,
-  requiredByCategory,
-}) {
+function validateRequiredVariablesAgainstAllowed({ allowlistByCategory, requiredByCategory }) {
   for (const category of TEMPLATE_CATEGORIES) {
     const allowed = new Set([
       ...(VARIABLE_WHITELIST_BY_CATEGORY[category] || []),
       ...(Array.isArray(allowlistByCategory?.[category]) ? allowlistByCategory[category] : []),
     ]);
-    const required = Array.isArray(requiredByCategory?.[category]) ? requiredByCategory[category] : [];
+    const required = Array.isArray(requiredByCategory?.[category])
+      ? requiredByCategory[category]
+      : [];
     const invalid = required.filter((name) => !allowed.has(name));
     if (invalid.length) {
       throw new Error(
@@ -487,16 +579,14 @@ function sanitizeTenantConfig(config) {
     templateSignaturesByChannel: cloneSignatures(config.templateSignaturesByChannel),
     publicSite: clonePublicSiteProfile(config.publicSite),
     marketing: cloneMarketingConfig(config.marketing),
+    digest: cloneDigestConfig(config.digest),
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
     updatedBy: config.updatedBy || null,
   };
 }
 
-function buildDefaultConfig({
-  tenantId,
-  defaultBrand = '',
-}) {
+function buildDefaultConfig({ tenantId, defaultBrand = '' }) {
   const ts = nowIso();
   const initialRiskThreshold = buildRiskThresholdHistoryEntry({
     version: 1,
@@ -524,6 +614,7 @@ function buildDefaultConfig({
       defaultBrand,
     }),
     marketing: { connectors: {} },
+    digest: normalizeDigestConfig(undefined, { strict: false }),
     createdAt: ts,
     updatedAt: ts,
     updatedBy: null,
@@ -532,9 +623,8 @@ function buildDefaultConfig({
 
 function hydrateTenantConfig(rawConfig, { tenantId, defaultBrand }) {
   const fallback = buildDefaultConfig({ tenantId, defaultBrand });
-  const source = rawConfig && typeof rawConfig === 'object' && !Array.isArray(rawConfig)
-    ? rawConfig
-    : {};
+  const source =
+    rawConfig && typeof rawConfig === 'object' && !Array.isArray(rawConfig) ? rawConfig : {};
 
   const hydrated = {
     tenantId: normalizeTenantId(source.tenantId) || fallback.tenantId,
@@ -587,6 +677,10 @@ function hydrateTenantConfig(rawConfig, { tenantId, defaultBrand }) {
       strict: false,
     }),
     marketing: cloneMarketingConfig(source.marketing || fallback.marketing),
+    digest: normalizeDigestConfig(source.digest, {
+      fallback: fallback.digest,
+      strict: false,
+    }),
     createdAt: normalizeText(source.createdAt) || fallback.createdAt,
     updatedAt: normalizeText(source.updatedAt) || fallback.updatedAt,
     updatedBy: source.updatedBy || null,
@@ -601,7 +695,8 @@ function hydrateTenantConfig(rawConfig, { tenantId, defaultBrand }) {
   const latestHistory = riskThresholdHistory[riskThresholdHistory.length - 1] || null;
   if (
     !latestHistory ||
-    normalizeRiskModifier(latestHistory.riskSensitivityModifier) !== hydrated.riskSensitivityModifier
+    normalizeRiskModifier(latestHistory.riskSensitivityModifier) !==
+      hydrated.riskSensitivityModifier
   ) {
     const reconcileVersion = (parsePositiveInt(latestHistory?.version) || 0) + 1;
     riskThresholdHistory.push(
@@ -632,10 +727,7 @@ function hydrateTenantConfig(rawConfig, { tenantId, defaultBrand }) {
   return hydrated;
 }
 
-async function createTenantConfigStore({
-  filePath,
-  defaultBrand = '',
-}) {
+async function createTenantConfigStore({ filePath, defaultBrand = '' }) {
   const rawState = await readJson(filePath, emptyState());
   const state = {
     tenants:
@@ -786,8 +878,7 @@ async function createTenantConfigStore({
         strict: true,
       });
       if (
-        JSON.stringify(rawConfig.templateVariableAllowlistByCategory) !==
-        JSON.stringify(nextValue)
+        JSON.stringify(rawConfig.templateVariableAllowlistByCategory) !== JSON.stringify(nextValue)
       ) {
         rawConfig.templateVariableAllowlistByCategory = nextValue;
         changed = true;
@@ -801,8 +892,7 @@ async function createTenantConfigStore({
         strict: true,
       });
       if (
-        JSON.stringify(rawConfig.templateRequiredVariablesByCategory) !==
-        JSON.stringify(nextValue)
+        JSON.stringify(rawConfig.templateRequiredVariablesByCategory) !== JSON.stringify(nextValue)
       ) {
         rawConfig.templateRequiredVariablesByCategory = nextValue;
         changed = true;
@@ -843,6 +933,17 @@ async function createTenantConfigStore({
       }
     }
 
+    if (Object.prototype.hasOwnProperty.call(patch, 'digest')) {
+      const nextValue = normalizeDigestConfig(patch.digest, {
+        fallback: rawConfig.digest,
+        strict: true,
+      });
+      if (JSON.stringify(rawConfig.digest || {}) !== JSON.stringify(nextValue)) {
+        rawConfig.digest = nextValue;
+        changed = true;
+      }
+    }
+
     validateRequiredVariablesAgainstAllowed({
       allowlistByCategory: rawConfig.templateVariableAllowlistByCategory,
       requiredByCategory: rawConfig.templateRequiredVariablesByCategory,
@@ -872,24 +973,18 @@ async function createTenantConfigStore({
     return sanitizeTenantConfig(rawConfig);
   }
 
-  async function listRiskThresholdVersions({
-    tenantId,
-    limit = 20,
-  }) {
+  async function listRiskThresholdVersions({ tenantId, limit = 20 }) {
     const config = await getTenantConfig(tenantId);
     const parsedLimit = Number.parseInt(String(limit ?? ''), 10);
     const boundedLimit = Number.isFinite(parsedLimit)
       ? Math.max(1, Math.min(MAX_RISK_THRESHOLD_HISTORY, parsedLimit))
       : 20;
     const history = cloneRiskThresholdHistory(config?.riskThresholdHistory);
-    history.sort((a, b) => (Number(b?.version || 0) - Number(a?.version || 0)));
+    history.sort((a, b) => Number(b?.version || 0) - Number(a?.version || 0));
     return history.slice(0, boundedLimit);
   }
 
-  async function getRiskThresholdVersion({
-    tenantId,
-    version,
-  }) {
+  async function getRiskThresholdVersion({ tenantId, version }) {
     const targetVersion = parsePositiveInt(version);
     if (!targetVersion) {
       throw new Error('version måste vara ett positivt heltal.');
@@ -916,9 +1011,7 @@ async function createTenantConfigStore({
         createdAt: raw.createdAt || null,
         lastSeenAt: raw.lastSeenAt || null,
         featureFlags:
-          raw.featureFlags && typeof raw.featureFlags === 'object'
-            ? { ...raw.featureFlags }
-            : {},
+          raw.featureFlags && typeof raw.featureFlags === 'object' ? { ...raw.featureFlags } : {},
       });
     }
     // Sortera: aktiva först, sedan på createdAt desc

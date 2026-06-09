@@ -5,13 +5,13 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
-const { runDigestForTenant, runDailyDigestForAllTenants } = require('../../src/ops/dailyDigestRunner');
+const {
+  runDigestForTenant,
+  runDailyDigestForAllTenants,
+} = require('../../src/ops/dailyDigestRunner');
 
 test('runDigestForTenant throws without tenantId', async () => {
-  await assert.rejects(
-    () => runDigestForTenant({ tenantId: '  ', tenantConfig: {} }),
-    /tenantId/i,
-  );
+  await assert.rejects(() => runDigestForTenant({ tenantId: '  ', tenantConfig: {} }), /tenantId/i);
 });
 
 test('runDigestForTenant trims tenantId in dryRun result', async () => {
@@ -267,11 +267,9 @@ test('runDailyDigestForAllTenants marks disabled tenants and digest_disabled', a
 
   const r = await runDailyDigestForAllTenants({
     tenantConfigStore: {
-      listTenants: async () => [
-        { tenantId: 't-off', disabled: true },
-        { tenantId: 't-plain', digest: { enabled: false } },
-      ],
-      getTenantConfig: async () => ({}),
+      listTenants: async () => [{ tenantId: 't-off', disabled: true }, { tenantId: 't-plain' }],
+      getTenantConfig: async (tenantId) =>
+        tenantId === 't-plain' ? { digest: { enabled: false } } : {},
     },
     ccoHistoryStore,
     forceSend: false,

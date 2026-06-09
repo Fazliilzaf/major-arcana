@@ -62,7 +62,7 @@ services:
       - key: ARCANA_GRAPH_READ_ENABLED
         value: "false"
       - key: ARCANA_GRAPH_SEND_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_GRAPH_TENANT_ID
         sync: false
       - key: ARCANA_GRAPH_CLIENT_ID
@@ -186,12 +186,12 @@ services:
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
-      # Scheduler allowlist (steg 2 2026-06-06): alert_probe + backup_prune + dashboard snapshot.
-      # cco_daily_digest medvetet utelämnad tills Graph send är konfigurerad.
+      # Scheduler allowlist: alert_probe + backup_prune + dashboard snapshot + daily digest.
+      # Graph read fortfarande av — digest skickar via Graph sendMail (send-only).
       - key: ARCANA_SCHEDULER_ENABLED
         value: "true"
       - key: ARCANA_SCHEDULER_JOBS
-        value: "alert_probe,backup_prune,cco_dashboard_snapshot_refresh"
+        value: "alert_probe,backup_prune,cco_dashboard_snapshot_refresh,cco_daily_digest"
       # backup_prune: utan RUN_ON_STARTUP väntar första körningen ~24h efter boot och
       # missas vid deploy-churn. Med true: ~8s efter start för allowlistade jobb.
       - key: ARCANA_SCHEDULER_RUN_ON_STARTUP
