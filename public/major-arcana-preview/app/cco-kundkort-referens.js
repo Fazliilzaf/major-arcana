@@ -1157,6 +1157,10 @@
         ['kort', 'Kort · betalningslänk', 'Stripe/kortlänk'],
         ['faktura', 'Faktura', 'Fortnox'],
       ];
+      var betPid = bcard.patientId || bcard.id || '';
+      var betAmt = String(cc.quotedAmount || '').replace(/[^\d]/g, '');
+      var betPhone = phone || '';
+      var betCid = (commercialCase && (commercialCase.commercialCaseId || commercialCase.id)) || '';
       inner +=
         '<div class="kk-betvag-h">Betalvägar</div>' +
         vagar
@@ -1168,6 +1172,14 @@
               esc(v[2]) +
               '</div></div><button type="button" class="openb kk-betvag-btn" data-kk-betvag="' +
               v[0] +
+              '" data-kk-pid="' +
+              esc(betPid) +
+              '" data-kk-amount="' +
+              esc(betAmt) +
+              '" data-kk-phone="' +
+              esc(betPhone) +
+              '" data-kk-cid="' +
+              esc(betCid) +
               '">Förbered →</button></div>'
             );
           })
@@ -1886,18 +1898,9 @@
       var bv = e.target.closest && e.target.closest('[data-kk-betvag]');
       if (bv) {
         e.preventDefault();
-        var metod =
-          {
-            swish: 'Swish-betalning',
-            mf: 'Medical Finance (delbetalning)',
-            kort: 'kort/betalningslänk',
-            faktura: 'faktura via Fortnox',
-          }[bv.getAttribute('data-kk-betvag')] || 'betalning';
-        window.alert(
-          'Förbered ' +
-            metod +
-            ' — skapa och skicka i respektive system. Automatiskt skick av betalning är avstängt; du bekräftar och slutför själv.'
-        );
+        if (typeof window.__kkPaymentPrepare === 'function') {
+          window.__kkPaymentPrepare(bv.getAttribute('data-kk-betvag'), bv);
+        }
         return;
       }
       // 4) Toggla historik-sammanfattning
@@ -1914,6 +1917,244 @@
       }
     });
   })();
+
+  // ===== Betalväg: förbered (modal) → backend prepare-endpoints. ALDRIG auto-pengar. =====
+  window.__kkPaymentPrepare = function (method, btn) {
+    var esc2 = function (s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    };
+    var CFG = {
+      swish: {
+        title: 'Förbered Swish',
+        endpoint: '/api/v1/cco-patient-master/payment/prepare-swish',
+        confirmText: 'PREPARE SWISH PAYMENT',
+        urlKey: 'swishUrl',
+        urlLabel: 'Swish-länk',
+      },
+      kort: {
+        title: 'Förbered kort · betalningslänk',
+        endpoint: '/api/v1/cco-patient-master/payment/prepare-card-link',
+        confirmText: 'PREPARE CARD PAYMENT',
+        urlKey: 'paymentLinkUrl',
+        urlLabel: 'Betalningslänk',
+      },
+      faktura: {
+        title: 'Förbered faktura (utkast)',
+        endpoint: '/api/v1/cco-patient-master/payment/prepare-invoice',
+        confirmText: 'PREPARE INVOICE DRAFT',
+        urlKey: 'invoiceDraftRef',
+        urlLabel: 'Fakturautkast-ref',
+      },
+      mf: {
+        title: 'Medical Finance',
+        endpoint: '/api/v1/cco-patient-master/payment/medical-finance-info',
+        get: true,
+      },
+    };
+    var cfg = CFG[method];
+    if (!cfg || !btn) return;
+    var pid = btn.getAttribute('data-kk-pid') || '';
+    var amt = btn.getAttribute('data-kk-amount') || '';
+    var ph = btn.getAttribute('data-kk-phone') || '';
+    var cid = btn.getAttribute('data-kk-cid') || '';
+
+    function tokenHdrs() {
+      var h = { 'Content-Type': 'application/json' };
+      var t = '';
+      try {
+        t = (
+          window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          ''
+        ).trim();
+      } catch (e) {
+        /* ignore */
+      }
+      if (t && t !== '__preview_local__') h.Authorization = 'Bearer ' + t;
+      return h;
+    }
+
+    var old = document.getElementById('kk-paymodal');
+    if (old) old.remove();
+    var ov = document.createElement('div');
+    ov.id = 'kk-paymodal';
+    ov.setAttribute(
+      'style',
+      'position:fixed;inset:0;z-index:2147483000;background:rgba(20,16,12,.45);display:flex;align-items:center;justify-content:center;padding:20px;'
+    );
+    var panel =
+      'background:#fff;max-width:460px;width:100%;border-radius:16px;padding:22px 24px;box-shadow:0 24px 60px rgba(0,0,0,.3);font:14px/1.5 system-ui,-apple-system,sans-serif;color:#2a2620;max-height:90vh;overflow:auto;';
+    var head =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<b style="font-size:16px">' +
+      esc2(cfg.title) +
+      '</b><button type="button" data-pay-x style="border:0;background:transparent;font-size:24px;line-height:1;cursor:pointer;color:#94897b">×</button></div>';
+    var body;
+    if (cfg.get) {
+      body = '<div data-pay-result style="color:#94897b">Hämtar…</div>';
+    } else {
+      var inpStyle =
+        'width:100%;padding:9px 11px;border:1px solid #e3dcd3;border-radius:9px;margin-bottom:12px;font-size:15px;box-sizing:border-box;';
+      var lblStyle = 'display:block;font-size:12px;color:#94897b;margin-bottom:4px;';
+      body =
+        '<div style="color:#6b6259;margin-bottom:14px">Skapar en betalningsförfrågan att skicka manuellt. Ingen automatisk debitering — du slutför och skickar själv.</div>' +
+        '<label style="' +
+        lblStyle +
+        '">Belopp (kr)</label><input data-pay-amount type="number" min="1" value="' +
+        esc2(amt) +
+        '" style="' +
+        inpStyle +
+        '"/>' +
+        (method === 'swish'
+          ? '<label style="' +
+            lblStyle +
+            '">Betalarens telefon (Swish)</label><input data-pay-phone value="' +
+            esc2(ph) +
+            '" style="' +
+            inpStyle +
+            '"/>' +
+            '<label style="' +
+            lblStyle +
+            '">Meddelande (valfritt)</label><input data-pay-msg style="' +
+            inpStyle +
+            '"/>'
+          : '') +
+        '<div data-pay-result style="margin:6px 0;color:#b94a4a"></div>' +
+        '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">' +
+        '<button type="button" data-pay-x2 style="border:1px solid #d8cfc4;border-radius:9px;background:#fff;padding:9px 16px;cursor:pointer">Avbryt</button>' +
+        '<button type="button" data-pay-go style="border:0;border-radius:9px;background:#2e7d52;color:#fff;padding:9px 18px;cursor:pointer;font-weight:600">Förbered</button></div>';
+    }
+    ov.innerHTML = '<div style="' + panel + '">' + head + body + '</div>';
+    document.body.appendChild(ov);
+
+    function close() {
+      ov.remove();
+    }
+    ov.addEventListener('click', function (e) {
+      if (
+        e.target === ov ||
+        (e.target.getAttribute && e.target.getAttribute('data-pay-x') !== null)
+      )
+        close();
+    });
+    var x2 = ov.querySelector('[data-pay-x2]');
+    if (x2) x2.addEventListener('click', close);
+    var resultEl = ov.querySelector('[data-pay-result]');
+
+    if (cfg.get) {
+      fetch(cfg.endpoint, { headers: tokenHdrs() })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (j) {
+          resultEl.style.color = '#2a2620';
+          resultEl.innerHTML =
+            '<b>' +
+            esc2(j.provider || 'Medical Finance') +
+            '</b><br><span style="color:#6b6259">' +
+            esc2(j.message || '') +
+            '</span>' +
+            (j.contact && j.contact.url
+              ? '<br><a href="' +
+                esc2(j.contact.url) +
+                '" target="_blank" rel="noopener noreferrer">' +
+                esc2(j.contact.url) +
+                '</a>'
+              : '');
+        })
+        .catch(function () {
+          resultEl.textContent = 'Kunde inte hämta info.';
+        });
+      return;
+    }
+
+    var goBtn = ov.querySelector('[data-pay-go]');
+    goBtn.addEventListener('click', function () {
+      var amtEl = ov.querySelector('[data-pay-amount]');
+      var amount = Number(amtEl && amtEl.value);
+      if (!amount || amount <= 0) {
+        resultEl.style.color = '#b94a4a';
+        resultEl.textContent = 'Ange ett giltigt belopp.';
+        return;
+      }
+      var payload = { confirmText: cfg.confirmText, patientId: pid, amount: amount };
+      if (cid) payload.commercialCaseId = cid;
+      if (method === 'swish') {
+        var pEl = ov.querySelector('[data-pay-phone]');
+        var mEl = ov.querySelector('[data-pay-msg]');
+        if (pEl && pEl.value) payload.payerAlias = pEl.value;
+        if (mEl && mEl.value) payload.message = mEl.value;
+      }
+      goBtn.disabled = true;
+      goBtn.textContent = 'Förbereder…';
+      resultEl.style.color = '#94897b';
+      resultEl.textContent = '';
+      fetch(cfg.endpoint, {
+        method: 'POST',
+        headers: tokenHdrs(),
+        body: JSON.stringify(payload),
+      })
+        .then(function (r) {
+          return r.json().then(function (j) {
+            return { status: r.status, j: j };
+          });
+        })
+        .then(function (res) {
+          if (res.status === 200 || res.status === 201) {
+            var url = res.j[cfg.urlKey] || '';
+            resultEl.style.color = '#2a2620';
+            resultEl.innerHTML =
+              '<div style="background:#e7f3ec;border-radius:10px;padding:10px 12px;margin-bottom:8px"><b style="color:#2e7d52">✓ Förberett — ingen debitering gjord.</b><br><span style="color:#6b6259">' +
+              esc2(res.j.message || '') +
+              '</span></div>' +
+              (url
+                ? '<label style="display:block;font-size:12px;color:#94897b;margin:6px 0 4px">' +
+                  esc2(cfg.urlLabel) +
+                  '</label><div style="display:flex;gap:6px"><input readonly data-pay-url value="' +
+                  esc2(url) +
+                  '" style="flex:1;padding:8px 10px;border:1px solid #e3dcd3;border-radius:8px;font-size:13px"/>' +
+                  '<button type="button" data-pay-copy style="border:1px solid #d8cfc4;border-radius:8px;background:#fff;padding:8px 12px;cursor:pointer">Kopiera</button></div>'
+                : '');
+            goBtn.style.display = 'none';
+            var cp = ov.querySelector('[data-pay-copy]');
+            if (cp)
+              cp.addEventListener('click', function () {
+                var i = ov.querySelector('[data-pay-url]');
+                if (!i) return;
+                i.select();
+                try {
+                  navigator.clipboard.writeText(i.value);
+                } catch (e) {
+                  try {
+                    document.execCommand('copy');
+                  } catch (e2) {
+                    /* ignore */
+                  }
+                }
+                cp.textContent = 'Kopierad ✓';
+              });
+          } else {
+            resultEl.style.color = '#b94a4a';
+            var hint = '';
+            if (res.status === 503) hint = ' (tjänsten ej konfigurerad på servern)';
+            else if (res.status === 409)
+              hint = ' (saknar Fortnox-kundnummer — synka patienten först)';
+            resultEl.textContent =
+              (res.j && res.j.error ? res.j.error : 'Kunde inte förbereda.') + hint;
+            goBtn.disabled = false;
+            goBtn.textContent = 'Förbered';
+          }
+        })
+        .catch(function () {
+          resultEl.style.color = '#b94a4a';
+          resultEl.textContent = 'Nätfel — försök igen.';
+          goBtn.disabled = false;
+          goBtn.textContent = 'Förbered';
+        });
+    });
+  };
 
   // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt
   // landat på en sektion (#slug). Används av header-förstoringen OCH sektions-⤢.
