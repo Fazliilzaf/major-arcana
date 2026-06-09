@@ -483,13 +483,13 @@
       'Inga kommande bokningar — kontakta kunden för återbesök så hen inte tappas.'
     );
 
-    // Historik
-    var his = A2(ctx.hist)
-      .slice(0, 8)
+    // Historik — Sammanfatta + Fråga historiken + timeline-container (fylls async från journal-timeline)
+    var hisRows = A2(ctx.hist)
+      .slice(0, 12)
       .map(function (b) {
         var d = String(b.date || b.occurredAt || b.startAt || '').slice(0, 10);
         return (
-          '<div class="gk-rad"><span class="gk-sub">' +
+          '<div class="gk-rad gk-tl-row"><span class="gk-sub">' +
           esc(d) +
           '</span> ' +
           esc(b.title || b.serviceName || 'Besök') +
@@ -497,36 +497,22 @@
         );
       })
       .join('');
-    if (his) {
-      var senaste = String(
-        (A2(ctx.hist)[0] || {}).date || (A2(ctx.hist)[0] || {}).occurredAt || ''
-      ).slice(0, 10);
-      var tc = {};
-      A2(ctx.hist).forEach(function (b) {
-        var t = b.title || b.serviceName || 'Besök';
-        tc[t] = (tc[t] || 0) + 1;
-      });
-      var top =
-        Object.keys(tc).sort(function (a, b) {
-          return tc[b] - tc[a];
-        })[0] || '';
-      var histSum =
-        A2(ctx.hist).length +
-        ' besök' +
-        (senaste ? ' · senaste ' + senaste : '') +
-        (top ? ' · oftast: ' + esc(top) : '');
-      body += sek(
-        'Historik',
-        '<span class="gk-pill gk-tag-info">' + A2(ctx.hist).length + ' händelser</span>',
-        '<div class="gk-rad" style="border-bottom:none"><button type="button" class="gk-btn" data-gk-sum>Sammanfatta</button></div>' +
-          '<div id="gk-sum-box" class="gk-rad" style="border-bottom:none;color:#4a7ba8" hidden>' +
-          histSum +
-          '</div>' +
-          his
-      );
-    } else {
-      body += sek('Historik', '', '', 'Ingen historik ännu.');
-    }
+    body += sek(
+      'Historik',
+      '<span class="gk-pill gk-tag-info" data-gk-hist-count>' +
+        (A2(ctx.hist).length || 0) +
+        ' händelser</span>',
+      '<div class="gk-rad" style="border-bottom:none;gap:8px">' +
+        '<button type="button" class="gk-btn" data-gk-sum>Sammanfatta</button>' +
+        '<input type="text" class="gk-histq" data-gk-histq placeholder="Fråga historiken… t.ex. &#39;när gjorde han PRP senast?&#39;" />' +
+        '</div>' +
+        '<div id="gk-sum-box" class="gk-rad" style="border-bottom:none;color:#4a7ba8" hidden></div>' +
+        '<div data-gk-tl="' +
+        esc(ctx.patientId || '') +
+        '">' +
+        (hisRows || '<div class="gk-rad"><span class="gk-sub">Laddar historik…</span></div>') +
+        '</div>'
+    );
 
     // Journal
     var jr = A2(ctx.jItems)
@@ -720,7 +706,105 @@
         }
       }
     });
+    // Fråga historiken — fritextfilter på timeline-raderna
+    document.addEventListener('input', function (e) {
+      var q = e.target && e.target.matches && e.target.matches('[data-gk-histq]') ? e.target : null;
+      if (!q) return;
+      var sek = q.closest('.gk-sek');
+      var tl = sek && sek.querySelector('[data-gk-tl]');
+      if (!tl) return;
+      var term = String(q.value || '')
+        .toLowerCase()
+        .trim();
+      [].forEach.call(tl.querySelectorAll('.gk-tl-row'), function (row) {
+        var match = !term || (row.textContent || '').toLowerCase().indexOf(term) >= 0;
+        row.style.display = match ? '' : 'none';
+      });
+    });
   })();
+
+  // Hämtar journal-timeline (41-händelse-flödet) och fyller Historik-sektionen i gemensamma kortet
+  window.__gkLoadTimeline = function () {
+    var ov = document.getElementById('kk-storvy');
+    if (!ov) return;
+    var cont = ov.querySelector('[data-gk-tl]');
+    if (!cont) return;
+    var pid = cont.getAttribute('data-gk-tl');
+    if (!pid) return;
+    var tok = '';
+    try {
+      tok = (
+        window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        ''
+      ).trim();
+    } catch (e) {
+      /* ignore */
+    }
+    var hdr = { 'Content-Type': 'application/json', 'x-cco-tenant': 'hair-tp-clinic' };
+    if (tok && tok !== '__preview_local__') hdr.Authorization = 'Bearer ' + tok;
+    function esc2(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+    function toneTag(t) {
+      return t === 'ok'
+        ? 'gk-tag-ok'
+        : t === 'warn'
+          ? 'gk-tag-warn'
+          : t === 'blocker'
+            ? 'gk-tag-risk'
+            : 'gk-tag-info';
+    }
+    fetch(
+      '/api/v1/cco-customers/' +
+        encodeURIComponent(pid) +
+        '/journal-timeline?tenantId=hair-tp-clinic',
+      { headers: hdr }
+    )
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (j) {
+        var evs = (j && j.events) || [];
+        if (!evs.length) return;
+        var rows = evs
+          .slice(0, 40)
+          .map(function (ev) {
+            var d = String(ev.ts || '').slice(0, 10);
+            var tag = ev.actor
+              ? '<span class="gk-hl gk-tag ' + toneTag(ev.tone) + '">' + esc2(ev.actor) + '</span>'
+              : '';
+            return (
+              '<div class="gk-rad gk-tl-row"><span class="gk-sub" style="min-width:78px">' +
+              esc2(d) +
+              '</span> ' +
+              (ev.icon ? esc2(ev.icon) + ' ' : '') +
+              esc2(ev.title || ev.type || 'Händelse') +
+              tag +
+              '</div>'
+            );
+          })
+          .join('');
+        cont.innerHTML = rows;
+        var cnt = ov.querySelector('[data-gk-hist-count]');
+        if (cnt) cnt.textContent = evs.length + ' händelser';
+        var sb = ov.querySelector('#gk-sum-box');
+        if (sb) {
+          var sista = String((evs[0] || {}).ts || '').slice(0, 10);
+          var forst = String((evs[evs.length - 1] || {}).ts || '').slice(0, 10);
+          sb.textContent =
+            evs.length +
+            ' händelser' +
+            (sista ? ' · senaste ' + sista : '') +
+            (forst ? ' · sedan ' + forst : '');
+        }
+      })
+      .catch(function () {
+        /* nätfel — bokningar-fallbacken står kvar */
+      });
+  };
 
   window.__renderReferensKundkort = function (card, bundle, journalEntries, extras) {
     card = card || {};
@@ -2069,6 +2153,7 @@
     // Cacha gemensamma kortet (förstoringen renderar det istället för dossier-klon)
     try {
       window.__GK_LAST = gkBuild({
+        patientId: bcard.patientId || bcard.id || '',
         name: name,
         phone: phone,
         email: email,
@@ -2799,6 +2884,7 @@
     if (window.__GK_LAST) {
       // Gemensamma kundkortet (live-data) — det riktiga patientkortet i full vy
       body.innerHTML = window.__GK_LAST;
+      if (window.__gkLoadTimeline) setTimeout(window.__gkLoadTimeline, 0);
     } else {
       var live = document.querySelector('.kkref .doss');
       if (live) {

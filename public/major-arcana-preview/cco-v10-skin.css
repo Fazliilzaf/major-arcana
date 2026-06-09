@@ -3183,3 +3183,16 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
   color: #fff;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
+
+#kk-storvy .gk-histq {
+  flex: 1;
+  font: inherit;
+  font-size: 12px;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.1);
+  outline: none;
+  color: #2b251f;
+}
