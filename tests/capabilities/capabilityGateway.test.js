@@ -12,11 +12,11 @@ const { createCapabilityAnalysisStore } = require('../../src/capabilities/analys
 const { AnalyzeInboxCapability } = require('../../src/capabilities/analyzeInbox');
 const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
 
+// info@hairtpclinic.com borttagen 2026-06-09 — speglar src/routes/capabilities.js
 const LOCKED_GRAPH_READ_ALLOWLIST = Object.freeze([
   'egzona@hairtpclinic.com',
   'contact@hairtpclinic.com',
   'fazli@hairtpclinic.com',
-  'info@hairtpclinic.com',
   'kons@hairtpclinic.com',
   'marknad@hairtpclinic.com',
   'receipt@hairtpclinic.com',
