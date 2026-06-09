@@ -9199,7 +9199,51 @@ try {
               exists,
             });
           }
-          return res.json({ diagnose: true, sharp: sharpInfo, candidates: cand.length, rows });
+          let providerStats = null;
+          try {
+            providerStats =
+              typeof stores.secureStorage.stats === 'function'
+                ? await stores.secureStorage.stats()
+                : null;
+          } catch (e) {
+            providerStats = { error: e.message };
+          }
+          // Sök var blobben faktiskt ligger (rotorsak: storage-root)
+          const fsMod = require('node:fs');
+          const pathMod = require('node:path');
+          const probeKey = rows[0] && rows[0].storageKey;
+          const rootProbe = {};
+          if (probeKey) {
+            for (const base of [
+              '/var/data',
+              '/var/data/cco-patient-assets',
+              '/var/data/secure-storage',
+              '/var/data/cco-secure-storage',
+              '/var/data/arcana',
+              '/var/data/assets',
+            ]) {
+              try {
+                rootProbe[base] = fsMod.existsSync(pathMod.join(base, probeKey));
+              } catch (e) {
+                rootProbe[base] = 'err';
+              }
+            }
+            // lista /var/data toppnivå
+            try {
+              rootProbe['__vardata_ls'] = fsMod.readdirSync('/var/data').slice(0, 40);
+            } catch (e) {
+              rootProbe['__vardata_ls'] = 'err:' + e.message;
+            }
+          }
+          return res.json({
+            diagnose: true,
+            sharp: sharpInfo,
+            candidates: cand.length,
+            providerStats,
+            envSecureRoot: process.env.ARCANA_CCO_SECURE_STORAGE_ROOT || null,
+            rootProbe,
+            rows,
+          });
         }
         const commit = body.commit === true || String(req.query.commit || '') === '1';
         const confirmText = body.confirmText || req.query.confirmText || '';
