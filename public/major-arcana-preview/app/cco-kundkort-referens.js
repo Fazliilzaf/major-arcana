@@ -1286,12 +1286,22 @@
             return typ + (m[2] ? ' ' + m[2] : '');
           }
         }
-        // fallback: journalens behandlingstyp (ORD-36)
+        // fallback: journalens behandlingstyp (ORD-36) eller typ ur journal-titeln (ej session — numreringen skiljer)
         for (var k = 0; k < g.journals.length; k++) {
-          var t = g.journals[k] && g.journals[k].treatmentType;
-          if (t) return String(t);
+          var jt = g.journals[k];
+          if (jt && jt.treatmentType) return String(jt.treatmentType);
+          var jm = String((jt && jt.title) || '').match(TYPE_RE);
+          if (jm) return jm[1].length <= 3 ? jm[1].toUpperCase() : jm[1];
         }
         return '';
+      }
+      // encounter-bindning (klient, säker): slå ihop besök inom ±2 dgr in i närmaste TYPADE
+      // folder-besök, så friskförsäkran/journal "dagen efter" hamnar på operationsbesöket.
+      // Slår ALDRIG ihop två typade ankare (skyddar mot felmerge av skilda besök).
+      function dDiff(a, b) {
+        var da = new Date(a),
+          db = new Date(b);
+        return isNaN(da) || isNaN(db) ? 999 : Math.abs((da - db) / 86400000);
       }
       var groups = {};
       A(driveFiles).forEach(function (f) {
@@ -1325,6 +1335,33 @@
           groups[dt].journals.push(e);
         }
       });
+      (function mergeNearbyIntoTypedAnchors() {
+        var dKeys = Object.keys(groups).filter(function (k) {
+          return k !== 'odaterat';
+        });
+        var anchors = dKeys.filter(function (k) {
+          return visitTypeLabel(groups[k]);
+        });
+        dKeys.forEach(function (k) {
+          if (!groups[k] || visitTypeLabel(groups[k])) return;
+          var near = null;
+          var best = 3;
+          anchors.forEach(function (a) {
+            var d = dDiff(a, k);
+            if (d <= 2 && d < best) {
+              best = d;
+              near = a;
+            }
+          });
+          if (near && groups[near]) {
+            groups[near].files = groups[near].files.concat(groups[k].files);
+            groups[near].journals = groups[near].journals.concat(groups[k].journals);
+            groups[near].j += groups[k].j;
+            groups[near].img += groups[k].img;
+            delete groups[k];
+          }
+        });
+      })();
       var keys = Object.keys(groups).sort(function (a, b) {
         if (a === 'odaterat') return 1;
         if (b === 'odaterat') return -1;
