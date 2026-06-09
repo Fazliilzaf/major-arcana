@@ -351,10 +351,12 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
       // heic-convert (ren WASM med libde265) till en JPEG-buffer först.
       let input = abs;
       if (mime === 'image/heic' || mime === 'image/heif') {
+        // Offloada CPU-tung HEIC-avkodning till worker-trådpool → blockerar ej
+        // huvud-event-loopen, så servern är responsiv + decode kan parallelliseras.
         // eslint-disable-next-line global-require
-        const heicConvert = require('heic-convert');
+        const { decodeHeicToJpeg } = require('./heicDecodePool');
         const inputBuffer = await fsp.readFile(abs);
-        input = await heicConvert({ buffer: inputBuffer, format: 'JPEG', quality: 0.8 });
+        input = await decodeHeicToJpeg(inputBuffer);
       }
       await sharp(input)
         .resize({ width: 320, height: 320, fit: 'inside' })
