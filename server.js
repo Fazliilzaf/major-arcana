@@ -37,6 +37,14 @@ if (config.trustProxy) app.set('trust proxy', 1);
 app.use(cors(createCorsPolicy(config)));
 app.use(express.json({ limit: '10mb' }));
 
+let ccoRequireAuthMiddleware = null;
+function requireCcoAuthenticated(req, res, next) {
+  if (typeof ccoRequireAuthMiddleware !== 'function') {
+    return res.status(503).json({ error: 'auth_not_ready' });
+  }
+  return ccoRequireAuthMiddleware(req, res, next);
+}
+
 // ─── CCO Kunder-modul: lista, dossiér, foto-storage + iCal ─────────
 try {
   const customersPatch = require('./public/major-arcana-preview/customers/server-patch');
@@ -9105,6 +9113,7 @@ try {
 
   app.get(
     '/api/v1/cco/asset-qa/snapshot',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.read_any'),
     async (req, res) => {
@@ -9133,6 +9142,7 @@ try {
 
   app.post(
     '/api/v1/cco/asset-qa/invalidate',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.read_any'),
     (req, res) => {
@@ -9146,6 +9156,7 @@ try {
   // samma sökväg/secure-storage som webb-appen → inga path-gissningar.
   app.post(
     '/api/v1/cco/asset-qa/backfill-thumbnails',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('asset.write'),
     async (req, res) => {
@@ -9311,6 +9322,7 @@ try {
   // ── P0.G: Per-patient asset-listning för patientkort ──
   app.get(
     '/api/v1/cco/patients/:patientId/assets',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('asset.read'),
     async (req, res) => {
@@ -9402,6 +9414,7 @@ try {
 
   app.get(
     '/api/v1/cco/assets/:assetId/download',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('asset.read'),
     async (req, res) => {
@@ -9450,6 +9463,7 @@ try {
 
   app.get(
     '/api/v1/cco/assets/:assetId/thumbnail',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('asset.read'),
     async (req, res) => {
@@ -11162,6 +11176,7 @@ process.once('SIGTERM', () => {
   }
 
   const auth = createAuthMiddleware({ authStore, config, previewAuthContext });
+  ccoRequireAuthMiddleware = auth.requireAuth;
   setStartupPhase('redis_connect');
   redisConnection = createRedisConnection({
     url: config.redisUrl,
@@ -11626,16 +11641,23 @@ process.once('SIGTERM', () => {
   try {
     const drive = require('./src/lib/googleDriveClient');
     if (drive.isGoogleDriveConfigured(process.env)) {
-      app.get('/api/drive/files/:id', async (req, res) => {
-        try {
-          await drive.streamDriveFileToResponse({
-            driveFileId: req.params.id,
-            res,
-          });
-        } catch (err) {
-          res.status(404).json({ error: 'file not found', detail: err.message });
+      const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+      app.get(
+        '/api/drive/files/:id',
+        requireCcoAuthenticated,
+        attachRole,
+        requirePermission('asset.read'),
+        async (req, res) => {
+          try {
+            await drive.streamDriveFileToResponse({
+              driveFileId: req.params.id,
+              res,
+            });
+          } catch (err) {
+            res.status(404).json({ error: 'file not found', detail: err.message });
+          }
         }
-      });
+      );
       console.log('[drive] proxy aktiverad: GET /api/drive/files/:id');
     }
   } catch (_) {
