@@ -353,7 +353,11 @@
       pills +
       '</div><div class="gk-kontakt">' +
       kontakt.join(' · ') +
-      '</div></div></div>' +
+      '</div></div>' +
+      '<div class="gk-actions">' +
+      '<button type="button" class="gk-btn gk-btn-gold" data-gk-proxy="[data-kk-forbered]">Förbered besök</button>' +
+      '<button type="button" class="gk-btn" data-gk-proxy="[data-kk-atgarder]">Åtgärder</button>' +
+      '</div></div>' +
       '<div class="gk-smartline"><span class="gk-kicker">Smart sammanfattning</span><span>' +
       smart +
       '</span></div>' +
@@ -482,11 +486,34 @@
         );
       })
       .join('');
-    body += sek(
-      'Historik',
-      his ? '<span class="gk-pill gk-tag-info">' + A2(ctx.hist).length + ' händelser</span>' : '',
-      his
-    );
+    if (his) {
+      var senaste = String(
+        (A2(ctx.hist)[0] || {}).date || (A2(ctx.hist)[0] || {}).occurredAt || ''
+      ).slice(0, 10);
+      var tc = {};
+      A2(ctx.hist).forEach(function (b) {
+        var t = b.title || b.serviceName || 'Besök';
+        tc[t] = (tc[t] || 0) + 1;
+      });
+      var top =
+        Object.keys(tc).sort(function (a, b) {
+          return tc[b] - tc[a];
+        })[0] || '';
+      var histSum =
+        A2(ctx.hist).length +
+        ' besök' +
+        (senaste ? ' · senaste ' + senaste : '') +
+        (top ? ' · oftast: ' + esc(top) : '');
+      body += sek(
+        'Historik',
+        '<span class="gk-pill gk-tag-info">' + A2(ctx.hist).length + ' händelser</span>',
+        '<div class="gk-rad" style="border-bottom:none"><button type="button" class="gk-btn" data-gk-sum>Sammanfatta</button></div>' +
+          '<div id="gk-sum-box" class="gk-rad" style="border-bottom:none;color:#4a7ba8" hidden>' +
+          histSum +
+          '</div>' +
+          his
+      );
+    }
 
     // Journal
     var jr = A2(ctx.jItems)
@@ -651,12 +678,36 @@
     body += sek(
       'Ta bild',
       '',
-      '<div class="gk-rad"><span class="gk-sub">Foto-samtycke · scope: hårlinje + krona, aldrig ansikte</span> <span class="gk-hl"><button class="gk-btn gk-btn-gold">📷 Ta bild</button></span></div>'
+      '<div class="gk-rad"><span class="gk-sub">Foto-samtycke · scope: hårlinje + krona, aldrig ansikte</span> <span class="gk-hl"><button type="button" class="gk-btn gk-btn-gold" data-gk-proxy="[data-kk-tabild]">📷 Ta bild</button></span></div>'
     );
 
     body += '</div>';
     return '<div class="gk-kort">' + head + body + '</div>';
   }
+
+  // Proxy: gk-knappar → klickar dossierns riktiga knappar (live-flöden) + gk-native Sammanfatta-toggle
+  (function bindGkProxyOnce() {
+    if (window.__gkProxyBound) return;
+    window.__gkProxyBound = true;
+    document.addEventListener('click', function (e) {
+      var p = e.target.closest && e.target.closest('[data-gk-proxy]');
+      if (p) {
+        e.preventDefault();
+        var sel = p.getAttribute('data-gk-proxy');
+        var el = document.querySelector('.kkref .doss ' + sel) || document.querySelector(sel);
+        if (el && el.click) el.click();
+        return;
+      }
+      var s = e.target.closest && e.target.closest('[data-gk-sum]');
+      if (s) {
+        var box = document.getElementById('gk-sum-box');
+        if (box) {
+          box.hidden = !box.hidden;
+          s.textContent = box.hidden ? 'Sammanfatta' : 'Dölj';
+        }
+      }
+    });
+  })();
 
   window.__renderReferensKundkort = function (card, bundle, journalEntries, extras) {
     card = card || {};
@@ -2025,6 +2076,26 @@
       });
     } catch (e) {
       window.__GK_LAST = '';
+    }
+
+    // (a) Primär öppning: visa gemensamma kortet direkt när en NY kund öppnas (en gång per patient)
+    try {
+      var gkPid = (bcard && (bcard.patientId || bcard.id)) || '';
+      if (window.__GK_PRIMARY !== false && gkPid && window.__GK_LAST) {
+        var gkOv = document.getElementById('kk-storvy');
+        var gkOpen = gkOv && gkOv.classList.contains('open');
+        if (window.__GK_OPENED_FOR !== gkPid) {
+          window.__GK_OPENED_FOR = gkPid;
+          setTimeout(function () {
+            if (window.__kkOpenStorvy) window.__kkOpenStorvy();
+          }, 40);
+        } else if (gkOpen) {
+          var gkBody = gkOv.querySelector('.kk-storvy-body');
+          if (gkBody) gkBody.innerHTML = window.__GK_LAST;
+        }
+      }
+    } catch (e2) {
+      /* ignore */
     }
 
     return h;
