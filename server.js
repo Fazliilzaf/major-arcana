@@ -9199,6 +9199,39 @@ try {
               exists,
             });
           }
+          // Full-scan: hur många bild-kandidater har FAKTISK blob på disk?
+          if (String(req.query.scan || '') === '1') {
+            const fsMod2 = require('node:fs');
+            const pathMod2 = require('node:path');
+            const root2 =
+              (typeof stores.secureStorage.stats === 'function'
+                ? (await stores.secureStorage.stats()).rootPath
+                : null) || process.env.ARCANA_CCO_SECURE_STORAGE_ROOT;
+            let hasBlob = 0;
+            let noBlob = 0;
+            const sampleHas = [];
+            for (const a of cand) {
+              let ok = false;
+              try {
+                ok = fsMod2.existsSync(pathMod2.join(root2, a.storageKey));
+              } catch (e) {
+                ok = false;
+              }
+              if (ok) {
+                hasBlob += 1;
+                if (sampleHas.length < 5)
+                  sampleHas.push({ id: a.id, mimeType: a.mimeType, storageKey: a.storageKey });
+              } else noBlob += 1;
+            }
+            return res.json({
+              scan: true,
+              root: root2,
+              imageCandidates: cand.length,
+              hasBlobOnDisk: hasBlob,
+              missingBlob: noBlob,
+              sampleHasBlob: sampleHas,
+            });
+          }
           let providerStats = null;
           try {
             providerStats =
