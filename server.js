@@ -9260,6 +9260,46 @@ try {
               sampleHasBlob: sampleHas,
             });
           }
+          // Sharp-probe: försök faktiskt dekoda en HEIC-blob, fånga felet
+          if (String(req.query.sharpProbe || '') === '1') {
+            const fsP = require('node:fs');
+            const pathP = require('node:path');
+            const rootP =
+              (typeof stores.secureStorage.stats === 'function'
+                ? (await stores.secureStorage.stats()).rootPath
+                : null) || process.env.ARCANA_CCO_SECURE_STORAGE_ROOT;
+            const probe = [];
+            let sharp;
+            try {
+              sharp = require('sharp');
+            } catch (e) {
+              return res.json({ sharpProbe: true, sharpLoad: 'fail:' + e.message });
+            }
+            for (const a of cand) {
+              const abs = pathP.join(rootP, a.storageKey);
+              if (!fsP.existsSync(abs)) continue;
+              const out = { id: a.id, mime: a.mimeType, ext: a.storageKey.split('.').pop() };
+              try {
+                const meta = await sharp(abs).metadata();
+                out.metaFormat = meta.format;
+                await sharp(abs)
+                  .resize({ width: 320, height: 320, fit: 'inside' })
+                  .jpeg()
+                  .toBuffer();
+                out.thumbOk = true;
+              } catch (e) {
+                out.thumbOk = false;
+                out.error = e.message;
+              }
+              probe.push(out);
+              if (probe.length >= 4) break;
+            }
+            return res.json({
+              sharpProbe: true,
+              sharpFormats: Object.keys(sharp.format || {}),
+              probe,
+            });
+          }
           let providerStats = null;
           try {
             providerStats =
