@@ -1273,6 +1273,26 @@
               ? '📋'
               : '📎';
       }
+      // Besökets behandlingstyp + session ur mappnamnet (PRP 3 / OP / DHI ...) — ORD-41.
+      function visitTypeLabel(g) {
+        var TYPE_RE = /\b(PRP|DHI|FUE|OP|Microneedling|Konsultation)\b\s*(\d+)?/i;
+        for (var i = 0; i < g.files.length; i++) {
+          var rp = String((g.files[i] && (g.files[i].relativePath || g.files[i].fileName)) || '');
+          var segs = rp.split('/').filter(Boolean);
+          var folder = segs.length >= 2 ? segs[segs.length - 2] : segs[0] || '';
+          var m = folder.match(TYPE_RE);
+          if (m) {
+            var typ = m[1].length <= 3 ? m[1].toUpperCase() : m[1];
+            return typ + (m[2] ? ' ' + m[2] : '');
+          }
+        }
+        // fallback: journalens behandlingstyp (ORD-36)
+        for (var k = 0; k < g.journals.length; k++) {
+          var t = g.journals[k] && g.journals[k].treatmentType;
+          if (t) return String(t);
+        }
+        return '';
+      }
       var groups = {};
       A(driveFiles).forEach(function (f) {
         var k = dateKey(f) || 'odaterat';
@@ -1303,7 +1323,21 @@
           if (g.img) parts.push(g.img + (g.img === 1 ? ' foto' : ' foton'));
           var others = g.files.length - g.j - g.img;
           if (others > 0) parts.push(others + ' dokument');
-          var label = k === 'odaterat' ? 'Odaterat' : svDate(k);
+          var vt = visitTypeLabel(g);
+          var label = (k === 'odaterat' ? 'Odaterat' : svDate(k)) + (vt ? ' · ' + vt : '');
+          var jrows = g.journals
+            .map(function (e) {
+              var jt = e.title || e.treatmentType || 'Journal';
+              return (
+                '<button type="button" class="kk-file" data-kk-open-storvy="journal" data-kk-entry="' +
+                esc(e.id || e.entryId || '') +
+                '" style="width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;color:inherit">' +
+                '<span class="kk-foto-ico">📝</span><div style="flex:1;min-width:0"><div class="rt">' +
+                esc(jt) +
+                '</div></div><span class="kk-file-open">Öppna</span></button>'
+              );
+            })
+            .join('');
           var rows = g.files
             .map(function (f) {
               var url =
@@ -1330,6 +1364,7 @@
             '</span><span class="kk-besok-m">' +
             esc(parts.join(' · ') || g.files.length + ' filer') +
             '</span></summary><div class="kk-besok-body">' +
+            jrows +
             rows +
             '</div></details>'
           );
