@@ -9153,6 +9153,54 @@ try {
         const { backfillAssetThumbnails } = require('./src/ops/ccoAssetThumbnailBackfill');
         const stores = await ensureAssetStores();
         const body = req.body || {};
+        // Diagnos-läge: visa varför kandidater failar (mime/fil/sharp)
+        if (String(req.query.diagnose || '') === '1') {
+          const IMG = new Set([
+            'image/jpeg',
+            'image/png',
+            'image/heic',
+            'image/heif',
+            'image/webp',
+            'image/gif',
+          ]);
+          let sharpInfo = null;
+          try {
+            const sharp = require('sharp');
+            sharpInfo = { loaded: true, formats: Object.keys(sharp.format || {}) };
+          } catch (e) {
+            sharpInfo = { loaded: false, error: e.message };
+          }
+          const all = stores.assetStore.listItemsForEnrichment();
+          const cand = all.filter(
+            (a) =>
+              (IMG.has(String(a.mimeType || '').toLowerCase()) ||
+                String(a.category || '').startsWith('photo_')) &&
+              a.storageKey &&
+              !a.thumbnailKey
+          );
+          const dlimit = Math.max(1, Number(req.query.limit || 8));
+          const rows = [];
+          for (const a of cand.slice(0, dlimit)) {
+            let exists = null;
+            try {
+              exists =
+                typeof stores.secureStorage.exists === 'function'
+                  ? await stores.secureStorage.exists(a.storageKey)
+                  : null;
+            } catch (e) {
+              exists = 'err:' + e.message;
+            }
+            rows.push({
+              id: a.id,
+              mimeType: a.mimeType || null,
+              category: a.category || null,
+              mimeRecognized: IMG.has(String(a.mimeType || '').toLowerCase()),
+              storageKey: a.storageKey,
+              exists,
+            });
+          }
+          return res.json({ diagnose: true, sharp: sharpInfo, candidates: cand.length, rows });
+        }
         const commit = body.commit === true || String(req.query.commit || '') === '1';
         const confirmText = body.confirmText || req.query.confirmText || '';
         if (commit && confirmText !== 'BACKFILL THUMBNAILS') {
