@@ -259,10 +259,20 @@
         .join('')
         .toUpperCase();
     }
-    function sek(title, pill, inner) {
-      if (!inner) return '';
+    function sek(title, pill, inner, emptyText) {
+      var content =
+        inner ||
+        (emptyText
+          ? '<div class="gk-rad"><span class="gk-sub">' + esc(emptyText) + '</span></div>'
+          : '');
+      if (!content) return '';
       return (
-        '<section class="gk-sek"><h2>' + esc(title) + (pill || '') + '</h2>' + inner + '</section>'
+        '<section class="gk-sek"><h2>' +
+        esc(title) +
+        (pill || '') +
+        '</h2>' +
+        content +
+        '</section>'
       );
     }
     var name = ctx.name || 'Kund';
@@ -445,7 +455,7 @@
         '<div class="gk-rad"><b>' +
         esc(ctx.nextLabel) +
         '</b> <span class="gk-hl gk-tag gk-tag-warn">Föreslaget</span></div>';
-    if (snsRows) body += sek('Smart nästa steg', '', snsRows);
+    body += sek('Smart nästa steg', '', snsRows, 'Inga aktiva nästa steg just nu.');
 
     // Kommande bokningar
     var bk = A2(ctx.up)
@@ -468,8 +478,9 @@
       .join('');
     body += sek(
       'Kommande bokningar',
-      bk ? '<span class="gk-pill gk-tag-info">' + A2(ctx.up).length + '</span>' : '',
-      bk
+      '<span class="gk-pill gk-tag-info">' + A2(ctx.up).length + '</span>',
+      bk,
+      'Inga kommande bokningar — kontakta kunden för återbesök så hen inte tappas.'
     );
 
     // Historik
@@ -513,6 +524,8 @@
           '</div>' +
           his
       );
+    } else {
+      body += sek('Historik', '', '', 'Ingen historik ännu.');
     }
 
     // Journal
@@ -537,10 +550,9 @@
       .join('');
     body += sek(
       'Journal',
-      jr
-        ? '<span class="gk-pill gk-tag-info">' + A2(ctx.jItems).length + ' anteckningar</span>'
-        : '',
-      jr
+      '<span class="gk-pill gk-tag-info">' + A2(ctx.jItems).length + ' anteckningar</span>',
+      jr,
+      'Inga journaler ännu.'
     );
 
     // Offert
@@ -558,7 +570,7 @@
         );
       })
       .join('');
-    body += sek('Offert', '', off);
+    body += sek('Offert', '', off, 'Ingen offert skapad ännu.');
 
     // Ekonomi
     var eko = '';
@@ -581,12 +593,11 @@
         );
       })
       .join('');
-    body += sek('Ekonomi', '', eko);
+    body += sek('Ekonomi', '', eko, 'Ingen ekonomi-data ännu.');
 
     // Foto
-    if (imgs.length) {
-      var grid =
-        '<div class="gk-foto-grid">' +
+    var grid = imgs.length
+      ? '<div class="gk-foto-grid">' +
         imgs
           .slice(0, 4)
           .map(function (f) {
@@ -597,34 +608,34 @@
             );
           })
           .join('') +
-        '</div>';
-      body += sek(
-        'Foto',
-        '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>',
-        grid
-      );
-    }
+        '</div>'
+      : '';
+    body += sek(
+      'Foto',
+      imgs.length ? '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>' : '',
+      grid,
+      'Inga foton ännu.'
+    );
 
     // Personal (behandlare ur journalerna)
-    if (persNames.length) {
-      var persRows = persNames
-        .map(function (n) {
-          return (
-            '<div class="gk-rad"><b>' +
-            esc(n) +
-            '</b> <span class="gk-sub">' +
-            persMap[n] +
-            (persMap[n] === 1 ? ' journal' : ' journaler') +
-            '</span></div>'
-          );
-        })
-        .join('');
-      body += sek(
-        'Personal',
-        '<span class="gk-pill gk-tag-info">' + persNames.length + '</span>',
-        persRows
-      );
-    }
+    var persRows = persNames
+      .map(function (n) {
+        return (
+          '<div class="gk-rad"><b>' +
+          esc(n) +
+          '</b> <span class="gk-sub">' +
+          persMap[n] +
+          (persMap[n] === 1 ? ' journal' : ' journaler') +
+          '</span></div>'
+        );
+      })
+      .join('');
+    body += sek(
+      'Personal',
+      persNames.length ? '<span class="gk-pill gk-tag-info">' + persNames.length + '</span>' : '',
+      persRows,
+      'Ingen behandlare kopplad ännu (historiska journaler saknar signerare).'
+    );
 
     // Auto-dokument
     var autoR = A2(ctx.autoDocs)
@@ -651,7 +662,8 @@
     body += sek(
       'Auto-dokument',
       autoR ? '<span class="gk-pill gk-tag-info">' + A2(ctx.autoDocs).length + '</span>' : '',
-      autoR
+      autoR,
+      'Inga auto-dokument ännu.'
     );
 
     // Dokument (alla filer)
@@ -671,7 +683,8 @@
       docR
         ? '<span class="gk-pill gk-tag-info">' + A2(ctx.driveFiles).length + ' filer</span>'
         : '',
-      docR
+      docR,
+      'Inga dokument ännu.'
     );
 
     // Ta bild
