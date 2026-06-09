@@ -421,6 +421,7 @@ async function internalizeDriveAssets({
   driveRetryBaseDelayMs = 250,
   driveRetryMaxDelayMs = 5000,
   driveThrottleMs = 0,
+  concurrency = 1,
   tenantId = 'hair-tp-clinic',
   actor = { role: 'system', userId: 'ord-34-drive-internalize', tenantId },
 } = {}) {
@@ -455,7 +456,7 @@ async function internalizeDriveAssets({
   const samples = [];
   const errors = [];
 
-  for (const row of batch) {
+  const processRow = async (row) => {
     stats.attempted += 1;
     try {
       if (driveThrottleMs > 0 && stats.attempted > 1) await sleep(driveThrottleMs);
@@ -514,7 +515,23 @@ async function internalizeDriveAssets({
         message: error.message,
       });
     }
-  }
+  };
+
+  // Concurrency-pool: kör N rader parallellt (default 1 = serie, oförändrat).
+  // Säkert i single-process: delad konsekvent in-memory-store + atomiska
+  // helstate-skrivningar (temp+rename) → last-write-wins men alltid komplett.
+  const poolSize = Math.max(1, Number(concurrency) || 1);
+  let __idx = 0;
+  await Promise.all(
+    Array.from({ length: poolSize }, async () => {
+      for (;;) {
+        const i = __idx;
+        __idx += 1;
+        if (i >= batch.length) break;
+        await processRow(batch[i]);
+      }
+    })
+  );
 
   const run = await importRunStore.finishRun(runId, { actor });
   return {

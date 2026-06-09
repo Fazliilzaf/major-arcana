@@ -9503,7 +9503,7 @@ try {
     lastError: null,
     stopRequested: false,
   };
-  async function __runDriveIngestLoop({ chunk }) {
+  async function __runDriveIngestLoop({ chunk, concurrency }) {
     try {
       const { internalizeDriveAssets } = require('./src/ops/ccoDriveAssetInternalization');
       const { createCcoAssetImportPipeline } = require('./src/ops/ccoAssetImportPipeline');
@@ -9589,7 +9589,8 @@ try {
           go: true,
           limit: chunk,
           sampleSize: 0,
-          driveThrottleMs: 75,
+          driveThrottleMs: 40,
+          concurrency: concurrency || 1,
           tenantId,
         });
         const st = (report && report.stats) || {};
@@ -9624,6 +9625,32 @@ try {
     requirePermission('asset.import'),
     (req, res) => {
       const action = String(req.query.action || 'status');
+      if (action === 'backup') {
+        try {
+          const fsB = require('node:fs');
+          const pathB = require('node:path');
+          const root = process.env.ARCANA_STATE_ROOT || '/var/data';
+          const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const dir = pathB.join(root, 'backups', 'pre-ingest-' + stamp);
+          fsB.mkdirSync(dir, { recursive: true });
+          const files = [
+            'cco-patient-assets.json',
+            'cco-asset-import-runs.json',
+            'cco-asset-review-queue.json',
+          ];
+          const copied = [];
+          for (const f of files) {
+            const src = pathB.join(root, f);
+            if (fsB.existsSync(src)) {
+              fsB.copyFileSync(src, pathB.join(dir, f));
+              copied.push({ file: f, bytes: fsB.statSync(src).size });
+            }
+          }
+          return res.json({ ok: true, backupDir: dir, copied });
+        } catch (e) {
+          return res.status(500).json({ error: e.message });
+        }
+      }
       if (action === 'stop') {
         __ingestState.stopRequested = true;
         return res.json({ ok: true, stopRequested: true, state: __ingestState });
@@ -9632,7 +9659,8 @@ try {
         if (__ingestState.running) {
           return res.json({ ok: true, already: true, state: __ingestState });
         }
-        const chunk = Math.max(1, Math.min(50, Number(req.query.chunk || 15)));
+        const chunk = Math.max(1, Math.min(200, Number(req.query.chunk || 40)));
+        const concurrency = Math.max(1, Math.min(8, Number(req.query.concurrency || 4)));
         __ingestState = {
           running: true,
           startedAt: new Date().toISOString(),
@@ -9648,9 +9676,10 @@ try {
           lastError: null,
           stopRequested: false,
           chunk,
+          concurrency,
         };
-        __runDriveIngestLoop({ chunk });
-        return res.json({ ok: true, started: true, chunk, state: __ingestState });
+        __runDriveIngestLoop({ chunk, concurrency });
+        return res.json({ ok: true, started: true, chunk, concurrency, state: __ingestState });
       }
       return res.json({ ok: true, state: __ingestState });
     }
