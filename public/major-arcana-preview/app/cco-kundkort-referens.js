@@ -1302,7 +1302,10 @@
         if (f.fileType === 'image') groups[k].img++;
       });
       A(journalEntries).forEach(function (e) {
-        var dt = String((e && (e.date || e.signedAt || e.createdAt)) || '').slice(0, 10);
+        // journalDateReal = verkligt besöksdatum (ORD-36); signedAt/createdAt = import/signering
+        var dt = String(
+          (e && (e.journalDateReal || e.date || e.signedAt || e.createdAt)) || ''
+        ).slice(0, 10);
         if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
           if (!groups[dt]) groups[dt] = { files: [], j: 0, img: 0, journals: [] };
           groups[dt].journals.push(e);
@@ -1327,7 +1330,10 @@
           var label = (k === 'odaterat' ? 'Odaterat' : svDate(k)) + (vt ? ' · ' + vt : '');
           var jrows = g.journals
             .map(function (e) {
-              var jt = e.title || e.treatmentType || 'Journal';
+              var jt = 'Journal';
+              var tm = String(e.title || '').match(/journal-(prp|dhi|fue|tp|op)\b/i);
+              if (e.treatmentType) jt = 'Journal · ' + e.treatmentType;
+              else if (tm) jt = 'Journal · ' + tm[1].toUpperCase();
               return (
                 '<button type="button" class="kk-file" data-kk-open-storvy="journal" data-kk-entry="' +
                 esc(e.id || e.entryId || '') +
