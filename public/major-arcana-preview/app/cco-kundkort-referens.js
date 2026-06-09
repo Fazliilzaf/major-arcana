@@ -407,15 +407,41 @@
       );
     }
 
-    // Smart nästa steg
-    if (ctx.nextLabel)
-      body += sek(
-        'Smart nästa steg',
-        '',
+    // Smart nästa steg — signal + kontext + RIKTIGA knappar (kk-sig-act, dokument-delegerad handler)
+    var snsRows = A2(ctx.gateSignals)
+      .map(function (s) {
+        var sig = esc(s.ruleId || s.id || '');
+        var title = s.what || s.label || ctx.nextLabel || 'Nästa steg';
+        var sub = (typeof signalSub === 'function' ? signalSub(s) : '') || s.why || s.detail || '';
+        var tone = /block|legal/.test(s.risk || s.level || '') ? 'Blockerare' : 'Föreslaget';
+        return (
+          '<div class="gk-rad"><div style="flex:1"><b>' +
+          esc(title) +
+          '</b>' +
+          (sub ? '<div class="gk-sub" style="margin-top:3px">' + esc(sub) + '</div>' : '') +
+          '</div><span class="gk-hl gk-tag gk-tag-warn">' +
+          tone +
+          '</span></div>' +
+          '<div class="gk-rad" style="border-bottom:none;gap:8px">' +
+          '<button type="button" class="gk-btn kk-sig-act" data-kk-sig="' +
+          sig +
+          '" data-kk-sig-label="' +
+          esc(title) +
+          '">Granska utkast</button>' +
+          '<button type="button" class="gk-btn gk-btn-gold kk-sig-act" data-kk-sig="' +
+          sig +
+          '" data-kk-sig-label="' +
+          esc(title) +
+          '">Skicka för signering</button></div>'
+        );
+      })
+      .join('');
+    if (!snsRows && ctx.nextLabel)
+      snsRows =
         '<div class="gk-rad"><b>' +
-          esc(ctx.nextLabel) +
-          '</b> <span class="gk-hl gk-tag gk-tag-warn">Föreslaget</span></div>'
-      );
+        esc(ctx.nextLabel) +
+        '</b> <span class="gk-hl gk-tag gk-tag-warn">Föreslaget</span></div>';
+    if (snsRows) body += sek('Smart nästa steg', '', snsRows);
 
     // Kommande bokningar
     var bk = A2(ctx.up)
