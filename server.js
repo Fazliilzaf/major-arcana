@@ -12281,7 +12281,17 @@ process.once('SIGTERM', () => {
       : schedulerCcoHistoryMailboxIds.length > 0
         ? schedulerCcoHistoryMailboxIds
         : hairTpFallbackMailboxIds;
-  console.log('[server] defaultSyncMailboxIds for /cco/runtime/sync:', defaultSyncMailboxIds);
+  const defaultSyncMailboxSource =
+    allowlistSyncMailboxIds.length > 0
+      ? 'ARCANA_MAILBOX_ALLOWLIST'
+      : schedulerCcoHistoryMailboxIds.length > 0
+        ? 'ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_IDS'
+        : 'hardcoded_hairTpFallbackMailboxIds';
+  console.log(
+    '[server] defaultSyncMailboxIds for /cco/runtime/sync:',
+    defaultSyncMailboxIds,
+    `(source=${defaultSyncMailboxSource}, count=${defaultSyncMailboxIds.length})`
+  );
 
   // CCO Conversation messages — full tråd-historik + AI-summary + reply + Klar/Senare + notes + sync
   app.use(
