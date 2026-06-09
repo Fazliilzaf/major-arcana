@@ -935,18 +935,31 @@
 
     if (autoDocs.length) {
       h += sec(
-        'Auto-dokument · system',
+        'Auto-dokument',
         String(autoDocs.length),
         autoDocs
           .map(function (d) {
+            var step = d.journeyStep != null ? d.journeyStep : d.step;
+            var done =
+              d.planned === false ||
+              /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''));
+            var dt = String(d.signedAt || d.sentAt || d.deliveredAt || d.date || '').slice(0, 10);
+            var meta = [step != null && step !== '' ? 'Steg ' + step : '', dt]
+              .filter(Boolean)
+              .join(' · ');
+            var statusHtml = done
+              ? '<span style="font-size:10px;font-weight:800;color:#4a8268">✓ levererat</span>'
+              : '<span style="font-size:10px;font-weight:800;color:#94897b">' +
+                esc(d.statusLabel || 'Planerad') +
+                '</span>';
             return (
               '<div class="row"><div style="flex:1"><div class="rt">' +
               esc(d.title) +
               '</div><div class="rm">' +
-              esc([d.step ? 'Steg ' + d.step : '', d.date || ''].filter(Boolean).join(' · ')) +
-              '</div></div><span style="font-size:10px;font-weight:800;color:var(--success)">✓ ' +
-              esc(d.status || 'levererat') +
-              '</span></div>'
+              esc(meta) +
+              '</div></div>' +
+              statusHtml +
+              '</div>'
             );
           })
           .join('')
