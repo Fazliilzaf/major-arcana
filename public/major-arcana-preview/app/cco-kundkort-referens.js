@@ -497,6 +497,14 @@
         );
       })
       .join('');
+    var bkEvents = A2(ctx.hist).map(function (b) {
+      return {
+        ts: b.date || b.occurredAt || b.startAt || '',
+        title: b.title || b.serviceName || 'Besök',
+        icon: '📅',
+        src: 'bokning',
+      };
+    });
     body += sek(
       'Historik',
       '<span class="gk-pill gk-tag-info" data-gk-hist-count>' +
@@ -509,6 +517,8 @@
         '<div id="gk-sum-box" class="gk-rad" style="border-bottom:none;color:#4a7ba8" hidden></div>' +
         '<div data-gk-tl="' +
         esc(ctx.patientId || '') +
+        '" data-gk-bk="' +
+        encodeURIComponent(JSON.stringify(bkEvents)) +
         '">' +
         (hisRows || '<div class="gk-rad"><span class="gk-sub">Laddar historik…</span></div>') +
         '</div>'
@@ -768,20 +778,44 @@
       })
       .then(function (j) {
         var evs = (j && j.events) || [];
-        if (!evs.length) return;
-        var rows = evs
-          .slice(0, 40)
-          .map(function (ev) {
-            var d = String(ev.ts || '').slice(0, 10);
-            var tag = ev.actor
-              ? '<span class="gk-hl gk-tag ' + toneTag(ev.tone) + '">' + esc2(ev.actor) + '</span>'
-              : '';
+        // Slå ihop bokningar (från kortet) + timeline-events → en lista, sorterad på datum (C)
+        var bk = [];
+        try {
+          bk = JSON.parse(decodeURIComponent(cont.getAttribute('data-gk-bk') || '')) || [];
+        } catch (e) {
+          bk = [];
+        }
+        var all = bk.concat(
+          evs.map(function (ev) {
+            return {
+              ts: ev.ts,
+              title: ev.title || ev.type,
+              icon: ev.icon,
+              tone: ev.tone,
+              actor: ev.actor,
+              src: 'event',
+            };
+          })
+        );
+        if (!all.length) return;
+        all.sort(function (a, b) {
+          return String(b.ts || '').localeCompare(String(a.ts || ''));
+        });
+        var rows = all
+          .slice(0, 50)
+          .map(function (it) {
+            var d = String(it.ts || '').slice(0, 10);
+            var tag = it.actor
+              ? '<span class="gk-hl gk-tag ' + toneTag(it.tone) + '">' + esc2(it.actor) + '</span>'
+              : it.src === 'bokning'
+                ? '<span class="gk-hl gk-tag gk-tag-info">Besök</span>'
+                : '';
             return (
               '<div class="gk-rad gk-tl-row"><span class="gk-sub" style="min-width:78px">' +
               esc2(d) +
               '</span> ' +
-              (ev.icon ? esc2(ev.icon) + ' ' : '') +
-              esc2(ev.title || ev.type || 'Händelse') +
+              (it.icon ? esc2(it.icon) + ' ' : '') +
+              esc2(it.title || 'Händelse') +
               tag +
               '</div>'
             );
@@ -789,13 +823,13 @@
           .join('');
         cont.innerHTML = rows;
         var cnt = ov.querySelector('[data-gk-hist-count]');
-        if (cnt) cnt.textContent = evs.length + ' händelser';
+        if (cnt) cnt.textContent = all.length + ' händelser';
         var sb = ov.querySelector('#gk-sum-box');
         if (sb) {
-          var sista = String((evs[0] || {}).ts || '').slice(0, 10);
-          var forst = String((evs[evs.length - 1] || {}).ts || '').slice(0, 10);
+          var sista = String((all[0] || {}).ts || '').slice(0, 10);
+          var forst = String((all[all.length - 1] || {}).ts || '').slice(0, 10);
           sb.textContent =
-            evs.length +
+            all.length +
             ' händelser' +
             (sista ? ' · senaste ' + sista : '') +
             (forst ? ' · sedan ' + forst : '');
