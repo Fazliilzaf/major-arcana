@@ -92,7 +92,8 @@ async function main() {
 
   let schedulerStatus = null;
   try {
-    schedulerStatus = await fetchJson('/api/v1/ops/scheduler/status', token);
+    const payload = await fetchJson('/api/v1/ops/scheduler/status', token);
+    schedulerStatus = payload?.scheduler || payload;
   } catch (err) {
     warn('Scheduler status', err.message || String(err));
   }
