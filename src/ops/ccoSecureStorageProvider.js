@@ -347,7 +347,16 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
     const absThumb = absolute(thumbKey);
     try {
       await ensureDir(absThumb);
-      await sharp(abs)
+      // HEIC/HEIF: sharp-bygget på Render saknar HEVC-decodern → avkoda via
+      // heic-convert (ren WASM med libde265) till en JPEG-buffer först.
+      let input = abs;
+      if (mime === 'image/heic' || mime === 'image/heif') {
+        // eslint-disable-next-line global-require
+        const heicConvert = require('heic-convert');
+        const inputBuffer = await fsp.readFile(abs);
+        input = await heicConvert({ buffer: inputBuffer, format: 'JPEG', quality: 0.8 });
+      }
+      await sharp(input)
         .resize({ width: 320, height: 320, fit: 'inside' })
         .jpeg({ quality: 70 })
         .toFile(absThumb);
