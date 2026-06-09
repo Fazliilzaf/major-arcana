@@ -9169,10 +9169,12 @@ try {
           const base = pathR.basename(String(req.query.readReport));
           const fp = pathR.join(process.env.ARCANA_STATE_ROOT || '/var/data', base);
           try {
-            return res.json({
-              readReport: base,
-              content: JSON.parse(fsR.readFileSync(fp, 'utf8')),
-            });
+            const raw = fsR.readFileSync(fp, 'utf8');
+            try {
+              return res.json({ readReport: base, content: JSON.parse(raw) });
+            } catch {
+              return res.json({ readReport: base, raw: raw.slice(-6000) });
+            }
           } catch (e) {
             return res.status(404).json({ error: 'report_not_found', path: fp, detail: e.message });
           }
