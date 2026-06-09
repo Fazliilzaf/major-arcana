@@ -9,7 +9,10 @@ const path = require('node:path');
 
 const { createCcoPatientPaymentsRouter } = require('../../src/routes/ccoPatientPayments');
 const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
-const { getMedicalFinanceInfo } = require('../../src/ops/ccoPatientPaymentPrepare');
+const {
+  getMedicalFinanceInfo,
+  getPaymentPrepareContracts,
+} = require('../../src/ops/ccoPatientPaymentPrepare');
 
 const TENANT = 'hair-tp-clinic';
 
@@ -86,4 +89,40 @@ test('medical finance info is external-only guidance', () => {
   const info = getMedicalFinanceInfo();
   assert.equal(info.autoExecuted, false);
   assert.equal(info.mode, 'external_financing');
+  assert.equal(info.contract.autoExecuted, false);
+});
+
+test('payment prepare contracts expose money-safety requirements', async () => {
+  const contracts = getPaymentPrepareContracts();
+  assert.equal(contracts.ok, true);
+  assert.equal(contracts.contracts.swish.confirmText, 'PREPARE SWISH PAYMENT');
+  assert.equal(contracts.contracts.cardLink.mode, 'prepare_only');
+  assert.equal(contracts.contracts.invoiceDraft.fortnoxWriteSupported, false);
+  assert.equal(contracts.contracts.invoiceDraft.autoExecuted, false);
+
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'ord35-contracts-'));
+  const patientMasterStore = await createCcoPatientMasterStore({
+    filePath: path.join(tmp, 'pm.json'),
+  });
+  const authStore = fakeAuthStore();
+  const app = express();
+  app.use(express.json());
+  app.use(
+    createCcoPatientPaymentsRouter({
+      patientMasterStore,
+      authStore,
+      config: {},
+      requireAuth: authStore.requireAuth.bind(authStore),
+      requireRole: () => (_req, _res, next) => next(),
+    })
+  );
+
+  await withServer(app, async (base) => {
+    const response = await fetch(`${base}/cco-patient-master/payment/contracts`);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.contracts.invoiceDraft.confirmText, 'PREPARE INVOICE DRAFT');
+    assert.equal(body.contracts.medicalFinance.autoExecuted, false);
+  });
+  await fs.rm(tmp, { recursive: true, force: true });
 });

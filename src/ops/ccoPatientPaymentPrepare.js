@@ -18,6 +18,61 @@ function requireConfirmText(body, expected) {
   }
 }
 
+const PAYMENT_PREPARE_CONTRACTS = Object.freeze({
+  swish: Object.freeze({
+    endpoint: '/cco-patient-master/payment/prepare-swish',
+    method: 'POST',
+    mode: 'prepare_only',
+    confirmText: 'PREPARE SWISH PAYMENT',
+    requiresConfirmText: true,
+    requiresHumanAction: true,
+    autoExecuted: false,
+  }),
+  cardLink: Object.freeze({
+    endpoint: '/cco-patient-master/payment/prepare-card-link',
+    method: 'POST',
+    mode: 'prepare_only',
+    confirmText: 'PREPARE CARD PAYMENT',
+    requiresConfirmText: true,
+    requiresHumanAction: true,
+    autoExecuted: false,
+  }),
+  invoiceDraft: Object.freeze({
+    endpoint: '/cco-patient-master/payment/prepare-invoice',
+    method: 'POST',
+    mode: 'prepare_only',
+    confirmText: 'PREPARE INVOICE DRAFT',
+    requiresConfirmText: true,
+    requiresHumanAction: true,
+    autoExecuted: false,
+    fortnoxWriteSupported: false,
+  }),
+  medicalFinance: Object.freeze({
+    endpoint: '/cco-patient-master/payment/medical-finance-info',
+    method: 'GET',
+    mode: 'external_financing',
+    requiresConfirmText: false,
+    requiresHumanAction: true,
+    autoExecuted: false,
+  }),
+});
+
+function cloneContract(contract) {
+  return { ...contract };
+}
+
+function getPaymentPrepareContracts() {
+  return {
+    ok: true,
+    contracts: {
+      swish: cloneContract(PAYMENT_PREPARE_CONTRACTS.swish),
+      cardLink: cloneContract(PAYMENT_PREPARE_CONTRACTS.cardLink),
+      invoiceDraft: cloneContract(PAYMENT_PREPARE_CONTRACTS.invoiceDraft),
+      medicalFinance: cloneContract(PAYMENT_PREPARE_CONTRACTS.medicalFinance),
+    },
+  };
+}
+
 function parsePositiveAmount(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -69,6 +124,7 @@ async function prepareSwishPayment({
     mode: 'prepare_only',
     requiresHumanAction: true,
     autoExecuted: false,
+    contract: cloneContract(PAYMENT_PREPARE_CONTRACTS.swish),
     payment: result.payment,
     instructionUUID: result.instructionUUID,
     paymentRequestToken: result.paymentRequestToken,
@@ -144,6 +200,7 @@ async function prepareCardPaymentLink({
     mode: 'prepare_only',
     requiresHumanAction: true,
     autoExecuted: false,
+    contract: cloneContract(PAYMENT_PREPARE_CONTRACTS.cardLink),
     paymentLinkId: link.id,
     paymentLinkUrl: link.url,
     amountLabel: formatAmountLabel(amount),
@@ -194,6 +251,7 @@ async function prepareInvoiceDraft({
     mode: 'prepare_only',
     requiresHumanAction: true,
     autoExecuted: false,
+    contract: cloneContract(PAYMENT_PREPARE_CONTRACTS.invoiceDraft),
     invoiceDraftRef: draftRef,
     draft: {
       patientId,
@@ -219,6 +277,7 @@ function getMedicalFinanceInfo() {
     mode: 'external_financing',
     requiresHumanAction: true,
     autoExecuted: false,
+    contract: cloneContract(PAYMENT_PREPARE_CONTRACTS.medicalFinance),
     provider: 'Medical Finance',
     contact: {
       label: 'Medical Finance — extern finansiering',
@@ -233,6 +292,7 @@ function getMedicalFinanceInfo() {
 
 module.exports = {
   getMedicalFinanceInfo,
+  getPaymentPrepareContracts,
   prepareCardPaymentLink,
   prepareInvoiceDraft,
   prepareSwishPayment,

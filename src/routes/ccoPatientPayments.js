@@ -5,6 +5,7 @@ const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
 const {
   getMedicalFinanceInfo,
+  getPaymentPrepareContracts,
   prepareCardPaymentLink,
   prepareInvoiceDraft,
   prepareSwishPayment,
@@ -138,6 +139,13 @@ function createCcoPatientPaymentsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => handle(req, res, async () => res.json(getMedicalFinanceInfo()))
+  );
+
+  router.get(
+    '/cco-patient-master/payment/contracts',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => handle(req, res, async () => res.json(getPaymentPrepareContracts()))
   );
 
   return router;
