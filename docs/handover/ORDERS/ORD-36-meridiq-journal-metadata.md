@@ -44,3 +44,18 @@ Commit + filer + (a) källa (Meridiq-API/export el. bokning-fallback), (b) fält
 | Order skapad (repo + Notion)       | KLAR 2026-06-08 |
 | Codex: Meridiq-metadata / fallback | Väntar          |
 | Claude: frontend + UAT             | Väntar          |
+
+---
+
+## PRIORITERAD (Fazli 2026-06-08) + exakt data-fynd
+
+**Prio höjd:** journal-sektionen ska matcha facit ("Steg 5 · 28 maj · Fazli") — steg + behandlare saknas och är nu blockerande för "identisk" design/funktion.
+
+**Verifierat i prod-data (journalEntries via dossier-bundle), Abdulaziz Cabdi Kumi (8 importerade journaler):**
+
+- Fält som finns: `entryId, journalType ("historical_import"), status ("signed"), locked, title (mojibakad), source ("drive_import"), signedAt (=IMPORTDATUM 2026-05-24, ej behandlingsdatum), signedByName ("Drive-import"), treatmentEncounterId (TOM), importMeta, fields, attachments`.
+- **Behandlare:** `signedByName` finns men = **"Drive-import"** för importerade (ej riktig kliniker). Claude visar nu `signedByName` filtrerat (döljer "Drive-import") — så riktiga in-app-journaler visar behandlaren, importerade visar inget.
+- **Steg:** finns INTE (`treatmentEncounterId` tom, inget step-fält). Kan ej härledas frontend.
+- **Riktigt datum:** ligger i `title`/`importMeta.importKey`-sökvägen (t.ex. "December TP 2023 Begum/…2024-01-10") + Drive `modifiedTime` (ORD-34).
+
+**Vad ORD-36 måste leverera:** för importerade journaler — hämta riktig **behandlare** + **journeyStep** + **behandlingstyp** ur Meridiq (matcha på personnummer + datum + typ), eller härled behandlare ur importMeta-sökvägens mapp-namn ("Begum" = kliniker?) + steg ur kanoniska kundresan vid datumet. Exponera som `treater`, `journalStep`, `treatmentType` på journalEntry.
