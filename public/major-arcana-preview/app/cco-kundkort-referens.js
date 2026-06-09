@@ -238,6 +238,302 @@
     });
   }
 
+  // Gemensamma kundkortet (porterat från kundkort-mockup-gemensamt.html) — byggt ur LIVE-data.
+  function gkBuild(ctx) {
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+    function A2(x) {
+      return Array.isArray(x) ? x : [];
+    }
+    function ini(n) {
+      return String(n || '?')
+        .trim()
+        .split(/\s+/)
+        .map(function (w) {
+          return w[0] || '';
+        })
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+    }
+    function sek(title, pill, inner) {
+      if (!inner) return '';
+      return (
+        '<section class="gk-sek"><h2>' + esc(title) + (pill || '') + '</h2>' + inner + '</section>'
+      );
+    }
+    var name = ctx.name || 'Kund';
+    var imgs = A2(ctx.driveFiles).filter(function (f) {
+      return f && f.fileType === 'image';
+    });
+
+    // Header
+    var pills = '';
+    if (ctx.isVip) pills += '<span class="gk-pill gk-pill-vip">VIP</span>';
+    if (ctx.cur && ctx.total)
+      pills +=
+        '<span class="gk-pill gk-pill-steg">Steg ' +
+        esc(ctx.cur) +
+        ' av ' +
+        esc(ctx.total) +
+        '</span>';
+    var kontakt = [];
+    if (ctx.phone)
+      kontakt.push(
+        '<a href="tel:' +
+          esc(String(ctx.phone).replace(/[^\d+]/g, '')) +
+          '">' +
+          esc(ctx.phone) +
+          '</a>'
+      );
+    if (ctx.email)
+      kontakt.push('<a href="mailto:' + esc(ctx.email) + '">' + esc(ctx.email) + '</a>');
+    var smart = ctx.nextLabel
+      ? '<b>Nästa:</b> ' +
+        esc(ctx.nextLabel) +
+        (ctx.cur ? ' · Steg ' + esc(ctx.cur) + ' av ' + esc(ctx.total) : '')
+      : ctx.cur
+        ? 'Steg ' + esc(ctx.cur) + ' av ' + esc(ctx.total)
+        : 'Kundkortet samlat';
+    function chip(label, n, dot) {
+      return (
+        '<span class="gk-chip">' +
+        esc(label) +
+        (n ? ' <span class="gk-n">' + esc(n) + '</span>' : '') +
+        (dot ? ' <span class="gk-dot"></span>' : '') +
+        '</span>'
+      );
+    }
+    var nav =
+      '<nav class="gk-nav">' +
+      chip('Hälsodeklaration') +
+      chip('Kundresa', ctx.total) +
+      chip('Bokningar', A2(ctx.up).length) +
+      chip('Historik', A2(ctx.hist).length) +
+      chip('Journal', A2(ctx.jItems).length) +
+      chip('Offert', A2(ctx.offers).length) +
+      (imgs.length ? chip('Foto', imgs.length) : '') +
+      chip('Ekonomi') +
+      '</nav>';
+    var head =
+      '<header class="gk-khead"><div class="gk-khead-row"><div class="gk-avatar">' +
+      esc(ini(name)) +
+      '</div><div class="gk-id"><div class="gk-name">' +
+      esc(name) +
+      pills +
+      '</div><div class="gk-kontakt">' +
+      kontakt.join(' · ') +
+      '</div></div></div>' +
+      '<div class="gk-smartline"><span class="gk-kicker">Smart sammanfattning</span><span>' +
+      smart +
+      '</span></div>' +
+      nav +
+      '</header>';
+
+    var body = '<div class="gk-body">';
+
+    // Hälsodeklaration
+    var hdMiss = A2(ctx.gateSignals).some(function (s) {
+      return /missing_health|halso|hälso|health_declaration/i.test(
+        String((s && (s.ruleId || s.id)) || '')
+      );
+    });
+    body += sek(
+      'Hälsodeklaration',
+      hdMiss
+        ? '<span class="gk-pill gk-tag-warn">Att fylla i</span>'
+        : '<span class="gk-pill gk-tag-ok">Signerad</span>',
+      hdMiss
+        ? '<div class="gk-rad">Hälsodeklaration saknas <span class="gk-hl gk-tag gk-tag-warn">Efterfrågas</span></div>'
+        : '<div class="gk-rad"><span class="gk-sub">Medicinsk data · endast visning</span></div>'
+    );
+
+    // Kundresa
+    if (A2(ctx.steps).length) {
+      var pct = ctx.cur ? Math.round((ctx.cur / ctx.total) * 100) : 0;
+      var stegRows = A2(ctx.steps)
+        .map(function (s) {
+          var cls =
+            s.state === 'done'
+              ? 'gk-steg-klar'
+              : s.state === 'active'
+                ? 'gk-steg-nu'
+                : 'gk-steg-sen';
+          var mk = s.state === 'done' ? '✓' : s.state === 'active' ? s.id || '!' : s.id || '';
+          return (
+            '<div class="gk-steg-rad"><span class="gk-steg-ikon ' +
+            cls +
+            '">' +
+            esc(mk) +
+            '</span> ' +
+            esc(s.label) +
+            (s.state === 'active' ? ' <span class="gk-hl gk-tag gk-tag-warn">Pågår</span>' : '') +
+            '</div>'
+          );
+        })
+        .join('');
+      body += sek(
+        'Kundresa · ' + ctx.total + ' steg',
+        ctx.cur ? '<span class="gk-pill gk-pill-steg">Steg ' + esc(ctx.cur) + '</span>' : '',
+        '<div class="gk-resa-bar"><div class="gk-resa-fill" style="width:' +
+          pct +
+          '%"></div></div>' +
+          stegRows
+      );
+    }
+
+    // Smart nästa steg
+    if (ctx.nextLabel)
+      body += sek(
+        'Smart nästa steg',
+        '',
+        '<div class="gk-rad"><b>' +
+          esc(ctx.nextLabel) +
+          '</b> <span class="gk-hl gk-tag gk-tag-warn">Föreslaget</span></div>'
+      );
+
+    // Kommande bokningar
+    var bk = A2(ctx.up)
+      .slice(0, 5)
+      .map(function (b) {
+        var when = [
+          b.dateLabel || (b.date ? String(b.date).slice(0, 10) : ''),
+          b.time || b.startTime || '',
+        ]
+          .filter(Boolean)
+          .join(' · ');
+        return (
+          '<div class="gk-rad"><b>' +
+          esc(b.title || b.serviceName || 'Bokning') +
+          '</b> <span class="gk-sub">' +
+          esc(when + (b.staff ? ' · ' + b.staff : '')) +
+          '</span></div>'
+        );
+      })
+      .join('');
+    body += sek(
+      'Kommande bokningar',
+      bk ? '<span class="gk-pill gk-tag-info">' + A2(ctx.up).length + '</span>' : '',
+      bk
+    );
+
+    // Historik
+    var his = A2(ctx.hist)
+      .slice(0, 8)
+      .map(function (b) {
+        var d = String(b.date || b.occurredAt || b.startAt || '').slice(0, 10);
+        return (
+          '<div class="gk-rad"><span class="gk-sub">' +
+          esc(d) +
+          '</span> ' +
+          esc(b.title || b.serviceName || 'Besök') +
+          '</div>'
+        );
+      })
+      .join('');
+    body += sek(
+      'Historik',
+      his ? '<span class="gk-pill gk-tag-info">' + A2(ctx.hist).length + ' händelser</span>' : '',
+      his
+    );
+
+    // Journal
+    var jr = A2(ctx.jItems)
+      .map(function (it) {
+        var badge =
+          it.st === 'done'
+            ? '<span class="gk-hl gk-tag gk-tag-ok">Signerad' +
+              (it.by ? ' · ' + esc(it.by) : '') +
+              '</span>'
+            : '';
+        return (
+          '<div class="gk-rad"><b>' +
+          esc(it.serie || it.title || 'Journal') +
+          '</b> <span class="gk-sub">' +
+          esc(it.date || '') +
+          '</span>' +
+          badge +
+          '</div>'
+        );
+      })
+      .join('');
+    body += sek(
+      'Journal',
+      jr
+        ? '<span class="gk-pill gk-tag-info">' + A2(ctx.jItems).length + ' anteckningar</span>'
+        : '',
+      jr
+    );
+
+    // Offert
+    var off = A2(ctx.offers)
+      .map(function (o) {
+        var amt = o.amountLabel || o.detail || (o.amount ? o.amount + ' kr' : '');
+        var ok = /godk|signed|accepted/i.test(o.status || '');
+        return (
+          '<div class="gk-rad"><b>' +
+          esc((o.type || 'Offert') + (o.title ? ' · ' + o.title : '')) +
+          '</b> <span class="gk-hl">' +
+          (amt ? '<b>' + esc(amt) + '</b>' : '') +
+          (ok ? ' <span class="gk-tag gk-tag-ok">Godkänd</span>' : '') +
+          '</span></div>'
+        );
+      })
+      .join('');
+    body += sek('Offert', '', off);
+
+    // Ekonomi
+    var eko = '';
+    if (ctx.commercialCase && ctx.commercialCase.quotedAmount)
+      eko +=
+        '<div class="gk-rad">Offererat <span class="gk-hl"><b>' +
+        esc(ctx.commercialCase.quotedAmount) +
+        '</b></span></div>';
+    eko += A2(ctx.bundle && ctx.bundle.paymentHistory)
+      .slice(0, 6)
+      .map(function (p) {
+        return (
+          '<div class="gk-rad">' +
+          esc((p.method || p.source || 'Betalning') + (p.status ? ' · ' + p.status : '')) +
+          ' <span class="gk-sub">' +
+          esc(String(p.dateIso || p.date || '').slice(0, 10)) +
+          '</span> <span class="gk-hl"><b>' +
+          esc(p.amountLabel || p.amount || '') +
+          '</b></span></div>'
+        );
+      })
+      .join('');
+    body += sek('Ekonomi', '', eko);
+
+    // Foto
+    if (imgs.length) {
+      var grid =
+        '<div class="gk-foto-grid">' +
+        imgs
+          .slice(0, 4)
+          .map(function (f) {
+            return (
+              '<div class="gk-foto"><span>' +
+              esc(String(f.fileName || 'Foto').replace(/\.[a-z0-9]+$/i, '')) +
+              '</span></div>'
+            );
+          })
+          .join('') +
+        '</div>';
+      body += sek(
+        'Foto',
+        '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>',
+        grid
+      );
+    }
+
+    body += '</div>';
+    return '<div class="gk-kort">' + head + body + '</div>';
+  }
+
   window.__renderReferensKundkort = function (card, bundle, journalEntries, extras) {
     card = card || {};
     bundle = bundle || {};
@@ -1581,6 +1877,31 @@
       '</div></div>';
 
     h += '</div></div>';
+
+    // Cacha gemensamma kortet (förstoringen renderar det istället för dossier-klon)
+    try {
+      window.__GK_LAST = gkBuild({
+        name: name,
+        phone: phone,
+        email: email,
+        isVip: !!(bcard.vip || (bcard.tags && bcard.tags.vip)),
+        cur: cur,
+        total: total,
+        nextLabel: nextLabel,
+        steps: steps,
+        offers: offers,
+        jItems: jItems,
+        up: up,
+        hist: hist,
+        gateSignals: gateSignals,
+        driveFiles: driveFiles,
+        bundle: bundle,
+        commercialCase: commercialCase,
+      });
+    } catch (e) {
+      window.__GK_LAST = '';
+    }
+
     return h;
   };
 
@@ -2266,13 +2587,18 @@
     var body = ov.querySelector('.kk-storvy-body');
     // Rensa ev. gammal klon FÖRST, så vi sen hittar den LEVANDE dossiern (ej en klon)
     body.innerHTML = '';
-    var live = document.querySelector('.kkref .doss');
-    if (live) {
-      // .kkref-wrapper så scoped dossier-CSS (html[data-v9-enabled] .kkref .doss ...) gäller
-      body.innerHTML = '<div class="kkref"></div>';
-      body.querySelector('.kkref').appendChild(live.cloneNode(true));
+    if (window.__GK_LAST) {
+      // Gemensamma kundkortet (live-data) — det riktiga patientkortet i full vy
+      body.innerHTML = window.__GK_LAST;
     } else {
-      body.innerHTML = '<div style="padding:28px;color:#6b6052">Öppna en kund först.</div>';
+      var live = document.querySelector('.kkref .doss');
+      if (live) {
+        // .kkref-wrapper så scoped dossier-CSS (html[data-v9-enabled] .kkref .doss ...) gäller
+        body.innerHTML = '<div class="kkref"></div>';
+        body.querySelector('.kkref').appendChild(live.cloneNode(true));
+      } else {
+        body.innerHTML = '<div style="padding:28px;color:#6b6052">Öppna en kund först.</div>';
+      }
     }
     ov.classList.add('open');
     requestAnimationFrame(function () {
