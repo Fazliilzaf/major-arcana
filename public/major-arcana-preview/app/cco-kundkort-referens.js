@@ -540,6 +540,8 @@
         esc(ctx.patientId || '') +
         '" data-gk-pname="' +
         esc(ctx.name || '') +
+        '" data-gk-pemail="' +
+        esc(ctx.email || '') +
         '" data-gk-bk="' +
         encodeURIComponent(JSON.stringify(bkEvents)) +
         '">' +
@@ -1172,6 +1174,7 @@
     var pid = tlEl ? tlEl.getAttribute('data-gk-tl') : '';
     if (!pid) return;
     var pname = tlEl ? tlEl.getAttribute('data-gk-pname') || '' : '';
+    var pemail = tlEl ? tlEl.getAttribute('data-gk-pemail') || '' : '';
     var tok = '';
     try {
       tok = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim();
@@ -1191,7 +1194,8 @@
       '/api/v1/cco/patients/' +
         encodeURIComponent(pid) +
         '/automation-sends?tenantId=hair-tp-clinic' +
-        (pname ? '&patientName=' + encodeURIComponent(pname) : ''),
+        (pname ? '&patientName=' + encodeURIComponent(pname) : '') +
+        (pemail ? '&email=' + encodeURIComponent(pemail) : ''),
       { headers: H }
     )
       .then(function (r) {
@@ -1199,7 +1203,7 @@
       })
       .then(function (j) {
         if (!j || !j.sends) return;
-        ['reminder', 'aftercare', 'review'].forEach(function (k) {
+        ['confirmation', 'reminder', 'aftercare', 'review'].forEach(function (k) {
           var s = j.sends[k];
           if (!s || !s.sentAt) return;
           var el = ov.querySelector('[data-gk-auto="' + k + '"] .gk-auto-sent');

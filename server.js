@@ -12433,9 +12433,11 @@ process.once('SIGTERM', () => {
           .map((s) => s.trim())
           .filter(Boolean);
         const patientName = String(req.query.patientName || '').trim();
+        const email = String(req.query.email || '').trim();
         const sends = await aggregateAutomationSends({
           patientId,
           patientName,
+          email,
           tenantId,
           bookingCaseIds,
           careStateStore: patientCareStateStore,

@@ -1,14 +1,22 @@
 'use strict';
 
 // Aggregerar "senast skickad" per journey-automation för en patient, ur
-// befintliga källor (ingen ny logg byggs):
-//   - påminnelse + aftercare: ccoPatientCareStateStore.reminderLog (patient-keyad)
-//   - omdöme: postOpReviewStore (via patientens bookingCaseIds)
+// BEFINTLIGA källor (ingen ny logg byggs):
+//   - bokningsbekräftelse + påminnelse + aftercare: ccoPatientCareStateStore.reminderLog
+//     (matchas på patientId ELLER metadata.customerEmail — e-post-bryggan, eftersom
+//      boknings-/automation-sidan är kund-keyad, inte master-patientId-keyad)
+//   - omdöme: postOpReviewStore (submission.customerEmail → bookingCaseId → patientName-fallback)
 // Öppnad-status finns ej för transaktionsmail (kräver pixel) → utelämnas.
-// Allt best-effort: saknad källa/data → null (frontend visar "ej skickad än").
+// Allt best-effort: saknad källa/data → null (frontend visar inget).
 
 function asArray(v) {
   return Array.isArray(v) ? v : [];
+}
+function asObject(v) {
+  return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+}
+function norm(v) {
+  return String(v == null ? '' : v).trim();
 }
 
 function pickLatest(rows) {
@@ -28,37 +36,47 @@ function pickLatest(rows) {
 function isAftercare(type) {
   return /aftercare|efterv|post.?op|uppf[öo]lj/i.test(String(type || ''));
 }
+function isConfirmation(type) {
+  return /booking_confirmation|bekr[äa]ft/i.test(String(type || ''));
+}
 
 async function aggregateAutomationSends({
   patientId,
   patientName,
+  email,
   tenantId,
   bookingCaseIds = [],
   careStateStore,
   postOpReviewStore,
 } = {}) {
-  const out = { reminder: null, aftercare: null, review: null };
-  const pid = String(patientId || '').trim();
+  const out = { confirmation: null, reminder: null, aftercare: null, review: null };
+  const pid = norm(patientId);
   if (!pid) return out;
+  const wantEmail = norm(email).toLowerCase();
+  const wantName = norm(patientName).toLowerCase();
 
-  // Påminnelse + aftercare ur reminderLog
+  // Bokningsbekräftelse + påminnelse + aftercare ur reminderLog
   if (careStateStore && typeof careStateStore.listReminderLog === 'function') {
     let log = [];
     try {
-      log = await careStateStore.listReminderLog({
-        tenantId,
-        sinceHours: 24 * 365,
-        limit: 5000,
-      });
+      log = await careStateStore.listReminderLog({ tenantId, sinceHours: 24 * 365, limit: 5000 });
     } catch {
       log = [];
     }
-    const mine = asArray(log).filter((r) => String(r && r.patientId) === pid);
-    out.reminder = pickLatest(mine.filter((r) => !isAftercare(r.reminderType)));
+    const mine = asArray(log).filter((r) => {
+      if (!r) return false;
+      if (norm(r.patientId) && norm(r.patientId) === pid) return true;
+      const metaEmail = norm(asObject(r.metadata).customerEmail || r.email).toLowerCase();
+      return !!wantEmail && metaEmail === wantEmail;
+    });
+    out.confirmation = pickLatest(mine.filter((r) => isConfirmation(r.reminderType)));
     out.aftercare = pickLatest(mine.filter((r) => isAftercare(r.reminderType)));
+    out.reminder = pickLatest(
+      mine.filter((r) => !isAftercare(r.reminderType) && !isConfirmation(r.reminderType))
+    );
   }
 
-  // Omdöme ur postOpReviewStore: i första hand via bookingCaseIds, annars namn-match
+  // Omdöme ur postOpReviewStore: bookingCaseIds → e-post → namn (fallback)
   if (postOpReviewStore) {
     let subs = [];
     if (
@@ -66,7 +84,7 @@ async function aggregateAutomationSends({
       asArray(bookingCaseIds).length
     ) {
       for (const bcid of asArray(bookingCaseIds)) {
-        const id = String(bcid || '').trim();
+        const id = norm(bcid);
         if (!id) continue;
         try {
           const sub = postOpReviewStore.findByBookingCaseId(id);
@@ -76,15 +94,18 @@ async function aggregateAutomationSends({
         }
       }
     }
-    // Fallback: matcha submissions på patientName (submissions saknar patientId)
-    const wantName = String(patientName || '').trim().toLowerCase();
-    if (!subs.length && wantName && typeof postOpReviewStore.listSubmissions === 'function') {
+    if (!subs.length && typeof postOpReviewStore.listSubmissions === 'function') {
+      let all = [];
       try {
-        subs = asArray(postOpReviewStore.listSubmissions({ tenantId })).filter(
-          (s) => String(s && s.patientName).trim().toLowerCase() === wantName
-        );
+        all = asArray(postOpReviewStore.listSubmissions({ tenantId }));
       } catch {
-        subs = [];
+        all = [];
+      }
+      if (wantEmail) {
+        subs = all.filter((s) => norm(s && s.customerEmail).toLowerCase() === wantEmail);
+      }
+      if (!subs.length && wantName) {
+        subs = all.filter((s) => norm(s && s.patientName).toLowerCase() === wantName);
       }
     }
     const sent = subs.filter((s) => s && s.sentAt);
@@ -102,4 +123,4 @@ async function aggregateAutomationSends({
   return out;
 }
 
-module.exports = { aggregateAutomationSends, isAftercare };
+module.exports = { aggregateAutomationSends, isAftercare, isConfirmation };
