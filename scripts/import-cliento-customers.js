@@ -44,7 +44,9 @@ function parseArgs(argv) {
   }
   if (!args.csv) {
     console.error('FEL: --csv <path> krävs.');
-    console.error('Användning: node scripts/import-cliento-customers.js --csv /path/to/customers.csv [--dry-run]');
+    console.error(
+      'Användning: node scripts/import-cliento-customers.js --csv /path/to/customers.csv [--dry-run]'
+    );
     process.exit(2);
   }
   return args;
@@ -72,20 +74,34 @@ function parseCsv(text) {
     const ch = text[i];
     if (inQuote) {
       if (ch === '"') {
-        if (text[i + 1] === '"') { field += '"'; i += 1; }
-        else { inQuote = false; }
+        if (text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuote = false;
+        }
       } else {
         field += ch;
       }
     } else {
       if (ch === '"') inQuote = true;
-      else if (ch === delimiter) { row.push(field); field = ''; }
-      else if (ch === '\r') { /* skip */ }
-      else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-      else field += ch;
+      else if (ch === delimiter) {
+        row.push(field);
+        field = '';
+      } else if (ch === '\r') {
+        /* skip */
+      } else if (ch === '\n') {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+      } else field += ch;
     }
   }
-  if (field.length || row.length) { row.push(field); rows.push(row); }
+  if (field.length || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
   // Strippa tomma sista rader
   while (rows.length && rows[rows.length - 1].every((c) => !c)) rows.pop();
 
@@ -93,7 +109,9 @@ function parseCsv(text) {
   const headers = rows[0].map((h) => String(h || '').trim());
   const dataRows = rows.slice(1).map((r) => {
     const obj = {};
-    headers.forEach((h, idx) => { obj[h] = (r[idx] !== undefined ? r[idx] : '').trim(); });
+    headers.forEach((h, idx) => {
+      obj[h] = (r[idx] !== undefined ? r[idx] : '').trim();
+    });
     return obj;
   });
   return { headers, rows: dataRows, delimiter };
@@ -119,21 +137,31 @@ function buildHeaderMap(headers) {
     if (!map.name && /(^|\b)namn\b/.test(low)) map.name = h;
     if (!map.email && /(e-post|email|e-mail|epost)/.test(low)) map.email = h;
     // Cliento: "Telefon (mobil)" + "Telefon (annat)"
-    if (!map.phone && /(mobiltel|mobil\b|telefon\s*\(mobil\)|^telefon$|^tel$|phone)/.test(low)) map.phone = h;
-    if (!map.altPhone && /(annat tel|annan tel|telefon\s*\(annat\)|alternativ|sekund|other phone)/.test(low)) map.altPhone = h;
-    if (!map.personnummer && /(personnummer|pnr|personal\s*number|ssn)/.test(low)) map.personnummer = h;
+    if (!map.phone && /(mobiltel|mobil\b|telefon\s*\(mobil\)|^telefon$|^tel$|phone)/.test(low))
+      map.phone = h;
+    if (
+      !map.altPhone &&
+      /(annat tel|annan tel|telefon\s*\(annat\)|alternativ|sekund|other phone)/.test(low)
+    )
+      map.altPhone = h;
+    if (!map.personnummer && /(personnummer|pnr|personal\s*number|ssn)/.test(low))
+      map.personnummer = h;
     if (!map.id && /(kund.?id|customer.?id|^id$|^#$)/.test(low)) map.id = h;
     // Cliento: "Gatuadress 1" / "Gatuadress 2"
-    if (!map.address1 && /(gatuadress\s*1|adressrad 1|adress 1|address.?1|street)/.test(low)) map.address1 = h;
-    if (!map.address2 && /(gatuadress\s*2|adressrad 2|adress 2|address.?2)/.test(low)) map.address2 = h;
+    if (!map.address1 && /(gatuadress\s*1|adressrad 1|adress 1|address.?1|street)/.test(low))
+      map.address1 = h;
+    if (!map.address2 && /(gatuadress\s*2|adressrad 2|adress 2|address.?2)/.test(low))
+      map.address2 = h;
     if (!map.postal && /(postnummer|postnr|postal|zip)/.test(low)) map.postal = h;
     if (!map.city && /(postort|^ort$|stad|city)/.test(low)) map.city = h;
     if (!map.country && /(^|\b)land\b|country/.test(low)) map.country = h;
     // Nya Cliento-fält
     if (!map.birthdate && /(födelsedatum|birthdate|birth.?date|dob)/.test(low)) map.birthdate = h;
     if (!map.gender && /(^kön$|gender|sex)/.test(low)) map.gender = h;
-    if (!map.allowMarketing && /(tillåt\s*reklam|reklamutskick|marketing|nyhetsbrev)/.test(low)) map.allowMarketing = h;
-    if (!map.allowSmsReminder && /(tillåt\s*påminnelser|sms.?påminnelse|sms.?reminder)/.test(low)) map.allowSmsReminder = h;
+    if (!map.allowMarketing && /(tillåt\s*reklam|reklamutskick|marketing|nyhetsbrev)/.test(low))
+      map.allowMarketing = h;
+    if (!map.allowSmsReminder && /(tillåt\s*påminnelser|sms.?påminnelse|sms.?reminder)/.test(low))
+      map.allowSmsReminder = h;
     if (!map.internalLog && /(kundlogg|customer.?log|aktivitet)/.test(low)) map.internalLog = h;
   }
   return map;
@@ -177,7 +205,12 @@ function maskPnr(pnr) {
 }
 
 function summarize(mappedRows) {
-  let withName = 0, withEmail = 0, withPhone = 0, withPnr = 0, anonymous = 0, withAddress = 0;
+  let withName = 0,
+    withEmail = 0,
+    withPhone = 0,
+    withPnr = 0,
+    anonymous = 0,
+    withAddress = 0;
   for (const r of mappedRows) {
     if (r.name) withName += 1;
     if (r.emails.length) withEmail += 1;
@@ -303,12 +336,25 @@ async function main() {
   console.log('  review:       ' + (result.importSummary.review || 0));
   console.log('  invalid:      ' + (result.importSummary.invalid || 0));
   console.log('');
-  console.log('Tenant "' + args.tenant + '" har nu ' +
-    Object.keys(result.customerState.directory || {}).length + ' aktiva kund-keys.');
+  console.log(
+    'Tenant "' +
+      args.tenant +
+      '" har nu ' +
+      Object.keys(result.customerState.directory || {}).length +
+      ' aktiva kund-keys.'
+  );
 }
 
-main().catch((err) => {
-  console.error('IMPORT FAILED:', err.message);
-  console.error(err.stack);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error('IMPORT FAILED:', err.message);
+    console.error(err.stack);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  buildHeaderMap,
+  mapClientoRow,
+  parseCsv,
+};
