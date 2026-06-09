@@ -1303,6 +1303,41 @@
           db = new Date(b);
         return isNaN(da) || isNaN(db) ? 999 : Math.abs((da - db) / 86400000);
       }
+      // Signeringsrad per journal: VAD · NÄR · vem signerade (personal) + kund.
+      // Ärligt: historical_import har ingen strukturerad signatur (ligger i PDF:en) → fejka aldrig signerare.
+      function jFmtDT(iso) {
+        var d = new Date(iso);
+        if (isNaN(d)) return '';
+        return (
+          d.toLocaleDateString('sv-SE') +
+          ' ' +
+          d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+        );
+      }
+      function jSignLine(e) {
+        var t = String((e && e.title) || '');
+        var isConsent =
+          /friskf|samtycke|consent|avtal/i.test(t) ||
+          /friskf|consent|samtycke/i.test((e && e.journalType) || '');
+        var realBy =
+          (e && e.treater) ||
+          (e && e.signedByName && !/drive-import/i.test(e.signedByName) ? e.signedByName : '');
+        var when = jFmtDT(e && e.signedAt);
+        if (realBy) {
+          return (
+            (isConsent ? 'Kundsignerad · ' : '') +
+            '✍️ ' +
+            esc(realBy) +
+            (when ? ' · ' + esc(when) : '')
+          );
+        }
+        if (e && (e.status === 'signed' || e.locked)) {
+          return isConsent
+            ? 'Kundens originalsignatur i dokumentet'
+            : 'Signerad — originalet i dokumentet';
+        }
+        return e && e.status ? esc(String(e.status)) : '';
+      }
       var groups = {};
       A(driveFiles).forEach(function (f) {
         var k = dateKey(f) || 'odaterat';
@@ -1381,17 +1416,26 @@
           var label = (k === 'odaterat' ? 'Odaterat' : svDate(k)) + (vt ? ' · ' + vt : '');
           var jrows = g.journals
             .map(function (e) {
+              var t = String(e.title || '');
               var jt = 'Journal';
-              var tm = String(e.title || '').match(/journal-(prp|dhi|fue|tp|op)\b/i);
-              if (e.treatmentType) jt = 'Journal · ' + e.treatmentType;
-              else if (tm) jt = 'Journal · ' + tm[1].toUpperCase();
+              if (/friskf/i.test(t)) jt = 'Friskförsäkran';
+              else if (/samtycke|consent/i.test(t)) jt = 'Samtycke';
+              else if (/avtal/i.test(t)) jt = 'Behandlingsavtal';
+              else if (e.treatmentType) jt = 'Journal · ' + e.treatmentType;
+              else {
+                var tm = t.match(/journal-(prp|dhi|fue|tp|op)\b/i);
+                if (tm) jt = 'Journal · ' + tm[1].toUpperCase();
+              }
+              var meta = jSignLine(e);
               return (
                 '<button type="button" class="kk-file" data-kk-open-storvy="journal" data-kk-entry="' +
                 esc(e.id || e.entryId || '') +
                 '" style="width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;color:inherit">' +
                 '<span class="kk-foto-ico">📝</span><div style="flex:1;min-width:0"><div class="rt">' +
                 esc(jt) +
-                '</div></div><span class="kk-file-open">Öppna</span></button>'
+                '</div>' +
+                (meta ? '<div class="rm">' + meta + '</div>' : '') +
+                '</div><span class="kk-file-open">Öppna</span></button>'
               );
             })
             .join('');
