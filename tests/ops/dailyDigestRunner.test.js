@@ -108,6 +108,40 @@ test('runDigestForTenant sets senderMailboxId from brand preferredMailbox when d
   await fs.rm(dir, { recursive: true, force: true });
 });
 
+test('runDigestForTenant passes plain email strings to sendNewMessage.to', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-ddrun-to-plain-'));
+  const histPath = path.join(dir, 'history.json');
+  const ccoHistoryStore = await createCcoHistoryStore({ filePath: histPath });
+  const tenantConfigStore = {
+    getTenantConfig: async () => ({}),
+    updateTenantConfig: async () => ({}),
+  };
+  let capturedTo = null;
+  const graphSendConnector = {
+    sendNewMessage: async (payload) => {
+      capturedTo = payload.to;
+      return { id: 'graph-msg-1' };
+    },
+  };
+
+  const r = await runDigestForTenant({
+    tenantId: 't1',
+    tenantConfig: {
+      digest: { enabled: true, recipients: ['ops@example.com', 'lead@example.com'] },
+    },
+    tenantConfigStore,
+    ccoHistoryStore,
+    graphSendConnector,
+    forceSend: true,
+    dryRun: false,
+  });
+
+  assert.equal(r.sent, true);
+  assert.deepEqual(capturedTo, ['ops@example.com', 'lead@example.com']);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
 test('runDigestForTenant captures error when sendNewMessage throws', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-ddrun-graph-err-'));
   const histPath = path.join(dir, 'history.json');

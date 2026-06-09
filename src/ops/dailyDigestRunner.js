@@ -90,7 +90,7 @@ async function sendViaGraph({
       subject,
       body: textBody,
       bodyHtml: htmlBody,
-      to: toRecipients.map((email) => ({ emailAddress: { address: email } })),
+      to: toRecipients.map((email) => normalizeText(email)).filter(Boolean),
     });
     return { sent: true, result };
   } catch (err) {
