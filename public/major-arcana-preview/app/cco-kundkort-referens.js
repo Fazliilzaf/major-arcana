@@ -1041,8 +1041,10 @@
       var paid = offers.filter(function (o) {
         return /godk|signed|accepted/i.test(o.status || '');
       });
+      var payHist = A(bundle.paymentHistory);
+      var payMeta = bundle.paymentHistoryMeta || {};
       // visa bara sektionen om det finns något ekonomiskt att betala/visa
-      if (!paid.length && !ps && !cc.quotedAmount) return;
+      if (!paid.length && !ps && !cc.quotedAmount && !payHist.length) return;
       var statusMap = {
         paid: ['Betald', '#2e7d52', '#e7f3ec'],
         ready_for_booking: ['Klar för bokning', '#2e7d52', '#e7f3ec'],
@@ -1109,10 +1111,34 @@
             );
           })
           .join('');
-      // 4) Betalningshistorik (kräver Swish/Fortnox-poster = backend)
-      inner +=
-        '<div class="kk-betvag-h">Betalningshistorik</div>' +
-        '<div class="empty">Ingen betalningshistorik kopplad ännu.</div>';
+      // 4) Betalningshistorik (Swish + Fortnox, ORD-35)
+      inner += '<div class="kk-betvag-h">Betalningshistorik</div>';
+      if (payHist.length) {
+        inner += payHist
+          .slice(0, 8)
+          .map(function (ph) {
+            var dt = String(ph.dateIso || ph.date || ph.paidAt || '').slice(0, 10);
+            var metod = ph.method || ph.source || '';
+            var belopp = ph.amountLabel || ph.amount || '';
+            var st2 = ph.status || '';
+            return (
+              '<div class="kk-eko"><div class="kk-eko-l"><div class="kk-eko-k">' +
+              esc([metod, st2].filter(Boolean).join(' · ') || 'Betalning') +
+              '</div>' +
+              (dt ? '<div class="kk-eko-sub">' + esc(dt) + '</div>' : '') +
+              '</div><div class="kk-eko-v">' +
+              esc(belopp || '—') +
+              '</div></div>'
+            );
+          })
+          .join('');
+      } else {
+        var note =
+          A(payMeta.notes).indexOf('fortnox_customer_missing') >= 0
+            ? 'Ingen Fortnox-kund kopplad ännu.'
+            : 'Ingen betalningshistorik ännu.';
+        inner += '<div class="empty">' + esc(note) + '</div>';
+      }
       h += sec('Betalning', '<span style="color:' + stt[1] + '">' + esc(stt[0]) + '</span>', inner);
     })();
 
