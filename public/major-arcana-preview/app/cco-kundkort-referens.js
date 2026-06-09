@@ -393,11 +393,59 @@
 
     h += '<div class="ds">';
 
-    if (nextLabel || cur) {
+    // Smart sammanfattning: väv in nästa bokning (ORD-37) + handling + stegräkning
+    var nextBk = A(ctxExtras.upcomingBookings)[0];
+    var summFrisk = gateSignals.some(function (s) {
+      return /operation_day_insurance/.test(String((s && (s.ruleId || s.id)) || ''));
+    });
+    var bkWhen = '';
+    if (nextBk) {
+      var rawD = nextBk.date || nextBk.occurredAt || nextBk.startAt || '';
+      var relD = nextBk.dateLabel || '';
+      if (!relD && rawD) {
+        var _dt = new Date(rawD);
+        if (!isNaN(_dt)) {
+          var _t = new Date();
+          _t.setHours(0, 0, 0, 0);
+          var _d0 = new Date(_dt);
+          _d0.setHours(0, 0, 0, 0);
+          var _diff = Math.round((_d0 - _t) / 86400000);
+          var _mn = [
+            'jan',
+            'feb',
+            'mar',
+            'apr',
+            'maj',
+            'jun',
+            'jul',
+            'aug',
+            'sep',
+            'okt',
+            'nov',
+            'dec',
+          ];
+          relD =
+            _diff === 0
+              ? 'idag'
+              : _diff === 1
+                ? 'imorgon'
+                : _d0.getDate() + ' ' + _mn[_d0.getMonth()];
+        } else {
+          relD = String(rawD).slice(0, 10);
+        }
+      }
+      bkWhen = [relD, nextBk.time || nextBk.startTime || ''].filter(Boolean).join(' ');
+    }
+    var bkStr = nextBk
+      ? (nextBk.title || nextBk.serviceName || 'bokning') + (bkWhen ? ' ' + bkWhen : '')
+      : '';
+    var summAction = summFrisk ? 'friskförsäkran signeras på plats' : nextLabel;
+    if (nextLabel || cur || bkStr) {
+      var nx = bkStr ? bkStr + (summAction ? ' — ' + summAction : '') : summAction;
       h +=
         '<div class="summ kkx-summ"><span class="sk">SMART SAMMANFATTNING</span>' +
-        (cur ? '<b>Steg ' + esc(cur) + ' av ' + esc(total) + '.</b> ' : '') +
-        (nextLabel ? 'Nästa: ' + esc(nextLabel) + '.' : 'Kundresan pågår.') +
+        (nx ? '<b>Nästa:</b> ' + esc(nx) + '. ' : 'Kundresan pågår. ') +
+        (cur ? 'Steg ' + esc(cur) + ' av ' + esc(total) + '.' : '') +
         '</div>';
     }
 
