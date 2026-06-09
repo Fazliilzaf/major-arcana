@@ -770,8 +770,11 @@
         date: jMineDate(raw) || jDate10(j.date || j.signedAt || j.createdAt),
         title: jCleanTitle(raw, j.journalType),
         key: jSeriesKey(raw),
-        step: j.step,
-        by: j.by || j.authorName || '',
+        step: j.step != null ? j.step : j.journeyStep,
+        by: (function () {
+          var n = j.by || j.authorName || j.signedByName || '';
+          return /drive-?import|^\s*import\s*$|system|auto-?import/i.test(String(n)) ? '' : n;
+        })(),
         entryId: j.entryId || j.id || '',
         jType: j.journalType || '',
       };
