@@ -497,14 +497,35 @@
         );
       })
       .join('');
-    var bkEvents = A2(ctx.hist).map(function (b) {
-      return {
+    // Syntetiserade historik-händelser ur kortets data (besök + betalningar + första kontakt)
+    var bkEvents = [];
+    A2(ctx.hist).forEach(function (b) {
+      bkEvents.push({
         ts: b.date || b.occurredAt || b.startAt || '',
         title: b.title || b.serviceName || 'Besök',
         icon: '📅',
         src: 'bokning',
-      };
+      });
     });
+    A2(ctx.bundle && ctx.bundle.paymentHistory).forEach(function (p) {
+      var paid = /(paid|betald|completed)/i.test(p.status || '');
+      bkEvents.push({
+        ts: String(p.dateIso || p.date || '').slice(0, 10),
+        title: (p.method || p.source || 'Betalning') + (p.amountLabel ? ' · ' + p.amountLabel : ''),
+        icon: '💳',
+        src: paid ? 'betald' : 'betalning',
+      });
+    });
+    var kontaktDatum = A2(ctx.hist)
+      .map(function (b) {
+        return String(b.date || b.occurredAt || b.startAt || '').slice(0, 10);
+      })
+      .filter(function (d) {
+        return /^\d{4}-\d{2}-\d{2}$/.test(d);
+      })
+      .sort();
+    if (kontaktDatum.length)
+      bkEvents.push({ ts: kontaktDatum[0], title: 'Första kontakt', icon: '🤝', src: 'kontakt' });
     body += sek(
       'Historik',
       '<span class="gk-pill gk-tag-info" data-gk-hist-count>' +
@@ -814,7 +835,9 @@
               ? '<span class="gk-hl gk-tag ' + toneTag(it.tone) + '">' + esc2(it.actor) + '</span>'
               : it.src === 'bokning'
                 ? '<span class="gk-hl gk-tag gk-tag-info">Besök</span>'
-                : '';
+                : it.src === 'betald'
+                  ? '<span class="gk-hl gk-tag gk-tag-ok">Betald</span>'
+                  : '';
             return (
               '<div class="gk-rad gk-tl-row"><span class="gk-sub" style="min-width:78px">' +
               esc2(d) +
