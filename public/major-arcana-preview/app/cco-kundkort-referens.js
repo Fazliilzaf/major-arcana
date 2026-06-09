@@ -618,7 +618,63 @@
         );
       })
       .join('');
-    body += sek('Offert', '', off, 'Ingen offert skapad ännu.');
+    // Smart signal: temperatur ur engagemang (ORD-42 öppningsspårning) — intern heuristik, ej extern AI
+    var offSignal = (function () {
+      var cc = ctx.commercialCase || {};
+      var hasOffer = A2(ctx.offers).length || cc.quotedAmount;
+      if (!hasOffer) return '';
+      var statusBlob =
+        String(cc.paymentStatus || '') +
+        ' ' +
+        A2(ctx.offers)
+          .map(function (o) {
+            return o.status || '';
+          })
+          .join(' ');
+      if (/accept|godk|signed|betald|paid|tackad|avbök|declin/i.test(statusBlob)) return '';
+      var openCount = Number(cc.quoteOpenCount || 0);
+      var lastTs = cc.quoteOpenedAt ? Date.parse(cc.quoteOpenedAt) : NaN;
+      function rel(ts) {
+        var d = (Date.now() - ts) / 1000;
+        if (d < 3600) return Math.max(1, Math.round(d / 60)) + ' min sedan';
+        if (d < 86400) return Math.round(d / 3600) + ' h sedan';
+        var days = Math.round(d / 86400);
+        return days <= 1 ? 'igår' : days + ' dagar sedan';
+      }
+      var hSince = isFinite(lastTs) ? (Date.now() - lastTs) / 3.6e6 : null;
+      var when = isFinite(lastTs) ? rel(lastTs) : '';
+      var hr = isFinite(lastTs) ? new Date(lastTs).getHours() : null;
+      var timeHint =
+        hr != null ? ' Föreslå påminnelse ~' + (hr < 10 ? '0' + hr : hr) + ':00 (då hen öppnar).' : '';
+      var tone, lead, sub;
+      if (openCount >= 2 && hSince != null && hSince < 48) {
+        tone = 'hot';
+        lead = '🔥 Het lead';
+        sub = 'Öppnad ' + openCount + ' ggr, senast ' + when + ' — tittar aktivt men har inte svarat.' + timeHint;
+      } else if (hSince != null && hSince > 24 * 10) {
+        tone = 'cold';
+        lead = '🧊 Går kall';
+        sub = Math.round(hSince / 24) + ' dagar utan aktivitet. Skicka en personlig påminnelse.';
+      } else if (openCount >= 1) {
+        tone = 'warm';
+        lead = 'Öppnad ' + openCount + ' ' + (openCount === 1 ? 'gång' : 'ggr');
+        sub = 'Inget svar än' + (when ? ' (senast ' + when + ')' : '') + '. Påminnelse föreslås.' + timeHint;
+      } else {
+        tone = 'info';
+        lead = 'Skickad — ej öppnad än';
+        sub = 'Inväntar att kunden öppnar offerten.';
+      }
+      return (
+        '<div class="gk-offsignal gk-offsignal-' +
+        tone +
+        '"><b>' +
+        lead +
+        '</b> <span class="gk-sub">' +
+        esc(sub) +
+        '</span></div>'
+      );
+    })();
+    body += sek('Offert', '', offSignal + off, 'Ingen offert skapad ännu.');
 
     // Ekonomi
     var eko = '';

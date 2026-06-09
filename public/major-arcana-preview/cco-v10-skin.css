@@ -3127,6 +3127,39 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 #kk-storvy .gk-person-actions .gk-person-note {
   flex-basis: 100%;
 }
+/* Offert: smart temperatur-signal (#1) */
+#kk-storvy .gk-offsignal {
+  display: block;
+  padding: 9px 11px;
+  margin-bottom: 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  line-height: 1.45;
+}
+#kk-storvy .gk-offsignal b {
+  font-size: 12.5px;
+}
+#kk-storvy .gk-offsignal .gk-sub {
+  display: block;
+  margin-top: 2px;
+  color: #6b6359;
+}
+#kk-storvy .gk-offsignal-hot {
+  background: rgba(214, 122, 60, 0.1);
+  border-color: rgba(214, 122, 60, 0.28);
+}
+#kk-storvy .gk-offsignal-warm {
+  background: rgba(201, 162, 39, 0.1);
+  border-color: rgba(201, 162, 39, 0.26);
+}
+#kk-storvy .gk-offsignal-cold {
+  background: rgba(93, 122, 150, 0.1);
+  border-color: rgba(93, 122, 150, 0.26);
+}
+#kk-storvy .gk-offsignal-info {
+  background: rgba(93, 74, 60, 0.06);
+  border-color: rgba(93, 74, 60, 0.12);
+}
 #kk-storvy .gk-tag {
   font-size: 10px;
   font-weight: 700;
