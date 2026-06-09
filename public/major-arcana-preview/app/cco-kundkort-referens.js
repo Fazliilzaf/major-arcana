@@ -786,16 +786,21 @@
           bk = [];
         }
         var all = bk.concat(
-          evs.map(function (ev) {
-            return {
-              ts: ev.ts,
-              title: ev.title || ev.type,
-              icon: ev.icon,
-              tone: ev.tone,
-              actor: ev.actor,
-              src: 'event',
-            };
-          })
+          evs
+            .filter(function (ev) {
+              // Journaler har egen sektion — visa inte journal-skapad/signerad i Historik
+              return !/^journal_(draft_created|signed)$/.test(ev.type || '');
+            })
+            .map(function (ev) {
+              return {
+                ts: ev.ts,
+                title: ev.title || ev.type,
+                icon: ev.icon,
+                tone: ev.tone,
+                actor: ev.actor,
+                src: 'event',
+              };
+            })
         );
         if (!all.length) return;
         all.sort(function (a, b) {
