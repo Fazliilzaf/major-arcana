@@ -330,9 +330,28 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   if (!Array.isArray(state.audit)) state.audit = [];
   if (!state.schemaVersion) state.schemaVersion = SCHEMA_VERSION;
 
+  // Batch-persist: skjut upp diskskrivningar under en batch, skriv 1× vid flush.
+  // Gör massimport snabb + concurrency säker (ingen skriv-storm av stort index).
+  let __batchDepth = 0;
+  let __batchDirty = false;
   async function save() {
     state.updatedAt = nowIso();
+    if (__batchDepth > 0) {
+      __batchDirty = true;
+      return;
+    }
     await writeJsonAtomic(filePath, state);
+  }
+  function beginBatch() {
+    __batchDepth += 1;
+  }
+  async function flushBatch() {
+    if (__batchDepth > 0) __batchDepth -= 1;
+    if (__batchDepth === 0 && __batchDirty) {
+      __batchDirty = false;
+      state.updatedAt = nowIso();
+      await writeJsonAtomic(filePath, state);
+    }
   }
 
   async function addAsset(input = {}, { actor = {} } = {}) {
@@ -1166,6 +1185,8 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   }
 
   return {
+    beginBatch,
+    flushBatch,
     addAsset,
     transitionStatus,
     updateAssetStatus,

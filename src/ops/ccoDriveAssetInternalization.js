@@ -522,16 +522,22 @@ async function internalizeDriveAssets({
   // helstate-skrivningar (temp+rename) → last-write-wins men alltid komplett.
   const poolSize = Math.max(1, Number(concurrency) || 1);
   let __idx = 0;
-  await Promise.all(
-    Array.from({ length: poolSize }, async () => {
-      for (;;) {
-        const i = __idx;
-        __idx += 1;
-        if (i >= batch.length) break;
-        await processRow(batch[i]);
-      }
-    })
-  );
+  if (typeof assetStore.beginBatch === 'function') assetStore.beginBatch();
+  try {
+    await Promise.all(
+      Array.from({ length: poolSize }, async () => {
+        for (;;) {
+          const i = __idx;
+          __idx += 1;
+          if (i >= batch.length) break;
+          await processRow(batch[i]);
+        }
+      })
+    );
+  } finally {
+    // Skriv index 1× för hela chunken (även vid fel) → storen lämnas aldrig i batch-läge.
+    if (typeof assetStore.flushBatch === 'function') await assetStore.flushBatch();
+  }
 
   const run = await importRunStore.finishRun(runId, { actor });
   return {
