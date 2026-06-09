@@ -538,6 +538,8 @@
         '<div id="gk-sum-box" class="gk-rad" style="border-bottom:none;color:#4a7ba8" hidden></div>' +
         '<div data-gk-tl="' +
         esc(ctx.patientId || '') +
+        '" data-gk-pname="' +
+        esc(ctx.name || '') +
         '" data-gk-bk="' +
         encodeURIComponent(JSON.stringify(bkEvents)) +
         '">' +
@@ -1169,6 +1171,7 @@
     var tlEl = ov.querySelector('[data-gk-tl]');
     var pid = tlEl ? tlEl.getAttribute('data-gk-tl') : '';
     if (!pid) return;
+    var pname = tlEl ? tlEl.getAttribute('data-gk-pname') || '' : '';
     var tok = '';
     try {
       tok = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim();
@@ -1185,7 +1188,10 @@
       return Math.round(d) + ' dgr sedan';
     }
     fetch(
-      '/api/v1/cco/patients/' + encodeURIComponent(pid) + '/automation-sends?tenantId=hair-tp-clinic',
+      '/api/v1/cco/patients/' +
+        encodeURIComponent(pid) +
+        '/automation-sends?tenantId=hair-tp-clinic' +
+        (pname ? '&patientName=' + encodeURIComponent(pname) : ''),
       { headers: H }
     )
       .then(function (r) {

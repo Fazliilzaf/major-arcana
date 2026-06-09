@@ -12432,8 +12432,10 @@ process.once('SIGTERM', () => {
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean);
+        const patientName = String(req.query.patientName || '').trim();
         const sends = await aggregateAutomationSends({
           patientId,
+          patientName,
           tenantId,
           bookingCaseIds,
           careStateStore: patientCareStateStore,

@@ -31,6 +31,7 @@ function isAftercare(type) {
 
 async function aggregateAutomationSends({
   patientId,
+  patientName,
   tenantId,
   bookingCaseIds = [],
   careStateStore,
@@ -57,21 +58,33 @@ async function aggregateAutomationSends({
     out.aftercare = pickLatest(mine.filter((r) => isAftercare(r.reminderType)));
   }
 
-  // Omdöme ur postOpReviewStore via patientens bookingCaseIds
-  if (
-    postOpReviewStore &&
-    typeof postOpReviewStore.findByBookingCaseId === 'function' &&
-    asArray(bookingCaseIds).length
-  ) {
-    const subs = [];
-    for (const bcid of asArray(bookingCaseIds)) {
-      const id = String(bcid || '').trim();
-      if (!id) continue;
+  // Omdöme ur postOpReviewStore: i första hand via bookingCaseIds, annars namn-match
+  if (postOpReviewStore) {
+    let subs = [];
+    if (
+      typeof postOpReviewStore.findByBookingCaseId === 'function' &&
+      asArray(bookingCaseIds).length
+    ) {
+      for (const bcid of asArray(bookingCaseIds)) {
+        const id = String(bcid || '').trim();
+        if (!id) continue;
+        try {
+          const sub = postOpReviewStore.findByBookingCaseId(id);
+          if (sub) subs.push(sub);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    // Fallback: matcha submissions på patientName (submissions saknar patientId)
+    const wantName = String(patientName || '').trim().toLowerCase();
+    if (!subs.length && wantName && typeof postOpReviewStore.listSubmissions === 'function') {
       try {
-        const sub = postOpReviewStore.findByBookingCaseId(id);
-        if (sub) subs.push(sub);
+        subs = asArray(postOpReviewStore.listSubmissions({ tenantId })).filter(
+          (s) => String(s && s.patientName).trim().toLowerCase() === wantName
+        );
       } catch {
-        /* ignore */
+        subs = [];
       }
     }
     const sent = subs.filter((s) => s && s.sentAt);
