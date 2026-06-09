@@ -674,7 +674,58 @@
         '</span></div>'
       );
     })();
-    body += sek('Offert', '', offSignal + off, 'Ingen offert skapad ännu.');
+    // Förslag/Insikt: mall-baserat påminnelse-utkast (intern heuristik, ej extern AI; människa skickar)
+    var offDraft = (function () {
+      var cc = ctx.commercialCase || {};
+      var offersArr = A2(ctx.offers);
+      var closedRe = /godk|signed|accept|betald|paid|tackad|declin|avbök/i;
+      var pendingOffer =
+        offersArr.filter(function (o) {
+          return !closedRe.test(o.status || '');
+        })[0] || offersArr[0];
+      var hasPending =
+        (pendingOffer || cc.quotedAmount) && !closedRe.test(String(cc.paymentStatus || ''));
+      if (!hasPending) return '';
+      var fnamn = String(ctx.name || '').trim().split(' ')[0] || 'där';
+      var behandling = pendingOffer
+        ? pendingOffer.title || pendingOffer.type || 'behandlingsplan'
+        : 'behandlingsplan';
+      var beloppStr = (pendingOffer && pendingOffer.amountLabel) || cc.quotedAmount || '';
+      var beloppNum = parseInt(String(beloppStr).replace(/[^0-9]/g, ''), 10) || 0;
+      var stort = beloppNum >= 30000;
+      var draft =
+        'Hej ' +
+        fnamn +
+        '! Jag ville bara höra av mig om din behandlingsplan' +
+        (behandling ? ' (' + behandling + (beloppStr ? ' · ' + beloppStr : '') + ')' : '') +
+        '. Hör gärna av dig om du har några frågor — jag hjälper dig gärna vidare.';
+      if (stort)
+        draft +=
+          ' Vi har även möjlighet till delbetalning/finansiering (Medical Finance) om det skulle underlätta.';
+      draft += ' / Hair TP Clinic';
+      var insight = stort
+        ? 'Stort belopp + tyst — finansiering (Medical Finance) sänker ofta tröskeln. Liknande offerter stänger oftast efter en personlig påminnelse.'
+        : 'Liknande offerter stänger oftast efter en personlig påminnelse.';
+      return (
+        '<div class="gk-offsuggest">' +
+        '<div class="gk-sub gk-offinsight">💡 ' +
+        esc(insight) +
+        '</div>' +
+        '<button type="button" class="gk-btn gk-btn-gold" data-gk-offer-draft>Förbered påminnelse</button>' +
+        '<div class="gk-offdraft" hidden>' +
+        '<textarea class="gk-offdraft-text" readonly rows="4">' +
+        esc(draft) +
+        '</textarea>' +
+        '<div class="gk-offdraft-actions">' +
+        '<button type="button" class="gk-btn" data-gk-offer-copy>Kopiera</button>' +
+        '<button type="button" class="gk-btn" data-gk-offer-studio>✉ Svarstudio</button>' +
+        '<span class="gk-sub gk-offdraft-note"></span>' +
+        '</div>' +
+        '</div>' +
+        '</div>'
+      );
+    })();
+    body += sek('Offert', '', offSignal + offDraft + off, 'Ingen offert skapad ännu.');
 
     // Ekonomi
     var eko = '';
@@ -869,6 +920,51 @@
           '">Kontakta</button>' +
           '<span class="gk-person-note gk-sub"></span>';
         per.parentNode.insertBefore(bar, per.nextSibling);
+        return;
+      }
+      // Offert: påminnelse-utkast — öppna/kopiera/Svarstudio
+      var od = e.target.closest && e.target.closest('[data-gk-offer-draft]');
+      if (od) {
+        e.preventDefault();
+        var odp = od.parentNode && od.parentNode.querySelector('.gk-offdraft');
+        if (odp) odp.hidden = !odp.hidden;
+        return;
+      }
+      var oc = e.target.closest && e.target.closest('[data-gk-offer-copy]');
+      if (oc) {
+        e.preventDefault();
+        var ocBox = oc.closest('.gk-offdraft');
+        var ocTa = ocBox && ocBox.querySelector('.gk-offdraft-text');
+        var ocNote = ocBox && ocBox.querySelector('.gk-offdraft-note');
+        if (ocTa) {
+          try {
+            ocTa.select();
+            navigator.clipboard.writeText(ocTa.value);
+            if (ocNote) ocNote.textContent = 'Kopierat ✓';
+          } catch (e2) {
+            if (ocNote) ocNote.textContent = 'Markera + kopiera manuellt';
+          }
+        }
+        return;
+      }
+      var os = e.target.closest && e.target.closest('[data-gk-offer-studio]');
+      if (os) {
+        e.preventDefault();
+        var osBox = os.closest('.gk-offdraft');
+        var osTa = osBox && osBox.querySelector('.gk-offdraft-text');
+        var osNote = osBox && osBox.querySelector('.gk-offdraft-note');
+        try {
+          if (osTa) navigator.clipboard.writeText(osTa.value);
+        } catch (e3) {
+          /* ignore */
+        }
+        var opener = document.querySelector('[data-studio-open]');
+        if (opener && opener.click) {
+          opener.click();
+          if (osNote) osNote.textContent = 'Utkast kopierat — klistra in i Svarstudio';
+        } else if (osNote) {
+          osNote.textContent = 'Svarstudio hittades ej — utkast kopierat';
+        }
         return;
       }
       var s = e.target.closest && e.target.closest('[data-gk-sum]');
