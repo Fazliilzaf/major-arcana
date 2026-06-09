@@ -246,31 +246,156 @@ function inventoryDriveAssets({ rows = [], assetStore = null, sampleSize = 5 } =
   };
 }
 
-function metadataDocumentDate(row, metadata = {}) {
-  return (
-    normalizeText(metadata.modifiedTime).slice(0, 10) ||
-    normalizeText(metadata.createdTime).slice(0, 10) ||
-    row.documentDate ||
-    null
-  );
+const MONTH_NUM = {
+  januari: 1,
+  februari: 2,
+  mars: 3,
+  april: 4,
+  maj: 5,
+  juni: 6,
+  juli: 7,
+  augusti: 8,
+  september: 9,
+  oktober: 10,
+  november: 11,
+  december: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  okt: 10,
+  nov: 11,
+  dec: 12,
+};
+
+// Behandlingstyper i prioritetsordning (längre/specifika först så "op" inte matchar fel).
+const TREATMENT_TYPES = [
+  { needle: 'microneedling', canon: 'Microneedling', word: false },
+  { needle: 'konsult', canon: 'Konsultation', word: false },
+  { needle: 'prp', canon: 'PRP', word: true },
+  { needle: 'dhi', canon: 'DHI', word: true },
+  { needle: 'fue', canon: 'FUE', word: true },
+  { needle: 'op', canon: 'OP', word: true },
+];
+
+// Härled besöksdatum + behandlingstyp/session ur Drive-mappnamnet (ORD-41).
+// Datum: ISO i path → månadsnamn+dag → unix-epoch i filnamnet. Drive-tid sätts av anroparen sist.
+function parseFolderEncounter(originalDrivePath = '', originalFileName = '') {
+  const segments = normalizeText(originalDrivePath)
+    .split('/')
+    .map((segment) => normalizeText(segment))
+    .filter(Boolean);
+  // Filens förälder-mapp (encounter-mappen), annars sista segmentet.
+  const folder = segments.length >= 2 ? segments[segments.length - 2] : segments[0] || '';
+
+  let documentDate = null;
+  let documentDateSource = null;
+
+  // 1) ISO-datum i path-segment, närmast filen först: "...-2025-12-18 PRP 3".
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
+    const iso = segments[i].match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+      documentDate = `${iso[1]}-${iso[2]}-${iso[3]}`;
+      documentDateSource = 'folder_iso';
+      break;
+    }
+  }
+
+  // 2) Månadsnamn + år + dag fördelat på två mappar: "April 2026" / "April 5".
+  if (!documentDate) {
+    let monthV = null;
+    let yearV = null;
+    let dayV = null;
+    for (const seg of segments) {
+      const mw = seg.match(MONTH_WORD_RE);
+      if (!mw) continue;
+      const mnum = MONTH_NUM[mw[1].toLowerCase()] || null;
+      const yr = seg.match(/\b(20\d{2})\b/);
+      const dy = seg.match(/\b(\d{1,2})\b(?!\d)/);
+      if (yr) {
+        yearV = yr[1];
+        monthV = monthV || mnum;
+      } else if (dy && Number(dy[1]) >= 1 && Number(dy[1]) <= 31) {
+        monthV = monthV || mnum;
+        dayV = dy[1];
+      }
+    }
+    if (yearV && monthV && dayV) {
+      documentDate = `${yearV}-${String(monthV).padStart(2, '0')}-${String(dayV).padStart(2, '0')}`;
+      documentDateSource = 'folder_month';
+    }
+  }
+
+  // 3) Unix-epoch i filnamnet: "Hälsodeklaration-...-1766080815-4262.pdf".
+  if (!documentDate) {
+    const em = normalizeText(originalFileName).match(/-(\d{10})-/);
+    if (em) {
+      const dt = new Date(Number(em[1]) * 1000);
+      if (!Number.isNaN(dt.getTime())) {
+        documentDate = dt.toISOString().slice(0, 10);
+        documentDateSource = 'filename_epoch';
+      }
+    }
+  }
+
+  // Behandlingstyp + session ur encounter-mappnamnet.
+  let treatmentType = null;
+  let sessionNumber = null;
+  let visitLabel = null;
+  for (const t of TREATMENT_TYPES) {
+    const re = t.word ? new RegExp(`\\b${t.needle}\\b`, 'i') : new RegExp(t.needle, 'i');
+    if (re.test(folder)) {
+      treatmentType = t.canon;
+      const sm = folder.match(new RegExp(`${t.needle}\\s*(\\d+)`, 'i'));
+      if (sm) sessionNumber = Number(sm[1]);
+      visitLabel = sessionNumber ? `${t.canon} ${sessionNumber}` : t.canon;
+      break;
+    }
+  }
+
+  return { documentDate, documentDateSource, treatmentType, sessionNumber, visitLabel };
 }
 
 async function resolveDriveFileMetadata(row, driveClient) {
+  let name = row.originalFileName;
+  let driveDate = null;
   if (typeof driveClient?.getFileMetadata === 'function') {
     const metadata = await driveClient.getFileMetadata(row.driveFileId);
-    return {
-      name: normalizeText(metadata?.name) || row.originalFileName,
-      documentDate: metadataDocumentDate(row, metadata),
-    };
-  }
-  if (typeof driveClient?.getDriveFileName === 'function') {
+    name = normalizeText(metadata?.name) || row.originalFileName;
+    driveDate =
+      normalizeText(metadata?.modifiedTime).slice(0, 10) ||
+      normalizeText(metadata?.createdTime).slice(0, 10) ||
+      null;
+  } else if (typeof driveClient?.getDriveFileName === 'function') {
     const result = await driveClient.getDriveFileName(row.driveFileId);
-    return {
-      name: normalizeText(result?.name) || row.originalFileName,
-      documentDate: row.documentDate || null,
-    };
+    name = normalizeText(result?.name) || row.originalFileName;
   }
-  return { name: row.originalFileName, documentDate: row.documentDate || null };
+
+  const enc = parseFolderEncounter(row.originalDrivePath, name);
+  let documentDate = enc.documentDate;
+  let documentDateSource = enc.documentDateSource;
+  if (!documentDate) {
+    if (row.documentDate) {
+      documentDate = row.documentDate;
+      documentDateSource = 'row';
+    } else if (driveDate) {
+      documentDate = driveDate;
+      documentDateSource = 'drive_modified';
+    }
+  }
+
+  return {
+    name,
+    documentDate: documentDate || null,
+    documentDateSource: documentDateSource || null,
+    treatmentType: enc.treatmentType || null,
+    sessionNumber: enc.sessionNumber || null,
+    visitLabel: enc.visitLabel || null,
+  };
 }
 
 async function downloadDriveFile(row, driveClient) {
@@ -357,6 +482,10 @@ async function internalizeDriveAssets({
           originalFileName: driveMetadata.name,
           mimeType: row.mimeType,
           documentDate: driveMetadata.documentDate,
+          documentDateSource: driveMetadata.documentDateSource,
+          treatmentType: driveMetadata.treatmentType,
+          sessionNumber: driveMetadata.sessionNumber,
+          visitLabel: driveMetadata.visitLabel,
           body,
         },
       });
@@ -371,6 +500,10 @@ async function internalizeDriveAssets({
           assetId: maskValue(result.asset?.id, { keepStart: 4, keepEnd: 4 }),
           name: maskValue(driveMetadata.name, { keepStart: 1, keepEnd: 1 }),
           documentDate: driveMetadata.documentDate,
+          documentDateSource: driveMetadata.documentDateSource,
+          treatmentType: driveMetadata.treatmentType,
+          sessionNumber: driveMetadata.sessionNumber,
+          visitLabel: driveMetadata.visitLabel,
         });
       }
     } catch (error) {
@@ -407,4 +540,5 @@ module.exports = {
   mimeFamily,
   extractMonthFolder,
   normalizeDriveAssetRow,
+  parseFolderEncounter,
 };

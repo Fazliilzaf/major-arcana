@@ -648,6 +648,9 @@ function createCcoAssetImportPipeline({
         status: initialStatus,
         auditRequired: needsReview,
         isJournalRelevant: classification.category === 'journal',
+        treatmentType: sourceRecord.treatmentType || null,
+        sessionNumber: sourceRecord.sessionNumber || null,
+        visitLabel: sourceRecord.visitLabel || null,
       },
       { actor }
     );
