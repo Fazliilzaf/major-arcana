@@ -745,6 +745,7 @@
       if (/samtycke|consent/i.test(n)) return 'Samtycke';
       var c = n
         .replace(/\.(pdf|docx?|jpe?g|png|heic)$/i, '')
+        .replace(/\s*\|\s*/g, ' · ')
         .replace(/\?{2,}|\+\?/g, ' ')
         .replace(/\b1[0-9]{9}\b/g, ' ')
         .replace(/\d{4}[-_]\d{2}[-_]\d{2}/g, ' ')
