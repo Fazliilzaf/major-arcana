@@ -1022,6 +1022,21 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     let assetsWithoutPatientIdCount = 0;
     let withChecksum = 0;
     let totalBytes = 0;
+    // ORD-43 — thumbnail-täckning (observerbar backfill-progress)
+    const IMG_MIMES = new Set([
+      'image/jpeg',
+      'image/png',
+      'image/heic',
+      'image/heif',
+      'image/webp',
+      'image/gif',
+    ]);
+    let imageAssetCount = 0;
+    let imageWithStorageKeyCount = 0;
+    let imageWithThumbnailCount = 0;
+    let imageWithoutThumbnailCount = 0;
+    let heicAssetCount = 0;
+    let heicWithThumbnailCount = 0;
     for (const a of all) {
       byStatus[a.status] = (byStatus[a.status] || 0) + 1;
       if (a.category) byCategory[a.category] = (byCategory[a.category] || 0) + 1;
@@ -1048,6 +1063,20 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
         assetsWithoutPatientIdCount += 1;
       if (a.checksum) withChecksum += 1;
       totalBytes += Number(a.fileSize || 0);
+      // ORD-43 — bild/thumbnail/HEIC-räkning
+      const mime = String(a.mimeType || '').toLowerCase();
+      const isImg = IMG_MIMES.has(mime) || String(a.category || '').startsWith('photo_');
+      if (isImg) {
+        imageAssetCount += 1;
+        const hasKey = !!a.storageKey && a.storageKey !== 'pending-no-binary';
+        if (hasKey) imageWithStorageKeyCount += 1;
+        if (a.thumbnailKey) imageWithThumbnailCount += 1;
+        else if (hasKey) imageWithoutThumbnailCount += 1;
+        if (mime === 'image/heic' || mime === 'image/heif') {
+          heicAssetCount += 1;
+          if (a.thumbnailKey) heicWithThumbnailCount += 1;
+        }
+      }
     }
     const result = {
       tenantId: tenantId || null,
@@ -1072,6 +1101,13 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       assetsWithoutChecksumCount,
       assetsWithoutStorageKeyCount,
       assetsWithoutPatientIdCount,
+      // ORD-43 — thumbnail-täckning
+      imageAssetCount,
+      imageWithStorageKeyCount,
+      imageWithThumbnailCount,
+      imageWithoutThumbnailCount,
+      heicAssetCount,
+      heicWithThumbnailCount,
     };
     // OWNER-SKÄRPNING #3: cutover-readiness — tom store ≠ bevis.
     result.cutoverReadiness = computeCutoverReadiness(result);
