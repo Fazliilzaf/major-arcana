@@ -1,0 +1,102 @@
+'use strict';
+
+const IMAGE_MIMES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/heic',
+  'image/heif',
+  'image/webp',
+  'image/gif',
+]);
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function isImageAsset(asset = {}) {
+  const mime = normalizeText(asset.mimeType).toLowerCase();
+  const category = normalizeText(asset.category);
+  return IMAGE_MIMES.has(mime) || category.startsWith('photo_');
+}
+
+async function backfillAssetThumbnails({
+  assetStore,
+  storage,
+  limit = 100,
+  offset = 0,
+  dryRun = true,
+  actor = { role: 'system', userId: 'asset-thumbnail-backfill' },
+} = {}) {
+  if (!assetStore?.listItemsForEnrichment) throw new Error('assetStore krävs.');
+  if (!storage?.generateThumbnailIfImage)
+    throw new Error('storage.generateThumbnailIfImage krävs.');
+
+  const all = assetStore.listItemsForEnrichment();
+  const candidates = all.filter(
+    (asset) => isImageAsset(asset) && asset.storageKey && !asset.thumbnailKey
+  );
+  const start = Math.max(0, Number(offset) || 0);
+  const cap = Math.max(0, Number(limit) || 0);
+  const batch = candidates.slice(start, cap > 0 ? start + cap : undefined);
+  const stats = {
+    scanned: all.length,
+    candidates: candidates.length,
+    batchSize: batch.length,
+    created: 0,
+    skipped: all.filter((asset) => isImageAsset(asset) && asset.thumbnailKey).length,
+    failed: 0,
+    dryRun: !!dryRun,
+  };
+  const samples = [];
+  const errors = [];
+
+  for (const asset of batch) {
+    if (dryRun) {
+      stats.created += 1;
+      if (samples.length < 5) {
+        samples.push({ assetId: asset.id, storageKey: asset.storageKey, dryRun: true });
+      }
+      continue;
+    }
+    try {
+      const thumbnailKey = await storage.generateThumbnailIfImage(asset.storageKey, asset.mimeType);
+      if (!thumbnailKey) {
+        stats.failed += 1;
+        errors.push({ assetId: asset.id, reason: 'thumbnail_not_generated' });
+        continue;
+      }
+      const updated =
+        typeof assetStore.updateAssetThumbnailKey === 'function'
+          ? await assetStore.updateAssetThumbnailKey(asset.id, thumbnailKey, {
+              actor,
+              reason: 'ord_43_backfill',
+            })
+          : null;
+      stats.created += 1;
+      if (samples.length < 5) {
+        samples.push({
+          assetId: updated?.id || asset.id,
+          thumbnailKey,
+          mimeType: asset.mimeType,
+          category: asset.category,
+        });
+      }
+    } catch (error) {
+      stats.failed += 1;
+      errors.push({ assetId: asset.id, reason: error.message });
+    }
+  }
+
+  return {
+    ok: true,
+    generatedAt: new Date().toISOString(),
+    stats,
+    samples,
+    errors,
+  };
+}
+
+module.exports = {
+  backfillAssetThumbnails,
+  isImageAsset,
+};

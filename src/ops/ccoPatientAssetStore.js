@@ -741,6 +741,30 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     return { ...merged };
   }
 
+  async function updateAssetThumbnailKey(id, thumbnailKey, { actor = {}, reason = null } = {}) {
+    const assetId = normalizeText(id);
+    const existing = state.items[assetId];
+    if (!existing) {
+      const e = new Error(`asset ${assetId} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    const merged = normalizeAsset(
+      {
+        ...existing,
+        thumbnailKey: normalizeText(thumbnailKey) || null,
+      },
+      existing
+    );
+    state.items[assetId] = merged;
+    await save();
+    logAudit(auditLog, 'asset.thumbnail_generated', merged, actor, 'ok', {
+      reason: reason || null,
+      hasThumbnailKey: !!merged.thumbnailKey,
+    });
+    return { ...merged };
+  }
+
   async function patchAssetForReview(assetId, patch = {}, { actor = {}, reason = null } = {}) {
     const id = normalizeText(assetId);
     const existing = state.items[id];
@@ -1116,6 +1140,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     markAsVisibleOnPatientCard,
     reassignToPatient,
     updateAssetCategory,
+    updateAssetThumbnailKey,
     patchAssetForReview,
     patchAssetNamingMetadata,
     attachImportedBinary,

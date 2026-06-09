@@ -884,6 +884,7 @@
                 icon: ev.icon,
                 tone: ev.tone,
                 actor: ev.actor,
+                openIndex: ev.detail && ev.detail.openIndex,
                 src: 'event',
               };
             })
@@ -896,13 +897,23 @@
           .slice(0, 50)
           .map(function (it) {
             var d = String(it.ts || '').slice(0, 10);
-            var tag = it.actor
-              ? '<span class="gk-hl gk-tag ' + toneTag(it.tone) + '">' + esc2(it.actor) + '</span>'
-              : it.src === 'bokning'
-                ? '<span class="gk-hl gk-tag gk-tag-info">Besök</span>'
-                : it.src === 'betald'
-                  ? '<span class="gk-hl gk-tag gk-tag-ok">Betald</span>'
-                  : '';
+            var ordinal =
+              it.openIndex > 1
+                ? (it.openIndex === 2 ? '2:a' : it.openIndex + ':e') + ' gången'
+                : '';
+            var tag = ordinal
+              ? '<span class="gk-hl gk-tag gk-tag-warn">' + ordinal + '</span>'
+              : it.actor
+                ? '<span class="gk-hl gk-tag ' +
+                  toneTag(it.tone) +
+                  '">' +
+                  esc2(it.actor) +
+                  '</span>'
+                : it.src === 'bokning'
+                  ? '<span class="gk-hl gk-tag gk-tag-info">Besök</span>'
+                  : it.src === 'betald'
+                    ? '<span class="gk-hl gk-tag gk-tag-ok">Betald</span>'
+                    : '';
             return (
               '<div class="gk-rad gk-tl-row"><span class="gk-sub" style="min-width:78px">' +
               esc2(d) +

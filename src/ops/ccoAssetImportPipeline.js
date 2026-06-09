@@ -40,6 +40,14 @@ const HIGH_CONFIDENCE = 0.8;
 const MEDIUM_CONFIDENCE = 0.5;
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.heic', '.heif', '.webp']);
+const IMAGE_MIMES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/heic',
+  'image/heif',
+  'image/webp',
+  'image/gif',
+]);
 
 const PNR_PATTERNS = [
   /\b(\d{8})[- ]?(\d{4})\b/g, // 19800101-1234, 198001011234
@@ -115,6 +123,10 @@ function classify({ mimeType = null, fileName = null, sourceFolder = null } = {}
 
 function isPhotoCategory(category) {
   return category === 'photo_before' || category === 'photo_during' || category === 'photo_after';
+}
+
+function isImageMime(mimeType = '') {
+  return IMAGE_MIMES.has(normalizeText(mimeType).toLowerCase());
 }
 
 // -----------------------------------------------------------------------------
@@ -537,6 +549,21 @@ function createCcoAssetImportPipeline({
 
     // Duplicate detection — om checksum redan finns i storage → mark DUPLICATE
     if (putResult.deduped) {
+      const duplicateClassification = classify({
+        mimeType: sourceRecord.mimeType,
+        fileName: sourceRecord.originalFileName,
+        sourceFolder: sourceRecord.originalDrivePath,
+      });
+      let thumbnailKey = null;
+      if (
+        typeof storage.generateThumbnailIfImage === 'function' &&
+        (isImageMime(sourceRecord.mimeType) || isPhotoCategory(duplicateClassification.category))
+      ) {
+        thumbnailKey = await storage.generateThumbnailIfImage(
+          putResult.storageKey,
+          sourceRecord.mimeType
+        );
+      }
       const dupAsset = await assetStore.addAsset(
         {
           patientId: sourceRecord.patientId || 'unknown',
@@ -547,14 +574,11 @@ function createCcoAssetImportPipeline({
           originalFileName: sourceRecord.originalFileName || null,
           storageProvider: storage.provider || 'local',
           storageKey: putResult.storageKey,
+          thumbnailKey,
           checksum: putResult.checksum,
           fileSize: putResult.size,
           mimeType: sourceRecord.mimeType || null,
-          category: classify({
-            mimeType: sourceRecord.mimeType,
-            fileName: sourceRecord.originalFileName,
-            sourceFolder: sourceRecord.originalDrivePath,
-          }).category,
+          category: duplicateClassification.category,
           documentDate: sourceRecord.documentDate || null,
           importRunId,
           status: 'DUPLICATE',
@@ -587,6 +611,17 @@ function createCcoAssetImportPipeline({
       fileName: sourceRecord.originalFileName,
       sourceFolder: sourceRecord.originalDrivePath,
     });
+
+    let thumbnailKey = null;
+    if (
+      typeof storage.generateThumbnailIfImage === 'function' &&
+      (isImageMime(sourceRecord.mimeType) || isPhotoCategory(classification.category))
+    ) {
+      thumbnailKey = await storage.generateThumbnailIfImage(
+        putResult.storageKey,
+        sourceRecord.mimeType
+      );
+    }
 
     // Steg 6: Link patient
     const patientLink = linkPatient({
@@ -637,6 +672,7 @@ function createCcoAssetImportPipeline({
         originalFileName: sourceRecord.originalFileName || null,
         storageProvider: storage.provider || 'local',
         storageKey: putResult.storageKey,
+        thumbnailKey,
         checksum: putResult.checksum,
         fileSize: putResult.size,
         mimeType: sourceRecord.mimeType || null,
