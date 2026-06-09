@@ -333,7 +333,7 @@
 
   function needsStaffLogin() {
     if (runtime.pendingPasswordSetup) return true;
-    return !hasStoredStaffSession();
+    return !hasStoredStaffSession() && !isStaffJournalOpenAccess();
   }
 
   function clearStaffTokens() {
@@ -10472,6 +10472,20 @@
     return true;
   }
 
+  function refreshV10KundkortFacit() {
+    if (!isV9CustomersEnabled() || !usesV10KundkortFacit()) return false;
+    if (typeof window.__renderReferensKundkort !== 'function') return false;
+    if (!runtime.detail?.card && !runtime.selectedPatientId) return false;
+    renderDetailPanel();
+    return true;
+  }
+
+  window.addEventListener('arcana:v10-kundkort-ready', () => {
+    window.requestAnimationFrame(() => {
+      refreshV10KundkortFacit();
+    });
+  });
+
   window.ArcanaPatientMasterUi = {
     onCustomersViewOpen,
     setMode,
@@ -10488,6 +10502,7 @@
     setCustomerSearchQuery,
     openPatient,
     openPatientByEmail,
+    refreshV10KundkortFacit,
   };
 
   function shouldBootstrapMobileDeepLinkNow() {

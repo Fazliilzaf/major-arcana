@@ -2389,4 +2389,9 @@
       /* tyst */
     }
   };
+  try {
+    window.dispatchEvent(new CustomEvent('arcana:v10-kundkort-ready'));
+  } catch (e) {
+    /* best-effort: patient-master-ui kan ändå rendera facit vid nästa detail-paint */
+  }
 })();
