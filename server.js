@@ -12417,11 +12417,12 @@ process.once('SIGTERM', () => {
   }
 
   // AUTO send-aggregator: "senast skickad" per journey-automation (läser befintliga källor)
+  const __rbacAuto = require('./src/security/ccoRbac');
   app.get(
     '/api/v1/cco/patients/:patientId/automation-sends',
     requireCcoAuthenticated,
-    attachRole,
-    requirePermission('customers.read'),
+    __rbacAuto.attachRole,
+    __rbacAuto.requirePermission('customers.read'),
     async (req, res) => {
       try {
         const { aggregateAutomationSends } = require('./src/ops/ccoAutomationSends');
