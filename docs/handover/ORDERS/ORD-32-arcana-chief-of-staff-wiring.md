@@ -1,3 +1,5 @@
+> ⛔ **SUPERSEDED 2026-06-09.** Ersatt av fristående `~/Code/arcana-ceo-agent` (CEO Agent v0.1). Ingen wiring in i major-arcana nu; CEO-appen anropar gateway via API i v0.2. Se `arcana-ceo-agent/docs/CEO_AGENT_SPEC.md`.
+
 # ORD-32 — Arcana Chief of Staff: wiring + flagga
 
 **Skapad:** 2026-06-08 (Claude PM)

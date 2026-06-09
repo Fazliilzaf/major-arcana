@@ -643,7 +643,7 @@ let ccoBookingCaseStore = null;
         {
           id: 'receipt',
           name: 'Receipts & system',
-          email: 'receipt@hairtpclinic.com',
+          email: 'kvitto@hairtpclinic.com',
           owner: 'system',
           signature: '',
           tenantId: 'hairtp-clinic',

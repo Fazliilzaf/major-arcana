@@ -17,7 +17,7 @@ const DEFAULT_TENANT = '90b09262-dfbf-42b7-9c56-1149703a76e5';
 const DEFAULT_CLIENT_ID = '13adfc91-69ab-4c35-ac80-b52ebba7e09f';
 const DEFAULT_USER_ID = 'fazli@hairtpclinic.com';
 const DEFAULT_ALLOWLIST =
-  'egzona@hairtpclinic.com,contact@hairtpclinic.com,fazli@hairtpclinic.com,info@hairtpclinic.com,kons@hairtpclinic.com,marknad@hairtpclinic.com,receipt@hairtpclinic.com';
+  'egzona@hairtpclinic.com,contact@hairtpclinic.com,fazli@hairtpclinic.com,info@hairtpclinic.com,kons@hairtpclinic.com,marknad@hairtpclinic.com,kvitto@hairtpclinic.com';
 
 const graphKeys = {
   ARCANA_GRAPH_READ_ENABLED: 'true',

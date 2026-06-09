@@ -67,7 +67,7 @@ const CCO_GRAPH_READ_DEFAULT_ALLOWLIST = Object.freeze([
   'info@hairtpclinic.com',
   'kons@hairtpclinic.com',
   'marknad@hairtpclinic.com',
-  'receipt@hairtpclinic.com',
+  'kvitto@hairtpclinic.com',
 ]);
 const CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET = new Set(
   CCO_GRAPH_READ_DEFAULT_ALLOWLIST.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)

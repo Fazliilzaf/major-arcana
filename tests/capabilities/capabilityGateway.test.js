@@ -5,7 +5,10 @@ const os = require('node:os');
 const path = require('node:path');
 const express = require('express');
 
-const { createCapabilitiesRouter, clearAnalyzeInboxGraphSnapshotCache } = require('../../src/routes/capabilities');
+const {
+  createCapabilitiesRouter,
+  clearAnalyzeInboxGraphSnapshotCache,
+} = require('../../src/routes/capabilities');
 const { createExecutionGateway } = require('../../src/gateway/executionGateway');
 const { createAuthStore } = require('../../src/security/authStore');
 const { createCapabilityAnalysisStore } = require('../../src/capabilities/analysisStore');
@@ -19,7 +22,7 @@ const LOCKED_GRAPH_READ_ALLOWLIST = Object.freeze([
   'info@hairtpclinic.com',
   'kons@hairtpclinic.com',
   'marknad@hairtpclinic.com',
-  'receipt@hairtpclinic.com',
+  'kvitto@hairtpclinic.com',
 ]);
 
 test.beforeEach(() => {
@@ -512,7 +515,9 @@ test('AnalyzeInbox hydrates Graph snapshot and writes mailbox read start/complet
     tenantId: 'tenant-a',
     limit: 300,
   });
-  const mailboxAudits = audits.filter((item) => String(item.action || '').startsWith('mailbox.read.'));
+  const mailboxAudits = audits.filter((item) =>
+    String(item.action || '').startsWith('mailbox.read.')
+  );
   const actions = new Set(mailboxAudits.map((item) => item.action));
   assert.equal(actions.has('mailbox.read.start'), true);
   assert.equal(actions.has('mailbox.read.complete'), true);
@@ -531,7 +536,9 @@ test('AnalyzeInbox hydrates Graph snapshot and writes mailbox read start/complet
 });
 
 test('AnalyzeInbox hydration can enrich Graph snapshot with persistent customer history signals', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-inbox-history-signal-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-capability-inbox-history-signal-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -742,7 +749,9 @@ test('AnalyzeInbox writes mailbox.read.error and returns 500 when Graph snapshot
     tenantId: 'tenant-a',
     limit: 300,
   });
-  const mailboxAudits = audits.filter((item) => String(item.action || '').startsWith('mailbox.read.'));
+  const mailboxAudits = audits.filter((item) =>
+    String(item.action || '').startsWith('mailbox.read.')
+  );
   const actions = new Set(mailboxAudits.map((item) => item.action));
   assert.equal(actions.has('mailbox.read.start'), true);
   assert.equal(actions.has('mailbox.read.error'), true);
@@ -1144,8 +1153,14 @@ test('capability meta exposes registry + agent bundles', async () => {
       true
     );
     assert.equal(Array.isArray(payload.agentBundles), true);
-    assert.equal(payload.agentBundles.some((item) => item?.role === 'COO'), true);
-    assert.equal(payload.agentBundles.some((item) => item?.role === 'CCO'), true);
+    assert.equal(
+      payload.agentBundles.some((item) => item?.role === 'COO'),
+      true
+    );
+    assert.equal(
+      payload.agentBundles.some((item) => item?.role === 'CCO'),
+      true
+    );
     const coo = payload.agentBundles.find((item) => item?.role === 'COO');
     assert.equal(Array.isArray(coo?.capabilities), true);
     assert.equal(coo.capabilities.includes('SummarizeIncidents'), true);
@@ -1283,8 +1298,7 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
   process.env.ARCANA_GRAPH_USER_SCOPE = 'single';
   delete process.env.ARCANA_GRAPH_MAILBOX_IDS;
   delete process.env.ARCANA_MAILBOX_ALLOWLIST;
-  process.env.ARCANA_GRAPH_SEND_ALLOWLIST =
-    'contact@hairtpclinic.com; info@hairtpclinic.com';
+  process.env.ARCANA_GRAPH_SEND_ALLOWLIST = 'contact@hairtpclinic.com; info@hairtpclinic.com';
   process.env.ARCANA_GRAPH_MAX_USERS = '4';
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-allowlist-fallback-'));
@@ -1401,7 +1415,9 @@ test('AnalyzeInbox honors explicit single-mailbox allowlist without expanding to
   process.env.ARCANA_GRAPH_SEND_ALLOWLIST = 'kons@hairtpclinic.com';
   process.env.ARCANA_GRAPH_MAX_USERS = '4';
 
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-allowlist-explicit-single-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-capability-allowlist-explicit-single-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -1727,8 +1743,7 @@ test('AnalyzeInbox ignores ARCANA_GRAPH_MAILBOX_IDS outside locked allowlist', a
   process.env.ARCANA_GRAPH_MAILBOX_IDS =
     'arya@hairtpclinic.com,contact@hairtpclinic.com,clara@hairtpclinic.com';
   delete process.env.ARCANA_MAILBOX_ALLOWLIST;
-  process.env.ARCANA_GRAPH_SEND_ALLOWLIST =
-    'contact@hairtpclinic.com; info@hairtpclinic.com';
+  process.env.ARCANA_GRAPH_SEND_ALLOWLIST = 'contact@hairtpclinic.com; info@hairtpclinic.com';
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-allowlist-locked-'));
   const authStore = await createAuthStore({

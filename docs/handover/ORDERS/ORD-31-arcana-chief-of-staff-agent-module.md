@@ -1,3 +1,5 @@
+> ⛔ **SUPERSEDED 2026-06-09.** Ersatt av det fristående projektet `~/Code/arcana-ceo-agent` (CEO Agent v0.1, 6 lägen, egen TS/Next.js-app som anropar major-arcana-gateway). Bygg inte denna in-repo-modul. Se `arcana-ceo-agent/docs/CEO_AGENT_SPEC.md`.
+
 # ORD-31 — Arcana Chief of Staff: agent-modul + tester
 
 **Skapad:** 2026-06-08 (Claude PM)

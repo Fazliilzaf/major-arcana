@@ -597,8 +597,8 @@
     info: "info@hairtpclinic.com",
     market: "marknad@hairtpclinic.com",
     marknad: "marknad@hairtpclinic.com",
-    receipt: "receipt@hairtpclinic.com",
-    kvitto: "receipt@hairtpclinic.com",
+    receipt: "kvitto@hairtpclinic.com",
+    kvitto: "kvitto@hairtpclinic.com",
   });
   const MAILBOX_TONE_CLASS_BY_TOKEN = Object.freeze({
     egzona: "mailbox-option-egzona",
