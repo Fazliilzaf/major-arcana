@@ -12,18 +12,24 @@ const {
   linkPatient,
   extractPnrCandidates,
 } = require('../../src/ops/ccoAssetImportPipeline');
-const {
-  createCcoPatientAssetStore,
-} = require('../../src/ops/ccoPatientAssetStore');
-const {
-  createCcoAssetImportRunStore,
-} = require('../../src/ops/ccoAssetImportRunStore');
-const {
-  createCcoAssetReviewQueueStore,
-} = require('../../src/ops/ccoAssetReviewQueueStore');
-const {
-  createLocalProvider,
-} = require('../../src/ops/ccoSecureStorageProvider');
+const { createCcoPatientAssetStore } = require('../../src/ops/ccoPatientAssetStore');
+const { createCcoAssetImportRunStore } = require('../../src/ops/ccoAssetImportRunStore');
+const { createCcoAssetReviewQueueStore } = require('../../src/ops/ccoAssetReviewQueueStore');
+const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider');
+
+async function makeJpegBuffer() {
+  const sharp = require('sharp');
+  return sharp({
+    create: {
+      width: 24,
+      height: 24,
+      channels: 3,
+      background: { r: 130, g: 90, b: 40 },
+    },
+  })
+    .jpeg()
+    .toBuffer();
+}
 
 function makeMemoryAuditLog() {
   const events = [];
@@ -261,6 +267,64 @@ test('importSingleAsset: duplicate detection → DUPLICATE status', async () => 
   });
   assert.equal(r2.status, 'DUPLICATE');
   assert.equal(r2.asset.status, 'DUPLICATE');
+});
+
+test('ORD-43: importSingleAsset skapar thumbnailKey för JPEG-foto', async () => {
+  const rig = await makeRig();
+  try {
+    const runId = await rig.importRunStore.startRun({
+      sourceSystem: 'drive',
+      mode: 'incremental',
+    });
+    const result = await rig.pipeline.importSingleAsset({
+      sourceSystem: 'drive',
+      importRunId: runId,
+      sourceRecord: {
+        sourceRecordId: 'drive-photo-jpg',
+        originalDriveFileId: 'drive-photo-jpg',
+        originalDrivePath: '/Kunder/19800101-1234/2026/fore-bild.jpg',
+        originalFileName: 'fore-bild-19800101-1234.jpg',
+        mimeType: 'image/jpeg',
+        documentDate: '2026-03-15',
+        body: await makeJpegBuffer(),
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.ok(result.asset.thumbnailKey);
+    assert.match(result.asset.thumbnailKey, /\.thumb\.jpg$/);
+    const thumb = await rig.storage.getObject(result.asset.thumbnailKey);
+    assert.equal(thumb.mimeType, 'image/jpeg');
+    assert.ok(thumb.size > 0);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('ORD-43: korrupt bild ger thumbnailKey=null utan import-krasch', async () => {
+  const rig = await makeRig();
+  try {
+    const runId = await rig.importRunStore.startRun({
+      sourceSystem: 'drive',
+      mode: 'incremental',
+    });
+    const result = await rig.pipeline.importSingleAsset({
+      sourceSystem: 'drive',
+      importRunId: runId,
+      sourceRecord: {
+        sourceRecordId: 'drive-photo-bad',
+        originalDriveFileId: 'drive-photo-bad',
+        originalDrivePath: '/Kunder/19800101-1234/2026/operation.jpg',
+        originalFileName: 'operation-19800101-1234.jpg',
+        mimeType: 'image/jpeg',
+        documentDate: '2026-03-15',
+        body: Buffer.from('not a real image'),
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.asset.thumbnailKey, null);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
 });
 
 test('importSingleAsset: no body (link-only) → LINK_ONLY_BLOCKER', async () => {

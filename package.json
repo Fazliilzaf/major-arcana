@@ -285,7 +285,9 @@
     "check:bundle": "node bin/check-bundle-fresh.js",
     "db:migrate": "node scripts/migrate-json-to-sqlite.js",
     "db:verify": "node scripts/migrate-json-to-sqlite.js --verify",
-    "db:dry-run": "node scripts/migrate-json-to-sqlite.js --dry-run"
+    "db:dry-run": "node scripts/migrate-json-to-sqlite.js --dry-run",
+    "backfill:asset-thumbnails": "node ./scripts/run-asset-thumbnail-backfill.js --dry-run",
+    "backfill:asset-thumbnails:commit": "node ./scripts/run-asset-thumbnail-backfill.js --commit"
   },
   "keywords": [],
   "author": "",
