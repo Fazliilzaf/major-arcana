@@ -192,3 +192,12 @@ services:
         value: "true"
       - key: ARCANA_SCHEDULER_JOBS
         value: "alert_probe,backup_prune,cco_dashboard_snapshot_refresh"
+      # backup_prune: utan RUN_ON_STARTUP väntar första körningen ~24h efter boot och
+      # missas vid deploy-churn. Med true: ~8s efter start för allowlistade jobb.
+      - key: ARCANA_SCHEDULER_RUN_ON_STARTUP
+        value: "true"
+      # Retention för state-backups (backup_prune) — defaults, explicit i blueprint.
+      - key: ARCANA_BACKUP_RETENTION_MAX_FILES
+        value: "50"
+      - key: ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS
+        value: "30"
