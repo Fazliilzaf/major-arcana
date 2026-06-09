@@ -565,10 +565,41 @@
         );
       })
       .join('');
+    // Fotosessioner som journalrader (grupperade per datum) — klickbara → Foto-sektionen
+    var imgByDate = {};
+    imgs.forEach(function (f) {
+      var rp = String(f.relativePath || f.fileName || '');
+      var m = rp.match(/(\d{4}-\d{2}-\d{2})/);
+      var ep = !m && rp.match(/\b(1[0-9]{9})\b/);
+      var d = m
+        ? m[1]
+        : ep
+          ? new Date(Number(ep[1]) * 1000).toISOString().slice(0, 10)
+          : 'odaterat';
+      (imgByDate[d] = imgByDate[d] || []).push(f);
+    });
+    var photoRows = Object.keys(imgByDate)
+      .sort()
+      .reverse()
+      .map(function (d) {
+        var n = imgByDate[d].length;
+        return (
+          '<button type="button" class="gk-rad" data-gk-jump="foto" style="width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;color:inherit">' +
+          '<span>📷</span> <b>Foto</b> <span class="gk-sub">' +
+          (d !== 'odaterat' ? esc(d) : '') +
+          '</span> <span class="gk-hl gk-tag gk-tag-ok">' +
+          n +
+          (n === 1 ? ' bild' : ' bilder') +
+          '</span></button>'
+        );
+      })
+      .join('');
     body += sek(
       'Journal',
-      '<span class="gk-pill gk-tag-info">' + A2(ctx.jItems).length + ' anteckningar</span>',
-      jr,
+      '<span class="gk-pill gk-tag-info">' +
+        (A2(ctx.jItems).length + Object.keys(imgByDate).length) +
+        ' anteckningar</span>',
+      jr + photoRows,
       'Inga journaler ännu.'
     );
 
@@ -612,16 +643,28 @@
       .join('');
     body += sek('Ekonomi', '', eko, 'Ingen ekonomi-data ännu.');
 
-    // Foto
+    // Foto — klickbara (öppnar bilden) + miniatyr-försök (JPEG-thumb om den finns, annars fallback)
     var grid = imgs.length
       ? '<div class="gk-foto-grid">' +
         imgs
-          .slice(0, 4)
+          .slice(0, 8)
           .map(function (f) {
+            var fileUrl =
+              f.viewUrl ||
+              (f.id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(f.id) : '#');
+            var thumb = f.id ? '/api/v1/cco/assets/' + encodeURIComponent(f.id) + '/thumbnail' : '';
             return (
-              '<div class="gk-foto"><span>' +
+              '<a class="gk-foto" href="' +
+              esc(fileUrl) +
+              '" target="_blank" rel="noopener noreferrer" title="Öppna bild">' +
+              (thumb
+                ? '<img src="' +
+                  esc(thumb) +
+                  '" loading="lazy" onerror="this.style.display=\'none\'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />'
+                : '') +
+              '<span style="position:relative;z-index:1">' +
               esc(String(f.fileName || 'Foto').replace(/\.[a-z0-9]+$/i, '')) +
-              '</span></div>'
+              '</span></a>'
             );
           })
           .join('') +
@@ -734,6 +777,28 @@
         if (box) {
           box.hidden = !box.hidden;
           s.textContent = box.hidden ? 'Sammanfatta' : 'Dölj';
+        }
+        return;
+      }
+      var jmp = e.target.closest && e.target.closest('[data-gk-jump]');
+      if (jmp) {
+        var slug = jmp.getAttribute('data-gk-jump');
+        var jov = document.getElementById('kk-storvy');
+        if (jov && slug) {
+          var target = [].slice.call(jov.querySelectorAll('.gk-sek')).filter(function (sek) {
+            var h = sek.querySelector('h2');
+            return h && new RegExp(slug, 'i').test(h.textContent || '');
+          })[0];
+          if (target) {
+            var jsc = jov.querySelector('.kk-storvy-body') || jov;
+            jsc.scrollTop = Math.max(
+              0,
+              target.getBoundingClientRect().top -
+                jsc.getBoundingClientRect().top +
+                jsc.scrollTop -
+                50
+            );
+          }
         }
       }
     });
