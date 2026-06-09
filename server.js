@@ -12416,6 +12416,35 @@ process.once('SIGTERM', () => {
     return created;
   }
 
+  // AUTO send-aggregator: "senast skickad" per journey-automation (läser befintliga källor)
+  app.get(
+    '/api/v1/cco/patients/:patientId/automation-sends',
+    requireCcoAuthenticated,
+    attachRole,
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const { aggregateAutomationSends } = require('./src/ops/ccoAutomationSends');
+        const patientId = String(req.params.patientId || '').trim();
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair-tp-clinic';
+        const bookingCaseIds = String(req.query.bookingCaseIds || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const sends = await aggregateAutomationSends({
+          patientId,
+          tenantId,
+          bookingCaseIds,
+          careStateStore: patientCareStateStore,
+          postOpReviewStore,
+        });
+        res.json({ patientId, sends });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
+
   app.get('/config', (req, res) => {
     const sourceUrl = typeof req.query.sourceUrl === 'string' ? req.query.sourceUrl : '';
     const brand = resolveBrand(req, sourceUrl);
