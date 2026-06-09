@@ -725,7 +725,45 @@
         '</div>'
       );
     })();
-    body += sek('Offert', '', offSignal + offDraft + off, 'Ingen offert skapad ännu.');
+    // Öppningstidslinje: hela engagemangs-storyn ur ORD-42 quoteOpens[]
+    var offOpens = (function () {
+      var cc = ctx.commercialCase || {};
+      var opens = A2(cc.quoteOpens);
+      if (!opens.length) return '';
+      function relt(ts) {
+        var t = Date.parse(ts);
+        if (!isFinite(t)) return String(ts || '');
+        var d = (Date.now() - t) / 1000;
+        if (d < 3600) return Math.max(1, Math.round(d / 60)) + ' min sedan';
+        if (d < 86400) return Math.round(d / 3600) + ' h sedan';
+        var dd = Math.round(d / 86400);
+        return dd <= 1 ? 'igår' : dd + ' dagar sedan';
+      }
+      var rows = opens
+        .slice(-6)
+        .reverse()
+        .map(function (o) {
+          return (
+            '<div class="gk-opentl-row"><span class="gk-opentl-dot"></span>' +
+            '<span>📨 Öppnad' +
+            (o.source && o.source !== 'unknown' ? ' · ' + esc(o.source) : '') +
+            '</span> <span class="gk-sub">' +
+            esc(relt(o.ts)) +
+            '</span></div>'
+          );
+        })
+        .join('');
+      return (
+        '<details class="gk-opentl"><summary class="gk-sub">Öppningstidslinje · ' +
+        opens.length +
+        ' öppning' +
+        (opens.length === 1 ? '' : 'ar') +
+        '</summary>' +
+        rows +
+        '</details>'
+      );
+    })();
+    body += sek('Offert', '', offSignal + offOpens + offDraft + off, 'Ingen offert skapad ännu.');
 
     // Ekonomi
     var eko = '';
