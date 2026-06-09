@@ -844,33 +844,95 @@
       'Ingen behandlare kopplad ännu (historiska journaler saknar signerare).'
     );
 
-    // Auto-dokument
-    var autoR = A2(ctx.autoDocs)
-      .map(function (d) {
-        var done =
-          d.planned === false ||
-          /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''));
-        var step = d.journeyStep != null ? d.journeyStep : d.step;
-        return (
-          '<div class="gk-rad"><b>' +
-          esc(d.title || 'Auto-dokument') +
-          '</b>' +
-          (step != null && step !== ''
-            ? ' <span class="gk-sub">Steg ' + esc(step) + '</span>'
-            : '') +
-          ' <span class="gk-hl gk-tag ' +
-          (done ? 'gk-tag-ok' : 'gk-tag-warn') +
-          '">' +
-          (done ? '✓ levererat' : esc(d.statusLabel || 'Planerad')) +
-          '</span></div>'
-        );
-      })
-      .join('');
+    // AUTO — autopilot-lagret i kundresan. Sekvensen är fast (Hair TP-resan);
+    // timing beräknas per patient ur bokningarna. (Senast skickad/status/kontroller = fas 2, kräver automation-motorn i backend.)
+    var autoBlock = (function () {
+      var MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+      function fmt(ts) {
+        var d = new Date(ts);
+        return d.getDate() + ' ' + MONTHS[d.getMonth()];
+      }
+      var up = A2(ctx.up);
+      var future = up
+        .map(function (b) {
+          var t = b.date ? Date.parse(b.date) : b.dateLabel ? Date.parse(b.dateLabel) : NaN;
+          return t;
+        })
+        .filter(function (t) {
+          return isFinite(t) && t > Date.now();
+        })
+        .sort(function (a, b) {
+          return a - b;
+        });
+      var nextBk = future.length ? future[0] : null;
+      var reminder;
+      if (nextBk) {
+        var fire = nextBk - 48 * 3.6e6;
+        reminder = {
+          namn: 'Påminnelse 48 h före besök',
+          status: fire > Date.now() ? 'Nästa: ' + fmt(fire) : 'Skickas snart',
+          tone: 'info',
+        };
+      } else {
+        reminder = {
+          namn: 'Påminnelse 48 h före besök',
+          status: 'Ingen kommande bokning',
+          tone: 'warn',
+          flag: true,
+        };
+      }
+      var autos = [
+        {
+          namn: 'Bokningsbekräftelse + pre-info',
+          status: up.length ? 'Aktiv' : 'Aktiveras vid bokning',
+          tone: up.length ? 'ok' : 'muted',
+        },
+        reminder,
+        { namn: 'Aftercare-schema efter operation', status: 'Aktiv', tone: 'ok' },
+        { namn: 'Omdömes-mail efter avslutad resa', status: 'Aktiv', tone: 'ok' },
+      ];
+      var rows = autos
+        .map(function (a) {
+          var cls = a.tone === 'warn' ? 'gk-tag-warn' : a.tone === 'info' ? 'gk-tag-info' : 'gk-tag-ok';
+          return (
+            '<div class="gk-rad gk-auto-row"><b>' +
+            esc(a.namn) +
+            '</b> <span class="gk-hl gk-tag ' +
+            cls +
+            '">' +
+            (a.flag ? '⚠ ' : '') +
+            esc(a.status) +
+            '</span></div>'
+          );
+        })
+        .join('');
+      // Auto-genererade dokument (ctx.autoDocs) som tilläggsrader i samma sektion
+      var docs = A2(ctx.autoDocs)
+        .map(function (d) {
+          var done =
+            d.planned === false ||
+            /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''));
+          return (
+            '<div class="gk-rad"><b>' +
+            esc(d.title || 'Auto-dokument') +
+            '</b> <span class="gk-hl gk-tag ' +
+            (done ? 'gk-tag-ok' : 'gk-tag-warn') +
+            '">' +
+            (done ? '✓ levererat' : esc(d.statusLabel || 'Planerad')) +
+            '</span></div>'
+          );
+        })
+        .join('');
+      var aktiva = autos.filter(function (a) {
+        return /aktiv|nästa/i.test(a.status);
+      }).length;
+      return { count: aktiva, html: rows + docs };
+    })();
     body += sek(
-      'Auto-dokument',
-      autoR ? '<span class="gk-pill gk-tag-info">' + A2(ctx.autoDocs).length + '</span>' : '',
-      autoR,
-      'Inga auto-dokument ännu.'
+      'AUTO',
+      '<span class="gk-pill gk-tag-ok">' + autoBlock.count + ' aktiva</span>',
+      autoBlock.html,
+      'Inga automationer.'
     );
 
     // Dokument (alla filer)
