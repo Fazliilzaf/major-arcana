@@ -881,6 +881,42 @@
           flag: true,
         };
       }
+      // op-datum + senaste besök ur historiken → aftercare/omdöme-timing
+      var hist = A2(ctx.hist);
+      function htime(b) {
+        return Date.parse(String(b.date || b.occurredAt || b.startAt || '').slice(0, 10));
+      }
+      var opTs =
+        hist
+          .filter(function (b) {
+            return /\b(op|operation|dhi|fue|transplant|graft|implant)\b/i.test(
+              String(b.title || b.serviceName || '')
+            );
+          })
+          .map(htime)
+          .filter(isFinite)
+          .sort(function (a, b) {
+            return b - a;
+          })[0] || null;
+      var visits = hist
+        .map(htime)
+        .filter(isFinite)
+        .sort(function (a, b) {
+          return b - a;
+        });
+      var lastVisitTs = visits.length ? visits[0] : null;
+      function autoStat(baseTs, offsetDays) {
+        if (!baseTs) return null;
+        var fireTs = baseTs + offsetDays * 864e5;
+        return fireTs > Date.now()
+          ? { status: 'Nästa: ' + fmt(fireTs), tone: 'info' }
+          : { status: 'Aktiv', tone: 'ok' };
+      }
+      var aft = autoStat(opTs, 1) || { status: 'Aktiveras efter operation', tone: 'muted' };
+      var omd = autoStat(lastVisitTs, 14) || {
+        status: 'Aktiveras efter avslutad resa',
+        tone: 'muted',
+      };
       var autos = [
         {
           namn: 'Bokningsbekräftelse + pre-info',
@@ -888,12 +924,19 @@
           tone: up.length ? 'ok' : 'muted',
         },
         reminder,
-        { namn: 'Aftercare-schema efter operation', status: 'Aktiv', tone: 'ok' },
-        { namn: 'Omdömes-mail efter avslutad resa', status: 'Aktiv', tone: 'ok' },
+        { namn: 'Aftercare-schema efter operation', status: aft.status, tone: aft.tone },
+        { namn: 'Omdömes-mail efter avslutad resa', status: omd.status, tone: omd.tone },
       ];
       var rows = autos
         .map(function (a) {
-          var cls = a.tone === 'warn' ? 'gk-tag-warn' : a.tone === 'info' ? 'gk-tag-info' : 'gk-tag-ok';
+          var cls =
+            a.tone === 'warn'
+              ? 'gk-tag-warn'
+              : a.tone === 'info'
+                ? 'gk-tag-info'
+                : a.tone === 'muted'
+                  ? ''
+                  : 'gk-tag-ok';
           return (
             '<div class="gk-rad gk-auto-row"><b>' +
             esc(a.namn) +
