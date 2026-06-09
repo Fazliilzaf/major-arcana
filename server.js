@@ -9485,6 +9485,177 @@ try {
     }
   );
 
+  // ── ORD-41: Async bakgrunds-runner för full Drive-ingest ──
+  // Kör i webb-processen (delar app.locals-store = inga skriv-krockar),
+  // chunkat, idempotent, throttlat. start/status/stop. Progress i state-fil.
+  let __ingestState = {
+    running: false,
+    startedAt: null,
+    finishedAt: null,
+    totalRows: 0,
+    processedChunks: 0,
+    attempted: 0,
+    imported: 0,
+    needsReview: 0,
+    duplicate: 0,
+    failed: 0,
+    remaining: null,
+    lastError: null,
+    stopRequested: false,
+  };
+  async function __runDriveIngestLoop({ chunk }) {
+    try {
+      const { internalizeDriveAssets } = require('./src/ops/ccoDriveAssetInternalization');
+      const { createCcoAssetImportPipeline } = require('./src/ops/ccoAssetImportPipeline');
+      const {
+        getDriveFileMetadata,
+        loadServiceAccountFromEnv,
+      } = require('./src/lib/googleDriveClient');
+      const {
+        getAccessToken,
+        openDriveFileReadStream,
+      } = require('./scripts/migration/lib/googleDriveApi');
+      const fsI = require('node:fs');
+      const pathI = require('node:path');
+      const cfg = loadServiceAccountFromEnv();
+      if (!cfg.ok) throw new Error('drive_sa_missing');
+      let tok = '';
+      let tokAt = 0;
+      const accessToken = async () => {
+        if (tok && Date.now() - tokAt < 50 * 60 * 1000) return tok;
+        tok = await getAccessToken(cfg.serviceAccount);
+        tokAt = Date.now();
+        return tok;
+      };
+      const respToBuf = async (r) => {
+        if (typeof r.arrayBuffer === 'function') return Buffer.from(await r.arrayBuffer());
+        const chunks = [];
+        for await (const ch of r.body) chunks.push(ch);
+        return Buffer.concat(chunks);
+      };
+      const driveClient = {
+        serviceAccountEmail: cfg.serviceAccountEmail,
+        async getFileMetadata(id) {
+          const r = await getDriveFileMetadata({
+            driveFileId: id,
+            fields: 'id,name,mimeType,size,modifiedTime,createdTime',
+            accessToken: await accessToken(),
+          });
+          if (!r.ok) throw new Error(r.error || 'drive_metadata_failed');
+          return r.metadata;
+        },
+        async downloadBuffer(id) {
+          const r = await openDriveFileReadStream({
+            accessToken: await accessToken(),
+            driveFileId: id,
+          });
+          return respToBuf(r);
+        },
+      };
+      const pmPath = pathI.join(
+        process.env.ARCANA_STATE_ROOT || '/var/data',
+        'cco-patient-master.json'
+      );
+      const pmState = JSON.parse(fsI.readFileSync(pmPath, 'utf8'));
+      const tenantId = 'hair-tp-clinic';
+      const tenant = pmState.tenants && pmState.tenants[tenantId];
+      const patients = Array.isArray(tenant && tenant.patients) ? tenant.patients : [];
+      const rows = [];
+      for (const p of patients) {
+        const atts = Array.isArray(p.drive && p.drive.attachments) ? p.drive.attachments : [];
+        for (const file of atts) rows.push({ patientId: p.id, file });
+      }
+      __ingestState.totalRows = rows.length;
+      const stores = await ensureAssetStores();
+      const pipeline = createCcoAssetImportPipeline({
+        assetStore: stores.assetStore,
+        importRunStore: stores.importRunStore,
+        reviewQueueStore: stores.reviewQueueStore,
+        storage: stores.secureStorage,
+      });
+      const progressPath = pathI.join(
+        process.env.ARCANA_STATE_ROOT || '/var/data',
+        'ingest-progress.json'
+      );
+      while (!__ingestState.stopRequested) {
+        const report = await internalizeDriveAssets({
+          rows,
+          assetStore: stores.assetStore,
+          importRunStore: stores.importRunStore,
+          reviewQueueStore: stores.reviewQueueStore,
+          pipeline,
+          driveClient,
+          dryRun: false,
+          go: true,
+          limit: chunk,
+          sampleSize: 0,
+          driveThrottleMs: 75,
+          tenantId,
+        });
+        const st = (report && report.stats) || {};
+        __ingestState.processedChunks += 1;
+        __ingestState.attempted += st.attempted || 0;
+        __ingestState.imported += st.imported || 0;
+        __ingestState.needsReview += st.needsReview || 0;
+        __ingestState.duplicate += st.duplicate || 0;
+        __ingestState.failed += st.failed || 0;
+        __ingestState.remaining =
+          (st.scanned || 0) - (st.alreadyInternal || 0) - (st.batchSize || 0);
+        try {
+          fsI.writeFileSync(progressPath, JSON.stringify(__ingestState));
+        } catch {
+          /* best-effort */
+        }
+        invalidateAssetQaCache();
+        if (!st.batchSize) break;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch (err) {
+      __ingestState.lastError = err.message;
+    } finally {
+      __ingestState.running = false;
+      __ingestState.finishedAt = new Date().toISOString();
+    }
+  }
+  app.post(
+    '/api/v1/cco/asset-qa/run-ingest',
+    requireCcoAuthenticated,
+    attachRole,
+    requirePermission('asset.import'),
+    (req, res) => {
+      const action = String(req.query.action || 'status');
+      if (action === 'stop') {
+        __ingestState.stopRequested = true;
+        return res.json({ ok: true, stopRequested: true, state: __ingestState });
+      }
+      if (action === 'start') {
+        if (__ingestState.running) {
+          return res.json({ ok: true, already: true, state: __ingestState });
+        }
+        const chunk = Math.max(1, Math.min(50, Number(req.query.chunk || 15)));
+        __ingestState = {
+          running: true,
+          startedAt: new Date().toISOString(),
+          finishedAt: null,
+          totalRows: 0,
+          processedChunks: 0,
+          attempted: 0,
+          imported: 0,
+          needsReview: 0,
+          duplicate: 0,
+          failed: 0,
+          remaining: null,
+          lastError: null,
+          stopRequested: false,
+          chunk,
+        };
+        __runDriveIngestLoop({ chunk });
+        return res.json({ ok: true, started: true, chunk, state: __ingestState });
+      }
+      return res.json({ ok: true, state: __ingestState });
+    }
+  );
+
   // ── P0.G: Per-patient asset-listning för patientkort ──
   app.get(
     '/api/v1/cco/patients/:patientId/assets',
