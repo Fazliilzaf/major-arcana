@@ -792,37 +792,84 @@
       .join('');
     body += sek('Ekonomi', '', eko, 'Ingen ekonomi-data ännu.');
 
-    // Foto — klickbara (öppnar bilden) + miniatyr-försök (JPEG-thumb om den finns, annars fallback)
-    var grid = imgs.length
-      ? '<div class="gk-foto-grid">' +
-        imgs
-          .slice(0, 8)
-          .map(function (f) {
-            var fileUrl =
-              f.viewUrl ||
-              (f.id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(f.id) : '#');
-            var thumb = f.id ? '/api/v1/cco/assets/' + encodeURIComponent(f.id) + '/thumbnail' : '';
-            return (
-              '<a class="gk-foto" href="' +
-              esc(fileUrl) +
-              '" target="_blank" rel="noopener noreferrer" title="Öppna bild">' +
-              (thumb
-                ? '<img src="' +
-                  esc(thumb) +
-                  '" loading="lazy" onerror="this.style.display=\'none\'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />'
-                : '') +
-              '<span style="position:relative;z-index:1">' +
-              esc(String(f.fileName || 'Foto').replace(/\.[a-z0-9]+$/i, '')) +
-              '</span></a>'
-            );
-          })
-          .join('') +
-        '</div>'
-      : '';
+    // Foto — smart: zon+datum-etiketter, auto before/after-par + slider-jämförelse, saknad-vy-insikt
+    var fotoBody = (function () {
+      if (!imgs.length) return '';
+      var MND = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+      var nowY = new Date().getFullYear();
+      function zoneOf(s) {
+        var l = String(s || '').toLowerCase();
+        if (/h[åa]rlinj|hairlin|front|panna|forehead|temporal|tinning/.test(l)) return 'Hårlinje';
+        if (/krona|crown|vertex|hj[äa]ss|virvel/.test(l)) return 'Krona';
+        if (/donor|nack|occip|baksid/.test(l)) return 'Donator';
+        return 'Översikt';
+      }
+      function dateOf(f) {
+        var rp = String(f.relativePath || f.fileName || '');
+        var m = rp.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return m[1] + '-' + m[2] + '-' + m[3];
+        var ep = rp.match(/\b(1[0-9]{9})\b/);
+        if (ep) return new Date(Number(ep[1]) * 1000).toISOString().slice(0, 10);
+        return '';
+      }
+      function fmtDate(d) {
+        if (!d) return 'odaterat';
+        var p = d.split('-'), y = +p[0], mo = +p[1], da = +p[2];
+        return da + ' ' + (MND[mo - 1] || '') + (y === nowY ? '' : ' ' + y);
+      }
+      var photos = imgs.map(function (f) {
+        return {
+          zone: zoneOf((f.relativePath || '') + ' ' + (f.fileName || '')),
+          date: dateOf(f),
+          thumb: f.id ? '/api/v1/cco/assets/' + encodeURIComponent(f.id) + '/thumbnail' : '',
+          url: f.viewUrl || (f.id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(f.id) : '#')
+        };
+      });
+      photos.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+      var grid = '<div class="gk-foto-grid">' + photos.slice(0, 8).map(function (p) {
+        return '<a class="gk-foto" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer" title="Öppna bild">' +
+          (p.thumb ? '<img src="' + esc(p.thumb) + '" loading="lazy" onerror="this.style.display=\'none\'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />' : '') +
+          '<span style="position:relative;z-index:1">' + esc(p.zone) + ' · ' + esc(fmtDate(p.date)) + '</span></a>';
+      }).join('') + '</div>';
+      // Auto before/after-par: zonen med störst tidsspann (äldsta ↔ nyaste)
+      var byZone = {};
+      photos.forEach(function (p) { if (p.date) (byZone[p.zone] = byZone[p.zone] || []).push(p); });
+      var pair = null, bestSpan = -1;
+      Object.keys(byZone).forEach(function (z) {
+        var arr = byZone[z].slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+        if (arr.length >= 2) {
+          var span = new Date(arr[arr.length - 1].date) - new Date(arr[0].date);
+          if (span > bestSpan) { bestSpan = span; pair = { zone: z, before: arr[0], after: arr[arr.length - 1] }; }
+        }
+      });
+      var pairHtml = '';
+      if (pair) {
+        var pj = JSON.stringify({
+          zone: pair.zone,
+          beforeImg: pair.before.thumb || pair.before.url,
+          afterImg: pair.after.thumb || pair.after.url,
+          beforeLabel: fmtDate(pair.before.date),
+          afterLabel: fmtDate(pair.after.date)
+        }).replace(/"/g, '&quot;');
+        pairHtml = '<div class="gk-foto-pair"><div class="gk-foto-pair-text"><b>Before/after-par föreslaget:</b> ' +
+          esc(pair.zone) + ' ' + esc(fmtDate(pair.before.date)) + ' ↔ ' + esc(fmtDate(pair.after.date)) + '</div>' +
+          '<button type="button" class="gk-btn gk-foto-compare" data-gk-compare="' + pj + '">Jämför</button></div>';
+      }
+      // Saknad-vy-insikt: nyckelzoner utan foto
+      var present = Object.keys(byZone);
+      var missing = ['Hårlinje', 'Krona'].filter(function (z) { return present.indexOf(z) < 0; });
+      var insightHtml = '';
+      if (missing.length) {
+        insightHtml = '<div class="gk-foto-insight"><span class="gk-foto-insight-ic">!</span> ' +
+          esc(missing.join(' & ')) + '-vy saknas för fullständig dokumentation ' +
+          '<button type="button" class="gk-foto-req" data-gk-photo-request="' + esc(missing.join(',')) + '">Begär foto</button></div>';
+      }
+      return grid + pairHtml + insightHtml;
+    })();
     body += sek(
       'Foto',
       imgs.length ? '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>' : '',
-      grid,
+      fotoBody,
       'Inga foton ännu.'
     );
 
@@ -1118,6 +1165,23 @@
         }
         return;
       }
+      // Foto: Jämför → before/after-slider
+      var cmp = e.target.closest && e.target.closest('[data-gk-compare]');
+      if (cmp) {
+        e.preventDefault();
+        var cd;
+        try { cd = JSON.parse(cmp.getAttribute('data-gk-compare')); } catch (eC) { return; }
+        if (window.__gkOpenCompare) window.__gkOpenCompare(cd);
+        return;
+      }
+      // Foto: Begär foto → notis (kopplas till begär-länk i nästa steg)
+      var pr = e.target.closest && e.target.closest('[data-gk-photo-request]');
+      if (pr) {
+        e.preventDefault();
+        pr.textContent = 'Begäran förberedd ✓';
+        pr.disabled = true;
+        return;
+      }
       var s = e.target.closest && e.target.closest('[data-gk-sum]');
       if (s) {
         var box = document.getElementById('gk-sum-box');
@@ -1165,6 +1229,56 @@
       });
     });
   })();
+
+  // Foto: before/after-slider-overlay (clip-path-jämförelse, dra reglaget)
+  window.__gkOpenCompare = function (d) {
+    if (!d) return;
+    var prev = document.getElementById('gk-compare-ov');
+    if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+    function esc2(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+    var ov = document.createElement('div');
+    ov.id = 'gk-compare-ov';
+    ov.className = 'gk-cmp-ov';
+    ov.innerHTML =
+      '<div class="gk-cmp-box">' +
+        '<div class="gk-cmp-head"><b>' + esc2(d.zone || 'Jämför') + '</b>' +
+        '<span class="gk-cmp-sub">Dra reglaget</span>' +
+        '<button type="button" class="gk-cmp-close" aria-label="Stäng">✕</button></div>' +
+        '<div class="gk-cmp-stage">' +
+          '<div class="gk-cmp-after"><img src="' + esc2(d.afterImg) + '" onerror="this.style.opacity=0"/>' +
+          '<span class="gk-cmp-lbl gk-cmp-lbl-r">Efter · ' + esc2(d.afterLabel) + '</span></div>' +
+          '<div class="gk-cmp-before" id="gkCmpBefore"><img src="' + esc2(d.beforeImg) + '" onerror="this.style.opacity=0"/>' +
+          '<span class="gk-cmp-lbl gk-cmp-lbl-l">Före · ' + esc2(d.beforeLabel) + '</span></div>' +
+          '<div class="gk-cmp-divider" id="gkCmpDiv"></div>' +
+        '</div>' +
+        '<input type="range" min="0" max="100" value="50" class="gk-cmp-range" id="gkCmpRange" aria-label="Jämför före och efter"/>' +
+      '</div>';
+    document.body.appendChild(ov);
+    var beforeEl = ov.querySelector('#gkCmpBefore');
+    var divEl = ov.querySelector('#gkCmpDiv');
+    var range = ov.querySelector('#gkCmpRange');
+    function setPos(v) {
+      if (beforeEl) beforeEl.style.clipPath = 'inset(0 ' + (100 - v) + '% 0 0)';
+      if (divEl) divEl.style.left = v + '%';
+    }
+    if (range) range.addEventListener('input', function () { setPos(range.value); });
+    setPos(50);
+    ov.addEventListener('click', function (ev) {
+      if (ev.target === ov || (ev.target.closest && ev.target.closest('.gk-cmp-close'))) {
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+      }
+    });
+    document.addEventListener('keydown', function escClose(ev) {
+      if (ev.key === 'Escape') {
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+        document.removeEventListener('keydown', escClose);
+      }
+    });
+  };
 
   // Hämtar journal-timeline (41-händelse-flödet) och fyller Historik-sektionen i gemensamma kortet
   window.__gkLoadAutoSends = function () {
