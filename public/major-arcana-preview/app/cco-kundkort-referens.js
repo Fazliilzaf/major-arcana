@@ -1302,10 +1302,24 @@
         if (f.fileType === 'image') groups[k].img++;
       });
       A(journalEntries).forEach(function (e) {
-        // journalDateReal = verkligt besöksdatum (ORD-36); signedAt/createdAt = import/signering
-        var dt = String(
-          (e && (e.journalDateReal || e.date || e.signedAt || e.createdAt)) || ''
-        ).slice(0, 10);
+        // Datum-resolver (self-contained): journalDateReal → datum/epoch ur titel → import-stämpel
+        var jraw = String((e && (e.title || e.journalType)) || '');
+        var dt = String((e && e.journalDateReal) || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+          var mm = jraw.match(/(20\d{2})[-_](\d{2})[-_](\d{2})/);
+          if (mm) {
+            dt = mm[1] + '-' + mm[2] + '-' + mm[3];
+          } else {
+            var ep = jraw.match(/\b(1[0-9]{9})\b/);
+            if (ep) {
+              var ed = new Date(Number(ep[1]) * 1000);
+              if (!isNaN(ed)) dt = ed.toISOString().slice(0, 10);
+            }
+          }
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+          dt = String((e && (e.date || e.signedAt || e.createdAt)) || '').slice(0, 10);
+        }
         if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
           if (!groups[dt]) groups[dt] = { files: [], j: 0, img: 0, journals: [] };
           groups[dt].journals.push(e);
