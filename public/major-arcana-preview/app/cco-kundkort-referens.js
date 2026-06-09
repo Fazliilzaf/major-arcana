@@ -776,11 +776,15 @@
       var raw = j.title || j.journalType || '';
       return {
         st: st,
-        date: jMineDate(raw) || jDate10(j.date || j.signedAt || j.createdAt),
+        // ORD-36: journalDateReal = auktoritativt behandlingsdatum (ej importstämpel)
+        date: j.journalDateReal || jMineDate(raw) || jDate10(j.date || j.signedAt || j.createdAt),
         title: jCleanTitle(raw, j.journalType),
-        key: jSeriesKey(raw),
-        step: j.step != null ? j.step : j.journeyStep,
+        key: j.treatmentType || jSeriesKey(raw),
+        // ORD-36: journalStep från Meridiq/härlett, annars befintliga fallback
+        step: j.journalStep != null ? j.journalStep : j.step != null ? j.step : j.journeyStep,
+        // ORD-36: treater (riktig behandlare); annars signedByName filtrerat (ej Drive-import)
         by: (function () {
+          if (j.treater) return j.treater;
           var n = j.by || j.authorName || j.signedByName || '';
           return /drive-?import|^\s*import\s*$|system|auto-?import/i.test(String(n)) ? '' : n;
         })(),
