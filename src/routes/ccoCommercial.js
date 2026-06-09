@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const express = require('express');
 const {
   WORKSPACE_ID,
@@ -88,6 +89,9 @@ function createCcoCommercialRouter({
   patientMasterStore = null,
   offerDocumentStore = null,
   patientSystemStore = null,
+  treatmentAgreementStore = null,
+  bookingEngineStore = null,
+  graphSendConnector = null,
   authStore,
   config,
   requireAuth,
@@ -136,6 +140,50 @@ function createCcoCommercialRouter({
       targetType: 'cco_commercial',
       targetId: targetId || actor.tenantId,
     });
+  }
+
+  async function recordCustomerQuoteOpen(commercialCase, source) {
+    if (!commercialStore?.recordQuoteOpen || !commercialCase) return null;
+    try {
+      const result = await commercialStore.recordQuoteOpen({
+        tenantId: commercialCase.tenantId,
+        patientId: commercialCase.customerId,
+        source,
+      });
+      if (result.recorded && authStore?.addAuditEvent) {
+        await authStore.addAuditEvent({
+          tenantId: commercialCase.tenantId,
+          actorUserId: 'customer_offer_view',
+          action: 'cco.commercial.offer_opened',
+          outcome: 'success',
+          targetType: 'cco_commercial',
+          targetId: commercialCase.commercialCaseId,
+          metadata: {
+            source,
+            openIndex: result.openIndex,
+            autoAction: false,
+          },
+        });
+      }
+      return result;
+    } catch {
+      return null;
+    }
+  }
+
+  function verifyGetAcceptWebhookSignature(req) {
+    const secret = normalizeText(config?.getAcceptWebhookSecret || config?.getacceptWebhookSecret);
+    if (!secret) return true;
+    const signature = normalizeText(
+      req.get('x-getaccept-signature') || req.get('x-ga-signature') || ''
+    );
+    if (!signature) return false;
+    const payload = JSON.stringify(req.body || {});
+    const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+    const signatureBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expected);
+    if (signatureBuffer.length !== expectedBuffer.length) return false;
+    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
   }
 
   async function findPatientRegisterCase(actor, patientId) {
@@ -685,6 +733,7 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match) return res.status(404).send('Signeringssida hittades inte.');
+      await recordCustomerQuoteOpen(match, 'offer_sign_page');
       const origin = `${req.protocol}://${req.get('host')}`;
       const html = buildOfferSignPageHtml({
         commercialCase: match,
@@ -698,6 +747,56 @@ function createCcoCommercialRouter({
     } catch (error) {
       console.error(error);
       return res.status(500).send('Kunde inte visa signeringssida.');
+    }
+  });
+
+  router.get('/cco-commercial/offer/:token/open-beacon.gif', async (req, res) => {
+    const pixel = Buffer.from(
+      'R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==',
+      'base64'
+    );
+    try {
+      const token = normalizeText(req.params.token);
+      const match = commercialStore.findCaseByEsignToken
+        ? await commercialStore.findCaseByEsignToken(token)
+        : null;
+      if (match) await recordCustomerQuoteOpen(match, 'offer_mail_pixel');
+    } catch {
+      /* pixel ska aldrig läcka fel eller PII */
+    }
+    res.setHeader('Content-Type', 'image/gif');
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    return res.status(200).send(pixel);
+  });
+
+  router.post('/cco-commercial/getaccept/webhook', async (req, res) => {
+    try {
+      if (!verifyGetAcceptWebhookSignature(req)) {
+        return res.status(401).json({ error: 'invalid_signature' });
+      }
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const eventType = normalizeText(body.event || body.eventType || body.type).toLowerCase();
+      if (!/view|open/.test(eventType)) {
+        return res.json({ ok: true, ignored: true });
+      }
+      const token = normalizeText(body.token || body.esignToken || body.documentToken);
+      const documentId = normalizeText(body.documentId || body.offerDocumentId);
+      let match = null;
+      if (token && commercialStore.findCaseByEsignToken) {
+        match = await commercialStore.findCaseByEsignToken(token);
+      }
+      if (!match && documentId && commercialStore.listCases) {
+        match =
+          (await commercialStore.listCases()).find((item) => item.offerDocumentId === documentId) ||
+          null;
+      }
+      if (match) {
+        await recordCustomerQuoteOpen(match, 'getaccept_document_viewed');
+      }
+      return res.json({ ok: true, recorded: Boolean(match) });
+    } catch (error) {
+      console.error('[cco-commercial/getaccept/webhook]', error);
+      return res.status(500).json({ error: 'webhook_failed' });
     }
   });
 
@@ -739,17 +838,24 @@ function createCcoCommercialRouter({
         // Trigger auto-flow: avtal → bokningslänk → SMS/e-post
         try {
           const { triggerAutoFlowIfEnabled } = require('../ops/offerAutoFlow');
-          await triggerAutoFlowIfEnabled(updatedCase || { ...existing, quoteStatus: 'accepted', customerSignedName }, {
-            treatmentAgreementStore,
-            bookingEngineStore,
-            graphSendConnector,
-            patientMasterStore,
-          });
-        } catch (_autoFlowErr) { /* non-blocking */ }
+          await triggerAutoFlowIfEnabled(
+            updatedCase || { ...existing, quoteStatus: 'accepted', customerSignedName },
+            {
+              treatmentAgreementStore,
+              bookingEngineStore,
+              graphSendConnector,
+              patientMasterStore,
+            }
+          );
+        } catch (_autoFlowErr) {
+          /* non-blocking */
+        }
 
         return res
           .status(200)
-          .send('<html lang="sv"><body><h1>Tack!</h1><p>Offerten är accepterad. Du får snart en bokningslänk via SMS och e-post.</p></body></html>');
+          .send(
+            '<html lang="sv"><body><h1>Tack!</h1><p>Offerten är accepterad. Du får snart en bokningslänk via SMS och e-post.</p></body></html>'
+          );
       } catch (error) {
         console.error(error);
         return res.status(500).send('Kunde inte acceptera offert.');

@@ -36,6 +36,11 @@ async function createFixture() {
     '/api/v1',
     createCcoCommercialRouter({
       commercialStore,
+      offerDocumentStore: {
+        async readHtml() {
+          return { html: '<html><body>Offert</body></html>' };
+        },
+      },
       patientSystemStore,
       authStore: {
         async addAuditEvent() {
@@ -55,7 +60,7 @@ async function createFixture() {
       requireRole: () => (_req, _res, next) => next(),
     })
   );
-  return { app, tempDir };
+  return { app, commercialStore, tempDir };
 }
 
 test('cco commercial route uppdaterar offert och betalning i samma Patient 360-kort', async () => {
@@ -100,6 +105,47 @@ test('cco commercial route uppdaterar offert och betalning i samma Patient 360-k
         updatePayload.patient360.attention.what,
         'Lös deposition eller betalningsblockerare'
       );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ORD-42: personal-vy räknas inte men kundens signeringssida registrerar offer_opened', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const qs =
+        'workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-1&customerName=Anna';
+      const createResponse = await fetch(`${baseUrl}/cco-commercial/case?${qs}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          quoteStatus: 'sent',
+          offerDocumentId: 'doc-1',
+          esignToken: 'tok-1',
+        }),
+      });
+      assert.equal(createResponse.status, 200);
+
+      const staffView = await fetch(
+        `${baseUrl}/cco-commercial/offer-document?patientId=patient-1&documentId=doc-1`
+      );
+      assert.equal(staffView.status, 200);
+
+      const afterStaff = await fetch(`${baseUrl}/cco-commercial/patient-case?patientId=patient-1`);
+      const afterStaffPayload = await afterStaff.json();
+      assert.equal(afterStaffPayload.commercialCase.quoteOpenCount, 0);
+
+      const publicView = await fetch(`${baseUrl}/cco-commercial/offer-sign-page?token=tok-1`);
+      assert.equal(publicView.status, 200);
+
+      const afterCustomer = await fetch(
+        `${baseUrl}/cco-commercial/patient-case?patientId=patient-1`
+      );
+      const afterCustomerPayload = await afterCustomer.json();
+      assert.equal(afterCustomerPayload.commercialCase.quoteOpenCount, 1);
+      assert.equal(afterCustomerPayload.commercialCase.quoteOpens[0].source, 'offer_sign_page');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

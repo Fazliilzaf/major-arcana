@@ -20,6 +20,7 @@ const PAYMENT_STATUSES = Object.freeze([
   'paid',
   'blocked',
 ]);
+const QUOTE_OPEN_DEBOUNCE_MS = 30 * 1000;
 
 function nowIso() {
   return new Date().toISOString();
@@ -39,6 +40,15 @@ function asArray(value) {
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function normalizeQuoteOpen(input = {}) {
+  const safe = asObject(input);
+  const ts = normalizeText(safe.ts || safe.createdAt) || nowIso();
+  return {
+    ts,
+    source: normalizeText(safe.source) || 'unknown',
+  };
 }
 
 function uniqueActions(items = []) {
@@ -436,6 +446,7 @@ function cloneCase(record) {
     ...record,
     requiredActions: [...asArray(record.requiredActions)],
     events: asArray(record.events).map((event) => ({ ...event })),
+    quoteOpens: asArray(record.quoteOpens).map((open) => ({ ...open })),
   };
 }
 
@@ -494,6 +505,15 @@ function normalizeCommercialCase(input = {}, existing = {}) {
     offerTemplateKey: normalizeText(safe.offerTemplateKey || previous.offerTemplateKey),
     quoteSentAt: normalizeText(safe.quoteSentAt || previous.quoteSentAt),
     quoteAcceptedAt: normalizeText(safe.quoteAcceptedAt || previous.quoteAcceptedAt),
+    quoteOpens: asArray(safe.quoteOpens).length
+      ? asArray(safe.quoteOpens).map(normalizeQuoteOpen)
+      : asArray(previous.quoteOpens).map(normalizeQuoteOpen),
+    quoteOpenCount: asArray(safe.quoteOpens).length
+      ? asArray(safe.quoteOpens).length
+      : asArray(previous.quoteOpens).length,
+    quoteOpenedAt: asArray(safe.quoteOpens).length
+      ? normalizeQuoteOpen(asArray(safe.quoteOpens).at(-1)).ts
+      : normalizeText(previous.quoteOpenedAt),
     customerSignedName: normalizeText(safe.customerSignedName || previous.customerSignedName),
     coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
     esignToken: normalizeText(safe.esignToken || previous.esignToken),
@@ -593,19 +613,101 @@ async function createCcoCommercialStore({ filePath }) {
     );
   }
 
+  async function listCases() {
+    return state.commercialCases.map(cloneCase);
+  }
+
+  async function recordQuoteOpen({
+    tenantId,
+    patientId,
+    source = 'customer_offer_view',
+    ts = nowIso(),
+  } = {}) {
+    const commercialCase = await getPatientRegisterCase({ tenantId, patientId });
+    if (!commercialCase) {
+      const error = new Error('Offert saknas för kunden.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const normalizedSource = normalizeText(source) || 'customer_offer_view';
+    const normalizedTs = normalizeText(ts) || nowIso();
+    const opens = asArray(commercialCase.quoteOpens).map(normalizeQuoteOpen);
+    const currentMs = Date.parse(normalizedTs);
+    const duplicate = opens.some((open) => {
+      if (open.source !== normalizedSource) return false;
+      const openMs = Date.parse(open.ts);
+      if (!Number.isFinite(openMs) || !Number.isFinite(currentMs)) return false;
+      return Math.abs(currentMs - openMs) <= QUOTE_OPEN_DEBOUNCE_MS;
+    });
+    if (duplicate) {
+      return {
+        commercialCase,
+        recorded: false,
+        debounced: true,
+        openIndex: opens.length,
+      };
+    }
+    const nextOpen = normalizeQuoteOpen({ ts: normalizedTs, source: normalizedSource });
+    const updated = await upsertCase({
+      ...commercialCase,
+      quoteOpens: [...opens, nextOpen],
+      events: [
+        ...asArray(commercialCase.events),
+        {
+          type: 'offer_opened',
+          label: 'Offert öppnad av kund',
+          detail: normalizedSource,
+          createdAt: nextOpen.ts,
+        },
+      ],
+    });
+    return {
+      commercialCase: updated,
+      recorded: true,
+      debounced: false,
+      openIndex: asArray(updated.quoteOpens).length,
+      quoteOpen: nextOpen,
+    };
+  }
+
   return {
     getCase,
     getPatientRegisterCase,
     findCaseByEsignToken,
+    listCases,
     ensureCase,
+    recordQuoteOpen,
     upsertCase,
   };
+}
+
+function buildQuoteOpenTimelineEvents(commercialCase = {}) {
+  const ref =
+    normalizeText(commercialCase.offerDocumentId) ||
+    normalizeText(commercialCase.commercialCaseId) ||
+    'offert';
+  return asArray(commercialCase.quoteOpens).map((open, index) => ({
+    type: 'offer_opened',
+    ts: normalizeText(open.ts),
+    title: `Offert ${ref} öppnad`,
+    icon: '👁',
+    tone: 'warn',
+    entityId: normalizeText(commercialCase.commercialCaseId) || null,
+    detail: {
+      openIndex: index + 1,
+      source: normalizeText(open.source) || 'unknown',
+      quoteOpenCount: asArray(commercialCase.quoteOpens).length,
+      offerDocumentId: normalizeText(commercialCase.offerDocumentId) || null,
+      ccoSourceOnly: true,
+    },
+  }));
 }
 
 module.exports = {
   COMMERCIAL_STATUSES,
   QUOTE_STATUSES,
   PAYMENT_STATUSES,
+  buildQuoteOpenTimelineEvents,
   buildCommercialCaseReadout,
   createCcoCommercialStore,
 };

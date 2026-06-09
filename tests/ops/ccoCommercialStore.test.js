@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const {
+  buildQuoteOpenTimelineEvents,
   buildCommercialCaseReadout,
   createCcoCommercialStore,
 } = require('../../src/ops/ccoCommercialStore');
@@ -88,4 +89,64 @@ test('cco commercial readout skickar redo commercial direkt mot bokningshandoff'
   assert.equal(readout.operatorActions[0]?.label, 'Bokningshandoff');
   assert.equal(readout.operatorActions[1]?.surfaceAction, 'note_open');
   assert.equal(readout.operatorActions[1]?.label, 'Bekräfta klartecken');
+});
+
+test('ORD-42: recordQuoteOpen räknar kundöppningar och debounce:ar dubbelträff', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-open-'));
+  const filePath = path.join(tempDir, 'cco-commercial.json');
+
+  try {
+    const store = await createCcoCommercialStore({ filePath });
+    await store.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'patient-register',
+      customerId: 'patient-1',
+      customerName: 'Anna',
+      quoteStatus: 'sent',
+      offerDocumentId: 'offer-doc-1',
+    });
+
+    const first = await store.recordQuoteOpen({
+      tenantId: 'tenant-a',
+      patientId: 'patient-1',
+      source: 'offer_sign_page',
+      ts: '2026-06-09T10:00:00.000Z',
+    });
+    assert.equal(first.recorded, true);
+    assert.equal(first.openIndex, 1);
+
+    const debounced = await store.recordQuoteOpen({
+      tenantId: 'tenant-a',
+      patientId: 'patient-1',
+      source: 'offer_sign_page',
+      ts: '2026-06-09T10:00:15.000Z',
+    });
+    assert.equal(debounced.recorded, false);
+    assert.equal(debounced.debounced, true);
+
+    const second = await store.recordQuoteOpen({
+      tenantId: 'tenant-a',
+      patientId: 'patient-1',
+      source: 'offer_sign_page',
+      ts: '2026-06-09T10:01:00.000Z',
+    });
+    assert.equal(second.recorded, true);
+    assert.equal(second.openIndex, 2);
+
+    const commercialCase = await store.getPatientRegisterCase({
+      tenantId: 'tenant-a',
+      patientId: 'patient-1',
+    });
+    assert.equal(commercialCase.quoteOpenCount, 2);
+    assert.equal(commercialCase.quoteOpens.length, 2);
+    assert.equal(commercialCase.quoteOpenedAt, '2026-06-09T10:01:00.000Z');
+
+    const events = buildQuoteOpenTimelineEvents(commercialCase);
+    assert.equal(events.length, 2);
+    assert.equal(events[1].type, 'offer_opened');
+    assert.equal(events[1].detail.openIndex, 2);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });

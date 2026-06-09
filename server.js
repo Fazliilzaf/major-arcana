@@ -6667,7 +6667,28 @@ try {
           /* optional */
         }
 
-        // 5. Behandlingsplan (journal consultation_plan)
+        // 5. Commercial-store quote opens — kundöppningar av offert.
+        try {
+          const commercialStore = app.locals.ccoCommercialStore;
+          let commercialCase = null;
+          if (commercialStore?.getPatientRegisterCase) {
+            commercialCase =
+              (await commercialStore.getPatientRegisterCase({ tenantId, patientId: customerId })) ||
+              (tenantId !== 'hair-tp-clinic'
+                ? await commercialStore.getPatientRegisterCase({
+                    tenantId: 'hair-tp-clinic',
+                    patientId: customerId,
+                  })
+                : null);
+          }
+          for (const event of buildQuoteOpenTimelineEvents(commercialCase || {})) {
+            events.push(event);
+          }
+        } catch {
+          /* optional */
+        }
+
+        // 6. Behandlingsplan (journal consultation_plan)
         for (const entry of journalEntries) {
           if (entry.journalType !== 'consultation_plan') continue;
           events.push({
@@ -10195,7 +10216,10 @@ const { buildPatientDocumentBundle } = require('./src/ops/ccoPatientDocumentAggr
 const { createCcoJournalStore } = require('./src/ops/ccoJournalStore');
 const { createCcoTreatmentEncounterStore } = require('./src/ops/ccoTreatmentEncounterStore');
 const { createCcoJournalPhotoStore } = require('./src/ops/ccoJournalPhotoStore');
-const { createCcoCommercialStore } = require('./src/ops/ccoCommercialStore');
+const {
+  buildQuoteOpenTimelineEvents,
+  createCcoCommercialStore,
+} = require('./src/ops/ccoCommercialStore');
 const { createCcoTreatmentAgreementStore } = require('./src/ops/ccoTreatmentAgreementStore');
 const {
   createCcoTemplateVersionApprovalStore,
@@ -11574,6 +11598,7 @@ process.once('SIGTERM', () => {
   const ccoCommercialStore = await createCcoCommercialStore({
     filePath: config.ccoCommercialStorePath,
   });
+  app.locals.ccoCommercialStore = ccoCommercialStore;
   const ccoTreatmentAgreementStore = await createCcoTreatmentAgreementStore({
     filePath: config.ccoTreatmentAgreementStorePath,
   });
