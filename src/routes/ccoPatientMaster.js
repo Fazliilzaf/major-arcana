@@ -31,6 +31,7 @@ const {
   getBookingSignals,
   loadKunderBookingIndex,
 } = require('../ops/ccoKunderBookingEnrichment');
+const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -403,12 +404,18 @@ function createCcoPatientMasterRouter({
       }
     }
 
+    const journalReadouts = journalStore
+      ? journalEntries.map((entry) => journalStore.buildJournalReadout(entry))
+      : [];
+    const enrichedJournalReadouts = enrichJournalEntriesWithMetadata({
+      journalEntries: journalReadouts,
+      bookings: [...bookingContext.upcomingBookings, ...bookingContext.historyBookings],
+    });
+
     return {
       patient,
       card,
-      journalEntries: journalStore
-        ? journalEntries.map((entry) => journalStore.buildJournalReadout(entry))
-        : [],
+      journalEntries: enrichedJournalReadouts,
       driveFiles: filesForUi,
       occasionTimeline: buildOccasionTimeline(filesForUi),
       bookings: {
