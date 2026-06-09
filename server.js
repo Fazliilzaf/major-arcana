@@ -12182,6 +12182,10 @@ process.once('SIGTERM', () => {
     filePath: config.ccoPatientCareStateStorePath,
   });
 
+  const ccoMailOpenStore = await require('./src/ops/ccoMailOpenStore').createCcoMailOpenStore({
+    filePath: (process.env.ARCANA_STATE_ROOT || '/var/data') + '/cco-mail-opens.json',
+  });
+
   const tenantConfigStore = await createTenantConfigStore({
     filePath: config.tenantConfigStorePath,
     defaultBrand: config.brand,
@@ -12415,6 +12419,23 @@ process.once('SIGTERM', () => {
     knowledgeRetrieverByBrand.set(resolvedBrand, created);
     return created;
   }
+
+  // Mail-öppningspixel (1x1) — PUBLIK (hits av mottagarens mailklient). Ingen PII i URL (opakt token).
+  app.get('/api/v1/cco/mail-pixel/:token', async (req, res) => {
+    try {
+      await ccoMailOpenStore.recordOpen(String(req.params.token || '').replace(/\.gif$/i, ''));
+    } catch (e) {
+      /* tracking-fel får aldrig påverka svaret */
+    }
+    const gif = Buffer.from(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      'base64'
+    );
+    res.set('Content-Type', 'image/gif');
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.end(gif);
+  });
 
   // AUTO send-aggregator: "senast skickad" per journey-automation (läser befintliga källor)
   const __rbacAuto = require('./src/security/ccoRbac');
