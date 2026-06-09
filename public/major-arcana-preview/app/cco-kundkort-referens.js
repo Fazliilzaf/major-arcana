@@ -1288,9 +1288,8 @@
         }
         // fallback: journalens behandlingstyp (ORD-36) eller typ ur journal-titeln (ej session — numreringen skiljer)
         for (var k = 0; k < g.journals.length; k++) {
-          var jt = g.journals[k];
-          if (jt && jt.treatmentType) return String(jt.treatmentType);
-          var jm = String((jt && jt.title) || '').match(TYPE_RE);
+          var gj = g.journals[k];
+          var jm = String((gj && (gj.key || gj.title)) || '').match(TYPE_RE);
           if (jm) return jm[1].length <= 3 ? jm[1].toUpperCase() : jm[1];
         }
         return '';
@@ -1303,41 +1302,6 @@
           db = new Date(b);
         return isNaN(da) || isNaN(db) ? 999 : Math.abs((da - db) / 86400000);
       }
-      // Signeringsrad per journal: VAD · NÄR · vem signerade (personal) + kund.
-      // Ärligt: historical_import har ingen strukturerad signatur (ligger i PDF:en) → fejka aldrig signerare.
-      function jFmtDT(iso) {
-        var d = new Date(iso);
-        if (isNaN(d)) return '';
-        return (
-          d.toLocaleDateString('sv-SE') +
-          ' ' +
-          d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-        );
-      }
-      function jSignLine(e) {
-        var t = String((e && e.title) || '');
-        var isConsent =
-          /friskf|samtycke|consent|avtal/i.test(t) ||
-          /friskf|consent|samtycke/i.test((e && e.journalType) || '');
-        var realBy =
-          (e && e.treater) ||
-          (e && e.signedByName && !/drive-import/i.test(e.signedByName) ? e.signedByName : '');
-        var when = jFmtDT(e && e.signedAt);
-        if (realBy) {
-          return (
-            (isConsent ? 'Kundsignerad · ' : '') +
-            '✍️ ' +
-            esc(realBy) +
-            (when ? ' · ' + esc(when) : '')
-          );
-        }
-        if (e && (e.status === 'signed' || e.locked)) {
-          return isConsent
-            ? 'Kundens originalsignatur i dokumentet'
-            : 'Signerad — originalet i dokumentet';
-        }
-        return e && e.status ? esc(String(e.status)) : '';
-      }
       var groups = {};
       A(driveFiles).forEach(function (f) {
         var k = dateKey(f) || 'odaterat';
@@ -1346,28 +1310,13 @@
         if (f.fileType === 'journal_pdf') groups[k].j++;
         if (f.fileType === 'image') groups[k].img++;
       });
-      A(journalEntries).forEach(function (e) {
-        // Datum-resolver (self-contained): journalDateReal → datum/epoch ur titel → import-stämpel
-        var jraw = String((e && (e.title || e.journalType)) || '');
-        var dt = String((e && e.journalDateReal) || '').slice(0, 10);
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
-          var mm = jraw.match(/(20\d{2})[-_](\d{2})[-_](\d{2})/);
-          if (mm) {
-            dt = mm[1] + '-' + mm[2] + '-' + mm[3];
-          } else {
-            var ep = jraw.match(/\b(1[0-9]{9})\b/);
-            if (ep) {
-              var ed = new Date(Number(ep[1]) * 1000);
-              if (!isNaN(ed)) dt = ed.toISOString().slice(0, 10);
-            }
-          }
-        }
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
-          dt = String((e && (e.date || e.signedAt || e.createdAt)) || '').slice(0, 10);
-        }
+      // Återanvänd de redan beräknade journal-raderna (jItems): rätt datum (journalDateReal/epoch),
+      // signeringsstate (✓/!), serie X/N och behandlare — samma upplägg som "Journaler · personal".
+      A(jItems).forEach(function (it) {
+        var dt = String((it && it.date) || '').slice(0, 10);
         if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
           if (!groups[dt]) groups[dt] = { files: [], j: 0, img: 0, journals: [] };
-          groups[dt].journals.push(e);
+          groups[dt].journals.push(it);
         }
       });
       (function mergeNearbyIntoTypedAnchors() {
@@ -1415,27 +1364,28 @@
           var vt = visitTypeLabel(g);
           var label = (k === 'odaterat' ? 'Odaterat' : svDate(k)) + (vt ? ' · ' + vt : '');
           var jrows = g.journals
-            .map(function (e) {
-              var t = String(e.title || '');
-              var jt = 'Journal';
-              if (/friskf/i.test(t)) jt = 'Friskförsäkran';
-              else if (/samtycke|consent/i.test(t)) jt = 'Samtycke';
-              else if (/avtal/i.test(t)) jt = 'Behandlingsavtal';
-              else if (e.treatmentType) jt = 'Journal · ' + e.treatmentType;
-              else {
-                var tm = t.match(/journal-(prp|dhi|fue|tp|op)\b/i);
-                if (tm) jt = 'Journal · ' + tm[1].toUpperCase();
-              }
-              var meta = jSignLine(e);
+            .map(function (it) {
+              var ic = it.st === 'done' ? '✓' : it.st === 'act' ? '!' : '';
+              var titel = it.serie || it.title || 'Journal';
+              var meta = [it.step ? 'Steg ' + it.step : '', it.date, it.by]
+                .filter(Boolean)
+                .join(' · ');
               return (
-                '<button type="button" class="kk-file" data-kk-open-storvy="journal" data-kk-entry="' +
-                esc(e.id || e.entryId || '') +
-                '" style="width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;color:inherit">' +
-                '<span class="kk-foto-ico">📝</span><div style="flex:1;min-width:0"><div class="rt">' +
-                esc(jt) +
-                '</div>' +
-                (meta ? '<div class="rm">' + meta + '</div>' : '') +
-                '</div><span class="kk-file-open">Öppna</span></button>'
+                '<div class="jr ' +
+                (it.st === 'done' ? '' : it.st) +
+                '"' +
+                (it.entryId ? ' data-jentry="' + esc(it.entryId) + '"' : '') +
+                '><div class="jc ' +
+                it.st +
+                '">' +
+                ic +
+                '</div><div style="flex:1"><div class="rt">' +
+                esc(titel) +
+                '</div><div class="rm">' +
+                esc(meta) +
+                '</div></div><span class="openb" data-kk-open-storvy="journal" data-kk-entry="' +
+                esc(it.entryId || '') +
+                '">Öppna</span></div>'
               );
             })
             .join('');
