@@ -1,49 +1,20 @@
 #!/usr/bin/env node
 'use strict';
 
-/**
- * Fristående, minnessäker, återupptagbar Drive-ingest-runner.
- * - Single process (körs som Render one-off job) → inga multi-worker-problem.
- * - Idempotent: internalizeDriveAssets hoppar över alreadyInternal.
- * - Återupptagbar: kör bara om — den fortsätter där den var.
- * - Observerbar: skriver progress + ev. fel till /var/data/ingest-progress.json
- *   (läses tillförlitligt via /cco/asset-qa/backfill-thumbnails?readReport=).
- * - Använder appens prod-sökvägar via env (ARCANA_*_PATH), EJ repo/data.
- *
- * Flaggor: --chunk N (default 20), --max N (sluta efter N importerade, för test)
- */
-
-require('dotenv').config({ quiet: true });
+// Fristående, minnessäker, återupptagbar, OBSERVERBAR Drive-ingest-runner.
+// Single process (Render one-off job). Skriver progress + ev. fel till
+// /var/data/ingest-progress.json (läses via readReport). Idempotent/resumable.
+// Tunga requires sker inuti try → require-fel blir synliga i progress-filen.
 
 const fs = require('node:fs');
 const path = require('node:path');
-
-const { createCcoPatientAssetStore } = require('../src/ops/ccoPatientAssetStore');
-const { createCcoAssetImportRunStore } = require('../src/ops/ccoAssetImportRunStore');
-const { createCcoAssetReviewQueueStore } = require('../src/ops/ccoAssetReviewQueueStore');
-const { createSecureStorageProvider } = require('../src/ops/ccoSecureStorageProvider');
-const { createCcoAssetImportPipeline } = require('../src/ops/ccoAssetImportPipeline');
-const { internalizeDriveAssets } = require('../src/ops/ccoDriveAssetInternalization');
-const {
-  getDriveFileMetadata,
-  loadServiceAccountFromEnv,
-} = require('../src/lib/googleDriveClient');
-const { getAccessToken, openDriveFileReadStream } = require('./migration/lib/googleDriveApi');
 
 const STATE_ROOT = process.env.ARCANA_STATE_ROOT || '/var/data';
 const PROGRESS_PATH = path.join(STATE_ROOT, 'ingest-progress.json');
 const TENANT_ID = 'hair-tp-clinic';
 
-function parseArgs(argv = process.argv.slice(2)) {
-  const args = { chunk: 20, max: 0 };
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '--chunk') args.chunk = Math.max(1, Number(argv[++i]) || 20);
-    else if (argv[i] === '--max') args.max = Math.max(0, Number(argv[++i]) || 0);
-  }
-  return args;
-}
-
 const progress = {
+  phase: 'boot',
   startedAt: new Date().toISOString(),
   updatedAt: null,
   finishedAt: null,
@@ -71,8 +42,56 @@ function writeProgress() {
   }
 }
 
-function buildDriveClient() {
-  const cfg = loadServiceAccountFromEnv();
+// Markör direkt — bevisar att scriptet startade alls
+writeProgress();
+
+function parseArgs(argv) {
+  const args = { chunk: 20, max: 0 };
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '--chunk') args.chunk = Math.max(1, Number(argv[++i]) || 20);
+    else if (argv[i] === '--max') args.max = Math.max(0, Number(argv[++i]) || 0);
+  }
+  return args;
+}
+
+async function main() {
+  progress.phase = 'require';
+  writeProgress();
+  let mods;
+  try {
+    require('dotenv').config({ quiet: true });
+    mods = {
+      createCcoPatientAssetStore: require('../src/ops/ccoPatientAssetStore')
+        .createCcoPatientAssetStore,
+      createCcoAssetImportRunStore: require('../src/ops/ccoAssetImportRunStore')
+        .createCcoAssetImportRunStore,
+      createCcoAssetReviewQueueStore: require('../src/ops/ccoAssetReviewQueueStore')
+        .createCcoAssetReviewQueueStore,
+      createSecureStorageProvider: require('../src/ops/ccoSecureStorageProvider')
+        .createSecureStorageProvider,
+      createCcoAssetImportPipeline: require('../src/ops/ccoAssetImportPipeline')
+        .createCcoAssetImportPipeline,
+      internalizeDriveAssets: require('../src/ops/ccoDriveAssetInternalization')
+        .internalizeDriveAssets,
+      getDriveFileMetadata: require('../src/lib/googleDriveClient').getDriveFileMetadata,
+      loadServiceAccountFromEnv: require('../src/lib/googleDriveClient').loadServiceAccountFromEnv,
+      googleDriveApi: require('./migration/lib/googleDriveApi'),
+    };
+  } catch (e) {
+    progress.lastError = 'require_failed: ' + (e && e.message ? e.message : String(e));
+    progress.phase = 'require_failed';
+    progress.finishedAt = new Date().toISOString();
+    writeProgress();
+    throw e;
+  }
+
+  const { getAccessToken, openDriveFileReadStream } = mods.googleDriveApi;
+  const args = parseArgs(process.argv.slice(2));
+  progress.chunk = args.chunk;
+
+  progress.phase = 'drive_client';
+  writeProgress();
+  const cfg = mods.loadServiceAccountFromEnv();
   if (!cfg.ok) throw new Error('drive_sa_missing — ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON saknas/ogiltig');
   let tok = '';
   let tokAt = 0;
@@ -88,10 +107,10 @@ function buildDriveClient() {
     for await (const ch of r.body) chunks.push(ch);
     return Buffer.concat(chunks);
   };
-  return {
+  const driveClient = {
     serviceAccountEmail: cfg.serviceAccountEmail,
     async getFileMetadata(id) {
-      const r = await getDriveFileMetadata({
+      const r = await mods.getDriveFileMetadata({
         driveFileId: id,
         fields: 'id,name,mimeType,size,modifiedTime,createdTime',
         accessToken: await accessToken(),
@@ -104,11 +123,34 @@ function buildDriveClient() {
       return respToBuf(r);
     },
   };
-}
 
-function collectRows() {
-  const pmPath = path.join(STATE_ROOT, 'cco-patient-master.json');
-  const pmState = JSON.parse(fs.readFileSync(pmPath, 'utf8'));
+  progress.phase = 'stores';
+  writeProgress();
+  const assetStore = await mods.createCcoPatientAssetStore({
+    filePath:
+      process.env.ARCANA_CCO_PATIENT_ASSETS_PATH || path.join(STATE_ROOT, 'cco-patient-assets.json'),
+  });
+  const importRunStore = await mods.createCcoAssetImportRunStore({
+    filePath:
+      process.env.ARCANA_CCO_ASSET_IMPORT_RUNS_PATH ||
+      path.join(STATE_ROOT, 'cco-asset-import-runs.json'),
+  });
+  const reviewQueueStore = await mods.createCcoAssetReviewQueueStore({
+    filePath:
+      process.env.ARCANA_CCO_ASSET_REVIEW_QUEUE_PATH ||
+      path.join(STATE_ROOT, 'cco-asset-review-queue.json'),
+  });
+  const storage = mods.createSecureStorageProvider({ provider: 'local' });
+  const pipeline = mods.createCcoAssetImportPipeline({
+    assetStore,
+    importRunStore,
+    reviewQueueStore,
+    storage,
+  });
+
+  progress.phase = 'rows';
+  writeProgress();
+  const pmState = JSON.parse(fs.readFileSync(path.join(STATE_ROOT, 'cco-patient-master.json'), 'utf8'));
   const tenant = pmState.tenants && pmState.tenants[TENANT_ID];
   const patients = Array.isArray(tenant && tenant.patients) ? tenant.patients : [];
   const rows = [];
@@ -116,42 +158,12 @@ function collectRows() {
     const atts = Array.isArray(p.drive && p.drive.attachments) ? p.drive.attachments : [];
     for (const file of atts) rows.push({ patientId: p.id, file });
   }
-  return rows;
-}
-
-async function main() {
-  const args = parseArgs();
-  progress.chunk = args.chunk;
-  writeProgress();
-
-  const assetStore = await createCcoPatientAssetStore({
-    filePath:
-      process.env.ARCANA_CCO_PATIENT_ASSETS_PATH || path.join(STATE_ROOT, 'cco-patient-assets.json'),
-  });
-  const importRunStore = await createCcoAssetImportRunStore({
-    filePath:
-      process.env.ARCANA_CCO_ASSET_IMPORT_RUNS_PATH ||
-      path.join(STATE_ROOT, 'cco-asset-import-runs.json'),
-  });
-  const reviewQueueStore = await createCcoAssetReviewQueueStore({
-    filePath:
-      process.env.ARCANA_CCO_ASSET_REVIEW_QUEUE_PATH ||
-      path.join(STATE_ROOT, 'cco-asset-review-queue.json'),
-  });
-  const storage = createSecureStorageProvider({ provider: 'local' });
-  const pipeline = createCcoAssetImportPipeline({
-    assetStore,
-    importRunStore,
-    reviewQueueStore,
-    storage,
-  });
-  const driveClient = buildDriveClient();
-  const rows = collectRows();
   progress.totalRows = rows.length;
-  writeProgress();
 
+  progress.phase = 'ingest';
+  writeProgress();
   for (;;) {
-    const report = await internalizeDriveAssets({
+    const report = await mods.internalizeDriveAssets({
       rows,
       assetStore,
       importRunStore,
@@ -178,13 +190,14 @@ async function main() {
     if (!st.batchSize) break;
     if (args.max && progress.imported + progress.needsReview + progress.duplicate >= args.max) break;
   }
+  progress.phase = 'done';
   progress.done = true;
   progress.finishedAt = new Date().toISOString();
   writeProgress();
 }
 
 main().catch((err) => {
-  progress.lastError = err && err.message ? err.message : String(err);
+  if (!progress.lastError) progress.lastError = err && err.message ? err.message : String(err);
   progress.finishedAt = new Date().toISOString();
   writeProgress();
   process.exitCode = 1;
