@@ -917,15 +917,17 @@
         status: 'Aktiveras efter avslutad resa',
         tone: 'muted',
       };
+      reminder.key = 'reminder';
       var autos = [
         {
+          key: 'confirmation',
           namn: 'Bokningsbekräftelse + pre-info',
           status: up.length ? 'Aktiv' : 'Aktiveras vid bokning',
           tone: up.length ? 'ok' : 'muted',
         },
         reminder,
-        { namn: 'Aftercare-schema efter operation', status: aft.status, tone: aft.tone },
-        { namn: 'Omdömes-mail efter avslutad resa', status: omd.status, tone: omd.tone },
+        { key: 'aftercare', namn: 'Aftercare-schema efter operation', status: aft.status, tone: aft.tone },
+        { key: 'review', namn: 'Omdömes-mail efter avslutad resa', status: omd.status, tone: omd.tone },
       ];
       var rows = autos
         .map(function (a) {
@@ -938,9 +940,11 @@
                   ? ''
                   : 'gk-tag-ok';
           return (
-            '<div class="gk-rad gk-auto-row"><b>' +
+            '<div class="gk-rad gk-auto-row" data-gk-auto="' +
+            (a.key || '') +
+            '"><b>' +
             esc(a.namn) +
-            '</b> <span class="gk-hl gk-tag ' +
+            '</b> <span class="gk-auto-sent gk-sub"></span> <span class="gk-hl gk-tag ' +
             cls +
             '">' +
             (a.flag ? '⚠ ' : '') +
@@ -1159,6 +1163,48 @@
   })();
 
   // Hämtar journal-timeline (41-händelse-flödet) och fyller Historik-sektionen i gemensamma kortet
+  window.__gkLoadAutoSends = function () {
+    var ov = document.getElementById('kk-storvy');
+    if (!ov) return;
+    var tlEl = ov.querySelector('[data-gk-tl]');
+    var pid = tlEl ? tlEl.getAttribute('data-gk-tl') : '';
+    if (!pid) return;
+    var tok = '';
+    try {
+      tok = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim();
+    } catch (e) {
+      tok = '';
+    }
+    var H = tok ? { authorization: 'Bearer ' + tok } : {};
+    function rel(ts) {
+      var t = Date.parse(ts);
+      if (!isFinite(t)) return '';
+      var d = (Date.now() - t) / 864e5;
+      if (d < 1) return 'idag';
+      if (d < 2) return 'igår';
+      return Math.round(d) + ' dgr sedan';
+    }
+    fetch(
+      '/api/v1/cco/patients/' + encodeURIComponent(pid) + '/automation-sends?tenantId=hair-tp-clinic',
+      { headers: H }
+    )
+      .then(function (r) {
+        return r.ok ? r.json() : null;
+      })
+      .then(function (j) {
+        if (!j || !j.sends) return;
+        ['reminder', 'aftercare', 'review'].forEach(function (k) {
+          var s = j.sends[k];
+          if (!s || !s.sentAt) return;
+          var el = ov.querySelector('[data-gk-auto="' + k + '"] .gk-auto-sent');
+          if (el) {
+            el.textContent =
+              '· senast skickad ' + rel(s.sentAt) + (s.clickedAt ? ' · klickad' : '');
+          }
+        });
+      })
+      .catch(function () {});
+  };
   window.__gkLoadTimeline = function () {
     var ov = document.getElementById('kk-storvy');
     if (!ov) return;
@@ -3362,6 +3408,7 @@
       // Gemensamma kundkortet (live-data) — det riktiga patientkortet i full vy
       body.innerHTML = window.__GK_LAST;
       if (window.__gkLoadTimeline) setTimeout(window.__gkLoadTimeline, 0);
+      if (window.__gkLoadAutoSends) setTimeout(window.__gkLoadAutoSends, 0);
     } else {
       var live = document.querySelector('.kkref .doss');
       if (live) {
