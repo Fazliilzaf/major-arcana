@@ -7,6 +7,7 @@ const {
   loadServiceAccountFromEnv,
   resolveServiceAccountSource,
   getDriveFileName,
+  getDriveFileMetadata,
   driveMetadataRequest,
 } = require('../../src/lib/googleDriveClient');
 
@@ -82,6 +83,40 @@ describe('googleDriveClient', () => {
       assert.equal(result.ok, true);
       assert.match(result.name, /ö/);
       assert.equal(result.error, null);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('getDriveFileMetadata defaults to Drive timestamps for document dates', async () => {
+    const originalFetch = global.fetch;
+    let requestedUrl = '';
+    let requestedToken = '';
+    global.fetch = async (url, options = {}) => {
+      requestedUrl = String(url);
+      requestedToken = options.headers?.Authorization || '';
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({
+          name: 'Journal utan datum.pdf',
+          modifiedTime: '2024-05-17T12:34:56.000Z',
+          createdTime: '2024-05-16T09:00:00.000Z',
+        }),
+      };
+    };
+    try {
+      const result = await getDriveFileMetadata({
+        driveFileId: 'drive-meta',
+        accessToken: 'test-token',
+      });
+      assert.equal(result.ok, true);
+      assert.equal(result.name, 'Journal utan datum.pdf');
+      assert.equal(result.modifiedTime, '2024-05-17T12:34:56.000Z');
+      assert.equal(result.createdTime, '2024-05-16T09:00:00.000Z');
+      assert.match(requestedUrl, /fields=name%2CmodifiedTime%2CcreatedTime/);
+      assert.equal(requestedToken, 'Bearer test-token');
     } finally {
       global.fetch = originalFetch;
     }

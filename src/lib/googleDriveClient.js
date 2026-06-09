@@ -130,7 +130,7 @@ async function driveMetadataRequest(
 
 async function getDriveFileMetadata({
   driveFileId,
-  fields = 'name',
+  fields = 'name,modifiedTime,createdTime',
   env = process.env,
   accessToken = '',
 } = {}) {
@@ -142,11 +142,11 @@ async function getDriveFileMetadata({
     const token =
       normalizeText(accessToken) || (await getConfiguredDriveAccessToken(env)).accessToken;
     const params = new URLSearchParams({
-      fields: normalizeText(fields) || 'name',
+      fields: normalizeText(fields) || 'name,modifiedTime,createdTime',
       supportsAllDrives: 'true',
     });
     const url = `${DRIVE_FILES_URL}/${encodeURIComponent(id)}?${params}`;
-    const result = await driveMetadataRequest(url, { accessToken });
+    const result = await driveMetadataRequest(url, { accessToken: token });
     if (!result.ok) {
       return {
         ok: false,
@@ -158,6 +158,8 @@ async function getDriveFileMetadata({
     return {
       ok: true,
       name: normalizeText(result.payload?.name),
+      modifiedTime: normalizeText(result.payload?.modifiedTime),
+      createdTime: normalizeText(result.payload?.createdTime),
       metadata: result.payload || {},
       error: null,
       status: result.status,
