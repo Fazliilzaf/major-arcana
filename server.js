@@ -9336,6 +9336,115 @@ try {
     }
   );
 
+  // ── ORD-41: Drive-internalisering via app.locals (observerbart svar) ──
+  // dryRun default; commit=1 hämtar binärer. Kör i webb-processen → fel syns i svaret.
+  app.post(
+    '/api/v1/cco/asset-qa/internalize-drive',
+    requireCcoAuthenticated,
+    attachRole,
+    requirePermission('asset.import'),
+    async (req, res) => {
+      try {
+        const { internalizeDriveAssets } = require('./src/ops/ccoDriveAssetInternalization');
+        const { createCcoAssetImportPipeline } = require('./src/ops/ccoAssetImportPipeline');
+        const {
+          getDriveFileMetadata,
+          loadServiceAccountFromEnv,
+        } = require('./src/lib/googleDriveClient');
+        const {
+          getAccessToken,
+          openDriveFileReadStream,
+        } = require('./scripts/migration/lib/googleDriveApi');
+        const fsI = require('node:fs');
+        const pathI = require('node:path');
+        const cfg = loadServiceAccountFromEnv();
+        if (!cfg.ok) return res.status(503).json({ error: 'drive_sa_missing' });
+        let tok = '';
+        let tokAt = 0;
+        const accessToken = async () => {
+          if (tok && Date.now() - tokAt < 50 * 60 * 1000) return tok;
+          tok = await getAccessToken(cfg.serviceAccount);
+          tokAt = Date.now();
+          return tok;
+        };
+        const respToBuf = async (r) => {
+          if (typeof r.arrayBuffer === 'function') return Buffer.from(await r.arrayBuffer());
+          const chunks = [];
+          for await (const ch of r.body) chunks.push(ch);
+          return Buffer.concat(chunks);
+        };
+        const driveClient = {
+          serviceAccountEmail: cfg.serviceAccountEmail,
+          async getFileMetadata(id) {
+            const r = await getDriveFileMetadata({
+              driveFileId: id,
+              fields: 'id,name,mimeType,size,modifiedTime,createdTime',
+              accessToken: await accessToken(),
+            });
+            if (!r.ok) throw new Error(r.error || 'drive_metadata_failed');
+            return r.metadata;
+          },
+          async downloadBuffer(id) {
+            const r = await openDriveFileReadStream({
+              accessToken: await accessToken(),
+              driveFileId: id,
+            });
+            return respToBuf(r);
+          },
+        };
+        const pmPath = pathI.join(
+          process.env.ARCANA_STATE_ROOT || '/var/data',
+          'cco-patient-master.json'
+        );
+        const pmState = JSON.parse(fsI.readFileSync(pmPath, 'utf8'));
+        const tenantId = 'hair-tp-clinic';
+        const tenant = pmState.tenants && pmState.tenants[tenantId];
+        const patients = Array.isArray(tenant && tenant.patients) ? tenant.patients : [];
+        const rows = [];
+        for (const p of patients) {
+          const atts = Array.isArray(p.drive && p.drive.attachments) ? p.drive.attachments : [];
+          for (const file of atts) rows.push({ patientId: p.id, file });
+        }
+        const stores = await ensureAssetStores();
+        const pipeline = createCcoAssetImportPipeline({
+          assetStore: stores.assetStore,
+          importRunStore: stores.importRunStore,
+          reviewQueueStore: stores.reviewQueueStore,
+          storage: stores.secureStorage,
+        });
+        const body = req.body || {};
+        const commit = String(req.query.commit || '') === '1' || body.commit === true;
+        const limit = Math.max(1, Number(body.limit ?? req.query.limit ?? 5));
+        const offset = Math.max(0, Number(body.offset ?? req.query.offset ?? 0));
+        const report = await internalizeDriveAssets({
+          rows,
+          assetStore: stores.assetStore,
+          importRunStore: stores.importRunStore,
+          reviewQueueStore: stores.reviewQueueStore,
+          pipeline,
+          driveClient,
+          dryRun: !commit,
+          go: commit,
+          limit,
+          offset,
+          sampleSize: 5,
+          driveThrottleMs: 75,
+          tenantId,
+        });
+        invalidateAssetQaCache();
+        if (report) delete report.remainingRows;
+        res.json({ rowsCollected: rows.length, driveSa: cfg.serviceAccountEmail, report });
+      } catch (err) {
+        res.status(500).json({
+          error: err.message,
+          stack: String(err.stack || '')
+            .split('\n')
+            .slice(0, 5),
+        });
+      }
+    }
+  );
+
   // ── P0.G: Per-patient asset-listning för patientkort ──
   app.get(
     '/api/v1/cco/patients/:patientId/assets',
