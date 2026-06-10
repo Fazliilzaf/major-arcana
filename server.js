@@ -9222,6 +9222,7 @@ try {
         const needsReview = drivePhotos.filter((asset) => asset.status === 'NEEDS_REVIEW');
         const ready = [];
         const blocked = {};
+        let scanComplete = true;
         for (const asset of needsReview) {
           const missing = drivePhotoPromotionBlockers(asset);
           if (missing.length) {
@@ -9234,6 +9235,10 @@ try {
             continue;
           }
           ready.push(asset);
+          if (commit && ready.length >= offset + limit) {
+            scanComplete = false;
+            break;
+          }
         }
         const batch = ready.slice(offset, offset + limit);
         const actor = {
@@ -9270,6 +9275,7 @@ try {
           totalDrivePhotos: drivePhotos.length,
           totalNeedsReviewDrivePhotos: needsReview.length,
           promotable: ready.length,
+          scanComplete,
           offset,
           limit,
           batchSize: batch.length,
