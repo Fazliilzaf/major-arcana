@@ -3601,28 +3601,28 @@ body.is-admin-embed .focus-conversation {
 }
 
 /* Kundregister: inloggning ska synas även på desktop (inte bara i vänsterkolumnen). */
-html[data-cco-auth-required='on'] .customers-metric-row,
-html[data-cco-auth-required='on'] .customers-toolbar,
-html[data-cco-auth-required='on'] .patient-master-mode-toggle,
-html[data-cco-auth-required='on'] [data-post-op-reviews-open] {
+html[data-cco-auth-required="on"] .customers-metric-row,
+html[data-cco-auth-required="on"] .customers-toolbar,
+html[data-cco-auth-required="on"] .patient-master-mode-toggle,
+html[data-cco-auth-required="on"] [data-post-op-reviews-open] {
   display: none !important;
 }
 
-html[data-cco-auth-required='on'] .customers-layout {
+html[data-cco-auth-required="on"] .customers-layout {
   display: block;
 }
 
-html[data-cco-auth-required='on'] .customers-list {
+html[data-cco-auth-required="on"] .customers-list {
   max-height: none;
   position: static;
 }
 
-html[data-cco-auth-required='on'] .patient-master-auth-card {
+html[data-cco-auth-required="on"] .patient-master-auth-card {
   max-width: 26rem;
   margin: 0 auto 1rem;
 }
 
-html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
+html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   max-width: 26rem;
   margin: 1rem auto 0;
 }
@@ -3710,28 +3710,60 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 .patient-master-pipedrive-card {
   margin-top: 12px;
 }
+.patient-master-pipedrive-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2b251f;
+  letter-spacing: 0.03em;
+}
+.patient-master-pipedrive-card > p {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  color: #8a8174;
+}
 
 .patient-master-pipedrive-table-wrap {
   overflow-x: auto;
   margin-top: 8px;
+  border-radius: 8px;
+  background: #faf6f2;
 }
 
 .patient-master-pipedrive-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .patient-master-pipedrive-table th,
 .patient-master-pipedrive-table td {
-  padding: 8px 10px;
+  padding: 10px 12px;
   text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid #e8dfd4;
 }
 
 .patient-master-pipedrive-table th {
+  font-weight: 700;
+  font-size: 11px;
+  color: #2b251f;
+  background: #f0e6d8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  position: sticky;
+  top: 0;
+}
+
+.patient-master-pipedrive-table tbody tr:hover {
+  background: rgba(212, 168, 71, 0.06);
+}
+
+.patient-master-pipedrive-table td {
+  color: #5a4f46;
+}
+.patient-master-pipedrive-table td:first-child {
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.72);
+  color: #2b251f;
 }
 
 .patient-master-merge-members {
@@ -4930,7 +4962,8 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
     position: static !important;
   }
 
-  html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+  html[data-cco-mobile-shell="on"]
+    .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
     overflow-y: auto !important;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -4945,40 +4978,57 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
     overflow: visible !important;
   }
 
-  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .preview-workspace {
+  html[data-cco-mobile-shell="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .preview-workspace {
     overflow: visible !important;
     min-height: auto;
   }
 
   html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-list,
   html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-rail,
-  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout,
-  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-shell,
-  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-surface {
+  html[data-cco-mobile-shell="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout,
+  html[data-cco-mobile-shell="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-shell,
+  html[data-cco-mobile-shell="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-surface {
     max-height: none !important;
     overflow: visible !important;
     position: static !important;
   }
 
-  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-shell {
+  html[data-cco-mobile-shell="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-shell {
     overflow: visible;
-    padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 20px);
+    padding-bottom: calc(
+      var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 20px
+    );
   }
 
   html[data-cco-mobile-shell="on"] .patient-master-auth-card {
-    padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 12px);
+    padding-bottom: calc(
+      var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 12px
+    );
   }
 
   html[data-cco-mobile-shell="on"] .patient-master-login-field--tenant {
     display: none;
   }
 
-  html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+  html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-canvas[data-app-shell-view="customers"] .customers-list {
+  html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-list {
     max-height: none;
     overflow: visible;
     position: static;
@@ -4990,15 +5040,15 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  html:not([data-cco-tablet-shell='on']) .customers-layout {
+  html:not([data-cco-tablet-shell="on"]) .customers-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  html:not([data-cco-tablet-shell='on']) .customers-rail {
+  html:not([data-cco-tablet-shell="on"]) .customers-rail {
     position: static;
   }
 
-  html:not([data-cco-tablet-shell='on']) .customers-list {
+  html:not([data-cco-tablet-shell="on"]) .customers-list {
     max-height: none;
     position: static;
   }
@@ -5096,7 +5146,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 }
 
 .patient-master-plan-photo img:not([src]),
-.patient-master-plan-photo img[src=''] {
+.patient-master-plan-photo img[src=""] {
   object-fit: none;
   background: linear-gradient(135deg, rgba(244, 236, 231, 0.95), rgba(223, 212, 203, 0.75));
 }
@@ -5632,10 +5682,8 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   z-index: 12000;
   display: grid;
   place-items: center;
-  padding: max(1rem, env(safe-area-inset-top, 1rem))
-    max(1rem, env(safe-area-inset-right, 1rem))
-    max(1rem, env(safe-area-inset-bottom, 1rem))
-    max(1rem, env(safe-area-inset-left, 1rem));
+  padding: max(1rem, env(safe-area-inset-top, 1rem)) max(1rem, env(safe-area-inset-right, 1rem))
+    max(1rem, env(safe-area-inset-bottom, 1rem)) max(1rem, env(safe-area-inset-left, 1rem));
   background: rgba(15, 23, 42, 0.55);
 }
 
@@ -5685,7 +5733,6 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   }
 }
 
-
 /* =====================================================
    v7: Lista→kort-grid (scoped, ingen !important)
    Tre listor som tidigare stapas vertikalt blir nu
@@ -5707,9 +5754,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   padding: 0.75rem 0.85rem 0.7rem 2.85rem;
   border-radius: 14px;
   border: 1px solid rgba(223, 212, 203, 0.55);
-  background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.94) 0%,
-    rgba(248, 243, 238, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 243, 238, 0.92) 100%);
   box-shadow:
     0 2px 6px rgba(56, 40, 28, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.88);
@@ -5724,17 +5769,20 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   width: 26px;
   height: 32px;
   border-radius: 4px 4px 7px 7px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.96) 60%, rgba(244,238,232,0.94) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96) 60%,
+    rgba(244, 238, 232, 0.94) 100%
+  );
   border: 1px solid rgba(154, 126, 104, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.9),
-    0 1px 2px rgba(56,40,28,0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(56, 40, 28, 0.06);
 }
 
 .patient-master-journal-actions {
   margin-top: auto;
 }
-
 
 .patient-master-timeline-list {
   display: grid;
@@ -5747,9 +5795,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   padding: 0.6rem 0.7rem 0.6rem 2.55rem;
   border-radius: 14px;
   border: 1px solid rgba(223, 212, 203, 0.55);
-  background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.94) 0%,
-    rgba(248, 243, 238, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 243, 238, 0.92) 100%);
   box-shadow:
     0 2px 6px rgba(56, 40, 28, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.88);
@@ -5764,13 +5810,16 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   width: 22px;
   height: 28px;
   border-radius: 4px 4px 6px 6px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.96) 60%, rgba(244,238,232,0.94) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96) 60%,
+    rgba(244, 238, 232, 0.94) 100%
+  );
   border: 1px solid rgba(154, 126, 104, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.9),
-    0 1px 2px rgba(56,40,28,0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(56, 40, 28, 0.06);
 }
-
 
 .patient-master-history-card .patient-master-file-list--compact {
   display: grid;
@@ -5789,9 +5838,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   padding: 0.7rem 0.8rem 0.7rem 2.85rem;
   border-radius: 14px;
   border: 1px solid rgba(223, 212, 203, 0.55);
-  background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.94) 0%,
-    rgba(248, 243, 238, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 243, 238, 0.92) 100%);
   box-shadow:
     0 2px 6px rgba(56, 40, 28, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.88);
@@ -5806,13 +5853,16 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   width: 24px;
   height: 30px;
   border-radius: 4px 4px 6px 6px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.96) 60%, rgba(244,238,232,0.94) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96) 60%,
+    rgba(244, 238, 232, 0.94) 100%
+  );
   border: 1px solid rgba(154, 126, 104, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.9),
-    0 1px 2px rgba(56,40,28,0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(56, 40, 28, 0.06);
 }
-
 
 /* =====================================================
    v8: CCO Journalutkast + Journalverktyg-färger
@@ -5841,9 +5891,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   padding: 0.85rem 0.95rem 0.75rem 2.95rem;
   border-radius: 14px;
   border: 1px solid rgba(223, 212, 203, 0.55);
-  background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.94) 0%,
-    rgba(248, 243, 238, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 243, 238, 0.92) 100%);
   box-shadow:
     0 2px 6px rgba(56, 40, 28, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.88);
@@ -5858,19 +5906,20 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   width: 26px;
   height: 32px;
   border-radius: 4px 4px 7px 7px;
-  background: linear-gradient(135deg,
-    rgba(255,255,255,0.96) 60%,
-    rgba(244,238,232,0.94) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96) 60%,
+    rgba(244, 238, 232, 0.94) 100%
+  );
   border: 1px solid rgba(154, 126, 104, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.9),
-    0 1px 2px rgba(56,40,28,0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(56, 40, 28, 0.06);
 }
 
 .patient-master-draft-proposal-actions {
   margin-top: auto;
 }
-
 
 /* Journalverktyg — kategori-färger (scoped till toolbar) */
 .patient-master-journal-toolbar .customers-utility-button {
@@ -5911,7 +5960,6 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 .patient-master-journal-toolbar [data-patient-action="new-bleph-journal"] {
   color: #db2777;
 }
-
 
 /* =====================================================
    v9: Komprimera CCO-utkast + kategori-färger på bubblor
@@ -5964,7 +6012,6 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   justify-content: flex-start;
 }
 
-
 /* Godkänn / Avvisa */
 .customers-utility-button[data-review-draft-proposal="approved"] {
   color: #15803d;
@@ -5979,15 +6026,26 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 }
 
 /* Öppna olika journaltyper */
-.customers-utility-button[data-patient-open-tp] { color: #0891b2; }
-.customers-utility-button[data-patient-open-prp] { color: #d97706; }
-.customers-utility-button[data-patient-open-bleph] { color: #db2777; }
-.customers-utility-button[data-patient-open-follow-up] { color: #7c3aed; }
-.customers-utility-button[data-patient-open-clinical] { color: #15803d; }
+.customers-utility-button[data-patient-open-tp] {
+  color: #0891b2;
+}
+.customers-utility-button[data-patient-open-prp] {
+  color: #d97706;
+}
+.customers-utility-button[data-patient-open-bleph] {
+  color: #db2777;
+}
+.customers-utility-button[data-patient-open-follow-up] {
+  color: #7c3aed;
+}
+.customers-utility-button[data-patient-open-clinical] {
+  color: #15803d;
+}
 
 /* Generisk öppna-länk */
-.patient-master-open-link { color: #2563eb; }
-
+.patient-master-open-link {
+  color: #2563eb;
+}
 
 /* Offert / Avtal actions */
 .customers-utility-button[data-patient-action="accept-offer"],
@@ -6030,7 +6088,6 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   color: #d97706;
 }
 
-
 /* =====================================================
    v10: Kategori-färger på customers-head + detail actions
    Massammanfoga, Exportera, Importera, Omdömen, Inställningar
@@ -6068,7 +6125,6 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   color: #15803d;
 }
 
-
 /* =====================================================
    v11: Kategori-färger på övriga vyträd
    Automation / Mail-feed / Macro / Integration / Portal /
@@ -6076,12 +6132,24 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
    ===================================================== */
 
 /* ===== AUTOMATION: sektioner ===== */
-.customers-utility-button[data-automation-section="analys"] { color: #4338ca; }
-.customers-utility-button[data-automation-section="autopilot"] { color: #0891b2; }
-.customers-utility-button[data-automation-section="byggare"] { color: #d97706; }
-.customers-utility-button[data-automation-section="mallar"] { color: #7c3aed; }
-.customers-utility-button[data-automation-section="testing"] { color: #15803d; }
-.customers-utility-button[data-automation-section="versioner"] { color: #475569; }
+.customers-utility-button[data-automation-section="analys"] {
+  color: #4338ca;
+}
+.customers-utility-button[data-automation-section="autopilot"] {
+  color: #0891b2;
+}
+.customers-utility-button[data-automation-section="byggare"] {
+  color: #d97706;
+}
+.customers-utility-button[data-automation-section="mallar"] {
+  color: #7c3aed;
+}
+.customers-utility-button[data-automation-section="testing"] {
+  color: #15803d;
+}
+.customers-utility-button[data-automation-section="versioner"] {
+  color: #475569;
+}
 
 /* AUTOMATION: action-knappar — godkänn=grön, avvisa=röd */
 .customers-utility-button[data-automation-autopilot-action="approve"],
@@ -6098,10 +6166,15 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   color: #dc2626;
 }
 
-.customers-utility-button[data-automation-analysis-action="learn"] { color: #0891b2; }
-.customers-utility-button[data-automation-analysis-action="optimize"] { color: #d97706; }
-.customers-utility-button[data-automation-template-action="preview"] { color: #4338ca; }
-
+.customers-utility-button[data-automation-analysis-action="learn"] {
+  color: #0891b2;
+}
+.customers-utility-button[data-automation-analysis-action="optimize"] {
+  color: #d97706;
+}
+.customers-utility-button[data-automation-template-action="preview"] {
+  color: #4338ca;
+}
 
 /* AUTOMATION: bibliotek/noder (node-typer i byggaren) */
 .customers-utility-button[data-automation-library="ai"],
@@ -6147,30 +6220,61 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   color: #db2777;
 }
 
-
 /* ===== MAIL-FEED kommandon ===== */
-.customers-utility-button[data-mail-feed-command="open_conversations"] { color: #0891b2; }
-.customers-utility-button[data-mail-feed-command="history"] { color: #475569; }
-.customers-utility-button[data-mail-feed-command="resume"] { color: #15803d; }
+.customers-utility-button[data-mail-feed-command="open_conversations"] {
+  color: #0891b2;
+}
+.customers-utility-button[data-mail-feed-command="history"] {
+  color: #475569;
+}
+.customers-utility-button[data-mail-feed-command="resume"] {
+  color: #15803d;
+}
 
-.customers-utility-button[data-mail-feed-bulk-command="handled"] { color: #15803d; }
-.customers-utility-button[data-mail-feed-bulk-command="resume"] { color: #0891b2; }
-.customers-utility-button[data-mail-feed-bulk-command="snooze"] { color: #d97706; }
-.customers-utility-button[data-mail-feed-bulk-command="history"] { color: #475569; }
-.customers-utility-button[data-mail-feed-bulk-command="delete"] { color: #dc2626; }
+.customers-utility-button[data-mail-feed-bulk-command="handled"] {
+  color: #15803d;
+}
+.customers-utility-button[data-mail-feed-bulk-command="resume"] {
+  color: #0891b2;
+}
+.customers-utility-button[data-mail-feed-bulk-command="snooze"] {
+  color: #d97706;
+}
+.customers-utility-button[data-mail-feed-bulk-command="history"] {
+  color: #475569;
+}
+.customers-utility-button[data-mail-feed-bulk-command="delete"] {
+  color: #dc2626;
+}
 
 /* ===== MACRO ===== */
-.customers-utility-button[data-macro-command="create"] { color: #4338ca; }
+.customers-utility-button[data-macro-command="create"] {
+  color: #4338ca;
+}
 
 /* ===== INTEGRATION ===== */
-.customers-utility-button[data-integration-command="docs"] { color: #475569; }
-.customers-utility-button[data-integration-command="sales"] { color: #15803d; }
+.customers-utility-button[data-integration-command="docs"] {
+  color: #475569;
+}
+.customers-utility-button[data-integration-command="sales"] {
+  color: #15803d;
+}
 
 /* ===== PORTAL ===== */
-.customers-utility-button[data-portal-action="publish"] { color: #15803d; }
-.customers-utility-button[data-portal-action="ack"] { color: #0891b2; }
+.customers-utility-button[data-portal-action="publish"] {
+  color: #15803d;
+}
+.customers-utility-button[data-portal-action="ack"] {
+  color: #0891b2;
+}
 
 /* ===== LATER (snooze-alternativ) ===== */
-.customers-utility-button[data-later-option="one_hour"] { color: #d97706; }
-.customers-utility-button[data-later-option="tomorrow_morning"] { color: #0891b2; }
-.customers-utility-button[data-later-option="monday_morning"] { color: #4338ca; }
+.customers-utility-button[data-later-option="one_hour"] {
+  color: #d97706;
+}
+.customers-utility-button[data-later-option="tomorrow_morning"] {
+  color: #0891b2;
+}
+.customers-utility-button[data-later-option="monday_morning"] {
+  color: #4338ca;
+}
