@@ -1258,7 +1258,7 @@
         e.preventDefault();
         var pidF = fsy.getAttribute('data-pid') || '';
         var tokF = '';
-        try { tokF = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim(); } catch (e5) {}
+        try { tokF = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim(); } catch (e5) {}
         if (!pidF || !tokF) return;
         fsy.disabled = true;
         fsy.textContent = 'Synkar…';
@@ -1288,7 +1288,7 @@
       if (fco) {
         e.preventDefault();
         var tokFC = '';
-        try { tokFC = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim(); } catch (e6) {}
+        try { tokFC = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim(); } catch (e6) {}
         fco.disabled = true;
         fco.textContent = 'Öppnar…';
         fetch('/api/v1/cco-fortnox/connect', { headers: { Authorization: 'Bearer ' + tokFC } })
@@ -1421,7 +1421,11 @@
     var linked = el.getAttribute('data-gk-fnx-linked') === '1';
     var tok = '';
     try {
-      tok = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim();
+      tok = (
+        window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        ''
+      ).trim();
     } catch (e) {
       tok = '';
     }
