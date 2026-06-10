@@ -67,9 +67,17 @@ function createCcoFortnoxRouter({
   router.get('/cco-fortnox/status', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
     handle(req, res, async (actor) => {
       const status = await fortnoxStore.getPublicStatus({ tenantId: actor.tenantId });
+      // CF.3: Fortnox OAuth blockerad av leverantören (utvecklarportalen ger fel). Single source via env-toggle.
+      // Sätt FORTNOX_BLOCKED_INTEGRATION=false när Fortnox-felen är lösta för att släcka blocker-läget.
+      const blockedIntegration =
+        !status?.connected && process.env.FORTNOX_BLOCKED_INTEGRATION !== 'false';
       return res.json({
         configured: fortnoxConfigured(config),
         ...status,
+        blockedIntegration,
+        blockerReason: blockedIntegration
+          ? 'Fortnox Utvecklarportal returnerar fel sedan 2026-06-01 — OAuth kan inte slutföras. Åtgärdas när Fortnox-felen är lösta.'
+          : null,
         redirectUri: config.fortnoxRedirectUri,
         scope: config.fortnoxScope,
       });

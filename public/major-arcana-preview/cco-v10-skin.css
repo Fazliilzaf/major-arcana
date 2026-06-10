@@ -3403,3 +3403,16 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 #kk-storvy .gk-eko-plan-sub { margin-top: 5px; }
 #kk-storvy .gk-eko-remind { margin-top: 10px; }
 #kk-storvy .gk-offdraft-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+
+/* ── EKONOMI: ärlig Fortnox-statusrad (lager 32) ── */
+#kk-storvy .gk-eko-fortnox { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 9px; font-size: 11px; color: #8a8174; box-shadow: inset 0 1px 0 rgba(93, 74, 60, 0.08); }
+#kk-storvy .gk-eko-fnx-dot { width: 7px; height: 7px; border-radius: 999px; background: #c8821e; flex-shrink: 0; }
+#kk-storvy .gk-eko-fnx-txt { font-weight: 600; }
+#kk-storvy .gk-eko-fortnox.is-ok { color: #4a8268; }
+#kk-storvy .gk-eko-fortnox.is-ok .gk-eko-fnx-dot { background: #4a8268; }
+#kk-storvy .gk-eko-fortnox.is-warn { color: #c8821e; }
+#kk-storvy .gk-eko-fortnox.is-warn .gk-eko-fnx-dot { background: #c8821e; }
+#kk-storvy .gk-eko-fortnox.is-off { color: #b94a4a; }
+#kk-storvy .gk-eko-fortnox.is-off .gk-eko-fnx-dot { background: #b94a4a; }
+#kk-storvy .gk-eko-fnx-sub { flex-basis: 100%; color: #8a8174; font-weight: 400; line-height: 1.35; }
+#kk-storvy .gk-eko-fnx-btn { margin-left: auto; }

@@ -846,6 +846,9 @@
           (paidSum > 0 ? '<div class="gk-sub gk-eko-plan-sub">' + paidSum.toLocaleString('sv-SE') + ' kr betalt av ' + qn.toLocaleString('sv-SE') + ' kr</div>' : '') +
           '</div>';
       }
+      // Fortnox-status (ärlig): ansluten? patient kopplad? leverantörsblocker? — fylls av __gkLoadFortnox
+      var fnxLinked = !!(ctx.bundle && ctx.bundle.paymentHistoryMeta && ctx.bundle.paymentHistoryMeta.fortnoxCustomerId);
+      rows += '<div class="gk-eko-fortnox" data-gk-fortnox="' + esc(ctx.patientId || '') + '" data-gk-fnx-linked="' + (fnxLinked ? '1' : '0') + '" hidden></div>';
       // Åtgärd: betalpåminnelse-utkast (förbered → människa skickar; aldrig auto-skick/auto-pengar)
       var act = '';
       if (label === 'OBETALT' || label === 'FÖRFALLEN' || label === 'DELBETALD') {
@@ -1249,6 +1252,59 @@
         if (window.__gkOpenCompare) window.__gkOpenCompare(cd);
         return;
       }
+      // Fortnox: Synka patient → POST sync-patient (skapar/länkar Fortnox-kund; människans klick)
+      var fsy = e.target.closest && e.target.closest('[data-gk-fortnox-sync]');
+      if (fsy) {
+        e.preventDefault();
+        var pidF = fsy.getAttribute('data-pid') || '';
+        var tokF = '';
+        try { tokF = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim(); } catch (e5) {}
+        if (!pidF || !tokF) return;
+        fsy.disabled = true;
+        fsy.textContent = 'Synkar…';
+        fetch('/api/v1/cco-fortnox/sync-patient', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + tokF, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patientId: pidF }),
+        })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) {
+            var box = fsy.closest('.gk-eko-fortnox');
+            if (j && (j.ok || j.patient || j.customerNumber)) {
+              if (box) {
+                box.className = 'gk-eko-fortnox is-ok';
+                box.innerHTML = '<span class="gk-eko-fnx-dot"></span><span class="gk-eko-fnx-txt">Fortnox kopplad (kundnr ' + (j.customerNumber || '—') + ')</span>';
+              }
+            } else {
+              fsy.disabled = false;
+              fsy.textContent = 'Synka till Fortnox';
+            }
+          })
+          .catch(function () { fsy.disabled = false; fsy.textContent = 'Synka till Fortnox'; });
+        return;
+      }
+      // Fortnox: Anslut → öppna OAuth-authorize i ny flik (du slutför consent; visas bara om ej blockerad)
+      var fco = e.target.closest && e.target.closest('[data-gk-fortnox-connect]');
+      if (fco) {
+        e.preventDefault();
+        var tokFC = '';
+        try { tokFC = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim(); } catch (e6) {}
+        fco.disabled = true;
+        fco.textContent = 'Öppnar…';
+        fetch('/api/v1/cco-fortnox/connect', { headers: { Authorization: 'Bearer ' + tokFC } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) {
+            if (j && j.authorizeUrl) {
+              window.open(j.authorizeUrl, '_blank', 'noopener');
+              fco.textContent = 'Slutför i fliken →';
+            } else {
+              fco.disabled = false;
+              fco.textContent = 'Anslut';
+            }
+          })
+          .catch(function () { fco.disabled = false; fco.textContent = 'Anslut'; });
+        return;
+      }
       // Foto: Begär foto → notis (kopplas till begär-länk i nästa steg)
       var pr = e.target.closest && e.target.closest('[data-gk-photo-request]');
       if (pr) {
@@ -1353,6 +1409,70 @@
         document.removeEventListener('keydown', escClose);
       }
     });
+  };
+
+  // EKONOMI: ärlig Fortnox-statusrad (ansluten / patient kopplad / leverantörsblocker) + Synka/Anslut
+  window.__gkLoadFortnox = function () {
+    var ov = document.getElementById('kk-storvy');
+    if (!ov) return;
+    var el = ov.querySelector('[data-gk-fortnox]');
+    if (!el) return;
+    var pid = el.getAttribute('data-gk-fortnox') || '';
+    var linked = el.getAttribute('data-gk-fnx-linked') === '1';
+    var tok = '';
+    try {
+      tok = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim();
+    } catch (e) {
+      tok = '';
+    }
+    if (!tok) return;
+    function esc3(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+    fetch('/api/v1/cco-fortnox/status', { headers: { Authorization: 'Bearer ' + tok } })
+      .then(function (r) {
+        return r.ok ? r.json() : null;
+      })
+      .then(function (s) {
+        if (!s) return; // 401/403 (ej ägare) → visa inget
+        var configured = !!s.configured;
+        var connected = !!s.connected;
+        var blocked = !!s.blockedIntegration;
+        var cls = '', html = '', sub = '';
+        if (!configured) {
+          cls = 'is-off';
+          html = 'Fortnox ej konfigurerat';
+        } else if (connected && linked) {
+          cls = 'is-ok';
+          html = 'Fortnox ansluten · kopplad';
+        } else if (connected && !linked) {
+          cls = 'is-warn';
+          html =
+            'Fortnox ansluten · patient ej kopplad' +
+            '<button type="button" class="gk-btn gk-eko-fnx-btn" data-gk-fortnox-sync data-pid="' +
+            esc3(pid) +
+            '">Synka till Fortnox</button>';
+        } else if (blocked) {
+          cls = 'is-off';
+          html = 'Fortnox: ej ansluten — leverantörsblocker';
+          sub = s.blockerReason || 'Fortnox-portalen returnerar fel. Åtgärdas när Fortnox-felen är lösta.';
+        } else {
+          cls = 'is-off';
+          html =
+            'Fortnox: ej ansluten' +
+            '<button type="button" class="gk-btn gk-eko-fnx-btn" data-gk-fortnox-connect>Anslut</button>';
+        }
+        el.className = 'gk-eko-fortnox ' + cls;
+        el.innerHTML =
+          '<span class="gk-eko-fnx-dot"></span><span class="gk-eko-fnx-txt">' +
+          html +
+          '</span>' +
+          (sub ? '<span class="gk-eko-fnx-sub gk-sub">' + esc3(sub) + '</span>' : '');
+        el.hidden = false;
+      })
+      .catch(function () {});
   };
 
   // Hämtar journal-timeline (41-händelse-flödet) och fyller Historik-sektionen i gemensamma kortet
@@ -3609,6 +3729,7 @@
       body.innerHTML = window.__GK_LAST;
       if (window.__gkLoadTimeline) setTimeout(window.__gkLoadTimeline, 0);
       if (window.__gkLoadAutoSends) setTimeout(window.__gkLoadAutoSends, 0);
+      if (window.__gkLoadFortnox) setTimeout(window.__gkLoadFortnox, 0);
     } else {
       var live = document.querySelector('.kkref .doss');
       if (live) {
