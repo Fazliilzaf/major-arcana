@@ -3824,67 +3824,72 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 html[data-v9-enabled="on"] .cr-v10 .cr-steg {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 800;
+  font-size: 9px;
+  font-weight: 600;
   letter-spacing: 0.02em;
   color: #fff;
   white-space: nowrap;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: none;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--warn {
-  background: linear-gradient(180deg, #d89636, #bd7a18);
+  background: #f0b87e;
+  color: #5d4a35;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--info {
-  background: linear-gradient(180deg, #5f93bd, #3f6e9c);
+  background: #8eb3d6;
+  color: #2c4a63;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--legal {
-  background: linear-gradient(180deg, #9a6fd6, #7c3aed);
+  background: #d4a7e5;
+  color: #5a3d73;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--teal,
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--ready {
-  background: linear-gradient(180deg, #5a9078, #3f7460);
+  background: #8dcaa5;
+  color: #3a5a4a;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--block {
-  background: linear-gradient(180deg, #c75a5a, #a83f3f);
+  background: #f0a8a8;
+  color: #6a3a3a;
 }
 
 html[data-v9-enabled="on"] .cr-v10 .cr-nextpill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 2px 8px;
   border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 9px;
+  font-weight: 500;
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-nextpill--ready {
-  color: #2e7d52;
-  background: rgba(74, 130, 104, 0.14);
+  color: #4a6b5a;
+  background: #d4e5d6;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-nextpill--neutral {
-  color: #8a8174;
-  background: rgba(93, 74, 60, 0.08);
+  color: #6b6157;
+  background: #e0dcd4;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-nextpill--warn {
-  color: #c8821e;
-  background: rgba(200, 130, 30, 0.14);
+  color: #a87a3a;
+  background: #f0d4b8;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-nextpill--block {
-  color: #b94a4a;
-  background: rgba(185, 74, 74, 0.14);
+  color: #8a4a4a;
+  background: #f0d0d0;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-nextpill--legal {
-  color: #7c3aed;
-  background: rgba(124, 58, 237, 0.12);
+  color: #7a5a8a;
+  background: #e8d9f0;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-nextpill--info {
-  color: #4a7ba8;
-  background: rgba(74, 123, 168, 0.12);
+  color: #5a7a9a;
+  background: #d9e8f0;
 }
 
 /* Mobil: kollapsa till avatar · Kund · Steg · chevron (dölj Nästa steg + LTV) */
