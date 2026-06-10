@@ -6,8 +6,8 @@
  * Per-tenant flöde:
  *   1. Hämta tenantConfig (för digest-config + brand)
  *   2. Skip om disabled, eller om recipients-listan är tom
- *   3. Skip om aktuell timme inte matchar sendHour (om scheduler-läget)
- *   4. Skip om vi redan skickat idag (lastSentAt < idag)
+ *   3. Skip om vi redan skickat idag (dagslås, oförändrat)
+ *   4. Skip om aktuell timme < sendHour (scheduler-läge; hour >= sendHour catch-up)
  *   5. Kör KPI-capability → bygg digest → skicka via graphSendConnector
  *   6. Persistera lastSentAt i tenantConfig
  *
@@ -39,6 +39,28 @@ function asObject(v) {
 
 function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';
+}
+
+function startOfUtcDayMs(d = new Date()) {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/**
+ * Scheduler-gating: skicka när hour >= sendHour (UTC) och vi inte redan skickat idag (UTC-dag).
+ * Exact-hour-only missade ticks vid deploy-drift; catch-up på nästa timme-tick.
+ */
+function getDigestSendDecision({ sendHour, lastSentAt, now = new Date(), forceSend = false } = {}) {
+  if (forceSend) return { shouldSend: true };
+  const dayStart = startOfUtcDayMs(now);
+  const lastSentMs = lastSentAt ? Date.parse(lastSentAt) : 0;
+  if (Number.isFinite(lastSentMs) && lastSentMs >= dayStart) {
+    return { shouldSend: false, reason: 'already_sent_today', lastSentAt };
+  }
+  const currentHour = now.getUTCHours();
+  if (currentHour < sendHour) {
+    return { shouldSend: false, reason: 'wrong_hour', currentHour, sendHour };
+  }
+  return { shouldSend: true, currentHour, sendHour };
 }
 
 function defaultSenderForTenant(tenantConfig, fallbackMailbox) {
@@ -132,28 +154,21 @@ async function runDigestForTenant({
     return { tenantId: safeTenantId, skipped: true, reason: 'no_recipients' };
   }
 
-  // Hour-gating för scheduler-läget
-  if (!forceSend) {
-    const currentHour = new Date().getHours();
-    if (currentHour !== sendHour) {
-      return {
-        tenantId: safeTenantId,
-        skipped: true,
-        reason: 'wrong_hour',
-        currentHour,
-        sendHour,
-      };
-    }
-    // Avduplikering — skicka max en gång per dag
-    const lastSentAt = digestCfg.lastSentAt ? Date.parse(digestCfg.lastSentAt) : 0;
-    if (Number.isFinite(lastSentAt) && lastSentAt >= startOfDayMs()) {
-      return {
-        tenantId: safeTenantId,
-        skipped: true,
-        reason: 'already_sent_today',
-        lastSentAt: digestCfg.lastSentAt,
-      };
-    }
+  // Hour-gating + dagslås för scheduler-läget (catch-up när hour >= sendHour)
+  const sendDecision = getDigestSendDecision({
+    sendHour,
+    lastSentAt: digestCfg.lastSentAt,
+    forceSend,
+  });
+  if (!sendDecision.shouldSend) {
+    return {
+      tenantId: safeTenantId,
+      skipped: true,
+      reason: sendDecision.reason,
+      ...(sendDecision.currentHour != null ? { currentHour: sendDecision.currentHour } : {}),
+      ...(sendDecision.sendHour != null ? { sendHour: sendDecision.sendHour } : {}),
+      ...(sendDecision.lastSentAt ? { lastSentAt: sendDecision.lastSentAt } : {}),
+    };
   }
 
   // Build KPIs + digest
@@ -281,6 +296,7 @@ async function runDailyDigestForAllTenants({
 }
 
 module.exports = {
+  getDigestSendDecision,
   runDigestForTenant,
   runDailyDigestForAllTenants,
 };

@@ -6,9 +6,51 @@ const path = require('node:path');
 
 const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
 const {
+  getDigestSendDecision,
   runDigestForTenant,
   runDailyDigestForAllTenants,
 } = require('../../src/ops/dailyDigestRunner');
+
+test('getDigestSendDecision catch-up when hour > sendHour and not sent today', () => {
+  const now = new Date('2026-06-10T08:06:00.000Z');
+  const d = getDigestSendDecision({ sendHour: 6, lastSentAt: null, now });
+  assert.equal(d.shouldSend, true);
+  assert.equal(d.currentHour, 8);
+});
+
+test('getDigestSendDecision wrong_hour when hour < sendHour', () => {
+  const now = new Date('2026-06-10T05:30:00.000Z');
+  const d = getDigestSendDecision({ sendHour: 6, lastSentAt: null, now });
+  assert.equal(d.shouldSend, false);
+  assert.equal(d.reason, 'wrong_hour');
+});
+
+test('getDigestSendDecision sends at exact sendHour', () => {
+  const now = new Date('2026-06-10T06:00:00.000Z');
+  const d = getDigestSendDecision({ sendHour: 6, lastSentAt: null, now });
+  assert.equal(d.shouldSend, true);
+});
+
+test('getDigestSendDecision already_sent_today blocks second send after catch-up window', () => {
+  const now = new Date('2026-06-10T14:59:00.000Z');
+  const d = getDigestSendDecision({
+    sendHour: 6,
+    lastSentAt: '2026-06-10T08:10:00.000Z',
+    now,
+  });
+  assert.equal(d.shouldSend, false);
+  assert.equal(d.reason, 'already_sent_today');
+});
+
+test('getDigestSendDecision catch-up after missed exact hour (deploy drift scenario)', () => {
+  const now = new Date('2026-06-10T12:10:00.000Z');
+  const d = getDigestSendDecision({
+    sendHour: 6,
+    lastSentAt: '2026-06-09T06:05:00.000Z',
+    now,
+  });
+  assert.equal(d.shouldSend, true);
+});
 
 test('runDigestForTenant throws without tenantId', async () => {
   await assert.rejects(() => runDigestForTenant({ tenantId: '  ', tenantConfig: {} }), /tenantId/i);
