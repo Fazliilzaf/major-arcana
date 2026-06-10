@@ -1074,6 +1074,45 @@
     els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
     els.mergeGroupsHost = document.querySelector('[data-customer-merge-groups]');
+
+    // Setup search dropdown listeners
+    if (els.search) {
+      els.search.addEventListener('focus', () => {
+        dropdownOpen = true;
+        renderSearchDropdown();
+      });
+      els.search.addEventListener('input', (e) => {
+        dropdownSelectedIndex = -1;
+        void setCustomerSearchQuery(e.target.value, { clearSelection: false, force: false });
+      });
+      els.search.addEventListener('keydown', (e) => {
+        const dropdown = els.search.parentElement.querySelector('[data-search-dropdown]');
+        const rows = dropdown ? Array.from(dropdown.querySelectorAll('[data-dropdown-row]')) : [];
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          dropdownSelectedIndex = Math.min(dropdownSelectedIndex + 1, rows.length - 1);
+          renderSearchDropdown();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          dropdownSelectedIndex = Math.max(dropdownSelectedIndex - 1, -1);
+          renderSearchDropdown();
+        } else if (e.key === 'Enter' && dropdownSelectedIndex >= 0 && rows[dropdownSelectedIndex]) {
+          e.preventDefault();
+          rows[dropdownSelectedIndex].click();
+        } else if (e.key === 'Escape') {
+          dropdownOpen = false;
+          const dd = els.search.parentElement.querySelector('[data-search-dropdown]');
+          if (dd) dd.remove();
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (!els.search.contains(e.target) && !els.search.parentElement.contains(e.target)) {
+          dropdownOpen = false;
+          const dd = els.search.parentElement.querySelector('[data-search-dropdown]');
+          if (dd) dd.remove();
+        }
+      });
+    }
   }
 
   function renderModeChrome() {
@@ -8403,15 +8442,101 @@
     return next;
   }
 
+  let dropdownSelectedIndex = -1;
+  let dropdownOpen = false;
+
+  function renderSearchDropdown() {
+    const searchEl = els.search;
+    if (!searchEl) return;
+    const query = normalizeText(searchEl.value);
+    const dropdownHost = searchEl.parentElement;
+    let dropdown = dropdownHost.querySelector('[data-search-dropdown]');
+
+    if (!query && !dropdownOpen) {
+      if (dropdown) dropdown.remove();
+      return;
+    }
+
+    const filteredPatients = query
+      ? runtime.patients.filter(p =>
+          (p.displayName || '').toLowerCase().includes(query.toLowerCase()) ||
+          (p.primaryEmail || '').toLowerCase().includes(query.toLowerCase()) ||
+          (p.primaryPhone || '').toLowerCase().includes(query.toLowerCase())
+        )
+      : runtime.patients.slice(0, 4);
+
+    if (!dropdown) {
+      dropdown = document.createElement('div');
+      dropdown.setAttribute('data-search-dropdown', '');
+      dropdown.style.cssText = `
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 8px;
+        background: var(--color-background-primary);
+        border: 0.5px solid var(--color-border-secondary);
+        border-radius: var(--border-radius-lg);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        z-index: 1000;
+        max-height: 400px;
+        overflow-y: auto;
+      `;
+      dropdownHost.style.position = 'relative';
+      dropdownHost.appendChild(dropdown);
+    }
+
+    const header = !query ? '<div style="padding: 10px 12px 6px; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Senaste</div>' : '';
+
+    const rows = filteredPatients.slice(0, 10).map((patient, idx) => {
+      const name = displayNameForList(patient);
+      const info = [patient.nextBookingType, patient.primaryEmail, patient.primaryPhone].filter(Boolean).join(' · ') || '—';
+      const isSelected = idx === dropdownSelectedIndex;
+      const bg = isSelected ? 'var(--color-background-secondary)' : 'transparent';
+      return `
+        <button
+          data-dropdown-row="${escapeHtml(patient.patientId)}"
+          type="button"
+          style="width: 100%; padding: 12px; border: none; background: ${bg}; text-align: left; cursor: pointer; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; gap: 12px; align-items: flex-start;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: ${v9AvatarGradient(name)}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px; flex-shrink: 0;">${escapeHtml(v9AvatarInitials(name))}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--color-text-primary);">${escapeHtml(name)}</div>
+            <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 2px;">${escapeHtml(info)}</div>
+          </div>
+          <div style="color: var(--color-text-secondary); font-size: 18px;">›</div>
+        </button>
+      `;
+    }).join('');
+
+    dropdown.innerHTML = header + rows;
+
+    dropdown.querySelectorAll('[data-dropdown-row]').forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        const patientId = btn.getAttribute('data-dropdown-row');
+        runtime.selectedPatientId = patientId;
+        runtime.query = '';
+        syncCustomerSearchInputs('');
+        renderDetailPanel();
+        dropdownOpen = false;
+        dropdown.remove();
+      });
+      if (idx === dropdownSelectedIndex) {
+        btn.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
   async function setCustomerSearchQuery(query, { clearSelection = true, force = true } = {}) {
     if (runtime.mode !== 'register') return [];
     runtime.query = syncCustomerSearchInputs(query);
+    dropdownSelectedIndex = -1;
     if (clearSelection) {
       runtime.selectedPatientId = '';
       runtime.detail = null;
       renderDetailEmpty();
     }
     await loadPatientList({ force: force === true });
+    renderSearchDropdown();
     return runtime.patients.slice();
   }
 
