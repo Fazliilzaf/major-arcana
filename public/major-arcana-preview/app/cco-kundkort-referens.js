@@ -769,28 +769,103 @@
     })();
     body += sek('Offert', '', offSignal + offOpens + offDraft + off, 'Ingen offert skapad ännu.');
 
-    // Ekonomi
-    var eko = '';
-    if (ctx.commercialCase && ctx.commercialCase.quotedAmount)
-      eko +=
-        '<div class="gk-rad">Offererat <span class="gk-hl"><b>' +
-        esc(ctx.commercialCase.quotedAmount) +
-        '</b></span></div>';
-    eko += A2(ctx.bundle && ctx.bundle.paymentHistory)
-      .slice(0, 6)
-      .map(function (p) {
-        return (
-          '<div class="gk-rad">' +
-          esc((p.method || p.source || 'Betalning') + (p.status ? ' · ' + p.status : '')) +
-          ' <span class="gk-sub">' +
-          esc(String(p.dateIso || p.date || '').slice(0, 10)) +
-          '</span> <span class="gk-hl"><b>' +
-          esc(p.amountLabel || p.amount || '') +
-          '</b></span></div>'
-        );
-      })
-      .join('');
-    body += sek('Ekonomi', '', eko, 'Ingen ekonomi-data ännu.');
+    // Ekonomi — smart: status-signal, öppen faktura m. förfallodag, LTV, betalplan 20/80, påminnelse-utkast
+    var ekoPack = (function () {
+      var cc = ctx.commercialCase || {};
+      var ps = String(cc.paymentStatus || '').toLowerCase();
+      var payHist = A2(ctx.bundle && ctx.bundle.paymentHistory);
+      function num(s) { return Number(String(s == null ? '' : s).replace(/[^\d]/g, '')) || 0; }
+      function fmtKr(v) {
+        if (v == null || v === '') return '';
+        var s = String(v);
+        if (/kr/i.test(s)) return s;
+        var n = num(s);
+        return n > 0 ? n.toLocaleString('sv-SE') + ' kr' : s;
+      }
+      var DAGAR = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'];
+      function dueSignal(p) {
+        if (!p) return null;
+        var st = String(p.status || '').toLowerCase();
+        if (/overdue/.test(st)) {
+          var dd = p.dueDateIso ? new Date(p.dueDateIso) : null;
+          var days = dd && !isNaN(dd) ? Math.floor((Date.now() - dd.getTime()) / 86400000) : 0;
+          return { tone: 'bad', text: days > 0 ? 'Förfallen ' + days + ' dgr' : 'Förfallen' };
+        }
+        if (p.dueDateIso) {
+          var d2 = new Date(p.dueDateIso);
+          if (!isNaN(d2)) {
+            var diff = Math.ceil((d2.getTime() - Date.now()) / 86400000);
+            if (diff < 0) return { tone: 'bad', text: 'Förfallen' };
+            if (diff <= 7) return { tone: 'warn', text: 'Förfaller ' + DAGAR[d2.getDay()] };
+            return { tone: 'warn', text: 'Förfaller ' + d2.toISOString().slice(0, 10) };
+          }
+        }
+        return { tone: 'warn', text: 'Obetald' };
+      }
+      // Status-badge
+      var hasOverdue = payHist.some(function (p) { return /overdue|förfall|forfall/i.test(p.status || ''); });
+      var tone = '', label = '';
+      if (hasOverdue) { tone = 'bad'; label = 'FÖRFALLEN'; }
+      else if (ps === 'blocked') { tone = 'bad'; label = 'BLOCKERAD'; }
+      else if (/^paid$|betald|ready_for_booking/.test(ps)) { tone = 'ok'; label = 'BETALD'; }
+      else if (/partial/.test(ps)) { tone = 'warn'; label = 'DELBETALD'; }
+      else if (/pending|deposit|väntar|obetal/.test(ps)) { tone = 'warn'; label = 'OBETALT'; }
+      else if (cc.quotedAmount && !payHist.some(function (p) { return /paid|betald/i.test(p.status || ''); })) { tone = 'warn'; label = 'OBETALT'; }
+      var badge = label ? '<span class="gk-eko-badge gk-eko-badge-' + tone + '">' + label + '</span>' : '';
+      // Öppen faktura
+      var inv = payHist.filter(function (p) {
+        return (/invoice/i.test(p.method || '') || /fortnox/i.test(p.source || '')) &&
+          /overdue|pending|partial/i.test(p.status || '');
+      }).sort(function (a, b) { return String(b.dateIso || '').localeCompare(String(a.dateIso || '')); })[0];
+      var rows = '';
+      if (inv) {
+        var sig = dueSignal(inv);
+        rows += '<div class="gk-rad gk-eko-inv"><b>Faktura' + (inv.ref ? ' F-' + esc(inv.ref) : '') + '</b>' +
+          '<span class="gk-hl"><b>' + esc(inv.amountLabel || '') + '</b></span>' +
+          (sig ? '<span class="gk-eko-sig gk-eko-sig-' + sig.tone + '">' + esc(sig.text) + '</span>' : '') +
+          '</div>';
+      } else if (cc.quotedAmount) {
+        rows += '<div class="gk-rad gk-eko-inv"><span>Offererat</span><span class="gk-hl"><b>' + esc(fmtKr(cc.quotedAmount)) + '</b></span></div>';
+      }
+      if (ctx.ltv) {
+        rows += '<div class="gk-rad gk-eko-inv"><span>Livstidsvärde (LTV)</span><span class="gk-hl"><b>' + esc(fmtKr(ctx.ltv)) + '</b></span></div>';
+      }
+      // Betalplan 20/80 + betalt-progress
+      var qn = num(cc.quotedAmount), dn = num(cc.depositAmount);
+      if (qn > 0 && dn > 0) {
+        var depPct = Math.max(1, Math.min(99, Math.round((dn / qn) * 100)));
+        var restPct = 100 - depPct;
+        var paidSum = payHist.reduce(function (s, p) {
+          return s + (/paid|betald/i.test(p.status || '') ? num(p.amountLabel || p.amount) : 0);
+        }, 0);
+        var paidPct = Math.max(0, Math.min(100, Math.round((paidSum / qn) * 100)));
+        rows += '<div class="gk-eko-plan">' +
+          '<div class="gk-eko-plan-top"><span>Betalplan operation</span>' +
+          '<span class="gk-eko-plan-tag">' + depPct + '% vid avtal · ' + restPct + '% operationsdag</span></div>' +
+          '<div class="gk-eko-plan-track"><div class="gk-eko-plan-fill" style="width:' + paidPct + '%"></div></div>' +
+          (paidSum > 0 ? '<div class="gk-sub gk-eko-plan-sub">' + paidSum.toLocaleString('sv-SE') + ' kr betalt av ' + qn.toLocaleString('sv-SE') + ' kr</div>' : '') +
+          '</div>';
+      }
+      // Åtgärd: betalpåminnelse-utkast (förbered → människa skickar; aldrig auto-skick/auto-pengar)
+      var act = '';
+      if (label === 'OBETALT' || label === 'FÖRFALLEN' || label === 'DELBETALD') {
+        var fn = String(ctx.name || '').trim().split(/\s+/)[0] || 'där';
+        var invRef = inv && inv.ref ? 'F-' + inv.ref : '';
+        var invAmt = inv ? inv.amountLabel || '' : fmtKr(cc.quotedAmount);
+        var draft = 'Hej ' + fn + ',\n\nEn vänlig påminnelse om' + (invRef ? ' faktura ' + invRef : ' din faktura') +
+          (invAmt ? ' på ' + invAmt : '') + '.\nHör gärna av dig om du har några frågor.\n\nVänliga hälsningar';
+        var draftEsc = draft.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        act = '<div class="gk-offsuggest">' +
+          '<button type="button" class="gk-btn gk-eko-remind" data-gk-offer-draft>Skicka betalpåminnelse</button>' +
+          '<div class="gk-offdraft" hidden>' +
+          '<textarea class="gk-offdraft-text" rows="6">' + draftEsc + '</textarea>' +
+          '<div class="gk-offdraft-actions"><button type="button" class="gk-btn" data-gk-offer-copy>Kopiera</button>' +
+          '<button type="button" class="gk-btn" data-gk-offer-studio>Svarstudio</button>' +
+          '<span class="gk-offdraft-note gk-sub"></span></div></div></div>';
+      }
+      return { badge: badge, body: rows + act };
+    })();
+    body += sek('Ekonomi', ekoPack.badge, ekoPack.body, 'Ingen ekonomi-data ännu.');
 
     // Foto — smart: zon+datum-etiketter, auto before/after-par + slider-jämförelse, saknad-vy-insikt
     var fotoBody = (function () {
@@ -2818,6 +2893,7 @@
         autoDocs: autoDocs,
         bundle: bundle,
         commercialCase: commercialCase,
+        ltv: ltvLabel || (ltvRaw != null ? String(ltvRaw) : ''),
       });
     } catch (e) {
       window.__GK_LAST = '';

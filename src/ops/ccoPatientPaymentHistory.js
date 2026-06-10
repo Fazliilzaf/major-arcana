@@ -75,6 +75,7 @@ function fortnoxInvoiceToHistoryEntry(invoice = {}) {
     amountLabel: formatAmountLabel(invoice.Total, invoice.Currency || 'SEK'),
     status: mapFortnoxInvoiceStatus(invoice),
     ref: normalizeText(invoice.DocumentNumber || invoice.InvoiceNumber),
+    dueDateIso: normalizeText(invoice.DueDate) || null,
     source: 'fortnox',
   };
 }

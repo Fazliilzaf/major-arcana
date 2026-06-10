@@ -3384,3 +3384,22 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 .gk-cmp-lbl-l { left: 10px; }
 .gk-cmp-lbl-r { right: 10px; }
 .gk-cmp-range { width: calc(100% - 32px); margin: 14px 16px; display: block; accent-color: #c8821e; cursor: ew-resize; }
+
+/* ── EKONOMI smart: status-badge, faktura-signal, betalplan 20/80 (lager 31) ── */
+#kk-storvy .gk-eko-badge { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; }
+#kk-storvy .gk-eko-badge-bad { color: #b94a4a; background: rgba(185, 74, 74, 0.14); }
+#kk-storvy .gk-eko-badge-warn { color: #c8821e; background: rgba(200, 130, 30, 0.14); }
+#kk-storvy .gk-eko-badge-ok { color: #4a8268; background: rgba(74, 130, 104, 0.14); }
+#kk-storvy .gk-eko-inv { display: flex; align-items: center; gap: 8px; }
+#kk-storvy .gk-eko-inv .gk-hl { margin-left: auto; }
+#kk-storvy .gk-eko-sig { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+#kk-storvy .gk-eko-sig-bad { color: #b94a4a; background: rgba(185, 74, 74, 0.14); }
+#kk-storvy .gk-eko-sig-warn { color: #c8821e; background: rgba(200, 130, 30, 0.14); }
+#kk-storvy .gk-eko-plan { margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.5); box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.08); }
+#kk-storvy .gk-eko-plan-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11.5px; color: #5d4a3c; margin-bottom: 6px; }
+#kk-storvy .gk-eko-plan-tag { font-size: 10.5px; font-weight: 700; color: #4a7ba8; background: rgba(74, 123, 168, 0.12); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+#kk-storvy .gk-eko-plan-track { height: 7px; border-radius: 999px; background: #ece3d8; overflow: hidden; }
+#kk-storvy .gk-eko-plan-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #4a8268, #9ed8b8); }
+#kk-storvy .gk-eko-plan-sub { margin-top: 5px; }
+#kk-storvy .gk-eko-remind { margin-top: 10px; }
+#kk-storvy .gk-offdraft-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
