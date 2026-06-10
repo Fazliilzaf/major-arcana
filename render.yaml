@@ -93,8 +93,10 @@ services:
       # exposure även om värdet finns i UI. Vi lägger dem som rent
       # UI-managed istället (Render exponerar dem då direkt till
       # process.env utan blueprint-rundtripp).
+      # PUBLIC_BASE_URL maste matcha den faktiska basen (mejl-logga + lankar).
+      # ma.hairtpclinic.se CNAME:ar hit; andra INTE utan att verifiera mejlfloden.
       - key: PUBLIC_BASE_URL
-        value: https://arcana.hairtpclinic.se
+        value: https://major-arcana-frankfurt.onrender.com
       - key: CORS_ALLOWED_ORIGINS
         sync: false
       - key: ARCANA_BOOTSTRAP_MAILBOX_BACKFILL
@@ -165,8 +167,9 @@ services:
       - key: ARCANA_MIGRATION_INDEX_PATH
         value: /var/data/arcana/migration-index.json
       # CCO inkorg: snabbare delta-sync och smalare scoped-analys (2026-05-20).
+      # 0 = avstangd (medvetet, OOM-sakerhet sedan scheduler-allowlist-laget).
       - key: ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES
-        value: "3"
+        value: "0"
       - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_LOOKBACK_DAYS
         value: "3"
       - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER
@@ -187,8 +190,9 @@ services:
         value: "50"
       - key: ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS
         value: "180000"
+      # 0 = avstangd (medvetet, OOM-sakerhet; Graph read ar av).
       - key: ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES
-        value: "2"
+        value: "0"
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
