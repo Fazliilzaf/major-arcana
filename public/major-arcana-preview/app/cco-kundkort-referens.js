@@ -387,6 +387,23 @@
         : '<div class="gk-rad"><span class="gk-sub">Medicinsk data · endast visning</span></div>'
     );
 
+    // ── Resa-status härledd ur gateSignals (read-only) ──
+    var gkSignals = A2(ctx.gateSignals);
+    function gkSigId(s) { return String((s && (s.ruleId || s.id)) || ''); }
+    var readyForOp = gkSignals.some(function (s) { return /ready_for_treatment/i.test(gkSigId(s)); });
+    var gkBlockers = gkSignals.filter(function (s) { return typeof isBlockerSignal === 'function' && isBlockerSignal(s); });
+    var coolingActive = gkSignals.some(function (s) { return /cooling_off_active/i.test(gkSigId(s)); });
+    var coolingPassed = gkSignals.some(function (s) { return /cooling_off_passed/i.test(gkSigId(s)); });
+    var photoReview = gkSignals.some(function (s) { return /has_photo_review/i.test(gkSigId(s)); });
+    var coolEnd = null;
+    A2(ctx.offers).forEach(function (o) { if (o && o.coolingOffEndsAt) coolEnd = o.coolingOffEndsAt; });
+    if (!coolEnd && ctx.commercialCase && ctx.commercialCase.coolingOffEndsAt) coolEnd = ctx.commercialCase.coolingOffEndsAt;
+    function gkCoolDays() {
+      if (!coolEnd) return null;
+      var d = Math.ceil((new Date(coolEnd).getTime() - Date.now()) / 86400000);
+      return isNaN(d) ? null : d;
+    }
+
     // Kundresa
     if (A2(ctx.steps).length) {
       var pct = ctx.cur ? Math.round((ctx.cur / ctx.total) * 100) : 0;
@@ -399,6 +416,15 @@
                 ? 'gk-steg-nu'
                 : 'gk-steg-sen';
           var mk = s.state === 'done' ? '✓' : s.state === 'active' ? s.id || '!' : s.id || '';
+          var extra = s.state === 'active' ? ' <span class="gk-hl gk-tag gk-tag-warn">Pågår</span>' : '';
+          // Steg 6: betänketid-status ur cooling-signaler
+          if (/bet[äa]nketid/i.test(String(s.label || ''))) {
+            if (coolingPassed) extra += ' <span class="gk-hl gk-tag gk-tag-ok">passerad — kan signera</span>';
+            else if (coolingActive) {
+              var cd = gkCoolDays();
+              extra += ' <span class="gk-hl gk-tag gk-tag-warn">pågår' + (cd != null && cd > 0 ? ' · ' + cd + ' d kvar' : '') + '</span>';
+            }
+          }
           return (
             '<div class="gk-steg-rad"><span class="gk-steg-ikon ' +
             cls +
@@ -406,15 +432,28 @@
             esc(mk) +
             '</span> ' +
             esc(s.label) +
-            (s.state === 'active' ? ' <span class="gk-hl gk-tag gk-tag-warn">Pågår</span>' : '') +
+            extra +
             '</div>'
           );
         })
         .join('');
+      // Redo-för-operation-rad (composite)
+      var readyRow = '';
+      if (readyForOp) {
+        readyRow = '<div class="gk-redo gk-redo-ok"><span class="gk-redo-ic">✓</span><b>Redo för operation</b></div>';
+      } else if (gkBlockers.length) {
+        var miss = gkBlockers
+          .map(function (s) { return (typeof signalSub === 'function' ? signalSub(s) : '') || s.what || s.label || ''; })
+          .filter(Boolean);
+        readyRow = '<div class="gk-redo gk-redo-block"><span class="gk-redo-ic">!</span><b>Inte redo för operation</b>' +
+          (miss.length ? '<div class="gk-sub gk-redo-miss">Fattas: ' + esc(miss.join(' · ')) + '</div>' : '') +
+          '</div>';
+      }
       body += sek(
         'Kundresa · ' + ctx.total + ' steg',
         ctx.cur ? '<span class="gk-pill gk-pill-steg">Steg ' + esc(ctx.cur) + '</span>' : '',
-        '<div class="gk-resa-bar"><div class="gk-resa-fill" style="width:' +
+        readyRow +
+          '<div class="gk-resa-bar"><div class="gk-resa-fill" style="width:' +
           pct +
           '%"></div></div>' +
           stegRows
@@ -946,7 +985,8 @@
     })();
     body += sek(
       'Foto',
-      imgs.length ? '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>' : '',
+      (imgs.length ? '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>' : '') +
+        (photoReview ? ' <span class="gk-pill gk-tag-warn">Foton att granska</span>' : ''),
       fotoBody,
       'Inga foton ännu.'
     );

@@ -3432,3 +3432,13 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 #kk-storvy .gk-tabild-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 #kk-storvy .gk-tabild-hint { color: #8a8174; }
 #kk-storvy .gk-tabild .gk-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Kundresa: Redo-för-operation-rad (lager 34) ── */
+#kk-storvy .gk-redo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border-radius: 12px; margin-bottom: 10px; font-size: 12px; }
+#kk-storvy .gk-redo b { font-size: 12.5px; }
+#kk-storvy .gk-redo-ic { width: 18px; height: 18px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0; }
+#kk-storvy .gk-redo-ok { background: rgba(74, 130, 104, 0.12); color: #4a8268; }
+#kk-storvy .gk-redo-ok .gk-redo-ic { background: #4a8268; }
+#kk-storvy .gk-redo-block { background: rgba(200, 130, 30, 0.12); color: #c8821e; }
+#kk-storvy .gk-redo-block .gk-redo-ic { background: #c8821e; }
+#kk-storvy .gk-redo-miss { flex-basis: 100%; color: #8a7a5a; font-weight: 400; margin-top: 2px; line-height: 1.4; }
