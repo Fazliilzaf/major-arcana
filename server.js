@@ -11582,6 +11582,7 @@ process.once('SIGTERM', () => {
         queueLockTtlMs: config.gatewayQueueLockTtlMs,
         queueAcquireTimeoutMs: config.gatewayQueueAcquireTimeoutMs,
         queuePollIntervalMs: config.gatewayQueuePollIntervalMs,
+        executionTimeoutMs: config.gatewayExecutionTimeoutMs,
       })
     : null;
 
@@ -12427,10 +12428,7 @@ process.once('SIGTERM', () => {
     } catch (e) {
       /* tracking-fel får aldrig påverka svaret */
     }
-    const gif = Buffer.from(
-      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-      'base64'
-    );
+    const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
     res.set('Content-Type', 'image/gif');
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');

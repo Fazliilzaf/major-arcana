@@ -16,6 +16,17 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, safeMs));
 }
 
+function normalizeMode(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+function createGatewayTimeoutError() {
+  const error = new Error('gateway_execution_timeout');
+  error.code = 'gateway_execution_timeout';
+  error.nonRetryable = true;
+  return error;
+}
+
 const RELEASE_LOCK_LUA = `
 if redis.call('GET', KEYS[1]) == ARGV[1] then
   return redis.call('DEL', KEYS[1])
@@ -30,9 +41,14 @@ function createRedisExecutionRuntimeBackend({
   queueLockTtlMs = 30000,
   queueAcquireTimeoutMs = 10000,
   queuePollIntervalMs = 80,
+  executionTimeoutMs = process.env.GATEWAY_EXECUTION_TIMEOUT_MS,
   idempotencyTtlMs = 10 * 60 * 1000,
 } = {}) {
-  if (!redisClient || typeof redisClient.set !== 'function' || typeof redisClient.get !== 'function') {
+  if (
+    !redisClient ||
+    typeof redisClient.set !== 'function' ||
+    typeof redisClient.get !== 'function'
+  ) {
     throw new Error('createRedisExecutionRuntimeBackend kräver en redisClient.');
   }
 
@@ -40,7 +56,17 @@ function createRedisExecutionRuntimeBackend({
   const safeLockTtlMs = clampNumber(queueLockTtlMs, 30000, 5000, 5 * 60 * 1000);
   const safeAcquireTimeoutMs = clampNumber(queueAcquireTimeoutMs, 10000, 500, 60 * 1000);
   const safePollIntervalMs = clampNumber(queuePollIntervalMs, 80, 20, 1000);
-  const safeIdempotencyTtlMs = clampNumber(idempotencyTtlMs, 10 * 60 * 1000, 1000, 24 * 60 * 60 * 1000);
+  const configuredExecutionTimeoutMs = clampNumber(executionTimeoutMs, 15000, 100, 5 * 60 * 1000);
+  const safeExecutionTimeoutMs = Math.max(
+    100,
+    Math.min(configuredExecutionTimeoutMs, safeLockTtlMs - 1)
+  );
+  const safeIdempotencyTtlMs = clampNumber(
+    idempotencyTtlMs,
+    10 * 60 * 1000,
+    1000,
+    24 * 60 * 60 * 1000
+  );
 
   const stats = {
     backend: 'redis',
@@ -51,6 +77,8 @@ function createRedisExecutionRuntimeBackend({
       waits: 0,
       lockTimeouts: 0,
       lockErrors: 0,
+      executionTimeoutMs: safeExecutionTimeoutMs,
+      executionTimeouts: 0,
     },
     idempotency: {
       ttlMs: safeIdempotencyTtlMs,
@@ -61,9 +89,54 @@ function createRedisExecutionRuntimeBackend({
     },
   };
 
-  async function runSerialized({ tenantId = '', task }) {
+  async function runTaskWithExecutionTimeout(task, { tenantId, correlationId }) {
+    const controller = new AbortController();
+    let timeoutId = null;
+    let didTimeout = false;
+    const taskPromise = Promise.resolve().then(() => task({ signal: controller.signal }));
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        didTimeout = true;
+        const error = createGatewayTimeoutError();
+        controller.abort(error);
+        reject(error);
+      }, safeExecutionTimeoutMs);
+    });
+
+    try {
+      return await Promise.race([taskPromise, timeoutPromise]);
+    } catch (error) {
+      if (error?.code === 'gateway_execution_timeout') {
+        stats.queue.executionTimeouts += 1;
+        logger?.warn?.('[gateway:redis] execution_timeout', {
+          tenantId,
+          correlationId: correlationId || null,
+          executionTimeoutMs: safeExecutionTimeoutMs,
+        });
+      }
+      throw error;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (didTimeout) {
+        taskPromise.catch((error) => {
+          logger?.warn?.('[gateway:redis] task settled after execution_timeout', {
+            tenantId,
+            correlationId: correlationId || null,
+            error: error?.message || String(error),
+          });
+        });
+      }
+    }
+  }
+
+  async function runSerialized({ tenantId = '', mode = '', correlationId = '', task }) {
     const normalizedTenantId = normalizeText(tenantId);
+    const normalizedMode = normalizeMode(mode);
+    const normalizedCorrelationId = normalizeText(correlationId);
     if (!normalizedTenantId || typeof task !== 'function') {
+      return task();
+    }
+    if (normalizedMode === 'plan') {
       return task();
     }
 
@@ -92,11 +165,19 @@ function createRedisExecutionRuntimeBackend({
 
     if (!acquired) {
       stats.queue.lockTimeouts += 1;
+      logger?.warn?.('[gateway:redis] queue lock timeout', {
+        tenantId: normalizedTenantId,
+        correlationId: normalizedCorrelationId || null,
+        acquireTimeoutMs: safeAcquireTimeoutMs,
+      });
       throw new Error('gateway_tenant_queue_lock_timeout');
     }
 
     try {
-      return await task();
+      return await runTaskWithExecutionTimeout(task, {
+        tenantId: normalizedTenantId,
+        correlationId: normalizedCorrelationId,
+      });
     } finally {
       try {
         await redisClient.eval(RELEASE_LOCK_LUA, {

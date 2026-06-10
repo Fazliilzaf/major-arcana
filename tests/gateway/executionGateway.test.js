@@ -50,7 +50,14 @@ test('ExecutionGateway enforces immutable pipeline order', async () => {
   });
 
   assert.equal(result.decision, 'allow');
-  assert.deepEqual(steps, ['inputRisk', 'agentRun', 'outputRisk', 'policyFloor', 'persist', 'response']);
+  assert.deepEqual(steps, [
+    'inputRisk',
+    'agentRun',
+    'outputRisk',
+    'policyFloor',
+    'persist',
+    'response',
+  ]);
   assert.deepEqual(audits, [
     'gateway.run.start',
     'gateway.run.decision',
@@ -146,6 +153,83 @@ test('ExecutionGateway serializes concurrent runs per tenant', async () => {
     'start:second_run',
     'end:second_run',
   ]);
+});
+
+test('ExecutionGateway forwards mode correlation and backend AbortSignal to runtime backend', async () => {
+  const runSerializedCalls = [];
+  const controller = new AbortController();
+  const runtimeBackend = {
+    async runSerialized(payload) {
+      runSerializedCalls.push(payload);
+      return payload.task({ signal: controller.signal });
+    },
+  };
+  const gateway = createExecutionGateway({
+    buildVersion: 'test-build',
+    runtimeBackend,
+  });
+  let agentSignal = null;
+
+  const result = await gateway.run({
+    context: {
+      tenant_id: 'tenant-a',
+      channel: 'admin',
+      intent: 'orchestrator.admin_run',
+      mode: 'plan',
+      payload: { instruction: 'hej', mode: 'plan' },
+      correlation_id: 'corr-mode-plan',
+    },
+    handlers: {
+      inputRisk: async () => ({ decision: 'allow', riskLevel: 1, riskScore: 1 }),
+      agentRun: async ({ signal }) => {
+        agentSignal = signal;
+        return { text: 'safe output' };
+      },
+      outputRisk: async () => ({ decision: 'allow', riskLevel: 1, riskScore: 1 }),
+      policyFloor: async () => ({ blocked: false, maxFloor: 1, hits: [] }),
+    },
+  });
+
+  assert.equal(result.decision, 'allow');
+  assert.equal(runSerializedCalls.length, 1);
+  assert.equal(runSerializedCalls[0].mode, 'plan');
+  assert.equal(runSerializedCalls[0].correlationId, 'corr-mode-plan');
+  assert.equal(agentSignal, controller.signal);
+});
+
+test('ExecutionGateway maps backend execution timeout fail-closed', async () => {
+  const runtimeBackend = {
+    async runSerialized() {
+      const error = new Error('gateway_execution_timeout');
+      error.code = 'gateway_execution_timeout';
+      throw error;
+    },
+  };
+  const gateway = createExecutionGateway({
+    buildVersion: 'test-build',
+    runtimeBackend,
+  });
+
+  const result = await gateway.run({
+    context: {
+      tenant_id: 'tenant-a',
+      channel: 'admin',
+      intent: 'orchestrator.admin_run',
+      mode: 'execute',
+      payload: { instruction: 'hej', mode: 'execute' },
+      correlation_id: 'corr-timeout',
+    },
+    handlers: {
+      inputRisk: async () => ({ decision: 'allow', riskLevel: 1, riskScore: 1 }),
+      agentRun: async () => ({ text: 'should not run' }),
+      outputRisk: async () => ({ decision: 'allow', riskLevel: 1, riskScore: 1 }),
+      policyFloor: async () => ({ blocked: false, maxFloor: 1, hits: [] }),
+    },
+  });
+
+  assert.equal(result.decision, 'blocked');
+  assert.equal(result.error_code, 'gateway_execution_timeout');
+  assert.deepEqual(result.policy_summary.reason_codes, ['GATEWAY_EXECUTION_TIMEOUT']);
 });
 
 test('ExecutionGateway replays idempotent result for duplicate key', async () => {
@@ -301,9 +385,7 @@ test('ExecutionGateway can use distributed runtime backend for idempotency repla
       return task();
     },
     async getResolvedIdempotency({ tenantId, idempotencyKey }) {
-      return (
-        distributedResolved.get(`${tenantId}:${idempotencyKey}`) || null
-      );
+      return distributedResolved.get(`${tenantId}:${idempotencyKey}`) || null;
     },
     async setResolvedIdempotency({ tenantId, idempotencyKey, result }) {
       distributedResolved.set(`${tenantId}:${idempotencyKey}`, result);

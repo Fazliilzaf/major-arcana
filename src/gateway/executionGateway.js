@@ -91,15 +91,22 @@ function defaultVersions(buildVersion) {
   };
 }
 
-function deriveRiskVersions({ inputEvaluation = null, outputEvaluation = null, buildVersion = 'dev' } = {}) {
+function deriveRiskVersions({
+  inputEvaluation = null,
+  outputEvaluation = null,
+  buildVersion = 'dev',
+} = {}) {
   const inputVersions =
     inputEvaluation && typeof inputEvaluation.versions === 'object' ? inputEvaluation.versions : {};
   const outputVersions =
-    outputEvaluation && typeof outputEvaluation.versions === 'object' ? outputEvaluation.versions : {};
+    outputEvaluation && typeof outputEvaluation.versions === 'object'
+      ? outputEvaluation.versions
+      : {};
   const defaults = defaultVersions(buildVersion);
   return {
     ruleSet: outputVersions.ruleSetVersion || inputVersions.ruleSetVersion || defaults.ruleSet,
-    threshold: outputVersions.thresholdVersion || inputVersions.thresholdVersion || defaults.threshold,
+    threshold:
+      outputVersions.thresholdVersion || inputVersions.thresholdVersion || defaults.threshold,
     model:
       outputVersions.semanticModelVersion || inputVersions.semanticModelVersion || defaults.model,
     fusion: outputVersions.fusionVersion || inputVersions.fusionVersion || defaults.fusion,
@@ -113,6 +120,14 @@ function extractContextTenantId(context = {}) {
 
 function extractContextIdempotencyKey(context = {}) {
   return normalizeText(context?.idempotency_key || context?.idempotencyKey);
+}
+
+function extractContextMode(context = {}) {
+  return normalizeText(context?.mode || context?.payload?.mode).toLowerCase();
+}
+
+function extractContextCorrelationId(context = {}) {
+  return normalizeText(context?.correlation_id || context?.correlationId);
 }
 
 function cloneResult(value) {
@@ -148,11 +163,22 @@ function createExecutionGateway({
   const tenantQueueTails = new Map();
   const idempotencyRegistry = new Map();
   const deadLetters = [];
-  const backend =
-    runtimeBackend && typeof runtimeBackend === 'object' ? runtimeBackend : null;
+  const backend = runtimeBackend && typeof runtimeBackend === 'object' ? runtimeBackend : null;
   const maxRetries = Math.max(1, Number.parseInt(String(agentRetryMaxAttempts), 10) || 1);
   const baseRetryDelayMs = Math.max(0, Number(agentRetryBaseDelayMs || 0));
   const retryFactor = Math.max(1, Number(agentRetryBackoffFactor || 1));
+
+  function classifyHardFail(error) {
+    const message = normalizeText(error?.message || 'gateway_failed');
+    const code =
+      normalizeText(error?.code) ||
+      (message === 'gateway_execution_timeout' ? 'gateway_execution_timeout' : null);
+    const reasonCode =
+      code === 'gateway_execution_timeout'
+        ? 'GATEWAY_EXECUTION_TIMEOUT'
+        : 'GATEWAY_EXECUTION_ERROR';
+    return { message, code, reasonCode };
+  }
 
   async function pushDeadLetter({
     stage,
@@ -171,7 +197,8 @@ function createExecutionGateway({
       runId: normalizeText(runId) || null,
       tenantId: tenantId || null,
       channel: normalizeText(context?.channel) || null,
-      intent: normalizeText(context?.intent || context?.request_type || context?.requestType) || null,
+      intent:
+        normalizeText(context?.intent || context?.request_type || context?.requestType) || null,
       correlationId,
       idempotencyKey: extractContextIdempotencyKey(context) || null,
       stage: normalizeText(stage) || 'unknown',
@@ -222,6 +249,89 @@ function createExecutionGateway({
     return { ok: false, error: lastError, attempts };
   }
 
+  async function buildRuntimeFailureResult({ context = {}, handlers = {}, error }) {
+    if (error?.code === 'VERSION_CONFLICT') {
+      throw error;
+    }
+    const runId = crypto.randomUUID();
+    const startedAt = nowIso();
+    const audit = typeof handlers.audit === 'function' ? handlers.audit : async () => {};
+    const safeResponseBuilder =
+      typeof handlers.safeResponse === 'function'
+        ? handlers.safeResponse
+        : ({ context: ingressContext, decision }) => ({
+            message: safeFallbackMessage({ channel: ingressContext.channel }),
+            decision,
+          });
+    const hardFail = classifyHardFail(error);
+    const correlationId = extractContextCorrelationId(context) || null;
+
+    await pushDeadLetter({
+      stage: 'runtime',
+      context,
+      runId,
+      errorMessage: hardFail.message,
+      attempts: 1,
+      reasonCode: hardFail.reasonCode,
+    });
+    await audit({
+      action: 'gateway.run.decision',
+      outcome: 'blocked',
+      metadata: {
+        runId,
+        decision: 'blocked',
+        errorStage: 'runtime',
+        errorMessage: hardFail.message,
+        errorCode: hardFail.code,
+        correlationId,
+      },
+    });
+    await audit({
+      action: 'gateway.run.response',
+      outcome: 'blocked',
+      metadata: {
+        runId,
+        decision: 'blocked',
+        errorStage: 'runtime',
+        correlationId,
+      },
+    });
+
+    return {
+      decision: 'blocked',
+      run_id: runId,
+      risk_summary: {
+        input: null,
+        output: null,
+        versions: defaultVersions(buildVersion),
+      },
+      policy_summary: {
+        blocked: true,
+        reason_codes: [hardFail.reasonCode],
+      },
+      artifact_refs: null,
+      audit_refs: {
+        correlation_id: correlationId,
+      },
+      safe_response: safeResponseBuilder({
+        context: {
+          channel: normalizeText(context?.channel) || 'ops',
+        },
+        runId,
+        decision: 'blocked',
+        errorStage: 'runtime',
+        errorMessage: hardFail.message,
+        errorCode: hardFail.code,
+      }),
+      response_payload: null,
+      started_at: startedAt,
+      completed_at: nowIso(),
+      error_stage: 'runtime',
+      error_message: hardFail.message,
+      error_code: hardFail.code,
+    };
+  }
+
   function cleanupIdempotencyRegistry() {
     const now = Date.now();
     for (const [key, entry] of idempotencyRegistry.entries()) {
@@ -240,13 +350,19 @@ function createExecutionGateway({
     }
   }
 
-  async function enqueueTenantRun(tenantId, task) {
+  async function enqueueTenantRun(tenantId, task, { mode = '', correlationId = '' } = {}) {
     const normalizedTenantId = normalizeText(tenantId);
+    const normalizedMode = normalizeText(mode).toLowerCase();
     if (backend && typeof backend.runSerialized === 'function') {
       return backend.runSerialized({
         tenantId: normalizedTenantId,
+        mode: normalizedMode,
+        correlationId,
         task,
       });
+    }
+    if (normalizedMode === 'plan') {
+      return task();
     }
     if (!enableTenantQueue || !normalizedTenantId) {
       return task();
@@ -268,7 +384,7 @@ function createExecutionGateway({
     });
   }
 
-  async function executeRun({ context = {}, handlers = {} } = {}) {
+  async function executeRun({ context = {}, handlers = {}, signal = null } = {}) {
     const runId = crypto.randomUUID();
     const startedAt = nowIso();
     const audit = typeof handlers.audit === 'function' ? handlers.audit : async () => {};
@@ -318,6 +434,7 @@ function createExecutionGateway({
         const inputEvaluation = await handlers.inputRisk?.({
           context: ingressContext,
           runId,
+          signal,
         });
         inputRisk = inputRiskGate({ evaluation: inputEvaluation });
       } catch (error) {
@@ -341,6 +458,7 @@ function createExecutionGateway({
               context: ingressContext,
               runId,
               inputRisk,
+              signal,
             }),
           { maxAttempts: maxRetries }
         );
@@ -369,6 +487,7 @@ function createExecutionGateway({
             runId,
             inputRisk,
             agentResult,
+            signal,
           });
           outputRisk = outputRiskGate({ evaluation: outputEvaluation });
         } catch (error) {
@@ -394,6 +513,7 @@ function createExecutionGateway({
             inputRisk,
             outputRisk,
             agentResult,
+            signal,
           });
           policy = policyFloorGate({ evaluation: policyEvaluation });
         } catch (error) {
@@ -427,6 +547,7 @@ function createExecutionGateway({
               outputRisk,
               policy,
               agentResult,
+              signal,
             }),
           { maxAttempts: Math.max(1, Math.min(2, maxRetries)) }
         );
@@ -494,11 +615,38 @@ function createExecutionGateway({
 
       const gatelineTimeline = [
         { gate: 'ingress', status: ingressContext ? 'passed' : 'failed', durationMs: null },
-        { gate: 'inputRisk', status: inputRisk?.decision === 'blocked' ? 'blocked' : inputRisk ? 'passed' : 'skipped', score: inputRisk?.evaluation?.riskScore ?? null, decision: inputRisk?.decision || null, policyRefs: [] },
-        { gate: 'agentRun', status: agentResult ? 'passed' : errorStage === 'agentRun' ? 'failed' : 'skipped', attempts: stageAttempts.agentRun, fallbackUsed: false },
-        { gate: 'outputRisk', status: outputRisk?.decision === 'blocked' ? 'blocked' : outputRisk ? 'passed' : 'skipped', score: outputRisk?.evaluation?.riskScore ?? null, decision: outputRisk?.decision || null, policyRefs: [] },
-        { gate: 'policyFloor', status: policy?.blocked ? 'blocked' : policy ? 'passed' : 'skipped', reasonCodes: Array.isArray(policy?.reasonCodes) ? policy.reasonCodes : [], fallbackUsed: Boolean(policy?.blocked) },
-        { gate: 'persist', status: persisted ? 'passed' : stageAttempts.persist > 1 ? 'failed' : 'skipped', attempts: stageAttempts.persist },
+        {
+          gate: 'inputRisk',
+          status: inputRisk?.decision === 'blocked' ? 'blocked' : inputRisk ? 'passed' : 'skipped',
+          score: inputRisk?.evaluation?.riskScore ?? null,
+          decision: inputRisk?.decision || null,
+          policyRefs: [],
+        },
+        {
+          gate: 'agentRun',
+          status: agentResult ? 'passed' : errorStage === 'agentRun' ? 'failed' : 'skipped',
+          attempts: stageAttempts.agentRun,
+          fallbackUsed: false,
+        },
+        {
+          gate: 'outputRisk',
+          status:
+            outputRisk?.decision === 'blocked' ? 'blocked' : outputRisk ? 'passed' : 'skipped',
+          score: outputRisk?.evaluation?.riskScore ?? null,
+          decision: outputRisk?.decision || null,
+          policyRefs: [],
+        },
+        {
+          gate: 'policyFloor',
+          status: policy?.blocked ? 'blocked' : policy ? 'passed' : 'skipped',
+          reasonCodes: Array.isArray(policy?.reasonCodes) ? policy.reasonCodes : [],
+          fallbackUsed: Boolean(policy?.blocked),
+        },
+        {
+          gate: 'persist',
+          status: persisted ? 'passed' : stageAttempts.persist > 1 ? 'failed' : 'skipped',
+          attempts: stageAttempts.persist,
+        },
         { gate: 'audit', status: 'passed' },
       ];
 
@@ -507,7 +655,9 @@ function createExecutionGateway({
         try {
           const str = typeof obj === 'string' ? obj : JSON.stringify(obj);
           return Math.ceil(str.length / 4);
-        } catch (_e) { return 0; }
+        } catch (_e) {
+          return 0;
+        }
       };
       const tokenUsage = {
         inputTokens: estimateTokens(ingressContext?.payload),
@@ -546,6 +696,7 @@ function createExecutionGateway({
               errorCode,
               errorStatus,
               retryAfterSeconds,
+              signal,
             })
           : null;
 
@@ -578,6 +729,7 @@ function createExecutionGateway({
                 agentResult,
                 persisted,
                 safeResponse,
+                signal,
               })
             : null,
       };
@@ -599,14 +751,14 @@ function createExecutionGateway({
       if (error?.code === 'VERSION_CONFLICT') {
         throw error;
       }
-      const hardFailMessage = normalizeText(error?.message || 'gateway_failed');
+      const hardFail = classifyHardFail(error);
       await pushDeadLetter({
         stage: errorStage || 'ingress',
         context,
         runId,
-        errorMessage: hardFailMessage,
+        errorMessage: hardFail.message,
         attempts: 1,
-        reasonCode: 'GATEWAY_EXECUTION_ERROR',
+        reasonCode: hardFail.reasonCode,
       });
       await audit({
         action: 'gateway.run.decision',
@@ -615,7 +767,8 @@ function createExecutionGateway({
           runId,
           decision: 'blocked',
           errorStage: errorStage || 'ingress',
-          errorMessage: hardFailMessage,
+          errorMessage: hardFail.message,
+          errorCode: hardFail.code,
           correlationId: normalizeText(context?.correlation_id || context?.correlationId) || null,
         },
       });
@@ -639,7 +792,7 @@ function createExecutionGateway({
         },
         policy_summary: {
           blocked: true,
-          reason_codes: ['GATEWAY_EXECUTION_ERROR'],
+          reason_codes: [hardFail.reasonCode],
         },
         artifact_refs: null,
         audit_refs: {
@@ -652,11 +805,15 @@ function createExecutionGateway({
           runId,
           decision: 'blocked',
           errorStage: errorStage || 'ingress',
-          errorMessage: hardFailMessage,
+          errorMessage: hardFail.message,
+          errorCode: hardFail.code,
         }),
         response_payload: null,
         started_at: startedAt,
         completed_at: nowIso(),
+        error_stage: errorStage || 'ingress',
+        error_message: hardFail.message,
+        error_code: hardFail.code,
       };
     }
   }
@@ -672,9 +829,13 @@ function createExecutionGateway({
 
   function getRuntimeStats() {
     const idempotencyEntries = Array.from(idempotencyRegistry.values());
-    const pendingIdempotency = idempotencyEntries.filter((entry) => entry?.state === 'pending').length;
+    const pendingIdempotency = idempotencyEntries.filter(
+      (entry) => entry?.state === 'pending'
+    ).length;
     const backendStats =
-      backend && typeof backend.getStats === 'function' ? backend.getStats() : { backend: 'memory' };
+      backend && typeof backend.getStats === 'function'
+        ? backend.getStats()
+        : { backend: 'memory' };
     const queueBackendMode =
       backend && typeof backend.runSerialized === 'function' ? 'distributed' : 'memory';
     const idempotencyBackendMode =
@@ -684,7 +845,8 @@ function createExecutionGateway({
         ? 'distributed'
         : 'memory';
     return {
-      mode: backendStats?.backend || (queueBackendMode === 'distributed' ? 'distributed' : 'memory'),
+      mode:
+        backendStats?.backend || (queueBackendMode === 'distributed' ? 'distributed' : 'memory'),
       queue: {
         enabled: Boolean(enableTenantQueue),
         activeTenants: tenantQueueTails.size,
@@ -713,11 +875,17 @@ function createExecutionGateway({
   async function run({ context = {}, handlers = {} } = {}) {
     const tenantId = extractContextTenantId(context);
     const idempotencyKey = extractContextIdempotencyKey(context);
+    const mode = extractContextMode(context);
+    const correlationId = extractContextCorrelationId(context);
 
-    const execute = () => enqueueTenantRun(tenantId, () => executeRun({ context, handlers }));
+    const execute = () =>
+      enqueueTenantRun(tenantId, ({ signal } = {}) => executeRun({ context, handlers, signal }), {
+        mode,
+        correlationId,
+      });
 
     if (!tenantId || !idempotencyKey) {
-      return execute();
+      return execute().catch((error) => buildRuntimeFailureResult({ context, handlers, error }));
     }
 
     cleanupIdempotencyRegistry();
@@ -791,7 +959,7 @@ function createExecutionGateway({
       })
       .catch((error) => {
         idempotencyRegistry.delete(compositeKey);
-        throw error;
+        return buildRuntimeFailureResult({ context, handlers, error });
       });
 
     idempotencyRegistry.set(compositeKey, {

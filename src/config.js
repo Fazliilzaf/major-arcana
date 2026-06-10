@@ -794,6 +794,7 @@ const config = {
   gatewayQueueLockTtlMs: asInt(process.env.ARCANA_GATEWAY_QUEUE_LOCK_TTL_MS, 30000),
   gatewayQueueAcquireTimeoutMs: asInt(process.env.ARCANA_GATEWAY_QUEUE_ACQUIRE_TIMEOUT_MS, 10000),
   gatewayQueuePollIntervalMs: asInt(process.env.ARCANA_GATEWAY_QUEUE_POLL_INTERVAL_MS, 80),
+  gatewayExecutionTimeoutMs: asInt(process.env.GATEWAY_EXECUTION_TIMEOUT_MS, 15000),
   apiRateLimitWindowSec: asInt(process.env.ARCANA_API_RATE_LIMIT_WINDOW_SEC, 60),
   apiRateLimitReadMax: asInt(process.env.ARCANA_API_RATE_LIMIT_READ_MAX, 300),
   apiRateLimitWriteMax: asInt(process.env.ARCANA_API_RATE_LIMIT_WRITE_MAX, 120),

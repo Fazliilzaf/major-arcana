@@ -1,7 +1,11 @@
 const express = require('express');
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
-const { getPolicyFloorDefinition, evaluatePolicyFloorText, POLICY_CONTEXT } = require('../policy/floor');
+const {
+  getPolicyFloorDefinition,
+  evaluatePolicyFloorText,
+  POLICY_CONTEXT,
+} = require('../policy/floor');
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { createExecutionGateway } = require('../gateway/executionGateway');
 const { getRuntimeProfile } = require('../agents/runtimeRegistry');
@@ -23,8 +27,7 @@ async function getTenantRuntimeConfig(tenantConfigStore, tenantId) {
   return {
     tenantConfig,
     riskSensitivityModifier: Number(tenantConfig?.riskSensitivityModifier ?? 0) || 0,
-    riskThresholdVersion:
-      Number.parseInt(String(tenantConfig?.riskThresholdVersion ?? 1), 10) || 1,
+    riskThresholdVersion: Number.parseInt(String(tenantConfig?.riskThresholdVersion ?? 1), 10) || 1,
   };
 }
 
@@ -96,10 +99,7 @@ function createOrchestratorRouter({
         if (!prompt) {
           return res.status(400).json({ error: 'prompt krävs.' });
         }
-        const mode =
-          normalizeText(req.query?.mode) ||
-          normalizeText(req.body?.mode) ||
-          'plan';
+        const mode = normalizeText(req.query?.mode) || normalizeText(req.body?.mode) || 'plan';
 
         const correlationId =
           normalizeText(req.correlationId) || normalizeText(req.get('x-correlation-id')) || null;
@@ -108,10 +108,7 @@ function createOrchestratorRouter({
           normalizeText(req.body?.idempotencyKey) ||
           null;
 
-        const tenantRuntime = await getTenantRuntimeConfig(
-          tenantConfigStore,
-          req.auth.tenantId
-        );
+        const tenantRuntime = await getTenantRuntimeConfig(tenantConfigStore, req.auth.tenantId);
 
         const gatewayResult = await gateway.run({
           context: {
@@ -125,7 +122,9 @@ function createOrchestratorRouter({
             payload: {
               prompt,
               runtimeId: adminRuntime.id,
+              mode,
             },
+            mode,
             correlation_id: correlationId,
             idempotency_key: idempotencyKey,
           },
@@ -149,7 +148,7 @@ function createOrchestratorRouter({
                 tenantRiskModifier: tenantRuntime.riskSensitivityModifier,
                 riskThresholdVersion: tenantRuntime.riskThresholdVersion,
               }),
-            agentRun: async () => {
+            agentRun: async ({ signal } = {}) => {
               const actor = {
                 id: req.auth.userId,
                 role: req.auth.role,
@@ -159,9 +158,14 @@ function createOrchestratorRouter({
               let runAgent = null;
 
               if (capabilityExecutor) {
-                const { hydrateCaoSystemSnapshot, hydrateCmoSystemSnapshot } = require('./capabilities');
+                const {
+                  hydrateCaoSystemSnapshot,
+                  hydrateCmoSystemSnapshot,
+                } = require('./capabilities');
                 const { buildCaoReadinessSnapshot } = require('../ops/readinessEvaluator');
-                const { buildOrchestrationSnapshotFromHydration } = require('../ops/cmoOrchestrationGate');
+                const {
+                  buildOrchestrationSnapshotFromHydration,
+                } = require('../ops/cmoOrchestrationGate');
 
                 hydrateSnapshot = async (agentName, intent, prompt) => {
                   const normalizedAgent = normalizeText(agentName).toUpperCase();
@@ -211,6 +215,7 @@ function createOrchestratorRouter({
                       systemStateSnapshot: payload.systemStateSnapshot,
                       correlationId: payload.correlationId,
                       idempotencyKey: null,
+                      signal,
                       requestMetadata: { source: 'orchestrator.admin_run.execute' },
                     });
                 }
@@ -226,6 +231,7 @@ function createOrchestratorRouter({
                       systemStateSnapshot: payload.systemStateSnapshot,
                       correlationId: payload.correlationId,
                       idempotencyKey: null,
+                      signal,
                       requestMetadata: { source: 'orchestrator.admin_run.execute' },
                     });
                 }
@@ -274,14 +280,20 @@ function createOrchestratorRouter({
                 context: 'orchestrator',
               });
             },
-            safeResponse: () => ({
-              error:
-                'Orchestrator-svaret blockerades av risk/policy. Granska ärendet i riskpanelen innan nytt försök.',
-              runtime: {
-                id: adminRuntime.id,
-                domain: adminRuntime.domain,
-              },
-            }),
+            safeResponse: ({ errorCode } = {}) => {
+              const normalizedErrorCode = normalizeText(errorCode);
+              return {
+                error:
+                  normalizedErrorCode === 'gateway_execution_timeout'
+                    ? 'gateway_execution_timeout'
+                    : 'Orchestrator-svaret blockerades av risk/policy. Granska ärendet i riskpanelen innan nytt försök.',
+                ...(normalizedErrorCode ? { code: normalizedErrorCode } : {}),
+                runtime: {
+                  id: adminRuntime.id,
+                  domain: adminRuntime.domain,
+                },
+              };
+            },
             response: ({ agentResult }) => ({
               ...(agentResult?.result || {}),
               runtime: {
@@ -293,7 +305,10 @@ function createOrchestratorRouter({
           },
         });
 
-        if (gatewayResult.decision === 'blocked' || gatewayResult.decision === 'critical_escalate') {
+        if (
+          gatewayResult.decision === 'blocked' ||
+          gatewayResult.decision === 'critical_escalate'
+        ) {
           await authStore.addAuditEvent({
             tenantId: req.auth.tenantId,
             actorUserId: req.auth.userId,
