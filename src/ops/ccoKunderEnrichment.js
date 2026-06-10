@@ -623,6 +623,8 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     nextBookingResourceLabel: null,
     lastBookingAt: null,
     lastVisitAt: null,
+    lastVisitType: null,
+    lastVisitResourceLabel: null,
     lastEncounterAt: null,
     treatmentTypes: [],
     bookingCaseId: null,

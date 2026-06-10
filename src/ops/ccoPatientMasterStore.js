@@ -655,6 +655,8 @@ function buildPatientCardReadout(patient) {
     hasHealthDeclaration: Boolean(asObject(safe.healthDeclaration).signedAt),
     missingHealthDeclaration: !asObject(safe.healthDeclaration).signedAt,
     updatedAt: safe.updatedAt || null,
+    contactEmail: safe.primaryEmail || '',
+    contactPhone: safe.primaryPhone || '',
   };
 }
 
