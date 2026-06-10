@@ -131,6 +131,8 @@ function emptyBookingSignals() {
     nextBookingResourceLabel: null,
     lastBookingAt: null,
     lastVisitAt: null,
+    lastVisitType: null,
+    lastVisitResourceLabel: null,
     lastActivityAt: null,
     lastEncounterAt: null,
     noShowCount: 0,
@@ -470,6 +472,11 @@ function applyVisitSlot(sig, slot, bookingStatus, extra = {}) {
     if (!cur || (visit != null && visit > cur)) {
       sig.lastVisitAt = startsAt;
       sig.lastBookingAt = startsAt;
+      sig.lastVisitType =
+        serviceIdToTreatmentLabel(serviceId) ||
+        normalizeText(slot?.serviceLabel) ||
+        sig.lastVisitType;
+      sig.lastVisitResourceLabel = normalizeText(slot?.resourceLabel) || sig.lastVisitResourceLabel;
     }
     if (normalizeKey(bookingStatus) !== 'no_show') {
       sig.completedVisitCount += 1;
@@ -517,7 +524,15 @@ function buildBookingSignalsIndex({
       }
       if (isPastVisit(startsAt)) {
         const lv = parseMs(sig.lastVisitAt);
-        if (!lv || next > lv) sig.lastVisitAt = startsAt;
+        if (!lv || next > lv) {
+          sig.lastVisitAt = startsAt;
+          sig.lastVisitType =
+            encounterTypeToTreatmentLabel(enc.encounterType) ||
+            serviceIdToTreatmentLabel(enc.serviceId) ||
+            sig.lastVisitType;
+          sig.lastVisitResourceLabel =
+            normalizeText(enc.resourceLabel) || sig.lastVisitResourceLabel;
+        }
         sig.completedVisitCount += 1;
       }
       bumpActivityAt(sig, startsAt);
@@ -661,6 +676,10 @@ function applyBookingToReadout(readout, bookingSignals) {
   readout.nextBookingResourceLabel = sig.nextBookingResourceLabel;
   readout.lastBookingAt = sig.lastBookingAt;
   readout.lastVisitAt = sig.lastVisitAt || readout.lastVisitAt;
+  readout.lastVisitType = sig.lastVisitType || readout.lastVisitType || null;
+  readout.lastVisitResourceLabel =
+    sig.lastVisitResourceLabel || readout.lastVisitResourceLabel || null;
+  readout.lastBookingType = readout.lastVisitType || readout.lastBookingType || null;
   readout.lastActivityAt = sig.lastActivityAt;
   readout.lastEncounterAt = sig.lastEncounterAt;
   readout.noShowCount = sig.noShowCount;

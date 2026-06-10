@@ -3985,6 +3985,34 @@
     }
   }
 
+  function resolveV9LastVisitDisplay(card) {
+    const iso = card?.lastVisitAt || card?.lastBookingAt;
+    if (!iso) return { date: '—', subline: '' };
+    let type = normalizeText(card.lastVisitType || card.lastBookingType);
+    let by = normalizeText(card.lastVisitResourceLabel);
+    if (!type || !by) {
+      const visitMs = Date.parse(iso) || 0;
+      let best = null;
+      let bestDelta = Infinity;
+      for (const hb of asArray(card.historyBookings)) {
+        const hbMs = Date.parse(hb.startsAt) || 0;
+        if (!hbMs) continue;
+        const delta = Math.abs(hbMs - visitMs);
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          best = hb;
+        }
+      }
+      if (best && bestDelta <= 86400000) {
+        if (!type) type = normalizeText(best.serviceLabel || best.serviceName || best.title);
+        if (!by) by = normalizeText(best.resourceLabel);
+      }
+    }
+    if (!type) type = normalizeText(asArray(card.treatmentTypes)[0]);
+    const subline = [type, by].filter(Boolean).join(' · ');
+    return { date: formatV9ListDate(iso), subline };
+  }
+
   function formatV9ListDateTime(iso) {
     if (!iso) return '—';
     try {
@@ -5601,23 +5629,35 @@
               ? { n: 8, tone: 'teal' }
               : { n: 9, tone: 'ok' };
 
-    // FACIT 6-kol (cco-kunder-v9-egen): avatar · Kund(namn+sub) · Steg · Nästa steg · LTV · chevron.
-    // Helpers behålls (kontakt/status/senaste besök lever kvar i dossiern) — inga funktioner borttagna.
-    const contact = v9ContactLine(card); // behålls för dossier/återanvändning
-    const rowState = resolveV9RowState(card); // behålls
-    const lastVisit = card.lastVisitAt ? formatV9ListDate(card.lastVisitAt) : '—'; // behålls
+    // 8-kol: avatar · Kund · Steg · Nästa steg · LTV · Kontakt · Senast besök · chevron
+    const lastVisitDisplay = resolveV9LastVisitDisplay(card);
+    const contactEmail = card.contactEmail || card.primaryEmail || '';
+    const contactPhone = card.contactPhone || card.primaryPhone || '';
+    const contactHtml =
+      contactEmail || contactPhone
+        ? `<div class="cr-contact-email">${escapeHtml(contactEmail)}</div><div class="cr-contact-phone">${escapeHtml(contactPhone)}</div>`
+        : '—';
     // "Saknar formulär" tas bort här — dubblerar Nästa steg-pillen ("Formulär saknas före besök")
     const tags = buildV9RowBadges(card).filter((t) => t.label !== 'Saknar formulär');
     const cycle = v9TreatmentCycle(card);
     const tagBits =
       tags
-        .map((t) => `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`)
+        .map(
+          (t) => `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`
+        )
         .join('') +
       (cycle
         ? `<span class="cr-tag cr-tag--cycle">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
         : '');
     const nameTagsHtml = tagBits ? `<span class="cr-name-tags">${tagBits}</span>` : '';
-    const stegToneMap = { amber: 'warn', info: 'info', purple: 'legal', teal: 'teal', ok: 'ready', red: 'block' };
+    const stegToneMap = {
+      amber: 'warn',
+      info: 'info',
+      purple: 'legal',
+      teal: 'teal',
+      ok: 'ready',
+      red: 'block',
+    };
     const stegTone = stegToneMap[jStep.tone] || 'info';
     const signalTone = signal.tone || 'neutral';
 
@@ -5635,8 +5675,12 @@
             </div>
             <div><span class="cr-steg cr-steg--${escapeHtml(stegTone)}">Steg ${escapeHtml(String(jStep.n))}</span></div>
             <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
-            <div class="cr-status-tags">${nameTagsHtml}</div>
             <div><div class="cr-revenue">${escapeHtml(revenue.main)}</div>${revenue.potential ? `<div class="cr-meta-sub cr-revenue-pot">${escapeHtml(revenue.potential)} pot.</div>` : ''}</div>
+            <div class="cr-contact">${contactHtml}</div>
+            <div class="cr-last-visit">
+              <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
+              ${lastVisitDisplay.subline ? `<div class="cr-visit-type">${escapeHtml(lastVisitDisplay.subline)}</div>` : ''}
+            </div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
         `;
@@ -5649,8 +5693,9 @@
             <div>Kund</div>
             <div>Steg</div>
             <div>Nästa steg</div>
-            <div>Status</div>
             <div>LTV</div>
+            <div>Kontakt</div>
+            <div>Senast besök</div>
             <div></div>
           </div>
         `;
