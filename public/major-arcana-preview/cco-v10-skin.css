@@ -433,7 +433,7 @@ html[data-v9-enabled="on"] .customer-row-head.cr-v10-head,
 html[data-v9-enabled="on"] .customer-row.cr-v10 {
   display: grid;
   grid-template-columns:
-    44px minmax(0, 2fr) 104px minmax(0, 2.4fr) minmax(0, 1.1fr) 30px;
+    44px minmax(0, 1.7fr) minmax(0, 1.3fr) 92px minmax(0, 1fr) minmax(0, 1.9fr) minmax(0, 1.1fr) 30px;
   gap: 12px;
 }
 html[data-v9-enabled="on"] .customer-row-head.cr-v10-head {
@@ -3473,10 +3473,14 @@ html[data-v9-enabled="on"] .cr-v10 .cr-nextpill--info { color: #4a7ba8; backgrou
     grid-template-columns: 38px minmax(0, 1fr) auto 24px;
     gap: 8px;
   }
-  html[data-v9-enabled="on"] .cr-v10 > :nth-child(4),
+  html[data-v9-enabled="on"] .cr-v10 > :nth-child(3),
   html[data-v9-enabled="on"] .cr-v10 > :nth-child(5),
-  html[data-v9-enabled="on"] .cr-v10-head > :nth-child(4),
-  html[data-v9-enabled="on"] .cr-v10-head > :nth-child(5) { display: none; }
+  html[data-v9-enabled="on"] .cr-v10 > :nth-child(6),
+  html[data-v9-enabled="on"] .cr-v10 > :nth-child(7),
+  html[data-v9-enabled="on"] .cr-v10-head > :nth-child(3),
+  html[data-v9-enabled="on"] .cr-v10-head > :nth-child(5),
+  html[data-v9-enabled="on"] .cr-v10-head > :nth-child(6),
+  html[data-v9-enabled="on"] .cr-v10-head > :nth-child(7) { display: none; }
 }
 
 /* LTV potential-undertext (öppet affärsvärde) */
