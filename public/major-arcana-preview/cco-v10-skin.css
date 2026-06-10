@@ -3829,30 +3829,29 @@ html[data-v9-enabled="on"] .cr-v10 .cr-steg {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #fff;
   white-space: nowrap;
   box-shadow: none;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--warn {
-  background: #f0b87e;
-  color: #5d4a35;
+  background: #f0d4b8;
+  color: #a87a3a;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--info {
-  background: #8eb3d6;
-  color: #2c4a63;
+  background: #d9e8f0;
+  color: #5a7a9a;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--legal {
-  background: #d4a7e5;
-  color: #5a3d73;
+  background: #e8d9f0;
+  color: #7a5a8a;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--teal,
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--ready {
-  background: #8dcaa5;
-  color: #3a5a4a;
+  background: #d4e5d6;
+  color: #4a6b5a;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-steg--block {
-  background: #f0a8a8;
-  color: #6a3a3a;
+  background: #f0d0d0;
+  color: #8a4a4a;
 }
 
 html[data-v9-enabled="on"] .cr-v10 .cr-nextpill {
