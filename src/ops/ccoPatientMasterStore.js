@@ -209,10 +209,20 @@ function patientHasPhone(patient, phone) {
   return asArray(patient.phones).some((value) => phoneMatchKey(value) === target);
 }
 
+// Namn-nyckel för lågkonfidens-fallback. Kräver minst förnamn + efternamn så vi
+// inte kolliderar på ett enda vanligt namn. Endast använd som needs_review-förslag.
+function pipedriveNameKey(value) {
+  const text = normalizeText(value).toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  if (text.split(' ').length < 2) return '';
+  return text;
+}
+
 function buildPipedrivePatientLookup(patients) {
   const byPersonnummer = new Map();
   const byEmail = new Map();
   const byPhone = new Map();
+  const byName = new Map();
 
   patients.forEach((patient) => {
     const pnr = normalizePersonnummer(patient.personnummer);
@@ -231,12 +241,19 @@ function buildPipedrivePatientLookup(patients) {
       if (!byPhone.has(phone)) byPhone.set(phone, []);
       byPhone.get(phone).push(patient);
     });
+    const nameKey =
+      pipedriveNameKey(patient.displayName) ||
+      pipedriveNameKey(`${patient.firstName || ''} ${patient.lastName || ''}`);
+    if (nameKey) {
+      if (!byName.has(nameKey)) byName.set(nameKey, []);
+      byName.get(nameKey).push(patient);
+    }
   });
 
-  return { byPersonnummer, byEmail, byPhone };
+  return { byPersonnummer, byEmail, byPhone, byName };
 }
 
-function findPatientsForPipedrivePerson(lookup, pipedrivePerson) {
+function findPatientsForPipedrivePerson(lookup, pipedrivePerson, options = {}) {
   const matches = new Map();
   const add = (patient, method, confidence) => {
     if (!patient?.id) return;
@@ -263,6 +280,19 @@ function findPatientsForPipedrivePerson(lookup, pipedrivePerson) {
       add(patient, 'phone', 0.85);
     });
   });
+
+  // Namn-fallback: ENDAST när inget starkare (pnr/mail/tel) matchat, och bara som
+  // lågkonfidens-förslag. Aldrig auto-merge — importen flaggar dessa needs_review.
+  if (options.enableNameFallback && matches.size === 0 && lookup.byName) {
+    const nameKey =
+      pipedriveNameKey(pipedrivePerson.name) ||
+      pipedriveNameKey(`${pipedrivePerson.firstName || ''} ${pipedrivePerson.lastName || ''}`);
+    if (nameKey) {
+      asArray(lookup.byName.get(nameKey)).forEach((patient) => {
+        add(patient, 'name', 0.5);
+      });
+    }
+  }
 
   return [...matches.values()];
 }
@@ -415,6 +445,8 @@ function normalizePatientRecord(input = {}, existing = {}) {
     cliento: safe.cliento || existingSafe.cliento || null,
     drive: safe.drive || existingSafe.drive || null,
     pipedrive: safe.pipedrive || existingSafe.pipedrive || null,
+    // Lågkonfidens namn-förslag (needs_review). Aldrig auto-länkad LTV/affär förrän bekräftad.
+    pipedriveSuggestion: safe.pipedriveSuggestion || existingSafe.pipedriveSuggestion || null,
     fileSummary: {
       totalFiles:
         Number(
@@ -828,7 +860,13 @@ async function createCcoPatientMasterStore({ filePath }) {
     return bucket.imports.drive;
   }
 
-  async function mergePipedriveProfiles({ tenantId, peopleRows = [], dealRows = [] } = {}) {
+  async function mergePipedriveProfiles({
+    tenantId,
+    peopleRows = [],
+    dealRows = [],
+    dryRun = false,
+    enableNameFallback = false,
+  } = {}) {
     const bucket = tenantBucket(state, tenantId);
     const dealsByPersonId = new Map();
     for (const row of asArray(dealRows)) {
@@ -844,12 +882,18 @@ async function createCcoPatientMasterStore({ filePath }) {
     let ambiguous = 0;
     let dealsLinked = 0;
     let personnummerBackfilled = 0;
+    let nameSuggested = 0;
+    const nameSamples = [];
     const lookup = buildPipedrivePatientLookup(bucket.patients);
+    // I dry-run skriver vi aldrig — bara räknar och samlar stickprov.
+    const patch = (next) => {
+      if (!dryRun) applyPatientPatch(next);
+    };
 
     for (const row of asArray(peopleRows)) {
       const person = normalizePipedrivePersonRecord(row);
       if (!person.personId) continue;
-      const candidates = findPatientsForPipedrivePerson(lookup, person);
+      const candidates = findPatientsForPipedrivePerson(lookup, person, { enableNameFallback });
       if (!candidates.length) {
         unmatched += 1;
         continue;
@@ -857,7 +901,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       if (candidates.length > 1) {
         ambiguous += 1;
         for (const { patient } of candidates) {
-          applyPatientPatch({
+          patch({
             ...patient,
             tenantId,
             matchStatus: 'needs_review',
@@ -867,6 +911,37 @@ async function createCcoPatientMasterStore({ filePath }) {
       }
 
       const { patient, method, confidence } = candidates[0];
+
+      // Namn-bara-träff = lågkonfidens-FÖRSLAG. Länka ALDRIG affärer/LTV automatiskt;
+      // markera needs_review + spara förslaget så personal kan bekräfta i review-kön.
+      if (method === 'name' || confidence < 0.7) {
+        nameSuggested += 1;
+        if (nameSamples.length < 60) {
+          nameSamples.push({
+            pipedrivePerson: person.name,
+            pipedrivePersonId: person.personId,
+            patientId: patient.id,
+            patientName: patient.displayName,
+            method,
+            confidence,
+            dealCount: (dealsByPersonId.get(person.personId) || []).length,
+          });
+        }
+        patch({
+          ...patient,
+          tenantId,
+          matchStatus: 'needs_review',
+          pipedriveSuggestion: {
+            personId: person.personId,
+            name: person.name,
+            method,
+            confidence,
+            dealCount: (dealsByPersonId.get(person.personId) || []).length,
+            suggestedAt: nowIso(),
+          },
+        });
+        continue;
+      }
       const deals = dealsByPersonId.get(person.personId) || [];
       dealsLinked += deals.length;
       const pipedrive = {
@@ -901,7 +976,7 @@ async function createCcoPatientMasterStore({ filePath }) {
         }
       }
 
-      applyPatientPatch({
+      patch({
         ...patient,
         tenantId,
         personnummer: backfillPnr,
@@ -919,7 +994,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       matched += 1;
     }
 
-    bucket.imports.pipedrive = {
+    const report = {
       importedAt: nowIso(),
       peopleRows: peopleRows.length,
       dealRows: dealRows.length,
@@ -928,7 +1003,14 @@ async function createCcoPatientMasterStore({ filePath }) {
       ambiguous,
       dealsLinked,
       personnummerBackfilled,
+      nameFallback: Boolean(enableNameFallback),
+      nameSuggested,
     };
+    if (dryRun) {
+      // Inget skrivs i dry-run — returnera bara rapport + stickprov på namn-förslag.
+      return { ...report, dryRun: true, nameSamples };
+    }
+    bucket.imports.pipedrive = report;
     await save();
     return bucket.imports.pipedrive;
   }

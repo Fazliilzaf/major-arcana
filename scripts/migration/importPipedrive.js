@@ -17,6 +17,8 @@ function parseArgs(argv) {
     peoplePath: '',
     dealsPath: '',
     migrationRoot: paths.migrationRoot,
+    dryRun: false,
+    nameFallback: false,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
@@ -25,6 +27,8 @@ function parseArgs(argv) {
     else if (token === '--people') args.peoplePath = argv[++i];
     else if (token === '--deals') args.dealsPath = argv[++i];
     else if (token === '--root') args.migrationRoot = argv[++i];
+    else if (token === '--dry-run') args.dryRun = true;
+    else if (token === '--name-fallback') args.nameFallback = true;
   }
   return args;
 }
@@ -66,10 +70,16 @@ async function main() {
     tenantId: args.tenantId,
     peopleRows,
     dealRows,
+    dryRun: args.dryRun,
+    enableNameFallback: args.nameFallback,
   });
 
   const stats = await patientMasterStore.getTenantStats({ tenantId: args.tenantId });
-  console.log('\n=== PIPEDRIVE ENRICH ===');
+  console.log(
+    `\n=== PIPEDRIVE ENRICH ${args.dryRun ? '(DRY-RUN — inget skrivet)' : ''}${
+      args.nameFallback ? ' [namn-fallback PÅ]' : ''
+    } ===`
+  );
   console.log(JSON.stringify(pipedriveImport, null, 2));
   console.log('\n=== TENANT STATS ===');
   console.log(JSON.stringify(stats, null, 2));
