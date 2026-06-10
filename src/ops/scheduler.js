@@ -4070,8 +4070,8 @@ function createScheduler({
     {
       id: 'cco_daily_digest',
       name: 'CCO daily digest e-mail',
-      // Kör varje timme; runner-funktionen själv kollar att aktuell timme
-      // matchar tenant-config.digest.sendHour och att vi inte redan skickat idag.
+      // Kör varje timme; runnern skickar catch-up när hour >= sendHour (UTC)
+      // och vi inte redan skickat idag (dagslås).
       intervalMs: toMinutesMs(config.schedulerCcoDailyDigestIntervalMinutes, 60),
       run: runDailyDigest,
     },
