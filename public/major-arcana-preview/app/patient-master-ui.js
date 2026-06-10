@@ -5521,11 +5521,24 @@
     replaceMobilePatientListUrl();
   }
 
+  // Nästa steg som ÅTGÄRD (imperativ) — mappar blocker-statement → vad man gör härnäst
+  function nextActionLabel(text) {
+    const t = String(text || '').toLowerCase();
+    if (/journal sp[äa]rr/.test(t)) return 'Lås upp journal';
+    if (/h[äa]lsodek|formul[äa]r/.test(t)) return 'Begär hälsodeklaration';
+    if (/friskf[öo]rs/.test(t)) return 'Skicka friskförsäkran';
+    if (/foto.?samtycke/.test(t)) return 'Begär foto-samtycke';
+    if (/avtal|samtycke/.test(t)) return 'Skicka avtal + samtycke';
+    if (/offert|behandlingsplan/.test(t)) return 'Skapa offert';
+    if (/journal/.test(t)) return 'Komplettera journal';
+    if (/bet[äa]nketid/.test(t)) return 'Inväntar betänketid';
+    return text;
+  }
   function resolveV9ListSignal(card) {
     const blockers = collectV9Zone1Blockers(card, 1);
     if (blockers.length) {
-      const text =
-        blockers[0].text.length > 52 ? `${blockers[0].text.slice(0, 49)}…` : blockers[0].text;
+      let text = nextActionLabel(blockers[0].text);
+      if (text.length > 52) text = `${text.slice(0, 49)}…`;
       return { text, tone: blockers[0].tone === 'needs_review' ? 'warn' : 'blocker' };
     }
     if (card?.hasUpcomingBooking && card?.nextBookingAt) {
@@ -5539,6 +5552,27 @@
       return { text: formatV9ListDate(card.nextBookingAt), tone: 'neutral' };
     }
     return { text: '—', tone: 'neutral' };
+  }
+
+  // Behandlings-kur-progress (bara kur-typer PRP/microneedling) — klinik-standard planerat antal.
+  // done = completedVisitCount (proxy: totala besök), capped till planerat.
+  function v9TreatmentCycle(card) {
+    const t = asArray(card && card.treatmentTypes)
+      .join(' ')
+      .toLowerCase();
+    let planned = 0;
+    let label = '';
+    if (/prp/.test(t)) {
+      planned = 6;
+      label = 'PRP';
+    } else if (/microneedl|dermapen/.test(t)) {
+      planned = 4;
+      label = 'Microneedling';
+    }
+    if (!planned) return null; // transplant/konsultation → ingen kur-progress
+    const done = Math.max(0, Math.min(Number(card.completedVisitCount) || 0, planned));
+    if (done <= 0) return null;
+    return { label, done, planned };
   }
 
   function renderV9PatientRowHtml(card, selected) {
@@ -5574,11 +5608,15 @@
     const lastVisit = card.lastVisitAt ? formatV9ListDate(card.lastVisitAt) : '—'; // behålls
     // "Saknar formulär" tas bort här — dubblerar Nästa steg-pillen ("Formulär saknas före besök")
     const tags = buildV9RowBadges(card).filter((t) => t.label !== 'Saknar formulär');
-    const nameTagsHtml = tags.length
-      ? `<span class="cr-name-tags">${tags
-          .map((t) => `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`)
-          .join('')}</span>`
-      : '';
+    const cycle = v9TreatmentCycle(card);
+    const tagBits =
+      tags
+        .map((t) => `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`)
+        .join('') +
+      (cycle
+        ? `<span class="cr-tag cr-tag--cycle">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
+        : '');
+    const nameTagsHtml = tagBits ? `<span class="cr-name-tags">${tagBits}</span>` : '';
     const stegToneMap = { amber: 'warn', info: 'info', purple: 'legal', teal: 'teal', ok: 'ready', red: 'block' };
     const stegTone = stegToneMap[jStep.tone] || 'info';
     const signalTone = signal.tone || 'neutral';
