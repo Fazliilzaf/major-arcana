@@ -5564,20 +5564,20 @@
               ? { n: 8, tone: 'teal' }
               : { n: 9, tone: 'ok' };
 
-    // Lager 5 (v10-skin): mockupens 6 datakolumner. Helpers återanvänds — inga funktioner borttagna.
-    const contact = v9ContactLine(card);
-    const rowState = resolveV9RowState(card);
+    // FACIT 6-kol (cco-kunder-v9-egen): avatar · Kund(namn+sub) · Steg · Nästa steg · LTV · chevron.
+    // Helpers behålls (kontakt/status/senaste besök lever kvar i dossiern) — inga funktioner borttagna.
+    const contact = v9ContactLine(card); // behålls för dossier/återanvändning
+    const rowState = resolveV9RowState(card); // behålls
+    const lastVisit = card.lastVisitAt ? formatV9ListDate(card.lastVisitAt) : '—'; // behålls
     const tags = buildV9RowBadges(card);
-    const lastVisit = card.lastVisitAt ? formatV9ListDate(card.lastVisitAt) : '—';
-    const lastSub = [treatment || null, age ? `${age} år` : null].filter(Boolean).join(' · ');
-    const tagsHtml = tags.length
-      ? `<div class="cr-name-tags">${tags
-          .map(
-            (t) =>
-              `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`
-          )
-          .join('')}</div>`
-      : `<div class="cr-name-tags"><span class="cr-tag cr-tag--cycle">Steg ${jStep.n}</span></div>`;
+    const nameTagsHtml = tags.length
+      ? `<span class="cr-name-tags">${tags
+          .map((t) => `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`)
+          .join('')}</span>`
+      : '';
+    const stegToneMap = { amber: 'warn', info: 'info', purple: 'legal', teal: 'teal', ok: 'ready', red: 'block' };
+    const stegTone = stegToneMap[jStep.tone] || 'info';
+    const signalTone = signal.tone || 'neutral';
 
     return `
           <button
@@ -5588,38 +5588,25 @@
           >
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
-              <div class="cr-name">${escapeHtml(name)}</div>
-              ${tagsHtml}
+              <div class="cr-name">${escapeHtml(name)}${nameTagsHtml}</div>
+              <div class="cr-meta-sub">${escapeHtml(subLine)}</div>
             </div>
-            <div class="cr-meta cr-meta--contact">
-              <div class="cr-contact-line">${escapeHtml(contact.main)}</div>
-              <div class="cr-meta-sub cr-contact-line">${escapeHtml(contact.sub)}</div>
-            </div>
-            <div><span class="cr-status" data-state="${escapeHtml(rowState.state)}"><span class="dot"></span>${escapeHtml(rowState.label)}</span></div>
-            <div class="cr-meta">
-              <div class="cr-meta-strong">${escapeHtml(lastVisit)}</div>
-              <div class="cr-meta-sub">${escapeHtml(lastSub)}</div>
-            </div>
-            <div>
-              <div class="cr-revenue">${escapeHtml(revenue.main)}</div>
-            </div>
-            <div><div class="cr-ai">${escapeHtml(signal.text)}</div></div>
+            <div><span class="cr-steg cr-steg--${escapeHtml(stegTone)}">Steg ${escapeHtml(String(jStep.n))}</span></div>
+            <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
+            <div><div class="cr-revenue">${escapeHtml(revenue.main)}</div></div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
         `;
   }
 
   function renderV9ListHeaderHtml() {
-    const nextColLabel = 'Nästa steg';
     return `
           <div class="customer-row-head cr-v10-head" aria-hidden="true">
             <div></div>
             <div>Kund</div>
-            <div>Kontakt</div>
-            <div>Status</div>
-            <div>Senaste besök</div>
-            <div>Intäkt (LTV)</div>
-            <div>${escapeHtml(nextColLabel)}</div>
+            <div>Steg</div>
+            <div>Nästa steg</div>
+            <div>LTV</div>
             <div></div>
           </div>
         `;
