@@ -60,12 +60,38 @@ function emptyState() {
 }
 
 async function readJson(filePath, fallbackValue) {
+  let raw = '';
   try {
-    const raw = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(raw);
+    raw = await fs.readFile(filePath, 'utf8');
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      await quarantineCorruptPatientMasterFile(filePath, 'tom fil');
+      return fallbackValue;
+    }
+    return JSON.parse(trimmed);
   } catch (error) {
     if (error && error.code === 'ENOENT') return fallbackValue;
+    if (error instanceof SyntaxError) {
+      await quarantineCorruptPatientMasterFile(filePath, error.message);
+      return fallbackValue;
+    }
     throw error;
+  }
+}
+
+async function quarantineCorruptPatientMasterFile(filePath, reason) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const quarantinePath = `${filePath}.corrupt.${stamp}`;
+  try {
+    await fs.rename(filePath, quarantinePath);
+    console.error(
+      `[cco-patient-master] korrupt patient-master-fil karantänlagd: ${quarantinePath} (${reason})`
+    );
+  } catch (renameError) {
+    console.error(
+      `[cco-patient-master] korrupt JSON i ${filePath} (${reason}); kunde inte karantänlagra:`,
+      renameError?.message || renameError
+    );
   }
 }
 
