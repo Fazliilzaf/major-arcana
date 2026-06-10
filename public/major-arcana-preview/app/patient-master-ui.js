@@ -5630,16 +5630,12 @@
           >
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
-              <div class="cr-name">${escapeHtml(name)}${nameTagsHtml}</div>
+              <div class="cr-name">${escapeHtml(name)}</div>
               <div class="cr-meta-sub">${escapeHtml(subLine)}</div>
             </div>
-            <div class="cr-meta cr-meta--contact">
-              <div class="cr-contact-line">${escapeHtml(contact.main)}</div>
-              <div class="cr-meta-sub cr-contact-line">${escapeHtml(contact.sub)}</div>
-            </div>
             <div><span class="cr-steg cr-steg--${escapeHtml(stegTone)}">Steg ${escapeHtml(String(jStep.n))}</span></div>
-            <div class="cr-meta"><div class="cr-meta-strong">${escapeHtml(lastVisit)}</div></div>
             <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
+            <div class="cr-status-tags">${nameTagsHtml}</div>
             <div><div class="cr-revenue">${escapeHtml(revenue.main)}</div>${revenue.potential ? `<div class="cr-meta-sub cr-revenue-pot">${escapeHtml(revenue.potential)} pot.</div>` : ''}</div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
@@ -5651,10 +5647,9 @@
           <div class="customer-row-head cr-v10-head" aria-hidden="true">
             <div></div>
             <div>Kund</div>
-            <div>Kontakt</div>
             <div>Steg</div>
-            <div>Senaste besök</div>
             <div>Nästa steg</div>
+            <div>Status</div>
             <div>LTV</div>
             <div></div>
           </div>

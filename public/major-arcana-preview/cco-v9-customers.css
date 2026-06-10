@@ -1380,8 +1380,8 @@ html[data-v9-enabled="on"] [data-patient-list-body] {
 html[data-v9-enabled="on"] .customer-row-head {
   display: grid;
   grid-template-columns:
-    44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 1.4fr)
-    minmax(0, 2.2fr) 30px;
+    44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 1.2fr)
+    minmax(0, 1.4fr) minmax(0, 1.8fr) 30px;
   gap: 12px;
   padding: 8px 14px;
   font-size: var(--v9-font-kicker-sm);
@@ -1404,8 +1404,8 @@ html[data-v9-enabled="on"] .customer-row {
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.45);
   grid-template-columns:
-    44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 1.4fr)
-    minmax(0, 2.2fr) 30px;
+    44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 1.2fr)
+    minmax(0, 1.4fr) minmax(0, 1.8fr) 30px;
   gap: 12px;
   align-items: center;
   padding: 10px 14px;
@@ -1521,6 +1521,14 @@ html[data-v9-enabled="on"] .customer-row .cr-meta-sub {
 html[data-v9-enabled="on"] .customer-row .cr-meta-strong {
   color: var(--v9-color-brand, #2b251f);
   font-weight: 700;
+}
+
+html[data-v9-enabled="on"] .customer-row .cr-status-tags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 html[data-v9-enabled="on"] .customer-row .cr-status {
