@@ -404,19 +404,50 @@
       return isNaN(d) ? null : d;
     }
 
-    // Kundresa
+    // Kundresa — Fas C: stegstatus HÄRLEDD ur bevis (gates/bokning), ej journey-storens råstate
     if (A2(ctx.steps).length) {
-      var pct = ctx.cur ? Math.round((ctx.cur / ctx.total) * 100) : 0;
-      var stegRows = A2(ctx.steps)
-        .map(function (s) {
+      var stepsArr = A2(ctx.steps);
+      var hasBooking = A2(ctx.up).length > 0 || A2(ctx.hist).length > 0;
+      function gkGateAt(n) {
+        if (n === 3) return gkSignals.some(function (s) { return /missing_health_declaration/i.test(gkSigId(s)); });
+        if (n === 4) return gkSignals.some(function (s) { return /missing_journal/i.test(gkSigId(s)); });
+        if (n === 5) return gkSignals.some(function (s) { return /missing_treatment_plan/i.test(gkSigId(s)); });
+        if (n === 6) return coolingActive;
+        if (n === 7) return gkSignals.some(function (s) { return /missing_agreement_consent_bundle/i.test(gkSigId(s)); });
+        if (n === 8) return gkSignals.some(function (s) { return /missing_operation_day_insurance/i.test(gkSigId(s)); });
+        if (n === 9) return gkSignals.some(function (s) { return /missing_photo_consent/i.test(gkSigId(s)); });
+        return false;
+      }
+      function gkStepUnmet(n) {
+        if (n <= 2) return !hasBooking; // 1 bokning + 2 bekräftelse (Cliento, externt)
+        return gkGateAt(n);
+      }
+      // Härled bara om vi har bevis (signaler eller bokning); annars behåll storens state
+      var gkCanDerive = gkSignals.length > 0 || hasBooking;
+      var gkActive = 0;
+      if (gkCanDerive) {
+        for (var gkN = 1; gkN <= stepsArr.length; gkN++) { if (gkStepUnmet(gkN)) { gkActive = gkN; break; } }
+        if (readyForOp) gkActive = 0;
+      }
+      function gkStepState(idx, orig) {
+        if (!gkCanDerive) return orig;
+        var n = idx + 1;
+        if (gkActive === 0) return 'done';
+        if (n < gkActive) return 'done';
+        if (n === gkActive) return 'active';
+        return 'kommande';
+      }
+      var gkDoneN = 0;
+      stepsArr.forEach(function (s, i) { if (gkStepState(i, s.state) === 'done') gkDoneN++; });
+      var pct = Math.round((gkDoneN / (ctx.total || stepsArr.length)) * 100);
+      var curStep = gkCanDerive ? gkActive || stepsArr.length : ctx.cur;
+      var stegRows = stepsArr
+        .map(function (s, i) {
+          var st = gkStepState(i, s.state);
           var cls =
-            s.state === 'done'
-              ? 'gk-steg-klar'
-              : s.state === 'active'
-                ? 'gk-steg-nu'
-                : 'gk-steg-sen';
-          var mk = s.state === 'done' ? '✓' : s.state === 'active' ? s.id || '!' : s.id || '';
-          var extra = s.state === 'active' ? ' <span class="gk-hl gk-tag gk-tag-warn">Pågår</span>' : '';
+            st === 'done' ? 'gk-steg-klar' : st === 'active' ? 'gk-steg-nu' : 'gk-steg-sen';
+          var mk = st === 'done' ? '✓' : st === 'active' ? s.id || i + 1 || '!' : s.id || i + 1 || '';
+          var extra = st === 'active' ? ' <span class="gk-hl gk-tag gk-tag-warn">Pågår</span>' : '';
           // Steg 6: betänketid-status ur cooling-signaler
           if (/bet[äa]nketid/i.test(String(s.label || ''))) {
             if (coolingPassed) extra += ' <span class="gk-hl gk-tag gk-tag-ok">passerad — kan signera</span>';
@@ -451,7 +482,7 @@
       }
       body += sek(
         'Kundresa · ' + ctx.total + ' steg',
-        ctx.cur ? '<span class="gk-pill gk-pill-steg">Steg ' + esc(ctx.cur) + '</span>' : '',
+        curStep ? '<span class="gk-pill gk-pill-steg">Steg ' + esc(curStep) + '</span>' : '',
         readyRow +
           '<div class="gk-resa-bar"><div class="gk-resa-fill" style="width:' +
           pct +
