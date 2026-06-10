@@ -5569,7 +5569,8 @@
     const contact = v9ContactLine(card); // behålls för dossier/återanvändning
     const rowState = resolveV9RowState(card); // behålls
     const lastVisit = card.lastVisitAt ? formatV9ListDate(card.lastVisitAt) : '—'; // behålls
-    const tags = buildV9RowBadges(card);
+    // "Saknar formulär" tas bort här — dubblerar Nästa steg-pillen ("Formulär saknas före besök")
+    const tags = buildV9RowBadges(card).filter((t) => t.label !== 'Saknar formulär');
     const nameTagsHtml = tags.length
       ? `<span class="cr-name-tags">${tags
           .map((t) => `<span class="cr-tag cr-tag--${escapeHtml(t.kind)}">${escapeHtml(t.label)}</span>`)
