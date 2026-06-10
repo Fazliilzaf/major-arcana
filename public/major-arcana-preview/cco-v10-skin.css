@@ -432,10 +432,9 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] [data-v9-segment-sideba
 html[data-v9-enabled="on"] .customer-row-head.cr-v10-head,
 html[data-v9-enabled="on"] .customer-row.cr-v10 {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1.6fr) minmax(0, 1.2fr) 92px minmax(0, 1.1fr) minmax(
-      0,
-      1.3fr
-    ) minmax(0, 1.2fr) 30px;
+  grid-template-columns:
+    44px minmax(0, 1.6fr) minmax(0, 1.2fr) 92px minmax(0, 1.1fr) minmax(0, 1.3fr)
+    minmax(0, 1.2fr) 30px;
   gap: 12px;
 }
 html[data-v9-enabled="on"] .customer-row-head.cr-v10-head {
@@ -505,32 +504,41 @@ html[data-v9-enabled="on"] .cr-v10 .cr-name-tags {
   flex-wrap: wrap;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-tag {
-  padding: 1px 6px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-tag--vip {
-  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
-  color: var(--accent-studio);
+  background: #e879b9;
+  color: #fff;
+  font-weight: 700;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-tag--cycle {
-  background: var(--cco-status-info-bg);
-  color: var(--cco-status-info);
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-tag--risk {
-  background: var(--cco-status-warning-bg);
-  color: var(--cco-status-warning);
+  background: #f59e0b;
+  color: #fff;
+  font-weight: 700;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-tag--ready {
-  background: var(--cco-status-success-bg);
-  color: var(--cco-status-success);
+  background: #10b981;
+  color: #fff;
+  font-weight: 700;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-tag--new {
-  background: rgba(132, 117, 107, 0.16);
-  color: var(--cco-text-tertiary);
+  background: #84756b;
+  color: #fff;
+  font-weight: 700;
 }
 
 html[data-v9-enabled="on"] .cr-v10 .cr-meta {
