@@ -3416,3 +3416,19 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 #kk-storvy .gk-eko-fortnox.is-off .gk-eko-fnx-dot { background: #b94a4a; }
 #kk-storvy .gk-eko-fnx-sub { flex-basis: 100%; color: #8a8174; font-weight: 400; line-height: 1.35; }
 #kk-storvy .gk-eko-fnx-btn { margin-left: auto; }
+
+/* ── TA BILD smart: samtyckes-grind + zon-etikett (lager 33) ── */
+#kk-storvy .gk-tabild { display: flex; flex-direction: column; gap: 8px; }
+#kk-storvy .gk-tabild-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; }
+#kk-storvy .gk-tabild-dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; }
+#kk-storvy .gk-tabild-ok { color: #4a8268; }
+#kk-storvy .gk-tabild-ok .gk-tabild-dot { background: #4a8268; }
+#kk-storvy .gk-tabild-bad { color: #b94a4a; }
+#kk-storvy .gk-tabild-bad .gk-tabild-dot { background: #b94a4a; }
+#kk-storvy .gk-tabild-zones { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#kk-storvy .gk-zonchip { appearance: none; cursor: pointer; font: inherit; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; color: #5d4a3c; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(93, 74, 60, 0.16); transition: all 0.12s ease; }
+#kk-storvy .gk-zonchip:hover { background: rgba(255, 255, 255, 0.95); }
+#kk-storvy .gk-zonchip.sel { color: #8a6a1e; background: linear-gradient(180deg, #fff5e6, #ffe3b8); border-color: rgba(200, 130, 30, 0.34); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+#kk-storvy .gk-tabild-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#kk-storvy .gk-tabild-hint { color: #8a8174; }
+#kk-storvy .gk-tabild .gk-btn[disabled] { opacity: 0.45; cursor: not-allowed; }

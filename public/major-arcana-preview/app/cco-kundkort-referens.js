@@ -1132,12 +1132,33 @@
       'Inga dokument ännu.'
     );
 
-    // Ta bild
-    body += sek(
-      'Ta bild',
-      '',
-      '<div class="gk-rad"><span class="gk-sub">Foto-samtycke · scope: hårlinje + krona, aldrig ansikte</span> <span class="gk-hl"><button type="button" class="gk-btn gk-btn-gold" data-gk-proxy="[data-kk-tabild]">📷 Ta bild</button></span></div>'
-    );
+    // Ta bild — smart: ÄKTA samtyckes-grind (blockerar capture utan foto-samtycke) + zon-etikett
+    var tabildBody = (function () {
+      var consentMissing = A2(ctx.gateSignals).some(function (s) {
+        return /missing_photo_consent|photo_consent/i.test(String((s && (s.ruleId || s.id)) || ''));
+      });
+      if (consentMissing) {
+        return '<div class="gk-tabild gk-tabild-block">' +
+          '<div class="gk-rad" style="border-bottom:none"><span class="gk-tabild-status gk-tabild-bad"><span class="gk-tabild-dot"></span>Foto-samtycke saknas</span>' +
+          ' <span class="gk-sub">— krävs innan foto tas</span></div>' +
+          '<div class="gk-tabild-actions">' +
+          '<button type="button" class="gk-btn" disabled title="Kräver foto-samtycke">📷 Ta bild</button>' +
+          '<button type="button" class="gk-btn gk-btn-gold" data-gk-jump="Smart nästa steg">Begär samtycke</button>' +
+          '</div></div>';
+      }
+      return '<div class="gk-tabild">' +
+        '<div class="gk-rad" style="border-bottom:none"><span class="gk-tabild-status gk-tabild-ok"><span class="gk-tabild-dot"></span>Foto-samtycke finns</span>' +
+        ' <span class="gk-sub">· scope: hårlinje + krona, aldrig ansikte</span></div>' +
+        '<div class="gk-tabild-zones"><span class="gk-sub">Zon:</span>' +
+        '<button type="button" class="gk-zonchip" data-gk-zon="Hårlinje">Hårlinje</button>' +
+        '<button type="button" class="gk-zonchip" data-gk-zon="Krona">Krona</button>' +
+        '<button type="button" class="gk-zonchip" data-gk-zon="Donator">Donator</button></div>' +
+        '<div class="gk-tabild-actions">' +
+        '<button type="button" class="gk-btn gk-btn-gold" data-gk-proxy="[data-kk-tabild]">📷 Ta bild nu</button>' +
+        '<span class="gk-sub gk-tabild-hint">Sparas direkt i journalen med etikett</span></div>' +
+        '</div>';
+    })();
+    body += sek('Ta bild', '', tabildBody);
 
     body += '</div>';
     return '<div class="gk-kort">' + head + body + '</div>';
@@ -1311,6 +1332,18 @@
         e.preventDefault();
         pr.textContent = 'Begäran förberedd ✓';
         pr.disabled = true;
+        return;
+      }
+      // Ta bild: zon-val → markera + uppdatera etikett-hint
+      var zc = e.target.closest && e.target.closest('[data-gk-zon]');
+      if (zc) {
+        e.preventDefault();
+        var zwrap = zc.parentNode;
+        [].forEach.call(zwrap.querySelectorAll('[data-gk-zon]'), function (o) { o.classList.remove('sel'); });
+        zc.classList.add('sel');
+        var card = zc.closest('.gk-tabild');
+        var hint = card && card.querySelector('.gk-tabild-hint');
+        if (hint) hint.textContent = 'Sparas i journalen med etikett: ' + (zc.getAttribute('data-gk-zon') || '');
         return;
       }
       var s = e.target.closest && e.target.closest('[data-gk-sum]');
