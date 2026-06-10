@@ -18,7 +18,12 @@ const {
 } = require('./ccoKunderBookingEnrichment');
 const { applyFasAReadoutFields } = require('./ccoKunderFasAReadiness');
 const { sanitizePatientDisplayName } = require('../lib/patientDisplayName');
-const { isPipedriveDealWon, parseDealValue, maxIsoDate } = require('./pipedriveDealHelpers');
+const {
+  isPipedriveDealWon,
+  parseDealValue,
+  maxIsoDate,
+  normalizePipedriveDealStatus,
+} = require('./pipedriveDealHelpers');
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -661,6 +666,28 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     },
   };
   applyBookingToReadout(readout, getBookingSignals(bookingIndex, base.patientId));
+  // Pipedrive-härlett: behandlingstyp (om bokning ej gav någon) + potentiellt värde (öppna affärer)
+  (function applyPipedriveDealReadout() {
+    const deals = asArray(asObject(patient.pipedrive).deals);
+    if (!deals.length) return;
+    if (!asArray(readout.treatmentTypes).length) {
+      const prods = [];
+      deals.forEach((d) => {
+        const p = normalizeText(asObject(d).productName);
+        if (p && prods.indexOf(p) < 0) prods.push(p);
+      });
+      if (prods.length) readout.treatmentTypes = prods.slice(0, 2);
+    }
+    let potential = 0;
+    deals.forEach((d) => {
+      const dd = asObject(d);
+      if (isPipedriveDealWon(dd)) return; // vunna räknas redan i lifetimeValue
+      if (normalizePipedriveDealStatus(dd.status) === 'lost') return;
+      const v = parseDealValue(dd.value);
+      if (Number.isFinite(v) && v > 0) potential += v;
+    });
+    readout.potentialValue = potential > 0 ? potential : null;
+  })();
   const ownerName = getPatientOwnerName(patient);
   readout.ownerName = ownerName || null;
   readout.assignedStaffId = null;

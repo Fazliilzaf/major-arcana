@@ -3478,3 +3478,6 @@ html[data-v9-enabled="on"] .cr-v10 .cr-nextpill--info { color: #4a7ba8; backgrou
   html[data-v9-enabled="on"] .cr-v10-head > :nth-child(4),
   html[data-v9-enabled="on"] .cr-v10-head > :nth-child(5) { display: none; }
 }
+
+/* LTV potential-undertext (öppet affärsvärde) */
+html[data-v9-enabled="on"] .cr-v10 .cr-revenue-pot { color: #8a8174; font-size: 10px; font-weight: 600; margin-top: 1px; }

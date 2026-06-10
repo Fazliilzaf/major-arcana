@@ -4167,8 +4167,11 @@
       card.lifetimeValue ?? card.dealValue ?? card.pipedriveDealValue ?? Number.NaN
     );
     const main = formatV9Sek(raw);
+    const potRaw = Number(card.potentialValue ?? Number.NaN);
+    const potential = Number.isFinite(potRaw) && potRaw > 0 ? formatV9Sek(potRaw) : '';
     return {
       main,
+      potential,
       trend:
         card.pipedriveLinked && Number(card.pipedriveDealCount) > 0
           ? `${Number(card.pipedriveDealCount)} Pipedrive-affärer`
@@ -5594,7 +5597,7 @@
             </div>
             <div><span class="cr-steg cr-steg--${escapeHtml(stegTone)}">Steg ${escapeHtml(String(jStep.n))}</span></div>
             <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
-            <div><div class="cr-revenue">${escapeHtml(revenue.main)}</div></div>
+            <div><div class="cr-revenue">${escapeHtml(revenue.main)}</div>${revenue.potential ? `<div class="cr-meta-sub cr-revenue-pot">${escapeHtml(revenue.potential)} pot.</div>` : ''}</div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
         `;
