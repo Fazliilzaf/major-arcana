@@ -9002,6 +9002,51 @@ try {
     assetQaCacheTs = 0;
   }
 
+  function maskTail(value, keep = 6) {
+    const text = String(value || '');
+    if (!text) return null;
+    return `...${text.slice(-keep)}`;
+  }
+
+  function isDrivePhotoAsset(asset) {
+    if (!asset) return false;
+    const source = String(asset.sourceSystem || '').toLowerCase();
+    const category = String(asset.category || '');
+    return (
+      (source === 'drive_import' || source === 'drive') &&
+      (category.startsWith('photo_') || String(asset.mimeType || '').startsWith('image/'))
+    );
+  }
+
+  async function assetHasInternalObject(secureStorageProvider, asset) {
+    if (!secureStorageProvider || !asset) return false;
+    const keys = [asset.thumbnailKey, asset.storageKey].filter(Boolean);
+    for (const key of keys) {
+      try {
+        if (
+          typeof secureStorageProvider.exists === 'function' &&
+          (await secureStorageProvider.exists(key))
+        ) {
+          return true;
+        }
+      } catch {
+        /* missing object is handled as not promotable */
+      }
+    }
+    return false;
+  }
+
+  function drivePhotoPromotionBlockers(asset) {
+    const missing = [];
+    if (!asset.patientId || asset.patientId === 'unknown') missing.push('patientId');
+    if (!asset.storageKey || asset.storageKey === 'pending-no-binary') missing.push('storageKey');
+    if (!asset.checksum) missing.push('checksum');
+    if (!(Number(asset.fileSize) > 0)) missing.push('fileSize');
+    if (!asset.mimeType) missing.push('mimeType');
+    if (asset.status !== 'NEEDS_REVIEW') missing.push(`status=${asset.status || 'unknown'}`);
+    return missing;
+  }
+
   async function buildAssetQaSnapshot({ tenantId = 'hair_tp' } = {}) {
     const now = Date.now();
     if (assetQaCache && now - assetQaCacheTs < ASSET_QA_CACHE_TTL_MS) {
@@ -9148,6 +9193,103 @@ try {
     (req, res) => {
       invalidateAssetQaCache();
       res.json({ invalidated: 'asset-qa' });
+    }
+  );
+
+  app.post(
+    '/api/v1/cco/asset-qa/promote-drive-photos',
+    requireCcoAuthenticated,
+    attachRole,
+    requirePermission('asset.write'),
+    async (req, res) => {
+      try {
+        const stores = await ensureAssetStores();
+        const body = req.body || {};
+        const commit = body.commit === true || String(req.query.commit || '') === '1';
+        const confirmText = body.confirmText || req.query.confirmText || '';
+        if (commit && confirmText !== 'PROMOTE DRIVE PHOTOS') {
+          return res
+            .status(400)
+            .json({ error: 'confirmText_required', expected: 'PROMOTE DRIVE PHOTOS' });
+        }
+        const limit = Math.min(
+          1000,
+          Math.max(0, Number(body.limit ?? req.query.limit ?? 100) || 0)
+        );
+        const offset = Math.max(0, Number(body.offset ?? req.query.offset ?? 0) || 0);
+        const allAssets = stores.assetStore.listItemsForEnrichment();
+        const drivePhotos = allAssets.filter(isDrivePhotoAsset);
+        const needsReview = drivePhotos.filter((asset) => asset.status === 'NEEDS_REVIEW');
+        const ready = [];
+        const blocked = {};
+        for (const asset of needsReview) {
+          const missing = drivePhotoPromotionBlockers(asset);
+          if (missing.length) {
+            for (const key of missing) blocked[key] = (blocked[key] || 0) + 1;
+            continue;
+          }
+          const hasObject = await assetHasInternalObject(stores.secureStorage, asset);
+          if (!hasObject) {
+            blocked.object_not_in_storage = (blocked.object_not_in_storage || 0) + 1;
+            continue;
+          }
+          ready.push(asset);
+        }
+        const batch = ready.slice(offset, offset + limit);
+        const actor = {
+          role: req.cco?.role || 'unknown',
+          userId: req.headers['x-cco-user'] || 'asset-qa-promote-drive-photos',
+          tenantId: req.headers['x-cco-tenant'] || null,
+        };
+        const promoted = [];
+        const failed = [];
+        if (commit) {
+          for (const asset of batch) {
+            try {
+              await stores.assetStore.transitionStatus(asset.id, 'VERIFIED_IN_CCO', {
+                actor,
+                reason: 'drive_photo_internal_object_verified',
+              });
+              const visible = await stores.assetStore.markAsVisibleOnPatientCard(asset.id, {
+                actor,
+              });
+              promoted.push(visible);
+            } catch (err) {
+              failed.push({
+                id: maskTail(asset.id),
+                patientId: maskTail(asset.patientId),
+                error: err.message,
+              });
+            }
+          }
+          invalidateAssetQaCache();
+        }
+        const sampleSource = commit ? promoted : batch;
+        res.json({
+          dryRun: !commit,
+          totalDrivePhotos: drivePhotos.length,
+          totalNeedsReviewDrivePhotos: needsReview.length,
+          promotable: ready.length,
+          offset,
+          limit,
+          batchSize: batch.length,
+          promoted: promoted.length,
+          failed: failed.length,
+          blocked,
+          samples: sampleSource.slice(0, 5).map((asset) => ({
+            assetId: maskTail(asset.id),
+            patientId: maskTail(asset.patientId),
+            category: asset.category || null,
+            mimeType: asset.mimeType || null,
+            documentDate: asset.documentDate || null,
+            hasThumbnail: !!asset.thumbnailKey,
+            status: asset.status || null,
+          })),
+          errors: failed.slice(0, 10),
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
   );
 
@@ -12427,10 +12569,7 @@ process.once('SIGTERM', () => {
     } catch (e) {
       /* tracking-fel får aldrig påverka svaret */
     }
-    const gif = Buffer.from(
-      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-      'base64'
-    );
+    const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
     res.set('Content-Type', 'image/gif');
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
