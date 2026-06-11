@@ -5669,8 +5669,8 @@
     const birthYear = pnrDigits.length >= 8 ? parseInt(pnrDigits.slice(0, 4), 10) : null;
     const nowY = new Date().getFullYear();
     const age = birthYear && birthYear > 1900 && birthYear <= nowY ? nowY - birthYear : null;
-    const ageTreatmentLine =
-      [age ? age + ' år' : null, treatment || null].filter(Boolean).join(' · ') || '';
+    const ageAndTreatment =
+      [age ? age + ' år' : null, treatment || null].filter(Boolean).join(' · ') || '—';
     // 9-stegs-position härledd ur list-flaggorna (Nästa steg-pillen ger exakt åtgärd)
     const jStep =
       card.missingHealthDeclaration || card.missingForm
@@ -5732,8 +5732,7 @@
             <div class="cr-contact">${contactHtml}</div>
             <div class="cr-last-visit">
               <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
-              ${lastVisitDisplay.subline ? `<div class="cr-visit-type">${escapeHtml(lastVisitDisplay.subline)}</div>` : ''}
-              ${ageTreatmentLine ? `<div class="cr-meta-sub cr-visit-meta">${escapeHtml(ageTreatmentLine)}</div>` : ''}
+              <div class="cr-meta-sub cr-visit-meta">${escapeHtml(ageAndTreatment)}</div>
             </div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
