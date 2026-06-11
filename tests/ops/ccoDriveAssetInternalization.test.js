@@ -12,6 +12,7 @@ const { createCcoAssetImportRunStore } = require('../../src/ops/ccoAssetImportRu
 const { createCcoAssetReviewQueueStore } = require('../../src/ops/ccoAssetReviewQueueStore');
 const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider');
 const {
+  collectDriveRowsForInternalization,
   internalizeDriveAssets,
   inventoryDriveAssets,
   normalizeDriveAssetRow,
@@ -75,7 +76,7 @@ test('inventory är dry-run och räknar redan internaliserade + review utan skri
       category: 'journal',
       status: 'IMPORTED_TO_CCO',
     });
-    const report = inventoryDriveAssets({
+    const report = await inventoryDriveAssets({
       assetStore: rig.assetStore,
       rows: [
         {
@@ -286,6 +287,88 @@ test('commit kräver explicit GO', async () => {
         }),
       /go=true/
     );
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('collectDriveRowsForInternalization läser asset store när patient-master saknar attachments', async () => {
+  const rig = await makeRig();
+  try {
+    await rig.assetStore.addAsset({
+      patientId: 'pat-drive-1',
+      sourceSystem: 'drive',
+      sourceRecordId: 'asset-1',
+      originalDriveFileId: 'drive-photo-1',
+      originalDrivePath: 'Hair TP Clinic 2024/Bokade/Maj/Anna/foto.jpg',
+      originalFileName: 'foto.jpg',
+      mimeType: 'image/jpeg',
+      category: 'photo_before',
+      status: 'LINK_ONLY_BLOCKER',
+    });
+    const journalPut = await rig.storage.putObject({
+      body: Buffer.from('journal body'),
+      contentType: 'application/pdf',
+      key: '2024/05/hash/journal.pdf',
+    });
+    await rig.assetStore.addAsset({
+      patientId: 'pat-drive-2',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'asset-2',
+      originalDriveFileId: 'drive-journal-1',
+      originalFileName: 'journal.pdf',
+      storageProvider: 'local',
+      storageKey: journalPut.storageKey,
+      checksum: journalPut.checksum,
+      fileSize: journalPut.size,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'IMPORTED_TO_CCO',
+    });
+    const { rows, rowSources } = await collectDriveRowsForInternalization({
+      patientMasterState: { tenants: { 'hair-tp-clinic': { patients: [] } } },
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      tenantId: 'hair-tp-clinic',
+    });
+    assert.equal(rowSources.patientMasterAttachments, 0);
+    assert.equal(rowSources.assetStoreDriveIds, 1);
+    assert.equal(rows.length, 1);
+    assert.equal(normalizeDriveAssetRow(rows[0]).driveFileId, 'drive-photo-1');
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('inventory räknar om saknad blob på disk som remaining trots checksum i index', async () => {
+  const rig = await makeRig();
+  try {
+    await rig.assetStore.addAsset({
+      patientId: 'pat-ghost',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'ghost-1',
+      originalDriveFileId: 'drive-ghost-1',
+      originalFileName: 'ghost.jpg',
+      storageProvider: 'local',
+      storageKey: 'missing/on/disk/ghost.jpg',
+      checksum: 'deadbeef',
+      fileSize: 42,
+      mimeType: 'image/jpeg',
+      category: 'photo_before',
+      status: 'IMPORTED_TO_CCO',
+    });
+    const report = await inventoryDriveAssets({
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      rows: [
+        {
+          patientId: 'pat-ghost',
+          file: { driveFileId: 'drive-ghost-1', fileName: 'ghost.jpg', mimeType: 'image/jpeg' },
+        },
+      ],
+    });
+    assert.equal(report.stats.alreadyInternal, 0);
+    assert.equal(report.stats.remaining, 1);
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });
   }

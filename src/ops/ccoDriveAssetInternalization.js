@@ -126,7 +126,97 @@ function isInternalizedAsset(asset = {}) {
   return true;
 }
 
-function buildExistingAssetIndex(assetStore) {
+async function assetBlobVerifiedOnStorage(asset = {}, storage = null) {
+  if (!isInternalizedAsset(asset)) return false;
+  if (!storage || typeof storage.exists !== 'function') return true;
+  const storageKey = normalizeText(asset.storageKey);
+  if (!storageKey) return false;
+  try {
+    return await storage.exists(storageKey);
+  } catch {
+    return false;
+  }
+}
+
+function collectPatientMasterDriveRows(state = {}, tenantId = 'hair-tp-clinic') {
+  const tenant = state.tenants?.[tenantId];
+  const rows = [];
+  for (const patient of asArray(tenant?.patients)) {
+    const attachments = asArray(patient.drive?.attachments);
+    for (const file of attachments) {
+      rows.push({ patientId: patient.id, file });
+    }
+  }
+  return rows;
+}
+
+async function collectDriveRowsFromAssetStore(
+  assetStore,
+  { storage = null, tenantId = null } = {}
+) {
+  const items =
+    typeof assetStore?.listItemsForEnrichment === 'function'
+      ? assetStore.listItemsForEnrichment(tenantId)
+      : [];
+  const rows = [];
+  for (const asset of asArray(items)) {
+    const driveFileId = normalizeText(asset.originalDriveFileId);
+    if (!driveFileId) continue;
+    const patientId = normalizeText(asset.patientId);
+    if (!patientId || patientId === 'unknown') continue;
+    if (await assetBlobVerifiedOnStorage(asset, storage)) continue;
+    rows.push({
+      patientId,
+      file: {
+        driveFileId,
+        originalDriveFileId: driveFileId,
+        originalDrivePath: asset.originalDrivePath || null,
+        originalFileName: asset.originalFileName || null,
+        mimeType: asset.mimeType || null,
+        sourceRecordId: normalizeText(asset.sourceRecordId) || asset.id,
+        id: asset.id,
+      },
+      documentDate: asset.documentDate || null,
+    });
+  }
+  return rows;
+}
+
+function mergeDriveRows(...sources) {
+  const byDriveFileId = new Map();
+  for (const source of sources) {
+    for (const row of asArray(source)) {
+      const normalized = normalizeDriveAssetRow(row);
+      if (!normalized.driveFileId) continue;
+      if (!byDriveFileId.has(normalized.driveFileId))
+        byDriveFileId.set(normalized.driveFileId, row);
+    }
+  }
+  return Array.from(byDriveFileId.values());
+}
+
+async function collectDriveRowsForInternalization({
+  patientMasterState = null,
+  assetStore = null,
+  storage = null,
+  tenantId = 'hair-tp-clinic',
+} = {}) {
+  const pmRows = patientMasterState
+    ? collectPatientMasterDriveRows(patientMasterState, tenantId)
+    : [];
+  const assetRows = assetStore
+    ? await collectDriveRowsFromAssetStore(assetStore, { storage, tenantId })
+    : [];
+  return {
+    rows: mergeDriveRows(pmRows, assetRows),
+    rowSources: {
+      patientMasterAttachments: pmRows.length,
+      assetStoreDriveIds: assetRows.length,
+    },
+  };
+}
+
+async function buildExistingAssetIndex(assetStore, storage = null) {
   const items =
     typeof assetStore?.listItemsForEnrichment === 'function'
       ? assetStore.listItemsForEnrichment()
@@ -134,7 +224,7 @@ function buildExistingAssetIndex(assetStore) {
   const byDriveFileId = new Map();
   const bySourceRecordId = new Map();
   for (const asset of asArray(items)) {
-    if (!isInternalizedAsset(asset)) continue;
+    if (!(await assetBlobVerifiedOnStorage(asset, storage))) continue;
     const driveFileId = normalizeText(asset.originalDriveFileId);
     const sourceRecordId = normalizeText(asset.sourceRecordId);
     if (driveFileId && !byDriveFileId.has(driveFileId)) byDriveFileId.set(driveFileId, asset);
@@ -155,8 +245,13 @@ function findExistingInternalAsset(row, index) {
   return null;
 }
 
-function inventoryDriveAssets({ rows = [], assetStore = null, sampleSize = 5 } = {}) {
-  const index = buildExistingAssetIndex(assetStore);
+async function inventoryDriveAssets({
+  rows = [],
+  assetStore = null,
+  storage = null,
+  sampleSize = 5,
+} = {}) {
+  const index = await buildExistingAssetIndex(assetStore, storage);
   const seenDrive = new Map();
   const reportRows = asArray(rows).map(normalizeDriveAssetRow);
   const samples = [];
@@ -411,6 +506,7 @@ async function internalizeDriveAssets({
   importRunStore,
   reviewQueueStore,
   pipeline,
+  storage = null,
   driveClient,
   dryRun = true,
   go = false,
@@ -426,7 +522,7 @@ async function internalizeDriveAssets({
   actor = { role: 'system', userId: 'ord-34-drive-internalize', tenantId },
 } = {}) {
   if (!assetStore) throw new Error('assetStore krävs.');
-  const inventory = inventoryDriveAssets({ rows, assetStore, sampleSize });
+  const inventory = await inventoryDriveAssets({ rows, assetStore, storage, sampleSize });
   if (dryRun) return inventory;
   if (!go) throw new Error('commit kräver go=true.');
   if (!importRunStore) throw new Error('importRunStore krävs för commit.');
@@ -554,12 +650,17 @@ async function internalizeDriveAssets({
 }
 
 module.exports = {
+  assetBlobVerifiedOnStorage,
   buildExistingAssetIndex,
+  collectDriveRowsForInternalization,
+  collectDriveRowsFromAssetStore,
+  collectPatientMasterDriveRows,
   findExistingInternalAsset,
   internalizeDriveAssets,
   inventoryDriveAssets,
   isInternalizedAsset,
   maskValue,
+  mergeDriveRows,
   mimeFamily,
   extractMonthFolder,
   normalizeDriveAssetRow,

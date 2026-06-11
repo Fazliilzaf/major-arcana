@@ -9533,7 +9533,10 @@ try {
     requirePermission('asset.import'),
     async (req, res) => {
       try {
-        const { internalizeDriveAssets } = require('./src/ops/ccoDriveAssetInternalization');
+        const {
+          internalizeDriveAssets,
+          collectDriveRowsForInternalization,
+        } = require('./src/ops/ccoDriveAssetInternalization');
         const { createCcoAssetImportPipeline } = require('./src/ops/ccoAssetImportPipeline');
         const {
           getDriveFileMetadata,
@@ -9586,14 +9589,13 @@ try {
         );
         const pmState = JSON.parse(fsI.readFileSync(pmPath, 'utf8'));
         const tenantId = 'hair-tp-clinic';
-        const tenant = pmState.tenants && pmState.tenants[tenantId];
-        const patients = Array.isArray(tenant && tenant.patients) ? tenant.patients : [];
-        const rows = [];
-        for (const p of patients) {
-          const atts = Array.isArray(p.drive && p.drive.attachments) ? p.drive.attachments : [];
-          for (const file of atts) rows.push({ patientId: p.id, file });
-        }
         const stores = await ensureAssetStores();
+        const { rows, rowSources } = await collectDriveRowsForInternalization({
+          patientMasterState: pmState,
+          assetStore: stores.assetStore,
+          storage: stores.secureStorage,
+          tenantId,
+        });
         const pipeline = createCcoAssetImportPipeline({
           assetStore: stores.assetStore,
           importRunStore: stores.importRunStore,
@@ -9610,6 +9612,7 @@ try {
           importRunStore: stores.importRunStore,
           reviewQueueStore: stores.reviewQueueStore,
           pipeline,
+          storage: stores.secureStorage,
           driveClient,
           dryRun: !commit,
           go: commit,
@@ -9621,7 +9624,12 @@ try {
         });
         invalidateAssetQaCache();
         if (report) delete report.remainingRows;
-        res.json({ rowsCollected: rows.length, driveSa: cfg.serviceAccountEmail, report });
+        res.json({
+          rowsCollected: rows.length,
+          rowSources: { ...rowSources, mergedUnique: rows.length },
+          driveSa: cfg.serviceAccountEmail,
+          report,
+        });
       } catch (err) {
         res.status(500).json({
           error: err.message,
@@ -9653,7 +9661,10 @@ try {
   };
   async function __runDriveIngestLoop({ chunk, concurrency }) {
     try {
-      const { internalizeDriveAssets } = require('./src/ops/ccoDriveAssetInternalization');
+      const {
+        internalizeDriveAssets,
+        collectDriveRowsForInternalization,
+      } = require('./src/ops/ccoDriveAssetInternalization');
       const { createCcoAssetImportPipeline } = require('./src/ops/ccoAssetImportPipeline');
       const {
         getDriveFileMetadata,
@@ -9706,15 +9717,14 @@ try {
       );
       const pmState = JSON.parse(fsI.readFileSync(pmPath, 'utf8'));
       const tenantId = 'hair-tp-clinic';
-      const tenant = pmState.tenants && pmState.tenants[tenantId];
-      const patients = Array.isArray(tenant && tenant.patients) ? tenant.patients : [];
-      const rows = [];
-      for (const p of patients) {
-        const atts = Array.isArray(p.drive && p.drive.attachments) ? p.drive.attachments : [];
-        for (const file of atts) rows.push({ patientId: p.id, file });
-      }
-      __ingestState.totalRows = rows.length;
       const stores = await ensureAssetStores();
+      const { rows } = await collectDriveRowsForInternalization({
+        patientMasterState: pmState,
+        assetStore: stores.assetStore,
+        storage: stores.secureStorage,
+        tenantId,
+      });
+      __ingestState.totalRows = rows.length;
       const pipeline = createCcoAssetImportPipeline({
         assetStore: stores.assetStore,
         importRunStore: stores.importRunStore,
@@ -9732,6 +9742,7 @@ try {
           importRunStore: stores.importRunStore,
           reviewQueueStore: stores.reviewQueueStore,
           pipeline,
+          storage: stores.secureStorage,
           driveClient,
           dryRun: false,
           go: true,

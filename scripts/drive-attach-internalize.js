@@ -17,6 +17,7 @@ const { createSecureStorageProvider } = require('../src/ops/ccoSecureStorageProv
 const { getDriveFileMetadata, loadServiceAccountFromEnv } = require('../src/lib/googleDriveClient');
 const { getAccessToken, openDriveFileReadStream } = require('./migration/lib/googleDriveApi');
 const {
+  collectPatientMasterDriveRows,
   internalizeDriveAssets,
   inventoryDriveAssets,
   maskValue,
@@ -75,18 +76,6 @@ function parseArgs(argv) {
 
 async function readJson(filePath) {
   return JSON.parse(await fs.readFile(filePath, 'utf8'));
-}
-
-function collectPatientMasterDriveRows(state, tenantId = 'hair-tp-clinic') {
-  const tenant = state.tenants?.[tenantId];
-  const rows = [];
-  for (const patient of Array.isArray(tenant?.patients) ? tenant.patients : []) {
-    const attachments = Array.isArray(patient.drive?.attachments) ? patient.drive.attachments : [];
-    for (const file of attachments) {
-      rows.push({ patientId: patient.id, file });
-    }
-  }
-  return rows;
 }
 
 function collectMigrationIndexRows(phase) {
@@ -196,7 +185,7 @@ async function main() {
   let result;
   let operationalRemainingRows = [];
   if (args.dryRun && !args.verifyDriveAccess) {
-    result = inventoryDriveAssets({ rows, assetStore, sampleSize: args.sampleSize });
+    result = await inventoryDriveAssets({ rows, assetStore, sampleSize: args.sampleSize });
     operationalRemainingRows = result.remainingRows || [];
   } else {
     const driveClient = createDriveClientFromEnv();
