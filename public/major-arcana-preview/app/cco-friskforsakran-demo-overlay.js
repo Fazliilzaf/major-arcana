@@ -23,17 +23,7 @@
         <strong>Vad signerar du?</strong> Att du bekräftar dina svar nedan stämmer, att du varit ärlig om hälsotillstånd, mediciner och allergier, och att informationen får sparas i din patientjournal hos Hair TP Clinic i 10 år enligt journallagen.
       </div>
 
-      <div class="field">
-        <label for="patientName">Ditt namn</label>
-        <input type="text" id="patientName" autocomplete="name" placeholder="För- och efternamn">
-      </div>
-
-      <div class="field">
-        <label for="patientId">Personnummer (ÅÅÅÅMMDD-XXXX)</label>
-        <input type="text" id="patientId" autocomplete="off" placeholder="19800101-1234" pattern="\\d{8}-?\\d{4}">
-      </div>
-
-      <h2 style="margin-top:18px">Hälsofrågor</h2>
+      <h2>Hälsofrågor</h2>
 
       <div class="checks">
         <label class="check"><input type="checkbox" id="q1"> <span>Jag har <strong>inga</strong> hjärtsjukdomar, blödarsjukdomar eller okontrollerad blodtryck. <em>(Om du har, kontakta oss separat.)</em></span></label>
@@ -191,12 +181,8 @@
     if (signedPanel) signedPanel.hidden = false;
   }
 
-  function bindOverlay(root, context) {
+  function bindOverlay(root) {
     const modal = root.querySelector('.demo-modal');
-    const patientNameInput = root.querySelector('#patientName');
-    if (patientNameInput && context.patientName) {
-      patientNameInput.value = context.patientName;
-    }
 
     root.querySelector('#cancelBtn')?.addEventListener('click', () => {
       unmount(true);
@@ -225,7 +211,7 @@
     document.addEventListener('keydown', keyHandler);
 
     window.setTimeout(() => {
-      modal?.querySelector('#patientName')?.focus({ preventScroll: true });
+      modal?.querySelector('#q1')?.focus({ preventScroll: true });
     }, 0);
   }
 
@@ -246,7 +232,7 @@
         ${FORM_HTML}
       </div>`;
     document.body.appendChild(root);
-    bindOverlay(root, context);
+    bindOverlay(root);
     try {
       sessionStorage.removeItem(DISMISS_KEY);
     } catch {
