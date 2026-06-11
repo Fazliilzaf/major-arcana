@@ -50,11 +50,12 @@
     'Svenskt ID-kort (utfärdat av Skatteverket)',
   ];
 
-  function ynField(id, label, withText) {
-    const textBlock = withText
+  function ynField(id, label, textConfig) {
+    const textBlock = textConfig
       ? `
-          <div class="field mq-follow" id="${id}TextWrap" hidden>
-            <textarea id="${id}Text" rows="3" placeholder="Beskriv här"></textarea>
+          <div class="field mq-follow" id="${id}TextWrap">
+            <label class="mq-text-label" for="${id}Text">${escapeHtml(textConfig.hint)}</label>
+            <textarea id="${id}Text" rows="3" placeholder="${escapeAttr(textConfig.placeholder)}"></textarea>
           </div>`
       : '';
     return `
@@ -124,38 +125,55 @@
       ${ynField(
         'f450969',
         'Har du någon annan sjukdom eller något annat medicinskt tillstånd som inte nämnts ovan?  Om ja, beskriv vilket/vilka.',
-        true
+        {
+          hint: 'Om ja, beskriv vilket/vilka:',
+          placeholder: 'Beskriv sjukdom eller tillstånd',
+        }
       )}
       ${ynField(
         'f450970',
         'Upplever du att du, så vitt du vet, är vid god hälsa och saknar sjukdomar eller tillstånd som kan innebära ökade risker vid behandlingen?',
-        true
+        {
+          hint: 'Om nej, beskriv:',
+          placeholder: 'Beskriv hälsotillstånd eller risker',
+        }
       )}
       ${ynField(
         'f450971',
         'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, blodförtunnande läkemedel (t.ex. Warfarin, NOAK eller ASA)? Om ja, ange vilket/vilka:',
-        true
+        {
+          hint: 'Om ja, ange vilket/vilka:',
+          placeholder: 'T.ex. Warfarin, Xarelto, ASA — dosering',
+        }
       )}
       ${ynField(
         'f450972',
         'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, några läkemedel? Om ja, ange läkemedlets namn, dosering och orsak:',
-        true
+        {
+          hint: 'Om ja, ange läkemedlets namn, dosering och orsak:',
+          placeholder: 'Läkemedelsnamn, dosering och orsak',
+        }
       )}
       ${ynField(
         'f450973',
         'Har du några kända allergier, till exempel mot latex, desinfektionsmedel eller födoämnen? Om ja ange vad/vilka eller läkemedlets namn',
-        true
+        {
+          hint: 'Om ja, ange vad/vilka:',
+          placeholder: 'T.ex. latex, desinfektionsmedel, födoämnen',
+        }
       )}
       ${ynField(
         'f450974',
         'Har du några kända allergier mot läkemedel ex antibiotika eller lokalbedövning? Om ja ange vad/vilka eller läkemedlets namn',
-        true
+        {
+          hint: 'Om ja, ange vad/vilka eller läkemedlets namn:',
+          placeholder: 'T.ex. penicillin, lidokain',
+        }
       )}
-      ${ynField(
-        'f450975',
-        'Har du tidigare fått komplikation vid narkos eller lokalbedövning?',
-        true
-      )}
+      ${ynField('f450975', 'Har du tidigare fått komplikation vid narkos eller lokalbedövning?', {
+        hint: 'Om ja, beskriv komplikationen:',
+        placeholder: 'Beskriv vad som hände',
+      })}
       ${ynField(
         'f451843',
         'Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?',
@@ -217,7 +235,8 @@
 #${ROOT_ID} .field input,#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-select{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
 #${ROOT_ID} .field input:focus,#${ROOT_ID} .field textarea:focus,#${ROOT_ID} .mq-select:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
 #${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:72px;resize:vertical}
-#${ROOT_ID} .mq-follow{margin-top:8px;margin-bottom:0}
+#${ROOT_ID} .mq-follow{margin-top:10px;margin-bottom:0}
+#${ROOT_ID} .mq-text-label{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:5px}
 #${ROOT_ID} .checks{display:flex;flex-direction:column;gap:8px}
 #${ROOT_ID} .mq-attest .check span{font-size:11.5px}
 #${ROOT_ID} .check{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
@@ -374,20 +393,6 @@
     return null;
   }
 
-  function bindYnFields(root) {
-    root.querySelectorAll('input[data-yn]').forEach((radio) => {
-      radio.addEventListener('change', () => {
-        const fieldId = radio.getAttribute('data-yn');
-        const wrap = root.querySelector(`#${fieldId}TextWrap`);
-        if (!wrap) return;
-        const yn = selectedYn(root, fieldId);
-        // 450970: förklaring vid Nej; övriga yes_no_textbox: text vid Ja
-        if (fieldId === 'f450970') wrap.hidden = yn !== 'no';
-        else wrap.hidden = yn !== 'yes';
-      });
-    });
-  }
-
   function bindDiseaseExclusivity(root) {
     const boxes = Array.from(root.querySelectorAll('input[name="f450968"]'));
     const noneIdx = DISEASE_OPTIONS.length - 1;
@@ -430,7 +435,6 @@
   }
 
   function bindOverlay(root) {
-    bindYnFields(root);
     bindDiseaseExclusivity(root);
 
     root.querySelector('#cancelBtn')?.addEventListener('click', () => {
