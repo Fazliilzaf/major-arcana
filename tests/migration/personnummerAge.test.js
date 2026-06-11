@@ -32,3 +32,13 @@ test('computeAgeYearsFromPersonnummer: ogiltigt personnummer → null', () => {
   assert.equal(computeAgeYearsFromPersonnummer(''), null);
   assert.equal(computeAgeYearsFromPersonnummer('abc'), null);
 });
+
+test('computeAgeYearsFromPersonnummer: spädbarn (0 år) → null för UI', () => {
+  const age = computeAgeYearsFromPersonnummer('250615-1234', new Date('2026-06-11T12:00:00Z'));
+  assert.equal(age, null);
+});
+
+test('resolveBirthYyyymmddDigits: YY27–36 tolkas som 1900-tal i 2026', () => {
+  assert.equal(resolveBirthYyyymmddDigits('270615-1234'), '19270615');
+  assert.equal(resolveBirthYyyymmddDigits('360615-1234'), '19360615');
+});

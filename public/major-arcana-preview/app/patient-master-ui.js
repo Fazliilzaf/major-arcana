@@ -4008,9 +4008,13 @@
   }
 
   function inferBirthYearFromPersonnummerYy(yy) {
-    const nowY = new Date().getFullYear();
-    const currentYy = nowY % 100;
-    return yy > currentYy + 10 ? 1900 + yy : 2000 + yy;
+    const refYear = new Date().getFullYear();
+    const currentYy = refYear % 100;
+    const y1900 = 1900 + yy;
+    const y2000 = 2000 + yy;
+    if (yy > currentYy) return y1900;
+    if (y2000 > refYear) return y1900;
+    return y2000;
   }
 
   function isPlausiblePersonnummerBirthYyyymmdd(yyyymmdd) {
@@ -4048,10 +4052,7 @@
     return '';
   }
 
-  function resolvePatientAgeYears(card) {
-    const fromApi = Number(card?.ageYears);
-    if (Number.isFinite(fromApi) && fromApi >= 0 && fromApi <= 120) return fromApi;
-    const yyyymmdd = resolveBirthYyyymmddFromPersonnummer(card?.personnummer);
+  function computeAgeYearsFromBirthYyyymmdd(yyyymmdd) {
     if (!yyyymmdd) return null;
     const birthYear = Number(yyyymmdd.slice(0, 4));
     const birthMonth = Number(yyyymmdd.slice(4, 6));
@@ -4062,7 +4063,23 @@
     const month = now.getMonth() + 1;
     const day = now.getDate();
     if (month < birthMonth || (month === birthMonth && day < birthDay)) age -= 1;
-    return age >= 0 && age <= 120 ? age : null;
+    return age > 0 && age <= 120 ? age : null;
+  }
+
+  function resolvePatientAgeYears(card) {
+    const pnrAge = computeAgeYearsFromBirthYyyymmdd(
+      resolveBirthYyyymmddFromPersonnummer(card?.personnummer)
+    );
+    const raw = card?.ageYears;
+    // Number(null) === 0 — saknat pnr får inte bli "0 år".
+    if (raw != null && raw !== '') {
+      const fromApi = Number(raw);
+      if (Number.isFinite(fromApi) && fromApi > 0 && fromApi <= 120) {
+        if (pnrAge == null || Math.abs(fromApi - pnrAge) <= 1) return fromApi;
+        return pnrAge;
+      }
+    }
+    return pnrAge;
   }
 
   function formatV9ListDateTime(iso) {

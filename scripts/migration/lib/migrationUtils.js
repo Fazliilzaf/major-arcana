@@ -128,11 +128,16 @@ function isPlausiblePersonnummerDate(yyyymmdd) {
   return Number.isInteger(day) && day >= 1 && day <= 31;
 }
 
-function inferFullYearFromYy(yy) {
-  const now = new Date().getFullYear();
-  const currentYy = now % 100;
-  const century = yy > currentYy + 10 ? 1900 : 2000;
-  return century + yy;
+function inferFullYearFromYy(yy, refDate = new Date()) {
+  const refYear = refDate.getFullYear();
+  const currentYy = refYear % 100;
+  const y1900 = 1900 + yy;
+  const y2000 = 2000 + yy;
+  // Svensk 10-siffrig regel: YY > innevarande års två sista → 1900-tal.
+  if (yy > currentYy) return y1900;
+  // Födelseår får inte ligga i framtiden.
+  if (y2000 > refYear) return y1900;
+  return y2000;
 }
 
 function resolveBirthYyyymmddDigits(value) {
@@ -175,7 +180,8 @@ function computeAgeYearsFromPersonnummer(value, refDate = new Date()) {
   const month = ref.getMonth() + 1;
   const day = ref.getDate();
   if (month < birthMonth || (month === birthMonth && day < birthDay)) age -= 1;
-  return age >= 0 && age <= 120 ? age : null;
+  // 0 år döljs i UI — saknat/ogiltigt pnr ska inte visas som spädbarn.
+  return age > 0 && age <= 120 ? age : null;
 }
 
 function normalizePersonnummer(value) {
