@@ -1919,20 +1919,20 @@ let ccoBookingCaseStore = null;
     app.get('/api/v1/cco-cf/dashboard', attachRole, requireAnyRole(cfRBAC), async (req, res) => {
       try {
         const actor = cfGetActor(req);
-        const { buildFinanceDashboard } = require('./src/ops/ccoFinanceDashboardBuilder');
+        const { buildFinanceDashboard } = require('./src/cfo/cfoFinanceDashboardBuilder');
         const dashboard = await buildFinanceDashboard({
           stores: {
-            fortnoxStore: app.locals.ccoFortnoxStore,
+            fortnoxStore: app.locals.cfoFortnoxStore,
             swishStore: app.locals.ccoSwishStore,
             commercialStore: app.locals.ccoCommercialStore,
-            receiptStore: app.locals.ccoReceiptStore,
-            expenseStore: app.locals.ccoExpenseStore, // CF.3
-            ruleStore: app.locals.ccoExpenseRuleStore, // CF.4
-            vendorStore: app.locals.ccoFinanceVendorStore, // CF.5
-            recurringStore: app.locals.ccoRecurringExpenseStore, // CF.7
-            reviewStore: app.locals.ccoFinanceReviewStore, // CF.8
-            monthlyCloseStore: app.locals.ccoFinanceMonthlyCloseStore, // CF.9
-            fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister,
+            receiptStore: app.locals.cfoReceiptStore,
+            expenseStore: app.locals.cfoExpenseStore, // CF.3
+            ruleStore: app.locals.cfoExpenseRuleStore, // CF.4
+            vendorStore: app.locals.cfoFinanceVendorStore, // CF.5
+            recurringStore: app.locals.cfoRecurringExpenseStore, // CF.7
+            reviewStore: app.locals.cfoFinanceReviewStore, // CF.8
+            monthlyCloseStore: app.locals.cfoFinanceMonthlyCloseStore, // CF.9
+            fortnoxInvoiceLister: app.locals.cfoFortnoxInvoiceLister,
           },
           tenantId: actor.tenantId || 'hair_tp',
         });
@@ -1955,7 +1955,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/receipts?status=&limit=
     app.get('/api/v1/cco-cf/receipts', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const store = app.locals.ccoReceiptStore;
+        const store = app.locals.cfoReceiptStore;
         if (!store) return res.status(503).json({ error: 'receipt store not ready' });
         const status = req.query.status || null;
         const sourceSystem = req.query.sourceSystem || null;
@@ -1972,7 +1972,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/receipts/:id
     app.get('/api/v1/cco-cf/receipts/:id', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const store = app.locals.ccoReceiptStore;
+        const store = app.locals.cfoReceiptStore;
         if (!store) return res.status(503).json({ error: 'receipt store not ready' });
         const r = store.getById(req.params.id);
         if (!r) return res.status(404).json({ error: 'not found' });
@@ -1995,7 +1995,7 @@ let ccoBookingCaseStore = null;
       cfReceiptUpload.single('file'),
       async (req, res) => {
         try {
-          const store = app.locals.ccoReceiptStore;
+          const store = app.locals.cfoReceiptStore;
           if (!store) return res.status(503).json({ error: 'receipt store not ready' });
           if (!req.file)
             return res.status(400).json({ error: 'file krävs (multipart/form-data field: file)' });
@@ -2036,7 +2036,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoReceiptStore;
+          const store = app.locals.cfoReceiptStore;
           if (!store) return res.status(503).json({ error: 'receipt store not ready' });
           const actor = cfGetActor(req); // CF.2-fix BUG-2
           const r = await store.updateReceipt({ id: req.params.id, patch: req.body || {}, actor });
@@ -2055,7 +2055,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoReceiptStore;
+          const store = app.locals.cfoReceiptStore;
           if (!store) return res.status(503).json({ error: 'receipt store not ready' });
           const actor = cfGetActor(req); // CF.2-fix BUG-2
           const r = await store.transitionStatus({
@@ -2078,7 +2078,7 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfRBAC),
       async (req, res) => {
         try {
-          const store = app.locals.ccoReceiptStore;
+          const store = app.locals.cfoReceiptStore;
           if (!store) return res.status(503).json({ error: 'receipt store not ready' });
           const r = store.getById(req.params.id);
           if (!r) return res.status(404).json({ error: 'not found' });
@@ -2125,7 +2125,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/expenses — lista + filter
     app.get('/api/v1/cco-cf/expenses', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const store = app.locals.ccoExpenseStore;
+        const store = app.locals.cfoExpenseStore;
         if (!store) return res.status(503).json({ error: 'expense store not ready' });
         const limit = Math.max(1, Math.min(1000, parseInt(req.query.limit, 10) || 200));
         const list = store.listExpenses({
@@ -2150,7 +2150,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/expenses/:id
     app.get('/api/v1/cco-cf/expenses/:id', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const store = app.locals.ccoExpenseStore;
+        const store = app.locals.cfoExpenseStore;
         if (!store) return res.status(503).json({ error: 'expense store not ready' });
         const e = store.getById(req.params.id);
         if (!e) return res.status(404).json({ error: 'not found' });
@@ -2168,7 +2168,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoExpenseStore;
+          const store = app.locals.cfoExpenseStore;
           if (!store) return res.status(503).json({ error: 'expense store not ready' });
           const actor = cfGetActor(req);
           const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -2192,7 +2192,7 @@ let ccoBookingCaseStore = null;
           });
 
           // CF.5: vendor-match först — länka supplierId + recordMatched
-          const vendorStore = app.locals.ccoFinanceVendorStore;
+          const vendorStore = app.locals.cfoFinanceVendorStore;
           let matchedVendor = null;
           if (vendorStore && expense.supplier && !expense.supplierId) {
             try {
@@ -2219,7 +2219,7 @@ let ccoBookingCaseStore = null;
           }
 
           // CF.4: kör rule engine om expense saknar category — föreslå utan att applicera.
-          const ruleStore = app.locals.ccoExpenseRuleStore;
+          const ruleStore = app.locals.cfoExpenseRuleStore;
           if (ruleStore && !expense.category) {
             try {
               const rules = ruleStore.listRules({ enabled: true, limit: 500 });
@@ -2287,7 +2287,7 @@ let ccoBookingCaseStore = null;
           }
 
           // CF.7: match mot active recurring-mallar → länka + audit + anomalies
-          const recStore = app.locals.ccoRecurringExpenseStore;
+          const recStore = app.locals.cfoRecurringExpenseStore;
           if (recStore && expense.supplier) {
             try {
               const match = recStore.findMatchingRecurring(expense);
@@ -2323,7 +2323,7 @@ let ccoBookingCaseStore = null;
           // CF.6: VAT-suggestion baserat på category + supplierId-defaults + vatRatePercent
           if (!expense.vatMode) {
             try {
-              const { suggestVatMode } = require('./src/ops/ccoExpenseVatRules');
+              const { suggestVatMode } = require('./src/cfo/cfoExpenseVatRules');
               const sug = suggestVatMode({
                 category: expense.category,
                 vatRatePercent: expense.vatRatePercent,
@@ -2357,10 +2357,10 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoExpenseStore;
+          const store = app.locals.cfoExpenseStore;
           if (!store) return res.status(503).json({ error: 'expense store not ready' });
           // CF.9: blockera mutation om expense.date faller i en stängd period
-          const closeStore = app.locals.ccoFinanceMonthlyCloseStore;
+          const closeStore = app.locals.cfoFinanceMonthlyCloseStore;
           const existing = store.getById?.(req.params.id);
           if (closeStore && existing?.date && closeStore.isDateInLockedPeriod(existing.date)) {
             return res.status(423).json({
@@ -2389,7 +2389,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoExpenseStore;
+          const store = app.locals.cfoExpenseStore;
           if (!store) return res.status(503).json({ error: 'expense store not ready' });
           const actor = cfGetActor(req);
           const expense = await store.transitionStatus({
@@ -2413,7 +2413,7 @@ let ccoBookingCaseStore = null;
       cfExpenseUpload.single('file'),
       async (req, res) => {
         try {
-          const store = app.locals.ccoExpenseStore;
+          const store = app.locals.cfoExpenseStore;
           if (!store) return res.status(503).json({ error: 'expense store not ready' });
           if (!req.file) return res.status(400).json({ error: 'file krävs' });
           const actor = cfGetActor(req);
@@ -2439,13 +2439,13 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoExpenseStore;
+          const store = app.locals.cfoExpenseStore;
           const secure = app.locals.ccoSecureStorage;
           if (!store) return res.status(503).json({ error: 'expense store not ready' });
           if (!secure?.putObject)
             return res.status(503).json({ error: 'secure storage not ready' });
           const actor = cfGetActor(req);
-          const { buildExpenseExportPackage } = require('./src/ops/ccoExpenseExporter');
+          const { buildExpenseExportPackage } = require('./src/cfo/cfoExpenseExporter');
           const result = await buildExpenseExportPackage({
             expenseStore: store,
             secureStorage: secure,
@@ -2527,7 +2527,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/rules — lista
     app.get('/api/v1/cco-cf/rules', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const rs = app.locals.ccoExpenseRuleStore;
+        const rs = app.locals.cfoExpenseRuleStore;
         if (!rs) return res.status(503).json({ error: 'rule store not ready' });
         const enabled =
           req.query.enabled === 'true' ? true : req.query.enabled === 'false' ? false : undefined;
@@ -2547,7 +2547,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/rules/:id
     app.get('/api/v1/cco-cf/rules/:id', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const rs = app.locals.ccoExpenseRuleStore;
+        const rs = app.locals.cfoExpenseRuleStore;
         if (!rs) return res.status(503).json({ error: 'rule store not ready' });
         const r = rs.getById(req.params.id);
         if (!r) return res.status(404).json({ error: 'not found' });
@@ -2565,7 +2565,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const rs = app.locals.ccoExpenseRuleStore;
+          const rs = app.locals.cfoExpenseRuleStore;
           if (!rs) return res.status(503).json({ error: 'rule store not ready' });
           const rule = await rs.createRule({ actor: cfGetActor(req), input: req.body || {} });
           res.json({ ok: true, rule });
@@ -2583,7 +2583,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const rs = app.locals.ccoExpenseRuleStore;
+          const rs = app.locals.cfoExpenseRuleStore;
           if (!rs) return res.status(503).json({ error: 'rule store not ready' });
           const rule = await rs.updateRule({
             id: req.params.id,
@@ -2604,7 +2604,7 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfMutateRBAC),
       async (req, res) => {
         try {
-          const rs = app.locals.ccoExpenseRuleStore;
+          const rs = app.locals.cfoExpenseRuleStore;
           if (!rs) return res.status(503).json({ error: 'rule store not ready' });
           const out = await rs.deleteRule({ id: req.params.id, actor: cfGetActor(req) });
           res.json(out);
@@ -2622,8 +2622,8 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const rs = app.locals.ccoExpenseRuleStore;
-          const exStore = app.locals.ccoExpenseStore;
+          const rs = app.locals.cfoExpenseRuleStore;
+          const exStore = app.locals.cfoExpenseStore;
           if (!rs) return res.status(503).json({ error: 'rule store not ready' });
           const body = req.body && typeof req.body === 'object' ? req.body : {};
           const rules = rs.listRules({ enabled: true, limit: 500 });
@@ -2655,9 +2655,9 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
-          const ruleStore = app.locals.ccoExpenseRuleStore;
-          const vendorStore = app.locals.ccoFinanceVendorStore;
+          const exStore = app.locals.cfoExpenseStore;
+          const ruleStore = app.locals.cfoExpenseRuleStore;
+          const vendorStore = app.locals.cfoFinanceVendorStore;
           if (!exStore) return res.status(503).json({ error: 'expense store not ready' });
           const actor = cfGetActor(req);
           // Snappa upp suggestion innan approve, för att veta vendor-koppling
@@ -2708,8 +2708,8 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
-          const ruleStore = app.locals.ccoExpenseRuleStore;
+          const exStore = app.locals.cfoExpenseStore;
+          const ruleStore = app.locals.cfoExpenseRuleStore;
           if (!exStore) return res.status(503).json({ error: 'expense store not ready' });
           const actor = cfGetActor(req);
           const expense = await exStore.rejectSuggestion({
@@ -2742,8 +2742,8 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
-          const ruleStore = app.locals.ccoExpenseRuleStore;
+          const exStore = app.locals.cfoExpenseStore;
+          const ruleStore = app.locals.cfoExpenseRuleStore;
           if (!exStore || !ruleStore) return res.status(503).json({ error: 'stores not ready' });
           const e = exStore.getById(req.params.id);
           if (!e) return res.status(404).json({ error: 'expense finns ej' });
@@ -2779,7 +2779,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/suppliers — lista med filter
     app.get('/api/v1/cco-cf/suppliers', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const vs = app.locals.ccoFinanceVendorStore;
+        const vs = app.locals.cfoFinanceVendorStore;
         if (!vs) return res.status(503).json({ error: 'vendor store not ready' });
         const active =
           req.query.active === 'true' ? true : req.query.active === 'false' ? false : undefined;
@@ -2800,7 +2800,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/suppliers/:id
     app.get('/api/v1/cco-cf/suppliers/:id', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const vs = app.locals.ccoFinanceVendorStore;
+        const vs = app.locals.cfoFinanceVendorStore;
         if (!vs) return res.status(503).json({ error: 'vendor store not ready' });
         const v = vs.getById(req.params.id);
         if (!v) return res.status(404).json({ error: 'not found' });
@@ -2818,7 +2818,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const vs = app.locals.ccoFinanceVendorStore;
+          const vs = app.locals.cfoFinanceVendorStore;
           if (!vs) return res.status(503).json({ error: 'vendor store not ready' });
           const vendor = await vs.createVendor({ actor: cfGetActor(req), input: req.body || {} });
           res.json({ ok: true, vendor });
@@ -2836,7 +2836,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const vs = app.locals.ccoFinanceVendorStore;
+          const vs = app.locals.cfoFinanceVendorStore;
           if (!vs) return res.status(503).json({ error: 'vendor store not ready' });
           const vendor = await vs.updateVendor({
             id: req.params.id,
@@ -2858,7 +2858,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const vs = app.locals.ccoFinanceVendorStore;
+          const vs = app.locals.cfoFinanceVendorStore;
           if (!vs) return res.status(503).json({ error: 'vendor store not ready' });
           const vendor = await vs.deactivateVendor({
             id: req.params.id,
@@ -2879,7 +2879,7 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfMutateRBAC),
       async (req, res) => {
         try {
-          const vs = app.locals.ccoFinanceVendorStore;
+          const vs = app.locals.cfoFinanceVendorStore;
           if (!vs) return res.status(503).json({ error: 'vendor store not ready' });
           const vendor = await vs.activateVendor({ id: req.params.id, actor: cfGetActor(req) });
           res.json({ ok: true, vendor });
@@ -2897,7 +2897,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const vs = app.locals.ccoFinanceVendorStore;
+          const vs = app.locals.cfoFinanceVendorStore;
           if (!vs) return res.status(503).json({ error: 'vendor store not ready' });
           const sup = req.body?.supplier;
           if (!sup) return res.status(400).json({ error: 'supplier krävs' });
@@ -2917,8 +2917,8 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
-          const vendorStore = app.locals.ccoFinanceVendorStore;
+          const exStore = app.locals.cfoExpenseStore;
+          const vendorStore = app.locals.cfoFinanceVendorStore;
           if (!exStore) return res.status(503).json({ error: 'expense store not ready' });
           const supplierId = req.body?.supplierId;
           if (!supplierId) return res.status(400).json({ error: 'supplierId krävs' });
@@ -2956,8 +2956,8 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const vs = app.locals.ccoFinanceVendorStore;
-          const ruleStore = app.locals.ccoExpenseRuleStore;
+          const vs = app.locals.cfoFinanceVendorStore;
+          const ruleStore = app.locals.cfoExpenseRuleStore;
           if (!vs) return res.status(503).json({ error: 'vendor store not ready' });
           const ruleId = req.body?.ruleId;
           if (!ruleId) return res.status(400).json({ error: 'ruleId krävs' });
@@ -2981,7 +2981,7 @@ let ccoBookingCaseStore = null;
           VALID_VAT_MODES,
           VAT_MODE_LABELS,
           CATEGORY_DEFAULT_VAT_MODE,
-        } = require('./src/ops/ccoExpenseVatRules');
+        } = require('./src/cfo/cfoExpenseVatRules');
         res.json({
           ok: true,
           modes: VALID_VAT_MODES,
@@ -3001,7 +3001,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
+          const exStore = app.locals.cfoExpenseStore;
           if (!exStore) return res.status(503).json({ error: 'expense store not ready' });
           const actor = cfGetActor(req);
           const expense = await exStore.setVatMode({
@@ -3025,11 +3025,11 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfMutateRBAC),
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
+          const exStore = app.locals.cfoExpenseStore;
           if (!exStore) return res.status(503).json({ error: 'expense store not ready' });
           const e = exStore.getById(req.params.id);
           if (!e) return res.status(404).json({ error: 'expense finns ej' });
-          const { suggestVatMode } = require('./src/ops/ccoExpenseVatRules');
+          const { suggestVatMode } = require('./src/cfo/cfoExpenseVatRules');
           const sug = suggestVatMode({
             category: e.category,
             vatRatePercent: e.vatRatePercent,
@@ -3053,7 +3053,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/recurring — lista
     app.get('/api/v1/cco-cf/recurring', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const rs = app.locals.ccoRecurringExpenseStore;
+        const rs = app.locals.cfoRecurringExpenseStore;
         if (!rs) return res.status(503).json({ error: 'recurring store not ready' });
         const list = rs.listRecurrings({
           status: req.query.status || null,
@@ -3072,7 +3072,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/recurring/:id
     app.get('/api/v1/cco-cf/recurring/:id', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const rs = app.locals.ccoRecurringExpenseStore;
+        const rs = app.locals.cfoRecurringExpenseStore;
         if (!rs) return res.status(503).json({ error: 'recurring store not ready' });
         const r = rs.getById(req.params.id);
         if (!r) return res.status(404).json({ error: 'not found' });
@@ -3090,7 +3090,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const rs = app.locals.ccoRecurringExpenseStore;
+          const rs = app.locals.cfoRecurringExpenseStore;
           if (!rs) return res.status(503).json({ error: 'recurring store not ready' });
           const r = await rs.createRecurring({ actor: cfGetActor(req), input: req.body || {} });
           res.json({ ok: true, recurring: r });
@@ -3108,7 +3108,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const rs = app.locals.ccoRecurringExpenseStore;
+          const rs = app.locals.cfoRecurringExpenseStore;
           if (!rs) return res.status(503).json({ error: 'recurring store not ready' });
           const r = await rs.updateRecurring({
             id: req.params.id,
@@ -3130,7 +3130,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const rs = app.locals.ccoRecurringExpenseStore;
+          const rs = app.locals.cfoRecurringExpenseStore;
           if (!rs) return res.status(503).json({ error: 'recurring store not ready' });
           const r = await rs.transitionStatus({
             id: req.params.id,
@@ -3153,8 +3153,8 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const rs = app.locals.ccoRecurringExpenseStore;
-          const exStore = app.locals.ccoExpenseStore;
+          const rs = app.locals.cfoRecurringExpenseStore;
+          const exStore = app.locals.cfoExpenseStore;
           if (!rs || !exStore) return res.status(503).json({ error: 'stores not ready' });
           const expenses = exStore.listExpenses({ limit: 1000 });
           const existing = rs.listRecurrings({ limit: 1000 });
@@ -3189,8 +3189,8 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
-          const recStore = app.locals.ccoRecurringExpenseStore;
+          const exStore = app.locals.cfoExpenseStore;
+          const recStore = app.locals.cfoRecurringExpenseStore;
           if (!exStore) return res.status(503).json({ error: 'expense store not ready' });
           const recurringId = req.body?.recurringExpenseId;
           if (!recurringId) return res.status(400).json({ error: 'recurringExpenseId krävs' });
@@ -3219,8 +3219,8 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/review/exports — lista alla export-batches m. review-status
     app.get('/api/v1/cco-cf/review/exports', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const exStore = app.locals.ccoExpenseStore;
-        const revStore = app.locals.ccoFinanceReviewStore;
+        const exStore = app.locals.cfoExpenseStore;
+        const revStore = app.locals.cfoFinanceReviewStore;
         if (!exStore || !revStore) return res.status(503).json({ error: 'stores not ready' });
         const batches = exStore.listExportBatches({ limit: 500 });
         const enriched = batches.map((b) => {
@@ -3254,9 +3254,9 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfRBAC),
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
-          const revStore = app.locals.ccoFinanceReviewStore;
-          const receiptStore = app.locals.ccoReceiptStore;
+          const exStore = app.locals.cfoExpenseStore;
+          const revStore = app.locals.cfoFinanceReviewStore;
+          const receiptStore = app.locals.cfoReceiptStore;
           if (!exStore || !revStore) return res.status(503).json({ error: 'stores not ready' });
           const batchId = req.params.batchId;
           const batch = exStore
@@ -3284,7 +3284,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const revStore = app.locals.ccoFinanceReviewStore;
+          const revStore = app.locals.cfoFinanceReviewStore;
           if (!revStore) return res.status(503).json({ error: 'review store not ready' });
           const review = await revStore.setStatus({
             batchId: req.params.batchId,
@@ -3307,7 +3307,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const revStore = app.locals.ccoFinanceReviewStore;
+          const revStore = app.locals.cfoFinanceReviewStore;
           if (!revStore) return res.status(503).json({ error: 'review store not ready' });
           const review = await revStore.addNote({
             batchId: req.params.batchId,
@@ -3328,13 +3328,13 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfRBAC),
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
-          const receiptStore = app.locals.ccoReceiptStore;
-          const revStore = app.locals.ccoFinanceReviewStore;
+          const exStore = app.locals.cfoExpenseStore;
+          const receiptStore = app.locals.cfoReceiptStore;
+          const revStore = app.locals.cfoFinanceReviewStore;
           const secure = app.locals.ccoSecureStorage;
           if (!exStore || !revStore || !secure)
             return res.status(503).json({ error: 'stores not ready' });
-          const { buildReviewPackage } = require('./src/ops/ccoFinanceReviewPackager');
+          const { buildReviewPackage } = require('./src/cfo/cfoFinanceReviewPackager');
           const result = await buildReviewPackage({
             expenseStore: exStore,
             receiptStore,
@@ -3359,7 +3359,7 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfRBAC),
       async (req, res) => {
         try {
-          const revStore = app.locals.ccoFinanceReviewStore;
+          const revStore = app.locals.cfoFinanceReviewStore;
           const secure = app.locals.ccoSecureStorage;
           if (!revStore || !secure?.getObject)
             return res.status(503).json({ error: 'stores not ready' });
@@ -3401,9 +3401,9 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfRBAC),
       async (req, res) => {
         try {
-          const exStore = app.locals.ccoExpenseStore;
-          const receiptStore = app.locals.ccoReceiptStore;
-          const revStore = app.locals.ccoFinanceReviewStore;
+          const exStore = app.locals.cfoExpenseStore;
+          const receiptStore = app.locals.cfoReceiptStore;
+          const revStore = app.locals.cfoFinanceReviewStore;
           const secure = app.locals.ccoSecureStorage;
           if (!exStore || !receiptStore || !revStore || !secure?.getObject)
             return res.status(503).json({ error: 'stores not ready' });
@@ -3451,11 +3451,11 @@ let ccoBookingCaseStore = null;
     const cfOwnerOnlyRBAC = ['owner']; // reopen
 
     function cfBuildReportData() {
-      const expStore = app.locals.ccoExpenseStore;
-      const receiptStore = app.locals.ccoReceiptStore;
-      const vendorStore = app.locals.ccoFinanceVendorStore;
-      const recurringStore = app.locals.ccoRecurringExpenseStore;
-      const reviewStore = app.locals.ccoFinanceReviewStore;
+      const expStore = app.locals.cfoExpenseStore;
+      const receiptStore = app.locals.cfoReceiptStore;
+      const vendorStore = app.locals.cfoFinanceVendorStore;
+      const recurringStore = app.locals.cfoRecurringExpenseStore;
+      const reviewStore = app.locals.cfoFinanceReviewStore;
       return {
         expenses: expStore?.listExpenses?.({ limit: 5000 }) || [],
         receipts: receiptStore?.listReceipts?.({ limit: 5000 }) || [],
@@ -3469,7 +3469,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/reports — lista tillgängliga rapport-typer + meta
     app.get('/api/v1/cco-cf/reports', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const { VALID_REPORT_KINDS } = require('./src/ops/ccoFinanceReportEngine');
+        const { VALID_REPORT_KINDS } = require('./src/cfo/cfoFinanceReportEngine');
         return res.json({
           ok: true,
           availableKinds: VALID_REPORT_KINDS,
@@ -3488,7 +3488,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       (req, res) => {
         try {
-          const { generateReport } = require('./src/ops/ccoFinanceReportEngine');
+          const { generateReport } = require('./src/cfo/cfoFinanceReportEngine');
           const { kind, period } = req.body || {};
           const actor = cfGetActor(req);
           const data = cfBuildReportData();
@@ -3520,7 +3520,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const { buildReportPackage } = require('./src/ops/ccoFinanceReportPackager');
+          const { buildReportPackage } = require('./src/cfo/cfoFinanceReportPackager');
           const secure = app.locals.ccoSecureStorage;
           if (!secure) return res.status(503).json({ error: 'secure storage saknas' });
           const { kind, period } = req.body || {};
@@ -3555,7 +3555,7 @@ let ccoBookingCaseStore = null;
       requireAnyRole(cfRBAC),
       async (req, res) => {
         try {
-          const { downloadFromPackage } = require('./src/ops/ccoFinanceReportPackager');
+          const { downloadFromPackage } = require('./src/cfo/cfoFinanceReportPackager');
           const secure = app.locals.ccoSecureStorage;
           if (!secure) return res.status(503).json({ error: 'secure storage saknas' });
           const { period, kind, packageId, fileKind } = req.params;
@@ -3590,7 +3590,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/periods — lista perioder
     app.get('/api/v1/cco-cf/periods', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const store = app.locals.ccoFinanceMonthlyCloseStore;
+        const store = app.locals.cfoFinanceMonthlyCloseStore;
         if (!store) return res.status(503).json({ error: 'monthly close store not ready' });
         const periods = store.listPeriods({ limit: 100 });
         return res.json({ ok: true, periods, summary: store.summary() });
@@ -3602,17 +3602,17 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-cf/periods/:periodId — detail + checklist
     app.get('/api/v1/cco-cf/periods/:periodId', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
-        const store = app.locals.ccoFinanceMonthlyCloseStore;
+        const store = app.locals.cfoFinanceMonthlyCloseStore;
         if (!store) return res.status(503).json({ error: 'monthly close store not ready' });
         const periodId = req.params.periodId;
         const period = store.getPeriod(periodId) || store.getOrInitPeriod(periodId);
         const checklist = store.evaluateChecklist({
           periodId,
           stores: {
-            expenseStore: app.locals.ccoExpenseStore,
-            receiptStore: app.locals.ccoReceiptStore,
-            recurringStore: app.locals.ccoRecurringExpenseStore,
-            reviewStore: app.locals.ccoFinanceReviewStore,
+            expenseStore: app.locals.cfoExpenseStore,
+            receiptStore: app.locals.cfoReceiptStore,
+            recurringStore: app.locals.cfoRecurringExpenseStore,
+            reviewStore: app.locals.cfoFinanceReviewStore,
           },
         });
         return res.json({ ok: true, period, checklist });
@@ -3630,7 +3630,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoFinanceMonthlyCloseStore;
+          const store = app.locals.cfoFinanceMonthlyCloseStore;
           if (!store) return res.status(503).json({ error: 'monthly close store not ready' });
           const actor = cfGetActor(req);
           const period = await store.startClose({ periodId: req.params.periodId, actor });
@@ -3649,7 +3649,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoFinanceMonthlyCloseStore;
+          const store = app.locals.cfoFinanceMonthlyCloseStore;
           if (!store) return res.status(503).json({ error: 'monthly close store not ready' });
           const actor = cfGetActor(req);
           const period = await store.markReadyForReview({ periodId: req.params.periodId, actor });
@@ -3668,7 +3668,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoFinanceMonthlyCloseStore;
+          const store = app.locals.cfoFinanceMonthlyCloseStore;
           if (!store) return res.status(503).json({ error: 'monthly close store not ready' });
           const actor = cfGetActor(req);
           const reason = String(req.body?.reason || '').trim();
@@ -3693,7 +3693,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoFinanceMonthlyCloseStore;
+          const store = app.locals.cfoFinanceMonthlyCloseStore;
           if (!store) return res.status(503).json({ error: 'monthly close store not ready' });
           const actor = cfGetActor(req);
           const period = await store.approve({ periodId: req.params.periodId, actor });
@@ -3712,7 +3712,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoFinanceMonthlyCloseStore;
+          const store = app.locals.cfoFinanceMonthlyCloseStore;
           if (!store) return res.status(503).json({ error: 'monthly close store not ready' });
           const actor = cfGetActor(req);
           const period = await store.close({ periodId: req.params.periodId, actor });
@@ -3731,7 +3731,7 @@ let ccoBookingCaseStore = null;
       jsonParser,
       async (req, res) => {
         try {
-          const store = app.locals.ccoFinanceMonthlyCloseStore;
+          const store = app.locals.cfoFinanceMonthlyCloseStore;
           if (!store) return res.status(503).json({ error: 'monthly close store not ready' });
           const actor = cfGetActor(req);
           const reason = String(req.body?.reason || '').trim();
@@ -4758,11 +4758,11 @@ let ccoBookingCaseStore = null;
         documentPackageStore: l.ccoOfferDocumentPackageStore || null,
         portalLinkStore: l.ccoSecurePortalLinkStore || null,
         // Sprint 19C.5 — payment-adapter
-        fortnoxStore: l.ccoFortnoxStore || null,
+        fortnoxStore: l.cfoFortnoxStore || null,
         swishStore: l.ccoSwishStore || null,
         commercialStore: l.ccoCommercialStore || null,
         // 19F.5 Fix #2 — Fortnox invoice/payment-lister (cached 60s)
-        fortnoxInvoiceLister: l.ccoFortnoxInvoiceLister || null,
+        fortnoxInvoiceLister: l.cfoFortnoxInvoiceLister || null,
         patientMasterStore: l.ccoPatientMasterStore || null,
         // 19F.4 Fix #1 — encounter-store för 'besok'-sektion
         treatmentEncounterStore: l.ccoTreatmentEncounterStore || null,
@@ -10911,7 +10911,7 @@ const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
-const { createCcoFortnoxStore } = require('./src/ops/ccoFortnoxStore');
+const { createCfoFortnoxStore } = require('./src/cfo/cfoFortnoxStore');
 const { createCcoSwishStore } = require('./src/ops/ccoSwishStore');
 const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
 const { createCcoMacroStore } = require('./src/ops/ccoMacroStore');
@@ -11976,14 +11976,14 @@ process.once('SIGTERM', () => {
   const ccoIntegrationStore = await createCcoIntegrationStore({
     filePath: config.ccoIntegrationStorePath,
   });
-  const ccoFortnoxStore = await createCcoFortnoxStore({
+  const cfoFortnoxStore = await createCfoFortnoxStore({
     filePath: config.ccoFortnoxStorePath,
   });
   // 19F.5 Fix #2 — Fortnox invoice/payment-lister wireat så ccoPaymentStatusAdapter
   // kan hämta riktig invoice-data per kund. Cachas 60s per (tenant, customerNumber).
   try {
-    const { createFortnoxClient } = require('./src/infra/fortnoxClient');
-    const { createFortnoxInvoiceLister } = require('./src/ops/ccoFortnoxInvoiceLister');
+    const { createFortnoxClient } = require('./src/cfo/cfoFortnoxClient');
+    const { createCfoFortnoxInvoiceLister } = require('./src/cfo/cfoFortnoxInvoiceLister');
     const fortnoxClientCache = new Map();
     const createClientFor = async (tenantId) => {
       const key = tenantId || 'default';
@@ -11991,24 +11991,24 @@ process.once('SIGTERM', () => {
       const client = createFortnoxClient({
         clientId: config.fortnoxClientId,
         clientSecret: config.fortnoxClientSecret,
-        getConnection: ccoFortnoxStore.getConnection,
-        saveConnection: ccoFortnoxStore.saveConnection,
+        getConnection: cfoFortnoxStore.getConnection,
+        saveConnection: cfoFortnoxStore.saveConnection,
         tenantId,
       });
       fortnoxClientCache.set(key, client);
       return client;
     };
-    const ccoFortnoxInvoiceLister = createFortnoxInvoiceLister({
+    const cfoFortnoxInvoiceLister = createCfoFortnoxInvoiceLister({
       createClientFor,
-      patientSyncStore: null, // wireas vid behov till ccoFortnoxPatientSync
+      patientSyncStore: null, // wireas vid behov till cfoFortnoxPatientSync
     });
-    app.locals.ccoFortnoxStore = ccoFortnoxStore;
-    app.locals.ccoFortnoxInvoiceLister = ccoFortnoxInvoiceLister;
+    app.locals.cfoFortnoxStore = cfoFortnoxStore;
+    app.locals.cfoFortnoxInvoiceLister = cfoFortnoxInvoiceLister;
     console.log(
-      '[ccoFortnoxInvoiceLister] monterad: wireat till ccoPaymentStatusAdapter via gatherStores'
+      '[cfoFortnoxInvoiceLister] monterad: wireat till ccoPaymentStatusAdapter via gatherStores'
     );
   } catch (err) {
-    console.warn('[ccoFortnoxInvoiceLister] kunde inte montera:', err.message);
+    console.warn('[cfoFortnoxInvoiceLister] kunde inte montera:', err.message);
   }
   const ccoSwishStore = await createCcoSwishStore({
     filePath: config.ccoSwishStorePath,
@@ -12029,112 +12029,112 @@ process.once('SIGTERM', () => {
 
   // CF.2 (MVP 1) — Receipt store + Finance Dashboard
   try {
-    const { createCcoReceiptStore } = require('./src/ops/ccoReceiptStore');
+    const { createCfoReceiptStore } = require('./src/cfo/cfoReceiptStore');
     const receiptStorePath = config.dataDir
       ? `${config.dataDir}/cco/receipts.json`
       : './data/cco/receipts.json';
-    const ccoReceiptStore = await createCcoReceiptStore({
+    const cfoReceiptStore = await createCfoReceiptStore({
       filePath: receiptStorePath,
       auditLog: ccoAuditLog,
       secureStorage: app.locals.ccoSecureStorage,
     });
-    app.locals.ccoReceiptStore = ccoReceiptStore;
-    console.log('[ccoReceiptStore] monterad:', receiptStorePath);
+    app.locals.cfoReceiptStore = cfoReceiptStore;
+    console.log('[cfoReceiptStore] monterad:', receiptStorePath);
   } catch (err) {
-    console.warn('[ccoReceiptStore] kunde inte montera:', err.message);
+    console.warn('[cfoReceiptStore] kunde inte montera:', err.message);
   }
   // CF.3 (MVP 2) — Expense store + Manual Finance Workflow
   // Fortnox OAuth är blockerad av Fortnox backend — vi kör manuell
   // expense-export tills blocker är löst. Ingen Fortnox-write.
   try {
-    const { createCcoExpenseStore } = require('./src/ops/ccoExpenseStore');
+    const { createCfoExpenseStore } = require('./src/cfo/cfoExpenseStore');
     const expenseStorePath = config.dataDir
       ? `${config.dataDir}/cco/expenses.json`
       : './data/cco/expenses.json';
-    const ccoExpenseStore = await createCcoExpenseStore({
+    const cfoExpenseStore = await createCfoExpenseStore({
       filePath: expenseStorePath,
       auditLog: ccoAuditLog,
       secureStorage: app.locals.ccoSecureStorage,
     });
-    app.locals.ccoExpenseStore = ccoExpenseStore;
-    console.log('[ccoExpenseStore] monterad:', expenseStorePath);
+    app.locals.cfoExpenseStore = cfoExpenseStore;
+    console.log('[cfoExpenseStore] monterad:', expenseStorePath);
   } catch (err) {
-    console.warn('[ccoExpenseStore] kunde inte montera:', err.message);
+    console.warn('[cfoExpenseStore] kunde inte montera:', err.message);
   }
   // CF.4 (MVP 3) — Expense Rule Engine (auto-categorization utan AI)
   try {
-    const { createCcoExpenseRuleStore } = require('./src/ops/ccoExpenseRuleStore');
+    const { createCfoExpenseRuleStore } = require('./src/cfo/cfoExpenseRuleStore');
     const ruleStorePath = config.dataDir
       ? `${config.dataDir}/cco/expense-rules.json`
       : './data/cco/expense-rules.json';
-    const ccoExpenseRuleStore = await createCcoExpenseRuleStore({
+    const cfoExpenseRuleStore = await createCfoExpenseRuleStore({
       filePath: ruleStorePath,
       auditLog: ccoAuditLog,
     });
-    app.locals.ccoExpenseRuleStore = ccoExpenseRuleStore;
-    console.log('[ccoExpenseRuleStore] monterad:', ruleStorePath);
+    app.locals.cfoExpenseRuleStore = cfoExpenseRuleStore;
+    console.log('[cfoExpenseRuleStore] monterad:', ruleStorePath);
   } catch (err) {
-    console.warn('[ccoExpenseRuleStore] kunde inte montera:', err.message);
+    console.warn('[cfoExpenseRuleStore] kunde inte montera:', err.message);
   }
   // CF.5 (MVP 4) — Finance Vendor Register (leverantörsregister för ekonomi)
   try {
-    const { createCcoFinanceVendorStore } = require('./src/ops/ccoFinanceVendorStore');
+    const { createCfoFinanceVendorStore } = require('./src/cfo/cfoFinanceVendorStore');
     const vendorStorePath = config.dataDir
       ? `${config.dataDir}/cco/finance-vendors.json`
       : './data/cco/finance-vendors.json';
-    const ccoFinanceVendorStore = await createCcoFinanceVendorStore({
+    const cfoFinanceVendorStore = await createCfoFinanceVendorStore({
       filePath: vendorStorePath,
       auditLog: ccoAuditLog,
     });
-    app.locals.ccoFinanceVendorStore = ccoFinanceVendorStore;
-    console.log('[ccoFinanceVendorStore] monterad:', vendorStorePath);
+    app.locals.cfoFinanceVendorStore = cfoFinanceVendorStore;
+    console.log('[cfoFinanceVendorStore] monterad:', vendorStorePath);
   } catch (err) {
-    console.warn('[ccoFinanceVendorStore] kunde inte montera:', err.message);
+    console.warn('[cfoFinanceVendorStore] kunde inte montera:', err.message);
   }
   // CF.7 (MVP 6) — Recurring Expense Store
   try {
-    const { createCcoRecurringExpenseStore } = require('./src/ops/ccoRecurringExpenseStore');
+    const { createCfoRecurringExpenseStore } = require('./src/cfo/cfoRecurringExpenseStore');
     const recStorePath = config.dataDir
       ? `${config.dataDir}/cco/recurring-expenses.json`
       : './data/cco/recurring-expenses.json';
-    const ccoRecurringExpenseStore = await createCcoRecurringExpenseStore({
+    const cfoRecurringExpenseStore = await createCfoRecurringExpenseStore({
       filePath: recStorePath,
       auditLog: ccoAuditLog,
     });
-    app.locals.ccoRecurringExpenseStore = ccoRecurringExpenseStore;
-    console.log('[ccoRecurringExpenseStore] monterad:', recStorePath);
+    app.locals.cfoRecurringExpenseStore = cfoRecurringExpenseStore;
+    console.log('[cfoRecurringExpenseStore] monterad:', recStorePath);
   } catch (err) {
-    console.warn('[ccoRecurringExpenseStore] kunde inte montera:', err.message);
+    console.warn('[cfoRecurringExpenseStore] kunde inte montera:', err.message);
   }
   // CF.8 (MVP 7) — Finance Review Store
   try {
-    const { createCcoFinanceReviewStore } = require('./src/ops/ccoFinanceReviewStore');
+    const { createCfoFinanceReviewStore } = require('./src/cfo/cfoFinanceReviewStore');
     const revStorePath = config.dataDir
       ? `${config.dataDir}/cco/finance-reviews.json`
       : './data/cco/finance-reviews.json';
-    const ccoFinanceReviewStore = await createCcoFinanceReviewStore({
+    const cfoFinanceReviewStore = await createCfoFinanceReviewStore({
       filePath: revStorePath,
       auditLog: ccoAuditLog,
     });
-    app.locals.ccoFinanceReviewStore = ccoFinanceReviewStore;
-    console.log('[ccoFinanceReviewStore] monterad:', revStorePath);
+    app.locals.cfoFinanceReviewStore = cfoFinanceReviewStore;
+    console.log('[cfoFinanceReviewStore] monterad:', revStorePath);
   } catch (err) {
-    console.warn('[ccoFinanceReviewStore] kunde inte montera:', err.message);
+    console.warn('[cfoFinanceReviewStore] kunde inte montera:', err.message);
   }
   // CF.9 (MVP 8) — Finance Monthly Close Store
   try {
-    const { createCcoFinanceMonthlyCloseStore } = require('./src/ops/ccoFinanceMonthlyCloseStore');
+    const { createCfoFinanceMonthlyCloseStore } = require('./src/cfo/cfoFinanceMonthlyCloseStore');
     const closeStorePath = config.dataDir
       ? `${config.dataDir}/cco/finance-monthly-close.json`
       : './data/cco/finance-monthly-close.json';
-    const ccoFinanceMonthlyCloseStore = await createCcoFinanceMonthlyCloseStore({
+    const cfoFinanceMonthlyCloseStore = await createCfoFinanceMonthlyCloseStore({
       filePath: closeStorePath,
       auditLog: ccoAuditLog,
     });
-    app.locals.ccoFinanceMonthlyCloseStore = ccoFinanceMonthlyCloseStore;
-    console.log('[ccoFinanceMonthlyCloseStore] monterad:', closeStorePath);
+    app.locals.cfoFinanceMonthlyCloseStore = cfoFinanceMonthlyCloseStore;
+    console.log('[cfoFinanceMonthlyCloseStore] monterad:', closeStorePath);
   } catch (err) {
-    console.warn('[ccoFinanceMonthlyCloseStore] kunde inte montera:', err.message);
+    console.warn('[cfoFinanceMonthlyCloseStore] kunde inte montera:', err.message);
   }
   const ccoSettingsStore = await createCcoSettingsStore({
     filePath: config.ccoSettingsStorePath,
@@ -13071,7 +13071,7 @@ process.once('SIGTERM', () => {
   app.use(
     '/api/v1',
     createCcoFortnoxRouter({
-      fortnoxStore: ccoFortnoxStore,
+      fortnoxStore: cfoFortnoxStore,
       patientMasterStore: ccoPatientMasterStore,
       integrationStore: ccoIntegrationStore,
       authStore,
@@ -13150,8 +13150,8 @@ process.once('SIGTERM', () => {
       resolvePatientAssetStore: async () => app.locals.ccoPatientAssetStore || null,
       swishStore: ccoSwishStore,
       commercialStore: ccoCommercialStore,
-      fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister || null,
-      fortnoxStore: ccoFortnoxStore,
+      fortnoxInvoiceLister: app.locals.cfoFortnoxInvoiceLister || null,
+      fortnoxStore: cfoFortnoxStore,
       authStore,
       config,
       requireAuth: auth.requireAuth,

@@ -1,5 +1,5 @@
 /**
- * ccoExpenseRuleStore — Sprint CF.4 (MVP 3)
+ * cfoExpenseRuleStore — Sprint CF.4 (MVP 3)
  *
  * Regelmotor för auto-categorization av expenses UTAN extern AI/OCR.
  * Allt matchas mot strukturerade fält som redan finns på expense:
@@ -259,7 +259,7 @@ function evaluateAllRules({ expense, rules, historyExpenses = [] } = {}) {
 
 // ─── Store ─────────────────────────────────────────────────────
 
-async function createCcoExpenseRuleStore({ filePath, auditLog = null } = {}) {
+async function createCfoExpenseRuleStore({ filePath, auditLog = null } = {}) {
   if (!filePath) throw new Error('filePath krävs');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
@@ -281,7 +281,7 @@ async function createCcoExpenseRuleStore({ filePath, auditLog = null } = {}) {
       }
     }
   } catch (err) {
-    console.warn('[ccoExpenseRuleStore] kunde inte läsa:', err.message);
+    console.warn('[cfoExpenseRuleStore] kunde inte läsa:', err.message);
   }
 
   async function persist() {
@@ -453,7 +453,7 @@ async function createCcoExpenseRuleStore({ filePath, auditLog = null } = {}) {
 }
 
 module.exports = {
-  createCcoExpenseRuleStore,
+  createCfoExpenseRuleStore,
   evaluateAllRules,
   detectRecurring,
   scoreRule,

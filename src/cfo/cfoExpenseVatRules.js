@@ -1,5 +1,5 @@
 /**
- * ccoExpenseVatRules — Sprint CF.6 (MVP 5)
+ * cfoExpenseVatRules — Sprint CF.6 (MVP 5)
  *
  * Pure functions för svenska momsregler. Ingen AI. Ingen fortnox-write.
  * Inga side-effects.

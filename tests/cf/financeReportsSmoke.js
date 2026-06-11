@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /**
- * CF.9 smoke-test: ccoFinanceReportEngine + ccoFinanceMonthlyCloseStore + ccoFinanceReportPackager
+ * CF.9 smoke-test: cfoFinanceReportEngine + cfoFinanceMonthlyCloseStore + cfoFinanceReportPackager
  *
  * Kör: node tests/cf/financeReportsSmoke.js
  *
@@ -25,14 +25,14 @@ const {
   reportToCsv,
   VALID_REPORT_KINDS,
   aggregateVat,
-} = require('../../src/ops/ccoFinanceReportEngine');
+} = require('../../src/cfo/cfoFinanceReportEngine');
 
 const {
-  createCcoFinanceMonthlyCloseStore,
+  createCfoFinanceMonthlyCloseStore,
   isValidPeriodId,
-} = require('../../src/ops/ccoFinanceMonthlyCloseStore');
+} = require('../../src/cfo/cfoFinanceMonthlyCloseStore');
 
-const { buildReportPackage, downloadFromPackage } = require('../../src/ops/ccoFinanceReportPackager');
+const { buildReportPackage, downloadFromPackage } = require('../../src/cfo/cfoFinanceReportPackager');
 
 let passes = 0;
 let fails = 0;
@@ -191,7 +191,7 @@ console.log('\n[2] Monthly Close store — state machine:');
   const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'cf9-close-'));
   const auditEvents = [];
   const auditLog = { append: (e) => auditEvents.push(e) };
-  const store = await createCcoFinanceMonthlyCloseStore({
+  const store = await createCfoFinanceMonthlyCloseStore({
     filePath: path.join(tmpDir, 'periods.json'),
     auditLog,
   });

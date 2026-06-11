@@ -18,7 +18,7 @@ const {
   nameOverlapScore,
 } = require('../../scripts/migration/lib/migrationUtils');
 const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
-const { normalizeFortnoxPatientRef } = require('./ccoFortnoxPatientSync');
+const { normalizeFortnoxPatientRef } = require('../cfo/cfoFortnoxPatientSync');
 const { normalizePatientDemographics, buildDemographicsReadout } = require('./patientDemographics');
 const { sanitizePatientDisplayName } = require('../lib/patientDisplayName');
 const { isPipedriveDealWon, parseDealValue } = require('./pipedriveDealHelpers');

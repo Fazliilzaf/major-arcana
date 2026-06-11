@@ -1,8 +1,8 @@
 /**
- * ccoFinanceReviewPackager — Sprint CF.8 (MVP 7)
+ * cfoFinanceReviewPackager — Sprint CF.8 (MVP 7)
  *
  * Bygger komplett revisor-paket för en export-batch:
- *   1. Befintlig CSV + JSON (från ccoExpenseExporter)
+ *   1. Befintlig CSV + JSON (från cfoExpenseExporter)
  *   2. Manifest med checksum per fil + totals + period + batchId
  *   3. Receipt-attachments (om expenses har receiptId → secure storage download)
  *

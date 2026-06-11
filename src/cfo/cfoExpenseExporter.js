@@ -1,5 +1,5 @@
 /**
- * ccoExpenseExporter — Sprint CF.3 (MVP 2)
+ * cfoExpenseExporter — Sprint CF.3 (MVP 2)
  *
  * Bygger exportpaket av ready_for_export-expenses utan att röra Fortnox.
  * Genererar både CSV (för revisor/manuell import) och JSON (full metadata)
@@ -80,7 +80,7 @@ function toCsv(rows) {
 
 /**
  * @param {object} input
- * @param {object} input.expenseStore - ccoExpenseStore-instans
+ * @param {object} input.expenseStore - cfoExpenseStore-instans
  * @param {object} input.secureStorage - putObject({key, body, contentType})
  * @param {object} input.actor - { userId, role }
  * @param {string} [input.statusFilter='ready_for_export'] - vilka status som ska ingå
