@@ -182,7 +182,7 @@
         <strong>Vad signerar du?</strong> Att du bekräftar dina svar nedan stämmer, att du varit ärlig om hälsotillstånd, mediciner och allergier, och att informationen får sparas i din patientjournal hos Hair TP Clinic i 10 år enligt journallagen.
       </div>
 
-      <p class="mq-source">Meridiq formulär ${MERIDIQ_FORM_ID} · Friskförsäkran | TP</p>
+      <p class="mq-source">Friskförsäkran | TP · Hair TP Clinic</p>
 
       <!-- source: migration/meridiq/questionary-catalog.json — 450966 -->
       <div class="field mq-field" data-meridiq-id="450966">
@@ -257,10 +257,8 @@
 #${ROOT_ID} .field label{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:5px}
 #${ROOT_ID} .field input,#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-select{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
 #${ROOT_ID} .field input:focus,#${ROOT_ID} .field textarea:focus,#${ROOT_ID} .mq-select:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
-#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:72px;resize:vertical}
+#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:80px;resize:vertical;display:block;background:#fff;border:1px solid rgba(132,117,107,.35)}
 #${ROOT_ID} .mq-follow{margin-top:10px;margin-bottom:0}
-#${ROOT_ID} .mq-follow.is-inactive textarea{opacity:.72;background:rgba(255,255,255,.55)}
-#${ROOT_ID} .mq-follow.is-active textarea{border-color:rgba(187,71,121,.45);box-shadow:0 0 0 2px rgba(187,71,121,.08)}
 #${ROOT_ID} .checks{display:flex;flex-direction:column;gap:8px}
 #${ROOT_ID} .mq-attest .check span{font-size:11.5px}
 #${ROOT_ID} .check{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
@@ -369,13 +367,6 @@
     return picked ? picked.value : '';
   }
 
-  function findYnQuestion(meridiqId) {
-    return (
-      MERIDIQ_YN_QUESTIONS.find((q) => q.id === meridiqId) ||
-      MERIDIQ_YN_SIMPLE.find((q) => q.id === meridiqId)
-    );
-  }
-
   // source: new — demo-validering enligt Meridiq 16413 required-fält
   function validateMeridiqForm(root) {
     if (!root.querySelector('#f450966')?.value.trim()) {
@@ -412,30 +403,6 @@
     }
 
     return null;
-  }
-
-  function syncYnTextarea(root, fieldId) {
-    const wrap = root.querySelector(`#${fieldId}TextWrap`);
-    if (!wrap) return;
-    const meridiqId = Number(fieldId.replace(/^f/, ''));
-    const question = findYnQuestion(meridiqId);
-    if (!question?.textOn) return;
-    const yn = selectedYn(root, fieldId);
-    const active = yn === question.textOn;
-    wrap.classList.toggle('is-active', active);
-    wrap.classList.toggle('is-inactive', !active);
-  }
-
-  function bindYnFields(root) {
-    MERIDIQ_YN_QUESTIONS.forEach((question) => {
-      if (!question.textOn) return;
-      syncYnTextarea(root, fieldDomId(question.id));
-    });
-    root.querySelectorAll('input[data-yn]').forEach((radio) => {
-      radio.addEventListener('change', () => {
-        syncYnTextarea(root, radio.getAttribute('data-yn'));
-      });
-    });
   }
 
   function bindDiseaseExclusivity(root) {
@@ -480,7 +447,6 @@
   }
 
   function bindOverlay(root) {
-    bindYnFields(root);
     bindDiseaseExclusivity(root);
 
     root.querySelector('#cancelBtn')?.addEventListener('click', () => {
