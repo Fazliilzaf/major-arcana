@@ -1507,7 +1507,7 @@ html[data-v9-enabled="on"] .customer-row .cr-tag--new {
   color: var(--v9-status-info, #4a7ba8);
 }
 
-html[data-v9-enabled="on"] .customer-row .cr-tag--dormant {
+html[data-v9-enabled="on"] .customer-row .cr-tag--inaktiv {
   background: rgba(132, 117, 107, 0.16);
   color: var(--v9-text-tertiary, #8a8174);
 }
@@ -1587,11 +1587,11 @@ html[data-v9-enabled="on"] .customer-row .cr-status[data-state="vip"] .dot {
   background: var(--v9-accent-studio, #bb4779);
 }
 
-html[data-v9-enabled="on"] .customer-row .cr-status[data-state="dormant"] {
+html[data-v9-enabled="on"] .customer-row .cr-status[data-state="inaktiv"] {
   color: var(--v9-text-tertiary, #8a8174);
 }
 
-html[data-v9-enabled="on"] .customer-row .cr-status[data-state="dormant"] .dot {
+html[data-v9-enabled="on"] .customer-row .cr-status[data-state="inaktiv"] .dot {
   background: var(--v9-text-tertiary, #8a8174);
 }
 
@@ -2101,7 +2101,7 @@ html[data-v9-enabled="on"] [data-v9-segment-sidebar] .dot--new {
   background: var(--v9-status-info, #4a7ba8);
 }
 
-html[data-v9-enabled="on"] [data-v9-segment-sidebar] .dot--dormant {
+html[data-v9-enabled="on"] [data-v9-segment-sidebar] .dot--inaktiv {
   background: var(--v9-text-tertiary, #8a8174);
 }
 
@@ -2611,7 +2611,7 @@ html[data-v9-enabled="on"] .v9-dossier-hero .dossier-tag--lifecycle {
   color: var(--v9-status-info, #4a7ba8);
 }
 
-html[data-v9-enabled="on"] .v9-dossier-hero .dossier-tag--dormant {
+html[data-v9-enabled="on"] .v9-dossier-hero .dossier-tag--inaktiv {
   background: rgba(132, 117, 107, 0.16);
   color: var(--v9-text-tertiary, #8a8174);
 }

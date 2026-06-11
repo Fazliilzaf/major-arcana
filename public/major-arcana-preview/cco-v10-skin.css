@@ -223,7 +223,7 @@ html[data-v9-enabled="on"] .status-pill--neutral .dot {
   background: var(--cco-text-tertiary);
 }
 
-/* — Filter-chips (Alla/Aktiva/VIP/Risk/Nya/Dormant/Saknar formulär) — */
+/* — Filter-chips (Alla/Aktiva/VIP/Risk/Nya/Inaktiv/Saknar formulär) — */
 html[data-v9-enabled="on"] .filter-chip {
   border: 1px solid rgba(255, 255, 255, 0.84);
   padding: 5px 11px;
@@ -420,7 +420,7 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
   background: var(--rail-info);
 }
 
-html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] [data-v9-segment-sidebar] .dot--dormant {
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] [data-v9-segment-sidebar] .dot--inaktiv {
   background: var(--cco-text-tertiary);
 }
 
@@ -543,7 +543,7 @@ html[data-v9-enabled="on"] .cr-v10 .cr-tag--new {
   background: var(--cco-status-info-bg);
   color: var(--cco-status-info);
 }
-html[data-v9-enabled="on"] .cr-v10 .cr-tag--dormant {
+html[data-v9-enabled="on"] .cr-v10 .cr-tag--inaktiv {
   background: rgba(132, 117, 107, 0.16);
   color: var(--cco-text-tertiary);
 }
@@ -617,10 +617,10 @@ html[data-v9-enabled="on"] .cr-v10 .cr-status[data-state="vip"] .dot {
   background: var(--accent-studio);
   box-shadow: 0 0 6px var(--accent-studio);
 }
-html[data-v9-enabled="on"] .cr-v10 .cr-status[data-state="dormant"] {
+html[data-v9-enabled="on"] .cr-v10 .cr-status[data-state="inaktiv"] {
   color: var(--cco-text-tertiary);
 }
-html[data-v9-enabled="on"] .cr-v10 .cr-status[data-state="dormant"] .dot {
+html[data-v9-enabled="on"] .cr-v10 .cr-status[data-state="inaktiv"] .dot {
   background: var(--cco-text-tertiary);
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-status[data-state="new"] {

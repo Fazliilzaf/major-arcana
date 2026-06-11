@@ -159,7 +159,7 @@
     vip: 'dot--vip',
     risk: 'dot--risk',
     new: 'dot--new',
-    dormant: 'dot--dormant',
+    dormant: 'dot--inaktiv',
     missing_health_declaration: 'dot--missing-hd',
     missing_journal: 'dot--missing-journal',
     missing_encounter: 'dot--missing-encounter',
@@ -2115,7 +2115,7 @@
         { label: 'Aktiva', value: Number(counts.active) || 0 },
         { label: 'VIP', value: Number(counts.vip) || 0 },
         { label: 'Nya', value: Number(counts.new) || 0 },
-        { label: 'Dormant', value: Number(counts.dormant) || 0 },
+        { label: 'Inaktiv', value: Number(counts.dormant) || 0 },
         { label: 'Granska', value: Number(counts.risk ?? counts.needs_review) || 0 },
       ]
         .filter((slice) => slice.value > 0)
@@ -2832,7 +2832,7 @@
       vip: (n) => `${formatMetricNumber(n)} VIP`,
       risk: (n) => `${formatMetricNumber(n)} risk`,
       new: (n) => `${formatMetricNumber(n)} nya / 30 dagar`,
-      dormant: (n) => `${formatMetricNumber(n)} dormant`,
+      dormant: (n) => `${formatMetricNumber(n)} inaktiva`,
       matched: (n) => `${formatMetricNumber(n)} kopplade`,
       journal: (n) => `${formatMetricNumber(n)} med personnummer`,
       review: (n) => `${formatMetricNumber(n)} behöver granskning`,
@@ -4137,7 +4137,7 @@
       return { state: 'vip', label: 'VIP' };
     }
     if (card.segmentHints?.dormant) {
-      return { state: 'dormant', label: 'Dormant' };
+      return { state: 'inaktiv', label: 'Inaktiv' };
     }
     if (card.missingHealthDeclaration && card.hasUpcomingBooking) {
       return { state: 'risk', label: 'Risk' };
@@ -4170,7 +4170,7 @@
       add('risk', 'Granska');
     }
     if (card.segmentHints?.new || card.patientOrigin === 'new') add('new', 'Nya');
-    if (card.segmentHints?.dormant) add('dormant', 'Dormant');
+    if (card.segmentHints?.dormant) add('inaktiv', 'Inaktiv');
     if (card.missingHealthDeclaration || card.missingForm) {
       add('risk', 'Saknar formulär');
     }
@@ -4953,7 +4953,7 @@
 
   function mapV9DossierBadgeKind(kind) {
     if (kind === 'new') return 'lifecycle';
-    if (kind === 'dormant') return 'dormant';
+    if (kind === 'inaktiv') return 'inaktiv';
     if (kind === 'ready') return 'engagement';
     return kind;
   }

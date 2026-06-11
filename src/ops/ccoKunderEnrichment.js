@@ -787,7 +787,7 @@ function buildSegmentCatalog(bookingCoverage = 'missing', ownerCoverage = 'none'
     { id: 'vip', label: 'VIP', status: 'real', filterQuery: { segment: 'vip' } },
     { id: 'risk', label: 'Risk', status: 'real', filterQuery: { segment: 'risk' } },
     { id: 'new', label: 'Nya', status: 'real', filterQuery: { segment: 'new' } },
-    { id: 'dormant', label: 'Dormant', status: 'real', filterQuery: { segment: 'dormant' } },
+    { id: 'dormant', label: 'Inaktiv', status: 'real', filterQuery: { segment: 'dormant' } },
     {
       id: 'missing_health_declaration',
       label: 'Saknar hälsodeklaration',
