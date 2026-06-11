@@ -2,10 +2,9 @@
  * Steg 8 — Friskförsäkran demo-overlay (operationsdagen).
  *
  * Content registry:
- *   source: public/friskforsakran.html — header, legal, q yes-lines, medications, allergies, actions, signed banner
- *   source: new — q-intro, Nej-rows, Förklara labels/placeholders, context-header, validation copy, demo JS
- *
- * Gate: data-v9-demo=on + customers-vy (?demo=on)
+ *   source: migration/meridiq/questionary-catalog.json — apiId 16413 (fitness_certificate | TP)
+ *   source: public/friskforsakran.html — portal header + legal intro (ej formulärfrågor)
+ *   source: new — demo modal chrome (scrim, context-header, validation copy, demo sign)
  */
 (function (global) {
   'use strict';
@@ -13,80 +12,165 @@
   const ROOT_ID = 'cco-ff-demo-scrim';
   const STYLE_ID = 'cco-ff-demo-styles';
   const DISMISS_KEY = 'arcana.ffdemo.dismissed';
+  const MERIDIQ_FORM_ID = 16413;
 
-  // source: new — Ja/Nej operationsdags-flöde (instruktionstext)
-  const Q_INTRO_HTML =
-    'Välj <strong>Ja</strong> om inget ändrats sedan bokningsbekräftelsen. Välj <strong>Nej</strong> och skriv en kort förklaring om något har ändrats.';
-  // source: new
-  const Q_NO_LABEL = 'Nej, något har hänt sedan bokningsbekräftelsen.';
-  // source: new
-  const Q_EXPLAIN_LABEL = 'Förklara:';
-  // source: new
-  const Q_EXPLAIN_PLACEHOLDER = 'Beskriv vad som ändrats sedan bokningsbekräftelsen';
+  // source: migration/meridiq/questionary-catalog.json — apiId 16413
+  const DISEASE_OPTIONS = [
+    'Blödningsrubbning',
+    'Hjärt- eller kärlsjukdom',
+    'Diabetes (typ 1 eller typ 2)',
+    'Lever- eller njursjukdom',
+    'Astma',
+    'Epilepsi',
+    'Hepatit (A, B eller C)',
+    'HIV',
+    'Psykisk ohälsa',
+    'Pågående infektion eller feber',
+    'Jag har inga av ovanstående sjukdomar eller tillstånd.',
+  ];
 
-  // source: public/friskforsakran.html (Ja-rader q2–q4 + övrig panel oförändrad; q1 Ja-rad inkl. em)
-  const FORM_HTML = `
+  // source: migration/meridiq/questionary-catalog.json — question 451845
+  const ATTESTATION_OPTIONS = [
+    'Jag intygar att jag, såvitt jag vet, är vid god hälsa och inte har undanhållit någon sjukdom, något tillstånd eller annan information som kan vara av betydelse inför behandlingen.',
+    'Jag intygar att jag har uppgett samtliga läkemedel, både receptbelagda och receptfria, som jag tar eller har tagit under de senaste 6 månaderna.',
+    'Jag intygar att jag inte har intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen och att jag avstår från detta i minst 48 timmar efter ingreppet.',
+    'Jag är medveten om att rökning och användning av tobak eller nikotin kan påverka behandlingsresultatet negativt och öka risken för att transplanterade hårsäckar inte överlever. Jag förstår att Hair TP Clinic därför inte kan lämna några resultatgarantier för patienter som använder tobak eller nikotin.',
+    'Jag har tagit del av muntlig och skriftlig information om behandlingen, dess syfte, risker, möjliga alternativ och eftervård.',
+    'Jag har haft möjlighet att ställa frågor och fått dessa besvarade.',
+    'Jag lämnar härmed mitt informerade samtycke till behandlingen.',
+    'Jag intygar att ovanstående uppgifter är korrekta och fullständiga.',
+    'Jag godkänner denna friskförsäkran.',
+  ];
+
+  // source: migration/meridiq/questionary-catalog.json — question 450966
+  const ID_TYPE_OPTIONS = [
+    'Pass',
+    'Nationellt ID-kort (utfärdat av Polisen)',
+    'Svenskt körkort (utfärdat av Transportstyrelsen)',
+    'Svenskt ID-kort (utfärdat av Skatteverket)',
+  ];
+
+  function ynField(id, label, withText) {
+    const textBlock = withText
+      ? `
+          <div class="field mq-follow" id="${id}TextWrap" hidden>
+            <textarea id="${id}Text" rows="3" placeholder="Beskriv här"></textarea>
+          </div>`
+      : '';
+    return `
+        <div class="mq-field" data-meridiq-id="${id}">
+          <div class="mq-label">${label}</div>
+          <div class="yn-row" role="radiogroup" aria-label="${label.replace(/"/g, '&quot;')}">
+            <label class="yn-opt"><input type="radio" name="${id}" value="yes" data-yn="${id}"> Ja</label>
+            <label class="yn-opt"><input type="radio" name="${id}" value="no" data-yn="${id}"> Nej</label>
+          </div>
+          ${textBlock}
+        </div>`;
+  }
+
+  function buildFormHtml() {
+    const diseaseChecks = DISEASE_OPTIONS.map(
+      (opt, idx) =>
+        `<label class="check"><input type="checkbox" name="f450968" value="${escapeAttr(opt)}" data-disease-idx="${idx}"> <span>${escapeHtml(opt)}</span></label>`
+    ).join('\n');
+
+    const attestationChecks = ATTESTATION_OPTIONS.map(
+      (opt, idx) =>
+        `<label class="check"><input type="checkbox" name="f451845" value="${escapeAttr(opt)}" data-attest-idx="${idx}"> <span>${escapeHtml(opt)}</span></label>`
+    ).join('\n');
+
+    const idTypeOptions = ID_TYPE_OPTIONS.map(
+      (opt) => `<option value="${escapeAttr(opt)}">${escapeHtml(opt)}</option>`
+    ).join('');
+
+    return `
   <div class="wrap">
+    <!-- source: public/friskforsakran.html — portal header -->
     <header class="head">
       <div class="kicker">★ Lagkrav · FUE / Hårtransplantation</div>
-      <h1>Friskförsäkran</h1>
+      <h1>Friskförsäkran | TP</h1>
       <p>Måste signeras senast 48 timmar innan din behandling. Detta är ett FUE-krav i Sverige (Patientdatalagen 2008:355).</p>
     </header>
 
     <section class="panel">
+      <!-- source: public/friskforsakran.html — juridisk intro -->
       <div class="legal">
         <strong>Vad signerar du?</strong> Att du bekräftar dina svar nedan stämmer, att du varit ärlig om hälsotillstånd, mediciner och allergier, och att informationen får sparas i din patientjournal hos Hair TP Clinic i 10 år enligt journallagen.
       </div>
 
-      <h2>Hälsofrågor</h2>
-      <p class="q-intro">${Q_INTRO_HTML}</p>
+      <p class="mq-source">Meridiq formulär ${MERIDIQ_FORM_ID} · Friskförsäkran | TP</p>
 
-      <div class="checks">
-        <div class="q-block" data-q="1">
-          <label class="check"><input type="checkbox" id="q1yes" data-q-yes="1"> <span>Jag har <strong>inga</strong> hjärtsjukdomar, blödarsjukdomar eller okontrollerad blodtryck. <em>(Om du har, kontakta oss separat.)</em></span></label>
-          <label class="check check--no"><input type="checkbox" id="q1no" data-q-no="1"> <span>${Q_NO_LABEL}</span></label>
-          <div class="field q-explain" id="q1explainWrap" hidden>
-            <label for="q1explain">${Q_EXPLAIN_LABEL}</label>
-            <textarea id="q1explain" rows="3" placeholder="${Q_EXPLAIN_PLACEHOLDER}"></textarea>
-          </div>
-        </div>
-
-        <div class="q-block" data-q="2">
-          <label class="check"><input type="checkbox" id="q2yes" data-q-yes="2"> <span>Jag tar <strong>inga</strong> blodförtunnande mediciner (Waran, Xarelto, Eliquis, etc.) just nu, eller har slutat enligt läkares råd minst 5 dagar före.</span></label>
-          <label class="check check--no"><input type="checkbox" id="q2no" data-q-no="2"> <span>${Q_NO_LABEL}</span></label>
-          <div class="field q-explain" id="q2explainWrap" hidden>
-            <label for="q2explain">${Q_EXPLAIN_LABEL}</label>
-            <textarea id="q2explain" rows="3" placeholder="${Q_EXPLAIN_PLACEHOLDER}"></textarea>
-          </div>
-        </div>
-
-        <div class="q-block" data-q="3">
-          <label class="check"><input type="checkbox" id="q3yes" data-q-yes="3"> <span>Jag har <strong>inte</strong> haft hudinfektion, eksem eller psoriasis aktivt på hårbotten/donor-området senaste 4 veckorna.</span></label>
-          <label class="check check--no"><input type="checkbox" id="q3no" data-q-no="3"> <span>${Q_NO_LABEL}</span></label>
-          <div class="field q-explain" id="q3explainWrap" hidden>
-            <label for="q3explain">${Q_EXPLAIN_LABEL}</label>
-            <textarea id="q3explain" rows="3" placeholder="${Q_EXPLAIN_PLACEHOLDER}"></textarea>
-          </div>
-        </div>
-
-        <div class="q-block" data-q="4">
-          <label class="check"><input type="checkbox" id="q4yes" data-q-yes="4"> <span>Jag är <strong>medveten</strong> om att resultatet beror på donor-täthet, kvalitet och uppföljning, och att Hair TP Clinic inte garanterar exakt antal procent täckning.</span></label>
-          <label class="check check--no"><input type="checkbox" id="q4no" data-q-no="4"> <span>${Q_NO_LABEL}</span></label>
-          <div class="field q-explain" id="q4explainWrap" hidden>
-            <label for="q4explain">${Q_EXPLAIN_LABEL}</label>
-            <textarea id="q4explain" rows="3" placeholder="${Q_EXPLAIN_PLACEHOLDER}"></textarea>
-          </div>
-        </div>
+      <!-- source: migration/meridiq/questionary-catalog.json — 450966 -->
+      <div class="field mq-field" data-meridiq-id="450966">
+        <label class="mq-label" for="f450966">Jag har visat följande giltiga ID-handling för klinikens personal:</label>
+        <select id="f450966" class="mq-select">
+          <option value="">— Välj ID-handling —</option>
+          ${idTypeOptions}
+        </select>
       </div>
 
-      <div class="field" style="margin-top:18px">
-        <label for="medications">Andra mediciner / kosttillskott du tar regelbundet (frivilligt)</label>
-        <textarea id="medications" placeholder="Lista med dosering, eller skriv 'inga'"></textarea>
+      <!-- source: migration/meridiq/questionary-catalog.json — 450967 -->
+      <div class="field mq-field" data-meridiq-id="450967">
+        <label class="mq-label" for="f450967">Ange ID-nummer</label>
+        <input type="text" id="f450967" autocomplete="off" placeholder="ID-nummer">
       </div>
 
-      <div class="field">
-        <label for="allergies">Kända allergier (lidokain, latex, antibiotika, etc.)</label>
-        <textarea id="allergies" placeholder="Lista varje allergi separat, eller skriv 'inga'"></textarea>
+      <!-- source: migration/meridiq/questionary-catalog.json — 450968 -->
+      <div class="mq-field" data-meridiq-id="450968">
+        <div class="mq-label">Har du något av följande sjukdomstillstånd? Du kan markera flera alternativ.</div>
+        <div class="checks">${diseaseChecks}</div>
+      </div>
+
+      ${ynField(
+        'f450969',
+        'Har du någon annan sjukdom eller något annat medicinskt tillstånd som inte nämnts ovan?  Om ja, beskriv vilket/vilka.',
+        true
+      )}
+      ${ynField(
+        'f450970',
+        'Upplever du att du, så vitt du vet, är vid god hälsa och saknar sjukdomar eller tillstånd som kan innebära ökade risker vid behandlingen?',
+        true
+      )}
+      ${ynField(
+        'f450971',
+        'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, blodförtunnande läkemedel (t.ex. Warfarin, NOAK eller ASA)? Om ja, ange vilket/vilka:',
+        true
+      )}
+      ${ynField(
+        'f450972',
+        'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, några läkemedel? Om ja, ange läkemedlets namn, dosering och orsak:',
+        true
+      )}
+      ${ynField(
+        'f450973',
+        'Har du några kända allergier, till exempel mot latex, desinfektionsmedel eller födoämnen? Om ja ange vad/vilka eller läkemedlets namn',
+        true
+      )}
+      ${ynField(
+        'f450974',
+        'Har du några kända allergier mot läkemedel ex antibiotika eller lokalbedövning? Om ja ange vad/vilka eller läkemedlets namn',
+        true
+      )}
+      ${ynField(
+        'f450975',
+        'Har du tidigare fått komplikation vid narkos eller lokalbedövning?',
+        true
+      )}
+      ${ynField(
+        'f451843',
+        'Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?',
+        false
+      )}
+      ${ynField(
+        'f451844',
+        'Har du intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen?',
+        false
+      )}
+
+      <!-- source: migration/meridiq/questionary-catalog.json — 451845 -->
+      <div class="mq-field" data-meridiq-id="451845">
+        <div class="mq-label">Jag intygar att</div>
+        <div class="checks mq-attest">${attestationChecks}</div>
       </div>
 
       <div class="actions">
@@ -97,6 +181,7 @@
       <div class="status" id="status" role="status" aria-live="polite"></div>
     </section>
 
+    <!-- source: public/friskforsakran.html — signerad panel -->
     <section class="panel" id="signedPanel" hidden>
       <div class="signed-banner">
         <h3>✓ Signerad och låst</h3>
@@ -107,6 +192,7 @@
       </div>
     </section>
   </div>`;
+  }
 
   const STYLE_TEXT = `
 :root{--cco-bg-page:#faf6f2;--cco-color-brand:#2b251f;--cco-text-secondary:rgba(70,60,50,.62);--cco-text-tertiary:#8a8174;--cco-status-success:#4a8268;--cco-status-success-bg:rgba(74,130,104,.14);--cco-status-warning:#c8821e;--cco-status-warning-bg:rgba(200,130,30,.14);--cco-status-danger:#b94a4a;--cco-status-danger-bg:rgba(185,74,74,.14);--cco-status-info:#4a7ba8;--cco-status-info-bg:rgba(74,123,168,.14);--accent-studio:#bb4779;--calendar-accent:#c8821e;--rose-pill-top:rgba(252,233,240,.98);--rose-pill-bottom:rgba(241,207,220,.95);--panel-shell-top:rgba(250,246,242,.94);--panel-shell-bottom:rgba(244,238,233,.86)}
@@ -122,24 +208,24 @@
 #${ROOT_ID} .head h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;color:var(--cco-color-brand);position:relative}
 #${ROOT_ID} .head p{margin:0;font-size:13px;color:var(--cco-text-secondary);max-width:60ch;line-height:1.5;position:relative}
 #${ROOT_ID} .panel{padding:22px 26px;border-radius:24px;background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));box-shadow:0 24px 50px rgba(93,74,60,.08);margin-bottom:14px}
-#${ROOT_ID} .panel h2{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cco-text-tertiary);margin:0 0 14px}
 #${ROOT_ID} .legal{padding:14px 16px;border-radius:14px;background:rgba(74,123,168,.08);border:1px solid rgba(74,123,168,.22);font-size:11.5px;color:var(--cco-status-info);line-height:1.5;margin-bottom:14px}
+#${ROOT_ID} .mq-source{margin:0 0 16px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cco-text-tertiary)}
+#${ROOT_ID} .mq-field{margin-bottom:18px}
+#${ROOT_ID} .mq-label{display:block;font-size:13px;font-weight:600;line-height:1.45;color:var(--cco-color-brand);margin-bottom:8px}
 #${ROOT_ID} .field{margin-bottom:14px}
 #${ROOT_ID} .field label{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:5px}
-#${ROOT_ID} .field input,#${ROOT_ID} .field textarea{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
-#${ROOT_ID} .field input:focus,#${ROOT_ID} .field textarea:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
-#${ROOT_ID} .field textarea{min-height:80px;resize:vertical}
-#${ROOT_ID} .checks{display:flex;flex-direction:column;gap:14px}
-#${ROOT_ID} .q-intro{margin:0 0 14px;font-size:12px;color:var(--cco-text-secondary);line-height:1.5}
-#${ROOT_ID} .q-block{display:flex;flex-direction:column;gap:8px;padding:12px 12px 10px;border-radius:14px;background:rgba(255,255,255,.42);border:1px solid rgba(132,117,107,.14)}
-#${ROOT_ID} .q-explain{margin:0 0 4px 28px}
-#${ROOT_ID} .q-explain textarea{min-height:72px}
-#${ROOT_ID} .check--no span{color:var(--cco-text-secondary)}
+#${ROOT_ID} .field input,#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-select{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
+#${ROOT_ID} .field input:focus,#${ROOT_ID} .field textarea:focus,#${ROOT_ID} .mq-select:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
+#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:72px;resize:vertical}
+#${ROOT_ID} .mq-follow{margin-top:8px;margin-bottom:0}
+#${ROOT_ID} .checks{display:flex;flex-direction:column;gap:8px}
+#${ROOT_ID} .mq-attest .check span{font-size:11.5px}
 #${ROOT_ID} .check{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
 #${ROOT_ID} .check:hover{border-color:rgba(187,71,121,.22)}
 #${ROOT_ID} .check input{flex-shrink:0;margin-top:2px}
 #${ROOT_ID} .check span{font-size:12px;line-height:1.45;color:var(--cco-color-brand)}
-#${ROOT_ID} .check em{color:var(--cco-text-tertiary);font-style:normal}
+#${ROOT_ID} .yn-row{display:flex;gap:16px;margin-bottom:4px}
+#${ROOT_ID} .yn-opt{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--cco-color-brand);cursor:pointer}
 #${ROOT_ID} .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 #${ROOT_ID} .btn{flex:1;min-width:170px;padding:13px;border-radius:14px;border:none;font-size:12.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
 #${ROOT_ID} .btn-primary{background:linear-gradient(135deg,var(--accent-studio),#9e3a68);color:white;box-shadow:0 12px 28px rgba(187,71,121,.28)}
@@ -156,6 +242,19 @@
 `;
 
   let keyHandler = null;
+  let formHtmlCache = '';
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/'/g, '&#39;');
+  }
 
   function isV9On() {
     return document.documentElement.getAttribute('data-v9-enabled') === 'on';
@@ -180,16 +279,8 @@
     return canvas && canvas.dataset.appShellView === 'customers';
   }
 
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function readContext(options = {}) {
-    // source: new — demo-defaults; overridable via ?demoOp / ?demoPatient
+    // source: new
     let operationLabel = '2026-06-15 · 09:00';
     let patientName = 'Anna Karlsson';
     try {
@@ -219,8 +310,6 @@
     document.head.appendChild(style);
   }
 
-  const QUESTION_COUNT = 4;
-
   function setOverlayStatus(root, msg, kind) {
     const status = root.querySelector('#status');
     if (!status) return;
@@ -228,98 +317,128 @@
     status.className = 'status show ' + (kind || '');
   }
 
-  // source: new — validering för Ja/Nej + förklaring (demo, ej från friskforsakran.html)
-  function validateHealthQuestions(root) {
-    for (let i = 1; i <= QUESTION_COUNT; i += 1) {
-      const yes = root.querySelector(`#q${i}yes`);
-      const no = root.querySelector(`#q${i}no`);
-      const explain = root.querySelector(`#q${i}explain`);
-      if (!yes?.checked && !no?.checked) {
-        return `Besvara hälsofråga ${i} — välj Ja eller Nej.`;
+  function selectedYn(root, fieldId) {
+    const picked = root.querySelector(`input[name="${fieldId}"]:checked`);
+    return picked ? picked.value : '';
+  }
+
+  // source: new — demo-validering enligt Meridiq 16413 required-fält
+  function validateMeridiqForm(root) {
+    if (!root.querySelector('#f450966')?.value.trim()) {
+      return 'Välj ID-handling (Meridiq 450966).';
+    }
+    if (!root.querySelector('#f450967')?.value.trim()) {
+      return 'Ange ID-nummer (Meridiq 450967).';
+    }
+    if (!root.querySelector('input[name="f450968"]:checked')) {
+      return 'Markera minst ett sjukdomstillstånd eller alternativet inga (Meridiq 450968).';
+    }
+
+    const ynWithText = [
+      'f450969',
+      'f450970',
+      'f450971',
+      'f450972',
+      'f450973',
+      'f450974',
+      'f450975',
+    ];
+    for (const fieldId of ynWithText) {
+      const yn = selectedYn(root, fieldId);
+      if (!yn) return `Besvara ja/nej för Meridiq ${fieldId.replace('f', '')}.`;
+      const text = root.querySelector(`#${fieldId}Text`)?.value.trim() || '';
+      const needsTextOnYes = fieldId !== 'f450970';
+      const needsTextOnNo = fieldId === 'f450970';
+      if (needsTextOnYes && yn === 'yes' && text.length < 2) {
+        return `Fyll i förklaring när du svarar ja (Meridiq ${fieldId.replace('f', '')}).`;
       }
-      if (no?.checked && !(explain?.value.trim().length >= 3)) {
-        return `Förklara hälsofråga ${i} innan du signerar.`;
+      if (needsTextOnNo && yn === 'no' && text.length < 2) {
+        return `Fyll i förklaring när du svarar nej (Meridiq 450970).`;
+      }
+      if (fieldId === 'f450975' && yn === 'yes' && text.length < 2) {
+        return 'Beskriv komplikationen när du svarar ja (Meridiq 450975).';
       }
     }
+
+    for (const fieldId of ['f451843', 'f451844']) {
+      if (!selectedYn(root, fieldId)) {
+        return `Besvara ja/nej för Meridiq ${fieldId.replace('f', '')}.`;
+      }
+    }
+
+    const attestCount = root.querySelectorAll('input[name="f451845"]:checked').length;
+    if (attestCount !== ATTESTATION_OPTIONS.length) {
+      return 'Alla intygspunkter under Jag intygar att måste markeras (Meridiq 451845).';
+    }
+
     return null;
   }
 
-  function collectHealthAnswers(root) {
-    const answers = [];
-    for (let i = 1; i <= QUESTION_COUNT; i += 1) {
-      const yes = root.querySelector(`#q${i}yes`);
-      const no = root.querySelector(`#q${i}no`);
-      const explain = root.querySelector(`#q${i}explain`);
-      answers.push({
-        question: i,
-        confirmed: Boolean(yes?.checked),
-        changed: Boolean(no?.checked),
-        explanation: no?.checked ? explain?.value.trim() || '' : '',
+  function bindYnFields(root) {
+    root.querySelectorAll('input[data-yn]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        const fieldId = radio.getAttribute('data-yn');
+        const wrap = root.querySelector(`#${fieldId}TextWrap`);
+        if (!wrap) return;
+        const yn = selectedYn(root, fieldId);
+        // 450970: förklaring vid Nej; övriga yes_no_textbox: text vid Ja
+        if (fieldId === 'f450970') wrap.hidden = yn !== 'no';
+        else wrap.hidden = yn !== 'yes';
       });
-    }
-    return answers;
+    });
   }
 
-  function bindQuestionToggles(root) {
-    for (let i = 1; i <= QUESTION_COUNT; i += 1) {
-      const yes = root.querySelector(`#q${i}yes`);
-      const no = root.querySelector(`#q${i}no`);
-      const wrap = root.querySelector(`#q${i}explainWrap`);
-      yes?.addEventListener('change', () => {
-        if (!yes.checked) return;
-        if (no) no.checked = false;
-        if (wrap) wrap.hidden = true;
-      });
-      no?.addEventListener('change', () => {
-        if (no.checked) {
-          if (yes) yes.checked = false;
-          if (wrap) wrap.hidden = false;
-          root.querySelector(`#q${i}explain`)?.focus({ preventScroll: true });
+  function bindDiseaseExclusivity(root) {
+    const boxes = Array.from(root.querySelectorAll('input[name="f450968"]'));
+    const noneIdx = DISEASE_OPTIONS.length - 1;
+    boxes.forEach((box) => {
+      box.addEventListener('change', () => {
+        const idx = Number(box.dataset.diseaseIdx);
+        if (!box.checked) return;
+        if (idx === noneIdx) {
+          boxes.forEach((other) => {
+            if (other !== box) other.checked = false;
+          });
           return;
         }
-        if (wrap) wrap.hidden = true;
+        const noneBox = boxes.find((b) => Number(b.dataset.diseaseIdx) === noneIdx);
+        if (noneBox) noneBox.checked = false;
       });
-    }
+    });
   }
 
   function demoSign(root) {
-    const status = root.querySelector('#status');
     const signBtn = root.querySelector('#signBtn');
     const panel = root.querySelector('.panel');
     const signedPanel = root.querySelector('#signedPanel');
     const signedEntryId = root.querySelector('#signedEntryId');
-    if (!status || !signBtn) return;
+    if (!signBtn) return;
 
-    const validationError = validateHealthQuestions(root);
+    const validationError = validateMeridiqForm(root);
     if (validationError) {
       setOverlayStatus(root, '⚠ ' + validationError, 'error');
       return;
     }
 
-    const answers = collectHealthAnswers(root);
-    status.textContent = '✓ Signerad och låst';
-    status.className = 'status show success';
     signBtn.disabled = true;
+    setOverlayStatus(root, '✓ Signerad och låst', 'success');
     if (signedEntryId) {
-      signedEntryId.textContent =
-        'demo-' + Date.now().toString(36) + '-' + answers.filter((a) => a.changed).length + 'x';
+      signedEntryId.textContent = `demo-m${MERIDIQ_FORM_ID}-${Date.now().toString(36)}`;
     }
     if (panel) panel.style.display = 'none';
     if (signedPanel) signedPanel.hidden = false;
   }
 
   function bindOverlay(root) {
-    const modal = root.querySelector('.demo-modal');
-    bindQuestionToggles(root);
+    bindYnFields(root);
+    bindDiseaseExclusivity(root);
 
     root.querySelector('#cancelBtn')?.addEventListener('click', () => {
       unmount(true);
     });
-
     root.querySelector('#signBtn')?.addEventListener('click', () => {
       demoSign(root);
     });
-
     root.addEventListener('click', (event) => {
       if (event.target === root) unmount(true);
     });
@@ -337,28 +456,25 @@
       }
     };
     document.addEventListener('keydown', keyHandler);
-
-    window.setTimeout(() => {
-      modal?.querySelector('#q1yes')?.focus({ preventScroll: true });
-    }, 0);
   }
 
   function mount(options = {}) {
     if (document.getElementById(ROOT_ID)) return document.getElementById(ROOT_ID);
     ensureStyles();
+    if (!formHtmlCache) formHtmlCache = buildFormHtml();
     const context = readContext(options);
     const root = document.createElement('div');
     root.id = ROOT_ID;
     root.className = 'demo-scrim';
     root.setAttribute('role', 'presentation');
     root.innerHTML = `
-      <div class="demo-modal" role="dialog" aria-modal="true" aria-label="Friskförsäkran · operationsdagen">
-        <!-- source: new — operationsdags-kontext (ej i friskforsakran.html) -->
+      <div class="demo-modal" role="dialog" aria-modal="true" aria-label="Friskförsäkran · Meridiq ${MERIDIQ_FORM_ID}">
+        <!-- source: new -->
         <div class="demo-header-context">
           <span>📅 <strong>Operationsdag:</strong> ${escapeHtml(context.operationLabel)}</span>
           <span>👤 ${escapeHtml(context.patientName)}</span>
         </div>
-        ${FORM_HTML}
+        ${formHtmlCache}
       </div>`;
     document.body.appendChild(root);
     bindOverlay(root);
@@ -402,5 +518,6 @@
     maybeAutoMount,
     isDemoFlagOn,
     readContext,
+    MERIDIQ_FORM_ID,
   };
 })(typeof window !== 'undefined' ? window : global);
