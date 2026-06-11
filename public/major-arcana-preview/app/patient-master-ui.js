@@ -4214,11 +4214,26 @@
       add('risk', 'Saknar formulär');
     }
     if (card.missingFitnessCertificate && card.hasUpcomingBooking) {
-      add('frisk', 'Friskförs');
+      add('frisk', '⚠ Friskförs');
     }
     if (card.todayVisit) add('ready', 'Idag');
     if (card.onWaitlist) add('risk', 'Väntelista');
     return tags.slice(0, 3);
+  }
+
+  function resolveV9StepStatus(jStep) {
+    const toneToState = {
+      amber: 'risk',
+      info: 'new',
+      purple: 'vip',
+      teal: 'active',
+      ok: 'active',
+      red: 'risk',
+    };
+    return {
+      state: toneToState[jStep.tone] || 'new',
+      label: `Steg ${jStep.n}`,
+    };
   }
 
   function resolveV9NextStepLabel(card) {
@@ -5720,15 +5735,7 @@
         ? `<span class="cr-tag cr-tag--cycle">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
         : '');
     const nameTagsHtml = tagBits ? `<div class="cr-name-tags">${tagBits}</div>` : '';
-    const stegToneMap = {
-      amber: 'warn',
-      info: 'info',
-      purple: 'legal',
-      teal: 'teal',
-      ok: 'ready',
-      red: 'block',
-    };
-    const stegTone = stegToneMap[jStep.tone] || 'info';
+    const stepStatus = resolveV9StepStatus(jStep);
     const signalTone = signal.tone || 'neutral';
 
     return `
@@ -5743,7 +5750,7 @@
               <div class="cr-name">${escapeHtml(name)}</div>
               ${nameTagsHtml}
             </div>
-            <div><span class="cr-steg cr-steg--${escapeHtml(stegTone)}">Steg ${escapeHtml(String(jStep.n))}</span></div>
+            <div><span class="cr-status" data-state="${escapeHtml(stepStatus.state)}"><span class="dot"></span>${escapeHtml(stepStatus.label)}</span></div>
             <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
             <div class="cr-ltv">
               <div class="cr-revenue">${escapeHtml(revenue.main)}</div>
