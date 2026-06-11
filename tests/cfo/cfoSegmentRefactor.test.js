@@ -93,7 +93,7 @@ test('finance routes, storage keys, and Fortnox env/config names stay unchanged'
     '/api/v1/cco-cf/receipts',
     '/api/v1/cco-cf/expenses',
     '/api/v1/cco-cf/reports/generate',
-    '/api/v1/cco-cf/monthly-close',
+    '/api/v1/cco-cf/periods',
   ]) {
     assert.match(server, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
