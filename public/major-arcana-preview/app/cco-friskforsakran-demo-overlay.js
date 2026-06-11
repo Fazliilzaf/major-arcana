@@ -1,6 +1,10 @@
 /**
  * Steg 8 — Friskförsäkran demo-overlay (operationsdagen).
- * source: public/friskforsakran.html (befintlig text, oförändrad)
+ *
+ * Content registry:
+ *   source: public/friskforsakran.html — header, legal, q yes-lines, medications, allergies, actions, signed banner
+ *   source: new — q-intro, Nej-rows, Förklara labels/placeholders, context-header, validation copy, demo JS
+ *
  * Gate: data-v9-demo=on + customers-vy (?demo=on)
  */
 (function (global) {
@@ -10,6 +14,17 @@
   const STYLE_ID = 'cco-ff-demo-styles';
   const DISMISS_KEY = 'arcana.ffdemo.dismissed';
 
+  // source: new — Ja/Nej operationsdags-flöde (instruktionstext)
+  const Q_INTRO_HTML =
+    'Välj <strong>Ja</strong> om inget ändrats sedan bokningsbekräftelsen. Välj <strong>Nej</strong> och skriv en kort förklaring om något har ändrats.';
+  // source: new
+  const Q_NO_LABEL = 'Nej, något har hänt sedan bokningsbekräftelsen.';
+  // source: new
+  const Q_EXPLAIN_LABEL = 'Förklara:';
+  // source: new
+  const Q_EXPLAIN_PLACEHOLDER = 'Beskriv vad som ändrats sedan bokningsbekräftelsen';
+
+  // source: public/friskforsakran.html (Ja-rader q2–q4 + övrig panel oförändrad; q1 Ja-rad inkl. em)
   const FORM_HTML = `
   <div class="wrap">
     <header class="head">
@@ -24,42 +39,42 @@
       </div>
 
       <h2>Hälsofrågor</h2>
-      <p class="q-intro">Välj <strong>Ja</strong> om inget ändrats sedan bokningsbekräftelsen. Välj <strong>Nej</strong> och skriv en kort förklaring om något har ändrats.</p>
+      <p class="q-intro">${Q_INTRO_HTML}</p>
 
       <div class="checks">
         <div class="q-block" data-q="1">
-          <label class="check"><input type="checkbox" id="q1yes" data-q-yes="1"> <span>Jag har <strong>inga</strong> hjärtsjukdomar, blödarsjukdomar eller okontrollerad blodtryck.</span></label>
-          <label class="check check--no"><input type="checkbox" id="q1no" data-q-no="1"> <span>Nej, något har hänt sedan bokningsbekräftelsen.</span></label>
+          <label class="check"><input type="checkbox" id="q1yes" data-q-yes="1"> <span>Jag har <strong>inga</strong> hjärtsjukdomar, blödarsjukdomar eller okontrollerad blodtryck. <em>(Om du har, kontakta oss separat.)</em></span></label>
+          <label class="check check--no"><input type="checkbox" id="q1no" data-q-no="1"> <span>${Q_NO_LABEL}</span></label>
           <div class="field q-explain" id="q1explainWrap" hidden>
-            <label for="q1explain">Förklara:</label>
-            <textarea id="q1explain" rows="3" placeholder="Beskriv vad som ändrats sedan bokningsbekräftelsen"></textarea>
+            <label for="q1explain">${Q_EXPLAIN_LABEL}</label>
+            <textarea id="q1explain" rows="3" placeholder="${Q_EXPLAIN_PLACEHOLDER}"></textarea>
           </div>
         </div>
 
         <div class="q-block" data-q="2">
           <label class="check"><input type="checkbox" id="q2yes" data-q-yes="2"> <span>Jag tar <strong>inga</strong> blodförtunnande mediciner (Waran, Xarelto, Eliquis, etc.) just nu, eller har slutat enligt läkares råd minst 5 dagar före.</span></label>
-          <label class="check check--no"><input type="checkbox" id="q2no" data-q-no="2"> <span>Nej, något har hänt sedan bokningsbekräftelsen.</span></label>
+          <label class="check check--no"><input type="checkbox" id="q2no" data-q-no="2"> <span>${Q_NO_LABEL}</span></label>
           <div class="field q-explain" id="q2explainWrap" hidden>
-            <label for="q2explain">Förklara:</label>
-            <textarea id="q2explain" rows="3" placeholder="Beskriv vad som ändrats sedan bokningsbekräftelsen"></textarea>
+            <label for="q2explain">${Q_EXPLAIN_LABEL}</label>
+            <textarea id="q2explain" rows="3" placeholder="${Q_EXPLAIN_PLACEHOLDER}"></textarea>
           </div>
         </div>
 
         <div class="q-block" data-q="3">
           <label class="check"><input type="checkbox" id="q3yes" data-q-yes="3"> <span>Jag har <strong>inte</strong> haft hudinfektion, eksem eller psoriasis aktivt på hårbotten/donor-området senaste 4 veckorna.</span></label>
-          <label class="check check--no"><input type="checkbox" id="q3no" data-q-no="3"> <span>Nej, något har hänt sedan bokningsbekräftelsen.</span></label>
+          <label class="check check--no"><input type="checkbox" id="q3no" data-q-no="3"> <span>${Q_NO_LABEL}</span></label>
           <div class="field q-explain" id="q3explainWrap" hidden>
-            <label for="q3explain">Förklara:</label>
-            <textarea id="q3explain" rows="3" placeholder="Beskriv vad som ändrats sedan bokningsbekräftelsen"></textarea>
+            <label for="q3explain">${Q_EXPLAIN_LABEL}</label>
+            <textarea id="q3explain" rows="3" placeholder="${Q_EXPLAIN_PLACEHOLDER}"></textarea>
           </div>
         </div>
 
         <div class="q-block" data-q="4">
           <label class="check"><input type="checkbox" id="q4yes" data-q-yes="4"> <span>Jag är <strong>medveten</strong> om att resultatet beror på donor-täthet, kvalitet och uppföljning, och att Hair TP Clinic inte garanterar exakt antal procent täckning.</span></label>
-          <label class="check check--no"><input type="checkbox" id="q4no" data-q-no="4"> <span>Nej, något har hänt sedan bokningsbekräftelsen.</span></label>
+          <label class="check check--no"><input type="checkbox" id="q4no" data-q-no="4"> <span>${Q_NO_LABEL}</span></label>
           <div class="field q-explain" id="q4explainWrap" hidden>
-            <label for="q4explain">Förklara:</label>
-            <textarea id="q4explain" rows="3" placeholder="Beskriv vad som ändrats sedan bokningsbekräftelsen"></textarea>
+            <label for="q4explain">${Q_EXPLAIN_LABEL}</label>
+            <textarea id="q4explain" rows="3" placeholder="${Q_EXPLAIN_PLACEHOLDER}"></textarea>
           </div>
         </div>
       </div>
@@ -174,6 +189,7 @@
   }
 
   function readContext(options = {}) {
+    // source: new — demo-defaults; overridable via ?demoOp / ?demoPatient
     let operationLabel = '2026-06-15 · 09:00';
     let patientName = 'Anna Karlsson';
     try {
@@ -212,6 +228,7 @@
     status.className = 'status show ' + (kind || '');
   }
 
+  // source: new — validering för Ja/Nej + förklaring (demo, ej från friskforsakran.html)
   function validateHealthQuestions(root) {
     for (let i = 1; i <= QUESTION_COUNT; i += 1) {
       const yes = root.querySelector(`#q${i}yes`);
@@ -336,6 +353,7 @@
     root.setAttribute('role', 'presentation');
     root.innerHTML = `
       <div class="demo-modal" role="dialog" aria-modal="true" aria-label="Friskförsäkran · operationsdagen">
+        <!-- source: new — operationsdags-kontext (ej i friskforsakran.html) -->
         <div class="demo-header-context">
           <span>📅 <strong>Operationsdag:</strong> ${escapeHtml(context.operationLabel)}</span>
           <span>👤 ${escapeHtml(context.patientName)}</span>
