@@ -14,7 +14,7 @@
   const DISMISS_KEY = 'arcana.ffdemo.dismissed';
   const MERIDIQ_FORM_ID = 16413;
 
-  // source: migration/meridiq/questionary-catalog.json — apiId 16413
+  // source: migration/meridiq/questionary-catalog.json — apiId 16413, question 450968
   const DISEASE_OPTIONS = [
     'Blödningsrubbning',
     'Hjärt- eller kärlsjukdom',
@@ -50,20 +50,100 @@
     'Svenskt ID-kort (utfärdat av Skatteverket)',
   ];
 
-  function ynField(id, label, textConfig) {
-    const textBlock = textConfig
-      ? `
-          <div class="field mq-follow" id="${id}TextWrap">
-            <label class="mq-text-label" for="${id}Text">${escapeHtml(textConfig.hint)}</label>
-            <textarea id="${id}Text" rows="3" placeholder="${escapeAttr(textConfig.placeholder)}"></textarea>
+  // source: migration/meridiq/questionary-catalog.json — apiId 16413 (labels verbatim)
+  const MERIDIQ_YN_QUESTIONS = [
+    {
+      id: 450969,
+      meridiqType: 'yes_no_textbox',
+      label:
+        'Har du någon annan sjukdom eller något annat medicinskt tillstånd som inte nämnts ovan?  Om ja, beskriv vilket/vilka.',
+      textOn: 'yes',
+    },
+    {
+      id: 450970,
+      meridiqType: 'yes_no_textbox',
+      label:
+        'Upplever du att du, så vitt du vet, är vid god hälsa och saknar sjukdomar eller tillstånd som kan innebära ökade risker vid behandlingen?',
+      textOn: 'no',
+    },
+    {
+      id: 450971,
+      meridiqType: 'yes_no_textbox',
+      label:
+        'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, blodförtunnande läkemedel (t.ex. Warfarin, NOAK eller ASA)? Om ja, ange vilket/vilka:',
+      textOn: 'yes',
+    },
+    {
+      id: 450972,
+      meridiqType: 'yes_no',
+      label:
+        'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, några läkemedel? Om ja, ange läkemedlets namn, dosering och orsak:',
+      textOn: 'yes',
+    },
+    {
+      id: 450973,
+      meridiqType: 'yes_no_textbox',
+      label:
+        'Har du några kända allergier, till exempel mot latex, desinfektionsmedel eller födoämnen? Om ja ange vad/vilka eller läkemedlets namn',
+      textOn: 'yes',
+    },
+    {
+      id: 450974,
+      meridiqType: 'yes_no_textbox',
+      label:
+        'Har du några kända allergier mot läkemedel ex antibiotika eller lokalbedövning? Om ja ange vad/vilka eller läkemedlets namn',
+      textOn: 'yes',
+    },
+    {
+      id: 450975,
+      meridiqType: 'yes_no_textbox',
+      label: 'Har du tidigare fått komplikation vid narkos eller lokalbedövning?',
+      textOn: 'yes',
+    },
+  ];
+
+  const MERIDIQ_YN_SIMPLE = [
+    {
+      id: 451843,
+      meridiqType: 'yes_no',
+      label: 'Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?',
+    },
+    {
+      id: 451844,
+      meridiqType: 'yes_no',
+      label:
+        'Har du intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen?',
+    },
+  ];
+
+  function fieldDomId(meridiqId) {
+    return `f${meridiqId}`;
+  }
+
+  function ynField(question) {
+    const id = fieldDomId(question.id);
+    const label = escapeHtml(question.label);
+    const textBlock =
+      question.textOn === 'yes' || question.textOn === 'no'
+        ? `
+          <div class="field mq-follow" id="${id}TextWrap" hidden>
+            <textarea id="${id}Text" rows="3" aria-label="${label.replace(/"/g, '&quot;')}"></textarea>
           </div>`
-      : '';
+        : '';
     return `
-        <div class="mq-field" data-meridiq-id="${id}">
+        <div class="mq-field" data-meridiq-id="${question.id}" data-meridiq-type="${escapeAttr(question.meridiqType)}">
           <div class="mq-label">${label}</div>
-          <div class="yn-row" role="radiogroup" aria-label="${label.replace(/"/g, '&quot;')}">
-            <label class="yn-opt"><input type="radio" name="${id}" value="yes" data-yn="${id}"> Ja</label>
-            <label class="yn-opt"><input type="radio" name="${id}" value="no" data-yn="${id}"> Nej</label>
+          <div class="yn-toggle-row" role="radiogroup" aria-label="${label.replace(/"/g, '&quot;')}">
+            <label class="yn-toggle">
+              <input type="radio" name="${id}" value="yes" data-yn="${id}" data-text-on="${question.textOn === 'yes' ? 'yes' : ''}">
+              <span class="yn-toggle-box" aria-hidden="true"></span>
+              <span>Ja</span>
+            </label>
+            <label class="yn-toggle">
+              <input type="radio" name="${id}" value="no" data-yn="${id}" data-text-on="${question.textOn === 'no' ? 'no' : ''}">
+              <span class="yn-toggle-box" aria-hidden="true"></span>
+              <span>Nej</span>
+            </label>
           </div>
           ${textBlock}
         </div>`;
@@ -83,6 +163,9 @@
     const idTypeOptions = ID_TYPE_OPTIONS.map(
       (opt) => `<option value="${escapeAttr(opt)}">${escapeHtml(opt)}</option>`
     ).join('');
+
+    const ynBlocks = MERIDIQ_YN_QUESTIONS.map((q) => ynField(q)).join('\n');
+    const ynSimpleBlocks = MERIDIQ_YN_SIMPLE.map((q) => ynField(q)).join('\n');
 
     return `
   <div class="wrap">
@@ -122,68 +205,8 @@
         <div class="checks">${diseaseChecks}</div>
       </div>
 
-      ${ynField(
-        'f450969',
-        'Har du någon annan sjukdom eller något annat medicinskt tillstånd som inte nämnts ovan?  Om ja, beskriv vilket/vilka.',
-        {
-          hint: 'Om ja, beskriv vilket/vilka:',
-          placeholder: 'Beskriv sjukdom eller tillstånd',
-        }
-      )}
-      ${ynField(
-        'f450970',
-        'Upplever du att du, så vitt du vet, är vid god hälsa och saknar sjukdomar eller tillstånd som kan innebära ökade risker vid behandlingen?',
-        {
-          hint: 'Om nej, beskriv:',
-          placeholder: 'Beskriv hälsotillstånd eller risker',
-        }
-      )}
-      ${ynField(
-        'f450971',
-        'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, blodförtunnande läkemedel (t.ex. Warfarin, NOAK eller ASA)? Om ja, ange vilket/vilka:',
-        {
-          hint: 'Om ja, ange vilket/vilka:',
-          placeholder: 'T.ex. Warfarin, Xarelto, ASA — dosering',
-        }
-      )}
-      ${ynField(
-        'f450972',
-        'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, några läkemedel? Om ja, ange läkemedlets namn, dosering och orsak:',
-        {
-          hint: 'Om ja, ange läkemedlets namn, dosering och orsak:',
-          placeholder: 'Läkemedelsnamn, dosering och orsak',
-        }
-      )}
-      ${ynField(
-        'f450973',
-        'Har du några kända allergier, till exempel mot latex, desinfektionsmedel eller födoämnen? Om ja ange vad/vilka eller läkemedlets namn',
-        {
-          hint: 'Om ja, ange vad/vilka:',
-          placeholder: 'T.ex. latex, desinfektionsmedel, födoämnen',
-        }
-      )}
-      ${ynField(
-        'f450974',
-        'Har du några kända allergier mot läkemedel ex antibiotika eller lokalbedövning? Om ja ange vad/vilka eller läkemedlets namn',
-        {
-          hint: 'Om ja, ange vad/vilka eller läkemedlets namn:',
-          placeholder: 'T.ex. penicillin, lidokain',
-        }
-      )}
-      ${ynField('f450975', 'Har du tidigare fått komplikation vid narkos eller lokalbedövning?', {
-        hint: 'Om ja, beskriv komplikationen:',
-        placeholder: 'Beskriv vad som hände',
-      })}
-      ${ynField(
-        'f451843',
-        'Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?',
-        false
-      )}
-      ${ynField(
-        'f451844',
-        'Har du intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen?',
-        false
-      )}
+      ${ynBlocks}
+      ${ynSimpleBlocks}
 
       <!-- source: migration/meridiq/questionary-catalog.json — 451845 -->
       <div class="mq-field" data-meridiq-id="451845">
@@ -236,15 +259,18 @@
 #${ROOT_ID} .field input:focus,#${ROOT_ID} .field textarea:focus,#${ROOT_ID} .mq-select:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
 #${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:72px;resize:vertical}
 #${ROOT_ID} .mq-follow{margin-top:10px;margin-bottom:0}
-#${ROOT_ID} .mq-text-label{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:5px}
 #${ROOT_ID} .checks{display:flex;flex-direction:column;gap:8px}
 #${ROOT_ID} .mq-attest .check span{font-size:11.5px}
 #${ROOT_ID} .check{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
 #${ROOT_ID} .check:hover{border-color:rgba(187,71,121,.22)}
 #${ROOT_ID} .check input{flex-shrink:0;margin-top:2px}
 #${ROOT_ID} .check span{font-size:12px;line-height:1.45;color:var(--cco-color-brand)}
-#${ROOT_ID} .yn-row{display:flex;gap:16px;margin-bottom:4px}
-#${ROOT_ID} .yn-opt{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--cco-color-brand);cursor:pointer}
+#${ROOT_ID} .yn-toggle-row{display:flex;gap:12px;margin-bottom:4px;flex-wrap:wrap}
+#${ROOT_ID} .yn-toggle{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--cco-color-brand);cursor:pointer;user-select:none}
+#${ROOT_ID} .yn-toggle input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+#${ROOT_ID} .yn-toggle-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(132,117,107,.45);background:rgba(255,255,255,.85);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s,background .15s,box-shadow .15s}
+#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box{border-color:var(--accent-studio);background:rgba(187,71,121,.12);box-shadow:inset 0 0 0 1px rgba(187,71,121,.25)}
+#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box::after{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent-studio)}
 #${ROOT_ID} .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 #${ROOT_ID} .btn{flex:1;min-width:170px;padding:13px;border-radius:14px;border:none;font-size:12.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
 #${ROOT_ID} .btn-primary{background:linear-gradient(135deg,var(--accent-studio),#9e3a68);color:white;box-shadow:0 12px 28px rgba(187,71,121,.28)}
@@ -341,6 +367,13 @@
     return picked ? picked.value : '';
   }
 
+  function findYnQuestion(meridiqId) {
+    return (
+      MERIDIQ_YN_QUESTIONS.find((q) => q.id === meridiqId) ||
+      MERIDIQ_YN_SIMPLE.find((q) => q.id === meridiqId)
+    );
+  }
+
   // source: new — demo-validering enligt Meridiq 16413 required-fält
   function validateMeridiqForm(root) {
     if (!root.querySelector('#f450966')?.value.trim()) {
@@ -353,35 +386,21 @@
       return 'Markera minst ett sjukdomstillstånd eller alternativet inga (Meridiq 450968).';
     }
 
-    const ynWithText = [
-      'f450969',
-      'f450970',
-      'f450971',
-      'f450972',
-      'f450973',
-      'f450974',
-      'f450975',
-    ];
-    for (const fieldId of ynWithText) {
+    for (const question of MERIDIQ_YN_QUESTIONS) {
+      const fieldId = fieldDomId(question.id);
       const yn = selectedYn(root, fieldId);
-      if (!yn) return `Besvara ja/nej för Meridiq ${fieldId.replace('f', '')}.`;
+      if (!yn) return `Besvara ja/nej för Meridiq ${question.id}.`;
+      if (!question.textOn) continue;
       const text = root.querySelector(`#${fieldId}Text`)?.value.trim() || '';
-      const needsTextOnYes = fieldId !== 'f450970';
-      const needsTextOnNo = fieldId === 'f450970';
-      if (needsTextOnYes && yn === 'yes' && text.length < 2) {
-        return `Fyll i förklaring när du svarar ja (Meridiq ${fieldId.replace('f', '')}).`;
-      }
-      if (needsTextOnNo && yn === 'no' && text.length < 2) {
-        return `Fyll i förklaring när du svarar nej (Meridiq 450970).`;
-      }
-      if (fieldId === 'f450975' && yn === 'yes' && text.length < 2) {
-        return 'Beskriv komplikationen när du svarar ja (Meridiq 450975).';
+      if (yn === question.textOn && text.length < 2) {
+        return `Fyll i textfält när du svarar ${question.textOn === 'yes' ? 'ja' : 'nej'} (Meridiq ${question.id}).`;
       }
     }
 
-    for (const fieldId of ['f451843', 'f451844']) {
+    for (const question of MERIDIQ_YN_SIMPLE) {
+      const fieldId = fieldDomId(question.id);
       if (!selectedYn(root, fieldId)) {
-        return `Besvara ja/nej för Meridiq ${fieldId.replace('f', '')}.`;
+        return `Besvara ja/nej för Meridiq ${question.id}.`;
       }
     }
 
@@ -391,6 +410,27 @@
     }
 
     return null;
+  }
+
+  function syncYnTextarea(root, fieldId) {
+    const wrap = root.querySelector(`#${fieldId}TextWrap`);
+    if (!wrap) return;
+    const meridiqId = Number(fieldId.replace(/^f/, ''));
+    const question = findYnQuestion(meridiqId);
+    if (!question?.textOn) {
+      wrap.hidden = true;
+      return;
+    }
+    const yn = selectedYn(root, fieldId);
+    wrap.hidden = yn !== question.textOn;
+  }
+
+  function bindYnFields(root) {
+    root.querySelectorAll('input[data-yn]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        syncYnTextarea(root, radio.getAttribute('data-yn'));
+      });
+    });
   }
 
   function bindDiseaseExclusivity(root) {
@@ -435,6 +475,7 @@
   }
 
   function bindOverlay(root) {
+    bindYnFields(root);
     bindDiseaseExclusivity(root);
 
     root.querySelector('#cancelBtn')?.addEventListener('click', () => {
@@ -523,5 +564,6 @@
     isDemoFlagOn,
     readContext,
     MERIDIQ_FORM_ID,
+    MERIDIQ_YN_QUESTIONS,
   };
 })(typeof window !== 'undefined' ? window : global);
