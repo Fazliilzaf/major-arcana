@@ -5712,13 +5712,12 @@
 
   function renderV9PatientRowHtml(card, selected) {
     const name = displayNameForList(card);
-    const treatment =
-      asArray(card.treatmentTypes).length > 0
-        ? card.treatmentTypes.join(', ')
-        : card.nextBookingType || (card.hasJournal ? 'Journal' : '');
+    const treatment = asArray(card.treatmentTypes).length > 0 ? card.treatmentTypes.join(', ') : '';
     const revenue = resolveV9Revenue(card);
     const signal = resolveV9ListSignal(card);
     const age = resolvePatientAgeYears(card);
+    const ageAndTreatment =
+      [age != null ? `${age} år` : null, treatment || null].filter(Boolean).join(' · ') || '—';
     // 9-stegs-position härledd ur list-flaggorna (Nästa steg-pillen ger exakt åtgärd)
     const jStep =
       card.missingHealthDeclaration || card.missingForm
@@ -5749,10 +5748,8 @@
       (cycle
         ? `<span class="cr-tag cr-tag--cycle">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
         : '');
-    const ageHtml =
-      age != null ? `<div class="cr-meta-sub cr-age">${escapeHtml(`${age} år`)}</div>` : '';
-    const treatmentHtml = treatment
-      ? `<div class="cr-meta-sub cr-treatment">${escapeHtml(treatment)}</div>`
+    const nameMetaHtml = ageAndTreatment
+      ? `<div class="cr-meta-sub cr-name-meta">${escapeHtml(ageAndTreatment)}</div>`
       : '';
     const visitBadgesHtml = tagBits
       ? `<div class="cr-visit-badges">${tagBits}</div>`
@@ -5770,8 +5767,7 @@
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
-              ${ageHtml}
-              ${treatmentHtml}
+              ${nameMetaHtml}
             </div>
             <div class="cr-last-visit">
               ${visitBadgesHtml}
