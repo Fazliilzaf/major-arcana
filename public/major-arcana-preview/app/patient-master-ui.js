@@ -8512,6 +8512,48 @@
     return card.primaryEmail || card.primaryPhone || card.personnummer || 'Okänd kund';
   }
 
+  function resolveSearchDropdownUpcoming(card) {
+    const directAt = normalizeText(card?.nextBookingAt);
+    if (directAt) {
+      return {
+        iso: directAt,
+        type: normalizeText(card.nextBookingType),
+        resource: normalizeText(card.nextBookingResourceLabel),
+      };
+    }
+    const upcoming = asArray(card?.upcomingBookings)
+      .map((booking) => ({
+        iso: normalizeText(booking.startsAt),
+        type: normalizeText(booking.serviceLabel || booking.serviceName || booking.title),
+        resource: normalizeText(booking.resourceLabel),
+      }))
+      .filter((row) => row.iso && Date.parse(row.iso) > Date.now())
+      .sort((a, b) => Date.parse(a.iso) - Date.parse(b.iso))[0];
+    return upcoming || null;
+  }
+
+  function resolveSearchDropdownSegmentLabel(card) {
+    if (card.onWaitlist) return 'På väntelistan';
+    if (card.segmentHints?.new || card.patientOrigin === 'new') return 'Ny kund';
+    if (card.isVip) return 'VIP';
+    if (card.segmentHints?.active) return 'Återkommande';
+    if (card.segmentHints?.dormant) return 'Inaktiv';
+    const state = resolveV9RowState(card);
+    if (state.label && state.label !== 'Aktiv') return state.label;
+    if (card.hasUpcomingBooking || resolveSearchDropdownUpcoming(card)) return 'Kommande besök';
+    if (card.lastVisitAt) return 'Tidigare besök';
+    return '';
+  }
+
+  function resolveSearchDropdownTreatmentLabel(card, upcoming) {
+    const fromTypes = asArray(card.treatmentTypes).filter(Boolean).join(', ');
+    if (fromTypes) return fromTypes;
+    if (upcoming?.type) return upcoming.type;
+    const lastVisit = resolveV9LastVisitDisplay(card);
+    if (lastVisit.subline) return lastVisit.subline.split(' · ')[0];
+    return normalizeText(card.lastVisitType || card.lastBookingType);
+  }
+
   function formatV9ShortBookingDate(iso) {
     if (!iso) return '';
     try {
@@ -8528,42 +8570,64 @@
 
   function resolveSearchDropdownInfo(card) {
     const parts = [];
-    if (card.segmentHints?.active) parts.push('Återkommande');
-    else {
-      const rowState = resolveV9RowState(card);
-      if (rowState.label && rowState.label !== 'Aktiv') parts.push(rowState.label);
-    }
-    const treatments = asArray(card.treatmentTypes);
-    if (treatments.length) parts.push(treatments.join(', '));
-    if (card.hasUpcomingBooking && card.nextBookingAt) {
-      const when = formatV9ShortBookingDate(card.nextBookingAt);
+    const upcoming = resolveSearchDropdownUpcoming(card);
+    const segment = resolveSearchDropdownSegmentLabel(card);
+    if (segment) parts.push(segment);
+
+    const treatment = resolveSearchDropdownTreatmentLabel(card, upcoming);
+    if (treatment) parts.push(treatment);
+
+    if (upcoming?.iso) {
+      const when = formatV9ShortBookingDate(upcoming.iso);
       if (when) parts.push(when);
-    } else if (card.onWaitlist) {
-      parts.push('På väntelistan');
+      else parts.push(formatV9ListDate(upcoming.iso));
     } else if (card.lastVisitAt) {
       parts.push(`Senast ${formatV9ListDate(card.lastVisitAt)}`);
     }
+
     const cycle = v9TreatmentCycle(card);
     if (cycle) parts.push(`${cycle.label} ${cycle.done}/${cycle.planned}`);
+
+    const signal = resolveV9ListSignal(card);
+    if (signal?.text && signal.text !== '—') parts.push(signal.text);
+
     const noShows = Number(card.noShowCount);
     if (Number.isFinite(noShows) && noShows >= 2) parts.push(`${noShows} no-shows`);
-    return parts.filter(Boolean).join(' · ') || '—';
+
+    if (parts.length) return parts.join(' · ');
+
+    const contact = v9ContactLine(card);
+    if (contact.main && contact.main !== 'Kontakt saknas') return contact.main;
+    return 'Kund i register';
   }
 
   function buildSearchDropdownBadgeHtml(card) {
+    const upcoming = resolveSearchDropdownUpcoming(card);
+    const tagHtml = [];
+    if (upcoming?.iso) {
+      const d = new Date(upcoming.iso);
+      if (!Number.isNaN(d.getTime())) {
+        const weekday = d.toLocaleDateString('sv-SE', { weekday: 'short' });
+        const day = d.getDate();
+        const label = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${day}`;
+        tagHtml.push(
+          `<span class="cr-tag cr-tag--ready cr-search-dropdown-tag">${escapeHtml(label)}</span>`
+        );
+      }
+    }
     const tags = buildV9RowBadges(card).filter((t) => t.label !== 'Saknar formulär');
+    tags.forEach((t) => {
+      tagHtml.push(
+        `<span class="cr-tag cr-tag--${escapeHtml(t.kind)} cr-search-dropdown-tag">${escapeHtml(t.label)}</span>`
+      );
+    });
     const cycle = v9TreatmentCycle(card);
-    const tagBits =
-      tags
-        .map(
-          (t) =>
-            `<span class="cr-tag cr-tag--${escapeHtml(t.kind)} cr-search-dropdown-tag">${escapeHtml(t.label)}</span>`
-        )
-        .join('') +
-      (cycle
-        ? `<span class="cr-tag cr-tag--cycle cr-search-dropdown-tag">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
-        : '');
-    return tagBits ? `<div class="cr-search-dropdown-badges">${tagBits}</div>` : '';
+    if (cycle) {
+      tagHtml.push(
+        `<span class="cr-tag cr-tag--cycle cr-search-dropdown-tag">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
+      );
+    }
+    return tagHtml.length ? `<div class="cr-search-dropdown-badges">${tagHtml.join('')}</div>` : '';
   }
 
   function ensureSearchDropdownPortal() {

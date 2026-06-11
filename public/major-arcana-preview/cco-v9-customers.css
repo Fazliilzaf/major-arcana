@@ -4775,6 +4775,49 @@ html[data-v9-enabled="on"] .cr-search-dropdown-badges {
   margin-top: 2px;
 }
 
+html[data-v9-enabled="on"] .cr-search-dropdown-badges .cr-tag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+html[data-v9-enabled="on"] .cr-search-dropdown-badges .cr-tag--vip {
+  background: var(--v9-bg-rose-pill, rgba(187, 71, 121, 0.14));
+  color: var(--v9-accent-studio, #bb4779);
+}
+
+html[data-v9-enabled="on"] .cr-search-dropdown-badges .cr-tag--cycle {
+  background: var(--v9-status-info-bg, rgba(74, 123, 168, 0.12));
+  color: var(--v9-status-info, #4a7ba8);
+}
+
+html[data-v9-enabled="on"] .cr-search-dropdown-badges .cr-tag--risk,
+html[data-v9-enabled="on"] .cr-search-dropdown-badges .cr-tag--frisk {
+  background: var(--v9-status-warning-bg, rgba(200, 130, 30, 0.14));
+  color: var(--v9-status-warning, #c8821e);
+}
+
+html[data-v9-enabled="on"] .cr-search-dropdown-badges .cr-tag--ready {
+  background: var(--v9-status-success-bg, rgba(74, 130, 104, 0.12));
+  color: var(--v9-status-success, #4a8268);
+}
+
+html[data-v9-enabled="on"] .cr-search-dropdown-badges .cr-tag--new {
+  background: var(--v9-status-info-bg, rgba(74, 123, 168, 0.12));
+  color: var(--v9-status-info, #4a7ba8);
+}
+
+html[data-v9-enabled="on"] .cr-search-dropdown-badges .cr-tag--inaktiv {
+  background: rgba(132, 117, 107, 0.16);
+  color: var(--v9-text-tertiary, #8a8174);
+}
+
 html[data-v9-enabled="on"] .cr-search-dropdown-tag {
   font-size: 8.5px;
 }
