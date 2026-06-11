@@ -4213,6 +4213,9 @@
     if (card.missingHealthDeclaration || card.missingForm) {
       add('risk', 'Saknar formulär');
     }
+    if (card.missingFitnessCertificate && card.hasUpcomingBooking) {
+      add('frisk', 'Friskförs');
+    }
     if (card.todayVisit) add('ready', 'Idag');
     if (card.onWaitlist) add('risk', 'Väntelista');
     return tags.slice(0, 3);
@@ -4251,13 +4254,27 @@
     } else if (card.lifetimeValueLabel) {
       title = card.lifetimeValueLabel;
     }
+    let trend = '';
+    let trendTone = 'neutral';
+    if (hasWon && hasOpen && potRaw > wonRaw) {
+      const pct = Math.round(((potRaw - wonRaw) / wonRaw) * 100);
+      trend = `+${pct}% pot.`;
+      trendTone = 'up';
+    } else if (hasOpen && !hasWon) {
+      trend = 'Öppen affär';
+      trendTone = 'up';
+    } else if (hasWon && card.lifetimeValueLabel) {
+      trend = card.lifetimeValueLabel;
+      trendTone = 'neutral';
+    } else if (card.pipedriveLinked && dealCount > 0) {
+      trend = `${dealCount} Pipedrive-affär${dealCount === 1 ? '' : 'er'}`;
+      trendTone = 'neutral';
+    }
     return {
       main,
       potential,
-      trend:
-        card.pipedriveLinked && dealCount > 0
-          ? `${dealCount} Pipedrive-affär${dealCount === 1 ? '' : 'er'}`
-          : '',
+      trend,
+      trendTone,
       title,
     };
   }
@@ -5728,7 +5745,11 @@
             </div>
             <div><span class="cr-steg cr-steg--${escapeHtml(stegTone)}">Steg ${escapeHtml(String(jStep.n))}</span></div>
             <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
-            <div><div class="cr-revenue">${escapeHtml(revenue.main)}</div>${revenue.potential ? `<div class="cr-meta-sub cr-revenue-pot">${escapeHtml(revenue.potential)} pot.</div>` : ''}</div>
+            <div class="cr-ltv">
+              <div class="cr-revenue">${escapeHtml(revenue.main)}</div>
+              ${revenue.potential ? `<div class="cr-meta-sub cr-revenue-pot">${escapeHtml(revenue.potential)}</div>` : ''}
+              ${revenue.trend ? `<div class="cr-revenue-trend cr-revenue-trend--${escapeHtml(revenue.trendTone || 'neutral')}">${escapeHtml(revenue.trend)}</div>` : ''}
+            </div>
             <div class="cr-contact">${contactHtml}</div>
             <div class="cr-last-visit">
               <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
