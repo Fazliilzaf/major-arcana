@@ -1,7 +1,84 @@
+const crypto = require('crypto');
+
 const { normalizeRole } = require('./roles');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseMachineTokens(raw) {
+  const text = normalizeText(raw);
+  if (!text) return [];
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return [];
+  }
+  const entries = Array.isArray(parsed) ? parsed : [parsed];
+  return entries
+    .map((entry, index) => {
+      const token = normalizeText(entry?.token);
+      const tenantId = normalizeText(entry?.tenantId || entry?.tenant_id);
+      const role = normalizeRole(entry?.role || 'STAFF') || 'STAFF';
+      if (!token || token.length < 32 || !tenantId) return null;
+      const label = normalizeText(entry?.label || entry?.name) || `machine-${index + 1}`;
+      const allowPathsRaw = Array.isArray(entry?.allowPaths)
+        ? entry.allowPaths
+        : Array.isArray(entry?.allow_paths)
+          ? entry.allow_paths
+          : [];
+      const allowPaths = allowPathsRaw.map(normalizeText).filter(Boolean);
+      return {
+        token,
+        tenantId,
+        role,
+        label,
+        userId: normalizeText(entry?.userId || entry?.user_id) || `machine:${label}`,
+        email: normalizeText(entry?.email) || `${label}@machine.arcana.local`,
+        allowPaths: allowPaths.length ? allowPaths : ['/api/v1/orchestrator'],
+      };
+    })
+    .filter(Boolean);
+}
+
+function safeEqual(a, b) {
+  const left = Buffer.from(String(a || ''), 'utf8');
+  const right = Buffer.from(String(b || ''), 'utf8');
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+}
+
+function requestPathForScope(req) {
+  return normalizeText(req.originalUrl?.split('?')[0] || req.path || '').toLowerCase();
+}
+
+function isPathAllowed(req, allowPaths = []) {
+  const path = requestPathForScope(req);
+  return allowPaths.some((prefix) => {
+    const normalized = normalizeText(prefix).toLowerCase();
+    return normalized && (path === normalized || path.startsWith(`${normalized}/`));
+  });
+}
+
+function findMachineTokenContext(req, token, machineTokens = []) {
+  if (!token || !Array.isArray(machineTokens) || machineTokens.length === 0) return null;
+  for (const entry of machineTokens) {
+    if (!safeEqual(token, entry.token)) continue;
+    if (!isPathAllowed(req, entry.allowPaths)) return null;
+    return {
+      token,
+      sessionId: `machine:${entry.label}`,
+      userId: entry.userId,
+      email: entry.email,
+      membershipId: `machine:${entry.label}:${entry.tenantId}`,
+      tenantId: entry.tenantId,
+      role: entry.role,
+      authMode: 'machine_token',
+      label: entry.label,
+    };
+  }
+  return null;
 }
 
 function getAuthToken(req) {
@@ -121,6 +198,7 @@ function buildPreviewAuthContext({ config = {}, previewAuthContext = null } = {}
 
 function createAuthMiddleware({ authStore, config = {}, previewAuthContext = null }) {
   const localPreviewAuthContext = buildPreviewAuthContext({ config, previewAuthContext });
+  const machineTokens = parseMachineTokens(config.machineTokensJson);
 
   async function requireAuth(req, res, next) {
     try {
@@ -135,6 +213,36 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
         return next();
       }
       if (token) {
+        const machineContext = findMachineTokenContext(req, token, machineTokens);
+        if (machineContext) {
+          req.auth = { ...machineContext };
+          req.currentUser = {
+            id: machineContext.userId,
+            email: machineContext.email,
+            displayName: machineContext.label,
+            status: 'active',
+            isMachine: true,
+          };
+          req.currentMembership = {
+            id: machineContext.membershipId,
+            tenantId: machineContext.tenantId,
+            userId: machineContext.userId,
+            role: machineContext.role,
+            status: 'ACTIVE',
+            isMachine: true,
+          };
+          req.currentSession = {
+            id: machineContext.sessionId,
+            userId: machineContext.userId,
+            membershipId: machineContext.membershipId,
+            tenantId: machineContext.tenantId,
+            createdAt: null,
+            lastSeenAt: new Date().toISOString(),
+            authMode: 'machine_token',
+            isMachine: true,
+          };
+          return next();
+        }
         const context = await authStore.getSessionContextByToken(token);
         if (context) {
           await authStore.touchSession(context.session.id);
@@ -243,6 +351,7 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
 
 module.exports = {
   createAuthMiddleware,
+  parseMachineTokens,
   isStaffJournalOpenApiPath,
   shouldUseStaffJournalOpenAccess,
 };

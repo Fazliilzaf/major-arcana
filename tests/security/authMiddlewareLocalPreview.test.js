@@ -184,6 +184,93 @@ test('valid token still uses the real session context', async () => {
   assert.equal(req.currentUser.id, 'user-1');
 });
 
+test('machine token authenticates scoped orchestrator requests without session lookup', async () => {
+  let sessionLookupCalled = false;
+  const authStore = {
+    async getSessionContextByToken() {
+      sessionLookupCalled = true;
+      return null;
+    },
+    async touchSession() {
+      throw new Error('touchSession should not be called for machine tokens');
+    },
+  };
+  const token = 'mach_12345678901234567890123456789012';
+  const middleware = createAuthMiddleware({
+    authStore,
+    config: {
+      machineTokensJson: JSON.stringify([
+        {
+          token,
+          tenantId: 'hair-tp-clinic',
+          role: 'STAFF',
+          label: 'ceo-agent',
+          userId: 'machine:ceo-agent',
+          allowPaths: ['/api/v1/orchestrator'],
+        },
+      ]),
+    },
+  });
+
+  const req = createReq({
+    authorization: `Bearer ${token}`,
+    host: 'arcana.hairtpclinic.com',
+    ip: '198.51.100.10',
+    path: '/orchestrator/admin-run',
+    originalUrl: '/api/v1/orchestrator/admin-run',
+  });
+  const res = createRes();
+  let nextCalled = false;
+  await middleware.requireAuth(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, true);
+  assert.equal(sessionLookupCalled, false);
+  assert.equal(res.statusCode, 200);
+  assert.equal(req.auth.authMode, 'machine_token');
+  assert.equal(req.auth.tenantId, 'hair-tp-clinic');
+  assert.equal(req.auth.role, 'STAFF');
+  assert.equal(req.currentUser.isMachine, true);
+  assert.equal(req.currentSession.isMachine, true);
+});
+
+test('machine token is denied outside its allowPaths', async () => {
+  let sessionLookupToken = '';
+  const authStore = {
+    async getSessionContextByToken(token) {
+      sessionLookupToken = token;
+      return null;
+    },
+    async touchSession() {},
+  };
+  const token = 'mach_abcdefghijklmnopqrstuvwxyz123456';
+  const middleware = createAuthMiddleware({
+    authStore,
+    config: {
+      machineTokensJson: JSON.stringify([{ token, tenantId: 'hair-tp-clinic', role: 'STAFF' }]),
+    },
+  });
+
+  const req = createReq({
+    authorization: `Bearer ${token}`,
+    host: 'arcana.hairtpclinic.com',
+    ip: '198.51.100.10',
+    path: '/cco-patient-master/patients',
+    originalUrl: '/api/v1/cco-patient-master/patients',
+  });
+  const res = createRes();
+  let nextCalled = false;
+  await middleware.requireAuth(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, false);
+  assert.equal(sessionLookupToken, token);
+  assert.equal(res.statusCode, 401);
+  assert.deepEqual(res.body, { error: 'Sessionen är ogiltig eller har gått ut.' });
+});
+
 test('non-local x-auth-token authenticates when bearer header absent', async () => {
   let seenToken = '';
   const authStore = {

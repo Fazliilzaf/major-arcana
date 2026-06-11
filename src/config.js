@@ -765,6 +765,7 @@ const config = {
   authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 900),
   authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 5),
   authSelectTenantRateLimitMax: asInt(process.env.AUTH_SELECT_TENANT_RATE_LIMIT_MAX, 30),
+  machineTokensJson: asNonEmptyString(process.env.ARCANA_MACHINE_TOKENS_JSON),
   authOwnerMfaRequired: asBool(process.env.ARCANA_AUTH_OWNER_MFA_REQUIRED, false),
   authOwnerMfaBypassHosts: (() => {
     const defaults = ['arcana-staging.onrender.com', 'localhost', '127.0.0.1'];
