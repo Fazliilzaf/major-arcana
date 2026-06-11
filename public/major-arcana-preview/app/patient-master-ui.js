@@ -5630,6 +5630,13 @@
     return { text: '—', tone: 'neutral' };
   }
 
+  function resolveV9NextStepToneClass(tone) {
+    if (tone === 'blocker') return 'block';
+    if (tone === 'legal_blocker') return 'legal';
+    if (tone === 'needs_review') return 'warn';
+    return tone || 'neutral';
+  }
+
   // Behandlings-kur-progress (bara kur-typer PRP/microneedling) — klinik-standard planerat antal.
   // done = completedVisitCount (proxy: totala besök), capped till planerat.
   function v9TreatmentCycle(card) {
@@ -5676,7 +5683,7 @@
             : card.hasUpcomingBooking
               ? { n: 8, tone: 'teal' }
               : { n: 9, tone: 'ok' };
-    // 7-kol: avatar · Kund(+taggar) · Steg · Nästa steg · LTV · Kontakt · Senast besök · chevron
+    // 7-kol: avatar · Kund · Besök · Kontakt · Steg · LTV · Nästa steg · chevron
     const lastVisitDisplay = resolveV9LastVisitDisplay(card);
     const contactEmail = card.contactEmail || card.primaryEmail || '';
     const contactPhone = card.contactPhone || card.primaryPhone || '';
@@ -5701,7 +5708,7 @@
       ? `<div class="cr-meta-sub cr-name-meta">${escapeHtml(ageAndTreatment)}</div>`
       : '';
     const stepStatus = resolveV9StepStatus(jStep);
-    const signalTone = signal.tone || 'neutral';
+    const signalTone = resolveV9NextStepToneClass(signal.tone || 'neutral');
 
     return `
           <button
@@ -5715,18 +5722,18 @@
               <div class="cr-name">${escapeHtml(name)}</div>
               ${nameMetaHtml}
             </div>
+            <div class="cr-last-visit">
+              <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
+              ${visitTagsHtml}
+            </div>
+            <div class="cr-contact">${contactHtml}</div>
             <div><span class="cr-status" data-state="${escapeHtml(stepStatus.state)}"><span class="dot"></span>${escapeHtml(stepStatus.label)}</span></div>
-            <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
             <div class="cr-ltv">
               <div class="cr-revenue">${escapeHtml(revenue.main)}</div>
               ${revenue.potential ? `<div class="cr-meta-sub cr-revenue-pot">${escapeHtml(revenue.potential)}</div>` : ''}
               ${revenue.trend ? `<div class="cr-revenue-trend cr-revenue-trend--${escapeHtml(revenue.trendTone || 'neutral')}">${escapeHtml(revenue.trend)}</div>` : ''}
             </div>
-            <div class="cr-contact">${contactHtml}</div>
-            <div class="cr-last-visit">
-              <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
-              ${visitTagsHtml}
-            </div>
+            <div><span class="cr-next-text cr-next-text--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
         `;
@@ -5737,11 +5744,11 @@
           <div class="customer-row-head cr-v10-head" aria-hidden="true">
             <div></div>
             <div>Kund</div>
-            <div>Steg</div>
-            <div>Nästa steg</div>
-            <div>LTV</div>
+            <div>Besök</div>
             <div>Kontakt</div>
-            <div>Senast besök</div>
+            <div>Steg</div>
+            <div>LTV</div>
+            <div>Nästa steg</div>
             <div></div>
           </div>
         `;
