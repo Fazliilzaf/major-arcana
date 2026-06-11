@@ -5719,8 +5719,6 @@
     const revenue = resolveV9Revenue(card);
     const signal = resolveV9ListSignal(card);
     const age = resolvePatientAgeYears(card);
-    const ageAndTreatment =
-      [age != null ? `${age} år` : null, treatment || null].filter(Boolean).join(' · ') || '—';
     // 9-stegs-position härledd ur list-flaggorna (Nästa steg-pillen ger exakt åtgärd)
     const jStep =
       card.missingHealthDeclaration || card.missingForm
@@ -5733,7 +5731,6 @@
               ? { n: 8, tone: 'teal' }
               : { n: 9, tone: 'ok' };
     // 7-kol: avatar · Kund · Besök · Kontakt · Steg · LTV · Nästa steg · chevron
-    const lastVisitDisplay = resolveV9LastVisitDisplay(card);
     const contactEmail = card.contactEmail || card.primaryEmail || '';
     const contactPhone = card.contactPhone || card.primaryPhone || '';
     const contactHtml =
@@ -5752,10 +5749,14 @@
       (cycle
         ? `<span class="cr-tag cr-tag--cycle">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
         : '');
-    const nameTagsHtml = tagBits ? `<div class="cr-name-tags">${tagBits}</div>` : '';
-    const nameMetaHtml = ageAndTreatment
-      ? `<div class="cr-meta-sub cr-name-meta">${escapeHtml(ageAndTreatment)}</div>`
+    const ageHtml =
+      age != null ? `<div class="cr-meta-sub cr-age">${escapeHtml(`${age} år`)}</div>` : '';
+    const treatmentHtml = treatment
+      ? `<div class="cr-meta-sub cr-treatment">${escapeHtml(treatment)}</div>`
       : '';
+    const visitBadgesHtml = tagBits
+      ? `<div class="cr-visit-badges">${tagBits}</div>`
+      : '<div class="cr-visit-date">—</div>';
     const stepStatus = resolveV9StepStatus(jStep);
     const signalTone = resolveV9NextStepToneClass(signal.tone || 'neutral');
 
@@ -5769,11 +5770,11 @@
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
-              ${nameTagsHtml}
-              ${nameMetaHtml}
+              ${ageHtml}
+              ${treatmentHtml}
             </div>
             <div class="cr-last-visit">
-              <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
+              ${visitBadgesHtml}
             </div>
             <div class="cr-contact">${contactHtml}</div>
             <div><span class="cr-status" data-state="${escapeHtml(stepStatus.state)}"><span class="dot"></span>${escapeHtml(stepStatus.label)}</span></div>

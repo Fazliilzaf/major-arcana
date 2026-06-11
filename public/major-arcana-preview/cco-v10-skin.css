@@ -500,10 +500,17 @@ html[data-v9-enabled="on"] .cr-v10 .cr-name {
   font-weight: 700;
   color: var(--cco-color-brand);
 }
-html[data-v9-enabled="on"] .cr-v10 .cr-name-meta {
+html[data-v9-enabled="on"] .cr-v10 .cr-name-meta,
+html[data-v9-enabled="on"] .cr-v10 .cr-age,
+html[data-v9-enabled="on"] .cr-v10 .cr-treatment {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+html[data-v9-enabled="on"] .cr-v10 .cr-visit-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-name-tags {
   display: flex;
