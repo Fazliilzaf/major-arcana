@@ -79,3 +79,38 @@ test('ORD-43: thumbnail-backfill är idempotent för befintliga JPEG-assets', as
     await fs.rm(tmp, { recursive: true, force: true });
   }
 });
+
+test('ORD-43: backfill hoppar över bild-kandidater utan blob på disk', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-thumb-no-blob-'));
+  try {
+    const assetStore = await createCcoPatientAssetStore({
+      filePath: path.join(tmp, 'assets.json'),
+    });
+    const storage = createLocalProvider({ rootPath: path.join(tmp, 'storage') });
+    await assetStore.addAsset({
+      patientId: 'patient-1',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'ghost-photo',
+      originalDriveFileId: 'drive-ghost',
+      originalFileName: 'foto.heif',
+      storageProvider: 'local',
+      storageKey: '2026/05/missing-blob.heif',
+      checksum: 'deadbeef',
+      fileSize: 100,
+      mimeType: 'image/heif',
+      category: 'photo_during',
+      status: 'NEEDS_REVIEW',
+    });
+    const report = await backfillAssetThumbnails({
+      assetStore,
+      storage,
+      dryRun: true,
+      limit: 10,
+    });
+    assert.equal(report.stats.candidates, 0);
+    assert.equal(report.stats.candidatesWithoutBlob, 1);
+    assert.equal(report.stats.batchSize, 0);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});

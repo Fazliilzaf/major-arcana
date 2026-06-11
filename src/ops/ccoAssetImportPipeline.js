@@ -650,11 +650,17 @@ function createCcoAssetImportPipeline({
     // mot CCO master. Detta är load-bearing: en fil kan ALDRIG bli
     // VERIFIED_IN_CCO utan en master-validerad patientId.
     const adapterRequestedReview = sourceRecord._needsPatientReview === true;
+    // Asset-store/Drive-internalize skickar redan validerad patientId — låg
+    // klassificeringsconfidence (t.ex. foto i datummapp) ska inte tvinga review.
+    const trustedPatientFromSource =
+      patientLink.basis === 'old_cco_mapping' &&
+      patientLink.confidence === 'high' &&
+      Boolean(patientLink.patientId);
     const needsReview =
       adapterRequestedReview ||
       !patientLink.patientId ||
-      patientScore < MEDIUM_CONFIDENCE ||
-      classification.confidence === 'low';
+      (!trustedPatientFromSource && patientScore < MEDIUM_CONFIDENCE) ||
+      (!trustedPatientFromSource && classification.confidence === 'low');
     // Initial-status: assets börjar alltid på DISCOVERED och vandrar via
     // transitionStatus per state-machine. NEEDS_REVIEW är en giltig direkt
     // DISCOVERED-target (se docs/schema/cco-patient-assets.schema.md §2).

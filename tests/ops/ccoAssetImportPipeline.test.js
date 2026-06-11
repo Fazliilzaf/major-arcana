@@ -233,6 +233,37 @@ test('importSingleAsset: no patient match → NEEDS_REVIEW + queue-item', async 
   assert.equal(pending[0].reason, 'no_patient_match');
 });
 
+test('ORD-43: känd patientId från asset-store → foto i datummapp blir VISIBLE trots low classify', async () => {
+  const rig = await makeRig();
+  try {
+    const runId = await rig.importRunStore.startRun({
+      sourceSystem: 'drive_import',
+      mode: 'full',
+    });
+    const result = await rig.pipeline.importSingleAsset({
+      sourceSystem: 'drive_import',
+      importRunId: runId,
+      sourceRecord: {
+        patientId: 'pat-known-001',
+        sourceRecordId: 'asset-photo-1',
+        originalDriveFileId: 'drive-photo-low-class',
+        originalDrivePath: 'Hair TP Clinic 2024/Bokade/Juli 2024/foto.heic',
+        originalFileName: 'IMG_0001.heic',
+        mimeType: 'image/heic',
+        documentDate: '2024-07-11',
+        body: Buffer.from('fake-heic-bytes-for-test'),
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.status, 'VISIBLE_ON_PATIENT_CARD');
+    assert.equal(result.asset.patientId, 'pat-known-001');
+    assert.equal(result.asset.category, 'photo_during');
+    assert.equal(rig.reviewQueueStore.listPending().length, 0);
+  } finally {
+    /* tmp */
+  }
+});
+
 test('importSingleAsset: duplicate detection → DUPLICATE status', async () => {
   const rig = await makeRig();
   const runId = await rig.importRunStore.startRun({
