@@ -126,8 +126,8 @@
     const textBlock =
       question.textOn === 'yes' || question.textOn === 'no'
         ? `
-          <div class="field mq-follow" id="${id}TextWrap" hidden>
-            <textarea id="${id}Text" rows="3" aria-label="${label.replace(/"/g, '&quot;')}"></textarea>
+          <div class="field mq-follow" id="${id}TextWrap">
+            <textarea id="${id}Text" rows="3" aria-label="${label.replace(/"/g, '&quot;')}" placeholder=""></textarea>
           </div>`
         : '';
     return `
@@ -259,6 +259,8 @@
 #${ROOT_ID} .field input:focus,#${ROOT_ID} .field textarea:focus,#${ROOT_ID} .mq-select:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
 #${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:72px;resize:vertical}
 #${ROOT_ID} .mq-follow{margin-top:10px;margin-bottom:0}
+#${ROOT_ID} .mq-follow.is-inactive textarea{opacity:.72;background:rgba(255,255,255,.55)}
+#${ROOT_ID} .mq-follow.is-active textarea{border-color:rgba(187,71,121,.45);box-shadow:0 0 0 2px rgba(187,71,121,.08)}
 #${ROOT_ID} .checks{display:flex;flex-direction:column;gap:8px}
 #${ROOT_ID} .mq-attest .check span{font-size:11.5px}
 #${ROOT_ID} .check{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
@@ -417,15 +419,18 @@
     if (!wrap) return;
     const meridiqId = Number(fieldId.replace(/^f/, ''));
     const question = findYnQuestion(meridiqId);
-    if (!question?.textOn) {
-      wrap.hidden = true;
-      return;
-    }
+    if (!question?.textOn) return;
     const yn = selectedYn(root, fieldId);
-    wrap.hidden = yn !== question.textOn;
+    const active = yn === question.textOn;
+    wrap.classList.toggle('is-active', active);
+    wrap.classList.toggle('is-inactive', !active);
   }
 
   function bindYnFields(root) {
+    MERIDIQ_YN_QUESTIONS.forEach((question) => {
+      if (!question.textOn) return;
+      syncYnTextarea(root, fieldDomId(question.id));
+    });
     root.querySelectorAll('input[data-yn]').forEach((radio) => {
       radio.addEventListener('change', () => {
         syncYnTextarea(root, radio.getAttribute('data-yn'));
