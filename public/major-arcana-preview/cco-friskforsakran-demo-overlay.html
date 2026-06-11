@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Friskförsäkran demo-overlay · Hair TP Clinic</title>
+    <link rel="stylesheet" href="/cco-polish.css" />
+    <script src="/cco-polish.js" defer></script>
+    <script src="./app/cco-friskforsakran-demo-overlay.js?v=build-steg8-ffdemo" defer></script>
+  </head>
+  <body data-stage="demo">
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        window.CcoFriskforsakranDemoOverlay?.mount({
+          operationLabel: '2026-06-15 · 09:00',
+          patientName: 'Anna Karlsson',
+        });
+      });
+    </script>
+  </body>
+</html>

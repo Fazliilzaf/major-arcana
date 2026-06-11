@@ -10852,7 +10852,21 @@
           }
         }, 180);
       }
+      initFriskforsakranDemoOverlay();
     }
+  }
+
+  function initFriskforsakranDemoOverlay() {
+    if (!isV9DemoEnabled() || !isCustomersShellActive()) return;
+    const overlay = window.CcoFriskforsakranDemoOverlay;
+    if (!overlay?.maybeAutoMount) return;
+    const card = runtime.detail?.card;
+    const patientName =
+      normalizeText(card?.displayName) ||
+      normalizeText(card?.primaryEmail) ||
+      normalizeText(card?.primaryPhone) ||
+      '';
+    overlay.maybeAutoMount(patientName ? { patientName } : undefined);
   }
 
   let customersViewOpenQueued = false;
