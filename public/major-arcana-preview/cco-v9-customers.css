@@ -1472,6 +1472,13 @@ html[data-v9-enabled="on"] .customer-row .cr-name-meta {
   white-space: nowrap;
 }
 
+html[data-v9-enabled="on"] .customer-row .cr-name-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
 html[data-v9-enabled="on"] .customer-row .cr-visit-meta {
   overflow: hidden;
   text-overflow: ellipsis;

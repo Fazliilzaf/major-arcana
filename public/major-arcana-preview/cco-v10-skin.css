@@ -505,6 +505,12 @@ html[data-v9-enabled="on"] .cr-v10 .cr-name-meta {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+html[data-v9-enabled="on"] .cr-v10 .cr-name-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
 html[data-v9-enabled="on"] .cr-v10 .cr-visit-meta {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -5752,7 +5752,7 @@
       (cycle
         ? `<span class="cr-tag cr-tag--cycle">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
         : '');
-    const visitTagsHtml = tagBits ? `<div class="cr-visit-tags">${tagBits}</div>` : '';
+    const nameTagsHtml = tagBits ? `<div class="cr-name-tags">${tagBits}</div>` : '';
     const nameMetaHtml = ageAndTreatment
       ? `<div class="cr-meta-sub cr-name-meta">${escapeHtml(ageAndTreatment)}</div>`
       : '';
@@ -5769,11 +5769,11 @@
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
+              ${nameTagsHtml}
               ${nameMetaHtml}
             </div>
             <div class="cr-last-visit">
               <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
-              ${visitTagsHtml}
             </div>
             <div class="cr-contact">${contactHtml}</div>
             <div><span class="cr-status" data-state="${escapeHtml(stepStatus.state)}"><span class="dot"></span>${escapeHtml(stepStatus.label)}</span></div>
