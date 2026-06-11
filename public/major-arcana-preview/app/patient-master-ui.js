@@ -8487,16 +8487,15 @@
     renderPatientRows();
   }
 
+  const CUSTOMER_SEARCH_INPUT_SELECTOR =
+    '[data-customer-search], [data-v9-global-search-input], [data-v9-search-input], [data-cco-topnav-search-input]';
+
   function syncCustomerSearchInputs(query, exceptEl = null) {
     const next = normalizeText(query);
-    document
-      .querySelectorAll(
-        '[data-customer-search], [data-v9-global-search-input], [data-v9-search-input]'
-      )
-      .forEach((el) => {
-        if (el === exceptEl || el.value === next) return;
-        el.value = next;
-      });
+    document.querySelectorAll(CUSTOMER_SEARCH_INPUT_SELECTOR).forEach((el) => {
+      if (el === exceptEl || el.value === next) return;
+      el.value = next;
+    });
     return next;
   }
 
@@ -8508,7 +8507,9 @@
   function resolveDropdownHost(input) {
     if (!input) return null;
     return (
-      input.closest('[data-v9-global-search], label, .customers-filter') || input.parentElement
+      input.closest(
+        '[data-cco-topnav-search], [data-v9-global-search], label, .customers-filter'
+      ) || input.parentElement
     );
   }
 
@@ -8532,12 +8533,13 @@
     }
 
     const filteredPatients = query
-      ? runtime.patients.filter(
-          (p) =>
-            (p.displayName || '').toLowerCase().includes(query.toLowerCase()) ||
-            (p.primaryEmail || '').toLowerCase().includes(query.toLowerCase()) ||
-            (p.primaryPhone || '').toLowerCase().includes(query.toLowerCase())
-        )
+      ? runtime.patients.filter((p) => {
+          const haystack = [displayNameForList(p), p.primaryEmail, p.primaryPhone, p.personnummer]
+            .map((v) => normalizeText(v).toLowerCase())
+            .filter(Boolean)
+            .join(' ');
+          return haystack.includes(query.toLowerCase());
+        })
       : runtime.patients.slice(0, 4);
 
     if (!dropdown) {
@@ -8558,6 +8560,7 @@
         overflow-y: auto;
       `;
       dropdownHost.style.position = 'relative';
+      dropdownHost.style.overflow = 'visible';
       dropdownHost.appendChild(dropdown);
     }
 
@@ -8620,6 +8623,7 @@
 
     inputElement.addEventListener('input', (e) => {
       dropdownActiveInput = inputElement;
+      dropdownOpen = true;
       dropdownSelectedIndex = -1;
       void setCustomerSearchQuery(e.target.value, { clearSelection: false, force: false });
       renderSearchDropdown(inputElement);
@@ -8648,9 +8652,7 @@
     if (!dropdownOutsideClickBound) {
       dropdownOutsideClickBound = true;
       document.addEventListener('click', (e) => {
-        for (const inp of document.querySelectorAll(
-          '[data-customer-search], [data-v9-global-search-input], [data-v9-search-input]'
-        )) {
+        for (const inp of document.querySelectorAll(CUSTOMER_SEARCH_INPUT_SELECTOR)) {
           const host = resolveDropdownHost(inp);
           if (host?.contains(e.target)) return;
         }
@@ -8672,6 +8674,7 @@
     renderSearchDropdown(
       dropdownActiveInput ||
         els.search ||
+        document.querySelector('[data-cco-topnav-search-input]') ||
         document.querySelector('[data-v9-global-search-input]') ||
         document.querySelector('[data-customer-search]')
     );
@@ -10489,8 +10492,9 @@
     }
     bindCustomerSearchInput(document.querySelector('[data-customer-search]'));
     bindCustomerSearchInput(document.querySelector('[data-v9-global-search-input]'));
-    attachDropdownToSearchInput(document.querySelector('[data-customer-search]'));
-    attachDropdownToSearchInput(document.querySelector('[data-v9-global-search-input]'));
+    document.querySelectorAll(CUSTOMER_SEARCH_INPUT_SELECTOR).forEach((input) => {
+      attachDropdownToSearchInput(input);
+    });
 
     if (els.filter) {
       els.filter.addEventListener('change', () => {

@@ -3964,7 +3964,6 @@
     var real = realInput();
     if (real && real !== t) {
       real.value = t.value;
-      real.dispatchEvent(new Event('input', { bubbles: true }));
     }
   });
 })();

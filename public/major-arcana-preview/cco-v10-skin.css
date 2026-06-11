@@ -2921,6 +2921,9 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search {
     0 2px 6px rgba(56, 40, 28, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.85);
   color: #94897b;
+  position: relative;
+  z-index: 20;
+  overflow: visible;
   transition:
     background 0.15s ease,
     box-shadow 0.15s ease;
