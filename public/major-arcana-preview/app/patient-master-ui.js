@@ -5710,15 +5710,15 @@
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
-              <div class="cr-meta-sub">${escapeHtml(subLine)}</div>
+              ${nameTagsHtml ? `<div class="cr-name-tags">${nameTagsHtml}</div>` : ''}
             </div>
             <div><span class="cr-steg cr-steg--${escapeHtml(stegTone)}">Steg ${escapeHtml(String(jStep.n))}</span></div>
             <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
-            <div class="cr-status-tags">${nameTagsHtml}</div>
             <div><div class="cr-revenue">${escapeHtml(revenue.main)}</div>${revenue.potential ? `<div class="cr-meta-sub cr-revenue-pot">${escapeHtml(revenue.potential)} pot.</div>` : ''}</div>
             <div class="cr-contact">${contactHtml}</div>
             <div class="cr-last-visit">
               <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
+              <div class="cr-meta-sub">${escapeHtml(subLine)}</div>
               ${lastVisitDisplay.subline ? `<div class="cr-visit-type">${escapeHtml(lastVisitDisplay.subline)}</div>` : ''}
             </div>
             <div class="cr-arrow" aria-hidden="true">›</div>
@@ -5733,7 +5733,6 @@
             <div>Kund</div>
             <div>Steg</div>
             <div>Nästa steg</div>
-            <div>Status</div>
             <div>LTV</div>
             <div>Kontakt</div>
             <div>Senast besök</div>
