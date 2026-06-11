@@ -24,12 +24,44 @@
       </div>
 
       <h2>Hälsofrågor</h2>
+      <p class="q-intro">Välj <strong>Ja</strong> om inget ändrats sedan bokningsbekräftelsen. Välj <strong>Nej</strong> och skriv en kort förklaring om något har ändrats.</p>
 
       <div class="checks">
-        <label class="check"><input type="checkbox" id="q1"> <span>Jag har <strong>inga</strong> hjärtsjukdomar, blödarsjukdomar eller okontrollerad blodtryck. <em>(Om du har, kontakta oss separat.)</em></span></label>
-        <label class="check"><input type="checkbox" id="q2"> <span>Jag tar <strong>inga</strong> blodförtunnande mediciner (Waran, Xarelto, Eliquis, etc.) just nu, eller har slutat enligt läkares råd minst 5 dagar före.</span></label>
-        <label class="check"><input type="checkbox" id="q3"> <span>Jag har <strong>inte</strong> haft hudinfektion, eksem eller psoriasis aktivt på hårbotten/donor-området senaste 4 veckorna.</span></label>
-        <label class="check"><input type="checkbox" id="q4"> <span>Jag är <strong>medveten</strong> om att resultatet beror på donor-täthet, kvalitet och uppföljning, och att Hair TP Clinic inte garanterar exakt antal procent täckning.</span></label>
+        <div class="q-block" data-q="1">
+          <label class="check"><input type="checkbox" id="q1yes" data-q-yes="1"> <span>Jag har <strong>inga</strong> hjärtsjukdomar, blödarsjukdomar eller okontrollerad blodtryck.</span></label>
+          <label class="check check--no"><input type="checkbox" id="q1no" data-q-no="1"> <span>Nej, något har hänt sedan bokningsbekräftelsen.</span></label>
+          <div class="field q-explain" id="q1explainWrap" hidden>
+            <label for="q1explain">Förklara:</label>
+            <textarea id="q1explain" rows="3" placeholder="Beskriv vad som ändrats sedan bokningsbekräftelsen"></textarea>
+          </div>
+        </div>
+
+        <div class="q-block" data-q="2">
+          <label class="check"><input type="checkbox" id="q2yes" data-q-yes="2"> <span>Jag tar <strong>inga</strong> blodförtunnande mediciner (Waran, Xarelto, Eliquis, etc.) just nu, eller har slutat enligt läkares råd minst 5 dagar före.</span></label>
+          <label class="check check--no"><input type="checkbox" id="q2no" data-q-no="2"> <span>Nej, något har hänt sedan bokningsbekräftelsen.</span></label>
+          <div class="field q-explain" id="q2explainWrap" hidden>
+            <label for="q2explain">Förklara:</label>
+            <textarea id="q2explain" rows="3" placeholder="Beskriv vad som ändrats sedan bokningsbekräftelsen"></textarea>
+          </div>
+        </div>
+
+        <div class="q-block" data-q="3">
+          <label class="check"><input type="checkbox" id="q3yes" data-q-yes="3"> <span>Jag har <strong>inte</strong> haft hudinfektion, eksem eller psoriasis aktivt på hårbotten/donor-området senaste 4 veckorna.</span></label>
+          <label class="check check--no"><input type="checkbox" id="q3no" data-q-no="3"> <span>Nej, något har hänt sedan bokningsbekräftelsen.</span></label>
+          <div class="field q-explain" id="q3explainWrap" hidden>
+            <label for="q3explain">Förklara:</label>
+            <textarea id="q3explain" rows="3" placeholder="Beskriv vad som ändrats sedan bokningsbekräftelsen"></textarea>
+          </div>
+        </div>
+
+        <div class="q-block" data-q="4">
+          <label class="check"><input type="checkbox" id="q4yes" data-q-yes="4"> <span>Jag är <strong>medveten</strong> om att resultatet beror på donor-täthet, kvalitet och uppföljning, och att Hair TP Clinic inte garanterar exakt antal procent täckning.</span></label>
+          <label class="check check--no"><input type="checkbox" id="q4no" data-q-no="4"> <span>Nej, något har hänt sedan bokningsbekräftelsen.</span></label>
+          <div class="field q-explain" id="q4explainWrap" hidden>
+            <label for="q4explain">Förklara:</label>
+            <textarea id="q4explain" rows="3" placeholder="Beskriv vad som ändrats sedan bokningsbekräftelsen"></textarea>
+          </div>
+        </div>
       </div>
 
       <div class="field" style="margin-top:18px">
@@ -82,7 +114,12 @@
 #${ROOT_ID} .field input,#${ROOT_ID} .field textarea{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
 #${ROOT_ID} .field input:focus,#${ROOT_ID} .field textarea:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
 #${ROOT_ID} .field textarea{min-height:80px;resize:vertical}
-#${ROOT_ID} .checks{display:flex;flex-direction:column;gap:8px}
+#${ROOT_ID} .checks{display:flex;flex-direction:column;gap:14px}
+#${ROOT_ID} .q-intro{margin:0 0 14px;font-size:12px;color:var(--cco-text-secondary);line-height:1.5}
+#${ROOT_ID} .q-block{display:flex;flex-direction:column;gap:8px;padding:12px 12px 10px;border-radius:14px;background:rgba(255,255,255,.42);border:1px solid rgba(132,117,107,.14)}
+#${ROOT_ID} .q-explain{margin:0 0 4px 28px}
+#${ROOT_ID} .q-explain textarea{min-height:72px}
+#${ROOT_ID} .check--no span{color:var(--cco-text-secondary)}
 #${ROOT_ID} .check{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
 #${ROOT_ID} .check:hover{border-color:rgba(187,71,121,.22)}
 #${ROOT_ID} .check input{flex-shrink:0;margin-top:2px}
@@ -166,6 +203,68 @@
     document.head.appendChild(style);
   }
 
+  const QUESTION_COUNT = 4;
+
+  function setOverlayStatus(root, msg, kind) {
+    const status = root.querySelector('#status');
+    if (!status) return;
+    status.textContent = msg;
+    status.className = 'status show ' + (kind || '');
+  }
+
+  function validateHealthQuestions(root) {
+    for (let i = 1; i <= QUESTION_COUNT; i += 1) {
+      const yes = root.querySelector(`#q${i}yes`);
+      const no = root.querySelector(`#q${i}no`);
+      const explain = root.querySelector(`#q${i}explain`);
+      if (!yes?.checked && !no?.checked) {
+        return `Besvara hälsofråga ${i} — välj Ja eller Nej.`;
+      }
+      if (no?.checked && !(explain?.value.trim().length >= 3)) {
+        return `Förklara hälsofråga ${i} innan du signerar.`;
+      }
+    }
+    return null;
+  }
+
+  function collectHealthAnswers(root) {
+    const answers = [];
+    for (let i = 1; i <= QUESTION_COUNT; i += 1) {
+      const yes = root.querySelector(`#q${i}yes`);
+      const no = root.querySelector(`#q${i}no`);
+      const explain = root.querySelector(`#q${i}explain`);
+      answers.push({
+        question: i,
+        confirmed: Boolean(yes?.checked),
+        changed: Boolean(no?.checked),
+        explanation: no?.checked ? explain?.value.trim() || '' : '',
+      });
+    }
+    return answers;
+  }
+
+  function bindQuestionToggles(root) {
+    for (let i = 1; i <= QUESTION_COUNT; i += 1) {
+      const yes = root.querySelector(`#q${i}yes`);
+      const no = root.querySelector(`#q${i}no`);
+      const wrap = root.querySelector(`#q${i}explainWrap`);
+      yes?.addEventListener('change', () => {
+        if (!yes.checked) return;
+        if (no) no.checked = false;
+        if (wrap) wrap.hidden = true;
+      });
+      no?.addEventListener('change', () => {
+        if (no.checked) {
+          if (yes) yes.checked = false;
+          if (wrap) wrap.hidden = false;
+          root.querySelector(`#q${i}explain`)?.focus({ preventScroll: true });
+          return;
+        }
+        if (wrap) wrap.hidden = true;
+      });
+    }
+  }
+
   function demoSign(root) {
     const status = root.querySelector('#status');
     const signBtn = root.querySelector('#signBtn');
@@ -173,16 +272,28 @@
     const signedPanel = root.querySelector('#signedPanel');
     const signedEntryId = root.querySelector('#signedEntryId');
     if (!status || !signBtn) return;
+
+    const validationError = validateHealthQuestions(root);
+    if (validationError) {
+      setOverlayStatus(root, '⚠ ' + validationError, 'error');
+      return;
+    }
+
+    const answers = collectHealthAnswers(root);
     status.textContent = '✓ Signerad och låst';
     status.className = 'status show success';
     signBtn.disabled = true;
-    if (signedEntryId) signedEntryId.textContent = 'demo-' + Date.now().toString(36);
+    if (signedEntryId) {
+      signedEntryId.textContent =
+        'demo-' + Date.now().toString(36) + '-' + answers.filter((a) => a.changed).length + 'x';
+    }
     if (panel) panel.style.display = 'none';
     if (signedPanel) signedPanel.hidden = false;
   }
 
   function bindOverlay(root) {
     const modal = root.querySelector('.demo-modal');
+    bindQuestionToggles(root);
 
     root.querySelector('#cancelBtn')?.addEventListener('click', () => {
       unmount(true);
@@ -211,7 +322,7 @@
     document.addEventListener('keydown', keyHandler);
 
     window.setTimeout(() => {
-      modal?.querySelector('#q1')?.focus({ preventScroll: true });
+      modal?.querySelector('#q1yes')?.focus({ preventScroll: true });
     }, 0);
   }
 
