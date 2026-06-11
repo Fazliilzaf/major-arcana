@@ -8503,6 +8503,105 @@
   let dropdownOpen = false;
   let dropdownActiveInput = null;
   let dropdownOutsideClickBound = false;
+  let searchDropdownBackdrop = null;
+  let searchDropdownPanel = null;
+
+  function displayNameForSearchDropdown(card) {
+    const name = displayNameForList(card);
+    if (name !== 'Namn saknas') return name;
+    return card.primaryEmail || card.primaryPhone || card.personnummer || 'Okänd kund';
+  }
+
+  function formatV9ShortBookingDate(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const weekday = d.toLocaleDateString('sv-SE', { weekday: 'short' });
+      const day = d.getDate();
+      const time = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+      return `${weekday} ${day} · ${time}`;
+    } catch {
+      return '';
+    }
+  }
+
+  function resolveSearchDropdownInfo(card) {
+    const parts = [];
+    if (card.segmentHints?.active) parts.push('Återkommande');
+    else {
+      const rowState = resolveV9RowState(card);
+      if (rowState.label && rowState.label !== 'Aktiv') parts.push(rowState.label);
+    }
+    const treatments = asArray(card.treatmentTypes);
+    if (treatments.length) parts.push(treatments.join(', '));
+    if (card.hasUpcomingBooking && card.nextBookingAt) {
+      const when = formatV9ShortBookingDate(card.nextBookingAt);
+      if (when) parts.push(when);
+    } else if (card.onWaitlist) {
+      parts.push('På väntelistan');
+    } else if (card.lastVisitAt) {
+      parts.push(`Senast ${formatV9ListDate(card.lastVisitAt)}`);
+    }
+    const cycle = v9TreatmentCycle(card);
+    if (cycle) parts.push(`${cycle.label} ${cycle.done}/${cycle.planned}`);
+    const noShows = Number(card.noShowCount);
+    if (Number.isFinite(noShows) && noShows >= 2) parts.push(`${noShows} no-shows`);
+    return parts.filter(Boolean).join(' · ') || '—';
+  }
+
+  function buildSearchDropdownBadgeHtml(card) {
+    const tags = buildV9RowBadges(card).filter((t) => t.label !== 'Saknar formulär');
+    const cycle = v9TreatmentCycle(card);
+    const tagBits =
+      tags
+        .map(
+          (t) =>
+            `<span class="cr-tag cr-tag--${escapeHtml(t.kind)} cr-search-dropdown-tag">${escapeHtml(t.label)}</span>`
+        )
+        .join('') +
+      (cycle
+        ? `<span class="cr-tag cr-tag--cycle cr-search-dropdown-tag">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
+        : '');
+    return tagBits ? `<div class="cr-search-dropdown-badges">${tagBits}</div>` : '';
+  }
+
+  function ensureSearchDropdownPortal() {
+    if (!searchDropdownBackdrop) {
+      searchDropdownBackdrop = document.createElement('div');
+      searchDropdownBackdrop.setAttribute('data-search-dropdown-backdrop', '');
+      searchDropdownBackdrop.hidden = true;
+      searchDropdownBackdrop.addEventListener('click', () => closeSearchDropdown());
+      document.body.appendChild(searchDropdownBackdrop);
+    }
+    if (!searchDropdownPanel) {
+      searchDropdownPanel = document.createElement('div');
+      searchDropdownPanel.setAttribute('data-search-dropdown-panel', '');
+      searchDropdownPanel.hidden = true;
+      document.body.appendChild(searchDropdownPanel);
+    }
+    return searchDropdownPanel;
+  }
+
+  function positionSearchDropdownPortal(searchEl) {
+    if (!searchDropdownPanel || !searchEl) return;
+    searchDropdownPanel.style.transform = '';
+    if (searchEl.matches('[data-cco-topnav-search-input]')) {
+      searchDropdownPanel.style.top = '80px';
+      searchDropdownPanel.style.left = '50%';
+      searchDropdownPanel.style.transform = 'translateX(-50%)';
+      searchDropdownPanel.style.width = '540px';
+      searchDropdownPanel.style.maxWidth = 'calc(100vw - 32px)';
+      return;
+    }
+    const rect = searchEl.getBoundingClientRect();
+    const width = Math.max(420, Math.min(540, rect.width));
+    const left = Math.min(Math.max(16, rect.left), window.innerWidth - width - 16);
+    searchDropdownPanel.style.top = `${Math.round(rect.bottom + 8)}px`;
+    searchDropdownPanel.style.left = `${Math.round(left)}px`;
+    searchDropdownPanel.style.width = `${Math.round(width)}px`;
+    searchDropdownPanel.style.maxWidth = 'calc(100vw - 32px)';
+  }
 
   function resolveDropdownHost(input) {
     if (!input) return null;
@@ -8516,85 +8615,85 @@
   function closeSearchDropdown(inputEl) {
     dropdownOpen = false;
     dropdownSelectedIndex = -1;
-    const input = inputEl || dropdownActiveInput;
-    resolveDropdownHost(input)?.querySelector('[data-search-dropdown]')?.remove();
+    resolveDropdownHost(inputEl || dropdownActiveInput)
+      ?.querySelector('[data-search-dropdown]')
+      ?.remove();
+    if (searchDropdownBackdrop) searchDropdownBackdrop.hidden = true;
+    if (searchDropdownPanel) searchDropdownPanel.hidden = true;
   }
 
   function renderSearchDropdown(searchEl) {
     if (!searchEl) return;
     const query = normalizeText(searchEl.value);
-    const dropdownHost = resolveDropdownHost(searchEl);
-    if (!dropdownHost) return;
-    let dropdown = dropdownHost.querySelector('[data-search-dropdown]');
+    const dropdown = ensureSearchDropdownPortal();
 
     if (!query && !dropdownOpen) {
-      if (dropdown) dropdown.remove();
+      closeSearchDropdown(searchEl);
       return;
     }
 
     const filteredPatients = query
       ? runtime.patients.filter((p) => {
-          const haystack = [displayNameForList(p), p.primaryEmail, p.primaryPhone, p.personnummer]
+          const haystack = [
+            displayNameForSearchDropdown(p),
+            displayNameForList(p),
+            p.primaryEmail,
+            p.primaryPhone,
+            p.personnummer,
+            asArray(p.treatmentTypes).join(' '),
+          ]
             .map((v) => normalizeText(v).toLowerCase())
             .filter(Boolean)
             .join(' ');
           return haystack.includes(query.toLowerCase());
         })
-      : runtime.patients.slice(0, 4);
+      : runtime.patients.slice(0, 6);
 
-    if (!dropdown) {
-      dropdown = document.createElement('div');
-      dropdown.setAttribute('data-search-dropdown', '');
-      dropdown.style.cssText = `
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        margin-top: 8px;
-        background: var(--color-background-primary);
-        border: 0.5px solid var(--color-border-secondary);
-        border-radius: var(--border-radius-lg);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        z-index: 1000;
-        max-height: 400px;
-        overflow-y: auto;
-      `;
-      dropdownHost.style.position = 'relative';
-      dropdownHost.style.overflow = 'visible';
-      dropdownHost.appendChild(dropdown);
-    }
+    positionSearchDropdownPortal(searchEl);
+    if (searchDropdownBackdrop) searchDropdownBackdrop.hidden = false;
+    dropdown.hidden = false;
 
-    const header = !query
-      ? '<div style="padding: 10px 12px 6px; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Senaste</div>'
-      : '';
+    const totalLabel = formatMetricNumber(runtime.total || runtime.patients.length || 0);
+    const header = query
+      ? `<div class="cr-search-dropdown-kicker">${filteredPatients.length} träff${filteredPatients.length === 1 ? '' : 'ar'} · ${totalLabel} kunder totalt</div>`
+      : `<div class="cr-search-dropdown-kicker">Senaste · ${totalLabel} kunder totalt</div>`;
 
     const rows = filteredPatients
       .slice(0, 10)
       .map((patient, idx) => {
-        const name = displayNameForList(patient);
-        const info =
-          [patient.nextBookingType, patient.primaryEmail, patient.primaryPhone]
-            .filter(Boolean)
-            .join(' · ') || '—';
+        const name = displayNameForSearchDropdown(patient);
+        const info = resolveSearchDropdownInfo(patient);
+        const badges = buildSearchDropdownBadgeHtml(patient);
         const isSelected = idx === dropdownSelectedIndex;
-        const bg = isSelected ? 'var(--color-background-secondary)' : 'transparent';
         return `
         <button
+          class="cr-search-dropdown-row${isSelected ? ' is-selected' : ''}"
           data-dropdown-row="${escapeHtml(patient.patientId)}"
-          type="button"
-          style="width: 100%; padding: 12px; border: none; background: ${bg}; text-align: left; cursor: pointer; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; gap: 12px; align-items: flex-start;">
-          <div style="width: 44px; height: 44px; border-radius: 50%; background: ${v9AvatarGradient(name)}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px; flex-shrink: 0;">${escapeHtml(v9AvatarInitials(name))}</div>
-          <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 600; font-size: 13px; color: var(--color-text-primary);">${escapeHtml(name)}</div>
-            <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 2px;">${escapeHtml(info)}</div>
-          </div>
-          <div style="color: var(--color-text-secondary); font-size: 18px;">›</div>
-        </button>
-      `;
+          type="button">
+          <span class="cr-search-dropdown-avatar" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
+          <span class="cr-search-dropdown-copy">
+            <span class="cr-search-dropdown-name">${escapeHtml(name)}</span>
+            <span class="cr-search-dropdown-info">${escapeHtml(info)}</span>
+            ${badges}
+          </span>
+          <span class="cr-search-dropdown-chevron" aria-hidden="true">›</span>
+        </button>`;
       })
       .join('');
 
-    dropdown.innerHTML = header + rows;
+    const empty =
+      filteredPatients.length === 0
+        ? '<p class="cr-search-dropdown-empty">Inga träffar — prova namn, telefon eller behandling.</p>'
+        : '';
+
+    dropdown.innerHTML = `
+      ${header}
+      <div class="cr-search-dropdown-list">${rows || empty}</div>
+      <div class="cr-search-dropdown-footer">
+        <span><kbd>↑</kbd><kbd>↓</kbd> navigera</span>
+        <span><kbd>Return</kbd> öppna</span>
+        <span><kbd>Esc</kbd> stäng</span>
+      </div>`;
 
     dropdown.querySelectorAll('[data-dropdown-row]').forEach((btn, idx) => {
       btn.addEventListener('click', () => {
@@ -8631,7 +8730,7 @@
 
     inputElement.addEventListener('keydown', (e) => {
       dropdownActiveInput = inputElement;
-      const dropdown = resolveDropdownHost(inputElement)?.querySelector('[data-search-dropdown]');
+      const dropdown = searchDropdownPanel;
       const rows = dropdown ? Array.from(dropdown.querySelectorAll('[data-dropdown-row]')) : [];
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -8652,6 +8751,7 @@
     if (!dropdownOutsideClickBound) {
       dropdownOutsideClickBound = true;
       document.addEventListener('click', (e) => {
+        if (searchDropdownPanel?.contains(e.target)) return;
         for (const inp of document.querySelectorAll(CUSTOMER_SEARCH_INPUT_SELECTOR)) {
           const host = resolveDropdownHost(inp);
           if (host?.contains(e.target)) return;
