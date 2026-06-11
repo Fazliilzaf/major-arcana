@@ -1497,6 +1497,11 @@ html[data-v9-enabled="on"] .customer-row .cr-tag--ready {
 }
 
 html[data-v9-enabled="on"] .customer-row .cr-tag--new {
+  background: var(--v9-status-info-bg, rgba(74, 123, 168, 0.12));
+  color: var(--v9-status-info, #4a7ba8);
+}
+
+html[data-v9-enabled="on"] .customer-row .cr-tag--dormant {
   background: rgba(132, 117, 107, 0.16);
   color: var(--v9-text-tertiary, #8a8174);
 }
@@ -2563,6 +2568,11 @@ html[data-v9-enabled="on"] .v9-dossier-hero .dossier-tag--vip {
 html[data-v9-enabled="on"] .v9-dossier-hero .dossier-tag--lifecycle {
   background: var(--v9-status-info-bg, rgba(74, 123, 168, 0.12));
   color: var(--v9-status-info, #4a7ba8);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-hero .dossier-tag--dormant {
+  background: rgba(132, 117, 107, 0.16);
+  color: var(--v9-text-tertiary, #8a8174);
 }
 
 html[data-v9-enabled="on"] .v9-dossier-hero .dossier-tag--engagement {

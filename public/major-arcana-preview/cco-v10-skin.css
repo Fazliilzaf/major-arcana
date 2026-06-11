@@ -532,6 +532,10 @@ html[data-v9-enabled="on"] .cr-v10 .cr-tag--ready {
   color: var(--cco-status-success);
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-tag--new {
+  background: var(--cco-status-info-bg);
+  color: var(--cco-status-info);
+}
+html[data-v9-enabled="on"] .cr-v10 .cr-tag--dormant {
   background: rgba(132, 117, 107, 0.16);
   color: var(--cco-text-tertiary);
 }

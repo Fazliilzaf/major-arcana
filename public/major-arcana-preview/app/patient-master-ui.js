@@ -1074,45 +1074,6 @@
     els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
     els.mergeGroupsHost = document.querySelector('[data-customer-merge-groups]');
-
-    // Setup search dropdown listeners
-    if (els.search) {
-      els.search.addEventListener('focus', () => {
-        dropdownOpen = true;
-        renderSearchDropdown();
-      });
-      els.search.addEventListener('input', (e) => {
-        dropdownSelectedIndex = -1;
-        void setCustomerSearchQuery(e.target.value, { clearSelection: false, force: false });
-      });
-      els.search.addEventListener('keydown', (e) => {
-        const dropdown = els.search.parentElement.querySelector('[data-search-dropdown]');
-        const rows = dropdown ? Array.from(dropdown.querySelectorAll('[data-dropdown-row]')) : [];
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          dropdownSelectedIndex = Math.min(dropdownSelectedIndex + 1, rows.length - 1);
-          renderSearchDropdown();
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          dropdownSelectedIndex = Math.max(dropdownSelectedIndex - 1, -1);
-          renderSearchDropdown();
-        } else if (e.key === 'Enter' && dropdownSelectedIndex >= 0 && rows[dropdownSelectedIndex]) {
-          e.preventDefault();
-          rows[dropdownSelectedIndex].click();
-        } else if (e.key === 'Escape') {
-          dropdownOpen = false;
-          const dd = els.search.parentElement.querySelector('[data-search-dropdown]');
-          if (dd) dd.remove();
-        }
-      });
-      document.addEventListener('click', (e) => {
-        if (!els.search.contains(e.target) && !els.search.parentElement.contains(e.target)) {
-          dropdownOpen = false;
-          const dd = els.search.parentElement.querySelector('[data-search-dropdown]');
-          if (dd) dd.remove();
-        }
-      });
-    }
   }
 
   function renderModeChrome() {
@@ -4209,7 +4170,7 @@
       add('risk', 'Granska');
     }
     if (card.segmentHints?.new || card.patientOrigin === 'new') add('new', 'Nya');
-    if (card.segmentHints?.dormant) add('new', 'Dormant');
+    if (card.segmentHints?.dormant) add('dormant', 'Dormant');
     if (card.missingHealthDeclaration || card.missingForm) {
       add('risk', 'Saknar formulär');
     }
@@ -4992,6 +4953,7 @@
 
   function mapV9DossierBadgeKind(kind) {
     if (kind === 'new') return 'lifecycle';
+    if (kind === 'dormant') return 'dormant';
     if (kind === 'ready') return 'engagement';
     return kind;
   }
@@ -8484,12 +8446,28 @@
 
   let dropdownSelectedIndex = -1;
   let dropdownOpen = false;
+  let dropdownActiveInput = null;
+  let dropdownOutsideClickBound = false;
 
-  function renderSearchDropdown() {
-    const searchEl = els.search;
+  function resolveDropdownHost(input) {
+    if (!input) return null;
+    return (
+      input.closest('[data-v9-global-search], label, .customers-filter') || input.parentElement
+    );
+  }
+
+  function closeSearchDropdown(inputEl) {
+    dropdownOpen = false;
+    dropdownSelectedIndex = -1;
+    const input = inputEl || dropdownActiveInput;
+    resolveDropdownHost(input)?.querySelector('[data-search-dropdown]')?.remove();
+  }
+
+  function renderSearchDropdown(searchEl) {
     if (!searchEl) return;
     const query = normalizeText(searchEl.value);
-    const dropdownHost = searchEl.parentElement;
+    const dropdownHost = resolveDropdownHost(searchEl);
+    if (!dropdownHost) return;
     let dropdown = dropdownHost.querySelector('[data-search-dropdown]');
 
     if (!query && !dropdownOpen) {
@@ -8566,13 +8544,63 @@
         runtime.query = '';
         syncCustomerSearchInputs('');
         renderDetailPanel();
-        dropdownOpen = false;
-        dropdown.remove();
+        closeSearchDropdown();
       });
       if (idx === dropdownSelectedIndex) {
         btn.scrollIntoView({ block: 'nearest' });
       }
     });
+  }
+
+  function attachDropdownToSearchInput(inputElement) {
+    if (!inputElement || inputElement.dataset.dropdownBound === '1') return;
+    inputElement.dataset.dropdownBound = '1';
+
+    inputElement.addEventListener('focus', () => {
+      dropdownActiveInput = inputElement;
+      dropdownOpen = true;
+      renderSearchDropdown(inputElement);
+    });
+
+    inputElement.addEventListener('input', (e) => {
+      dropdownActiveInput = inputElement;
+      dropdownSelectedIndex = -1;
+      void setCustomerSearchQuery(e.target.value, { clearSelection: false, force: false });
+      renderSearchDropdown(inputElement);
+    });
+
+    inputElement.addEventListener('keydown', (e) => {
+      dropdownActiveInput = inputElement;
+      const dropdown = resolveDropdownHost(inputElement)?.querySelector('[data-search-dropdown]');
+      const rows = dropdown ? Array.from(dropdown.querySelectorAll('[data-dropdown-row]')) : [];
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        dropdownSelectedIndex = Math.min(dropdownSelectedIndex + 1, rows.length - 1);
+        renderSearchDropdown(inputElement);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        dropdownSelectedIndex = Math.max(dropdownSelectedIndex - 1, -1);
+        renderSearchDropdown(inputElement);
+      } else if (e.key === 'Enter' && dropdownSelectedIndex >= 0 && rows[dropdownSelectedIndex]) {
+        e.preventDefault();
+        rows[dropdownSelectedIndex].click();
+      } else if (e.key === 'Escape') {
+        closeSearchDropdown(inputElement);
+      }
+    });
+
+    if (!dropdownOutsideClickBound) {
+      dropdownOutsideClickBound = true;
+      document.addEventListener('click', (e) => {
+        for (const inp of document.querySelectorAll(
+          '[data-customer-search], [data-v9-global-search-input], [data-v9-search-input]'
+        )) {
+          const host = resolveDropdownHost(inp);
+          if (host?.contains(e.target)) return;
+        }
+        closeSearchDropdown();
+      });
+    }
   }
 
   async function setCustomerSearchQuery(query, { clearSelection = true, force = true } = {}) {
@@ -8585,7 +8613,12 @@
       renderDetailEmpty();
     }
     await loadPatientList({ force: force === true });
-    renderSearchDropdown();
+    renderSearchDropdown(
+      dropdownActiveInput ||
+        els.search ||
+        document.querySelector('[data-v9-global-search-input]') ||
+        document.querySelector('[data-customer-search]')
+    );
     return runtime.patients.slice();
   }
 
@@ -10400,6 +10433,8 @@
     }
     bindCustomerSearchInput(document.querySelector('[data-customer-search]'));
     bindCustomerSearchInput(document.querySelector('[data-v9-global-search-input]'));
+    attachDropdownToSearchInput(document.querySelector('[data-customer-search]'));
+    attachDropdownToSearchInput(document.querySelector('[data-v9-global-search-input]'));
 
     if (els.filter) {
       els.filter.addEventListener('change', () => {

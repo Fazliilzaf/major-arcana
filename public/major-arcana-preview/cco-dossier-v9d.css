@@ -92,6 +92,10 @@
   background: var(--cco-status-info-bg);
   color: var(--cco-status-info);
 }
+.dossier-tag--dormant {
+  background: rgba(132, 117, 107, 0.16);
+  color: var(--cco-text-tertiary);
+}
 .dossier-tag--engagement {
   background: var(--cco-status-success-bg);
   color: var(--cco-status-success);
