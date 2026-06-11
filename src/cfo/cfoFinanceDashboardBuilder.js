@@ -1,12 +1,12 @@
 /**
- * ccoFinanceDashboardBuilder — Sprint CF.2 (MVP 1)
+ * cfoFinanceDashboardBuilder — Sprint CF.2 (MVP 1)
  *
  * Aggregator för Finance Dashboard. Läser från existerande stores:
- *  - ccoFortnoxStore (connection-status)
- *  - ccoFortnoxInvoiceLister (om wireat — invoice + payments per kund)
+ *  - cfoFortnoxStore (connection-status)
+ *  - cfoFortnoxInvoiceLister (om wireat — invoice + payments per kund)
  *  - ccoSwishStore (connection-status + payments)
  *  - ccoCommercialStore (offert/deposit/faktura snapshot)
- *  - ccoReceiptStore (kvitto-summary)
+ *  - cfoReceiptStore (kvitto-summary)
  *  - ccoVendorRegisterStore (PUB-info, ej fakturor)
  *
  * GISSAR ALDRIG — om data saknas, returnera PARTIAL-flagga.
@@ -69,7 +69,7 @@ async function buildFinanceDashboard({
       issues.push('Fortnox status kunde inte hämtas');
     }
   } else {
-    issues.push('ccoFortnoxStore saknas');
+    issues.push('cfoFortnoxStore saknas');
   }
   // CF.3-flagga: om Fortnox INTE är connected OCH owner har flaggat blocker → markera blocked_integration.
   if (!fortnox.connected && fortnoxBlockedIntegration) {
@@ -175,7 +175,7 @@ async function buildFinanceDashboard({
     receipts = { ...receipts, ...s, partial: false };
   } else {
     receipts.partial = true;
-    issues.push('ccoReceiptStore ej tillgänglig');
+    issues.push('cfoReceiptStore ej tillgänglig');
   }
 
   // ── Expenses summary (CF.3) ────────────────────────────────────
@@ -206,7 +206,7 @@ async function buildFinanceDashboard({
     };
   } else {
     expenses.partial = true;
-    issues.push('ccoExpenseStore ej tillgänglig');
+    issues.push('cfoExpenseStore ej tillgänglig');
   }
 
   // ── CF.4: Rules + Suggestions summary ──────────────────────────

@@ -2,7 +2,7 @@
 
 const express = require('express');
 const netsConnector = require('../pos/netsConnector');
-const fortnoxConnector = require('../pos/fortnoxConnector');
+const fortnoxConnector = require('../cfo/cfoFortnoxConnector');
 
 function createPosRouter({ authStore, posStore }) {
   const router = express.Router();

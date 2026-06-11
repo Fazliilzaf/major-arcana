@@ -8,9 +8,9 @@ function cacheKey(tenantId, customerNumber) {
   return `${normalizeText(tenantId)}::${normalizeText(customerNumber)}`;
 }
 
-function createFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } = {}) {
+function createCfoFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } = {}) {
   if (typeof createClientFor !== 'function') {
-    throw new Error('createClientFor krävs för ccoFortnoxInvoiceLister.');
+    throw new Error('createClientFor krävs för cfoFortnoxInvoiceLister.');
   }
   const cache = new Map();
 
@@ -66,5 +66,5 @@ function createFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } = {
 }
 
 module.exports = {
-  createFortnoxInvoiceLister,
+  createCfoFortnoxInvoiceLister,
 };

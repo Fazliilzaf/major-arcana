@@ -1,9 +1,9 @@
 /**
- * ccoExpenseStore — Sprint CF.3 (MVP 2)
+ * cfoExpenseStore — Sprint CF.3 (MVP 2)
  *
  * Expense-store för Chief of Finance. Fungerar UTAN Fortnox-write — alla
  * expenses kan registreras, kategoriseras, godkännas och exporteras manuellt
- * (CSV/JSON via ccoExpenseExporter) tills Fortnox OAuth-blockern är löst.
+ * (CSV/JSON via cfoExpenseExporter) tills Fortnox OAuth-blockern är löst.
  *
  * Status-machine:
  *   new → needs_review → categorized → approved → ready_for_export → exported
@@ -49,7 +49,7 @@ const VALID_STATUSES = Object.freeze([
   'rejected',
 ]);
 
-// Återanvänd kategorierna från ccoReceiptStore för konsekvent rapportering.
+// Återanvänd kategorierna från cfoReceiptStore för konsekvent rapportering.
 const VALID_CATEGORIES = Object.freeze([
   'utrustning',
   'forbrukning',
@@ -104,7 +104,7 @@ function normalizeNumber(value, { allowNull = true } = {}) {
   return Number.isFinite(n) ? n : (allowNull ? null : 0);
 }
 
-async function createCcoExpenseStore({ filePath, auditLog = null, secureStorage = null } = {}) {
+async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage = null } = {}) {
   if (!filePath) throw new Error('filePath krävs');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
@@ -128,7 +128,7 @@ async function createCcoExpenseStore({ filePath, auditLog = null, secureStorage 
       }
     }
   } catch (err) {
-    console.warn('[ccoExpenseStore] kunde inte läsa:', err.message);
+    console.warn('[cfoExpenseStore] kunde inte läsa:', err.message);
   }
 
   async function persist() {
@@ -161,7 +161,7 @@ async function createCcoExpenseStore({ filePath, auditLog = null, secureStorage 
    * Skapa ny expense — antingen från befintligt receipt eller fristående manuell post.
    * @param {object} input
    * @param {object} input.actor   - { userId, role }
-   * @param {string} [input.receiptId] - om kvittot redan finns i ccoReceiptStore
+   * @param {string} [input.receiptId] - om kvittot redan finns i cfoReceiptStore
    * @param {object} input.fields  - metadata-fält, se beskrivning
    */
   async function createExpense({ actor, receiptId = null, fields = {} } = {}) {
@@ -214,7 +214,7 @@ async function createCcoExpenseStore({ filePath, auditLog = null, secureStorage 
       supplierMatchType: null, // 'exact' | 'contains' | 'reverse_contains' | 'manual'
       supplierMatchConfidence: null, // 0..1
       // CF.6: VAT-regler — full breakdown + mode-flagga
-      vatMode: fields.vatMode || null, // se ccoExpenseVatRules.VALID_VAT_MODES
+      vatMode: fields.vatMode || null, // se cfoExpenseVatRules.VALID_VAT_MODES
       reverseCharge: false,            // sätts av setVatMode
       netAmountSek: null,              // beräknat via calculateVatBreakdown
       grossAmountSek: null,            // alias för amountSek (klargör semantik)
@@ -325,7 +325,7 @@ async function createCcoExpenseStore({ filePath, auditLog = null, secureStorage 
 
   /**
    * Markera en uppsättning expenses som exporterade (sätter exportBatchId + status).
-   * Anropas av ccoExpenseExporter efter att export-paketet skrivits.
+   * Anropas av cfoExpenseExporter efter att export-paketet skrivits.
    */
   async function markExported({ expenseIds = [], batchId, actor } = {}) {
     if (!Array.isArray(expenseIds) || expenseIds.length === 0) {
@@ -636,14 +636,14 @@ async function createCcoExpenseStore({ filePath, auditLog = null, secureStorage 
   }
 
   /**
-   * Sätt vatMode direkt + beräkna breakdown via ccoExpenseVatRules.
+   * Sätt vatMode direkt + beräkna breakdown via cfoExpenseVatRules.
    * markedReview: om true → sätt vatReviewStatus='pending'
    */
   async function setVatMode({ id, vatMode, vatRatePercent, markedReview = false, actor } = {}) {
     const e = data.expenses.find((x) => x.id === id);
     if (!e) throw new Error('expense finns ej');
     if (e.status === 'exported') throw new Error('exporterad expense kan inte ändra vatMode');
-    const { calculateVatBreakdown, VALID_VAT_MODES } = require('./ccoExpenseVatRules');
+    const { calculateVatBreakdown, VALID_VAT_MODES } = require('./cfoExpenseVatRules');
     if (vatMode && !VALID_VAT_MODES.includes(vatMode)) {
       throw new Error(`Okänd vatMode: ${vatMode}`);
     }
@@ -720,7 +720,7 @@ async function createCcoExpenseStore({ filePath, auditLog = null, secureStorage 
 }
 
 module.exports = {
-  createCcoExpenseStore,
+  createCfoExpenseStore,
   VALID_STATUSES,
   VALID_CATEGORIES,
   VALID_PAYMENT_METHODS,

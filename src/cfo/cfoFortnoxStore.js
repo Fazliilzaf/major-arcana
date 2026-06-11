@@ -59,9 +59,9 @@ function normalizeConnection(input = {}, existing = {}) {
   };
 }
 
-async function createCcoFortnoxStore({ filePath }) {
+async function createCfoFortnoxStore({ filePath }) {
   if (!normalizeText(filePath)) {
-    throw new Error('filePath krävs för ccoFortnoxStore.');
+    throw new Error('filePath krävs för cfoFortnoxStore.');
   }
 
   let state = await readJson(filePath, emptyState());
@@ -171,6 +171,6 @@ async function createCcoFortnoxStore({ filePath }) {
 }
 
 module.exports = {
-  createCcoFortnoxStore,
+  createCfoFortnoxStore,
   normalizeConnection,
 };

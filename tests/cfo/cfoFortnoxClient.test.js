@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildFortnoxAuthUrl } = require('../../src/infra/fortnoxClient');
+const { buildFortnoxAuthUrl } = require('../../src/cfo/cfoFortnoxClient');
 
 test('buildFortnoxAuthUrl includes oauth parameters', () => {
   const url = new URL(

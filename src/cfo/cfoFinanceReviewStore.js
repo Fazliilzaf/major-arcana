@@ -1,5 +1,5 @@
 /**
- * ccoFinanceReviewStore — Sprint CF.8 (MVP 7)
+ * cfoFinanceReviewStore — Sprint CF.8 (MVP 7)
  *
  * Revisor-review-status per export-batch. Revisor får INTE ändra original-expense —
  * den lämnar bara review-status + notes på batch-nivå. Owner/finance gör eventuella
@@ -48,7 +48,7 @@ const VALID_REVIEW_STATUSES = Object.freeze([
 function nowIso() { return new Date().toISOString(); }
 function newId() { return 'rev_' + crypto.randomBytes(8).toString('hex'); }
 
-async function createCcoFinanceReviewStore({ filePath, auditLog = null } = {}) {
+async function createCfoFinanceReviewStore({ filePath, auditLog = null } = {}) {
   if (!filePath) throw new Error('filePath krävs');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
@@ -70,7 +70,7 @@ async function createCcoFinanceReviewStore({ filePath, auditLog = null } = {}) {
       }
     }
   } catch (err) {
-    console.warn('[ccoFinanceReviewStore] kunde inte läsa:', err.message);
+    console.warn('[cfoFinanceReviewStore] kunde inte läsa:', err.message);
   }
 
   async function persist() {
@@ -233,7 +233,7 @@ async function createCcoFinanceReviewStore({ filePath, auditLog = null } = {}) {
 }
 
 module.exports = {
-  createCcoFinanceReviewStore,
+  createCfoFinanceReviewStore,
   VALID_REVIEW_STATUSES,
   SCHEMA_VERSION,
 };

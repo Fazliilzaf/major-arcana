@@ -1,5 +1,5 @@
 /**
- * ccoRecurringExpenseStore — Sprint CF.7 (MVP 6)
+ * cfoRecurringExpenseStore — Sprint CF.7 (MVP 6)
  *
  * Återkommande kostnadsmallar (subscriptions, hyror, licenser).
  * Auto-detection från historiska expenses utan AI.
@@ -346,7 +346,7 @@ function detectAnomalies({ recurring, matchedExpense = null, recentExpenses = []
 
 // ─── Store ─────────────────────────────────────────────────────
 
-async function createCcoRecurringExpenseStore({ filePath, auditLog = null } = {}) {
+async function createCfoRecurringExpenseStore({ filePath, auditLog = null } = {}) {
   if (!filePath) throw new Error('filePath krävs');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
@@ -368,7 +368,7 @@ async function createCcoRecurringExpenseStore({ filePath, auditLog = null } = {}
       }
     }
   } catch (err) {
-    console.warn('[ccoRecurringExpenseStore] kunde inte läsa:', err.message);
+    console.warn('[cfoRecurringExpenseStore] kunde inte läsa:', err.message);
   }
 
   async function persist() {
@@ -619,7 +619,7 @@ async function createCcoRecurringExpenseStore({ filePath, auditLog = null } = {}
 }
 
 module.exports = {
-  createCcoRecurringExpenseStore,
+  createCfoRecurringExpenseStore,
   matchExpenseToRecurring,
   detectRecurringFromHistory,
   detectAnomalies,

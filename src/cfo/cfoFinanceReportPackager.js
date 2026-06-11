@@ -1,5 +1,5 @@
 /**
- * ccoFinanceReportPackager — Sprint CF.9 (MVP 8)
+ * cfoFinanceReportPackager — Sprint CF.9 (MVP 8)
  *
  * Sparar rapport-paket till secure storage:
  *   reports/<period>/<reportKind>/report.json
@@ -18,7 +18,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const { generateReport, reportToCsv, VALID_REPORT_KINDS } = require('./ccoFinanceReportEngine');
+const { generateReport, reportToCsv, VALID_REPORT_KINDS } = require('./cfoFinanceReportEngine');
 
 const SCHEMA_VERSION = '1.0.0';
 
