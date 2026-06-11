@@ -4230,20 +4230,35 @@
   }
 
   function resolveV9Revenue(card) {
-    const raw = Number(
+    const wonRaw = Number(
       card.lifetimeValue ?? card.dealValue ?? card.pipedriveDealValue ?? Number.NaN
     );
-    const main = formatV9Sek(raw);
     const potRaw = Number(card.potentialValue ?? Number.NaN);
-    const potential = Number.isFinite(potRaw) && potRaw > 0 ? formatV9Sek(potRaw) : '';
+    const hasWon = Number.isFinite(wonRaw) && wonRaw > 0;
+    const hasOpen = Number.isFinite(potRaw) && potRaw > 0;
+    // Won deals = LTV. Om inga vunna ännu: visa öppet Pipedrive-värde i LTV-kolumnen
+    // (customers-shell sätter potentialValue från öppna affärer).
+    const main = hasWon ? formatV9Sek(wonRaw) : hasOpen ? formatV9Sek(potRaw) : '—';
+    const potential = hasWon && hasOpen ? `${formatV9Sek(potRaw)} pot.` : '';
+    const dealCount = Number(card.pipedriveDealCount) || 0;
+    let title = 'Intäkt (LTV)';
+    if (main === '—') {
+      title = card.pipedriveLinked
+        ? 'Pipedrive kopplad — inget affärsvärde i exporten'
+        : 'Intäkt ej kopplad ännu';
+    } else if (!hasWon && hasOpen) {
+      title = 'Pipedrive — öppen affär (ej vunnen)';
+    } else if (card.lifetimeValueLabel) {
+      title = card.lifetimeValueLabel;
+    }
     return {
       main,
       potential,
       trend:
-        card.pipedriveLinked && Number(card.pipedriveDealCount) > 0
-          ? `${Number(card.pipedriveDealCount)} Pipedrive-affärer`
+        card.pipedriveLinked && dealCount > 0
+          ? `${dealCount} Pipedrive-affär${dealCount === 1 ? '' : 'er'}`
           : '',
-      title: main === '—' ? 'Intäkt ej kopplad ännu (Fortnox)' : 'Intäkt (LTV)',
+      title,
     };
   }
 
@@ -8458,10 +8473,11 @@
     }
 
     const filteredPatients = query
-      ? runtime.patients.filter(p =>
-          (p.displayName || '').toLowerCase().includes(query.toLowerCase()) ||
-          (p.primaryEmail || '').toLowerCase().includes(query.toLowerCase()) ||
-          (p.primaryPhone || '').toLowerCase().includes(query.toLowerCase())
+      ? runtime.patients.filter(
+          (p) =>
+            (p.displayName || '').toLowerCase().includes(query.toLowerCase()) ||
+            (p.primaryEmail || '').toLowerCase().includes(query.toLowerCase()) ||
+            (p.primaryPhone || '').toLowerCase().includes(query.toLowerCase())
         )
       : runtime.patients.slice(0, 4);
 
@@ -8486,14 +8502,21 @@
       dropdownHost.appendChild(dropdown);
     }
 
-    const header = !query ? '<div style="padding: 10px 12px 6px; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Senaste</div>' : '';
+    const header = !query
+      ? '<div style="padding: 10px 12px 6px; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Senaste</div>'
+      : '';
 
-    const rows = filteredPatients.slice(0, 10).map((patient, idx) => {
-      const name = displayNameForList(patient);
-      const info = [patient.nextBookingType, patient.primaryEmail, patient.primaryPhone].filter(Boolean).join(' · ') || '—';
-      const isSelected = idx === dropdownSelectedIndex;
-      const bg = isSelected ? 'var(--color-background-secondary)' : 'transparent';
-      return `
+    const rows = filteredPatients
+      .slice(0, 10)
+      .map((patient, idx) => {
+        const name = displayNameForList(patient);
+        const info =
+          [patient.nextBookingType, patient.primaryEmail, patient.primaryPhone]
+            .filter(Boolean)
+            .join(' · ') || '—';
+        const isSelected = idx === dropdownSelectedIndex;
+        const bg = isSelected ? 'var(--color-background-secondary)' : 'transparent';
+        return `
         <button
           data-dropdown-row="${escapeHtml(patient.patientId)}"
           type="button"
@@ -8506,7 +8529,8 @@
           <div style="color: var(--color-text-secondary); font-size: 18px;">›</div>
         </button>
       `;
-    }).join('');
+      })
+      .join('');
 
     dropdown.innerHTML = header + rows;
 

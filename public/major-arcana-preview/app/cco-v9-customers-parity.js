@@ -159,7 +159,12 @@
   }
 
   function buildEconomyFields(card) {
-    const ltv = card?.lifetimeValue ?? card?.dealValue ?? card?.pipedriveDealValue;
+    const ltv =
+      card?.lifetimeValue ??
+      card?.dealValue ??
+      card?.pipedriveDealValue ??
+      card?.potentialValue ??
+      null;
     const visits = Number(card?.visitCount || card?.bookingCount || 0);
     const total = ltv != null ? formatSek(ltv) : '—';
     const avg =
