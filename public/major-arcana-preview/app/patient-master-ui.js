@@ -1806,12 +1806,6 @@
 
       center.appendChild(list);
 
-      const head = list.querySelector('.customer-row-head.cr-v10-head');
-      if (head) {
-        const cols = head.querySelectorAll('div');
-        if (cols[3]) cols[3].textContent = 'Nästa steg';
-      }
-
       if (regHeader && !regHeader.querySelector('.customers-v9-header')) {
         regHeader.hidden = true;
         regHeader.setAttribute('aria-hidden', 'true');
@@ -4013,6 +4007,64 @@
     return { date: formatV9ListDate(iso), subline };
   }
 
+  function inferBirthYearFromPersonnummerYy(yy) {
+    const nowY = new Date().getFullYear();
+    const currentYy = nowY % 100;
+    return yy > currentYy + 10 ? 1900 + yy : 2000 + yy;
+  }
+
+  function isPlausiblePersonnummerBirthYyyymmdd(yyyymmdd) {
+    const year = Number(yyyymmdd.slice(0, 4));
+    const month = Number(yyyymmdd.slice(4, 6));
+    let day = Number(yyyymmdd.slice(6, 8));
+    if (!Number.isInteger(year) || year < 1900 || year > new Date().getFullYear()) return false;
+    if (!Number.isInteger(month) || month < 1 || month > 12) return false;
+    if (day > 60) day -= 60;
+    return Number.isInteger(day) && day >= 1 && day <= 31;
+  }
+
+  function resolveBirthYyyymmddFromPersonnummer(value) {
+    const raw = normalizeText(value);
+    if (!raw) return '';
+    for (const match of raw.matchAll(/(\d{8})[- ]?(\d{4})/g)) {
+      if (isPlausiblePersonnummerBirthYyyymmdd(match[1])) return match[1];
+    }
+    for (const match of raw.matchAll(/(?:^|[^\d])(\d{6})[- ]?(\d{4})(?:[^\d]|$)/g)) {
+      const yymmdd = match[1];
+      const yy = Number(yymmdd.slice(0, 2));
+      const yyyymmdd = `${inferBirthYearFromPersonnummerYy(yy)}${yymmdd.slice(2)}`;
+      if (isPlausiblePersonnummerBirthYyyymmdd(yyyymmdd)) return yyyymmdd;
+    }
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length >= 12 && isPlausiblePersonnummerBirthYyyymmdd(digits.slice(0, 8))) {
+      return digits.slice(0, 8);
+    }
+    if (digits.length >= 10) {
+      const yymmdd = digits.slice(0, 6);
+      const yy = Number(yymmdd.slice(0, 2));
+      const yyyymmdd = `${inferBirthYearFromPersonnummerYy(yy)}${yymmdd.slice(2)}`;
+      if (isPlausiblePersonnummerBirthYyyymmdd(yyyymmdd)) return yyyymmdd;
+    }
+    return '';
+  }
+
+  function resolvePatientAgeYears(card) {
+    const fromApi = Number(card?.ageYears);
+    if (Number.isFinite(fromApi) && fromApi >= 0 && fromApi <= 120) return fromApi;
+    const yyyymmdd = resolveBirthYyyymmddFromPersonnummer(card?.personnummer);
+    if (!yyyymmdd) return null;
+    const birthYear = Number(yyyymmdd.slice(0, 4));
+    const birthMonth = Number(yyyymmdd.slice(4, 6));
+    let birthDay = Number(yyyymmdd.slice(6, 8));
+    if (birthDay > 60) birthDay -= 60;
+    const now = new Date();
+    let age = now.getFullYear() - birthYear;
+    const month = now.getMonth() + 1;
+    const day = now.getDate();
+    if (month < birthMonth || (month === birthMonth && day < birthDay)) age -= 1;
+    return age >= 0 && age <= 120 ? age : null;
+  }
+
   function formatV9ListDateTime(iso) {
     if (!iso) return '—';
     try {
@@ -5666,12 +5718,9 @@
         : card.nextBookingType || (card.hasJournal ? 'Journal' : '');
     const revenue = resolveV9Revenue(card);
     const signal = resolveV9ListSignal(card);
-    const pnrDigits = String(card.personnummer || '').replace(/\D/g, '');
-    const birthYear = pnrDigits.length >= 8 ? parseInt(pnrDigits.slice(0, 4), 10) : null;
-    const nowY = new Date().getFullYear();
-    const age = birthYear && birthYear > 1900 && birthYear <= nowY ? nowY - birthYear : null;
+    const age = resolvePatientAgeYears(card);
     const ageAndTreatment =
-      [age ? age + ' år' : null, treatment || null].filter(Boolean).join(' · ') || '—';
+      [age != null ? `${age} år` : null, treatment || null].filter(Boolean).join(' · ') || '—';
     // 9-stegs-position härledd ur list-flaggorna (Nästa steg-pillen ger exakt åtgärd)
     const jStep =
       card.missingHealthDeclaration || card.missingForm
@@ -5704,8 +5753,8 @@
         ? `<span class="cr-tag cr-tag--cycle">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
         : '');
     const visitTagsHtml = tagBits ? `<div class="cr-visit-tags">${tagBits}</div>` : '';
-    const visitMetaHtml = ageAndTreatment
-      ? `<div class="cr-meta-sub cr-visit-meta">${escapeHtml(ageAndTreatment)}</div>`
+    const nameMetaHtml = ageAndTreatment
+      ? `<div class="cr-meta-sub cr-name-meta">${escapeHtml(ageAndTreatment)}</div>`
       : '';
     const stepStatus = resolveV9StepStatus(jStep);
     const signalTone = resolveV9NextStepToneClass(signal.tone || 'neutral');
@@ -5720,10 +5769,10 @@
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
+              ${nameMetaHtml}
             </div>
             <div class="cr-last-visit">
               <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
-              ${visitMetaHtml}
               ${visitTagsHtml}
             </div>
             <div class="cr-contact">${contactHtml}</div>

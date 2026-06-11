@@ -441,7 +441,7 @@ html[data-v9-enabled="on"] .customer-row.cr-v10 {
   gap: 12px;
 }
 html[data-v9-enabled="on"] .customer-row-head.cr-v10-head {
-  padding: 8px 14px;
+  padding: 8px 14px 8px 32px;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -499,6 +499,11 @@ html[data-v9-enabled="on"] .cr-v10 .cr-name {
   font-size: 13px;
   font-weight: 700;
   color: var(--cco-color-brand);
+}
+html[data-v9-enabled="on"] .cr-v10 .cr-name-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 html[data-v9-enabled="on"] .cr-v10 .cr-visit-meta {
   overflow: hidden;

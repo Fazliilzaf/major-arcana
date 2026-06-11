@@ -9,6 +9,7 @@ const {
   collectPipedrivePhones,
   normalizeEmail,
   normalizeKey,
+  computeAgeYearsFromPersonnummer,
   normalizePersonnummer,
   normalizePhone,
   normalizeText,
@@ -625,6 +626,7 @@ function buildPatientCardReadout(patient) {
   return {
     patientId: safe.id,
     personnummer: safe.personnummer || '',
+    ageYears: computeAgeYearsFromPersonnummer(safe.personnummer),
     displayName: sanitizePatientDisplayName(safe.displayName, { fallback: '' }),
     primaryEmail: safe.primaryEmail || '',
     primaryPhone: safe.primaryPhone || '',

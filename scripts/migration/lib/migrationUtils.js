@@ -135,6 +135,49 @@ function inferFullYearFromYy(yy) {
   return century + yy;
 }
 
+function resolveBirthYyyymmddDigits(value) {
+  const raw = normalizeText(value);
+  if (!raw) return '';
+  for (const match of raw.matchAll(/(\d{8})[- ]?(\d{4})/g)) {
+    if (isPlausiblePersonnummerDate(match[1])) return match[1];
+  }
+  for (const match of raw.matchAll(/(?:^|[^\d])(\d{6})[- ]?(\d{4})(?:[^\d]|$)/g)) {
+    const yymmdd = match[1];
+    const yy = Number(yymmdd.slice(0, 2));
+    const fullYear = inferFullYearFromYy(yy);
+    const yyyymmdd = `${fullYear}${yymmdd.slice(2)}`;
+    if (isPlausiblePersonnummerDate(yyyymmdd)) return yyyymmdd;
+  }
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length >= 12 && isPlausiblePersonnummerDate(digits.slice(0, 8))) {
+    return digits.slice(0, 8);
+  }
+  if (digits.length >= 10) {
+    const yymmdd = digits.slice(0, 6);
+    const yy = Number(yymmdd.slice(0, 2));
+    const fullYear = inferFullYearFromYy(yy);
+    const yyyymmdd = `${fullYear}${yymmdd.slice(2)}`;
+    if (isPlausiblePersonnummerDate(yyyymmdd)) return yyyymmdd;
+  }
+  return '';
+}
+
+function computeAgeYearsFromPersonnummer(value, refDate = new Date()) {
+  const yyyymmdd = resolveBirthYyyymmddDigits(value);
+  if (!yyyymmdd) return null;
+  const birthYear = Number(yyyymmdd.slice(0, 4));
+  const birthMonth = Number(yyyymmdd.slice(4, 6));
+  let birthDay = Number(yyyymmdd.slice(6, 8));
+  if (birthDay > 60) birthDay -= 60;
+  const ref = refDate instanceof Date ? refDate : new Date(refDate);
+  if (Number.isNaN(ref.getTime())) return null;
+  let age = ref.getFullYear() - birthYear;
+  const month = ref.getMonth() + 1;
+  const day = ref.getDate();
+  if (month < birthMonth || (month === birthMonth && day < birthDay)) age -= 1;
+  return age >= 0 && age <= 120 ? age : null;
+}
+
 function normalizePersonnummer(value) {
   const raw = normalizeText(value);
   if (!raw) return '';
@@ -575,6 +618,8 @@ module.exports = {
   normalizePersonnummer,
   normalizePhone,
   normalizeText,
+  computeAgeYearsFromPersonnummer,
+  resolveBirthYyyymmddDigits,
   splitName,
   walkFolderEntries,
 };

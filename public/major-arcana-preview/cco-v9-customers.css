@@ -1386,7 +1386,7 @@ html[data-v9-enabled="on"] .customer-row-head {
     )
     30px;
   gap: 12px;
-  padding: 8px 14px;
+  padding: 8px 14px 8px 32px;
   font-size: var(--v9-font-kicker-sm);
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -1461,6 +1461,12 @@ html[data-v9-enabled="on"] .customer-row .cr-name {
   font-size: var(--v9-font-body-lg);
   font-weight: 700;
   color: var(--v9-color-brand, #2b251f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-v9-enabled="on"] .customer-row .cr-name-meta {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
