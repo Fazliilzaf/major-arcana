@@ -11730,6 +11730,7 @@ process.once('SIGTERM', () => {
         queueLockTtlMs: config.gatewayQueueLockTtlMs,
         queueAcquireTimeoutMs: config.gatewayQueueAcquireTimeoutMs,
         queuePollIntervalMs: config.gatewayQueuePollIntervalMs,
+        executionTimeoutMs: config.gatewayExecutionTimeoutMs,
       })
     : null;
 

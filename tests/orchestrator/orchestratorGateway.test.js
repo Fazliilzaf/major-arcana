@@ -72,6 +72,8 @@ test('orchestrator admin-run goes through gateway and blocks unsafe responses', 
           gatewayCalls += 1;
           assert.equal(context.channel, 'admin');
           assert.equal(context.intent, 'orchestrator.admin_run');
+          assert.equal(context.mode, 'plan');
+          assert.equal(context.payload.mode, 'plan');
           return {
             decision: 'blocked',
             safe_response: {
@@ -239,19 +241,16 @@ test('orchestrator admin-run execute mode runs through gateway with audit metada
   );
 
   await withServer(app, async (baseUrl) => {
-    const response = await fetch(
-      `${baseUrl}/api/v1/orchestrator/admin-run?mode=execute`,
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-correlation-id': 'corr-orchestrator-exec-1',
-        },
-        body: JSON.stringify({
-          prompt: 'Granska mallbibliotek och template disclaimers för konsultation',
-        }),
-      }
-    );
+    const response = await fetch(`${baseUrl}/api/v1/orchestrator/admin-run?mode=execute`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-correlation-id': 'corr-orchestrator-exec-1',
+      },
+      body: JSON.stringify({
+        prompt: 'Granska mallbibliotek och template disclaimers för konsultation',
+      }),
+    });
 
     assert.equal(response.status, 200);
     const payload = await response.json();
@@ -332,19 +331,16 @@ test('orchestrator admin-run execute mode runs CMO for marketing_campaign intent
   );
 
   await withServer(app, async (baseUrl) => {
-    const response = await fetch(
-      `${baseUrl}/api/v1/orchestrator/admin-run?mode=execute`,
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-correlation-id': 'corr-orchestrator-cmo-1',
-        },
-        body: JSON.stringify({
-          prompt: 'Planera Q2 marketing campaign med UTM och publicering',
-        }),
-      }
-    );
+    const response = await fetch(`${baseUrl}/api/v1/orchestrator/admin-run?mode=execute`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-correlation-id': 'corr-orchestrator-cmo-1',
+      },
+      body: JSON.stringify({
+        prompt: 'Planera Q2 marketing campaign med UTM och publicering',
+      }),
+    });
 
     assert.equal(response.status, 200);
     const payload = await response.json();
