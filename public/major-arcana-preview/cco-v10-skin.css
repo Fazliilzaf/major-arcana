@@ -433,8 +433,8 @@ html[data-v9-enabled="on"] .customer-row-head.cr-v10-head,
 html[data-v9-enabled="on"] .customer-row.cr-v10 {
   display: grid;
   grid-template-columns:
-    44px minmax(0, 1.5fr) minmax(0, 1.1fr) 92px minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.2fr)
-    minmax(0, 1.1fr) 30px;
+    44px minmax(0, 1.5fr) minmax(0, 1.1fr) 92px minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.3fr)
+    30px;
   gap: 12px;
 }
 html[data-v9-enabled="on"] .customer-row-head.cr-v10-head {

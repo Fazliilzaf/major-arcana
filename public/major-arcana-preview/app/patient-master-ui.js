@@ -1848,7 +1848,7 @@
       const head = list.querySelector('.customer-row-head.cr-v10-head');
       if (head) {
         const cols = head.querySelectorAll('div');
-        if (cols[6]) cols[6].textContent = 'Nästa steg';
+        if (cols[3]) cols[3].textContent = 'Nästa steg';
       }
 
       if (regHeader && !regHeader.querySelector('.customers-v9-header')) {
@@ -5669,8 +5669,8 @@
     const birthYear = pnrDigits.length >= 8 ? parseInt(pnrDigits.slice(0, 4), 10) : null;
     const nowY = new Date().getFullYear();
     const age = birthYear && birthYear > 1900 && birthYear <= nowY ? nowY - birthYear : null;
-    const subLine =
-      [age ? age + ' år' : null, treatment || null].filter(Boolean).join(' · ') || '—';
+    const ageTreatmentLine =
+      [age ? age + ' år' : null, treatment || null].filter(Boolean).join(' · ') || '';
     // 9-stegs-position härledd ur list-flaggorna (Nästa steg-pillen ger exakt åtgärd)
     const jStep =
       card.missingHealthDeclaration || card.missingForm
@@ -5682,8 +5682,7 @@
             : card.hasUpcomingBooking
               ? { n: 8, tone: 'teal' }
               : { n: 9, tone: 'ok' };
-
-    // 8-kol: avatar · Kund · Steg · Nästa steg · LTV · Kontakt · Senast besök · chevron
+    // 7-kol: avatar · Kund(+taggar) · Steg · Nästa steg · LTV · Kontakt · Senast besök · chevron
     const lastVisitDisplay = resolveV9LastVisitDisplay(card);
     const contactEmail = card.contactEmail || card.primaryEmail || '';
     const contactPhone = card.contactPhone || card.primaryPhone || '';
@@ -5703,7 +5702,7 @@
       (cycle
         ? `<span class="cr-tag cr-tag--cycle">${escapeHtml(`${cycle.label} ${cycle.done}/${cycle.planned}`)}</span>`
         : '');
-    const nameTagsHtml = tagBits ? `<span class="cr-name-tags">${tagBits}</span>` : '';
+    const nameTagsHtml = tagBits ? `<div class="cr-name-tags">${tagBits}</div>` : '';
     const stegToneMap = {
       amber: 'warn',
       info: 'info',
@@ -5725,16 +5724,16 @@
             <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
-              <div class="cr-meta-sub">${escapeHtml(subLine)}</div>
+              ${nameTagsHtml}
             </div>
             <div><span class="cr-steg cr-steg--${escapeHtml(stegTone)}">Steg ${escapeHtml(String(jStep.n))}</span></div>
             <div><span class="cr-nextpill cr-nextpill--${escapeHtml(signalTone)}">${escapeHtml(signal.text)}</span></div>
-            <div class="cr-status-tags">${nameTagsHtml}</div>
             <div><div class="cr-revenue">${escapeHtml(revenue.main)}</div>${revenue.potential ? `<div class="cr-meta-sub cr-revenue-pot">${escapeHtml(revenue.potential)} pot.</div>` : ''}</div>
             <div class="cr-contact">${contactHtml}</div>
             <div class="cr-last-visit">
               <div class="cr-visit-date">${escapeHtml(lastVisitDisplay.date)}</div>
               ${lastVisitDisplay.subline ? `<div class="cr-visit-type">${escapeHtml(lastVisitDisplay.subline)}</div>` : ''}
+              ${ageTreatmentLine ? `<div class="cr-meta-sub cr-visit-meta">${escapeHtml(ageTreatmentLine)}</div>` : ''}
             </div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
@@ -5748,7 +5747,6 @@
             <div>Kund</div>
             <div>Steg</div>
             <div>Nästa steg</div>
-            <div>Status</div>
             <div>LTV</div>
             <div>Kontakt</div>
             <div>Senast besök</div>
