@@ -385,7 +385,7 @@
         var src = p.thumb || p.url;
         var fallback = p.url || '';
         return '<a class="gk-foto" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer" title="Öppna bild">' +
-          (src ? '<img src="' + esc(src) + '" data-full="' + esc(fallback) + '" loading="lazy" onerror="if(this.dataset.full&&this.src!==this.dataset.full){this.src=this.dataset.full}else{this.style.display=\'none\'}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />' : '') +
+          (src ? '<img data-gk-img-src="' + esc(src) + '" data-gk-img-full="' + esc(fallback) + '" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />' : '') +
           '<span style="position:relative;z-index:1">' + esc(p.zone) + ' · ' + esc(gkFmtDate(p.date)) + '</span></a>';
       }).join('') + '</div>';
     }
@@ -1841,6 +1841,69 @@
       .catch(function () {
         /* nätfel — bokningar-fallbacken står kvar */
       });
+  };
+
+  window.__gkHydrateSecurePhotos = function (root) {
+    var scope = root || document.getElementById('kk-storvy') || document;
+    if (!scope) return;
+    var token = '';
+    try {
+      token = (
+        window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        ''
+      ).trim();
+    } catch (e) {
+      token = '';
+    }
+    var headers = token && token !== '__preview_local__' ? { Authorization: 'Bearer ' + token } : {};
+    if (!window.__gkPhotoObjectUrls) window.__gkPhotoObjectUrls = [];
+    [].forEach.call(scope.querySelectorAll('img[data-gk-img-src], img[data-gk-img-full]'), function (img) {
+      if (img.dataset.gkLoaded === 'true' || img.dataset.gkLoading === 'true') return;
+      var primary = img.getAttribute('data-gk-img-src') || '';
+      var fallback = img.getAttribute('data-gk-img-full') || '';
+      var urls = [];
+      if (primary && primary !== '#') urls.push(primary);
+      if (fallback && fallback !== '#' && fallback !== primary) urls.push(fallback);
+      if (!urls.length) return;
+      img.dataset.gkLoading = 'true';
+      var link = img.closest('a.gk-foto');
+      function tryNext(i) {
+        if (i >= urls.length) {
+          img.dataset.gkLoading = 'false';
+          img.classList.add('is-broken');
+          if (link && !link.querySelector('.gk-foto-loaderr')) {
+            var err = document.createElement('small');
+            err.className = 'gk-foto-loaderr';
+            err.textContent = 'Kunde inte visa bild';
+            link.appendChild(err);
+          }
+          return;
+        }
+        fetch(new URL(urls[i], window.location.origin), {
+          headers: headers,
+          credentials: 'same-origin',
+        })
+          .then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.blob().then(function (blob) {
+              var ct = res.headers.get('content-type') || '';
+              if (!blob.type && ct) blob = new Blob([blob], { type: ct.split(';')[0] });
+              var obj = URL.createObjectURL(blob);
+              window.__gkPhotoObjectUrls.push(obj);
+              img.src = obj;
+              img.dataset.gkLoaded = 'true';
+              img.dataset.gkLoading = 'false';
+              img.classList.remove('is-broken');
+              if (link) link.href = obj;
+            });
+          })
+          .catch(function () {
+            tryNext(i + 1);
+          });
+      }
+      tryNext(0);
+    });
   };
 
   window.__renderReferensKundkort = function (card, bundle, journalEntries, extras) {
@@ -3926,6 +3989,7 @@
       if (window.__gkLoadTimeline) setTimeout(window.__gkLoadTimeline, 0);
       if (window.__gkLoadAutoSends) setTimeout(window.__gkLoadAutoSends, 0);
       if (window.__gkLoadFortnox) setTimeout(window.__gkLoadFortnox, 0);
+      if (window.__gkHydrateSecurePhotos) setTimeout(function () { window.__gkHydrateSecurePhotos(body); }, 0);
     } else {
       var live = document.querySelector('.kkref .doss');
       if (live) {

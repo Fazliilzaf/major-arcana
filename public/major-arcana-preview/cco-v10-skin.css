@@ -3394,6 +3394,20 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+#kk-storvy .gk-foto img:not([src]) {
+  opacity: 0;
+}
+
+#kk-storvy .gk-foto-loaderr {
+  position: absolute;
+  inset: auto 6px 24px 6px;
+  z-index: 2;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
 #kk-storvy .gk-visit-card {
   margin: 8px 0;
   padding: 10px;
