@@ -3394,6 +3394,59 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+#kk-storvy .gk-visit-card {
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(93, 74, 60, 0.08),
+    0 8px 22px rgba(61, 46, 34, 0.05);
+}
+
+#kk-storvy .gk-visit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+#kk-storvy .gk-visit-head b {
+  display: block;
+  font-size: 12px;
+  color: #2b251f;
+}
+
+#kk-storvy .gk-visit-head .gk-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+}
+
+#kk-storvy .gk-visit-journal {
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.44);
+}
+
+#kk-storvy .gk-visit-journal .gk-rad {
+  min-height: 28px;
+  padding: 6px 8px;
+}
+
+#kk-storvy .gk-foto-grid--journal {
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 6px;
+}
+
+#kk-storvy .gk-visit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 #kk-storvy .gk-histq {
   flex: 1;
   font: inherit;

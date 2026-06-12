@@ -344,6 +344,48 @@
     var name = ctx.name || 'Kund';
     ctx.driveFiles = dedupeDriveFiles(ctx.driveFiles);
     var imgs = A2(ctx.driveFiles).filter(isReferensImageFile);
+    var MND = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+    var nowY = new Date().getFullYear();
+    function gkZoneOf(s) {
+      var l = String(s || '').toLowerCase();
+      if (/h[åa]rlinj|hairlin|front|panna|forehead|temporal|tinning/.test(l)) return 'Hårlinje';
+      if (/krona|crown|vertex|hj[äa]ss|virvel/.test(l)) return 'Krona';
+      if (/donor|nack|occip|baksid/.test(l)) return 'Donator';
+      return 'Översikt';
+    }
+    function gkDateOfFile(f) {
+      var rp = String((f && (f.relativePath || f.fileName || f.originalFileName || f.name)) || '');
+      var m = rp.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return m[1] + '-' + m[2] + '-' + m[3];
+      var ep = rp.match(/\b(1[0-9]{9})\b/);
+      if (ep) return new Date(Number(ep[1]) * 1000).toISOString().slice(0, 10);
+      return '';
+    }
+    function gkFmtDate(d) {
+      if (!d) return 'odaterat';
+      var p = String(d).split('-'), y = +p[0], mo = +p[1], da = +p[2];
+      if (!y || !mo || !da) return d;
+      return da + ' ' + (MND[mo - 1] || '') + (y === nowY ? '' : ' ' + y);
+    }
+    function gkPhotoFromFile(f) {
+      var id = f && f.id ? String(f.id) : '';
+      var labelSource = ((f && f.relativePath) || '') + ' ' + ((f && (f.fileName || f.originalFileName || f.name)) || '');
+      return {
+        zone: gkZoneOf(labelSource),
+        date: gkDateOfFile(f),
+        thumb: id ? '/api/v1/cco/assets/' + encodeURIComponent(id) + '/thumbnail' : '',
+        url: (f && f.viewUrl) || (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#')
+      };
+    }
+    function gkPhotoGrid(photos, limit, cls) {
+      var list = A2(photos).slice(0, limit || 8);
+      if (!list.length) return '';
+      return '<div class="gk-foto-grid' + (cls ? ' ' + esc(cls) : '') + '">' + list.map(function (p) {
+        return '<a class="gk-foto" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer" title="Öppna bild">' +
+          (p.thumb ? '<img src="' + esc(p.thumb) + '" loading="lazy" onerror="this.style.display=\'none\'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />' : '') +
+          '<span style="position:relative;z-index:1">' + esc(p.zone) + ' · ' + esc(gkFmtDate(p.date)) + '</span></a>';
+      }).join('') + '</div>';
+    }
 
     // Header
     var pills = '';
@@ -684,9 +726,8 @@
         '</div>'
     );
 
-    // Journal
-    var jr = A2(ctx.jItems)
-      .map(function (it) {
+    // Journal — gruppera journal + foton per besök så varje tillfälle blir begripligt.
+    function gkJournalRow(it) {
         var badge =
           it.st === 'done'
             ? '<span class="gk-hl gk-tag gk-tag-ok">Signerad' +
@@ -702,43 +743,54 @@
           badge +
           '</div>'
         );
-      })
-      .join('');
-    // Fotosessioner som journalrader (grupperade per datum) — klickbara → Foto-sektionen
-    var imgByDate = {};
-    imgs.forEach(function (f) {
-      var rp = String(f.relativePath || f.fileName || '');
-      var m = rp.match(/(\d{4}-\d{2}-\d{2})/);
-      var ep = !m && rp.match(/\b(1[0-9]{9})\b/);
-      var d = m
-        ? m[1]
-        : ep
-          ? new Date(Number(ep[1]) * 1000).toISOString().slice(0, 10)
-          : 'odaterat';
-      (imgByDate[d] = imgByDate[d] || []).push(f);
+    }
+    var visitGroups = {};
+    function ensureVisitGroup(d) {
+      d = d || 'odaterat';
+      if (!visitGroups[d]) visitGroups[d] = { date: d, journals: [], photos: [] };
+      return visitGroups[d];
+    }
+    A2(ctx.jItems).forEach(function (it) {
+      ensureVisitGroup(it.date || 'odaterat').journals.push(it);
     });
-    var photoRows = Object.keys(imgByDate)
+    imgs.forEach(function (f) {
+      var p = gkPhotoFromFile(f);
+      ensureVisitGroup(p.date || 'odaterat').photos.push(p);
+    });
+    var visitCards = Object.keys(visitGroups)
       .sort()
       .reverse()
       .map(function (d) {
-        var n = imgByDate[d].length;
+        var group = visitGroups[d];
+        var n = group.photos.length;
+        var jn = group.journals.length;
+        var title = d !== 'odaterat' ? gkFmtDate(d) : 'Okänt tillfälle';
+        var journalRows = group.journals.map(gkJournalRow).join('');
+        var photoGrid = gkPhotoGrid(group.photos, 6, 'gk-foto-grid--journal');
+        var meta = (jn ? jn + (jn === 1 ? ' journal' : ' journaler') : '') +
+          (jn && n ? ' · ' : '') +
+          (n ? n + (n === 1 ? ' bild' : ' bilder') : '');
         return (
-          '<button type="button" class="gk-rad" data-gk-jump="foto" style="width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;color:inherit">' +
-          '<span>📷</span> <b>Foto</b> <span class="gk-sub">' +
-          (d !== 'odaterat' ? esc(d) : '') +
-          '</span> <span class="gk-hl gk-tag gk-tag-ok">' +
-          n +
-          (n === 1 ? ' bild' : ' bilder') +
-          '</span></button>'
+          '<div class="gk-visit-card">' +
+          '<div class="gk-visit-head"><div><b>' + esc(title) + '</b>' +
+          (meta ? '<span class="gk-sub">' + esc(meta) + '</span>' : '') +
+          '</div><span class="gk-hl gk-tag gk-tag-info">Besök</span></div>' +
+          (journalRows ? '<div class="gk-visit-journal">' + journalRows + '</div>' : '') +
+          (photoGrid ? photoGrid : '') +
+          (n ? '<div class="gk-visit-actions">' +
+            '<button type="button" class="gk-btn" data-gk-jump="foto">Välj i Foto</button>' +
+            '<button type="button" class="gk-btn" data-gk-jump="ta bild">Ta/rita bild</button>' +
+          '</div>' : '') +
+          '</div>'
         );
       })
       .join('');
     body += sek(
       'Journal',
       '<span class="gk-pill gk-tag-info">' +
-        (A2(ctx.jItems).length + Object.keys(imgByDate).length) +
+        (A2(ctx.jItems).length + Object.keys(visitGroups).filter(function (d) { return visitGroups[d].photos.length; }).length) +
         ' anteckningar</span>',
-      jr + photoRows,
+      visitCards,
       'Inga journaler ännu.'
     );
 
@@ -1008,42 +1060,9 @@
     // Foto — smart: zon+datum-etiketter, auto before/after-par + slider-jämförelse, saknad-vy-insikt
     var fotoBody = (function () {
       if (!imgs.length) return '';
-      var MND = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
-      var nowY = new Date().getFullYear();
-      function zoneOf(s) {
-        var l = String(s || '').toLowerCase();
-        if (/h[åa]rlinj|hairlin|front|panna|forehead|temporal|tinning/.test(l)) return 'Hårlinje';
-        if (/krona|crown|vertex|hj[äa]ss|virvel/.test(l)) return 'Krona';
-        if (/donor|nack|occip|baksid/.test(l)) return 'Donator';
-        return 'Översikt';
-      }
-      function dateOf(f) {
-        var rp = String(f.relativePath || f.fileName || '');
-        var m = rp.match(/(\d{4})-(\d{2})-(\d{2})/);
-        if (m) return m[1] + '-' + m[2] + '-' + m[3];
-        var ep = rp.match(/\b(1[0-9]{9})\b/);
-        if (ep) return new Date(Number(ep[1]) * 1000).toISOString().slice(0, 10);
-        return '';
-      }
-      function fmtDate(d) {
-        if (!d) return 'odaterat';
-        var p = d.split('-'), y = +p[0], mo = +p[1], da = +p[2];
-        return da + ' ' + (MND[mo - 1] || '') + (y === nowY ? '' : ' ' + y);
-      }
-      var photos = imgs.map(function (f) {
-        return {
-          zone: zoneOf((f.relativePath || '') + ' ' + (f.fileName || '')),
-          date: dateOf(f),
-          thumb: f.id ? '/api/v1/cco/assets/' + encodeURIComponent(f.id) + '/thumbnail' : '',
-          url: f.viewUrl || (f.id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(f.id) : '#')
-        };
-      });
+      var photos = imgs.map(gkPhotoFromFile);
       photos.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
-      var grid = '<div class="gk-foto-grid">' + photos.slice(0, 8).map(function (p) {
-        return '<a class="gk-foto" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer" title="Öppna bild">' +
-          (p.thumb ? '<img src="' + esc(p.thumb) + '" loading="lazy" onerror="this.style.display=\'none\'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />' : '') +
-          '<span style="position:relative;z-index:1">' + esc(p.zone) + ' · ' + esc(fmtDate(p.date)) + '</span></a>';
-      }).join('') + '</div>';
+      var grid = gkPhotoGrid(photos, 8, '');
       // Auto before/after-par: zonen med störst tidsspann (äldsta ↔ nyaste)
       var byZone = {};
       photos.forEach(function (p) { if (p.date) (byZone[p.zone] = byZone[p.zone] || []).push(p); });
@@ -1061,11 +1080,11 @@
           zone: pair.zone,
           beforeImg: pair.before.thumb || pair.before.url,
           afterImg: pair.after.thumb || pair.after.url,
-          beforeLabel: fmtDate(pair.before.date),
-          afterLabel: fmtDate(pair.after.date)
+          beforeLabel: gkFmtDate(pair.before.date),
+          afterLabel: gkFmtDate(pair.after.date)
         }).replace(/"/g, '&quot;');
         pairHtml = '<div class="gk-foto-pair"><div class="gk-foto-pair-text"><b>Before/after-par föreslaget:</b> ' +
-          esc(pair.zone) + ' ' + esc(fmtDate(pair.before.date)) + ' ↔ ' + esc(fmtDate(pair.after.date)) + '</div>' +
+          esc(pair.zone) + ' ' + esc(gkFmtDate(pair.before.date)) + ' ↔ ' + esc(gkFmtDate(pair.after.date)) + '</div>' +
           '<button type="button" class="gk-btn gk-foto-compare" data-gk-compare="' + pj + '">Jämför</button></div>';
       }
       // Saknad-vy-insikt: nyckelzoner utan foto
