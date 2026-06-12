@@ -2250,8 +2250,8 @@
       var primary = node.getAttribute('data-gk-img-src') || '';
       var fallback = node.getAttribute('data-gk-img-full') || '';
       var urls = [];
-      if (fallback && fallback !== '#') urls.push(fallback);
-      if (primary && primary !== '#' && primary !== fallback) urls.push(primary);
+      if (primary && primary !== '#') urls.push(primary);
+      if (fallback && fallback !== '#' && fallback !== primary) urls.push(fallback);
       if (!urls.length) return;
       node.dataset.gkLoading = 'true';
       active += 1;
