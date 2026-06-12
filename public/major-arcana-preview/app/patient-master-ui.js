@@ -6385,8 +6385,9 @@
           credentials: 'same-origin',
         });
         if (!response.ok) continue;
-        let blob = await response.blob();
         const contentType = response.headers.get('content-type') || '';
+        if (contentType && !/^(image|video)\//i.test(contentType)) continue;
+        let blob = await response.blob();
         if (blob.type === '' && contentType) {
           blob = new Blob([blob], { type: contentType.split(';')[0] });
         }
@@ -6398,6 +6399,33 @@
       }
     }
     return '';
+  }
+
+  async function applyGkMediaObjectUrl(node, objectUrl) {
+    if (!node || !objectUrl) return false;
+    if (node.tagName !== 'IMG') {
+      node.src = objectUrl;
+      return true;
+    }
+    node.src = objectUrl;
+    if (typeof node.decode === 'function') {
+      try {
+        await node.decode();
+        return node.naturalWidth > 0;
+      } catch {
+        return false;
+      }
+    }
+    return new Promise((resolve) => {
+      const done = (ok) => {
+        node.onload = null;
+        node.onerror = null;
+        resolve(ok && node.naturalWidth > 0);
+      };
+      node.onload = () => done(true);
+      node.onerror = () => done(false);
+      if (node.complete) done(node.naturalWidth > 0);
+    });
   }
 
   async function hydrateGkMediaElements(root = els.patientRail) {
@@ -6441,7 +6469,19 @@
           }
           continue;
         }
-        node.src = objectUrl;
+        const decoded = await applyGkMediaObjectUrl(node, objectUrl);
+        if (!decoded) {
+          node.removeAttribute('src');
+          node.classList.add('is-broken');
+          const tile = node.closest('a.gk-foto');
+          if (tile && !tile.querySelector('.gk-foto-loaderr')) {
+            const message = document.createElement('small');
+            message.className = 'gk-foto-loaderr';
+            message.textContent = 'Kunde inte visa media';
+            tile.appendChild(message);
+          }
+          continue;
+        }
         node.dataset.gkLoaded = 'true';
         node.classList.remove('is-broken');
         const tile = node.closest('a.gk-foto');
