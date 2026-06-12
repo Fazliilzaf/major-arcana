@@ -6449,7 +6449,62 @@
     await Promise.all(Array.from({ length: concurrency }, () => worker()));
   }
 
-  window.__gkHydrateSecurePhotos = hydrateGkMediaElements;
+  let gkMediaHydrationFrame = 0;
+  let gkMediaObserver = null;
+
+  function scheduleGkMediaHydration(root = els.patientRail || document) {
+    if (gkMediaHydrationFrame) return;
+    gkMediaHydrationFrame = window.requestAnimationFrame(() => {
+      gkMediaHydrationFrame = 0;
+      void hydrateGkMediaElements(root || els.patientRail || document);
+    });
+  }
+
+  function ensureGkMediaObserver() {
+    if (gkMediaObserver || !document.body) return;
+    gkMediaObserver = new MutationObserver((mutations) => {
+      const shouldHydrate = mutations.some((mutation) => {
+        if (mutation.type === 'attributes') {
+          const target = mutation.target;
+          return (
+            target instanceof Element &&
+            (target.matches?.('#kk-storvy, .gk-foto-grid, .gk-foto') ||
+              Boolean(target.closest?.('#kk-storvy, [data-patient-master-rail]')))
+          );
+        }
+        return Array.from(mutation.addedNodes || []).some(
+          (node) =>
+            node instanceof Element &&
+            (node.matches?.('img[data-gk-img-src], video[data-gk-img-src], #kk-storvy') ||
+              Boolean(node.querySelector?.('img[data-gk-img-src], video[data-gk-img-src]')))
+        );
+      });
+      if (shouldHydrate) scheduleGkMediaHydration(document);
+    });
+    gkMediaObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class', 'hidden'],
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  window.__gkHydrateSecurePhotos = (root) =>
+    hydrateGkMediaElements(root || els.patientRail || document);
+  if (document.body) {
+    ensureGkMediaObserver();
+  } else {
+    document.addEventListener('DOMContentLoaded', ensureGkMediaObserver, { once: true });
+  }
+  document.addEventListener('click', (event) => {
+    if (
+      event.target?.closest?.(
+        '[data-kk-open-storvy], [data-gk-toggle-visit-media], [data-v9-open-deep]'
+      )
+    ) {
+      window.setTimeout(() => scheduleGkMediaHydration(document), 0);
+    }
+  });
 
   function bindJournalPhotoOpenLinks(root = els.patientRail) {
     if (!root) return;
