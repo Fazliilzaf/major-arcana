@@ -56,6 +56,72 @@
   var A = function (x) {
     return Array.isArray(x) ? x : x ? [x] : [];
   };
+  function driveDedupeText(value) {
+    return String(value == null ? '' : value)
+      .normalize('NFC')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+  function normalizeDriveDedupePath(value) {
+    return driveDedupeText(value)
+      .replace(/^bokade\//, '')
+      .replace(/^hair tp clinic 20\d{2}\//, '')
+      .replace(/^kunder htp\//, '');
+  }
+  function driveFileDedupeKey(file) {
+    if (!file || typeof file !== 'object') return '';
+    var driveId = driveDedupeText(file.driveFileId || file.googleDriveId || file.fileId);
+    if (driveId) return 'drive:' + driveId;
+    var sourceId = driveDedupeText(file.sourceRecordId || file.sourceId);
+    if (sourceId) return 'source:' + sourceId;
+    var pathKey = normalizeDriveDedupePath(
+      file.normalizedPath ||
+        file.relativePath ||
+        file.path ||
+        file.sourcePath ||
+        file.drivePath ||
+        file.folderPath
+    );
+    if (pathKey) return 'path:' + pathKey;
+    var name = normalizeDriveDedupePath(file.fileName || file.originalFileName || file.name);
+    var ts = driveDedupeText(file.modifiedTime || file.documentDate || file.indexedAt);
+    return name ? 'name:' + name + ':' + ts : '';
+  }
+  function dedupeDriveFiles(files) {
+    var seen = {};
+    var rows = [];
+    A(files).forEach(function (file) {
+      var key = driveFileDedupeKey(file);
+      if (key && seen[key]) return;
+      if (key) seen[key] = true;
+      rows.push(file);
+    });
+    return rows;
+  }
+  function isReferensImageFile(file) {
+    var mime = driveDedupeText(file && (file.mimeType || file.contentType));
+    var type = driveDedupeText(file && file.fileType);
+    var name = driveDedupeText(file && (file.fileName || file.originalFileName || file.name));
+    return type === 'image' || mime.indexOf('image/') === 0 || /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name);
+  }
+  function isReferensJournalPdf(file) {
+    var mime = driveDedupeText(file && (file.mimeType || file.contentType));
+    var type = driveDedupeText(file && file.fileType);
+    var name = driveDedupeText(file && (file.fileName || file.originalFileName || file.name));
+    return type === 'journal_pdf' || mime === 'application/pdf' || /\.pdf$/.test(name);
+  }
+  function withUniqueReferensFileSummary(card, driveFiles) {
+    if (!card || !A(driveFiles).length) return card;
+    var next = Object.assign({}, card);
+    next.fileSummary = Object.assign({}, card.fileSummary || {}, {
+      totalFiles: driveFiles.length,
+      journalPdfs: driveFiles.filter(isReferensJournalPdf).length,
+      images: driveFiles.filter(isReferensImageFile).length,
+      deduped: true,
+    });
+    return next;
+  }
   function initials(name) {
     var p = String(name || '')
       .trim()
@@ -160,11 +226,11 @@
 
   function resolveReferensPhotos(card, driveFiles) {
     var tiles = [];
-    A(driveFiles).forEach(function (f) {
+    dedupeDriveFiles(driveFiles).forEach(function (f) {
       var mime = String(f.mimeType || f.contentType || '').toLowerCase();
       var rawName = f.originalFileName || f.fileName || f.name || '';
       var name = String(rawName).toLowerCase();
-      if (!mime.startsWith('image/') && !/\.(jpe?g|png|heic|webp|gif)$/i.test(name)) return;
+      if (!isReferensImageFile(f) && !mime.startsWith('image/') && !/\.(jpe?g|heif|png|heic|webp|gif)$/i.test(name)) return;
       tiles.push({
         type: f.category || f.photoType || 'Foto',
         name: rawName || 'Foto',
@@ -276,9 +342,8 @@
       );
     }
     var name = ctx.name || 'Kund';
-    var imgs = A2(ctx.driveFiles).filter(function (f) {
-      return f && f.fileType === 'image';
-    });
+    ctx.driveFiles = dedupeDriveFiles(ctx.driveFiles);
+    var imgs = A2(ctx.driveFiles).filter(isReferensImageFile);
 
     // Header
     var pills = '';
@@ -1760,10 +1825,11 @@
     card = card || {};
     bundle = bundle || {};
     extras = extras || {};
-    var driveFiles = A(extras.driveFiles);
+    var driveFiles = dedupeDriveFiles(extras.driveFiles);
     var commercialCase = extras.commercialCase || null;
     var bcard =
       bundle.card && typeof bundle.card === 'object' ? Object.assign({}, card, bundle.card) : card;
+    bcard = withUniqueReferensFileSummary(bcard, driveFiles);
     var name = bcard.displayName || bcard.name || bcard.fullName || 'Kund';
     var phone = bcard.primaryPhone || (bcard.contact && bcard.contact.phone) || '';
     var email = bcard.primaryEmail || (bcard.contact && bcard.contact.email) || '';

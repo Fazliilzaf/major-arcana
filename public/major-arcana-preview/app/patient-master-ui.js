@@ -3964,6 +3964,73 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function normalizeDriveDedupePath(value) {
+    return normalizeText(value)
+      .replace(/^Hair TP Clinic \d{4}\//i, '')
+      .replace(/^Bokade\//i, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function driveFileDedupeKey(file) {
+    if (!file || typeof file !== 'object') return '';
+    const driveId = normalizeText(
+      file.driveFileId || file.originalDriveFileId || file.googleDriveFileId
+    );
+    if (driveId) return `drive:${driveId}`;
+    const pathKey = normalizeDriveDedupePath(
+      file.relativePath || file.originalDrivePath || file.path || file.filePath || file.drivePath
+    );
+    if (pathKey) return `path:${pathKey}`;
+    const name = normalizeDriveDedupePath(file.fileName || file.originalFileName || file.name);
+    const ts = normalizeText(file.modifiedTime || file.documentDate || file.indexedAt);
+    return name ? `name:${name}:${ts}` : '';
+  }
+
+  function dedupeDriveFiles(files) {
+    const seen = new Set();
+    const rows = [];
+    for (const file of asArray(files)) {
+      const key = driveFileDedupeKey(file);
+      if (key && seen.has(key)) continue;
+      if (key) seen.add(key);
+      rows.push(file);
+    }
+    return rows;
+  }
+
+  function isDriveImageFile(file) {
+    const mime = normalizeText(file?.mimeType || file?.contentType).toLowerCase();
+    const type = normalizeText(file?.fileType).toLowerCase();
+    const name = normalizeText(file?.fileName || file?.originalFileName || file?.name).toLowerCase();
+    return type === 'image' || mime.startsWith('image/') || /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name);
+  }
+
+  function isDriveJournalPdf(file) {
+    const mime = normalizeText(file?.mimeType || file?.contentType).toLowerCase();
+    const type = normalizeText(file?.fileType).toLowerCase();
+    const name = normalizeText(file?.fileName || file?.originalFileName || file?.name).toLowerCase();
+    return type === 'journal_pdf' || mime === 'application/pdf' || /\.pdf$/.test(name);
+  }
+
+  function withUniqueDriveFileSummary(card, driveFiles) {
+    if (!card || !asArray(driveFiles).length) return card;
+    const totalFiles = driveFiles.length;
+    const images = driveFiles.filter(isDriveImageFile).length;
+    const journalPdfs = driveFiles.filter(isDriveJournalPdf).length;
+    return {
+      ...card,
+      fileSummary: {
+        ...(card.fileSummary || {}),
+        totalFiles,
+        journalPdfs,
+        images,
+        deduped: true,
+      },
+    };
+  }
+
   let patientListVirtualHandle = null;
 
   const V9_LIST_ROW_HEIGHT_PX = 78;
@@ -8216,8 +8283,15 @@
     }
     runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
-    const { card: rawCard, patient, journalEntries, driveFiles, occasionTimeline } = detail;
-    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries);
+    const { card: rawCard, patient, journalEntries, occasionTimeline } = detail;
+    const uniqueDriveFiles = dedupeDriveFiles(detail.driveFiles);
+    if (uniqueDriveFiles.length !== asArray(detail.driveFiles).length) {
+      runtime.detail.driveFiles = uniqueDriveFiles;
+    }
+    const card = withUniqueDriveFileSummary(
+      mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries),
+      uniqueDriveFiles
+    );
 
     if (isV9CustomersEnabled()) {
       const tab = normalizeDetailTab(runtime.detailTab);
@@ -8228,7 +8302,7 @@
           journalEntries,
           dossierBundle,
           occasionTimeline,
-          driveFiles
+          uniqueDriveFiles
         );
         bindJournalPhotoOpenLinks(els.patientRail);
         void hydrateJournalPhotoElements(els.patientRail);
@@ -8241,7 +8315,7 @@
         card,
         journalEntries,
         occasionTimeline,
-        driveFiles,
+        uniqueDriveFiles,
         patient,
         tab
       );
@@ -8249,7 +8323,7 @@
       bindV9MockupDossierHandlers(rail, {
         card,
         journalEntries,
-        driveFiles,
+        driveFiles: uniqueDriveFiles,
         patient,
         occasionTimeline,
       });
@@ -8277,7 +8351,7 @@
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
     const anteckningarActive = tab === 'anteckningar';
-    const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
+    const fileCount = Number(card.fileSummary?.totalFiles || uniqueDriveFiles?.length || 0);
 
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
@@ -8303,7 +8377,7 @@
             </dl>
           </article>
           ${renderPipedriveSection(patient)}
-          ${renderMaterialPreview(driveFiles, card)}
+          ${renderMaterialPreview(uniqueDriveFiles, card)}
           ${
             patient?.cliento?.createdAt
               ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
@@ -8330,7 +8404,7 @@
         }
 
         <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
-          ${renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline)}
+          ${renderUnifiedTimelinePanel(journalEntries, uniqueDriveFiles, occasionTimeline)}
         </div>
 
         <div class="patient-master-tab-panel"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal">
@@ -8338,7 +8412,7 @@
         </div>
 
         <div class="patient-master-tab-panel"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer">
-          ${renderDriveFiles(driveFiles, card)}
+          ${renderDriveFiles(uniqueDriveFiles, card)}
         </div>
 
         <div class="patient-master-tab-panel"${anteckningarActive ? '' : ' hidden'} data-patient-tab-panel="anteckningar">
