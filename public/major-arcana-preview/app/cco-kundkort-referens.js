@@ -370,19 +370,22 @@
     function gkPhotoFromFile(f) {
       var id = f && f.id ? String(f.id) : '';
       var labelSource = ((f && f.relativePath) || '') + ' ' + ((f && (f.fileName || f.originalFileName || f.name)) || '');
+      var url = (f && f.viewUrl) || (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#');
       return {
         zone: gkZoneOf(labelSource),
         date: gkDateOfFile(f),
-        thumb: id ? '/api/v1/cco/assets/' + encodeURIComponent(id) + '/thumbnail' : '',
-        url: (f && f.viewUrl) || (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#')
+        thumb: (f && (f.thumbnailUrl || f.thumbnailLink)) || (id ? '/api/v1/cco/assets/' + encodeURIComponent(id) + '/thumbnail' : ''),
+        url: url
       };
     }
     function gkPhotoGrid(photos, limit, cls) {
       var list = A2(photos).slice(0, limit || 8);
       if (!list.length) return '';
       return '<div class="gk-foto-grid' + (cls ? ' ' + esc(cls) : '') + '">' + list.map(function (p) {
+        var src = p.thumb || p.url;
+        var fallback = p.url || '';
         return '<a class="gk-foto" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer" title="Öppna bild">' +
-          (p.thumb ? '<img src="' + esc(p.thumb) + '" loading="lazy" onerror="this.style.display=\'none\'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />' : '') +
+          (src ? '<img src="' + esc(src) + '" data-full="' + esc(fallback) + '" loading="lazy" onerror="if(this.dataset.full&&this.src!==this.dataset.full){this.src=this.dataset.full}else{this.style.display=\'none\'}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />' : '') +
           '<span style="position:relative;z-index:1">' + esc(p.zone) + ' · ' + esc(gkFmtDate(p.date)) + '</span></a>';
       }).join('') + '</div>';
     }
@@ -775,8 +778,8 @@
           '<div class="gk-visit-head"><div><b>' + esc(title) + '</b>' +
           (meta ? '<span class="gk-sub">' + esc(meta) + '</span>' : '') +
           '</div><span class="gk-hl gk-tag gk-tag-info">Besök</span></div>' +
-          (journalRows ? '<div class="gk-visit-journal">' + journalRows + '</div>' : '') +
-          (photoGrid ? photoGrid : '') +
+          (journalRows ? '<div class="gk-visit-journal"><div class="gk-visit-label">Journalföring</div>' + journalRows + '</div>' : '') +
+          (photoGrid ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder från besöket</div>' + photoGrid + '</div>' : '') +
           (n ? '<div class="gk-visit-actions">' +
             '<button type="button" class="gk-btn" data-gk-jump="foto">Välj i Foto</button>' +
             '<button type="button" class="gk-btn" data-gk-jump="ta bild">Ta/rita bild</button>' +

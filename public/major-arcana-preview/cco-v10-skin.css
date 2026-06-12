@@ -3427,12 +3427,30 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 #kk-storvy .gk-visit-journal {
   margin-bottom: 8px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.44);
+  background: rgba(255, 255, 255, 0.72);
+  border-left: 3px solid rgba(74, 130, 104, 0.65);
 }
 
 #kk-storvy .gk-visit-journal .gk-rad {
   min-height: 28px;
   padding: 6px 8px;
+}
+
+#kk-storvy .gk-visit-label {
+  padding: 7px 8px 0;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8174;
+}
+
+#kk-storvy .gk-visit-photos {
+  margin-top: 8px;
+}
+
+#kk-storvy .gk-visit-photos .gk-visit-label {
+  padding: 0 0 6px;
 }
 
 #kk-storvy .gk-foto-grid--journal {
