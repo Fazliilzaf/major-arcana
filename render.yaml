@@ -28,14 +28,14 @@ services:
     startCommand: NODE_OPTIONS='--max-old-space-size=6144' npm start
     disk:
       # OBS: namn + storlek MASTE matcha live-disken (dsk-d8b3i3tckfvc73clgetg).
-      # Live-disken heter "disk" och ar 40 GB (hojd 2026-06-09). Mismatch har
+      # Live-disken heter "disk" och ar 50 GB (hojd 2026-06-12). Mismatch har
       # (10 GB i yaml mot 20+ GB live) gjorde att VARJE blueprint-sync failade
       # med "cannot decrease disk size" fran ~06-06 till 06-10 - vilket i sin tur
       # gjorde att envVars-andringar i denna fil aldrig nadde tjansten.
       # Vid diskhojning i Dashboard: uppdatera sizeGB har OMEDELBART.
       name: disk
       mountPath: /var/data
-      sizeGB: 40
+      sizeGB: 50
     envVars:
       - key: ARCANA_STATE_ROOT
         value: /var/data
