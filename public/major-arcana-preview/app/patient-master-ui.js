@@ -6449,6 +6449,7 @@
     await Promise.all(Array.from({ length: concurrency }, () => worker()));
   }
 
+  // UAT 2026-06-12: hydrate visit media added by the large customer-card shell.
   let gkMediaHydrationFrame = 0;
   let gkMediaObserver = null;
 
