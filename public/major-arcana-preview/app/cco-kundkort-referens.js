@@ -1858,15 +1858,28 @@
     }
     var headers = token && token !== '__preview_local__' ? { Authorization: 'Bearer ' + token } : {};
     if (!window.__gkPhotoObjectUrls) window.__gkPhotoObjectUrls = [];
-    [].forEach.call(scope.querySelectorAll('img[data-gk-img-src], img[data-gk-img-full]'), function (img) {
+    var queue = [].slice.call(scope.querySelectorAll('img[data-gk-img-src], img[data-gk-img-full]')).filter(function (img) {
+      return img.dataset.gkLoaded !== 'true' && img.dataset.gkLoading !== 'true';
+    });
+    var cursor = 0;
+    var active = 0;
+    function pump() {
+      while (active < 3 && cursor < queue.length) hydrateOne(queue[cursor++]);
+    }
+    function done() {
+      active = Math.max(0, active - 1);
+      pump();
+    }
+    function hydrateOne(img) {
       if (img.dataset.gkLoaded === 'true' || img.dataset.gkLoading === 'true') return;
       var primary = img.getAttribute('data-gk-img-src') || '';
       var fallback = img.getAttribute('data-gk-img-full') || '';
       var urls = [];
-      if (primary && primary !== '#') urls.push(primary);
-      if (fallback && fallback !== '#' && fallback !== primary) urls.push(fallback);
+      if (fallback && fallback !== '#') urls.push(fallback);
+      if (primary && primary !== '#' && primary !== fallback) urls.push(primary);
       if (!urls.length) return;
       img.dataset.gkLoading = 'true';
+      active += 1;
       var link = img.closest('a.gk-foto');
       function tryNext(i) {
         if (i >= urls.length) {
@@ -1878,6 +1891,7 @@
             err.textContent = 'Kunde inte visa bild';
             link.appendChild(err);
           }
+          done();
           return;
         }
         fetch(new URL(urls[i], window.location.origin), {
@@ -1896,6 +1910,7 @@
               img.dataset.gkLoading = 'false';
               img.classList.remove('is-broken');
               if (link) link.href = obj;
+              done();
             });
           })
           .catch(function () {
@@ -1903,7 +1918,8 @@
           });
       }
       tryNext(0);
-    });
+    }
+    pump();
   };
 
   window.__renderReferensKundkort = function (card, bundle, journalEntries, extras) {
