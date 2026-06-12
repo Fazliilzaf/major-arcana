@@ -103,7 +103,20 @@
     var mime = driveDedupeText(file && (file.mimeType || file.contentType));
     var type = driveDedupeText(file && file.fileType);
     var name = driveDedupeText(file && (file.fileName || file.originalFileName || file.name));
-    return type === 'image' || mime.indexOf('image/') === 0 || /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name);
+    return (
+      type === 'image' ||
+      mime.indexOf('image/') === 0 ||
+      /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name)
+    );
+  }
+  function isReferensVideoFile(file) {
+    var mime = driveDedupeText(file && (file.mimeType || file.contentType));
+    var type = driveDedupeText(file && file.fileType);
+    var name = driveDedupeText(file && (file.fileName || file.originalFileName || file.name));
+    return type === 'video' || mime.indexOf('video/') === 0 || /\.(mp4|mov|m4v|webm)$/i.test(name);
+  }
+  function isReferensMediaFile(file) {
+    return isReferensImageFile(file) || isReferensVideoFile(file);
   }
   function isReferensJournalPdf(file) {
     var mime = driveDedupeText(file && (file.mimeType || file.contentType));
@@ -230,7 +243,12 @@
       var mime = String(f.mimeType || f.contentType || '').toLowerCase();
       var rawName = f.originalFileName || f.fileName || f.name || '';
       var name = String(rawName).toLowerCase();
-      if (!isReferensImageFile(f) && !mime.startsWith('image/') && !/\.(jpe?g|heif|png|heic|webp|gif)$/i.test(name)) return;
+      if (
+        !isReferensImageFile(f) &&
+        !mime.startsWith('image/') &&
+        !/\.(jpe?g|heif|png|heic|webp|gif)$/i.test(name)
+      )
+        return;
       tiles.push({
         type: f.category || f.photoType || 'Foto',
         name: rawName || 'Foto',
@@ -344,7 +362,8 @@
     var name = ctx.name || 'Kund';
     ctx.driveFiles = dedupeDriveFiles(ctx.driveFiles);
     var imgs = A2(ctx.driveFiles).filter(isReferensImageFile);
-    var MND = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+    var visitMedia = A2(ctx.driveFiles).filter(isReferensMediaFile);
+    var MND = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
     var nowY = new Date().getFullYear();
     function gkZoneOf(s) {
       var l = String(s || '').toLowerCase();
@@ -363,31 +382,90 @@
     }
     function gkFmtDate(d) {
       if (!d) return 'odaterat';
-      var p = String(d).split('-'), y = +p[0], mo = +p[1], da = +p[2];
+      var p = String(d).split('-'),
+        y = +p[0],
+        mo = +p[1],
+        da = +p[2];
       if (!y || !mo || !da) return d;
       return da + ' ' + (MND[mo - 1] || '') + (y === nowY ? '' : ' ' + y);
     }
-    function gkPhotoFromFile(f) {
+    function gkMediaFromFile(f) {
       var id = f && f.id ? String(f.id) : '';
-      var labelSource = ((f && f.relativePath) || '') + ' ' + ((f && (f.fileName || f.originalFileName || f.name)) || '');
-      var url = (f && f.viewUrl) || (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#');
+      var labelSource =
+        ((f && f.relativePath) || '') +
+        ' ' +
+        ((f && (f.fileName || f.originalFileName || f.name)) || '');
+      var url =
+        (f && f.viewUrl) ||
+        (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#');
+      var isVideo = isReferensVideoFile(f);
       return {
+        kind: isVideo ? 'video' : 'image',
         zone: gkZoneOf(labelSource),
         date: gkDateOfFile(f),
-        thumb: (f && (f.thumbnailUrl || f.thumbnailLink)) || (id ? '/api/v1/cco/assets/' + encodeURIComponent(id) + '/thumbnail' : ''),
-        url: url
+        thumb: isVideo
+          ? ''
+          : (f && (f.thumbnailUrl || f.thumbnailLink)) ||
+            (id ? '/api/v1/cco/assets/' + encodeURIComponent(id) + '/thumbnail' : ''),
+        url: url,
       };
     }
     function gkPhotoGrid(photos, limit, cls) {
-      var list = A2(photos).slice(0, limit || 8);
+      var list = limit ? A2(photos).slice(0, limit) : A2(photos);
       if (!list.length) return '';
-      return '<div class="gk-foto-grid' + (cls ? ' ' + esc(cls) : '') + '">' + list.map(function (p) {
-        var src = p.thumb || p.url;
-        var fallback = p.url || '';
-        return '<a class="gk-foto" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer" title="Öppna bild">' +
-          (src ? '<img data-gk-img-src="' + esc(src) + '" data-gk-img-full="' + esc(fallback) + '" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />' : '') +
-          '<span style="position:relative;z-index:1">' + esc(p.zone) + ' · ' + esc(gkFmtDate(p.date)) + '</span></a>';
-      }).join('') + '</div>';
+      return (
+        '<div class="gk-foto-grid' +
+        (cls ? ' ' + esc(cls) : '') +
+        '">' +
+        list
+          .map(function (p) {
+            var src = p.thumb || p.url;
+            var fallback = p.url || '';
+            var media =
+              p.kind === 'video'
+                ? '<video data-gk-img-src="' +
+                  esc(fallback) +
+                  '" data-gk-img-full="' +
+                  esc(fallback) +
+                  '" preload="metadata" muted playsinline controls></video>'
+                : src
+                  ? '<img data-gk-img-src="' +
+                    esc(src) +
+                    '" data-gk-img-full="' +
+                    esc(fallback) +
+                    '" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />'
+                  : '';
+            return (
+              '<a class="gk-foto' +
+              (p.kind === 'video' ? ' gk-foto--video' : '') +
+              '" href="' +
+              esc(p.url) +
+              '" target="_blank" rel="noopener noreferrer" title="' +
+              (p.kind === 'video' ? 'Öppna film' : 'Öppna bild') +
+              '">' +
+              media +
+              '<span style="position:relative;z-index:1">' +
+              (p.kind === 'video' ? 'Film' : esc(p.zone)) +
+              ' · ' +
+              esc(gkFmtDate(p.date)) +
+              '</span></a>'
+            );
+          })
+          .join('') +
+        '</div>'
+      );
+    }
+    function gkMediaCountLabel(items) {
+      var photos = A2(items).filter(function (p) {
+        return p.kind !== 'video';
+      }).length;
+      var videos = A2(items).filter(function (p) {
+        return p.kind === 'video';
+      }).length;
+      var parts = [];
+      if (photos) parts.push(photos + (photos === 1 ? ' bild' : ' bilder'));
+      if (videos) parts.push(videos + (videos === 1 ? ' film' : ' filmer'));
+      return parts.join(' · ');
     }
 
     // Header
@@ -499,15 +577,30 @@
 
     // ── Resa-status härledd ur gateSignals (read-only) ──
     var gkSignals = A2(ctx.gateSignals);
-    function gkSigId(s) { return String((s && (s.ruleId || s.id)) || ''); }
-    var readyForOp = gkSignals.some(function (s) { return /ready_for_treatment/i.test(gkSigId(s)); });
-    var gkBlockers = gkSignals.filter(function (s) { return typeof isBlockerSignal === 'function' && isBlockerSignal(s); });
-    var coolingActive = gkSignals.some(function (s) { return /cooling_off_active/i.test(gkSigId(s)); });
-    var coolingPassed = gkSignals.some(function (s) { return /cooling_off_passed/i.test(gkSigId(s)); });
-    var photoReview = gkSignals.some(function (s) { return /has_photo_review/i.test(gkSigId(s)); });
+    function gkSigId(s) {
+      return String((s && (s.ruleId || s.id)) || '');
+    }
+    var readyForOp = gkSignals.some(function (s) {
+      return /ready_for_treatment/i.test(gkSigId(s));
+    });
+    var gkBlockers = gkSignals.filter(function (s) {
+      return typeof isBlockerSignal === 'function' && isBlockerSignal(s);
+    });
+    var coolingActive = gkSignals.some(function (s) {
+      return /cooling_off_active/i.test(gkSigId(s));
+    });
+    var coolingPassed = gkSignals.some(function (s) {
+      return /cooling_off_passed/i.test(gkSigId(s));
+    });
+    var photoReview = gkSignals.some(function (s) {
+      return /has_photo_review/i.test(gkSigId(s));
+    });
     var coolEnd = null;
-    A2(ctx.offers).forEach(function (o) { if (o && o.coolingOffEndsAt) coolEnd = o.coolingOffEndsAt; });
-    if (!coolEnd && ctx.commercialCase && ctx.commercialCase.coolingOffEndsAt) coolEnd = ctx.commercialCase.coolingOffEndsAt;
+    A2(ctx.offers).forEach(function (o) {
+      if (o && o.coolingOffEndsAt) coolEnd = o.coolingOffEndsAt;
+    });
+    if (!coolEnd && ctx.commercialCase && ctx.commercialCase.coolingOffEndsAt)
+      coolEnd = ctx.commercialCase.coolingOffEndsAt;
     function gkCoolDays() {
       if (!coolEnd) return null;
       var d = Math.ceil((new Date(coolEnd).getTime() - Date.now()) / 86400000);
@@ -519,13 +612,31 @@
       var stepsArr = A2(ctx.steps);
       var hasBooking = A2(ctx.up).length > 0 || A2(ctx.hist).length > 0;
       function gkGateAt(n) {
-        if (n === 3) return gkSignals.some(function (s) { return /missing_health_declaration/i.test(gkSigId(s)); });
-        if (n === 4) return gkSignals.some(function (s) { return /missing_journal/i.test(gkSigId(s)); });
-        if (n === 5) return gkSignals.some(function (s) { return /missing_treatment_plan/i.test(gkSigId(s)); });
+        if (n === 3)
+          return gkSignals.some(function (s) {
+            return /missing_health_declaration/i.test(gkSigId(s));
+          });
+        if (n === 4)
+          return gkSignals.some(function (s) {
+            return /missing_journal/i.test(gkSigId(s));
+          });
+        if (n === 5)
+          return gkSignals.some(function (s) {
+            return /missing_treatment_plan/i.test(gkSigId(s));
+          });
         if (n === 6) return coolingActive;
-        if (n === 7) return gkSignals.some(function (s) { return /missing_agreement_consent_bundle/i.test(gkSigId(s)); });
-        if (n === 8) return gkSignals.some(function (s) { return /missing_operation_day_insurance/i.test(gkSigId(s)); });
-        if (n === 9) return gkSignals.some(function (s) { return /missing_photo_consent/i.test(gkSigId(s)); });
+        if (n === 7)
+          return gkSignals.some(function (s) {
+            return /missing_agreement_consent_bundle/i.test(gkSigId(s));
+          });
+        if (n === 8)
+          return gkSignals.some(function (s) {
+            return /missing_operation_day_insurance/i.test(gkSigId(s));
+          });
+        if (n === 9)
+          return gkSignals.some(function (s) {
+            return /missing_photo_consent/i.test(gkSigId(s));
+          });
         return false;
       }
       function gkStepUnmet(n) {
@@ -536,7 +647,12 @@
       var gkCanDerive = gkSignals.length > 0 || hasBooking;
       var gkActive = 0;
       if (gkCanDerive) {
-        for (var gkN = 1; gkN <= stepsArr.length; gkN++) { if (gkStepUnmet(gkN)) { gkActive = gkN; break; } }
+        for (var gkN = 1; gkN <= stepsArr.length; gkN++) {
+          if (gkStepUnmet(gkN)) {
+            gkActive = gkN;
+            break;
+          }
+        }
         if (readyForOp) gkActive = 0;
       }
       function gkStepState(idx, orig) {
@@ -548,22 +664,28 @@
         return 'kommande';
       }
       var gkDoneN = 0;
-      stepsArr.forEach(function (s, i) { if (gkStepState(i, s.state) === 'done') gkDoneN++; });
+      stepsArr.forEach(function (s, i) {
+        if (gkStepState(i, s.state) === 'done') gkDoneN++;
+      });
       var pct = Math.round((gkDoneN / (ctx.total || stepsArr.length)) * 100);
       var curStep = gkCanDerive ? gkActive || stepsArr.length : ctx.cur;
       var stegRows = stepsArr
         .map(function (s, i) {
           var st = gkStepState(i, s.state);
-          var cls =
-            st === 'done' ? 'gk-steg-klar' : st === 'active' ? 'gk-steg-nu' : 'gk-steg-sen';
-          var mk = st === 'done' ? '✓' : st === 'active' ? s.id || i + 1 || '!' : s.id || i + 1 || '';
+          var cls = st === 'done' ? 'gk-steg-klar' : st === 'active' ? 'gk-steg-nu' : 'gk-steg-sen';
+          var mk =
+            st === 'done' ? '✓' : st === 'active' ? s.id || i + 1 || '!' : s.id || i + 1 || '';
           var extra = st === 'active' ? ' <span class="gk-hl gk-tag gk-tag-warn">Pågår</span>' : '';
           // Steg 6: betänketid-status ur cooling-signaler
           if (/bet[äa]nketid/i.test(String(s.label || ''))) {
-            if (coolingPassed) extra += ' <span class="gk-hl gk-tag gk-tag-ok">passerad — kan signera</span>';
+            if (coolingPassed)
+              extra += ' <span class="gk-hl gk-tag gk-tag-ok">passerad — kan signera</span>';
             else if (coolingActive) {
               var cd = gkCoolDays();
-              extra += ' <span class="gk-hl gk-tag gk-tag-warn">pågår' + (cd != null && cd > 0 ? ' · ' + cd + ' d kvar' : '') + '</span>';
+              extra +=
+                ' <span class="gk-hl gk-tag gk-tag-warn">pågår' +
+                (cd != null && cd > 0 ? ' · ' + cd + ' d kvar' : '') +
+                '</span>';
             }
           }
           return (
@@ -581,13 +703,19 @@
       // Redo-för-operation-rad (composite)
       var readyRow = '';
       if (readyForOp) {
-        readyRow = '<div class="gk-redo gk-redo-ok"><span class="gk-redo-ic">✓</span><b>Redo för operation</b></div>';
+        readyRow =
+          '<div class="gk-redo gk-redo-ok"><span class="gk-redo-ic">✓</span><b>Redo för operation</b></div>';
       } else if (gkBlockers.length) {
         var miss = gkBlockers
-          .map(function (s) { return (typeof signalSub === 'function' ? signalSub(s) : '') || s.what || s.label || ''; })
+          .map(function (s) {
+            return (typeof signalSub === 'function' ? signalSub(s) : '') || s.what || s.label || '';
+          })
           .filter(Boolean);
-        readyRow = '<div class="gk-redo gk-redo-block"><span class="gk-redo-ic">!</span><b>Inte redo för operation</b>' +
-          (miss.length ? '<div class="gk-sub gk-redo-miss">Fattas: ' + esc(miss.join(' · ')) + '</div>' : '') +
+        readyRow =
+          '<div class="gk-redo gk-redo-block"><span class="gk-redo-ic">!</span><b>Inte redo för operation</b>' +
+          (miss.length
+            ? '<div class="gk-sub gk-redo-miss">Fattas: ' + esc(miss.join(' · ')) + '</div>'
+            : '') +
           '</div>';
       }
       body += sek(
@@ -731,21 +859,21 @@
 
     // Journal — gruppera journal + foton per besök så varje tillfälle blir begripligt.
     function gkJournalRow(it) {
-        var badge =
-          it.st === 'done'
-            ? '<span class="gk-hl gk-tag gk-tag-ok">Signerad' +
-              (it.by ? ' · ' + esc(it.by) : '') +
-              '</span>'
-            : '';
-        return (
-          '<div class="gk-rad"><b>' +
-          esc(it.serie || it.title || 'Journal') +
-          '</b> <span class="gk-sub">' +
-          esc(it.date || '') +
-          '</span>' +
-          badge +
-          '</div>'
-        );
+      var badge =
+        it.st === 'done'
+          ? '<span class="gk-hl gk-tag gk-tag-ok">Signerad' +
+            (it.by ? ' · ' + esc(it.by) : '') +
+            '</span>'
+          : '';
+      return (
+        '<div class="gk-rad"><b>' +
+        esc(it.serie || it.title || 'Journal') +
+        '</b> <span class="gk-sub">' +
+        esc(it.date || '') +
+        '</span>' +
+        badge +
+        '</div>'
+      );
     }
     var visitGroups = {};
     function ensureVisitGroup(d) {
@@ -756,8 +884,8 @@
     A2(ctx.jItems).forEach(function (it) {
       ensureVisitGroup(it.date || 'odaterat').journals.push(it);
     });
-    imgs.forEach(function (f) {
-      var p = gkPhotoFromFile(f);
+    visitMedia.forEach(function (f) {
+      var p = gkMediaFromFile(f);
       ensureVisitGroup(p.date || 'odaterat').photos.push(p);
     });
     var visitCards = Object.keys(visitGroups)
@@ -769,21 +897,45 @@
         var jn = group.journals.length;
         var title = d !== 'odaterat' ? gkFmtDate(d) : 'Okänt tillfälle';
         var journalRows = group.journals.map(gkJournalRow).join('');
-        var photoGrid = gkPhotoGrid(group.photos, 6, 'gk-foto-grid--journal');
-        var meta = (jn ? jn + (jn === 1 ? ' journal' : ' journaler') : '') +
-          (jn && n ? ' · ' : '') +
-          (n ? n + (n === 1 ? ' bild' : ' bilder') : '');
+        var collapsed = group.photos.length > 6;
+        var photoGrid = gkPhotoGrid(
+          group.photos,
+          0,
+          'gk-foto-grid--journal' + (collapsed ? ' is-collapsed' : '')
+        );
+        var mediaLabel = gkMediaCountLabel(group.photos);
+        var meta =
+          (jn ? jn + (jn === 1 ? ' journal' : ' journaler') : '') +
+          (jn && mediaLabel ? ' · ' : '') +
+          mediaLabel;
         return (
           '<div class="gk-visit-card">' +
-          '<div class="gk-visit-head"><div><b>' + esc(title) + '</b>' +
+          '<div class="gk-visit-head"><div><b>' +
+          esc(title) +
+          '</b>' +
           (meta ? '<span class="gk-sub">' + esc(meta) + '</span>' : '') +
           '</div><span class="gk-hl gk-tag gk-tag-info">Besök</span></div>' +
-          (journalRows ? '<div class="gk-visit-journal"><div class="gk-visit-label">Journalföring</div>' + journalRows + '</div>' : '') +
-          (photoGrid ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder från besöket</div>' + photoGrid + '</div>' : '') +
-          (n ? '<div class="gk-visit-actions">' +
-            '<button type="button" class="gk-btn" data-gk-jump="foto">Välj i Foto</button>' +
-            '<button type="button" class="gk-btn" data-gk-jump="ta bild">Ta/rita bild</button>' +
-          '</div>' : '') +
+          (journalRows
+            ? '<div class="gk-visit-journal"><div class="gk-visit-label">Journalföring</div>' +
+              journalRows +
+              '</div>'
+            : '') +
+          (photoGrid
+            ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder/film från besöket</div>' +
+              photoGrid +
+              (collapsed
+                ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
+                  group.photos.length +
+                  '</button>'
+                : '') +
+              '</div>'
+            : '') +
+          (n
+            ? '<div class="gk-visit-actions">' +
+              '<button type="button" class="gk-btn" data-gk-jump="foto">Välj i Foto</button>' +
+              '<button type="button" class="gk-btn" data-gk-jump="ta bild">Ta/rita bild</button>' +
+              '</div>'
+            : '') +
           '</div>'
         );
       })
@@ -791,7 +943,10 @@
     body += sek(
       'Journal',
       '<span class="gk-pill gk-tag-info">' +
-        (A2(ctx.jItems).length + Object.keys(visitGroups).filter(function (d) { return visitGroups[d].photos.length; }).length) +
+        (A2(ctx.jItems).length +
+          Object.keys(visitGroups).filter(function (d) {
+            return visitGroups[d].photos.length;
+          }).length) +
         ' anteckningar</span>',
       visitCards,
       'Inga journaler ännu.'
@@ -839,12 +994,20 @@
       var when = isFinite(lastTs) ? rel(lastTs) : '';
       var hr = isFinite(lastTs) ? new Date(lastTs).getHours() : null;
       var timeHint =
-        hr != null ? ' Föreslå påminnelse ~' + (hr < 10 ? '0' + hr : hr) + ':00 (då hen öppnar).' : '';
+        hr != null
+          ? ' Föreslå påminnelse ~' + (hr < 10 ? '0' + hr : hr) + ':00 (då hen öppnar).'
+          : '';
       var tone, lead, sub;
       if (openCount >= 2 && hSince != null && hSince < 48) {
         tone = 'hot';
         lead = '🔥 Het lead';
-        sub = 'Öppnad ' + openCount + ' ggr, senast ' + when + ' — tittar aktivt men har inte svarat.' + timeHint;
+        sub =
+          'Öppnad ' +
+          openCount +
+          ' ggr, senast ' +
+          when +
+          ' — tittar aktivt men har inte svarat.' +
+          timeHint;
       } else if (hSince != null && hSince > 24 * 10) {
         tone = 'cold';
         lead = '🧊 Går kall';
@@ -852,7 +1015,11 @@
       } else if (openCount >= 1) {
         tone = 'warm';
         lead = 'Öppnad ' + openCount + ' ' + (openCount === 1 ? 'gång' : 'ggr');
-        sub = 'Inget svar än' + (when ? ' (senast ' + when + ')' : '') + '. Påminnelse föreslås.' + timeHint;
+        sub =
+          'Inget svar än' +
+          (when ? ' (senast ' + when + ')' : '') +
+          '. Påminnelse föreslås.' +
+          timeHint;
       } else {
         tone = 'info';
         lead = 'Skickad — ej öppnad än';
@@ -880,7 +1047,10 @@
       var hasPending =
         (pendingOffer || cc.quotedAmount) && !closedRe.test(String(cc.paymentStatus || ''));
       if (!hasPending) return '';
-      var fnamn = String(ctx.name || '').trim().split(' ')[0] || 'där';
+      var fnamn =
+        String(ctx.name || '')
+          .trim()
+          .split(' ')[0] || 'där';
       var behandling = pendingOffer
         ? pendingOffer.title || pendingOffer.type || 'behandlingsplan'
         : 'behandlingsplan';
@@ -964,7 +1134,9 @@
       var cc = ctx.commercialCase || {};
       var ps = String(cc.paymentStatus || '').toLowerCase();
       var payHist = A2(ctx.bundle && ctx.bundle.paymentHistory);
-      function num(s) { return Number(String(s == null ? '' : s).replace(/[^\d]/g, '')) || 0; }
+      function num(s) {
+        return Number(String(s == null ? '' : s).replace(/[^\d]/g, '')) || 0;
+      }
       function fmtKr(v) {
         if (v == null || v === '') return '';
         var s = String(v);
@@ -993,35 +1165,78 @@
         return { tone: 'warn', text: 'Obetald' };
       }
       // Status-badge
-      var hasOverdue = payHist.some(function (p) { return /overdue|förfall|forfall/i.test(p.status || ''); });
-      var tone = '', label = '';
-      if (hasOverdue) { tone = 'bad'; label = 'FÖRFALLEN'; }
-      else if (ps === 'blocked') { tone = 'bad'; label = 'BLOCKERAD'; }
-      else if (/^paid$|betald|ready_for_booking/.test(ps)) { tone = 'ok'; label = 'BETALD'; }
-      else if (/partial/.test(ps)) { tone = 'warn'; label = 'DELBETALD'; }
-      else if (/pending|deposit|väntar|obetal/.test(ps)) { tone = 'warn'; label = 'OBETALT'; }
-      else if (cc.quotedAmount && !payHist.some(function (p) { return /paid|betald/i.test(p.status || ''); })) { tone = 'warn'; label = 'OBETALT'; }
-      var badge = label ? '<span class="gk-eko-badge gk-eko-badge-' + tone + '">' + label + '</span>' : '';
+      var hasOverdue = payHist.some(function (p) {
+        return /overdue|förfall|forfall/i.test(p.status || '');
+      });
+      var tone = '',
+        label = '';
+      if (hasOverdue) {
+        tone = 'bad';
+        label = 'FÖRFALLEN';
+      } else if (ps === 'blocked') {
+        tone = 'bad';
+        label = 'BLOCKERAD';
+      } else if (/^paid$|betald|ready_for_booking/.test(ps)) {
+        tone = 'ok';
+        label = 'BETALD';
+      } else if (/partial/.test(ps)) {
+        tone = 'warn';
+        label = 'DELBETALD';
+      } else if (/pending|deposit|väntar|obetal/.test(ps)) {
+        tone = 'warn';
+        label = 'OBETALT';
+      } else if (
+        cc.quotedAmount &&
+        !payHist.some(function (p) {
+          return /paid|betald/i.test(p.status || '');
+        })
+      ) {
+        tone = 'warn';
+        label = 'OBETALT';
+      }
+      var badge = label
+        ? '<span class="gk-eko-badge gk-eko-badge-' + tone + '">' + label + '</span>'
+        : '';
       // Öppen faktura
-      var inv = payHist.filter(function (p) {
-        return (/invoice/i.test(p.method || '') || /fortnox/i.test(p.source || '')) &&
-          /overdue|pending|partial/i.test(p.status || '');
-      }).sort(function (a, b) { return String(b.dateIso || '').localeCompare(String(a.dateIso || '')); })[0];
+      var inv = payHist
+        .filter(function (p) {
+          return (
+            (/invoice/i.test(p.method || '') || /fortnox/i.test(p.source || '')) &&
+            /overdue|pending|partial/i.test(p.status || '')
+          );
+        })
+        .sort(function (a, b) {
+          return String(b.dateIso || '').localeCompare(String(a.dateIso || ''));
+        })[0];
       var rows = '';
       if (inv) {
         var sig = dueSignal(inv);
-        rows += '<div class="gk-rad gk-eko-inv"><b>Faktura' + (inv.ref ? ' F-' + esc(inv.ref) : '') + '</b>' +
-          '<span class="gk-hl"><b>' + esc(inv.amountLabel || '') + '</b></span>' +
-          (sig ? '<span class="gk-eko-sig gk-eko-sig-' + sig.tone + '">' + esc(sig.text) + '</span>' : '') +
+        rows +=
+          '<div class="gk-rad gk-eko-inv"><b>Faktura' +
+          (inv.ref ? ' F-' + esc(inv.ref) : '') +
+          '</b>' +
+          '<span class="gk-hl"><b>' +
+          esc(inv.amountLabel || '') +
+          '</b></span>' +
+          (sig
+            ? '<span class="gk-eko-sig gk-eko-sig-' + sig.tone + '">' + esc(sig.text) + '</span>'
+            : '') +
           '</div>';
       } else if (cc.quotedAmount) {
-        rows += '<div class="gk-rad gk-eko-inv"><span>Offererat</span><span class="gk-hl"><b>' + esc(fmtKr(cc.quotedAmount)) + '</b></span></div>';
+        rows +=
+          '<div class="gk-rad gk-eko-inv"><span>Offererat</span><span class="gk-hl"><b>' +
+          esc(fmtKr(cc.quotedAmount)) +
+          '</b></span></div>';
       }
       if (ctx.ltv) {
-        rows += '<div class="gk-rad gk-eko-inv"><span>Livstidsvärde (LTV)</span><span class="gk-hl"><b>' + esc(fmtKr(ctx.ltv)) + '</b></span></div>';
+        rows +=
+          '<div class="gk-rad gk-eko-inv"><span>Livstidsvärde (LTV)</span><span class="gk-hl"><b>' +
+          esc(fmtKr(ctx.ltv)) +
+          '</b></span></div>';
       }
       // Betalplan 20/80 + betalt-progress
-      var qn = num(cc.quotedAmount), dn = num(cc.depositAmount);
+      var qn = num(cc.quotedAmount),
+        dn = num(cc.depositAmount);
       if (qn > 0 && dn > 0) {
         var depPct = Math.max(1, Math.min(99, Math.round((dn / qn) * 100)));
         var restPct = 100 - depPct;
@@ -1029,29 +1244,62 @@
           return s + (/paid|betald/i.test(p.status || '') ? num(p.amountLabel || p.amount) : 0);
         }, 0);
         var paidPct = Math.max(0, Math.min(100, Math.round((paidSum / qn) * 100)));
-        rows += '<div class="gk-eko-plan">' +
+        rows +=
+          '<div class="gk-eko-plan">' +
           '<div class="gk-eko-plan-top"><span>Betalplan operation</span>' +
-          '<span class="gk-eko-plan-tag">' + depPct + '% vid avtal · ' + restPct + '% operationsdag</span></div>' +
-          '<div class="gk-eko-plan-track"><div class="gk-eko-plan-fill" style="width:' + paidPct + '%"></div></div>' +
-          (paidSum > 0 ? '<div class="gk-sub gk-eko-plan-sub">' + paidSum.toLocaleString('sv-SE') + ' kr betalt av ' + qn.toLocaleString('sv-SE') + ' kr</div>' : '') +
+          '<span class="gk-eko-plan-tag">' +
+          depPct +
+          '% vid avtal · ' +
+          restPct +
+          '% operationsdag</span></div>' +
+          '<div class="gk-eko-plan-track"><div class="gk-eko-plan-fill" style="width:' +
+          paidPct +
+          '%"></div></div>' +
+          (paidSum > 0
+            ? '<div class="gk-sub gk-eko-plan-sub">' +
+              paidSum.toLocaleString('sv-SE') +
+              ' kr betalt av ' +
+              qn.toLocaleString('sv-SE') +
+              ' kr</div>'
+            : '') +
           '</div>';
       }
       // Fortnox-status (ärlig): ansluten? patient kopplad? leverantörsblocker? — fylls av __gkLoadFortnox
-      var fnxLinked = !!(ctx.bundle && ctx.bundle.paymentHistoryMeta && ctx.bundle.paymentHistoryMeta.fortnoxCustomerId);
-      rows += '<div class="gk-eko-fortnox" data-gk-fortnox="' + esc(ctx.patientId || '') + '" data-gk-fnx-linked="' + (fnxLinked ? '1' : '0') + '" hidden></div>';
+      var fnxLinked = !!(
+        ctx.bundle &&
+        ctx.bundle.paymentHistoryMeta &&
+        ctx.bundle.paymentHistoryMeta.fortnoxCustomerId
+      );
+      rows +=
+        '<div class="gk-eko-fortnox" data-gk-fortnox="' +
+        esc(ctx.patientId || '') +
+        '" data-gk-fnx-linked="' +
+        (fnxLinked ? '1' : '0') +
+        '" hidden></div>';
       // Åtgärd: betalpåminnelse-utkast (förbered → människa skickar; aldrig auto-skick/auto-pengar)
       var act = '';
       if (label === 'OBETALT' || label === 'FÖRFALLEN' || label === 'DELBETALD') {
-        var fn = String(ctx.name || '').trim().split(/\s+/)[0] || 'där';
+        var fn =
+          String(ctx.name || '')
+            .trim()
+            .split(/\s+/)[0] || 'där';
         var invRef = inv && inv.ref ? 'F-' + inv.ref : '';
         var invAmt = inv ? inv.amountLabel || '' : fmtKr(cc.quotedAmount);
-        var draft = 'Hej ' + fn + ',\n\nEn vänlig påminnelse om' + (invRef ? ' faktura ' + invRef : ' din faktura') +
-          (invAmt ? ' på ' + invAmt : '') + '.\nHör gärna av dig om du har några frågor.\n\nVänliga hälsningar';
+        var draft =
+          'Hej ' +
+          fn +
+          ',\n\nEn vänlig påminnelse om' +
+          (invRef ? ' faktura ' + invRef : ' din faktura') +
+          (invAmt ? ' på ' + invAmt : '') +
+          '.\nHör gärna av dig om du har några frågor.\n\nVänliga hälsningar';
         var draftEsc = draft.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-        act = '<div class="gk-offsuggest">' +
+        act =
+          '<div class="gk-offsuggest">' +
           '<button type="button" class="gk-btn gk-eko-remind" data-gk-offer-draft>Skicka betalpåminnelse</button>' +
           '<div class="gk-offdraft" hidden>' +
-          '<textarea class="gk-offdraft-text" rows="6">' + draftEsc + '</textarea>' +
+          '<textarea class="gk-offdraft-text" rows="6">' +
+          draftEsc +
+          '</textarea>' +
           '<div class="gk-offdraft-actions"><button type="button" class="gk-btn" data-gk-offer-copy>Kopiera</button>' +
           '<button type="button" class="gk-btn" data-gk-offer-studio>Svarstudio</button>' +
           '<span class="gk-offdraft-note gk-sub"></span></div></div></div>';
@@ -1063,18 +1311,28 @@
     // Foto — smart: zon+datum-etiketter, auto before/after-par + slider-jämförelse, saknad-vy-insikt
     var fotoBody = (function () {
       if (!imgs.length) return '';
-      var photos = imgs.map(gkPhotoFromFile);
-      photos.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+      var photos = imgs.map(gkMediaFromFile);
+      photos.sort(function (a, b) {
+        return (b.date || '').localeCompare(a.date || '');
+      });
       var grid = gkPhotoGrid(photos, 8, '');
       // Auto before/after-par: zonen med störst tidsspann (äldsta ↔ nyaste)
       var byZone = {};
-      photos.forEach(function (p) { if (p.date) (byZone[p.zone] = byZone[p.zone] || []).push(p); });
-      var pair = null, bestSpan = -1;
+      photos.forEach(function (p) {
+        if (p.date) (byZone[p.zone] = byZone[p.zone] || []).push(p);
+      });
+      var pair = null,
+        bestSpan = -1;
       Object.keys(byZone).forEach(function (z) {
-        var arr = byZone[z].slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+        var arr = byZone[z].slice().sort(function (a, b) {
+          return a.date.localeCompare(b.date);
+        });
         if (arr.length >= 2) {
           var span = new Date(arr[arr.length - 1].date) - new Date(arr[0].date);
-          if (span > bestSpan) { bestSpan = span; pair = { zone: z, before: arr[0], after: arr[arr.length - 1] }; }
+          if (span > bestSpan) {
+            bestSpan = span;
+            pair = { zone: z, before: arr[0], after: arr[arr.length - 1] };
+          }
         }
       });
       var pairHtml = '';
@@ -1084,20 +1342,34 @@
           beforeImg: pair.before.thumb || pair.before.url,
           afterImg: pair.after.thumb || pair.after.url,
           beforeLabel: gkFmtDate(pair.before.date),
-          afterLabel: gkFmtDate(pair.after.date)
+          afterLabel: gkFmtDate(pair.after.date),
         }).replace(/"/g, '&quot;');
-        pairHtml = '<div class="gk-foto-pair"><div class="gk-foto-pair-text"><b>Before/after-par föreslaget:</b> ' +
-          esc(pair.zone) + ' ' + esc(gkFmtDate(pair.before.date)) + ' ↔ ' + esc(gkFmtDate(pair.after.date)) + '</div>' +
-          '<button type="button" class="gk-btn gk-foto-compare" data-gk-compare="' + pj + '">Jämför</button></div>';
+        pairHtml =
+          '<div class="gk-foto-pair"><div class="gk-foto-pair-text"><b>Before/after-par föreslaget:</b> ' +
+          esc(pair.zone) +
+          ' ' +
+          esc(gkFmtDate(pair.before.date)) +
+          ' ↔ ' +
+          esc(gkFmtDate(pair.after.date)) +
+          '</div>' +
+          '<button type="button" class="gk-btn gk-foto-compare" data-gk-compare="' +
+          pj +
+          '">Jämför</button></div>';
       }
       // Saknad-vy-insikt: nyckelzoner utan foto
       var present = Object.keys(byZone);
-      var missing = ['Hårlinje', 'Krona'].filter(function (z) { return present.indexOf(z) < 0; });
+      var missing = ['Hårlinje', 'Krona'].filter(function (z) {
+        return present.indexOf(z) < 0;
+      });
       var insightHtml = '';
       if (missing.length) {
-        insightHtml = '<div class="gk-foto-insight"><span class="gk-foto-insight-ic">!</span> ' +
-          esc(missing.join(' & ')) + '-vy saknas för fullständig dokumentation ' +
-          '<button type="button" class="gk-foto-req" data-gk-photo-request="' + esc(missing.join(',')) + '">Begär foto</button></div>';
+        insightHtml =
+          '<div class="gk-foto-insight"><span class="gk-foto-insight-ic">!</span> ' +
+          esc(missing.join(' & ')) +
+          '-vy saknas för fullständig dokumentation ' +
+          '<button type="button" class="gk-foto-req" data-gk-photo-request="' +
+          esc(missing.join(',')) +
+          '">Begär foto</button></div>';
       }
       return grid + pairHtml + insightHtml;
     })();
@@ -1134,7 +1406,20 @@
     // AUTO — autopilot-lagret i kundresan. Sekvensen är fast (Hair TP-resan);
     // timing beräknas per patient ur bokningarna. (Senast skickad/status/kontroller = fas 2, kräver automation-motorn i backend.)
     var autoBlock = (function () {
-      var MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+      var MONTHS = [
+        'jan',
+        'feb',
+        'mar',
+        'apr',
+        'maj',
+        'jun',
+        'jul',
+        'aug',
+        'sep',
+        'okt',
+        'nov',
+        'dec',
+      ];
       function fmt(ts) {
         var d = new Date(ts);
         return d.getDate() + ' ' + MONTHS[d.getMonth()];
@@ -1213,8 +1498,18 @@
           tone: up.length ? 'ok' : 'muted',
         },
         reminder,
-        { key: 'aftercare', namn: 'Aftercare-schema efter operation', status: aft.status, tone: aft.tone },
-        { key: 'review', namn: 'Omdömes-mail efter avslutad resa', status: omd.status, tone: omd.tone },
+        {
+          key: 'aftercare',
+          namn: 'Aftercare-schema efter operation',
+          status: aft.status,
+          tone: aft.tone,
+        },
+        {
+          key: 'review',
+          namn: 'Omdömes-mail efter avslutad resa',
+          status: omd.status,
+          tone: omd.tone,
+        },
       ];
       var rows = autos
         .map(function (a) {
@@ -1296,15 +1591,18 @@
         return /missing_photo_consent|photo_consent/i.test(String((s && (s.ruleId || s.id)) || ''));
       });
       if (consentMissing) {
-        return '<div class="gk-tabild gk-tabild-block">' +
+        return (
+          '<div class="gk-tabild gk-tabild-block">' +
           '<div class="gk-rad" style="border-bottom:none"><span class="gk-tabild-status gk-tabild-bad"><span class="gk-tabild-dot"></span>Foto-samtycke saknas</span>' +
           ' <span class="gk-sub">— krävs innan foto tas</span></div>' +
           '<div class="gk-tabild-actions">' +
           '<button type="button" class="gk-btn" disabled title="Kräver foto-samtycke">📷 Ta bild</button>' +
           '<button type="button" class="gk-btn gk-btn-gold" data-gk-jump="Smart nästa steg">Begär samtycke</button>' +
-          '</div></div>';
+          '</div></div>'
+        );
       }
-      return '<div class="gk-tabild">' +
+      return (
+        '<div class="gk-tabild">' +
         '<div class="gk-rad" style="border-bottom:none"><span class="gk-tabild-status gk-tabild-ok"><span class="gk-tabild-dot"></span>Foto-samtycke finns</span>' +
         ' <span class="gk-sub">· scope: hårlinje + krona, aldrig ansikte</span></div>' +
         '<div class="gk-tabild-zones"><span class="gk-sub">Zon:</span>' +
@@ -1314,7 +1612,8 @@
         '<div class="gk-tabild-actions">' +
         '<button type="button" class="gk-btn gk-btn-gold" data-gk-proxy="[data-kk-tabild]">📷 Ta bild nu</button>' +
         '<span class="gk-sub gk-tabild-hint">Sparas direkt i journalen med etikett</span></div>' +
-        '</div>';
+        '</div>'
+      );
     })();
     body += sek('Ta bild', '', tabildBody);
 
@@ -1422,12 +1721,30 @@
         }
         return;
       }
+      var mediaToggle = e.target.closest && e.target.closest('[data-gk-toggle-visit-media]');
+      if (mediaToggle) {
+        e.preventDefault();
+        var mediaBox = mediaToggle.closest('.gk-visit-photos');
+        var mediaGrid = mediaBox && mediaBox.querySelector('.gk-foto-grid');
+        if (!mediaGrid) return;
+        var open = mediaGrid.classList.toggle('is-open');
+        mediaGrid.classList.toggle('is-collapsed', !open);
+        mediaToggle.textContent = open
+          ? 'Dölj'
+          : 'Visa alla ' + mediaGrid.querySelectorAll('.gk-foto').length;
+        if (open && window.__gkHydrateSecurePhotos) window.__gkHydrateSecurePhotos(mediaGrid);
+        return;
+      }
       // Foto: Jämför → before/after-slider
       var cmp = e.target.closest && e.target.closest('[data-gk-compare]');
       if (cmp) {
         e.preventDefault();
         var cd;
-        try { cd = JSON.parse(cmp.getAttribute('data-gk-compare')); } catch (eC) { return; }
+        try {
+          cd = JSON.parse(cmp.getAttribute('data-gk-compare'));
+        } catch (eC) {
+          return;
+        }
         if (window.__gkOpenCompare) window.__gkOpenCompare(cd);
         return;
       }
@@ -1437,7 +1754,13 @@
         e.preventDefault();
         var pidF = fsy.getAttribute('data-pid') || '';
         var tokF = '';
-        try { tokF = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim(); } catch (e5) {}
+        try {
+          tokF = (
+            window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+            window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+            ''
+          ).trim();
+        } catch (e5) {}
         if (!pidF || !tokF) return;
         fsy.disabled = true;
         fsy.textContent = 'Synkar…';
@@ -1446,20 +1769,28 @@
           headers: { Authorization: 'Bearer ' + tokF, 'Content-Type': 'application/json' },
           body: JSON.stringify({ patientId: pidF }),
         })
-          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (r) {
+            return r.ok ? r.json() : null;
+          })
           .then(function (j) {
             var box = fsy.closest('.gk-eko-fortnox');
             if (j && (j.ok || j.patient || j.customerNumber)) {
               if (box) {
                 box.className = 'gk-eko-fortnox is-ok';
-                box.innerHTML = '<span class="gk-eko-fnx-dot"></span><span class="gk-eko-fnx-txt">Fortnox kopplad (kundnr ' + (j.customerNumber || '—') + ')</span>';
+                box.innerHTML =
+                  '<span class="gk-eko-fnx-dot"></span><span class="gk-eko-fnx-txt">Fortnox kopplad (kundnr ' +
+                  (j.customerNumber || '—') +
+                  ')</span>';
               }
             } else {
               fsy.disabled = false;
               fsy.textContent = 'Synka till Fortnox';
             }
           })
-          .catch(function () { fsy.disabled = false; fsy.textContent = 'Synka till Fortnox'; });
+          .catch(function () {
+            fsy.disabled = false;
+            fsy.textContent = 'Synka till Fortnox';
+          });
         return;
       }
       // Fortnox: Anslut → öppna OAuth-authorize i ny flik (du slutför consent; visas bara om ej blockerad)
@@ -1467,11 +1798,19 @@
       if (fco) {
         e.preventDefault();
         var tokFC = '';
-        try { tokFC = (window.localStorage.getItem('ARCANA_ADMIN_TOKEN') || window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') || '').trim(); } catch (e6) {}
+        try {
+          tokFC = (
+            window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+            window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+            ''
+          ).trim();
+        } catch (e6) {}
         fco.disabled = true;
         fco.textContent = 'Öppnar…';
         fetch('/api/v1/cco-fortnox/connect', { headers: { Authorization: 'Bearer ' + tokFC } })
-          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (r) {
+            return r.ok ? r.json() : null;
+          })
           .then(function (j) {
             if (j && j.authorizeUrl) {
               window.open(j.authorizeUrl, '_blank', 'noopener');
@@ -1481,7 +1820,10 @@
               fco.textContent = 'Anslut';
             }
           })
-          .catch(function () { fco.disabled = false; fco.textContent = 'Anslut'; });
+          .catch(function () {
+            fco.disabled = false;
+            fco.textContent = 'Anslut';
+          });
         return;
       }
       // Foto: Begär foto → notis (kopplas till begär-länk i nästa steg)
@@ -1497,11 +1839,15 @@
       if (zc) {
         e.preventDefault();
         var zwrap = zc.parentNode;
-        [].forEach.call(zwrap.querySelectorAll('[data-gk-zon]'), function (o) { o.classList.remove('sel'); });
+        [].forEach.call(zwrap.querySelectorAll('[data-gk-zon]'), function (o) {
+          o.classList.remove('sel');
+        });
         zc.classList.add('sel');
         var card = zc.closest('.gk-tabild');
         var hint = card && card.querySelector('.gk-tabild-hint');
-        if (hint) hint.textContent = 'Sparas i journalen med etikett: ' + (zc.getAttribute('data-gk-zon') || '');
+        if (hint)
+          hint.textContent =
+            'Sparas i journalen med etikett: ' + (zc.getAttribute('data-gk-zon') || '');
         return;
       }
       var s = e.target.closest && e.target.closest('[data-gk-sum]');
@@ -1567,17 +1913,27 @@
     ov.className = 'gk-cmp-ov';
     ov.innerHTML =
       '<div class="gk-cmp-box">' +
-        '<div class="gk-cmp-head"><b>' + esc2(d.zone || 'Jämför') + '</b>' +
-        '<span class="gk-cmp-sub">Dra reglaget</span>' +
-        '<button type="button" class="gk-cmp-close" aria-label="Stäng">✕</button></div>' +
-        '<div class="gk-cmp-stage">' +
-          '<div class="gk-cmp-after"><img src="' + esc2(d.afterImg) + '" onerror="this.style.opacity=0"/>' +
-          '<span class="gk-cmp-lbl gk-cmp-lbl-r">Efter · ' + esc2(d.afterLabel) + '</span></div>' +
-          '<div class="gk-cmp-before" id="gkCmpBefore"><img src="' + esc2(d.beforeImg) + '" onerror="this.style.opacity=0"/>' +
-          '<span class="gk-cmp-lbl gk-cmp-lbl-l">Före · ' + esc2(d.beforeLabel) + '</span></div>' +
-          '<div class="gk-cmp-divider" id="gkCmpDiv"></div>' +
-        '</div>' +
-        '<input type="range" min="0" max="100" value="50" class="gk-cmp-range" id="gkCmpRange" aria-label="Jämför före och efter"/>' +
+      '<div class="gk-cmp-head"><b>' +
+      esc2(d.zone || 'Jämför') +
+      '</b>' +
+      '<span class="gk-cmp-sub">Dra reglaget</span>' +
+      '<button type="button" class="gk-cmp-close" aria-label="Stäng">✕</button></div>' +
+      '<div class="gk-cmp-stage">' +
+      '<div class="gk-cmp-after"><img src="' +
+      esc2(d.afterImg) +
+      '" onerror="this.style.opacity=0"/>' +
+      '<span class="gk-cmp-lbl gk-cmp-lbl-r">Efter · ' +
+      esc2(d.afterLabel) +
+      '</span></div>' +
+      '<div class="gk-cmp-before" id="gkCmpBefore"><img src="' +
+      esc2(d.beforeImg) +
+      '" onerror="this.style.opacity=0"/>' +
+      '<span class="gk-cmp-lbl gk-cmp-lbl-l">Före · ' +
+      esc2(d.beforeLabel) +
+      '</span></div>' +
+      '<div class="gk-cmp-divider" id="gkCmpDiv"></div>' +
+      '</div>' +
+      '<input type="range" min="0" max="100" value="50" class="gk-cmp-range" id="gkCmpRange" aria-label="Jämför före och efter"/>' +
       '</div>';
     document.body.appendChild(ov);
     var beforeEl = ov.querySelector('#gkCmpBefore');
@@ -1587,7 +1943,10 @@
       if (beforeEl) beforeEl.style.clipPath = 'inset(0 ' + (100 - v) + '% 0 0)';
       if (divEl) divEl.style.left = v + '%';
     }
-    if (range) range.addEventListener('input', function () { setPos(range.value); });
+    if (range)
+      range.addEventListener('input', function () {
+        setPos(range.value);
+      });
     setPos(50);
     ov.addEventListener('click', function (ev) {
       if (ev.target === ov || (ev.target.closest && ev.target.closest('.gk-cmp-close'))) {
@@ -1635,7 +1994,9 @@
         var configured = !!s.configured;
         var connected = !!s.connected;
         var blocked = !!s.blockedIntegration;
-        var cls = '', html = '', sub = '';
+        var cls = '',
+          html = '',
+          sub = '';
         if (!configured) {
           cls = 'is-off';
           html = 'Fortnox ej konfigurerat';
@@ -1652,7 +2013,9 @@
         } else if (blocked) {
           cls = 'is-off';
           html = 'Fortnox: ej ansluten — leverantörsblocker';
-          sub = s.blockerReason || 'Fortnox-portalen returnerar fel. Åtgärdas när Fortnox-felen är lösta.';
+          sub =
+            s.blockerReason ||
+            'Fortnox-portalen returnerar fel. Åtgärdas när Fortnox-felen är lösta.';
         } else {
           cls = 'is-off';
           html =
@@ -1856,11 +2219,23 @@
     } catch (e) {
       token = '';
     }
-    var headers = token && token !== '__preview_local__' ? { Authorization: 'Bearer ' + token } : {};
+    var headers =
+      token && token !== '__preview_local__' ? { Authorization: 'Bearer ' + token } : {};
     if (!window.__gkPhotoObjectUrls) window.__gkPhotoObjectUrls = [];
-    var queue = [].slice.call(scope.querySelectorAll('img[data-gk-img-src], img[data-gk-img-full]')).filter(function (img) {
-      return img.dataset.gkLoaded !== 'true' && img.dataset.gkLoading !== 'true';
-    });
+    var queue = [].slice
+      .call(
+        scope.querySelectorAll(
+          'img[data-gk-img-src], img[data-gk-img-full], video[data-gk-img-src], video[data-gk-img-full]'
+        )
+      )
+      .filter(function (node) {
+        var tile = node.closest && node.closest('.gk-foto');
+        return (
+          (!tile || window.getComputedStyle(tile).display !== 'none') &&
+          node.dataset.gkLoaded !== 'true' &&
+          node.dataset.gkLoading !== 'true'
+        );
+      });
     var cursor = 0;
     var active = 0;
     function pump() {
@@ -1870,25 +2245,25 @@
       active = Math.max(0, active - 1);
       pump();
     }
-    function hydrateOne(img) {
-      if (img.dataset.gkLoaded === 'true' || img.dataset.gkLoading === 'true') return;
-      var primary = img.getAttribute('data-gk-img-src') || '';
-      var fallback = img.getAttribute('data-gk-img-full') || '';
+    function hydrateOne(node) {
+      if (node.dataset.gkLoaded === 'true' || node.dataset.gkLoading === 'true') return;
+      var primary = node.getAttribute('data-gk-img-src') || '';
+      var fallback = node.getAttribute('data-gk-img-full') || '';
       var urls = [];
       if (fallback && fallback !== '#') urls.push(fallback);
       if (primary && primary !== '#' && primary !== fallback) urls.push(primary);
       if (!urls.length) return;
-      img.dataset.gkLoading = 'true';
+      node.dataset.gkLoading = 'true';
       active += 1;
-      var link = img.closest('a.gk-foto');
+      var link = node.closest('a.gk-foto');
       function tryNext(i) {
         if (i >= urls.length) {
-          img.dataset.gkLoading = 'false';
-          img.classList.add('is-broken');
+          node.dataset.gkLoading = 'false';
+          node.classList.add('is-broken');
           if (link && !link.querySelector('.gk-foto-loaderr')) {
             var err = document.createElement('small');
             err.className = 'gk-foto-loaderr';
-            err.textContent = 'Kunde inte visa bild';
+            err.textContent = 'Kunde inte visa media';
             link.appendChild(err);
           }
           done();
@@ -1905,10 +2280,10 @@
               if (!blob.type && ct) blob = new Blob([blob], { type: ct.split(';')[0] });
               var obj = URL.createObjectURL(blob);
               window.__gkPhotoObjectUrls.push(obj);
-              img.src = obj;
-              img.dataset.gkLoaded = 'true';
-              img.dataset.gkLoading = 'false';
-              img.classList.remove('is-broken');
+              node.src = obj;
+              node.dataset.gkLoaded = 'true';
+              node.dataset.gkLoading = 'false';
+              node.classList.remove('is-broken');
               if (link) link.href = obj;
               done();
             });
@@ -4005,7 +4380,10 @@
       if (window.__gkLoadTimeline) setTimeout(window.__gkLoadTimeline, 0);
       if (window.__gkLoadAutoSends) setTimeout(window.__gkLoadAutoSends, 0);
       if (window.__gkLoadFortnox) setTimeout(window.__gkLoadFortnox, 0);
-      if (window.__gkHydrateSecurePhotos) setTimeout(function () { window.__gkHydrateSecurePhotos(body); }, 0);
+      if (window.__gkHydrateSecurePhotos)
+        setTimeout(function () {
+          window.__gkHydrateSecurePhotos(body);
+        }, 0);
     } else {
       var live = document.querySelector('.kkref .doss');
       if (live) {

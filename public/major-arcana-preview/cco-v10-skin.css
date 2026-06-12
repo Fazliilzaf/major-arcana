@@ -3472,6 +3472,40 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
   margin-top: 6px;
 }
 
+#kk-storvy .gk-foto-grid--journal.is-collapsed .gk-foto:nth-child(n + 7) {
+  display: none;
+}
+
+#kk-storvy .gk-visit-media-toggle {
+  margin-top: 8px;
+}
+
+#kk-storvy .gk-foto video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #2b251f;
+}
+
+#kk-storvy .gk-foto--video::before {
+  content: "▶";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  color: #2b251f;
+  font-size: 10px;
+  font-weight: 900;
+}
+
 #kk-storvy .gk-visit-actions {
   display: flex;
   flex-wrap: wrap;
