@@ -8292,6 +8292,7 @@
       mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries),
       uniqueDriveFiles
     );
+    runtime.detail.card = card;
 
     if (isV9CustomersEnabled()) {
       const tab = normalizeDetailTab(runtime.detailTab);
