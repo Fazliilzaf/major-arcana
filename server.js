@@ -9997,7 +9997,26 @@ try {
         const assetId = String(req.params.assetId || '').trim();
         const asset = stores.assetStore.getAsset(assetId);
         if (!asset) return res.status(404).json({ error: 'asset_not_found' });
-        const key = asset.thumbnailKey || null;
+        let key = asset.thumbnailKey || null;
+        if (
+          !key &&
+          asset.storageKey &&
+          typeof stores.secureStorage.generateThumbnailIfImage === 'function'
+        ) {
+          key = await stores.secureStorage.generateThumbnailIfImage(
+            asset.storageKey,
+            asset.mimeType
+          );
+          if (key && typeof stores.assetStore.updateAssetThumbnailKey === 'function') {
+            await stores.assetStore.updateAssetThumbnailKey(asset.id, key, {
+              actor: {
+                role: req.auth?.role || 'system',
+                userId: req.auth?.userId || 'asset-route',
+              },
+              reason: 'thumbnail_on_demand',
+            });
+          }
+        }
         if (!key) return res.status(404).json({ error: 'no_thumbnail' });
         const obj = await stores.secureStorage.getObject(key);
         res.setHeader('Content-Type', obj.mimeType || 'image/jpeg');
