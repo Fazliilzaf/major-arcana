@@ -399,14 +399,16 @@
         (f && f.viewUrl) ||
         (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#');
       var isVideo = isReferensVideoFile(f);
+      var previewUrl =
+        (f && (f.thumbnailUrl || f.thumbnailLink)) ||
+        (id
+          ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
+          : '');
       return {
         kind: isVideo ? 'video' : 'image',
         zone: gkZoneOf(labelSource),
         date: gkDateOfFile(f),
-        thumb: isVideo
-          ? ''
-          : (f && (f.thumbnailUrl || f.thumbnailLink)) ||
-            (id ? '/api/v1/cco/assets/' + encodeURIComponent(id) + '/thumbnail' : ''),
+        thumb: isVideo ? '' : previewUrl,
         url: url,
       };
     }

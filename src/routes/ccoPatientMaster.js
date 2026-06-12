@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('node:path');
+const fsp = require('node:fs/promises');
 const { pipeline } = require('node:stream/promises');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
@@ -10,6 +11,7 @@ const {
 } = require('../../scripts/migration/lib/migrationZipReader');
 const {
   isGoogleDriveConfigured,
+  getConfiguredDriveAccessToken,
   streamDriveFileToResponse,
   getDriveFileName,
 } = require('../lib/googleDriveClient');
@@ -70,6 +72,88 @@ function resolveStoredFileName(file) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isPreviewableImageMime(mime) {
+  return [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+    'image/tiff',
+    'image/x-adobe-dng',
+  ].includes(normalizeText(mime).toLowerCase());
+}
+
+function inferImageMime(buffer, fallback = '') {
+  if (Buffer.isBuffer(buffer)) {
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47)
+      return 'image/png';
+    if (buffer.slice(0, 12).toString('ascii').startsWith('RIFF')) return 'image/webp';
+    if (buffer.slice(4, 12).toString('ascii').includes('ftyp')) return 'image/heic';
+  }
+  return normalizeText(fallback).toLowerCase();
+}
+
+async function bufferFromNodeStream(stream) {
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+async function readDriveFileBuffer(driveFileId) {
+  const { accessToken } = await getConfiguredDriveAccessToken();
+  const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(
+    driveFileId
+  )}?alt=media&supportsAllDrives=true`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    const error = new Error(`Drive media misslyckades (${response.status}).`);
+    error.statusCode = Number(response.status) === 404 ? 404 : 502;
+    throw error;
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function readMigrationFileBuffer({ file, config }) {
+  if (file.source === 'folder' && file.folderRoot) {
+    return fsp.readFile(path.join(file.folderRoot, file.relativePath));
+  }
+
+  if (normalizeText(file.driveFileId) && isGoogleDriveConfigured()) {
+    try {
+      return await readDriveFileBuffer(file.driveFileId);
+    } catch (error) {
+      if (!file.zipName) throw error;
+    }
+  }
+
+  const zipPath = resolveZipPath(config.migrationDataRoot, file.zipName);
+  const child = openZipEntryStream({ zipPath, relativePath: file.relativePath });
+  const stderrChunks = [];
+  child.stderr?.on('data', (chunk) => stderrChunks.push(chunk));
+  const exitCodePromise = new Promise((resolve, reject) => {
+    child.once('close', resolve);
+    child.once('error', reject);
+  });
+  const buffer = await bufferFromNodeStream(child.stdout);
+  const exitCode = await exitCodePromise;
+  if (Number(exitCode) !== 0) {
+    const error = new Error(
+      stderrChunks.length
+        ? Buffer.concat(stderrChunks).toString('utf8').trim()
+        : 'Kunde inte läsa filen från zip.'
+    );
+    error.statusCode = 404;
+    throw error;
+  }
+  return buffer;
 }
 
 async function resolveRepairScopeFiles({
@@ -715,6 +799,63 @@ function createCcoPatientMasterRouter({
           }
           return res.status(404).json({ error: 'Kunde inte läsa filen från zip.' });
         }
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/file-preview',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const fileId = normalizeText(req.query.fileId);
+        if (!fileId || !migrationIndexStore) {
+          return res.status(400).json({ error: 'fileId saknas.' });
+        }
+        const file = await migrationIndexStore.getFileById(fileId);
+        if (!file) {
+          return res.status(404).json({ error: 'Filen hittades inte i migration-index.' });
+        }
+
+        const declaredMime = contentTypeForPath(file.relativePath);
+        if (!isPreviewableImageMime(declaredMime)) {
+          return res.status(415).json({ error: 'Filen är inte en bild som kan förhandsvisas.' });
+        }
+
+        let sharp;
+        try {
+          sharp = require('sharp');
+        } catch {
+          return res.status(503).json({ error: 'Bildförhandsvisning saknar sharp på servern.' });
+        }
+
+        const original = await readMigrationFileBuffer({ file, config });
+        const mime = inferImageMime(original, declaredMime);
+        if (!isPreviewableImageMime(mime)) {
+          return res.status(415).json({ error: 'Filen är inte en bild som kan förhandsvisas.' });
+        }
+
+        let input = original;
+        if (mime === 'image/heic' || mime === 'image/heif') {
+          try {
+            const { decodeHeicToJpeg } = require('../ops/heicDecodePool');
+            input = await decodeHeicToJpeg(original);
+          } catch (error) {
+            return res.status(415).json({ error: 'Kunde inte avkoda HEIC-bilden.' });
+          }
+        }
+
+        const width = Math.max(160, Math.min(960, Number(req.query.width) || 480));
+        const preview = await sharp(input, { failOn: 'none' })
+          .rotate()
+          .resize({ width, height: width, fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 72 })
+          .toBuffer();
+        await auditRead(req, actor, fileId, 'cco.patient_master.file.preview');
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Content-Length', preview.length);
+        res.setHeader('Cache-Control', 'private, max-age=300');
+        return res.send(preview);
       })
   );
 
