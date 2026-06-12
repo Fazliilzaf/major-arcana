@@ -6407,24 +6407,15 @@
       node.src = objectUrl;
       return true;
     }
-    node.src = objectUrl;
-    if (typeof node.decode === 'function') {
-      try {
-        await node.decode();
-        return node.naturalWidth > 0;
-      } catch {
-        return false;
-      }
-    }
     return new Promise((resolve) => {
-      const done = (ok) => {
-        node.onload = null;
-        node.onerror = null;
-        resolve(ok && node.naturalWidth > 0);
+      const probe = new Image();
+      probe.onload = () => {
+        const ok = probe.naturalWidth > 0;
+        if (ok) node.src = objectUrl;
+        resolve(ok);
       };
-      node.onload = () => done(true);
-      node.onerror = () => done(false);
-      if (node.complete) done(node.naturalWidth > 0);
+      probe.onerror = () => resolve(false);
+      probe.src = objectUrl;
     });
   }
 
