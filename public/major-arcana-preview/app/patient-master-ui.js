@@ -4003,14 +4003,22 @@
   function isDriveImageFile(file) {
     const mime = normalizeText(file?.mimeType || file?.contentType).toLowerCase();
     const type = normalizeText(file?.fileType).toLowerCase();
-    const name = normalizeText(file?.fileName || file?.originalFileName || file?.name).toLowerCase();
-    return type === 'image' || mime.startsWith('image/') || /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name);
+    const name = normalizeText(
+      file?.fileName || file?.originalFileName || file?.name
+    ).toLowerCase();
+    return (
+      type === 'image' ||
+      mime.startsWith('image/') ||
+      /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name)
+    );
   }
 
   function isDriveJournalPdf(file) {
     const mime = normalizeText(file?.mimeType || file?.contentType).toLowerCase();
     const type = normalizeText(file?.fileType).toLowerCase();
-    const name = normalizeText(file?.fileName || file?.originalFileName || file?.name).toLowerCase();
+    const name = normalizeText(
+      file?.fileName || file?.originalFileName || file?.name
+    ).toLowerCase();
     return type === 'journal_pdf' || mime === 'application/pdf' || /\.pdf$/.test(name);
   }
 
@@ -6360,6 +6368,89 @@
     );
   }
 
+  async function fetchGkMediaObjectUrl(primaryUrl, fallbackUrl = '') {
+    const urls = [];
+    const primary = normalizeText(primaryUrl);
+    const fallback = normalizeText(fallbackUrl);
+    if (primary && primary !== '#') urls.push(primary);
+    if (fallback && fallback !== '#' && fallback !== primary) urls.push(fallback);
+    if (!urls.length) return '';
+
+    const token = getAdminToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    for (const url of urls) {
+      try {
+        const response = await fetch(new URL(url, window.location.origin), {
+          headers,
+          credentials: 'same-origin',
+        });
+        if (!response.ok) continue;
+        let blob = await response.blob();
+        const contentType = response.headers.get('content-type') || '';
+        if (blob.type === '' && contentType) {
+          blob = new Blob([blob], { type: contentType.split(';')[0] });
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        fileObjectUrls.add(objectUrl);
+        return objectUrl;
+      } catch {
+        /* try fallback url */
+      }
+    }
+    return '';
+  }
+
+  async function hydrateGkMediaElements(root = els.patientRail) {
+    if (!root) return;
+    const mediaNodes = root.querySelectorAll(
+      'img[data-gk-img-src], img[data-gk-img-full], video[data-gk-img-src], video[data-gk-img-full]'
+    );
+    const visibleNodes = Array.from(mediaNodes).filter((node) => {
+      const tile = node.closest('.gk-foto');
+      return (
+        (!tile || window.getComputedStyle(tile).display !== 'none') &&
+        node.dataset.gkLoaded !== 'true' &&
+        node.dataset.gkLoading !== 'true'
+      );
+    });
+    if (!visibleNodes.length) return;
+
+    let cursor = 0;
+    const concurrency = Math.min(3, visibleNodes.length);
+    const worker = async () => {
+      while (cursor < visibleNodes.length) {
+        const node = visibleNodes[cursor++];
+        const primary = node.getAttribute('data-gk-img-src') || '';
+        const fallback = node.getAttribute('data-gk-img-full') || '';
+        node.dataset.gkLoading = 'true';
+        node.classList.add('is-loading');
+        const objectUrl = await fetchGkMediaObjectUrl(primary, fallback);
+        node.classList.remove('is-loading');
+        node.dataset.gkLoading = 'false';
+        if (!objectUrl) {
+          node.classList.add('is-broken');
+          const tile = node.closest('a.gk-foto');
+          if (tile && !tile.querySelector('.gk-foto-loaderr')) {
+            const message = document.createElement('small');
+            message.className = 'gk-foto-loaderr';
+            message.textContent = 'Kunde inte visa media';
+            tile.appendChild(message);
+          }
+          continue;
+        }
+        node.src = objectUrl;
+        node.dataset.gkLoaded = 'true';
+        node.classList.remove('is-broken');
+        const tile = node.closest('a.gk-foto');
+        if (tile) tile.href = objectUrl;
+      }
+    };
+
+    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  }
+
+  window.__gkHydrateSecurePhotos = hydrateGkMediaElements;
+
   function bindJournalPhotoOpenLinks(root = els.patientRail) {
     if (!root) return;
     root.querySelectorAll('[data-journal-photo-open]').forEach((link) => {
@@ -8061,6 +8152,7 @@
 
     if (runtime.detailTab === 'journal') {
       void hydrateJournalPhotoElements(els.patientRail);
+      void hydrateGkMediaElements(els.patientRail);
       window.requestAnimationFrame(() => bindJournalAutosaveForms());
     } else if (
       runtime.detailTab === 'profil' ||
@@ -8068,6 +8160,7 @@
       runtime.detailTab === 'tidslinje'
     ) {
       void hydratePatientFileImages(els.patientRail);
+      void hydrateGkMediaElements(els.patientRail);
     }
 
     return true;
@@ -8127,6 +8220,7 @@
       const hydrate = () => {
         if (runtime.detailTab !== 'journal') return;
         void hydrateJournalPhotoElements(rail);
+        void hydrateGkMediaElements(rail);
         bindJournalAutosaveForms();
       };
       if (typeof requestIdleCallback === 'function') {
@@ -8138,6 +8232,7 @@
       const hydrate = () => {
         if (runtime.detailTab !== normalized) return;
         void hydratePatientFileImages(rail);
+        void hydrateGkMediaElements(rail);
       };
       if (typeof requestIdleCallback === 'function') {
         requestIdleCallback(hydrate, { timeout: 1200 });
@@ -8184,6 +8279,7 @@
         renderBlueprintDetailPanels(card, journalEntries, null, occasionTimeline, driveFiles);
         bindV9MockupDossierHandlers(rail, { card, journalEntries, driveFiles });
         ensureV9DossierDeepClosed();
+        void hydrateGkMediaElements(rail);
         runtime.detailShellOnly = true;
         syncV9CustomersLayoutState();
         syncMobilePatientLayout();
@@ -8200,6 +8296,7 @@
       );
       bindV9MockupDossierHandlers(rail, { card, journalEntries, driveFiles });
       ensureV9DossierDeepClosed();
+      void hydrateGkMediaElements(rail);
       runtime.detailShellOnly = true;
       syncV9CustomersLayoutState();
       syncMobilePatientLayout();
@@ -8308,6 +8405,7 @@
         bindJournalPhotoOpenLinks(els.patientRail);
         void hydrateJournalPhotoElements(els.patientRail);
         void hydratePatientFileImages(els.patientRail);
+        void hydrateGkMediaElements(els.patientRail);
         syncV9CustomersLayoutState();
         syncMobilePatientLayout();
         return;
@@ -8332,6 +8430,7 @@
       ensureV9DossierDeepClosed();
       void hydrateJournalPhotoElements(els.patientRail);
       void hydratePatientFileImages(els.patientRail);
+      void hydrateGkMediaElements(els.patientRail);
       syncV9CustomersLayoutState();
       syncMobilePatientLayout();
       window.requestAnimationFrame(() => {
@@ -8428,6 +8527,7 @@
     window.CcoV9CustomersParity?.bindDossierScroll?.(els.patientRail);
     void hydrateJournalPhotoElements(els.patientRail);
     void hydratePatientFileImages(els.patientRail);
+    void hydrateGkMediaElements(els.patientRail);
     syncMobilePatientLayout();
     window.requestAnimationFrame(() => {
       bindJournalAutosaveForms();
