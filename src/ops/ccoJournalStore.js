@@ -19,6 +19,7 @@ const JOURNAL_TYPES = Object.freeze([
   'follow_up',
   'prp_treatment',
   'consultation_plan',
+  'consent_bundle',
   'bleph_treatment',
 ]);
 
@@ -68,6 +69,18 @@ function emptyConsultationPlanFields() {
     bookingSlotStart: '',
     bookingChannel: '',
     bookingConfirmedAt: '',
+  };
+}
+
+function emptyConsentBundleFields() {
+  return {
+    bundleType: 'CONSENT_BUNDLE',
+    step: 7,
+    consentIds: [],
+    patientSignedName: '',
+    patientSignedId: '',
+    signatures: [],
+    offerLabel: '',
   };
 }
 
@@ -155,6 +168,7 @@ function schemaBackedEmptyFields(journalType, formVariant) {
   if (Object.keys(fromSchema).length) return fromSchema;
   if (journalType === 'tp_treatment') return emptyTpTreatmentFields();
   if (journalType === 'consultation_plan') return emptyConsultationPlanFields();
+  if (journalType === 'consent_bundle') return emptyConsentBundleFields();
   if (journalType === 'prp_treatment') return emptyPrpTreatmentFields();
   if (journalType === 'follow_up') return emptyFollowUpFields();
   if (journalType === 'bleph_treatment') return emptyBlephTreatmentFields();
@@ -1146,6 +1160,7 @@ module.exports = {
   buildJournalReadout,
   createCcoJournalStore,
   emptyConsultationPlanFields,
+  emptyConsentBundleFields,
   emptyFollowUpFields,
   emptyBlephTreatmentFields,
   emptyPrpTreatmentFields,

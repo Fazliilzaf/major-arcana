@@ -10852,12 +10852,73 @@
           }
         }, 180);
       }
+      initAvtalSamtyckeBundleOverlay();
       initFriskforsakranDemoOverlay();
     }
   }
 
+  function initAvtalSamtyckeBundleOverlay() {
+    if (!isV9DemoEnabled() || !isCustomersShellActive()) return;
+    const overlay = window.CcoAvtalSamtyckeBundle;
+    if (!overlay?.maybeAutoMount) return;
+    const card = runtime.detail?.card;
+    const readout = runtime.agreementReadout;
+    const patientName =
+      normalizeText(card?.displayName) ||
+      normalizeText(card?.primaryEmail) ||
+      normalizeText(card?.primaryPhone) ||
+      '';
+    const legalReviewApproved =
+      normalizeText(readout?.templateApprovalStatus) === 'approved' || readout?.bookable === true;
+    overlay.maybeAutoMount({
+      patientName: patientName || undefined,
+      patientId: runtime.selectedPatientId || '',
+      personnummer: normalizeText(card?.personnummer) || '',
+      offerLabel:
+        normalizeText(runtime.commercialCase?.offerType) ||
+        normalizeText(runtime.treatmentAgreement?.offerType) ||
+        undefined,
+      legalReviewApproved,
+      onJournalSubmit: async (journalPayload) => {
+        const created = await apiRequest('/api/v1/cco-journal/entry', {
+          method: 'PUT',
+          body: journalPayload,
+        });
+        const entryId = created?.entry?.entryId;
+        if (!entryId) throw new Error('Journalpost saknar entryId.');
+        const signed = await apiRequest('/api/v1/cco-journal/entry/sign', {
+          method: 'POST',
+          body: {
+            patientId: journalPayload.patientId,
+            entryId,
+          },
+        });
+        await loadPatientDetail(runtime.selectedPatientId);
+        return {
+          entryId: signed?.entry?.entryId || entryId,
+          entry: signed?.entry || created?.entry,
+        };
+      },
+    });
+  }
+
   function initFriskforsakranDemoOverlay() {
     if (!isV9DemoEnabled() || !isCustomersShellActive()) return;
+    let skipSteg7Gate = false;
+    try {
+      skipSteg7Gate =
+        new URLSearchParams(window.location.search || '').get('demoSkipSteg7') === '1';
+    } catch {
+      skipSteg7Gate = false;
+    }
+    if (!skipSteg7Gate && window.CcoAvtalSamtyckeBundle?.isSteg7Complete?.() !== true) {
+      if (document.getElementById('cco-steg7-bundle-scrim')) return;
+      try {
+        if (sessionStorage.getItem('arcana.steg7bundle.dismissed') !== '1') return;
+      } catch {
+        return;
+      }
+    }
     const overlay = window.CcoFriskforsakranDemoOverlay;
     if (!overlay?.maybeAutoMount) return;
     const card = runtime.detail?.card;

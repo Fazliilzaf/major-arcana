@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Avtal + samtycke · steg 7 · Hair TP Clinic</title>
+    <link rel="stylesheet" href="/cco-polish.css" />
+    <script src="/cco-polish.js" defer></script>
+    <script src="./app/cco-avtal-samtycke-bundle.js?v=hairtp-steg7-bundle-v1" defer></script>
+  </head>
+  <body data-stage="demo" data-v9-enabled="on" data-v9-demo="on">
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        document.documentElement.setAttribute('data-v9-enabled', 'on');
+        document.documentElement.setAttribute('data-v9-demo', 'on');
+        window.__ARCANA_STEG7_LEGAL_APPROVED__ = true;
+        window.CcoAvtalSamtyckeBundle?.mount({
+          patientName: 'Anna Karlsson',
+          personnummer: '19800101-1234',
+          offerLabel: 'Hårtransplantation DHI · 45 000 kr',
+          legalReviewApproved: true,
+        });
+      });
+    </script>
+  </body>
+</html>

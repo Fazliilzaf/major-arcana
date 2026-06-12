@@ -90,6 +90,7 @@ function resolveTreatmentType(entry = {}) {
     bleph_treatment: 'Curatiio',
     follow_up: 'Uppföljning',
     consultation_plan: 'Konsultation',
+    consent_bundle: 'Avtal + samtycke',
     health_declaration: 'Hälsodeklaration',
     fitness_certificate: 'Friskförsäkran',
     historical_import: '',

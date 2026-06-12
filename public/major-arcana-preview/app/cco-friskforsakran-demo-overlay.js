@@ -519,6 +519,13 @@
 
   function maybeAutoMount(options = {}) {
     if (!isDemoFlagOn() || !isCustomersView()) return false;
+    if (global.CcoAvtalSamtyckeBundle?.isSteg7Complete?.() !== true) {
+      try {
+        if (sessionStorage.getItem('arcana.steg7bundle.dismissed') !== '1') return false;
+      } catch {
+        return false;
+      }
+    }
     try {
       if (sessionStorage.getItem(DISMISS_KEY) === '1') return false;
     } catch {
