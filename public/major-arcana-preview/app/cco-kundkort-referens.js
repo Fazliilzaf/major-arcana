@@ -88,15 +88,29 @@
     var ts = driveDedupeText(file.modifiedTime || file.documentDate || file.indexedAt);
     return name ? 'name:' + name + ':' + ts : '';
   }
+  function driveFilePreviewRank(file) {
+    var mime = driveDedupeText(file && (file.mimeType || file.contentType));
+    var name = driveDedupeText(file && (file.fileName || file.originalFileName || file.name));
+    if (/image\/(jpeg|jpg|png|webp)/.test(mime) || /\.(jpe?g|png|webp)$/.test(name)) return 0;
+    if (/image\/(heic|heif)/.test(mime) || /\.(heic|heif)$/.test(name)) return 1;
+    if (/^video\//.test(mime) || /\.(mp4|mov|m4v|webm)$/.test(name)) return 2;
+    if (/image\/x-adobe-dng/.test(mime) || /\.dng$/.test(name)) return 4;
+    return 3;
+  }
   function dedupeDriveFiles(files) {
     var seen = {};
     var rows = [];
-    A(files).forEach(function (file) {
-      var key = driveFileDedupeKey(file);
-      if (key && seen[key]) return;
-      if (key) seen[key] = true;
-      rows.push(file);
-    });
+    A(files)
+      .slice()
+      .sort(function (a, b) {
+        return driveFilePreviewRank(a) - driveFilePreviewRank(b);
+      })
+      .forEach(function (file) {
+        var key = driveFileDedupeKey(file);
+        if (key && seen[key]) return;
+        if (key) seen[key] = true;
+        rows.push(file);
+      });
     return rows;
   }
   function isReferensImageFile(file) {
