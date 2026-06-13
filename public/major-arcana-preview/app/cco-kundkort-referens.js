@@ -163,7 +163,7 @@
   }
   function gkSharedDateOfFile(file) {
     var direct = String(
-      (file && (file.documentDate || file.captureDate || file.photoDate || file.visitDate)) || ''
+      (file && (file.documentDate || file.visitDate || file.photoDate || file.captureDate)) || ''
     ).slice(0, 10);
     if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
     var source = String(
@@ -178,6 +178,16 @@
     }
     return '';
   }
+  function gkSharedDocumentDateOfFile(file) {
+    var direct = String(
+      (file && (file.documentDate || file.visitDate || file.photoDate)) || ''
+    ).slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(direct) ? direct : gkSharedDateOfFile(file);
+  }
+  function gkSharedCaptureDateOfFile(file) {
+    var direct = String((file && (file.captureDate || file.captureDateTime)) || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(direct) ? direct : '';
+  }
   function gkSharedFmtDate(value) {
     if (!value) return 'odaterat';
     var p = String(value).split('-');
@@ -190,6 +200,24 @@
       ' ' +
       (SHARED_MND[month - 1] || '') +
       (year === new Date().getFullYear() ? '' : ' ' + year)
+    );
+  }
+  function gkSelectedForFromFile(file) {
+    var tech = (file && file.technicalInfo) || {};
+    var meta = (file && (file.meta || file.metadata)) || {};
+    var raw = (file && file.selectedFor) || tech.selectedFor || meta.selectedFor || [];
+    return A(raw)
+      .map(function (v) {
+        return String(v || '').trim();
+      })
+      .filter(Boolean);
+  }
+  function gkIsOfferReadyFile(file) {
+    var selectedFor = gkSelectedForFromFile(file);
+    var stage = String((file && file.imageStage) || '').toLowerCase();
+    return (
+      stage === 'annotated' &&
+      (selectedFor.indexOf('offer') >= 0 || selectedFor.indexOf('treatment_plan') >= 0)
     );
   }
   function gkSharedMediaFromFile(file) {
@@ -219,6 +247,19 @@
       kind: isVideo ? 'video' : 'image',
       zone: gkSharedZoneOf(labelSource),
       date: gkSharedDateOfFile(file),
+      documentDate: gkSharedDocumentDateOfFile(file),
+      captureDate: gkSharedCaptureDateOfFile(file),
+      captureDateSource: (file && file.captureDateSource) || '',
+      captureDateMismatch: Boolean(
+        (file && file.captureDateMismatch) ||
+        (gkSharedDocumentDateOfFile(file) &&
+          gkSharedCaptureDateOfFile(file) &&
+          gkSharedDocumentDateOfFile(file) !== gkSharedCaptureDateOfFile(file))
+      ),
+      imageStage: (file && file.imageStage) || '',
+      selectedFor: gkSelectedForFromFile(file),
+      sourceAnnotationId: (file && file.sourceAnnotationId) || '',
+      offerReady: gkIsOfferReadyFile(file),
       thumb: isVideo ? '' : previewUrl,
       url: url,
       previewMissing: !isVideo && !previewUrl,
@@ -234,6 +275,11 @@
       list
         .map(function (p) {
           var missingPreview = p.kind !== 'video' && p.previewMissing;
+          var captureDate = p.captureDate || '';
+          var dateMismatch = Boolean(
+            p.captureDateMismatch ||
+            (p.documentDate && captureDate && p.documentDate !== captureDate)
+          );
           var src = p.thumb || (!missingPreview ? p.url : '');
           var fallback = p.url || '';
           var media =
@@ -258,6 +304,8 @@
             '<a class="gk-foto' +
             (p.kind === 'video' ? ' gk-foto--video' : '') +
             (missingPreview ? ' gk-foto--missing' : '') +
+            (p.offerReady ? ' gk-foto--offer-ready' : '') +
+            (dateMismatch ? ' gk-foto--date-mismatch' : '') +
             '" href="' +
             esc(p.url || '#') +
             '" data-gk-photo-kind="' +
@@ -268,6 +316,10 @@
             esc(p.sourceAssetId || p.id || '') +
             '" data-gk-photo-date="' +
             esc(p.date || '') +
+            '" data-gk-photo-capture-date="' +
+            esc(captureDate) +
+            '" data-gk-photo-date-mismatch="' +
+            (dateMismatch ? '1' : '0') +
             '" data-gk-photo-missing-preview="' +
             (missingPreview ? '1' : '0') +
             '" data-gk-photo-src="' +
@@ -280,6 +332,12 @@
             (p.kind === 'video' ? 'Öppna film' : 'Öppna bild') +
             '">' +
             media +
+            (dateMismatch
+              ? '<span class="gk-foto-date-warn">Tagen ' +
+                esc(gkSharedFmtDate(captureDate)) +
+                '</span>'
+              : '') +
+            (p.offerReady ? '<span class="gk-foto-ready-chip">Offertklar</span>' : '') +
             '<span style="position:relative;z-index:1">' +
             (p.kind === 'video' ? 'Film' : esc(p.zone || 'Foto')) +
             ' · ' +
@@ -573,7 +631,7 @@
     }
     function gkDateOfFile(f) {
       var direct = String(
-        (f && (f.documentDate || f.captureDate || f.photoDate || f.visitDate)) || ''
+        (f && (f.documentDate || f.visitDate || f.photoDate || f.captureDate)) || ''
       ).slice(0, 10);
       if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
       var rp = String((f && (f.relativePath || f.fileName || f.originalFileName || f.name)) || '');
@@ -582,6 +640,14 @@
       var ep = rp.match(/\b(1[0-9]{9})\b/);
       if (ep) return new Date(Number(ep[1]) * 1000).toISOString().slice(0, 10);
       return '';
+    }
+    function gkDocumentDateOfFile(f) {
+      var direct = String((f && (f.documentDate || f.visitDate || f.photoDate)) || '').slice(0, 10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(direct) ? direct : gkDateOfFile(f);
+    }
+    function gkCaptureDateOfFile(f) {
+      var direct = String((f && (f.captureDate || f.captureDateTime)) || '').slice(0, 10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(direct) ? direct : '';
     }
     function gkFmtDate(d) {
       if (!d) return 'odaterat';
@@ -618,6 +684,19 @@
         kind: isVideo ? 'video' : 'image',
         zone: gkZoneOf(labelSource),
         date: gkDateOfFile(f),
+        documentDate: gkDocumentDateOfFile(f),
+        captureDate: gkCaptureDateOfFile(f),
+        captureDateSource: (f && f.captureDateSource) || '',
+        captureDateMismatch: Boolean(
+          (f && f.captureDateMismatch) ||
+          (gkDocumentDateOfFile(f) &&
+            gkCaptureDateOfFile(f) &&
+            gkDocumentDateOfFile(f) !== gkCaptureDateOfFile(f))
+        ),
+        imageStage: (f && f.imageStage) || '',
+        selectedFor: gkSelectedForFromFile(f),
+        sourceAnnotationId: (f && f.sourceAnnotationId) || '',
+        offerReady: gkIsOfferReadyFile(f),
         thumb: isVideo ? '' : previewUrl,
         url: url,
         previewMissing: !isVideo && !previewUrl,
@@ -633,6 +712,11 @@
         list
           .map(function (p) {
             var missingPreview = p.kind !== 'video' && p.previewMissing;
+            var captureDate = p.captureDate || '';
+            var dateMismatch = Boolean(
+              p.captureDateMismatch ||
+              (p.documentDate && captureDate && p.documentDate !== captureDate)
+            );
             var src = p.thumb || (!missingPreview ? p.url : '');
             var fallback = p.url || '';
             var media =
@@ -655,6 +739,8 @@
               '<a class="gk-foto' +
               (p.kind === 'video' ? ' gk-foto--video' : '') +
               (missingPreview ? ' gk-foto--missing' : '') +
+              (p.offerReady ? ' gk-foto--offer-ready' : '') +
+              (dateMismatch ? ' gk-foto--date-mismatch' : '') +
               '" href="' +
               esc(p.url) +
               '" data-gk-photo-kind="' +
@@ -665,6 +751,10 @@
               esc(p.sourceAssetId || p.id || '') +
               '" data-gk-photo-date="' +
               esc(p.date || '') +
+              '" data-gk-photo-capture-date="' +
+              esc(captureDate) +
+              '" data-gk-photo-date-mismatch="' +
+              (dateMismatch ? '1' : '0') +
               '" data-gk-photo-zone="' +
               esc(p.zone || '') +
               '" data-gk-photo-name="' +
@@ -675,6 +765,10 @@
               (p.kind === 'video' ? 'Öppna film' : 'Öppna bild') +
               '">' +
               media +
+              (dateMismatch
+                ? '<span class="gk-foto-date-warn">Tagen ' + esc(gkFmtDate(captureDate)) + '</span>'
+                : '') +
+              (p.offerReady ? '<span class="gk-foto-ready-chip">Offertklar</span>' : '') +
               '<span style="position:relative;z-index:1">' +
               (p.kind === 'video' ? 'Film' : esc(p.zone)) +
               ' · ' +
@@ -1085,11 +1179,15 @@
           sig +
           '" data-kk-sig-label="' +
           esc(title) +
+          '" data-kk-patient-id="' +
+          esc(ctx.patientId || ctx.customerId || '') +
           '">Granska utkast</button>' +
           '<button type="button" class="gk-btn gk-btn-gold kk-sig-act" data-kk-sig="' +
           sig +
           '" data-kk-sig-label="' +
           esc(title) +
+          '" data-kk-patient-id="' +
+          esc(ctx.patientId || ctx.customerId || '') +
           '">Skicka för signering</button></div>'
         );
       })
@@ -1575,20 +1673,36 @@
       photos.sort(function (a, b) {
         return (b.date || '').localeCompare(a.date || '');
       });
-      var collapsed = photos.length > 24;
+      var offerPhotos = photos.filter(function (p) {
+        return p.offerReady;
+      });
+      var originalPhotos = photos.filter(function (p) {
+        return !p.offerReady;
+      });
+      var collapsed = originalPhotos.length > 24;
+      var offerReadyHtml =
+        '<div class="gk-offer-ready-photos">' +
+        '<div class="gk-visit-label">Markerade bilder för offert</div>' +
+        (offerPhotos.length
+          ? '<div class="gk-sub gk-order-note">Ritade/markerade versioner som kan skickas med i offert eller behandlingsplan.</div>' +
+            gkPhotoGrid(offerPhotos, 0, 'gk-foto-grid--offer-ready')
+          : '<div class="gk-offer-ready-empty">Inga markerade offertbilder ännu. Öppna en bild, rita och välj “behandlingsplan/offert”.</div>') +
+        '</div>';
       var grid =
         '<div class="gk-visit-photos">' +
+        offerReadyHtml +
+        '<div class="gk-visit-label gk-visit-label--original">Originalbilder</div>' +
         '<div class="gk-sub gk-order-note">Nyast först. Före/efter-förslag jämför äldsta mot senaste bild i samma zon.</div>' +
-        gkPhotoGrid(photos, 0, 'gk-foto-grid--all' + (collapsed ? ' is-collapsed' : '')) +
+        gkPhotoGrid(originalPhotos, 0, 'gk-foto-grid--all' + (collapsed ? ' is-collapsed' : '')) +
         (collapsed
           ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
-            photos.length +
+            originalPhotos.length +
             '</button>'
           : '') +
         '</div>';
       // Auto before/after-par: zonen med störst tidsspann (äldsta ↔ nyaste)
       var byZone = {};
-      photos.forEach(function (p) {
+      originalPhotos.forEach(function (p) {
         if (p.date) (byZone[p.zone] = byZone[p.zone] || []).push(p);
       });
       var pair = null,
@@ -1646,6 +1760,11 @@
     var fotoSectionHtml = sek(
       'Foto',
       (imgs.length ? '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>' : '') +
+        (imgs.map(gkMediaFromFile).filter(function (p) {
+          return p.offerReady;
+        }).length
+          ? ' <span class="gk-pill gk-tag-ok">Offertklara</span>'
+          : '') +
         (photoReview ? ' <span class="gk-pill gk-tag-warn">Foton att granska</span>' : ''),
       fotoBody,
       'Inga foton ännu.'
@@ -3834,20 +3953,39 @@
         return String(b.date || '').localeCompare(String(a.date || ''));
       });
     if (fotoMediaRows.length) {
-      var fotoCollapsed = fotoMediaRows.length > 24;
+      var offerReadyRows = fotoMediaRows.filter(function (p) {
+        return p.offerReady;
+      });
+      var originalFotoRows = fotoMediaRows.filter(function (p) {
+        return !p.offerReady;
+      });
+      var fotoCollapsed = originalFotoRows.length > 24;
       var fotoRows =
-        '<div class="gk-visit-photos"><div class="gk-visit-label">Välj bilder för efterbild, plan eller kundutskick</div>' +
+        '<div class="gk-visit-photos">' +
+        '<div class="gk-offer-ready-photos"><div class="gk-visit-label">Markerade bilder för offert</div>' +
+        (offerReadyRows.length
+          ? '<div class="gk-sub gk-order-note">Ritade/markerade versioner som kan skickas med i offert eller behandlingsplan.</div>' +
+            gkSharedPhotoGrid(offerReadyRows, 'gk-foto-grid--offer-ready')
+          : '<div class="gk-offer-ready-empty">Inga markerade offertbilder ännu. Öppna en bild, rita och välj “behandlingsplan/offert”.</div>') +
+        '</div>' +
+        '<div class="gk-visit-label gk-visit-label--original">Originalbilder</div>' +
+        '<div class="gk-sub gk-order-note">Välj bilder för efterbild, plan eller kundutskick.</div>' +
         gkSharedPhotoGrid(
-          fotoMediaRows,
+          originalFotoRows,
           'gk-foto-grid--all' + (fotoCollapsed ? ' is-collapsed' : '')
         ) +
         (fotoCollapsed
           ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
-            fotoMediaRows.length +
+            originalFotoRows.length +
             '</button>'
           : '') +
         '</div>';
-      h += sec('Foto', gkSharedMediaCountLabel(fotoMediaRows), fotoRows);
+      h += sec(
+        'Foto',
+        gkSharedMediaCountLabel(fotoMediaRows) +
+          (offerReadyRows.length ? ' · ' + offerReadyRows.length + ' offertklara' : ''),
+        fotoRows
+      );
     } else if (photos.length) {
       var fotoCount = photos.reduce(function (n, p) {
         return n + (p.count || 1);
@@ -4035,7 +4173,7 @@
     (function renderBesok() {
       function dateKey(f) {
         var direct = String(
-          (f && (f.documentDate || f.captureDate || f.photoDate || f.visitDate)) || ''
+          (f && (f.documentDate || f.visitDate || f.photoDate || f.captureDate)) || ''
         ).slice(0, 10);
         if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
         var oc = f && f.occasionContext;
@@ -4550,8 +4688,66 @@
     window.__kkSigBound = true;
     function fnamn() {
       var dn = document.querySelector('.kkref .doss .dn');
-      var n = dn ? String(dn.textContent || '').trim() : '';
-      return n.split(' ')[0] || 'där';
+      if (dn) {
+        var n = String(dn.textContent || '').trim();
+        if (n) return n.split(' ')[0];
+      }
+      var gkName = document.querySelector('[data-gk-card-name], .gk-h1, .gk-name');
+      if (gkName) {
+        var gn = String(gkName.textContent || '').trim();
+        if (gn) return gn.split(' ')[0];
+      }
+      return 'där';
+    }
+    function resolveKkSigPatientId(btn, modalEl) {
+      if (modalEl && modalEl.dataset && modalEl.dataset.patientId) {
+        return String(modalEl.dataset.patientId).trim();
+      }
+      if (btn && btn.getAttribute) {
+        var fromBtn = btn.getAttribute('data-kk-patient-id');
+        if (fromBtn) return String(fromBtn).trim();
+      }
+      var nodes = [
+        document.querySelector('[data-gk-patient-id]'),
+        document.querySelector('.kk-attend[data-patient-id]'),
+        document.querySelector('.kkref .kk-attend[data-patient-id]'),
+      ];
+      for (var i = 0; i < nodes.length; i++) {
+        if (!nodes[i]) continue;
+        var id =
+          nodes[i].getAttribute('data-gk-patient-id') ||
+          nodes[i].getAttribute('data-patient-id') ||
+          '';
+        if (id) return String(id).trim();
+      }
+      return '';
+    }
+    function kkSigAuthHeaders() {
+      var token = '';
+      try {
+        token = (
+          window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          ''
+        ).trim();
+      } catch (er) {
+        /* ignore */
+      }
+      var hdrs = { 'Content-Type': 'application/json' };
+      if (token && token !== '__preview_local__') hdrs.Authorization = 'Bearer ' + token;
+      return hdrs;
+    }
+    function kkSigFetchJson(url, body) {
+      return fetch(url, {
+        method: 'POST',
+        headers: kkSigAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(body || {}),
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          return { status: r.status, j: j };
+        });
+      });
     }
     function utkastFor(sig, label, namn) {
       var s = String(sig || '').toLowerCase();
@@ -4605,7 +4801,11 @@
           rubrik: 'Påminn om avtal + samtycke',
           kund: true,
           sendEndpoint: '/api/v1/cco-treatment-agreement/send-for-sign',
-          sendLabel: 'Skicka avtal för signering',
+          previewEndpoint: '/api/v1/cco-treatment-agreement/send-for-sign/preview',
+          fromOfferEndpoint: '/api/v1/cco-treatment-agreement/from-offer',
+          templateApprovalEndpoint: '/api/v1/cco-treatment-agreement/template-version-approval',
+          sendLabel: 'Aktivera signering (kund får länk)',
+          previewLabel: 'Kontrollera gate (skickar inte)',
           urlKey: 'agreementSignUrl',
           text:
             'Hej ' +
@@ -4655,6 +4855,7 @@
     document.addEventListener('click', function (e) {
       var btn = e.target.closest && e.target.closest('[data-kk-sig]');
       if (!btn) return;
+      var pidOnOpen = resolveKkSigPatientId(btn);
       var u = utkastFor(
         btn.getAttribute('data-kk-sig'),
         btn.getAttribute('data-kk-sig-label'),
@@ -4668,13 +4869,18 @@
       if (ov) ov.remove();
       ov = document.createElement('div');
       ov.id = 'kk-sigact';
+      if (pidOnOpen) ov.dataset.patientId = pidOnOpen;
       ov.innerHTML =
         '<div class="kk-sigact-panel">' +
         '<div class="kk-sigact-h">' +
         esc(u.rubrik) +
         '</div>' +
         '<div class="kk-sigact-sub">' +
-        (u.kund ? 'Färdigt utkast — granska och skicka till kunden' : 'Intern åtgärd') +
+        (u.previewEndpoint
+          ? 'Staff-läge — kontrollera gate utan att skicka till kund'
+          : u.kund
+            ? 'Färdigt utkast — granska och skicka till kunden'
+            : 'Intern åtgärd') +
         '</div>' +
         '<div class="kk-sigact-draft">' +
         esc(u.text) +
@@ -4684,8 +4890,16 @@
           ? '<button type="button" class="kk-btn" data-kk-sig-copy>Kopiera utkast</button>' +
             '<button type="button" class="kk-btn" data-kk-sig-studio>✉ Svarstudio</button>'
           : '') +
+        (u.fromOfferEndpoint
+          ? '<button type="button" class="kk-btn" data-kk-sig-from-offer>Skapa avtal från offert</button>'
+          : '') +
+        (u.previewEndpoint
+          ? '<button type="button" class="kk-btn kk-btn-gold" data-kk-sig-preview>' +
+            esc(u.previewLabel || 'Kontrollera gate') +
+            '</button>'
+          : '') +
         (u.sendEndpoint
-          ? '<button type="button" class="kk-btn kk-btn-gold" data-kk-sig-send>' +
+          ? '<button type="button" class="kk-btn" data-kk-sig-send>' +
             esc(u.sendLabel || 'Skicka för signering') +
             '</button>'
           : '') +
@@ -4704,10 +4918,118 @@
           var studio = document.querySelector('[data-studio-open]');
           if (studio) studio.click();
         }
+        if (ev.target.hasAttribute('data-kk-sig-from-offer')) {
+          var pidOffer = resolveKkSigPatientId(btn, ov);
+          if (!pidOffer) {
+            ev.target.textContent = 'Kund-ID saknas';
+            return;
+          }
+          ev.target.textContent = 'Skapar…';
+          kkSigFetchJson(u.fromOfferEndpoint, { patientId: pidOffer, deliveryMode: 'plats' })
+            .then(function (res) {
+              var draft = ov.querySelector('.kk-sigact-draft');
+              if (res.status >= 200 && res.status < 300) {
+                if (draft)
+                  draft.innerHTML =
+                    '<b>✓ Avtal skapat från offert.</b><br>Mall: ' +
+                    esc(res.j.agreement?.templateId || '—') +
+                    '@' +
+                    esc(res.j.agreement?.templateVersion || '—') +
+                    '<br>Nästa: klicka <b>Kontrollera gate</b>.';
+                ev.target.textContent = 'Skapat ✓';
+              } else {
+                if (draft)
+                  draft.innerHTML = '<b>Kunde inte skapa avtal:</b> ' + esc(res.j.error || 'fel');
+                ev.target.textContent = 'Skapa avtal från offert';
+              }
+            })
+            .catch(function () {
+              ev.target.textContent = 'Nätfel — försök igen';
+            });
+        }
+        if (ev.target.hasAttribute('data-kk-sig-preview')) {
+          var pidPreview = resolveKkSigPatientId(btn, ov);
+          if (!pidPreview) {
+            ev.target.textContent = 'Kund-ID saknas';
+            return;
+          }
+          ev.target.textContent = 'Kontrollerar…';
+          kkSigFetchJson(u.previewEndpoint, { patientId: pidPreview })
+            .then(function (res) {
+              var draft = ov.querySelector('.kk-sigact-draft');
+              var gate = res.j || {};
+              if (gate.allowed) {
+                if (draft)
+                  draft.innerHTML =
+                    '<b>✓ Gate OK — signering tillåten.</b><br>Mall ' +
+                    esc(gate.templateId || '—') +
+                    '@' +
+                    esc(gate.templateVersion || '—') +
+                    ' · bundle: ' +
+                    esc(gate.bundleStatus || '—') +
+                    '<br><span style="color:#94897b">Inget skickat till kunden.</span>';
+                ev.target.textContent = 'Gate OK ✓';
+              } else if (gate.needsLegalReview && u.templateApprovalEndpoint) {
+                if (draft)
+                  draft.innerHTML =
+                    '<b>Gate spärrad — legal review saknas.</b><br>' +
+                    esc(gate.error || '') +
+                    '<br><button type="button" class="kk-btn kk-btn-gold" data-kk-sig-approve-template style="margin-top:8px">Godkänn mall-version (internt)</button>';
+                ev.target.textContent = gate.previewLabel || 'Kontrollera gate';
+              } else if (gate.needsFromOffer) {
+                if (draft)
+                  draft.innerHTML =
+                    '<b>Gate spärrad — avtal saknas.</b><br>' +
+                    esc(gate.error || '') +
+                    '<br><span style="color:#94897b">Klicka <b>Skapa avtal från offert</b> först.</span>';
+                ev.target.textContent = gate.previewLabel || 'Kontrollera gate';
+              } else {
+                if (draft) draft.innerHTML = '<b>Gate spärrad:</b> ' + esc(gate.error || 'fel');
+                ev.target.textContent = gate.previewLabel || 'Kontrollera gate';
+              }
+            })
+            .catch(function () {
+              ev.target.textContent = 'Nätfel — försök igen';
+            });
+        }
+        if (ev.target.hasAttribute('data-kk-sig-approve-template')) {
+          var pidApprove = resolveKkSigPatientId(btn, ov);
+          if (!pidApprove || !u.templateApprovalEndpoint) return;
+          ev.target.textContent = 'Godkänner…';
+          kkSigFetchJson(u.previewEndpoint, { patientId: pidApprove }).then(function (prev) {
+            var tid = prev.j?.templateId;
+            var ver = prev.j?.templateVersion;
+            if (!tid || !ver) {
+              ev.target.textContent = 'Saknar mall-info';
+              return;
+            }
+            return kkSigFetchJson(u.templateApprovalEndpoint, {
+              templateId: tid,
+              version: ver,
+              status: 'approved',
+              approvedBy: 'fazli',
+              note: 'ORD-6 staff modal',
+            }).then(function (res) {
+              var draft = ov.querySelector('.kk-sigact-draft');
+              if (res.status >= 200 && res.status < 300) {
+                if (draft)
+                  draft.innerHTML =
+                    '<b>✓ Mall-version godkänd.</b> ' +
+                    esc(tid) +
+                    '@' +
+                    esc(ver) +
+                    '<br>Klicka <b>Kontrollera gate</b> igen.';
+                ev.target.textContent = 'Godkänd ✓';
+              } else {
+                if (draft)
+                  draft.innerHTML = '<b>Kunde inte godkänna mall:</b> ' + esc(res.j.error || 'fel');
+                ev.target.textContent = 'Godkänn mall-version';
+              }
+            });
+          });
+        }
         if (ev.target.hasAttribute('data-kk-sig-send')) {
-          var pid = (document.querySelector('.kkref .kk-attend') || {}).getAttribute
-            ? document.querySelector('.kkref .kk-attend').getAttribute('data-patient-id')
-            : '';
+          var pid = resolveKkSigPatientId(btn, ov);
           if (!pid) {
             ev.target.textContent = 'Kund-ID saknas';
             return;
@@ -4717,40 +5039,19 @@
               (u.sendLabel || 'Skicka för signering') +
                 ' till ' +
                 fnamn() +
-                '? Detta startar signeringsflödet.'
+                '? Detta aktiverar signeringsflödet och kan nå kunden via länk.'
             )
           )
             return;
-          var token = '';
-          try {
-            token = (
-              window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
-              window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
-              ''
-            ).trim();
-          } catch (er) {
-            /* ignore */
-          }
-          var hdrs = { 'Content-Type': 'application/json' };
-          if (token && token !== '__preview_local__') hdrs.Authorization = 'Bearer ' + token;
           ev.target.textContent = 'Skickar…';
-          fetch(u.sendEndpoint, {
-            method: 'POST',
-            headers: hdrs,
-            body: JSON.stringify({ patientId: pid }),
-          })
-            .then(function (r) {
-              return r.json().then(function (j) {
-                return { status: r.status, j: j };
-              });
-            })
+          kkSigFetchJson(u.sendEndpoint, { patientId: pid })
             .then(function (res) {
               var draft = ov.querySelector('.kk-sigact-draft');
               if (res.status === 200) {
                 var url = res.j[u.urlKey] || '';
                 if (draft)
                   draft.innerHTML =
-                    '<b>✓ Skickat för signering.</b><br>Länk: <span style="word-break:break-all">' +
+                    '<b>✓ Signering aktiverad.</b><br>Länk: <span style="word-break:break-all">' +
                     esc(url) +
                     '</span>';
                 ev.target.textContent = 'Skickat ✓';
@@ -4762,7 +5063,9 @@
                     esc(res.j.error || 'fel') +
                     (res.status === 404
                       ? '<br><span style="color:#94897b">Dokumentet finns inte än — skapa avtal/offert först.</span>'
-                      : '');
+                      : res.j.needsLegalReview
+                        ? '<br><span style="color:#94897b">Godkänn mall-version (legal review) först.</span>'
+                        : '');
                 ev.target.textContent = u.sendLabel || 'Skicka';
               }
             })

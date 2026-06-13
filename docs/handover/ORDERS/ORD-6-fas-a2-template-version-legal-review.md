@@ -10,7 +10,12 @@
 - **Verify lokalt:** `npm run cco:verify-fas-a-readiness` + `node --test tests/ops/ccoTemplateVersionApprovalStore.test.js` + `node --test tests/ops/ccoTreatmentAgreementStore.test.js` — **PASS** (2026-06-13).
 - **Prod STAFF-UAT:** väntar tills `arcana.hairtpclinic.com` svarar (502 vid GO — heal deploy först).
 
-### Aktivera mall på prod (owner/staff, inloggad)
+### Staff-UAT i UI (efter deploy)
+
+1. Kunder → öppna patient med avtal-blockerare
+2. **Granska utkast** → **Kontrollera gate (skickar inte)** — ingen kundkontakt
+3. Vid behov: **Skapa avtal från offert** → **Godkänn mall-version (internt)**
+4. **Aktivera signering** — endast om du medvetet vill nå kunden (extra bekräftelse)
 
 ```bash
 curl -sS -X POST 'https://arcana.hairtpclinic.com/api/v1/cco-treatment-agreement/template-version-approval' \

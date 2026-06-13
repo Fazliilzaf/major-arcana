@@ -28,6 +28,7 @@ const {
 const { addDaysIso, buildEsignToken } = require('../ops/ccoOfferEsign');
 const { renderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
 const { checkTreatmentBookingGate } = require('../ops/ccoTreatmentBookingGate');
+const { evaluateSendForSignGate } = require('../ops/ccoTreatmentAgreementSendGate');
 
 function createCcoTreatmentAgreementRouter({
   treatmentAgreementStore,
@@ -321,6 +322,36 @@ function createCcoTreatmentAgreementRouter({
   );
 
   router.post(
+    '/cco-treatment-agreement/send-for-sign/preview',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (_context, actor, reqInner) => {
+        const body = reqInner.body && typeof reqInner.body === 'object' ? reqInner.body : {};
+        const patientId = normalizeText(body.patientId);
+        const gate = await evaluateSendForSignGate({
+          treatmentAgreementStore,
+          templateVersionApprovalStore,
+          tenantId: actor.tenantId,
+          patientId,
+        });
+        return res.status(gate.httpStatus).json({
+          preview: true,
+          allowed: gate.allowed,
+          error: gate.error || undefined,
+          needsFromOffer: gate.needsFromOffer || false,
+          needsLegalReview: gate.needsLegalReview || false,
+          templateId: gate.templateId,
+          templateVersion: gate.templateVersion,
+          templateVersionApproved: gate.templateVersionApproved,
+          approvalStatus: gate.approvalStatus,
+          bundleStatus: gate.bundleStatus,
+          deliveryMode: gate.deliveryMode,
+        });
+      })
+  );
+
+  router.post(
     '/cco-treatment-agreement/send-for-sign',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
@@ -330,40 +361,32 @@ function createCcoTreatmentAgreementRouter({
         const patientId = normalizeText(body.patientId);
         if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
 
+        const gate = await evaluateSendForSignGate({
+          treatmentAgreementStore,
+          templateVersionApprovalStore,
+          tenantId: actor.tenantId,
+          patientId,
+        });
+        if (!gate.allowed) {
+          return res.status(gate.httpStatus).json({
+            error: gate.error,
+            needsFromOffer: gate.needsFromOffer || false,
+            needsLegalReview: gate.needsLegalReview || false,
+            templateId: gate.templateId,
+            templateVersion: gate.templateVersion,
+            bundleStatus: gate.bundleStatus,
+          });
+        }
+
         const existing = await treatmentAgreementStore.getPatientAgreement({
           tenantId: actor.tenantId,
           patientId,
         });
-        if (!existing?.agreementDocumentId) {
-          return res
-            .status(404)
-            .json({ error: 'Inget avtal att skicka — skapa från offert först.' });
-        }
-
-        const templateGate = await assertTemplateVersionApprovedForAgreement({
-          templateVersionApprovalStore,
-          agreement: existing,
-          actionLabel: 'skicka för signering',
-        });
-        if (!templateGate.allowed) {
-          return res.status(409).json({
-            error: templateGate.reason,
-            templateId: templateGate.binding?.templateId,
-            templateVersion: templateGate.binding?.templateVersion,
-          });
-        }
-
         const templateApproval = await resolveTemplateApprovalForAgreement(
           templateVersionApprovalStore,
           existing
         );
         const bundleGate = assertBundleReadyToSend(existing, { templateApproval });
-        if (!bundleGate.allowed) {
-          return res.status(409).json({
-            error: bundleGate.reason,
-            bundleStatus: bundleGate.bundleStatus,
-          });
-        }
 
         const sentAt = new Date().toISOString();
         const isDistans = normalizeText(existing.deliveryMode) === 'distans';

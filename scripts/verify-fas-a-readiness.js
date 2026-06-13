@@ -59,6 +59,11 @@ if (!routesSrc.includes('template-version-approval')) {
 } else {
   pass('ORD-6 template-version-approval route');
 }
+if (!routesSrc.includes('send-for-sign/preview')) {
+  fail('ccoTreatmentAgreement saknar send-for-sign/preview (ORD-6 staff UAT)');
+} else {
+  pass('ORD-6 send-for-sign/preview route');
+}
 if (routesSrc.includes('record-legal-review')) {
   fail('record-legal-review får inte finnas (väg A)');
 } else {
