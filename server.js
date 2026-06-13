@@ -10144,42 +10144,7 @@ try {
         const assetId = String(req.params.assetId || '').trim();
         const asset = stores.assetStore.getAsset(assetId);
         if (!asset) return res.status(404).json({ error: 'asset_not_found' });
-        let key = asset.thumbnailKey || null;
-        if (
-          !key &&
-          asset.storageKey &&
-          typeof stores.secureStorage.generateThumbnailIfImage === 'function'
-        ) {
-          let inferredMime = asset.mimeType;
-          try {
-            const sourceObj = await stores.secureStorage.getObject(asset.storageKey);
-            const buf = sourceObj.buffer;
-            if (Buffer.isBuffer(buf)) {
-              if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
-                inferredMime = 'image/jpeg';
-              } else if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
-                inferredMime = 'image/png';
-              } else if (buf.slice(0, 12).toString('ascii').startsWith('RIFF')) {
-                inferredMime = 'image/webp';
-              } else if (buf.slice(4, 12).toString('ascii').includes('ftyp')) {
-                inferredMime = 'image/heic';
-              }
-            }
-            inferredMime = inferredMime || sourceObj.mimeType;
-          } catch (_error) {
-            inferredMime = asset.mimeType;
-          }
-          key = await stores.secureStorage.generateThumbnailIfImage(asset.storageKey, inferredMime);
-          if (key && typeof stores.assetStore.updateAssetThumbnailKey === 'function') {
-            await stores.assetStore.updateAssetThumbnailKey(asset.id, key, {
-              actor: {
-                role: req.auth?.role || 'system',
-                userId: req.auth?.userId || 'asset-route',
-              },
-              reason: 'thumbnail_on_demand',
-            });
-          }
-        }
+        const key = asset.thumbnailKey || null;
         if (!key) return res.status(404).json({ error: 'no_thumbnail' });
         const obj = await stores.secureStorage.getObject(key);
         res.setHeader('Content-Type', obj.mimeType || 'image/jpeg');
