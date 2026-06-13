@@ -12611,8 +12611,22 @@ process.once('SIGTERM', () => {
     graphSendConnector: null,
   };
 
+  const schedulerConfig = { ...config };
+  if (config.isProduction && process.env.ARCANA_SCHEDULER_PROD_SAFE_MODE !== 'false') {
+    const unstableStartupJobs = new Set(['cco_daily_digest', 'cco_dashboard_snapshot_refresh']);
+    const filteredJobs = (schedulerConfig.schedulerJobsAllowlist || []).filter(
+      (jobId) => !unstableStartupJobs.has(jobId)
+    );
+    if (filteredJobs.length !== (schedulerConfig.schedulerJobsAllowlist || []).length) {
+      console.warn(
+        `[scheduler] prod safe-mode pausade instabila jobb: ${[...unstableStartupJobs].join(', ')}`
+      );
+    }
+    schedulerConfig.schedulerJobsAllowlist = filteredJobs;
+  }
+
   const scheduler = createScheduler({
-    config,
+    config: schedulerConfig,
     authStore,
     templateStore,
     capabilityAnalysisStore,
