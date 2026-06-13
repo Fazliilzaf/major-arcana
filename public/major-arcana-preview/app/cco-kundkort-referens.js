@@ -132,6 +132,136 @@
   function isReferensMediaFile(file) {
     return isReferensImageFile(file) || isReferensVideoFile(file);
   }
+  var SHARED_MND = [
+    'jan',
+    'feb',
+    'mar',
+    'apr',
+    'maj',
+    'jun',
+    'jul',
+    'aug',
+    'sep',
+    'okt',
+    'nov',
+    'dec',
+  ];
+  function gkSharedZoneOf(value) {
+    var l = driveDedupeText(value);
+    if (/h[åa]rlinj|hairlin|front|panna|forehead|temporal|tinning/.test(l)) return 'Hårlinje';
+    if (/krona|crown|vertex|hj[äa]ss|virvel/.test(l)) return 'Krona';
+    if (/donor|nack|occip|baksid/.test(l)) return 'Donator';
+    return 'Översikt';
+  }
+  function gkSharedDateOfFile(file) {
+    var direct = String(
+      (file && (file.documentDate || file.captureDate || file.photoDate || file.visitDate)) || ''
+    ).slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
+    var source = String(
+      (file && (file.relativePath || file.fileName || file.originalFileName || file.name)) || ''
+    );
+    var m = source.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[1] + '-' + m[2] + '-' + m[3];
+    var epoch = source.match(/\b(1[0-9]{9})\b/);
+    if (epoch) {
+      var date = new Date(Number(epoch[1]) * 1000);
+      if (!isNaN(date)) return date.toISOString().slice(0, 10);
+    }
+    return '';
+  }
+  function gkSharedFmtDate(value) {
+    if (!value) return 'odaterat';
+    var p = String(value).split('-');
+    var year = Number(p[0]);
+    var month = Number(p[1]);
+    var day = Number(p[2]);
+    if (!year || !month || !day) return value;
+    return (
+      day +
+      ' ' +
+      (SHARED_MND[month - 1] || '') +
+      (year === new Date().getFullYear() ? '' : ' ' + year)
+    );
+  }
+  function gkSharedMediaFromFile(file) {
+    var id = file && file.id ? String(file.id) : '';
+    var labelSource =
+      ((file && file.relativePath) || '') +
+      ' ' +
+      ((file && (file.fileName || file.originalFileName || file.name)) || '');
+    var isVideo = isReferensVideoFile(file);
+    var url =
+      (file && file.viewUrl) ||
+      (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#');
+    var previewUrl =
+      (file && (file.thumbnailUrl || file.thumbnailLink)) ||
+      (id
+        ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
+        : '');
+    return {
+      id: id,
+      sourceAssetId: (file && (file.assetId || file.sourceAssetId || file.id)) || '',
+      name:
+        (file && (file.fileName || file.originalFileName || file.name || file.displayName)) || '',
+      kind: isVideo ? 'video' : 'image',
+      zone: gkSharedZoneOf(labelSource),
+      date: gkSharedDateOfFile(file),
+      thumb: isVideo ? '' : previewUrl,
+      url: url,
+    };
+  }
+  function gkSharedPhotoGrid(items, cls) {
+    var list = A(items);
+    if (!list.length) return '';
+    return (
+      '<div class="gk-foto-grid' +
+      (cls ? ' ' + esc(cls) : '') +
+      '">' +
+      list
+        .map(function (p) {
+          var src = p.thumb || p.url;
+          var fallback = p.url || '';
+          var media =
+            p.kind === 'video'
+              ? '<video data-gk-img-src="' +
+                esc(fallback) +
+                '" muted playsinline preload="metadata"><source src="' +
+                esc(fallback) +
+                '"></video><span class="gk-video-chip">Film</span>'
+              : '<img data-gk-img-src="' +
+                esc(fallback) +
+                '" src="' +
+                esc(src) +
+                '" alt="' +
+                esc(p.name || p.zone || 'Foto') +
+                '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />';
+          return (
+            '<a class="gk-foto" href="' +
+            esc(p.url || '#') +
+            '" data-gk-photo-id="' +
+            esc(p.id || p.sourceAssetId || '') +
+            '" data-gk-photo-src="' +
+            esc(fallback || src || '') +
+            '" data-gk-photo-zone="' +
+            esc(p.zone || '') +
+            '" data-gk-photo-name="' +
+            esc(p.name || '') +
+            '" target="_blank" rel="noopener noreferrer" title="' +
+            (p.kind === 'video' ? 'Öppna film' : 'Öppna bild') +
+            '">' +
+            media +
+            '<span style="position:relative;z-index:1">' +
+            (p.kind === 'video' ? 'Film' : esc(p.zone || 'Foto')) +
+            ' · ' +
+            esc(gkSharedFmtDate(p.date)) +
+            '</span></a>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
+  }
   function isReferensJournalPdf(file) {
     var mime = driveDedupeText(file && (file.mimeType || file.contentType));
     var type = driveDedupeText(file && file.fileType);
@@ -3889,13 +4019,12 @@
               );
             })
             .join('');
-          var visitMediaRows = g.files.filter(isReferensMediaFile).map(gkMediaFromFile);
+          var visitMediaRows = g.files.filter(isReferensMediaFile).map(gkSharedMediaFromFile);
           var visitCollapsed = visitMediaRows.length > 6;
           var mediaRows = visitMediaRows.length
             ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder och film</div>' +
-              gkPhotoGrid(
+              gkSharedPhotoGrid(
                 visitMediaRows,
-                0,
                 'gk-foto-grid--journal' + (visitCollapsed ? ' is-collapsed' : '')
               ) +
               (visitCollapsed
