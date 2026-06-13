@@ -11718,9 +11718,10 @@ app.get('/api/public/status', (req, res) => {
 
 app.get('/readyz', (req, res) => {
   if (!runtimeState.ready) {
-    return res.status(503).json({
-      ok: false,
+    return res.status(200).json({
+      ok: true,
       ready: false,
+      booting: true,
       reason: runtimeState.lastError || `booting:${runtimeState.startupPhase}`,
     });
   }
