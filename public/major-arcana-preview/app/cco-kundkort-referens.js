@@ -439,6 +439,18 @@
   }
   function expandMedForm(root, medForm) {
     if (!root || !medForm) return false;
+    var docBtn = root.querySelector('[data-kk-med-form="' + medForm + '"][data-kk-open-doc]');
+    if (docBtn && typeof window.__kkOpenDocument === 'function') {
+      window.__kkOpenDocument(
+        docBtn.getAttribute('data-kk-open-doc') || '',
+        docBtn.getAttribute('data-kk-doc-title') || ''
+      );
+      docBtn.classList.add('kk-flash');
+      setTimeout(function () {
+        docBtn.classList.remove('kk-flash');
+      }, 1200);
+      return true;
+    }
     var formEl = root.querySelector('[data-kk-med-form="' + medForm + '"]');
     if (!formEl) return false;
     if (formEl.tagName === 'DETAILS') formEl.open = true;
@@ -537,28 +549,12 @@
     return tiles;
   }
 
-  function mapHdAnswers(hd) {
-    if (!hd || typeof hd !== 'object') return null;
-    if (A(hd.answers).length) return A(hd.answers);
-    if (A(hd.flags).length) {
-      return hd.flags.map(function (f) {
-        return {
-          label: f.label || f.key || f.question || 'Flagga',
-          value: f.value != null ? f.value : 'Ja',
-          risk: f.risk || f.level || 'flag',
-          detail: f.detail || f.note || '',
-        };
-      });
-    }
-    return null;
-  }
-
   function hdSourceLabel(hd, card) {
     if (!hd) return '';
     if (hd.signedAt || hd.signed) {
       var src = hd.sourceSystem || hd.source || card.healthDeclarationSource || '';
-      if (/halso|m365/i.test(String(src))) return 'Signerad · halso@';
-      return 'Signerad';
+      if (/halso|m365/i.test(String(src))) return 'halso@';
+      return '';
     }
     return '';
   }
@@ -570,148 +566,101 @@
     return false;
   }
 
-  function wrapMedFormPanel(
-    formKey,
-    missingLabel,
-    signed,
-    sourceLabel,
-    bodyHtml,
-    answerCount,
-    form
-  ) {
-    var status = signed ? 'Signerad' : 'Saknas';
-    var dateLabel = medFormDateLabel(form);
-    var meta =
-      status +
-      (answerCount ? ' · ' + answerCount + ' svar' : '') +
-      (dateLabel ? ' · ' + dateLabel : '') +
-      (sourceLabel ? ' · ' + sourceLabel : '');
-    return (
-      '<details class="gk-med-form" data-kk-med-form="' +
-      esc(formKey) +
-      '"' +
-      (signed ? ' open' : '') +
-      '>' +
-      '<summary class="gk-med-form-summary">' +
-      '<span class="gk-med-form-title">' +
-      esc(missingLabel) +
-      '</span>' +
-      '<span class="gk-med-form-meta">' +
-      esc(meta) +
-      '</span>' +
-      '<span class="gk-med-form-chevron" aria-hidden="true">▾</span>' +
-      '</summary>' +
-      '<div class="gk-med-form-body">' +
-      bodyHtml +
-      '</div></details>'
-    );
+  function referensFileViewUrl(file) {
+    if (!file) return '';
+    if (file.viewUrl) return file.viewUrl;
+    var id = file.id || file.fileId;
+    if (id) return '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id);
+    return '';
   }
 
-  function buildFormAnswersInner(
-    answers,
-    form,
-    signed,
-    sourceLabel,
-    missingLabel,
-    sigRuleId,
-    formKey
-  ) {
-    if (answers && answers.length) {
-      var flags = answers.filter(function (a) {
-        return a.risk === 'flag' || a.risk === 'amber';
-      });
-      var inner = '';
-      if (flags.length)
-        inner +=
-          '<div class="flag kkx-flag"><div class="fi">!</div><div><b>' +
-          flags.length +
-          ' riskflagg' +
-          (flags.length === 1 ? 'a' : 'or') +
-          ':</b> ' +
-          esc(
-            flags
-              .map(function (f) {
-                return f.label;
-              })
-              .join(' · ')
-          ) +
-          ' — verifiera före ingrepp.</div></div>';
-      inner += answers
-        .map(function (a) {
-          return (
-            '<div class="qrow kkx-qrow"><div><div class="q">' +
-            esc(a.label) +
-            '</div>' +
-            (a.detail ? '<div class="qv">' + esc(a.detail) + '</div>' : '') +
-            '</div>' +
-            '<span class="ans kkx-ans ' +
-            ansClass(a.risk) +
-            '">' +
-            esc(ansLabel(a.value, a.risk)) +
-            '</span></div>'
-          );
-        })
-        .join('');
-      if (form && form.consent && typeof form.consent === 'object') {
-        var consentVal = form.consent.signed != null ? form.consent.signed : form.consent.value;
-        inner +=
-          '<div class="qrow kkx-qrow"><div><div class="q">Samtycke</div></div><span class="ans kkx-ans ' +
-          ansClass(/ja|true/i.test(String(consentVal)) ? 'amber' : '') +
-          '">' +
-          esc(ansLabel(consentVal, '')) +
-          '</span></div>';
+  function resolveMedFormViewUrl(formKey, form, driveFiles) {
+    if (form && form.viewUrl) return form.viewUrl;
+    var pat =
+      formKey === 'fitness_certificate'
+        ? /friskf[oö]rs[aä]kr|fitness.?cert/i
+        : /h[aä]lsodek|halsodek|health.?decl/i;
+    var best = '';
+    var bestTs = 0;
+    A(driveFiles).forEach(function (f) {
+      if (!isReferensJournalPdf(f)) return;
+      var name = String(f.fileName || f.name || f.relativePath || f.originalFileName || '');
+      if (!pat.test(name)) return;
+      var url = referensFileViewUrl(f);
+      if (!url) return;
+      var ts = Date.parse(f.indexedAt || f.documentDate || f.modifiedTime || 0) || 0;
+      if (!best || ts >= bestTs) {
+        best = url;
+        bestTs = ts;
       }
-      inner +=
-        '<div class="hdfoot kkx-foot">Medicinsk data · ingen extern AI' +
-        (sourceLabel ? ' · ' + esc(sourceLabel) : '') +
-        '</div>';
-      return wrapMedFormPanel(
-        formKey || 'health_declaration',
-        missingLabel,
-        signed,
-        sourceLabel,
-        inner,
-        answers.length,
-        form
+    });
+    return best;
+  }
+
+  function buildMedFormDocRow(formKey, label, form, signed, sourceLabel, sigRuleId, driveFiles) {
+    var dateLabel = medFormDateLabel(form);
+    var meta = signed ? 'Signerad' : 'Saknas';
+    if (dateLabel) meta += ' · ' + dateLabel;
+    if (sourceLabel) meta += ' · ' + sourceLabel;
+    var viewUrl = resolveMedFormViewUrl(formKey, form, driveFiles);
+
+    if (!signed) {
+      return (
+        '<div class="gk-med-doc gk-med-doc--missing" data-kk-med-form="' +
+        esc(formKey) +
+        '">' +
+        '<span class="gk-med-doc-title">' +
+        esc(label) +
+        '</span>' +
+        '<span class="gk-med-doc-meta">' +
+        esc(meta) +
+        ' · Efterfrågas före behandling</span>' +
+        (sigRuleId
+          ? '<button type="button" class="kk-sig-act" data-kk-sig="' +
+            esc(sigRuleId) +
+            '" data-kk-sig-label="Skicka ' +
+            esc(label.toLowerCase()) +
+            '" title="Skicka">→</button>'
+          : '') +
+        '</div>'
       );
     }
-    if (signed) {
-      var signedBody =
-        '<div class="hdfoot kkx-foot">' +
-        esc(missingLabel) +
-        ' finns i patient-master' +
-        (sourceLabel ? ' · ' + esc(sourceLabel) : '') +
-        ' — klicka för att granska.</div>';
-      return wrapMedFormPanel(
-        formKey || 'health_declaration',
-        missingLabel,
-        true,
-        sourceLabel,
-        signedBody,
-        0,
-        form
+
+    if (viewUrl) {
+      return (
+        '<button type="button" class="gk-med-doc" data-kk-med-form="' +
+        esc(formKey) +
+        '" data-kk-open-doc="' +
+        esc(viewUrl) +
+        '" data-kk-doc-title="' +
+        esc(label) +
+        '">' +
+        '<span class="gk-med-doc-title">' +
+        esc(label) +
+        '</span>' +
+        '<span class="gk-med-doc-meta">' +
+        esc(meta) +
+        '</span>' +
+        '<span class="gk-med-doc-open">Visa</span></button>'
       );
     }
+
     return (
-      '<div class="row acc info"><div style="flex:1"><div class="rt">' +
-      esc(missingLabel) +
-      ' saknas</div><div class="rm">Efterfrågas före behandling</div></div>' +
-      (sigRuleId
-        ? '<button type="button" class="kk-sig-act" data-kk-sig="' +
-          esc(sigRuleId) +
-          '" data-kk-sig-label="Skicka ' +
-          esc(missingLabel.toLowerCase()) +
-          '" title="Skicka">→</button>'
-        : '') +
-      '</div>'
+      '<div class="gk-med-doc gk-med-doc--nopdf" data-kk-med-form="' +
+      esc(formKey) +
+      '">' +
+      '<span class="gk-med-doc-title">' +
+      esc(label) +
+      '</span>' +
+      '<span class="gk-med-doc-meta">' +
+      esc(meta) +
+      ' · PDF saknas</span></div>'
     );
   }
 
-  function buildMedicinsktFormsInner(bcard) {
+  function buildMedicinsktFormsInner(bcard, driveFiles) {
     var hd = bcard.healthDeclaration || null;
     var fc = bcard.fitnessCertificate || null;
-    var hdAnswers = mapHdAnswers(hd);
-    var fcAnswers = mapHdAnswers(fc);
     var hdSigned =
       referensHasSignedHd(bcard) ||
       formSigned(hd, bcard, 'hasHealthDeclaration', 'missingHealthDeclaration');
@@ -720,24 +669,25 @@
       bcard.fitnessSigned === true;
     var hdSource = hdSourceLabel(hd, bcard);
     var fcSource = hdSourceLabel(fc, bcard);
+    var files = A(driveFiles);
     return (
-      buildFormAnswersInner(
-        hdAnswers,
+      buildMedFormDocRow(
+        'health_declaration',
+        'Hälsodeklaration',
         hd,
         hdSigned,
         hdSource,
-        'Hälsodeklaration',
         'customer.missing_health_declaration',
-        'health_declaration'
+        files
       ) +
-      buildFormAnswersInner(
-        fcAnswers,
+      buildMedFormDocRow(
+        'fitness_certificate',
+        'Friskförsäkran',
         fc,
         fcSigned,
         fcSource,
-        'Friskförsäkran',
         'customer.missing_operation_day_insurance',
-        'fitness_certificate'
+        files
       )
     );
   }
@@ -954,7 +904,11 @@
                       esc(src) +
                       '" data-gk-img-full="' +
                       esc(fallback) +
-                      '" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />'
+                      '" src="' +
+                      esc(src) +
+                      '" alt="' +
+                      esc(p.name || p.zone || 'Foto') +
+                      '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />'
                     : '';
             return (
               '<a class="gk-foto' +
@@ -982,6 +936,8 @@
               esc(p.name || '') +
               '" data-gk-photo-missing-preview="' +
               (missingPreview ? '1' : '0') +
+              '" data-gk-photo-src="' +
+              esc(fallback || src || '') +
               '" target="_blank" rel="noopener noreferrer" title="' +
               (p.kind === 'video' ? 'Öppna film' : 'Öppna bild') +
               '">' +
@@ -1227,7 +1183,7 @@
         ? '<span class="gk-pill gk-tag-warn">Att fylla i</span>'
         : '<span class="gk-pill gk-tag-ok">Signerad</span>',
       ctx.bcard
-        ? buildMedicinsktFormsInner(ctx.bcard)
+        ? buildMedicinsktFormsInner(ctx.bcard, ctx.driveFiles)
         : '<div class="gk-rad"><span class="gk-sub">Medicinsk data · endast visning</span></div>'
     );
 
@@ -1812,10 +1768,17 @@
           esc(fmtKr(cc.quotedAmount)) +
           '</b></span></div>';
       }
-      if (ctx.ltv) {
+      var ltvMoney = ctx.ltv ? fmtKr(ctx.ltv) : '';
+      if (ltvMoney) {
         rows +=
           '<div class="gk-rad gk-eko-inv"><span>Livstidsvärde (LTV)</span><span class="gk-hl"><b>' +
-          esc(fmtKr(ctx.ltv)) +
+          esc(ltvMoney) +
+          '</b></span></div>';
+      }
+      if (ctx.ltvLabel && ctx.ltvLabel !== ltvMoney) {
+        rows +=
+          '<div class="gk-rad gk-eko-inv"><span>Vunna affärer</span><span class="gk-hl"><b>' +
+          esc(ctx.ltvLabel) +
           '</b></span></div>';
       }
       // Betalplan 20/80 + betalt-progress
@@ -3640,7 +3603,11 @@
         '.</div></div>';
     }
 
-    h += sec('Medicinskt läge', medicinsktSectionPill(bcard), buildMedicinsktFormsInner(bcard));
+    h += sec(
+      'Medicinskt läge',
+      medicinsktSectionPill(bcard),
+      buildMedicinsktFormsInner(bcard, driveFiles)
+    );
 
     if (steps) {
       var pct = cur ? Math.round((cur / total) * 100) : 0;
@@ -4534,22 +4501,26 @@
               return !isReferensMediaFile(f);
             })
             .map(function (f) {
-              var url =
-                f.viewUrl ||
-                (f.id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(f.id) : '');
+              var url = referensFileViewUrl(f);
               var body =
                 '<span class="kk-foto-ico">' +
                 ico(f) +
                 '</span><div style="flex:1;min-width:0"><div class="rt">' +
                 esc(cleanName(f)) +
                 '</div></div>';
-              return url
-                ? '<a class="kk-file" target="_blank" rel="noopener" href="' +
-                    esc(url) +
-                    '">' +
-                    body +
-                    '<span class="kk-file-open">Öppna</span></a>'
-                : '<div class="kk-file">' + body + '</div>';
+              var title = cleanName(f) || 'Dokument';
+              if (url) {
+                return (
+                  '<button type="button" class="kk-file" data-kk-open-doc="' +
+                  esc(url) +
+                  '" data-kk-doc-title="' +
+                  esc(title) +
+                  '">' +
+                  body +
+                  '<span class="kk-file-open">Visa</span></button>'
+                );
+              }
+              return '<div class="kk-file">' + body + '</div>';
             })
             .join('');
           return (
@@ -4597,9 +4568,7 @@
             .map(function (f) {
               var fnamn = f.name || f.fileName || f.title || 'Fil';
               var typ = f.fileType || f.category || '';
-              var url =
-                f.viewUrl ||
-                (f.id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(f.id) : '');
+              var url = referensFileViewUrl(f);
               var meta = '<span class="kk-file-ico">' + fileIco(fnamn) + '</span>';
               var body =
                 '<div style="flex:1;min-width:0"><div class="rt">' +
@@ -4609,12 +4578,14 @@
                 '</div>';
               if (url) {
                 return (
-                  '<a class="kk-file" target="_blank" rel="noopener" href="' +
+                  '<button type="button" class="kk-file" data-kk-open-doc="' +
                   esc(url) +
+                  '" data-kk-doc-title="' +
+                  esc(fnamn) +
                   '">' +
                   meta +
                   body +
-                  '<span class="kk-file-open">Öppna</span></a>'
+                  '<span class="kk-file-open">Visa</span></button>'
                 );
               }
               return '<div class="kk-file">' + meta + body + '</div>';
@@ -4748,7 +4719,8 @@
         bundle: bundle,
         bcard: bcard,
         commercialCase: commercialCase,
-        ltv: ltvLabel || (ltvRaw != null ? String(ltvRaw) : ''),
+        ltv: Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0 ? Number(ltvRaw) : '',
+        ltvLabel: ltvLabel || '',
       };
       window.__GK_CONTEXTS = window.__GK_CONTEXTS || {};
       if (gkCtx.patientId) window.__GK_CONTEXTS[gkCtx.patientId] = gkCtx;
@@ -5300,6 +5272,18 @@
       );
     }
     document.addEventListener('click', function (e) {
+      // 0) Öppna dokument (PDF m.m.) i gemensam modal
+      var doc = e.target.closest && e.target.closest('[data-kk-open-doc]');
+      if (doc) {
+        e.preventDefault();
+        if (typeof window.__kkOpenDocument === 'function') {
+          window.__kkOpenDocument(
+            doc.getAttribute('data-kk-open-doc') || '',
+            doc.getAttribute('data-kk-doc-title') || 'Dokument'
+          );
+        }
+        return;
+      }
       // 1) Kopiera (adress) till urklipp
       var cp = e.target.closest && e.target.closest('[data-kk-copy]');
       if (cp) {
@@ -5609,6 +5593,47 @@
           goBtn.textContent = 'Förbered';
         });
     });
+  };
+
+  // Delad dokumentvisare — samma modal för HD/FC, journal-PDF och filer.
+  window.__kkOpenDocument = function (url, title) {
+    var raw = String(url || '').trim();
+    if (!raw) return;
+    var src = /^https?:\/\//i.test(raw) ? raw : new URL(raw, window.location.origin).href;
+    var ov = document.getElementById('kk-doc-view');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'kk-doc-view';
+      ov.innerHTML =
+        '<div class="kk-doc-view-panel">' +
+        '<div class="kk-doc-view-head">' +
+        '<span class="kk-doc-view-title"></span>' +
+        '<button type="button" class="kk-doc-view-close" aria-label="Stäng">×</button>' +
+        '</div>' +
+        '<iframe class="kk-doc-view-frame" title="Dokument"></iframe>' +
+        '</div>';
+      document.body.appendChild(ov);
+      ov.addEventListener('click', function (e) {
+        if (e.target === ov || e.target.classList.contains('kk-doc-view-close')) {
+          ov.classList.remove('open');
+          var frameClose = ov.querySelector('.kk-doc-view-frame');
+          if (frameClose) frameClose.src = 'about:blank';
+        }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        var open = document.getElementById('kk-doc-view');
+        if (!open || !open.classList.contains('open')) return;
+        open.classList.remove('open');
+        var frameEsc = open.querySelector('.kk-doc-view-frame');
+        if (frameEsc) frameEsc.src = 'about:blank';
+      });
+    }
+    var titleEl = ov.querySelector('.kk-doc-view-title');
+    var frame = ov.querySelector('.kk-doc-view-frame');
+    if (titleEl) titleEl.textContent = title || 'Dokument';
+    if (frame) frame.src = src;
+    ov.classList.add('open');
   };
 
   // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt

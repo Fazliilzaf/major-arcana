@@ -14,6 +14,7 @@ const {
   computeOwnerCoverage,
   maskEmail,
   maskPhone,
+  enrichPatientCardPreTreatmentForms,
 } = require('../../src/ops/ccoKunderEnrichment');
 const { emptyBookingSignals } = require('../../src/ops/ccoKunderBookingEnrichment');
 
@@ -47,13 +48,17 @@ describe('ccoKunderEnrichment', () => {
   it('ORD-29 Phase 1 counts m365_halso form/other as health declaration', () => {
     const index = buildAssetSignalsIndex([
       {
+        id: 'asset-hd-1',
         patientId: 'p-halso',
         category: 'other',
         status: 'VISIBLE_ON_PATIENT_CARD',
         sourceSystem: 'm365_halso',
         originalFileName: 'halsodeklaration-2024.html',
+        importedAt: '2026-01-15T10:00:00.000Z',
       },
     ]);
+    const sig = index.get('p-halso');
+    assert.equal(sig.healthDeclarationViewUrl, '/api/v1/cco/assets/asset-hd-1/download?inline=1');
     const readout = buildKunderReadout(
       {
         id: 'p-halso',
@@ -102,6 +107,32 @@ describe('ccoKunderEnrichment', () => {
       }),
       false
     );
+  });
+
+  it('enrichPatientCardPreTreatmentForms attaches viewUrl from asset index', () => {
+    const index = buildAssetSignalsIndex([
+      {
+        id: 'fc-asset-1',
+        patientId: 'p1',
+        category: 'other',
+        sourceSystem: 'm365_halso',
+        originalFileName: 'friskforsakran-2024.pdf',
+        importedAt: '2026-02-01T10:00:00.000Z',
+      },
+    ]);
+    const card = enrichPatientCardPreTreatmentForms(
+      { patientId: 'p1' },
+      {
+        id: 'p1',
+        fitnessCertificate: { signedAt: '2026-02-01T09:00:00.000Z', source: 'halso_mailbox' },
+      },
+      index
+    );
+    assert.equal(
+      card.fitnessCertificate.viewUrl,
+      '/api/v1/cco/assets/fc-asset-1/download?inline=1'
+    );
+    assert.equal(card.fitnessCertificate.documentTitle, 'Friskförsäkran');
   });
 
   it('matches VIP from pipedrive deals', () => {

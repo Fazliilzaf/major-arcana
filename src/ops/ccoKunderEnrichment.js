@@ -162,6 +162,8 @@ function emptyAssetSignals() {
     hasForm: false,
     hasHealthDeclarationDocument: false,
     hasFitnessCertificateDocument: false,
+    healthDeclarationViewUrl: '',
+    fitnessCertificateViewUrl: '',
     hasAgreement: false,
     hasGetAccept: false,
     hasHalso: false,
@@ -174,6 +176,28 @@ function emptyAssetSignals() {
     assetNeedsReview: false,
     assetCount: 0,
   };
+}
+
+function assetInlineViewUrl(asset = {}) {
+  const id = normalizeText(asset.id);
+  if (!id) return '';
+  return `/api/v1/cco/assets/${encodeURIComponent(id)}/download?inline=1`;
+}
+
+function assetSortTs(asset = {}) {
+  const ts = Date.parse(asset.importedAt || asset.documentDate || asset.createdAt || 0);
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function rememberFormDocumentUrl(sig, slot, asset = {}) {
+  const viewUrl = assetInlineViewUrl(asset);
+  if (!viewUrl) return;
+  const ts = assetSortTs(asset);
+  const prevTs = Number(sig[`${slot}Ts`] || 0);
+  if (!sig[slot] || ts >= prevTs) {
+    sig[slot] = viewUrl;
+    sig[`${slot}Ts`] = ts;
+  }
 }
 
 function isHealthDeclarationAsset(asset = {}) {
@@ -258,8 +282,13 @@ function buildAssetSignalsIndex(items = [], tenantId = null) {
     const source = normalizeKey(asset.sourceSystem);
 
     if (cat === 'form') sig.hasForm = true;
-    if (isFitnessCertificateAsset(asset)) sig.hasFitnessCertificateDocument = true;
-    else if (isHealthDeclarationAsset(asset)) sig.hasHealthDeclarationDocument = true;
+    if (isFitnessCertificateAsset(asset)) {
+      sig.hasFitnessCertificateDocument = true;
+      rememberFormDocumentUrl(sig, 'fitnessCertificateViewUrl', asset);
+    } else if (isHealthDeclarationAsset(asset)) {
+      sig.hasHealthDeclarationDocument = true;
+      rememberFormDocumentUrl(sig, 'healthDeclarationViewUrl', asset);
+    }
     if (cat === 'agreement' || cat === 'consent') sig.hasAgreement = true;
     if (source === 'getaccept_import') sig.hasGetAccept = true;
     if (source === 'm365_halso') sig.hasHalso = true;
@@ -1258,6 +1287,20 @@ function enrichPatientCardPreTreatmentForms(card = {}, patient = {}, assetIndex 
   }
   if (structuredFc.signedAt || Object.keys(structuredFc).length) {
     safeCard.fitnessCertificate = structuredFc;
+  }
+  if (sig.healthDeclarationViewUrl) {
+    safeCard.healthDeclaration = {
+      ...asObject(safeCard.healthDeclaration),
+      viewUrl: sig.healthDeclarationViewUrl,
+      documentTitle: 'Hälsodeklaration',
+    };
+  }
+  if (sig.fitnessCertificateViewUrl) {
+    safeCard.fitnessCertificate = {
+      ...asObject(safeCard.fitnessCertificate),
+      viewUrl: sig.fitnessCertificateViewUrl,
+      documentTitle: 'Friskförsäkran',
+    };
   }
   safeCard.hasHealthDeclaration = hasHd;
   safeCard.missingHealthDeclaration = !hasHd;
