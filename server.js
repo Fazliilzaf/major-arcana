@@ -11155,6 +11155,25 @@ function setStartupPhase(phase) {
   runtimeState.startupPhase = normalizedPhase || 'booting';
 }
 
+function formatMegabytes(bytes) {
+  return `${Math.round(Number(bytes || 0) / 1024 / 1024)}MB`;
+}
+
+async function startupStep(label, fn) {
+  const safeLabel = typeof label === 'string' && label.trim() ? label.trim() : 'unknown';
+  setStartupPhase(`stores:${safeLabel}`);
+  const before = process.memoryUsage();
+  console.log(
+    `[startup] ${safeLabel} start rss=${formatMegabytes(before.rss)} heap=${formatMegabytes(before.heapUsed)}`
+  );
+  const result = await fn();
+  const after = process.memoryUsage();
+  console.log(
+    `[startup] ${safeLabel} klar rss=${formatMegabytes(after.rss)} heap=${formatMegabytes(after.heapUsed)}`
+  );
+  return result;
+}
+
 function createRuntimeGraphReadConnector() {
   const graphReadEnabled = String(process.env.ARCANA_GRAPH_READ_ENABLED || '')
     .trim()
@@ -12032,20 +12051,28 @@ process.once('SIGTERM', () => {
   app.use('/api/v1/capabilities/TenantDisable', sensitiveLimiter);
   app.use('/api/v1/auth/2fa', sensitiveLimiter);
 
-  const templateStore = await createTemplateStore({
-    filePath: config.templateStorePath,
-    maxEvaluations: config.templateEvalMaxEntries,
-  });
-  const adminTasksStore = await createAdminTasksStore({
-    filePath: config.adminTasksStorePath,
-  });
-  const capabilityAnalysisStore = await createCapabilityAnalysisStore({
-    filePath: config.capabilityAnalysisStorePath,
-    maxEntries: config.capabilityAnalysisMaxEntries,
-  });
-  const ccoHistoryStore = await createCcoHistoryStore({
-    filePath: config.ccoHistoryStorePath,
-  });
+  const templateStore = await startupStep('templateStore', () =>
+    createTemplateStore({
+      filePath: config.templateStorePath,
+      maxEvaluations: config.templateEvalMaxEntries,
+    })
+  );
+  const adminTasksStore = await startupStep('adminTasksStore', () =>
+    createAdminTasksStore({
+      filePath: config.adminTasksStorePath,
+    })
+  );
+  const capabilityAnalysisStore = await startupStep('capabilityAnalysisStore', () =>
+    createCapabilityAnalysisStore({
+      filePath: config.capabilityAnalysisStorePath,
+      maxEntries: config.capabilityAnalysisMaxEntries,
+    })
+  );
+  const ccoHistoryStore = await startupStep('ccoHistoryStore', () =>
+    createCcoHistoryStore({
+      filePath: config.ccoHistoryStorePath,
+    })
+  );
   // 19F.1 — fixar P0 bug: tidigare appendEvent?.() var no-op eftersom funktionen
   // inte fanns. Mountar ccoCustomerEventStore + patchar shim på ccoHistoryStore.
   let ccoCustomerEventStore = null;
@@ -12054,7 +12081,9 @@ process.once('SIGTERM', () => {
     const customerEventsPath = config.dataDir
       ? `${config.dataDir}/cco/customer-events.jsonl`
       : './data/cco/customer-events.jsonl';
-    ccoCustomerEventStore = await createCcoCustomerEventStore({ filePath: customerEventsPath });
+    ccoCustomerEventStore = await startupStep('ccoCustomerEventStore', () =>
+      createCcoCustomerEventStore({ filePath: customerEventsPath })
+    );
     if (ccoCustomerEventStore && typeof ccoCustomerEventStore.appendEvent === 'function') {
       // Shim: legacy-anrop `ccoHistoryStore.appendEvent(...)` ska nu faktiskt loggas
       ccoHistoryStore.appendEvent = (e) => ccoCustomerEventStore.appendEvent(e);
@@ -12066,67 +12095,99 @@ process.once('SIGTERM', () => {
   } catch (err) {
     console.warn('[ccoCustomerEventStore] kunde inte montera:', err.message);
   }
-  const ccoMailboxTruthStore = await createConfiguredCcoMailboxTruthStore(config);
-  const ccoMailIngestionStore = await createCcoMailIngestionStore({
-    filePath: config.ccoMailIngestionStorePath,
-  });
-  const messageIntelligenceStore = await createMessageIntelligenceStore({
-    filePath:
-      config.messageIntelligenceStorePath ||
-      (config.dataDir
-        ? `${config.dataDir}/cco/message-intelligence.json`
-        : './data/cco/message-intelligence.json'),
-  });
-  const customerPreferenceStore = await createCustomerPreferenceStore({
-    filePath:
-      config.customerPreferenceStorePath ||
-      (config.dataDir
-        ? `${config.dataDir}/cco/customer-preferences.json`
-        : './data/cco/customer-preferences.json'),
-  });
-  const clientoBookingStore = await createClientoBookingStore({
-    filePath:
-      config.clientoBookingStorePath ||
-      (config.dataDir
-        ? `${config.dataDir}/cco/cliento-bookings.json`
-        : './data/cco/cliento-bookings.json'),
-  });
-  const ccoConversationStateStore = await createCcoConversationStateStore({
-    filePath: config.ccoConversationStateStorePath,
-  });
-  const ccoConversationNotesStore = await createCcoConversationNotesStore({
-    filePath: config.ccoConversationNotesStorePath,
-  });
-  const ccoMailTemplateStore = await createCcoMailTemplateStore({
-    filePath: config.ccoMailTemplateStorePath,
-  });
-  const ccoNoteStore = await createCcoNoteStore({
-    filePath: config.ccoNoteStorePath,
-  });
-  const ccoFollowUpStore = await createCcoFollowUpStore({
-    filePath: config.ccoFollowUpStorePath,
-  });
-  const ccoBookingStore = await createCcoBookingStore({
-    filePath: config.ccoBookingStorePath,
-  });
+  const ccoMailboxTruthStore = await startupStep('ccoMailboxTruthStore', () =>
+    createConfiguredCcoMailboxTruthStore(config)
+  );
+  const ccoMailIngestionStore = await startupStep('ccoMailIngestionStore', () =>
+    createCcoMailIngestionStore({
+      filePath: config.ccoMailIngestionStorePath,
+    })
+  );
+  const messageIntelligenceStore = await startupStep('messageIntelligenceStore', () =>
+    createMessageIntelligenceStore({
+      filePath:
+        config.messageIntelligenceStorePath ||
+        (config.dataDir
+          ? `${config.dataDir}/cco/message-intelligence.json`
+          : './data/cco/message-intelligence.json'),
+    })
+  );
+  const customerPreferenceStore = await startupStep('customerPreferenceStore', () =>
+    createCustomerPreferenceStore({
+      filePath:
+        config.customerPreferenceStorePath ||
+        (config.dataDir
+          ? `${config.dataDir}/cco/customer-preferences.json`
+          : './data/cco/customer-preferences.json'),
+    })
+  );
+  const clientoBookingStore = await startupStep('clientoBookingStore', () =>
+    createClientoBookingStore({
+      filePath:
+        config.clientoBookingStorePath ||
+        (config.dataDir
+          ? `${config.dataDir}/cco/cliento-bookings.json`
+          : './data/cco/cliento-bookings.json'),
+    })
+  );
+  const ccoConversationStateStore = await startupStep('ccoConversationStateStore', () =>
+    createCcoConversationStateStore({
+      filePath: config.ccoConversationStateStorePath,
+    })
+  );
+  const ccoConversationNotesStore = await startupStep('ccoConversationNotesStore', () =>
+    createCcoConversationNotesStore({
+      filePath: config.ccoConversationNotesStorePath,
+    })
+  );
+  const ccoMailTemplateStore = await startupStep('ccoMailTemplateStore', () =>
+    createCcoMailTemplateStore({
+      filePath: config.ccoMailTemplateStorePath,
+    })
+  );
+  const ccoNoteStore = await startupStep('ccoNoteStore', () =>
+    createCcoNoteStore({
+      filePath: config.ccoNoteStorePath,
+    })
+  );
+  const ccoFollowUpStore = await startupStep('ccoFollowUpStore', () =>
+    createCcoFollowUpStore({
+      filePath: config.ccoFollowUpStorePath,
+    })
+  );
+  const ccoBookingStore = await startupStep('ccoBookingStore', () =>
+    createCcoBookingStore({
+      filePath: config.ccoBookingStorePath,
+    })
+  );
   // 19F.7 Fix A — exponera booking-store till patientkort-aggregator
   app.locals.ccoBookingStore = ccoBookingStore;
-  const ccoBookingEngineStore = await createCcoBookingEngineStore({
-    filePath: config.ccoBookingEngineStorePath,
-  });
-  const postOpReviewStore = await createPostOpReviewStore({
-    filePath: config.postOpReviewStorePath,
-    photosDir: config.postOpPhotosDir,
-  });
-  const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
-    filePath: config.ccoWorkspacePrefsStorePath,
-  });
-  const ccoIntegrationStore = await createCcoIntegrationStore({
-    filePath: config.ccoIntegrationStorePath,
-  });
-  const ccoFortnoxStore = await createCcoFortnoxStore({
-    filePath: config.ccoFortnoxStorePath,
-  });
+  const ccoBookingEngineStore = await startupStep('ccoBookingEngineStore', () =>
+    createCcoBookingEngineStore({
+      filePath: config.ccoBookingEngineStorePath,
+    })
+  );
+  const postOpReviewStore = await startupStep('postOpReviewStore', () =>
+    createPostOpReviewStore({
+      filePath: config.postOpReviewStorePath,
+      photosDir: config.postOpPhotosDir,
+    })
+  );
+  const ccoWorkspacePrefsStore = await startupStep('ccoWorkspacePrefsStore', () =>
+    createCcoWorkspacePrefsStore({
+      filePath: config.ccoWorkspacePrefsStorePath,
+    })
+  );
+  const ccoIntegrationStore = await startupStep('ccoIntegrationStore', () =>
+    createCcoIntegrationStore({
+      filePath: config.ccoIntegrationStorePath,
+    })
+  );
+  const ccoFortnoxStore = await startupStep('ccoFortnoxStore', () =>
+    createCcoFortnoxStore({
+      filePath: config.ccoFortnoxStorePath,
+    })
+  );
   // 19F.5 Fix #2 — Fortnox invoice/payment-lister wireat så ccoPaymentStatusAdapter
   // kan hämta riktig invoice-data per kund. Cachas 60s per (tenant, customerNumber).
   try {
