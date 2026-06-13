@@ -3359,9 +3359,6 @@
     var fc = bcard.fitnessCertificate || bundle.fitnessCertificate || null;
     bcard.healthDeclaration = hd;
     bcard.fitnessCertificate = fc;
-    var hdAnswers = mapHdAnswers(hd);
-    var hdSigned = referensHasSignedHd(bcard) || Boolean(hd && (hd.signed || hd.signedAt));
-    var hdSource = hdSourceLabel(hd, bcard);
     var allergies = A(bcard.allergies).length ? A(bcard.allergies) : (hd && A(hd.allergies)) || [];
 
     /* ---- canonical signals (10) — delas i blockerare (gates) vs möjligheter (insikter) ---- */
