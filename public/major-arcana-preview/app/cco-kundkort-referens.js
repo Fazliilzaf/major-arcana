@@ -3064,6 +3064,47 @@
       bcard.lifetimeValueLabel ||
       (Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0 ? String(ltvRaw) : null);
 
+    function orderDossierHtml(html) {
+      var order = [
+        'kundresa',
+        'nastasteg',
+        'halso',
+        'besok',
+        'bokningar',
+        'journal',
+        'foto',
+        'historik',
+        'personal',
+        'offert',
+        'ekonomi',
+        'betalning',
+        'dokument',
+        'auto',
+        'anteckningar',
+        'kommunikation',
+        'insikter',
+        'tabild',
+      ];
+      try {
+        var tpl = document.createElement('template');
+        tpl.innerHTML = html;
+        var doss = tpl.content.querySelector('.doss');
+        if (!doss) return html;
+        var sections = Array.prototype.slice.call(
+          doss.querySelectorAll('details.dossier-section[data-sek]')
+        );
+        if (!sections.length) return html;
+        var container = sections[0].parentElement;
+        order.forEach(function (slug) {
+          var el = doss.querySelector('details.dossier-section[data-sek="' + slug + '"]');
+          if (el) container.appendChild(el);
+        });
+        return tpl.innerHTML;
+      } catch (_e) {
+        return html;
+      }
+    }
+
     /* ===== BUILD ===== */
     var h = '<div class="doss">';
 
@@ -4409,7 +4450,7 @@
       /* ignore */
     }
 
-    return h;
+    return orderDossierHtml(h);
   };
 
   function bookingRow(b, isHist, opts) {
