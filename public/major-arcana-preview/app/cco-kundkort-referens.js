@@ -339,16 +339,24 @@
   function sekSlug(label) {
     var l = String(label || '').toLowerCase();
     if (l.indexOf('hälsodek') === 0) return 'halso';
+    if (l.indexOf('medicinskt') === 0) return 'halso';
     if (l.indexOf('kundresa') === 0) return 'kundresa';
     if (l.indexOf('smart nästa') === 0) return 'nastasteg';
+    if (l.indexOf('besök') === 0 || l.indexOf('besok') === 0) return 'besok';
     if (l.indexOf('kommande') === 0) return 'bokningar';
     if (l.indexOf('historik') === 0) return 'historik';
     if (l.indexOf('journal') === 0) return 'journal';
+    if (l.indexOf('personal') === 0) return 'personal';
     if (l.indexOf('offert') === 0) return 'offert';
     if (l.indexOf('auto') === 0) return 'auto';
+    if (l.indexOf('filer') === 0 || l.indexOf('dokument') === 0) return 'dokument';
+    if (l.indexOf('anteck') === 0) return 'anteckningar';
+    if (l.indexOf('kommunikation') === 0) return 'kommunikation';
+    if (l.indexOf('insikter') === 0) return 'insikter';
     if (l.indexOf('foto') === 0) return 'foto';
     if (l.indexOf('betalning') === 0) return 'betalning';
     if (l.indexOf('ekonomi') === 0) return 'ekonomi';
+    if (l.indexOf('ta bild') === 0) return 'tabild';
     return 'sek';
   }
   // Kundrese-steg → vilken sektion man hoppar till vid klick.
@@ -752,18 +760,19 @@
     var docN = A2(ctx.driveFiles).length;
     var nav =
       '<nav class="gk-nav">' +
-      chip('Hälsodeklaration', '', hdMiss ? 'orange' : '') +
       chip('Kundresa', ctx.total) +
       chip('Smart nästa steg', '', ctx.nextLabel ? 'orange' : '') +
+      chip('Medicinskt läge', '', hdMiss ? 'orange' : '') +
+      chip('Besök', '', A2(ctx.hist).length || visitMedia.length ? 'orange' : '') +
       chip('Bokningar', A2(ctx.up).length) +
-      chip('Historik', A2(ctx.hist).length) +
       chip('Journal', A2(ctx.jItems).length) +
+      (imgs.length ? chip('Foto', imgs.length) : '') +
+      chip('Historik', A2(ctx.hist).length) +
       (persNames.length ? chip('Personal', persNames.length) : '') +
       chip('Offert', A2(ctx.offers).length, offPending ? 'orange' : '') +
-      (autoN ? chip('Auto', autoN) : '') +
-      (docN ? chip('Dokument', docN) : '') +
-      (imgs.length ? chip('Foto', imgs.length) : '') +
       chip('Ekonomi', '', ekoUnpaid ? 'red' : '') +
+      (docN ? chip('Dokument', docN) : '') +
+      (autoN ? chip('Auto', autoN) : '') +
       chip('Ta bild') +
       '</nav>';
     var head =
@@ -786,10 +795,111 @@
       '</header>';
 
     var body = '<div class="gk-body">';
+    function gkJournalRow(it) {
+      var badge =
+        it.st === 'done'
+          ? '<span class="gk-hl gk-tag gk-tag-ok">Signerad' +
+            (it.by ? ' · ' + esc(it.by) : '') +
+            '</span>'
+          : '';
+      return (
+        '<div class="gk-rad"><b>' +
+        esc(it.serie || it.title || 'Journal') +
+        '</b> <span class="gk-sub">' +
+        esc(it.date || '') +
+        '</span>' +
+        badge +
+        '</div>'
+      );
+    }
+    function buildVisitRender() {
+      var visitGroups = {};
+      function ensureVisitGroup(d) {
+        d = d || 'odaterat';
+        if (!visitGroups[d]) visitGroups[d] = { date: d, journals: [], photos: [] };
+        return visitGroups[d];
+      }
+      A2(ctx.jItems).forEach(function (it) {
+        ensureVisitGroup(it.date || 'odaterat').journals.push(it);
+      });
+      visitMedia.forEach(function (f) {
+        var p = gkMediaFromFile(f);
+        ensureVisitGroup(p.date || 'odaterat').photos.push(p);
+      });
+      var visitCards = Object.keys(visitGroups)
+        .sort()
+        .reverse()
+        .map(function (d) {
+          var group = visitGroups[d];
+          var n = group.photos.length;
+          var jn = group.journals.length;
+          var title = d !== 'odaterat' ? gkFmtDate(d) : 'Okänt tillfälle';
+          var journalRows = group.journals.map(gkJournalRow).join('');
+          var collapsed = group.photos.length > 6;
+          var photoGrid = gkPhotoGrid(
+            group.photos,
+            0,
+            'gk-foto-grid--journal' + (collapsed ? ' is-collapsed' : '')
+          );
+          var mediaLabel = gkMediaCountLabel(group.photos);
+          var meta =
+            (jn ? jn + (jn === 1 ? ' journal' : ' journaler') : '') +
+            (jn && mediaLabel ? ' · ' : '') +
+            mediaLabel;
+          return (
+            '<div class="gk-visit-card">' +
+            '<div class="gk-visit-head"><div><b>' +
+            esc(title) +
+            '</b>' +
+            (meta ? '<span class="gk-sub">' + esc(meta) + '</span>' : '') +
+            '</div><span class="gk-hl gk-tag gk-tag-info">Besök</span></div>' +
+            (journalRows
+              ? '<div class="gk-visit-journal"><div class="gk-visit-label">Journalföring</div>' +
+                journalRows +
+                '</div>'
+              : '') +
+            (photoGrid
+              ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder/film från besöket</div>' +
+                photoGrid +
+                (collapsed
+                  ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
+                    group.photos.length +
+                    '</button>'
+                  : '') +
+                '</div>'
+              : '') +
+            (n
+              ? '<div class="gk-visit-actions">' +
+                '<button type="button" class="gk-btn" data-gk-jump="foto">Välj i Foto</button>' +
+                '<button type="button" class="gk-btn" data-gk-jump="ta bild">Ta/rita bild</button>' +
+                '</div>'
+              : '') +
+            '</div>'
+          );
+        })
+        .join('');
+      return {
+        count: Object.keys(visitGroups).length,
+        visitSectionHtml: sek(
+          'Besök',
+          '<span class="gk-pill gk-tag-info">' + Object.keys(visitGroups).length + '</span>',
+          visitCards,
+          'Inga besök ännu.'
+        ),
+        journalRows: A2(ctx.jItems)
+          .slice()
+          .sort(function (a, b) {
+            return String(b.date || '').localeCompare(String(a.date || ''));
+          })
+          .map(gkJournalRow)
+          .join(''),
+      };
+    }
+    var visitRender = buildVisitRender();
 
-    // Hälsodeklaration (hdMiss beräknat ovan)
-    body += sek(
-      'Hälsodeklaration',
+    // Medicinskt läge (Hälsodeklaration + blockerare) — visas efter kundresan.
+    var medicalSectionHtml = sek(
+      'Medicinskt läge',
       hdMiss
         ? '<span class="gk-pill gk-tag-warn">Att fylla i</span>'
         : '<span class="gk-pill gk-tag-ok">Signerad</span>',
@@ -987,6 +1097,8 @@
         esc(ctx.nextLabel) +
         '</b> <span class="gk-hl gk-tag gk-tag-warn">Föreslaget</span></div>';
     body += sek('Smart nästa steg', '', snsRows, 'Inga aktiva nästa steg just nu.');
+    body += medicalSectionHtml;
+    body += visitRender.visitSectionHtml;
 
     // Kommande bokningar
     var bk = A2(ctx.up)
@@ -1080,98 +1192,10 @@
         '</div>'
     );
 
-    // Journal — gruppera journal + foton per besök så varje tillfälle blir begripligt.
-    function gkJournalRow(it) {
-      var badge =
-        it.st === 'done'
-          ? '<span class="gk-hl gk-tag gk-tag-ok">Signerad' +
-            (it.by ? ' · ' + esc(it.by) : '') +
-            '</span>'
-          : '';
-      return (
-        '<div class="gk-rad"><b>' +
-        esc(it.serie || it.title || 'Journal') +
-        '</b> <span class="gk-sub">' +
-        esc(it.date || '') +
-        '</span>' +
-        badge +
-        '</div>'
-      );
-    }
-    var visitGroups = {};
-    function ensureVisitGroup(d) {
-      d = d || 'odaterat';
-      if (!visitGroups[d]) visitGroups[d] = { date: d, journals: [], photos: [] };
-      return visitGroups[d];
-    }
-    A2(ctx.jItems).forEach(function (it) {
-      ensureVisitGroup(it.date || 'odaterat').journals.push(it);
-    });
-    visitMedia.forEach(function (f) {
-      var p = gkMediaFromFile(f);
-      ensureVisitGroup(p.date || 'odaterat').photos.push(p);
-    });
-    var visitCards = Object.keys(visitGroups)
-      .sort()
-      .reverse()
-      .map(function (d) {
-        var group = visitGroups[d];
-        var n = group.photos.length;
-        var jn = group.journals.length;
-        var title = d !== 'odaterat' ? gkFmtDate(d) : 'Okänt tillfälle';
-        var journalRows = group.journals.map(gkJournalRow).join('');
-        var collapsed = group.photos.length > 6;
-        var photoGrid = gkPhotoGrid(
-          group.photos,
-          0,
-          'gk-foto-grid--journal' + (collapsed ? ' is-collapsed' : '')
-        );
-        var mediaLabel = gkMediaCountLabel(group.photos);
-        var meta =
-          (jn ? jn + (jn === 1 ? ' journal' : ' journaler') : '') +
-          (jn && mediaLabel ? ' · ' : '') +
-          mediaLabel;
-        return (
-          '<div class="gk-visit-card">' +
-          '<div class="gk-visit-head"><div><b>' +
-          esc(title) +
-          '</b>' +
-          (meta ? '<span class="gk-sub">' + esc(meta) + '</span>' : '') +
-          '</div><span class="gk-hl gk-tag gk-tag-info">Besök</span></div>' +
-          (journalRows
-            ? '<div class="gk-visit-journal"><div class="gk-visit-label">Journalföring</div>' +
-              journalRows +
-              '</div>'
-            : '') +
-          (photoGrid
-            ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder/film från besöket</div>' +
-              photoGrid +
-              (collapsed
-                ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
-                  group.photos.length +
-                  '</button>'
-                : '') +
-              '</div>'
-            : '') +
-          (n
-            ? '<div class="gk-visit-actions">' +
-              '<button type="button" class="gk-btn" data-gk-jump="foto">Välj i Foto</button>' +
-              '<button type="button" class="gk-btn" data-gk-jump="ta bild">Ta/rita bild</button>' +
-              '</div>'
-            : '') +
-          '</div>'
-        );
-      })
-      .join('');
     body += sek(
       'Journal',
-      '<span class="gk-pill gk-tag-info">' +
-        (A2(ctx.jItems).length +
-          Object.keys(visitGroups).filter(function (d) {
-            return visitGroups[d].photos.length;
-          }).length) +
-        ' anteckningar</span>',
-      visitCards,
+      '<span class="gk-pill gk-tag-info">' + A2(ctx.jItems).length + ' anteckningar</span>',
+      visitRender.journalRows,
       'Inga journaler ännu.'
     );
 
@@ -4443,16 +4467,19 @@
 
   /* ===== Gemensamt kundkort: sticky header + sektions-chips (fas 1) ===== */
   var KK_NAV = [
-    ['halso', 'Hälsodekl.'],
     ['kundresa', 'Kundresa'],
     ['nastasteg', 'Nästa steg'],
+    ['halso', 'Medicinskt'],
+    ['besok', 'Besök'],
     ['bokningar', 'Bokningar'],
-    ['historik', 'Historik'],
     ['journal', 'Journal'],
-    ['offert', 'Offert'],
-    ['auto', 'Auto'],
     ['foto', 'Foto'],
+    ['historik', 'Historik'],
+    ['offert', 'Offert'],
     ['ekonomi', 'Ekonomi'],
+    ['dokument', 'Dokument'],
+    ['auto', 'Auto'],
+    ['tabild', 'Ta bild'],
   ];
   // ===== Smart nästa steg: åtgärds-utkast per signal (granska & skicka, ej autoskick) =====
   (function bindSignalActionsOnce() {
@@ -5404,33 +5431,43 @@
     return ut.slice(0, 3);
   }
   var KK_ORDNING = [
-    'halso',
     'kundresa',
     'nastasteg',
+    'halso',
+    'besok',
     'bokningar',
-    'historik',
     'journal',
+    'foto',
+    'historik',
     'personal',
     'offert',
-    'auto',
-    'dokument',
-    'foto',
     'ekonomi',
+    'betalning',
+    'dokument',
+    'auto',
+    'anteckningar',
+    'kommunikation',
+    'insikter',
     'tabild',
   ];
   var KK_RUBRIK = {
-    halso: 'Hälsodeklaration',
     kundresa: 'Kundresa · 9 steg',
     nastasteg: 'Smart nästa steg',
+    halso: 'Medicinskt läge',
+    besok: 'Besök',
     bokningar: 'Kommande bokningar',
     historik: 'Historik',
     journal: 'Journal',
     personal: 'Personal',
     offert: 'Offert',
-    auto: 'Auto',
-    dokument: 'Dokument',
     foto: 'Foto',
     ekonomi: 'Ekonomi',
+    betalning: 'Betalning',
+    dokument: 'Dokument',
+    auto: 'Auto',
+    anteckningar: 'Anteckningar',
+    kommunikation: 'Kommunikation',
+    insikter: 'Insikter',
     tabild: 'Ta bild',
   };
   function kkMockupParity(doss) {
@@ -5536,6 +5573,49 @@
       g.remove();
     });
   }
+  function kkReorderSections(doss) {
+    var seks = Array.prototype.slice.call(
+      doss.querySelectorAll('details.dossier-section[data-sek]')
+    );
+    if (!seks.length) return;
+    var container = seks[0].parentElement;
+    var current = seks
+      .map(function (el) {
+        return el.getAttribute('data-sek');
+      })
+      .filter(Boolean);
+    var desired = KK_ORDNING.filter(function (slug) {
+      return !!doss.querySelector('details.dossier-section[data-sek="' + slug + '"]');
+    });
+    if (current.join('|') === desired.join('|')) return;
+    KK_ORDNING.forEach(function (slug) {
+      var el = doss.querySelector('details.dossier-section[data-sek="' + slug + '"]');
+      if (el) container.appendChild(el);
+    });
+  }
+  function kkReorderAllDossiers() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll(
+        '.kkref .doss, .customers-rail .doss, .customers-rail--dominant .doss'
+      ),
+      function (doss) {
+        try {
+          kkReorderSections(doss);
+        } catch (_e) {
+          /* tyst */
+        }
+      }
+    );
+  }
+  function kkQueueReorderAllDossiers() {
+    window.clearTimeout(window.__kkReorderTimer);
+    window.__kkReorderTimer = window.setTimeout(kkReorderAllDossiers, 80);
+  }
+  if (!window.__kkReorderObserver) {
+    window.__kkReorderObserver = new MutationObserver(kkQueueReorderAllDossiers);
+    window.__kkReorderObserver.observe(document.body, { childList: true, subtree: true });
+    window.setTimeout(kkReorderAllDossiers, 0);
+  }
   window.__kkFas2Setup = function (doss, sticky, nav) {
     try {
       if (doss.__kkFas2) return;
@@ -5563,6 +5643,20 @@
       summ.__kkDefault = defaultHtml || 'Kundkortet samlat — välj sektion ovan.';
       sticky.insertBefore(summ, nav);
       doss.__kkSumm = summ;
+      window.setTimeout(function () {
+        try {
+          kkReorderSections(doss);
+        } catch (_e) {
+          /* tyst */
+        }
+      }, 0);
+      window.setTimeout(function () {
+        try {
+          kkReorderSections(doss);
+        } catch (_e) {
+          /* tyst */
+        }
+      }, 250);
       /* 2. Knappar i headern */
       var head = sticky.querySelector('.dhead');
       if (head && !head.querySelector('.kk-actions')) {
