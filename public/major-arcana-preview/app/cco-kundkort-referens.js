@@ -162,9 +162,7 @@
     return 'Översikt';
   }
   function gkSharedDateOfFile(file) {
-    var direct = String(
-      (file && (file.documentDate || file.visitDate || file.photoDate || file.captureDate)) || ''
-    ).slice(0, 10);
+    var direct = gkSharedSortKeyOfFile(file).slice(0, 10);
     if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
     var source = String(
       (file && (file.relativePath || file.fileName || file.originalFileName || file.name)) || ''
@@ -175,6 +173,50 @@
     if (epoch) {
       var date = new Date(Number(epoch[1]) * 1000);
       if (!isNaN(date)) return date.toISOString().slice(0, 10);
+    }
+    return '';
+  }
+  function gkSharedNormalizeDateTime(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    var exif = raw.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (exif) {
+      return (
+        exif[1] +
+        '-' +
+        exif[2] +
+        '-' +
+        exif[3] +
+        'T' +
+        exif[4] +
+        ':' +
+        exif[5] +
+        ':' +
+        (exif[6] || '00')
+      );
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw + 'T00:00:00';
+    var iso = raw.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)/);
+    if (iso) return iso[1] + 'T' + (iso[2].length === 5 ? iso[2] + ':00' : iso[2]);
+    var parsed = Date.parse(raw);
+    if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+    return '';
+  }
+  function gkSharedSortKeyOfFile(file) {
+    var candidates = [
+      file && file.captureDateTime,
+      file && file.captureDate,
+      file && file.documentDate,
+      file && file.visitDate,
+      file && file.photoDate,
+      file && file.importedAt,
+      file && file.indexedAt,
+      file && file.modifiedTime,
+      file && file.createdAt,
+    ];
+    for (var i = 0; i < candidates.length; i += 1) {
+      var key = gkSharedNormalizeDateTime(candidates[i]);
+      if (key) return key;
     }
     return '';
   }
@@ -249,6 +291,8 @@
       date: gkSharedDateOfFile(file),
       documentDate: gkSharedDocumentDateOfFile(file),
       captureDate: gkSharedCaptureDateOfFile(file),
+      captureDateTime: (file && file.captureDateTime) || '',
+      sortKey: gkSharedSortKeyOfFile(file),
       captureDateSource: (file && file.captureDateSource) || '',
       captureDateMismatch: Boolean(
         (file && file.captureDateMismatch) ||
@@ -569,9 +613,155 @@
   function referensFileViewUrl(file) {
     if (!file) return '';
     if (file.viewUrl) return file.viewUrl;
-    var id = file.id || file.fileId;
-    if (id) return '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id);
+    var id = file.id || file.fileId || file.assetId;
+    if (id) {
+      if (file.source === 'patient_asset' || file.assetId) {
+        return '/api/v1/cco/assets/' + encodeURIComponent(id) + '/download?inline=1';
+      }
+      return '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id);
+    }
     return '';
+  }
+
+  function referensFileLabel(file, fallback) {
+    var n = String((file && (file.fileName || file.name || file.originalFileName)) || '');
+    if (/\?\?\?|\+\?|�/.test(n)) {
+      var ft = (file && file.fileType) || '';
+      if (ft === 'journal_pdf') return fallback || 'Journal';
+      return fallback || 'Dokument';
+    }
+    return n.replace(/\.(pdf|jpe?g|png|heic|webp|docx?)$/i, '') || fallback || 'Dokument';
+  }
+
+  function isReferensTreatmentJournalPdf(file) {
+    if (!file || !isReferensJournalPdf(file)) return false;
+    if (String(file.category || '').toLowerCase() === 'form') return false;
+    var name = String(
+      file.fileName || file.name || file.originalFileName || file.relativePath || ''
+    ).toLowerCase();
+    if (/h[aä]lsodek|halsodek|health.?decl|friskf[oö]rs[aä]kr|fitness.?cert/.test(name)) {
+      return false;
+    }
+    return true;
+  }
+
+  function referensAttachmentViewUrl(att) {
+    if (!att || typeof att !== 'object') return '';
+    if (att.viewUrl) return att.viewUrl;
+    var id = att.assetId || att.id;
+    if (id) return '/api/v1/cco/assets/' + encodeURIComponent(id) + '/download?inline=1';
+    return '';
+  }
+
+  function resolveJournalItemViewUrl(it, rawJournal, driveFiles) {
+    if (it && it.viewUrl) return it.viewUrl;
+    var fromAtt = '';
+    A(rawJournal && rawJournal.attachments).some(function (att) {
+      fromAtt = referensAttachmentViewUrl(att);
+      return !!fromAtt;
+    });
+    if (fromAtt) return fromAtt;
+    var itDate = String((it && it.date) || '').slice(0, 10);
+    var best = '';
+    var bestTs = 0;
+    A(driveFiles).forEach(function (f) {
+      if (!isReferensTreatmentJournalPdf(f)) return;
+      var url = referensFileViewUrl(f);
+      if (!url) return;
+      var fDate = String(f.documentDate || f.visitDate || f.captureDate || '').slice(0, 10);
+      if (itDate && fDate && itDate !== fDate) return;
+      var ts = Date.parse(f.documentDate || f.indexedAt || f.importedAt || 0) || 0;
+      if (!best || ts >= bestTs) {
+        best = url;
+        bestTs = ts;
+      }
+    });
+    return best;
+  }
+
+  function buildDocViewRow(label, meta, viewUrl, dataKey) {
+    var key = dataKey || 'doc';
+    if (!viewUrl) {
+      return (
+        '<div class="gk-med-doc gk-med-doc--missing" data-kk-med-form="' +
+        esc(key) +
+        '">' +
+        '<span class="gk-med-doc-title">' +
+        esc(label) +
+        '</span>' +
+        '<span class="gk-med-doc-meta">' +
+        esc(meta || 'Saknas') +
+        '</span></div>'
+      );
+    }
+    return (
+      '<button type="button" class="gk-med-doc" data-kk-med-form="' +
+      esc(key) +
+      '" data-kk-open-doc="' +
+      esc(viewUrl) +
+      '" data-kk-doc-title="' +
+      esc(label) +
+      '">' +
+      '<span class="gk-med-doc-title">' +
+      esc(label) +
+      '</span>' +
+      '<span class="gk-med-doc-meta">' +
+      esc(meta || '') +
+      '</span>' +
+      '<span class="gk-med-doc-open">Visa</span></button>'
+    );
+  }
+
+  function buildJournalDocRows(jItems, jrs, driveFiles, jPlanned) {
+    var byEntry = {};
+    A(jrs).forEach(function (j) {
+      var id = j.entryId || j.id;
+      if (id) byEntry[id] = j;
+    });
+    var usedUrls = {};
+    var rows = [];
+    A(jItems).forEach(function (it) {
+      var raw = byEntry[it.entryId] || null;
+      var viewUrl = resolveJournalItemViewUrl(it, raw, driveFiles);
+      if (viewUrl) usedUrls[viewUrl] = true;
+      it.viewUrl = viewUrl;
+      var titel = it.serie || it.title || 'Journal';
+      var metaParts = [];
+      if (viewUrl) metaParts.push('Signerad');
+      if (it.step) metaParts.push('Steg ' + it.step);
+      if (it.date) metaParts.push(it.date);
+      if (it.by) metaParts.push(it.by);
+      rows.push(
+        buildDocViewRow(
+          titel,
+          viewUrl ? metaParts.join(' · ') : 'Saknas',
+          viewUrl,
+          'journal_' + (it.entryId || titel)
+        )
+      );
+    });
+    A(driveFiles).forEach(function (f) {
+      if (!isReferensTreatmentJournalPdf(f)) return;
+      var url = referensFileViewUrl(f);
+      if (!url || usedUrls[url]) return;
+      usedUrls[url] = true;
+      var label = referensFileLabel(f, 'Journal');
+      var d = String(f.documentDate || f.visitDate || '').slice(0, 10);
+      rows.push(
+        buildDocViewRow(
+          label,
+          'Signerad' + (d ? ' · ' + d : ''),
+          url,
+          'journal_asset_' + (f.id || f.assetId || label)
+        )
+      );
+    });
+    A(jPlanned).forEach(function (it, idx) {
+      var titel = 'Journal · ' + (it.title || 'behandling');
+      var meta = it.date ? 'Saknas · inför ' + it.date : 'Saknas';
+      rows.push(buildDocViewRow(titel, meta, '', 'journal_planned_' + idx));
+    });
+    return rows.join('');
   }
 
   function resolveMedFormViewUrl(formKey, form, driveFiles) {
@@ -605,38 +795,11 @@
     var viewUrl = resolveMedFormViewUrl(formKey, form, driveFiles);
 
     if (!signed) {
-      return (
-        '<div class="gk-med-doc gk-med-doc--missing" data-kk-med-form="' +
-        esc(formKey) +
-        '">' +
-        '<span class="gk-med-doc-title">' +
-        esc(label) +
-        '</span>' +
-        '<span class="gk-med-doc-meta">' +
-        esc(meta) +
-        '</span></div>'
-      );
+      return buildDocViewRow(label, meta, '', formKey);
     }
-
     if (viewUrl) {
-      return (
-        '<button type="button" class="gk-med-doc" data-kk-med-form="' +
-        esc(formKey) +
-        '" data-kk-open-doc="' +
-        esc(viewUrl) +
-        '" data-kk-doc-title="' +
-        esc(label) +
-        '">' +
-        '<span class="gk-med-doc-title">' +
-        esc(label) +
-        '</span>' +
-        '<span class="gk-med-doc-meta">' +
-        esc(meta) +
-        '</span>' +
-        '<span class="gk-med-doc-open">Visa</span></button>'
-      );
+      return buildDocViewRow(label, meta, viewUrl, formKey);
     }
-
     return (
       '<div class="gk-med-doc gk-med-doc--nopdf" data-kk-med-form="' +
       esc(formKey) +
@@ -777,9 +940,7 @@
       return 'Översikt';
     }
     function gkDateOfFile(f) {
-      var direct = String(
-        (f && (f.documentDate || f.visitDate || f.photoDate || f.captureDate)) || ''
-      ).slice(0, 10);
+      var direct = gkSortKeyOfFile(f).slice(0, 10);
       if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
       var rp = String((f && (f.relativePath || f.fileName || f.originalFileName || f.name)) || '');
       var m = rp.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -795,6 +956,56 @@
     function gkCaptureDateOfFile(f) {
       var direct = String((f && (f.captureDate || f.captureDateTime)) || '').slice(0, 10);
       return /^\d{4}-\d{2}-\d{2}$/.test(direct) ? direct : '';
+    }
+    function gkNormalizeDateTime(value) {
+      var raw = String(value || '').trim();
+      if (!raw) return '';
+      var exif = raw.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+      if (exif) {
+        return (
+          exif[1] +
+          '-' +
+          exif[2] +
+          '-' +
+          exif[3] +
+          'T' +
+          exif[4] +
+          ':' +
+          exif[5] +
+          ':' +
+          (exif[6] || '00')
+        );
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw + 'T00:00:00';
+      var iso = raw.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)/);
+      if (iso) return iso[1] + 'T' + (iso[2].length === 5 ? iso[2] + ':00' : iso[2]);
+      var parsed = Date.parse(raw);
+      if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+      return '';
+    }
+    function gkSortKeyOfFile(f) {
+      var candidates = [
+        f && f.captureDateTime,
+        f && f.captureDate,
+        f && f.documentDate,
+        f && f.visitDate,
+        f && f.photoDate,
+        f && f.importedAt,
+        f && f.indexedAt,
+        f && f.modifiedTime,
+        f && f.createdAt,
+      ];
+      for (var i = 0; i < candidates.length; i += 1) {
+        var key = gkNormalizeDateTime(candidates[i]);
+        if (key) return key;
+      }
+      return '';
+    }
+    function gkPhotoSortNewest(a, b) {
+      var ak = String((a && (a.sortKey || a.date)) || '');
+      var bk = String((b && (b.sortKey || b.date)) || '');
+      if (ak !== bk) return bk.localeCompare(ak);
+      return String((a && a.name) || '').localeCompare(String((b && b.name) || ''));
     }
     function gkFmtDate(d) {
       if (!d) return 'odaterat';
@@ -833,6 +1044,8 @@
         date: gkDateOfFile(f),
         documentDate: gkDocumentDateOfFile(f),
         captureDate: gkCaptureDateOfFile(f),
+        captureDateTime: (f && f.captureDateTime) || '',
+        sortKey: gkSortKeyOfFile(f),
         captureDateSource: (f && f.captureDateSource) || '',
         captureDateMismatch: Boolean(
           (f && f.captureDateMismatch) ||
@@ -1051,44 +1264,54 @@
 
     var body = '<div class="gk-body">';
     function gkJournalRow(it) {
-      var badge =
-        it.st === 'done'
-          ? '<span class="gk-hl gk-tag gk-tag-ok">Signerad' +
-            (it.by ? ' · ' + esc(it.by) : '') +
-            '</span>'
-          : '';
-      return (
-        '<div class="gk-rad"><b>' +
-        esc(it.serie || it.title || 'Journal') +
-        '</b> <span class="gk-sub">' +
-        esc(it.date || '') +
-        '</span>' +
-        badge +
-        '</div>'
+      var titel = it.serie || it.title || 'Journal';
+      var metaParts = [];
+      if (it.viewUrl) metaParts.push('Signerad');
+      if (it.date) metaParts.push(it.date);
+      if (it.by) metaParts.push(it.by);
+      return buildDocViewRow(
+        titel,
+        it.viewUrl ? metaParts.join(' · ') : 'Saknas',
+        it.viewUrl || '',
+        'journal_' + (it.entryId || titel)
       );
     }
     function buildVisitRender() {
       var visitGroups = {};
       function ensureVisitGroup(d) {
         d = d || 'odaterat';
-        if (!visitGroups[d]) visitGroups[d] = { date: d, journals: [], photos: [] };
+        if (!visitGroups[d]) visitGroups[d] = { date: d, journals: [], photos: [], sortKey: '' };
         return visitGroups[d];
       }
       A2(ctx.jItems).forEach(function (it) {
-        ensureVisitGroup(it.date || 'odaterat').journals.push(it);
+        var group = ensureVisitGroup(it.date || 'odaterat');
+        group.journals.push(it);
+        var jKey = gkNormalizeDateTime(it.date || it.occurredAt || it.startAt || '');
+        if (jKey && jKey > group.sortKey) group.sortKey = jKey;
       });
       visitMedia.forEach(function (f) {
         var p = gkMediaFromFile(f);
-        ensureVisitGroup(p.date || 'odaterat').photos.push(p);
+        var group = ensureVisitGroup(p.date || 'odaterat');
+        group.photos.push(p);
+        if (p.sortKey && p.sortKey > group.sortKey) group.sortKey = p.sortKey;
       });
       var visitCards = Object.keys(visitGroups)
-        .sort()
-        .reverse()
+        .sort(function (a, b) {
+          var ga = visitGroups[a] || {};
+          var gb = visitGroups[b] || {};
+          var ak = ga.sortKey || (a === 'odaterat' ? '' : a + 'T00:00:00');
+          var bk = gb.sortKey || (b === 'odaterat' ? '' : b + 'T00:00:00');
+          return String(bk).localeCompare(String(ak));
+        })
         .map(function (d) {
           var group = visitGroups[d];
           var n = group.photos.length;
           var jn = group.journals.length;
           var title = d !== 'odaterat' ? gkFmtDate(d) : 'Okänt tillfälle';
+          group.photos.sort(gkPhotoSortNewest);
+          group.journals.sort(function (a, b) {
+            return String(b.date || '').localeCompare(String(a.date || ''));
+          });
           var journalRows = group.journals.map(gkJournalRow).join('');
           var collapsed = group.photos.length > 6;
           var photoGrid = gkPhotoGrid(
@@ -1840,9 +2063,7 @@
     var fotoBody = (function () {
       if (!imgs.length) return '';
       var photos = imgs.map(gkMediaFromFile);
-      photos.sort(function (a, b) {
-        return (b.date || '').localeCompare(a.date || '');
-      });
+      photos.sort(gkPhotoSortNewest);
       var offerPhotos = photos.filter(function (p) {
         return p.offerReady;
       });
@@ -1878,7 +2099,7 @@
         bestSpan = -1;
       Object.keys(byZone).forEach(function (z) {
         var arr = byZone[z].slice().sort(function (a, b) {
-          return a.date.localeCompare(b.date);
+          return String(a.sortKey || a.date || '').localeCompare(String(b.sortKey || b.date || ''));
         });
         if (arr.length >= 2) {
           var span = new Date(arr[arr.length - 1].date) - new Date(arr[0].date);
@@ -3898,44 +4119,29 @@
       if (!b.date) return -1;
       return String(a.date).localeCompare(String(b.date));
     });
+    jItems.forEach(function (it) {
+      var raw = null;
+      for (var ji = 0; ji < jrs.length; ji++) {
+        if ((jrs[ji].entryId || jrs[ji].id) === it.entryId) {
+          raw = jrs[ji];
+          break;
+        }
+      }
+      it.viewUrl = resolveJournalItemViewUrl(it, raw, driveFiles);
+    });
     var jDone = 0,
       jAct = 0,
       jTodo = 0;
-    var jHtml = jAll
-      .map(function (it) {
-        if (it.st === 'done') jDone++;
-        else if (it.st === 'act') jAct++;
-        else jTodo++;
-        var ic = it.st === 'done' ? '✓' : it.st === 'act' ? '!' : '';
-        var titel = it.serie || (it.planned ? 'Journal · ' + it.title : it.title);
-        var meta = it.planned
-          ? it.date
-            ? 'Inför ' + it.date
-            : 'Kommande'
-          : [it.step ? 'Steg ' + it.step : '', it.date, it.by].filter(Boolean).join(' · ');
-        return (
-          '<div class="jr ' +
-          (it.st === 'done' ? '' : it.st) +
-          '"' +
-          (it.entryId ? ' data-jentry="' + esc(it.entryId) + '"' : '') +
-          '><div class="jc ' +
-          it.st +
-          '">' +
-          ic +
-          '</div><div style="flex:1"><div class="rt">' +
-          esc(titel) +
-          '</div><div class="rm">' +
-          esc(meta) +
-          '</div></div>' +
-          (it.st === 'act'
-            ? '<span class="openb" data-kk-open-storvy="journal" data-kk-entry="' +
-              esc(it.entryId || '') +
-              '" title="Öppna i stora kortet · journal">Öppna</span>'
-            : '') +
-          '</div>'
-        );
-      })
-      .join('');
+    jAll.forEach(function (it) {
+      if (it.planned) {
+        jTodo++;
+        return;
+      }
+      if (it.st === 'done') jDone++;
+      else if (it.st === 'act') jAct++;
+      else jTodo++;
+    });
+    var jHtml = buildJournalDocRows(jItems, jrs, driveFiles, jPlanned);
     var jCount = jAll.length
       ? '<span style="color:#4a8268">' +
         jDone +
@@ -3945,7 +4151,11 @@
         jTodo +
         '</span>'
       : '0';
-    h += sec('Journaler · personal', jCount, jHtml || empty('Inga journaler ännu.'));
+    h += sec(
+      'Journaler · personal',
+      jCount,
+      jHtml ? '<div class="gk-med-forms">' + jHtml + '</div>' : empty('Inga journaler ännu.')
+    );
 
     if (offers.length) {
       // Färgkodad typ-pill: TP/transplant guld, PRP grön, övrigt neutral
@@ -4430,27 +4640,17 @@
           var label = (k === 'odaterat' ? 'Odaterat' : svDate(k)) + (vt ? ' · ' + vt : '');
           var jrows = g.journals
             .map(function (it) {
-              var ic = it.st === 'done' ? '✓' : it.st === 'act' ? '!' : '';
               var titel = it.serie || it.title || 'Journal';
-              var meta = [it.step ? 'Steg ' + it.step : '', it.date, it.by]
-                .filter(Boolean)
-                .join(' · ');
-              return (
-                '<div class="jr ' +
-                (it.st === 'done' ? '' : it.st) +
-                '"' +
-                (it.entryId ? ' data-jentry="' + esc(it.entryId) + '"' : '') +
-                '><div class="jc ' +
-                it.st +
-                '">' +
-                ic +
-                '</div><div style="flex:1"><div class="rt">' +
-                esc(titel) +
-                '</div><div class="rm">' +
-                esc(meta) +
-                '</div></div><span class="openb" data-kk-open-storvy="journal" data-kk-entry="' +
-                esc(it.entryId || '') +
-                '">Öppna</span></div>'
+              var metaParts = [];
+              if (it.viewUrl) metaParts.push('Signerad');
+              if (it.step) metaParts.push('Steg ' + it.step);
+              if (it.date) metaParts.push(it.date);
+              if (it.by) metaParts.push(it.by);
+              return buildDocViewRow(
+                titel,
+                it.viewUrl ? metaParts.join(' · ') : 'Saknas',
+                it.viewUrl || '',
+                'journal_' + (it.entryId || titel)
               );
             })
             .join('');
@@ -4475,25 +4675,17 @@
             })
             .map(function (f) {
               var url = referensFileViewUrl(f);
-              var body =
-                '<span class="kk-foto-ico">' +
-                ico(f) +
-                '</span><div style="flex:1;min-width:0"><div class="rt">' +
-                esc(cleanName(f)) +
-                '</div></div>';
-              var title = cleanName(f) || 'Dokument';
+              var title = referensFileLabel(f, cleanName(f));
               if (url) {
-                return (
-                  '<button type="button" class="kk-file" data-kk-open-doc="' +
-                  esc(url) +
-                  '" data-kk-doc-title="' +
-                  esc(title) +
-                  '">' +
-                  body +
-                  '<span class="kk-file-open">Visa</span></button>'
+                var d = String(f.documentDate || f.visitDate || '').slice(0, 10);
+                return buildDocViewRow(
+                  title,
+                  d ? 'Signerad · ' + d : 'Signerad',
+                  url,
+                  'besok_file_' + (f.id || f.assetId || title)
                 );
               }
-              return '<div class="kk-file">' + body + '</div>';
+              return buildDocViewRow(title, 'Saknas', '', 'besok_file_' + title);
             })
             .join('');
           return (
@@ -4539,29 +4731,11 @@
       filer.length
         ? filer
             .map(function (f) {
-              var fnamn = f.name || f.fileName || f.title || 'Fil';
-              var typ = f.fileType || f.category || '';
+              var fnamn = referensFileLabel(f, f.name || f.fileName || f.title || 'Fil');
               var url = referensFileViewUrl(f);
-              var meta = '<span class="kk-file-ico">' + fileIco(fnamn) + '</span>';
-              var body =
-                '<div style="flex:1;min-width:0"><div class="rt">' +
-                esc(fnamn) +
-                '</div>' +
-                (typ ? '<div class="rm">' + esc(typ) + '</div>' : '') +
-                '</div>';
-              if (url) {
-                return (
-                  '<button type="button" class="kk-file" data-kk-open-doc="' +
-                  esc(url) +
-                  '" data-kk-doc-title="' +
-                  esc(fnamn) +
-                  '">' +
-                  meta +
-                  body +
-                  '<span class="kk-file-open">Visa</span></button>'
-                );
-              }
-              return '<div class="kk-file">' + meta + body + '</div>';
+              var typ = f.fileType || f.category || '';
+              var meta = url ? ['Signerad', typ].filter(Boolean).join(' · ') : typ || 'Saknas';
+              return buildDocViewRow(fnamn, meta, url, 'file_' + (f.id || f.assetId || fnamn));
             })
             .join('')
         : empty('Inga filer kopplade ännu.')
@@ -4604,25 +4778,38 @@
                   : ch.indexOf('call') >= 0 || ch.indexOf('samtal') >= 0
                     ? 'call'
                     : 'mail';
-              var ikon = kanal === 'sms' ? '💬' : kanal === 'call' ? '📞' : '✉';
               var kanalNamn = kanal === 'sms' ? 'SMS' : kanal === 'call' ? 'Samtal' : 'E-post';
               var ut = /out|utg|sent|skickad/i.test(String(c.direction || c.dir || ''));
               var riktning = ut ? 'Skickat' : 'Inkommande';
               var nar = c.when || c.at || c.date || '';
-              var last = c.read || c.readAt;
+              var viewUrl =
+                c.viewUrl ||
+                referensAttachmentViewUrl(c.attachment) ||
+                referensAttachmentViewUrl(A(c.attachments)[0]) ||
+                '';
+              var titel = c.subject || c.title || kanalNamn;
+              if (viewUrl) {
+                return buildDocViewRow(
+                  titel,
+                  [kanalNamn, riktning, nar].filter(Boolean).join(' · '),
+                  viewUrl,
+                  'comm_' + (c.id || nar || titel)
+                );
+              }
               var preview = String(c.preview || c.body || c.text || c.subject || '')
                 .replace(/\s+/g, ' ')
                 .trim()
                 .slice(0, 80);
+              var ikon = kanal === 'sms' ? '💬' : kanal === 'call' ? '📞' : '✉';
               return (
                 '<div class="kk-comm kk-comm--' +
                 kanal +
                 '"><span class="kk-comm-ico">' +
                 ikon +
                 '</span><div style="flex:1;min-width:0"><div class="rt">' +
-                esc(c.subject || c.title || preview || kanalNamn) +
+                esc(titel) +
                 '</div><div class="rm">' +
-                esc([kanalNamn, riktning, nar, last ? '✓ läst' : ''].filter(Boolean).join(' · ')) +
+                esc([kanalNamn, riktning, nar].filter(Boolean).join(' · ')) +
                 '</div>' +
                 (c.subject && preview
                   ? '<div class="kk-comm-prev">' + esc(preview) + '</div>'
