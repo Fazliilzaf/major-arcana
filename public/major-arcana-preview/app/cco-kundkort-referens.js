@@ -603,6 +603,9 @@
     if (dateLabel) meta += ' · ' + dateLabel;
     if (sourceLabel) meta += ' · ' + sourceLabel;
     var viewUrl = resolveMedFormViewUrl(formKey, form, driveFiles);
+    var isFc = formKey === 'fitness_certificate';
+    var missingNote = isFc ? 'Signeras på operationsdagen' : 'Efterfrågas före behandling';
+    var outreachRuleId = isFc ? '' : sigRuleId;
 
     if (!signed) {
       return (
@@ -614,10 +617,12 @@
         '</span>' +
         '<span class="gk-med-doc-meta">' +
         esc(meta) +
-        ' · Efterfrågas före behandling</span>' +
-        (sigRuleId
+        ' · ' +
+        esc(missingNote) +
+        '</span>' +
+        (outreachRuleId
           ? '<button type="button" class="kk-sig-act" data-kk-sig="' +
-            esc(sigRuleId) +
+            esc(outreachRuleId) +
             '" data-kk-sig-label="Skicka ' +
             esc(label.toLowerCase()) +
             '" title="Skicka">→</button>'
