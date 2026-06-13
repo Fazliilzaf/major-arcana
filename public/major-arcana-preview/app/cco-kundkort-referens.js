@@ -5624,7 +5624,10 @@
     ov.classList.remove('open');
     kkRevokeDocBlob(ov);
     var body = ov.querySelector('.kk-doc-view-body');
-    if (body) body.innerHTML = '';
+    if (body) {
+      body.classList.remove('kk-doc-view-body--pdf');
+      body.innerHTML = '';
+    }
   }
 
   function kkShowDocStatus(ov, text) {
@@ -5636,6 +5639,7 @@
   function kkShowDocError(ov, message, src) {
     var body = ov.querySelector('.kk-doc-view-body');
     if (!body) return;
+    body.classList.remove('kk-doc-view-body--pdf');
     body.innerHTML =
       '<div class="kk-doc-view-error">' +
       String(message || 'Kunde inte ladda dokumentet.') +
@@ -5652,9 +5656,83 @@
     }
   }
 
+  function kkPdfJsBasePath() {
+    return '/major-arcana-preview/vendor/pdfjs';
+  }
+
+  function kkLoadPdfJs() {
+    var lib = window.pdfjsLib;
+    if (lib && typeof lib.getDocument === 'function') return Promise.resolve(lib);
+    if (window.__kkPdfJsLoad) return window.__kkPdfJsLoad;
+    window.__kkPdfJsLoad = new Promise(function (resolve, reject) {
+      var base = kkPdfJsBasePath();
+      var script = document.createElement('script');
+      script.src = base + '/pdf.min.js';
+      script.onload = function () {
+        var pdfjs = window.pdfjsLib;
+        if (!pdfjs || typeof pdfjs.getDocument !== 'function') {
+          reject(new Error('pdf.js kunde inte initieras'));
+          return;
+        }
+        pdfjs.GlobalWorkerOptions.workerSrc = base + '/pdf.worker.min.js';
+        resolve(pdfjs);
+      };
+      script.onerror = function () {
+        reject(new Error('Kunde inte ladda pdf.js'));
+      };
+      document.head.appendChild(script);
+    });
+    return window.__kkPdfJsLoad;
+  }
+
+  function kkAppendDocOpenTab(body, blobUrl) {
+    var openTab = document.createElement('button');
+    openTab.type = 'button';
+    openTab.className = 'kk-doc-view-open-tab';
+    openTab.textContent = 'Öppna i ny flik';
+    openTab.addEventListener('click', function () {
+      window.open(blobUrl, '_blank', 'noopener');
+    });
+    body.appendChild(openTab);
+  }
+
+  function kkRenderPdfPages(body, pdfjs, buf, blobUrl, title) {
+    body.classList.add('kk-doc-view-body--pdf');
+    body.innerHTML = '';
+    var pages = document.createElement('div');
+    pages.className = 'kk-doc-view-pages';
+    body.appendChild(pages);
+    kkAppendDocOpenTab(body, blobUrl);
+    var data = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    return pdfjs.getDocument({ data: data }).promise.then(function (pdf) {
+      var chain = Promise.resolve();
+      for (var pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        (function (n) {
+          chain = chain.then(function () {
+            return pdf.getPage(n).then(function (page) {
+              var viewport = page.getViewport({ scale: 1.4 });
+              var canvas = document.createElement('canvas');
+              canvas.className = 'kk-doc-view-page';
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              canvas.setAttribute('aria-label', (title || 'Dokument') + ', sida ' + n);
+              pages.appendChild(canvas);
+              return page.render({
+                canvasContext: canvas.getContext('2d'),
+                viewport: viewport,
+              }).promise;
+            });
+          });
+        })(pageNum);
+      }
+      return chain;
+    });
+  }
+
   function kkRenderDocBlob(ov, blob, title) {
     var body = ov.querySelector('.kk-doc-view-body');
     if (!body) return Promise.resolve();
+    body.classList.remove('kk-doc-view-body--pdf');
     body.innerHTML = '';
     kkRevokeDocBlob(ov);
     return blob.arrayBuffer().then(function (buf) {
@@ -5666,24 +5744,17 @@
         : blob.type && blob.type !== 'application/octet-stream'
           ? blob.type
           : 'application/octet-stream';
-      var viewBlob = new Blob([buf], { type: mime });
+      var viewBlob = new Blob([u8], { type: mime });
       ov._blobUrl = URL.createObjectURL(viewBlob);
       if (isPdf || mime === 'application/pdf') {
-        var embed = document.createElement('embed');
-        embed.className = 'kk-doc-view-embed';
-        embed.type = 'application/pdf';
-        embed.src = ov._blobUrl;
-        embed.setAttribute('title', title || 'Dokument');
-        body.appendChild(embed);
-        var openTab = document.createElement('button');
-        openTab.type = 'button';
-        openTab.className = 'kk-doc-view-open-tab';
-        openTab.textContent = 'Öppna i ny flik';
-        openTab.addEventListener('click', function () {
-          window.open(ov._blobUrl, '_blank', 'noopener');
-        });
-        body.appendChild(openTab);
-        return;
+        kkShowDocStatus(ov, 'Renderar PDF…');
+        return kkLoadPdfJs()
+          .then(function (pdfjs) {
+            return kkRenderPdfPages(body, pdfjs, u8, ov._blobUrl, title);
+          })
+          .catch(function (err) {
+            kkShowDocError(ov, (err && err.message) || 'Kunde inte visa PDF.', ov._blobUrl);
+          });
       }
       if (/^image\//i.test(mime)) {
         var img = document.createElement('img');
