@@ -3170,6 +3170,39 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 #kk-storvy .gk-sek h2 .gk-pill {
   margin-left: auto;
 }
+#kk-storvy .gk-section-toggle {
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 9px;
+  margin-left: 2px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #8a8174;
+  box-shadow:
+    0 1px 4px rgba(56, 40, 28, 0.08),
+    inset 0 0 0 1px rgba(93, 74, 60, 0.08);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+#kk-storvy .gk-section-toggle:hover {
+  color: #5d4a3c;
+  background: rgba(255, 255, 255, 0.96);
+}
+#kk-storvy .gk-section-body {
+  display: block;
+}
+#kk-storvy .gk-sek.is-collapsed {
+  padding-bottom: 10px;
+}
+#kk-storvy .gk-sek.is-collapsed h2 {
+  margin-bottom: 0;
+}
+#kk-storvy .gk-sek.is-collapsed .gk-section-body {
+  display: none;
+}
 #kk-storvy .gk-rad {
   display: flex;
   align-items: center;

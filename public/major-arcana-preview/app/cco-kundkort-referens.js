@@ -364,13 +364,18 @@
           ? '<div class="gk-rad"><span class="gk-sub">' + esc(emptyText) + '</span></div>'
           : '');
       if (!content) return '';
+      var slug = sekSlug(title || 'sektion');
       return (
-        '<section class="gk-sek"><h2>' +
+        '<section class="gk-sek" data-gk-section="' +
+        esc(slug) +
+        '"><h2>' +
         esc(title) +
         (pill || '') +
-        '</h2>' +
+        '<button type="button" class="gk-section-toggle" data-gk-toggle-section aria-label="Visa eller dölj ' +
+        esc(title) +
+        '" aria-expanded="true">Dölj</button></h2><div class="gk-section-body">' +
         content +
-        '</section>'
+        '</div></section>'
       );
     }
     var name = ctx.name || 'Kund';
@@ -1848,6 +1853,16 @@
         if (open && window.__gkHydrateSecurePhotos) window.__gkHydrateSecurePhotos(mediaGrid);
         return;
       }
+      var sectionToggle = e.target.closest && e.target.closest('[data-gk-toggle-section]');
+      if (sectionToggle) {
+        e.preventDefault();
+        var section = sectionToggle.closest('.gk-sek');
+        if (!section) return;
+        var closed = section.classList.toggle('is-collapsed');
+        sectionToggle.setAttribute('aria-expanded', closed ? 'false' : 'true');
+        sectionToggle.textContent = closed ? 'Visa' : 'Dölj';
+        return;
+      }
       var photoTile = e.target.closest && e.target.closest('a.gk-foto');
       if (photoTile && photoTile.getAttribute('data-gk-photo-kind') !== 'video') {
         e.preventDefault();
@@ -1988,6 +2003,12 @@
             return h && new RegExp(slug, 'i').test(h.textContent || '');
           })[0];
           if (target) {
+            target.classList.remove('is-collapsed');
+            var targetToggle = target.querySelector('[data-gk-toggle-section]');
+            if (targetToggle) {
+              targetToggle.textContent = 'Dölj';
+              targetToggle.setAttribute('aria-expanded', 'true');
+            }
             var jsc = jov.querySelector('.kk-storvy-body') || jov;
             jsc.scrollTop = Math.max(
               0,
@@ -2239,7 +2260,7 @@
             var note = ov.querySelector('.gk-edit-note');
             if (note)
               note.textContent =
-                'Sparad som ny markerad bild. Ladda om kundkortet för att se den i Foto.';
+                'Sparad som ny markerad bild. Kundkortet uppdateras i Foto och Ta bild.';
             saveBtn.textContent = 'Sparad ✓';
             if (j && j.asset && j.asset.id) {
               saveBtn.setAttribute('data-saved-asset', j.asset.id);
