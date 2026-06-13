@@ -5544,6 +5544,22 @@
     scrollV9DossierSection(root, sectionKey);
   }
 
+  function openMedicinsktFormView(formId) {
+    const medForm = normalizeText(formId);
+    if (!medForm) return;
+    if (typeof window.__kkOpenStorvy === 'function') {
+      window.__kkOpenStorvy('halso', '', medForm);
+      return;
+    }
+    const root = document.querySelector('.v10-dossier-referens') || document;
+    v9JumpToSection(root, 'halso');
+    window.setTimeout(() => {
+      if (typeof window.__kkExpandMedForm === 'function') {
+        window.__kkExpandMedForm(root.querySelector('.kkref .doss') || root, medForm);
+      }
+    }, 120);
+  }
+
   function bindV9Zone1Handlers(root, ctx) {
     if (!root || !isV9CustomersEnabled()) return;
     const zone = root.querySelector('[data-v9-zone1]');
@@ -5559,6 +5575,32 @@
     zone.querySelectorAll('[data-v9-jump]').forEach((btn) => {
       btn.addEventListener('click', () => {
         v9JumpToSection(root, btn.getAttribute('data-v9-jump') || '');
+      });
+    });
+
+    zone.querySelectorAll('[data-v9-journal-action]').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const formId = normalizeText(btn.getAttribute('data-v9-journal-action'));
+        if (formId === 'health_declaration' || formId === 'fitness_certificate') {
+          openMedicinsktFormView(formId);
+        }
+      });
+    });
+
+    zone.querySelectorAll('[data-v9-journal-tile]').forEach((tile) => {
+      tile.addEventListener('click', (event) => {
+        if (event.target.closest('[data-v9-journal-action]')) return;
+        const formId = normalizeText(tile.getAttribute('data-v9-journal-tile'));
+        const status = normalizeText(tile.getAttribute('data-status'));
+        if (
+          (formId === 'health_declaration' || formId === 'fitness_certificate') &&
+          (status === 'filled' || status === 'partial')
+        ) {
+          event.preventDefault();
+          openMedicinsktFormView(formId);
+        }
       });
     });
 

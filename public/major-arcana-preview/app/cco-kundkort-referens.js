@@ -420,13 +420,40 @@
   // Kundrese-steg → vilken sektion man hoppar till vid klick.
   function stepJumpSlug(label) {
     var l = String(label || '').toLowerCase();
-    if (/hälsodek|halsodek/.test(l)) return 'halso';
+    if (/hälsodek|halsodek|friskförs|friskfors/.test(l)) return 'halso';
     if (/offert|behandlingsplan/.test(l)) return 'offert';
-    if (/betänketid|betanketid|avtal|samtycke|friskförs|friskfors/.test(l)) return 'nastasteg';
+    if (/betänketid|betanketid|avtal|samtycke/.test(l)) return 'nastasteg';
     if (/foto/.test(l)) return 'foto';
     if (/bokning|bekräftelse|bekraftelse|konsultation/.test(l)) return 'bokningar';
     return '';
   }
+  function stepMedFormSlug(label) {
+    var l = String(label || '').toLowerCase();
+    if (/hälsodek|halsodek/.test(l)) return 'health_declaration';
+    if (/friskförs|friskfors/.test(l)) return 'fitness_certificate';
+    return '';
+  }
+  function medFormDateLabel(form) {
+    if (!form || !form.signedAt) return '';
+    return gkSharedFmtDate(String(form.signedAt).slice(0, 10));
+  }
+  function expandMedForm(root, medForm) {
+    if (!root || !medForm) return false;
+    var formEl = root.querySelector('[data-kk-med-form="' + medForm + '"]');
+    if (!formEl) return false;
+    if (formEl.tagName === 'DETAILS') formEl.open = true;
+    formEl.classList.add('kk-flash');
+    setTimeout(function () {
+      formEl.classList.remove('kk-flash');
+    }, 1200);
+    try {
+      formEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (_e) {
+      /* ignore */
+    }
+    return true;
+  }
+  window.__kkExpandMedForm = expandMedForm;
   function sec(label, src, inner) {
     // REN v9-DESKTOP: varje sektion = .dossier-section-kort (drop-in CSS, inga lager)
     return (
@@ -543,14 +570,57 @@
     return false;
   }
 
-  function buildFormAnswersInner(answers, form, signed, sourceLabel, missingLabel, sigRuleId) {
+  function wrapMedFormPanel(
+    formKey,
+    missingLabel,
+    signed,
+    sourceLabel,
+    bodyHtml,
+    answerCount,
+    form
+  ) {
+    var status = signed ? 'Signerad' : 'Saknas';
+    var dateLabel = medFormDateLabel(form);
+    var meta =
+      status +
+      (answerCount ? ' · ' + answerCount + ' svar' : '') +
+      (dateLabel ? ' · ' + dateLabel : '') +
+      (sourceLabel ? ' · ' + sourceLabel : '');
+    return (
+      '<details class="gk-med-form" data-kk-med-form="' +
+      esc(formKey) +
+      '"' +
+      (signed ? ' open' : '') +
+      '>' +
+      '<summary class="gk-med-form-summary">' +
+      '<span class="gk-med-form-title">' +
+      esc(missingLabel) +
+      '</span>' +
+      '<span class="gk-med-form-meta">' +
+      esc(meta) +
+      '</span>' +
+      '<span class="gk-med-form-chevron" aria-hidden="true">▾</span>' +
+      '</summary>' +
+      '<div class="gk-med-form-body">' +
+      bodyHtml +
+      '</div></details>'
+    );
+  }
+
+  function buildFormAnswersInner(
+    answers,
+    form,
+    signed,
+    sourceLabel,
+    missingLabel,
+    sigRuleId,
+    formKey
+  ) {
     if (answers && answers.length) {
       var flags = answers.filter(function (a) {
         return a.risk === 'flag' || a.risk === 'amber';
       });
       var inner = '';
-      inner +=
-        '<div class="gk-sub" style="margin-bottom:8px"><b>' + esc(missingLabel) + '</b></div>';
       if (flags.length)
         inner +=
           '<div class="flag kkx-flag"><div class="fi">!</div><div><b>' +
@@ -595,18 +665,31 @@
         '<div class="hdfoot kkx-foot">Medicinsk data · ingen extern AI' +
         (sourceLabel ? ' · ' + esc(sourceLabel) : '') +
         '</div>';
-      return inner;
+      return wrapMedFormPanel(
+        formKey || 'health_declaration',
+        missingLabel,
+        signed,
+        sourceLabel,
+        inner,
+        answers.length,
+        form
+      );
     }
     if (signed) {
-      return (
-        '<div class="gk-sub" style="margin-bottom:8px"><b>' +
-        esc(missingLabel) +
-        '</b></div>' +
+      var signedBody =
         '<div class="hdfoot kkx-foot">' +
         esc(missingLabel) +
         ' finns i patient-master' +
         (sourceLabel ? ' · ' + esc(sourceLabel) : '') +
-        ' — detaljerade svar saknas i readout.</div>'
+        ' — klicka för att granska.</div>';
+      return wrapMedFormPanel(
+        formKey || 'health_declaration',
+        missingLabel,
+        true,
+        sourceLabel,
+        signedBody,
+        0,
+        form
       );
     }
     return (
@@ -644,16 +727,17 @@
         hdSigned,
         hdSource,
         'Hälsodeklaration',
-        'customer.missing_health_declaration'
+        'customer.missing_health_declaration',
+        'health_declaration'
       ) +
-      '<div style="height:10px"></div>' +
       buildFormAnswersInner(
         fcAnswers,
         fc,
         fcSigned,
         fcSource,
         'Friskförsäkran',
-        'customer.missing_operation_day_insurance'
+        'customer.missing_operation_day_insurance',
+        'fitness_certificate'
       )
     );
   }
@@ -1122,10 +1206,7 @@
         visitSectionHtml: sek(
           'Besök',
           '<span class="gk-pill gk-tag-info">' + Object.keys(visitGroups).length + '</span>',
-          visitCards
-            ? '<div class="gk-sub gk-order-note">Nyaste besök överst. Varje besök samlar journal, bilder, film och dokument på samma datum.</div>' +
-                visitCards
-            : '',
+          visitCards || '',
           'Inga besök ännu.'
         ),
         journalRows: A2(ctx.jItems)
@@ -1263,8 +1344,13 @@
                 '</span>';
             }
           }
+          var jump = stepJumpSlug(s.label);
+          var medForm = stepMedFormSlug(s.label);
           return (
-            '<div class="gk-steg-rad"><span class="gk-steg-ikon ' +
+            '<div class="gk-steg-rad' +
+            (jump ? ' kk-jumpable" data-kk-jump="' + jump + '"' : '"') +
+            (medForm ? ' data-kk-med-form="' + medForm + '"' : '') +
+            '><span class="gk-steg-ikon ' +
             cls +
             '">' +
             esc(mk) +
@@ -1837,7 +1923,6 @@
         '<div class="gk-visit-photos">' +
         offerReadyHtml +
         '<div class="gk-visit-label gk-visit-label--original">Originalbilder</div>' +
-        '<div class="gk-sub gk-order-note">Nyast först. Före/efter-förslag jämför äldsta mot senaste bild i samma zon.</div>' +
         gkPhotoGrid(originalPhotos, 0, 'gk-foto-grid--all' + (collapsed ? ' is-collapsed' : '')) +
         (collapsed
           ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
@@ -3600,10 +3685,12 @@
           var mk =
             st === 'done' ? '✓' : st === 'neutral' ? '–' : st === 'act' ? s.id || '!' : s.id || '';
           var jump = stepJumpSlug(s.label);
+          var medForm = stepMedFormSlug(s.label);
           return (
             '<div class="step kkx-step ' +
             st +
             (jump ? ' kk-jumpable" data-kk-jump="' + jump + '"' : '"') +
+            (medForm ? ' data-kk-med-form="' + medForm + '"' : '') +
             '><div class="mk kkx-mk">' +
             esc(mk) +
             '</div><div><div class="t">' +
@@ -5242,6 +5329,7 @@
       var jp = e.target.closest && e.target.closest('[data-kk-jump]');
       if (jp) {
         var slug = jp.getAttribute('data-kk-jump');
+        var medForm = jp.getAttribute('data-kk-med-form') || '';
         var target = document.querySelector('.kkref .doss [data-sek="' + slug + '"]');
         if (target) {
           if (target.tagName === 'DETAILS') target.open = true;
@@ -5255,6 +5343,9 @@
           setTimeout(function () {
             target.classList.remove('kk-flash');
           }, 900);
+          if (medForm) {
+            expandMedForm(document.querySelector('.kkref .doss') || document, medForm);
+          }
         }
         return;
       }
@@ -5522,7 +5613,7 @@
 
   // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt
   // landat på en sektion (#slug). Används av header-förstoringen OCH sektions-⤢.
-  window.__kkOpenStorvy = function (slug, entryId) {
+  window.__kkOpenStorvy = function (slug, entryId, medForm) {
     var ov = document.getElementById('kk-storvy');
     if (!ov) {
       ov = document.createElement('div');
@@ -5586,6 +5677,7 @@
         setTimeout(function () {
           target.classList.remove('kk-flash');
         }, 1200);
+        if (medForm) expandMedForm(body, medForm);
       } else {
         body.scrollTo({ top: 0 });
       }
