@@ -132,6 +132,14 @@
   function isReferensMediaFile(file) {
     return isReferensImageFile(file) || isReferensVideoFile(file);
   }
+  function isReferensBrowserImageFile(file) {
+    var mime = driveDedupeText(file && (file.mimeType || file.contentType));
+    var name = driveDedupeText(file && (file.fileName || file.originalFileName || file.name));
+    return /image\/(jpe?g|png|webp|gif)/.test(mime) || /\.(jpe?g|png|webp|gif)$/.test(name);
+  }
+  function isReferensPatientAssetFile(file) {
+    return Boolean(file && (file.source === 'patient_asset' || file.assetId || file.sourceAssetId));
+  }
   var SHARED_MND = [
     'jan',
     'feb',
@@ -194,11 +202,15 @@
     var url =
       (file && file.viewUrl) ||
       (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#');
+    var explicitThumb = (file && (file.thumbnailUrl || file.thumbnailLink)) || '';
+    var canUseFullImage = !isVideo && isReferensBrowserImageFile(file);
     var previewUrl =
-      (file && (file.thumbnailUrl || file.thumbnailLink)) ||
-      (id
-        ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
-        : '');
+      explicitThumb ||
+      (canUseFullImage && isReferensPatientAssetFile(file)
+        ? url
+        : canUseFullImage && id
+          ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
+          : '');
     return {
       id: id,
       sourceAssetId: (file && (file.assetId || file.sourceAssetId || file.id)) || '',
@@ -209,6 +221,7 @@
       date: gkSharedDateOfFile(file),
       thumb: isVideo ? '' : previewUrl,
       url: url,
+      previewMissing: !isVideo && !previewUrl,
     };
   }
   function gkSharedPhotoGrid(items, cls) {
@@ -220,7 +233,8 @@
       '">' +
       list
         .map(function (p) {
-          var src = p.thumb || p.url;
+          var missingPreview = p.kind !== 'video' && p.previewMissing;
+          var src = p.thumb || (!missingPreview ? p.url : '');
           var fallback = p.url || '';
           var media =
             p.kind === 'video'
@@ -229,18 +243,33 @@
                 '" muted playsinline preload="metadata"><source src="' +
                 esc(fallback) +
                 '"></video><span class="gk-video-chip">Film</span>'
-              : '<img data-gk-img-src="' +
-                esc(fallback) +
-                '" src="' +
-                esc(src) +
-                '" alt="' +
-                esc(p.name || p.zone || 'Foto') +
-                '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />';
+              : missingPreview
+                ? '<div class="gk-foto-placeholder"><b>Miniatyr saknas</b><small>Original finns · behöver thumbnail</small></div>'
+                : '<img data-gk-img-src="' +
+                  esc(src) +
+                  '" data-gk-img-full="' +
+                  esc(fallback) +
+                  '" src="' +
+                  esc(src) +
+                  '" alt="' +
+                  esc(p.name || p.zone || 'Foto') +
+                  '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />';
           return (
-            '<a class="gk-foto" href="' +
+            '<a class="gk-foto' +
+            (p.kind === 'video' ? ' gk-foto--video' : '') +
+            (missingPreview ? ' gk-foto--missing' : '') +
+            '" href="' +
             esc(p.url || '#') +
+            '" data-gk-photo-kind="' +
+            esc(p.kind || 'image') +
             '" data-gk-photo-id="' +
             esc(p.id || p.sourceAssetId || '') +
+            '" data-gk-photo-asset="' +
+            esc(p.sourceAssetId || p.id || '') +
+            '" data-gk-photo-date="' +
+            esc(p.date || '') +
+            '" data-gk-photo-missing-preview="' +
+            (missingPreview ? '1' : '0') +
             '" data-gk-photo-src="' +
             esc(fallback || src || '') +
             '" data-gk-photo-zone="' +
@@ -255,12 +284,25 @@
             (p.kind === 'video' ? 'Film' : esc(p.zone || 'Foto')) +
             ' · ' +
             esc(gkSharedFmtDate(p.date)) +
-            '</span></a>'
+            '</span><span class="gk-foto-marks">Rita · Plan · Kund</span></a>'
           );
         })
         .join('') +
       '</div>'
     );
+  }
+  function gkSharedMediaCountLabel(items) {
+    var list = A(items);
+    var images = list.filter(function (p) {
+      return p && p.kind !== 'video';
+    }).length;
+    var videos = list.filter(function (p) {
+      return p && p.kind === 'video';
+    }).length;
+    var parts = [];
+    if (images) parts.push(images + (images === 1 ? ' bild' : ' bilder'));
+    if (videos) parts.push(videos + (videos === 1 ? ' film' : ' filmer'));
+    return parts.join(' · ') || '0';
   }
   function isReferensJournalPdf(file) {
     var mime = driveDedupeText(file && (file.mimeType || file.contentType));
@@ -552,11 +594,15 @@
         (f && f.viewUrl) ||
         (id ? '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(id) : '#');
       var isVideo = isReferensVideoFile(f);
+      var explicitThumb = (f && (f.thumbnailUrl || f.thumbnailLink)) || '';
+      var canUseFullImage = !isVideo && isReferensBrowserImageFile(f);
       var previewUrl =
-        (f && (f.thumbnailUrl || f.thumbnailLink)) ||
-        (id
-          ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
-          : '');
+        explicitThumb ||
+        (canUseFullImage && isReferensPatientAssetFile(f)
+          ? url
+          : canUseFullImage && id
+            ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
+            : '');
       return {
         id: id,
         sourceAssetId: (f && (f.assetId || f.sourceAssetId || f.id)) || '',
@@ -566,6 +612,7 @@
         date: gkDateOfFile(f),
         thumb: isVideo ? '' : previewUrl,
         url: url,
+        previewMissing: !isVideo && !previewUrl,
       };
     }
     function gkPhotoGrid(photos, limit, cls) {
@@ -577,7 +624,8 @@
         '">' +
         list
           .map(function (p) {
-            var src = p.thumb || p.url;
+            var missingPreview = p.kind !== 'video' && p.previewMissing;
+            var src = p.thumb || (!missingPreview ? p.url : '');
             var fallback = p.url || '';
             var media =
               p.kind === 'video'
@@ -586,16 +634,19 @@
                   '" data-gk-img-full="' +
                   esc(fallback) +
                   '" preload="metadata" muted playsinline controls></video>'
-                : src
-                  ? '<img data-gk-img-src="' +
-                    esc(src) +
-                    '" data-gk-img-full="' +
-                    esc(fallback) +
-                    '" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />'
-                  : '';
+                : missingPreview
+                  ? '<div class="gk-foto-placeholder"><b>Miniatyr saknas</b><small>Original finns · behöver thumbnail</small></div>'
+                  : src
+                    ? '<img data-gk-img-src="' +
+                      esc(src) +
+                      '" data-gk-img-full="' +
+                      esc(fallback) +
+                      '" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />'
+                    : '';
             return (
               '<a class="gk-foto' +
               (p.kind === 'video' ? ' gk-foto--video' : '') +
+              (missingPreview ? ' gk-foto--missing' : '') +
               '" href="' +
               esc(p.url) +
               '" data-gk-photo-kind="' +
@@ -610,6 +661,8 @@
               esc(p.zone || '') +
               '" data-gk-photo-name="' +
               esc(p.name || '') +
+              '" data-gk-photo-missing-preview="' +
+              (missingPreview ? '1' : '0') +
               '" target="_blank" rel="noopener noreferrer" title="' +
               (p.kind === 'video' ? 'Öppna film' : 'Öppna bild') +
               '">' +
@@ -618,7 +671,7 @@
               (p.kind === 'video' ? 'Film' : esc(p.zone)) +
               ' · ' +
               esc(gkFmtDate(p.date)) +
-              '</span></a>'
+              '</span><span class="gk-foto-marks">Rita · Plan · Kund</span></a>'
             );
           })
           .join('') +
@@ -1485,7 +1538,7 @@
       photos.sort(function (a, b) {
         return (b.date || '').localeCompare(a.date || '');
       });
-      var collapsed = photos.length > 12;
+      var collapsed = photos.length > 24;
       var grid =
         '<div class="gk-visit-photos">' +
         gkPhotoGrid(photos, 0, 'gk-foto-grid--all' + (collapsed ? ' is-collapsed' : '')) +
@@ -1995,6 +2048,13 @@
       }
       var photoTile = e.target.closest && e.target.closest('a.gk-foto');
       if (photoTile && photoTile.getAttribute('data-gk-photo-kind') !== 'video') {
+        if (photoTile.getAttribute('data-gk-photo-missing-preview') === '1') {
+          photoTile.classList.add('is-nudged');
+          setTimeout(function () {
+            photoTile.classList.remove('is-nudged');
+          }, 1200);
+          return;
+        }
         e.preventDefault();
         if (window.__gkOpenPhotoEditor) window.__gkOpenPhotoEditor(photoTile);
         return;
@@ -3381,7 +3441,29 @@
     }
     h += sec('Historik', String(hist.length), histInner);
 
-    var jrs = A(journalEntries).length ? A(journalEntries) : A(bundle.journals);
+    function isReferensPhotoLikeJournalEntry(j) {
+      var raw = String(
+        [
+          j && j.type,
+          j && j.category,
+          j && j.journalType,
+          j && j.title,
+          j && j.fileName,
+          j && j.originalFileName,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      ).toLowerCase();
+      var looksLikePhoto = /\b(foto|photo|image|bilder|media|asset)\b/.test(raw);
+      var isRealJournalDoc =
+        /\b(journal|frisk|samtycke|hälsodeklaration|halsodeklaration|avtal)\b/.test(raw);
+      return looksLikePhoto && !isRealJournalDoc;
+    }
+    var jrs = (A(journalEntries).length ? A(journalEntries) : A(bundle.journals)).filter(
+      function (j) {
+        return !isReferensPhotoLikeJournalEntry(j);
+      }
+    );
     function referensJournalVisualState(j) {
       if (j.locked) return 'done';
       if (j.canSign || /draft|open|active|utkast/i.test(String(j.status || ''))) return 'act';
@@ -3445,7 +3527,7 @@
         .trim();
       return c || (jtype ? jtype : 'Journal');
     }
-    var jItems = jrs.slice(0, 8).map(function (j) {
+    var jItems = jrs.map(function (j) {
       var st = referensJournalVisualState(j);
       var raw = j.title || j.journalType || '';
       return {
@@ -3658,12 +3740,33 @@
 
     h += '<div class="gthread"></div>';
 
-    if (photos.length) {
+    var fotoMediaRows = A(driveFiles)
+      .filter(isReferensMediaFile)
+      .map(gkSharedMediaFromFile)
+      .sort(function (a, b) {
+        return String(b.date || '').localeCompare(String(a.date || ''));
+      });
+    if (fotoMediaRows.length) {
+      var fotoCollapsed = fotoMediaRows.length > 24;
+      var fotoRows =
+        '<div class="gk-visit-photos"><div class="gk-visit-label">Välj bilder för efterbild, plan eller kundutskick</div>' +
+        gkSharedPhotoGrid(
+          fotoMediaRows,
+          'gk-foto-grid--all' + (fotoCollapsed ? ' is-collapsed' : '')
+        ) +
+        (fotoCollapsed
+          ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
+            fotoMediaRows.length +
+            '</button>'
+          : '') +
+        '</div>';
+      h += sec('Foto', gkSharedMediaCountLabel(fotoMediaRows), fotoRows);
+    } else if (photos.length) {
       var fotoCount = photos.reduce(function (n, p) {
         return n + (p.count || 1);
       }, 0);
       var fotoRows = photos
-        .slice(0, 6)
+        .slice(0, 12)
         .map(function (p) {
           return (
             '<div class="kk-foto"><span class="kk-foto-ico">🖼</span>' +
@@ -3675,15 +3778,15 @@
           );
         })
         .join('');
-      if (fotoCount > photos.slice(0, 6).length) {
+      if (fotoCount > photos.slice(0, 12).length) {
         fotoRows +=
           '<div class="kk-foto-mer">+' +
-          (fotoCount - photos.slice(0, 6).length) +
-          ' till · öppna ⤢ för galleri</div>';
+          (fotoCount - photos.slice(0, 12).length) +
+          ' till · väntar på asset-koppling</div>';
       }
-      h += sec('Foton', String(fotoCount), fotoRows);
+      h += sec('Foto', String(fotoCount), fotoRows);
     } else {
-      h += sec('Foton', '0', empty('Inga foton kopplade till patienten ännu.'));
+      h += sec('Foto', '0', empty('Inga foton kopplade till patienten ännu.'));
     }
 
     var krVal =
@@ -4020,7 +4123,7 @@
             })
             .join('');
           var visitMediaRows = g.files.filter(isReferensMediaFile).map(gkSharedMediaFromFile);
-          var visitCollapsed = visitMediaRows.length > 6;
+          var visitCollapsed = visitMediaRows.length > 12;
           var mediaRows = visitMediaRows.length
             ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder och film</div>' +
               gkSharedPhotoGrid(
