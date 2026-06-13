@@ -6449,10 +6449,7 @@
       while (cursor < visibleNodes.length) {
         const node = visibleNodes[cursor++];
         const primary = node.getAttribute('data-gk-img-src') || '';
-        const fallback =
-          node.tagName === 'IMG' && primary.includes('/cco-patient-master/file-preview')
-            ? ''
-            : node.getAttribute('data-gk-img-full') || '';
+        const fallback = node.getAttribute('data-gk-img-full') || '';
         node.dataset.gkLoading = 'true';
         node.classList.add('is-loading');
         const objectUrl = await fetchGkMediaObjectUrl(primary, fallback);
