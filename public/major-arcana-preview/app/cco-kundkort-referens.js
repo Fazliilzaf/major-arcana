@@ -3316,10 +3316,10 @@
         '<div class="hdfoot kkx-foot">Medicinsk data · ingen extern AI' +
         (hdSource ? ' · ' + esc(hdSource) : '') +
         '</div>';
-      h += sec('Hälsodeklaration', hdSigned ? esc(hdSource || 'Signerad') : '', hdInner);
+      h += sec('Medicinskt läge', hdSigned ? esc(hdSource || 'Signerad') : '', hdInner);
     } else if (hdSigned) {
       h += sec(
-        'Hälsodeklaration',
+        'Medicinskt läge',
         esc(hdSource || 'Signerad'),
         '<div class="hdfoot kkx-foot">Hälsodeklaration finns i patient-master' +
           (hdSource ? ' · ' + esc(hdSource) : '') +
@@ -3327,7 +3327,7 @@
       );
     } else {
       h += sec(
-        'Hälsodeklaration',
+        'Medicinskt läge',
         '<span class="sb-chip">Att fylla i</span>',
         '<div class="row acc info"><div style="flex:1"><div class="rt">Hälsodeklaration saknas</div>' +
           '<div class="rm">Efterfrågas före behandling</div></div>' +
@@ -5713,7 +5713,7 @@
         act.querySelector('[data-kk-forbered]').addEventListener('click', function () {
           var namn = String((head.querySelector('.dn') || {}).textContent || '').trim();
           var body =
-            kkRad('Hälsodeklaration', kkBadge(doss, 'halso')) +
+            kkRad('Medicinskt läge', kkBadge(doss, 'halso')) +
             kkRad('Kundresa', kkBadge(doss, 'kundresa')) +
             kkRad('Kommande bokningar', kkBadge(doss, 'bokningar') || '0') +
             kkRad('Journalanteckningar', kkBadge(doss, 'journal') || '0') +
