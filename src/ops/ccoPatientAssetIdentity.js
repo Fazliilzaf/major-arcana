@@ -28,6 +28,11 @@ function pushUnique(list, value) {
   if (normalized && !list.includes(normalized)) list.push(normalized);
 }
 
+function normalizeCustomerState(value) {
+  if (value?.customerState && typeof value.customerState === 'object') return value.customerState;
+  return value && typeof value === 'object' ? value : null;
+}
+
 function tenantCandidates(tenantId) {
   const base = normalizeText(tenantId);
   const rows = [base];
@@ -70,10 +75,27 @@ async function collectCustomerAliases({ patient, tenantId, customerStore }) {
     return aliases;
   }
 
-  for (const candidateTenant of tenantCandidates(tenantId || patient?.tenantId)) {
+  let storeTenantIds = [];
+  if (typeof customerStore.listTenantIds === 'function') {
+    try {
+      storeTenantIds = await customerStore.listTenantIds();
+    } catch (_error) {
+      storeTenantIds = [];
+    }
+  }
+  const tenantsToScan = [
+    ...tenantCandidates(tenantId || patient?.tenantId),
+    ...storeTenantIds.map(normalizeText),
+  ].filter(Boolean);
+  const uniqueTenantsToScan = [...new Set(tenantsToScan)];
+  const exactNameMatches = [];
+
+  for (const candidateTenant of uniqueTenantsToScan) {
     let customerState = null;
     try {
-      customerState = await customerStore.peekTenantCustomerState({ tenantId: candidateTenant });
+      customerState = normalizeCustomerState(
+        await customerStore.peekTenantCustomerState({ tenantId: candidateTenant })
+      );
     } catch (_error) {
       customerState = null;
     }
@@ -108,13 +130,16 @@ async function collectCustomerAliases({ patient, tenantId, customerStore }) {
       }
     }
 
-    // Name-only fallback is intentionally narrow: only one exact customer-state match.
     if (!aliases.length && name) {
-      const matches = Object.keys(directory).filter(
-        (key) => normalizeName(directory[key]?.name) === name
-      );
-      if (matches.length === 1) pushUnique(aliases, matches[0]);
+      Object.keys(directory)
+        .filter((key) => normalizeName(directory[key]?.name) === name)
+        .forEach((key) => exactNameMatches.push(key));
     }
+  }
+  // Name-only fallback is intentionally narrow: only one exact unique match across all scanned stores.
+  if (!aliases.length && exactNameMatches.length) {
+    const uniqueNameMatches = [...new Set(exactNameMatches)];
+    if (uniqueNameMatches.length === 1) pushUnique(aliases, uniqueNameMatches[0]);
   }
   return aliases;
 }
@@ -123,6 +148,7 @@ async function resolvePatientAssetIds({ patientId, patient, tenantId, customerSt
   const ids = [];
   pushUnique(ids, patientId);
   pushUnique(ids, patient?.id);
+  pushUnique(ids, patient?.cliento?.sourceId);
   pushUnique(ids, patient?.cliento?.canonicalCustomerId);
   pushUnique(ids, patient?.cliento?.customerKey);
 

@@ -2352,6 +2352,10 @@ async function createCcoCustomerStore({ filePath, historyStore = null }) {
     return JSON.parse(JSON.stringify(tenantState.customerState));
   }
 
+  async function listTenantIds() {
+    return Object.keys(state.tenants || {}).filter(Boolean);
+  }
+
   async function previewTenantCustomerIdentity({ tenantId, customerState = null }) {
     const baseState = await materializeTenantCustomerState({ tenantId, customerState });
     const payload = buildCustomerIdentitySuggestions(baseState);
@@ -2572,6 +2576,7 @@ async function createCcoCustomerStore({ filePath, historyStore = null }) {
   return {
     getTenantCustomerState,
     peekTenantCustomerState,
+    listTenantIds,
     previewTenantCustomerIdentity,
     saveTenantCustomerState,
     previewTenantCustomerImport,
