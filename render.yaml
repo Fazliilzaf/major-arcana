@@ -100,7 +100,7 @@ services:
       - key: CORS_ALLOWED_ORIGINS
         sync: false
       - key: ARCANA_BOOTSTRAP_MAILBOX_BACKFILL
-        value: "true"
+        value: "false"
       # Sänkt 2026-05-14 från 90 till 14 dagar. SIGABRT 134-grävning visade
       # att bootstrap laddade 4340 messages × 4 folders × 6 mailboxar i
       # ETT svep -> OOM på Standard 2GB. 14 d ger ~624 messages per
@@ -196,16 +196,15 @@ services:
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
-      # Scheduler allowlist: alert_probe + backup_prune.
-      # Dashboard snapshot + daily digest pausas tills de är minnessäkra på prod.
+      # Scheduler pausad i prod safe-mode tills kundkort/bildflode ar stabilt.
+      # Bakgrundsjobb kan slas pa kontrollerat med ARCANA_PROD_SAFE_MODE=false.
       - key: ARCANA_SCHEDULER_ENABLED
-        value: "true"
+        value: "false"
       - key: ARCANA_SCHEDULER_JOBS
-        value: "alert_probe,backup_prune"
-      # backup_prune: utan RUN_ON_STARTUP väntar första körningen ~24h efter boot och
-      # missas vid deploy-churn. Med true: ~8s efter start för allowlistade jobb.
+        value: ""
+      # Inga startup-jobb under stabilisering; minskar Render-restart/OOM-risk.
       - key: ARCANA_SCHEDULER_RUN_ON_STARTUP
-        value: "true"
+        value: "false"
       # Retention för state-backups (backup_prune) — defaults, explicit i blueprint.
       - key: ARCANA_BACKUP_RETENTION_MAX_FILES
         value: "50"

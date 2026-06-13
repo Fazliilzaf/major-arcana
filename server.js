@@ -12611,18 +12611,13 @@ process.once('SIGTERM', () => {
     graphSendConnector: null,
   };
 
+  const prodSafeMode = config.isProduction && process.env.ARCANA_PROD_SAFE_MODE !== 'false';
   const schedulerConfig = { ...config };
-  if (config.isProduction && process.env.ARCANA_SCHEDULER_PROD_SAFE_MODE !== 'false') {
-    const unstableStartupJobs = new Set(['cco_daily_digest', 'cco_dashboard_snapshot_refresh']);
-    const filteredJobs = (schedulerConfig.schedulerJobsAllowlist || []).filter(
-      (jobId) => !unstableStartupJobs.has(jobId)
-    );
-    if (filteredJobs.length !== (schedulerConfig.schedulerJobsAllowlist || []).length) {
-      console.warn(
-        `[scheduler] prod safe-mode pausade instabila jobb: ${[...unstableStartupJobs].join(', ')}`
-      );
-    }
-    schedulerConfig.schedulerJobsAllowlist = filteredJobs;
+  if (prodSafeMode && process.env.ARCANA_SCHEDULER_PROD_SAFE_MODE !== 'false') {
+    schedulerConfig.schedulerEnabled = false;
+    schedulerConfig.schedulerRunOnStartup = false;
+    schedulerConfig.schedulerJobsAllowlist = [];
+    console.warn('[scheduler] prod safe-mode pausade alla automatiska scheduler-jobb');
   }
 
   const scheduler = createScheduler({
@@ -13687,7 +13682,9 @@ process.once('SIGTERM', () => {
 
   // Mailbox-backfill endast när ARCANA_BOOTSTRAP_MAILBOX_BACKFILL=true (se render.yaml).
   // Tvinga inte på vid varje start — full backfill har gett OOM/SIGABRT → 502 på Render.
-  if (isMailboxBootstrapEnabled()) {
+  if (prodSafeMode && process.env.ARCANA_BOOTSTRAP_PROD_SAFE_MODE !== 'false') {
+    console.log('[bootstrap] mailbox-backfill pausad av prod safe-mode');
+  } else if (isMailboxBootstrapEnabled()) {
     console.log('[bootstrap] schemalägger mailbox-backfill…');
     scheduleMailboxBootstrap({
       tenantId:
