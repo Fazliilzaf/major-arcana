@@ -30,13 +30,25 @@ async function assetHasBlobOnStorage(storage, asset = {}) {
   }
 }
 
-async function listThumbnailBackfillCandidates(assetStore, storage) {
+async function listThumbnailBackfillCandidates(
+  assetStore,
+  storage,
+  { force = false, patientId = '' } = {}
+) {
   const all = assetStore.listItemsForEnrichment();
+  const patientFilter = normalizeText(patientId);
   const skippedWithThumbnail = all.filter(
-    (asset) => isImageAsset(asset) && asset.thumbnailKey
+    (asset) =>
+      isImageAsset(asset) &&
+      asset.thumbnailKey &&
+      (!patientFilter || normalizeText(asset.patientId) === patientFilter)
   ).length;
   const rawCandidates = all.filter(
-    (asset) => isImageAsset(asset) && asset.storageKey && !asset.thumbnailKey
+    (asset) =>
+      isImageAsset(asset) &&
+      asset.storageKey &&
+      (!patientFilter || normalizeText(asset.patientId) === patientFilter) &&
+      (force || !asset.thumbnailKey)
   );
   const candidates = [];
   let candidatesWithoutBlob = 0;
@@ -53,14 +65,21 @@ async function backfillAssetThumbnails({
   limit = 100,
   offset = 0,
   dryRun = true,
+  force = false,
+  patientId = '',
   actor = { role: 'system', userId: 'asset-thumbnail-backfill' },
 } = {}) {
   if (!assetStore?.listItemsForEnrichment) throw new Error('assetStore krävs.');
   if (!storage?.generateThumbnailIfImage)
     throw new Error('storage.generateThumbnailIfImage krävs.');
 
+  const shouldForce = force === true;
+  const patientFilter = normalizeText(patientId);
   const { all, candidates, skippedWithThumbnail, candidatesWithoutBlob } =
-    await listThumbnailBackfillCandidates(assetStore, storage);
+    await listThumbnailBackfillCandidates(assetStore, storage, {
+      force: shouldForce,
+      patientId: patientFilter,
+    });
   const start = Math.max(0, Number(offset) || 0);
   const cap = Math.max(0, Number(limit) || 0);
   const batch = candidates.slice(start, cap > 0 ? start + cap : undefined);
@@ -70,9 +89,12 @@ async function backfillAssetThumbnails({
     candidatesWithoutBlob,
     batchSize: batch.length,
     created: 0,
-    skipped: skippedWithThumbnail,
+    skipped: shouldForce ? 0 : skippedWithThumbnail,
+    existingWithThumbnail: skippedWithThumbnail,
     failed: 0,
     dryRun: !!dryRun,
+    force: shouldForce,
+    patientId: patientFilter || null,
   };
   const samples = [];
   const errors = [];
@@ -96,7 +118,7 @@ async function backfillAssetThumbnails({
         typeof assetStore.updateAssetThumbnailKey === 'function'
           ? await assetStore.updateAssetThumbnailKey(asset.id, thumbnailKey, {
               actor,
-              reason: 'ord_43_backfill',
+              reason: shouldForce ? 'ord_43_thumbnail_regenerate' : 'ord_43_backfill',
             })
           : null;
       stats.created += 1;

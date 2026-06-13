@@ -23,6 +23,7 @@ const {
   writeJsonAtomic,
 } = require('./halsoHdGraphInbox');
 const { fetchPatient, putPatient, TENANT_ID } = require('./halsoHdProdClient');
+const { matchesFormTypeFilter } = require('./halsoHdFormTypeFilter');
 
 function emptyBatchStats() {
   return {
@@ -38,6 +39,7 @@ function emptyBatchStats() {
     putOk: 0,
     putFailed: 0,
     skippedCommit: 0,
+    skippedFormType: 0,
     reviewQueued: 0,
     stubCreated: 0,
   };
@@ -174,6 +176,7 @@ async function processOneHalsoMessage({
   runId = '',
   graphToken = null,
   allowUnmatchedStubs = false,
+  formTypeFilter = '',
 } = {}) {
   let graphTok = graphToken;
   if (!graphTok) graphTok = await getGraphToken();
@@ -203,6 +206,15 @@ async function processOneHalsoMessage({
       parsed,
       match: null,
       row: summarizeResultRow({ header, parsed, status: 'parse_failed' }),
+    };
+  }
+
+  if (!matchesFormTypeFilter(parsed.formType || 'health_declaration', formTypeFilter)) {
+    return {
+      status: 'skipped_form_type',
+      parsed,
+      match: null,
+      row: summarizeResultRow({ header, parsed, status: 'skipped_form_type' }),
     };
   }
 
@@ -411,6 +423,10 @@ async function processOneHalsoMessage({
 
 function applyStats(stats, result) {
   stats.processed += 1;
+  if (result.status === 'skipped_form_type') {
+    stats.skippedFormType += 1;
+    return;
+  }
   if (result.status === 'parse_failed') {
     stats.parseFailed += 1;
     const reason = result.parsed?.reason || 'unknown';
@@ -463,6 +479,7 @@ async function runHalsoBatchIngest({
   token = '',
   mailbox = DEFAULT_MAILBOX,
   allowUnmatchedStubs = false,
+  formTypeFilter = '',
   onProgress = null,
 } = {}) {
   if (!dedupPath) throw new Error('runHalsoBatchIngest requires dedupPath');
@@ -486,6 +503,7 @@ async function runHalsoBatchIngest({
       runId,
       graphToken,
       allowUnmatchedStubs,
+      formTypeFilter,
     });
     if (reviewQueuePath && ['unmatched', 'needs_review'].includes(result.status)) {
       await appendReviewQueueLine(
@@ -515,6 +533,7 @@ async function runHalsoBatchIngest({
     corpusTotal: indexEntries.length,
     dryRun,
     runId,
+    formTypeFilter: formTypeFilter || null,
     reviewQueuePath: reviewQueuePath || null,
     stats,
     rows,

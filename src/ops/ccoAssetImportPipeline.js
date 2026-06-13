@@ -36,6 +36,8 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 
+const { buildCaptureDateAudit } = require('./ccoAssetCaptureDateAudit');
+
 const HIGH_CONFIDENCE = 0.8;
 const MEDIUM_CONFIDENCE = 0.5;
 
@@ -75,6 +77,25 @@ function safeAudit(auditLog, event) {
   } catch {
     /* never break flow */
   }
+}
+
+function resolveCaptureDateFields({ sourceRecord = {}, storageKey = '', storageRoot = '' } = {}) {
+  const audit = buildCaptureDateAudit({
+    asset: {
+      storageKey,
+      mimeType: sourceRecord.mimeType,
+      originalFileName: sourceRecord.originalFileName,
+      documentDate: sourceRecord.documentDate,
+      originalDrivePath: sourceRecord.originalDrivePath,
+    },
+    sourceRecord,
+    storageRoot,
+  });
+  if (!audit.captureDate && !audit.captureDateTime) return {};
+  return {
+    ...audit,
+    captureDateAuditAt: new Date().toISOString(),
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -666,6 +687,12 @@ function createCcoAssetImportPipeline({
     // DISCOVERED-target (se docs/schema/cco-patient-assets.schema.md §2).
     const initialStatus = needsReview ? 'NEEDS_REVIEW' : 'DISCOVERED';
 
+    const captureFields = resolveCaptureDateFields({
+      sourceRecord,
+      storageKey: putResult.storageKey,
+      storageRoot: storage.rootPath || '',
+    });
+
     // Steg 8 + 12: Index (patient_assets-record m. provenance)
     const asset = await assetStore.addAsset(
       {
@@ -693,6 +720,7 @@ function createCcoAssetImportPipeline({
         treatmentType: sourceRecord.treatmentType || null,
         sessionNumber: sourceRecord.sessionNumber || null,
         visitLabel: sourceRecord.visitLabel || null,
+        ...captureFields,
       },
       { actor }
     );

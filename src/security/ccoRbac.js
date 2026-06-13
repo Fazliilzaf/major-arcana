@@ -242,7 +242,7 @@ function requirePermission(permission) {
  */
 function requireAnyRole(allowedRoles) {
   const allowed = Array.isArray(allowedRoles)
-    ? allowedRoles.map((r) => String(r).toLowerCase())
+    ? allowedRoles.map((r) => normalizeRole(r)).filter(Boolean)
     : [];
   return function rbacRequireRole(req, res, next) {
     const role = getRoleFromRequest(req);

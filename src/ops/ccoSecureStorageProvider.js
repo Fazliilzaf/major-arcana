@@ -140,8 +140,7 @@ function buildStorageKey({
   documentDate = null,
   importedAt = null,
 } = {}) {
-  const dateSource =
-    normalizeText(documentDate) || normalizeText(importedAt) || nowIso();
+  const dateSource = normalizeText(documentDate) || normalizeText(importedAt) || nowIso();
   // Plocka YYYY-MM från ISO eller YYYY-MM-DD. Toleranta fallbacks.
   const isoMatch = dateSource.match(/^(\d{4})-(\d{2})/);
   let year;
@@ -217,22 +216,13 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
   async function persistIndex() {
     try {
       await fsp.mkdir(root, { recursive: true });
-      await fsp.writeFile(
-        indexFile,
-        `${JSON.stringify(checksumIndex, null, 2)}\n`,
-        'utf8'
-      );
+      await fsp.writeFile(indexFile, `${JSON.stringify(checksumIndex, null, 2)}\n`, 'utf8');
     } catch {
       /* index är best-effort */
     }
   }
 
-  async function putObject({
-    key = null,
-    body,
-    contentType = null,
-    metadata = {},
-  } = {}) {
+  async function putObject({ key = null, body, contentType = null, metadata = {} } = {}) {
     const buf = bodyToBuffer(body);
     const checksum = crypto.createHash('sha256').update(buf).digest('hex');
     const size = buf.length;
@@ -286,8 +276,7 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
     const stat = await fsp.stat(abs);
     const buf = await fsp.readFile(abs);
     const checksum = crypto.createHash('sha256').update(buf).digest('hex');
-    const mimeType =
-      detectMimeFromExt(path.extname(key)) || 'application/octet-stream';
+    const mimeType = detectMimeFromExt(path.extname(key)) || 'application/octet-stream';
     const stream = Readable.from(buf);
     return {
       stream,
@@ -332,7 +321,6 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
 
     let sharp;
     try {
-      // eslint-disable-next-line global-require
       sharp = require('sharp');
     } catch {
       // sharp ej installerat — returnera null + best-effort warning.
@@ -347,21 +335,24 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
     const absThumb = absolute(thumbKey);
     try {
       await ensureDir(absThumb);
-      // HEIC/HEIF: sharp-bygget på Render saknar HEVC-decodern → avkoda via
-      // heic-convert (ren WASM med libde265) till en JPEG-buffer först.
-      let input = abs;
-      if (mime === 'image/heic' || mime === 'image/heif') {
-        // Offloada CPU-tung HEIC-avkodning till worker-trådpool → blockerar ej
-        // huvud-event-loopen, så servern är responsiv + decode kan parallelliseras.
-        // eslint-disable-next-line global-require
+      const writeThumb = (input) =>
+        sharp(input, { failOn: 'none' })
+          .rotate()
+          .resize({ width: 320, height: 320, fit: 'inside' })
+          .jpeg({ quality: 70 })
+          .toFile(absThumb);
+      try {
+        await writeThumb(abs);
+      } catch (error) {
+        if (mime !== 'image/heic' && mime !== 'image/heif') throw error;
+        // Om sharp-bygget saknar HEVC-decodern: fall tillbaka till heic-convert
+        // i worker-trådpool. Lokalt och på nya Render-byggen kan sharp ofta läsa
+        // HEIF direkt, så fallbacken ska inte tvingas i onödan.
+
         const { decodeHeicToJpeg } = require('./heicDecodePool');
         const inputBuffer = await fsp.readFile(abs);
-        input = await decodeHeicToJpeg(inputBuffer);
+        await writeThumb(await decodeHeicToJpeg(inputBuffer));
       }
-      await sharp(input)
-        .resize({ width: 320, height: 320, fit: 'inside' })
-        .jpeg({ quality: 70 })
-        .toFile(absThumb);
       return thumbKey;
     } catch {
       return null;
@@ -466,17 +457,12 @@ function createS3Provider({
 // Encrypted-FS provider (stub)
 // -----------------------------------------------------------------------------
 
-function createEncryptedFsProvider({
-  rootPath = DEFAULT_LOCAL_ROOT,
-  kek = null,
-} = {}) {
+function createEncryptedFsProvider({ rootPath = DEFAULT_LOCAL_ROOT, kek = null } = {}) {
   const hint =
     'Konfigurera ARCANA_CCO_STORAGE_KEK (256-bit base64) för att aktivera ' +
     "encrypted-fs-providern. Använd 'local' under utveckling.";
   const reject = () => {
-    throw new NotImplementedError(
-      `encrypted-fs storage-provider ej aktiverad. ${hint}`
-    );
+    throw new NotImplementedError(`encrypted-fs storage-provider ej aktiverad. ${hint}`);
   };
   return {
     provider: 'encrypted-fs',

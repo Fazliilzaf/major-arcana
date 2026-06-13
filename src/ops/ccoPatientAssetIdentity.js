@@ -224,6 +224,13 @@ function assetToPatientFile(asset) {
   const isRenderable = ['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(asset?.status);
   const documentDate = normalizeText(asset?.documentDate).slice(0, 10);
   const cleanDocumentDate = /^\d{4}-\d{2}-\d{2}$/.test(documentDate) ? documentDate : null;
+  const captureDate = normalizeText(asset?.captureDate).slice(0, 10);
+  const cleanCaptureDate = /^\d{4}-\d{2}-\d{2}$/.test(captureDate) ? captureDate : null;
+  const technicalInfo =
+    asset?.technicalInfo && typeof asset.technicalInfo === 'object' ? asset.technicalInfo : {};
+  const selectedFor = asArray(asset?.selectedFor || technicalInfo.selectedFor)
+    .map(normalizeText)
+    .filter(Boolean);
   return {
     id,
     assetId: id,
@@ -242,6 +249,24 @@ function assetToPatientFile(asset) {
     contentType: asset?.mimeType || '',
     fileSize: asset?.fileSize || null,
     documentDate: cleanDocumentDate,
+    captureDate: cleanCaptureDate,
+    captureDateTime: asset?.captureDateTime || null,
+    captureDateSource: asset?.captureDateSource || null,
+    captureDateConfidence: asset?.captureDateConfidence || null,
+    captureDateMismatch: Boolean(asset?.captureDateMismatch),
+    captureCameraMake: asset?.captureCameraMake || null,
+    captureCameraModel: asset?.captureCameraModel || null,
+    patientCardSection: asset?.patientCardSection || null,
+    imageStage: asset?.imageStage || null,
+    imageType: asset?.imageType || null,
+    bodyArea: asset?.bodyArea || null,
+    angle: asset?.angle || null,
+    selectedFor,
+    sourceAnnotationId: technicalInfo.sourceAnnotationId || null,
+    sourceAssetId: technicalInfo.sourceAssetId || asset?.sourceRecordId || null,
+    offerReady:
+      asset?.imageStage === 'annotated' &&
+      (selectedFor.includes('offer') || selectedFor.includes('treatment_plan')),
     importedAt: asset?.importedAt || null,
     occasionContext: cleanDocumentDate
       ? {

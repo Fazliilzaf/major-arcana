@@ -23,6 +23,7 @@ const {
 const { fetchPatient, putPatient, TENANT_ID } = require('./halsoHdProdClient');
 const { extractPdfText } = require('./halsoHdPdfText');
 const { readLocalPdfBuffer } = require('./halsoHdLocalPdfReader');
+const { matchesFormTypeFilter } = require('./halsoHdFormTypeFilter');
 
 function emptyAssetStats() {
   return {
@@ -39,6 +40,7 @@ function emptyAssetStats() {
     putOk: 0,
     putFailed: 0,
     skippedCommit: 0,
+    skippedFormType: 0,
     reviewQueued: 0,
   };
 }
@@ -151,6 +153,7 @@ async function processOnePhase1Asset({
   dryRun = true,
   runId = '',
   storageRoot = '',
+  formTypeFilter = '',
 } = {}) {
   if (!asset?.assetId) {
     return {
@@ -189,6 +192,14 @@ async function processOnePhase1Asset({
   });
   if (parsed.ok && !parsed.formType) {
     parsed.formType = classifyHalsoFormSubject(subjectHint) || 'health_declaration';
+  }
+
+  if (!matchesFormTypeFilter(parsed.formType || 'health_declaration', formTypeFilter)) {
+    return {
+      status: 'skipped_form_type',
+      parsed,
+      row: summarizeAssetRow({ asset, parsed, status: 'skipped_form_type' }),
+    };
   }
 
   if (!parsed.ok) {
@@ -329,6 +340,10 @@ async function processOnePhase1Asset({
 
 function applyAssetStats(stats, result) {
   stats.processed += 1;
+  if (result.status === 'skipped_form_type') {
+    stats.skippedFormType += 1;
+    return;
+  }
   if (result.status === 'pdf_failed') {
     stats.pdfFailed += 1;
     return;
@@ -384,6 +399,7 @@ async function runPhase1AssetBatchIngest({
   runId = '',
   token = '',
   storageRoot = '',
+  formTypeFilter = '',
   onProgress = null,
 } = {}) {
   if (!dedupPath) throw new Error('runPhase1AssetBatchIngest requires dedupPath');
@@ -404,6 +420,7 @@ async function runPhase1AssetBatchIngest({
       dryRun,
       runId,
       storageRoot,
+      formTypeFilter,
     });
     if (reviewQueuePath && ['unmatched', 'needs_review'].includes(result.status)) {
       await appendReviewQueueLine(
@@ -433,6 +450,7 @@ async function runPhase1AssetBatchIngest({
     catalogTotal: catalogEntries.length,
     dryRun,
     runId,
+    formTypeFilter: formTypeFilter || null,
     reviewQueuePath: reviewQueuePath || null,
     stats,
     rows,

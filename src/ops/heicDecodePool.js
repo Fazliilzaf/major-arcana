@@ -31,6 +31,7 @@ function spawnWorker(idx) {
     else p.reject(new Error(msg.error || 'heic_decode_failed'));
   });
   const failWorker = (reason) => {
+    if (!workers) return;
     // Rejecta alla väntande på denna worker + återskapa den.
     for (const [id, p] of pending) {
       if (p.workerIdx === idx) {
@@ -44,11 +45,11 @@ function spawnWorker(idx) {
     } catch {
       /* ignore */
     }
-    workers[idx] = spawnWorker(idx);
+    if (workers) workers[idx] = spawnWorker(idx);
   };
   w.on('error', () => failWorker('error'));
   w.on('exit', (code) => {
-    if (code !== 0) failWorker('exit_' + code);
+    if (code !== 0 && workers) failWorker('exit_' + code);
   });
   return w;
 }
@@ -84,4 +85,23 @@ function decodeHeicToJpeg(buffer) {
   });
 }
 
-module.exports = { decodeHeicToJpeg, POOL_SIZE };
+async function shutdownHeicDecodePool() {
+  if (!workers) return;
+  const active = workers;
+  workers = null;
+  rr = 0;
+  for (const [id, p] of pending) {
+    pending.delete(id);
+    clearTimeout(p.timer);
+    p.reject(new Error('heic_worker_shutdown'));
+  }
+  await Promise.all(
+    active.map((w) =>
+      w.terminate().catch(() => {
+        /* ignore */
+      })
+    )
+  );
+}
+
+module.exports = { decodeHeicToJpeg, POOL_SIZE, shutdownHeicDecodePool };

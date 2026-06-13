@@ -203,22 +203,13 @@
     return '';
   }
   function gkSharedSortKeyOfFile(file) {
-    var candidates = [
-      file && file.captureDateTime,
-      file && file.captureDate,
-      file && file.documentDate,
-      file && file.visitDate,
-      file && file.photoDate,
-      file && file.importedAt,
-      file && file.indexedAt,
-      file && file.modifiedTime,
-      file && file.createdAt,
-    ];
-    for (var i = 0; i < candidates.length; i += 1) {
-      var key = gkSharedNormalizeDateTime(candidates[i]);
-      if (key) return key;
-    }
-    return '';
+    return referensTimelineSortKey(file);
+  }
+  function gkSharedPhotoSortNewest(a, b) {
+    var ak = String((a && (a.sortKey || a.date)) || '');
+    var bk = String((b && (b.sortKey || b.date)) || '');
+    if (ak !== bk) return bk.localeCompare(ak);
+    return String((a && a.name) || '').localeCompare(String((b && b.name) || ''));
   }
   function gkSharedDocumentDateOfFile(file) {
     var direct = String(
@@ -610,6 +601,37 @@
     return false;
   }
 
+  function referensTimelineSortKey(file) {
+    var candidates = [
+      file && file.captureDateTime,
+      file && file.captureDate,
+      file && file.documentDate,
+      file && file.visitDate,
+      file && file.photoDate,
+      file && file.importedAt,
+      file && file.indexedAt,
+      file && file.modifiedTime,
+      file && file.createdAt,
+    ];
+    for (var i = 0; i < candidates.length; i += 1) {
+      var key = gkSharedNormalizeDateTime(candidates[i]);
+      if (key) return key;
+    }
+    return '';
+  }
+  function referensTimelineTs(file) {
+    var key = referensTimelineSortKey(file);
+    var ts = Date.parse(key);
+    return Number.isFinite(ts) ? ts : 0;
+  }
+  function referensCompareNewestFirst(a, b) {
+    var diff = referensTimelineTs(b) - referensTimelineTs(a);
+    if (diff !== 0) return diff;
+    return String((a && a.id) || (a && a.fileName) || '').localeCompare(
+      String((b && b.id) || (b && b.fileName) || '')
+    );
+  }
+
   function referensFileViewUrl(file) {
     if (!file) return '';
     if (file.viewUrl) return file.viewUrl;
@@ -670,7 +692,7 @@
       if (!url) return;
       var fDate = String(f.documentDate || f.visitDate || f.captureDate || '').slice(0, 10);
       if (itDate && fDate && itDate !== fDate) return;
-      var ts = Date.parse(f.documentDate || f.indexedAt || f.importedAt || 0) || 0;
+      var ts = referensTimelineTs(f);
       if (!best || ts >= bestTs) {
         best = url;
         bestTs = ts;
@@ -719,7 +741,7 @@
       if (id) byEntry[id] = j;
     });
     var usedUrls = {};
-    var rows = [];
+    var entries = [];
     A(jItems).forEach(function (it) {
       var raw = byEntry[it.entryId] || null;
       var viewUrl = resolveJournalItemViewUrl(it, raw, driveFiles);
@@ -731,14 +753,15 @@
       if (it.step) metaParts.push('Steg ' + it.step);
       if (it.date) metaParts.push(it.date);
       if (it.by) metaParts.push(it.by);
-      rows.push(
-        buildDocViewRow(
+      entries.push({
+        ts: referensTimelineTs({ date: it.date, documentDate: it.date, importedAt: it.date }),
+        html: buildDocViewRow(
           titel,
           viewUrl ? metaParts.join(' · ') : 'Saknas',
           viewUrl,
           'journal_' + (it.entryId || titel)
-        )
-      );
+        ),
+      });
     });
     A(driveFiles).forEach(function (f) {
       if (!isReferensTreatmentJournalPdf(f)) return;
@@ -746,22 +769,33 @@
       if (!url || usedUrls[url]) return;
       usedUrls[url] = true;
       var label = referensFileLabel(f, 'Journal');
-      var d = String(f.documentDate || f.visitDate || '').slice(0, 10);
-      rows.push(
-        buildDocViewRow(
+      var d = referensTimelineSortKey(f).slice(0, 10);
+      entries.push({
+        ts: referensTimelineTs(f),
+        html: buildDocViewRow(
           label,
           'Signerad' + (d ? ' · ' + d : ''),
           url,
           'journal_asset_' + (f.id || f.assetId || label)
-        )
-      );
+        ),
+      });
     });
     A(jPlanned).forEach(function (it, idx) {
       var titel = 'Journal · ' + (it.title || 'behandling');
       var meta = it.date ? 'Saknas · inför ' + it.date : 'Saknas';
-      rows.push(buildDocViewRow(titel, meta, '', 'journal_planned_' + idx));
+      entries.push({
+        ts: 0,
+        html: buildDocViewRow(titel, meta, '', 'journal_planned_' + idx),
+      });
     });
-    return rows.join('');
+    entries.sort(function (a, b) {
+      return b.ts - a.ts;
+    });
+    return entries
+      .map(function (entry) {
+        return entry.html;
+      })
+      .join('');
   }
 
   function resolveMedFormViewUrl(formKey, form, driveFiles) {
@@ -770,21 +804,20 @@
       formKey === 'fitness_certificate'
         ? /friskf[oö]rs[aä]kr|fitness.?cert/i
         : /h[aä]lsodek|halsodek|health.?decl/i;
-    var best = '';
+    var bestFile = null;
     var bestTs = 0;
     A(driveFiles).forEach(function (f) {
       if (!isReferensJournalPdf(f)) return;
       var name = String(f.fileName || f.name || f.relativePath || f.originalFileName || '');
       if (!pat.test(name)) return;
-      var url = referensFileViewUrl(f);
-      if (!url) return;
-      var ts = Date.parse(f.indexedAt || f.documentDate || f.modifiedTime || 0) || 0;
-      if (!best || ts >= bestTs) {
-        best = url;
+      if (!referensFileViewUrl(f)) return;
+      var ts = referensTimelineTs(f);
+      if (!bestFile || ts >= bestTs) {
+        bestFile = f;
         bestTs = ts;
       }
     });
-    return best;
+    return bestFile ? referensFileViewUrl(bestFile) : '';
   }
 
   function buildMedFormDocRow(formKey, label, form, signed, sourceLabel, driveFiles) {
@@ -984,22 +1017,7 @@
       return '';
     }
     function gkSortKeyOfFile(f) {
-      var candidates = [
-        f && f.captureDateTime,
-        f && f.captureDate,
-        f && f.documentDate,
-        f && f.visitDate,
-        f && f.photoDate,
-        f && f.importedAt,
-        f && f.indexedAt,
-        f && f.modifiedTime,
-        f && f.createdAt,
-      ];
-      for (var i = 0; i < candidates.length; i += 1) {
-        var key = gkNormalizeDateTime(candidates[i]);
-        if (key) return key;
-      }
-      return '';
+      return referensTimelineSortKey(f);
     }
     function gkPhotoSortNewest(a, b) {
       var ak = String((a && (a.sortKey || a.date)) || '');
@@ -4266,9 +4284,7 @@
     var fotoMediaRows = A(driveFiles)
       .filter(isReferensMediaFile)
       .map(gkSharedMediaFromFile)
-      .sort(function (a, b) {
-        return String(b.date || '').localeCompare(String(a.date || ''));
-      });
+      .sort(gkSharedPhotoSortNewest);
     if (fotoMediaRows.length) {
       var offerReadyRows = fotoMediaRows.filter(function (p) {
         return p.offerReady;
@@ -4489,9 +4505,7 @@
     // ===== Besök · tidslinje: gruppera filer/foton/journaler per BESÖKSDATUM (ej importstämpel) =====
     (function renderBesok() {
       function dateKey(f) {
-        var direct = String(
-          (f && (f.documentDate || f.visitDate || f.photoDate || f.captureDate)) || ''
-        ).slice(0, 10);
+        var direct = String(gkSharedDateOfFile(f) || '').slice(0, 10);
         if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
         var oc = f && f.occasionContext;
         if (oc && oc.timelineKey && /^\d{4}-\d{2}-\d{2}$/.test(oc.timelineKey))
@@ -4580,8 +4594,10 @@
       var groups = {};
       A(driveFiles).forEach(function (f) {
         var k = dateKey(f) || 'odaterat';
-        if (!groups[k]) groups[k] = { files: [], j: 0, img: 0, journals: [] };
+        if (!groups[k]) groups[k] = { files: [], j: 0, img: 0, journals: [], sortKey: '' };
         groups[k].files.push(f);
+        var fSortKey = gkSharedSortKeyOfFile(f);
+        if (fSortKey && fSortKey > groups[k].sortKey) groups[k].sortKey = fSortKey;
         if (f.fileType === 'journal_pdf') groups[k].j++;
         if (f.fileType === 'image') groups[k].img++;
       });
@@ -4590,8 +4606,10 @@
       A(jItems).forEach(function (it) {
         var dt = String((it && it.date) || '').slice(0, 10);
         if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
-          if (!groups[dt]) groups[dt] = { files: [], j: 0, img: 0, journals: [] };
+          if (!groups[dt]) groups[dt] = { files: [], j: 0, img: 0, journals: [], sortKey: '' };
           groups[dt].journals.push(it);
+          var jSortKey = gkSharedNormalizeDateTime(it.date || it.occurredAt || it.startAt || '');
+          if (jSortKey && jSortKey > groups[dt].sortKey) groups[dt].sortKey = jSortKey;
         }
       });
       (function mergeNearbyIntoTypedAnchors() {
@@ -4617,6 +4635,9 @@
             groups[near].journals = groups[near].journals.concat(groups[k].journals);
             groups[near].j += groups[k].j;
             groups[near].img += groups[k].img;
+            if (groups[k].sortKey && groups[k].sortKey > groups[near].sortKey) {
+              groups[near].sortKey = groups[k].sortKey;
+            }
             delete groups[k];
           }
         });
@@ -4624,7 +4645,11 @@
       var keys = Object.keys(groups).sort(function (a, b) {
         if (a === 'odaterat') return 1;
         if (b === 'odaterat') return -1;
-        return b.localeCompare(a);
+        var ga = groups[a] || {};
+        var gb = groups[b] || {};
+        var ak = ga.sortKey || a + 'T00:00:00';
+        var bk = gb.sortKey || b + 'T00:00:00';
+        return String(bk).localeCompare(String(ak));
       });
       if (!keys.length) return;
       var inner = keys
@@ -4654,7 +4679,10 @@
               );
             })
             .join('');
-          var visitMediaRows = g.files.filter(isReferensMediaFile).map(gkSharedMediaFromFile);
+          var visitMediaRows = g.files
+            .filter(isReferensMediaFile)
+            .map(gkSharedMediaFromFile)
+            .sort(gkSharedPhotoSortNewest);
           var visitCollapsed = visitMediaRows.length > 12;
           var mediaRows = visitMediaRows.length
             ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder och film</div>' +

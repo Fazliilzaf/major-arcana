@@ -7,6 +7,11 @@
 const path = require('node:path');
 const { buildPatientCardReadout, derivePatientOrigin } = require('./ccoPatientMasterStore');
 const {
+  compareTimelineNewestFirst,
+  pickNewestRecord,
+  resolveTimelineTs,
+} = require('./ccoAssetTimelineSort');
+const {
   TREATMENT_SEGMENT_DEFS,
   applyBookingToReadout,
   computeVisitTrendFromBundle,
@@ -185,8 +190,7 @@ function assetInlineViewUrl(asset = {}) {
 }
 
 function assetSortTs(asset = {}) {
-  const ts = Date.parse(asset.importedAt || asset.documentDate || asset.createdAt || 0);
-  return Number.isFinite(ts) ? ts : 0;
+  return resolveTimelineTs(asset);
 }
 
 function rememberFormDocumentUrl(sig, slot, asset = {}) {

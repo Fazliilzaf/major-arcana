@@ -19,13 +19,17 @@ function parseArgs(argv = process.argv.slice(2)) {
     storageRoot: process.env.ARCANA_CCO_SECURE_STORAGE_ROOT || '',
     limit: 100,
     offset: 0,
+    force: false,
+    patientId: '',
   };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     if (flag === '--commit') args.dryRun = false;
     else if (flag === '--dry-run') args.dryRun = true;
+    else if (flag === '--force' || flag === '--regenerate') args.force = true;
     else if (flag === '--assets') args.assetsPath = path.resolve(argv[++i]);
     else if (flag === '--storage-root') args.storageRoot = path.resolve(argv[++i]);
+    else if (flag === '--patient-id') args.patientId = String(argv[++i] || '').trim();
     else if (flag === '--limit') args.limit = Math.max(0, Number(argv[++i]) || 0);
     else if (flag === '--offset') args.offset = Math.max(0, Number(argv[++i]) || 0);
   }
@@ -45,14 +49,24 @@ async function main() {
     limit: args.limit,
     offset: args.offset,
     dryRun: args.dryRun,
+    force: args.force,
+    patientId: args.patientId,
   });
   report.input = {
     assetsPath: args.assetsPath,
     storageRoot: args.storageRoot || '(provider default)',
     limit: args.limit,
     offset: args.offset,
+    force: args.force,
+    patientId: args.patientId || null,
   };
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  try {
+    const { shutdownHeicDecodePool } = require('../src/ops/heicDecodePool');
+    await shutdownHeicDecodePool();
+  } catch {
+    /* no HEIC pool was started */
+  }
 }
 
 if (require.main === module) {

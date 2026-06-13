@@ -18,6 +18,10 @@ const path = require('node:path');
 const { readIndexLines, readJsonFile } = require('./lib/halsoHdGraphInbox');
 const { fetchProdPatients, getProdToken, BASE } = require('./lib/halsoHdProdClient');
 const { runHalsoBatchIngest } = require('./lib/halsoHdBatchIngest');
+const {
+  filterMailIndexByFormType,
+  normalizeFormTypeFilter,
+} = require('./lib/halsoHdFormTypeFilter');
 
 const ROOT = path.join(__dirname, '..');
 const DEFAULT_INDEX = path.join(ROOT, 'data/reports/halso-hd-corpus-index.jsonl');
@@ -38,11 +42,13 @@ function parseArgs(argv) {
     out: DEFAULT_REPORT,
     dryRun: true,
     commit: false,
+    formType: '',
   };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--batch') args.batch = Number(argv[++i]) || 1;
     else if (token === '--batch-size') args.batchSize = Number(argv[++i]) || 50;
+    else if (token === '--form-type') args.formType = normalizeFormTypeFilter(argv[++i] || '');
     else if (token === '--index') args.index = path.resolve(argv[++i] || '');
     else if (token === '--dedup') args.dedup = path.resolve(argv[++i] || '');
     else if (token === '--review-queue') args.reviewQueue = path.resolve(argv[++i] || '');
@@ -53,7 +59,7 @@ function parseArgs(argv) {
       args.dryRun = false;
     } else if (token === '--help' || token === '-h') {
       console.log(
-        'Usage: node scripts/run-halso-hd-batch-ingest.js --batch 1 [--batch-size 50] [--dry-run|--commit]'
+        'Usage: node scripts/run-halso-hd-batch-ingest.js --batch 1 [--batch-size 50] [--form-type hd|fc|all] [--dry-run|--commit]'
       );
       process.exit(0);
     }
@@ -77,18 +83,19 @@ async function main() {
     );
   }
 
-  const indexEntries = await readIndexLines(args.index);
+  const indexEntries = filterMailIndexByFormType(await readIndexLines(args.index), args.formType);
   if (!indexEntries.length) {
-    throw new Error(`Tomt index — kör corpus-scan först (${args.index})`);
+    throw new Error(`Tomt index efter form-type filter (${args.index})`);
   }
 
   console.error(
     `== halso@ batch ${args.batch} (size ${args.batchSize}) — ${args.dryRun ? 'DRY-RUN' : 'COMMIT'} ==`
   );
-  console.error(`Prod: ${BASE} · corpus=${indexEntries.length} mejl`);
+  console.error(
+    `Prod: ${BASE} · corpus=${indexEntries.length} mejl${args.formType ? ` · form=${args.formType}` : ''}`
+  );
 
-  const useLocalPatients =
-    args.dryRun && process.env.HALSO_HD_USE_LOCAL_PATIENT_MASTER === 'true';
+  const useLocalPatients = args.dryRun && process.env.HALSO_HD_USE_LOCAL_PATIENT_MASTER === 'true';
   const token = args.dryRun ? '' : getProdToken();
   console.error(
     `Hämtar ${useLocalPatients ? 'lokal' : 'prod'} patient-master (en gång per batch)…`
@@ -111,8 +118,8 @@ async function main() {
     dryRun: args.dryRun,
     runId,
     token,
-    allowUnmatchedStubs:
-      !args.dryRun && process.env.HALSO_HD_COMMIT_UNMATCHED_STUBS === 'true',
+    allowUnmatchedStubs: !args.dryRun && process.env.HALSO_HD_COMMIT_UNMATCHED_STUBS === 'true',
+    formTypeFilter: args.formType,
     onProgress: ({ index, total, stats }) => {
       if (index === total || index - lastProgress >= 10) {
         lastProgress = index;

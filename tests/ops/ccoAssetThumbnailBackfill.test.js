@@ -75,6 +75,19 @@ test('ORD-43: thumbnail-backfill är idempotent för befintliga JPEG-assets', as
     assert.equal(second.stats.created, 0);
     assert.equal(second.stats.candidates, 0);
     assert.equal(second.stats.skipped, 1);
+
+    const regenerated = await backfillAssetThumbnails({
+      assetStore,
+      storage,
+      dryRun: false,
+      limit: 10,
+      force: true,
+    });
+    assert.equal(regenerated.stats.force, true);
+    assert.equal(regenerated.stats.created, 1);
+    assert.equal(regenerated.stats.candidates, 1);
+    assert.equal(regenerated.stats.existingWithThumbnail, 1);
+    assert.equal(regenerated.stats.skipped, 0);
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }

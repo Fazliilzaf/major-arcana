@@ -19,6 +19,10 @@ const { readIndexLines, readJsonFile } = require('./lib/halsoHdGraphInbox');
 const { fetchProdPatients, getProdToken, BASE } = require('./lib/halsoHdProdClient');
 const { runPhase1AssetBatchIngest } = require('./lib/halsoHdAssetBatchIngest');
 const { resolveSecureStorageRoot } = require('./lib/halsoHdLocalPdfReader');
+const {
+  filterAssetCatalogByFormType,
+  normalizeFormTypeFilter,
+} = require('./lib/halsoHdFormTypeFilter');
 
 const ROOT = path.join(__dirname, '..');
 const DEFAULT_INDEX = path.join(ROOT, 'data/reports/halso-hd-phase1-index.jsonl');
@@ -42,11 +46,13 @@ function parseArgs(argv) {
     dryRun: true,
     commit: false,
     writeStickprov: false,
+    formType: '',
   };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--batch') args.batch = Number(argv[++i]) || 1;
     else if (token === '--batch-size') args.batchSize = Number(argv[++i]) || 40;
+    else if (token === '--form-type') args.formType = normalizeFormTypeFilter(argv[++i] || '');
     else if (token === '--index') args.index = path.resolve(argv[++i] || '');
     else if (token === '--dedup') args.dedup = path.resolve(argv[++i] || '');
     else if (token === '--review-queue') args.reviewQueue = path.resolve(argv[++i] || '');
@@ -60,7 +66,7 @@ function parseArgs(argv) {
       args.dryRun = false;
     } else if (token === '--help' || token === '-h') {
       console.log(`Usage: node scripts/run-halso-hd-asset-batch-ingest.js \\
-  --batch 1 [--batch-size 40] [--storage-root PATH] [--dry-run|--commit] [--stickprov]`);
+  --batch 1 [--batch-size 40] [--form-type hd|fc|all] [--storage-root PATH] [--dry-run|--commit] [--stickprov]`);
       process.exit(0);
     }
   }
@@ -93,16 +99,21 @@ async function main() {
     );
   }
 
-  const catalogEntries = await readIndexLines(args.index);
+  const catalogEntries = filterAssetCatalogByFormType(
+    await readIndexLines(args.index),
+    args.formType
+  );
   if (!catalogEntries.length) {
-    throw new Error(`Tomt Phase 1-index (${args.index})`);
+    throw new Error(`Tomt Phase 1-index efter form-type filter (${args.index})`);
   }
 
   const storageRoot = resolveSecureStorageRoot(args.storageRoot);
   console.error(
     `== Phase 1 batch ${args.batch} (size ${args.batchSize}) — ${args.dryRun ? 'DRY-RUN' : 'COMMIT'} ==`
   );
-  console.error(`Prod API: ${BASE} · catalog=${catalogEntries.length} PDF`);
+  console.error(
+    `Prod API: ${BASE} · catalog=${catalogEntries.length} PDF${args.formType ? ` · form=${args.formType}` : ''}`
+  );
   console.error(`Lokal PDF: ${storageRoot}`);
 
   const token = args.dryRun ? '' : getProdToken();
@@ -124,6 +135,7 @@ async function main() {
     runId,
     token,
     storageRoot,
+    formTypeFilter: args.formType,
     onProgress: ({ index, total, stats }) => {
       if (index === total || index - lastProgress >= 10) {
         lastProgress = index;

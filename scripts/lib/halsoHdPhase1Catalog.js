@@ -8,7 +8,11 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { isHealthDeclarationAsset } = require('../../src/ops/ccoKunderEnrichment');
+const {
+  isHealthDeclarationAsset,
+  isFitnessCertificateAsset,
+} = require('../../src/ops/ccoKunderEnrichment');
+const { compareTimelineNewestFirst } = require('../../src/ops/ccoAssetTimelineSort');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -43,7 +47,7 @@ function isPhase1HalsoAsset(asset = {}) {
   const source = normalizeText(asset.sourceSystem).toLowerCase();
   if (source !== 'm365_halso') return false;
   if (!isPdfAsset(asset)) return false;
-  return isHealthDeclarationAsset(asset);
+  return isHealthDeclarationAsset(asset) || isFitnessCertificateAsset(asset);
 }
 
 async function loadProdAssetItems(assetsPath = '') {
@@ -58,6 +62,7 @@ async function loadProdAssetItems(assetsPath = '') {
 }
 
 function toCatalogEntry(asset = {}) {
+  const formType = isFitnessCertificateAsset(asset) ? 'fitness_certificate' : 'health_declaration';
   return {
     assetId: normalizeText(asset.id),
     patientId: normalizeText(asset.patientId),
@@ -67,6 +72,10 @@ function toCatalogEntry(asset = {}) {
     checksum: normalizeText(asset.checksum),
     originalFileName: normalizeText(asset.originalFileName),
     documentDate: normalizeText(asset.documentDate),
+    captureDateTime: normalizeText(asset.captureDateTime),
+    captureDate: normalizeText(asset.captureDate),
+    importedAt: normalizeText(asset.importedAt),
+    formType,
     status: normalizeText(asset.status),
     storageKey: normalizeText(asset.storageKey),
   };
@@ -81,7 +90,7 @@ async function buildPhase1Catalog({ assetsPath = '', tenantId = 'hair-tp-clinic'
     if (!asset.storageKey) continue;
     entries.push(toCatalogEntry(asset));
   }
-  entries.sort((a, b) => String(a.documentDate || '').localeCompare(String(b.documentDate || '')));
+  entries.sort(compareTimelineNewestFirst);
   return {
     assetsPath: resolveAssetsPath(assetsPath),
     tenantId,

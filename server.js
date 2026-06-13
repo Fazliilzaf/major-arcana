@@ -6299,6 +6299,11 @@ try {
                 category: cat,
                 subcategory: a.sourceSystem || null,
                 ts: a.documentDate || a.importedAt || a.createdAt,
+                captureDate: a.captureDate || null,
+                captureDateTime: a.captureDateTime || null,
+                captureDateSource: a.captureDateSource || null,
+                captureDateConfidence: a.captureDateConfidence || null,
+                captureDateMismatch: !!a.captureDateMismatch,
                 title: baseTitle,
                 icon: ICON[cat] || '📎',
                 encounterId: a.encounterId || null,
@@ -9622,12 +9627,20 @@ try {
         }
         const limit = Math.max(0, Number(body.limit ?? req.query.limit ?? 100) || 0);
         const offset = Math.max(0, Number(body.offset ?? req.query.offset ?? 0) || 0);
+        const force =
+          body.force === true ||
+          body.regenerate === true ||
+          String(req.query.force || '') === '1' ||
+          String(req.query.regenerate || '') === '1';
+        const patientId = String(body.patientId ?? req.query.patientId ?? '').trim();
         const report = await backfillAssetThumbnails({
           assetStore: stores.assetStore,
           storage: stores.secureStorage,
           limit,
           offset,
           dryRun: !commit,
+          force,
+          patientId,
           actor: { role: req.cco?.role || 'unknown', userId: 'ord-43-backfill-endpoint' },
         });
         invalidateAssetQaCache();
@@ -10049,6 +10062,13 @@ try {
           category: a.category,
           status: a.status,
           documentDate: a.documentDate,
+          captureDate: a.captureDate || null,
+          captureDateTime: a.captureDateTime || null,
+          captureDateSource: a.captureDateSource || null,
+          captureDateConfidence: a.captureDateConfidence || null,
+          captureDateMismatch: !!a.captureDateMismatch,
+          captureCameraMake: a.captureCameraMake || null,
+          captureCameraModel: a.captureCameraModel || null,
           importedAt: a.importedAt,
           importRunId: a.importRunId,
           sourceSystem: a.sourceSystem,
