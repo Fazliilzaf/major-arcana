@@ -5601,6 +5601,7 @@
     if (!ov) {
       ov = document.createElement('div');
       ov.id = 'kk-doc-view';
+      ov._blobUrl = '';
       ov.innerHTML =
         '<div class="kk-doc-view-panel">' +
         '<div class="kk-doc-view-head">' +
@@ -5610,26 +5611,69 @@
         '<iframe class="kk-doc-view-frame" title="Dokument"></iframe>' +
         '</div>';
       document.body.appendChild(ov);
-      ov.addEventListener('click', function (e) {
-        if (e.target === ov || e.target.classList.contains('kk-doc-view-close')) {
-          ov.classList.remove('open');
-          var frameClose = ov.querySelector('.kk-doc-view-frame');
-          if (frameClose) frameClose.src = 'about:blank';
+      function closeDocView() {
+        ov.classList.remove('open');
+        var frameClose = ov.querySelector('.kk-doc-view-frame');
+        if (frameClose) frameClose.src = 'about:blank';
+        if (ov._blobUrl) {
+          try {
+            URL.revokeObjectURL(ov._blobUrl);
+          } catch (_e) {
+            /* ignore */
+          }
+          ov._blobUrl = '';
         }
+      }
+      ov.addEventListener('click', function (e) {
+        if (e.target === ov || e.target.classList.contains('kk-doc-view-close')) closeDocView();
       });
       document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
         var open = document.getElementById('kk-doc-view');
         if (!open || !open.classList.contains('open')) return;
-        open.classList.remove('open');
-        var frameEsc = open.querySelector('.kk-doc-view-frame');
-        if (frameEsc) frameEsc.src = 'about:blank';
+        closeDocView();
       });
     }
     var titleEl = ov.querySelector('.kk-doc-view-title');
     var frame = ov.querySelector('.kk-doc-view-frame');
     if (titleEl) titleEl.textContent = title || 'Dokument';
-    if (frame) frame.src = src;
+    if (ov._blobUrl) {
+      try {
+        URL.revokeObjectURL(ov._blobUrl);
+      } catch (_e) {
+        /* ignore */
+      }
+      ov._blobUrl = '';
+    }
+    if (frame) {
+      frame.src = 'about:blank';
+      var token = '';
+      try {
+        token = (
+          window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          ''
+        ).trim();
+      } catch (_e) {
+        /* ignore */
+      }
+      var headers =
+        token && token !== '__preview_local__' ? { Authorization: 'Bearer ' + token } : {};
+      fetch(src, { headers: headers, credentials: 'same-origin' })
+        .then(function (res) {
+          if (!res.ok) throw new Error('fetch failed');
+          return res.blob();
+        })
+        .then(function (blob) {
+          var type = blob.type || 'application/pdf';
+          var viewBlob = blob.type ? blob : new Blob([blob], { type: type });
+          ov._blobUrl = URL.createObjectURL(viewBlob);
+          frame.src = ov._blobUrl;
+        })
+        .catch(function () {
+          frame.src = src;
+        });
+    }
     ov.classList.add('open');
   };
 
