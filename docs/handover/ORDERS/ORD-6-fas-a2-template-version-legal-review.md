@@ -3,6 +3,32 @@
 **Notion:** [Fas A.2 legal_review](https://app.notion.com/p/374060ccc15b81a9904df02dd2a9cab2) · `ORD-6`  
 **Beslut:** Väg A — godkänn **mall-version** (ej per patient). `record-legal-review` är **förbjuden**.
 
+## GO (Fazli 2026-06-13)
+
+- **Väg A bekräftad:** juridisk gate per `templateId@version`, inte per patient/avtal.
+- **Kod:** på `main` sedan `0885cf8b` (`feat(ord-6): Fas A.2 legal_review per template-version`).
+- **Verify lokalt:** `npm run cco:verify-fas-a-readiness` + `node --test tests/ops/ccoTemplateVersionApprovalStore.test.js` + `node --test tests/ops/ccoTreatmentAgreementStore.test.js` — **PASS** (2026-06-13).
+- **Prod STAFF-UAT:** väntar tills `arcana.hairtpclinic.com` svarar (502 vid GO — heal deploy först).
+
+### Aktivera mall på prod (owner/staff, inloggad)
+
+```bash
+curl -sS -X POST 'https://arcana.hairtpclinic.com/api/v1/cco-treatment-agreement/template-version-approval' \
+  -H 'Content-Type: application/json' \
+  -H 'Cookie: …' \
+  -d '{
+    "templateId": "hair-tp-treatment-agreement",
+    "version": "251203",
+    "status": "approved",
+    "approvedBy": "fazli",
+    "note": "Fas A.2 GO 2026-06-13"
+  }'
+```
+
+Ersätt `templateId`/`version` med den version som faktiskt bundlas vid `from-offer` (default `hair-tp-{offerType}@251203`).
+
+**Efter godkännande:** `send-for-sign` / signering tillåten för avtal som pekar på godkänd mall-version → signerat + consent → `bookable`.
+
 ## Levererat
 
 | Del        | Beskrivning                                                                                               |
