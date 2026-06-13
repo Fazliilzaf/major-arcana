@@ -4810,7 +4810,7 @@
         card: ctx.card,
         journalEntries: ctx.journalEntries,
         dossierBundle: runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null,
-        extras: { occasionTimeline: ctx.occasionTimeline },
+        extras: { occasionTimeline: ctx.occasionTimeline, driveFiles: ctx.driveFiles },
         mountJournalBig: (slot, opts) => mountKkxJournalBig(slot, opts),
         activateJournalTemplate: (templateId, slot, opts) =>
           activateKkxJournalTemplate(templateId, slot, opts),

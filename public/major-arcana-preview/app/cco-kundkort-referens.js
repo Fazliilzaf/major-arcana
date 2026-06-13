@@ -387,6 +387,10 @@
       return 'Översikt';
     }
     function gkDateOfFile(f) {
+      var direct = String(
+        (f && (f.documentDate || f.captureDate || f.photoDate || f.visitDate)) || ''
+      ).slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
       var rp = String((f && (f.relativePath || f.fileName || f.originalFileName || f.name)) || '');
       var m = rp.match(/(\d{4})-(\d{2})-(\d{2})/);
       if (m) return m[1] + '-' + m[2] + '-' + m[3];
@@ -419,6 +423,9 @@
           ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
           : '');
       return {
+        id: id,
+        sourceAssetId: (f && (f.assetId || f.sourceAssetId || f.id)) || '',
+        name: (f && (f.fileName || f.originalFileName || f.name || f.displayName)) || '',
         kind: isVideo ? 'video' : 'image',
         zone: gkZoneOf(labelSource),
         date: gkDateOfFile(f),
@@ -456,6 +463,18 @@
               (p.kind === 'video' ? ' gk-foto--video' : '') +
               '" href="' +
               esc(p.url) +
+              '" data-gk-photo-kind="' +
+              esc(p.kind || 'image') +
+              '" data-gk-photo-id="' +
+              esc(p.id || p.sourceAssetId || '') +
+              '" data-gk-photo-asset="' +
+              esc(p.sourceAssetId || p.id || '') +
+              '" data-gk-photo-date="' +
+              esc(p.date || '') +
+              '" data-gk-photo-zone="' +
+              esc(p.zone || '') +
+              '" data-gk-photo-name="' +
+              esc(p.name || '') +
               '" target="_blank" rel="noopener noreferrer" title="' +
               (p.kind === 'video' ? 'Öppna film' : 'Öppna bild') +
               '">' +
@@ -1331,7 +1350,16 @@
       photos.sort(function (a, b) {
         return (b.date || '').localeCompare(a.date || '');
       });
-      var grid = gkPhotoGrid(photos, 8, '');
+      var collapsed = photos.length > 12;
+      var grid =
+        '<div class="gk-visit-photos">' +
+        gkPhotoGrid(photos, 0, 'gk-foto-grid--all' + (collapsed ? ' is-collapsed' : '')) +
+        (collapsed
+          ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
+            photos.length +
+            '</button>'
+          : '') +
+        '</div>';
       // Auto before/after-par: zonen med störst tidsspann (äldsta ↔ nyaste)
       var byZone = {};
       photos.forEach(function (p) {
@@ -1634,7 +1662,76 @@
     body += sek('Ta bild', '', tabildBody);
 
     body += '</div>';
-    return '<div class="gk-kort">' + head + body + '</div>';
+    return (
+      '<div class="gk-kort" data-gk-patient-id="' +
+      esc(ctx.patientId || ctx.customerId || '') +
+      '">' +
+      head +
+      body +
+      '</div>'
+    );
+  }
+
+  function gkHydrateDriveFiles(ctx, force) {
+    ctx = ctx || {};
+    var pid = ctx.patientId || ctx.customerId || '';
+    if (!pid || (!force && ctx.driveFiles && ctx.driveFiles.length)) return;
+    window.__GK_DRIVE_CACHE = window.__GK_DRIVE_CACHE || {};
+    window.__GK_DRIVE_LOADING = window.__GK_DRIVE_LOADING || {};
+    if (window.__GK_DRIVE_LOADING[pid]) return;
+    function apply(files, payload) {
+      files = dedupeDriveFiles(files);
+      if (!files.length) return;
+      var nextBundle = Object.assign({}, ctx.bundle || {}, payload || {});
+      if (payload && (payload.card || payload.patient)) {
+        nextBundle.card = Object.assign(
+          {},
+          (ctx.bundle && ctx.bundle.card) || {},
+          payload.card || payload.patient || {}
+        );
+      }
+      var nextCtx = Object.assign({}, ctx, {
+        driveFiles: files,
+        up: ctx.up && ctx.up.length ? ctx.up : A((payload || {}).upcomingBookings),
+        hist: ctx.hist && ctx.hist.length ? ctx.hist : A((payload || {}).historyBookings),
+        bundle: nextBundle,
+        commercialCase: ctx.commercialCase || (payload || {}).commercialCase || null,
+      });
+      var html = gkBuild(nextCtx);
+      window.__GK_LAST = html;
+      Array.prototype.forEach.call(
+        document.querySelectorAll('#kk-storvy .gk-kort'),
+        function (node) {
+          node.outerHTML = html;
+        }
+      );
+    }
+    if (!force && window.__GK_DRIVE_CACHE[pid]) {
+      apply(window.__GK_DRIVE_CACHE[pid].driveFiles, window.__GK_DRIVE_CACHE[pid].payload);
+      return;
+    }
+    window.__GK_DRIVE_LOADING[pid] = true;
+    fetch(
+      '/api/v1/cco-patient-master/patient/summary?patientId=' +
+        encodeURIComponent(pid) +
+        '&includeDriveFiles=1',
+      { credentials: 'same-origin' }
+    )
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (payload) {
+        var files = dedupeDriveFiles((payload && payload.driveFiles) || []);
+        window.__GK_DRIVE_CACHE[pid] = { driveFiles: files, payload: payload || {} };
+        apply(files, payload || {});
+      })
+      .catch(function () {
+        /* Kortet fungerar fortfarande utan fallbacken. */
+      })
+      .finally(function () {
+        window.__GK_DRIVE_LOADING[pid] = false;
+      });
   }
 
   // Proxy: gk-knappar → klickar dossierns riktiga knappar (live-flöden) + gk-native Sammanfatta-toggle
@@ -1749,6 +1846,12 @@
           ? 'Dölj'
           : 'Visa alla ' + mediaGrid.querySelectorAll('.gk-foto').length;
         if (open && window.__gkHydrateSecurePhotos) window.__gkHydrateSecurePhotos(mediaGrid);
+        return;
+      }
+      var photoTile = e.target.closest && e.target.closest('a.gk-foto');
+      if (photoTile && photoTile.getAttribute('data-gk-photo-kind') !== 'video') {
+        e.preventDefault();
+        if (window.__gkOpenPhotoEditor) window.__gkOpenPhotoEditor(photoTile);
         return;
       }
       // Foto: Jämför → before/after-slider
@@ -1913,6 +2016,302 @@
       });
     });
   })();
+
+  window.__gkOpenPhotoEditor = function (tile) {
+    if (!tile) return;
+    var prev = document.getElementById('gk-photo-editor-ov');
+    if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+    function esc2(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+    function tokenHeaders(json) {
+      var token = '';
+      try {
+        token = (
+          window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+          ''
+        ).trim();
+      } catch (e) {
+        token = '';
+      }
+      var headers =
+        token && token !== '__preview_local__' ? { Authorization: 'Bearer ' + token } : {};
+      if (json) headers['Content-Type'] = 'application/json';
+      return headers;
+    }
+    function fetchObjectUrl(url) {
+      return fetch(new URL(url, window.location.origin), {
+        headers: tokenHeaders(false),
+        credentials: 'same-origin',
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.blob();
+        })
+        .then(function (blob) {
+          return URL.createObjectURL(blob);
+        });
+    }
+    var imgNode = tile.querySelector('img');
+    var originalSrc =
+      (imgNode && imgNode.getAttribute('src')) ||
+      tile.getAttribute('href') ||
+      (imgNode && imgNode.getAttribute('data-gk-img-full')) ||
+      '';
+    var endpointSrc =
+      (imgNode && imgNode.getAttribute('data-gk-img-full')) ||
+      tile.getAttribute('href') ||
+      originalSrc;
+    var patientRoot = tile.closest('.gk-kort');
+    var patientId = (patientRoot && patientRoot.getAttribute('data-gk-patient-id')) || '';
+    var sourceAssetId =
+      tile.getAttribute('data-gk-photo-asset') || tile.getAttribute('data-gk-photo-id') || '';
+    var docDate = tile.getAttribute('data-gk-photo-date') || '';
+    var zone = tile.getAttribute('data-gk-photo-zone') || '';
+    var name = tile.getAttribute('data-gk-photo-name') || 'Bild';
+    var ov = document.createElement('div');
+    ov.id = 'gk-photo-editor-ov';
+    ov.className = 'gk-edit-ov';
+    ov.innerHTML =
+      '<div class="gk-edit-panel" role="dialog" aria-modal="true" aria-label="Rita på bild">' +
+      '<button type="button" class="gk-edit-close" data-gk-edit-close>×</button>' +
+      '<div class="gk-edit-head"><div><b>Rita på bild</b><span>' +
+      esc2(zone || 'Foto') +
+      (docDate ? ' · ' + esc2(docDate) : '') +
+      '</span></div><div class="gk-edit-tools">' +
+      '<button type="button" class="gk-btn is-active" data-gk-color="#d45b4f">Röd</button>' +
+      '<button type="button" class="gk-btn" data-gk-color="#e0b64a">Gul</button>' +
+      '<button type="button" class="gk-btn" data-gk-clear>Rensa</button>' +
+      '</div></div>' +
+      '<div class="gk-edit-canvas-wrap"><canvas></canvas></div>' +
+      '<div class="gk-edit-foot"><span class="gk-edit-note">Rita med mus/trackpad. Originalbilden ändras inte.</span>' +
+      '<button type="button" class="gk-btn" data-gk-plan>Välj till behandlingsplan/offert</button>' +
+      '<button type="button" class="gk-btn gk-edit-save" data-gk-save>Spara markerad bild</button></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    var canvas = ov.querySelector('canvas');
+    var ctx = canvas.getContext('2d');
+    var color = '#d45b4f';
+    var drawing = false;
+    var strokes = [];
+    var current = null;
+    var image = new Image();
+    image.onload = function () {
+      var maxW = Math.min(1040, Math.max(360, window.innerWidth - 80));
+      var maxH = Math.min(760, Math.max(360, window.innerHeight - 220));
+      var scale = Math.min(maxW / image.naturalWidth, maxH / image.naturalHeight, 1);
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    };
+    image.onerror = function () {
+      var note = ov.querySelector('.gk-edit-note');
+      if (note) note.textContent = 'Kunde inte öppna bilden för redigering.';
+    };
+    if (/^blob:|^data:/.test(originalSrc)) {
+      image.src = originalSrc;
+    } else {
+      fetchObjectUrl(endpointSrc)
+        .then(function (obj) {
+          image.src = obj;
+        })
+        .catch(function () {
+          image.src = originalSrc;
+        });
+    }
+    function point(ev) {
+      var r = canvas.getBoundingClientRect();
+      var t = ev.touches && ev.touches[0] ? ev.touches[0] : ev;
+      return {
+        x: (t.clientX - r.left) * (canvas.width / r.width),
+        y: (t.clientY - r.top) * (canvas.height / r.height),
+      };
+    }
+    function start(ev) {
+      ev.preventDefault();
+      drawing = true;
+      current = { color: color, points: [point(ev)] };
+      strokes.push(current);
+    }
+    function move(ev) {
+      if (!drawing || !current) return;
+      ev.preventDefault();
+      var p = point(ev);
+      var last = current.points[current.points.length - 1] || p;
+      current.points.push(p);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = current.color;
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+    function stop() {
+      drawing = false;
+      current = null;
+    }
+    function redrawBase() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      strokes.forEach(function (s) {
+        if (!s.points || s.points.length < 2) return;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = s.color || color;
+        ctx.beginPath();
+        ctx.moveTo(s.points[0].x, s.points[0].y);
+        s.points.slice(1).forEach(function (p) {
+          ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      });
+    }
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', stop, { once: false });
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchend', stop, { once: false });
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target.closest('[data-gk-edit-close]')) {
+        ov.remove();
+        return;
+      }
+      var c = e.target.closest && e.target.closest('[data-gk-color]');
+      if (c) {
+        color = c.getAttribute('data-gk-color') || color;
+        [].forEach.call(ov.querySelectorAll('[data-gk-color]'), function (b) {
+          b.classList.remove('is-active');
+        });
+        c.classList.add('is-active');
+        return;
+      }
+      if (e.target.closest && e.target.closest('[data-gk-clear]')) {
+        strokes = [];
+        redrawBase();
+        return;
+      }
+      var planBtn = e.target.closest && e.target.closest('[data-gk-plan]');
+      if (planBtn) {
+        planBtn.classList.toggle('is-active');
+        planBtn.textContent = planBtn.classList.contains('is-active')
+          ? 'Vald till behandlingsplan/offert'
+          : 'Välj till behandlingsplan/offert';
+        return;
+      }
+      var saveBtn = e.target.closest && e.target.closest('[data-gk-save]');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Sparar…';
+        var selectedFor = ['photo', 'consent'];
+        if (ov.querySelector('[data-gk-plan].is-active'))
+          selectedFor.push('treatment_plan', 'offer');
+        fetch('/api/v1/cco-photo-annotations', {
+          method: 'POST',
+          headers: tokenHeaders(true),
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            customerId: patientId,
+            patientId: patientId,
+            sourceAssetId: sourceAssetId,
+            documentDate: docDate,
+            imageName: name,
+            zone: zone,
+            selectedFor: selectedFor,
+            drawingData: { strokes: strokes },
+            previewDataUrl: canvas.toDataURL('image/png'),
+            note: 'Markerad bild skapad i kundkortet',
+          }),
+        })
+          .then(function (r) {
+            return r.json().then(function (j) {
+              if (!r.ok) throw new Error(j && j.error ? j.error : 'Kunde inte spara');
+              return j;
+            });
+          })
+          .then(function (j) {
+            var note = ov.querySelector('.gk-edit-note');
+            if (note)
+              note.textContent =
+                'Sparad som ny markerad bild. Ladda om kundkortet för att se den i Foto.';
+            saveBtn.textContent = 'Sparad ✓';
+            if (j && j.asset && j.asset.id) {
+              saveBtn.setAttribute('data-saved-asset', j.asset.id);
+            }
+            if (patientId) {
+              try {
+                if (window.__GK_DRIVE_CACHE) delete window.__GK_DRIVE_CACHE[patientId];
+                if (window.__GK_CONTEXTS && window.__GK_CONTEXTS[patientId]) {
+                  gkHydrateDriveFiles(window.__GK_CONTEXTS[patientId], true);
+                }
+              } catch (e) {
+                /* Bilden är sparad även om visuell refresh misslyckas. */
+              }
+            }
+            if (selectedFor.indexOf('treatment_plan') >= 0) {
+              return fetch('/api/v1/cco-treatment-plans', {
+                method: 'POST',
+                headers: tokenHeaders(true),
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                  customerId: patientId,
+                  patientId: patientId,
+                  title: 'Behandlingsplan från markerad bild',
+                  annotationId: j && j.annotation ? j.annotation.id : null,
+                  assetId: j && j.asset ? j.asset.id : sourceAssetId,
+                  selectedImages: [
+                    {
+                      id: (j && j.asset && j.asset.id) || sourceAssetId,
+                      assetId: (j && j.asset && j.asset.id) || sourceAssetId,
+                      annotationId: j && j.annotation ? j.annotation.id : null,
+                      url: (j && j.annotation && j.annotation.previewUrl) || '',
+                      date: docDate,
+                      zone: zone,
+                      label: name,
+                      selectedFor: selectedFor,
+                    },
+                  ],
+                  providerComment: 'Skapad från markerad bild i kundkortet.',
+                  offerIntent: {
+                    status: 'ready_for_offer_draft',
+                    source: 'photo_annotation',
+                    reason: 'Markerad bild vald till behandlingsplan/offert',
+                  },
+                }),
+              })
+                .then(function (r) {
+                  return r.json().then(function (plan) {
+                    if (!r.ok)
+                      throw new Error(plan && plan.error ? plan.error : 'Plan kunde inte sparas');
+                    if (note)
+                      note.textContent =
+                        'Sparad som ny markerad bild och behandlingsplans-/offertutkast.';
+                    return plan;
+                  });
+                })
+                .catch(function (err) {
+                  if (note)
+                    note.textContent =
+                      'Bilden sparades, men planutkastet kunde inte skapas: ' + err.message;
+                });
+            }
+            return j;
+          })
+          .catch(function (err) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Spara markerad bild';
+            var note = ov.querySelector('.gk-edit-note');
+            if (note) note.textContent = err.message || 'Kunde inte spara.';
+          });
+      }
+    });
+  };
 
   // Foto: before/after-slider-overlay (clip-path-jämförelse, dra reglaget)
   window.__gkOpenCompare = function (d) {
@@ -3294,6 +3693,10 @@
     // ===== Besök · tidslinje: gruppera filer/foton/journaler per BESÖKSDATUM (ej importstämpel) =====
     (function renderBesok() {
       function dateKey(f) {
+        var direct = String(
+          (f && (f.documentDate || f.captureDate || f.photoDate || f.visitDate)) || ''
+        ).slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
         var oc = f && f.occasionContext;
         if (oc && oc.timelineKey && /^\d{4}-\d{2}-\d{2}$/.test(oc.timelineKey))
           return oc.timelineKey;
@@ -3465,7 +3868,26 @@
               );
             })
             .join('');
+          var visitMediaRows = g.files.filter(isReferensMediaFile).map(gkMediaFromFile);
+          var visitCollapsed = visitMediaRows.length > 6;
+          var mediaRows = visitMediaRows.length
+            ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder och film</div>' +
+              gkPhotoGrid(
+                visitMediaRows,
+                0,
+                'gk-foto-grid--journal' + (visitCollapsed ? ' is-collapsed' : '')
+              ) +
+              (visitCollapsed
+                ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
+                  visitMediaRows.length +
+                  '</button>'
+                : '') +
+              '</div>'
+            : '';
           var rows = g.files
+            .filter(function (f) {
+              return !isReferensMediaFile(f);
+            })
             .map(function (f) {
               var url =
                 f.viewUrl ||
@@ -3492,6 +3914,7 @@
             esc(parts.join(' · ') || g.files.length + ' filer') +
             '</span></summary><div class="kk-besok-body">' +
             jrows +
+            mediaRows +
             rows +
             '</div></details>'
           );
@@ -3660,7 +4083,7 @@
 
     // Cacha gemensamma kortet (förstoringen renderar det istället för dossier-klon)
     try {
-      window.__GK_LAST = gkBuild({
+      var gkCtx = {
         patientId: bcard.patientId || bcard.id || '',
         name: name,
         phone: phone,
@@ -3680,7 +4103,11 @@
         bundle: bundle,
         commercialCase: commercialCase,
         ltv: ltvLabel || (ltvRaw != null ? String(ltvRaw) : ''),
-      });
+      };
+      window.__GK_CONTEXTS = window.__GK_CONTEXTS || {};
+      if (gkCtx.patientId) window.__GK_CONTEXTS[gkCtx.patientId] = gkCtx;
+      window.__GK_LAST = gkBuild(gkCtx);
+      gkHydrateDriveFiles(gkCtx);
     } catch (e) {
       window.__GK_LAST = '';
     }

@@ -34,6 +34,7 @@ const {
   loadKunderBookingIndex,
 } = require('../ops/ccoKunderBookingEnrichment');
 const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
+const { assetToPatientFile, resolvePatientAssetIds } = require('../ops/ccoPatientAssetIdentity');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -279,8 +280,18 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function isImageLikeFile(file) {
+  const mime = normalizeText(file?.mimeType || file?.contentType).toLowerCase();
+  const type = normalizeText(file?.fileType).toLowerCase();
+  const name = normalizeText(file?.fileName || file?.originalFileName || file?.name).toLowerCase();
+  return (
+    type === 'image' || mime.startsWith('image/') || /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name)
+  );
+}
+
 function createCcoPatientMasterRouter({
   patientMasterStore,
+  customerStore = null,
   journalStore = null,
   migrationIndexStore = null,
   patientSystemStore = null,
@@ -465,15 +476,44 @@ function createCcoPatientMasterRouter({
         viewUrl: `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`,
       };
     });
+    let nativeAssetFiles = [];
+    if (includeDriveFiles && typeof resolvePatientAssetStore === 'function') {
+      const assetStore = await resolvePatientAssetStore();
+      if (assetStore?.listAssetsForPatient) {
+        const patientIds = await resolvePatientAssetIds({
+          patientId: patient.id,
+          patient,
+          tenantId: actor.tenantId,
+          customerStore,
+        });
+        const seen = new Set();
+        const nativeAssets = [];
+        for (const id of patientIds) {
+          const rows = assetStore.listAssetsForPatient(id, {}, { actor: { role: 'system' } }) || [];
+          for (const row of rows) {
+            if (!row?.id || seen.has(row.id)) continue;
+            seen.add(row.id);
+            nativeAssets.push(row);
+          }
+        }
+        nativeAssetFiles = nativeAssets
+          .filter((asset) => ['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(asset.status))
+          .map(assetToPatientFile);
+      }
+    }
 
     const pilotConfig = resolvePilotConfig(config || {});
-    let filesForUi = enrichedDriveFiles;
+    const hasNativeImages = nativeAssetFiles.some(isImageLikeFile);
+    const visibleIndexFiles = hasNativeImages
+      ? enrichedDriveFiles.filter((file) => !isImageLikeFile(file))
+      : enrichedDriveFiles;
+    let filesForUi = [...nativeAssetFiles, ...visibleIndexFiles];
     let nativePilotMeta = null;
     if (pilotConfig.enabled && typeof resolvePatientAssetStore === 'function') {
       const assetStore = await resolvePatientAssetStore();
       if (assetStore) {
         const merged = applyNativeJournalFilesForPilot({
-          driveFiles: enrichedDriveFiles,
+          driveFiles: filesForUi,
           patientId: patient.id,
           assetStore,
           pilotConfig,

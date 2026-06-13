@@ -27,6 +27,13 @@ const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
 const { resolveCcoNextCanonicalUrl } = require('./src/brand/resolveCcoNextCanonicalUrl');
 const { resolveLegacyHostRedirectUrl } = require('./src/brand/resolveLegacyHostRedirectUrl');
+const { assetToPatientFile, resolvePatientAssetIds } = require('./src/ops/ccoPatientAssetIdentity');
+const {
+  createCcoPatientAssetStore: createSharedCcoPatientAssetStore,
+} = require('./src/ops/ccoPatientAssetStore');
+const {
+  createSecureStorageProvider: createSharedSecureStorageProvider,
+} = require('./src/ops/ccoSecureStorageProvider');
 
 const { getClientoConfigForBrand, getKnowledgeDirForBrand } = require('./src/brand/runtimeConfig');
 const { createCorsPolicy } = require('./src/security/corsPolicy');
@@ -38,6 +45,41 @@ app.use(cors(createCorsPolicy(config)));
 app.use(express.json({ limit: '10mb' }));
 
 let ccoRequireAuthMiddleware = null;
+let sharedPatientAssetStorePromise = null;
+let sharedSecureStoragePromise = null;
+async function resolveSharedPatientAssetStore() {
+  if (app.locals.ccoPatientAssetStore) return app.locals.ccoPatientAssetStore;
+  if (!sharedPatientAssetStorePromise) {
+    sharedPatientAssetStorePromise = createSharedCcoPatientAssetStore({
+      filePath: config.ccoPatientAssetsPath,
+      auditLog: ccoAuditLog,
+    }).then((store) => {
+      app.locals.ccoPatientAssetStore = store;
+      return store;
+    });
+  }
+  return sharedPatientAssetStorePromise;
+}
+async function resolveSharedSecureStorage() {
+  if (app.locals.ccoSecureStorage) return app.locals.ccoSecureStorage;
+  if (!sharedSecureStoragePromise) {
+    sharedSecureStoragePromise = Promise.resolve(
+      createSharedSecureStorageProvider({ provider: 'local' })
+    ).then((store) => {
+      app.locals.ccoSecureStorage = store;
+      return store;
+    });
+  }
+  return sharedSecureStoragePromise;
+}
+function decodeImageDataUrl(value) {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  const match = raw.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/);
+  if (!match) return null;
+  const buffer = Buffer.from(match[2].replace(/\s+/g, ''), 'base64');
+  if (!buffer.length) return null;
+  return { mimeType: match[1], buffer };
+}
 function requireCcoAuthenticated(req, res, next) {
   if (typeof ccoRequireAuthMiddleware !== 'function') {
     return res.status(503).json({ error: 'auth_not_ready' });
@@ -700,7 +742,65 @@ let ccoBookingCaseStore = null;
     // Minimala REST-routes (RBAC: staff+doctor)
     const { attachRole, requireAnyRole } = require('./src/security/ccoRbac');
     const express = require('express');
-    const jsonParser = express.json({ limit: '128kb' });
+    const jsonParser = express.json({ limit: '12mb' });
+
+    async function saveAnnotatedPreviewAsset({ annotation, previewDataUrl, actor }) {
+      const decoded = decodeImageDataUrl(previewDataUrl);
+      if (!decoded) return null;
+      const patientId = annotation.patientId || annotation.customerId;
+      if (!patientId) return null;
+      const secureStorage = await resolveSharedSecureStorage();
+      const assetStore = await resolveSharedPatientAssetStore();
+      const originalName = `Markerad bild ${annotation.documentDate || new Date().toISOString().slice(0, 10)}.png`;
+      const stored = await secureStorage.putObject({
+        body: decoded.buffer,
+        contentType: decoded.mimeType,
+        metadata: {
+          patientId,
+          originalFileName: originalName,
+          documentDate: annotation.documentDate || null,
+          importedAt: new Date().toISOString(),
+        },
+      });
+      const thumbnailKey = await secureStorage.generateThumbnailIfImage(
+        stored.storageKey,
+        decoded.mimeType
+      );
+      const asset = await assetStore.addAsset(
+        {
+          patientId,
+          encounterId: annotation.encounterId || null,
+          sourceSystem: 'upload',
+          sourceRecordId: annotation.id,
+          storageProvider: 'local',
+          storageKey: stored.storageKey,
+          thumbnailKey: thumbnailKey || null,
+          checksum: stored.checksum,
+          fileSize: stored.size,
+          mimeType: decoded.mimeType,
+          category: 'photo_during',
+          documentDate: annotation.documentDate || new Date().toISOString().slice(0, 10),
+          importedAt: new Date().toISOString(),
+          importedBy: actor.userId || 'cco',
+          confidence: 'high',
+          status: 'VISIBLE_ON_PATIENT_CARD',
+          isJournalRelevant: true,
+          isPatientVisible: true,
+          displayName: originalName,
+          documentTitle: originalName,
+          patientCardSection: 'photo',
+          imageStage: 'annotated',
+          bodyArea: annotation.zone || null,
+          technicalInfo: {
+            sourceAnnotationId: annotation.id,
+            sourceAssetId: annotation.sourceAssetId || null,
+            selectedFor: annotation.selectedFor || [],
+          },
+        },
+        { actor }
+      );
+      return asset;
+    }
 
     // Photo annotations
     app.post(
@@ -711,10 +811,29 @@ let ccoBookingCaseStore = null;
       async (req, res) => {
         try {
           const actor = { userId: req.role?.userId || 'unknown', role: req.role?.role || 'staff' };
-          const r = await annotationStore.createAnnotationSet({ ...req.body, actor });
-          res.json(r);
+          const body = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+          const previewDataUrl = body.previewDataUrl || body.annotatedImageDataUrl || '';
+          delete body.previewDataUrl;
+          delete body.annotatedImageDataUrl;
+          let annotation = await annotationStore.createAnnotationSet({ ...body, actor });
+          let asset = null;
+          if (previewDataUrl) {
+            asset = await saveAnnotatedPreviewAsset({ annotation, previewDataUrl, actor });
+            if (asset?.id) {
+              annotation = await annotationStore.updateAnnotationSet({
+                annotationId: annotation.id,
+                actor,
+                patch: {
+                  derivedAssetId: asset.id,
+                  previewUrl: `/api/v1/cco/assets/${encodeURIComponent(asset.id)}/thumbnail`,
+                  status: 'saved',
+                },
+              });
+            }
+          }
+          res.json({ annotation, asset });
         } catch (e) {
-          res.status(400).json({ error: e.message });
+          res.status(e.statusCode || 400).json({ error: e.message });
         }
       }
     );
@@ -9855,17 +9974,43 @@ try {
         const stores = await ensureAssetStores();
         const patientId = String(req.params.patientId || '').trim();
         if (!patientId) return res.status(400).json({ error: 'patientId required' });
-        const all = stores.assetStore.listAssetsForPatient(
+        const tenantId =
+          req.cco?.tenantId ||
+          req.headers['x-cco-tenant'] ||
+          config.defaultTenantId ||
+          'hair-tp-clinic';
+        const actor = {
+          role: req.cco?.role || 'unknown',
+          userId: req.headers['x-cco-user'] || null,
+          tenantId,
+        };
+        const patient =
+          app.locals.ccoPatientMasterStore?.getPatient && tenantId
+            ? await app.locals.ccoPatientMasterStore.getPatient({ tenantId, patientId })
+            : null;
+        const patientIds = await resolvePatientAssetIds({
           patientId,
-          {},
-          {
-            actor: {
-              role: req.cco?.role || 'unknown',
-              userId: req.headers['x-cco-user'] || null,
-              tenantId: req.headers['x-cco-tenant'] || null,
-            },
+          patient,
+          tenantId,
+          customerStore: app.locals.ccoCustomerStore,
+        });
+        const seen = new Set();
+        const all = [];
+        for (const id of patientIds) {
+          const rows =
+            stores.assetStore.listAssetsForPatient(
+              id,
+              {},
+              {
+                actor,
+              }
+            ) || [];
+          for (const row of rows) {
+            if (!row?.id || seen.has(row.id)) continue;
+            seen.add(row.id);
+            all.push(row);
           }
-        );
+        }
 
         // Synlighet: dölj REJECTED + DUPLICATE från default-listning;
         // visa via ?includeAll=1 om operatör behöver.
@@ -9911,6 +10056,7 @@ try {
           fileSize: a.fileSize,
           originalFileName: a.originalFileName,
           hasThumbnail: !!a.thumbnailKey,
+          ...assetToPatientFile(a),
         }));
 
         const response = {
@@ -12251,6 +12397,7 @@ process.once('SIGTERM', () => {
   const ccoPatientMasterStore = await createCcoPatientMasterStore({
     filePath: config.ccoPatientMasterStorePath,
   });
+  app.locals.ccoPatientMasterStore = ccoPatientMasterStore;
   const ccoHalsoHealthDeclarationIngest = config.ccoHalsoHealthDeclarationIngestEnabled
     ? createCcoHalsoHealthDeclarationIngest({
         config,
@@ -12690,6 +12837,7 @@ process.once('SIGTERM', () => {
       bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
       patientMasterStore: ccoPatientMasterStore,
+      customerStore: ccoCustomerStore,
       journalStore: ccoJournalStore,
       treatmentEncounterStore: ccoTreatmentEncounterStore,
       config,
@@ -13176,13 +13324,14 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoPatientMasterRouter({
       patientMasterStore: ccoPatientMasterStore,
+      customerStore: ccoCustomerStore,
       journalStore: ccoJournalStore,
       migrationIndexStore: ccoMigrationIndexStore,
       patientSystemStore: ccoPatientSystemStore,
       documentInstanceStore: ccoDocumentInstanceStore,
       buildPatientDocumentBundle,
       readCache: ccoReadCache,
-      resolvePatientAssetStore: async () => app.locals.ccoPatientAssetStore || null,
+      resolvePatientAssetStore: resolveSharedPatientAssetStore,
       swishStore: ccoSwishStore,
       commercialStore: ccoCommercialStore,
       fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister || null,

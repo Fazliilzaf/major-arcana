@@ -3476,6 +3476,10 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
   display: none;
 }
 
+#kk-storvy .gk-foto-grid--all.is-collapsed .gk-foto:nth-child(n + 13) {
+  display: none;
+}
+
 #kk-storvy .gk-visit-media-toggle {
   margin-top: 8px;
 }
@@ -3587,6 +3591,112 @@ html[data-v9-enabled="on"] .preview-topbar-left .cco-topnav-search .cco-topnav-s
 #kk-storvy .gk-foto-req[disabled] {
   opacity: 0.6;
   cursor: default;
+}
+
+.gk-edit-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  background: rgba(28, 22, 16, 0.62);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.gk-edit-panel {
+  width: min(1120px, 96vw);
+  max-height: 94vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 20px;
+  padding: 16px;
+  background: #fffaf3;
+  box-shadow: 0 30px 90px rgba(43, 37, 31, 0.28);
+}
+
+.gk-edit-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #5d4a3c;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(61, 46, 34, 0.12);
+}
+
+.gk-edit-head,
+.gk-edit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gk-edit-head b {
+  display: block;
+  font-size: 16px;
+  color: #2b251f;
+}
+
+.gk-edit-head span,
+.gk-edit-note {
+  font-size: 12px;
+  color: #8a8174;
+}
+
+.gk-edit-tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-right: 32px;
+}
+
+.gk-edit-tools .is-active,
+.gk-edit-foot .is-active {
+  background: linear-gradient(180deg, #ecd083, #d6ae45);
+  color: #4f3d12;
+}
+
+.gk-edit-canvas-wrap {
+  min-height: 260px;
+  max-height: calc(94vh - 150px);
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  border-radius: 16px;
+  background: rgba(43, 37, 31, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.1);
+}
+
+.gk-edit-canvas-wrap canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: #fff;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.gk-edit-save {
+  font-weight: 800;
+}
+
+.gk-edit-save[disabled] {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 /* Jämför-overlay (fullskärm) */
