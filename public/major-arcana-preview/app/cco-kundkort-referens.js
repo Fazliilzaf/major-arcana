@@ -883,7 +883,10 @@
         visitSectionHtml: sek(
           'Besök',
           '<span class="gk-pill gk-tag-info">' + Object.keys(visitGroups).length + '</span>',
-          visitCards,
+          visitCards
+            ? '<div class="gk-sub gk-order-note">Nyaste besök överst. Varje besök samlar journal, bilder, film och dokument på samma datum.</div>' +
+                visitCards
+            : '',
           'Inga besök ännu.'
         ),
         journalRows: A2(ctx.jItems)
@@ -1169,7 +1172,7 @@
       .sort();
     if (kontaktDatum.length)
       bkEvents.push({ ts: kontaktDatum[0], title: 'Första kontakt', icon: '🤝', src: 'kontakt' });
-    body += sek(
+    var historikSectionHtml = sek(
       'Historik',
       '<span class="gk-pill gk-tag-info" data-gk-hist-count>' +
         (A2(ctx.hist).length || 0) +
@@ -1192,7 +1195,7 @@
         '</div>'
     );
 
-    body += sek(
+    var journalSectionHtml = sek(
       'Journal',
       '<span class="gk-pill gk-tag-info">' + A2(ctx.jItems).length + ' anteckningar</span>',
       visitRender.journalRows,
@@ -1374,7 +1377,12 @@
         '</details>'
       );
     })();
-    body += sek('Offert', '', offSignal + offOpens + offDraft + off, 'Ingen offert skapad ännu.');
+    var offertSectionHtml = sek(
+      'Offert',
+      '',
+      offSignal + offOpens + offDraft + off,
+      'Ingen offert skapad ännu.'
+    );
 
     // Ekonomi — smart: status-signal, öppen faktura m. förfallodag, LTV, betalplan 20/80, påminnelse-utkast
     var ekoPack = (function () {
@@ -1553,7 +1561,12 @@
       }
       return { badge: badge, body: rows + act };
     })();
-    body += sek('Ekonomi', ekoPack.badge, ekoPack.body, 'Ingen ekonomi-data ännu.');
+    var ekonomiSectionHtml = sek(
+      'Ekonomi',
+      ekoPack.badge,
+      ekoPack.body,
+      'Ingen ekonomi-data ännu.'
+    );
 
     // Foto — smart: zon+datum-etiketter, auto before/after-par + slider-jämförelse, saknad-vy-insikt
     var fotoBody = (function () {
@@ -1565,6 +1578,7 @@
       var collapsed = photos.length > 24;
       var grid =
         '<div class="gk-visit-photos">' +
+        '<div class="gk-sub gk-order-note">Nyast först. Före/efter-förslag jämför äldsta mot senaste bild i samma zon.</div>' +
         gkPhotoGrid(photos, 0, 'gk-foto-grid--all' + (collapsed ? ' is-collapsed' : '')) +
         (collapsed
           ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
@@ -1629,13 +1643,18 @@
       }
       return grid + pairHtml + insightHtml;
     })();
-    body += sek(
+    var fotoSectionHtml = sek(
       'Foto',
       (imgs.length ? '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>' : '') +
         (photoReview ? ' <span class="gk-pill gk-tag-warn">Foton att granska</span>' : ''),
       fotoBody,
       'Inga foton ännu.'
     );
+    body += journalSectionHtml;
+    body += fotoSectionHtml;
+    body += historikSectionHtml;
+    body += offertSectionHtml;
+    body += ekonomiSectionHtml;
 
     // Personal (behandlare ur journalerna)
     var persRows = persNames
@@ -1652,7 +1671,7 @@
         );
       })
       .join('');
-    body += sek(
+    var personalSectionHtml = sek(
       'Personal',
       persNames.length ? '<span class="gk-pill gk-tag-info">' + persNames.length + '</span>' : '',
       persRows,
@@ -1813,7 +1832,7 @@
       }).length;
       return { count: aktiva, html: rows + docs };
     })();
-    body += sek(
+    var autoSectionHtml = sek(
       'AUTO',
       '<span class="gk-pill gk-tag-ok">' + autoBlock.count + ' aktiva</span>',
       autoBlock.html,
@@ -1832,7 +1851,7 @@
         );
       })
       .join('');
-    body += sek(
+    var dokumentSectionHtml = sek(
       'Dokument',
       docR
         ? '<span class="gk-pill gk-tag-info">' + A2(ctx.driveFiles).length + ' filer</span>'
@@ -1840,6 +1859,9 @@
       docR,
       'Inga dokument ännu.'
     );
+    body += dokumentSectionHtml;
+    body += personalSectionHtml;
+    body += autoSectionHtml;
 
     // Ta bild — smart: ÄKTA samtyckes-grind (blockerar capture utan foto-samtycke) + zon-etikett
     var tabildBody = (function () {
@@ -3074,11 +3096,11 @@
         'journal',
         'foto',
         'historik',
-        'personal',
         'offert',
         'ekonomi',
         'betalning',
         'dokument',
+        'personal',
         'auto',
         'anteckningar',
         'kommunikation',
@@ -5480,11 +5502,11 @@
     'journal',
     'foto',
     'historik',
-    'personal',
     'offert',
     'ekonomi',
     'betalning',
     'dokument',
+    'personal',
     'auto',
     'anteckningar',
     'kommunikation',
