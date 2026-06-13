@@ -725,7 +725,7 @@ function createCcoPatientMasterRouter({
         );
         const payload = await buildPatientPayload(actor, patient, {
           includeJournal,
-          includeDriveFiles: false,
+          includeDriveFiles: true,
         });
         const documentBundle = await buildDocumentBundlePayload(actor, patient, {
           journalEntries: payload.journalEntries,
@@ -748,6 +748,9 @@ function createCcoPatientMasterRouter({
           depositAmount: payload.depositAmount || null,
           paymentHistory: payload.paymentHistory || [],
           paymentHistoryMeta: payload.paymentHistoryMeta || null,
+          driveFiles: payload.driveFiles || [],
+          occasionTimeline: payload.occasionTimeline || [],
+          driveJournalNativePilot: payload.driveJournalNativePilot || null,
           ready: true,
           documents: documentBundle.documents,
           documentBundle,

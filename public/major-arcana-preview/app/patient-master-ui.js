@@ -4637,6 +4637,15 @@
       if (runtime.detail && normalizeText(runtime.selectedPatientId) === normalizeText(patientId)) {
         runtime.detail.dossierBundle = body;
         runtime.detail.documentBundle = body?.documentBundle || body;
+        if (asArray(body?.driveFiles).length) {
+          runtime.detail.driveFiles = dedupeDriveFiles([
+            ...asArray(runtime.detail.driveFiles),
+            ...asArray(body.driveFiles),
+          ]);
+        }
+        if (asArray(body?.occasionTimeline).length) {
+          runtime.detail.occasionTimeline = asArray(body.occasionTimeline);
+        }
       }
       return body;
     } catch {
@@ -9365,7 +9374,9 @@
     if (!key || normalizeText(runtime.selectedPatientId) !== key || !runtime.detail?.card) return;
     if (asArray(runtime.detail.driveFiles).length > 0) return;
     const fileTotal = Number(runtime.detail.card.fileSummary?.totalFiles || 0);
-    if (fileTotal <= 0) return;
+    const shouldTryNativeAssets =
+      isV9CustomersEnabled() && normalizeText(runtime.detail.card?.patientId || patientId);
+    if (fileTotal <= 0 && !shouldTryNativeAssets) return;
 
     try {
       const payload = await fetchPatientDetailFromApi(patientId, { includeDriveFiles: true });
