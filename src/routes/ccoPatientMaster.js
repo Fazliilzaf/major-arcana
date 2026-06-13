@@ -485,6 +485,7 @@ function createCcoPatientMasterRouter({
           patient,
           tenantId: actor.tenantId,
           customerStore,
+          assetStore,
         });
         const seen = new Set();
         const nativeAssets = [];

@@ -19,6 +19,10 @@ function normalizeName(value) {
     .trim();
 }
 
+function normalizeDigits(value) {
+  return normalizeText(value).replace(/\D+/g, '');
+}
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -144,7 +148,50 @@ async function collectCustomerAliases({ patient, tenantId, customerStore }) {
   return aliases;
 }
 
-async function resolvePatientAssetIds({ patientId, patient, tenantId, customerStore }) {
+function collectAssetStoreAliases({ patient, tenantId, assetStore }) {
+  const aliases = [];
+  if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') return aliases;
+  const pnr = normalizeDigits(patient?.personnummer || patient?.personalNumber || patient?.pnr);
+  const name = normalizeName(
+    patient?.displayName || patient?.fullName || patient?.name || patient?.cliento?.name
+  );
+  if (!pnr && !name) return aliases;
+
+  const rows = assetStore.listItemsForEnrichment(tenantId) || [];
+  const acceptedStatuses = new Set(['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO']);
+  const exactNamePatientIds = new Set();
+
+  for (const row of rows) {
+    if (!row?.patientId || !acceptedStatuses.has(row.status)) continue;
+    const fields = [
+      row.originalDrivePath,
+      row.relativePath,
+      row.originalFileName,
+      row.displayName,
+      row.documentTitle,
+    ].filter(Boolean);
+    const haystack = fields.join(' / ');
+    const haystackDigits = normalizeDigits(haystack);
+    if (pnr && pnr.length >= 8 && haystackDigits.includes(pnr)) {
+      pushUnique(aliases, row.patientId);
+      continue;
+    }
+    if (!name) continue;
+    const exactSegmentMatch = haystack
+      .split(/[\\/]/)
+      .map(normalizeName)
+      .some((segment) => segment === name || segment.startsWith(`${name} `));
+    if (exactSegmentMatch) exactNamePatientIds.add(row.patientId);
+  }
+
+  if (!aliases.length && exactNamePatientIds.size === 1) {
+    pushUnique(aliases, [...exactNamePatientIds][0]);
+  }
+
+  return aliases;
+}
+
+async function resolvePatientAssetIds({ patientId, patient, tenantId, customerStore, assetStore }) {
   const ids = [];
   pushUnique(ids, patientId);
   pushUnique(ids, patient?.id);
@@ -154,6 +201,8 @@ async function resolvePatientAssetIds({ patientId, patient, tenantId, customerSt
 
   const aliases = await collectCustomerAliases({ patient, tenantId, customerStore });
   aliases.forEach((id) => pushUnique(ids, id));
+  const assetAliases = collectAssetStoreAliases({ patient, tenantId, assetStore });
+  assetAliases.forEach((id) => pushUnique(ids, id));
   return ids;
 }
 
@@ -218,5 +267,6 @@ function assetToPatientFile(asset) {
 
 module.exports = {
   assetToPatientFile,
+  collectAssetStoreAliases,
   resolvePatientAssetIds,
 };

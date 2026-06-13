@@ -9993,6 +9993,7 @@ try {
           patient,
           tenantId,
           customerStore: app.locals.ccoCustomerStore,
+          assetStore: stores.assetStore,
         });
         const seen = new Set();
         const all = [];

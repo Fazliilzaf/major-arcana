@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   assetToPatientFile,
+  collectAssetStoreAliases,
   resolvePatientAssetIds,
 } = require('../../src/ops/ccoPatientAssetIdentity');
 
@@ -13,6 +14,14 @@ function makeCustomerStore(statesByTenant) {
     },
     async peekTenantCustomerState({ tenantId }) {
       return statesByTenant[tenantId] || null;
+    },
+  };
+}
+
+function makeAssetStore(items) {
+  return {
+    listItemsForEnrichment() {
+      return items;
     },
   };
 }
@@ -79,6 +88,48 @@ test('resolvePatientAssetIds scans existing customer tenants when canonical tena
   });
 
   assert.deepEqual(ids, ['patient-uuid-2', 'cliento_archived_1']);
+});
+
+test('resolvePatientAssetIds bridges to visible asset patient id via personnummer in Drive path', async () => {
+  const ids = await resolvePatientAssetIds({
+    patientId: 'patient-uuid-4',
+    tenantId: 'hair-tp-clinic',
+    patient: {
+      id: 'patient-uuid-4',
+      displayName: 'Daniel Bodin',
+      personnummer: '19810830-4653',
+    },
+    customerStore: makeCustomerStore({}),
+    assetStore: makeAssetStore([
+      {
+        patientId: 'cliento_04947b0308277dd76a03dbf4',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        originalDrivePath:
+          'Hair TP Clinic 2023/Oktober/Daniel Bodin - 19810830-4653/Journal Daniel Bodin.pdf',
+      },
+    ]),
+  });
+
+  assert.deepEqual(ids, ['patient-uuid-4', 'cliento_04947b0308277dd76a03dbf4']);
+});
+
+test('collectAssetStoreAliases does not trust needs-review paths as identity proof', () => {
+  const aliases = collectAssetStoreAliases({
+    tenantId: 'hair-tp-clinic',
+    patient: {
+      displayName: 'Daniel Bodin',
+      personnummer: '19810830-4653',
+    },
+    assetStore: makeAssetStore([
+      {
+        patientId: 'cliento_unsafe',
+        status: 'NEEDS_REVIEW',
+        originalDrivePath: 'Hair TP Clinic/Daniel Bodin - 19810830-4653/IMG_001.HEIC',
+      },
+    ]),
+  });
+
+  assert.deepEqual(aliases, []);
 });
 
 test('resolvePatientAssetIds only uses name fallback when the exact match is unique', async () => {
