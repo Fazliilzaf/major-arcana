@@ -597,15 +597,12 @@
     return best;
   }
 
-  function buildMedFormDocRow(formKey, label, form, signed, sourceLabel, sigRuleId, driveFiles) {
+  function buildMedFormDocRow(formKey, label, form, signed, sourceLabel, driveFiles) {
     var dateLabel = medFormDateLabel(form);
     var meta = signed ? 'Signerad' : 'Saknas';
     if (dateLabel) meta += ' · ' + dateLabel;
     if (sourceLabel) meta += ' · ' + sourceLabel;
     var viewUrl = resolveMedFormViewUrl(formKey, form, driveFiles);
-    var isFc = formKey === 'fitness_certificate';
-    var missingNote = isFc ? 'Signeras på operationsdagen' : 'Efterfrågas före behandling';
-    var outreachRuleId = isFc ? '' : sigRuleId;
 
     if (!signed) {
       return (
@@ -617,17 +614,7 @@
         '</span>' +
         '<span class="gk-med-doc-meta">' +
         esc(meta) +
-        ' · ' +
-        esc(missingNote) +
-        '</span>' +
-        (outreachRuleId
-          ? '<button type="button" class="kk-sig-act" data-kk-sig="' +
-            esc(outreachRuleId) +
-            '" data-kk-sig-label="Skicka ' +
-            esc(label.toLowerCase()) +
-            '" title="Skicka">→</button>'
-          : '') +
-        '</div>'
+        '</span></div>'
       );
     }
 
@@ -676,24 +663,8 @@
     var fcSource = hdSourceLabel(fc, bcard);
     var files = A(driveFiles);
     return (
-      buildMedFormDocRow(
-        'health_declaration',
-        'Hälsodeklaration',
-        hd,
-        hdSigned,
-        hdSource,
-        'customer.missing_health_declaration',
-        files
-      ) +
-      buildMedFormDocRow(
-        'fitness_certificate',
-        'Friskförsäkran',
-        fc,
-        fcSigned,
-        fcSource,
-        'customer.missing_operation_day_insurance',
-        files
-      )
+      buildMedFormDocRow('health_declaration', 'Hälsodeklaration', hd, hdSigned, hdSource, files) +
+      buildMedFormDocRow('fitness_certificate', 'Friskförsäkran', fc, fcSigned, fcSource, files)
     );
   }
 
