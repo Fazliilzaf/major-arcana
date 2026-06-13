@@ -33,6 +33,10 @@ const {
   getBookingSignals,
   loadKunderBookingIndex,
 } = require('../ops/ccoKunderBookingEnrichment');
+const {
+  enrichPatientCardPreTreatmentForms,
+  loadAssetSignalsIndex,
+} = require('../ops/ccoKunderEnrichment');
 const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
 const { assetToPatientFile, resolvePatientAssetIds } = require('../ops/ccoPatientAssetIdentity');
 
@@ -536,6 +540,13 @@ function createCcoPatientMasterRouter({
       journalEntries: journalReadouts,
       bookings: [...bookingContext.upcomingBookings, ...bookingContext.historyBookings],
     });
+
+    try {
+      const assetIndex = await loadAssetSignalsIndex(config, actor.tenantId);
+      card = enrichPatientCardPreTreatmentForms(card, patient, assetIndex);
+    } catch {
+      card = enrichPatientCardPreTreatmentForms(card, patient, null);
+    }
 
     return {
       patient,

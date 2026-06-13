@@ -2,6 +2,7 @@
 
 const {
   HALSO_MAILBOX,
+  isHalsoFormSubject,
   isHalsoHealthDeclarationSubject,
   parseHealthDeclarationMessage,
 } = require('./ccoHalsoHealthDeclarationParser');
@@ -33,7 +34,13 @@ function summarizeDryRunRows(rows = []) {
   const stats = {
     totalMessagesScanned: 0,
     halsoHdSubjects: 0,
+    healthDeclarationSubjects: 0,
+    fitnessCertificateSubjects: 0,
     parsedOk: 0,
+    parsedOkHealthDeclaration: 0,
+    parsedOkFitnessCertificate: 0,
+    matchedHealthDeclaration: 0,
+    matchedFitnessCertificate: 0,
     parseFailed: 0,
     parseFailedByReason: {},
     matched: 0,
@@ -57,6 +64,9 @@ function summarizeDryRunRows(rows = []) {
     stats.totalMessagesScanned += 1;
     if (!row.isHalsoHd) continue;
     stats.halsoHdSubjects += 1;
+    const formType = row.parsed?.formType || row.sample?.formType || 'health_declaration';
+    if (formType === 'fitness_certificate') stats.fitnessCertificateSubjects += 1;
+    else stats.healthDeclarationSubjects += 1;
 
     if (!row.parsed?.ok) {
       stats.parseFailed += 1;
@@ -69,6 +79,8 @@ function summarizeDryRunRows(rows = []) {
     }
 
     stats.parsedOk += 1;
+    if (formType === 'fitness_certificate') stats.parsedOkFitnessCertificate += 1;
+    else stats.parsedOkHealthDeclaration += 1;
     const dedupHit = row.dedupKeys.some((key) => seenDedup.has(key));
     row.dedupKeys.forEach((key) => seenDedup.add(key));
     if (dedupHit) {
@@ -77,6 +89,8 @@ function summarizeDryRunRows(rows = []) {
 
     if (row.match.status === 'MATCHED') {
       stats.matched += 1;
+      if (formType === 'fitness_certificate') stats.matchedFitnessCertificate += 1;
+      else stats.matchedHealthDeclaration += 1;
       stats.matchedByMethod[row.match.method] = (stats.matchedByMethod[row.match.method] || 0) + 1;
       if (row.match.patientId) matchedPatientIds.add(row.match.patientId);
       if (samples.matched.length < 12) samples.matched.push(row.sample);
@@ -98,7 +112,7 @@ function buildDryRunRow(rawMessage = {}, patients = [], config = {}) {
     normalizeText(
       rawMessage.mailboxId || rawMessage.mailAccountEmail || config.mailboxEmail
     ).toLowerCase() === normalizeText(config.ccoHalsoMailboxEmail || HALSO_MAILBOX).toLowerCase() &&
-    isHalsoHealthDeclarationSubject(rawMessage.subject);
+    isHalsoFormSubject(rawMessage.subject);
 
   if (!isHalsoHd) {
     return { isHalsoHd: false, rawMessageId: rawMessage.id || rawMessage.graphMessageId || '' };
@@ -114,6 +128,7 @@ function buildDryRunRow(rawMessage = {}, patients = [], config = {}) {
     messageId: rawMessage.id || rawMessage.graphMessageId || '',
     internetMessageId: normalizeText(rawMessage.internetMessageId),
     subject: normalizeText(rawMessage.subject),
+    formType: parsed.formType || 'health_declaration',
     receivedAt: rawMessage.receivedAt || rawMessage.receivedDateTime || '',
     personnummerMasked: maskPersonnummer(parsed.personnummer),
     emailMasked: maskEmail(parsed.email),

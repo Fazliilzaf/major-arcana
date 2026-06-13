@@ -10,9 +10,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { config } = require('../../src/config');
-const {
-  isHalsoHealthDeclarationSubject,
-} = require('../../src/ops/ccoHalsoHealthDeclarationParser');
+const { isHalsoFormSubject } = require('../../src/ops/ccoHalsoHealthDeclarationParser');
 
 const GRAPH = 'https://graph.microsoft.com/v1.0';
 const LOGIN = 'https://login.microsoftonline.com';
@@ -185,7 +183,7 @@ async function scanHalsoInboxCorpus({
     pagesThisRun += 1;
 
     for (const msg of messages) {
-      if (!isHalsoHealthDeclarationSubject(msg.subject)) continue;
+      if (!isHalsoFormSubject(msg.subject)) continue;
       checkpoint.hdHeadersFound += 1;
       await appendIndexLine(indexPath, {
         id: msg.id,

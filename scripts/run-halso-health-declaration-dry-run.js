@@ -24,7 +24,7 @@ const {
   selectStickprovCandidates,
   summarizeDryRunRows,
 } = require('../src/ops/ccoHalsoHealthDeclarationDryRun');
-const { isHalsoHealthDeclarationSubject } = require('../src/ops/ccoHalsoHealthDeclarationParser');
+const { isHalsoFormSubject } = require('../src/ops/ccoHalsoHealthDeclarationParser');
 
 const GRAPH = 'https://graph.microsoft.com/v1.0';
 const LOGIN = 'https://login.microsoftonline.com';
@@ -102,7 +102,7 @@ async function fetchMessageBody(token, messageId) {
 }
 
 async function fetchHalsoMessages(token, { max = 0, since = '' } = {}) {
-  const searchTerms = ['Hälsodeklaration', 'Halsodeklaration'];
+  const searchTerms = ['Hälsodeklaration', 'Halsodeklaration', 'Friskförsäkran', 'Friskforsakran'];
   const headerMap = new Map();
 
   for (const term of searchTerms) {
@@ -112,7 +112,7 @@ async function fetchHalsoMessages(token, { max = 0, since = '' } = {}) {
     while (url) {
       const page = await graphGet(token, url, { search: true });
       for (const msg of page.value || []) {
-        if (!isHalsoHealthDeclarationSubject(msg.subject)) continue;
+        if (!isHalsoFormSubject(msg.subject)) continue;
         if (since && msg.receivedDateTime && msg.receivedDateTime < `${since}T00:00:00Z`) continue;
         headerMap.set(msg.id, msg);
         if (max > 0 && headerMap.size >= max) break;
@@ -155,7 +155,7 @@ async function fetchHalsoMessagesFromInbox(token, { max = 0, since = '' } = {}) 
   while (url) {
     const page = await graphGet(token, url);
     for (const msg of page.value || []) {
-      if (!isHalsoHealthDeclarationSubject(msg.subject)) continue;
+      if (!isHalsoFormSubject(msg.subject)) continue;
       headers.push(msg);
       if (max > 0 && headers.length >= max) break;
     }

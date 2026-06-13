@@ -161,6 +161,7 @@ function emptyAssetSignals() {
   return {
     hasForm: false,
     hasHealthDeclarationDocument: false,
+    hasFitnessCertificateDocument: false,
     hasAgreement: false,
     hasGetAccept: false,
     hasHalso: false,
@@ -205,9 +206,34 @@ function isHealthDeclarationAsset(asset = {}) {
   return cat === 'other' || !cat;
 }
 
+function isFitnessCertificateAsset(asset = {}) {
+  const cat = normalizeKey(asset.category);
+  const source = normalizeKey(asset.sourceSystem);
+  const haystack = normalizeKey(
+    [
+      asset.originalFileName,
+      asset.originalDrivePath,
+      asset.storageKey,
+      asObject(asset.metadata).documentType,
+      asObject(asset.metadata).documentTypeId,
+      asObject(asset.metadata).subject,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+  if (/friskf[oö]rs[aä]kran|fitness.?certificate/.test(haystack)) return true;
+  if (source === 'm365_halso' && /friskf[oö]rs/.test(haystack)) return true;
+  return false;
+}
+
 function patientHasHealthDeclarationAsset(sig = null) {
   const safe = sig || emptyAssetSignals();
   return Boolean(safe.hasForm || safe.hasHealthDeclarationDocument);
+}
+
+function patientHasFitnessCertificateAsset(sig = null) {
+  const safe = sig || emptyAssetSignals();
+  return Boolean(safe.hasFitnessCertificateDocument);
 }
 
 /**
@@ -232,7 +258,8 @@ function buildAssetSignalsIndex(items = [], tenantId = null) {
     const source = normalizeKey(asset.sourceSystem);
 
     if (cat === 'form') sig.hasForm = true;
-    if (isHealthDeclarationAsset(asset)) sig.hasHealthDeclarationDocument = true;
+    if (isFitnessCertificateAsset(asset)) sig.hasFitnessCertificateDocument = true;
+    else if (isHealthDeclarationAsset(asset)) sig.hasHealthDeclarationDocument = true;
     if (cat === 'agreement' || cat === 'consent') sig.hasAgreement = true;
     if (source === 'getaccept_import') sig.hasGetAccept = true;
     if (source === 'm365_halso') sig.hasHalso = true;
@@ -577,8 +604,14 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
   const hasJournal = base.hasJournalHistory || sig.hasDriveJournalAsset;
   const structuredHd = asObject(patient.healthDeclaration);
   const hasStructuredHd = Boolean(structuredHd.signedAt);
+  const structuredFc = asObject(patient.fitnessCertificate);
+  const hasStructuredFc = Boolean(structuredFc.signedAt);
   const hasHealthDeclaration =
     patientHasHealthDeclarationAsset(sig) || hasStructuredHd || Boolean(base.hasHealthDeclaration);
+  const hasFitnessCertificate =
+    patientHasFitnessCertificateAsset(sig) ||
+    hasStructuredFc ||
+    Boolean(base.hasFitnessCertificate);
   const hasForm = hasHealthDeclaration;
   const reviewFlags = [];
   if (base.flags?.includes('needs_review')) reviewFlags.push('needs_review');
@@ -607,6 +640,8 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     hasForm,
     missingForm: !hasForm, // deprecated — use missingHealthDeclaration
     missingHealthDeclaration: !hasHealthDeclaration,
+    hasFitnessCertificate,
+    missingFitnessCertificate: !hasFitnessCertificate,
     hasAgreement: sig.hasAgreement,
     missingAgreement: hasJournal && !sig.hasAgreement,
     hasHalso: sig.hasHalso,
@@ -638,7 +673,7 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     readyForTreatment: null,
     treatmentPlanStatus: null,
     photoConsent: { signed: false, grantedAt: '', grantedBy: '' },
-    fitnessSigned: false,
+    fitnessSigned: hasFitnessCertificate,
     hasJournalPhoto: false,
     onWaitlist: false,
     reviewFlags,
@@ -1204,6 +1239,38 @@ function filterPatientsBySegment(
   );
 }
 
+function enrichPatientCardPreTreatmentForms(card = {}, patient = {}, assetIndex = null) {
+  const safeCard = { ...(card || {}) };
+  const patientId = normalizeText(safeCard.patientId || patient?.id);
+  const sig = getAssetSignals(assetIndex, patientId);
+  const structuredHd = asObject(patient?.healthDeclaration);
+  const structuredFc = asObject(patient?.fitnessCertificate);
+  const hasHd =
+    patientHasHealthDeclarationAsset(sig) ||
+    Boolean(structuredHd.signedAt) ||
+    Boolean(safeCard.hasHealthDeclaration);
+  const hasFc =
+    patientHasFitnessCertificateAsset(sig) ||
+    Boolean(structuredFc.signedAt) ||
+    Boolean(safeCard.hasFitnessCertificate);
+  if (structuredHd.signedAt || Object.keys(structuredHd).length) {
+    safeCard.healthDeclaration = structuredHd;
+  }
+  if (structuredFc.signedAt || Object.keys(structuredFc).length) {
+    safeCard.fitnessCertificate = structuredFc;
+  }
+  safeCard.hasHealthDeclaration = hasHd;
+  safeCard.missingHealthDeclaration = !hasHd;
+  safeCard.hasFitnessCertificate = hasFc;
+  safeCard.missingFitnessCertificate = !hasFc;
+  safeCard.fitnessSigned = hasFc || safeCard.fitnessSigned === true;
+  if (structuredFc.signedAt) {
+    safeCard.fitnessCertificateAt = structuredFc.signedAt;
+    safeCard.fitnessCertificateBy = structuredFc.source || 'halso@';
+  }
+  return safeCard;
+}
+
 module.exports = {
   buildSegmentCatalog,
   buildAssetSignalsIndex,
@@ -1222,7 +1289,10 @@ module.exports = {
   buildOwnerFieldInventory,
   ownerMatchesAssigned,
   computeOwnerCoverage,
+  enrichPatientCardPreTreatmentForms,
   maskEmail,
   maskPhone,
   MINE_DISABLED_REASON,
+  isFitnessCertificateAsset,
+  patientHasFitnessCertificateAsset,
 };

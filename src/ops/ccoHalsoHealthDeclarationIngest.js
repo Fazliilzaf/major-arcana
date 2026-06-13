@@ -13,6 +13,7 @@ const {
 const { buildPipedrivePatientLookup } = require('./ccoPatientMasterStore');
 const {
   HALSO_MAILBOX,
+  isHalsoFormMessage,
   isHalsoHealthDeclarationMessage,
   parseHealthDeclarationMessage,
 } = require('./ccoHalsoHealthDeclarationParser');
@@ -68,12 +69,15 @@ function emptyDedupState() {
 
 function buildHealthDeclarationDedupKeys(parsed = {}, rawMessage = {}) {
   const keys = [];
+  const formType = normalizeText(parsed.formType) || 'health_declaration';
   const internetMessageId = normalizeText(parsed.internetMessageId || rawMessage.internetMessageId);
-  if (internetMessageId) keys.push(`internetMessageId:${internetMessageId.toLowerCase()}`);
-  if (parsed.personnummer && parsed.signedAt) {
-    keys.push(`pnrSignedAt:${parsed.personnummer}:${parsed.signedAt}`);
+  if (internetMessageId) {
+    keys.push(`internetMessageId:${formType}:${internetMessageId.toLowerCase()}`);
   }
-  if (rawMessage.id) keys.push(`rawMessageId:${rawMessage.id}`);
+  if (parsed.personnummer && parsed.signedAt) {
+    keys.push(`pnrSignedAt:${formType}:${parsed.personnummer}:${parsed.signedAt}`);
+  }
+  if (rawMessage.id) keys.push(`rawMessageId:${formType}:${rawMessage.id}`);
   return keys;
 }
 
@@ -83,7 +87,7 @@ function mergeAllergies(existing = [], incoming = []) {
   ];
 }
 
-function mergeHealthDeclaration(existing = null, incoming = null) {
+function mergeStructuredForm(existing = null, incoming = null) {
   if (!incoming || typeof incoming !== 'object') return existing || null;
   if (!existing || typeof existing !== 'object') return incoming;
   const existingTs = Date.parse(existing.signedAt || existing.importedAt || 0);
@@ -97,6 +101,14 @@ function mergeHealthDeclaration(existing = null, incoming = null) {
     };
   }
   return existing;
+}
+
+function mergeHealthDeclaration(existing = null, incoming = null) {
+  return mergeStructuredForm(existing, incoming);
+}
+
+function mergeFitnessCertificate(existing = null, incoming = null) {
+  return mergeStructuredForm(existing, incoming);
 }
 
 function matchPatientFromParsed(parsed = {}, patients = []) {
@@ -251,10 +263,12 @@ function createCcoHalsoHealthDeclarationIngest({
   }
 
   async function createReviewStubPatient(parsed, tenantId) {
+    const formLabel =
+      parsed.formType === 'fitness_certificate' ? 'Friskförsäkran' : 'Hälsodeklaration';
     const payload = {
       tenantId,
       personnummer: parsed.personnummer || '',
-      displayName: parsed.displayName || 'Hälsodeklaration (ogranskad)',
+      displayName: parsed.displayName || `${formLabel} (ogranskad)`,
       firstName: parsed.firstName || '',
       lastName: parsed.lastName || '',
       primaryEmail: parsed.email || '',
@@ -269,16 +283,10 @@ function createCcoHalsoHealthDeclarationIngest({
     return saved;
   }
 
-  async function upsertHealthDeclarationOnPatient({
-    patient,
-    parsed,
-    rawMessage,
-    match,
-    tenantId,
-    reviewRequired = false,
-  }) {
-    const healthDeclaration = {
+  function buildStructuredFormPayload({ parsed, rawMessage, match, reviewRequired = false }) {
+    return {
       source: 'halso_mailbox',
+      formType: parsed.formType || 'health_declaration',
       channel: parsed.channel,
       signedAt: parsed.signedAt,
       consent: parsed.consent,
@@ -294,6 +302,53 @@ function createCcoHalsoHealthDeclarationIngest({
       flags: parsed.flags,
       processorVersion: PROCESSOR_VERSION,
     };
+  }
+
+  async function upsertFitnessCertificateOnPatient({
+    patient,
+    parsed,
+    rawMessage,
+    match,
+    tenantId,
+    reviewRequired = false,
+  }) {
+    const fitnessCertificate = buildStructuredFormPayload({
+      parsed,
+      rawMessage,
+      match,
+      reviewRequired,
+    });
+    const mergedFitnessCertificate = mergeFitnessCertificate(
+      patient.fitnessCertificate,
+      fitnessCertificate
+    );
+    const saved = await patientMasterStore.upsertPatient({
+      ...patient,
+      tenantId: patient.tenantId || tenantId,
+      personnummer: patient.personnummer || parsed.personnummer || '',
+      primaryEmail: patient.primaryEmail || parsed.email || '',
+      primaryPhone: patient.primaryPhone || parsed.phone || '',
+      displayName: patient.displayName || parsed.displayName || '',
+      fitnessCertificate: mergedFitnessCertificate,
+      matchStatus: reviewRequired ? 'needs_review' : patient.matchStatus,
+    });
+    return saved;
+  }
+
+  async function upsertHealthDeclarationOnPatient({
+    patient,
+    parsed,
+    rawMessage,
+    match,
+    tenantId,
+    reviewRequired = false,
+  }) {
+    const healthDeclaration = buildStructuredFormPayload({
+      parsed,
+      rawMessage,
+      match,
+      reviewRequired,
+    });
 
     const allergies = mergeAllergies(patient.allergies, parsed.allergies);
     const mergedHealthDeclaration = mergeHealthDeclaration(
@@ -316,6 +371,14 @@ function createCcoHalsoHealthDeclarationIngest({
     return saved;
   }
 
+  async function upsertStructuredFormOnPatient(args) {
+    const parsed = args.parsed || {};
+    if (parsed.formType === 'fitness_certificate') {
+      return upsertFitnessCertificateOnPatient(args);
+    }
+    return upsertHealthDeclarationOnPatient(args);
+  }
+
   async function processRawMessage({
     rawMessage = {},
     mode = 'read_only',
@@ -327,8 +390,8 @@ function createCcoHalsoHealthDeclarationIngest({
     const resolvedTenantId =
       tenantId || config.defaultTenantId || config.defaultTenant || 'hair-tp-clinic';
 
-    if (!isHalsoHealthDeclarationMessage(rawMessage, config)) {
-      return { skipped: true, reason: 'not_halso_health_declaration', rawMessage };
+    if (!isHalsoFormMessage(rawMessage, config)) {
+      return { skipped: true, reason: 'not_halso_form', rawMessage };
     }
 
     const parsed = parseHealthDeclarationMessage(rawMessage);
@@ -338,7 +401,7 @@ function createCcoHalsoHealthDeclarationIngest({
           ledger.id,
           {
             status: 'DUPLICATE_SKIPPED',
-            errorCode: 'halso_hd_parse_failed',
+            errorCode: 'halso_form_parse_failed',
             errorMessage: parsed.reason,
             completedAt: nowIso(),
           },
@@ -360,7 +423,7 @@ function createCcoHalsoHealthDeclarationIngest({
           {
             status: 'DUPLICATE_SKIPPED',
             patientMatchStatus: 'DUPLICATE',
-            errorCode: 'halso_hd_duplicate',
+            errorCode: 'halso_form_duplicate',
             errorMessage: duplicate.key,
             completedAt: nowIso(),
           },
@@ -412,7 +475,7 @@ function createCcoHalsoHealthDeclarationIngest({
           {
             status: 'NEEDS_REVIEW',
             patientMatchStatus: 'NEEDS_REVIEW',
-            errorCode: 'halso_hd_ambiguous_match',
+            errorCode: 'halso_form_ambiguous_match',
             errorMessage: match.reason,
             processedAt: nowIso(),
             completedAt: nowIso(),
@@ -449,10 +512,10 @@ function createCcoHalsoHealthDeclarationIngest({
       const state = await loadDedupState();
       state.stats.failed += 1;
       await saveDedupState();
-      throw new Error('halso_hd_target_patient_missing');
+      throw new Error('halso_form_target_patient_missing');
     }
 
-    const updatedPatient = await upsertHealthDeclarationOnPatient({
+    const updatedPatient = await upsertStructuredFormOnPatient({
       patient: targetPatient,
       parsed,
       rawMessage,
@@ -462,12 +525,17 @@ function createCcoHalsoHealthDeclarationIngest({
     });
 
     const state = await loadDedupState();
-    const isUpdate = Boolean(targetPatient.healthDeclaration?.signedAt);
+    const priorForm =
+      parsed.formType === 'fitness_certificate'
+        ? targetPatient.fitnessCertificate
+        : targetPatient.healthDeclaration;
+    const isUpdate = Boolean(priorForm?.signedAt);
     if (isUpdate) state.stats.updated += 1;
     else state.stats.imported += 1;
     if (reviewRequired) state.stats.needsReview += 1;
     await recordDedupEntry(dedupKeys, {
       patientId: updatedPatient.id,
+      formType: parsed.formType || 'health_declaration',
       signedAt: parsed.signedAt,
       internetMessageId: parsed.internetMessageId || rawMessage.internetMessageId || '',
       matchMethod: match.method,
@@ -502,19 +570,23 @@ function createCcoHalsoHealthDeclarationIngest({
       );
       await store.appendAudit(
         {
-          type: 'halso_health_declaration_imported',
+          type:
+            parsed.formType === 'fitness_certificate'
+              ? 'halso_fitness_certificate_imported'
+              : 'halso_health_declaration_imported',
           rawMessageId: rawMessage.id,
           patientId: updatedPatient.id,
           matchMethod: match.method,
           reviewRequired,
           signedAt: parsed.signedAt,
+          formType: parsed.formType || 'health_declaration',
         },
         { persist }
       );
     }
 
     logger?.log?.(
-      `[halso-hd-ingest] patient=${updatedPatient.id} match=${match.method || 'stub'} review=${reviewRequired}`
+      `[halso-form-ingest] form=${parsed.formType || 'health_declaration'} patient=${updatedPatient.id} match=${match.method || 'stub'} review=${reviewRequired}`
     );
 
     return {
@@ -524,6 +596,7 @@ function createCcoHalsoHealthDeclarationIngest({
       needsReview: reviewRequired,
       match,
       parsed,
+      formType: parsed.formType || 'health_declaration',
       patientId: updatedPatient.id,
       dedupKeys,
       rawMessage,
@@ -542,10 +615,13 @@ function createCcoHalsoHealthDeclarationIngest({
   return {
     HALSO_MAILBOX,
     buildHealthDeclarationDedupKeys,
+    isHalsoFormMessage: (rawMessage) => isHalsoFormMessage(rawMessage, config),
     isHalsoHealthDeclarationMessage: (rawMessage) =>
       isHalsoHealthDeclarationMessage(rawMessage, config),
     matchPatientFromParsed,
+    mergeFitnessCertificate,
     mergeHealthDeclaration,
+    mergeStructuredForm,
     processRawMessage,
     getStats,
   };
@@ -555,5 +631,7 @@ module.exports = {
   buildHealthDeclarationDedupKeys,
   createCcoHalsoHealthDeclarationIngest,
   matchPatientFromParsed,
+  mergeFitnessCertificate,
   mergeHealthDeclaration,
+  mergeStructuredForm,
 };

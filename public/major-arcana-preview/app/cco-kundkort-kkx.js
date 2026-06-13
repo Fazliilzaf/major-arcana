@@ -317,6 +317,17 @@
     );
   }
 
+  function fitnessSigned(card) {
+    if (!card) return false;
+    return Boolean(
+      card.hasFitnessCertificate ||
+      card.missingFitnessCertificate === false ||
+      card.fitnessSigned === true ||
+      (card.fitnessCertificate &&
+        (card.fitnessCertificate.signedAt || card.fitnessCertificate.signed))
+    );
+  }
+
   function journalSigned(card) {
     if (!card) return false;
     if (card.missingJournal === true) return false;
@@ -390,9 +401,9 @@
         return 'future';
       case 8:
         if (!journalSigned(card)) return 'future';
-        if (card.fitnessSigned === true) return 'done';
+        if (fitnessSigned(card) || card.fitnessSigned === true) return 'done';
         if (card.missingFitnessCertificate === true || card.todayVisit === true) {
-          return card.fitnessSigned === true ? 'done' : 'open';
+          return fitnessSigned(card) ? 'done' : 'open';
         }
         return 'future';
       case 9:

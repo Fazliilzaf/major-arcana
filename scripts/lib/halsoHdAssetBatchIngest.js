@@ -7,9 +7,13 @@
 const {
   buildHealthDeclarationDedupKeys,
   matchPatientFromParsed,
+  mergeFitnessCertificate,
   mergeHealthDeclaration,
 } = require('../../src/ops/ccoHalsoHealthDeclarationIngest');
-const { parseHealthDeclarationFromText } = require('../../src/ops/ccoHalsoHealthDeclarationParser');
+const {
+  classifyHalsoFormSubject,
+  parseHealthDeclarationFromText,
+} = require('../../src/ops/ccoHalsoHealthDeclarationParser');
 const {
   appendReviewQueueLine,
   buildReviewQueueEntry,
@@ -62,9 +66,10 @@ async function recordDedupEntry(dedupPath, state, dedupKeys, entry) {
   await saveDedupState(dedupPath, state);
 }
 
-function buildHealthDeclarationUpsert({ parsed, match, asset, runId }) {
+function buildStructuredFormUpsert({ parsed, match, asset, runId }) {
   return {
     source: 'halso_phase1_asset',
+    formType: parsed.formType || 'health_declaration',
     channel: parsed.channel || 'pdf',
     signedAt: parsed.signedAt,
     consent: parsed.consent,
@@ -81,6 +86,10 @@ function buildHealthDeclarationUpsert({ parsed, match, asset, runId }) {
     phase1AssetId: asset.assetId || '',
     checksum: asset.checksum || '',
   };
+}
+
+function buildHealthDeclarationUpsert(args) {
+  return buildStructuredFormUpsert(args);
 }
 
 function mergeAllergies(existing = [], incoming = []) {
@@ -171,11 +180,16 @@ async function processOnePhase1Asset({
     };
   }
 
+  const subjectHint =
+    asset.metadata?.subject || asset.originalFileName || asset.originalDrivePath || '';
   const parsed = parseHealthDeclarationFromText(pdf.text, {
-    subject: asset.originalFileName || '',
+    subject: subjectHint,
     receivedAt: asset.documentDate || '',
     id: asset.assetId,
   });
+  if (parsed.ok && !parsed.formType) {
+    parsed.formType = classifyHalsoFormSubject(subjectHint) || 'health_declaration';
+  }
 
   if (!parsed.ok) {
     return {
@@ -247,22 +261,33 @@ async function processOnePhase1Asset({
 
   try {
     const existing = await fetchPatient(token, match.patientId);
-    const healthDeclaration = buildHealthDeclarationUpsert({ parsed, match, asset, runId });
-    const merged = mergeHealthDeclaration(existing.healthDeclaration, healthDeclaration);
-    await putPatient(token, {
+    const structuredForm = buildStructuredFormUpsert({ parsed, match, asset, runId });
+    const payload = {
       ...existing,
       tenantId: existing.tenantId || TENANT_ID,
       id: match.patientId,
-      healthDeclaration: merged,
-      allergies: mergeAllergies(existing.allergies, parsed.allergies),
       halsoHdBackfill: {
         runId,
         phase: 'phase1_asset',
         assetId: asset.assetId,
+        formType: parsed.formType || 'health_declaration',
         matchMethod: match.method,
         importedAt: new Date().toISOString(),
       },
-    });
+    };
+    if (parsed.formType === 'fitness_certificate') {
+      payload.fitnessCertificate = mergeFitnessCertificate(
+        existing.fitnessCertificate,
+        structuredForm
+      );
+    } else {
+      payload.healthDeclaration = mergeHealthDeclaration(
+        existing.healthDeclaration,
+        structuredForm
+      );
+      payload.allergies = mergeAllergies(existing.allergies, parsed.allergies);
+    }
+    await putPatient(token, payload);
     await recordDedupEntry(dedupPath, dedupState, dedupKeys, {
       patientId: match.patientId,
       assetId: asset.assetId,

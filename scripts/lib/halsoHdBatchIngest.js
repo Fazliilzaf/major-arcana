@@ -10,6 +10,7 @@ const path = require('node:path');
 const {
   buildHealthDeclarationDedupKeys,
   matchPatientFromParsed,
+  mergeFitnessCertificate,
   mergeHealthDeclaration,
 } = require('../../src/ops/ccoHalsoHealthDeclarationIngest');
 const { parseHealthDeclarationMessage } = require('../../src/ops/ccoHalsoHealthDeclarationParser');
@@ -104,9 +105,10 @@ async function recordDedupEntry(dedupPath, state, dedupKeys, entry) {
   await saveDedupState(dedupPath, state);
 }
 
-function buildHealthDeclarationUpsert({ parsed, match, rawMessage, runId }) {
+function buildStructuredFormUpsert({ parsed, match, rawMessage, runId }) {
   return {
     source: 'halso_mailbox',
+    formType: parsed.formType || 'health_declaration',
     channel: parsed.channel,
     signedAt: parsed.signedAt,
     consent: parsed.consent,
@@ -123,6 +125,10 @@ function buildHealthDeclarationUpsert({ parsed, match, rawMessage, runId }) {
     backfillRunId: runId,
     processorVersion: 'halso-hd-batch-v1',
   };
+}
+
+function buildHealthDeclarationUpsert(args) {
+  return buildStructuredFormUpsert(args);
 }
 
 function mergeAllergies(existing = [], incoming = []) {
@@ -142,6 +148,7 @@ function summarizeResultRow({ header, parsed, match, status, patientId, error })
     receivedDateTime: header?.receivedDateTime || '',
     subject: header?.subject || '',
     status,
+    formType: parsed?.formType || 'health_declaration',
     patientId: patientId || null,
     matchMethod: match?.method || null,
     matchConfidence: match?.confidence || 0,
@@ -171,7 +178,22 @@ async function processOneHalsoMessage({
   let graphTok = graphToken;
   if (!graphTok) graphTok = await getGraphToken();
 
-  const full = await fetchMessageBody(graphTok, mailbox, header.id);
+  const full = await fetchMessageBody(graphTok, mailbox, header.id).catch((error) => {
+    return { __fetchError: error.message || String(error) };
+  });
+  if (full?.__fetchError) {
+    return {
+      status: 'fetch_failed',
+      parsed: null,
+      match: null,
+      row: summarizeResultRow({
+        header,
+        parsed: { ok: false, reason: 'graph_message_not_found' },
+        status: 'fetch_failed',
+        error: full.__fetchError,
+      }),
+    };
+  }
   const rawMessage = normalizeGraphMessage(full, mailbox);
   const parsed = parseHealthDeclarationMessage(rawMessage);
 
@@ -322,23 +344,34 @@ async function processOneHalsoMessage({
 
   try {
     const existing = await fetchPatient(token, match.patientId);
-    const healthDeclaration = buildHealthDeclarationUpsert({ parsed, match, rawMessage, runId });
-    const merged = mergeHealthDeclaration(existing.healthDeclaration, healthDeclaration);
+    const structuredForm = buildStructuredFormUpsert({ parsed, match, rawMessage, runId });
     const upsertBody = {
       ...existing,
       tenantId: existing.tenantId || TENANT_ID,
       id: match.patientId,
-      healthDeclaration: merged,
-      allergies: mergeAllergies(existing.allergies, parsed.allergies),
       halsoHdBackfill: {
         runId,
+        formType: parsed.formType || 'health_declaration',
         matchMethod: match.method,
         importedAt: new Date().toISOString(),
       },
     };
+    if (parsed.formType === 'fitness_certificate') {
+      upsertBody.fitnessCertificate = mergeFitnessCertificate(
+        existing.fitnessCertificate,
+        structuredForm
+      );
+    } else {
+      upsertBody.healthDeclaration = mergeHealthDeclaration(
+        existing.healthDeclaration,
+        structuredForm
+      );
+      upsertBody.allergies = mergeAllergies(existing.allergies, parsed.allergies);
+    }
     await putPatient(token, upsertBody);
     await recordDedupEntry(dedupPath, dedupState, dedupKeys, {
       patientId: match.patientId,
+      formType: parsed.formType || 'health_declaration',
       signedAt: parsed.signedAt,
       internetMessageId: parsed.internetMessageId || rawMessage.internetMessageId || '',
       matchMethod: match.method,

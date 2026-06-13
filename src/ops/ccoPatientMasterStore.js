@@ -426,6 +426,10 @@ function normalizeHealthDeclaration(existing = null, incoming = null) {
   return existing;
 }
 
+function normalizeFitnessCertificate(existing = null, incoming = null) {
+  return normalizeHealthDeclaration(existing, incoming);
+}
+
 function normalizePatientRecord(input = {}, existing = {}) {
   const safe = asObject(input);
   const existingSafe = asObject(existing);
@@ -493,6 +497,10 @@ function normalizePatientRecord(input = {}, existing = {}) {
     healthDeclaration: normalizeHealthDeclaration(
       existingSafe.healthDeclaration,
       safe.healthDeclaration
+    ),
+    fitnessCertificate: normalizeFitnessCertificate(
+      existingSafe.fitnessCertificate,
+      safe.fitnessCertificate
     ),
     allergies: normalizeAllergies(existingSafe.allergies, safe.allergies),
     flags: [],
@@ -653,9 +661,18 @@ function buildPatientCardReadout(patient) {
     fortnoxSyncError: normalizeText(asObject(safe.fortnox).lastError) || '',
     demographics: buildDemographicsReadout(safe.demographics),
     healthDeclaration: asObject(safe.healthDeclaration),
+    fitnessCertificate: asObject(safe.fitnessCertificate),
     allergies: asArray(safe.allergies),
     hasHealthDeclaration: Boolean(asObject(safe.healthDeclaration).signedAt),
     missingHealthDeclaration: !asObject(safe.healthDeclaration).signedAt,
+    hasFitnessCertificate: Boolean(asObject(safe.fitnessCertificate).signedAt),
+    missingFitnessCertificate: !asObject(safe.fitnessCertificate).signedAt,
+    fitnessCertificateAt: normalizeText(asObject(safe.fitnessCertificate).signedAt) || null,
+    fitnessCertificateBy:
+      normalizeText(asObject(safe.fitnessCertificate).source) ||
+      normalizeText(asObject(safe.fitnessCertificate).sourceSystem) ||
+      null,
+    fitnessSigned: Boolean(asObject(safe.fitnessCertificate).signedAt),
     updatedAt: safe.updatedAt || null,
     contactEmail: safe.primaryEmail || '',
     contactPhone: safe.primaryPhone || '',

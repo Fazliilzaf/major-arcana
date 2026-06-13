@@ -255,7 +255,36 @@ function isHalsoHealthDeclarationSubject(subject = '') {
   if (normalized.includes('[hälsodeklaration/webb]')) return true;
   if (normalized.includes('[halsodeklaration/webb]')) return true;
   if (normalized.includes('hälsodeklaration') && normalized.includes('/webb')) return true;
+  if (normalized.includes('halsodeklaration') && normalized.includes('/webb')) return true;
   return false;
+}
+
+function isHalsoFitnessCertificateSubject(subject = '') {
+  const normalized = normalizeText(subject).toLowerCase();
+  if (!normalized) return false;
+  if (normalized.includes('[injektions-journal/webb]')) return false;
+  if (normalized.includes('[friskförsäkran/webb]')) return true;
+  if (normalized.includes('[friskforsakran/webb]')) return true;
+  if (normalized.includes('friskförsäkran') && normalized.includes('/webb')) return true;
+  if (normalized.includes('friskforsakran') && normalized.includes('/webb')) return true;
+  return false;
+}
+
+function classifyHalsoFormSubject(subject = '') {
+  if (isHalsoHealthDeclarationSubject(subject)) return 'health_declaration';
+  if (isHalsoFitnessCertificateSubject(subject)) return 'fitness_certificate';
+  return null;
+}
+
+function isHalsoFormSubject(subject = '') {
+  return Boolean(classifyHalsoFormSubject(subject));
+}
+
+function isHalsoFormMessage(rawMessage = {}, config = {}) {
+  const mailbox = normalizeEmail(rawMessage.mailboxId || rawMessage.mailAccountEmail || '');
+  const configuredMailbox = normalizeEmail(config.ccoHalsoMailboxEmail || HALSO_MAILBOX);
+  if (mailbox !== configuredMailbox) return false;
+  return isHalsoFormSubject(rawMessage.subject);
 }
 
 function isHalsoHealthDeclarationMessage(rawMessage = {}, config = {}) {
@@ -266,6 +295,7 @@ function isHalsoHealthDeclarationMessage(rawMessage = {}, config = {}) {
 }
 
 function parseHealthDeclarationMessage(rawMessage = {}) {
+  const formType = classifyHalsoFormSubject(rawMessage.subject) || 'health_declaration';
   const bodyText = normalizeText(rawMessage.bodyText) || htmlToText(rawMessage.bodyHtml);
   const fields = extractFieldPairs(bodyText);
   const personnummer = normalizePersonnummer(
@@ -296,6 +326,7 @@ function parseHealthDeclarationMessage(rawMessage = {}) {
 
   return {
     ok: true,
+    formType,
     personnummer,
     email,
     phone,
@@ -308,7 +339,8 @@ function parseHealthDeclarationMessage(rawMessage = {}) {
     flags,
     allergies,
     fields,
-    channel: 'form-hairtpclinic',
+    channel:
+      formType === 'fitness_certificate' ? 'friskforsakran-hairtpclinic' : 'form-hairtpclinic',
     consent:
       /bekräftar|bekräftar/i.test(bodyText) || answers.some((row) => /bekräftar/i.test(row.label)),
     internetMessageId: normalizeText(rawMessage.internetMessageId),
@@ -328,8 +360,12 @@ module.exports = {
   HALSO_MAILBOX,
   buildAnswers,
   buildRiskFlags,
+  classifyHalsoFormSubject,
   extractFieldPairs,
   htmlToText,
+  isHalsoFitnessCertificateSubject,
+  isHalsoFormMessage,
+  isHalsoFormSubject,
   isHalsoHealthDeclarationMessage,
   isHalsoHealthDeclarationSubject,
   parseHealthDeclarationFromText,

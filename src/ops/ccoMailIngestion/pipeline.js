@@ -219,8 +219,8 @@ async function processRawMessage({
 
     if (
       healthDeclarationIngest &&
-      typeof healthDeclarationIngest.isHalsoHealthDeclarationMessage === 'function' &&
-      healthDeclarationIngest.isHalsoHealthDeclarationMessage(rawMessage)
+      typeof healthDeclarationIngest.isHalsoFormMessage === 'function' &&
+      healthDeclarationIngest.isHalsoFormMessage(rawMessage)
     ) {
       const hdResult = await healthDeclarationIngest.processRawMessage({
         rawMessage,
@@ -230,12 +230,13 @@ async function processRawMessage({
         ledger: activeLedger,
         persist,
       });
+      const formType = hdResult.parsed?.formType || 'health_declaration';
       return {
         ...hdResult,
         ledger: store.getLedgerByRawMessageId(rawMessage.id) || activeLedger,
         classification: {
-          mailType: 'health_declaration',
-          intent: 'health_declaration',
+          mailType: formType,
+          intent: formType,
           messageClassification: 'patient_form',
           confidence: 1,
         },

@@ -536,6 +536,143 @@
     return '';
   }
 
+  function formSigned(form, card, hasKey, missingKey) {
+    if (form && (form.signedAt || form.signed)) return true;
+    if (card && card[hasKey] === true) return true;
+    if (card && card[missingKey] === false) return true;
+    return false;
+  }
+
+  function buildFormAnswersInner(answers, form, signed, sourceLabel, missingLabel, sigRuleId) {
+    if (answers && answers.length) {
+      var flags = answers.filter(function (a) {
+        return a.risk === 'flag' || a.risk === 'amber';
+      });
+      var inner = '';
+      inner +=
+        '<div class="gk-sub" style="margin-bottom:8px"><b>' + esc(missingLabel) + '</b></div>';
+      if (flags.length)
+        inner +=
+          '<div class="flag kkx-flag"><div class="fi">!</div><div><b>' +
+          flags.length +
+          ' riskflagg' +
+          (flags.length === 1 ? 'a' : 'or') +
+          ':</b> ' +
+          esc(
+            flags
+              .map(function (f) {
+                return f.label;
+              })
+              .join(' · ')
+          ) +
+          ' — verifiera före ingrepp.</div></div>';
+      inner += answers
+        .map(function (a) {
+          return (
+            '<div class="qrow kkx-qrow"><div><div class="q">' +
+            esc(a.label) +
+            '</div>' +
+            (a.detail ? '<div class="qv">' + esc(a.detail) + '</div>' : '') +
+            '</div>' +
+            '<span class="ans kkx-ans ' +
+            ansClass(a.risk) +
+            '">' +
+            esc(ansLabel(a.value, a.risk)) +
+            '</span></div>'
+          );
+        })
+        .join('');
+      if (form && form.consent && typeof form.consent === 'object') {
+        var consentVal = form.consent.signed != null ? form.consent.signed : form.consent.value;
+        inner +=
+          '<div class="qrow kkx-qrow"><div><div class="q">Samtycke</div></div><span class="ans kkx-ans ' +
+          ansClass(/ja|true/i.test(String(consentVal)) ? 'amber' : '') +
+          '">' +
+          esc(ansLabel(consentVal, '')) +
+          '</span></div>';
+      }
+      inner +=
+        '<div class="hdfoot kkx-foot">Medicinsk data · ingen extern AI' +
+        (sourceLabel ? ' · ' + esc(sourceLabel) : '') +
+        '</div>';
+      return inner;
+    }
+    if (signed) {
+      return (
+        '<div class="gk-sub" style="margin-bottom:8px"><b>' +
+        esc(missingLabel) +
+        '</b></div>' +
+        '<div class="hdfoot kkx-foot">' +
+        esc(missingLabel) +
+        ' finns i patient-master' +
+        (sourceLabel ? ' · ' + esc(sourceLabel) : '') +
+        ' — detaljerade svar saknas i readout.</div>'
+      );
+    }
+    return (
+      '<div class="row acc info"><div style="flex:1"><div class="rt">' +
+      esc(missingLabel) +
+      ' saknas</div><div class="rm">Efterfrågas före behandling</div></div>' +
+      (sigRuleId
+        ? '<button type="button" class="kk-sig-act" data-kk-sig="' +
+          esc(sigRuleId) +
+          '" data-kk-sig-label="Skicka ' +
+          esc(missingLabel.toLowerCase()) +
+          '" title="Skicka">→</button>'
+        : '') +
+      '</div>'
+    );
+  }
+
+  function buildMedicinsktFormsInner(bcard) {
+    var hd = bcard.healthDeclaration || null;
+    var fc = bcard.fitnessCertificate || null;
+    var hdAnswers = mapHdAnswers(hd);
+    var fcAnswers = mapHdAnswers(fc);
+    var hdSigned =
+      referensHasSignedHd(bcard) ||
+      formSigned(hd, bcard, 'hasHealthDeclaration', 'missingHealthDeclaration');
+    var fcSigned =
+      formSigned(fc, bcard, 'hasFitnessCertificate', 'missingFitnessCertificate') ||
+      bcard.fitnessSigned === true;
+    var hdSource = hdSourceLabel(hd, bcard);
+    var fcSource = hdSourceLabel(fc, bcard);
+    return (
+      buildFormAnswersInner(
+        hdAnswers,
+        hd,
+        hdSigned,
+        hdSource,
+        'Hälsodeklaration',
+        'customer.missing_health_declaration'
+      ) +
+      '<div style="height:10px"></div>' +
+      buildFormAnswersInner(
+        fcAnswers,
+        fc,
+        fcSigned,
+        fcSource,
+        'Friskförsäkran',
+        'customer.missing_operation_day_insurance'
+      )
+    );
+  }
+
+  function medicinsktSectionPill(bcard) {
+    var hdMiss = bcard.missingHealthDeclaration !== false && !referensHasSignedHd(bcard);
+    var fcMiss =
+      bcard.missingFitnessCertificate !== false &&
+      !formSigned(
+        bcard.fitnessCertificate,
+        bcard,
+        'hasFitnessCertificate',
+        'missingFitnessCertificate'
+      ) &&
+      bcard.fitnessSigned !== true;
+    if (hdMiss || fcMiss) return '<span class="sb-chip">Att fylla i</span>';
+    return 'Signerad';
+  }
+
   function polishReferensJourney(canonicalJourney, steps, cur, total) {
     if (!steps || !canonicalJourney) return { steps: steps, cur: cur, total: total, nextLabel: '' };
     var active = steps.find(function (s) {
@@ -832,10 +969,18 @@
     }
     // Statusprickar (facit): orange = kräver åtgärd, röd = obetalt
     var hdMiss = A2(ctx.gateSignals).some(function (s) {
-      return /missing_health|halso|hälso|health_declaration/i.test(
+      return /missing_health_declaration/i.test(String((s && (s.ruleId || s.id)) || ''));
+    });
+    var fcMiss = A2(ctx.gateSignals).some(function (s) {
+      return /missing_operation_day_insurance|missing_fitness/i.test(
         String((s && (s.ruleId || s.id)) || '')
       );
     });
+    var medMiss =
+      hdMiss ||
+      fcMiss ||
+      (ctx.bcard && ctx.bcard.missingHealthDeclaration === true) ||
+      (ctx.bcard && ctx.bcard.missingFitnessCertificate === true);
     var offPending = A2(ctx.offers).some(function (o) {
       return !/godk|signed|accepted/i.test(o.status || '');
     });
@@ -856,7 +1001,7 @@
       '<nav class="gk-nav">' +
       chip('Kundresa', ctx.total) +
       chip('Smart nästa steg', '', ctx.nextLabel ? 'orange' : '') +
-      chip('Medicinskt läge', '', hdMiss ? 'orange' : '') +
+      chip('Medicinskt läge', '', medMiss ? 'orange' : '') +
       chip('Besök', '', A2(ctx.hist).length || visitMedia.length ? 'orange' : '') +
       chip('Bokningar', A2(ctx.up).length) +
       chip('Journal', A2(ctx.jItems).length) +
@@ -994,14 +1139,14 @@
     }
     var visitRender = buildVisitRender();
 
-    // Medicinskt läge (Hälsodeklaration + blockerare) — visas efter kundresan.
+    // Medicinskt läge (Hälsodeklaration + Friskförsäkran)
     var medicalSectionHtml = sek(
       'Medicinskt läge',
-      hdMiss
+      medMiss
         ? '<span class="gk-pill gk-tag-warn">Att fylla i</span>'
         : '<span class="gk-pill gk-tag-ok">Signerad</span>',
-      hdMiss
-        ? '<div class="gk-rad">Hälsodeklaration saknas <span class="gk-hl gk-tag gk-tag-warn">Efterfrågas</span></div>'
+      ctx.bcard
+        ? buildMedicinsktFormsInner(ctx.bcard)
         : '<div class="gk-rad"><span class="gk-sub">Medicinsk data · endast visning</span></div>'
     );
 
@@ -3163,6 +3308,9 @@
 
     /* ---- health declaration (patient-master + halso@) ---- */
     var hd = bcard.healthDeclaration || bundle.healthDeclaration || null;
+    var fc = bcard.fitnessCertificate || bundle.fitnessCertificate || null;
+    bcard.healthDeclaration = hd;
+    bcard.fitnessCertificate = fc;
     var hdAnswers = mapHdAnswers(hd);
     var hdSigned = referensHasSignedHd(bcard) || Boolean(hd && (hd.signed || hd.signedAt));
     var hdSource = hdSourceLabel(hd, bcard);
@@ -3407,75 +3555,7 @@
         '.</div></div>';
     }
 
-    var hdInner;
-    if (hdAnswers && hdAnswers.length) {
-      var flags = hdAnswers.filter(function (a) {
-        return a.risk === 'flag' || a.risk === 'amber';
-      });
-      hdInner = '';
-      if (flags.length)
-        hdInner +=
-          '<div class="flag kkx-flag"><div class="fi">!</div><div><b>' +
-          flags.length +
-          ' riskflagg' +
-          (flags.length === 1 ? 'a' : 'or') +
-          ':</b> ' +
-          esc(
-            flags
-              .map(function (f) {
-                return f.label;
-              })
-              .join(' · ')
-          ) +
-          ' — verifiera före ingrepp.</div></div>';
-      hdInner += hdAnswers
-        .map(function (a) {
-          return (
-            '<div class="qrow kkx-qrow"><div><div class="q">' +
-            esc(a.label) +
-            '</div>' +
-            (a.detail ? '<div class="qv">' + esc(a.detail) + '</div>' : '') +
-            '</div>' +
-            '<span class="ans kkx-ans ' +
-            ansClass(a.risk) +
-            '">' +
-            esc(ansLabel(a.value, a.risk)) +
-            '</span></div>'
-          );
-        })
-        .join('');
-      if (hd && hd.consent && typeof hd.consent === 'object') {
-        var consentVal = hd.consent.signed != null ? hd.consent.signed : hd.consent.value;
-        hdInner +=
-          '<div class="qrow kkx-qrow"><div><div class="q">Samtycke</div></div><span class="ans kkx-ans ' +
-          ansClass(/ja|true/i.test(String(consentVal)) ? 'amber' : '') +
-          '">' +
-          esc(ansLabel(consentVal, '')) +
-          '</span></div>';
-      }
-      hdInner +=
-        '<div class="hdfoot kkx-foot">Medicinsk data · ingen extern AI' +
-        (hdSource ? ' · ' + esc(hdSource) : '') +
-        '</div>';
-      h += sec('Medicinskt läge', hdSigned ? esc(hdSource || 'Signerad') : '', hdInner);
-    } else if (hdSigned) {
-      h += sec(
-        'Medicinskt läge',
-        esc(hdSource || 'Signerad'),
-        '<div class="hdfoot kkx-foot">Hälsodeklaration finns i patient-master' +
-          (hdSource ? ' · ' + esc(hdSource) : '') +
-          ' — detaljerade svar saknas i readout.</div>'
-      );
-    } else {
-      h += sec(
-        'Medicinskt läge',
-        '<span class="sb-chip">Att fylla i</span>',
-        '<div class="row acc info"><div style="flex:1"><div class="rt">Hälsodeklaration saknas</div>' +
-          '<div class="rm">Efterfrågas före behandling</div></div>' +
-          '<button type="button" class="kk-sig-act" data-kk-sig="customer.missing_health_declaration" ' +
-          'data-kk-sig-label="Skicka hälsodeklaration" title="Skicka">→</button></div>'
-      );
-    }
+    h += sec('Medicinskt läge', medicinsktSectionPill(bcard), buildMedicinsktFormsInner(bcard));
 
     if (steps) {
       var pct = cur ? Math.round((cur / total) * 100) : 0;
@@ -4579,6 +4659,7 @@
         driveFiles: driveFiles,
         autoDocs: autoDocs,
         bundle: bundle,
+        bcard: bcard,
         commercialCase: commercialCase,
         ltv: ltvLabel || (ltvRaw != null ? String(ltvRaw) : ''),
       };

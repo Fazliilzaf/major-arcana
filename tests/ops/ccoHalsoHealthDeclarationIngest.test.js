@@ -41,6 +41,16 @@ test('isHalsoHealthDeclarationSubject accepts webb health declaration subjects',
   assert.equal(isHalsoHealthDeclarationSubject('[Injektions-journal/Webb] Hair TP'), false);
 });
 
+test('isHalsoFitnessCertificateSubject accepts webb fitness certificate subjects', () => {
+  const {
+    isHalsoFitnessCertificateSubject,
+    isHalsoFormSubject,
+  } = require('../../src/ops/ccoHalsoHealthDeclarationParser');
+  assert.equal(isHalsoFitnessCertificateSubject('[Friskförsäkran/Webb] Viktor Lindberg'), true);
+  assert.equal(isHalsoFitnessCertificateSubject('[Hälsodeklaration/Webb] Hair TP'), false);
+  assert.equal(isHalsoFormSubject('[Friskförsäkran/Webb] Viktor Lindberg'), true);
+});
+
 test('isHalsoHealthDeclarationMessage requires halso mailbox', () => {
   assert.equal(
     isHalsoHealthDeclarationMessage(
@@ -282,4 +292,50 @@ test('pipeline routes halso health declaration before non-patient dismiss', asyn
   assert.equal(result.imported, true);
   assert.equal(result.classification.mailType, 'health_declaration');
   assert.notEqual(result.reason, 'non_patient_counterparty');
+});
+
+test('halso ingest stores fitness certificate separately from health declaration', async () => {
+  const tmpDir = os.tmpdir();
+  const patientPath = path.join(tmpDir, `cco-patient-fc-${Date.now()}.json`);
+  const dedupPath = path.join(tmpDir, `cco-fc-dedup-${Date.now()}.json`);
+
+  const patientStore = await createCcoPatientMasterStore({ filePath: patientPath });
+  await patientStore.upsertPatient({
+    tenantId: 'hair-tp-clinic',
+    id: 'patient-fc-1',
+    personnummer: '19801224-5513',
+    displayName: 'Test Person',
+    primaryEmail: 'hd-test@example.com',
+    matchStatus: 'matched',
+  });
+
+  const ingest = createCcoHalsoHealthDeclarationIngest({
+    config: { defaultTenantId: 'hair-tp-clinic' },
+    patientMasterStore: patientStore,
+    dedupStorePath: dedupPath,
+  });
+
+  const rawMessage = {
+    id: 'raw-fc-1',
+    mailboxId: 'halso@hairtpclinic.com',
+    subject: '[Friskförsäkran/Webb] Viktor Lindberg',
+    bodyText: SAMPLE_BODY,
+    internetMessageId: '<fc-test@example.com>',
+    receivedAt: '2026-06-03T12:20:00.000Z',
+  };
+
+  const result = await ingest.processRawMessage({ rawMessage, mode: 'active' });
+  assert.equal(result.imported, true);
+  assert.equal(result.formType, 'fitness_certificate');
+
+  const saved = await patientStore.getPatient({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-fc-1',
+  });
+  const card = buildPatientCardReadout(saved);
+  assert.equal(saved.fitnessCertificate.source, 'halso_mailbox');
+  assert.equal(saved.fitnessCertificate.formType, 'fitness_certificate');
+  assert.ok(card.hasFitnessCertificate);
+  assert.equal(card.missingFitnessCertificate, false);
+  assert.equal(card.missingHealthDeclaration, true);
 });
