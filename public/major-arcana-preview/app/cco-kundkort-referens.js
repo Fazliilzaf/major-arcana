@@ -5592,6 +5592,116 @@
     });
   };
 
+  function kkStaffAuthHeaders() {
+    var token = '';
+    try {
+      token = (
+        window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        ''
+      ).trim();
+    } catch (_e) {
+      /* ignore */
+    }
+    if (token && token !== '__preview_local__') {
+      return { Authorization: 'Bearer ' + token };
+    }
+    return {};
+  }
+
+  function kkRevokeDocBlob(ov) {
+    if (!ov || !ov._blobUrl) return;
+    try {
+      URL.revokeObjectURL(ov._blobUrl);
+    } catch (_e) {
+      /* ignore */
+    }
+    ov._blobUrl = '';
+  }
+
+  function kkCloseDocView(ov) {
+    if (!ov) return;
+    ov.classList.remove('open');
+    kkRevokeDocBlob(ov);
+    var body = ov.querySelector('.kk-doc-view-body');
+    if (body) body.innerHTML = '';
+  }
+
+  function kkShowDocStatus(ov, text) {
+    var body = ov.querySelector('.kk-doc-view-body');
+    if (!body) return;
+    body.innerHTML = '<div class="kk-doc-view-status">' + String(text || 'Laddar…') + '</div>';
+  }
+
+  function kkShowDocError(ov, message, src) {
+    var body = ov.querySelector('.kk-doc-view-body');
+    if (!body) return;
+    body.innerHTML =
+      '<div class="kk-doc-view-error">' +
+      String(message || 'Kunde inte ladda dokumentet.') +
+      '</div>';
+    if (src) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'kk-btn kk-doc-view-open-tab';
+      btn.textContent = 'Försök i ny flik';
+      btn.addEventListener('click', function () {
+        window.open(src, '_blank', 'noopener');
+      });
+      body.appendChild(btn);
+    }
+  }
+
+  function kkRenderDocBlob(ov, blob, title) {
+    var body = ov.querySelector('.kk-doc-view-body');
+    if (!body) return Promise.resolve();
+    body.innerHTML = '';
+    kkRevokeDocBlob(ov);
+    return blob.arrayBuffer().then(function (buf) {
+      var u8 = new Uint8Array(buf);
+      var head = u8.length >= 4 ? String.fromCharCode(u8[0], u8[1], u8[2], u8[3]) : '';
+      var isPdf = head === '%PDF';
+      var mime = isPdf
+        ? 'application/pdf'
+        : blob.type && blob.type !== 'application/octet-stream'
+          ? blob.type
+          : 'application/octet-stream';
+      var viewBlob = new Blob([buf], { type: mime });
+      ov._blobUrl = URL.createObjectURL(viewBlob);
+      if (isPdf || mime === 'application/pdf') {
+        var embed = document.createElement('embed');
+        embed.className = 'kk-doc-view-embed';
+        embed.type = 'application/pdf';
+        embed.src = ov._blobUrl;
+        embed.setAttribute('title', title || 'Dokument');
+        body.appendChild(embed);
+        var openTab = document.createElement('button');
+        openTab.type = 'button';
+        openTab.className = 'kk-doc-view-open-tab';
+        openTab.textContent = 'Öppna i ny flik';
+        openTab.addEventListener('click', function () {
+          window.open(ov._blobUrl, '_blank', 'noopener');
+        });
+        body.appendChild(openTab);
+        return;
+      }
+      if (/^image\//i.test(mime)) {
+        var img = document.createElement('img');
+        img.className = 'kk-doc-view-img';
+        img.src = ov._blobUrl;
+        img.alt = title || 'Dokument';
+        body.appendChild(img);
+        return;
+      }
+      var dl = document.createElement('a');
+      dl.className = 'kk-btn kk-doc-view-open-tab';
+      dl.href = ov._blobUrl;
+      dl.download = (title || 'dokument').replace(/[^\w\s.-åäöÅÄÖ]/g, '') || 'dokument';
+      dl.textContent = 'Ladda ner fil';
+      body.appendChild(dl);
+    });
+  }
+
   // Delad dokumentvisare — samma modal för HD/FC, journal-PDF och filer.
   window.__kkOpenDocument = function (url, title) {
     var raw = String(url || '').trim();
@@ -5608,73 +5718,51 @@
         '<span class="kk-doc-view-title"></span>' +
         '<button type="button" class="kk-doc-view-close" aria-label="Stäng">×</button>' +
         '</div>' +
-        '<iframe class="kk-doc-view-frame" title="Dokument"></iframe>' +
+        '<div class="kk-doc-view-body"><div class="kk-doc-view-status">Laddar…</div></div>' +
         '</div>';
       document.body.appendChild(ov);
-      function closeDocView() {
-        ov.classList.remove('open');
-        var frameClose = ov.querySelector('.kk-doc-view-frame');
-        if (frameClose) frameClose.src = 'about:blank';
-        if (ov._blobUrl) {
-          try {
-            URL.revokeObjectURL(ov._blobUrl);
-          } catch (_e) {
-            /* ignore */
-          }
-          ov._blobUrl = '';
-        }
-      }
       ov.addEventListener('click', function (e) {
-        if (e.target === ov || e.target.classList.contains('kk-doc-view-close')) closeDocView();
+        if (e.target === ov || e.target.classList.contains('kk-doc-view-close')) kkCloseDocView(ov);
       });
       document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
         var open = document.getElementById('kk-doc-view');
         if (!open || !open.classList.contains('open')) return;
-        closeDocView();
+        kkCloseDocView(open);
       });
     }
     var titleEl = ov.querySelector('.kk-doc-view-title');
-    var frame = ov.querySelector('.kk-doc-view-frame');
     if (titleEl) titleEl.textContent = title || 'Dokument';
-    if (ov._blobUrl) {
-      try {
-        URL.revokeObjectURL(ov._blobUrl);
-      } catch (_e) {
-        /* ignore */
-      }
-      ov._blobUrl = '';
-    }
-    if (frame) {
-      frame.src = 'about:blank';
-      var token = '';
-      try {
-        token = (
-          window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
-          window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
-          ''
-        ).trim();
-      } catch (_e) {
-        /* ignore */
-      }
-      var headers =
-        token && token !== '__preview_local__' ? { Authorization: 'Bearer ' + token } : {};
-      fetch(src, { headers: headers, credentials: 'same-origin' })
-        .then(function (res) {
-          if (!res.ok) throw new Error('fetch failed');
-          return res.blob();
-        })
-        .then(function (blob) {
-          var type = blob.type || 'application/pdf';
-          var viewBlob = blob.type ? blob : new Blob([blob], { type: type });
-          ov._blobUrl = URL.createObjectURL(viewBlob);
-          frame.src = ov._blobUrl;
-        })
-        .catch(function () {
-          frame.src = src;
-        });
-    }
+    kkShowDocStatus(ov, 'Laddar…');
     ov.classList.add('open');
+    fetch(src, { headers: kkStaffAuthHeaders(), credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.text().then(function (txt) {
+            var msg = 'Kunde inte ladda dokumentet.';
+            try {
+              var j = JSON.parse(txt);
+              if (j && j.error) msg = String(j.error);
+            } catch (_e) {
+              /* ignore */
+            }
+            throw new Error(msg);
+          });
+        }
+        var ct = String(res.headers.get('content-type') || '').toLowerCase();
+        if (ct.indexOf('application/json') >= 0) {
+          return res.json().then(function (j) {
+            throw new Error((j && j.error) || 'Kunde inte ladda dokumentet.');
+          });
+        }
+        return res.blob();
+      })
+      .then(function (blob) {
+        return kkRenderDocBlob(ov, blob, title);
+      })
+      .catch(function (err) {
+        kkShowDocError(ov, (err && err.message) || 'Kunde inte ladda dokumentet.', src);
+      });
   };
 
   // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt
