@@ -11174,6 +11174,83 @@ async function startupStep(label, fn) {
   return result;
 }
 
+function createDisabledCcoMailIngestionStore(reason = 'prod_safe_mode') {
+  const disabledState = {
+    modelVersion: 'cco.mail.ingestion.disabled.v1',
+    updatedAt: new Date().toISOString(),
+    disabled: true,
+    reason,
+    mailAccounts: {},
+    mailFolders: {},
+    mailImportRuns: {},
+    mailRawMessages: {},
+    mailProcessingLedger: {},
+    mailPatientMatches: {},
+    processingQueue: [],
+  };
+  const skipped = async () => ({ skipped: true, reason });
+  const emptyDashboard = () => ({
+    disabled: true,
+    reason,
+    counts: {
+      rawMessages: 0,
+      processed: 0,
+      duplicates: 0,
+      needsReview: 0,
+      unmatched: 0,
+      failed: 0,
+    },
+    queueLength: 0,
+    latestRun: null,
+    mailboxes: [],
+  });
+  return {
+    disabled: true,
+    reason,
+    filePath: null,
+    save: skipped,
+    ensureMailAccount: ({ email = '', tenantId = '' } = {}) => ({
+      id: `disabled:${String(email || 'unknown').toLowerCase()}`,
+      email,
+      tenantId,
+      disabled: true,
+    }),
+    upsertMailFolder: () => null,
+    startImportRun: skipped,
+    finishImportRun: skipped,
+    saveRawMessageFromTruth: skipped,
+    updateLedger: skipped,
+    getLedgerByRawMessageId: () => null,
+    getRawMessage: () => null,
+    shouldSkipProcessing: () => ({ skip: true, reason }),
+    appendAudit: skipped,
+    resetMailboxLocalState: skipped,
+    buildDashboardSummary: emptyDashboard,
+    compactProcessingQueue: () => ({ removed: 0, requeued: 0, disabled: true, reason }),
+    getQueueLength: () => 0,
+    listReviewQueue: () => [],
+    getConversationIngestionMap: () => ({}),
+    linkPatientToMessage: skipped,
+    requestReprocessUnmatched: skipped,
+    isQueued: () => false,
+    enqueueRawMessageId: skipped,
+    reconcileProcessingQueue: () => ({ removed: 0, requeued: 0, disabled: true, reason }),
+    listNeedsReview: () => [],
+    dequeueNextRawMessageId: () => null,
+    completeQueuedMessage: skipped,
+    completeQueuedMessages: skipped,
+    saveGraphSubscription: skipped,
+    getAccountByEmail: () => null,
+    savePatientMatch: skipped,
+    listPatientMessages: () => [],
+    listPatientMessagesByCustomerId: () => [],
+    listUnmatchedMessages: () => [],
+    listAmbiguousMatches: () => [],
+    listMailboxStats: () => [],
+    getState: () => ({ ...disabledState }),
+  };
+}
+
 function createRuntimeGraphReadConnector() {
   const graphReadEnabled = String(process.env.ARCANA_GRAPH_READ_ENABLED || '')
     .trim()
@@ -11818,6 +11895,11 @@ process.once('SIGTERM', () => {
 });
 
 (async () => {
+  const prodSafeMode = config.isProduction && process.env.ARCANA_PROD_SAFE_MODE !== 'false';
+  if (prodSafeMode) {
+    config.ccoMailIngestionEnabled = false;
+  }
+
   setStartupPhase('persistent_root');
   if (config.stateRoot) {
     await waitForPersistentRoot(config.stateRoot, { logger: console });
@@ -12099,9 +12181,11 @@ process.once('SIGTERM', () => {
     createConfiguredCcoMailboxTruthStore(config)
   );
   const ccoMailIngestionStore = await startupStep('ccoMailIngestionStore', () =>
-    createCcoMailIngestionStore({
-      filePath: config.ccoMailIngestionStorePath,
-    })
+    prodSafeMode
+      ? createDisabledCcoMailIngestionStore('prod_safe_mode')
+      : createCcoMailIngestionStore({
+          filePath: config.ccoMailIngestionStorePath,
+        })
   );
   const messageIntelligenceStore = await startupStep('messageIntelligenceStore', () =>
     createMessageIntelligenceStore({
@@ -12672,7 +12756,6 @@ process.once('SIGTERM', () => {
     graphSendConnector: null,
   };
 
-  const prodSafeMode = config.isProduction && process.env.ARCANA_PROD_SAFE_MODE !== 'false';
   const schedulerConfig = { ...config };
   if (prodSafeMode && process.env.ARCANA_SCHEDULER_PROD_SAFE_MODE !== 'false') {
     schedulerConfig.schedulerEnabled = false;
