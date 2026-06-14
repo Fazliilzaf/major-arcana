@@ -6,13 +6,34 @@ const { loadSummary, listQueue } = require('../ops/ccoImportReviewReadService');
 const { applyImportReviewDecision } = require('../ops/ccoImportReviewWriteService');
 const { getTrackSummary, loadState } = require('../ops/ccoOperatorCanary');
 
-function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog = null } = {}) {
+function createCcoImportReviewReadRouter({
+  projectRoot,
+  config = null,
+  auditLog = null,
+  requireCcoAuthenticated,
+  attachRole,
+  requirePermission,
+} = {}) {
+  if (
+    typeof requireCcoAuthenticated !== 'function' ||
+    typeof attachRole !== 'function' ||
+    typeof requirePermission !== 'function'
+  ) {
+    throw new Error(
+      'createCcoImportReviewReadRouter kräver requireCcoAuthenticated + attachRole + requirePermission (auth) — import-review får inte serveras oautentiserat.'
+    );
+  }
   const router = express.Router();
   const root = projectRoot || path.join(__dirname, '../..');
   const dataDir = path.join(root, 'data');
   const writeEnabled = config?.enableImportReviewWrite === true;
 
-  router.get('/cco/import-review/summary', (req, res) => {
+  // Import-review innehåller patient-matchningsförslag → kräver INLOGGAD operatör.
+  // requireCcoAuthenticated först (annars defaultar rollen till 'operator' = anonym släpps in).
+  const readGuard = [requireCcoAuthenticated, attachRole, requirePermission('journal.read_any')];
+  const reviewGuard = [requireCcoAuthenticated, attachRole, requirePermission('customers.import')];
+
+  router.get('/cco/import-review/summary', ...readGuard, (req, res) => {
     try {
       const summary = loadSummary(dataDir, root);
       const { state } = loadState(root);
@@ -37,7 +58,7 @@ function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog 
     }
   });
 
-  router.get('/cco/import-review/queue', (req, res) => {
+  router.get('/cco/import-review/queue', ...readGuard, (req, res) => {
     try {
       const source = String(req.query.source || 'all');
       const status = String(req.query.status || 'pending');
@@ -62,7 +83,7 @@ function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog 
   });
 
   if (writeEnabled && config) {
-    router.post('/cco/import-review/decide', express.json(), async (req, res) => {
+    router.post('/cco/import-review/decide', ...reviewGuard, express.json(), async (req, res) => {
       try {
         const result = await applyImportReviewDecision({
           projectRoot: root,
@@ -89,7 +110,7 @@ function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog 
     });
   }
 
-  router.get('/cco/import-review/canary-status', (req, res) => {
+  router.get('/cco/import-review/canary-status', ...readGuard, (req, res) => {
     try {
       const { state } = loadState(root);
       return res.json({
