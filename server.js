@@ -10277,6 +10277,8 @@ try {
       projectRoot: __dirname,
       config,
       auditLog: ccoAuditLog,
+      attachRole,
+      requirePermission,
     })
   );
   console.log(

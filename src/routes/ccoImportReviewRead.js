@@ -6,13 +6,28 @@ const { loadSummary, listQueue } = require('../ops/ccoImportReviewReadService');
 const { applyImportReviewDecision } = require('../ops/ccoImportReviewWriteService');
 const { getTrackSummary, loadState } = require('../ops/ccoOperatorCanary');
 
-function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog = null } = {}) {
+function createCcoImportReviewReadRouter({
+  projectRoot,
+  config = null,
+  auditLog = null,
+  attachRole,
+  requirePermission,
+} = {}) {
+  if (typeof attachRole !== 'function' || typeof requirePermission !== 'function') {
+    throw new Error(
+      'createCcoImportReviewReadRouter kräver attachRole + requirePermission (auth) — import-review får inte serveras oautentiserat.'
+    );
+  }
   const router = express.Router();
   const root = projectRoot || path.join(__dirname, '../..');
   const dataDir = path.join(root, 'data');
   const writeEnabled = config?.enableImportReviewWrite === true;
 
-  router.get('/cco/import-review/summary', (req, res) => {
+  // Import-review innehåller patient-matchningsförslag → kräver inloggad operatör.
+  const readGuard = [attachRole, requirePermission('asset.read')];
+  const reviewGuard = [attachRole, requirePermission('asset.review')];
+
+  router.get('/cco/import-review/summary', ...readGuard, (req, res) => {
     try {
       const summary = loadSummary(dataDir, root);
       const { state } = loadState(root);
@@ -37,7 +52,7 @@ function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog 
     }
   });
 
-  router.get('/cco/import-review/queue', (req, res) => {
+  router.get('/cco/import-review/queue', ...readGuard, (req, res) => {
     try {
       const source = String(req.query.source || 'all');
       const status = String(req.query.status || 'pending');
@@ -62,7 +77,7 @@ function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog 
   });
 
   if (writeEnabled && config) {
-    router.post('/cco/import-review/decide', express.json(), async (req, res) => {
+    router.post('/cco/import-review/decide', ...reviewGuard, express.json(), async (req, res) => {
       try {
         const result = await applyImportReviewDecision({
           projectRoot: root,
@@ -89,7 +104,7 @@ function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog 
     });
   }
 
-  router.get('/cco/import-review/canary-status', (req, res) => {
+  router.get('/cco/import-review/canary-status', ...readGuard, (req, res) => {
     try {
       const { state } = loadState(root);
       return res.json({
