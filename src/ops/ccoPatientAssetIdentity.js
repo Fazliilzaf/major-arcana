@@ -1,3 +1,5 @@
+const { resolveTimelineSort } = require('./ccoAssetTimelineSort');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -219,13 +221,22 @@ function inferAssetFileType(asset) {
 
 function assetToPatientFile(asset) {
   const id = normalizeText(asset?.id);
-  const fileName = normalizeText(asset?.displayName || asset?.originalFileName) || 'Fil';
+  let fileName = normalizeText(asset?.displayName || asset?.originalFileName) || 'Fil';
   const fileType = inferAssetFileType(asset);
   const isRenderable = ['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(asset?.status);
   const documentDate = normalizeText(asset?.documentDate).slice(0, 10);
   const cleanDocumentDate = /^\d{4}-\d{2}-\d{2}$/.test(documentDate) ? documentDate : null;
   const captureDate = normalizeText(asset?.captureDate).slice(0, 10);
   const cleanCaptureDate = /^\d{4}-\d{2}-\d{2}$/.test(captureDate) ? captureDate : null;
+  const timeline = resolveTimelineSort(asset || {});
+  if (
+    (fileType === 'image' || fileType === 'video') &&
+    timeline.date &&
+    cleanDocumentDate &&
+    timeline.date !== cleanDocumentDate
+  ) {
+    fileName = fileName.replace(/^\d{4}-\d{2}-\d{2}(\s*·\s*)/, `${timeline.date}$1`);
+  }
   const technicalInfo =
     asset?.technicalInfo && typeof asset.technicalInfo === 'object' ? asset.technicalInfo : {};
   const selectedFor = asArray(asset?.selectedFor || technicalInfo.selectedFor)
@@ -251,6 +262,9 @@ function assetToPatientFile(asset) {
     documentDate: cleanDocumentDate,
     captureDate: cleanCaptureDate,
     captureDateTime: asset?.captureDateTime || null,
+    timelineDate: timeline.date || null,
+    timelineSortKey: timeline.sortKey || null,
+    timelineDateSource: timeline.field ? `patient_asset.${timeline.field}` : null,
     captureDateSource: asset?.captureDateSource || null,
     captureDateConfidence: asset?.captureDateConfidence || null,
     captureDateMismatch: Boolean(asset?.captureDateMismatch),
@@ -268,11 +282,14 @@ function assetToPatientFile(asset) {
       asset?.imageStage === 'annotated' &&
       (selectedFor.includes('offer') || selectedFor.includes('treatment_plan')),
     importedAt: asset?.importedAt || null,
-    occasionContext: cleanDocumentDate
+    occasionContext: timeline.date
       ? {
-          timelineKey: cleanDocumentDate,
-          date: cleanDocumentDate,
-          source: 'patient_asset.documentDate',
+          timelineKey: timeline.date,
+          date: timeline.date,
+          sortKey: timeline.sortKey,
+          source: timeline.field ? `patient_asset.${timeline.field}` : 'patient_asset.timeline',
+          documentDate: cleanDocumentDate,
+          captureDate: cleanCaptureDate,
         }
       : null,
     viewUrl:

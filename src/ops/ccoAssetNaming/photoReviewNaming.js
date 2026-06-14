@@ -70,8 +70,9 @@ function buildTechnicalInfo(asset = {}) {
  */
 function buildPhotoReviewDisplayName(asset = {}, ctx = {}) {
   const date =
-    parseIsoDate(asset.documentDate) ||
+    parseIsoDate(asset.captureDateTime) ||
     parseIsoDate(asset.captureDate) ||
+    parseIsoDate(asset.documentDate) ||
     parseIsoDate(asset.importedAt) ||
     'okänt datum';
   const visit =
@@ -140,7 +141,11 @@ function buildPhotoReviewNamingPatch(asset, body, ctx = {}) {
     treatmentType: encounter.treatmentType,
     sessionNumber: encounter.sessionNumber,
     encounterType: encounter.encounterType,
-    captureDate: parseIsoDate(asset.documentDate) || parseIsoDate(asset.importedAt),
+    captureDate:
+      parseIsoDate(asset.captureDateTime) ||
+      parseIsoDate(asset.captureDate) ||
+      parseIsoDate(asset.documentDate) ||
+      parseIsoDate(asset.importedAt),
     namingConfidence: 'high',
     namingStatus: 'manual_resolved',
     uiStatus: 'visible',

@@ -59,6 +59,39 @@ function inferEncounterTypeFromAsset(asset = {}) {
   return inferEncounterType(haystack);
 }
 
+function isMediaAsset(asset = {}) {
+  const category = normalizeText(asset.category).toLowerCase();
+  const mime = normalizeText(asset.mimeType).toLowerCase();
+  const name = normalizeText(asset.originalFileName || asset.displayName).toLowerCase();
+  return (
+    category.startsWith('photo_') ||
+    mime.startsWith('image/') ||
+    mime.startsWith('video/') ||
+    /\.(heic|jpe?g|png|webp|mp4|mov|m4v|webm)$/i.test(name)
+  );
+}
+
+function assetEncounterDate(asset = {}) {
+  if (isMediaAsset(asset)) {
+    return (
+      parseIsoDate(asset.captureDateTime) ||
+      parseIsoDate(asset.captureDate) ||
+      parseIsoDate(asset.documentDate) ||
+      parseIsoDate(asset.visitDate) ||
+      parseIsoDate(asset.photoDate) ||
+      parseIsoDate(asset.importedAt)
+    );
+  }
+  return (
+    parseIsoDate(asset.documentDate) ||
+    parseIsoDate(asset.visitDate) ||
+    parseIsoDate(asset.photoDate) ||
+    parseIsoDate(asset.captureDateTime) ||
+    parseIsoDate(asset.captureDate) ||
+    parseIsoDate(asset.importedAt)
+  );
+}
+
 function stableEncounterId({ patientId, date, encounterType, sessionNumber = null }) {
   const key = [patientId, date, encounterType, sessionNumber || ''].join('::');
   return crypto.createHash('sha256').update(key).digest('hex').slice(0, 32);
@@ -231,7 +264,7 @@ function typesCompatible(encounterType, assetType) {
  */
 function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
   const patientId = normalizeText(asset.patientId);
-  const date = parseIsoDate(asset.documentDate) || parseIsoDate(asset.importedAt);
+  const date = assetEncounterDate(asset);
   if (!patientId || patientId === 'unknown') {
     return {
       encounterId: null,
@@ -368,6 +401,7 @@ module.exports = {
   ENCOUNTER_TYPES,
   inferEncounterType,
   inferEncounterTypeFromAsset,
+  assetEncounterDate,
   stableEncounterId,
   encounterVisitLabel,
   buildEncounterRegistry,

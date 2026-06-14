@@ -180,3 +180,43 @@ test('assetToPatientFile exposes thumbnails only for patient-visible verified as
   assert.equal(review.thumbnailUrl, '');
   assert.equal(review.viewUrl, '');
 });
+
+test('assetToPatientFile uses EXIF capture time for visit timeline before Drive folder date', () => {
+  const file = assetToPatientFile({
+    id: 'asset-exif-1',
+    status: 'VISIBLE_ON_PATIENT_CARD',
+    category: 'photo_during',
+    mimeType: 'image/jpeg',
+    displayName: '025436E4.jpeg',
+    originalFileName: '025436E4.jpeg',
+    documentDate: '2025-01-06',
+    captureDate: '2026-01-06',
+    captureDateTime: '2026-01-06T11:36:21+01:00',
+    captureDateSource: 'exif',
+  });
+
+  assert.equal(file.documentDate, '2025-01-06');
+  assert.equal(file.captureDate, '2026-01-06');
+  assert.equal(file.timelineDate, '2026-01-06');
+  assert.equal(file.timelineDateSource, 'patient_asset.captureDateTime');
+  assert.equal(file.occasionContext.timelineKey, '2026-01-06');
+  assert.equal(file.occasionContext.documentDate, '2025-01-06');
+  assert.equal(file.occasionContext.captureDate, '2026-01-06');
+  assert.ok(file.timelineSortKey.startsWith('2026-01-06T11:36:21'));
+});
+
+test('assetToPatientFile rewrites stale generated image display date in payload only', () => {
+  const file = assetToPatientFile({
+    id: 'asset-stale-name-1',
+    status: 'VISIBLE_ON_PATIENT_CARD',
+    category: 'photo_during',
+    mimeType: 'image/jpeg',
+    displayName: '2025-01-06 · FUE Operation 1 · Under',
+    originalFileName: '025436E4.jpeg',
+    documentDate: '2025-01-06',
+    captureDateTime: '2026-01-06T11:36:21+01:00',
+  });
+
+  assert.equal(file.fileName, '2026-01-06 · FUE Operation 1 · Under');
+  assert.equal(file.originalFileName, '025436E4.jpeg');
+});

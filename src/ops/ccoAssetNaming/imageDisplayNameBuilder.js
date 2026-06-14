@@ -99,8 +99,9 @@ function uiStatusLabel(status) {
  */
 function buildImageDisplayName(asset = {}, ctx = {}) {
   const date =
-    parseIsoDate(asset.documentDate) ||
+    parseIsoDate(asset.captureDateTime) ||
     parseIsoDate(asset.captureDate) ||
+    parseIsoDate(asset.documentDate) ||
     parseIsoDate(asset.importedAt) ||
     'okänt datum';
   const imageMeta = classifyImage(asset);
@@ -121,7 +122,11 @@ function buildImageDisplayName(asset = {}, ctx = {}) {
     displayName: parts.join(' · '),
     documentTitle: `${stage}${zone !== 'zon okänd' ? ` · ${zone}` : ''}`,
     ...imageMeta,
-    captureDate: parseIsoDate(asset.documentDate) || parseIsoDate(asset.importedAt),
+    captureDate:
+      parseIsoDate(asset.captureDateTime) ||
+      parseIsoDate(asset.captureDate) ||
+      parseIsoDate(asset.documentDate) ||
+      parseIsoDate(asset.importedAt),
     namingConfidence: imageMeta.confidence,
   };
 }

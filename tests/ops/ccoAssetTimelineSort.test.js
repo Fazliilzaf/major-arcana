@@ -4,6 +4,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   resolveTimelineSortKey,
+  resolveTimelineSort,
   resolveTimelineTs,
   compareTimelineNewestFirst,
   pickNewestRecord,
@@ -16,6 +17,17 @@ describe('ccoAssetTimelineSort', () => {
       documentDate: '2020-01-01',
     });
     assert.equal(key, '2024-03-15T14:30:00');
+    assert.deepEqual(
+      resolveTimelineSort({
+        captureDateTime: '2024:03:15 14:30:00',
+        documentDate: '2020-01-01',
+      }),
+      {
+        field: 'captureDateTime',
+        sortKey: '2024-03-15T14:30:00',
+        date: '2024-03-15',
+      }
+    );
   });
 
   it('falls back through documentDate and importedAt', () => {

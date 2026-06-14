@@ -51,6 +51,20 @@ function resolveTimelineSortKey(record = {}) {
   return '';
 }
 
+function resolveTimelineSort(record = {}) {
+  for (const field of TIMELINE_FIELDS) {
+    const key = normalizeTimelineDateTime(record[field]);
+    if (key) {
+      return {
+        field,
+        sortKey: key,
+        date: key.slice(0, 10),
+      };
+    }
+  }
+  return { field: '', sortKey: '', date: '' };
+}
+
 function resolveTimelineTs(record = {}) {
   const key = resolveTimelineSortKey(record);
   const ts = Date.parse(key);
@@ -82,6 +96,7 @@ function pickNewestRecord(records = [], predicate = () => true) {
 module.exports = {
   TIMELINE_FIELDS,
   normalizeTimelineDateTime,
+  resolveTimelineSort,
   resolveTimelineSortKey,
   resolveTimelineTs,
   compareTimelineNewestFirst,

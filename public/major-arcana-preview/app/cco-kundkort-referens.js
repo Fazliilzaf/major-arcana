@@ -203,6 +203,8 @@
     return '';
   }
   function gkSharedSortKeyOfFile(file) {
+    var direct = gkSharedNormalizeDateTime(file && (file.timelineSortKey || file.timelineDate));
+    if (direct) return direct;
     return referensTimelineSortKey(file);
   }
   function gkSharedPhotoSortNewest(a, b) {
@@ -603,6 +605,8 @@
 
   function referensTimelineSortKey(file) {
     var candidates = [
+      file && file.timelineSortKey,
+      file && file.timelineDate,
       file && file.captureDateTime,
       file && file.captureDate,
       file && file.documentDate,
@@ -1244,6 +1248,7 @@
     var persNames = Object.keys(persMap);
     var autoN = A2(ctx.autoDocs).length;
     var docN = A2(ctx.driveFiles).length;
+    var offerPhotoN = imgs.filter(gkIsOfferReadyFile).length;
     var nav =
       '<nav class="gk-nav">' +
       chip('Kundresa', ctx.total) +
@@ -1252,7 +1257,7 @@
       chip('Besök', '', A2(ctx.hist).length || visitMedia.length ? 'orange' : '') +
       chip('Bokningar', A2(ctx.up).length) +
       chip('Journal', A2(ctx.jItems).length) +
-      (imgs.length ? chip('Foto', imgs.length) : '') +
+      (offerPhotoN ? chip('Foto', offerPhotoN) : chip('Foto', 0)) +
       chip('Historik', A2(ctx.hist).length) +
       (persNames.length ? chip('Personal', persNames.length) : '') +
       chip('Offert', A2(ctx.offers).length, offPending ? 'orange' : '') +
@@ -2077,7 +2082,8 @@
       'Ingen ekonomi-data ännu.'
     );
 
-    // Foto — smart: zon+datum-etiketter, auto before/after-par + slider-jämförelse, saknad-vy-insikt
+    // Foto = bara ritade/markerade kopior för offert/behandlingsplan.
+    // Originalbilderna visas per besöksdatum i Besök-sektionen.
     var fotoBody = (function () {
       if (!imgs.length) return '';
       var photos = imgs.map(gkMediaFromFile);
@@ -2085,10 +2091,6 @@
       var offerPhotos = photos.filter(function (p) {
         return p.offerReady;
       });
-      var originalPhotos = photos.filter(function (p) {
-        return !p.offerReady;
-      });
-      var collapsed = originalPhotos.length > 24;
       var offerReadyHtml =
         '<div class="gk-offer-ready-photos">' +
         '<div class="gk-visit-label">Markerade bilder för offert</div>' +
@@ -2097,85 +2099,16 @@
             gkPhotoGrid(offerPhotos, 0, 'gk-foto-grid--offer-ready')
           : '<div class="gk-offer-ready-empty">Inga markerade offertbilder ännu. Öppna en bild, rita och välj “behandlingsplan/offert”.</div>') +
         '</div>';
-      var grid =
-        '<div class="gk-visit-photos">' +
-        offerReadyHtml +
-        '<div class="gk-visit-label gk-visit-label--original">Originalbilder</div>' +
-        gkPhotoGrid(originalPhotos, 0, 'gk-foto-grid--all' + (collapsed ? ' is-collapsed' : '')) +
-        (collapsed
-          ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
-            originalPhotos.length +
-            '</button>'
-          : '') +
-        '</div>';
-      // Auto before/after-par: zonen med störst tidsspann (äldsta ↔ nyaste)
-      var byZone = {};
-      originalPhotos.forEach(function (p) {
-        if (p.date) (byZone[p.zone] = byZone[p.zone] || []).push(p);
-      });
-      var pair = null,
-        bestSpan = -1;
-      Object.keys(byZone).forEach(function (z) {
-        var arr = byZone[z].slice().sort(function (a, b) {
-          return String(a.sortKey || a.date || '').localeCompare(String(b.sortKey || b.date || ''));
-        });
-        if (arr.length >= 2) {
-          var span = new Date(arr[arr.length - 1].date) - new Date(arr[0].date);
-          if (span > bestSpan) {
-            bestSpan = span;
-            pair = { zone: z, before: arr[0], after: arr[arr.length - 1] };
-          }
-        }
-      });
-      var pairHtml = '';
-      if (pair) {
-        var pj = JSON.stringify({
-          zone: pair.zone,
-          beforeImg: pair.before.thumb || pair.before.url,
-          afterImg: pair.after.thumb || pair.after.url,
-          beforeLabel: gkFmtDate(pair.before.date),
-          afterLabel: gkFmtDate(pair.after.date),
-        }).replace(/"/g, '&quot;');
-        pairHtml =
-          '<div class="gk-foto-pair"><div class="gk-foto-pair-text"><b>Before/after-par föreslaget:</b> ' +
-          esc(pair.zone) +
-          ' ' +
-          esc(gkFmtDate(pair.before.date)) +
-          ' ↔ ' +
-          esc(gkFmtDate(pair.after.date)) +
-          '</div>' +
-          '<button type="button" class="gk-btn gk-foto-compare" data-gk-compare="' +
-          pj +
-          '">Jämför</button></div>';
-      }
-      // Saknad-vy-insikt: nyckelzoner utan foto
-      var present = Object.keys(byZone);
-      var missing = ['Hårlinje', 'Krona'].filter(function (z) {
-        return present.indexOf(z) < 0;
-      });
-      var insightHtml = '';
-      if (missing.length) {
-        insightHtml =
-          '<div class="gk-foto-insight"><span class="gk-foto-insight-ic">!</span> ' +
-          esc(missing.join(' & ')) +
-          '-vy saknas för fullständig dokumentation ' +
-          '<button type="button" class="gk-foto-req" data-gk-photo-request="' +
-          esc(missing.join(',')) +
-          '">Begär foto</button></div>';
-      }
-      return grid + pairHtml + insightHtml;
+      return '<div class="gk-visit-photos">' + offerReadyHtml + '</div>';
     })();
     var fotoSectionHtml = sek(
       'Foto',
-      (imgs.length ? '<span class="gk-pill gk-tag-info">' + imgs.length + ' bilder</span>' : '') +
-        (imgs.map(gkMediaFromFile).filter(function (p) {
-          return p.offerReady;
-        }).length
-          ? ' <span class="gk-pill gk-tag-ok">Offertklara</span>'
-          : '') +
+      (offerPhotoN
+        ? '<span class="gk-pill gk-tag-ok">' + offerPhotoN + ' offertklara</span>'
+        : '<span class="gk-pill gk-tag-info">0 offertbilder</span>') +
         (photoReview ? ' <span class="gk-pill gk-tag-warn">Foton att granska</span>' : ''),
       fotoBody,
-      'Inga foton ännu.'
+      'Inga markerade offertbilder ännu.'
     );
     body += journalSectionHtml;
     body += fotoSectionHtml;
@@ -4289,10 +4222,6 @@
       var offerReadyRows = fotoMediaRows.filter(function (p) {
         return p.offerReady;
       });
-      var originalFotoRows = fotoMediaRows.filter(function (p) {
-        return !p.offerReady;
-      });
-      var fotoCollapsed = originalFotoRows.length > 24;
       var fotoRows =
         '<div class="gk-visit-photos">' +
         '<div class="gk-offer-ready-photos"><div class="gk-visit-label">Markerade bilder för offert</div>' +
@@ -4300,51 +4229,16 @@
           ? '<div class="gk-sub gk-order-note">Ritade/markerade versioner som kan skickas med i offert eller behandlingsplan.</div>' +
             gkSharedPhotoGrid(offerReadyRows, 'gk-foto-grid--offer-ready')
           : '<div class="gk-offer-ready-empty">Inga markerade offertbilder ännu. Öppna en bild, rita och välj “behandlingsplan/offert”.</div>') +
-        '</div>' +
-        '<div class="gk-visit-label gk-visit-label--original">Originalbilder</div>' +
-        '<div class="gk-sub gk-order-note">Välj bilder för efterbild, plan eller kundutskick.</div>' +
-        gkSharedPhotoGrid(
-          originalFotoRows,
-          'gk-foto-grid--all' + (fotoCollapsed ? ' is-collapsed' : '')
-        ) +
-        (fotoCollapsed
-          ? '<button type="button" class="gk-btn gk-visit-media-toggle" data-gk-toggle-visit-media>Visa alla ' +
-            originalFotoRows.length +
-            '</button>'
-          : '') +
-        '</div>';
+        '</div></div>';
       h += sec(
         'Foto',
-        gkSharedMediaCountLabel(fotoMediaRows) +
-          (offerReadyRows.length ? ' · ' + offerReadyRows.length + ' offertklara' : ''),
+        offerReadyRows.length ? offerReadyRows.length + ' offertklara' : '0 offertbilder',
         fotoRows
       );
     } else if (photos.length) {
-      var fotoCount = photos.reduce(function (n, p) {
-        return n + (p.count || 1);
-      }, 0);
-      var fotoRows = photos
-        .slice(0, 12)
-        .map(function (p) {
-          return (
-            '<div class="kk-foto"><span class="kk-foto-ico">🖼</span>' +
-            '<div style="flex:1;min-width:0"><div class="rt">' +
-            esc(p.name || 'Foto') +
-            '</div><div class="rm">' +
-            esc(p.type || 'Foto') +
-            '</div></div></div>'
-          );
-        })
-        .join('');
-      if (fotoCount > photos.slice(0, 12).length) {
-        fotoRows +=
-          '<div class="kk-foto-mer">+' +
-          (fotoCount - photos.slice(0, 12).length) +
-          ' till · väntar på asset-koppling</div>';
-      }
-      h += sec('Foto', String(fotoCount), fotoRows);
+      h += sec('Foto', '0 offertbilder', empty('Inga markerade offertbilder ännu.'));
     } else {
-      h += sec('Foto', '0', empty('Inga foton kopplade till patienten ännu.'));
+      h += sec('Foto', '0 offertbilder', empty('Inga markerade offertbilder ännu.'));
     }
 
     var krVal =
