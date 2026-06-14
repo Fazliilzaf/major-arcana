@@ -63,6 +63,8 @@ function main() {
   const patientFilter = argValue('--patient', '');
   const outPath = argValue('--out', '');
   const write = hasFlag('--write');
+  const missingOnly = hasFlag('--missing-only');
+  const limit = Math.max(0, Number(argValue('--limit', '0')) || 0);
 
   const state = readJson(assetsPath, null);
   if (!state?.items || typeof state.items !== 'object') {
@@ -75,6 +77,7 @@ function main() {
   const rows = Object.values(state.items).filter((asset) => {
     if (!isMediaAsset(asset)) return false;
     if (patientFilter && asset.patientId !== patientFilter) return false;
+    if (missingOnly && (asset.captureDateTime || asset.captureDate)) return false;
     return true;
   });
 
@@ -88,7 +91,7 @@ function main() {
     storageRoot: storageRoot ? '[set]' : '[missing]',
     patientFilter: patientFilter || null,
     stats: {
-      scanned: rows.length,
+      scanned: 0,
       withCaptureDate: 0,
       fromExif: 0,
       fromFilename: 0,
@@ -103,6 +106,8 @@ function main() {
   };
 
   for (const asset of rows) {
+    if (limit > 0 && report.stats.scanned >= limit) break;
+    report.stats.scanned += 1;
     const source = sourceById.get(String(asset.sourceRecordId || '')) || {};
     const audit = buildCaptureDateAudit({ asset, sourceRecord: source, storageRoot });
     if (audit.captureDate) {

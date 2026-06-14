@@ -185,6 +185,8 @@
     "ingest:halso-hd-batch": "node scripts/run-halso-hd-batch-ingest.js",
     "scan:halso-hd-phase1-assets": "node scripts/scan-halso-hd-phase1-assets.js",
     "ingest:halso-hd-phase1-batch": "node scripts/run-halso-hd-asset-batch-ingest.js",
+    "ingest:halso-hd-review-reprocess": "node scripts/run-halso-hd-review-queue-reprocess.js",
+    "ingest:plan-uat": "node scripts/run-import-plan-uat.js",
     "sync:halso-assets-render-prod": "node scripts/sync-halso-assets-to-render-prod.js",
     "dry-run:halso-hd": "node scripts/run-halso-health-declaration-dry-run.js",
     "push:halso-hd-stickprov-prod": "node scripts/push-halso-hd-stickprov-prod.js",

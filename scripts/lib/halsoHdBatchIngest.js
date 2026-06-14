@@ -550,4 +550,5 @@ module.exports = {
   runHalsoBatchIngest,
   loadDedupState,
   saveDedupState,
+  applyStats,
 };
