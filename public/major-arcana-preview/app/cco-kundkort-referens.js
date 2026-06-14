@@ -269,11 +269,9 @@
     var canUseFullImage = !isVideo && isReferensBrowserImageFile(file);
     var previewUrl =
       explicitThumb ||
-      (canUseFullImage && isReferensPatientAssetFile(file)
-        ? url
-        : canUseFullImage && id
-          ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
-          : '');
+      (canUseFullImage && !isReferensPatientAssetFile(file) && id
+        ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
+        : '');
     return {
       id: id,
       sourceAssetId: (file && (file.assetId || file.sourceAssetId || file.id)) || '',
@@ -1098,11 +1096,9 @@
       var canUseFullImage = !isVideo && isReferensBrowserImageFile(f);
       var previewUrl =
         explicitThumb ||
-        (canUseFullImage && isReferensPatientAssetFile(f)
-          ? url
-          : canUseFullImage && id
-            ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
-            : '');
+        (canUseFullImage && !isReferensPatientAssetFile(f) && id
+          ? '/api/v1/cco-patient-master/file-preview?width=480&fileId=' + encodeURIComponent(id)
+          : '');
       return {
         id: id,
         sourceAssetId: (f && (f.assetId || f.sourceAssetId || f.id)) || '',
@@ -3408,7 +3404,12 @@
       )
       .filter(function (node) {
         var tile = node.closest && node.closest('.gk-foto');
+        var hasNativeImageSrc =
+          node.tagName === 'IMG' &&
+          node.getAttribute('src') &&
+          !node.classList.contains('is-broken');
         return (
+          !hasNativeImageSrc &&
           (!tile || window.getComputedStyle(tile).display !== 'none') &&
           node.dataset.gkLoaded !== 'true' &&
           node.dataset.gkLoading !== 'true'
@@ -3429,7 +3430,14 @@
       var fallback = node.getAttribute('data-gk-img-full') || '';
       var urls = [];
       if (primary && primary !== '#') urls.push(primary);
-      if (fallback && fallback !== '#' && fallback !== primary) urls.push(fallback);
+      if (
+        fallback &&
+        fallback !== '#' &&
+        fallback !== primary &&
+        node.getAttribute('data-gk-allow-full-fallback') === '1'
+      ) {
+        urls.push(fallback);
+      }
       if (!urls.length) return;
       node.dataset.gkLoading = 'true';
       active += 1;

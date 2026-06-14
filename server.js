@@ -10117,7 +10117,9 @@ try {
         if (!asset) return res.status(404).json({ error: 'asset_not_found' });
         if (!asset.storageKey) return res.status(409).json({ error: 'asset_has_no_storage_key' });
 
-        const obj = await stores.secureStorage.getObject(asset.storageKey);
+        const obj = stores.secureStorage.getObjectStream
+          ? await stores.secureStorage.getObjectStream(asset.storageKey)
+          : await stores.secureStorage.getObject(asset.storageKey);
         const mime = asset.mimeType || obj.mimeType || 'application/octet-stream';
         const fname = (asset.originalFileName || `asset-${assetId}`).replace(/["\\\r\n]/g, '');
         res.setHeader('Content-Type', mime);
@@ -10144,7 +10146,15 @@ try {
             },
           });
         }
-        res.send(obj.buffer);
+        if (obj.stream && !obj.buffer) {
+          obj.stream.on('error', () => {
+            if (!res.headersSent) res.status(500).end();
+            else res.destroy();
+          });
+          obj.stream.pipe(res);
+        } else {
+          res.send(obj.buffer);
+        }
       } catch (err) {
         if (err && err.code === 'ENOENT')
           return res.status(404).json({ error: 'object_not_in_storage' });
@@ -10166,11 +10176,21 @@ try {
         if (!asset) return res.status(404).json({ error: 'asset_not_found' });
         const key = asset.thumbnailKey || null;
         if (!key) return res.status(404).json({ error: 'no_thumbnail' });
-        const obj = await stores.secureStorage.getObject(key);
+        const obj = stores.secureStorage.getObjectStream
+          ? await stores.secureStorage.getObjectStream(key)
+          : await stores.secureStorage.getObject(key);
         res.setHeader('Content-Type', obj.mimeType || 'image/jpeg');
         res.setHeader('Content-Length', obj.size);
         res.setHeader('Cache-Control', 'private, max-age=300');
-        res.send(obj.buffer);
+        if (obj.stream && !obj.buffer) {
+          obj.stream.on('error', () => {
+            if (!res.headersSent) res.status(500).end();
+            else res.destroy();
+          });
+          obj.stream.pipe(res);
+        } else {
+          res.send(obj.buffer);
+        }
       } catch (err) {
         if (err && err.code === 'ENOENT')
           return res.status(404).json({ error: 'object_not_in_storage' });

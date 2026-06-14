@@ -287,6 +287,17 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
     };
   }
 
+  async function getObjectStream(key) {
+    const abs = absolute(key);
+    const stat = await fsp.stat(abs);
+    const mimeType = detectMimeFromExt(path.extname(key)) || 'application/octet-stream';
+    return {
+      stream: fs.createReadStream(abs),
+      mimeType,
+      size: stat.size,
+    };
+  }
+
   async function deleteObject(key) {
     const abs = absolute(key);
     try {
@@ -405,6 +416,7 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
     rootPath: root,
     putObject,
     getObject,
+    getObjectStream,
     deleteObject,
     exists,
     generateThumbnailIfImage,

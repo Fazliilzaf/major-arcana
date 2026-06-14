@@ -6477,7 +6477,10 @@
     );
     const visibleNodes = Array.from(mediaNodes).filter((node) => {
       const tile = node.closest('.gk-foto');
+      const hasNativeImageSrc =
+        node.tagName === 'IMG' && node.getAttribute('src') && !node.classList.contains('is-broken');
       return (
+        !hasNativeImageSrc &&
         (!tile || window.getComputedStyle(tile).display !== 'none') &&
         node.dataset.gkLoaded !== 'true' &&
         node.dataset.gkLoading !== 'true'
@@ -6491,7 +6494,10 @@
       while (cursor < visibleNodes.length) {
         const node = visibleNodes[cursor++];
         const primary = node.getAttribute('data-gk-img-src') || '';
-        const fallback = node.getAttribute('data-gk-img-full') || '';
+        const fallback =
+          node.getAttribute('data-gk-allow-full-fallback') === '1'
+            ? node.getAttribute('data-gk-img-full') || ''
+            : '';
         node.dataset.gkLoading = 'true';
         node.classList.add('is-loading');
         const objectUrl = await fetchGkMediaObjectUrl(primary, fallback);
