@@ -255,6 +255,7 @@ function buildConsentDoc(registryId, label, consentApiId, options = {}) {
       agreementText: ccoBody || null,
       agreementBlocks: facitBlocks || null,
       bundleAckLabel: consentApiId === 170917 ? agreementFacit.bundleAckLabel : null,
+      ackLabel: consentApiId === 170955 ? agreementFacit.cooling.ackLabel || null : null,
     },
   };
 }

@@ -106,25 +106,34 @@
   ],
   "cooling": {
     "consentApiId": 170955,
-    "source": "migration/meridiq/consent-catalog.json — apiId 170955",
+    "source": "owner facit 2026-06 — Meridiq apiId 170955 (letterText tom i export)",
     "blocks": [
       {
-        "kind": "heading",
-        "html": "Begäran och samtycke till behandling inom ångerfrist (14 dagar)"
+        "kind": "title",
+        "html": "Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)"
       },
       {
         "kind": "text",
-        "html": "Detta samtycke gäller när behandlingsavtalet ingås på distans och du begär att Hair TP Clinic ska påbörja behandlingen och/eller boka behandlingstid <strong>innan</strong> 14 dagars ångerfrist har löpt ut."
+        "html": "Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då avtalet ingicks."
       },
       {
         "kind": "text",
-        "html": "Du bekräftar att du tagit del av information om ångerrätt enligt Distansavtalslagen, att du fått tillgång till Konsumentverkets ångerblankett (bilaga 3), och att du förstår att du genom detta samtycke kan avstå från ångerrätt för den del av tjänsten som redan fullgjorts."
+        "html": "Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan ångerfristen har löpt ut."
       },
       {
         "kind": "text",
-        "html": "Genom att signera begär du uttryckligen att behandling/bokning påbörjas under ångerfristen."
+        "html": "Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har fullgjorts."
+      },
+      {
+        "kind": "text",
+        "html": "Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts."
+      },
+      {
+        "kind": "text",
+        "html": "Jag lämnar mitt samtycke."
       }
-    ]
+    ],
+    "ackLabel": "Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14 dagar)."
   },
   "bundleAckLabel": "Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling innan ångerfristen löpt ut."
 }

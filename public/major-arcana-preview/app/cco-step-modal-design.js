@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  const CACHE_BUST = 'hairtp-step789-kundkort-v4';
+  const CACHE_BUST = 'hairtp-step789-kundkort-v5';
 
   const TOKEN_CSS = `
 :root{

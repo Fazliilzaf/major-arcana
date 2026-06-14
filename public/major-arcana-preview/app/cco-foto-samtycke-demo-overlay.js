@@ -13,7 +13,7 @@
   const STYLE_ID = 'cco-foto-samtycke-styles';
   const DISMISS_KEY = 'arcana.fotosamtycke.dismissed';
   const SIGNED_KEY = 'arcana.fotosamtycke.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v4';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v5';
 
   let meridiqContent = null;
 

@@ -110,4 +110,4 @@ Innehåll behöver **inte** skrivas om enligt owner — bara **kopplas tydligare
 
 **Källor (prioritet):** Meridiq-kataloger → `steg7-tp-dhi-agreement-facit.json` → `data/cco-templates.json` / `migration/cco-templates-document-facit.snapshot.json`.
 
-**Kvar PARTIAL:** Microneedling, PRF, Profhilo-avtal, samtycke bokning 2d, foto-publicering (Nordbro-stub), ordination Word, intern SMS.
+**Kvar PARTIAL:** Microneedling, PRF, Profhilo-avtal, samtycke bokning 2d, foto-publicering (Nordbro-stub), ordination Word, intern SMS. **FULL:** ångerfrist-samtycke (170955) via `steg7-tp-dhi-agreement-facit.json` cooling.

@@ -12,7 +12,7 @@
   const STYLE_ID = 'cco-ff-demo-styles';
   const DISMISS_KEY = 'arcana.ffdemo.dismissed';
   const MERIDIQ_FORM_ID = 16413;
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v4';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v5';
 
   let meridiqContent = null;
 

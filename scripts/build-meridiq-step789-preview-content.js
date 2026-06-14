@@ -81,7 +81,7 @@ if (!fotoDoc) {
 
 const output = {
   generatedAt: new Date().toISOString(),
-  cacheVersion: 'hairtp-step789-kundkort-v4',
+  cacheVersion: 'hairtp-step789-kundkort-v5',
   sources: {
     consentCatalog: 'migration/meridiq/consent-catalog.json',
     questionaryCatalog: 'migration/meridiq/questionary-catalog.json',
