@@ -10,12 +10,17 @@ function createCcoImportReviewReadRouter({
   projectRoot,
   config = null,
   auditLog = null,
+  requireCcoAuthenticated,
   attachRole,
   requirePermission,
 } = {}) {
-  if (typeof attachRole !== 'function' || typeof requirePermission !== 'function') {
+  if (
+    typeof requireCcoAuthenticated !== 'function' ||
+    typeof attachRole !== 'function' ||
+    typeof requirePermission !== 'function'
+  ) {
     throw new Error(
-      'createCcoImportReviewReadRouter kräver attachRole + requirePermission (auth) — import-review får inte serveras oautentiserat.'
+      'createCcoImportReviewReadRouter kräver requireCcoAuthenticated + attachRole + requirePermission (auth) — import-review får inte serveras oautentiserat.'
     );
   }
   const router = express.Router();
@@ -23,9 +28,10 @@ function createCcoImportReviewReadRouter({
   const dataDir = path.join(root, 'data');
   const writeEnabled = config?.enableImportReviewWrite === true;
 
-  // Import-review innehåller patient-matchningsförslag → kräver inloggad operatör.
-  const readGuard = [attachRole, requirePermission('asset.read')];
-  const reviewGuard = [attachRole, requirePermission('asset.review')];
+  // Import-review innehåller patient-matchningsförslag → kräver INLOGGAD operatör.
+  // requireCcoAuthenticated först (annars defaultar rollen till 'operator' = anonym släpps in).
+  const readGuard = [requireCcoAuthenticated, attachRole, requirePermission('journal.read_any')];
+  const reviewGuard = [requireCcoAuthenticated, attachRole, requirePermission('customers.import')];
 
   router.get('/cco/import-review/summary', ...readGuard, (req, res) => {
     try {
