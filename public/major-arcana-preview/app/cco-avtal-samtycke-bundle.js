@@ -16,7 +16,7 @@
   const STYLE_ID = 'cco-steg7-bundle-styles';
   const DISMISS_KEY = 'arcana.steg7bundle.dismissed';
   const SIGNED_KEY = 'arcana.steg7bundle.signed';
-  const CACHE_BUST = 'hairtp-steg7-bundle-v4';
+  const CACHE_BUST = 'hairtp-steg7-bundle-v5-kundkort';
 
   const CONSENT_AGREEMENT = {
     apiId: 170917,
@@ -67,21 +67,25 @@
 #${ROOT_ID} .head p,#${GATE_ID} .head p{margin:0;font-size:13px;color:var(--cco-text-secondary);max-width:62ch;line-height:1.5;position:relative}
 #${ROOT_ID} .panel{padding:22px 26px;border-radius:24px;background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));box-shadow:var(--panel-shell-shadow);margin-bottom:14px}
 #${ROOT_ID} .panel h2{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cco-text-tertiary);margin:0 0 12px}
-#${ROOT_ID} .legal{padding:14px 16px;border-radius:14px;background:rgba(74,123,168,.08);border:1px solid rgba(74,123,168,.22);font-size:11.5px;color:var(--cco-status-info);line-height:1.6;margin-bottom:18px}
-#${ROOT_ID} .bundle-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin:0 0 24px}
+#${ROOT_ID} .legal{padding:14px 16px;border-radius:14px;background:rgba(74,123,168,.08);border:1px solid rgba(74,123,168,.22);font-size:11.5px;color:var(--cco-status-info);line-height:1.6;margin-bottom:24px}
+#${ROOT_ID} .section-block{margin-bottom:24px;border-radius:18px;background:linear-gradient(180deg,var(--panel-card-top),var(--panel-card-bottom));border:1px solid rgba(132,117,107,.18);box-shadow:var(--panel-card-shadow);overflow:hidden}
+#${ROOT_ID} .section-block__head{padding:14px 18px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cco-text-tertiary);border-bottom:1px solid rgba(132,117,107,.12);background:rgba(255,255,255,.35)}
+#${ROOT_ID} .section-block__body{padding:20px 22px 22px}
+#${ROOT_ID} .bundle-panels{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:0}
 @media(max-width:767px){#${ROOT_ID} .bundle-panels{grid-template-columns:1fr;gap:24px}}
-#${ROOT_ID} .bundle-panel{padding:22px 26px;border-radius:18px;background:linear-gradient(180deg,var(--panel-card-top),var(--panel-card-bottom));border:1px solid rgba(132,117,107,.18);box-shadow:var(--panel-card-shadow);min-width:0}
-#${ROOT_ID} .bundle-panel h3{margin:0 0 14px;font-size:13px;font-weight:700;line-height:1.5;color:var(--cco-color-brand)}
-#${ROOT_ID} .doc-scroll{max-height:240px;overflow-y:auto;padding-right:8px;font-size:13px;line-height:1.6;color:var(--cco-text-secondary);margin-bottom:16px}
+#${ROOT_ID} .bundle-panel{padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.72);border:1px solid rgba(132,117,107,.16);box-shadow:var(--panel-card-shadow);min-width:0}
+#${ROOT_ID} .bundle-panel h3{margin:0 0 12px;font-size:13px;font-weight:650;line-height:1.5;color:var(--cco-color-brand);letter-spacing:-.01em}
+#${ROOT_ID} .doc-scroll{max-height:240px;overflow-y:auto;padding-right:8px;font-size:13px;line-height:1.6;color:var(--cco-text-secondary);margin-bottom:14px}
 #${ROOT_ID} .doc-scroll ul{margin:0 0 14px;padding-left:18px}
 #${ROOT_ID} .doc-scroll p{margin:0 0 14px}
 #${ROOT_ID} .doc-scroll p:last-child{margin-bottom:0}
-#${ROOT_ID} .doc-meta{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--cco-text-tertiary);margin:0 0 18px}
-#${ROOT_ID} .field{margin-bottom:18px}
+#${ROOT_ID} .doc-meta{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cco-text-tertiary);margin:0 0 16px}
+#${ROOT_ID} .field{margin-bottom:16px}
+#${ROOT_ID} .field:last-child{margin-bottom:0}
 #${ROOT_ID} .field label{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:8px}
 #${ROOT_ID} .field input{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
 #${ROOT_ID} .field input:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
-#${ROOT_ID} .signature-fields{margin-top:6px}
+#${ROOT_ID} .signature-fields{margin-top:0}
 #${ROOT_ID} .checks{display:flex;flex-direction:column;gap:12px}
 #${ROOT_ID} .check{display:flex;align-items:flex-start;gap:12px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
 #${ROOT_ID} .check:hover{border-color:rgba(187,71,121,.22)}
@@ -223,6 +227,9 @@
 
       <p class="doc-meta">${escapeHtml(context.offerLabel)}</p>
 
+      <section class="section-block section-block--docs" aria-label="Dokument att signera">
+        <div class="section-block__head">Dokument att signera</div>
+        <div class="section-block__body">
       <div class="bundle-panels">
         <article class="bundle-panel" data-consent-id="${CONSENT_AGREEMENT.apiId}">
           <h3>${escapeHtml(CONSENT_AGREEMENT.title)}</h3>
@@ -241,8 +248,12 @@
           </label>
         </article>
       </div>
+        </div>
+      </section>
 
-      <div class="signature-fields">
+      <section class="section-block section-block--sign" aria-label="Signering">
+        <div class="section-block__head">Signering</div>
+        <div class="section-block__body signature-fields">
       <div class="field">
         <label for="patientName">Ditt namn</label>
         <input type="text" id="patientName" autocomplete="name" value="${escapeHtml(context.patientName)}" placeholder="För- och efternamn" />
@@ -252,6 +263,7 @@
         <input type="text" id="patientId" autocomplete="off" value="${escapeHtml(context.personnummer)}" placeholder="19800101-1234" pattern="\\d{8}-?\\d{4}" />
       </div>
       </div>
+      </section>
 
       <div class="actions">
         <button class="btn btn-ghost" type="button" id="cancelBtn">Avbryt</button>
