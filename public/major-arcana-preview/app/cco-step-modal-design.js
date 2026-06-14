@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  const CACHE_BUST = 'hairtp-step789-kundkort-v2';
+  const CACHE_BUST = 'hairtp-step789-kundkort-v3';
 
   const TOKEN_CSS = `
 :root{
@@ -46,7 +46,7 @@
     const scoped = roots.map((id) => `#${id}`).join(' ');
     return `${TOKEN_CSS}
 ${rootSel} *{box-sizing:border-box}
-${rootSel}{position:fixed;inset:0;background:rgba(20,16,12,.58);display:flex;align-items:center;justify-content:center;z-index:${zIndex};backdrop-filter:blur(10px) saturate(1.08);padding:24px}
+${rootSel}{position:fixed;inset:0;background:rgba(20,16,12,.58);display:flex;align-items:center;justify-content:center;z-index:${zIndex};-webkit-backdrop-filter:blur(10px) saturate(1.08);backdrop-filter:blur(10px) saturate(1.08);padding:24px}
 ${rootSel} .demo-modal{
   background:
     radial-gradient(ellipse at 50% 0%,rgba(255,210,225,.22),transparent 52%),

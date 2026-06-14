@@ -13,7 +13,7 @@
   const STYLE_ID = 'cco-foto-samtycke-styles';
   const DISMISS_KEY = 'arcana.fotosamtycke.dismissed';
   const SIGNED_KEY = 'arcana.fotosamtycke.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v2';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v3';
 
   const STEP9_EXTRA_CSS = `
 #${ROOT_ID} .scope-note{
@@ -261,4 +261,30 @@
     unmount,
     maybeAutoMount,
   });
+
+  function bootUatStandalonePage() {
+    const path = String(global.location?.pathname || '');
+    if (!path.includes('cco-foto-samtycke-demo-overlay.html')) return;
+    if (document.getElementById(ROOT_ID)) return;
+    try {
+      mount({ patientName: 'Anna Karlsson' });
+      const shell = document.getElementById('uat-shell');
+      if (shell) shell.hidden = true;
+    } catch (error) {
+      console.error('[steg9-uat] mount failed', error);
+      const err = document.getElementById('uat-error');
+      if (err) {
+        err.hidden = false;
+        err.textContent = 'Kunde inte öppna modalen. Prova hård refresh (Cmd+Shift+R).';
+      }
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootUatStandalonePage);
+    } else {
+      bootUatStandalonePage();
+    }
+  }
 })(typeof window !== 'undefined' ? window : globalThis);

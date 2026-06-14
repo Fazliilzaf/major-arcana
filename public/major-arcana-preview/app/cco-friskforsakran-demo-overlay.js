@@ -13,7 +13,7 @@
   const STYLE_ID = 'cco-ff-demo-styles';
   const DISMISS_KEY = 'arcana.ffdemo.dismissed';
   const MERIDIQ_FORM_ID = 16413;
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v2';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v3';
 
   // source: migration/meridiq/questionary-catalog.json — apiId 16413, question 450968
   const DISEASE_OPTIONS = [
@@ -513,5 +513,35 @@
     readContext,
     MERIDIQ_FORM_ID,
     MERIDIQ_YN_QUESTIONS,
+    CACHE_BUST,
   };
-})(typeof window !== 'undefined' ? window : global);
+
+  function bootUatStandalonePage() {
+    const path = String(global.location?.pathname || '');
+    if (!path.includes('cco-friskforsakran-demo-overlay.html')) return;
+    if (document.getElementById(ROOT_ID)) return;
+    try {
+      mount({
+        operationLabel: '2026-06-15 · 09:00',
+        patientName: 'Anna Karlsson',
+      });
+      const shell = document.getElementById('uat-shell');
+      if (shell) shell.hidden = true;
+    } catch (error) {
+      console.error('[steg8-uat] mount failed', error);
+      const err = document.getElementById('uat-error');
+      if (err) {
+        err.hidden = false;
+        err.textContent = 'Kunde inte öppna modalen. Prova hård refresh (Cmd+Shift+R).';
+      }
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootUatStandalonePage);
+    } else {
+      bootUatStandalonePage();
+    }
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <base href="/major-arcana-preview/" />
     <title>Steg 9 — Foto-samtycke · UAT</title>
     <link rel="stylesheet" href="/cco-polish.css" />
     <style>
@@ -35,9 +34,12 @@
       }
     </style>
     <script src="/cco-polish.js" defer></script>
-    <script src="./app/cco-step-modal-design.js?v=hairtp-step789-kundkort-v2" defer></script>
     <script
-      src="./app/cco-foto-samtycke-demo-overlay.js?v=hairtp-step789-kundkort-v2"
+      src="/major-arcana-preview/app/cco-step-modal-design.js?v=hairtp-step789-kundkort-v3"
+      defer
+    ></script>
+    <script
+      src="/major-arcana-preview/app/cco-foto-samtycke-demo-overlay.js?v=hairtp-step789-kundkort-v3"
       defer
     ></script>
   </head>
@@ -50,23 +52,5 @@
     <noscript>
       <p style="padding: 24px; text-align: center">Aktivera JavaScript för att öppna samtycket.</p>
     </noscript>
-    <script>
-      window.addEventListener('load', function () {
-        document.documentElement.setAttribute('data-v9-enabled', 'on');
-        document.documentElement.setAttribute('data-v9-demo', 'on');
-        var shell = document.getElementById('uat-shell');
-        var err = document.getElementById('uat-error');
-        if (!window.CcoFotoSamtyckeDemoOverlay) {
-          if (err) {
-            err.hidden = false;
-            err.textContent =
-              'Script laddades inte. Prova hård refresh (Cmd+Shift+R) eller öppna arcana.hairtpclinic.com (inte .se).';
-          }
-          return;
-        }
-        window.CcoFotoSamtyckeDemoOverlay.mount({ patientName: 'Anna Karlsson' });
-        if (shell) shell.hidden = true;
-      });
-    </script>
   </body>
 </html>

@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <base href="/major-arcana-preview/" />
     <title>Avtal + samtycke · steg 7 · Hair TP Clinic</title>
     <link rel="stylesheet" href="/cco-polish.css" />
     <style>
@@ -35,8 +34,14 @@
       }
     </style>
     <script src="/cco-polish.js" defer></script>
-    <script src="./app/cco-step-modal-design.js?v=hairtp-step789-kundkort-v2" defer></script>
-    <script src="./app/cco-avtal-samtycke-bundle.js?v=hairtp-step789-kundkort-v2" defer></script>
+    <script
+      src="/major-arcana-preview/app/cco-step-modal-design.js?v=hairtp-step789-kundkort-v3"
+      defer
+    ></script>
+    <script
+      src="/major-arcana-preview/app/cco-avtal-samtycke-bundle.js?v=hairtp-step789-kundkort-v3"
+      defer
+    ></script>
   </head>
   <body data-stage="demo" data-v9-enabled="on" data-v9-demo="on">
     <div id="uat-shell">
@@ -49,29 +54,5 @@
         Aktivera JavaScript för att öppna signeringen.
       </p>
     </noscript>
-    <script>
-      window.addEventListener('load', function () {
-        document.documentElement.setAttribute('data-v9-enabled', 'on');
-        document.documentElement.setAttribute('data-v9-demo', 'on');
-        window.__ARCANA_STEG7_LEGAL_APPROVED__ = true;
-        var shell = document.getElementById('uat-shell');
-        var err = document.getElementById('uat-error');
-        if (!window.CcoAvtalSamtyckeBundle) {
-          if (err) {
-            err.hidden = false;
-            err.textContent =
-              'Script laddades inte. Prova hård refresh (Cmd+Shift+R) eller öppna arcana.hairtpclinic.com (inte .se).';
-          }
-          return;
-        }
-        window.CcoAvtalSamtyckeBundle.mount({
-          patientName: 'Anna Karlsson',
-          personnummer: '19800101-1234',
-          offerLabel: 'Hårtransplantation DHI · 45 000 kr',
-          legalReviewApproved: true,
-        });
-        if (shell) shell.hidden = true;
-      });
-    </script>
   </body>
 </html>

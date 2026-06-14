@@ -16,7 +16,7 @@
   const STYLE_ID = 'cco-steg7-bundle-styles';
   const DISMISS_KEY = 'arcana.steg7bundle.dismissed';
   const SIGNED_KEY = 'arcana.steg7bundle.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v2';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v3';
 
   const CONSENT_AGREEMENT = {
     apiId: 170917,
@@ -587,4 +587,36 @@
     CONSENT_COOLING,
     CACHE_BUST,
   };
-})(typeof window !== 'undefined' ? window : global);
+
+  function bootUatStandalonePage() {
+    const path = String(global.location?.pathname || '');
+    if (!path.includes('cco-avtal-samtycke-bundle.html')) return;
+    if (document.getElementById(ROOT_ID)) return;
+    try {
+      global.__ARCANA_STEG7_LEGAL_APPROVED__ = true;
+      mount({
+        patientName: 'Anna Karlsson',
+        personnummer: '19800101-1234',
+        offerLabel: 'Hårtransplantation DHI · 45 000 kr',
+        legalReviewApproved: true,
+      });
+      const shell = document.getElementById('uat-shell');
+      if (shell) shell.hidden = true;
+    } catch (error) {
+      console.error('[steg7-uat] mount failed', error);
+      const err = document.getElementById('uat-error');
+      if (err) {
+        err.hidden = false;
+        err.textContent = 'Kunde inte öppna modalen. Prova hård refresh (Cmd+Shift+R).';
+      }
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootUatStandalonePage);
+    } else {
+      bootUatStandalonePage();
+    }
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
