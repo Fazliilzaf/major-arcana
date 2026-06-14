@@ -11,6 +11,8 @@
   const DASHBOARD_STREAM_RETRY_MIN_MS = 1500;
   const DASHBOARD_STREAM_RETRY_MAX_MS = 15000;
   const DASHBOARD_STREAM_REFRESH_DEBOUNCE_MS = 1200;
+  const OVERVIEW_MONITOR_CACHE_MS = 60000;
+  const OVERVIEW_MONITOR_DEBOUNCE_MS = 200;
   const BRAND_PRIMARY_COLORS = Object.freeze(['#d8b38f', '#e6c6a5', '#c89f79', '#b78761']);
   const BRAND_ACCENT_COLORS = Object.freeze(['#2e2016', '#3a2a1e', '#4c3a2c', '#6b5747']);
   const DEFAULT_BRAND_PRIMARY_COLOR = '#d8b38f';
@@ -472,6 +474,9 @@
     dashboardStreamRunId: 0,
     dashboardRealtimeRefreshTimer: null,
     monitorDetailsVisible: false,
+    overviewMonitorTimer: null,
+    overviewMonitorLoadedAt: 0,
+    overviewMonitorLoadPromise: null,
   };
 
   const els = {
@@ -601,6 +606,9 @@
     monitorReadinessNoGoResult: document.getElementById('monitorReadinessNoGoResult'),
     monitorRemediationSummary: document.getElementById('monitorRemediationSummary'),
     monitorRemediationResult: document.getElementById('monitorRemediationResult'),
+    executiveFeedSummary: document.getElementById('executiveFeedSummary'),
+    executiveFeedList: document.getElementById('executiveFeedList'),
+    executiveFeedRefreshBtn: document.getElementById('executiveFeedRefreshBtn'),
     loadStateManifestBtn: document.getElementById('loadStateManifestBtn'),
     createStateBackupBtn: document.getElementById('createStateBackupBtn'),
     listStateBackupsBtn: document.getElementById('listStateBackupsBtn'),
@@ -4799,6 +4807,9 @@
       teardownCcoPreviewEmbed();
     }
     syncAdminDocumentTitle(groupId);
+    if (groupId === 'overviewSection' && state.token) {
+      scheduleOverviewMonitorLoad();
+    }
   }
 
   function scrollToSection(sectionEl) {
@@ -8660,37 +8671,199 @@
     }
   }
 
-  async function loadMonitorStatus() {
+  function settledApiValue(settled) {
+    return settled?.status === 'fulfilled' ? settled.value : null;
+  }
+
+  function settledApiErrorMessage(settled, fallbackSv, fallbackEn) {
+    if (settled?.status !== 'rejected') return '';
+    const reason = settled.reason;
+    const message =
+      reason && typeof reason === 'object' && reason.message
+        ? String(reason.message).trim()
+        : String(reason || '').trim();
+    if (message) return message;
+    return isEnglishLanguage() ? fallbackEn : fallbackSv;
+  }
+
+  function renderExecutiveFeedSummary(summary) {
+    if (!els.executiveFeedSummary) return;
+    if (!summary || typeof summary !== 'object') {
+      els.executiveFeedSummary.textContent = isEnglishLanguage()
+        ? 'No feed data.'
+        : 'Ingen feed-data.';
+      return;
+    }
+    els.executiveFeedSummary.textContent = isEnglishLanguage()
+      ? `Active: ${summary.totalActive || 0} | OWNER action: ${summary.ownerActionRequired || 0} | High: ${(summary.bySeverity && summary.bySeverity.high) || 0}`
+      : `Aktiva: ${summary.totalActive || 0} | OWNER-åtgärd: ${summary.ownerActionRequired || 0} | High: ${(summary.bySeverity && summary.bySeverity.high) || 0}`;
+  }
+
+  function renderExecutiveFeedEntries(entries) {
+    if (!els.executiveFeedList) return;
+    const rows = Array.isArray(entries) ? entries : [];
+    els.executiveFeedList.innerHTML = '';
+    if (!rows.length) {
+      els.executiveFeedList.textContent = isEnglishLanguage()
+        ? 'No pending decisions right now.'
+        : 'Inga pending beslut just nu.';
+      return;
+    }
+    rows.forEach((entry) => {
+      const row = document.createElement('div');
+      row.className = 'executive-feed-row';
+      row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;margin-bottom:8px';
+      const text = document.createElement('div');
+      text.style.flex = '1';
+      text.textContent = `[${entry.severity || 'info'}] ${entry.agent || 'agent'} — ${entry.recommendation || (isEnglishLanguage() ? 'Review' : 'Granska')}${entry.requiredOwnerAction ? ' (OWNER)' : ''}`;
+      row.appendChild(text);
+      els.executiveFeedList.appendChild(row);
+    });
+  }
+
+  async function loadExecutiveFeed() {
+    if (!els.executiveFeedSummary && !els.executiveFeedList) return;
     try {
-      setStatus(els.monitorPanelStatus, 'Laddar monitor-status...');
-      const [statusResponse, readinessResponse, readinessHistoryResponse, observabilityResponse] =
-        await Promise.all([
-          api('/monitor/status'),
-          api('/monitor/readiness'),
-          api('/monitor/readiness/history?limit=30'),
-          api('/monitor/observability?areaLimit=12'),
-        ]);
-      if (els.monitorResult) {
-        els.monitorResult.textContent = JSON.stringify(
-          {
-            status: statusResponse,
-            readiness: readinessResponse,
-            readinessHistory: readinessHistoryResponse,
-            observability: observabilityResponse,
-          },
-          null,
-          2
-        );
+      const payload = await api('/executive/feed?ownerAction=true&limit=10');
+      renderExecutiveFeedSummary(payload?.summary || null);
+      renderExecutiveFeedEntries(payload?.entries || []);
+    } catch (error) {
+      if (els.executiveFeedSummary) {
+        els.executiveFeedSummary.textContent = isEnglishLanguage()
+          ? 'Could not load executive feed.'
+          : 'Kunde inte ladda executive feed.';
       }
-      renderReadinessKpi(readinessResponse);
-      renderPilotReportKpi(statusResponse);
-      renderMonitorObservability(observabilityResponse);
-      renderMonitorPublicChatBeta(statusResponse);
-      renderMonitorPatientConversion(statusResponse);
-      renderMonitorScheduler(statusResponse);
-      renderReadinessHistory(readinessHistoryResponse);
-      renderReadinessNoGo(readinessResponse);
-      renderMonitorRemediation(readinessResponse);
+      if (els.executiveFeedList) els.executiveFeedList.textContent = '';
+      throw error;
+    }
+  }
+
+  async function loadOverviewMonitorData({ force = false } = {}) {
+    if (!state.token) return;
+    const now = Date.now();
+    if (
+      !force &&
+      state.overviewMonitorLoadedAt &&
+      now - state.overviewMonitorLoadedAt < OVERVIEW_MONITOR_CACHE_MS
+    ) {
+      return;
+    }
+    if (state.overviewMonitorLoadPromise) return state.overviewMonitorLoadPromise;
+
+    state.overviewMonitorLoadPromise = (async () => {
+      const results = await Promise.allSettled([loadMonitorStatus(), loadExecutiveFeed()]);
+      state.overviewMonitorLoadedAt = Date.now();
+      if (results.every((entry) => entry.status === 'rejected')) {
+        const firstError = results.find((entry) => entry.status === 'rejected')?.reason;
+        throw firstError instanceof Error
+          ? firstError
+          : new Error(String(firstError || 'Overview load failed.'));
+      }
+    })().finally(() => {
+      state.overviewMonitorLoadPromise = null;
+    });
+
+    return state.overviewMonitorLoadPromise;
+  }
+
+  function scheduleOverviewMonitorLoad(options = {}) {
+    if (!state.token) return;
+    if (state.overviewMonitorTimer) return;
+    state.overviewMonitorTimer = setTimeout(() => {
+      state.overviewMonitorTimer = null;
+      void loadOverviewMonitorData(options).catch(() => {
+        // Per-card errors are surfaced inside loadMonitorStatus/loadExecutiveFeed.
+      });
+    }, OVERVIEW_MONITOR_DEBOUNCE_MS);
+  }
+
+  async function loadMonitorStatus() {
+    setStatus(els.monitorPanelStatus, 'Laddar monitor-status...');
+    const [statusSettled, readinessSettled, readinessHistorySettled, observabilitySettled] =
+      await Promise.allSettled([
+        api('/monitor/status'),
+        api('/monitor/readiness'),
+        api('/monitor/readiness/history?limit=30'),
+        api('/monitor/observability?areaLimit=12'),
+      ]);
+
+    const statusResponse = settledApiValue(statusSettled);
+    const readinessResponse = settledApiValue(readinessSettled);
+    const readinessHistoryResponse = settledApiValue(readinessHistorySettled);
+    const observabilityResponse = settledApiValue(observabilitySettled);
+
+    if (els.monitorResult) {
+      els.monitorResult.textContent = JSON.stringify(
+        {
+          status: statusResponse,
+          readiness: readinessResponse,
+          readinessHistory: readinessHistoryResponse,
+          observability: observabilityResponse,
+          errors: {
+            status: settledApiErrorMessage(statusSettled, 'status misslyckades', 'status failed'),
+            readiness: settledApiErrorMessage(
+              readinessSettled,
+              'readiness misslyckades',
+              'readiness failed'
+            ),
+            readinessHistory: settledApiErrorMessage(
+              readinessHistorySettled,
+              'historik misslyckades',
+              'history failed'
+            ),
+            observability: settledApiErrorMessage(
+              observabilitySettled,
+              'observability misslyckades',
+              'observability failed'
+            ),
+          },
+        },
+        null,
+        2
+      );
+    }
+
+    renderReadinessKpi(readinessResponse);
+    if (readinessSettled.status === 'rejected' && els.readinessBandMeta) {
+      setKpiMeta(
+        els.readinessBandMeta,
+        settledApiErrorMessage(
+          readinessSettled,
+          'Kunde inte ladda beredskap.',
+          'Could not load readiness.'
+        ),
+        true
+      );
+    }
+
+    renderPilotReportKpi(statusResponse);
+    if (statusSettled.status === 'rejected' && els.pilotReportMeta) {
+      setKpiMeta(
+        els.pilotReportMeta,
+        settledApiErrorMessage(
+          statusSettled,
+          'Kunde inte ladda pilotrapport.',
+          'Could not load pilot report.'
+        ),
+        true
+      );
+    }
+
+    renderMonitorObservability(observabilityResponse);
+    renderMonitorPublicChatBeta(statusResponse);
+    renderMonitorPatientConversion(statusResponse);
+    renderMonitorScheduler(statusResponse);
+    renderReadinessHistory(readinessHistoryResponse);
+    renderReadinessNoGo(readinessResponse);
+    renderMonitorRemediation(readinessResponse);
+
+    const failedParts = [];
+    if (statusSettled.status === 'rejected') failedParts.push('status');
+    if (readinessSettled.status === 'rejected') failedParts.push('readiness');
+    if (readinessHistorySettled.status === 'rejected') failedParts.push('history');
+    if (observabilitySettled.status === 'rejected') failedParts.push('observability');
+
+    if (!failedParts.length) {
       const band = readinessResponse?.band || '-';
       const requiredBlockers = Number(readinessResponse?.goNoGo?.blockingRequiredChecksCount || 0);
       const triggeredNoGoCount = Number(readinessResponse?.goNoGo?.triggeredNoGoCount || 0);
@@ -8698,23 +8871,31 @@
         els.monitorPanelStatus,
         `Monitor uppdaterad. Band=${band}, blockeringar=${requiredBlockers}, noGo=${triggeredNoGoCount}.`
       );
-    } catch (error) {
-      renderReadinessKpi(null);
-      renderPilotReportKpi(null);
-      renderMonitorObservability(null);
-      renderMonitorPublicChatBeta(null);
-      renderMonitorPatientConversion(null);
-      renderMonitorScheduler(null);
-      renderReadinessHistory(null);
-      renderReadinessNoGo(null);
-      if (els.monitorRemediationSummary) els.monitorRemediationSummary.textContent = '';
-      if (els.monitorRemediationResult) {
-        els.monitorRemediationResult.textContent = isEnglishLanguage()
-          ? 'Readiness remediation could not be loaded.'
-          : 'Beredskapsåtgärd kunde inte laddas.';
-      }
-      setStatus(els.monitorPanelStatus, error.message || 'Kunde inte läsa monitor-status.', true);
+      return;
     }
+
+    if (failedParts.length === 4) {
+      const firstError = [
+        statusSettled,
+        readinessSettled,
+        readinessHistorySettled,
+        observabilitySettled,
+      ]
+        .map((entry) =>
+          settledApiErrorMessage(entry, 'Monitor-anrop misslyckades.', 'Monitor request failed.')
+        )
+        .find(Boolean);
+      setStatus(els.monitorPanelStatus, firstError || 'Kunde inte läsa monitor-status.', true);
+      return;
+    }
+
+    setStatus(
+      els.monitorPanelStatus,
+      isEnglishLanguage()
+        ? `Monitor partially updated (${failedParts.join(', ')} failed).`
+        : `Monitor delvis uppdaterad (${failedParts.join(', ')} misslyckades).`,
+      true
+    );
   }
 
   async function runSchedulerRequiredSuite() {
@@ -9401,7 +9582,7 @@
     await loadTemplates({ preserveSelection: true });
     await loadAuditEvents();
     await loadMailInsights();
-    await loadMonitorStatus();
+    await loadOverviewMonitorData({ force: true });
     if (isOwner()) {
       await loadStateManifest();
     } else if (els.opsResult) {
@@ -10237,7 +10418,12 @@
     applyMailTemplateSeeds({ dryRun: true })
   );
   els.applyMailSeedsBtn?.addEventListener('click', () => applyMailTemplateSeeds({ dryRun: false }));
-  els.refreshMonitorBtn?.addEventListener('click', loadMonitorStatus);
+  els.refreshMonitorBtn?.addEventListener('click', () => loadMonitorStatus());
+  els.executiveFeedRefreshBtn?.addEventListener('click', () => {
+    void loadExecutiveFeed().catch(() => {
+      // Error text is rendered inside loadExecutiveFeed.
+    });
+  });
   els.toggleMonitorDetailsBtn?.addEventListener('click', () => {
     setMonitorDetailsVisible(!state.monitorDetailsVisible);
   });
