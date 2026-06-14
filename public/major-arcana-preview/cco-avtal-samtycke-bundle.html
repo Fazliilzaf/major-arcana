@@ -1,26 +1,76 @@
 <!doctype html>
-<html lang="sv">
+<html lang="sv" data-v9-enabled="on" data-v9-demo="on">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <base href="/major-arcana-preview/" />
     <title>Avtal + samtycke · steg 7 · Hair TP Clinic</title>
     <link rel="stylesheet" href="/cco-polish.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(ellipse at 50% 0%, rgba(255, 210, 225, 0.35), transparent 45%), #faf6f2;
+        font-family: Inter, system-ui, sans-serif;
+      }
+      #uat-shell {
+        max-width: 420px;
+        margin: 48px auto;
+        padding: 24px;
+        text-align: center;
+        color: #8a8174;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      #uat-shell strong {
+        display: block;
+        color: #2b251f;
+        font-size: 15px;
+        margin-bottom: 8px;
+      }
+      #uat-error {
+        color: #b94a4a;
+        margin-top: 12px;
+      }
+    </style>
     <script src="/cco-polish.js" defer></script>
     <script src="./app/cco-step-modal-design.js?v=hairtp-step789-kundkort-v2" defer></script>
     <script src="./app/cco-avtal-samtycke-bundle.js?v=hairtp-step789-kundkort-v2" defer></script>
   </head>
   <body data-stage="demo" data-v9-enabled="on" data-v9-demo="on">
+    <div id="uat-shell">
+      <strong>Steg 7 · Avtal &amp; samtycke</strong>
+      Laddar modal…
+      <div id="uat-error" hidden></div>
+    </div>
+    <noscript>
+      <p style="padding: 24px; text-align: center">
+        Aktivera JavaScript för att öppna signeringen.
+      </p>
+    </noscript>
     <script>
-      document.addEventListener('DOMContentLoaded', function () {
+      window.addEventListener('load', function () {
         document.documentElement.setAttribute('data-v9-enabled', 'on');
         document.documentElement.setAttribute('data-v9-demo', 'on');
         window.__ARCANA_STEG7_LEGAL_APPROVED__ = true;
-        window.CcoAvtalSamtyckeBundle?.mount({
+        var shell = document.getElementById('uat-shell');
+        var err = document.getElementById('uat-error');
+        if (!window.CcoAvtalSamtyckeBundle) {
+          if (err) {
+            err.hidden = false;
+            err.textContent =
+              'Script laddades inte. Prova hård refresh (Cmd+Shift+R) eller öppna arcana.hairtpclinic.com (inte .se).';
+          }
+          return;
+        }
+        window.CcoAvtalSamtyckeBundle.mount({
           patientName: 'Anna Karlsson',
           personnummer: '19800101-1234',
           offerLabel: 'Hårtransplantation DHI · 45 000 kr',
           legalReviewApproved: true,
         });
+        if (shell) shell.hidden = true;
       });
     </script>
   </body>
