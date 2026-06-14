@@ -13,13 +13,18 @@
   const STYLE_ID = 'cco-foto-samtycke-styles';
   const DISMISS_KEY = 'arcana.fotosamtycke.dismissed';
   const SIGNED_KEY = 'arcana.fotosamtycke.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v1';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v2';
 
   const STEP9_EXTRA_CSS = `
-#${ROOT_ID} .scope-note{font-size:12px;line-height:1.6;color:var(--t2);margin:0 0 10px}
+#${ROOT_ID} .scope-note{
+  font-size:12px;line-height:1.62;color:var(--t2);margin:0 0 12px;padding:12px 14px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(247,241,236,.42));
+  border:1px solid rgba(215,202,194,.32);box-shadow:inset 0 1px 0 rgba(255,255,255,.88)
+}
 #${ROOT_ID} .scope-note strong{color:var(--brand)}
-#${ROOT_ID} .scope-list{margin:0 0 10px;padding-left:16px;color:var(--t2);font-size:12px;line-height:1.55}
-#${ROOT_ID} .scope-list li{margin-bottom:6px}
+#${ROOT_ID} .scope-list{margin:0 0 12px;padding-left:18px;color:var(--t2);font-size:12px;line-height:1.58}
+#${ROOT_ID} .scope-list li{margin-bottom:8px;padding-left:2px}
+#${ROOT_ID} .scope-list li::marker{color:var(--accent)}
 `;
 
   function buildStyleText() {

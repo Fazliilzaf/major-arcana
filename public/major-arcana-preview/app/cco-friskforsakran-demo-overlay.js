@@ -13,7 +13,7 @@
   const STYLE_ID = 'cco-ff-demo-styles';
   const DISMISS_KEY = 'arcana.ffdemo.dismissed';
   const MERIDIQ_FORM_ID = 16413;
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v1';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v2';
 
   // source: migration/meridiq/questionary-catalog.json — apiId 16413, question 450968
   const DISEASE_OPTIONS = [
@@ -234,18 +234,20 @@
   }
 
   const STEP8_EXTRA_CSS = `
-#${ROOT_ID} .mq-field{margin-bottom:14px}
-#${ROOT_ID} .mq-field:last-child{margin-bottom:0}
+#${ROOT_ID} .mq-field{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(215,202,194,.22)}
+#${ROOT_ID} .mq-field:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
 #${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:72px;resize:vertical}
 #${ROOT_ID} .mq-follow{margin-top:8px;margin-bottom:0}
 #${ROOT_ID} .checks{display:flex;flex-direction:column;gap:8px}
 #${ROOT_ID} .mq-attest .check span{font-size:11px;line-height:1.5}
-#${ROOT_ID} .yn-toggle-row{display:flex;gap:12px;margin-bottom:4px;flex-wrap:wrap}
-#${ROOT_ID} .yn-toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--brand);cursor:pointer;user-select:none}
+#${ROOT_ID} .yn-toggle-row{display:flex;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+#${ROOT_ID} .yn-toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:650;color:var(--brand);cursor:pointer;user-select:none;padding:7px 12px;border-radius:999px;border:1px solid rgba(215,202,194,.35);background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(247,241,236,.68));box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 2px 6px rgba(56,40,28,.05);transition:border-color .15s,background .15s,box-shadow .15s,transform .15s}
+#${ROOT_ID} .yn-toggle:hover{border-color:rgba(187,71,121,.24);transform:translateY(-1px)}
 #${ROOT_ID} .yn-toggle input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
-#${ROOT_ID} .yn-toggle-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(132,117,107,.45);background:rgba(255,255,255,.85);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s,background .15s,box-shadow .15s}
-#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box{border-color:var(--accent);background:rgba(187,71,121,.12);box-shadow:inset 0 0 0 1px rgba(187,71,121,.25)}
-#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box::after{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent)}
+#${ROOT_ID} .yn-toggle-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(132,117,107,.4);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(247,241,236,.9));display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 2px rgba(56,40,28,.06);transition:border-color .15s,background .15s,box-shadow .15s}
+#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box{border-color:var(--accent);background:linear-gradient(180deg,rgba(252,233,240,.95),rgba(241,207,220,.75));box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px rgba(187,71,121,.2)}
+#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box::after{content:"";width:10px;height:10px;border-radius:3px;background:linear-gradient(135deg,var(--accent),#9e3a68)}
+#${ROOT_ID} .yn-toggle:has(input:checked){border-color:rgba(187,71,121,.32);background:linear-gradient(180deg,rgba(252,233,240,.72),rgba(241,207,220,.42));box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 4px 12px rgba(187,71,121,.1)}
 #${ROOT_ID} .btn-primary:disabled{opacity:.55;cursor:wait;transform:none}
 #${ROOT_ID} .status{margin-top:10px}
 `;
