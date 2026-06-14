@@ -1,9 +1,9 @@
 /**
  * Steg 9 — Foto-samtycke demo-overlay (hårlinje/krona).
  *
- * Content registry:
- *   source: docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md — steg 9 scope
- *   source: public/kunder-mockup-v10.html — hårlinje/krona, aldrig ansikte
+ * Content registry (Meridiq facit — owner bekräftat 2026-06-14):
+ *   source: migration/meridiq — registry foto_samtycke (Meridiq G4 doc #15)
+ *   source: docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md — scope hårlinje/krona, aldrig ansikte
  *   source: new — demo modal chrome
  */
 (function (global) {
@@ -13,7 +13,9 @@
   const STYLE_ID = 'cco-foto-samtycke-styles';
   const DISMISS_KEY = 'arcana.fotosamtycke.dismissed';
   const SIGNED_KEY = 'arcana.fotosamtycke.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v3';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v4';
+
+  let meridiqContent = null;
 
   const STEP9_EXTRA_CSS = `
 #${ROOT_ID} .scope-note{
@@ -85,59 +87,6 @@
     document.head.appendChild(style);
   }
 
-  function buildFormHtml(context) {
-    return `
-  <div class="wrap">
-    <header class="demo-header">
-      <span class="demo-kicker">★ Steg 9</span>
-      <h1 class="demo-title">Foto-samtycke</h1>
-      <p class="demo-subtitle">Samma dag som för-/efterbild · scope sparas i journalen</p>
-    </header>
-
-    <div class="demo-scroll" id="steg9FormPanel">
-      <section class="section-block" aria-label="Foto-samtycke">
-        <p class="scope-note">
-          <strong>Scope:</strong> Hårlinje och krona för journalföring och behandlingsuppföljning.
-          <strong>Aldrig ansikte.</strong>
-        </p>
-        <ul class="scope-list">
-          <li>Före/efter-bilder av hårlinje och krona får tas och sparas i patientjournalen.</li>
-          <li>Bilder får användas internt för uppföljning — inte för marknadsföring utan separat samtycke.</li>
-          <li>Patient: ${escapeHtml(context.patientName)}</li>
-        </ul>
-        <label class="check">
-          <input type="checkbox" id="ackPhotoScope" />
-          <span>Jag godkänner att Hair TP Clinic tar och sparar före/efter-bilder enligt scope ovan (hårlinje/krona — aldrig ansikte).</span>
-        </label>
-      </section>
-
-      <section class="section-block section-block--sign" aria-label="Signering">
-        <div class="field">
-          <label for="photoPatientName">Namn</label>
-          <input type="text" id="photoPatientName" autocomplete="name" value="${escapeHtml(context.patientName)}" placeholder="För- och efternamn" />
-        </div>
-      </section>
-
-      <div class="status" id="steg9Status" role="status" aria-live="polite"></div>
-    </div>
-
-    <div class="actions">
-      <button class="btn btn-ghost" type="button" id="cancelBtn">Avbryt</button>
-      <button class="btn btn-primary" type="button" id="signBtn" disabled>✍ Signera</button>
-    </div>
-
-    <section class="signed-panel" id="signedPanel" hidden>
-      <div class="signed-banner">
-        <h3>✓ Foto-samtycke registrerat</h3>
-        <p>Scope hårlinje/krona är sparat i Hair TP:s journal-system.</p>
-        <p style="margin-top:10px;font-size:11px;color:var(--t3)">
-          Entry-ID: <code id="signedEntryId" style="font-family:'SF Mono',ui-monospace,monospace;font-weight:700"></code>
-        </p>
-      </div>
-    </section>
-  </div>`;
-  }
-
   function setOverlayStatus(root, msg, kind) {
     const status = root.querySelector('#steg9Status');
     if (!status) return;
@@ -207,25 +156,34 @@
   }
 
   function mount(options = {}) {
-    if (document.getElementById(ROOT_ID)) return document.getElementById(ROOT_ID);
-    ensureStyles();
-    const context = readContext(options);
-    const root = document.createElement('div');
-    root.id = ROOT_ID;
-    root.className = 'demo-scrim';
-    root.setAttribute('role', 'presentation');
-    root.innerHTML = `
+    if (document.getElementById(ROOT_ID)) return Promise.resolve(document.getElementById(ROOT_ID));
+
+    return global.CcoMeridiqContent.load()
+      .then((content) => {
+        meridiqContent = content;
+        ensureStyles();
+        const context = readContext(options);
+        const root = document.createElement('div');
+        root.id = ROOT_ID;
+        root.className = 'demo-scrim';
+        root.setAttribute('role', 'presentation');
+        root.innerHTML = `
       <div class="demo-modal" role="dialog" aria-modal="true" aria-label="Foto-samtycke · steg 9">
-        ${buildFormHtml(context)}
+        ${global.CcoMeridiqContent.buildSteg9FormHtml(context, content)}
       </div>`;
-    document.body.appendChild(root);
-    bindOverlay(root);
-    try {
-      sessionStorage.removeItem(DISMISS_KEY);
-    } catch {
-      /* private mode */
-    }
-    return root;
+        document.body.appendChild(root);
+        bindOverlay(root);
+        try {
+          sessionStorage.removeItem(DISMISS_KEY);
+        } catch {
+          /* private mode */
+        }
+        return root;
+      })
+      .catch((error) => {
+        console.error('[steg9] Meridiq content load failed', error);
+        throw error;
+      });
   }
 
   function unmount(dismissed) {
@@ -266,18 +224,19 @@
     const path = String(global.location?.pathname || '');
     if (!path.includes('cco-foto-samtycke-demo-overlay.html')) return;
     if (document.getElementById(ROOT_ID)) return;
-    try {
-      mount({ patientName: 'Anna Karlsson' });
-      const shell = document.getElementById('uat-shell');
-      if (shell) shell.hidden = true;
-    } catch (error) {
-      console.error('[steg9-uat] mount failed', error);
-      const err = document.getElementById('uat-error');
-      if (err) {
-        err.hidden = false;
-        err.textContent = 'Kunde inte öppna modalen. Prova hård refresh (Cmd+Shift+R).';
-      }
-    }
+    void mount({ patientName: 'Anna Karlsson' })
+      .then(() => {
+        const shell = document.getElementById('uat-shell');
+        if (shell) shell.hidden = true;
+      })
+      .catch((error) => {
+        console.error('[steg9-uat] mount failed', error);
+        const err = document.getElementById('uat-error');
+        if (err) {
+          err.hidden = false;
+          err.textContent = 'Kunde inte öppna modalen. Prova hård refresh (Cmd+Shift+R).';
+        }
+      });
   }
 
   if (typeof document !== 'undefined') {

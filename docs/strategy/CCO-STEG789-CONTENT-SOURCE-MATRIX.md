@@ -104,8 +104,10 @@ Innehåll behöver **inte** skrivas om enligt owner — bara **kopplas tydligare
 
 | Sektion                   | FULL | PARTIAL | MISSING |
 | ------------------------- | ---- | ------- | ------- |
-| Fylls i av kund (18)      | 9    | 8       | 0       |
-| Fylls i av personal (12)  | 6    | 6       | 0       |
-| Informationsdokument (10) | 3    | 6       | 1       |
+| Fylls i av kund (18)      | 10   | 7       | 0       |
+| Fylls i av personal (12)  | 7    | 5       | 0       |
+| Informationsdokument (10) | 6    | 3       | 1       |
 
-**Blockers (PARTIAL/MISSING):** avtal PRP/PRF/Microneedling/Profhilo + bokning 2d (tom `letterText`), foto-publicering (ingen consent-post), SharePoint/Word-offert, SMS-mallar, intern SMS.
+**Källor (prioritet):** Meridiq-kataloger → `steg7-tp-dhi-agreement-facit.json` → `data/cco-templates.json` / `migration/cco-templates-document-facit.snapshot.json`.
+
+**Kvar PARTIAL:** PRP hår, Microneedling, PRF, Profhilo-avtal, samtycke bokning 2d, foto-publicering (Nordbro-stub), ordination Word, intern SMS.

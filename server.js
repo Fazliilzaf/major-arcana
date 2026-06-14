@@ -749,17 +749,25 @@ let ccoBookingCaseStore = null;
       if (!decoded) return null;
       const patientId = annotation.patientId || annotation.customerId;
       if (!patientId) return null;
+      const nowIso = new Date().toISOString();
+      const sourceCaptureDateTime =
+        typeof annotation.captureDateTime === 'string' ? annotation.captureDateTime : '';
+      const sourceCaptureDate =
+        typeof annotation.captureDate === 'string' ? annotation.captureDate.slice(0, 10) : '';
+      const documentDate = annotation.documentDate || sourceCaptureDate || nowIso.slice(0, 10);
       const secureStorage = await resolveSharedSecureStorage();
       const assetStore = await resolveSharedPatientAssetStore();
-      const originalName = `Markerad bild ${annotation.documentDate || new Date().toISOString().slice(0, 10)}.png`;
+      const originalName = `Markerad bild ${documentDate}.png`;
       const stored = await secureStorage.putObject({
         body: decoded.buffer,
         contentType: decoded.mimeType,
         metadata: {
           patientId,
           originalFileName: originalName,
-          documentDate: annotation.documentDate || null,
-          importedAt: new Date().toISOString(),
+          documentDate,
+          captureDate: sourceCaptureDate || documentDate,
+          captureDateTime: sourceCaptureDateTime || null,
+          importedAt: nowIso,
         },
       });
       const thumbnailKey = await secureStorage.generateThumbnailIfImage(
@@ -779,8 +787,21 @@ let ccoBookingCaseStore = null;
           fileSize: stored.size,
           mimeType: decoded.mimeType,
           category: 'photo_during',
-          documentDate: annotation.documentDate || new Date().toISOString().slice(0, 10),
-          importedAt: new Date().toISOString(),
+          documentDate,
+          captureDate: sourceCaptureDate || documentDate,
+          captureDateTime: sourceCaptureDateTime || null,
+          captureDateSource: sourceCaptureDateTime
+            ? 'source_asset_captureDateTime'
+            : sourceCaptureDate
+              ? 'source_asset_captureDate'
+              : annotation.documentDate
+                ? 'source_asset_documentDate'
+                : 'annotation_created_at',
+          captureDateConfidence:
+            sourceCaptureDateTime || sourceCaptureDate || annotation.documentDate
+              ? 'medium'
+              : 'low',
+          importedAt: nowIso,
           importedBy: actor.userId || 'cco',
           confidence: 'high',
           status: 'VISIBLE_ON_PATIENT_CARD',
@@ -791,6 +812,7 @@ let ccoBookingCaseStore = null;
           patientCardSection: 'photo',
           imageStage: 'annotated',
           bodyArea: annotation.zone || null,
+          version: 'annotated-v1',
           technicalInfo: {
             sourceAnnotationId: annotation.id,
             sourceAssetId: annotation.sourceAssetId || null,
@@ -6325,6 +6347,13 @@ try {
                 needsAttention: isAttention,
                 displayName: a.displayName || null,
                 patientCardSection: a.patientCardSection || null,
+                imageStage: a.imageStage || null,
+                bodyArea: a.bodyArea || null,
+                selectedFor: Array.isArray(a.technicalInfo?.selectedFor)
+                  ? a.technicalInfo.selectedFor
+                  : [],
+                sourceAnnotationId: a.technicalInfo?.sourceAnnotationId || null,
+                sourceAssetId: a.technicalInfo?.sourceAssetId || null,
                 uiStatus: a.uiStatus || null,
                 sourceSystem: a.sourceSystem || null,
                 legalStatus: a.technicalInfo?.legalStatus || null,

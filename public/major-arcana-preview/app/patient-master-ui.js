@@ -4003,14 +4003,46 @@
   function isDriveImageFile(file) {
     const mime = normalizeText(file?.mimeType || file?.contentType).toLowerCase();
     const type = normalizeText(file?.fileType).toLowerCase();
+    const category = normalizeText(file?.category).toLowerCase();
     const name = normalizeText(
-      file?.fileName || file?.originalFileName || file?.name
+      file?.fileName || file?.originalFileName || file?.relativePath || file?.name || file?.title
     ).toLowerCase();
     return (
       type === 'image' ||
       mime.startsWith('image/') ||
+      /^(photo|image)_(before|during|after|overview|donor|hairline|crown)$/.test(category) ||
+      /(^|\s·\s)(foto|photo)(\s·|$)/.test(name) ||
+      (/^\d{4}-\d{2}-\d{2}\s·\s/.test(name) &&
+        /\s·\s(före|fore|before|under|efter|after|översikt|oversikt|overview|donator|donor|hårlinje|harlinje|hairline|krona|crown|fue operation|prp)(\s·|$)/.test(
+          name
+        ) &&
+        !/\.(pdf|docx?|rtf|odt|xlsx?|csv|txt)$/.test(name)) ||
       /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name)
     );
+  }
+
+  function isDriveVideoFile(file) {
+    const mime = normalizeText(file?.mimeType || file?.contentType).toLowerCase();
+    const type = normalizeText(file?.fileType).toLowerCase();
+    const category = normalizeText(file?.category).toLowerCase();
+    const name = normalizeText(
+      file?.fileName || file?.originalFileName || file?.relativePath || file?.name || file?.title
+    ).toLowerCase();
+    return (
+      type === 'video' ||
+      mime.startsWith('video/') ||
+      /^(video|film)_(before|during|after|overview|donor|hairline|crown)$/.test(category) ||
+      /(^|\s·\s)(film|video)(\s·|$)/.test(name) ||
+      /\.(mp4|mov|m4v|webm)$/.test(name)
+    );
+  }
+
+  function isDriveMediaFile(file) {
+    return isDriveImageFile(file) || isDriveVideoFile(file);
+  }
+
+  function isDriveDocumentFile(file) {
+    return !isDriveMediaFile(file);
   }
 
   function isDriveJournalPdf(file) {
@@ -4024,7 +4056,7 @@
 
   function withUniqueDriveFileSummary(card, driveFiles) {
     if (!card || !asArray(driveFiles).length) return card;
-    const totalFiles = driveFiles.length;
+    const totalFiles = driveFiles.filter(isDriveDocumentFile).length;
     const images = driveFiles.filter(isDriveImageFile).length;
     const journalPdfs = driveFiles.filter(isDriveJournalPdf).length;
     return {
@@ -6752,7 +6784,7 @@
   }
 
   function renderDriveFiles(files, card) {
-    const rows = asArray(files);
+    const rows = asArray(files).filter(isDriveDocumentFile);
     if (!rows.length) {
       return renderFilesEmpty(card);
     }
