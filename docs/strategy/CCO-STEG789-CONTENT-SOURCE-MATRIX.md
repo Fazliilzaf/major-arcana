@@ -104,10 +104,10 @@ Innehåll behöver **inte** skrivas om enligt owner — bara **kopplas tydligare
 
 | Sektion                   | FULL | PARTIAL | MISSING |
 | ------------------------- | ---- | ------- | ------- |
-| Fylls i av kund (18)      | 10   | 7       | 0       |
+| Fylls i av kund (18)      | 11   | 6       | 0       |
 | Fylls i av personal (12)  | 7    | 5       | 0       |
 | Informationsdokument (10) | 6    | 3       | 1       |
 
 **Källor (prioritet):** Meridiq-kataloger → `steg7-tp-dhi-agreement-facit.json` → `data/cco-templates.json` / `migration/cco-templates-document-facit.snapshot.json`.
 
-**Kvar PARTIAL:** PRP hår, Microneedling, PRF, Profhilo-avtal, samtycke bokning 2d, foto-publicering (Nordbro-stub), ordination Word, intern SMS.
+**Kvar PARTIAL:** Microneedling, PRF, Profhilo-avtal, samtycke bokning 2d, foto-publicering (Nordbro-stub), ordination Word, intern SMS.

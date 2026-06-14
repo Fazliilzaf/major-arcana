@@ -182,6 +182,7 @@ function buildEmailSample(buildFn, input) {
 const consentCatalog = readJson('migration/meridiq/consent-catalog.json');
 const questionaryCatalog = readJson('migration/meridiq/questionary-catalog.json');
 const agreementFacit = readJson('migration/meridiq/steg7-tp-dhi-agreement-facit.json');
+const prpAgreementFacit = readJson('migration/meridiq/prp-behandling-agreement-facit.json');
 const docTypes = readJson('src/ops/hairtp-document-types.catalog.json');
 const journalTextTemplates = readJson('migration/journal-text-templates.json');
 const pupMarkdown = readText('docs/legal/personuppgiftspolicy-pub-maj-arcana.md');
@@ -203,6 +204,8 @@ const emailDemo = {
   locale: 'sv',
 };
 
+const PRP_AGREEMENT_API_IDS = new Set(prpAgreementFacit.consentApiIds || [170945, 170944]);
+
 function buildConsentDoc(registryId, label, consentApiId, options = {}) {
   const registry = findDocType(docTypes, registryId);
   const consent = consentApiId ? findConsent(consentCatalog, consentApiId) : null;
@@ -212,7 +215,8 @@ function buildConsentDoc(registryId, label, consentApiId, options = {}) {
   const facitBlocks =
     options.facitBlocks ||
     (consentApiId === 170917 ? agreementFacit.blocks : null) ||
-    (consentApiId === 170955 ? agreementFacit.cooling.blocks : null);
+    (consentApiId === 170955 ? agreementFacit.cooling.blocks : null) ||
+    (PRP_AGREEMENT_API_IDS.has(consentApiId) ? prpAgreementFacit.blocks : null);
   const ccoBody = ccoTemplate?.bodySv || '';
   const status = contentStatusForConsent(
     consent,
@@ -224,6 +228,12 @@ function buildConsentDoc(registryId, label, consentApiId, options = {}) {
     blockers.push('NEEDS_FACIT: letterText tom i Meridiq-export och cco-templates');
   }
   if (options.versionConflict) blockers.push(options.versionConflict);
+  const facitSource =
+    consentApiId === 170917 || consentApiId === 170955
+      ? 'migration/meridiq/steg7-tp-dhi-agreement-facit.json'
+      : PRP_AGREEMENT_API_IDS.has(consentApiId)
+        ? 'migration/meridiq/prp-behandling-agreement-facit.json'
+        : null;
   return {
     registryId,
     label: label || registry?.name || consent?.title,
@@ -232,7 +242,7 @@ function buildConsentDoc(registryId, label, consentApiId, options = {}) {
     blockers,
     sources: [
       consentApiId ? `migration/meridiq/consent-catalog.json#${consentApiId}` : null,
-      facitBlocks ? 'migration/meridiq/steg7-tp-dhi-agreement-facit.json' : null,
+      facitBlocks && facitSource ? facitSource : null,
       ccoTemplate ? `cco-templates#${ccoTemplateId}` : null,
       registry ? 'src/ops/hairtp-document-types.catalog.json' : null,
     ].filter(Boolean),
@@ -635,13 +645,14 @@ function summarizeSection(items) {
 
 const output = {
   generatedAt: new Date().toISOString(),
-  cacheVersion: 'hairtp-document-content-v2',
+  cacheVersion: 'hairtp-document-content-v3',
   description:
     'Samlad Hair TP content-bundle — Meridiq + steg7-facit + cco-templates (SharePoint/Nordbro)',
   sources: {
     consentCatalog: 'migration/meridiq/consent-catalog.json',
     questionaryCatalog: 'migration/meridiq/questionary-catalog.json',
     tpAgreementFacit: 'migration/meridiq/steg7-tp-dhi-agreement-facit.json',
+    prpAgreementFacit: 'migration/meridiq/prp-behandling-agreement-facit.json',
     ccoTemplatesSnapshot: 'migration/cco-templates-document-facit.snapshot.json',
     ccoTemplatesRuntime: 'data/cco-templates.json (gitignored, föredras vid lokal build)',
     documentRegistry: 'src/ops/hairtp-document-types.catalog.json',
