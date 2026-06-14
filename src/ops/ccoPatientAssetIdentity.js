@@ -279,7 +279,9 @@ function assetToPatientFile(asset) {
     sourceAnnotationId: technicalInfo.sourceAnnotationId || null,
     sourceAssetId: technicalInfo.sourceAssetId || asset?.sourceRecordId || null,
     offerReady:
-      asset?.imageStage === 'annotated' &&
+      (asset?.imageStage === 'annotated' ||
+        Boolean(technicalInfo.sourceAnnotationId) ||
+        String(asset?.version || '').toLowerCase() === 'annotated-v1') &&
       (selectedFor.includes('offer') || selectedFor.includes('treatment_plan')),
     importedAt: asset?.importedAt || null,
     occasionContext: timeline.date

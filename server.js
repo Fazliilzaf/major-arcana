@@ -811,6 +811,7 @@ let ccoBookingCaseStore = null;
           documentTitle: originalName,
           patientCardSection: 'photo',
           imageStage: 'annotated',
+          imageType: 'annotated_offer',
           bodyArea: annotation.zone || null,
           version: 'annotated-v1',
           technicalInfo: {
@@ -818,6 +819,7 @@ let ccoBookingCaseStore = null;
             sourceAssetId: annotation.sourceAssetId || null,
             selectedFor: annotation.selectedFor || [],
           },
+          selectedFor: Array.isArray(annotation.selectedFor) ? annotation.selectedFor : [],
         },
         { actor }
       );
@@ -991,15 +993,26 @@ let ccoBookingCaseStore = null;
           }
 
           // Bygg auto-items från plan om inte explicit angivet
+          const areaItems = (plan.areaSpecs || []).map((s) => ({
+            label: `${s.area} (${s.technique || plan.technique || 'fue'})`,
+            estimatedGrafts: s.estimatedGrafts || null,
+            sessionCount: s.sessionCount || 1,
+            note: s.note || '',
+          }));
+          const imageItems = (plan.selectedImages || []).map((img) => ({
+            label: img.label || img.zone || 'Markerad bild',
+            assetId: img.assetId || img.id || null,
+            annotationId: img.annotationId || null,
+            note: [img.date, img.zone].filter(Boolean).join(' · ') || 'Offertklar bild',
+          }));
           const autoItems =
             items && items.length
               ? items
-              : (plan.areaSpecs || []).map((s) => ({
-                  label: `${s.area} (${s.technique || plan.technique || 'fue'})`,
-                  estimatedGrafts: s.estimatedGrafts || null,
-                  sessionCount: s.sessionCount || 1,
-                  note: s.note || '',
-                }));
+              : areaItems.length
+                ? areaItems.concat(imageItems)
+                : imageItems.length
+                  ? imageItems
+                  : areaItems;
           const treatmentLabel = plan.technique
             ? `Behandlingsplan ${plan.technique.toUpperCase()}${plan.totalGraftEstimate ? ` · ~${plan.totalGraftEstimate} grafts` : ''}`
             : 'Behandlingsplan';

@@ -44,6 +44,41 @@
     return file?.fileType === 'image' || /\.(jpe?g|png|webp|gif|heic|heif|dng)$/i.test(name);
   }
 
+  function isV10MediaFile(file) {
+    const name = String(
+      file?.fileName ||
+        file?.originalFileName ||
+        file?.relativePath ||
+        file?.name ||
+        file?.title ||
+        file?.displayName ||
+        ''
+    ).toLowerCase();
+    const mime = String(file?.mimeType || file?.contentType || '').toLowerCase();
+    const type = String(file?.fileType || '').toLowerCase();
+    const category = String(file?.category || '').toLowerCase();
+    return (
+      type === 'image' ||
+      type === 'video' ||
+      mime.startsWith('image/') ||
+      mime.startsWith('video/') ||
+      /^(photo|image|video|film)_(before|during|after|overview|donor|hairline|crown)$/.test(
+        category
+      ) ||
+      /(^|\s·\s)(foto|photo|film|video)(\s·|$)/.test(name) ||
+      (/^\d{4}-\d{2}-\d{2}\s·\s/.test(name) &&
+        /\s·\s(före|fore|before|under|efter|after|översikt|oversikt|overview|donator|donor|hårlinje|harlinje|hairline|krona|crown|fue operation|prp)(\s·|$)/.test(
+          name
+        ) &&
+        !/\.(pdf|docx?|rtf|odt|xlsx?|csv|txt)$/.test(name)) ||
+      /\.(heic|heif|jpe?g|png|webp|gif|mp4|mov|m4v|webm)$/i.test(name)
+    );
+  }
+
+  function isV10DocumentFile(file) {
+    return !isV10MediaFile(file);
+  }
+
   function isJournalPdfFile(file) {
     const name = String(file?.fileName || file?.relativePath || '').toLowerCase();
     return file?.fileType === 'journal_pdf' || name.endsWith('.pdf');
@@ -91,7 +126,7 @@
 
   function renderV10DriveFilesHtml(driveFiles, card, { limit = 0, emptyHtml = '' } = {}) {
     void card;
-    const rows = asArray(driveFiles);
+    const rows = asArray(driveFiles).filter(isV10DocumentFile);
     if (!rows.length) {
       return emptyHtml || '<p class="dossier-empty">Inga filer importerade ännu.</p>';
     }
@@ -623,8 +658,8 @@
 
   function countRealFiles(card, driveFiles) {
     const fs = card?.fileSummary || {};
-    const summaryTotal = Number(fs.totalFiles) || 0;
-    const driveTotal = asArray(driveFiles).length;
+    const driveTotal = asArray(driveFiles).filter(isV10DocumentFile).length;
+    const summaryTotal = Math.max(0, Number(fs.totalFiles || 0) - Number(fs.images || 0));
     return Math.max(summaryTotal, driveTotal);
   }
 
@@ -644,7 +679,7 @@
     );
     if (otherCount > 0) push('📄', 'Övriga dokument', String(otherCount));
 
-    for (const file of asArray(driveFiles)) {
+    for (const file of asArray(driveFiles).filter(isV10DocumentFile)) {
       if (tiles.length >= 3) break;
       const rawName = file.originalFileName || file.fileName || file.name || '';
       const name = String(rawName).trim();

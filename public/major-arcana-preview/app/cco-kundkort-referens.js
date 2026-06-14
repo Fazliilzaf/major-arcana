@@ -123,21 +123,83 @@
   function isReferensImageFile(file) {
     var mime = driveDedupeText(file && (file.mimeType || file.contentType));
     var type = driveDedupeText(file && file.fileType);
-    var name = driveDedupeText(file && (file.fileName || file.originalFileName || file.name));
+    var category = driveDedupeText(file && file.category);
+    var name = driveDedupeText(
+      file &&
+        (file.fileName ||
+          file.originalFileName ||
+          file.relativePath ||
+          file.name ||
+          file.title ||
+          file.displayName)
+    );
+    var isPhotoCategory =
+      /^(photo|image)_(before|during|after|overview|donor|hairline|crown)$/.test(category);
+    var isPhotoLabel = /(^|\s·\s)(foto|photo)(\s·|$)/.test(name) && !/samtycke|consent/.test(name);
+    var isTreatmentPhotoLabel =
+      /^\d{4}-\d{2}-\d{2}\s·\s/.test(name) &&
+      /\s·\s(före|fore|before|under|efter|after|översikt|oversikt|overview|donator|donor|hårlinje|harlinje|hairline|krona|crown|fue operation|prp)(\s·|$)/.test(
+        name
+      ) &&
+      !/\.(pdf|docx?|rtf|odt|xlsx?|csv|txt)$/.test(name);
     return (
       type === 'image' ||
       mime.indexOf('image/') === 0 ||
+      isPhotoCategory ||
+      isPhotoLabel ||
+      isTreatmentPhotoLabel ||
       /\.(heic|heif|jpe?g|png|webp|gif)$/.test(name)
     );
   }
   function isReferensVideoFile(file) {
     var mime = driveDedupeText(file && (file.mimeType || file.contentType));
     var type = driveDedupeText(file && file.fileType);
-    var name = driveDedupeText(file && (file.fileName || file.originalFileName || file.name));
-    return type === 'video' || mime.indexOf('video/') === 0 || /\.(mp4|mov|m4v|webm)$/i.test(name);
+    var category = driveDedupeText(file && file.category);
+    var name = driveDedupeText(
+      file &&
+        (file.fileName ||
+          file.originalFileName ||
+          file.relativePath ||
+          file.name ||
+          file.title ||
+          file.displayName)
+    );
+    var isVideoCategory = /^(video|film)_(before|during|after|overview|donor|hairline|crown)$/.test(
+      category
+    );
+    var isVideoLabel = /(^|\s·\s)(film|video)(\s·|$)/.test(name);
+    return (
+      type === 'video' ||
+      mime.indexOf('video/') === 0 ||
+      isVideoCategory ||
+      isVideoLabel ||
+      /\.(mp4|mov|m4v|webm)$/i.test(name)
+    );
   }
   function isReferensMediaFile(file) {
     return isReferensImageFile(file) || isReferensVideoFile(file);
+  }
+  function looksLikeReferensMediaLabel(value) {
+    var name = driveDedupeText(value);
+    return (
+      /(^|\s·\s)(foto|photo|film|video)(\s·|$)/.test(name) ||
+      (/^\d{4}-\d{2}-\d{2}\s·\s/.test(name) &&
+        /\s·\s(före|fore|before|under|efter|after|översikt|oversikt|overview|donator|donor|hårlinje|harlinje|hairline|krona|crown|fue operation|prp)(\s·|$)/.test(
+          name
+        ) &&
+        !/\.(pdf|docx?|rtf|odt|xlsx?|csv|txt)$/.test(name))
+    );
+  }
+  function isReferensDocumentFile(file) {
+    var label =
+      file &&
+      (file.fileName ||
+        file.originalFileName ||
+        file.relativePath ||
+        file.name ||
+        file.title ||
+        file.displayName);
+    return !isReferensMediaFile(file) && !looksLikeReferensMediaLabel(label);
   }
   function isReferensBrowserImageFile(file) {
     var mime = driveDedupeText(file && (file.mimeType || file.contentType));
@@ -262,6 +324,21 @@
       (selectedFor.indexOf('offer') >= 0 || selectedFor.indexOf('treatment_plan') >= 0)
     );
   }
+  function gkIsAnnotatedFile(file) {
+    if (String((file && file.imageStage) || '').toLowerCase() === 'annotated') return true;
+    if (file && file.sourceAnnotationId) return true;
+    var tech = (file && file.technicalInfo) || {};
+    if (tech.sourceAnnotationId) return true;
+    if (String((file && file.version) || '').toLowerCase() === 'annotated-v1') return true;
+    var name = driveDedupeText(
+      file &&
+        (file.fileName || file.originalFileName || file.displayName || file.name || file.title)
+    );
+    return /markerad bild|annotated/i.test(name);
+  }
+  function gkIsOriginalVisitMediaFile(file) {
+    return isReferensMediaFile(file) && !gkIsAnnotatedFile(file);
+  }
   function gkSharedMediaFromFile(file) {
     var id = file && file.id ? String(file.id) : '';
     var labelSource =
@@ -368,6 +445,8 @@
             esc(p.date || '') +
             '" data-gk-photo-capture-date="' +
             esc(captureDate) +
+            '" data-gk-photo-capture-date-time="' +
+            esc(p.captureDateTime || '') +
             '" data-gk-photo-date-mismatch="' +
             (dateMismatch ? '1' : '0') +
             '" data-gk-photo-missing-preview="' +
@@ -663,7 +742,9 @@
   }
 
   function referensFileLabel(file, fallback) {
-    var n = String((file && (file.fileName || file.name || file.originalFileName)) || '');
+    var n = String(
+      (file && (file.fileName || file.name || file.originalFileName || file.relativePath)) || ''
+    );
     if (/\?\?\?|\+\?|�/.test(n)) {
       var ft = (file && file.fileType) || '';
       if (ft === 'journal_pdf') return fallback || 'Journal';
@@ -1025,7 +1106,7 @@
     var name = ctx.name || 'Kund';
     ctx.driveFiles = dedupeDriveFiles(ctx.driveFiles);
     var imgs = A2(ctx.driveFiles).filter(isReferensImageFile);
-    var visitMedia = A2(ctx.driveFiles).filter(isReferensMediaFile);
+    var visitMedia = A2(ctx.driveFiles).filter(gkIsOriginalVisitMediaFile);
     var MND = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
     var nowY = new Date().getFullYear();
     function gkZoneOf(s) {
@@ -1205,6 +1286,8 @@
               esc(p.date || '') +
               '" data-gk-photo-capture-date="' +
               esc(captureDate) +
+              '" data-gk-photo-capture-date-time="' +
+              esc(p.captureDateTime || '') +
               '" data-gk-photo-date-mismatch="' +
               (dateMismatch ? '1' : '0') +
               '" data-gk-photo-zone="' +
@@ -1313,7 +1396,7 @@
     });
     var persNames = Object.keys(persMap);
     var autoN = A2(ctx.autoDocs).length;
-    var docN = A2(ctx.driveFiles).length;
+    var docN = A2(ctx.driveFiles).filter(isReferensDocumentFile).length;
     var offerPhotoN = imgs.filter(gkIsOfferReadyFile).length;
     var nav =
       '<nav class="gk-nav">' +
@@ -2365,8 +2448,17 @@
       'Inga automationer.'
     );
 
-    // Dokument (alla filer)
-    var docR = A2(ctx.driveFiles)
+    // Dokument: bara faktiska dokument/filer. Originalmedia ligger i Besök,
+    // och ritade offertbilder ligger i Foto.
+    var documentFiles = A2(ctx.driveFiles)
+      .filter(isReferensDocumentFile)
+      .filter(function (f) {
+        return !looksLikeReferensMediaLabel(referensFileLabel(f, cleanName(f)));
+      })
+      .filter(function (f) {
+        return !gkIsAnnotatedFile(f) && !gkIsOfferReadyFile(f);
+      });
+    var docR = documentFiles
       .slice(0, 10)
       .map(function (f) {
         var nm = String(f.fileName || 'Fil').replace(/\.[a-z0-9]+$/i, '');
@@ -2379,9 +2471,7 @@
       .join('');
     var dokumentSectionHtml = sek(
       'Dokument',
-      docR
-        ? '<span class="gk-pill gk-tag-info">' + A2(ctx.driveFiles).length + ' filer</span>'
-        : '',
+      docR ? '<span class="gk-pill gk-tag-info">' + documentFiles.length + ' filer</span>' : '',
       docR,
       'Inga dokument ännu.'
     );
@@ -2854,6 +2944,8 @@
     var sourceAssetId =
       tile.getAttribute('data-gk-photo-asset') || tile.getAttribute('data-gk-photo-id') || '';
     var docDate = tile.getAttribute('data-gk-photo-date') || '';
+    var captureDate = tile.getAttribute('data-gk-photo-capture-date') || '';
+    var captureDateTime = tile.getAttribute('data-gk-photo-capture-date-time') || '';
     var zone = tile.getAttribute('data-gk-photo-zone') || '';
     var name = tile.getAttribute('data-gk-photo-name') || 'Bild';
     var ov = document.createElement('div');
@@ -2872,7 +2964,7 @@
       '</div></div>' +
       '<div class="gk-edit-canvas-wrap"><canvas></canvas></div>' +
       '<div class="gk-edit-foot"><span class="gk-edit-note">Rita med mus/trackpad. Originalbilden ändras inte.</span>' +
-      '<button type="button" class="gk-btn" data-gk-plan>Välj till behandlingsplan/offert</button>' +
+      '<button type="button" class="gk-btn is-active" data-gk-plan>Vald till behandlingsplan/offert</button>' +
       '<button type="button" class="gk-btn gk-edit-save" data-gk-save>Spara markerad bild</button></div>' +
       '</div>';
     document.body.appendChild(ov);
@@ -2993,9 +3085,14 @@
       if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.textContent = 'Sparar…';
-        var selectedFor = ['photo', 'consent'];
-        if (ov.querySelector('[data-gk-plan].is-active'))
-          selectedFor.push('treatment_plan', 'offer');
+        if (!strokes.length) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Spara markerad bild';
+          var noteEl = ov.querySelector('.gk-edit-note');
+          if (noteEl) noteEl.textContent = 'Rita minst en markering innan du sparar.';
+          return;
+        }
+        var selectedFor = ['photo', 'consent', 'treatment_plan', 'offer'];
         fetch('/api/v1/cco-photo-annotations', {
           method: 'POST',
           headers: tokenHeaders(true),
@@ -3005,6 +3102,8 @@
             patientId: patientId,
             sourceAssetId: sourceAssetId,
             documentDate: docDate,
+            captureDate: captureDate || docDate,
+            captureDateTime: captureDateTime,
             imageName: name,
             zone: zone,
             selectedFor: selectedFor,
@@ -3038,7 +3137,10 @@
                 /* Bilden är sparad även om visuell refresh misslyckas. */
               }
             }
-            if (selectedFor.indexOf('treatment_plan') >= 0) {
+            if (
+              selectedFor.indexOf('treatment_plan') >= 0 &&
+              ov.querySelector('[data-gk-plan].is-active')
+            ) {
               return fetch('/api/v1/cco-treatment-plans', {
                 method: 'POST',
                 headers: tokenHeaders(true),
@@ -4584,6 +4686,7 @@
       }
       var groups = {};
       A(driveFiles).forEach(function (f) {
+        if (gkIsAnnotatedFile(f)) return;
         var k = dateKey(f) || 'odaterat';
         if (!groups[k]) groups[k] = { files: [], j: 0, img: 0, journals: [], sortKey: '' };
         groups[k].files.push(f);
@@ -4671,7 +4774,7 @@
             })
             .join('');
           var visitMediaRows = g.files
-            .filter(isReferensMediaFile)
+            .filter(gkIsOriginalVisitMediaFile)
             .map(gkSharedMediaFromFile)
             .sort(gkSharedPhotoSortNewest);
           var visitCollapsed = visitMediaRows.length > 12;
@@ -4689,8 +4792,9 @@
               '</div>'
             : '';
           var rows = g.files
+            .filter(isReferensDocumentFile)
             .filter(function (f) {
-              return !isReferensMediaFile(f);
+              return !looksLikeReferensMediaLabel(referensFileLabel(f, cleanName(f)));
             })
             .map(function (f) {
               var url = referensFileViewUrl(f);
@@ -4732,9 +4836,16 @@
     })();
 
     // ===== Saknade kategorier (facit-paritet): Filer · Anteckningar · Kommunikation · Insikter =====
-    var filer = driveFiles.slice(0, 10);
-    var fileCount =
-      (bcard.fileSummary && Number(bcard.fileSummary.totalFiles)) || driveFiles.length || 0;
+    var filer = driveFiles
+      .filter(isReferensDocumentFile)
+      .filter(function (f) {
+        return !looksLikeReferensMediaLabel(referensFileLabel(f, cleanName(f)));
+      })
+      .filter(function (f) {
+        return !gkIsAnnotatedFile(f) && !gkIsOfferReadyFile(f) && !isReferensMediaFile(f);
+      });
+    var filePreviewRows = filer.slice(0, 10);
+    var fileCount = filer.length;
     function fileIco(name) {
       var n = String(name || '').toLowerCase();
       if (/\.(jpe?g|png|heic|webp|gif)$/.test(n)) return '🖼';
@@ -4747,8 +4858,8 @@
     h += sec(
       'Filer',
       String(fileCount),
-      filer.length
-        ? filer
+      filePreviewRows.length
+        ? filePreviewRows
             .map(function (f) {
               var fnamn = referensFileLabel(f, f.name || f.fileName || f.title || 'Fil');
               var url = referensFileViewUrl(f);
