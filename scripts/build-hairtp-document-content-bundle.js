@@ -22,6 +22,71 @@ function readText(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
 }
 
+function tryReadJson(relativePath) {
+  try {
+    return readJson(relativePath);
+  } catch {
+    return null;
+  }
+}
+
+function isPlaceholderTemplateText(text) {
+  const value = String(text || '').trim();
+  if (!value) return true;
+  return (
+    value.includes('[ingen text från Meridiq]') || value.includes('[Samtyckes-text enligt Nordbro')
+  );
+}
+
+function loadCcoTemplateIndex() {
+  const index = new Map();
+  for (const relativePath of [
+    'data/cco-templates.json',
+    'migration/cco-templates-document-facit.snapshot.json',
+  ]) {
+    const raw = tryReadJson(relativePath);
+    if (!raw) continue;
+    const list = Array.isArray(raw.templates) ? raw.templates : [];
+    for (const entry of list) {
+      const templateId = entry.templateId || entry.id;
+      if (!templateId) continue;
+      const bodySv = entry.bodySv || (entry.body && entry.body.sv) || '';
+      const existing = index.get(templateId);
+      if (
+        !existing ||
+        (bodySv && !isPlaceholderTemplateText(bodySv) && isPlaceholderTemplateText(existing.bodySv))
+      ) {
+        index.set(templateId, {
+          templateId,
+          source: entry.source || relativePath,
+          type: entry.type || null,
+          brand: entry.brand || null,
+          channel: entry.channel || null,
+          bodySv,
+        });
+      }
+    }
+  }
+  return index;
+}
+
+function getCcoTemplate(index, templateId) {
+  if (!templateId || !index.has(templateId)) return null;
+  const entry = index.get(templateId);
+  if (isPlaceholderTemplateText(entry.bodySv)) return null;
+  return entry;
+}
+
+const CONSENT_CCO_TEMPLATE_BY_API = {
+  170917: 'agreement_hair_tp_generic',
+  170944: 'meridiq_consent_behandlingsavtal_prp_hud_170944',
+  170945: 'meridiq_consent_behandlingsavtal_prp_har_170945',
+  170946: 'meridiq_consent_behandlingsavtal_microneedling_och_prp_170946',
+  170947: 'meridiq_consent_behandlingsavtal_prf_hud_170947',
+  170948: 'meridiq_consent_behandlingsavtal_profilho_170948',
+  154369: 'meridiq_consent_samtycke_vid_bokning_inom_14_dagar_154369',
+};
+
 function findConsent(catalog, apiId) {
   return catalog.consents.find((entry) => entry.apiId === apiId) || null;
 }
@@ -85,12 +150,13 @@ function pickFormFields(form) {
   };
 }
 
-function contentStatusForConsent(consent, hasFacitBlocks) {
-  if (!consent) return 'MISSING';
-  const len = (consent.letterText || '').length;
+function contentStatusForConsent(consent, hasFacitBlocks, ccoTemplateBody) {
+  if (!consent && !hasFacitBlocks && !ccoTemplateBody) return 'MISSING';
+  const len = (consent?.letterText || '').length;
   if (len > 80) return 'FULL';
   if (hasFacitBlocks) return 'FULL';
-  if (consent.apiId) return 'PARTIAL';
+  if (ccoTemplateBody && ccoTemplateBody.length > 120) return 'FULL';
+  if (consent?.apiId || ccoTemplateBody) return 'PARTIAL';
   return 'MISSING';
 }
 
@@ -119,6 +185,7 @@ const agreementFacit = readJson('migration/meridiq/steg7-tp-dhi-agreement-facit.
 const docTypes = readJson('src/ops/hairtp-document-types.catalog.json');
 const journalTextTemplates = readJson('migration/journal-text-templates.json');
 const pupMarkdown = readText('docs/legal/personuppgiftspolicy-pub-maj-arcana.md');
+const ccoTemplateIndex = loadCcoTemplateIndex();
 
 const { buildBookingConfirmationEmail } = require('../src/templates/bookingConfirmationEmail');
 const { buildBookingReminderEmail } = require('../src/templates/bookingReminderEmail');
@@ -139,17 +206,22 @@ const emailDemo = {
 function buildConsentDoc(registryId, label, consentApiId, options = {}) {
   const registry = findDocType(docTypes, registryId);
   const consent = consentApiId ? findConsent(consentCatalog, consentApiId) : null;
+  const ccoTemplateId =
+    options.ccoTemplateId || (consentApiId ? CONSENT_CCO_TEMPLATE_BY_API[consentApiId] : null);
+  const ccoTemplate = ccoTemplateId ? getCcoTemplate(ccoTemplateIndex, ccoTemplateId) : null;
   const facitBlocks =
     options.facitBlocks ||
     (consentApiId === 170917 ? agreementFacit.blocks : null) ||
     (consentApiId === 170955 ? agreementFacit.cooling.blocks : null);
+  const ccoBody = ccoTemplate?.bodySv || '';
   const status = contentStatusForConsent(
     consent,
-    Array.isArray(facitBlocks) && facitBlocks.length > 0
+    Array.isArray(facitBlocks) && facitBlocks.length > 0,
+    ccoBody
   );
   const blockers = [];
-  if (status === 'PARTIAL' && !facitBlocks) {
-    blockers.push('NEEDS_FACIT: letterText tom i Meridiq-export');
+  if (status === 'PARTIAL' && !facitBlocks && !ccoBody) {
+    blockers.push('NEEDS_FACIT: letterText tom i Meridiq-export och cco-templates');
   }
   if (options.versionConflict) blockers.push(options.versionConflict);
   return {
@@ -161,11 +233,16 @@ function buildConsentDoc(registryId, label, consentApiId, options = {}) {
     sources: [
       consentApiId ? `migration/meridiq/consent-catalog.json#${consentApiId}` : null,
       facitBlocks ? 'migration/meridiq/steg7-tp-dhi-agreement-facit.json' : null,
+      ccoTemplate ? `cco-templates#${ccoTemplateId}` : null,
       registry ? 'src/ops/hairtp-document-types.catalog.json' : null,
     ].filter(Boolean),
     meridiq: consent ? pickConsentFields(consent) : { consentApiId },
+    ccoTemplate: ccoTemplate
+      ? { templateId: ccoTemplateId, source: ccoTemplate.source, type: ccoTemplate.type }
+      : null,
     content: {
-      letterText: consent?.letterText || '',
+      letterText: consent?.letterText || ccoBody || '',
+      agreementText: ccoBody || null,
       agreementBlocks: facitBlocks || null,
       bundleAckLabel: consentApiId === 170917 ? agreementFacit.bundleAckLabel : null,
     },
@@ -267,14 +344,28 @@ const customerFilled = [
     registryId: 'foto_samtycke',
     label: 'Samtycke till foto-publicering (vid signering i Hair TP)',
     filler: 'patient',
-    contentStatus: 'PARTIAL',
-    blockers: ['NEEDS_FACIT: saknar consent-catalog-post — journey-scope finns i steg 9'],
+    contentStatus: (() => {
+      const internal = getCcoTemplate(ccoTemplateIndex, 'consent_photo_internal');
+      const publish = getCcoTemplate(ccoTemplateIndex, 'consent_photo_publish');
+      return internal || publish ? 'PARTIAL' : 'PARTIAL';
+    })(),
+    blockers: [
+      'cco-templates har Nordbro-stub — full juridisk text saknas i snapshot',
+      'Meridiq consent-catalog saknar foto-publicering-post',
+    ],
     sources: [
+      'cco-templates#consent_photo_internal',
+      'cco-templates#consent_photo_publish',
       'docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md',
-      'src/ops/hairtp-document-types.catalog.json#foto_samtycke',
     ],
     meridiq: { consentApiId: null },
+    ccoTemplate: {
+      internal: getCcoTemplate(ccoTemplateIndex, 'consent_photo_internal'),
+      publish: getCcoTemplate(ccoTemplateIndex, 'consent_photo_publish'),
+    },
     content: {
+      internalText: getCcoTemplate(ccoTemplateIndex, 'consent_photo_internal')?.bodySv || '',
+      publishText: getCcoTemplate(ccoTemplateIndex, 'consent_photo_publish')?.bodySv || '',
       scope: {
         summary: 'Hårlinje och krona för journalföring och behandlingsuppföljning. Aldrig ansikte.',
         bullets: [
@@ -309,12 +400,23 @@ const staffFilled = [
     registryId: 'konsultationsmall',
     label: 'Konsultationsmall | Hair TP Clinic',
     filler: 'staff',
-    contentStatus: 'PARTIAL',
-    blockers: ['Stub-text — full Word-mall i SharePoint enligt SHAREPOINT-TEMPLATE-INVENTORY'],
-    sources: ['migration/journal-text-templates.json#consultation-summary'],
+    contentStatus: getCcoTemplate(ccoTemplateIndex, 'patient_info_consultation')
+      ? 'FULL'
+      : 'PARTIAL',
+    blockers: getCcoTemplate(ccoTemplateIndex, 'patient_info_consultation')
+      ? []
+      : ['Stub-text — full Word-mall i SharePoint enligt SHAREPOINT-TEMPLATE-INVENTORY'],
+    sources: [
+      'cco-templates#patient_info_consultation',
+      'migration/journal-text-templates.json#consultation-summary',
+    ],
+    ccoTemplate: getCcoTemplate(ccoTemplateIndex, 'patient_info_consultation'),
     content: {
-      templateId: 'consultation-summary',
-      text: journalTextTemplates.templates.find((t) => t.id === 'consultation-summary')?.text || '',
+      templateId: 'patient_info_consultation',
+      text:
+        getCcoTemplate(ccoTemplateIndex, 'patient_info_consultation')?.bodySv ||
+        journalTextTemplates.templates.find((t) => t.id === 'consultation-summary')?.text ||
+        '',
     },
   },
   {
@@ -394,22 +496,28 @@ const information = [
     registryId: 'auto_bokningsbekraftelse',
     label: 'Bokningsbekräftelse (SMS/e-post)',
     filler: 'system_auto',
-    contentStatus: 'PARTIAL',
-    blockers: ['SMS-mall saknas i kod — e-post FULL via bookingConfirmationEmail.js'],
-    sources: ['src/templates/bookingConfirmationEmail.js', 'docs/strategy/CLIENTO-INVENTORY.md'],
+    contentStatus: 'FULL',
+    blockers: [],
+    sources: [
+      'cco-templates#booking_confirmation_hair_tp',
+      'src/templates/bookingConfirmationEmail.js',
+    ],
+    ccoTemplate: getCcoTemplate(ccoTemplateIndex, 'booking_confirmation_hair_tp'),
     content: {
+      smsText: getCcoTemplate(ccoTemplateIndex, 'booking_confirmation_hair_tp')?.bodySv || '',
       emailSample: buildEmailSample(buildBookingConfirmationEmail, emailDemo),
-      smsNote: 'Cliento: avsändare HairTP — exakt SMS-text ej exporterad till repo',
     },
   },
   {
     registryId: 'auto_bokningspaminnelse',
     label: 'Bokningspåminnelse (SMS/e-post)',
     filler: 'system_auto',
-    contentStatus: 'PARTIAL',
-    blockers: ['SMS-mall saknas i kod'],
-    sources: ['src/templates/bookingReminderEmail.js'],
+    contentStatus: getCcoTemplate(ccoTemplateIndex, 'booking_reminder_24h') ? 'FULL' : 'PARTIAL',
+    blockers: [],
+    sources: ['cco-templates#booking_reminder_24h', 'src/templates/bookingReminderEmail.js'],
+    ccoTemplate: getCcoTemplate(ccoTemplateIndex, 'booking_reminder_24h'),
     content: {
+      smsText: getCcoTemplate(ccoTemplateIndex, 'booking_reminder_24h')?.bodySv || '',
       emailSample: buildEmailSample(buildBookingReminderEmail, emailDemo),
     },
   },
@@ -417,10 +525,17 @@ const information = [
     registryId: 'auto_avbokningsbekraftelse',
     label: 'Avbokningsbekräftelse (SMS/e-post)',
     filler: 'system_auto',
-    contentStatus: 'PARTIAL',
-    blockers: ['SMS-mall saknas i kod'],
-    sources: ['src/templates/bookingCancellationEmail.js'],
+    contentStatus: getCcoTemplate(ccoTemplateIndex, 'cancellation_confirmation')
+      ? 'FULL'
+      : 'PARTIAL',
+    blockers: [],
+    sources: [
+      'cco-templates#cancellation_confirmation',
+      'src/templates/bookingCancellationEmail.js',
+    ],
+    ccoTemplate: getCcoTemplate(ccoTemplateIndex, 'cancellation_confirmation'),
     content: {
+      smsText: getCcoTemplate(ccoTemplateIndex, 'cancellation_confirmation')?.bodySv || '',
       emailSample: buildEmailSample(buildBookingCancellationEmail, emailDemo),
     },
   },
@@ -520,13 +635,15 @@ function summarizeSection(items) {
 
 const output = {
   generatedAt: new Date().toISOString(),
-  cacheVersion: 'hairtp-document-content-v1',
+  cacheVersion: 'hairtp-document-content-v2',
   description:
-    'Samlad Hair TP content-bundle för Cloud — alla kund/personal/info-dokument från Meridiq + facit + CCO-mallar',
+    'Samlad Hair TP content-bundle — Meridiq + steg7-facit + cco-templates (SharePoint/Nordbro)',
   sources: {
     consentCatalog: 'migration/meridiq/consent-catalog.json',
     questionaryCatalog: 'migration/meridiq/questionary-catalog.json',
     tpAgreementFacit: 'migration/meridiq/steg7-tp-dhi-agreement-facit.json',
+    ccoTemplatesSnapshot: 'migration/cco-templates-document-facit.snapshot.json',
+    ccoTemplatesRuntime: 'data/cco-templates.json (gitignored, föredras vid lokal build)',
     documentRegistry: 'src/ops/hairtp-document-types.catalog.json',
     journalTextTemplates: 'migration/journal-text-templates.json',
     emailTemplates: 'src/templates/',

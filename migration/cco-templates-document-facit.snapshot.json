@@ -1,0 +1,199 @@
+{
+  "generatedAt": "2026-06-14T22:21:05.451Z",
+  "source": "data/cco-templates.json (gitignored runtime) — committed snapshot for deploy build",
+  "templates": [
+    {
+      "templateId": "agreement_hair_tp_generic",
+      "brand": "hair_tp",
+      "type": "agreement",
+      "version": "4.1.0",
+      "source": "sharepoint_nordbro",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingsavtal - {{treatmentName}}"
+      },
+      "bodySv": "Behandlingsavtal (hårtransplantation med DHI-metoden)\n\nMellan\n1. Hair TP Clinic, org. nr. 559034-2688, Vasaplatsen 2, 411 34 Göteborg (Tjänstutövaren)\noch\n2. Kunden, pers.nr., adress (Kunden)\n\nhar träffats följande behandlingsavtal (\"Avtalet\") om hårtransplantation i enlighet med tjänstbeskrivning (\"Behandlingen\"), se bilaga 1. Pris för Behandlingen framgår av lämnad offert, se bilaga 2.\n\nGiltighetstid och betänketid\nTjänsteutövaren tillämpar betänketid (\"Betänketiden\"). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.\n\nAvtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.\n\nBetalningsvillkor\nBehandlingen är en privat tjänst som bekostas av Kunden. Kunden ska erlägga en förskottsbetalning (\"Förskottsbetalningen\") om 20 % (tjugo procent) av den totala behandlingskostnaden. Tjänstutövaren fakturerar beloppet i samband med bokning av behandlingstillfälle. Genom erlagd förskottsbetalning bekräftas den bokade tiden.\n\nBetalning ska erläggas via faktura, betalkort eller finansiering via Medical Finance (ingen kontantbetalning). Slutbetalning ska vara Tjänsteutövaren tillhanda innan behandlingen påbörjas. Tjänsteutövaren förbehålls rätten att avboka behandlingstiden och säga upp Avtalet med omedelbar verkan om slutbetalning inte skett i tid, varvid Kunden inte äger rätt till återbetalning av förskottsbetalningen.\n\nAv- och ombokning\nKundens ombokning av behandlingstid ska ske senast 14 kalenderdagar före den planerade behandlingsdagen. Detta ger Tjänsteutövaren möjlighet att justera schemat och erbjuda tiden till annan kund vid behov. För ombokning ska Kunden kontakta contact@curatiio.com. Ombokningen är giltig först när Kunden mottagit en skriftlig bekräftelse på ombokning från Tjänsteutövaren.\n\nVid Kundens avbokning mer än 14 dagar före behandlingsdatum återbetalas Förskottsbetalningen i dess helhet.\nVid Kundens avbokning mindre än 14 dagar före behandlingsdatum äger Kunden inte rätt till återbetalning av Förskottsbetalningen. Denna utgör då en administrativ avgift med anledning av avbokningen.\n\nAvbokning sker via e-post till contact@curatiio.com. Avbokning är giltig först när Kunden mottagit en skriftlig bekräftelse från Tjänsteutövaren. Om Kunden inte erhållit sådan bekräftelse inom 48 timmar ska Kunden kontakta Tjänstutövaren för att säkerställa att avbokningen har registrerats. Vid utebliven avbokning enligt ovanstående rutin äger Kunden inte rätt till återbetalning av Förskottsbetalningen.\n\nVid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att Kunden kan uppvisa läkarintyg som intygar att Kunden inte bör genomgå behandlingen.\n\nResultat\nKunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnå bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat.\n\nKunden är införstådd med att hårsäckarnas emotsedda överlevnad (95 %) förutsätter att Kunden genomgår hela Behandlingen inklusive fyra (4) PRP-behandlingar, inte använder tobak eller nikotinprodukter före eller efter behandlingen och följer samtliga förberedelse- och eftervårdsinstruktioner. Resultatet utvärderas tillsammans med kliniken. För det fall att en tillfredsställande överlevnadsnivå för hårsäckarna inte uppnås genom behandlingen planeras eventuell korrigering efter medicinsk bedömning och överenskommelse med Kunden.\n\nAnsvar\nTjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets vårdslöshet. Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen, såsom för komplikationer, inkomstbortfall eller oönskat resultat. Tjänstutövaren ansvarar inte heller för exempelvis felaktigt tillverkade medicinska produkter.\n\nÅngerrätt\nBehandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett klart och tydligt meddelande till Tjänsteutövaren om att Patienten önskar utöva sin ångerrätt. Sådant meddelande kan skickas till contact@curatiio.com. Patienten kan även använda sig av standardformulär, se bilaga 3.\n\nFör det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke.\n\nAvtalsbrott och force majeure\nOm Tjänstutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänstutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande, ska detta utgöra befrielsegrund som medför rätt för Tjänstutövaren att säga upp Avtalet med omedelbar verkan.\n\nTjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens Väsentliga avtalsbrott eller upprepade avtalsbrott utan återbetalning av Förskottsbetalningen.\n\nInformation & samtycke\nKunden bekräftar att Kunden har tagit del av skriftlig information, se bilaga 1, samt att Kunden tagit del av motsvarande information muntligt. Kunden har även tagit del av individuell behandlingsplan.\n\nKunden lämnar sitt samtycke till att behandlingen får utföras.\n\nTvist\nSvensk lag ska tillämpas på avtalet. För det fall utförd behandling omfattas av Tjänsteutövarens patientförsäkring enligt patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till Patientskadenämnden. Avseende frågor som inte kräver medicinsk sakkunskap har Kunden även möjlighet att hänskjuta tvist till prövning genom anmälan till Allmänna reklamationsnämnden (ARN). Tvist med anledning av avtalet ska slutligen avgöras av allmän domstol med Göteborgs tingsrätt som första instans.\n\n_____________________\nOrt och datum\n\n_____________________\nNamnförtydligande\n\n______________________\nNamnteckning\n"
+    },
+    {
+      "templateId": "agreement_hair_tp_dhi_2day_nordbro",
+      "brand": "hair_tp",
+      "type": "agreement",
+      "version": "1.0.0",
+      "source": "sharepoint_nordbro",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingsavtal (hartransplantation med DHI-metoden, 2 dagars betanketid) - Hair TP Clinic"
+      },
+      "bodySv": "Behandlingsavtal (hårtransplantation med DHI-metoden)\n\nMellan\n1. Hair TP Clinic, org. nr. 559034-2688, Vasaplatsen 2, 411 34 Göteborg (Tjänstutövaren)\noch\n2. Kunden, pers.nr., adress (Kunden)\n\nhar träffats följande behandlingsavtal (\"Avtalet\") om hårtransplantation i enlighet med tjänstbeskrivning (\"Behandlingen\"), se bilaga 1. Pris för Behandlingen framgår av lämnad offert, se bilaga 2.\n\nGiltighetstid och betänketid\nTjänsteutövaren tillämpar betänketid (\"Betänketiden\"). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.\n\nAvtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.\n\nBetalningsvillkor\nBehandlingen är en privat tjänst som bekostas av Kunden. Kunden ska erlägga en förskottsbetalning (\"Förskottsbetalningen\") om 20 % (tjugo procent) av den totala behandlingskostnaden. Tjänstutövaren fakturerar beloppet i samband med bokning av behandlingstillfälle. Genom erlagd förskottsbetalning bekräftas den bokade tiden.\n\nBetalning ska erläggas via faktura, betalkort eller finansiering via Medical Finance (ingen kontantbetalning). Slutbetalning ska vara Tjänsteutövaren tillhanda innan behandlingen påbörjas. Tjänsteutövaren förbehålls rätten att avboka behandlingstiden och säga upp Avtalet med omedelbar verkan om slutbetalning inte skett i tid, varvid Kunden inte äger rätt till återbetalning av förskottsbetalningen.\n\nAv- och ombokning\nKundens ombokning av behandlingstid ska ske senast 14 kalenderdagar före den planerade behandlingsdagen. Detta ger Tjänsteutövaren möjlighet att justera schemat och erbjuda tiden till annan kund vid behov. För ombokning ska Kunden kontakta contact@curatiio.com. Ombokningen är giltig först när Kunden mottagit en skriftlig bekräftelse på ombokning från Tjänsteutövaren.\n\nVid Kundens avbokning mer än 14 dagar före behandlingsdatum återbetalas Förskottsbetalningen i dess helhet.\nVid Kundens avbokning mindre än 14 dagar före behandlingsdatum äger Kunden inte rätt till återbetalning av Förskottsbetalningen. Denna utgör då en administrativ avgift med anledning av avbokningen.\n\nAvbokning sker via e-post till contact@curatiio.com. Avbokning är giltig först när Kunden mottagit en skriftlig bekräftelse från Tjänsteutövaren. Om Kunden inte erhållit sådan bekräftelse inom 48 timmar ska Kunden kontakta Tjänstutövaren för att säkerställa att avbokningen har registrerats. Vid utebliven avbokning enligt ovanstående rutin äger Kunden inte rätt till återbetalning av Förskottsbetalningen.\n\nVid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att Kunden kan uppvisa läkarintyg som intygar att Kunden inte bör genomgå behandlingen.\n\nResultat\nKunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnå bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat.\n\nKunden är införstådd med att hårsäckarnas emotsedda överlevnad (95 %) förutsätter att Kunden genomgår hela Behandlingen inklusive fyra (4) PRP-behandlingar, inte använder tobak eller nikotinprodukter före eller efter behandlingen och följer samtliga förberedelse- och eftervårdsinstruktioner. Resultatet utvärderas tillsammans med kliniken. För det fall att en tillfredsställande överlevnadsnivå för hårsäckarna inte uppnås genom behandlingen planeras eventuell korrigering efter medicinsk bedömning och överenskommelse med Kunden.\n\nAnsvar\nTjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets vårdslöshet. Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen, såsom för komplikationer, inkomstbortfall eller oönskat resultat. Tjänstutövaren ansvarar inte heller för exempelvis felaktigt tillverkade medicinska produkter.\n\nÅngerrätt\nBehandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett klart och tydligt meddelande till Tjänsteutövaren om att Patienten önskar utöva sin ångerrätt. Sådant meddelande kan skickas till contact@curatiio.com. Patienten kan även använda sig av standardformulär, se bilaga 3.\n\nFör det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke.\n\nAvtalsbrott och force majeure\nOm Tjänstutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänstutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande, ska detta utgöra befrielsegrund som medför rätt för Tjänstutövaren att säga upp Avtalet med omedelbar verkan.\n\nTjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens Väsentliga avtalsbrott eller upprepade avtalsbrott utan återbetalning av Förskottsbetalningen.\n\nInformation & samtycke\nKunden bekräftar att Kunden har tagit del av skriftlig information, se bilaga 1, samt att Kunden tagit del av motsvarande information muntligt. Kunden har även tagit del av individuell behandlingsplan.\n\nKunden lämnar sitt samtycke till att behandlingen får utföras.\n\nTvist\nSvensk lag ska tillämpas på avtalet. För det fall utförd behandling omfattas av Tjänsteutövarens patientförsäkring enligt patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till Patientskadenämnden. Avseende frågor som inte kräver medicinsk sakkunskap har Kunden även möjlighet att hänskjuta tvist till prövning genom anmälan till Allmänna reklamationsnämnden (ARN). Tvist med anledning av avtalet ska slutligen avgöras av allmän domstol med Göteborgs tingsrätt som första instans.\n\n_____________________\nOrt och datum\n\n_____________________\nNamnförtydligande\n\n______________________\nNamnteckning\n"
+    },
+    {
+      "templateId": "meridiq_consent_behandlingsavtal_prp_hud_170944",
+      "brand": "curatiio",
+      "type": "consent",
+      "version": "1.2.0",
+      "source": "sharepoint_nordbro",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingsavtal (PRP-behandling) - Hair TP Clinic"
+      },
+      "bodySv": "Behandlingsavtal (PRP-behandling)\n\nMellan\n1. Hair TP Clinic, org. nr. 559034-2688, Vasaplatsen 2, 411 34 Göteborg (Tjänstutövaren)\noch\n2. Kunden, pers.nr., adress (Kunden)\n\nhar träffats följande behandlingsavtal (\"Avtalet\") om hårtransplantation i enlighet med tjänstbeskrivning (\"Behandlingen\"), se bilaga 1. Pris för Behandlingen framgår av lämnad offert, se bilaga 2.\n\nGiltighetstid och betänketid\nTjänsteutövaren tillämpar betänketid (\"Betänketiden\"). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.\n\nAvtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.\n\nBetalningsvillkor\nBehandlingen är en privat tjänst som bekostas av Kunden. Betalning ska erläggas via faktura, betalkort eller finansiering via Medical Finance (ingen kontantbetalning) och vara Tjänsteutövaren tillhanda innan behandlingen påbörjas. Tjänsteutövaren förbehålls rätten att avboka behandlingstiden och säga upp Avtalet med omedelbar verkan om full betalning inte skett i tid.\n\nAv- och ombokning\nKundens av-/ombokning av behandlingstid ska ske senast 14 kalenderdagar före den planerade behandlingsdagen. Detta ger Tjänsteutövaren möjlighet att justera schemat och erbjuda tiden till annan kund vid behov. För ombokning ska Kunden kontakta contact@curatiio.com. Av-/ombokningen är giltig först när Kunden mottagit en skriftlig bekräftelse på ombokning från Tjänsteutövaren. Om Kunden inte erhållit sådan bekräftelse inom 48 timmar ska Kunden kontakta Tjänstutövaren.\n\nVid Kundens av-/ombokning mindre än 14 dagar före behandlingsdatum förbehålls Tjänsteutövaren rätten att ta ut en administrativ avgift uppgående till 20 % (tjugo procent) av den totala behandlingskostnaden. Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att Kunden kan uppvisa läkarintyg som intygar att Kunden inte bör genomgå behandlingen.\n\nResultat\nKunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnå bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat.\n\nKunden är införstådd med att Kunden har ett eget ansvar för att inte använda tobak eller nikotinprodukter före eller efter behandlingen och följa samtliga förberedelse- och eftervårdsinstruktioner.\n\nAnsvar\nTjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets vårdslöshet. Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen, såsom för komplikationer, inkomstbortfall eller oönskat resultat. Tjänstutövaren ansvarar inte heller för exempelvis felaktigt tillverkade medicinska produkter.\n\nÅngerrätt\nBehandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett klart och tydligt meddelande till Tjänsteutövaren om att Patienten önskar utöva sin ångerrätt. Sådant meddelande kan skickas till contact@curatiio.com. Patienten kan även använda sig av standardformulär, se bilaga 3.\n\nFör det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke.\n\nAvtalsbrott och force majeure\nOm Tjänstutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänstutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande, ska detta utgöra befrielsegrund som medför rätt för Tjänstutövaren att säga upp Avtalet med omedelbar verkan.\n\nTjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens Väsentliga avtalsbrott eller upprepade avtalsbrott.\n\nInformation & samtycke\nKunden bekräftar att Kunden har tagit del av skriftlig information, se bilaga 1, samt att Kunden tagit del av motsvarande information muntligt. Kunden har även tagit del av individuell behandlingsplan.\n\nKunden lämnar sitt samtycke till att behandlingen får utföras.\n\nTvist\nSvensk lag ska tillämpas på avtalet. För det fall utförd behandling omfattas av Tjänsteutövarens patientförsäkring enligt patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till Patientskadenämnden. Avseende frågor som inte kräver medicinsk sakkunskap har Kunden även möjlighet att hänskjuta tvist till prövning genom anmälan till Allmänna reklamationsnämnden (ARN). Tvist med anledning av avtalet ska slutligen avgöras av allmän domstol med Göteborgs tingsrätt som första instans.\n\n_____________________\nOrt och datum\n\n_____________________\nNamnförtydligande\n\n______________________\nNamnteckning\n"
+    },
+    {
+      "templateId": "meridiq_consent_behandlingsavtal_prp_har_170945",
+      "brand": "hair_tp",
+      "type": "consent",
+      "version": "1.1.0",
+      "source": "meridiq",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingssamtycke: Behandlingsavtal | PRP hår"
+      },
+      "bodySv": "[ingen text från Meridiq]"
+    },
+    {
+      "templateId": "meridiq_consent_behandlingsavtal_microneedling_och_prp_170946",
+      "brand": "shared",
+      "type": "consent",
+      "version": "1.1.0",
+      "source": "meridiq",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingssamtycke: Behandlingsavtal | Microneedling och PRP"
+      },
+      "bodySv": "[ingen text från Meridiq]"
+    },
+    {
+      "templateId": "meridiq_consent_behandlingsavtal_prf_hud_170947",
+      "brand": "curatiio",
+      "type": "consent",
+      "version": "1.1.0",
+      "source": "meridiq",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingssamtycke: Behandlingsavtal | PRF hud"
+      },
+      "bodySv": "[ingen text från Meridiq]"
+    },
+    {
+      "templateId": "meridiq_consent_behandlingsavtal_profilho_170948",
+      "brand": "curatiio",
+      "type": "consent",
+      "version": "1.1.0",
+      "source": "meridiq",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingssamtycke: Behandlingsavtal | Profilho"
+      },
+      "bodySv": "[ingen text från Meridiq]"
+    },
+    {
+      "templateId": "meridiq_consent_samtycke_vid_bokning_inom_14_dagar_154369",
+      "brand": "hair_tp",
+      "type": "consent",
+      "version": "1.1.0",
+      "source": "meridiq",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingssamtycke: Samtycke vid bokning inom 14 dagar"
+      },
+      "bodySv": "[ingen text från Meridiq]"
+    },
+    {
+      "templateId": "consent_photo_internal",
+      "brand": "shared",
+      "type": "consent",
+      "version": "2.0.0",
+      "source": "nordbro",
+      "channel": ["portal"],
+      "subject": {
+        "sv": "Samtycke till foto i journal (intern dokumentation)"
+      },
+      "bodySv": "Hej {{firstName}},\n\nFör klinisk dokumentation tar vi foton som lagras i din patientjournal (ej publicering).\n\n[Samtyckes-text enligt Nordbro v2 — GDPR + PDL]\n\nDu kan när som helst återkalla detta samtycke."
+    },
+    {
+      "templateId": "consent_photo_publish",
+      "brand": "shared",
+      "type": "consent",
+      "version": "2.0.0",
+      "source": "nordbro",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Publiceringssamtycke för före/efter-bilder"
+      },
+      "bodySv": "Hej {{firstName}},\n\nVi vill gärna visa ditt resultat ({{publishChannels}}).\n\n[Samtyckes-text enligt Nordbro v2 — GDPR + Marknadsföringslagen]\n\nDu bestämmer. Återkallande sker när som helst."
+    },
+    {
+      "templateId": "booking_confirmation_hair_tp",
+      "brand": "hair_tp",
+      "type": "transactional",
+      "version": "1.0.0",
+      "source": "cco_native",
+      "channel": ["email", "sms"],
+      "subject": {
+        "sv": "Bokningsbekräftelse — {{treatment}} {{date}}",
+        "en": "Booking confirmation — {{treatment}} {{date}}"
+      },
+      "bodySv": "Hej {{firstName}},\n\nVi bekräftar din bokning för {{treatment}} {{date}} kl {{time}} med {{practitioner}}.\n\nPlats: {{location}}\n\nHair TP Clinic"
+    },
+    {
+      "templateId": "booking_reminder_24h",
+      "brand": "shared",
+      "type": "transactional",
+      "version": "1.0.0",
+      "source": "cco_native",
+      "channel": ["sms", "email"],
+      "subject": {
+        "sv": "Påminnelse — din tid imorgon {{time}}"
+      },
+      "bodySv": "Hej {{firstName}}, påminnelse om din tid imorgon {{date}} kl {{time}}. Avboka senast 24h innan: {{cancelLink}}"
+    },
+    {
+      "templateId": "cancellation_confirmation",
+      "brand": "shared",
+      "type": "transactional",
+      "version": "1.0.0",
+      "source": "cco_native",
+      "channel": ["email"],
+      "subject": {
+        "sv": "Din avbokning är registrerad"
+      },
+      "bodySv": "Hej {{firstName}}, din tid {{originalDate}} är nu avbokad. Boka ny tid när det passar."
+    },
+    {
+      "templateId": "fitness_certificate_hair_tp",
+      "brand": "hair_tp",
+      "type": "fitness_certificate",
+      "version": "2.3.0",
+      "source": "sharepoint_hair_tp_2026",
+      "channel": ["portal"],
+      "subject": {
+        "sv": "Friskforsakran | TP - Hair TP Clinic"
+      },
+      "bodySv": "Hair TP Clinic · 031-881166 · contact@hairtpclinic.com · Vasaplatsen 2, 411 34 Göteborg\n\nNY Friskförsäkran\n\nID-kontroll\nVisa legitimation för personal:\n☐ Pass\n☐ Körkort\n☐ Nationellt ID\n☐ Svenskt ID\n\nAnge ID-nummer: _______________________________\n\nPersonuppgifter\nFörnamn: _______________________________\nEfternamn: _______________________________\nPersonnummer: _______________________________\nAdress: _______________________________\n\nHälsotillstånd\nJag intygar härmed att jag är fullt frisk och inte har några sjukdomar eller indikationer på sjukdomar som kan innebära ökade risker i samband med ingreppet. Exempelvis:\n☐ Hepatit (A, B, C)\n☐ HIV\n☐ Blödningsrubbning\n☐ Allergi mot läkemedel\n☐ Astma\n☐ Epilepsi\n☐ Hjärtbesvär\n☐ Diabetes (typ 1 eller typ 2)\n☐ Leversjukdom / Njursjukdom\n☐ Tidigare narkos- eller lokalbedövningskomplikation\n☐ Pågående infektion eller feber\n☐ Psykisk ohälsa\n☐ Ange annan sjukdom här: _______________________________\n\nMedicinering\n☐ Jag tar ingen medicinering\n☐ Jag tar följande medicin(er), ange läkemedlets namn, dosering och orsak: _______________________________\n\nSpecifikt:\n☐ Blodförtunnande (t.ex. Warfarin, NOAK, ASA)\n☐ Annat: _______________________________\n☐ Jag tar ingen medicinering\n\nAllergier\n☐ Inga kända allergier\n☐ Läkemedelsallergi(er): _______________________________\n☐ Övriga allergier (t.ex. latex, födoämnen): _______________________________\n\nAlkohol, nikotin och narkotika\n☐ Jag har inte intagit alkohol eller narkotiska preparat de senaste 48 timmarna och är införstådd med att avstå 48 timmar efter ingreppet.\n☐ Jag röker/brukar nikotin (cigaretter, snus, e-cigaretter). Jag är medveten om att rökning kan påverka resultatet av behandlingen negativt och öka risken för att de transplanterade hårsäckarna inte överlever. Notera att vi inte kan lämna några resultatgarantier för klienter som röker.\n☐ Jag använder inte nikotinprodukter.\n\nSamtycke\nJag intygar att jag:\n- Har tagit del av muntlig och skriftlig information om ingreppet, dess risker, alternativ och eftervård.\n- Har haft möjlighet att ställa frågor.\n- Lämnar härmed mitt informerade samtycke till behandlingen.\n- Godkänner att mina uppgifter sparas i Hair TP Clinics system enligt Patientdatalagen (2008:355) och GDPR.\n\nDatum: _______________________________\n\nSignaturer\nPatient: Namn & signatur ___________________________ Datum ___________\nMottagande personal: Namn & signatur ___________________________ Datum ___________\n\n☐ Jag godkänner friskförsäkran. Jag godkänner även att mina uppgifter sparas i Hair TP Clinics system.\n"
+    },
+    {
+      "templateId": "patient_info_consultation",
+      "brand": "shared",
+      "type": "patient_information",
+      "version": "2.0.0",
+      "source": "nordbro",
+      "channel": ["email", "portal"],
+      "subject": {
+        "sv": "Inför din konsultation — viktig information"
+      },
+      "bodySv": "Hej {{firstName}},\n\nInför din konsultation {{consultationDate}} med {{practitioner}}:\n\n[Patient-information enligt Nordbro v2 — vad konsultationen innebär, hur ID-verifiering går till, vad du bör förbereda]\n\nLäs igenom innan ditt besök."
+    },
+    {
+      "templateId": "agreement_curatiio_generic",
+      "brand": "curatiio",
+      "type": "agreement",
+      "version": "4.1.0",
+      "source": "sharepoint_curatiio_2026",
+      "channel": ["portal", "email"],
+      "subject": {
+        "sv": "Behandlingsavtal - Curatiio"
+      },
+      "bodySv": "Behandlingsavtal | Ortopedisk injektionsbehandling med PRP/PRF\nCuratiio – en del av Hair TP Clinic, org.nr 559034-2688\n031-882244 · contact@curatiio.com · Vasaplatsen 2, 411 34 Göteborg\n\nBehandlingsavtal (Ortopedisk injektionsbehandling med PRP/PRF)\n\nDetta behandlingsavtal (\"Avtalet\") har träffats mellan\n- Curatiio, en del av Hair TP Clinic AB, org.nr 559034-2688, Vasaplatsen 2, 411 34 Göteborg (\"Tjänsteutövaren\"),\noch\n- den person vars namn och personuppgifter framgår av detta avtal och som undertecknar avtalet (\"Kunden\").\n\nBehandlingen\nAvtalet avser ortopedisk injektionsbehandling med PRP/PRF i enlighet med den tjänstespecifikation (\"Behandlingen\") som tillhandahållits Kunden. Behandlingen utförs i enlighet med tjänstespecifikationen samt den individuella behandlingsplanen och offerten som Kunden har mottagit och accepterat före Avtalets ingående. Av behandlingsplan och offert framgår bland annat val av injektionstyp, behandlingsområde, antal behandlingar samt pris.\n\nKunden bekräftar att denne, före Avtalets ingående och före Behandlingens genomförande, har mottagit tydlig och fullständig information om Behandlingen, inklusive dess huvudsakliga innehåll, genomförande, förväntade resultat, risker, eftervård och pris, samt om relevanta alternativa behandlingsalternativ, och att Kunden haft möjlighet att ställa frågor och erhålla tillfredsställande svar. Informationen har lämnats både muntligen vid konsultation och skriftligen genom tjänstespecifikation, offert och individuell behandlingsplan.\n\nTjänstespecifikation, offert och individuell behandlingsplan utgör en del av avtalsunderlaget men bifogas inte detta Avtal.\n\nOffert\nPris för Behandlingen framgår av den offert som Kunden har mottagit skriftligen före Avtalets ingående eller i samband därmed. Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal. Offerten utgör en del av avtalsunderlaget men bifogas inte detta Avtal.\n\nGiltighetstid och betänketid\nTjänsteutövaren tillämpar betänketid (\"Betänketiden\"). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.\n\nAvtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.\n\nBetalningsvillkor\nBehandlingen är en privat tjänst som bekostas av Kunden. Betalning ska erläggas via faktura, kortbetalning, Swish, banköverföring, kontant betalning eller finansiering via Medical Finance och vara Tjänsteutövaren tillhanda innan behandlingen påbörjas. Tjänsteutövaren förbehålls rätten att avboka behandlingstiden och säga upp Avtalet med omedelbar verkan om full betalning inte skett i tid.\n\nAv- och ombokning\nKundens av-/ombokning av behandlingstid ska ske senast 2 kalenderdagar före den planerade behandlingsdagen. Detta ger Tjänsteutövaren möjlighet att justera schemat och erbjuda tiden till annan kund vid behov. För ombokning ska Kunden kontakta contact@curatiio.com. Av-/ombokningen är giltig först när Kunden mottagit en skriftlig bekräftelse på ombokning från Tjänsteutövaren. Om Kunden inte erhållit sådan bekräftelse inom 48 timmar ska Kunden kontakta Tjänstutövaren.\n\nVid Kundens av-/ombokning mindre än 2 dagar före behandlingsdatum förbehålls Tjänsteutövaren rätten att ta ut en administrativ avgift om 500 kr. Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att Kunden kan uppvisa läkarintyg som intygar att Kunden inte bör genomgå behandlingen.\n\nResultat\nKunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnå bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat.\n\nKunden är införstådd med att Kunden har ett eget ansvar för att inte använda tobak eller nikotinprodukter före eller efter behandlingen och följa samtliga förberedelse- och eftervårdsinstruktioner.\n\nAnsvar\nTjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets vårdslöshet. Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen, såsom för komplikationer, inkomstbortfall eller oönskat resultat. Tjänstutövaren ansvarar inte heller för exempelvis felaktigt tillverkade medicinska produkter.\n\nÅngerrätt\nBehandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett klart och tydligt meddelande till Tjänsteutövaren om att Patienten önskar utöva sin ångerrätt. Sådant meddelande kan skickas till contact@curatiio.com. För det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke.\n\nAvtalsbrott och force majeure\nOm Tjänstutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänstutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande, ska detta utgöra befrielsegrund som medför rätt för Tjänstutövaren att säga upp Avtalet med omedelbar verkan.\n\nTjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens Väsentliga avtalsbrott eller upprepade avtalsbrott.\n\nInformation & samtycke\nKunden bekräftar att Kunden, före samtycke och före Behandlingens genomförande, har tagit del av information om Behandlingen både muntligen vid konsultation och skriftligen genom tjänstespecifikation, offert och individuell behandlingsplan, samt att Kunden har haft möjlighet att ställa frågor och erhållit tillfredsställande svar.\n\nKunden lämnar härmed sitt informerade samtycke till att Behandlingen får utföras.\n\nTvist\nSvensk lag ska tillämpas på avtalet. För det fall utförd behandling omfattas av Tjänsteutövarens patientförsäkring enligt patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till Patientskadenämnden. Avseende frågor som inte kräver medicinsk sakkunskap har Kunden även möjlighet att hänskjuta tvist till prövning genom anmälan till Allmänna reklamationsnämnden (ARN). Tvist med anledning av avtalet ska slutligen avgöras av allmän domstol med Göteborgs tingsrätt som första instans.\n\nOrt, datum\nNamnförtydligande\nNamnteckning\n"
+    }
+  ]
+}
