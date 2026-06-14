@@ -850,6 +850,51 @@
     );
   }
 
+  function isReferensAgreementFile(file) {
+    if (!file) return false;
+    var cat = String(file.category || '').toLowerCase();
+    var src = String(file.sourceSystem || '').toLowerCase();
+    var name = String(
+      file.fileName || file.name || file.originalFileName || file.displayName || ''
+    );
+    return (
+      cat === 'agreement' ||
+      src === 'getaccept_import' ||
+      /behandlingsavtal|getaccept|ögonlocksplastik.*avtal|ogonlocksplastik.*avtal/i.test(name)
+    );
+  }
+
+  function buildAgreementDocRow(bcard, driveFiles) {
+    var agreements = A(driveFiles)
+      .filter(isReferensAgreementFile)
+      .slice()
+      .sort(referensCompareNewestFirst);
+    var best = agreements[0] || null;
+    var signed =
+      bcard.hasAgreement === true ||
+      bcard.missingAgreement === false ||
+      Boolean(best && referensFileViewUrl(best));
+    if (!signed && !best) {
+      return buildDocViewRow('Behandlingsavtal', 'Saknas', '', 'agreement');
+    }
+    var url = best ? referensFileViewUrl(best) : '';
+    var metaParts = ['Signerad'];
+    var d = String((best && (best.documentDate || best.captureDate)) || '').slice(0, 10);
+    if (d) metaParts.push(d);
+    if (best && String(best.sourceSystem || '').toLowerCase() === 'getaccept_import') {
+      metaParts.push('GetAccept');
+    }
+    if (!url) {
+      return buildDocViewRow(
+        'Behandlingsavtal',
+        metaParts.join(' · ') + ' · PDF saknas',
+        '',
+        'agreement'
+      );
+    }
+    return buildDocViewRow('Behandlingsavtal', metaParts.join(' · '), url, 'agreement');
+  }
+
   function buildMedicinsktFormsInner(bcard, driveFiles) {
     var hd = bcard.healthDeclaration || null;
     var fc = bcard.fitnessCertificate || null;
@@ -864,7 +909,8 @@
     var files = A(driveFiles);
     return (
       buildMedFormDocRow('health_declaration', 'Hälsodeklaration', hd, hdSigned, hdSource, files) +
-      buildMedFormDocRow('fitness_certificate', 'Friskförsäkran', fc, fcSigned, fcSource, files)
+      buildMedFormDocRow('fitness_certificate', 'Friskförsäkran', fc, fcSigned, fcSource, files) +
+      buildAgreementDocRow(bcard, files)
     );
   }
 
