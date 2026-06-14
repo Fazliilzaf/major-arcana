@@ -13,6 +13,7 @@
   const STYLE_ID = 'cco-ff-demo-styles';
   const DISMISS_KEY = 'arcana.ffdemo.dismissed';
   const MERIDIQ_FORM_ID = 16413;
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v1';
 
   // source: migration/meridiq/questionary-catalog.json — apiId 16413, question 450968
   const DISEASE_OPTIONS = [
@@ -169,20 +170,17 @@
 
     return `
   <div class="wrap">
-    <!-- source: public/friskforsakran.html — portal header -->
-    <header class="head">
-      <div class="kicker">★ Lagkrav · FUE / Hårtransplantation</div>
-      <h1>Friskförsäkran | TP</h1>
-      <p>Måste signeras senast 48 timmar innan din behandling. Detta är ett FUE-krav i Sverige (Patientdatalagen 2008:355).</p>
+    <header class="demo-header">
+      <span class="demo-kicker">★ Steg 8</span>
+      <h1 class="demo-title">Friskförsäkran | TP</h1>
+      <p class="demo-subtitle">Signeras på operationsdagen · Hair TP Clinic · Meridiq ${MERIDIQ_FORM_ID}</p>
     </header>
 
-    <section class="panel">
-      <!-- source: public/friskforsakran.html — juridisk intro -->
+    <div class="demo-scroll" id="steg8FormPanel">
+      <section class="section-block" aria-label="Friskförsäkran">
       <div class="legal">
         <strong>Vad signerar du?</strong> Att du bekräftar dina svar nedan stämmer, att du varit ärlig om hälsotillstånd, mediciner och allergier, och att informationen får sparas i din patientjournal hos Hair TP Clinic i 10 år enligt journallagen.
       </div>
-
-      <p class="mq-source">Friskförsäkran | TP · Hair TP Clinic</p>
 
       <!-- source: migration/meridiq/questionary-catalog.json — 450966 -->
       <div class="field mq-field" data-meridiq-id="450966">
@@ -214,20 +212,20 @@
         <div class="checks mq-attest">${attestationChecks}</div>
       </div>
 
-      <div class="actions">
-        <button class="btn btn-ghost" type="button" id="cancelBtn">Avbryt</button>
-        <button class="btn btn-primary" type="button" id="signBtn">✍ Signera friskförsäkran</button>
-      </div>
-
       <div class="status" id="status" role="status" aria-live="polite"></div>
-    </section>
+      </section>
+    </div>
 
-    <!-- source: public/friskforsakran.html — signerad panel -->
-    <section class="panel" id="signedPanel" hidden>
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" id="cancelBtn">Avbryt</button>
+      <button class="btn btn-primary" type="button" id="signBtn">✍ Signera</button>
+    </div>
+
+    <section class="signed-panel" id="signedPanel" hidden>
       <div class="signed-banner">
         <h3>✓ Signerad och låst</h3>
         <p>Din friskförsäkran är registrerad i Hair TP:s journal-system. Du kan stänga sidan — kliniken har fått besked.</p>
-        <p style="margin-top:10px;font-size:11px;color:var(--cco-text-tertiary)">
+        <p style="margin-top:10px;font-size:11px;color:var(--t3)">
           Entry-ID: <code id="signedEntryId" style="font-family:'SF Mono',ui-monospace,monospace;font-weight:700"></code>
         </p>
       </div>
@@ -235,56 +233,27 @@
   </div>`;
   }
 
-  const STYLE_TEXT = `
-:root{--cco-bg-page:#faf6f2;--cco-color-brand:#2b251f;--cco-text-secondary:rgba(70,60,50,.62);--cco-text-tertiary:#8a8174;--cco-status-success:#4a8268;--cco-status-success-bg:rgba(74,130,104,.14);--cco-status-warning:#c8821e;--cco-status-warning-bg:rgba(200,130,30,.14);--cco-status-danger:#b94a4a;--cco-status-danger-bg:rgba(185,74,74,.14);--cco-status-info:#4a7ba8;--cco-status-info-bg:rgba(74,123,168,.14);--accent-studio:#bb4779;--calendar-accent:#c8821e;--rose-pill-top:rgba(252,233,240,.98);--rose-pill-bottom:rgba(241,207,220,.95);--panel-shell-top:rgba(250,246,242,.94);--panel-shell-bottom:rgba(244,238,233,.86)}
-#${ROOT_ID} *{box-sizing:border-box}
-#${ROOT_ID}{position:fixed;inset:0;background:rgba(30,24,18,.42);display:flex;align-items:center;justify-content:center;z-index:10050;backdrop-filter:blur(2px);padding:24px}
-#${ROOT_ID} .demo-modal{background:var(--cco-bg-page);border-radius:32px;max-width:720px;width:min(720px,calc(100vw - 32px));max-height:90vh;overflow-y:auto;box-shadow:0 48px 96px rgba(0,0,0,.16);padding:24px;position:relative;color:var(--cco-color-brand);font-family:Inter,-apple-system,system-ui,sans-serif;font-size:14px;line-height:1.5}
-#${ROOT_ID} .demo-header-context{padding:12px 18px;border-radius:14px;background:rgba(74,130,104,.08);border:1px solid rgba(74,130,104,.22);font-size:12px;color:var(--cco-text-secondary);margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-#${ROOT_ID} .demo-header-context strong{color:var(--cco-color-brand)}
-#${ROOT_ID} .wrap{max-width:720px;margin:0 auto}
-#${ROOT_ID} .head{padding:24px 28px;border-radius:28px;background:linear-gradient(135deg,var(--rose-pill-top),rgba(252,224,200,.92));color:var(--cco-color-brand);box-shadow:0 18px 38px rgba(187,71,121,.08);border:1px solid rgba(255,255,255,.72);margin-bottom:18px;position:relative;overflow:hidden}
-#${ROOT_ID} .head::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% 12%,rgba(255,255,255,.5),transparent 42%);pointer-events:none}
-#${ROOT_ID} .head .kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-studio);margin-bottom:6px;position:relative}
-#${ROOT_ID} .head h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;color:var(--cco-color-brand);position:relative}
-#${ROOT_ID} .head p{margin:0;font-size:13px;color:var(--cco-text-secondary);max-width:60ch;line-height:1.5;position:relative}
-#${ROOT_ID} .panel{padding:22px 26px;border-radius:24px;background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));box-shadow:0 24px 50px rgba(93,74,60,.08);margin-bottom:14px}
-#${ROOT_ID} .legal{padding:14px 16px;border-radius:14px;background:rgba(74,123,168,.08);border:1px solid rgba(74,123,168,.22);font-size:11.5px;color:var(--cco-status-info);line-height:1.5;margin-bottom:14px}
-#${ROOT_ID} .mq-source{margin:0 0 16px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cco-text-tertiary)}
-#${ROOT_ID} .mq-field{margin-bottom:18px}
-#${ROOT_ID} .mq-label{display:block;font-size:13px;font-weight:600;line-height:1.45;color:var(--cco-color-brand);margin-bottom:8px}
-#${ROOT_ID} .field{margin-bottom:14px}
-#${ROOT_ID} .field label{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:5px}
-#${ROOT_ID} .field input,#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-select{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
-#${ROOT_ID} .field input:focus,#${ROOT_ID} .field textarea:focus,#${ROOT_ID} .mq-select:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
-#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:80px;resize:vertical;display:block;background:#fff;border:1px solid rgba(132,117,107,.35)}
-#${ROOT_ID} .mq-follow{margin-top:10px;margin-bottom:0}
+  const STEP8_EXTRA_CSS = `
+#${ROOT_ID} .mq-field{margin-bottom:14px}
+#${ROOT_ID} .mq-field:last-child{margin-bottom:0}
+#${ROOT_ID} .field textarea,#${ROOT_ID} .mq-follow textarea{min-height:72px;resize:vertical}
+#${ROOT_ID} .mq-follow{margin-top:8px;margin-bottom:0}
 #${ROOT_ID} .checks{display:flex;flex-direction:column;gap:8px}
-#${ROOT_ID} .mq-attest .check span{font-size:11.5px}
-#${ROOT_ID} .check{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
-#${ROOT_ID} .check:hover{border-color:rgba(187,71,121,.22)}
-#${ROOT_ID} .check input{flex-shrink:0;margin-top:2px}
-#${ROOT_ID} .check span{font-size:12px;line-height:1.45;color:var(--cco-color-brand)}
+#${ROOT_ID} .mq-attest .check span{font-size:11px;line-height:1.5}
 #${ROOT_ID} .yn-toggle-row{display:flex;gap:12px;margin-bottom:4px;flex-wrap:wrap}
-#${ROOT_ID} .yn-toggle{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--cco-color-brand);cursor:pointer;user-select:none}
+#${ROOT_ID} .yn-toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--brand);cursor:pointer;user-select:none}
 #${ROOT_ID} .yn-toggle input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
 #${ROOT_ID} .yn-toggle-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(132,117,107,.45);background:rgba(255,255,255,.85);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s,background .15s,box-shadow .15s}
-#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box{border-color:var(--accent-studio);background:rgba(187,71,121,.12);box-shadow:inset 0 0 0 1px rgba(187,71,121,.25)}
-#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box::after{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent-studio)}
-#${ROOT_ID} .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
-#${ROOT_ID} .btn{flex:1;min-width:170px;padding:13px;border-radius:14px;border:none;font-size:12.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
-#${ROOT_ID} .btn-primary{background:linear-gradient(135deg,var(--accent-studio),#9e3a68);color:white;box-shadow:0 12px 28px rgba(187,71,121,.28)}
-#${ROOT_ID} .btn-primary:hover{transform:translateY(-1px)}
+#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box{border-color:var(--accent);background:rgba(187,71,121,.12);box-shadow:inset 0 0 0 1px rgba(187,71,121,.25)}
+#${ROOT_ID} .yn-toggle input:checked+.yn-toggle-box::after{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent)}
 #${ROOT_ID} .btn-primary:disabled{opacity:.55;cursor:wait;transform:none}
-#${ROOT_ID} .btn-ghost{background:transparent;border:1px solid rgba(132,117,107,.28);color:var(--cco-text-secondary)}
-#${ROOT_ID} .status{margin-top:12px;padding:11px 14px;border-radius:11px;font-size:12px;display:none}
-#${ROOT_ID} .status.show{display:block}
-#${ROOT_ID} .status.success{background:var(--cco-status-success-bg);color:var(--cco-status-success)}
-#${ROOT_ID} .status.error{background:var(--cco-status-danger-bg);color:var(--cco-status-danger)}
-#${ROOT_ID} .signed-banner{padding:18px 22px;border-radius:18px;background:linear-gradient(135deg,rgba(74,130,104,.16),rgba(74,130,104,.08));border:1px solid rgba(74,130,104,.32);text-align:center}
-#${ROOT_ID} .signed-banner h3{margin:0 0 6px;font-size:16px;color:var(--cco-status-success);font-weight:800}
-#${ROOT_ID} .signed-banner p{margin:0;font-size:12.5px;color:var(--cco-text-secondary)}
+#${ROOT_ID} .status{margin-top:10px}
 `;
+
+  function buildStyleText() {
+    const shell = global.CcoStepModalDesign?.buildShellCss(ROOT_ID, 10050) || '';
+    return shell + STEP8_EXTRA_CSS;
+  }
 
   let keyHandler = null;
   let formHtmlCache = '';
@@ -351,7 +320,7 @@
     if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement('style');
     style.id = STYLE_ID;
-    style.textContent = STYLE_TEXT;
+    style.textContent = buildStyleText();
     document.head.appendChild(style);
   }
 
@@ -426,7 +395,9 @@
 
   function demoSign(root) {
     const signBtn = root.querySelector('#signBtn');
-    const panel = root.querySelector('.panel');
+    const formPanel = root.querySelector('#steg8FormPanel');
+    const actions = root.querySelector('.actions');
+    const header = root.querySelector('.demo-header');
     const signedPanel = root.querySelector('#signedPanel');
     const signedEntryId = root.querySelector('#signedEntryId');
     if (!signBtn) return;
@@ -442,7 +413,9 @@
     if (signedEntryId) {
       signedEntryId.textContent = `demo-m${MERIDIQ_FORM_ID}-${Date.now().toString(36)}`;
     }
-    if (panel) panel.style.display = 'none';
+    if (formPanel) formPanel.style.display = 'none';
+    if (actions) actions.style.display = 'none';
+    if (header) header.style.display = 'none';
     if (signedPanel) signedPanel.hidden = false;
   }
 
@@ -485,11 +458,6 @@
     root.setAttribute('role', 'presentation');
     root.innerHTML = `
       <div class="demo-modal" role="dialog" aria-modal="true" aria-label="Friskförsäkran · Meridiq ${MERIDIQ_FORM_ID}">
-        <!-- source: new -->
-        <div class="demo-header-context">
-          <span>📅 <strong>Operationsdag:</strong> ${escapeHtml(context.operationLabel)}</span>
-          <span>👤 ${escapeHtml(context.patientName)}</span>
-        </div>
         ${formHtmlCache}
       </div>`;
     document.body.appendChild(root);
