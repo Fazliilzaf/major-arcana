@@ -37,6 +37,8 @@
     "dev:local": "bash ./scripts/start-dev-local.sh",
     "start:local": "bash ./scripts/start-arcana-local.sh",
     "build:bundle": "node ./bin/build-bundle.js",
+    "build:meridiq-step789-preview": "node ./scripts/build-meridiq-step789-preview-content.js",
+    "build:hairtp-document-content": "node ./scripts/build-hairtp-document-content-bundle.js",
     "test:visual": "playwright test --config=playwright.config.js",
     "test:visual:update": "playwright test --config=playwright.config.js --update-snapshots",
     "test:system-mail-parser": "node scripts/test/system-mail-parser.test.js",

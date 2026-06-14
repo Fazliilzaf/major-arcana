@@ -18,13 +18,9 @@ services:
     #   1. npm ci             → installerar deps inkl. esbuild
     #   2. npm run build:bundle → bygger app.bundle.<hash>.min.js från index.html-script-tags
     #   3. node bin/inject-bundle.js → uppdaterar index.html till nya hashen
-    #   4. playwright install (non-fatal, samma som tidigare)
-    #
-    # Bundle-filerna är .gitignore:ade sedan 2026-05-16 så ingen committar dem
-    # längre. Det eliminerar push-konflikter när flera devs (eller Cursor) bygger
-    # parallellt med olika source-states. Source of truth är .js-källfilerna +
-    # index.html-script-tag-ordningen.
-    buildCommand: npm ci && npm run build:bundle && node ./bin/inject-bundle.js && (PLAYWRIGHT_BROWSERS_PATH=/var/data/playwright-browsers npx playwright install chromium || echo "Playwright install non-fatal, fortsätter ändå")
+    #   4. Meridiq preview JSON (gitignored under data/) för steg 7–9 + 36-doc bundle
+    #   5. playwright install (non-fatal, samma som tidigare)
+    buildCommand: npm ci && npm run build:bundle && node ./bin/inject-bundle.js && npm run build:meridiq-step789-preview && npm run build:hairtp-document-content && (PLAYWRIGHT_BROWSERS_PATH=/var/data/playwright-browsers npx playwright install chromium || echo "Playwright install non-fatal, fortsätter ändå")
     startCommand: NODE_OPTIONS='--max-old-space-size=6144' npm start
     disk:
       # OBS: namn + storlek MASTE matcha live-disken (dsk-d8b3i3tckfvc73clgetg).
