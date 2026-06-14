@@ -56,6 +56,13 @@
   var A = function (x) {
     return Array.isArray(x) ? x : x ? [x] : [];
   };
+  function gkDeferredPhotoLimit(cls) {
+    var c = String(cls || '');
+    if (c.indexOf('is-collapsed') === -1) return 0;
+    if (c.indexOf('gk-foto-grid--journal') !== -1) return 12;
+    if (c.indexOf('gk-foto-grid--all') !== -1) return 24;
+    return 0;
+  }
   function driveDedupeText(value) {
     return String(value == null ? '' : value)
       .normalize('NFC')
@@ -303,12 +310,13 @@
   function gkSharedPhotoGrid(items, cls) {
     var list = A(items);
     if (!list.length) return '';
+    var deferAfter = gkDeferredPhotoLimit(cls);
     return (
       '<div class="gk-foto-grid' +
       (cls ? ' ' + esc(cls) : '') +
       '">' +
       list
-        .map(function (p) {
+        .map(function (p, index) {
           var missingPreview = p.kind !== 'video' && p.previewMissing;
           var captureDate = p.captureDate || '';
           var dateMismatch = Boolean(
@@ -317,28 +325,35 @@
           );
           var src = p.thumb || (!missingPreview ? p.url : '');
           var fallback = p.url || '';
+          var deferred = Boolean(deferAfter && index >= deferAfter && !missingPreview);
           var media =
             p.kind === 'video'
-              ? '<video data-gk-img-src="' +
+              ? '<video ' +
+                (deferred ? 'data-gk-deferred-img-src="' : 'data-gk-img-src="') +
                 esc(fallback) +
-                '" muted playsinline preload="metadata"><source src="' +
-                esc(fallback) +
-                '"></video><span class="gk-video-chip">Film</span>'
+                '" muted playsinline preload="' +
+                (deferred ? 'none' : 'metadata') +
+                '">' +
+                (deferred ? '' : '<source src="' + esc(fallback) + '">') +
+                '</video><span class="gk-video-chip">Film</span>'
               : missingPreview
                 ? '<div class="gk-foto-placeholder"><b>Miniatyr saknas</b><small>Original finns · behöver thumbnail</small></div>'
-                : '<img data-gk-img-src="' +
+                : '<img ' +
+                  (deferred ? 'data-gk-deferred-img-src="' : 'data-gk-img-src="') +
                   esc(src) +
-                  '" data-gk-img-full="' +
+                  '" ' +
+                  (deferred ? 'data-gk-deferred-img-full="' : 'data-gk-img-full="') +
                   esc(fallback) +
-                  '" src="' +
-                  esc(src) +
-                  '" alt="' +
+                  '" ' +
+                  (deferred ? '' : 'src="' + esc(src) + '" ') +
+                  'alt="' +
                   esc(p.name || p.zone || 'Foto') +
                   '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />';
           return (
             '<a class="gk-foto' +
             (p.kind === 'video' ? ' gk-foto--video' : '') +
             (missingPreview ? ' gk-foto--missing' : '') +
+            (deferred ? ' gk-foto--deferred' : '') +
             (p.offerReady ? ' gk-foto--offer-ready' : '') +
             (dateMismatch ? ' gk-foto--date-mismatch' : '') +
             '" href="' +
@@ -1129,12 +1144,13 @@
     function gkPhotoGrid(photos, limit, cls) {
       var list = limit ? A2(photos).slice(0, limit) : A2(photos);
       if (!list.length) return '';
+      var deferAfter = gkDeferredPhotoLimit(cls);
       return (
         '<div class="gk-foto-grid' +
         (cls ? ' ' + esc(cls) : '') +
         '">' +
         list
-          .map(function (p) {
+          .map(function (p, index) {
             var missingPreview = p.kind !== 'video' && p.previewMissing;
             var captureDate = p.captureDate || '';
             var dateMismatch = Boolean(
@@ -1143,23 +1159,30 @@
             );
             var src = p.thumb || (!missingPreview ? p.url : '');
             var fallback = p.url || '';
+            var deferred = Boolean(deferAfter && index >= deferAfter && !missingPreview);
             var media =
               p.kind === 'video'
-                ? '<video data-gk-img-src="' +
+                ? '<video ' +
+                  (deferred ? 'data-gk-deferred-img-src="' : 'data-gk-img-src="') +
                   esc(fallback) +
-                  '" data-gk-img-full="' +
+                  '" ' +
+                  (deferred ? 'data-gk-deferred-img-full="' : 'data-gk-img-full="') +
                   esc(fallback) +
-                  '" preload="metadata" muted playsinline controls></video>'
+                  '" preload="' +
+                  (deferred ? 'none' : 'metadata') +
+                  '" muted playsinline controls></video>'
                 : missingPreview
                   ? '<div class="gk-foto-placeholder"><b>Miniatyr saknas</b><small>Original finns · behöver thumbnail</small></div>'
                   : src
-                    ? '<img data-gk-img-src="' +
+                    ? '<img ' +
+                      (deferred ? 'data-gk-deferred-img-src="' : 'data-gk-img-src="') +
                       esc(src) +
-                      '" data-gk-img-full="' +
+                      '" ' +
+                      (deferred ? 'data-gk-deferred-img-full="' : 'data-gk-img-full="') +
                       esc(fallback) +
-                      '" src="' +
-                      esc(src) +
-                      '" alt="' +
+                      '" ' +
+                      (deferred ? '' : 'src="' + esc(src) + '" ') +
+                      'alt="' +
                       esc(p.name || p.zone || 'Foto') +
                       '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />'
                     : '';
@@ -1167,6 +1190,7 @@
               '<a class="gk-foto' +
               (p.kind === 'video' ? ' gk-foto--video' : '') +
               (missingPreview ? ' gk-foto--missing' : '') +
+              (deferred ? ' gk-foto--deferred' : '') +
               (p.offerReady ? ' gk-foto--offer-ready' : '') +
               (dateMismatch ? ' gk-foto--date-mismatch' : '') +
               '" href="' +
@@ -2581,6 +2605,7 @@
         mediaToggle.textContent = open
           ? 'Dölj'
           : 'Visa alla ' + mediaGrid.querySelectorAll('.gk-foto').length;
+        if (open && window.__gkRevealDeferredPhotos) window.__gkRevealDeferredPhotos(mediaGrid);
         if (open && window.__gkHydrateSecurePhotos) window.__gkHydrateSecurePhotos(mediaGrid);
         return;
       }
@@ -3481,6 +3506,24 @@
       tryNext(0);
     }
     pump();
+  };
+
+  window.__gkRevealDeferredPhotos = function (root) {
+    var scope = root || document;
+    if (!scope) return;
+    [].slice.call(scope.querySelectorAll('.gk-foto--deferred')).forEach(function (tile) {
+      var media =
+        tile.querySelector('img[data-gk-deferred-img-src], video[data-gk-deferred-img-src]') ||
+        tile.querySelector('img[data-gk-deferred-img-full], video[data-gk-deferred-img-full]');
+      if (!media) return;
+      var primary = media.getAttribute('data-gk-deferred-img-src') || '';
+      var full = media.getAttribute('data-gk-deferred-img-full') || '';
+      if (primary) media.setAttribute('data-gk-img-src', primary);
+      if (full) media.setAttribute('data-gk-img-full', full);
+      media.removeAttribute('data-gk-deferred-img-src');
+      media.removeAttribute('data-gk-deferred-img-full');
+      tile.classList.remove('gk-foto--deferred');
+    });
   };
 
   window.__renderReferensKundkort = function (card, bundle, journalEntries, extras) {
