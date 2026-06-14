@@ -3,7 +3,7 @@
  *
  * Content registry:
  *   source: migration/meridiq/consent-catalog.json — apiId 170917, 170955
- *   source: src/ops/ccoTreatmentAgreementDocument.js — behandlingsavtal body (summary)
+ *   source: MA-Archive Word — 251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar.docx
  *   source: docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md — ångerfristsamtycke
  *   source: public/friskforsakran.html — portal tokens + panel chrome
  *   source: new — dual-signature modal, legal_review gate, journal submit
@@ -16,7 +16,7 @@
   const STYLE_ID = 'cco-steg7-bundle-styles';
   const DISMISS_KEY = 'arcana.steg7bundle.dismissed';
   const SIGNED_KEY = 'arcana.steg7bundle.signed';
-  const CACHE_BUST = 'hairtp-steg7-bundle-v5-kundkort';
+  const CACHE_BUST = 'hairtp-steg7-bundle-v6-kundkort-final';
 
   const CONSENT_AGREEMENT = {
     apiId: 170917,
@@ -32,72 +32,101 @@
     brand: 'Hair TP Clinic',
   };
 
-  // source: src/ops/ccoTreatmentAgreementDocument.js — buildTreatmentAgreementHtml (summary)
-  const AGREEMENT_BODY = `
-    <p><strong>1. Parter</strong><br/>Klinik: Hair TP Clinic AB · Patient: enligt signering nedan.</p>
-    <p><strong>2. Behandling</strong><br/>Behandlingen avser hårtransplantation enligt offert (DHI/FUE). Pris enligt accepterad offert.</p>
-    <p><strong>3. Bilagor</strong></p>
-    <ul>
-      <li><strong>Bilaga 1</strong> — Patientinformation &amp; tjänstespecifikation</li>
-      <li>Behandlingsplan från konsultation (om bifogad)</li>
-      <li><strong>Bilaga 3</strong> — Konsumentverkets ångerblankett (vid distansavtal)</li>
-    </ul>
-    <p><strong>4. Av- och ombokning</strong><br/>Enligt klinikens villkor i patientinformation och offert.</p>
-    <p><strong>5. Distansavtal och ångerrätt</strong><br/>Vid distansavtal gäller 14 dagars ångerrätt enligt Distansavtalslagen. Särskilt samtycke krävs om behandling eller bokning ska påbörjas innan ångerfristen löpt ut.</p>
-    <p><strong>6. Signering</strong><br/>Genom signering bekräftar patienten att bilaga 1 mottagits och att villkoren accepteras.</p>`;
+  // source: MA-Archive Word — 251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar.docx
+  function buildAgreementBody(context) {
+    return [
+      `<p class="doc-title"><strong>Behandlingsavtal (hårtransplantation med DHI-metoden)</strong></p>`,
+      `<p class="doc-text">Mellan</p>`,
+      `<p class="doc-text">Hair TP Clinic, org. nr. 559034-2688, Vasaplatsen 2, 411 34 Göteborg, (Tjänstutövaren) och</p>`,
+      `<p class="doc-text">${escapeHtml(context.patientName)}${context.personnummer ? `, ${escapeHtml(context.personnummer)}` : ''} (Kunden)</p>`,
+      `<p class="doc-text">har träffats följande behandlingsavtal (Avtalet) om hårtransplantation i enlighet med tjänstbeskrivning (Behandlingen), se bilaga 1. Pris för Behandlingen framgår av lämnad offert, se bilaga 2${context.offerLabel ? ` (${escapeHtml(context.offerLabel)})` : ''}.</p>`,
+      `<p class="doc-heading"><strong>Giltighetstid och betänketid</strong></p>`,
+      `<p class="doc-text">Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.</p>`,
+      `<p class="doc-text">Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.</p>`,
+      `<p class="doc-heading"><strong>Betalningsvillkor</strong></p>`,
+      `<p class="doc-text">Behandlingen är en privat tjänst som bekostas av Kunden.</p>`,
+      `<p class="doc-text">Kunden ska erlägga en förskottsbetalning (Förskottsbetalningen) om 20 % (tjugo procent) av den totala behandlingskostnaden. Tjänstutövaren fakturerar beloppet i samband med bokning av behandlingstillfälle. Genom erlagd förskottsbetalning bekräftas den bokade tiden.</p>`,
+      `<p class="doc-text">Betalning ska erläggas via faktura, betalkort eller finansiering via Medical Finance (ingen kontantbetalning). Slutbetalning ska vara Tjänsteutövaren tillhanda innan behandlingen påbörjas. Tjänsteutövaren förbehålls rätten att avboka behandlingstiden och säga upp Avtalet med omedelbar verkan om slutbetalning inte skett i tid, varvid Kunden inte äger rätt till återbetalning av förskottsbetalningen.</p>`,
+      `<p class="doc-heading"><strong>Av- och ombokning</strong></p>`,
+      `<p class="doc-text">Kundens ombokning av behandlingstid ska ske senast 14 kalenderdagar före den planerade behandlingsdagen. Detta ger Tjänsteutövaren möjlighet att justera schemat och erbjuda tiden till annan kund vid behov. För ombokning ska Kunden kontakta contact@curatiio.com. Ombokningen är giltig först när Kunden mottagit en skriftlig bekräftelse på ombokning från Tjänsteutövaren.</p>`,
+      `<p class="doc-text">Vid Kundens avbokning mer än 14 dagar före behandlingsdatum återbetalas Förskottsbetalningen i dess helhet.</p>`,
+      `<p class="doc-text">Vid Kundens avbokning mindre än 14 dagar före behandlingsdatum äger Kunden inte rätt till återbetalning av Förskottsbetalningen. Denna utgör då en administrativ avgift med anledning av avbokningen.</p>`,
+      `<p class="doc-text">Avbokning sker via e-post till: contact@curatiio.com. Avbokning är giltig först när Kunden mottagit en skriftlig bekräftelse från Tjänsteutövaren. Om Kunden inte erhållit sådan bekräftelse inom 48 timmar ska Kunden kontakt Tjänstutövaren för att säkerställa att avbokningen har registrerats.</p>`,
+      `<p class="doc-text">Vid utebliven avbokning enligt ovanstående rutin äger Kunden inte rätt till återbetalning av Förskottsbetalningen. Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att Kunden kan uppvisa läkarintyg som intygar att Kunden inte bör genomgå behandlingen.</p>`,
+      `<p class="doc-heading"><strong>Resultat</strong></p>`,
+      `<p class="doc-text">Kunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnås bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat.</p>`,
+      `<p class="doc-text">Kunden är införstådd med att hårsäckarnas emotsedda överlevnad (95%) förutsätter att Kunden genomgår hela Behandlingen inklusive fyra (4) PRP-behandling, inte använder tobak eller nikotinprodukter före eller efter behandlingen och följer samtliga förberedelse- och eftervårdsinstruktioner. Resultatet utvärderas tillsammans med kliniken. För det fall att en tillfredsställande överlevnadsnivå för hårsäckarna inte uppnås genom behandlingen planeras eventuell korrigering efter medicinsk bedömning och överenskommelse med Kunden.</p>`,
+      `<p class="doc-heading"><strong>Ansvar</strong></p>`,
+      `<p class="doc-text">Tjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets vårdslöshet. Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen, såsom för komplikationer, inkomstbortfall eller oönskat resultat. Tjänstutövaren ansvarar inte heller för exempelvis felaktigt tillverkade medicinska produkter.</p>`,
+      `<p class="doc-heading"><strong>Ångerrätt</strong></p>`,
+      `<p class="doc-text">Behandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett klart och tydligt meddelande till Tjänsteutövaren om att Patienten önskar utöva sin ångerrätt. Sådant meddelande kan skickas till contact@curatiio.com. Patienten kan även använda sig av standardformulär, se bilaga 3.</p>`,
+      `<p class="doc-text">För det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke.</p>`,
+      `<p class="doc-heading"><strong>Avtalsbrott och force majeure</strong></p>`,
+      `<p class="doc-text">Om Tjänstutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänstutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande ska detta utgöra befrielsegrund som medför rätt för Tjänstutövaren att säga upp Avtalet med omedelbar verkan.</p>`,
+      `<p class="doc-text">Tjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens Väsentliga avtalsbrott eller upprepade avtalsbrott utan återbetalning av Förskottsbetalningen.</p>`,
+      `<p class="doc-heading"><strong>Information &amp; samtycke</strong></p>`,
+      `<p class="doc-text">Kunden bekräftar att Kunden har tagit del av skriftlig information, se bilaga 1, samt att Kunden tagit del av motsvarande information muntligt. Kunden har även tagit del av individuell behandlingsplan.</p>`,
+      `<p class="doc-text">Kunden lämnar sitt samtycke till att behandlingen får utföras.</p>`,
+      `<p class="doc-heading"><strong>Tvist</strong></p>`,
+      `<p class="doc-text">Svensk lag ska tillämpas på avtalet.</p>`,
+      `<p class="doc-text">För det fall utförd behandling omfattas av Tjänsteutövarens patientförsäkring enligt patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till Patientskadenämnden. Avseende frågor som inte kräver medicinsk sakkunskap har Kunden även möjlighet att hänskjuta tvist till prövning genom anmälan till Allmänna reklamationsnämnden (ARN). Tvist med anledning av avtalet ska slutligen avgöras av allmän domstol med Göteborgs tingsrätt som första instans.</p>`,
+    ].join('');
+  }
 
-  // source: docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md — särskilt samtycke
+  // source: docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md — särskilt samtycke (170955)
   const COOLING_BODY = `
-    <p>Detta samtycke gäller när behandlingsavtalet ingås på distans och du begär att Hair TP Clinic ska påbörja behandlingen och/eller boka behandlingstid <strong>innan</strong> 14 dagars ångerfrist har löpt ut.</p>
-    <p>Du bekräftar att du tagit del av information om ångerrätt, att du fått tillgång till Konsumentverkets ångerblankett (bilaga 3), och att du förstår att du genom detta samtycke kan avstå från ångerrätt för den del av tjänsten som redan fullgjorts.</p>
-    <p>Genom att signera begär du uttryckligen att behandling/bokning påbörjas under ångerfristen.</p>`;
+    <div class="doc-divider" aria-hidden="true"></div>
+    <p class="doc-heading"><strong>Begäran och samtycke till behandling inom ångerfrist (14 dagar)</strong></p>
+    <p class="doc-text">Detta samtycke gäller när behandlingsavtalet ingås på distans och du begär att Hair TP Clinic ska påbörja behandlingen och/eller boka behandlingstid <strong>innan</strong> 14 dagars ångerfrist har löpt ut.</p>
+    <p class="doc-text">Du bekräftar att du tagit del av information om ångerrätt enligt Distansavtalslagen, att du fått tillgång till Konsumentverkets ångerblankett (bilaga 3), och att du förstår att du genom detta samtycke kan avstå från ångerrätt för den del av tjänsten som redan fullgjorts.</p>
+    <p class="doc-text">Genom att signera begär du uttryckligen att behandling/bokning påbörjas under ångerfristen.</p>`;
+
+  function buildDocumentsBlock(context) {
+    return buildAgreementBody(context) + COOLING_BODY;
+  }
 
   const STYLE_TEXT = `
 :root{--cco-bg-page:#faf6f2;--cco-color-brand:#2b251f;--cco-text-secondary:rgba(70,60,50,.62);--cco-text-tertiary:#8a8174;--cco-status-success:#4a8268;--cco-status-success-bg:rgba(74,130,104,.14);--cco-status-warning:#c8821e;--cco-status-warning-bg:rgba(200,130,30,.14);--cco-status-danger:#b94a4a;--cco-status-danger-bg:rgba(185,74,74,.14);--cco-status-info:#4a7ba8;--cco-status-info-bg:rgba(74,123,168,.14);--accent-studio:#bb4779;--calendar-accent:#c8821e;--rose-pill-top:rgba(252,233,240,.98);--rose-pill-bottom:rgba(241,207,220,.95);--panel-shell-top:rgba(250,246,242,.94);--panel-shell-bottom:rgba(244,238,233,.86);--panel-shell-shadow:0 18px 34px rgba(92,73,58,.08),0 6px 14px rgba(151,139,157,.04),inset 0 1px 0 rgba(255,255,255,.56);--panel-shell-shadow-strong:0 26px 58px rgba(93,74,60,.09),0 10px 26px rgba(156,145,166,.05),0 0 0 1px rgba(255,255,255,.18),inset 0 1px 0 rgba(255,255,255,.42);--panel-card-top:rgba(255,255,255,.94);--panel-card-bottom:rgba(247,241,236,.86);--panel-card-shadow:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86)}
 #${ROOT_ID} *,#${GATE_ID} *{box-sizing:border-box}
 #${ROOT_ID},#${GATE_ID}{position:fixed;inset:0;background:rgba(30,24,18,.42);display:flex;align-items:center;justify-content:center;z-index:10040;backdrop-filter:blur(2px);padding:24px}
-#${ROOT_ID} .demo-modal,#${GATE_ID} .demo-modal{background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));border-radius:32px;max-width:920px;width:min(920px,calc(100vw - 32px));max-height:90vh;overflow-y:auto;box-shadow:var(--panel-shell-shadow);padding:28px;position:relative;color:var(--cco-color-brand);font-family:Inter,-apple-system,system-ui,sans-serif;font-size:14px;line-height:1.5}
-#${ROOT_ID} .demo-header-context{padding:12px 18px;border-radius:14px;background:rgba(74,130,104,.08);border:1px solid rgba(74,130,104,.22);font-size:12px;color:var(--cco-text-secondary);margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-#${ROOT_ID} .demo-header-context strong,#${GATE_ID} .demo-header-context strong{color:var(--cco-color-brand)}
-#${ROOT_ID} .wrap,#${GATE_ID} .wrap{max-width:920px;margin:0 auto}
+#${ROOT_ID} .demo-modal{background:linear-gradient(180deg,rgba(252,249,245,.97),rgba(243,237,231,.92));border-radius:24px;width:420px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;box-shadow:0 2px 6px rgba(93,74,60,.06),0 30px 60px rgba(93,74,60,.16),inset 0 1px 0 rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.6);padding:0;position:relative;color:var(--cco-color-brand);font-family:Inter,-apple-system,system-ui,sans-serif;font-size:12.5px;line-height:1.42}
+#${GATE_ID} .demo-modal{background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));border-radius:24px;max-width:420px;width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;box-shadow:var(--panel-shell-shadow);padding:0;color:var(--cco-color-brand);font-family:Inter,-apple-system,system-ui,sans-serif;font-size:12.5px;line-height:1.42}
+#${ROOT_ID} .wrap,#${GATE_ID} .wrap{margin:0}
+#${ROOT_ID} .demo-header{padding:18px 18px 16px;border-bottom:1px solid rgba(215,202,194,.5);background:linear-gradient(180deg,rgba(255,255,255,.55),transparent)}
+#${ROOT_ID} .demo-kicker{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:8px;display:block}
+#${ROOT_ID} .demo-title{font-size:16px;font-weight:800;margin:0 0 6px;color:var(--cco-color-brand)}
+#${ROOT_ID} .demo-subtitle{font-size:11px;color:var(--cco-text-secondary);margin:0;line-height:1.45}
+#${ROOT_ID} .demo-scroll{padding:12px 18px 0;display:flex;flex-direction:column;gap:14px}
 #${ROOT_ID} .head,#${GATE_ID} .head{padding:24px 28px;border-radius:28px;background:linear-gradient(135deg,var(--rose-pill-top),rgba(252,224,200,.92));color:var(--cco-color-brand);box-shadow:0 18px 38px rgba(187,71,121,.08);border:1px solid rgba(255,255,255,.72);margin-bottom:18px;position:relative;overflow:hidden}
 #${ROOT_ID} .head::before,#${GATE_ID} .head::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% 12%,rgba(255,255,255,.5),transparent 42%);pointer-events:none}
 #${ROOT_ID} .head .kicker,#${GATE_ID} .head .kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-studio);margin-bottom:6px;position:relative}
 #${ROOT_ID} .head h1,#${GATE_ID} .head h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;color:var(--cco-color-brand);position:relative}
 #${ROOT_ID} .head p,#${GATE_ID} .head p{margin:0;font-size:13px;color:var(--cco-text-secondary);max-width:62ch;line-height:1.5;position:relative}
-#${ROOT_ID} .panel{padding:22px 26px;border-radius:24px;background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));box-shadow:var(--panel-shell-shadow);margin-bottom:14px}
-#${ROOT_ID} .panel h2{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cco-text-tertiary);margin:0 0 12px}
-#${ROOT_ID} .legal{padding:14px 16px;border-radius:14px;background:rgba(74,123,168,.08);border:1px solid rgba(74,123,168,.22);font-size:11.5px;color:var(--cco-status-info);line-height:1.6;margin-bottom:24px}
-#${ROOT_ID} .section-block{margin-bottom:24px;border-radius:18px;background:linear-gradient(180deg,var(--panel-card-top),var(--panel-card-bottom));border:1px solid rgba(132,117,107,.18);box-shadow:var(--panel-card-shadow);overflow:hidden}
-#${ROOT_ID} .section-block__head{padding:14px 18px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cco-text-tertiary);border-bottom:1px solid rgba(132,117,107,.12);background:rgba(255,255,255,.35)}
-#${ROOT_ID} .section-block__body{padding:20px 22px 22px}
-#${ROOT_ID} .bundle-panels{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:0}
-@media(max-width:767px){#${ROOT_ID} .bundle-panels{grid-template-columns:1fr;gap:24px}}
-#${ROOT_ID} .bundle-panel{padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.72);border:1px solid rgba(132,117,107,.16);box-shadow:var(--panel-card-shadow);min-width:0}
-#${ROOT_ID} .bundle-panel h3{margin:0 0 12px;font-size:13px;font-weight:650;line-height:1.5;color:var(--cco-color-brand);letter-spacing:-.01em}
-#${ROOT_ID} .doc-scroll{max-height:240px;overflow-y:auto;padding-right:8px;font-size:13px;line-height:1.6;color:var(--cco-text-secondary);margin-bottom:14px}
-#${ROOT_ID} .doc-scroll ul{margin:0 0 14px;padding-left:18px}
-#${ROOT_ID} .doc-scroll p{margin:0 0 14px}
-#${ROOT_ID} .doc-scroll p:last-child{margin-bottom:0}
-#${ROOT_ID} .doc-meta{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cco-text-tertiary);margin:0 0 16px}
+#${ROOT_ID} .section-block{padding:14px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(247,241,236,.86));border:1px solid rgba(255,255,255,.72);box-shadow:0 1px 2px rgba(56,40,28,.06),0 9px 22px rgba(56,40,28,.12),inset 0 1px 0 rgba(255,255,255,.96)}
+#${ROOT_ID} .doc-scroll{max-height:none;overflow:visible}
+#${ROOT_ID} .doc-text{font-size:12px;line-height:1.6;color:var(--cco-text-secondary);margin:0 0 10px}
+#${ROOT_ID} .doc-text:last-child{margin-bottom:0}
+#${ROOT_ID} .doc-text strong{color:var(--cco-color-brand);font-weight:600}
+#${ROOT_ID} .doc-heading{font-size:12px;line-height:1.5;color:var(--cco-color-brand);margin:12px 0 8px;font-weight:700}
+#${ROOT_ID} .doc-title{font-size:12px;line-height:1.5;color:var(--cco-color-brand);margin:0 0 10px}
+#${ROOT_ID} .doc-divider{padding-top:10px;border-top:1px solid rgba(215,202,194,.3);margin:10px 0 0}
 #${ROOT_ID} .field{margin-bottom:16px}
 #${ROOT_ID} .field:last-child{margin-bottom:0}
-#${ROOT_ID} .field label{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:8px}
-#${ROOT_ID} .field input{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
+#${ROOT_ID} .field label{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:6px}
+#${ROOT_ID} .field input{width:100%;padding:8px 11px;border-radius:10px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:12px;color:var(--cco-color-brand);outline:none}
 #${ROOT_ID} .field input:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
-#${ROOT_ID} .signature-fields{margin-top:0}
-#${ROOT_ID} .checks{display:flex;flex-direction:column;gap:12px}
-#${ROOT_ID} .check{display:flex;align-items:flex-start;gap:12px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
+#${ROOT_ID} .check{display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:11px;background:rgba(255,255,255,.55);cursor:pointer;border:1px solid transparent;margin-top:12px}
 #${ROOT_ID} .check:hover{border-color:rgba(187,71,121,.22)}
 #${ROOT_ID} .check input{flex-shrink:0;margin-top:3px}
-#${ROOT_ID} .check span{font-size:13px;line-height:1.5;color:var(--cco-color-brand)}
-#${ROOT_ID} .actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
-#${ROOT_ID} .btn{flex:1;min-width:170px;padding:13px;border-radius:14px;border:none;font-size:12.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
-#${ROOT_ID} .btn-primary{background:linear-gradient(135deg,var(--accent-studio),#9e3a68);color:white;box-shadow:0 12px 28px rgba(187,71,121,.28)}
+#${ROOT_ID} .check span{font-size:12px;line-height:1.6;color:var(--cco-color-brand)}
+#${ROOT_ID} .actions{display:flex;gap:8px;padding:0 18px 16px;flex-wrap:wrap}
+#${ROOT_ID} .btn{flex:1;min-width:100px;padding:11px;border-radius:12px;border:none;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+#${ROOT_ID} .btn-primary{background:linear-gradient(135deg,var(--accent-studio),#9e3a68);color:white;box-shadow:0 8px 18px rgba(187,71,121,.22)}
 #${ROOT_ID} .btn-primary:hover:not(:disabled){transform:translateY(-1px)}
 #${ROOT_ID} .btn-primary:disabled{opacity:.55;cursor:not-allowed;transform:none}
 #${ROOT_ID} .btn-ghost{background:transparent;border:1px solid rgba(132,117,107,.28);color:var(--cco-text-secondary)}
-#${ROOT_ID} .status{margin-top:12px;padding:11px 14px;border-radius:11px;font-size:12px;display:none}
+#${ROOT_ID} .status{margin:0 18px 14px;padding:11px 14px;border-radius:11px;font-size:12px;display:none}
+#${ROOT_ID} .signed-panel{padding:12px 18px 18px}
 #${ROOT_ID} .status.show{display:block}
 #${ROOT_ID} .status.success{background:var(--cco-status-success-bg);color:var(--cco-status-success)}
 #${ROOT_ID} .status.error{background:var(--cco-status-danger-bg);color:var(--cco-status-danger)}
@@ -204,76 +233,50 @@
   function syncSignButton(root) {
     const signBtn = root.querySelector('#signBothBtn');
     if (!signBtn) return;
-    const ackAgreement = root.querySelector('#ackAgreement')?.checked;
-    const ackCooling = root.querySelector('#ackCooling')?.checked;
+    const ackBundle = root.querySelector('#ackBundle')?.checked;
     const name = root.querySelector('#patientName')?.value.trim();
     const pnr = root.querySelector('#patientId')?.value.trim();
-    signBtn.disabled = !(ackAgreement && ackCooling && name && pnr);
+    signBtn.disabled = !(ackBundle && name && pnr);
   }
 
   function buildFormHtml(context) {
     return `
   <div class="wrap">
-    <header class="head">
-      <div class="kicker">★ Steg 7 · Avtal + samtycke</div>
-      <h1>Avtal + Samtycke | TP · Hair TP Clinic</h1>
-      <p>Signera behandlingsavtal och särskilt samtycke till behandling inom ångerfrist i samma steg. Båda dokumenten låses i journalen tillsammans.</p>
+    <header class="demo-header">
+      <span class="demo-kicker">★ Steg 7</span>
+      <h1 class="demo-title">Avtal &amp; Samtycke</h1>
+      <p class="demo-subtitle">Signera båda dokumenten tillsammans. Låses i journalen (${CONSENT_AGREEMENT.apiId} + ${CONSENT_COOLING.apiId}).</p>
     </header>
 
-    <section class="panel" id="steg7FormPanel">
-      <div class="legal">
-        <strong>Vad signerar du?</strong> Behandlingsavtal (${CONSENT_AGREEMENT.apiId}) och begäran om behandling under ångerfrist (${CONSENT_COOLING.apiId}). En journalpost skapas med båda samtycken.
-      </div>
-
-      <p class="doc-meta">${escapeHtml(context.offerLabel)}</p>
-
-      <section class="section-block section-block--docs" aria-label="Dokument att signera">
-        <div class="section-block__head">Dokument att signera</div>
-        <div class="section-block__body">
-      <div class="bundle-panels">
-        <article class="bundle-panel" data-consent-id="${CONSENT_AGREEMENT.apiId}">
-          <h3>${escapeHtml(CONSENT_AGREEMENT.title)}</h3>
-          <div class="doc-scroll">${AGREEMENT_BODY}</div>
-          <label class="check">
-            <input type="checkbox" id="ackAgreement" />
-            <span>Jag har läst behandlingsavtalet och godkänner villkoren.</span>
-          </label>
-        </article>
-        <article class="bundle-panel" data-consent-id="${CONSENT_COOLING.apiId}">
-          <h3>${escapeHtml(CONSENT_COOLING.title)}</h3>
-          <div class="doc-scroll">${COOLING_BODY}</div>
-          <label class="check">
-            <input type="checkbox" id="ackCooling" />
-            <span>Jag begär att behandling/bokning påbörjas innan ångerfristen löpt ut och lämnar särskilt samtycke.</span>
-          </label>
-        </article>
-      </div>
-        </div>
+    <div class="demo-scroll" id="steg7FormPanel">
+      <section class="section-block section-block--docs" aria-label="Dokument att signera" data-consent-ids="${CONSENT_AGREEMENT.apiId},${CONSENT_COOLING.apiId}">
+        <div class="doc-scroll">${buildDocumentsBlock(context)}</div>
+        <label class="check">
+          <input type="checkbox" id="ackBundle" />
+          <span>Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling innan ångerfristen löpt ut.</span>
+        </label>
       </section>
 
       <section class="section-block section-block--sign" aria-label="Signering">
-        <div class="section-block__head">Signering</div>
-        <div class="section-block__body signature-fields">
-      <div class="field">
-        <label for="patientName">Ditt namn</label>
-        <input type="text" id="patientName" autocomplete="name" value="${escapeHtml(context.patientName)}" placeholder="För- och efternamn" />
-      </div>
-      <div class="field">
-        <label for="patientId">Personnummer (ÅÅÅÅMMDD-XXXX)</label>
-        <input type="text" id="patientId" autocomplete="off" value="${escapeHtml(context.personnummer)}" placeholder="19800101-1234" pattern="\\d{8}-?\\d{4}" />
-      </div>
-      </div>
+        <div class="field">
+          <label for="patientName">Namn</label>
+          <input type="text" id="patientName" autocomplete="name" value="${escapeHtml(context.patientName)}" placeholder="För- och efternamn" />
+        </div>
+        <div class="field">
+          <label for="patientId">Personnummer</label>
+          <input type="text" id="patientId" autocomplete="off" value="${escapeHtml(context.personnummer)}" placeholder="ÅÅÅÅMMDD-XXXX" pattern="\\d{8}-?\\d{4}" />
+        </div>
       </section>
 
-      <div class="actions">
-        <button class="btn btn-ghost" type="button" id="cancelBtn">Avbryt</button>
-        <button class="btn btn-primary" type="button" id="signBothBtn" disabled>✍ Signera båda</button>
-      </div>
-
       <div class="status" id="steg7Status" role="status" aria-live="polite"></div>
-    </section>
+    </div>
 
-    <section class="panel" id="signedPanel" hidden>
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" id="cancelBtn">Avbryt</button>
+      <button class="btn btn-primary" type="button" id="signBothBtn" disabled>✍ Signera</button>
+    </div>
+
+    <section class="signed-panel" id="signedPanel" hidden>
       <div class="signed-banner">
         <h3>✓ Avtal och samtycke signerat och låst</h3>
         <p>Båda dokumenten är registrerade i Hair TP:s journal-system. Du kan stänga sidan — kliniken har fått besked.</p>
@@ -381,9 +384,13 @@
 
   function showSignedState(root, entryId) {
     const formPanel = root.querySelector('#steg7FormPanel');
+    const actions = root.querySelector('.actions');
+    const header = root.querySelector('.demo-header');
     const signedPanel = root.querySelector('#signedPanel');
     const signedEntryId = root.querySelector('#signedEntryId');
     if (formPanel) formPanel.style.display = 'none';
+    if (actions) actions.style.display = 'none';
+    if (header) header.style.display = 'none';
     if (signedPanel) signedPanel.hidden = false;
     if (signedEntryId) signedEntryId.textContent = entryId || '—';
     try {
@@ -398,12 +405,11 @@
     const signBtn = root.querySelector('#signBothBtn');
     if (!signBtn || signBtn.disabled) return;
 
-    const ackAgreement = root.querySelector('#ackAgreement')?.checked;
-    const ackCooling = root.querySelector('#ackCooling')?.checked;
+    const ackBundle = root.querySelector('#ackBundle')?.checked;
     const name = root.querySelector('#patientName')?.value.trim();
     const pnr = root.querySelector('#patientId')?.value.trim();
-    if (!ackAgreement || !ackCooling) {
-      setOverlayStatus(root, '⚠ Markera båda samtyckesrutorna innan signering.', 'error');
+    if (!ackBundle) {
+      setOverlayStatus(root, '⚠ Godkänn avtal och samtycke innan signering.', 'error');
       return;
     }
     if (!name || !pnr) {
@@ -446,7 +452,7 @@
   }
 
   function bindOverlay(root, context) {
-    ['#ackAgreement', '#ackCooling', '#patientName', '#patientId'].forEach((sel) => {
+    ['#ackBundle', '#patientName', '#patientId'].forEach((sel) => {
       root.querySelector(sel)?.addEventListener('input', () => syncSignButton(root));
       root.querySelector(sel)?.addEventListener('change', () => syncSignButton(root));
     });
@@ -552,10 +558,6 @@
     root.setAttribute('role', 'presentation');
     root.innerHTML = `
       <div class="demo-modal" role="dialog" aria-modal="true" aria-label="Avtal + samtycke · steg 7">
-        <div class="demo-header-context">
-          <span>📄 <strong>Bundle:</strong> ${CONSENT_AGREEMENT.apiId} + ${CONSENT_COOLING.apiId}</span>
-          <span>👤 ${escapeHtml(context.patientName)}</span>
-        </div>
         ${buildFormHtml(context)}
       </div>`;
     document.body.appendChild(root);
