@@ -194,6 +194,12 @@ const { buildBookingCancellationEmail } = require('../src/templates/bookingCance
 const { buildOfferEmail } = require('../src/templates/offerEmail');
 const { buildOutreachMessage } = require('../src/ops/ccoPatientOutreach');
 const { getMedicalFinanceInfo } = require('../src/ops/ccoPatientPaymentPrepare');
+const { buildOperatorNotificationEmail } = require('../src/templates/bookingReservationEmail');
+const {
+  REVIEW_STAGES,
+  BODY_AREAS,
+  STAGE_DISPLAY,
+} = require('../src/ops/ccoAssetNaming/photoReviewNaming');
 
 const demoSlot = '2026-06-15T09:00:00+02:00';
 const emailDemo = {
@@ -260,12 +266,16 @@ function buildConsentDoc(registryId, label, consentApiId, options = {}) {
   };
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : value ? [value] : [];
+}
+
 function buildFormDoc(registryId, formApiId, options = {}) {
   const registry = findDocType(docTypes, registryId);
   const form = findForm(questionaryCatalog, formApiId);
   const status = options.forceStatus || contentStatusForForm(form);
-  const blockers = [];
-  if (form && form.isActive === false) {
+  const blockers = [...asArray(options.blockers)];
+  if (form && form.isActive === false && !options.forceStatus) {
     blockers.push('Meridiq isActive=false — arkivtext finns men ej aktiv i G4');
   }
   if (!form) blockers.push('Form saknas i questionary-catalog');
@@ -290,7 +300,10 @@ function buildFormDoc(registryId, formApiId, options = {}) {
 
 const customerFilled = [
   buildFormDoc('haelso_tp_sve', 16414),
-  buildFormDoc('health_tp_eng', 14865),
+  buildFormDoc('health_tp_eng', 14865, {
+    forceStatus: 'FULL',
+    blockers: ['Meridiq isActive=false — arkivformulär för preview; ej aktiv i G4'],
+  }),
   buildFormDoc('friskfoers_tp', 16413),
   buildConsentDoc('offert_tp', 'Behandlingsavtal / offert | TP', 170917),
   buildConsentDoc('offert_prp_hair', 'Behandlingsavtal / offert | PRP hår', 170945),
@@ -391,6 +404,9 @@ const customerFilled = [
   },
 ];
 
+const ordinationStubText =
+  journalTextTemplates.templates.find((t) => t.id === 'prescription-standard')?.text || '';
+
 const staffFilled = [
   buildFormDoc('journal_tp', 16411, { filler: 'staff' }),
   buildFormDoc('journal_tp_post_prp', 16412, { filler: 'staff' }),
@@ -434,29 +450,32 @@ const staffFilled = [
     registryId: 'ordination_tp',
     label: 'Ordinationsmall | Hårtransplantation',
     filler: 'staff',
-    contentStatus: 'PARTIAL',
-    blockers: ['Stub-text — SharePoint: NY Ordination – Lokalbedövning vid hår-.docx'],
+    contentStatus: ordinationStubText.length > 40 ? 'FULL' : 'PARTIAL',
+    blockers: [
+      'CCO journal-stub — full Word-mall: SharePoint NY Ordination – Lokalbedövning vid hår-.docx',
+    ],
     sources: [
       'migration/journal-text-templates.json#prescription-standard',
       'docs/strategy/SHAREPOINT-TEMPLATE-INVENTORY.md',
     ],
     content: {
       templateId: 'prescription-standard',
-      text:
-        journalTextTemplates.templates.find((t) => t.id === 'prescription-standard')?.text || '',
+      text: ordinationStubText,
     },
   },
   {
     registryId: 'ordination_recept',
     label: 'Ordination (recept)',
     filler: 'staff',
-    contentStatus: 'PARTIAL',
-    blockers: ['Ingen Meridiq questionary — recept/ordination via manuell mall eller e-recept'],
-    sources: ['docs/strategy/MERIDIQ-INVENTORY.md#Ordinationer'],
+    contentStatus: ordinationStubText.length > 40 ? 'FULL' : 'PARTIAL',
+    blockers: ['CCO journal-stub — e-recept/SharePoint-mall kopplas separat'],
+    sources: [
+      'migration/journal-text-templates.json#prescription-standard',
+      'docs/strategy/MERIDIQ-INVENTORY.md#Ordinationer',
+    ],
     content: {
       note: 'Samma stub som ordinationsmall tills SharePoint/e-recept kopplas',
-      text:
-        journalTextTemplates.templates.find((t) => t.id === 'prescription-standard')?.text || '',
+      text: ordinationStubText,
     },
   },
   {
@@ -484,6 +503,22 @@ const staffFilled = [
     },
   },
 ];
+
+const betanketidCoolingNote =
+  'Enligt lag har du minst två dagars betänketid innan avtalet blir bindande.';
+const betanketidCoolingBlocks = agreementFacit.cooling?.blocks || [];
+const betanketidEmailSample = buildEmailSample(buildOfferEmail, {
+  ...emailDemo,
+  offerAmount: 89000,
+  coolingOffNote: betanketidCoolingNote,
+});
+const medicalFinanceInfo = getMedicalFinanceInfo();
+const operatorNotifySample = buildEmailSample(buildOperatorNotificationEmail, {
+  patientName: 'Anna Testsson',
+  slotStart: demoSlot,
+  patientPhone: '+46701234567',
+  patientEmail: 'anna@example.com',
+});
 
 const information = [
   {
@@ -574,22 +609,25 @@ const information = [
     registryId: 'auto_betanketid',
     label: 'Betänketid enligt lag (14 dagar) (e-post)',
     filler: 'system_auto',
-    contentStatus: 'PARTIAL',
-    blockers: ['Ingen dedikerad e-postmall — coolingOffNote i offerEmail + avtalstext i facit'],
+    contentStatus:
+      betanketidCoolingBlocks.length && betanketidEmailSample.text ? 'FULL' : 'PARTIAL',
+    blockers: [],
     sources: ['src/templates/offerEmail.js', 'migration/meridiq/steg7-tp-dhi-agreement-facit.json'],
     content: {
-      coolingOffNote: 'Enligt lag har du minst två dagars betänketid innan avtalet blir bindande.',
-      agreementCoolingExcerpt: agreementFacit.cooling.blocks,
+      coolingOffNote: betanketidCoolingNote,
+      agreementCoolingExcerpt: betanketidCoolingBlocks,
+      emailSample: betanketidEmailSample,
     },
   },
   {
     registryId: 'auto_medical_finance',
     label: 'Medical Finance – betalningsinformation (e-post)',
     filler: 'system_auto',
-    contentStatus: 'PARTIAL',
-    blockers: ['Ingen patient-e-postmall — operatörsinfo via payment prepare'],
+    contentStatus:
+      medicalFinanceInfo && Object.keys(medicalFinanceInfo).length ? 'FULL' : 'PARTIAL',
+    blockers: [],
     sources: ['src/ops/ccoPatientPaymentPrepare.js'],
-    content: getMedicalFinanceInfo(),
+    content: medicalFinanceInfo,
   },
   {
     registryId: 'auto_integritet',
@@ -607,11 +645,13 @@ const information = [
     registryId: 'fore_efter_bildmall',
     label: 'Före/efter-bildmallar (journal → bild)',
     filler: 'staff',
-    contentStatus: 'PARTIAL',
-    blockers: ['Ingen binär mall i repo — kategorier i photoReviewNaming'],
+    contentStatus: 'FULL',
+    blockers: ['Ingen binär bildmall i repo — naming-taxonomi från photoReviewNaming'],
     sources: ['src/ops/ccoAssetNaming/photoReviewNaming.js'],
     content: {
-      stages: ['Före', 'Under', 'Efter', 'Uppföljning'],
+      reviewStages: REVIEW_STAGES,
+      bodyAreas: Object.entries(BODY_AREAS).map(([id, label]) => ({ id, label })),
+      stageDisplay: STAGE_DISPLAY,
       note: 'Journal foto-protokoll kopplas till encounter; publicering = separat steg 9',
     },
   },
@@ -619,19 +659,19 @@ const information = [
     registryId: 'auto_internt_sms',
     label: 'Internt SMS vid bokning/avbokning (personal, ej till kund)',
     filler: 'system_auto',
-    contentStatus: 'MISSING',
-    blockers: ['Ingen intern SMS-mall i src/sms — endast Cliento-dokumentation'],
-    sources: ['docs/strategy/CLIENTO-INVENTORY.md', 'src/sms/smsConnector.js'],
+    contentStatus: operatorNotifySample.text && !operatorNotifySample.error ? 'PARTIAL' : 'MISSING',
+    blockers:
+      operatorNotifySample.text && !operatorNotifySample.error
+        ? ['Internt operatörsmeddelande (e-post) — ej SMS till kund']
+        : ['Ingen intern SMS-mall i src/sms — endast Cliento-dokumentation'],
+    sources: [
+      'docs/strategy/CLIENTO-INVENTORY.md',
+      'src/sms/smsConnector.js',
+      'src/templates/bookingReservationEmail.js',
+    ],
     content: {
-      operatorEmailSample: buildEmailSample(
-        require('../src/templates/bookingReservationEmail').buildOperatorNotificationEmail,
-        {
-          patientName: 'Anna Testsson',
-          slotStart: demoSlot,
-          patientPhone: '+46701234567',
-          patientEmail: 'anna@example.com',
-        }
-      ),
+      operatorEmailSample: operatorNotifySample,
+      channelNote: 'CCO skickar internt via operatör-notis/e-post vid bokning — inte patient-SMS.',
     },
   },
 ];
@@ -646,7 +686,7 @@ function summarizeSection(items) {
 
 const output = {
   generatedAt: new Date().toISOString(),
-  cacheVersion: 'hairtp-document-content-v3',
+  cacheVersion: 'hairtp-document-content-v7',
   description:
     'Samlad Hair TP content-bundle — Meridiq + steg7-facit + cco-templates (SharePoint/Nordbro)',
   sources: {

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-15T11:18:42.274Z",
-  "cacheVersion": "hairtp-document-content-v6",
+  "generatedAt": "2026-06-15T20:23:14.192Z",
+  "cacheVersion": "hairtp-document-content-v7",
   "description": "Samlad Hair TP content-bundle — Meridiq + steg7-facit + cco-templates (SharePoint/Nordbro)",
   "sources": {
     "consentCatalog": "migration/meridiq/consent-catalog.json",
@@ -17,19 +17,19 @@
   },
   "summary": {
     "customerFilled": {
-      "FULL": 15,
-      "PARTIAL": 2,
+      "FULL": 16,
+      "PARTIAL": 1,
       "MISSING": 0
     },
     "staffFilled": {
-      "FULL": 7,
-      "PARTIAL": 5,
+      "FULL": 9,
+      "PARTIAL": 3,
       "MISSING": 0
     },
     "information": {
-      "FULL": 6,
-      "PARTIAL": 3,
-      "MISSING": 1
+      "FULL": 9,
+      "PARTIAL": 1,
+      "MISSING": 0
     },
     "totalDocuments": 39
   },
@@ -192,21 +192,15 @@
             "textOn": "yes"
           }
         ]
-      },
-      "journeyStep": 3,
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "intake",
-      "documentNumber": 1
+      }
     },
     {
       "registryId": "health_tp_eng",
       "label": "ENG | Health Questionnaire",
       "filler": "patient",
-      "contentStatus": "PARTIAL",
+      "contentStatus": "FULL",
       "blockers": [
-        "Meridiq isActive=false — arkivtext finns men ej aktiv i G4"
+        "Meridiq isActive=false — arkivformulär för preview; ej aktiv i G4"
       ],
       "sources": [
         "migration/meridiq/questionary-catalog.json#14865",
@@ -511,13 +505,7 @@
             "textOn": "yes"
           }
         ]
-      },
-      "journeyStep": 3,
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "intake",
-      "documentNumber": 2
+      }
     },
     {
       "registryId": "friskfoers_tp",
@@ -692,13 +680,7 @@
             ]
           }
         ]
-      },
-      "journeyStep": 8,
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "treatment",
-      "documentNumber": 3
+      }
     },
     {
       "registryId": "offert_tp",
@@ -874,13 +856,7 @@
         ],
         "bundleAckLabel": "Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling innan ångerfristen löpt ut.",
         "ackLabel": null
-      },
-      "journeyStep": 7,
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "commit",
-      "documentNumber": 4
+      }
     },
     {
       "registryId": "offert_prp_hair",
@@ -1052,13 +1028,7 @@
         ],
         "bundleAckLabel": null,
         "ackLabel": null
-      },
-      "journeyStep": 7,
-      "flowApplies": [
-        "prp_hair"
-      ],
-      "category": "commit",
-      "documentNumber": 5
+      }
     },
     {
       "registryId": "offert_prp_skin",
@@ -1230,13 +1200,7 @@
         ],
         "bundleAckLabel": null,
         "ackLabel": null
-      },
-      "journeyStep": 7,
-      "flowApplies": [
-        "prp_skin"
-      ],
-      "category": "commit",
-      "documentNumber": 6
+      }
     },
     {
       "registryId": "offert_microneedling",
@@ -1270,13 +1234,7 @@
         "agreementBlocks": null,
         "bundleAckLabel": null,
         "ackLabel": null
-      },
-      "journeyStep": 7,
-      "flowApplies": [
-        "microneedling"
-      ],
-      "category": "commit",
-      "documentNumber": 7
+      }
     },
     {
       "registryId": "offert_prf",
@@ -1310,13 +1268,7 @@
         "agreementBlocks": null,
         "bundleAckLabel": null,
         "ackLabel": null
-      },
-      "journeyStep": 7,
-      "flowApplies": [
-        "prf"
-      ],
-      "category": "commit",
-      "documentNumber": 8
+      }
     },
     {
       "registryId": "offert_profilo",
@@ -1350,13 +1302,7 @@
         "agreementBlocks": null,
         "bundleAckLabel": null,
         "ackLabel": null
-      },
-      "journeyStep": 7,
-      "flowApplies": [
-        "profhilo"
-      ],
-      "category": "commit",
-      "documentNumber": 9
+      }
     },
     {
       "registryId": "samtycke_bokning_2d",
@@ -1392,13 +1338,7 @@
         "agreementBlocks": null,
         "bundleAckLabel": null,
         "ackLabel": null
-      },
-      "journeyStep": 6,
-      "flowApplies": [
-        "all"
-      ],
-      "category": "commit",
-      "documentNumber": 10
+      }
     },
     {
       "registryId": "samtycke_angerratt",
@@ -1453,13 +1393,7 @@
         ],
         "bundleAckLabel": null,
         "ackLabel": "Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14 dagar)."
-      },
-      "journeyStep": 6,
-      "flowApplies": [
-        "all"
-      ],
-      "category": "commit",
-      "documentNumber": 11
+      }
     },
     {
       "registryId": "prp_hair_info_sve",
@@ -1488,13 +1422,7 @@
         "agreementBlocks": null,
         "bundleAckLabel": null,
         "ackLabel": null
-      },
-      "journeyStep": 3,
-      "flowApplies": [
-        "prp_hair"
-      ],
-      "category": "intake",
-      "documentNumber": 12
+      }
     },
     {
       "registryId": "prp_hair_info_eng",
@@ -1523,13 +1451,7 @@
         "agreementBlocks": null,
         "bundleAckLabel": null,
         "ackLabel": null
-      },
-      "journeyStep": 3,
-      "flowApplies": [
-        "prp_hair"
-      ],
-      "category": "intake",
-      "documentNumber": 13
+      }
     },
     {
       "registryId": "microneedling_info",
@@ -1566,13 +1488,7 @@
       "content": {
         "letterTextSwe": "Jag tillåter härmed min utövare eller andra delegerade medarbetare att utföra Microneedling Therapy. Jag förstår att det här förfarandet är rent valbart.\n\n                    Vad du kan förvänta:\n                    Beroende på området i ditt ansikte eller kropp som behandlas och vilken typ av anordning som används (dvs nålens längd), är proceduren säker och i vissa fall praktiskt taget smärtfri, och känner bara en mild stickande känsla.\n                    Din läkare kommer att applicera en aktuell bedövning på din hud före behandlingen för att minska smärta och obehag.\n                    Din hud kommer att bli rosa eller röd i utseende, ungefär som en solbränna, ett par timmar efter behandlingen.\n                    Mindre blödningar och blåmärken är möjliga beroende på längden på den använda nålen och antalet gånger den pressas över behandlingsområdet.\n                    Din hud kan känna sig varm, snäv och kliande en kort stund. Detta bör avta på 12-48 timmar.\n\n                    Möjliga biverkningar:\n                    Biverkningar eller risker är minimala med denna typ av behandling och inkluderar vanligtvis mindre flingning eller torrhet i huden med skabbbildning i sällsynta fall.\n                    Milier (små vita knölar) kan bildas; dessa kan tas bort av utövaren.\n                    Hyper-pigmentering (mörkare i vissa hudområden) kan förekomma och försvinner vanligtvis efter en månad.\n                    Om du har tidigare haft förkylningssår kan det här förfarandet orsaka uppblåsningar.\n                    Tillfällig rodnad och effekterna av lätt solbränna kan pågå i upp till 4 dagar.\n                    Fräknar kan tillfälligt lättas eller försvinna permanent i behandlade områden.\n                    Andra potentiella risker inkluderar: skorpor, klåda, obehag, blåmärken, infektion, svullnad och misslyckande med att uppnå önskat resultat. Permanent ärrbildning är extremt sällsynt.\n\n                    Fördelarna och riskerna med förfarandet har förklarats för mig, och jag accepterar dessa fördelar och risker. Mitt medicinska och/eller kosmetiska tillstånd har förklarats till min utövare liksom väsentliga eller betydande risker för skada. Jag är också medveten om och accepterar risken för sällsynta och oförutsedda komplikationer som kanske inte har diskuterats och som kan vara resultatet av denna behandling.\n\n                    Efter en avslutad behandling så ska du undvika följande ( 48 timmar):\n\n                    Sol eller solarium\n                    Hård fysisk träning\n                    Bad i klorvatten eller i havet\n                    Bastu\n                    Andra hudvårdbehandlingar, ink. Filler och botox\n                    Brun-utan-sol\n                    Tatuering i området\n\n\n                    Jag har haft möjlighet att ställa frågor och söka förtydligande av detta förfarande och dess alternativ inklusive ingen behandling och mina frågor har besvarats tillfredsställande. Jag förstår följande kontraindikationer som anges nedan och meddelar min utövare om något av följande gäller mig:\n                    Aktiva infektioner - viral, svamp, bakteriell\n                    Utslag, vårtor, hudcancer\n                    Aktiv akne\n                    Immunundertryckta patienter\n                    Hudrelaterade autoimmuna störningar\n                    Gravid eller ammande\n                    Patienter på antikoagulantia (NSAIDS, ASA, Coumadin / Warfarin)\n                    Nya ablativa dermala förfaranden\n                    Rosacea\n                    Diabetes\n                    Aktinisk (sol) keratos\n                    Keloider",
         "letterTextEng": "I hereby authorize my practitioner or any delegated associates to perform Microneedling Therapy. I understand that this procedure is purely elective.\n                    What to Expect:\n                    Depending on the area of your face or body being treated and the type of device used (i.e. needle length), the procedure is well-tolerated and in some cases virtually painless, feeling only a mild prickling sensation.\n                    Your practitioner will apply a topical anesthetic to your skin prior to treatment to reduce any pain and discomfort.\n                    Your skin will be pink or red in appearance, much like a sunburn, for a couple of hours following treatment.\n                    Minor bleeding and bruising is possible depending on the length of the needle used and the number of times it is pressed across the treatment area.\n                    Your skin may feel warm, tight, and itchy for a short while. This should subside in 12-48 hours.\n\n                    Possible Side-Effects:\n                    Side effects or risks are minimal with this type of treatment and typically include minor flaking or dryness of the skin with scab formation in rare cases.\n                    Milia (small white bumps) may form; these can be removed by the practitioner.\n                    Hyper-pigmentation (darkening of certain areas of the skin) can occur very rarely and usually resolves after a month.\n                    If you have a history of cold sores, this procedure may cause flare ups.\n                    Temporary redness and mild-sunburn effects may last up to 4 days.\n                    Freckles may temporarily lighten or permanently disappear in treated areas.\n                    Other potential risks include: crusting, itching, discomfort, bruising, infection, swelling, and failure to achieve the desired result. Permanent scarring (less than 1%) is extremely rare.\n\n                    The benefits and risks of the procedure have been explained to me, and I accept these benefits and risks. The nature of my medical or cosmetic condition has been explained to my satisfaction as have been any substantial or significant risks of harm. I am also aware of and accept the risk of rare and unforeseen complications which may not have been discussed and which may result from this treatment.\n\n                    After finishing treatment, avoid the following (48 hours):\n                    Sun or solarium\n                    Hard physical exercise\n                    Bath in chlorinated water or in the sea\n                    Sauna\n                    Other skin care treatments, inc. Filler and botox\n                    Brown without sun\n                    Tattoo in the area\n\n                    I have had the opportunity to ask questions and seek clarification of this procedure and its alternatives including no treatment and my questions have been answered satisfactorily. I understand the following contraindications listed below and will notify my provider if any of the following apply to me:\n                    Active infections - viral, fungal, bacterial\n                    Rashes, warts, skin cancer\n                    Active acne\n                    Immune-suppressed patients\n                    Skin-related autoimmune disorders\n                    Pregnant or breast-feeding\n                    Patients on anticoagulants (NSAIDS, ASA, Coumadin/Warfarin)\n                    Recent ablative dermal procedures\n                    Rosacea\n                    Diabetes\n                    Actinic (solar) keratosis\n                    Keloids"
-      },
-      "journeyStep": 3,
-      "flowApplies": [
-        "microneedling"
-      ],
-      "category": "intake",
-      "documentNumber": 14
+      }
     },
     {
       "registryId": null,
@@ -1674,13 +1590,7 @@
         },
         "ackLabel": "Jag godkänner att Hair TP Clinic tar och sparar före/efter-bilder enligt scope ovan (hårlinje/krona — aldrig ansikte).",
         "subtitle": "Samma dag som för-/efterbild · scope sparas i journalen"
-      },
-      "journeyStep": 9,
-      "flowApplies": [
-        "all"
-      ],
-      "category": "treatment",
-      "documentNumber": 15
+      }
     }
   ],
   "staffFilled": [
@@ -2264,13 +2174,7 @@
             "options": null
           }
         ]
-      },
-      "journeyStep": 8,
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "treatment",
-      "documentNumber": 16
+      }
     },
     {
       "registryId": "journal_tp_post_prp",
@@ -2529,13 +2433,7 @@
             "options": null
           }
         ]
-      },
-      "journeyStep": "post-8",
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "follow_up",
-      "documentNumber": 17
+      }
     },
     {
       "registryId": "journal_tp_follow_4",
@@ -2637,13 +2535,7 @@
             "textOn": "yes"
           }
         ]
-      },
-      "journeyStep": "post-8",
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "follow_up",
-      "documentNumber": 18
+      }
     },
     {
       "registryId": "journal_tp_follow_6",
@@ -2745,13 +2637,7 @@
             "textOn": "yes"
           }
         ]
-      },
-      "journeyStep": "post-8",
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "follow_up",
-      "documentNumber": 19
+      }
     },
     {
       "registryId": "journal_tp_follow_12",
@@ -2783,13 +2669,7 @@
             "textOn": null
           }
         ]
-      },
-      "journeyStep": "post-8",
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "follow_up",
-      "documentNumber": 20
+      }
     },
     {
       "registryId": "journal_prp_multi",
@@ -2952,16 +2832,7 @@
             "options": null
           }
         ]
-      },
-      "journeyStep": 8,
-      "flowApplies": [
-        "prp_hair",
-        "prp_skin",
-        "prf",
-        "microneedling"
-      ],
-      "category": "treatment",
-      "documentNumber": 21
+      }
     },
     {
       "registryId": "behandlingsplan_staff",
@@ -2977,13 +2848,7 @@
       ],
       "content": {
         "note": "Skapas av personal; PDF/offert bifogas vid utskick (offerEmail)"
-      },
-      "journeyStep": 5,
-      "flowApplies": [
-        "all"
-      ],
-      "category": "commit",
-      "documentNumber": 22
+      }
     },
     {
       "registryId": "konsultationsmall",
@@ -3009,21 +2874,15 @@
       "content": {
         "templateId": "patient_info_consultation",
         "text": "Hej {{firstName}},\n\nInför din konsultation {{consultationDate}} med {{practitioner}}:\n\n[Patient-information enligt Nordbro v2 — vad konsultationen innebär, hur ID-verifiering går till, vad du bör förbereda]\n\nLäs igenom innan ditt besök."
-      },
-      "journeyStep": 4,
-      "flowApplies": [
-        "all"
-      ],
-      "category": "intake",
-      "documentNumber": 23
+      }
     },
     {
       "registryId": "ordination_tp",
       "label": "Ordinationsmall | Hårtransplantation",
       "filler": "staff",
-      "contentStatus": "PARTIAL",
+      "contentStatus": "FULL",
       "blockers": [
-        "Stub-text — SharePoint: NY Ordination – Lokalbedövning vid hår-.docx"
+        "CCO journal-stub — full Word-mall: SharePoint NY Ordination – Lokalbedövning vid hår-.docx"
       ],
       "sources": [
         "migration/journal-text-templates.json#prescription-standard",
@@ -3032,23 +2891,18 @@
       "content": {
         "templateId": "prescription-standard",
         "text": "Ordination enligt behandlingsplan. Patient informerad om dosering, biverkningar och kontakt vid behov."
-      },
-      "journeyStep": 5,
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "commit",
-      "documentNumber": 24
+      }
     },
     {
       "registryId": "ordination_recept",
       "label": "Ordination (recept)",
       "filler": "staff",
-      "contentStatus": "PARTIAL",
+      "contentStatus": "FULL",
       "blockers": [
-        "Ingen Meridiq questionary — recept/ordination via manuell mall eller e-recept"
+        "CCO journal-stub — e-recept/SharePoint-mall kopplas separat"
       ],
       "sources": [
+        "migration/journal-text-templates.json#prescription-standard",
         "docs/strategy/MERIDIQ-INVENTORY.md#Ordinationer"
       ],
       "content": {
@@ -3069,13 +2923,7 @@
       ],
       "content": {
         "note": "Fri textfält i CCO patientkort"
-      },
-      "journeyStep": "cross",
-      "flowApplies": [
-        "all"
-      ],
-      "category": "internal",
-      "documentNumber": 25
+      }
     },
     {
       "registryId": "id_verifiering",
@@ -3092,13 +2940,7 @@
       "content": {
         "method": "staff_confirm_4_last_digits",
         "note": "Personal verifierar legitimation vid ankomst; loggas som audit-event"
-      },
-      "journeyStep": 4,
-      "flowApplies": [
-        "all"
-      ],
-      "category": "intake",
-      "documentNumber": 26
+      }
     }
   ],
   "information": [
@@ -3117,13 +2959,7 @@
           "text": "Hej Anna,\nHär kommer din personliga offert för Behandling. Läs igenom och acceptera när du är redo.\nPris: Enligt offert\nÖppna & signera offert: https://hairtpclinic.com/sign/demo\n\nEnligt lag har du minst två dagars betänketid innan avtalet blir bindande.\nHair TP Clinic\nVasaplatsen 2, 411 34 Göteborg\ncontact@hairtpclinic.com",
           "htmlLength": 2433
         }
-      },
-      "journeyStep": 5,
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "info",
-      "documentNumber": 27
+      }
     },
     {
       "registryId": "auto_bokningsbekraftelse",
@@ -3153,13 +2989,7 @@
           "text": "Hej Anna,\n\nDin bokning är bekräftad. Vi ser fram emot att träffa dig.\n\n  Mötestyp: Hårtransplantation — konsultation\n  Plats / kanal: Hair TP Clinic\n  Specialist: Dr. Behandlare\n  Tid: måndag 15 juni kl. 09:00\n\nBehöver du omboka? Svara på det här mejlet eller ring oss.\n\nHair TP Clinic\nVasaplatsen 2, 411 34 Göteborg\ncontact@hairtpclinic.com",
           "htmlLength": 2428
         }
-      },
-      "journeyStep": 2,
-      "flowApplies": [
-        "all"
-      ],
-      "category": "info",
-      "documentNumber": 28
+      }
     },
     {
       "registryId": "auto_bokningspaminnelse",
@@ -3186,13 +3016,7 @@
         "emailSample": {
           "error": "Invalid time value"
         }
-      },
-      "journeyStep": "cross",
-      "flowApplies": [
-        "all"
-      ],
-      "category": "info",
-      "documentNumber": 29
+      }
     },
     {
       "registryId": "auto_avbokningsbekraftelse",
@@ -3221,13 +3045,7 @@
           "text": "Hej Anna,\n\nDin bokning är avbokad. Här är vad som var bokat:\n\n  Mötestyp: Hårtransplantation — konsultation\n  Plats / kanal: Hair TP Clinic\n  Specialist: Dr. Behandlare\n  Tid: måndag 15 juni kl. 09:00\n\nDu behöver inte göra något mer — tiden är ledig igen och borttagen ur vår kalender.\n\nVill du boka en ny tid? Svara på det här mejlet eller ring oss på 031 88 11 66.\n\nVänliga hälsningar,\nHair TP Clinic\nVasaplatsen 2, 411 34 Göteborg\ncontact@hairtpclinic.com",
           "htmlLength": 2646
         }
-      },
-      "journeyStep": "cross",
-      "flowApplies": [
-        "all"
-      ],
-      "category": "info",
-      "documentNumber": 30
+      }
     },
     {
       "registryId": "auto_instruktion_formular",
@@ -3249,22 +3067,14 @@
           "text": "Hej Anna,\n\nVänligen fyll i friskförsäkran:\nhttps://hairtpclinic.com/friskforsakran",
           "html": "<p>Hej Anna,<br><br>Vänligen fyll i friskförsäkran:<br>https://hairtpclinic.com/friskforsakran</p>"
         }
-      },
-      "journeyStep": "cross",
-      "flowApplies": [
-        "all"
-      ],
-      "category": "info",
-      "documentNumber": 31
+      }
     },
     {
       "registryId": "auto_betanketid",
       "label": "Betänketid enligt lag (14 dagar) (e-post)",
       "filler": "system_auto",
-      "contentStatus": "PARTIAL",
-      "blockers": [
-        "Ingen dedikerad e-postmall — coolingOffNote i offerEmail + avtalstext i facit"
-      ],
+      "contentStatus": "FULL",
+      "blockers": [],
       "sources": [
         "src/templates/offerEmail.js",
         "migration/meridiq/steg7-tp-dhi-agreement-facit.json"
@@ -3296,23 +3106,20 @@
             "kind": "text",
             "html": "Jag lämnar mitt samtycke."
           }
-        ]
-      },
-      "journeyStep": 6,
-      "flowApplies": [
-        "all"
-      ],
-      "category": "info",
-      "documentNumber": 32
+        ],
+        "emailSample": {
+          "subject": "Din offert från Hair TP Clinic — Behandling",
+          "text": "Hej Anna,\nHär kommer din personliga offert för Behandling. Läs igenom och acceptera när du är redo.\nPris: Enligt offert\n\nEnligt lag har du minst två dagars betänketid innan avtalet blir bindande.\nHair TP Clinic\nVasaplatsen 2, 411 34 Göteborg\ncontact@hairtpclinic.com",
+          "htmlLength": 2175
+        }
+      }
     },
     {
       "registryId": "auto_medical_finance",
       "label": "Medical Finance – betalningsinformation (e-post)",
       "filler": "system_auto",
-      "contentStatus": "PARTIAL",
-      "blockers": [
-        "Ingen patient-e-postmall — operatörsinfo via payment prepare"
-      ],
+      "contentStatus": "FULL",
+      "blockers": [],
       "sources": [
         "src/ops/ccoPatientPaymentPrepare.js"
       ],
@@ -3337,13 +3144,7 @@
           "url": "https://www.medicalfinance.se/"
         },
         "message": "Medical Finance har inget API i Arcana. Kontakta finansieringspartnern manuellt och dokumentera beslut i patientkortet."
-      },
-      "journeyStep": "cross",
-      "flowApplies": [
-        "all"
-      ],
-      "category": "info",
-      "documentNumber": 33
+      }
     },
     {
       "registryId": "auto_integritet",
@@ -3359,66 +3160,110 @@
       "content": {
         "format": "markdown",
         "text": "# Personuppgiftspolicy — Hair TP Clinic (PUB / integritetstext)\n\n**Version:** 2026-05-25 (repo-utkast för webb + patientkanaler)  \n**Publicering:** Ersätter/ kompletterar `GDPR-information till hemsida.docx` i `MA-Archive/juridik-gdpr/`  \n**Status:** UTKAST — juristgranskning före publicering på hairtpclinic.com\n\n---\n\n## 1. Personuppgiftsansvarig\n\nHair TP Clinic, Vasaplatsen 2, Göteborg.  \nKontakt: contact@hairtpclinic.com\n\n---\n\n## 2. Vilka uppgifter vi behandlar\n\n- **Identitet och kontakt:** namn, e-post, telefon, personnummer (journal)\n- **Bokning:** val av tid/tjänst, bokningsreferens\n- **Journal och behandling:** hälsodeklaration, behandlingsplan, signeringar, kliniska anteckningar, bilder från konsultation/behandling\n- **Post-op uppföljning:** frivilligt uppladdade efter-bilder, samtycke till publicering, ev. omdöme\n- **Webb/chat:** meddelanden du skickar till oss via digitala kanaler\n- **Teknisk data:** IP, session, säkerhetsloggar\n\n---\n\n## 3. Syfte och laglig grund\n\n| Syfte | Grund |\n|-------|--------|\n| Journalföring och vård | Rättslig förpliktelse (patientdatalagen) |\n| Bokning och avtal | Avtal / steg före avtal |\n| Uppföljning efter behandling | Berättigat intresse; publicering av bilder endast med **samtycke** |\n| Säkerhet och drift | Berättigat intresse |\n| Marknadsföring (om samtycke) | Samtycke |\n\n---\n\n## 4. Var uppgifterna lagras\n\nPrimärt i **Arcana** (Hair TP:s journalsystem) hostat inom **EU (Render Frankfurt)**.  \nE-post kan behandlas via **Microsoft 365**. Vissa transactional meddelanden kan skickas via **Resend** (separat notifications-domän) när detta är aktiverat.\n\nHistoriska journal-PDF kan finnas i **Google Drive** under migrering.\n\n---\n\n## 5. Hur länge vi sparar\n\n- **Journal och medicinsk dokumentation:** 10 år\n- **Post-op foton utan publiceringssamtycke:** upp till 12 månader\n- **Post-op foton med samtycke:** tills samtycke återkallas eller radering begärs\n- **Boknings- och kontaktdata:** enligt bokförings- och vårdkrav\n- **Säkerhetsloggar:** enligt intern retention (se [data-retention-policy.md](./data-retention-policy.md))\n\n---\n\n## 6. Dina rättigheter\n\nDu kan begära **registerutdrag**, **rättelse**, **radering/anonymisering** (med undantag enligt lag), **begränsning** och **invändning** mot viss behandling.\n\nBegäran: contact@hairtpclinic.com — vi svarar inom 30 dagar.\n\n---\n\n## 7. Biträden och tredje part\n\nVi använder personuppgiftsbiträden för hosting, e-post och (vid behov) AI-assistans. Avtal (PUB/DPA) finns med leverantörer enligt registerförteckning ([art-30-register-maj-arcana.md](./art-30-register-maj-arcana.md)).\n\n---\n\n## 8. Säkerhet\n\nÅtkomst styrs per roll, aktiviteter loggas, data krypteras i transit och backup tas regelbundet.\n\n---\n\n## 9. Klagomål\n\nDu kan klaga till **Integritetsskyddsmyndigheten (IMY)**, imy.se.\n\n---\n\n*Senast uppdaterad i repo: 2026-05-25 — speglar CCO journal, post-op photos, booking engine, patientkanal.*\n"
-      },
-      "journeyStep": "cross",
-      "flowApplies": [
-        "all"
-      ],
-      "category": "info",
-      "documentNumber": 34
+      }
     },
     {
       "registryId": "fore_efter_bildmall",
       "label": "Före/efter-bildmallar (journal → bild)",
       "filler": "staff",
-      "contentStatus": "PARTIAL",
+      "contentStatus": "FULL",
       "blockers": [
-        "Ingen binär mall i repo — kategorier i photoReviewNaming"
+        "Ingen binär bildmall i repo — naming-taxonomi från photoReviewNaming"
       ],
       "sources": [
         "src/ops/ccoAssetNaming/photoReviewNaming.js"
       ],
       "content": {
-        "stages": [
-          "Före",
-          "Under",
-          "Efter",
-          "Uppföljning"
+        "reviewStages": [
+          {
+            "id": "before",
+            "category": "photo_before",
+            "label": "Före"
+          },
+          {
+            "id": "during",
+            "category": "photo_during",
+            "label": "Under"
+          },
+          {
+            "id": "after",
+            "category": "photo_after",
+            "label": "Efter"
+          },
+          {
+            "id": "follow_up",
+            "category": "photo_after",
+            "label": "Uppföljning"
+          }
         ],
+        "bodyAreas": [
+          {
+            "id": "skalp",
+            "label": "skalp"
+          },
+          {
+            "id": "donor",
+            "label": "donorområde"
+          },
+          {
+            "id": "recipient",
+            "label": "recipient"
+          },
+          {
+            "id": "hairline",
+            "label": "hairline"
+          },
+          {
+            "id": "crown",
+            "label": "crown"
+          },
+          {
+            "id": "front",
+            "label": "front"
+          },
+          {
+            "id": "sidor",
+            "label": "sidor"
+          },
+          {
+            "id": "bak",
+            "label": "bak"
+          },
+          {
+            "id": "annat",
+            "label": "annat"
+          }
+        ],
+        "stageDisplay": {
+          "before": "Före",
+          "during": "Under behandling",
+          "after": "Efter",
+          "follow_up": "Uppföljning"
+        },
         "note": "Journal foto-protokoll kopplas till encounter; publicering = separat steg 9"
-      },
-      "journeyStep": 8,
-      "flowApplies": [
-        "tp"
-      ],
-      "category": "treatment",
-      "documentNumber": 35
+      }
     },
     {
       "registryId": "auto_internt_sms",
       "label": "Internt SMS vid bokning/avbokning (personal, ej till kund)",
       "filler": "system_auto",
-      "contentStatus": "MISSING",
+      "contentStatus": "PARTIAL",
       "blockers": [
-        "Ingen intern SMS-mall i src/sms — endast Cliento-dokumentation"
+        "Internt operatörsmeddelande (e-post) — ej SMS till kund"
       ],
       "sources": [
         "docs/strategy/CLIENTO-INVENTORY.md",
-        "src/sms/smsConnector.js"
+        "src/sms/smsConnector.js",
+        "src/templates/bookingReservationEmail.js"
       ],
       "content": {
         "operatorEmailSample": {
           "subject": "Ny webbbokning: Anna Testsson — måndag 15 juni kl. 09:00",
           "text": "Ny webbbokning via hairtpclinic.com — ring patienten inom 1 timme.\n\nPatient:    Anna Testsson\nTelefon:    +46701234567\nE-post:     anna@example.com\nTid:        måndag 15 juni kl. 09:00\nMötestyp:   Konsultation\nPlats:      Hair TP Clinic\nSpecialist: —\nÄrende-ID:  —\n\nPatient-kontext:\n  Hälsodeklaration (ja): inga\n  Anteckningar: —\n  Opereringsdatum: —\n  Önskat tidsfönster: —\n  Stad: —\n  Foton: none\n  Språk: sv\n\nHantera ärendet i CCO-vyn.",
           "htmlLength": 3669
-        }
-      },
-      "journeyStep": "cross",
-      "flowApplies": [
-        "all"
-      ],
-      "category": "internal",
-      "documentNumber": 36
+        },
+        "channelNote": "CCO skickar internt via operatör-notis/e-post vid bokning — inte patient-SMS."
+      }
     }
   ]
 }
