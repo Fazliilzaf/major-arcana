@@ -2,6 +2,7 @@
 
 **Datum:** 2026-05-20  
 **Spec:** [`ORD-48-steg7-bundle-ops-gates.md`](./ORD-48-steg7-bundle-ops-gates.md)  
+**Kalender facit:** [`MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html)  
 **Förutsätter:** ORD-47 V1 ✅ Owner GO 2026-05-20  
 **Mål:** Steg 7 bundle **write** + FC ops-gate + `ready_for_treatment` → kalender
 

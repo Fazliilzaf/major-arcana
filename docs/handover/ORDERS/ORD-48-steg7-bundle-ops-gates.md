@@ -5,6 +5,7 @@
 **Skapad:** 2026-06-16  
 **Förutsätter:** ORD-47 V1 GO ✅ (owner 2026-05-20)  
 **Facit:** [`CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md`](../../strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md) · [`KUNDKORT-DOKUMENT-PLACERING-FACIT.md`](../../strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md)  
+**Kalender UI (Fas D):** [`MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html) — ready-pills, höger panel, veckovy  
 **Parallellt svep:** [`ORD-48-PARALLEL-SVEP-3-AGENTS.md`](./ORD-48-PARALLEL-SVEP-3-AGENTS.md)
 
 ---
@@ -153,11 +154,13 @@ Manuell UAT: `demoOpDay=1` + patient utan FC → blocker; efter FC-sign → Op-d
 - `src/routes/ccoBookingEngine.js`
 - `public/major-arcana-preview/app/cco-kundkort-referens.js` (Boka nästa / kalender CTA)
 
-| #   | Task                                                                                                      | Acceptance              |
-| --- | --------------------------------------------------------------------------------------------------------- | ----------------------- |
-| D1  | `ready_for_treatment` i readout = komposit enligt kundresa-facit (alla delgates)                          | Unit test fixture       |
-| D2  | **Boka behandling** (FUE/TP) blockeras tills `ready_for_treatment` eller minst `bookable` + FC om ops-dag | 409 med tydlig `reason` |
-| D3  | Rail / Smart nästa steg: "Öppna kalender" endast när komposit OK                                          | UX-spec steg 10         |
+| #   | Task                                                                                                      | Acceptance                                                                                             |
+| --- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| D1  | `ready_for_treatment` i readout = komposit enligt kundresa-facit (alla delgates)                          | Unit test fixture                                                                                      |
+| D2  | **Boka behandling** (FUE/TP) blockeras tills `ready_for_treatment` eller minst `bookable` + FC om ops-dag | 409 med tydlig `reason`                                                                                |
+| D3  | Rail / Smart nästa steg: "Öppna kalender" endast när komposit OK                                          | UX enligt [kalender mockup v6](../MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html) (ready-pills + CTA) |
+
+**Visuellt facit (Fas D):** [`CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html) — `.ready-row` / `.ready-pill` ska spegla `ready_for_treatment`-delgates från kundkort.
 
 ---
 
