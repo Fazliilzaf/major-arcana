@@ -2030,7 +2030,16 @@
       statusLabel: item.statusLabel || statusLabels[status] || status,
       contentStatus: String(item.contentStatus || defaults.contentStatus || '').toUpperCase(),
       blockers: asArray(item.blockers || defaults.blockers),
-      filler: item.filler || defaults.filler || 'patient',
+      filler: (function () {
+        var f = item.filler || defaults.filler || 'patient';
+        if (f === 'system_auto') return 'auto';
+        if (
+          /^auto_/.test(String(item.registryId || item.documentTypeId || defaults.registryId || ''))
+        ) {
+          return 'auto';
+        }
+        return f;
+      })(),
       flow: item.flow || defaults.flow || 'tp',
       journeyStep: item.journeyStep || defaults.journeyStep || '',
       previewable: item.previewable === true || item.filler === 'auto',

@@ -907,6 +907,10 @@ html[data-v9-enabled="on"] .kk-registry-filter.is-active {
   background: rgba(252, 233, 240, 0.72);
 }
 
+html[data-v9-enabled="on"] .kk-registry-row[hidden] {
+  display: none !important;
+}
+
 html[data-v9-enabled="on"] .kk-registry-blocker {
   color: #b45309;
   font-weight: 800;

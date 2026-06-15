@@ -550,6 +550,7 @@
     if (l.indexOf('journal') === 0) return 'journal';
     if (l.indexOf('personal') === 0) return 'personal';
     if (l.indexOf('offert') === 0) return 'offert';
+    if (/dokument\s*[·-]\s*registry/.test(l)) return 'dokument-registry';
     if (l.indexOf('auto') === 0) return 'auto';
     if (l.indexOf('filer') === 0 || l.indexOf('dokument') === 0) return 'dokument';
     if (l.indexOf('anteck') === 0) return 'anteckningar';
@@ -702,6 +703,85 @@
     return doc.statusLabel || 'Planerad';
   }
 
+  function referensRegistryFillerToken(source) {
+    var filler =
+      source && typeof source === 'object'
+        ? source.filler ||
+          (source.getAttribute && source.getAttribute('data-kk-registry-filler')) ||
+          'patient'
+        : String(source || 'patient');
+    var registryId =
+      source && typeof source === 'object'
+        ? source.registryId ||
+          (source.getAttribute && source.getAttribute('data-kk-registry-doc')) ||
+          (source.getAttribute && source.getAttribute('data-v11-doc-registry')) ||
+          ''
+        : '';
+    filler = String(filler || 'patient');
+    if (filler === 'system_auto' || filler === 'auto') return 'auto';
+    if (/^auto_/.test(String(registryId || ''))) return 'auto';
+    return filler;
+  }
+
+  function getReferensKkrefScroller() {
+    return (
+      document.querySelector('.v10-dossier-referens') ||
+      document.querySelector('.kkref .doss') ||
+      document.querySelector('.kkref')
+    );
+  }
+
+  function referensRegistryRowMatchesFilter(row, filterState) {
+    if (!row || !filterState) return true;
+    var filler = referensRegistryFillerToken(row);
+    var flow = row.getAttribute('data-kk-registry-flow') || '';
+    var fillerOk = filterState.filler === 'all' || filler === filterState.filler;
+    var flowOk = filterState.flow === 'all' || flow === filterState.flow;
+    return fillerOk && flowOk;
+  }
+
+  function applyReferensRegistryFilters(root, filterState) {
+    if (!root || !filterState) return;
+    var kkref = root.closest && root.closest('.kkref') ? root.closest('.kkref') : root;
+    if (!kkref.querySelector) kkref = document.querySelector('.kkref') || root;
+    var registrySection =
+      kkref.querySelector('[data-sek="dokument-registry"]') ||
+      kkref.querySelector('details[data-sek="dokument"]');
+    var scope = registrySection || kkref;
+    var rows = scope.querySelectorAll('[data-kk-registry-row]');
+    var visible = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var show = referensRegistryRowMatchesFilter(row, filterState);
+      row.hidden = !show;
+      if (show) visible += 1;
+    }
+    var autoSection = kkref.querySelector('[data-sek="auto"]');
+    if (autoSection) {
+      autoSection.hidden = filterState.filler !== 'all';
+    }
+    if (registrySection) {
+      var countEl = registrySection.querySelector('.count');
+      if (countEl) {
+        countEl.textContent =
+          filterState.filler === 'all' && filterState.flow === 'all'
+            ? String(rows.length)
+            : String(visible);
+      }
+      if (filterState.filler !== 'all' || filterState.flow !== 'all') {
+        registrySection.open = true;
+        var sc = getReferensKkrefScroller();
+        if (sc && registrySection.offsetTop != null) {
+          try {
+            sc.scrollTo({ top: registrySection.offsetTop - sc.offsetTop - 8, behavior: 'smooth' });
+          } catch (_scrollErr) {
+            /* ignore */
+          }
+        }
+      }
+    }
+  }
+
   function buildReferensRegistryDocsSection(docsPayload) {
     if (!docsPayload || !docsPayload.ready) return '';
     var rows = []
@@ -728,7 +808,7 @@
     var body = rows
       .map(function (doc) {
         var registryId = referensAutoDocRegistryId(doc);
-        var filler = doc.filler || 'patient';
+        var filler = referensRegistryFillerToken(doc);
         var flow = doc.flow || 'tp';
         var step =
           doc.journeyStep != null && doc.journeyStep !== '' ? 'Steg ' + doc.journeyStep : '';
@@ -5755,25 +5835,6 @@
       }
       return false;
     }
-    function applyReferensRegistryFilters(root, filterState) {
-      if (!root) return;
-      var rows = root.querySelectorAll('[data-kk-registry-row]');
-      for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var filler = row.getAttribute('data-kk-registry-filler') || '';
-        var flow = row.getAttribute('data-kk-registry-flow') || '';
-        var fillerOk = filterState.filler === 'all' || filler === filterState.filler;
-        var flowOk = filterState.flow === 'all' || flow === filterState.flow;
-        row.hidden = !(fillerOk && flowOk);
-      }
-    }
-    function scroller() {
-      return (
-        document.querySelector('.v10-dossier-referens') ||
-        document.querySelector('.kkref .doss') ||
-        document.querySelector('.kkref')
-      );
-    }
     document.addEventListener('click', function (e) {
       // 0) Öppna dokument (PDF m.m.) i gemensam modal
       var doc = e.target.closest && e.target.closest('[data-kk-open-doc]');
@@ -5809,7 +5870,10 @@
         var host = filterBtn.closest('[data-kk-registry-filters]');
         var axis = filterBtn.getAttribute('data-kk-registry-filter') || '';
         var value = filterBtn.getAttribute('data-kk-registry-value') || '';
-        var section = filterBtn.closest('[data-sek]') || filterBtn.closest('.kkref');
+        var section =
+          filterBtn.closest('[data-sek="dokument-registry"]') ||
+          filterBtn.closest('[data-sek="dokument"]') ||
+          filterBtn.closest('.kkref');
         var state =
           section && section.__kkRegistryFilter
             ? section.__kkRegistryFilter
@@ -5861,7 +5925,7 @@
         var target = document.querySelector('.kkref .doss [data-sek="' + slug + '"]');
         if (target) {
           if (target.tagName === 'DETAILS') target.open = true;
-          var sc = scroller();
+          var sc = getReferensKkrefScroller();
           if (sc && sc.contains(target)) {
             sc.scrollTo({ top: target.offsetTop - sc.offsetTop - 8, behavior: 'smooth' });
           } else {
