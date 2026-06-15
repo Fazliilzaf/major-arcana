@@ -9490,7 +9490,6 @@
       }
       renderDetailPanel();
     };
-    paint();
     window.requestAnimationFrame(paint);
   }
 

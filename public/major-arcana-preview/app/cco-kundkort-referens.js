@@ -5281,10 +5281,10 @@
       window.__GK_LAST = '';
     }
 
-    // (a) Primär öppning: visa gemensamma kortet direkt när en NY kund öppnas (en gång per patient)
+    // Stor vy öppnas bara via ⤢ / data-kk-open-storvy — aldrig auto vid kundklick (ORD-46 UAT).
     try {
       var gkPid = (bcard && (bcard.patientId || bcard.id)) || '';
-      if (window.__GK_PRIMARY !== false && gkPid && window.__GK_LAST) {
+      if (window.__GK_PRIMARY === true && gkPid && window.__GK_LAST) {
         var gkOv = document.getElementById('kk-storvy');
         var gkOpen = gkOv && gkOv.classList.contains('open');
         if (window.__GK_OPENED_FOR !== gkPid) {

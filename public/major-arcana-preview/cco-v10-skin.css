@@ -755,8 +755,8 @@ html[data-v9-enabled="on"] .customers-shell .customers-surface {
 /* v10 facit — tre fria paneler som mockup .app-grid (inte en gemensam yta) */
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] {
   --v9-layout-col-segment: 200px;
-  --v9-layout-col-intel: 360px;
-  --v9-layout-grid-cols: 200px minmax(0, 1fr) 360px;
+  --v9-layout-col-intel: 400px;
+  --v9-layout-grid-cols: 200px minmax(0, 1fr) 400px;
 }
 
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-shell .customers-surface {
@@ -847,13 +847,13 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-filters {
   margin: 0;
 }
 
-/* v10 facit — mockup .app-grid: segment | mittenpanel | intel (360px fast) */
+/* v10 facit — mockup .app-grid: segment | mittenpanel | intel (400px fast) */
 @media (min-width: 1024px) {
   html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
     .preview-canvas[data-app-shell-view="customers"]
     .customers-layout[data-v10-facit-app-grid] {
     display: grid !important;
-    grid-template-columns: 200px minmax(0, 1fr) 360px !important;
+    grid-template-columns: 200px minmax(0, 1fr) 400px !important;
     gap: 16px;
     align-items: start;
     min-width: 0;
@@ -862,7 +862,7 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-filters {
   html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
     .preview-canvas[data-app-shell-view="customers"]
     .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open] {
-    grid-template-columns: 200px minmax(0, 1fr) 360px !important;
+    grid-template-columns: 200px minmax(0, 1fr) 400px !important;
   }
 
   html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
@@ -889,7 +889,7 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-filters {
     grid-column: 3;
     align-self: start;
     min-width: 0;
-    max-width: 360px;
+    max-width: 400px;
   }
 
   html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
@@ -897,7 +897,7 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-filters {
     .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
     .customers-rail--dominant {
     flex: none;
-    max-width: 360px;
+    max-width: 400px;
     width: 100%;
   }
 
