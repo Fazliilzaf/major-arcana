@@ -48,6 +48,23 @@
     return SIGNAL_SUBTEXT[id] || (s && (s.why || s.detail || s.hint)) || '';
   }
 
+  function buildJuridikBundleStatusHtml(extras) {
+    var readout = extras && extras.agreementReadout;
+    if (!readout) return '';
+    var label = readout.bookable
+      ? 'Signerad · bokningsbar'
+      : readout.bundleStatus === 'sent'
+        ? 'Skickad · väntar signering'
+        : readout.templateApprovalStatus && readout.templateApprovalStatus !== 'approved'
+          ? 'Väntar juridisk review'
+          : readout.nextStep || 'Väntar signering';
+    return (
+      '<div class="row acc info"><div style="flex:1"><div class="rt">Avtal + samtycke</div><div class="rm">' +
+      esc(label) +
+      '</div></div><span class="pill" style="background:var(--info-bg);color:var(--info)">Bundle</span></div>'
+    );
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -4626,11 +4643,15 @@
         })
         .join('');
       if (ORD47_V1) {
-        ord47Cards.juridik = gateRowsHtml;
+        ord47Cards.juridik = buildJuridikBundleStatusHtml(extras) + gateRowsHtml;
       }
       h += sec('Smart nästa steg', String(gateSignals.length), gateRowsHtml);
     } else {
       h += sec('Smart nästa steg', '0', empty('Inga aktiva gates just nu.'));
+      if (ORD47_V1) {
+        var juridikOnly = buildJuridikBundleStatusHtml(extras);
+        if (juridikOnly) ord47Cards.juridik = juridikOnly;
+      }
     }
 
     h += '<div class="gthread"></div>';

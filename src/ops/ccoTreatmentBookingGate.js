@@ -2,6 +2,12 @@
 
 const { buildTreatmentAgreementReadout } = require('./ccoTreatmentAgreementStore');
 const { resolveTemplateApprovalForAgreement } = require('./ccoTreatmentAgreementTemplateGate');
+const { computeReadyForTreatment } = require('./ccoKunderFasAReadiness');
+const {
+  assertOperationDayJournalAllowedForPatient,
+  patientFitnessSigned,
+  resolveTodayVisitForPatient,
+} = require('./ccoOperationDayGate');
 
 const CONSULTATION_SERVICE_IDS = new Set([
   'consultation-online',
@@ -61,6 +67,7 @@ async function checkTreatmentBookingGate({
   treatmentAgreementStore,
   templateVersionApprovalStore = null,
   patientMasterStore,
+  bookingStore = null,
   tenantId,
   patientId,
   customerEmail,
@@ -118,26 +125,88 @@ async function checkTreatmentBookingGate({
   );
   const agreementReadout = buildTreatmentAgreementReadout(agreement || {}, { templateApproval });
 
-  if (agreementReadout.bookable) {
+  if (!agreementReadout.bookable) {
     return {
-      allowed: true,
+      allowed: false,
       gated: true,
       serviceIds: gatedServiceIds,
       patientId: resolvedPatientId,
+      reason: 'treatment_agreement_not_bookable',
+      message: agreementReadout.nextStep || 'Behandlingsavtal måste signeras innan bokning.',
       agreement,
       agreementReadout,
     };
   }
 
+  let patientCard = null;
+  if (patientMasterStore?.getPatient) {
+    try {
+      patientCard = await patientMasterStore.getPatient({
+        tenantId,
+        patientId: resolvedPatientId,
+      });
+    } catch {
+      patientCard = null;
+    }
+  }
+
+  const todayVisit = await resolveTodayVisitForPatient({
+    patient: patientCard || {},
+    bookingStore,
+    tenantId,
+  });
+  const fitnessSigned = patientFitnessSigned(patientCard || {});
+  const readinessReadout = {
+    missingAgreement: false,
+    missingHealthDeclaration: patientCard?.missingHealthDeclaration === true,
+    missingForm: false,
+    missingJournal: false,
+    hasJournalPhoto: false,
+    photoConsent: { signed: true },
+    todayVisit,
+    fitnessSigned,
+  };
+  const readyForTreatment = computeReadyForTreatment(readinessReadout, {
+    bookable: true,
+    coolingOff: agreementReadout.coolingOff || { active: false },
+  });
+
+  if (todayVisit && !fitnessSigned) {
+    return {
+      allowed: false,
+      gated: true,
+      serviceIds: gatedServiceIds,
+      patientId: resolvedPatientId,
+      reason: 'operation_day_fitness_required',
+      message: 'Friskförsäkran måste signeras innan behandlingsbokning på operationsdagen.',
+      agreement,
+      agreementReadout,
+      readyForTreatment,
+    };
+  }
+
+  if (!readyForTreatment && agreementReadout.coolingOff?.active) {
+    return {
+      allowed: false,
+      gated: true,
+      serviceIds: gatedServiceIds,
+      patientId: resolvedPatientId,
+      reason: 'treatment_not_ready',
+      message: 'Betänketid eller readiness-krav är inte uppfyllda än.',
+      agreement,
+      agreementReadout,
+      readyForTreatment,
+    };
+  }
+
   return {
-    allowed: false,
+    allowed: true,
     gated: true,
     serviceIds: gatedServiceIds,
     patientId: resolvedPatientId,
-    reason: 'treatment_agreement_not_bookable',
-    message: agreementReadout.nextStep || 'Behandlingsavtal måste signeras innan bokning.',
     agreement,
     agreementReadout,
+    readyForTreatment,
   };
 }
 

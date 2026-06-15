@@ -155,6 +155,54 @@ function parsePublicConsentAck(body = {}) {
   return normalizeKey(String(raw)) === 'true';
 }
 
+function buildSignedBundleAgreementUpdate(
+  agreement = {},
+  {
+    signer = 'Kund',
+    signedAt = new Date().toISOString(),
+    actorUserId = '',
+    eventType = 'bundle_signed',
+    eventLabel = 'Avtal + behandlingssamtycke signerat',
+    eventDetail = '',
+  } = {}
+) {
+  const safe = asObject(agreement);
+  const resolution = resolveConsentTemplateForAgreement(safe);
+  const consent = normalizeConsentState(safe.consent);
+  if (resolution?.found && resolution.template) {
+    consent.templateId = resolution.template.id;
+    consent.templateApiId = resolution.template.apiId;
+    consent.templateVersion = resolution.template.version;
+    consent.templateTitle = resolution.template.title;
+  }
+  consent.signed = true;
+  consent.signedAt = signedAt;
+  consent.signedBy = signer;
+
+  const detail =
+    eventDetail ||
+    (resolution?.template?.apiId ? `${signer} · consent ${resolution.template.apiId}` : signer);
+
+  return {
+    ...safe,
+    agreementStatus: 'bookable',
+    bundleStatus: 'signed',
+    signedAt,
+    customerSignedName: signer,
+    esignStatus: 'signed',
+    consent,
+    events: [
+      ...(Array.isArray(safe.events) ? safe.events : []),
+      {
+        type: eventType,
+        label: eventLabel,
+        detail,
+        ...(actorUserId ? { actorUserId } : {}),
+      },
+    ],
+  };
+}
+
 module.exports = {
   BUNDLE_STATUSES,
   deriveTreatmentTypeFromOffer,
@@ -165,4 +213,5 @@ module.exports = {
   applyConsentTemplateToAgreement,
   assertBundleReadyToSend,
   parsePublicConsentAck,
+  buildSignedBundleAgreementUpdate,
 };

@@ -182,6 +182,26 @@ if (!readyReadout.readyForTreatment || !readySig || readySig.status !== 'active'
   pass('runner: ready_for_treatment active');
 }
 
+const unsignedReady = computeReadyForTreatment(
+  {
+    treatmentPlanStatus: 'accepted',
+    todayVisit: false,
+    fitnessSigned: true,
+    hasJournalPhoto: false,
+    photoConsent: { signed: true },
+    missingHealthDeclaration: false,
+    missingForm: false,
+    missingJournal: false,
+    missingAgreement: false,
+  },
+  { bookable: false, coolingOff: { active: false } }
+);
+if (unsignedReady) {
+  fail('ready_for_treatment får inte bli true utan signerad/bookable bundle');
+} else {
+  pass('runner: ready_for_treatment kräver signerad bundle');
+}
+
 if (failed) {
   console.error(`\n${failed} failure(s).`);
   process.exit(1);

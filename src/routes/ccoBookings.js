@@ -628,6 +628,7 @@ function createCcoBookingsRouter({
       await assertTreatmentBookingAllowed({
         treatmentAgreementStore,
         patientMasterStore,
+        bookingStore,
         tenantId: context.tenantId,
         customerEmail: context.customerEmail,
         patientId: normalizeText(req.body?.patientId),
@@ -826,7 +827,9 @@ function createCcoBookingsRouter({
         let leadTimeConfig = normalizeBookingReminderLeadTimeConfig({});
         if (settingsStore && typeof settingsStore.getTenantSettings === 'function') {
           const settings = await settingsStore.getTenantSettings({ tenantId: context.tenantId });
-          leadTimeConfig = normalizeBookingReminderLeadTimeConfig(settings?.bookingReminderLeadTime);
+          leadTimeConfig = normalizeBookingReminderLeadTimeConfig(
+            settings?.bookingReminderLeadTime
+          );
         }
 
         const servicesById = new Map();
@@ -1076,6 +1079,8 @@ function createCcoBookingsRouter({
       requireBookingContext(caseContext);
       await assertTreatmentBookingAllowed({
         treatmentAgreementStore,
+        patientMasterStore,
+        bookingStore,
         tenantId: caseContext.tenantId,
         customerEmail: caseContext.customerEmail,
         body: { ...req.body, selectedSlots: [slot], slot },

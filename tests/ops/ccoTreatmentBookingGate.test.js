@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const {
+  assertTreatmentBookingAllowed,
   checkTreatmentBookingGate,
   requiresTreatmentAgreement,
   treatmentServiceIds,
@@ -59,7 +60,13 @@ test('checkTreatmentBookingGate blockerar behandling utan signerat avtal', async
       tenantId: 'hair-tp-clinic',
       patientId: 'patient-1',
       agreementStatus: 'bookable',
+      bundleStatus: 'signed',
       signedAt: new Date().toISOString(),
+      consent: {
+        signed: true,
+        signedAt: new Date().toISOString(),
+        signedBy: 'Test Kund',
+      },
     });
 
     const allowed = await checkTreatmentBookingGate({
@@ -75,4 +82,49 @@ test('checkTreatmentBookingGate blockerar behandling utan signerat avtal', async
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
+});
+
+test('behandlingsbokning på operationsdag ger 409 utan FC även när bundle är signerad', async () => {
+  const treatmentAgreementStore = {
+    async getPatientAgreement() {
+      return {
+        agreementStatus: 'bookable',
+        bundleStatus: 'signed',
+        signedAt: '2026-06-14T10:00:00.000Z',
+        consent: {
+          signed: true,
+          signedAt: '2026-06-14T10:00:00.000Z',
+          signedBy: 'Test Kund',
+        },
+      };
+    },
+  };
+  const patientMasterStore = {
+    async findPatientByEmail() {
+      return { id: 'patient-op' };
+    },
+    async getPatient() {
+      return {
+        id: 'patient-op',
+        primaryEmail: 'op@example.com',
+        todayVisit: true,
+      };
+    },
+  };
+
+  await assert.rejects(
+    () =>
+      assertTreatmentBookingAllowed({
+        treatmentAgreementStore,
+        patientMasterStore,
+        tenantId: 'hair-tp-clinic',
+        customerEmail: 'op@example.com',
+        body: { serviceId: 'fue' },
+      }),
+    (err) => {
+      assert.equal(err.statusCode, 409);
+      assert.equal(err.metadata?.code, 'operation_day_fitness_required');
+      return true;
+    }
+  );
 });

@@ -326,6 +326,11 @@
     const flow = resolveTreatmentFlow({ card });
     const journalRegistryId = resolveStaffJournalRegistryId(flow);
     const journalLabel = flow === 'tp' ? 'TP-journal' : 'PRP-journal';
+    const fitnessSigned =
+      card?.fitnessSigned === true ||
+      card?.hasFitnessCertificate === true ||
+      card?.missingFitnessCertificate === false;
+    const fcBlocked = !fitnessSigned;
     const actions = [
       { id: 'steg8', label: 'Friskförsäkran', registryId: 'friskfoers_tp' },
       { id: 'journal', label: journalLabel, registryId: journalRegistryId },
@@ -338,10 +343,17 @@
         <span class="v11-opday-actions__kicker">Op-dag</span>
         <div class="v11-opday-actions__row">
           ${actions
-            .map(
-              (action) =>
-                `<button type="button" class="v11-opday-actions__btn" data-v11-opday-action="${escapeHtml(action.id)}" data-v11-opday-registry="${escapeHtml(action.registryId)}">${escapeHtml(action.label)}</button>`
-            )
+            .map((action) => {
+              const blocked = fcBlocked && action.id !== 'steg8';
+              const title = blocked
+                ? 'Signera friskförsäkran innan denna åtgärd på operationsdagen.'
+                : '';
+              return `<button type="button" class="v11-opday-actions__btn${
+                blocked ? ' is-disabled' : ''
+              }" data-v11-opday-action="${escapeHtml(action.id)}" data-v11-opday-registry="${escapeHtml(action.registryId)}"${
+                blocked ? ' disabled aria-disabled="true"' : ''
+              } title="${escapeHtml(title)}">${escapeHtml(action.label)}</button>`;
+            })
             .join('')}
         </div>
       </div>`;

@@ -8487,6 +8487,7 @@ let ccoSendActionStore = null;
 (async () => {
   try {
     const { createCcoSendActionStore, isDryRunDefault } = require('./src/ops/ccoSendActionStore');
+    const { assertLegacyConsentSendAllowed } = require('./src/ops/ccoLegacyConsentSendGuard');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
     let mailer = null;
     try {
@@ -8563,6 +8564,7 @@ let ccoSendActionStore = null;
         try {
           const ctx = commonCustomerCtx(req);
           if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+          assertLegacyConsentSendAllowed(req.body || {});
           const payload = ccoSendActionStore.buildConsentPayload({
             ...ctx,
             consentKind: req.body?.consentKind || 'photo_publish',
@@ -13610,6 +13612,7 @@ process.once('SIGTERM', () => {
       treatmentEncounterStore: ccoTreatmentEncounterStore,
       migrationIndexStore: ccoMigrationIndexStore,
       patientSystemStore: ccoPatientSystemStore,
+      bookingStore: ccoBookingStore,
       authStore,
       config,
       requireAuth: auth.requireAuth,

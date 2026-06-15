@@ -73,6 +73,7 @@ const {
   assertBundleReadyToSend,
   parsePublicConsentAck,
 } = require('../src/ops/ccoTreatmentAgreementBundle');
+const { assertLegacyConsentSendAllowed } = require('../src/ops/ccoLegacyConsentSendGuard');
 
 const tpl = resolveTemplate('fue');
 if (!tpl.found || tpl.template.apiId !== 170917) {
@@ -95,6 +96,17 @@ if (!parsePublicConsentAck({ consent_ack: 'on' })) {
   fail('parsePublicConsentAck ska acceptera consent_ack=on');
 } else {
   pass('parsePublicConsentAck');
+}
+
+try {
+  assertLegacyConsentSendAllowed({ consentApiId: 170917 });
+  fail('legacy consent send ska blockera Meridiq behandlingsavtal 170917');
+} catch (err) {
+  if (err?.statusCode === 409 && err?.metadata?.code === 'treatment_agreement_bundle_required') {
+    pass('legacy consent send guard blockerar separat behandlingsavtal');
+  } else {
+    fail('legacy consent send guard gav fel felkod');
+  }
 }
 
 if (failed) {

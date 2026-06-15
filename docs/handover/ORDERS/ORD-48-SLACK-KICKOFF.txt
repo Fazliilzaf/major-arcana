@@ -1,0 +1,12 @@
+ORD-48 — Steg 7 bundle write + FC ops-gates · GO
+
+ORD-47 V1: Owner godkänd 2026-05-20.
+
+ORD-48: Jobba direkt — ingen förhandsrapport. Sammanfattning + verify när klart.
+
+Codex: Fas A + C/D backend (bundle write, FC 409, ready_for_treatment)
+Cursor: Fas B + UI gates (steg 7 → API, §4/§5, kalender CTA)
+Cloud: Efter deploy — prod verify + UAT U1–U5
+
+Handover: docs/handover/ORDERS/ORD-48-PARALLEL-SVEP-3-AGENTS.md
+Default G1: demo-sign + persist. Default G2: minimal FC block på ops-dag.

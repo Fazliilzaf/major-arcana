@@ -66,4 +66,24 @@ describe('ORD-5 Fas A automation signals', () => {
     assert.equal(readout.readyForTreatment, true);
     assert.equal(sig.status, 'active');
   });
+
+  it('ready_for_treatment kräver signerad/bookable bundle även om missingAgreement=false', () => {
+    const readout = {
+      treatmentPlanStatus: 'accepted',
+      todayVisit: false,
+      hasJournalPhoto: false,
+      photoConsent: { signed: true },
+      missingHealthDeclaration: false,
+      missingForm: false,
+      missingJournal: false,
+      missingAgreement: false,
+    };
+    assert.equal(
+      computeReadyForTreatment(readout, {
+        bookable: false,
+        coolingOff: { active: false },
+      }),
+      false
+    );
+  });
 });

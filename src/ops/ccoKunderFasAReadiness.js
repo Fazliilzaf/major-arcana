@@ -18,7 +18,7 @@ function emptyPhotoConsent() {
 
 function computeReadyForTreatment(readout = {}, agreement = null) {
   const cooling = agreement?.coolingOff || { active: false };
-  const bundleOk = agreement?.bookable === true || readout.missingAgreement === false;
+  const bundleOk = agreement?.bookable === true;
   const opsOk = readout.todayVisit !== true || readout.fitnessSigned === true;
   const photoOk = readout.hasJournalPhoto !== true || readout.photoConsent?.signed === true;
   return (

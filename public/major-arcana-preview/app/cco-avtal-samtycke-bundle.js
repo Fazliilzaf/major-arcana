@@ -297,6 +297,32 @@
     }
   }
 
+  async function persistBundleSign(root, context, name, pnr) {
+    const patientId = context.patientId || mountOptions.patientId || '';
+    if (patientId) {
+      const payload = await apiFetch('/api/v1/cco-treatment-agreement/accept', {
+        method: 'POST',
+        body: {
+          patientId,
+          customerSignedName: name,
+          consent_ack: true,
+          forceAccept: mountOptions.forceAccept === true,
+        },
+      });
+      return {
+        via: 'treatment-agreement',
+        agreement: payload?.agreement || null,
+        agreementReadout: payload?.agreementReadout || null,
+        entryId: payload?.agreement?.agreementDocumentId || 'bundle-signed',
+      };
+    }
+    return submitBundleToJournal(root, {
+      ...context,
+      patientName: name,
+      personnummer: pnr,
+    });
+  }
+
   async function signBundle(root, context) {
     const signBtn = root.querySelector('#signBothBtn');
     if (!signBtn || signBtn.disabled) return;
@@ -317,7 +343,7 @@
     setOverlayStatus(root, 'Signerar avtal och samtycke…', 'warning');
 
     try {
-      const result = await submitBundleToJournal(root, {
+      const result = await persistBundleSign(root, {
         ...context,
         patientName: name,
         personnummer: pnr,
@@ -447,7 +473,9 @@
     }
   }
 
-  function isSteg7Complete() {
+  function isSteg7Complete(options = {}) {
+    if (options.agreementReadout?.bookable === true) return true;
+    if (mountOptions.agreementReadout?.bookable === true) return true;
     try {
       if (sessionStorage.getItem(SIGNED_KEY) === '1') return true;
       if (readDemoParam('demoSteg') === '8') return true;
@@ -460,6 +488,8 @@
 
   function maybeAutoMount(options = {}) {
     if (!isDemoFlagOn() || !isCustomersView()) return false;
+    if (options.agreementReadout?.bookable === true) return false;
+    if (isSteg7Complete(options)) return false;
     try {
       if (sessionStorage.getItem(DISMISS_KEY) === '1') return false;
       if (sessionStorage.getItem(SIGNED_KEY) === '1') return false;
