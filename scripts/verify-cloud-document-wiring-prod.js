@@ -74,6 +74,8 @@ function get(path) {
     else fail('op-day panel live');
 
     const referens = await get('/major-arcana-preview/app/cco-kundkort-referens.js');
+    if (/buildOpDayStaffActionsHtml/.test(referens.body)) pass('referens op-day wiring live');
+    else fail('referens op-day wiring live');
     if (/buildReferensRegistryDocsSection/.test(referens.body)) pass('registry section live');
     else fail('registry section live');
 

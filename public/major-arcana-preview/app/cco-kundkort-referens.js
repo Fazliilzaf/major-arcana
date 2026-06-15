@@ -543,6 +543,7 @@
     if (l.indexOf('medicinskt') === 0) return 'halso';
     if (l.indexOf('kundresa') === 0) return 'kundresa';
     if (l.indexOf('smart nästa') === 0) return 'nastasteg';
+    if (l.indexOf('op-dag') === 0) return 'opdag';
     if (l.indexOf('besök') === 0 || l.indexOf('besok') === 0) return 'besok';
     if (l.indexOf('kommande') === 0) return 'bokningar';
     if (l.indexOf('historik') === 0) return 'historik';
@@ -3907,6 +3908,7 @@
       var order = [
         'kundresa',
         'nastasteg',
+        'opdag',
         'halso',
         'besok',
         'bokningar',
@@ -4095,6 +4097,17 @@
       '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Show</button>' +
       '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> No-show</button>' +
       '</div></div>';
+
+    var opDayHtml = '';
+    if (
+      window.CcoHairtpDocumentCloud &&
+      typeof window.CcoHairtpDocumentCloud.buildOpDayStaffActionsHtml === 'function'
+    ) {
+      opDayHtml = window.CcoHairtpDocumentCloud.buildOpDayStaffActionsHtml(bcard) || '';
+    }
+    if (opDayHtml) {
+      h += sec('Op-dag · personal', '5', opDayHtml);
+    }
 
     h += '<div class="gthread"></div>';
 
@@ -5268,6 +5281,7 @@
   var KK_NAV = [
     ['kundresa', 'Kundresa'],
     ['nastasteg', 'Nästa steg'],
+    ['opdag', 'Op-dag'],
     ['halso', 'Medicinskt'],
     ['besok', 'Besök'],
     ['bokningar', 'Bokningar'],
@@ -6491,6 +6505,17 @@
     }
   }
   window.__enhanceReferensKundkort = function (rootEl) {
+    try {
+      var bindRoot =
+        rootEl && rootEl.querySelector
+          ? rootEl.querySelector('.kkref') || rootEl
+          : document.querySelector('.kkref');
+      if (bindRoot && window.CcoHairtpDocumentCloud?.bindOpDayStaffActions) {
+        window.CcoHairtpDocumentCloud.bindOpDayStaffActions(bindRoot);
+      }
+    } catch (_opDayBind) {
+      /* best-effort */
+    }
     // Rail ska vara ren v9-dossier. Enda tillägget: förstorings-knappen.
     kkAddForstoring(rootEl);
     if (window.__KK_ENHANCER_PA !== true) return;

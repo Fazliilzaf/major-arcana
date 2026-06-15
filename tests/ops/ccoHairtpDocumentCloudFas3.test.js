@@ -132,3 +132,15 @@ test('fore_efter_bildmall preview lists photo stages', () => {
   assert.match(html, /Före/);
   assert.match(html, /Efter/);
 });
+
+test('referens kundkort wires Op-dag panel for v10 facit', () => {
+  const referensPath = path.join(
+    __dirname,
+    '../../public/major-arcana-preview/app/cco-kundkort-referens.js'
+  );
+  const source = fs.readFileSync(referensPath, 'utf8');
+  assert.match(source, /buildOpDayStaffActionsHtml/);
+  assert.match(source, /bindOpDayStaffActions/);
+  assert.match(source, /Op-dag · personal/);
+  assert.match(source, /'opdag'/);
+});

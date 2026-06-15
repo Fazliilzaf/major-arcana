@@ -11234,6 +11234,15 @@
 
   function initAvtalSamtyckeBundleOverlay() {
     if (!isV9DemoEnabled() || !isCustomersShellActive()) return;
+    let skipSteg7Gate = false;
+    try {
+      skipSteg7Gate =
+        new URLSearchParams(window.location.search || '').get('demoSkipSteg7') === '1';
+    } catch {
+      skipSteg7Gate = false;
+    }
+    // ORD-46 UAT: quick-demo path — no auto steg 7 modal; use Op-dag / registry instead.
+    if (skipSteg7Gate) return;
     const overlay = window.CcoAvtalSamtyckeBundle;
     if (!overlay?.maybeAutoMount) return;
     const card = runtime.detail?.card;
@@ -11279,30 +11288,7 @@
 
   function initFriskforsakranDemoOverlay() {
     if (!isV9DemoEnabled() || !isCustomersShellActive()) return;
-    let skipSteg7Gate = false;
-    try {
-      skipSteg7Gate =
-        new URLSearchParams(window.location.search || '').get('demoSkipSteg7') === '1';
-    } catch {
-      skipSteg7Gate = false;
-    }
-    if (!skipSteg7Gate && window.CcoAvtalSamtyckeBundle?.isSteg7Complete?.() !== true) {
-      if (document.getElementById('cco-steg7-bundle-scrim')) return;
-      try {
-        if (sessionStorage.getItem('arcana.steg7bundle.dismissed') !== '1') return;
-      } catch {
-        return;
-      }
-    }
-    const overlay = window.CcoFriskforsakranDemoOverlay;
-    if (!overlay?.maybeAutoMount) return;
-    const card = runtime.detail?.card;
-    const patientName =
-      normalizeText(card?.displayName) ||
-      normalizeText(card?.primaryEmail) ||
-      normalizeText(card?.primaryPhone) ||
-      '';
-    overlay.maybeAutoMount(patientName ? { patientName } : undefined);
+    // ORD-46: steg 8 opens only via Op-dag buttons or registry rows — never auto-pop.
   }
 
   let customersViewOpenQueued = false;

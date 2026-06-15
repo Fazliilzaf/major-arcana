@@ -56,11 +56,18 @@
       })();
     </script>
     <script>
-      (function mobileCustomersShellEarly() {
+      (function staffCustomersShellEarly() {
         try {
-          if (!window.matchMedia('(max-width: 768px)').matches) return;
           var params = new URLSearchParams(window.location.search || '');
-          if (String(params.get('view') || 'customers').trim() !== 'customers') return;
+          var view = String(params.get('view') || '').trim();
+          var path = String(window.location.pathname || '');
+          if (!view) {
+            if (path.indexOf('/staff') === 0 || path.indexOf('/mobil') === 0) view = 'customers';
+            else return;
+          }
+          if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
+            return;
+          }
           var reveal = function () {
             document.querySelectorAll('[data-shell-view]').forEach(function (section) {
               section.hidden = section.getAttribute('data-shell-view') !== 'customers';
@@ -70,6 +77,12 @@
               canvas.dataset.appShellView = 'customers';
               canvas.dataset.appView = 'customers';
             }
+            document.querySelectorAll('[data-nav-view]').forEach(function (btn) {
+              var navView = btn.getAttribute('data-nav-view') || '';
+              var active = navView === 'customers';
+              btn.classList.toggle('is-active', active);
+              btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
           };
           if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', reveal, { once: true });
@@ -107,7 +120,7 @@
     <link rel="stylesheet" href="./design-tokens.css" />
     <link rel="stylesheet" href="./cco-v9-tokens.css?v=build-1ccb8f9" />
     <link rel="stylesheet" href="./cco-v9-customers.css?v=build-1ccb8f9" />
-    <link rel="stylesheet" href="./cco-kundkort-referens.css?v=ref5" />
+    <link rel="stylesheet" href="./cco-kundkort-referens.css?v=ord46-v10-opday" />
     <link rel="stylesheet" href="./cco-kundkort-kkx.css?v=kkx8" />
     <link rel="stylesheet" href="./cco-kundkort-blueprint.css?v=build-ord29" />
     <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
@@ -3625,10 +3638,7 @@
                     defer
                     src="./app/cco-foto-samtycke-demo-overlay.js?v=hairtp-cloud-fas456-v9"
                   ></script>
-                  <script
-                    defer
-                    src="./app/cco-kundkort-referens.js?v=cleanname-fix-20260615"
-                  ></script>
+                  <script defer src="./app/cco-kundkort-referens.js?v=ord46-v10-opday"></script>
                   <script
                     defer
                     src="./app/cco-v9-customers-parity.js?v=hairtp-cloud-fas456-v9"

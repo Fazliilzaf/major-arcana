@@ -1,123 +1,34 @@
-ORD-46 — Cloud Agent Staff UAT Kickoff
-========================================
+ORD-46 — Cloud Agent Staff UAT (v10 kundkort)
+==============================================
 
-Status: GO — prod verified
-Prod:   https://arcana.hairtpclinic.com
-Tid:    ca 20–30 min per testare (5 min snabbtest möjligt)
-
-Full checklista (markera PASS/FAIL):
-  docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md
-
-
-FÖRUTSÄTTNINGAR
----------------
-1. Inloggad som staff/owner i CCO (logga in FÖRST om du blir ombedd)
-2. v9 kundvy aktiv — använd v9=on i URL om du tidigare stängt av v9
-3. Demo-läge via demo=on i URL (steg 7/8/9-modaler)
-4. Op-dag-panel syns FÖRST efter att du klickat en kund i listan
-
-
-START-URL — VÄLJ EN VÄG
------------------------
-
-🚀 SNABB-DEMO (rekommenderas först — hoppar juridiska gates):
+EN LÄNK — EN FLÖDE
+------------------
 https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1
 
-📋 FULL FLÖDE (med steg 7 juridisk gate):
-https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1
-
-Valfritt:
-  &demoPatient=Anna+Karlsson
-
-
-SNABBTEST (5 MIN)
------------------
-1. Öppna SNABB-DEMO-länken ovan
-2. Vänta tills Kunder-vy är aktiv (inte Konversationer)
+1. Logga in (staff/owner)
+2. Kunder-vy öppnas automatiskt
 3. Klicka en kund i listan
-4. Scrolla i dossier → Op-dag-panel med 5 knappar
-5. Klicka Friskförsäkran (steg 8, 13 frågor) och Foto-samtycke (steg 9, PARTIAL OK)
+4. Höger panel (kundkort):
+   • Op-dag · personal — 5 knappar (friskförsäkran, journal, ordination, före/efter, foto)
+   • Dokument · registry — klickbara rader
+   • Auto-dokument — SMS/e-post-preview
 
+TEST (5 MIN)
+------------
+□ Op-dag-knapp → Friskförsäkran → 13 frågor
+□ Op-dag-knapp → Foto-samtycke → PARTIAL-banner (OK)
+□ Registry-rad → rätt modal/preview
+□ Auto-dokument-rad → preview
 
-FÖRVÄNTAT BETEENDE (INTE BUGG)
---------------------------------
-• Steg 7-modal "Avtal väntar juridisk granskning" (full flöde) = juridisk gate — stäng den
-• Foto-samtycke PARTIAL-banner = text väntar ORD-24 — wiring OK
-• Op-dag syns inte på kundlistan — bara efter kundklick
-• URL kan kort visa Konversationer innan Kunder laddas klart
+FÖRVÄNTAT (INTE FAIL)
+---------------------
+• Foto-samtycke PARTIAL = text väntar ORD-24
+• Ingen modal poppar automatiskt vid kundklick
 
-
-FELSÖKNING
-----------
-502 / vit sida     → vänta 30 s, ladda om. Kvarstår = Render/deploy, inte UAT-fel
-Login-formulär     → logga in, öppna länken igen
-Ingen Op-dag       → har du klickat en kund? demoOpDay=1 i URL?
-Ingen modal        → demo=on och v9=on i URL? Prova SNABB-DEMO-länken
-v9 avstängd        → lägg till ?v9=on en gång
-
-
-TESTSEKVENS (FULL, ~30 MIN)
----------------------------
-
-1 — DOKUMENTPANEL (V11 dossier)
-   • Öppna kund i kolumn 3 → dokument-segment laddas
-   • Klicka auto-rad (t.ex. bokningsbekräftelse) → SMS/e-post-preview
-   • Klicka offert → steg 7 avtal+samtycke
-   • Klicka Friskförsäkran → steg 8 med 13 frågor
-   • Klicka journal_tp → journal-flik + TP-journal
-   • Testa filter personal / auto
-   • PARTIAL-rad → gul chip + ev. !-hint
-
-2 — OP-DAG PANEL (sticky, demoOpDay=1)
-   • Synlig rad Op-dag med 5 knappar
-   • Friskförsäkran → steg 8-modal
-   • TP-journal / PRP-journal → rätt journal per flöde
-   • Ordination → staff preview
-   • Före/efter-bild → preview Före/Under/Efter
-   • Foto-samtycke → steg 9 + PARTIAL-banner (förväntat)
-
-3 — STEG 8 (friskförsäkran)
-   • Scroll hela formuläret (mobil: sista fält + Signera synligt)
-   • Validering om obligatoriska fält saknas
-   • Demo-signera → signerad panel + entry-ID
-
-4 — STEG 9 (foto-samtycke)
-   • PARTIAL-banner synlig — INTE ett fel (text kommer ORD-24)
-   • Scope: hårlinje/krona — aldrig ansikte
-   • Demo-signera → status grön + entry-ID
-   • Efter signering → journal-flik + kamera-kort
-
-5 — REGISTRY + MOBIL
-   • Sektion Dokument · registry → filter + klickbara rader
-   • Blocker ! för PARTIAL med tooltip/hint
-   • iPhone/iPad: steg 7/8/9-modaler scrollar till Signera
-   • Op-dag-knappar: wrap, inga klippta etiketter (Å/Ä/Ö)
-
-
-GODKÄNT / UNDERKÄNT
--------------------
-GODKÄNT om A–E PASS och inga blockerande JS-fel.
-PARTIAL på steg 9 räknas INTE som FAIL.
-Steg 7 juridisk gate räknas INTE som FAIL.
-
-UNDERKÄNT om:
-  • Modal öppnas inte från dokumentrad eller op-dag
-  • Steg 8 har färre än 13 frågor
-  • Journal/ordination-klick gör ingenting
-  • Sign-knapp klipps på mobil
-
+FULL CHECKLISTA
+---------------
+docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md
 
 RAPPORTERA
 ----------
-Testare:
-Datum:
-Enhet (iPhone/iPad/desktop):
-URL-variant (snabb / full):
-
-FAIL (om någon):
-1.
-2.
-
-Övrigt:
-
-Skicka till owner / #arcana-bugs / Notion ORD-46 (med skärmdump vid FAIL)
+#arcana-bugs · skärmdump vid FAIL

@@ -926,3 +926,11 @@ html[data-v9-enabled="on"] .customers-list--compact .customer-row.cr-ref .cr-nex
 html[data-v9-enabled="on"] .customers-list--compact .customer-row-head.cr-ref-head {
   display: none !important;
 }
+
+/* ORD-46 — Op-dag panel inside v10 referens kundkort */
+html[data-v9-enabled="on"] .kkref .dossier-section-body .v11-opday-actions {
+  margin: 0;
+}
+html[data-v9-enabled="on"] .kkref .dossier-section[data-sek="opdag"] .v11-opday-actions__row {
+  flex-wrap: wrap;
+}

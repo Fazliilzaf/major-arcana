@@ -9,41 +9,39 @@
 
 ## Förutsättningar
 
-1. Inloggad som staff/owner i CCO (**logga in först** om du blir ombedd)
-2. v9 kundvy aktiv — använd `v9=on` i URL om v9 tidigare stängts av
-3. Demo-läge för steg 7/8/9-modaler (`demo=on` i URL)
-4. **Klicka en kund** i listan — Op-dag och dokumentpanel syns först i dossier
+1. Inloggad som staff/owner i CCO
+2. Använd **canonical UAT-URL** nedan
+3. **Klicka en kund** i listan — allt test sker i **höger kundkort-panel** (v10 facit)
 
 ---
 
-## Start-URL
-
-**Snabb-demo (rekommenderas — hoppar steg 7 juridisk gate):**
+## Start-URL (endast denna)
 
 ```
 https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1
 ```
 
-**Full flöde (med steg 7 juridisk gate — stäng modalen, den är förväntad):**
+**Var i UI:** Kundlista (mitten) → klicka kund → **höger panel**:
 
-```
-https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1
-```
+| Sektion                 | Vad                        |
+| ----------------------- | -------------------------- |
+| **Op-dag · personal**   | 5 knappar — primär UAT-yta |
+| **Dokument · registry** | Klickbara rader + filter   |
+| **Auto-dokument**       | SMS/e-post-preview         |
 
-Valfritt: `&demoPatient=Anna+Karlsson`
+Ingen modal ska auto-öppnas vid kundklick.
 
 ---
 
 ## Felsökning
 
-| Symptom                  | Åtgärd                                                              |
-| ------------------------ | ------------------------------------------------------------------- |
-| 502 / vit sida           | Vänta 30 s, ladda om. Kvarstår → deploy-problem                     |
-| Login-formulär           | Logga in, öppna länken igen                                         |
-| Hamnar på Konversationer | Vänta eller klicka **Kunder** — URL byter till `view=customers`     |
-| Ingen Op-dag-panel       | Har du **klickat en kund**? Kräver `demoOpDay=1`                    |
-| Steg 7-modal blockerar   | **Förväntat** i full flöde — stäng den, eller använd snabb-demo-URL |
-| Foto-samtycke PARTIAL    | **Förväntat** tills ORD-24 — räknas inte som FAIL                   |
+| Symptom                            | Åtgärd                                     |
+| ---------------------------------- | ------------------------------------------ |
+| Konversationer istället för Kunder | Ladda om canonical URL                     |
+| Ingen Op-dag                       | Saknar `demoOpDay=1` eller ingen kund vald |
+| Modal vid kundklick                | Bug — rapportera (ska inte hända)          |
+| 502 / vit sida                     | Vänta 30 s, ladda om                       |
+| Foto-samtycke PARTIAL              | Förväntat tills ORD-24                     |
 
 ---
 
@@ -51,7 +49,7 @@ Valfritt: `&demoPatient=Anna+Karlsson`
 
 Markera **PASS / FAIL / N/A** och anteckna skärmdump vid FAIL.
 
-### A — Dokumentpanel (V11 dossier)
+### A — Dokument (höger kundkort — registry + auto)
 
 | #   | Steg                                        | Förväntat                                         | PASS |
 | --- | ------------------------------------------- | ------------------------------------------------- | ---- |
@@ -63,16 +61,16 @@ Markera **PASS / FAIL / N/A** och anteckna skärmdump vid FAIL.
 | A6  | Filter **personal / auto**                  | Rader filtreras korrekt                           | ☐    |
 | A7  | PARTIAL-rad                                 | Gul chip + ev. `!` blocker-hint                   | ☐    |
 
-### B — Op-dag panel (sticky)
+### B — Op-dag panel (höger kundkort, sektion Op-dag · personal)
 
-| #   | Steg                             | Förväntat                            | PASS |
-| --- | -------------------------------- | ------------------------------------ | ---- |
-| B1  | Synlig med `demoOpDay=1`         | Rad **Op-dag** med 5 knappar         | ☐    |
-| B2  | **Friskförsäkran**               | Steg 8-modal                         | ☐    |
-| B3  | **TP-journal** / **PRP-journal** | Rätt journal enligt flöde            | ☐    |
-| B4  | **Ordination**                   | Staff preview (stub-text OK)         | ☐    |
-| B5  | **Före/efter-bild**              | Preview med stadier Före/Under/Efter | ☐    |
-| B6  | **Foto-samtycke**                | Steg 9-modal + PARTIAL-banner        | ☐    |
+| #   | Steg                             | Förväntat                                   | PASS |
+| --- | -------------------------------- | ------------------------------------------- | ---- |
+| B1  | Synlig efter kundklick + URL     | Sektion **Op-dag · personal** med 5 knappar | ☐    |
+| B2  | **Friskförsäkran**               | Steg 8-modal                                | ☐    |
+| B3  | **TP-journal** / **PRP-journal** | Rätt journal enligt flöde                   | ☐    |
+| B4  | **Ordination**                   | Staff preview (stub-text OK)                | ☐    |
+| B5  | **Före/efter-bild**              | Preview med stadier Före/Under/Efter        | ☐    |
+| B6  | **Foto-samtycke**                | Steg 9-modal + PARTIAL-banner               | ☐    |
 
 ### C — Steg 8 (friskförsäkran)
 
