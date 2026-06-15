@@ -6196,6 +6196,92 @@
     return Boolean(rail?.querySelector('[data-patient-detail]'));
   }
 
+  function getPatientRailScrollEl(
+    rail = els.patientRail || document.querySelector('[data-patient-master-rail]')
+  ) {
+    if (!rail) return null;
+    return (
+      rail.querySelector('[data-v9-dossier-scroll]') ||
+      rail.querySelector('.v9-dossier-workspace') ||
+      rail.closest('.customers-rail') ||
+      rail
+    );
+  }
+
+  function setPatientRailHtml(rail, html, { preserveScroll = false } = {}) {
+    if (!rail) return;
+    let scrollTop = 0;
+    let scrollLeft = 0;
+    if (preserveScroll) {
+      const scrollEl = getPatientRailScrollEl(rail);
+      if (scrollEl) {
+        scrollTop = scrollEl.scrollTop;
+        scrollLeft = scrollEl.scrollLeft;
+      }
+    }
+    rail.innerHTML = html;
+    if (!preserveScroll || !scrollTop) return;
+    const restore = () => {
+      const scrollEl = getPatientRailScrollEl(rail);
+      if (!scrollEl) return;
+      scrollEl.scrollTop = scrollTop;
+      scrollEl.scrollLeft = scrollLeft;
+    };
+    restore();
+    window.requestAnimationFrame(restore);
+  }
+
+  function railHasReferensKundkortShell() {
+    const rail = els.patientRail || document.querySelector('[data-patient-master-rail]');
+    return Boolean(rail?.querySelector('.v10-dossier-referens .kkref'));
+  }
+
+  function patchReferensKundkortRail() {
+    const rail = els.patientRail || document.querySelector('[data-patient-master-rail]');
+    if (!rail || !runtime.detail?.card) return false;
+    const kkrefHost = rail.querySelector('.v10-dossier-referens .kkref');
+    if (!kkrefHost || typeof window.__renderReferensKundkort !== 'function') return false;
+
+    const scrollEl = rail.querySelector('[data-v9-dossier-scroll]');
+    const scrollTop = scrollEl?.scrollTop || 0;
+    const scrollLeft = scrollEl?.scrollLeft || 0;
+    const { card, journalEntries, occasionTimeline, driveFiles } = runtime.detail;
+    const dossierBundle = runtime.detail.dossierBundle || runtime.detail.documentBundle || null;
+    const mergedCard = mergeCardWithShellEnrichment(
+      card,
+      runtime.selectedPatientId,
+      journalEntries
+    );
+    runtime.detail.card = mergedCard;
+
+    kkrefHost.innerHTML = window.__renderReferensKundkort(
+      mergedCard,
+      dossierBundle,
+      journalEntries,
+      {
+        occasionTimeline,
+        driveFiles: dedupeDriveFiles(driveFiles),
+        commercialCase: runtime.commercialCase || null,
+      }
+    );
+
+    if (typeof window.__enhanceReferensKundkort === 'function') {
+      window.__enhanceReferensKundkort(rail);
+    }
+    if (typeof window.CcoHairtpDocumentCloud?.bindAutoDocPreviewRows === 'function') {
+      window.CcoHairtpDocumentCloud.bindAutoDocPreviewRows(rail);
+    }
+    if (scrollEl) {
+      const restore = () => {
+        scrollEl.scrollTop = scrollTop;
+        scrollEl.scrollLeft = scrollLeft;
+      };
+      restore();
+      window.requestAnimationFrame(restore);
+    }
+    return true;
+  }
+
   function renderDetailEmpty() {
     resolveElements();
     const rail = document.querySelector('[data-patient-master-rail]');
@@ -6253,6 +6339,37 @@
       patientId,
       runtime.detail?.journalEntries
     );
+    if (
+      isV9CustomersEnabled() &&
+      usesV10KundkortFacit() &&
+      !usesV11DossierCutover() &&
+      typeof window.__renderReferensKundkort === 'function'
+    ) {
+      const referensHtml = window.__renderReferensKundkort(cached, null, [], {
+        driveFiles: [],
+        commercialCase: null,
+        occasionTimeline: null,
+      });
+      setPatientRailHtml(
+        rail,
+        `
+      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--v10-facit v9-mockup-dossier--referens" data-patient-detail data-patient-loading="true" aria-busy="true">
+        <button type="button" class="dossier-close v10-referens-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
+        <div class="v10-dossier-referens" data-v9-dossier-scroll aria-label="Kunddossiér">
+          <div class="kkref">${referensHtml}</div>
+        </div>
+      </section>
+    `
+      );
+      if (typeof window.__enhanceReferensKundkort === 'function') {
+        window.__enhanceReferensKundkort(rail);
+      }
+      syncV9CustomersLayoutState();
+      syncMobilePatientLayout();
+      window.ArcanaMobileShell?.syncFromApp?.();
+      return;
+    }
+
     const heroHtml = isV9CustomersEnabled()
       ? renderV9DossierHeroHtml(cached, [], { loading: true })
       : (() => {
@@ -6269,7 +6386,9 @@
           </div>
         </article>`;
         })();
-    rail.innerHTML = `
+    setPatientRailHtml(
+      rail,
+      `
       <section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">
         ${heroHtml}
         ${renderPatientDetailTabsMarkup(runtime.detailTab, 0, { ariaHidden: true })}
@@ -6281,7 +6400,8 @@
         </div>
         ${renderPatientDetailBodyClose()}
       </section>
-    `;
+    `
+    );
     syncV9CustomersLayoutState();
     syncMobilePatientLayout();
     window.ArcanaMobileShell?.syncFromApp?.();
@@ -8559,7 +8679,7 @@
     });
   }
 
-  function renderDetailPanel() {
+  function renderDetailPanel(options = {}) {
     resolveElements();
     const rail = document.querySelector('[data-patient-master-rail]');
     if (!rail) return;
@@ -8572,6 +8692,27 @@
     if (!detail?.card) {
       renderDetailEmpty();
       return;
+    }
+    const preserveRailScroll =
+      options.preserveRailScroll ||
+      Boolean(rail.querySelector('[data-patient-detail]:not([data-patient-loading="true"])'));
+    if (
+      !options.forceFullRender &&
+      preserveRailScroll &&
+      railHasReferensKundkortShell() &&
+      usesV10KundkortFacit() &&
+      !usesV11DossierCutover()
+    ) {
+      if (patchReferensKundkortRail()) {
+        runtime.detailShellOnly = false;
+        syncV9CustomersLayoutState();
+        syncMobilePatientLayout();
+        window.requestAnimationFrame(() => {
+          bindJournalAutosaveForms();
+          focusTimelineSegmentIfNeeded(els.patientRail);
+        });
+        return;
+      }
     }
     runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
@@ -8605,13 +8746,17 @@
         syncMobilePatientLayout();
         return;
       }
-      rail.innerHTML = renderV9MockupDetailShell(
-        card,
-        journalEntries,
-        occasionTimeline,
-        uniqueDriveFiles,
-        patient,
-        tab
+      setPatientRailHtml(
+        rail,
+        renderV9MockupDetailShell(
+          card,
+          journalEntries,
+          occasionTimeline,
+          uniqueDriveFiles,
+          patient,
+          tab
+        ),
+        { preserveScroll: preserveRailScroll }
       );
       bindJournalPhotoOpenLinks(els.patientRail);
       bindV9MockupDossierHandlers(rail, {
@@ -8623,6 +8768,12 @@
       });
       bindV9DossierCapabilityHandlers(rail);
       ensureV9DossierDeepClosed();
+      if (typeof window.__enhanceReferensKundkort === 'function') {
+        window.__enhanceReferensKundkort(rail);
+      }
+      if (typeof window.CcoHairtpDocumentCloud?.bindAutoDocPreviewRows === 'function') {
+        window.CcoHairtpDocumentCloud.bindAutoDocPreviewRows(rail);
+      }
       void hydrateJournalPhotoElements(els.patientRail);
       void hydratePatientFileImages(els.patientRail);
       void hydrateGkMediaElements(els.patientRail);
@@ -9319,21 +9470,28 @@
     }
   }
 
+  let detailPanelPaintToken = 0;
+
   function scheduleDetailPanelPaint(patientId) {
+    const token = ++detailPanelPaintToken;
     const paint = () => {
+      if (token !== detailPanelPaintToken) return;
       if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
       if (!runtime.detail?.card) return;
       if (runtime.detailShellOnly) {
-        renderDetailPanel();
+        renderDetailPanel({ preserveRailScroll: true });
         return;
       }
-      if (railHasPatientDetailUi()) return;
+      if (railHasPatientDetailUi()) {
+        if (railHasReferensKundkortShell()) {
+          renderDetailPanel({ preserveRailScroll: true });
+        }
+        return;
+      }
       renderDetailPanel();
     };
     paint();
     window.requestAnimationFrame(paint);
-    window.setTimeout(paint, 0);
-    window.setTimeout(paint, 120);
   }
 
   async function waitForPrefetchedPatient(patientId, maxMs = 800) {
@@ -9379,7 +9537,13 @@
         runtime.detailTab === 'tidslinje' ||
         isV9CustomersEnabled()
       ) {
-        renderDetailPanel();
+        if (patchReferensKundkortRail()) {
+          /* kkref uppdaterad utan full rail-omritning */
+        } else if (patchCommercialAgreementSidecars()) {
+          /* flik-sidecars */
+        } else {
+          renderDetailPanel({ preserveRailScroll: true });
+        }
       }
     } catch (error) {
       console.warn('Journal kunde inte laddas.', error);
@@ -9598,7 +9762,7 @@
       if (isV9CustomersEnabled() && !v10FacitDesktop) {
         void loadPatientDocumentBundle(patientId).then(() => {
           if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
-          renderDetailPanel();
+          renderDetailPanel({ preserveRailScroll: true });
         });
       }
       if (
@@ -9631,7 +9795,7 @@
           loadPatientCommercialCase(patientId),
           loadPatientTreatmentAgreement(patientId),
         ]);
-        renderDetailPanel();
+        renderDetailPanel({ preserveRailScroll: true });
       }
     } catch (error) {
       runtime.detail = null;
@@ -11496,7 +11660,8 @@
     if (!isV9CustomersEnabled() || !usesV10KundkortFacit()) return false;
     if (typeof window.__renderReferensKundkort !== 'function') return false;
     if (!runtime.detail?.card && !runtime.selectedPatientId) return false;
-    renderDetailPanel();
+    if (patchReferensKundkortRail()) return true;
+    renderDetailPanel({ preserveRailScroll: true });
     return true;
   }
 
