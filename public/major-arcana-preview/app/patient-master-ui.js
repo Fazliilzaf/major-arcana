@@ -482,6 +482,7 @@
     runtime.loaded = false;
     runtime.patients = [];
     syncAuthRequiredChrome();
+    renderDetailEmpty();
     setStatus('Inloggad.', 'success');
     void loadStats();
     void loadPatientList();
@@ -2378,11 +2379,6 @@
     const rail = document.querySelector('[data-patient-master-rail]');
     if (!rail) return;
     els.patientRail = rail;
-    if (syncAuthRequiredChrome()) {
-      rail.innerHTML = '';
-      syncMobilePatientLayout();
-      return;
-    }
     rail.innerHTML = renderV9AggregatePanelHtml();
     initV9WatchChrome();
     syncV9CustomersLayoutState();
@@ -6205,15 +6201,17 @@
     const rail = document.querySelector('[data-patient-master-rail]');
     if (!rail) return;
     els.patientRail = rail;
-    if (syncAuthRequiredChrome()) {
-      rail.innerHTML = '';
-      syncMobilePatientLayout();
-      return;
-    }
+    const authRequired = syncAuthRequiredChrome();
     if (isV9CustomersEnabled()) {
       renderV9AggregatePanel();
       clearBlueprintWorkspace();
       syncV9CustomersLayoutState();
+      syncMobilePatientLayout();
+      return;
+    }
+    if (authRequired) {
+      rail.innerHTML = '';
+      syncMobilePatientLayout();
       return;
     }
     rail.innerHTML = `

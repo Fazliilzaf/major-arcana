@@ -3605,11 +3605,8 @@ html[data-cco-auth-required="on"] .customers-metric-row,
 html[data-cco-auth-required="on"] .customers-toolbar,
 html[data-cco-auth-required="on"] .patient-master-mode-toggle,
 html[data-cco-auth-required="on"] [data-post-op-reviews-open] {
-  display: none !important;
-}
-
-html[data-cco-auth-required="on"] .customers-layout {
-  display: block;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 html[data-cco-auth-required="on"] .customers-list {
