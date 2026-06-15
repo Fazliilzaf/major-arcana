@@ -12,7 +12,7 @@
  * 6 cron-triggers (deterministiska tidsregler):
  *   1. booking_confirmation      → vid case.status="booked"          (omedelbart)
  *   2. reminder_24h              → 24 timmar före booking.startTime
- *   3. missing_documents         → 48h före booking om HD/FF/samtycke saknas
+ *   3. missing_documents         → 48h före booking om HD/samtycke saknas
  *   4. no_show_followup          → 2h efter case.status="no_show"
  *   5. aftercare_d7              → 7 dagar efter encounter.completed
  *   6. follow_up_3m              → 90 dagar efter encounter.completed
@@ -37,6 +37,49 @@ const TRIGGER_TO_TEMPLATE = {
 };
 
 const VALID_TRIGGERS = Object.keys(TRIGGER_TO_TEMPLATE);
+
+function normalizeText(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+function normalizeKey(value) {
+  return normalizeText(value).toLowerCase().replace(/[åä]/g, 'a').replace(/ö/g, 'o');
+}
+
+function missingDocumentKey(value) {
+  if (typeof value === 'string') return normalizeKey(value);
+  if (!value || typeof value !== 'object') return '';
+  return normalizeKey(
+    value.registryId ||
+      value.documentType ||
+      value.kind ||
+      value.key ||
+      value.id ||
+      value.label ||
+      value.title ||
+      value.name
+  );
+}
+
+function isFitnessCertificateDocument(value) {
+  const key = missingDocumentKey(value);
+  if (!key) return false;
+  return (
+    key === 'fc' ||
+    key === 'ff' ||
+    key.includes('fitness_certificate') ||
+    key.includes('fitnesscertificate') ||
+    key.includes('friskforsakran') ||
+    key.includes('friskfoers') ||
+    key.includes('friskfors')
+  );
+}
+
+function filterMissingDocumentsForReminder(missingDocuments = []) {
+  if (!Array.isArray(missingDocuments)) return [];
+  return missingDocuments.filter((item) => !isFitnessCertificateDocument(item));
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -174,8 +217,10 @@ async function createCcoCommCronStore({ filePath, auditLog } = {}) {
         if (isNaN(ms)) continue;
         const delta = ms - now;
         if (delta > T_48H + WINDOW || delta < T_48H - WINDOW) continue;
-        // Bara om kund saknar dokument
-        if (!b.missingDocuments || b.missingDocuments.length === 0) continue;
+        // Bara om kund saknar dokument som får påminnas före besök.
+        // Friskförsäkran hanteras som operationsdags-gate, inte som T-48 FC-mail.
+        const reminderDocuments = filterMissingDocumentsForReminder(b.missingDocuments);
+        if (reminderDocuments.length === 0) continue;
         const status = hasDraftFor(b.customerId, 'missing_documents_reminder')
           ? 'already_exists'
           : 'would_create';
@@ -189,7 +234,7 @@ async function createCcoCommCronStore({ filePath, auditLog } = {}) {
           reason: null,
           context: {
             bookingId: b.bookingId || b.id,
-            missingDocuments: b.missingDocuments,
+            missingDocuments: reminderDocuments,
           },
         });
       }
@@ -360,4 +405,10 @@ async function createCcoCommCronStore({ filePath, auditLog } = {}) {
   };
 }
 
-module.exports = { createCcoCommCronStore, VALID_TRIGGERS, TRIGGER_TO_TEMPLATE };
+module.exports = {
+  createCcoCommCronStore,
+  filterMissingDocumentsForReminder,
+  isFitnessCertificateDocument,
+  VALID_TRIGGERS,
+  TRIGGER_TO_TEMPLATE,
+};
