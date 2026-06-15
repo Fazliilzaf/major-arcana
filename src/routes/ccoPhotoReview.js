@@ -176,6 +176,7 @@ function actorFromReq(req) {
 
 function createCcoPhotoReviewRouter({
   resolveStores,
+  requireCcoAuthenticated,
   attachRole,
   requirePermission,
   auditLog,
@@ -183,7 +184,15 @@ function createCcoPhotoReviewRouter({
   pilotConfig = null,
   onMutation = null,
 }) {
+  if (typeof requireCcoAuthenticated !== 'function') {
+    throw new Error(
+      'createCcoPhotoReviewRouter kräver requireCcoAuthenticated (auth) — foto-review får inte serveras oautentiserat.'
+    );
+  }
   const router = express.Router();
+  // Patientfoton → kräver INLOGGAD operatör på alla foto-review-routes (anonym defaultar
+  // annars till operator-rollen). Router-nivå-grind före all per-route attachRole/permission.
+  router.use(requireCcoAuthenticated);
   const batchLabels = loadBatchLabelByPatient();
   const enrichedPilotConfig = pilotConfig
     ? { ...pilotConfig, projectRoot: pilotConfig.projectRoot || PHOTO_REVIEW_REPO_ROOT }

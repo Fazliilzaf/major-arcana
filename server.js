@@ -549,6 +549,7 @@ let ccoBookingCaseStore = null;
 
     app.get(
       '/api/v1/cco-mailboxes',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('mailbox.admin'),
       async (req, res) => {
@@ -559,6 +560,7 @@ let ccoBookingCaseStore = null;
 
     app.post(
       '/api/v1/cco-mailboxes',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('mailbox.admin'),
       jsonParser,
@@ -606,6 +608,7 @@ let ccoBookingCaseStore = null;
 
     app.delete(
       '/api/v1/cco-mailboxes/:id',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('mailbox.admin'),
       async (req, res) => {
@@ -4931,6 +4934,7 @@ let ccoBookingCaseStore = null;
 
     app.get(
       '/api/v1/cco-patient-card/:customerId',
+      requireCcoAuthenticated,
       attachRole,
       requireAnyRole(['owner', 'staff', 'staff_assistant', 'doctor', 'revisor']),
       // 19F.5 Fix #3 — middleware spärrkontroll på patientkort-read
@@ -5007,27 +5011,32 @@ let ccoBookingCaseStore = null;
     }
 
     // GET /api/v1/cco-signatures — alla i CCO kan läsa
-    app.get('/api/v1/cco-signatures', attachRole, async (req, res) => {
+    app.get('/api/v1/cco-signatures', requireCcoAuthenticated, attachRole, async (req, res) => {
       const data = await loadSignatures();
       res.setHeader('Cache-Control', 'private, max-age=30');
       res.json(data);
     });
 
     // GET /api/v1/cco-signatures/by-mailbox/:mailboxId — auto-pick för Svarstudio
-    app.get('/api/v1/cco-signatures/by-mailbox/:mailboxId', attachRole, async (req, res) => {
-      const data = await loadSignatures();
-      const mailboxId = String(req.params.mailboxId || '').toLowerCase();
-      const match =
-        data.signatures.find((s) => String(s.primaryMailbox || '').toLowerCase() === mailboxId) ||
-        data.signatures.find(
-          (s) =>
-            Array.isArray(s.mailboxAliases) &&
-            s.mailboxAliases.some((a) => String(a).toLowerCase() === mailboxId)
-        ) ||
-        null;
-      if (!match) return res.status(404).json({ error: 'no signature for mailbox', mailboxId });
-      res.json({ version: data.version, signature: match });
-    });
+    app.get(
+      '/api/v1/cco-signatures/by-mailbox/:mailboxId',
+      requireCcoAuthenticated,
+      attachRole,
+      async (req, res) => {
+        const data = await loadSignatures();
+        const mailboxId = String(req.params.mailboxId || '').toLowerCase();
+        const match =
+          data.signatures.find((s) => String(s.primaryMailbox || '').toLowerCase() === mailboxId) ||
+          data.signatures.find(
+            (s) =>
+              Array.isArray(s.mailboxAliases) &&
+              s.mailboxAliases.some((a) => String(a).toLowerCase() === mailboxId)
+          ) ||
+          null;
+        if (!match) return res.status(404).json({ error: 'no signature for mailbox', mailboxId });
+        res.json({ version: data.version, signature: match });
+      }
+    );
 
     console.log('[cco-signatures] monterad: GET /api/v1/cco-signatures + /by-mailbox/:id');
   } catch (err) {
@@ -9062,6 +9071,7 @@ try {
 
   app.get(
     '/api/v1/cco/journal-qa/snapshot',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.read_any'),
     async (req, res) => {
@@ -9092,6 +9102,7 @@ try {
 
   app.post(
     '/api/v1/cco/journal-qa/invalidate',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.read_any'),
     (req, res) => {
@@ -10259,6 +10270,7 @@ try {
     '/api/v1/cco',
     createCcoPhotoReviewRouter({
       resolveStores: ensureAssetStores,
+      requireCcoAuthenticated,
       attachRole,
       requirePermission,
       auditLog: ccoAuditLog,
