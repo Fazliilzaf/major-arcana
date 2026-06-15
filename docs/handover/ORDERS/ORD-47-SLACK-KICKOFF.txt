@@ -1,12 +1,10 @@
-ORD-47 — Parallellt svep (Cursor + Codex + Cloud)
+ORD-47 — Staff UAT (§-kort V1) · GO efter deploy b2bbce7b+
 
-V1 kundkort: 9 §-kort istället för flat registry-lista.
+V1: 9 §-kort i kundkort — flat registry är INTE default längre.
 
-Efter deploy — Staff UAT:
-1. Öppna kund i höger panel (demoOpDay=1 + patientId)
-2. Bekräfta: INGEN "Dokument · registry Alla · 26+" som default
-3. Topp-rad + §2 Hälsa (HD) + §5 Operation (Op-dag) + §6 Foto
-4. Mallbibliotek via Åtgärder om du behöver alla 36 typer
+Start:
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1&patientId=2e8d3535-cd89-418e-8b68-ca239f8836a4
 
-Checklista: docs/handover/ORDERS/ORD-47-CLOUD-STAFF-UAT.md
+Checklista (G1–G7 + §1–§9): docs/handover/ORDERS/ORD-47-CLOUD-STAFF-UAT.md
 Facit: docs/strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md
+Prod verify: npm run verify:cloud-document-wiring-prod && npm run verify:ord47-prod-sticks

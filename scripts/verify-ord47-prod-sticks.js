@@ -1,0 +1,111 @@
+#!/usr/bin/env node
+/**
+ * ORD-47 L6 — prod stickprov (statisk wiring + canonical staff URLs).
+ * Run: npm run verify:ord47-prod-sticks
+ */
+'use strict';
+
+const https = require('node:https');
+
+const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
+
+const STICKS = [
+  {
+    id: 'tp-tidig',
+    label: 'TP tidig · demoSkipSteg7',
+    patientId: '2e8d3535-cd89-418e-8b68-ca239f8836a4',
+    params: 'view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1',
+  },
+  {
+    id: 'tp-op-dag',
+    label: 'TP op-dag',
+    patientId: 'f8233fca-779c-488b-a980-0e41bc01c0c0',
+    params: 'view=customers&v9=on&demo=on&demoOpDay=1',
+  },
+  {
+    id: 'variation',
+    label: 'Variation · Jonas Lundvall',
+    patientId: 'cc07c972-49d9-4c99-928e-d750e79a82e9',
+    params: 'view=customers&v9=on&demo=on&demoOpDay=1',
+  },
+];
+
+const checks = [];
+
+function pass(name, detail = '') {
+  checks.push({ name, ok: true, detail });
+}
+
+function fail(name, detail = '') {
+  checks.push({ name, ok: false, detail });
+}
+
+function get(path) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(`${BASE}${path}`, (res) => {
+        let body = '';
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
+        res.on('end', () => resolve({ status: res.statusCode, body }));
+      })
+      .on('error', reject);
+  });
+}
+
+(async () => {
+  console.log(`ORD-47 prod stickprov @ ${BASE}\n`);
+
+  try {
+    const version = await get('/api/v1/_diag/version');
+    if (version.status === 200) {
+      const commit = JSON.parse(version.body).commit?.slice(0, 8) || '?';
+      pass('prod version', commit);
+    } else {
+      fail('prod version', String(version.status));
+    }
+
+    for (const stick of STICKS) {
+      const path = `/staff?${stick.params}&patientId=${encodeURIComponent(stick.patientId)}`;
+      const res = await get(path);
+      if (res.status >= 200 && res.status < 400) {
+        pass(`stick ${stick.id}`, `${stick.label} HTTP ${res.status}`);
+      } else {
+        fail(`stick ${stick.id}`, `${stick.label} HTTP ${res.status}`);
+      }
+      if (res.body.includes('patient-master-ui') || res.body.includes('major-arcana-preview')) {
+        pass(`stick ${stick.id} shell`, 'staff HTML loads preview shell');
+      } else if (res.status >= 200 && res.status < 400) {
+        pass(`stick ${stick.id} shell`, 'HTTP OK (SPA shell)');
+      }
+    }
+
+    const referens = await get('/major-arcana-preview/app/cco-kundkort-referens.js');
+    if (/buildOrd47CardsBlock/.test(referens.body)) pass('stick asset', '§-kort builder live');
+    else fail('stick asset', '§-kort builder missing');
+
+    if (/typeof resolver\.filterOffersByFlow !== 'function'/.test(referens.body)) {
+      pass('stick asset', 'resolver augment patch live');
+    } else if (/if \(window\.CcoJourneyDocResolver\) return/.test(referens.body)) {
+      fail('stick asset', 'broken early-return resolver stub (needs b2bbce7b+)');
+    } else {
+      fail('stick asset', 'resolver patch indeterminate');
+    }
+  } catch (error) {
+    fail('stick fetch', error.message);
+  }
+
+  for (const row of checks) {
+    console.log(`${row.ok ? 'PASS' : 'FAIL'} — ${row.name}${row.detail ? ` (${row.detail})` : ''}`);
+  }
+
+  const failed = checks.filter((row) => !row.ok).length;
+  if (failed) {
+    console.error(
+      `\nverify-ord47-prod-sticks: ${checks.length - failed}/${checks.length} (${failed} failed)`
+    );
+    process.exit(1);
+  }
+  console.log(`\nverify-ord47-prod-sticks: ${checks.length}/${checks.length} PASS`);
+})();

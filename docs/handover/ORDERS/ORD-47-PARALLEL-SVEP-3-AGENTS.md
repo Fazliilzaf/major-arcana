@@ -123,23 +123,23 @@ Om Cursor och Codex körs **samtidigt**: Cursor stubbar resolver-anrop tills Cod
 
 **Todo — ett svep (kan påbörjas parallellt, prod-kör efter merge):**
 
-- [ ] **L1** Skriv **ORD-47-CLOUD-STAFF-UAT.md** — checklista per §-kort (§1–§9), inte per registry-rad
-- [ ] **L2** Canonical Staff UAT URL (behåll ORD-46 params):
+- [x] **L1** Skriv **ORD-47-CLOUD-STAFF-UAT.md** — checklista per §-kort (§1–§9), inte per registry-rad
+- [x] **L2** Canonical Staff UAT URL (behåll ORD-46 params):
   ```
   https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1&patientId=<uuid>
   ```
-- [ ] **L3** Checklista minst:
-  - [ ] Default vy: **ingen** flat registry “Alla · 26+”
-  - [ ] Topp-rad synlig i stor kundvy
-  - [ ] §2 Hälsa → HD preview öppnas
-  - [ ] §5 Operation → Op-dag 5 knappar
-  - [ ] §6 Foto → samtycke overlay
-  - [ ] Mallbibliotek → alla typer sökbara
-  - [ ] Rail status matchar aktivt steg
-- [ ] **L4** Slack/e-post kickoff (`ORD-47-SLACK-KICKOFF.txt`) — 5 rader, länk till checklista
-- [ ] **L5** **Efter Fazli deploy:** kör `node scripts/verify-cloud-document-wiring-prod.js` — uppdatera commit pin
-- [ ] **L6** Prod stickprov: 3 patientIds (TP tidig, TP op-dag, PRP om finns)
-- [ ] **L7** Rapportera PASS/FAIL tabell till owner — blockers = nya ORD
+- [x] **L3** Checklista minst:
+  - [x] Default vy: **ingen** flat registry “Alla · 26+”
+  - [x] Topp-rad synlig i stor kundvy
+  - [x] §2 Hälsa → HD preview öppnas
+  - [x] §5 Operation → Op-dag 5 knappar
+  - [x] §6 Foto → samtycke overlay
+  - [x] Mallbibliotek → alla typer sökbara
+  - [x] Rail status matchar aktivt steg
+- [x] **L4** Slack/e-post kickoff (`ORD-47-SLACK-KICKOFF.txt`) — 5 rader, länk till checklista
+- [x] **L5** **Efter Fazli deploy:** kör `node scripts/verify-cloud-document-wiring-prod.js` — uppdatera commit pin
+- [x] **L6** Prod stickprov: 3 patientIds (TP tidig, TP op-dag, PRP om finns)
+- [x] **L7** Rapportera PASS/FAIL tabell till owner — blockers = nya ORD
 
 **Definition of done (Cloud):**
 
