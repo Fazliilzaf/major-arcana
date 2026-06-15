@@ -10592,7 +10592,7 @@ try {
       res.status(400).json({ error: 'invalid json: ' + err.message });
     }
   });
-  app.get('/api/v1/cco-feedback', (req, res) => {
+  app.get('/api/v1/cco-feedback', requireCcoAuthenticated, (req, res) => {
     try {
       const raw = fs.existsSync(feedbackFile) ? fs.readFileSync(feedbackFile, 'utf8') : '';
       const items = raw
@@ -11584,7 +11584,7 @@ app.get('/healthz', (req, res) => {
   });
 });
 
-app.get('/api/v1/health/journal-photos', async (_req, res) => {
+app.get('/api/v1/health/journal-photos', requireCcoAuthenticated, async (_req, res) => {
   const dir = String(config.journalPhotosDir || '').trim();
   if (!dir) {
     return res.status(503).json({ ok: false, error: 'journalPhotosDir saknas.' });
@@ -11841,7 +11841,7 @@ app.get('/api/v1/calendar/ical/:resourceId.ics', (req, res) => {
 });
 
 // ─── RECURRING BOOKINGS ───
-app.get('/api/v1/booking/series/templates', (req, res) => {
+app.get('/api/v1/booking/series/templates', requireCcoAuthenticated, (req, res) => {
   return res.json({ ok: true, templates: SERIES_TEMPLATES });
 });
 
