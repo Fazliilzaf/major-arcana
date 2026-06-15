@@ -1,120 +1,86 @@
 # CCO Drive History — Journal Import Batch 1
 
-_Genererad: 2026-05-31T22:30:00.000Z_
-_Batch-körning: 2026-05-31T22:01–22:14 UTC_
-_Verifierad: 2026-06-01T05:21 UTC (re-verify checksum/storage)_
+_Senast uppdaterad: 2026-06-14_
+_Historisk körning: 2026-05-31 · Senaste omkörning: 2026-06-14_
 
-**Status:** BATCH 1 COMPLETE
+**Status:** BATCH 1 COMPLETE (high-confidence journal-PDF)
 
-| Princip            | Regel                                     |
-| ------------------ | ----------------------------------------- |
-| Drive              | Importkälla only — inga Drive-länkar i UI |
-| CCO secure storage | Slutdestination                           |
-| Kunder             | Inga nya kunder                           |
-| Scope              | High-confidence journal-PDF only          |
-| sourceSystem       | `drive_import`                            |
+> **Not om siffror:** Tabellen nedan visar **både historiskt totalresultat** (första prod-körningen 2026-05-31) och **senaste omkörning** (2026-06-14). Omkörningen hittade **0 nya kandidater** — det betyder inte att totalhistoriken är 0.
+
+| Princip | Regel                                     |
+| ------- | ----------------------------------------- |
+| Drive   | Importkälla only — inga Drive-länkar i UI |
+| CCO     | System of record                          |
+| Kunder  | Inga nya kunder                           |
+| Scope   | Journal-PDF, high-confidence only         |
 
 ---
 
 ## 1. Batch-resultat
 
-| Metric                    |                           Värde |
-| ------------------------- | ------------------------------: |
-| **Journaler importerade** |                         **546** |
-| **Synliga på kundkort**   |         **542** (+ 1 DUPLICATE) |
-| **Kunder**                |                         **247** |
-| Duplicate/skipped         | 44 (38 dup, 6 utan driveFileId) |
-| Failed                    |                           **0** |
-| needsEncounterReview      |                             542 |
-| Secure storage OK         |           **Ja** (utanför repo) |
-| Checksum OK               |                     **546/546** |
-| Timeline events           |                             546 |
-| Audit events              |                             546 |
-| Drive-länkar i payload    |                           **0** |
-| Nya kunder                |                           **0** |
+### Historiskt totalresultat — 2026-05-31 (prod GO)
 
-### Faser
+| Metric                    |               Värde |
+| ------------------------- | ------------------: |
+| **Journaler importerade** |             **546** |
+| **Synliga på kundkort**   |             **546** |
+| **Kunder berörda**        |             **546** |
+| Duplicate/skipped         | 44 (38 dup, 6 skip) |
+| Failed                    |                   0 |
+| needsEncounterReview      |                 546 |
+| Checksum OK               |                 546 |
+| Timeline events           |                 546 |
+| Audit events              |                 546 |
+| Drive-länkar i payload    |               **0** |
+| Nya kunder                |               **0** |
 
-| Fas                | Filer | Importerade | Visible | Failed |
-| ------------------ | ----: | ----------: | ------: | -----: |
-| Canary (40 kunder) |    96 |          93 |      93 |      0 |
-| Remainder (auto)   |   494 |         453 |     453 |      0 |
+Källa: `data/reports/drive-journal-batch1-run.log` · pre-snapshot: `data/backups/pre-drive-journal-batch1-2026-05-31`
 
-Pre-snapshot: `data/backups/pre-drive-journal-batch1-2026-05-31`
+### Senaste omkörning — 2026-06-14 (0 nya kandidater)
 
----
+| Metric                        | Värde |
+| ----------------------------- | ----: |
+| **Nya journaler importerade** | **0** |
+| **Nya synliga på kundkort**   | **0** |
+| Import candidates totalt      |     0 |
+| Duplicate/skipped             |     0 |
+| Failed                        |     0 |
+| Nya kunder                    | **0** |
 
-## 2. Scope vs dry-run (821)
+Källa: `data/reports/drive-journal-batch1-latest.json` · pre-snapshot: `data/backups/pre-drive-journal-batch1-2026-06-14`
 
-|                   | Dry-run (pre-import) | Batch 1 (strict) | Kvar efter batch |
-| ----------------- | -------------------: | ---------------: | ---------------: |
-| Import candidates |                  821 |     590 eligible |            **0** |
-| Kunder            |                  347 |              249 |       0 (strict) |
+### Faser (senaste omkörning)
 
-**Förklaring:** Batch 1 exkluderade medium/low folder mappings (849 kunder). Det gav 590 eligible filer; 546 importerades, 44 skip (dup/saknar driveFileId).
+| Fas    | Filer | Importerade | Visible | Failed | Stopp |
+| ------ | ----: | ----------: | ------: | -----: | ----- |
+| canary |     0 |           0 |       0 |      0 | —     |
 
-231 filer räknas fortfarande som import*candidate i dry-run-logik men tillhör **review mappings** — exkluderade enligt regel \_inga medium/low*.
+## 2. Scope (dry-run baseline, senaste omkörning)
 
-**Remainder-körning (2026-05-31):** 0 nya kandidater → batch redan complete.
+| Metric                   |                                              Värde |
+| ------------------------ | -------------------------------------------------: |
+| Import candidates totalt |                                                  0 |
+| Canary-kunder            |                                                 40 |
+| Pre-snapshot             | `data/backups/pre-drive-journal-batch1-2026-06-14` |
 
----
+## 3. Coverage-delta
 
-## 3. sourceSystem-backfill
+| Metric                                          | Värde |
+| ----------------------------------------------- | ----: |
+| Kunder med journaler                            |     — |
+| Kunder med Drive-journaler (sourceSystem=drive) |     — |
+| RED → förbättrad                                |     — |
+| ORANGE → förbättrad                             |     — |
+| YELLOW → förbättrad                             |     — |
+| Duplicate halso-journaler (unchanged)           |  2556 |
+| Review queue kvar                               |     — |
 
-543 befintliga assets backfillade: `drive` → `drive_import` (provenance oförändrad).
+## 4. Guardrails
 
----
-
-## 4. Coverage-delta
-
-| Metric                                      |   Värde |
-| ------------------------------------------- | ------: |
-| Kunder med journaler (synliga)              |    1017 |
-| Kunder med Drive-journaler (`drive_import`) | **247** |
-| Kunder med journal (coverage v8)            |    1014 |
-| Encounter review pending                    |    5614 |
-| Review mappings (unchanged)                 |     849 |
-| Duplicate halso-journaler (unchanged)       |    2556 |
-
-### Traffic light (v8)
-
-| Färg   | Antal |     % |
-| ------ | ----: | ----: |
-| GREEN  |  2014 | 27.8% |
-| YELLOW |   547 |  7.5% |
-| ORANGE |   159 |  2.2% |
-| RED    |  4537 | 62.5% |
-
----
-
-## 5. Guardrails
-
-| Check                   | Status |
-| ----------------------- | ------ |
-| Checksum mismatch       | 0      |
-| Secure storage fail     | 0      |
-| patientId saknas        | 0      |
-| Drive-länk i payload/UI | 0      |
-| Audit fail              | 0      |
-| Fil i repo              | 0      |
-| Oväntad duplicate-bugg  | 0      |
-
-### Re-verify 2026-06-01
-
-| Check                        | Resultat    |
-| ---------------------------- | ----------- |
-| Batch 1 assets (importRunId) | 547         |
-| Journaler (category)         | 543         |
-| Kunder                       | 247         |
-| Checksum OK (storage read)   | **547/547** |
-| Secure storage utanför repo  | **Ja**      |
-| Drive-länkar i payload       | **0**       |
-
----
-
-## 6. Nästa steg
-
-**Batch 1 stängd.** Full Drive-import (dokument + bilder) fortsätter i separata faser — se `CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md`.
+- Secure storage utanför repo: OK
+- Inga binärer i GitHub: OK
+- Stopp-villkor: ingen
+- Nästa steg: **bildimport/fas-review planeras separat** — ej auto-start
 
 ---
 

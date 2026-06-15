@@ -934,3 +934,110 @@ html[data-v9-enabled="on"] .kkref .dossier-section-body .v11-opday-actions {
 html[data-v9-enabled="on"] .kkref .dossier-section[data-sek="opdag"] .v11-opday-actions__row {
   flex-wrap: wrap;
 }
+
+/* ORD-47 — 9 §-kort + rail + mallbibliotek */
+html[data-v9-enabled="on"] .kkref .kk-ord47-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 244, 0.97), rgba(248, 241, 228, 0.9));
+  border: var(--cbd);
+  font-size: 11px;
+}
+html[data-v9-enabled="on"] .kkref .kk-ord47-topbar__k {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94897b;
+  margin-bottom: 2px;
+}
+html[data-v9-enabled="on"] .kkref .kk-ord47-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(74, 130, 104, 0.1);
+  border: 1px solid rgba(74, 130, 104, 0.25);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2e5a44;
+}
+html[data-v9-enabled="on"] .kkref .kk-ord47-rail__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4a8268;
+  flex-shrink: 0;
+}
+html[data-v9-enabled="on"] .kkref .kk-doc-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+html[data-v9-enabled="on"] .kkref .kk-doc-card {
+  border-radius: 14px;
+  border: var(--cbd);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--csh);
+}
+html[data-v9-enabled="on"] .kkref .kk-doc-card__summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+html[data-v9-enabled="on"] .kkref .kk-doc-card__num {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  background: rgba(215, 202, 194, 0.35);
+  color: #6b6052;
+}
+html[data-v9-enabled="on"] .kkref .kk-doc-card__title {
+  flex: 1;
+  font-size: 12px;
+}
+html[data-v9-enabled="on"] .kkref .kk-doc-card__body {
+  padding: 0 12px 12px;
+}
+html[data-v9-enabled="on"] .kkref .kk-card-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #94897b;
+  margin: 0 0 8px;
+}
+html[data-v9-enabled="on"] .kkref .kk-card-hint {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  color: #94897b;
+}
+html[data-v9-enabled="on"] .kkref .kk-mallbibliotek-actions {
+  margin-top: 4px;
+}
+html[data-v9-enabled="on"] .kkref .kk-mallbibliotek-btn {
+  width: 100%;
+  font-size: 11px;
+}
+html[data-v9-enabled="on"] .kkref .kk-mallbibliotek-host[hidden] {
+  display: none !important;
+}
+html[data-v9-enabled="on"] .kkref .kk-mallbibliotek-host:not([hidden]) .kk-mallbibliotek {
+  margin-top: 12px;
+}

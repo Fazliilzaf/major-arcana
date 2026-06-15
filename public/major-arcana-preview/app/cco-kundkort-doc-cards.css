@@ -1,0 +1,161 @@
+.kk-doc-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.kk-doc-card {
+  --kk-doc-accent: #d1a94f;
+  --kk-doc-soft: rgba(209, 169, 79, 0.12);
+  border: 1px solid rgba(126, 112, 98, 0.16);
+  border-left: 3px solid var(--kk-doc-accent);
+  border-radius: 8px;
+  background: rgba(255, 252, 247, 0.92);
+  box-shadow: 0 10px 30px rgba(73, 58, 45, 0.08);
+  color: #2f2924;
+  overflow: hidden;
+}
+
+.kk-doc-card__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 12px 14px 9px;
+}
+
+.kk-doc-card__kicker {
+  display: block;
+  color: #8f8172;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.kk-doc-card__title {
+  margin-top: 4px;
+  color: #29231f;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.22;
+}
+
+.kk-doc-card__status,
+.kk-doc-card__badge {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--kk-doc-soft);
+  color: #6d5b39;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.kk-doc-card__body {
+  display: grid;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.kk-doc-card__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  border-top: 1px solid rgba(126, 112, 98, 0.12);
+  color: #332c27;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 9px 0 0;
+}
+
+.kk-doc-card__row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.kk-doc-card__row small {
+  display: block;
+  margin-top: 2px;
+  color: #8d8276;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.kk-doc-card__action {
+  border: 1px solid rgba(126, 112, 98, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(73, 58, 45, 0.08);
+  color: #3a3028;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 28px;
+  padding: 0 12px;
+}
+
+.kk-doc-card__action:focus-visible {
+  outline: 3px solid rgba(76, 128, 184, 0.32);
+  outline-offset: 2px;
+}
+
+.kk-doc-card.is-bokning {
+  --kk-doc-accent: #69a98a;
+  --kk-doc-soft: rgba(105, 169, 138, 0.13);
+}
+
+.kk-doc-card.is-halsa {
+  --kk-doc-accent: #4f86bd;
+  --kk-doc-soft: rgba(79, 134, 189, 0.13);
+}
+
+.kk-doc-card.is-behandling {
+  --kk-doc-accent: #d1a94f;
+  --kk-doc-soft: rgba(209, 169, 79, 0.15);
+}
+
+.kk-doc-card.is-juridik {
+  --kk-doc-accent: #b76477;
+  --kk-doc-soft: rgba(183, 100, 119, 0.12);
+}
+
+.kk-doc-card.is-operation {
+  --kk-doc-accent: #6c8f7b;
+  --kk-doc-soft: rgba(108, 143, 123, 0.14);
+}
+
+.kk-doc-card.is-foto {
+  --kk-doc-accent: #8e76ad;
+  --kk-doc-soft: rgba(142, 118, 173, 0.13);
+}
+
+.kk-doc-card.is-uppfoljning {
+  --kk-doc-accent: #5f9aa0;
+  --kk-doc-soft: rgba(95, 154, 160, 0.13);
+}
+
+.kk-doc-card.is-ekonomi {
+  --kk-doc-accent: #b88942;
+  --kk-doc-soft: rgba(184, 137, 66, 0.14);
+}
+
+.kk-doc-card.is-anteckningar-policy {
+  --kk-doc-accent: #857b72;
+  --kk-doc-soft: rgba(133, 123, 114, 0.14);
+}
+
+@media (min-width: 820px) {
+  .kk-doc-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

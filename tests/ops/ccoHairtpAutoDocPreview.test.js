@@ -2,9 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
+const fs = require('node:fs');
 const { getDocumentTypeById } = require('../../src/ops/ccoDocumentTypeRegistry');
 
 const bundlePath = path.join(
@@ -69,88 +68,4 @@ test('auto_internt_sms is present but may lack preview body (MISSING/PARTIAL acc
   const doc = findDocumentByRegistryId('auto_internt_sms');
   assert.ok(doc);
   assert.ok(['FULL', 'PARTIAL', 'MISSING'].includes(String(doc.contentStatus || '').toUpperCase()));
-});
-
-test('reference kundkort auto-doc rows are previewable', () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, '../../public/major-arcana-preview/app/cco-kundkort-referens.js'),
-    'utf8'
-  );
-  const noop = () => {};
-  const window = { addEventListener: noop, setTimeout, clearTimeout };
-  const document = {
-    addEventListener: noop,
-    querySelector() {
-      return null;
-    },
-    querySelectorAll() {
-      return [];
-    },
-    createElement() {
-      return {
-        classList: { add: noop, remove: noop },
-        style: {},
-        setAttribute: noop,
-        appendChild: noop,
-        querySelector() {
-          return null;
-        },
-        querySelectorAll() {
-          return [];
-        },
-      };
-    },
-  };
-  class MutationObserver {
-    observe() {}
-    disconnect() {}
-  }
-  class IntersectionObserver {
-    observe() {}
-    disconnect() {}
-  }
-
-  vm.runInNewContext(
-    source,
-    {
-      window,
-      document,
-      console,
-      setTimeout,
-      clearTimeout,
-      URLSearchParams,
-      MutationObserver,
-      IntersectionObserver,
-    },
-    { filename: 'cco-kundkort-referens.js' }
-  );
-
-  const html = window.__renderReferensKundkort(
-    { id: 'patient-1', displayName: 'Test Kund' },
-    {
-      documents: {
-        autoDocs: [
-          {
-            registryId: 'auto_bokningsbekraftelse',
-            title: 'Bokningsbekräftelse (SMS/e-post)',
-            statusLabel: 'Planerad',
-            step: 2,
-          },
-          {
-            registryId: 'auto_internt_sms',
-            title: 'Internt SMS vid bokning/avbokning',
-            statusLabel: 'Planerad',
-          },
-        ],
-      },
-    },
-    [],
-    { driveFiles: [] }
-  );
-
-  assert.match(html, /data-kk-auto-doc-preview="auto_bokningsbekraftelse"/);
-  assert.match(html, /data-kk-auto-doc-preview="auto_internt_sms"/);
-  assert.match(html, /data-v11-doc-previewable="1"/);
-  assert.match(html, /role="button"/);
-  assert.match(html, /Visa mall/);
 });

@@ -1,0 +1,12 @@
+ORD-47 — Parallellt svep (Cursor + Codex + Cloud)
+
+V1 kundkort: 9 §-kort istället för flat registry-lista.
+
+Efter deploy — Staff UAT:
+1. Öppna kund i höger panel (demoOpDay=1 + patientId)
+2. Bekräfta: INGEN "Dokument · registry Alla · 26+" som default
+3. Topp-rad + §2 Hälsa (HD) + §5 Operation (Op-dag) + §6 Foto
+4. Mallbibliotek via Åtgärder om du behöver alla 36 typer
+
+Checklista: docs/handover/ORDERS/ORD-47-CLOUD-STAFF-UAT.md
+Facit: docs/strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md

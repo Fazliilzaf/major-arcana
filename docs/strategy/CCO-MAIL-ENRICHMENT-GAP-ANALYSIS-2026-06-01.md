@@ -1,7 +1,7 @@
 # CCO Mail Enrichment Gap Analysis
 
-**Datum:** 2026-06-01  
-**Scope:** Frankfurt prod · truth-only · read-only  
+**Datum:** 2026-06-01
+**Scope:** Frankfurt prod · truth-only · read-only
 **Regler:** Ingen rå mailtext · inga patient-ID/e-post i denna rapport · ingen Graph-fetch
 
 ---

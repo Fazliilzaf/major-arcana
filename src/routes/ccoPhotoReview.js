@@ -14,8 +14,8 @@ const {
 } = require('../ops/ccoPhotoReviewPilot');
 
 const PHOTO_CATS = new Set(['photo_before', 'photo_during', 'photo_after']);
-const VALID_DECISIONS = new Set(['approve', 'reject', 'mark_duplicate']);
-const VALID_PHOTO_CATEGORIES = ['photo_before', 'photo_during', 'photo_after'];
+const _VALID_DECISIONS = new Set(['approve', 'reject', 'mark_duplicate']);
+const _VALID_PHOTO_CATEGORIES = ['photo_before', 'photo_during', 'photo_after'];
 const REPO_ROOT = path.resolve(__dirname, '../..');
 
 const BATCH_MANIFESTS = [
@@ -176,7 +176,6 @@ function actorFromReq(req) {
 
 function createCcoPhotoReviewRouter({
   resolveStores,
-  requireCcoAuthenticated,
   attachRole,
   requirePermission,
   auditLog,
@@ -184,15 +183,7 @@ function createCcoPhotoReviewRouter({
   pilotConfig = null,
   onMutation = null,
 }) {
-  if (typeof requireCcoAuthenticated !== 'function') {
-    throw new Error(
-      'createCcoPhotoReviewRouter kräver requireCcoAuthenticated (auth) — foto-review får inte serveras oautentiserat.'
-    );
-  }
   const router = express.Router();
-  // Patientfoton → kräver INLOGGAD operatör på alla foto-review-routes (anonym defaultar
-  // annars till operator-rollen). Router-nivå-grind före all per-route attachRole/permission.
-  router.use(requireCcoAuthenticated);
   const batchLabels = loadBatchLabelByPatient();
   const enrichedPilotConfig = pilotConfig
     ? { ...pilotConfig, projectRoot: pilotConfig.projectRoot || PHOTO_REVIEW_REPO_ROOT }

@@ -565,6 +565,16 @@
   // Kundrese-steg → vilken sektion man hoppar till vid klick.
   function stepJumpSlug(label) {
     var l = String(label || '').toLowerCase();
+    if (ORD47_V1) {
+      if (/hälsodek|halsodek|konsultation/.test(l)) return 'kk-card-halsa';
+      if (/offert|behandlingsplan/.test(l)) return 'kk-card-behandling';
+      if (/betänketid|betanketid|avtal|samtycke|ånger|anger/.test(l)) return 'kk-card-juridik';
+      if (/friskförs|friskfors|operation|op-dag/.test(l)) return 'kk-card-operation';
+      if (/foto/.test(l)) return 'kk-card-foto';
+      if (/bokning|bekräftelse|bekraftelse/.test(l)) return 'kk-card-bokning';
+      if (/uppfölj|uppfolj|efterkontroll/.test(l)) return 'kk-card-uppfoljning';
+      return '';
+    }
     if (/hälsodek|halsodek|friskförs|friskfors/.test(l)) return 'halso';
     if (/offert|behandlingsplan/.test(l)) return 'offert';
     if (/betänketid|betanketid|avtal|samtycke/.test(l)) return 'nastasteg';
@@ -626,6 +636,196 @@
   }
   function empty(t) {
     return '<div class="empty">' + esc(t) + '</div>';
+  }
+
+  /* ===== ORD-47 · 9 §-kort + rail status (stub resolver tills Codex levererar) ===== */
+  var ORD47_V1 = true;
+
+  function ensureOrd47JourneyResolverStub() {
+    if (window.CcoJourneyDocResolver) return window.CcoJourneyDocResolver;
+    var CARD_BY_STEP = {
+      2: 'bokning',
+      3: 'halsa',
+      4: 'halsa',
+      5: 'behandling',
+      6: 'juridik',
+      7: 'juridik',
+      8: 'operation',
+      9: 'foto',
+    };
+    window.CcoJourneyDocResolver = {
+      resolveActiveFlow: function (card) {
+        if (
+          window.CcoHairtpDocumentCloud &&
+          typeof window.CcoHairtpDocumentCloud.resolveTreatmentFlow === 'function'
+        ) {
+          return window.CcoHairtpDocumentCloud.resolveTreatmentFlow({ card: card || {} });
+        }
+        var t = String(
+          (card &&
+            (card.treatmentFlow ||
+              card.primaryTreatment ||
+              card.treatmentType ||
+              (card.treatmentTypes && card.treatmentTypes[0]))) ||
+            ''
+        ).toLowerCase();
+        if (/prp.*hud|prp_skin|skin/.test(t)) return 'prp_skin';
+        if (/prp|platelet/.test(t)) return 'prp_hair';
+        if (/microneedling|mn/.test(t)) return 'microneedling';
+        if (/prf/.test(t)) return 'prf';
+        if (/profhilo|profilo/.test(t)) return 'profhilo';
+        return 'tp';
+      },
+      resolvePatientJourneyStep: function (card, ctx) {
+        if (ctx && ctx.cur != null && ctx.cur !== '') return Number(ctx.cur) || 1;
+        if (card && card.missingHealthDeclaration) return 3;
+        if (card && card.missingOperationDayInsurance) return 8;
+        return 1;
+      },
+      uiCardForStep: function (step) {
+        return CARD_BY_STEP[Number(step)] || '';
+      },
+      filterOffersByFlow: function (offers, flow) {
+        offers = A(offers);
+        if (!offers.length) return offers;
+        var f = String(flow || 'tp').toLowerCase();
+        var byReg = {
+          tp: 'offert_tp',
+          prp_hair: 'offert_prp_hair',
+          prp_skin: 'offert_prp_skin',
+          microneedling: 'offert_microneedling',
+          prf: 'offert_prf',
+          profhilo: 'offert_profilo',
+        };
+        var want = byReg[f] || byReg.tp;
+        var hit = offers.filter(function (o) {
+          return String(o.registryId || '').toLowerCase() === want;
+        });
+        if (hit.length) return hit;
+        hit = offers.filter(function (o) {
+          var blob = String(o.registryId || o.type || o.title || '').toLowerCase();
+          return blob.indexOf(f.split('_')[0]) >= 0;
+        });
+        return hit.length ? hit : offers.slice(0, 1);
+      },
+      railStatusLine: function (card, ctx) {
+        ctx = ctx || {};
+        var cur = Number(ctx.cur) || 0;
+        var gates = A(ctx.gateSignals);
+        if (card && card.missingHealthDeclaration && cur <= 4) {
+          return 'Hälsokontroll · HD saknas';
+        }
+        if (referensHasSignedHd(card) && cur === 3) return 'Hälsokontroll · Klar';
+        if (cur === 5) return 'Behandlingsplan · ' + (ctx.offerStatus || 'Pågår');
+        if (cur === 6) return 'Betänketid · ' + (ctx.coolingLabel || '2 dagar');
+        if (cur === 7) return 'Avtal · ' + (ctx.agreementStatus || 'Väntar review');
+        if (cur === 8) {
+          if (
+            gates.some(function (s) {
+              return /operation_day_insurance/.test(String((s && (s.ruleId || s.id)) || ''));
+            })
+          ) {
+            return 'Op-dag · Friskförsäkran saknas';
+          }
+          return 'Op-dag · ' + (ctx.opDate || 'Operationsdag');
+        }
+        if (cur === 9) return 'Foto-samtycke · Kontrollera status';
+        if (ctx.nextLabel) return String(ctx.nextLabel);
+        return cur ? 'Steg ' + cur + ' · Kundresa' : 'Kundresa · Välj kund';
+      },
+    };
+    return window.CcoJourneyDocResolver;
+  }
+
+  function getOrd47Resolver() {
+    return ensureOrd47JourneyResolverStub();
+  }
+
+  function buildOrd47TopBar(ctx) {
+    ctx = ctx || {};
+    var step = ctx.cur != null ? 'Steg ' + ctx.cur + ' / ' + (ctx.total || 9) : 'Steg —';
+    var next = ctx.nextLabel ? esc(ctx.nextLabel) : '—';
+    var opWhen = ctx.opWhen ? esc(ctx.opWhen) : '—';
+    return (
+      '<div class="kk-ord47-topbar" data-kk-ord47-topbar aria-label="Kundresa status">' +
+      '<span class="kk-ord47-topbar__item"><span class="kk-ord47-topbar__k">Steg</span>' +
+      esc(step) +
+      '</span>' +
+      '<span class="kk-ord47-topbar__item"><span class="kk-ord47-topbar__k">Nästa</span>' +
+      next +
+      '</span>' +
+      '<span class="kk-ord47-topbar__item"><span class="kk-ord47-topbar__k">Tid till op</span>' +
+      opWhen +
+      '</span></div>'
+    );
+  }
+
+  function buildOrd47RailStatus(line) {
+    if (!line) return '';
+    return (
+      '<div class="kk-ord47-rail" data-kk-ord47-rail role="status">' +
+      '<span class="kk-ord47-rail__dot" aria-hidden="true"></span>' +
+      esc(line) +
+      '</div>'
+    );
+  }
+
+  function buildOrd47DocCard(id, num, title, statusPill, inner, openDefault) {
+    var openAttr = openDefault ? ' open' : '';
+    return (
+      '<details class="kk-doc-card dossier-section" data-sek="kk-card-' +
+      esc(id) +
+      '"' +
+      openAttr +
+      '><summary class="kk-doc-card__summary">' +
+      '<span class="kk-doc-card__num">' +
+      esc(String(num)) +
+      '</span>' +
+      '<span class="kk-doc-card__title">' +
+      esc(title) +
+      '</span>' +
+      (statusPill ? '<span class="kk-doc-card__status count">' + statusPill + '</span>' : '') +
+      '</summary><div class="kk-doc-card__body dossier-section-body">' +
+      (inner || empty('Inget att visa ännu.')) +
+      '</div></details>'
+    );
+  }
+
+  function buildOrd47CardsBlock(cards, meta) {
+    meta = meta || {};
+    var cur = Number(meta.cur) || 0;
+    var openFor = getOrd47Resolver().uiCardForStep(cur);
+    var defs = [
+      ['bokning', 1, 'Bokning', cards.bokning],
+      ['halsa', 2, 'Hälsa', cards.halsa],
+      ['behandling', 3, 'Behandling', cards.behandling],
+      ['juridik', 4, 'Juridik', cards.juridik],
+      ['operation', 5, 'Operation', cards.operation],
+      ['foto', 6, 'Foto-samtycke', cards.foto],
+      ['uppfoljning', 7, 'Uppföljning', cards.uppfoljning],
+      ['ekonomi', 8, 'Ekonomi', cards.ekonomi],
+      ['anteckningar', 9, 'Anteckningar & policy', cards.anteckningar],
+    ];
+    var html = '<div class="kk-doc-cards" data-kk-doc-cards aria-label="Dokument per kundresa">';
+    defs.forEach(function (d) {
+      var id = d[0];
+      var status = meta.cardStatus && meta.cardStatus[id] ? meta.cardStatus[id] : '';
+      html += buildOrd47DocCard(id, d[1], d[2], status, d[3], openFor === id);
+    });
+    html +=
+      '<div class="kk-mallbibliotek-actions">' +
+      '<button type="button" class="btn kk-mallbibliotek-btn" data-kk-open-mallbibliotek>Mallbibliotek · alla dokumenttyper</button>' +
+      '</div></div>';
+    return html;
+  }
+
+  function buildOrd47MallbibliotekWrap(registryHtml) {
+    if (!registryHtml) return '';
+    return (
+      '<div class="kk-mallbibliotek-host" data-kk-mallbibliotek-host hidden>' +
+      registryHtml +
+      '</div>'
+    );
   }
 
   function referensHasSignedHd(card) {
@@ -841,7 +1041,18 @@
         );
       })
       .join('');
-    return sec('Dokument · registry', String(rows.length), filters + body);
+    var inner = filters + body;
+    if (ORD47_V1) {
+      return (
+        '<details class="dossier-section kk-mallbibliotek" data-sek="dokument-registry" id="kk-mallbibliotek">' +
+        '<summary>Mallbibliotek · dokumenttyper<span class="count">' +
+        esc(String(rows.length)) +
+        '</span></summary><div class="dossier-section-body">' +
+        inner +
+        '</div></details>'
+      );
+    }
+    return sec('Dokument · registry', String(rows.length), inner);
   }
 
   function referensAutoDocRegistryId(doc) {
@@ -3887,6 +4098,23 @@
 
     var docsPayload = resolveReferensDocs(bcard, bundle);
     var offers = resolveReferensOffers(docsPayload, commercialCase);
+    getOrd47Resolver();
+    var ord47Flow = getOrd47Resolver().resolveActiveFlow(bcard);
+    if (ORD47_V1) {
+      offers = getOrd47Resolver().filterOffersByFlow(offers, ord47Flow);
+    }
+    var ord47Cards = {
+      bokning: '',
+      halsa: '',
+      behandling: '',
+      juridik: '',
+      operation: '',
+      foto: '',
+      uppfoljning: '',
+      ekonomi: '',
+      anteckningar: '',
+    };
+    var ord47RegistryHtml = '';
     var autoDocs = A(docsPayload.autoDocs);
     var photos = resolveReferensPhotos(bcard, driveFiles.length ? driveFiles : A(bundle.photos));
 
@@ -4020,6 +4248,17 @@
           var el = doss.querySelector('details.dossier-section[data-sek="' + slug + '"]');
           if (el) container.appendChild(el);
         });
+        if (ORD47_V1) {
+          var cardsEl = doss.querySelector('[data-kk-doc-cards]');
+          var kundresaEl = doss.querySelector('details.dossier-section[data-sek="kundresa"]');
+          var mallHost = doss.querySelector('[data-kk-mallbibliotek-host]');
+          if (cardsEl && kundresaEl && kundresaEl.parentElement) {
+            kundresaEl.parentElement.insertBefore(cardsEl, kundresaEl.nextSibling);
+          }
+          if (mallHost && container) {
+            container.appendChild(mallHost);
+          }
+        }
         return tpl.innerHTML;
       } catch (_e) {
         return html;
@@ -4112,7 +4351,24 @@
       ? (nextBk.title || nextBk.serviceName || 'bokning') + (bkWhen ? ' ' + bkWhen : '')
       : '';
     var summAction = summFrisk ? 'friskförsäkran signeras på plats' : nextLabel;
-    if (nextLabel || cur || bkStr) {
+    if (ORD47_V1) {
+      var ord47OpWhen =
+        bkWhen || (nextBk && String(nextBk.date || nextBk.dateLabel || '').slice(0, 10)) || '—';
+      h += buildOrd47TopBar({
+        cur: cur,
+        total: total,
+        nextLabel: nextLabel,
+        opWhen: ord47OpWhen,
+      });
+      h += buildOrd47RailStatus(
+        getOrd47Resolver().railStatusLine(bcard, {
+          cur: cur,
+          nextLabel: nextLabel,
+          gateSignals: gateSignals,
+          opDate: ord47OpWhen,
+        })
+      );
+    } else if (nextLabel || cur || bkStr) {
       var nx = bkStr ? bkStr + (summAction ? ' — ' + summAction : '') : summAction;
       h +=
         '<div class="summ kkx-summ"><span class="sk">SMART SAMMANFATTNING</span>' +
@@ -4186,23 +4442,36 @@
       opDayHtml = window.CcoHairtpDocumentCloud.buildOpDayStaffActionsHtml(bcard) || '';
     }
     if (opDayHtml) {
-      h += sec('Op-dag · personal', '5', opDayHtml);
+      if (ORD47_V1) {
+        ord47Cards.operation = '<div class="kk-card-kicker">Op-dag · personal</div>' + opDayHtml;
+      } else {
+        h += sec('Op-dag · personal', '5', opDayHtml);
+      }
     }
 
     h += '<div class="gthread"></div>';
 
-    if (allergies.length) {
-      h +=
-        '<div class="med kkx-med"><div class="mi">!</div><div style="font-size:10.5px"><b>Medicinskt:</b> Allergi — ' +
-        esc(allergies.join(' · ')) +
-        '.</div></div>';
+    if (ORD47_V1) {
+      if (allergies.length) {
+        ord47Cards.halsa +=
+          '<div class="med kkx-med"><div class="mi">!</div><div style="font-size:10.5px"><b>Medicinskt:</b> Allergi — ' +
+          esc(allergies.join(' · ')) +
+          '.</div></div>';
+      }
+      ord47Cards.halsa += buildMedicinsktFormsInner(bcard, driveFiles);
+    } else {
+      if (allergies.length) {
+        h +=
+          '<div class="med kkx-med"><div class="mi">!</div><div style="font-size:10.5px"><b>Medicinskt:</b> Allergi — ' +
+          esc(allergies.join(' · ')) +
+          '.</div></div>';
+      }
+      h += sec(
+        'Medicinskt läge',
+        medicinsktSectionPill(bcard),
+        buildMedicinsktFormsInner(bcard, driveFiles)
+      );
     }
-
-    h += sec(
-      'Medicinskt läge',
-      medicinsktSectionPill(bcard),
-      buildMedicinsktFormsInner(bcard, driveFiles)
-    );
 
     if (steps) {
       var pct = cur ? Math.round((cur / total) * 100) : 0;
@@ -4290,36 +4559,36 @@
     }
 
     if (gateSignals.length) {
-      h += sec(
-        'Smart nästa steg',
-        String(gateSignals.length),
-        gateSignals
-          .map(function (s) {
-            var tone = /block|legal/.test(s.risk || s.level || '') ? 'block' : 'info';
-            var pill =
-              tone === 'block'
-                ? '<span class="pill p-block">Blockerare</span>'
-                : '<span class="pill" style="background:var(--info-bg);color:var(--info)">Info</span>';
-            var sig = esc(s.ruleId || s.id || '');
-            return (
-              '<div class="row acc ' +
-              tone +
-              '"><div style="flex:1"><div class="rt">' +
-              esc(s.what || s.label || '—') +
-              '</div><div class="rm">' +
-              esc(signalSub(s)) +
-              '</div></div>' +
-              pill +
-              '<button type="button" class="kk-sig-act" data-kk-sig="' +
-              sig +
-              '" data-kk-sig-label="' +
-              esc(s.what || s.label || '') +
-              '" title="Åtgärda">→</button>' +
-              '</div>'
-            );
-          })
-          .join('')
-      );
+      var gateRowsHtml = gateSignals
+        .map(function (s) {
+          var tone = /block|legal/.test(s.risk || s.level || '') ? 'block' : 'info';
+          var pill =
+            tone === 'block'
+              ? '<span class="pill p-block">Blockerare</span>'
+              : '<span class="pill" style="background:var(--info-bg);color:var(--info)">Info</span>';
+          var sig = esc(s.ruleId || s.id || '');
+          return (
+            '<div class="row acc ' +
+            tone +
+            '"><div style="flex:1"><div class="rt">' +
+            esc(s.what || s.label || '—') +
+            '</div><div class="rm">' +
+            esc(signalSub(s)) +
+            '</div></div>' +
+            pill +
+            '<button type="button" class="kk-sig-act" data-kk-sig="' +
+            sig +
+            '" data-kk-sig-label="' +
+            esc(s.what || s.label || '') +
+            '" title="Åtgärda">→</button>' +
+            '</div>'
+          );
+        })
+        .join('');
+      if (ORD47_V1) {
+        ord47Cards.juridik = gateRowsHtml;
+      }
+      h += sec('Smart nästa steg', String(gateSignals.length), gateRowsHtml);
     } else {
       h += sec('Smart nästa steg', '0', empty('Inga aktiva gates just nu.'));
     }
@@ -4331,18 +4600,19 @@
     var needsFrisk = gateSignals.some(function (s) {
       return /operation_day_insurance/.test(String((s && (s.ruleId || s.id)) || ''));
     });
-    h += sec(
-      'Kommande bokningar',
-      String(up.length),
-      up.length
-        ? up
-            .slice(0, 5)
-            .map(function (b, i) {
-              return bookingRow(b, false, { needsFrisk: needsFrisk && i === 0 });
-            })
-            .join('')
-        : empty('Inga kommande bokningar.')
-    );
+    var upComingHtml = up.length
+      ? up
+          .slice(0, 5)
+          .map(function (b, i) {
+            return bookingRow(b, false, { needsFrisk: needsFrisk && i === 0 });
+          })
+          .join('')
+      : empty('Inga kommande bokningar.');
+    if (ORD47_V1) {
+      ord47Cards.bokning = upComingHtml;
+    } else {
+      h += sec('Kommande bokningar', String(up.length), upComingHtml);
+    }
     var histInner;
     if (hist.length) {
       var sen = hist[0] || {};
@@ -4583,55 +4853,66 @@
         approvedSum > 0
           ? '<span style="color:#2e7d52">' + approvedSum.toLocaleString('sv-SE') + ' kr</span>'
           : String(offers.length);
-      h += sec(
-        'Offerter · commit',
-        offTotal,
-        offers
-          .map(function (o) {
-            var ok = offOk(o);
-            var detalj = String(o.detail || o.amountLabel || '')
-              .replace(/\bgrafts\b/gi, 'graft')
-              .replace(/\bsessions\b/gi, 'sessioner')
-              .replace(/\bsession\b/gi, 'session');
-            var godkAt = o.acceptedAt || o.approvedAt || o.signedAt || o.decidedAt || o.date || '';
-            var meta = [
-              detalj,
-              o.step ? 'Steg ' + o.step : '',
-              ok && godkAt ? 'godkänd ' + String(godkAt).slice(0, 10) : '',
-            ]
-              .filter(Boolean)
-              .join(' · ');
-            return (
-              '<div class="row"><span class="pill" style="margin:0;' +
-              offPill(o.type) +
-              '">' +
-              esc(o.type || 'TP') +
-              '</span><div style="flex:1"><div class="rt">' +
-              esc(o.title || 'Offert') +
-              '</div>' +
-              '<div class="rm">' +
-              esc(meta) +
-              '</div></div><span class="pill ' +
-              (ok ? 'p-ok' : 'p-warn') +
-              '">' +
-              esc(ok ? '✓ Godkänd' : 'Väntar') +
-              '</span>' +
-              (ok
-                ? '<button type="button" class="openb" data-kk-open-storvy="betalning" title="Gå vidare till betalning">Betalning →</button>'
-                : '<button type="button" class="kk-sig-act" data-kk-sig="customer.missing_treatment_plan" ' +
-                  'data-kk-sig-label="Påminn om offert" title="Påminn/skicka">→</button>') +
-              '</div>'
-            );
-          })
-          .join('')
-      );
+      var offerRowsHtml = offers
+        .map(function (o) {
+          var ok = offOk(o);
+          var detalj = String(o.detail || o.amountLabel || '')
+            .replace(/\bgrafts\b/gi, 'graft')
+            .replace(/\bsessions\b/gi, 'sessioner')
+            .replace(/\bsession\b/gi, 'session');
+          var godkAt = o.acceptedAt || o.approvedAt || o.signedAt || o.decidedAt || o.date || '';
+          var meta = [
+            detalj,
+            o.step ? 'Steg ' + o.step : '',
+            ok && godkAt ? 'godkänd ' + String(godkAt).slice(0, 10) : '',
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          return (
+            '<div class="row"><span class="pill" style="margin:0;' +
+            offPill(o.type) +
+            '">' +
+            esc(o.type || 'TP') +
+            '</span><div style="flex:1"><div class="rt">' +
+            esc(o.title || 'Offert') +
+            '</div>' +
+            '<div class="rm">' +
+            esc(meta) +
+            '</div></div><span class="pill ' +
+            (ok ? 'p-ok' : 'p-warn') +
+            '">' +
+            esc(ok ? '✓ Godkänd' : 'Väntar') +
+            '</span>' +
+            (ok
+              ? '<button type="button" class="openb" data-kk-open-storvy="betalning" title="Gå vidare till betalning">Betalning →</button>'
+              : '<button type="button" class="kk-sig-act" data-kk-sig="customer.missing_treatment_plan" ' +
+                'data-kk-sig-label="Påminn om offert" title="Påminn/skicka">→</button>') +
+            '</div>'
+          );
+        })
+        .join('');
+      if (ORD47_V1) {
+        ord47Cards.behandling =
+          '<div class="kk-card-kicker">Offerter · commit · ' +
+          esc(String(ord47Flow).toUpperCase()) +
+          '</div>' +
+          offerRowsHtml;
+      } else {
+        h += sec('Offerter · commit', offTotal, offerRowsHtml);
+      }
+    } else if (ORD47_V1) {
+      ord47Cards.behandling = empty('Inga offerter i patient-case/dossier ännu.');
     } else {
       h += sec('Offerter · commit', '0', empty('Inga offerter i patient-case/dossier ännu.'));
     }
 
-    h += buildReferensRegistryDocsSection(docsPayload);
+    if (ORD47_V1) {
+      ord47RegistryHtml = buildReferensRegistryDocsSection(docsPayload);
+    } else {
+      h += buildReferensRegistryDocsSection(docsPayload);
+    }
 
-    if (autoDocs.length) {
+    if (autoDocs.length && !ORD47_V1) {
       h += sec(
         'Auto-dokument',
         String(autoDocs.length),
@@ -4670,6 +4951,26 @@
           })
           .join('')
       );
+    } else if (ORD47_V1 && autoDocs.length) {
+      var bokAutoHtml = autoDocs
+        .filter(function (d) {
+          var id = referensAutoDocRegistryId(d);
+          return /auto_boknings|auto_avboknings|auto_instruktion/.test(id);
+        })
+        .map(function (d) {
+          var previewAttrs = referensAutoDocPreviewAttrs(d);
+          return (
+            '<div class="row kk-auto-doc-preview-row"' +
+            previewAttrs +
+            '><div style="flex:1"><div class="rt">' +
+            esc(d.title) +
+            '</div></div><span class="kk-auto-doc-preview-label">Visa mall</span></div>'
+          );
+        })
+        .join('');
+      if (bokAutoHtml) {
+        ord47Cards.bokning += '<div class="kk-card-kicker">Auto · bokning</div>' + bokAutoHtml;
+      }
     }
 
     h += '<div class="gthread"></div>';
@@ -4690,15 +4991,33 @@
             gkSharedPhotoGrid(offerReadyRows, 'gk-foto-grid--offer-ready')
           : '<div class="gk-offer-ready-empty">Inga markerade offertbilder ännu. Öppna en bild, rita och välj “behandlingsplan/offert”.</div>') +
         '</div></div>';
-      h += sec(
-        'Foto',
-        offerReadyRows.length ? offerReadyRows.length + ' offertklara' : '0 offertbilder',
-        fotoRows
-      );
+      if (ORD47_V1) {
+        ord47Cards.foto = fotoRows;
+      } else {
+        h += sec(
+          'Foto',
+          offerReadyRows.length ? offerReadyRows.length + ' offertklara' : '0 offertbilder',
+          fotoRows
+        );
+      }
     } else if (photos.length) {
-      h += sec('Foto', '0 offertbilder', empty('Inga markerade offertbilder ännu.'));
+      var fotoEmpty = empty('Inga markerade offertbilder ännu.');
+      if (ORD47_V1) {
+        ord47Cards.foto =
+          fotoEmpty +
+          '<p class="kk-card-hint">Foto-samtycke (steg 9) · öppna via Op-dag-knappen i Operation.</p>';
+      } else {
+        h += sec('Foto', '0 offertbilder', fotoEmpty);
+      }
     } else {
-      h += sec('Foto', '0 offertbilder', empty('Inga markerade offertbilder ännu.'));
+      var fotoNone = empty('Inga markerade offertbilder ännu.');
+      if (ORD47_V1) {
+        ord47Cards.foto =
+          fotoNone +
+          '<p class="kk-card-hint">Foto-samtycke (steg 9) · öppna via Op-dag-knappen i Operation.</p>';
+      } else {
+        h += sec('Foto', '0 offertbilder', fotoNone);
+      }
     }
 
     var krVal =
@@ -4728,11 +5047,15 @@
           'Kund ' + fnxId,
           fnxSynced ? 'Synkad ' + String(fnxSynced).slice(0, 10) : 'Kopplad'
         );
-      h += sec(
-        'Ekonomi',
-        krVal || (fnxId ? 'Fortnox' : '—'),
-        ekoRows || empty('Ingen ekonomidata ännu.')
-      );
+      if (ORD47_V1) {
+        ord47Cards.ekonomi = (ord47Cards.ekonomi || '') + ekoRows;
+      } else {
+        h += sec(
+          'Ekonomi',
+          krVal || (fnxId ? 'Fortnox' : '—'),
+          ekoRows || empty('Ingen ekonomidata ännu.')
+        );
+      }
     }
 
     // ===== Betalning: committad offert följer med + status + betalvägar (historik = backend nästa) =====
@@ -4853,7 +5176,16 @@
             : 'Ingen betalningshistorik ännu.';
         inner += '<div class="empty">' + esc(note) + '</div>';
       }
-      h += sec('Betalning', '<span style="color:' + stt[1] + '">' + esc(stt[0]) + '</span>', inner);
+      if (ORD47_V1) {
+        ord47Cards.ekonomi =
+          (ord47Cards.ekonomi || '') + '<div class="kk-card-kicker">Betalning</div>' + inner;
+      } else {
+        h += sec(
+          'Betalning',
+          '<span style="color:' + stt[1] + '">' + esc(stt[0]) + '</span>',
+          inner
+        );
+      }
     })();
 
     // ===== Besök · tidslinje: gruppera filer/foton/journaler per BESÖKSDATUM (ej importstämpel) =====
@@ -5134,24 +5466,25 @@
     var notes = A(journalEntries).filter(function (e) {
       return /note|anteck|privat/i.test(String((e && (e.type || e.journalType)) || ''));
     });
-    h += sec(
-      'Anteckningar',
-      String(notes.length),
-      notes.length
-        ? notes
-            .slice(0, 6)
-            .map(function (n) {
-              return (
-                '<div class="qrow"><div><div class="q">' +
-                esc(String(n.text || n.summary || n.note || '').slice(0, 140)) +
-                '</div>' +
-                (n.author || n.by ? '<div class="qv">' + esc(n.author || n.by) + '</div>' : '') +
-                '</div></div>'
-              );
-            })
-            .join('')
-        : empty('Inga anteckningar ännu.')
-    );
+    var notesHtml = notes.length
+      ? notes
+          .slice(0, 6)
+          .map(function (n) {
+            return (
+              '<div class="qrow"><div><div class="q">' +
+              esc(String(n.text || n.summary || n.note || '').slice(0, 140)) +
+              '</div>' +
+              (n.author || n.by ? '<div class="qv">' + esc(n.author || n.by) + '</div>' : '') +
+              '</div></div>'
+            );
+          })
+          .join('')
+      : empty('Inga anteckningar ännu.');
+    if (ORD47_V1) {
+      ord47Cards.anteckningar = notesHtml;
+    } else {
+      h += sec('Anteckningar', String(notes.length), notesHtml);
+    }
     var komm = A(bundle.communications).length
       ? A(bundle.communications)
       : A(ctxExtras.communications);
@@ -5238,6 +5571,35 @@
         : empty('Inga möjligheter just nu.')
     );
 
+    if (ORD47_V1) {
+      var post8Re = /journal_tp_post_prp|journal_tp_follow/;
+      var uppRows = A(docsPayload.journals)
+        .filter(function (j) {
+          return post8Re.test(String(j.registryId || ''));
+        })
+        .map(function (j) {
+          return (
+            '<div class="row"><div class="rt">' +
+            esc(j.title || j.registryId) +
+            '</div><div class="rm">' +
+            esc(j.contentStatus || j.statusLabel || 'Planerad') +
+            '</div></div>'
+          );
+        })
+        .join('');
+      ord47Cards.uppfoljning = uppRows || empty('Efterkontroller · tidslinje (post-op).');
+      h += buildOrd47CardsBlock(ord47Cards, {
+        cur: cur,
+        cardStatus: {
+          halsa: medicinsktSectionPill(bcard),
+          behandling: offers.length ? '1 · ' + String(ord47Flow).toUpperCase() : '0',
+          operation: opDayHtml ? 'Op-dag' : '',
+          foto: bcard.missingPhotoConsent ? 'Saknas' : '',
+        },
+      });
+      h += buildOrd47MallbibliotekWrap(ord47RegistryHtml);
+    }
+
     h +=
       '<div class="acts"><div class="btn dark">📷 Ta bild · spara i journal</div>' +
       '<div class="btn gold">Boka nästa</div>' +
@@ -5281,10 +5643,10 @@
       window.__GK_LAST = '';
     }
 
-    // Stor vy öppnas bara via ⤢ / data-kk-open-storvy — aldrig auto vid kundklick (ORD-46 UAT).
+    // (a) Primär öppning: visa gemensamma kortet direkt när en NY kund öppnas (en gång per patient)
     try {
       var gkPid = (bcard && (bcard.patientId || bcard.id)) || '';
-      if (window.__GK_PRIMARY === true && gkPid && window.__GK_LAST) {
+      if (window.__GK_PRIMARY !== false && gkPid && window.__GK_LAST) {
         var gkOv = document.getElementById('kk-storvy');
         var gkOpen = gkOv && gkOv.classList.contains('open');
         if (window.__GK_OPENED_FOR !== gkPid) {
@@ -5917,7 +6279,7 @@
         );
         return;
       }
-      // 3) Hoppa till sektion (kundrese-steg)
+      // 3) Hoppa till sektion (kundrese-steg) eller §-kort (ORD-47)
       var jp = e.target.closest && e.target.closest('[data-kk-jump]');
       if (jp) {
         var slug = jp.getAttribute('data-kk-jump');
@@ -5938,6 +6300,27 @@
           if (medForm) {
             expandMedForm(document.querySelector('.kkref .doss') || document, medForm);
           }
+        }
+        return;
+      }
+      var mallBtn = e.target.closest && e.target.closest('[data-kk-open-mallbibliotek]');
+      if (mallBtn) {
+        e.preventDefault();
+        var mallHost = document.querySelector('[data-kk-mallbibliotek-host]');
+        var mallEl = document.getElementById('kk-mallbibliotek');
+        if (mallHost) mallHost.removeAttribute('hidden');
+        if (mallEl) {
+          mallEl.open = true;
+          var sc2 = getReferensKkrefScroller();
+          if (sc2 && mallEl.offsetTop != null) {
+            sc2.scrollTo({ top: mallEl.offsetTop - sc2.offsetTop - 8, behavior: 'smooth' });
+          } else {
+            mallEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          mallEl.classList.add('kk-flash');
+          setTimeout(function () {
+            mallEl.classList.remove('kk-flash');
+          }, 900);
         }
         return;
       }
