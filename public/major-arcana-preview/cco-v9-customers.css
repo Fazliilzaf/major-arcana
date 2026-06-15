@@ -885,11 +885,48 @@ html[data-v9-enabled="on"] .v11-post8-timeline__status {
   color: rgba(70, 60, 50, 0.55);
 }
 
-html[data-v9-enabled="on"] .cco-auto-preview__list {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13px;
-  line-height: 1.5;
+html[data-v9-enabled="on"] .kk-registry-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+html[data-v9-enabled="on"] .kk-registry-filter {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 105, 90, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+html[data-v9-enabled="on"] .kk-registry-filter.is-active {
+  border-color: rgba(187, 71, 121, 0.28);
+  background: rgba(252, 233, 240, 0.72);
+}
+
+html[data-v9-enabled="on"] .kk-registry-blocker {
+  color: #b45309;
+  font-weight: 800;
+  margin-right: 6px;
+}
+
+html[data-v9-enabled="on"] .kk-registry-row--clickable {
+  cursor: pointer;
+}
+
+html[data-v9-enabled="on"] #cco-foto-samtycke-scrim .doc-legal-stack,
+html[data-v9-enabled="on"] #cco-ff-demo-scrim .doc-partial-banner {
+  margin-bottom: 12px;
+}
+
+html[data-v9-enabled="on"] #cco-foto-samtycke-scrim .doc-legal__kicker {
+  font-size: 11px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: rgba(70, 60, 50, 0.62);
 }
 
 /* ORD-25 Fas G — kommande bokningar, kundresan, veckans mönster */

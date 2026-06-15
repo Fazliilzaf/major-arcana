@@ -11329,6 +11329,16 @@
         renderDetailPanel();
       });
     }
+    if (!window.__ARCANA_CLOUD_PHOTO_CONSENT_LISTENER__) {
+      window.__ARCANA_CLOUD_PHOTO_CONSENT_LISTENER__ = true;
+      window.addEventListener('cco:photo-consent-signed', () => {
+        switchDetailTab('journal');
+        setStatus('Foto-samtycke registrerat — ta före/efter-bild i journalen.', 'success');
+        window.requestAnimationFrame(() => {
+          document.querySelector('[data-patient-photo-camera]')?.click?.();
+        });
+      });
+    }
     if (!window.__ARCANA_CLOUD_STAFF_ACTION_LISTENER__) {
       window.__ARCANA_CLOUD_STAFF_ACTION_LISTENER__ = true;
       window.addEventListener('cco:cloud-staff-action', (event) => {
@@ -11344,6 +11354,20 @@
                 normalizeText(card?.name) ||
                 undefined,
               operationLabel: detail.operationLabel,
+            });
+          }
+          return;
+        }
+        if (detail.kind === 'steg9') {
+          const overlay = window.CcoFotoSamtyckeDemoOverlay;
+          if (overlay?.mount) {
+            const card = runtime.detail?.card;
+            void overlay.mount({
+              patientName:
+                normalizeText(detail.patientName) ||
+                normalizeText(card?.displayName) ||
+                normalizeText(card?.name) ||
+                undefined,
             });
           }
           return;

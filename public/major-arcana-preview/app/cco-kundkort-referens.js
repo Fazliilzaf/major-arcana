@@ -640,6 +640,15 @@
     if (window.CcoV9CustomersParity?.resolveV11DocumentPayload) {
       return window.CcoV9CustomersParity.resolveV11DocumentPayload(card, bundle);
     }
+    if (window.CcoHairtpDocumentCloud?.buildV11DocumentPayloadFromBundle) {
+      var fullBundle =
+        window.CcoMeridiqContent && window.CcoMeridiqContent.getFullDocumentBundle
+          ? window.CcoMeridiqContent.getFullDocumentBundle()
+          : null;
+      if (fullBundle) {
+        return window.CcoHairtpDocumentCloud.buildV11DocumentPayloadFromBundle(fullBundle);
+      }
+    }
     var docs = bundle && bundle.documents;
     if (docs && typeof docs === 'object' && bundle.ready !== false) {
       return {
@@ -647,9 +656,111 @@
         offers: A(docs.offers || docs.offerter),
         autoDocs: A(docs.autoDokument || docs.auto || docs.autoDocuments || docs.autoDocs),
         healthForms: A(docs.healthForms || docs.haelsoSamtycke || docs.consents),
+        journals: A(docs.journalStatus && docs.journalStatus.expected),
       };
     }
-    return { ready: false, offers: [], autoDocs: [], healthForms: [] };
+    return { ready: false, offers: [], autoDocs: [], healthForms: [], journals: [] };
+  }
+
+  function referensRegistryInteractive(doc) {
+    var registryId = referensAutoDocRegistryId(doc);
+    if (!registryId) return false;
+    if (
+      window.CcoHairtpDocumentCloud &&
+      typeof window.CcoHairtpDocumentCloud.isInteractiveRegistryId === 'function'
+    ) {
+      return window.CcoHairtpDocumentCloud.isInteractiveRegistryId(registryId);
+    }
+    return /^auto_|^offert_/.test(registryId);
+  }
+
+  function referensRegistryDocAttrs(doc) {
+    if (!referensRegistryInteractive(doc)) return '';
+    var registryId = referensAutoDocRegistryId(doc);
+    var filler = doc.filler || 'patient';
+    var flow = doc.flow || 'tp';
+    return (
+      ' data-kk-registry-doc="' +
+      esc(registryId) +
+      '" data-v11-doc-registry="' +
+      esc(registryId) +
+      '" data-v11-doc-filler="' +
+      esc(filler) +
+      '" data-v11-doc-flow="' +
+      esc(flow) +
+      '" data-v11-doc-previewable="1" role="button" tabindex="0"'
+    );
+  }
+
+  function referensRegistryStatusLabel(doc) {
+    var status = String(doc.status || '').toLowerCase();
+    if (/signed|done|klar|godk/i.test(status) || doc.statusLabel === 'Signerad') return 'Signerad';
+    if (/pending|vänt|att fylla|delvis/i.test(status) || doc.statusLabel === 'Delvis') {
+      return 'Att fylla';
+    }
+    return doc.statusLabel || 'Planerad';
+  }
+
+  function buildReferensRegistryDocsSection(docsPayload) {
+    if (!docsPayload || !docsPayload.ready) return '';
+    var rows = []
+      .concat(
+        A(docsPayload.offers),
+        A(docsPayload.healthForms),
+        A(docsPayload.journals),
+        A(docsPayload.autoDocs)
+      )
+      .filter(function (doc) {
+        return doc && (doc.registryId || doc.title);
+      });
+    if (!rows.length) return '';
+    var filters =
+      '<div class="kk-registry-filters" data-kk-registry-filters aria-label="Dokumentfilter">' +
+      '<button type="button" class="kk-registry-filter is-active" data-kk-registry-filter="filler" data-kk-registry-value="all">Alla</button>' +
+      '<button type="button" class="kk-registry-filter" data-kk-registry-filter="filler" data-kk-registry-value="patient">Kund</button>' +
+      '<button type="button" class="kk-registry-filter" data-kk-registry-filter="filler" data-kk-registry-value="staff">Personal</button>' +
+      '<button type="button" class="kk-registry-filter" data-kk-registry-filter="filler" data-kk-registry-value="auto">Auto</button>' +
+      '<button type="button" class="kk-registry-filter" data-kk-registry-filter="flow" data-kk-registry-value="all">Alla flöden</button>' +
+      '<button type="button" class="kk-registry-filter" data-kk-registry-filter="flow" data-kk-registry-value="tp">TP</button>' +
+      '<button type="button" class="kk-registry-filter" data-kk-registry-filter="flow" data-kk-registry-value="prp_hair">PRP</button>' +
+      '</div>';
+    var body = rows
+      .map(function (doc) {
+        var registryId = referensAutoDocRegistryId(doc);
+        var filler = doc.filler || 'patient';
+        var flow = doc.flow || 'tp';
+        var step =
+          doc.journeyStep != null && doc.journeyStep !== '' ? 'Steg ' + doc.journeyStep : '';
+        var prep = doc.contentStatus ? String(doc.contentStatus) : '';
+        var blocker =
+          prep && prep !== 'FULL' && A(doc.blockers).length
+            ? '<span class="kk-registry-blocker" title="' + esc(doc.blockers[0]) + '">!</span>'
+            : '';
+        var attrs = referensRegistryDocAttrs(doc);
+        return (
+          '<div class="row kk-registry-row' +
+          (attrs ? ' kk-registry-row--clickable' : '') +
+          '" data-kk-registry-row data-kk-registry-filler="' +
+          esc(filler) +
+          '" data-kk-registry-flow="' +
+          esc(flow) +
+          '"' +
+          attrs +
+          '><div style="flex:1"><div class="rt">' +
+          esc(doc.title || registryId) +
+          '</div><div class="rm">' +
+          esc([step, flow.toUpperCase(), prep].filter(Boolean).join(' · ')) +
+          '</div></div>' +
+          blocker +
+          '<span class="pill">' +
+          esc(referensRegistryStatusLabel(doc)) +
+          '</span>' +
+          (attrs ? '<span class="kk-auto-doc-preview-label" aria-hidden="true">Öppna</span>' : '') +
+          '</div>'
+        );
+      })
+      .join('');
+    return sec('Dokument · registry', String(rows.length), filters + body);
   }
 
   function referensAutoDocRegistryId(doc) {
@@ -4425,6 +4536,8 @@
       h += sec('Offerter · commit', '0', empty('Inga offerter i patient-case/dossier ännu.'));
     }
 
+    h += buildReferensRegistryDocsSection(docsPayload);
+
     if (autoDocs.length) {
       h += sec(
         'Auto-dokument',
@@ -5609,18 +5722,36 @@
   (function bindKkLiftsOnce() {
     if (window.__kkLiftsBound) return;
     window.__kkLiftsBound = true;
-    function openAutoDocPreviewFromReferens(row) {
+    function openRegistryDocFromReferens(row) {
       if (!row) return false;
-      var registryId = row.getAttribute('data-kk-auto-doc-preview') || '';
-      if (!/^auto_/.test(registryId)) return false;
+      var registryId =
+        row.getAttribute('data-kk-registry-doc') ||
+        row.getAttribute('data-kk-auto-doc-preview') ||
+        row.getAttribute('data-v11-doc-registry') ||
+        '';
+      if (!registryId) return false;
       if (
         window.CcoHairtpDocumentCloud &&
-        typeof window.CcoHairtpDocumentCloud.openAutoDocPreviewAsync === 'function'
+        typeof window.CcoHairtpDocumentCloud.activateRegistryDocument === 'function'
       ) {
-        window.CcoHairtpDocumentCloud.openAutoDocPreviewAsync(registryId);
-        return true;
+        return window.CcoHairtpDocumentCloud.activateRegistryDocument(registryId);
+      }
+      if (/^auto_/.test(registryId)) {
+        return openAutoDocPreviewFromReferens(row);
       }
       return false;
+    }
+    function applyReferensRegistryFilters(root, filterState) {
+      if (!root) return;
+      var rows = root.querySelectorAll('[data-kk-registry-row]');
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var filler = row.getAttribute('data-kk-registry-filler') || '';
+        var flow = row.getAttribute('data-kk-registry-flow') || '';
+        var fillerOk = filterState.filler === 'all' || filler === filterState.filler;
+        var flowOk = filterState.flow === 'all' || flow === filterState.flow;
+        row.hidden = !(fillerOk && flowOk);
+      }
     }
     function scroller() {
       return (
@@ -5642,13 +5773,45 @@
         }
         return;
       }
-      // 0b) Auto-dokument preview (SMS/e-postmallar från content-bundlen)
+      // 0b) Registry / auto-dokument (content-bundle wiring)
+      var registryDoc =
+        e.target.closest &&
+        e.target.closest('[data-kk-registry-doc][data-v11-doc-previewable="1"]');
+      if (registryDoc) {
+        e.preventDefault();
+        openRegistryDocFromReferens(registryDoc);
+        return;
+      }
       var autoDoc =
         e.target.closest &&
         e.target.closest('[data-kk-auto-doc-preview][data-v11-doc-previewable="1"]');
       if (autoDoc) {
         e.preventDefault();
-        openAutoDocPreviewFromReferens(autoDoc);
+        openRegistryDocFromReferens(autoDoc);
+        return;
+      }
+      var filterBtn = e.target.closest && e.target.closest('[data-kk-registry-filter]');
+      if (filterBtn) {
+        var host = filterBtn.closest('[data-kk-registry-filters]');
+        var axis = filterBtn.getAttribute('data-kk-registry-filter') || '';
+        var value = filterBtn.getAttribute('data-kk-registry-value') || '';
+        var section = filterBtn.closest('[data-sek]') || filterBtn.closest('.kkref');
+        var state =
+          section && section.__kkRegistryFilter
+            ? section.__kkRegistryFilter
+            : { filler: 'all', flow: 'all' };
+        state[axis] = value;
+        if (section) section.__kkRegistryFilter = state;
+        if (host) {
+          var btns = host.querySelectorAll('[data-kk-registry-filter="' + axis + '"]');
+          for (var bi = 0; bi < btns.length; bi++) {
+            btns[bi].classList.toggle(
+              'is-active',
+              btns[bi].getAttribute('data-kk-registry-value') === value
+            );
+          }
+        }
+        applyReferensRegistryFilters(section || document, state);
         return;
       }
       // 1) Kopiera (adress) till urklipp

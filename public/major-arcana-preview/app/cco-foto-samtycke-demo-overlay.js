@@ -13,7 +13,7 @@
   const STYLE_ID = 'cco-foto-samtycke-styles';
   const DISMISS_KEY = 'arcana.fotosamtycke.dismissed';
   const SIGNED_KEY = 'arcana.fotosamtycke.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-cloud-fas3-v8';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-cloud-fas456-v9';
 
   let meridiqContent = null;
 
@@ -129,7 +129,23 @@
     }
     signBtn.disabled = true;
     setOverlayStatus(root, '✓ Foto-samtycke registrerat', 'success');
-    showSignedState(root, `demo-foto-${Date.now().toString(36)}`);
+    const entryId = `demo-foto-${Date.now().toString(36)}`;
+    showSignedState(root, entryId);
+    try {
+      global.dispatchEvent(
+        new global.CustomEvent('cco:photo-consent-signed', {
+          detail: {
+            entryId,
+            patientName: name,
+            scope: 'hairline_crown',
+            registryId: 'foto_samtycke',
+            source: 'steg9-overlay',
+          },
+        })
+      );
+    } catch {
+      /* ignore */
+    }
   }
 
   let keyHandler = null;

@@ -282,6 +282,22 @@
       contentStatus: steg9.contentStatus,
       blockers: steg9.blockers,
     });
+    const legalBlock =
+      steg9.contentStatus === 'FULL' && (steg9.internalText || steg9.publishText)
+        ? `
+        <div class="doc-legal-stack" aria-label="Samtyckestexter">
+          ${
+            steg9.internalText
+              ? `<div class="doc-legal"><p class="doc-legal__kicker">Internt bruk</p><p class="doc-text">${escapeHtml(steg9.internalText)}</p></div>`
+              : ''
+          }
+          ${
+            steg9.publishText
+              ? `<div class="doc-legal"><p class="doc-legal__kicker">Publicering</p><p class="doc-text">${escapeHtml(steg9.publishText)}</p></div>`
+              : ''
+          }
+        </div>`
+        : '';
     return `
   <div class="wrap">
     <header class="demo-header">
@@ -293,6 +309,7 @@
     <div class="demo-scroll" id="steg9FormPanel">
       <section class="section-block" aria-label="Foto-samtycke">
         ${partialBanner || ''}
+        ${legalBlock}
         <p class="scope-note">
           <strong>Scope:</strong> ${escapeHtml(steg9.scope.summary)}
         </p>
@@ -474,11 +491,19 @@
         ...step789.steg9,
         contentStatus: fotoHit.document.contentStatus,
         blockers: fotoHit.document.blockers || [],
+        registryMeta: {
+          registryId: 'foto_samtycke',
+          contentStatus: fotoHit.document.contentStatus,
+          blockers: fotoHit.document.blockers || [],
+          label: fotoHit.document.label || 'Foto-samtycke',
+        },
         scope: fotoContent.scope
           ? { ...step789.steg9.scope, ...fotoContent.scope }
           : step789.steg9.scope,
         ackLabel: fotoContent.ackLabel || step789.steg9.ackLabel,
         subtitle: fotoContent.subtitle || step789.steg9.subtitle,
+        internalText: fotoContent.internalText || '',
+        publishText: fotoContent.publishText || '',
       },
     };
   }

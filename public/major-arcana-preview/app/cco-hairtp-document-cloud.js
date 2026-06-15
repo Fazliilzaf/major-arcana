@@ -162,11 +162,16 @@
     return String(registryId || '') === 'friskfoers_tp';
   }
 
+  function isSteg9RegistryId(registryId) {
+    return String(registryId || '') === 'foto_samtycke';
+  }
+
   function isInteractiveRegistryId(registryId) {
     return (
       isAutoDocRegistryId(registryId) ||
       /^offert_/.test(String(registryId || '')) ||
       isSteg8RegistryId(registryId) ||
+      isSteg9RegistryId(registryId) ||
       isStaffJournalRegistryId(registryId) ||
       isStaffPreviewRegistryId(registryId)
     );
@@ -220,6 +225,13 @@
       return global.CcoFriskforsakranDemoOverlay.mount(options);
     }
     return Promise.resolve(dispatchCloudStaffAction({ kind: 'steg8', ...options }));
+  }
+
+  function openSteg9FotoSamtycke(options = {}) {
+    if (global.CcoFotoSamtyckeDemoOverlay?.mount) {
+      return global.CcoFotoSamtyckeDemoOverlay.mount(options);
+    }
+    return Promise.resolve(dispatchCloudStaffAction({ kind: 'steg9', ...options }));
   }
 
   function openStaffJournal(options = {}) {
@@ -293,6 +305,10 @@
       void openSteg8Friskforsakran(options);
       return true;
     }
+    if (isSteg9RegistryId(registryId)) {
+      void openSteg9FotoSamtycke(options);
+      return true;
+    }
     if (isStaffJournalRegistryId(registryId)) {
       openStaffJournal({ ...options, registryId });
       return true;
@@ -314,6 +330,7 @@
       { id: 'journal', label: journalLabel, registryId: journalRegistryId },
       { id: 'ordination', label: 'Ordination', registryId: 'ordination_tp' },
       { id: 'photo_proto', label: 'Före/efter-bild', registryId: 'fore_efter_bildmall' },
+      { id: 'steg9', label: 'Foto-samtycke', registryId: 'foto_samtycke' },
     ];
     return `
       <div class="v11-opday-actions" data-v11-opday-actions aria-label="Op-dag · personal">
@@ -566,6 +583,7 @@
     isStaffJournalRegistryId,
     isStaffPreviewRegistryId,
     isSteg8RegistryId,
+    isSteg9RegistryId,
     isInteractiveRegistryId,
     isOpDayContext,
     ensureDocumentBundle,
@@ -585,6 +603,7 @@
     openAutoDocPreviewAsync,
     openStaffDocumentPreviewAsync,
     openSteg8Friskforsakran,
+    openSteg9FotoSamtycke,
     openStaffJournal,
     activateRegistryDocument,
     closeAutoDocPreview,
