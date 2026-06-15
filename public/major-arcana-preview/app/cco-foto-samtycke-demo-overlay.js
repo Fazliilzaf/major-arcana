@@ -13,7 +13,7 @@
   const STYLE_ID = 'cco-foto-samtycke-styles';
   const DISMISS_KEY = 'arcana.fotosamtycke.dismissed';
   const SIGNED_KEY = 'arcana.fotosamtycke.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v5';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-cloud-fas12-v7';
 
   let meridiqContent = null;
 
@@ -158,7 +158,7 @@
   function mount(options = {}) {
     if (document.getElementById(ROOT_ID)) return Promise.resolve(document.getElementById(ROOT_ID));
 
-    return global.CcoMeridiqContent.load()
+    return global.CcoMeridiqContent.loadForSteg9(options)
       .then((content) => {
         meridiqContent = content;
         ensureStyles();

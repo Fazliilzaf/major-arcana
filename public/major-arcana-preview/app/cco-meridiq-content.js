@@ -58,13 +58,19 @@
   }
 
   function buildSteg7DocumentsHtml(steg7, context) {
+    const agreementBanner = global.CcoHairtpDocumentCloud?.buildContentStatusBanner?.(
+      steg7.agreementMeta
+    );
+    const coolingBanner = global.CcoHairtpDocumentCloud?.buildContentStatusBanner?.(
+      steg7.coolingMeta
+    );
     const agreement = (steg7.agreementBlocks || [])
       .map((block) => blockToHtml(block, context))
       .join('');
     const cooling = (steg7.coolingBlocks || [])
       .map((block) => blockToHtml(block, context))
       .join('');
-    return `${agreement}<div class="doc-divider" aria-hidden="true"></div>${cooling}`;
+    return `${agreementBanner || ''}${agreement}<div class="doc-divider" aria-hidden="true"></div>${coolingBanner || ''}${cooling}`;
   }
 
   function ynField(question) {
@@ -158,12 +164,14 @@
     const steg7 = content.steg7;
     const agreementId = steg7.consents.agreement.apiId;
     const coolingId = steg7.consents.cooling.apiId;
+    const flowLabel = steg7.flowLabel ? ` · ${steg7.flowLabel}` : '';
+    const offerRegistry = steg7.activeOfferRegistryId || 'offert_tp';
     return `
   <div class="wrap">
     <header class="demo-header">
-      <span class="demo-kicker">★ Steg 7</span>
+      <span class="demo-kicker">★ Steg 7${escapeHtml(flowLabel)}</span>
       <h1 class="demo-title">Avtal &amp; Samtycke</h1>
-      <p class="demo-subtitle">Signera båda dokumenten tillsammans. Låses i journalen (${agreementId} + ${coolingId}).</p>
+      <p class="demo-subtitle">Signera båda dokumenten tillsammans. Bundle: ${escapeHtml(offerRegistry)} + samtycke_angerratt (${agreementId} + ${coolingId}).</p>
     </header>
 
     <div class="demo-scroll" id="steg7FormPanel">
@@ -265,6 +273,10 @@
     const bullets = (steg9.scope.bullets || [])
       .map((line) => `<li>${escapeHtml(line)}</li>`)
       .join('');
+    const partialBanner = global.CcoHairtpDocumentCloud?.buildContentStatusBanner?.({
+      contentStatus: steg9.contentStatus,
+      blockers: steg9.blockers,
+    });
     return `
   <div class="wrap">
     <header class="demo-header">
@@ -275,6 +287,7 @@
 
     <div class="demo-scroll" id="steg9FormPanel">
       <section class="section-block" aria-label="Foto-samtycke">
+        ${partialBanner || ''}
         <p class="scope-note">
           <strong>Scope:</strong> ${escapeHtml(steg9.scope.summary)}
         </p>
@@ -386,6 +399,56 @@
     });
   }
 
+  async function loadForSteg7(options = {}) {
+    const [step789, bundle] = await Promise.all([
+      load(options.force),
+      global.CcoHairtpDocumentCloud?.ensureDocumentBundle?.() ||
+        loadFullDocumentBundle().catch(() => null),
+    ]);
+    const flow = global.CcoHairtpDocumentCloud?.resolveTreatmentFlow?.(options) || 'tp';
+    if (bundle && step789 && global.CcoHairtpDocumentCloud?.resolveSteg7ForFlow) {
+      return global.CcoHairtpDocumentCloud.resolveSteg7ForFlow(step789, bundle, flow);
+    }
+    return step789;
+  }
+
+  async function loadForSteg9(options = {}) {
+    const [step789, bundle] = await Promise.all([
+      load(options.force),
+      global.CcoHairtpDocumentCloud?.ensureDocumentBundle?.() ||
+        loadFullDocumentBundle().catch(() => null),
+    ]);
+    if (!bundle || !step789) return step789;
+    const fotoHit = findDocumentByRegistryId(bundle, 'foto_samtycke');
+    if (!fotoHit?.document?.content) return step789;
+    const fotoContent = fotoHit.document.content;
+    return {
+      ...step789,
+      steg9: {
+        ...step789.steg9,
+        contentStatus: fotoHit.document.contentStatus,
+        blockers: fotoHit.document.blockers || [],
+        scope: fotoContent.scope
+          ? { ...step789.steg9.scope, ...fotoContent.scope }
+          : step789.steg9.scope,
+        ackLabel: fotoContent.ackLabel || step789.steg9.ackLabel,
+        subtitle: fotoContent.subtitle || step789.steg9.subtitle,
+      },
+    };
+  }
+
+  async function preloadForKundkort(force) {
+    await Promise.all([
+      load(force),
+      global.CcoHairtpDocumentCloud?.ensureDocumentBundle?.() ||
+        loadFullDocumentBundle(force).catch(() => null),
+    ]);
+    return {
+      content: cachedContent,
+      bundle: cachedFullBundle,
+    };
+  }
+
   async function load(force) {
     if (cachedContent && !force) return cachedContent;
     if (loadPromise && !force) return loadPromise;
@@ -425,6 +488,13 @@
       })
       .then((payload) => {
         cachedFullBundle = payload;
+        if (typeof global.dispatchEvent === 'function') {
+          global.dispatchEvent(
+            new CustomEvent('cco:hairtp-document-bundle-ready', {
+              detail: { cacheVersion: payload.cacheVersion || '' },
+            })
+          );
+        }
         return payload;
       })
       .catch((error) => {
@@ -450,6 +520,9 @@
 
   global.CcoMeridiqContent = {
     load,
+    loadForSteg7,
+    loadForSteg9,
+    preloadForKundkort,
     getContent,
     loadFullDocumentBundle,
     getFullDocumentBundle,

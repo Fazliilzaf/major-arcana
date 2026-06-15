@@ -2055,20 +2055,27 @@
       row.contentStatus && row.contentStatus !== 'FULL' && row.blockers?.length
         ? `<span class="v11-doc-row__blocker" title="${escapeHtml(row.blockers[0])}">!</span>`
         : '';
-    const clickable =
-      row.previewable || (row.registryId && /^offert_/.test(row.registryId))
-        ? ' v11-doc-row--clickable'
-        : '';
+    const isClickable =
+      row.previewable === true ||
+      row.filler === 'auto' ||
+      (row.registryId && /^auto_/.test(row.registryId)) ||
+      (row.registryId && /^offert_/.test(row.registryId));
+    const isAutoPreview =
+      row.filler === 'auto' || (row.registryId && /^auto_/.test(row.registryId));
+    const previewHint = isAutoPreview
+      ? '<span class="v11-doc-row__preview" aria-hidden="true">Visa mall</span>'
+      : '';
     return `
       <div
-        class="v11-doc-row${row.dashed ? ' v11-doc-row--planned' : ''}${clickable}"
+        class="v11-doc-row${row.dashed ? ' v11-doc-row--planned' : ''}${isClickable ? ' v11-doc-row--clickable' : ''}"
         data-v11-doc-row
         data-v11-doc-registry="${escapeHtml(row.registryId || '')}"
         data-v11-doc-filler="${escapeHtml(row.filler)}"
         data-v11-doc-flow="${escapeHtml(row.flow)}"
         data-v11-doc-status="${escapeHtml(row.status)}"
         data-v11-doc-content-status="${escapeHtml(row.contentStatus || '')}"
-        ${row.previewable ? 'role="button" tabindex="0"' : ''}
+        data-v11-doc-previewable="${isClickable ? '1' : '0'}"
+        ${isClickable ? 'role="button" tabindex="0"' : ''}
       >
         <div class="v11-doc-row__main">
           <span class="v11-doc-row__title">${escapeHtml(row.title)}</span>
@@ -2079,6 +2086,7 @@
           ${amountHtml}
           ${prepHtml}
           ${blockerHtml}
+          ${previewHint}
           <span class="v11-doc-row__pill v11-doc-row__pill--${escapeHtml(row.status)}">${escapeHtml(row.statusLabel)}</span>
         </div>
       </div>`;
@@ -2841,16 +2849,18 @@
   }
 
   function handleV11DocumentRowActivate(root, row) {
+    void root;
     if (!row) return;
     const registryId = row.getAttribute('data-v11-doc-registry') || '';
     const filler = row.getAttribute('data-v11-doc-filler') || '';
-    if (!registryId) return;
+    const previewable = row.getAttribute('data-v11-doc-previewable') === '1';
+    if (!registryId || !previewable) return;
     if (filler === 'auto' || registryId.startsWith('auto_')) {
-      global.CcoHairtpDocumentCloud?.openAutoDocPreview?.(registryId);
+      void global.CcoHairtpDocumentCloud?.openAutoDocPreviewAsync?.(registryId);
       return;
     }
     if (registryId.startsWith('offert_')) {
-      global.CcoHairtpDocumentCloud?.openSteg7ForOfferRegistry?.(registryId);
+      void global.CcoHairtpDocumentCloud?.openSteg7ForOfferRegistry?.(registryId);
     }
   }
 
@@ -3406,6 +3416,15 @@
     if (root.dataset.intelBound === '1') return;
     root.dataset.intelBound = '1';
 
+    root.addEventListener('keydown', (event) => {
+      const docRow = event.target.closest('[data-v11-doc-row][data-v11-doc-previewable="1"]');
+      if (!docRow) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleV11DocumentRowActivate(root, docRow);
+      }
+    });
+
     root.addEventListener('click', (event) => {
       const live = root._v9IntelCtx || {};
       const card = live.card;
@@ -3435,7 +3454,7 @@
         return;
       }
 
-      const docRow = event.target.closest('[data-v11-doc-row][data-v11-doc-registry]');
+      const docRow = event.target.closest('[data-v11-doc-row][data-v11-doc-previewable="1"]');
       if (docRow) {
         handleV11DocumentRowActivate(root, docRow);
         return;

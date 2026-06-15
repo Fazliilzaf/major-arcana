@@ -14,7 +14,7 @@
   const STYLE_ID = 'cco-steg7-bundle-styles';
   const DISMISS_KEY = 'arcana.steg7bundle.dismissed';
   const SIGNED_KEY = 'arcana.steg7bundle.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-step789-kundkort-v5';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-cloud-fas12-v7';
 
   let meridiqContent = null;
 
@@ -23,6 +23,7 @@
 #${ROOT_ID} .doc-heading{font-size:12px;line-height:1.5;color:var(--brand);margin:12px 0 8px;font-weight:700}
 #${ROOT_ID} .doc-title{font-size:12px;line-height:1.5;color:var(--brand);margin:0 0 10px}
 #${ROOT_ID} .doc-divider{padding-top:10px;border-top:1px solid rgba(215,202,194,.3);margin:10px 0 0}
+#${ROOT_ID} .doc-partial-banner{margin:0 0 10px;padding:10px 12px;border-radius:12px;font-size:11px;line-height:1.45;color:#7a4014;background:rgba(180,120,40,.12);border:1px solid rgba(180,120,40,.22)}
 #${GATE_ID} .head{padding:18px 18px 16px;border-bottom:1px solid rgba(215,202,194,.5);background:var(--header-bg);border-radius:0;margin:0}
 #${GATE_ID} .head .kicker{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
 #${GATE_ID} .head h1{font-size:16px;font-weight:800;margin:0 0 6px;color:var(--brand)}
@@ -154,7 +155,7 @@
       return Promise.resolve(null);
     }
 
-    return global.CcoMeridiqContent.load()
+    return global.CcoMeridiqContent.loadForSteg7(options)
       .then((content) => {
         meridiqContent = content;
         ensureStyles();

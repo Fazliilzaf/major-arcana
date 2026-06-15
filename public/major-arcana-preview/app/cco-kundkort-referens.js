@@ -652,6 +652,32 @@
     return { ready: false, offers: [], autoDocs: [], healthForms: [] };
   }
 
+  function referensAutoDocRegistryId(doc) {
+    return String(
+      (doc &&
+        (doc.registryId ||
+          doc.documentTypeId ||
+          doc.typeId ||
+          doc.templateId ||
+          doc.id ||
+          doc.key)) ||
+        ''
+    );
+  }
+
+  function referensAutoDocPreviewAttrs(doc) {
+    var registryId = referensAutoDocRegistryId(doc);
+    if (!/^auto_/.test(registryId)) return '';
+    var safeId = esc(registryId);
+    return (
+      ' data-kk-auto-doc-preview="' +
+      safeId +
+      '" data-v11-doc-row data-v11-doc-registry="' +
+      safeId +
+      '" data-v11-doc-filler="auto" data-v11-doc-previewable="1" role="button" tabindex="0"'
+    );
+  }
+
   function resolveReferensOffers(docsPayload, commercialCase) {
     var offers = A(docsPayload.offers);
     var ccOffer = commercialCase && (commercialCase.offer || commercialCase.activeOffer);
@@ -2439,10 +2465,17 @@
           var done =
             d.planned === false ||
             /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''));
+          var previewAttrs = referensAutoDocPreviewAttrs(d);
           return (
-            '<div class="gk-rad"><b>' +
+            '<div class="gk-rad' +
+            (previewAttrs ? ' kk-auto-doc-preview-row' : '') +
+            '"' +
+            previewAttrs +
+            '><b>' +
             esc(d.title || 'Auto-dokument') +
-            '</b> <span class="gk-hl gk-tag ' +
+            '</b> ' +
+            (previewAttrs ? '<span class="kk-auto-doc-preview-label">Visa mall</span> ' : '') +
+            '<span class="gk-hl gk-tag ' +
             (done ? 'gk-tag-ok' : 'gk-tag-warn') +
             '">' +
             (done ? '✓ levererat' : esc(d.statusLabel || 'Planerad')) +
@@ -4406,17 +4439,25 @@
             var meta = [step != null && step !== '' ? 'Steg ' + step : '', dt]
               .filter(Boolean)
               .join(' · ');
+            var previewAttrs = referensAutoDocPreviewAttrs(d);
             var statusHtml = done
               ? '<span style="font-size:10px;font-weight:800;color:#4a8268">✓ levererat</span>'
               : '<span style="font-size:10px;font-weight:800;color:#94897b">' +
                 esc(d.statusLabel || 'Planerad') +
                 '</span>';
             return (
-              '<div class="row"><div style="flex:1"><div class="rt">' +
+              '<div class="row' +
+              (previewAttrs ? ' kk-auto-doc-preview-row' : '') +
+              '"' +
+              previewAttrs +
+              '><div style="flex:1"><div class="rt">' +
               esc(d.title) +
               '</div><div class="rm">' +
               esc(meta) +
               '</div></div>' +
+              (previewAttrs
+                ? '<span class="kk-auto-doc-preview-label" aria-hidden="true">Visa mall</span>'
+                : '') +
               statusHtml +
               '</div>'
             );
@@ -5568,6 +5609,19 @@
   (function bindKkLiftsOnce() {
     if (window.__kkLiftsBound) return;
     window.__kkLiftsBound = true;
+    function openAutoDocPreviewFromReferens(row) {
+      if (!row) return false;
+      var registryId = row.getAttribute('data-kk-auto-doc-preview') || '';
+      if (!/^auto_/.test(registryId)) return false;
+      if (
+        window.CcoHairtpDocumentCloud &&
+        typeof window.CcoHairtpDocumentCloud.openAutoDocPreviewAsync === 'function'
+      ) {
+        window.CcoHairtpDocumentCloud.openAutoDocPreviewAsync(registryId);
+        return true;
+      }
+      return false;
+    }
     function scroller() {
       return (
         document.querySelector('.v10-dossier-referens') ||
@@ -5586,6 +5640,15 @@
             doc.getAttribute('data-kk-doc-title') || 'Dokument'
           );
         }
+        return;
+      }
+      // 0b) Auto-dokument preview (SMS/e-postmallar från content-bundlen)
+      var autoDoc =
+        e.target.closest &&
+        e.target.closest('[data-kk-auto-doc-preview][data-v11-doc-previewable="1"]');
+      if (autoDoc) {
+        e.preventDefault();
+        openAutoDocPreviewFromReferens(autoDoc);
         return;
       }
       // 1) Kopiera (adress) till urklipp
@@ -5658,6 +5721,14 @@
         }
         return;
       }
+    });
+    document.addEventListener('keydown', function (e) {
+      var autoDoc =
+        e.target.closest &&
+        e.target.closest('[data-kk-auto-doc-preview][data-v11-doc-previewable="1"]');
+      if (!autoDoc || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      openAutoDocPreviewFromReferens(autoDoc);
     });
   })();
 
