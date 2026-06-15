@@ -11222,10 +11222,18 @@ const {
   createExecutiveDecisionFeed,
   createPersistentExecutiveDecisionFeed,
 } = require('./src/ops/executiveDecisionFeed');
-const executiveDecisionFeed =
-  typeof createPersistentExecutiveDecisionFeed === 'function'
-    ? createPersistentExecutiveDecisionFeed({ filePath: './data/executive-decision-feed.json' })
-    : createExecutiveDecisionFeed();
+// createPersistentExecutiveDecisionFeed är async (returnerar ett Promise). Tidigare
+// tilldelades Promiset direkt → executiveDecisionFeed.list() = undefined → /executive/feed
+// gav 500. Starta därför med en synkron feed (routes funkar direkt) och uppgradera till den
+// persistenta feeden när den laddats från disk.
+let executiveDecisionFeed = createExecutiveDecisionFeed();
+if (typeof createPersistentExecutiveDecisionFeed === 'function') {
+  createPersistentExecutiveDecisionFeed({ filePath: './data/executive-decision-feed.json' })
+    .then((feed) => {
+      if (feed && typeof feed.list === 'function') executiveDecisionFeed = feed;
+    })
+    .catch((err) => console.warn('[executive-feed] persistent init misslyckades:', err?.message));
+}
 
 let billingService = null;
 let stripeWebhookHandler = null;
