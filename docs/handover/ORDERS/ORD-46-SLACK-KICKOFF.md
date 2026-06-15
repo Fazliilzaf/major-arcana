@@ -3,21 +3,28 @@
 ```
 🚀 Cloud Agent (ORD-46) live — Staff UAT starts NOW
 
-URL: https://arcana.hairtpclinic.com/staff?view=customers&demo=on&demoOpDay=1
+Login first, then pick your path:
 
-5 min quick test:
-1. Open customer → dokumentpanel → click rows (offert / friskförsäkran / journal)
-2. Op-dag-panel → buttons för steg 8, 9, ordination
-3. Steg 8 modal → 13 questions, sign (demo)
-4. Steg 9 modal → PARTIAL-banner (expected, text = ORD-24)
-5. Registry-section → filter + clickable rows
+🚀 QUICK DEMO (skip legal gates):
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1
 
-Full checklist (~30 min):
-docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md
+📋 FULL FLOW (with legal gates):
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1
 
-Kända: Foto-samtycke text väntar juridisk review (PARTIAL-banner visar detta)
+5 min test:
+1. Link opens → Kunder-view
+2. Click customer
+3. Scroll → Op-dag panel (5 buttons)
+4. Click buttons → modals (Steg 8 = 13 questions, Steg 9 = PARTIAL OK)
 
-Issues? → #arcana-bugs
+Steg 7 modal (full flow) = legal gate — expected, just close it.
+Foto-samtycke PARTIAL = text from ORD-24 — expected.
+If 502 → wait 30s, reload. If persists → deploy issue.
+
+Checklista: docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md
+Full guide: docs/handover/ORDERS/ORD-46-STAFF-UAT-KICKOFF.txt
+
+Issues? → #arcana-bugs with screenshot
 ```
 
 ---
@@ -27,18 +34,26 @@ Issues? → #arcana-bugs
 ```
 🚀 Cloud Agent (ORD-46) live — staff UAT startar nu
 
-URL: https://arcana.hairtpclinic.com/staff?view=customers&demo=on&demoOpDay=1
+Logga in först, välj sedan väg:
+
+🚀 SNABB-DEMO (hoppa juridiska gates):
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1
+
+📋 FULL FLÖDE (med juridiska gates):
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1
 
 Snabbtest (5 min):
-1. Öppna kund → dokumentpanel → klicka rader (offert / friskförsäkran / journal)
-2. Op-dag-panel → knappar för steg 8, 9, ordination
-3. Steg 8 → 13 frågor, signera (demo)
-4. Steg 9 → PARTIAL-banner (förväntat, text kommer ORD-24)
-5. Registry-sektion → filter + klickbara rader
+1. Länken öppnar → Kunder-vy
+2. Klicka en kund
+3. Scrolla → Op-dag-panel (5 knappar)
+4. Klicka knappar → modaler (Steg 8 = 13 frågor, Steg 9 = PARTIAL OK)
+
+Steg 7-modal (full flöde) = juridisk gate — förväntat, stäng den.
+Foto-samtycke PARTIAL = text från ORD-24 — förväntat.
+502 → vänta 30 s, ladda om. Kvarstår → deploy-problem.
 
 Checklista: docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md
+Full guide: docs/handover/ORDERS/ORD-46-STAFF-UAT-KICKOFF.txt
 
-Känt: Foto-samtycke-text väntar juridisk review (PARTIAL-banner)
-
-Fel? → #arcana-bugs
+Fel? → #arcana-bugs med skärmdump
 ```

@@ -9,19 +9,41 @@
 
 ## Förutsättningar
 
-1. Inloggad som staff/owner i CCO
-2. v9 kundvy aktiv (`data-v9-enabled="on"`)
-3. Demo-läge för steg 7/8/9-modaler (URL-parametrar nedan)
+1. Inloggad som staff/owner i CCO (**logga in först** om du blir ombedd)
+2. v9 kundvy aktiv — använd `v9=on` i URL om v9 tidigare stängts av
+3. Demo-läge för steg 7/8/9-modaler (`demo=on` i URL)
+4. **Klicka en kund** i listan — Op-dag och dokumentpanel syns först i dossier
 
 ---
 
 ## Start-URL
 
+**Snabb-demo (rekommenderas — hoppar steg 7 juridisk gate):**
+
 ```
-https://arcana.hairtpclinic.com/staff?view=customers&demo=on&demoOpDay=1
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1
 ```
 
-Valfritt: `&demoPatient=Test+Kund` · `&demoSkipSteg7=1` (hoppa över steg 7-gate för steg 8)
+**Full flöde (med steg 7 juridisk gate — stäng modalen, den är förväntad):**
+
+```
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1
+```
+
+Valfritt: `&demoPatient=Anna+Karlsson`
+
+---
+
+## Felsökning
+
+| Symptom                  | Åtgärd                                                              |
+| ------------------------ | ------------------------------------------------------------------- |
+| 502 / vit sida           | Vänta 30 s, ladda om. Kvarstår → deploy-problem                     |
+| Login-formulär           | Logga in, öppna länken igen                                         |
+| Hamnar på Konversationer | Vänta eller klicka **Kunder** — URL byter till `view=customers`     |
+| Ingen Op-dag-panel       | Har du **klickat en kund**? Kräver `demoOpDay=1`                    |
+| Steg 7-modal blockerar   | **Förväntat** i full flöde — stäng den, eller använd snabb-demo-URL |
+| Foto-samtycke PARTIAL    | **Förväntat** tills ORD-24 — räknas inte som FAIL                   |
 
 ---
 
