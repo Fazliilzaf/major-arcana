@@ -104,6 +104,20 @@
     if (/image\/x-adobe-dng/.test(mime) || /\.dng$/.test(name)) return 4;
     return 3;
   }
+  function cleanName(f) {
+    var n = String((f && f.fileName) || '');
+    if (/\?\?\?|\+\?|�/.test(n)) {
+      var ft = f && f.fileType ? f.fileType : '';
+      return ft === 'journal_pdf'
+        ? 'Journal'
+        : ft === 'image'
+          ? 'Foto'
+          : /friskf/i.test(n)
+            ? 'Friskförsäkran'
+            : 'Dokument';
+    }
+    return n.replace(/\.(pdf|jpe?g|png|heic|webp|docx?)$/i, '');
+  }
   function dedupeDriveFiles(files) {
     var seen = {};
     var rows = [];
