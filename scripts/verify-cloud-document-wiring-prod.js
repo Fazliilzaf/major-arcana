@@ -8,7 +8,7 @@
 const https = require('node:https');
 
 const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
-const EXPECT_COMMIT = (process.env.ARCANA_CLOUD_EXPECT_COMMIT || 'af3c4b5c').slice(0, 8);
+const EXPECT_COMMIT = (process.env.ARCANA_CLOUD_EXPECT_COMMIT || '720f157a').slice(0, 8);
 
 const checks = [];
 
@@ -53,11 +53,19 @@ function get(path) {
 
     const bundleRes = await get('/major-arcana-preview/data/hairtp-document-content-bundle.json');
     const bundle = JSON.parse(bundleRes.body);
-    if (bundle.cacheVersion === 'hairtp-document-content-v6') {
-      pass('bundle v6', bundle.cacheVersion);
+    if (bundle.cacheVersion === 'hairtp-document-content-v7') {
+      pass('bundle v7', bundle.cacheVersion);
     } else {
       fail('bundle version', bundle.cacheVersion);
     }
+
+    const summary = bundle.summary || {};
+    const totalMissing =
+      (summary.customerFilled?.MISSING || 0) +
+      (summary.staffFilled?.MISSING || 0) +
+      (summary.information?.MISSING || 0);
+    if (totalMissing === 0) pass('bundle 0 MISSING');
+    else fail('bundle MISSING count', String(totalMissing));
 
     const frisk = (bundle.customerFilled || []).find((d) => d.registryId === 'friskfoers_tp');
     if (frisk?.meridiq?.questions?.length === 13) pass('friskfoers 13 questions');
