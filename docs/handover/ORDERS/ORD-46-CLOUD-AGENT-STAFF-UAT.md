@@ -1,9 +1,9 @@
 # ORD-46 — Cloud Agent Staff UAT
 
-**Status:** ✅ Ready (prod verified 9/9)  
-**Prod:** `https://arcana.hairtpclinic.com` · commit `af3c4b5c`  
+**Status:** ✅ Ready (prod verified 11/11)  
+**Prod:** `https://arcana.hairtpclinic.com` · commit `87768ada` (bundle v7 `720f157a`)  
 **Förväntad tid:** 20–30 min per testare  
-**Känd begränsning:** Steg 9 (`foto_samtycke`) visar **PARTIAL** tills ORD-24 text sync — navigation och scope ska fungera ändå.
+**Kända PARTIAL (5 st — förväntat, inte bugg):** `foto_samtycke` (ORD-24), `behandlingsplan_staff`, `anteckningar_kort`, `id_verifiering`, `auto_internt_sms`
 
 ---
 
@@ -133,7 +133,7 @@ Fyll i efter test:
 Testare:
 Datum:
 Enhet (iPhone/iPad/desktop):
-Prod commit (verifiera): af3c4b5c
+Prod commit (verifiera): 87768ada
 
 FAIL-lista (om någon):
 1.
@@ -151,7 +151,8 @@ Skicka till owner / lägg i Notion ORD-46 eller ny ORD för fix.
 Agent verify före UAT (2026-06-15):
 
 - `/readyz` OK
-- Bundle `hairtp-document-content-v6`
+- Bundle `hairtp-document-content-v7` — 34 FULL · 5 PARTIAL · 0 MISSING
 - Cloud wiring symbols live på prod static assets
+- `verify-cloud-document-wiring-prod`: 11/11 PASS
 
 Personal behöver **inte** köra verify-script — endast manuell checklista ovan.
