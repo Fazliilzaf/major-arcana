@@ -382,6 +382,7 @@ let ccoBookingCaseStore = null;
     // GET state (med suggestions)
     app.get(
       '/api/v1/cco-customer-identity/suggestions',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('customers.read'),
       withAudit('suggestions.list', async (req) => {
@@ -885,6 +886,7 @@ let ccoBookingCaseStore = null;
     );
     app.get(
       '/api/v1/cco-photo-annotations/customer/:cid',
+      requireCcoAuthenticated,
       attachRole,
       requireAnyRole(['doctor', 'staff', 'owner', 'revisor']),
       (req, res) => {
@@ -945,6 +947,7 @@ let ccoBookingCaseStore = null;
     );
     app.get(
       '/api/v1/cco-treatment-plans/customer/:cid',
+      requireCcoAuthenticated,
       attachRole,
       requireAnyRole(['doctor', 'staff', 'owner', 'revisor']),
       (req, res) => {
@@ -1953,6 +1956,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-encounters/customer/:cid/composite
     app.get(
       '/api/v1/cco-encounters/customer/:cid/composite',
+      requireCcoAuthenticated,
       attachRole,
       requireAnyRole(['owner', 'doctor', 'staff', 'staff_assistant', 'revisor']),
       enforceAccessRestriction,
@@ -1999,6 +2003,7 @@ let ccoBookingCaseStore = null;
     // GET /api/v1/cco-operator-dashboard/customer-actions?sinceHours=24
     app.get(
       '/api/v1/cco-operator-dashboard/customer-actions',
+      requireCcoAuthenticated,
       attachRole,
       requireAnyRole(['owner', 'doctor', 'staff', 'staff_assistant', 'revisor']),
       async (req, res) => {
@@ -5958,6 +5963,7 @@ try {
   // Aggregera kronologisk lista: journal-poster + offerter + avtal + send-actions
   app.get(
     '/api/v1/cco-customers/:id/timeline',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('customers.read'),
     async (req, res) => {
@@ -6159,6 +6165,7 @@ try {
   // GET /api/v1/cco-customers/:id/agreements — kombinerar offers + agreements för flik
   app.get(
     '/api/v1/cco-customers/:id/agreements',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('customers.read'),
     async (req, res) => {
@@ -6202,6 +6209,7 @@ try {
   // RBAC: customers.read (samma som timeline) — strängare per-asset-RBAC görs i download-endpoint.
   app.get(
     '/api/v1/cco-customers/:id/journal-feed',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('customers.read'),
     async (req, res) => {
@@ -6506,6 +6514,7 @@ try {
   // Ingen Drive-länk. Endast CCO-source.
   app.get(
     '/api/v1/cco-customers/:id/journal-timeline',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('customers.read'),
     async (req, res) => {
@@ -7633,6 +7642,7 @@ try {
     // GET /api/v1/cco-aftercare/jobs — lista pipeline
     app.get(
       '/api/v1/cco-aftercare/jobs',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('aftercare.read'),
       (req, res) => {
@@ -7649,6 +7659,7 @@ try {
     // GET /api/v1/cco-aftercare/jobs/:id
     app.get(
       '/api/v1/cco-aftercare/jobs/:id',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('aftercare.read'),
       (req, res) => {
@@ -8867,6 +8878,7 @@ try {
   // P0.8: aggregate-read loggas också (PDL: åtkomst-räkning)
   app.get(
     '/api/v1/cco-journal-quick/stats',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.read_any'),
     async (req, res) => {
@@ -10324,6 +10336,7 @@ try {
   // POST /api/v1/cco-portal/invites — staff skapar invite för patient
   app.post(
     '/api/v1/cco-portal/invites',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('portal.write'),
     jsonParserP,
@@ -10436,6 +10449,7 @@ try {
   // GET /api/v1/cco-portal/invites — staff listar pending invites
   app.get(
     '/api/v1/cco-portal/invites',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('portal.read'),
     async (req, res) => {
