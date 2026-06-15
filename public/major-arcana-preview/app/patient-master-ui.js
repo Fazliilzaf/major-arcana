@@ -11331,6 +11331,10 @@
         window.setTimeout(deferPostOpRefresh, 1800);
       }
       const deepLinkId = normalizeText(runtime.pendingPatientId || startup.patientId);
+      const deepLinkActive =
+        deepLinkId &&
+        !needsStaffLogin() &&
+        (isMobileViewport() || isCustomersShellActive() || startup.view === 'customers');
       const preserveDetail =
         deepLinkId &&
         isMobileViewport() &&
@@ -11343,14 +11347,18 @@
         renderDetailEmpty();
       }
       if (
-        deepLinkId &&
-        isMobileViewport() &&
-        !runtime.detail?.card &&
+        deepLinkActive &&
         !patientDetailInflight.has(normalizeText(deepLinkId)) &&
-        !railHasPatientDetailShell()
+        !(
+          normalizeText(runtime.selectedPatientId) === deepLinkId &&
+          (Boolean(runtime.detail?.card) || railHasPatientDetailShell())
+        )
       ) {
         runtime.selectedPatientId = deepLinkId;
-        renderDetailLoadingSkeleton(deepLinkId);
+        updatePatientRowSelection('', deepLinkId);
+        if (!railHasPatientDetailShell()) {
+          renderDetailLoadingSkeleton(deepLinkId);
+        }
         syncMobilePatientLayout();
       }
       if (!runtime.loaded && !runtime.loading) {
@@ -11379,6 +11387,15 @@
       } else {
         renderPatientRows();
         syncMobilePatientLayout();
+        if (
+          deepLinkActive &&
+          !patientDetailInflight.has(normalizeText(deepLinkId)) &&
+          !(
+            normalizeText(runtime.selectedPatientId) === deepLinkId && Boolean(runtime.detail?.card)
+          )
+        ) {
+          void openPatient(deepLinkId);
+        }
       }
       if (isMobileViewport() && els.search && !runtime.selectedPatientId && !startup.patientId) {
         window.setTimeout(() => {

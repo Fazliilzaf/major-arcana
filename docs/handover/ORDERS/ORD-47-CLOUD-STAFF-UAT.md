@@ -32,9 +32,9 @@ https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&d
 | TP op-dag                   | Dino Placo     | `f8233fca-779c-488b-a980-0e41bc01c0c0` |
 | Variation / PRP-flöde       | Jonas Lundvall | `cc07c972-49d9-4c99-928e-d750e79a82e9` |
 
-**Var i UI:** Kundlista → klicka kund (eller deep-link) → **höger panel** med KUNDDOSSIÉ + §-kort.
+**Var i UI:** UAT-länken ska **direkt öppna kundkort** i höger panel (desktop + mobil). Kräver `view=customers` + `patientId` i URL. Hårdladda (Cmd+Shift+R) vid cache-problem.
 
-Ingen modal ska auto-öppnas vid kundklick.
+Ingen modal ska auto-öppnas vid kundklick (med `demoSkipSteg7=1`).
 
 ---
 
@@ -139,6 +139,7 @@ https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&p
 
 | Symptom                                | Åtgärd                                                                             |
 | -------------------------------------- | ---------------------------------------------------------------------------------- |
+| Hamnar bara på kundlistan (ej kort)    | Kräver `view=customers&patientId=` + senaste build (desktop deeplink). Hårdladda.  |
 | Tomt kundkort / vit panel              | Hårdladda (Cmd+Shift+R). Kräver commit `7e7ac22b`+ (resolver helpers exporterade). |
 | Flat registry som default              | Bug — ska vara dold; öppna Mallbibliotek medvetet                                  |
 | Konversationer istället för Kunder     | Ladda canonical URL                                                                |
