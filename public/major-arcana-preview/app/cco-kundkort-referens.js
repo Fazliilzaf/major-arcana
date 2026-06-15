@@ -642,7 +642,6 @@
   var ORD47_V1 = true;
 
   function ensureOrd47JourneyResolverStub() {
-    if (window.CcoJourneyDocResolver) return window.CcoJourneyDocResolver;
     var CARD_BY_STEP = {
       2: 'bokning',
       3: 'halsa',
@@ -653,8 +652,11 @@
       8: 'operation',
       9: 'foto',
     };
-    window.CcoJourneyDocResolver = {
-      resolveActiveFlow: function (card) {
+    var resolver = window.CcoJourneyDocResolver || {};
+    window.CcoJourneyDocResolver = resolver;
+
+    if (typeof resolver.resolveActiveFlow !== 'function') {
+      resolver.resolveActiveFlow = function (card) {
         if (
           window.CcoHairtpDocumentCloud &&
           typeof window.CcoHairtpDocumentCloud.resolveTreatmentFlow === 'function'
@@ -675,17 +677,23 @@
         if (/prf/.test(t)) return 'prf';
         if (/profhilo|profilo/.test(t)) return 'profhilo';
         return 'tp';
-      },
-      resolvePatientJourneyStep: function (card, ctx) {
+      };
+    }
+    if (typeof resolver.resolvePatientJourneyStep !== 'function') {
+      resolver.resolvePatientJourneyStep = function (card, ctx) {
         if (ctx && ctx.cur != null && ctx.cur !== '') return Number(ctx.cur) || 1;
         if (card && card.missingHealthDeclaration) return 3;
         if (card && card.missingOperationDayInsurance) return 8;
         return 1;
-      },
-      uiCardForStep: function (step) {
+      };
+    }
+    if (typeof resolver.uiCardForStep !== 'function') {
+      resolver.uiCardForStep = function (step) {
         return CARD_BY_STEP[Number(step)] || '';
-      },
-      filterOffersByFlow: function (offers, flow) {
+      };
+    }
+    if (typeof resolver.filterOffersByFlow !== 'function') {
+      resolver.filterOffersByFlow = function (offers, flow) {
         offers = A(offers);
         if (!offers.length) return offers;
         var f = String(flow || 'tp').toLowerCase();
@@ -707,8 +715,10 @@
           return blob.indexOf(f.split('_')[0]) >= 0;
         });
         return hit.length ? hit : offers.slice(0, 1);
-      },
-      railStatusLine: function (card, ctx) {
+      };
+    }
+    if (typeof resolver.railStatusLine !== 'function') {
+      resolver.railStatusLine = function (card, ctx) {
         ctx = ctx || {};
         var cur = Number(ctx.cur) || 0;
         var gates = A(ctx.gateSignals);
@@ -732,8 +742,38 @@
         if (cur === 9) return 'Foto-samtycke · Kontrollera status';
         if (ctx.nextLabel) return String(ctx.nextLabel);
         return cur ? 'Steg ' + cur + ' · Kundresa' : 'Kundresa · Välj kund';
-      },
-    };
+      };
+    } else if (resolver.railStatusLine.length < 2) {
+      var catalogRail = resolver.railStatusLine;
+      resolver.railStatusLine = function (card, ctx) {
+        ctx = ctx || {};
+        if (ctx.cur != null && ctx.cur !== '') {
+          var cur = Number(ctx.cur) || 0;
+          var gates = A(ctx.gateSignals);
+          if (card && card.missingHealthDeclaration && cur <= 4) {
+            return 'Hälsokontroll · HD saknas';
+          }
+          if (referensHasSignedHd(card) && cur === 3) return 'Hälsokontroll · Klar';
+          if (cur === 5) return 'Behandlingsplan · ' + (ctx.offerStatus || 'Pågår');
+          if (cur === 6) return 'Betänketid · ' + (ctx.coolingLabel || '2 dagar');
+          if (cur === 7) return 'Avtal · ' + (ctx.agreementStatus || 'Väntar review');
+          if (cur === 8) {
+            if (
+              gates.some(function (s) {
+                return /operation_day_insurance/.test(String((s && (s.ruleId || s.id)) || ''));
+              })
+            ) {
+              return 'Op-dag · Friskförsäkran saknas';
+            }
+            return 'Op-dag · ' + (ctx.opDate || 'Operationsdag');
+          }
+          if (cur === 9) return 'Foto-samtycke · Kontrollera status';
+          if (ctx.nextLabel) return String(ctx.nextLabel);
+          return cur ? 'Steg ' + cur + ' · Kundresa' : 'Kundresa · Välj kund';
+        }
+        return catalogRail(card);
+      };
+    }
     return window.CcoJourneyDocResolver;
   }
 
