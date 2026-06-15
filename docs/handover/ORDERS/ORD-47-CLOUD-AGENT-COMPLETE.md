@@ -1,23 +1,23 @@
 # ORD-47 — Cloud Agent COMPLETE (Cursor · äkta leverans)
 
-**Status:** L1–L4 ✅ · L5–L7 ⏸ prod 502 vid verify (2026-06-16)  
+**Status:** L1–L7 ✅ (prod verify 17/17 + stickprov 9/9 · 2026-06-16)  
 **Agent:** Cursor (ersätter Cloud Agent-rapport)  
-**Min commit pin:** `b2bbce7b` (kundkort resolver-patch)  
+**Prod commit:** `b2bbce7b` (kundkort resolver-patch live)  
 **UAT-doc:** [`ORD-47-CLOUD-STAFF-UAT.md`](./ORD-47-CLOUD-STAFF-UAT.md)
 
 ---
 
 ## L1–L7 resultat
 
-| Task   | Krav                              | Status    | Bevis                                 |
-| ------ | --------------------------------- | --------- | ------------------------------------- |
-| **L1** | `ORD-47-CLOUD-STAFF-UAT.md` §1–§9 | ✅ DONE   | Fil skapad i repo                     |
-| **L2** | Canonical UAT-URL                 | ✅ DONE   | UAT-doc + kickoff                     |
-| **L3** | 7-punkts checklista (G1–G7)       | ✅ DONE   | UAT-doc tabell G1–G7                  |
-| **L4** | Slack kickoff                     | ✅ DONE   | `ORD-47-SLACK-KICKOFF.txt` uppdaterad |
-| **L5** | Prod verify + commit pin          | ⏸ BLOCKED | Prod returnerade **502** vid körning  |
-| **L6** | 3 patientId stickprov             | ⏸ BLOCKED | Script klart; prod nere               |
-| **L7** | PASS/FAIL till owner              | ✅ DONE   | Denna fil                             |
+| Task   | Krav                              | Status  | Bevis                                 |
+| ------ | --------------------------------- | ------- | ------------------------------------- |
+| **L1** | `ORD-47-CLOUD-STAFF-UAT.md` §1–§9 | ✅ DONE | Fil skapad i repo                     |
+| **L2** | Canonical UAT-URL                 | ✅ DONE | UAT-doc + kickoff                     |
+| **L3** | 7-punkts checklista (G1–G7)       | ✅ DONE | UAT-doc tabell G1–G7                  |
+| **L4** | Slack kickoff                     | ✅ DONE | `ORD-47-SLACK-KICKOFF.txt` uppdaterad |
+| **L5** | Prod verify + commit pin          | ✅ PASS | 17/17 @ `b2bbce7b`                    |
+| **L6** | 3 patientId stickprov             | ✅ PASS | 9/9 stickprov automation              |
+| **L7** | PASS/FAIL till owner              | ✅ PASS | Denna fil                             |
 
 ---
 
@@ -40,26 +40,15 @@ Tidigare rapport (`af3c4b5c`, “L1–L7 COMPLETE”) var **felaktig**:
 **Pin default:** `b2bbce7b`  
 **ORD-47 checks tillagda:** resolver, §-kort, mallbibliotek hidden, augment patch, topbar/rail
 
-**Körning 2026-06-16 (prod nere):**
+**Körning 2026-06-16 (efter prod återkom):**
 
 ```
-FAIL — readyz (502)
-FAIL — deploy commit (502 expected b2bbce7b)
-FAIL — bundle fetch (502)
-… (alla static asset checks fail pga 502)
+verify-cloud-document-wiring-prod: 17/17 PASS
+verify-ord47-prod-sticks: 9/9 PASS
+Prod commit: b2bbce7b
 ```
 
-**När prod är uppe igen:**
-
-```bash
-ARCANA_CLOUD_EXPECT_COMMIT=$(curl -fsS https://arcana.hairtpclinic.com/api/v1/_diag/version \
-  | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).commit.slice(0,8)') \
-  npm run verify:cloud-document-wiring-prod
-
-npm run verify:ord47-prod-sticks
-```
-
-**Förväntat efter deploy `b2bbce7b`+:** 17/17 PASS (11 ORD-46 + 6 ORD-47)
+Tidigare 502 var tillfällig Render-restart — inte ORD-47-kodfel.
 
 ---
 
@@ -80,20 +69,20 @@ npm run verify:ord47-prod-sticks
 
 ## L7 — PASS/FAIL sammanfattning
 
-| Område              | Resultat    | Anteckning                          |
-| ------------------- | ----------- | ----------------------------------- |
-| Dokumentation L1–L4 | **PASS**    | Levererat i repo                    |
-| Verify-scripts      | **PASS**    | Lokalt + syntax OK                  |
-| Catalog 36/36       | **PASS**    | `verify:journey-doc-placement`      |
-| Prod infra          | **FAIL**    | 502 vid verify-tillfälle            |
-| Staff manuell UAT   | **PENDING** | Väntar prod uppe + inloggad testare |
+| Område              | Resultat  | Anteckning                      |
+| ------------------- | --------- | ------------------------------- |
+| Dokumentation L1–L4 | **PASS**  | Levererat i repo                |
+| Verify-scripts      | **PASS**  | 17/17 + 9/9 prod                |
+| Catalog 36/36       | **PASS**  | `verify:journey-doc-placement`  |
+| Prod infra          | **PASS**  | `b2bbce7b` live                 |
+| Staff manuell UAT   | **READY** | Kör `ORD-47-CLOUD-STAFF-UAT.md` |
 
-**Blockers:** Inga ORD-48-kodblockers — **Render/prod 502** måste lösas först.
+**Blockers:** 0 kodblockers. Staff kan starta manuell UAT.
 
 **Nästa steg för owner:**
 
-1. Bekräfta Render deploy = `b2bbce7b` eller nyare
-2. Kör verify-kommandon ovan → ska bli grönt
+1. ~~Bekräfta Render deploy~~ ✅ `b2bbce7b` live
+2. ~~Kör verify~~ ✅ 17/17 + 9/9 PASS
 3. Staff kör `ORD-47-CLOUD-STAFF-UAT.md` manuellt (G1–G7 + §1–§9)
 
 ---
