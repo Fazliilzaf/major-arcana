@@ -201,17 +201,26 @@ function listPermissionsForRole(role) {
 }
 
 /**
- * Extraherar aktuell roll från request. Letar i (i ordning):
- *   1. req.auth.role (om authStore satt det)
- *   2. req.user.role
- *   3. header X-CCO-Role (för testing / API-clients)
- *   4. fallback: 'operator' (vanligaste vid demo)
+ * Extraherar aktuell roll från request. SÄKERHET: rollen får ENDAST komma från
+ * verifierad auth (authStore/session/token via req.cco/req.auth/req.user). En
+ * oautentiserad request får den maktlösa rollen 'anonymous' (inga permissions) —
+ * INTE 'operator' (som tidigare gjorde att anonyma ärvde full operator-behörighet).
+ *
+ * Den klient-satta headern X-CCO-Role får ALDRIG ge behörighet i produktion (kan
+ * spoofas). Den honoreras bara utanför prod (lokala tester/dev), så testsviten och
+ * lokala API-klienter fungerar oförändrat.
  */
 function getRoleFromRequest(req) {
-  const raw =
-    req.cco?.role || req.auth?.role || req.user?.role || req.headers?.['x-cco-role'] || 'operator';
-  const normalized = normalizeRole(raw);
-  return normalized || 'operator';
+  const fromAuth = req.cco?.role || req.auth?.role || req.user?.role || null;
+  if (fromAuth) {
+    const n = normalizeRole(fromAuth);
+    if (n) return n;
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    const n = normalizeRole(req.headers?.['x-cco-role']);
+    if (n) return n;
+  }
+  return 'anonymous';
 }
 
 /**
