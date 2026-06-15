@@ -1,0 +1,104 @@
+ORD-46 — Cloud Agent Staff UAT Kickoff
+========================================
+
+Status: GO — prod verified 9/9
+Prod:   https://arcana.hairtpclinic.com
+Commit: af3c4b5c (cloud wiring) + docs on main
+Tid:    ca 20–30 min per testare
+
+Full checklista (markera PASS/FAIL):
+  docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md
+
+
+START-URL
+---------
+https://arcana.hairtpclinic.com/staff?view=customers&demo=on&demoOpDay=1
+
+Valfritt:
+  &demoPatient=Test+Kund
+  &demoSkipSteg7=1   (hoppa steg 7-gate om du bara testar steg 8)
+
+
+FÖRUTSÄTTNINGAR
+---------------
+1. Inloggad som staff/owner i CCO
+2. v9 kundvy ska vara aktiv
+3. Demo-läge via URL ovan (steg 7/8/9-modaler)
+
+
+VAD TESTAR VI?
+--------------
+Hair TP kundresa steg 3–9: dokumentpanel, op-dag-routing, friskförsäkran,
+foto-samtycke (skål), persistent registry. All text kommer från bundle —
+vi testar navigation och UX, inte juridisk copy-review.
+
+
+TESTSEKVENS (5 block)
+---------------------
+
+1 — DOKUMENTPANEL (V11 dossier)
+   • Öppna kund i kolumn 3 → dokument-segment laddas
+   • Klicka auto-rad (t.ex. bokningsbekräftelse) → SMS/e-post-preview
+   • Klicka offert → steg 7 avtal+samtycke
+   • Klicka Friskförsäkran → steg 8 med 13 frågor
+   • Klicka journal_tp → journal-flik + TP-journal
+   • Testa filter personal / auto
+   • PARTIAL-rad → gul chip + ev. !-hint
+
+2 — OP-DAG PANEL (sticky, demoOpDay=1)
+   • Synlig rad Op-dag med 5 knappar
+   • Friskförsäkran → steg 8-modal
+   • TP-journal / PRP-journal → rätt journal per flöde
+   • Ordination → staff preview
+   • Före/efter-bild → preview Före/Under/Efter
+   • Foto-samtycke → steg 9 + PARTIAL-banner (förväntat)
+
+3 — STEG 8 (friskförsäkran)
+   • Scroll hela formuläret (mobil: sista fält + Signera synligt)
+   • Validering om obligatoriska fält saknas
+   • Demo-signera → signerad panel + entry-ID
+
+4 — STEG 9 (foto-samtycke)
+   • PARTIAL-banner synlig — INTE ett fel (text kommer ORD-24)
+   • Scope: hårlinje/krona — aldrig ansikte
+   • Demo-signera → status grön + entry-ID
+   • Efter signering → journal-flik + kamera-kort
+
+5 — REGISTRY + MOBIL
+   • Sektion Dokument · registry → filter + klickbara rader
+   • Blocker ! för PARTIAL med tooltip/hint
+   • iPhone/iPad: steg 7/8/9-modaler scrollar till Signera
+   • Op-dag-knappar: wrap, inga klippta etiketter (Å/Ä/Ö)
+
+
+GODKÄNT / UNDERKÄNT
+-------------------
+GODKÄNT om A–E PASS och inga blockerande JS-fel.
+PARTIAL på steg 9 räknas INTE som FAIL.
+
+UNDERKÄNT om:
+  • Modal öppnas inte från dokumentrad eller op-dag
+  • Steg 8 har färre än 13 frågor
+  • Journal/ordination-klick gör ingenting
+  • Sign-knapp klipps på mobil
+
+
+RAPPORTERA
+----------
+Testare:
+Datum:
+Enhet (iPhone/iPad/desktop):
+
+FAIL (om någon):
+1.
+2.
+
+Övrigt:
+
+Skicka till owner / #arcana-bugs / Notion ORD-46
+
+
+KÄND BEGRÄNSNING
+----------------
+foto_samtycke = PARTIAL tills juridisk text levereras (ORD-24).
+Wiring och navigation ska fungera — banner förklarar status.
