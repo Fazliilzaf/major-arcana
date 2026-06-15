@@ -8,7 +8,7 @@
 const https = require('node:https');
 
 const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
-const EXPECT_COMMIT = (process.env.ARCANA_CLOUD_EXPECT_COMMIT || '0112a4f3').slice(0, 8);
+const EXPECT_COMMIT = (process.env.ARCANA_CLOUD_EXPECT_COMMIT || '37f22ea8').slice(0, 8);
 
 const checks = [];
 
