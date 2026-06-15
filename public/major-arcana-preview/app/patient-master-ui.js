@@ -4659,13 +4659,25 @@
     );
   }
 
+  async function preloadHairtpDocumentBundleForKundkort() {
+    if (!window.CcoMeridiqContent?.preloadForKundkort) return null;
+    try {
+      return await window.CcoMeridiqContent.preloadForKundkort();
+    } catch {
+      return null;
+    }
+  }
+
   async function loadPatientDocumentBundle(patientId) {
     if (!patientId) return null;
     try {
-      const body = await apiRequest(
-        `/api/v1/cco-patient-master/patient/dossier-bundle?patientId=${encodeURIComponent(patientId)}&includeJournal=0`,
-        { cacheKey: `dossier-bundle:${patientId}`, staleTime: 30_000, gcTime: 120_000 }
-      );
+      const [body] = await Promise.all([
+        apiRequest(
+          `/api/v1/cco-patient-master/patient/dossier-bundle?patientId=${encodeURIComponent(patientId)}&includeJournal=0`,
+          { cacheKey: `dossier-bundle:${patientId}`, staleTime: 30_000, gcTime: 120_000 }
+        ),
+        preloadHairtpDocumentBundleForKundkort(),
+      ]);
       if (runtime.detail && normalizeText(runtime.selectedPatientId) === normalizeText(patientId)) {
         runtime.detail.dossierBundle = body;
         runtime.detail.documentBundle = body?.documentBundle || body;
@@ -9543,6 +9555,7 @@
       pushMobilePatientDetailHistory(patientId);
     }
     try {
+      void preloadHairtpDocumentBundleForKundkort();
       const payload = await resolvePatientDetailPayload(patientId, {
         preferLite: isMobileViewport(),
       });
@@ -11300,6 +11313,13 @@
 
   function bootstrap() {
     resolveElements();
+    if (!window.__ARCANA_V11_DOC_BUNDLE_LISTENER__) {
+      window.__ARCANA_V11_DOC_BUNDLE_LISTENER__ = true;
+      window.addEventListener('cco:hairtp-document-bundle-ready', () => {
+        if (!runtime.detail?.card || !runtime.selectedPatientId) return;
+        renderDetailPanel();
+      });
+    }
     renderModeChrome();
     const startup = parseStartupParams();
     const primedPatientId = normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__ || '');

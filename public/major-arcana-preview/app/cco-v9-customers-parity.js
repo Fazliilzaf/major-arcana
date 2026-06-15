@@ -1846,31 +1846,136 @@
     { id: 'auto', title: 'Auto-dokument', subtitle: 'system skickar', key: 'autoDocs', grid: true },
   ]);
 
+  function buildBundleMetaIndex(bundle) {
+    const index = new Map();
+    if (!bundle || typeof bundle !== 'object') return index;
+    for (const section of ['customerFilled', 'staffFilled', 'information']) {
+      for (const doc of asArray(bundle[section])) {
+        const registryId = String(doc?.registryId || '').trim();
+        if (registryId) index.set(registryId, doc);
+      }
+    }
+    return index;
+  }
+
+  function enrichV11RowWithBundleMeta(row, bundleIndex) {
+    if (!row || typeof row !== 'object') return row;
+    const registryId = String(row.registryId || row.documentTypeId || '').trim();
+    const meta = registryId ? bundleIndex.get(registryId) : null;
+    if (!meta) {
+      return registryId ? { ...row, registryId } : row;
+    }
+    return {
+      ...row,
+      registryId,
+      title: row.title || row.name || meta.label || registryId,
+      contentStatus: String(meta.contentStatus || row.contentStatus || '').toUpperCase(),
+      blockers: asArray(meta.blockers?.length ? meta.blockers : row.blockers),
+      journeyStep: row.journeyStep || meta.journeyStep || '',
+      previewable:
+        row.previewable === true ||
+        meta.filler === 'system_auto' ||
+        /^auto_/.test(registryId) ||
+        /^offert_/.test(registryId),
+    };
+  }
+
+  function enrichV11RowList(rows, bundleIndex) {
+    return asArray(rows)
+      .map((row) => mapV11DocumentRow(enrichV11RowWithBundleMeta(row, bundleIndex)))
+      .filter(Boolean);
+  }
+
+  function countV11ContentStatuses(rows) {
+    const counts = { full: 0, partial: 0, missing: 0, unknown: 0 };
+    for (const row of asArray(rows)) {
+      const status = String(row.contentStatus || '').toUpperCase();
+      if (status === 'FULL') counts.full += 1;
+      else if (status === 'PARTIAL') counts.partial += 1;
+      else if (status === 'MISSING') counts.missing += 1;
+      else counts.unknown += 1;
+    }
+    return counts;
+  }
+
   function resolveV11DocumentPayload(card, dossierBundle) {
+    void card;
+    const bundle = global.CcoMeridiqContent?.getFullDocumentBundle?.();
+    const bundleIndex = buildBundleMetaIndex(bundle);
     const docs = dossierBundle?.documents;
+
     if (docs && typeof docs === 'object' && dossierBundle?.ready !== false) {
       const counts = docs.counts || dossierBundle.counts || {};
+      const offers = enrichV11RowList(docs.offers || docs.offerter, bundleIndex);
+      const healthForms = enrichV11RowList(
+        docs.healthForms || docs.haelsoSamtycke || docs.consents || docs.haelso_samtycke,
+        bundleIndex
+      );
+      const journals = enrichV11RowList(
+        docs.journalStatus?.expected || docs.journaler || docs.journals,
+        bundleIndex
+      );
+      const autoDocs = enrichV11RowList(
+        docs.autoDokument || docs.auto || docs.autoDocuments || docs.autoDocs,
+        bundleIndex
+      );
+      const allRows = [...offers, ...healthForms, ...journals, ...autoDocs];
+      const contentCounts = countV11ContentStatuses(allRows);
+
       return {
         ready: true,
+        source: bundleIndex.size ? 'dossier-bundle+content-bundle' : 'dossier-bundle',
+        bundleCacheVersion: bundle?.cacheVersion || '',
         counts: {
-          total: Number(counts.total ?? counts.all ?? 0),
+          total: Number(counts.total ?? counts.all ?? allRows.length),
           done: Number(counts.done ?? counts.klara ?? counts.signed ?? 0),
           pending: Number(counts.pending ?? counts.vantar ?? counts.waiting ?? 0),
           upcoming: Number(counts.upcoming ?? counts.kommer ?? counts.planned ?? 0),
+          contentFull: contentCounts.full,
+          contentPartial: contentCounts.partial,
+          contentMissing: contentCounts.missing,
         },
-        offers: asArray(docs.offers || docs.offerter),
-        healthForms: asArray(
-          docs.healthForms || docs.haelsoSamtycke || docs.consents || docs.haelso_samtycke
-        ),
-        journals: asArray(
-          docs.journalStatus?.expected || docs.journaler || docs.journals || docs.journaler
-        ),
-        autoDocs: asArray(docs.autoDokument || docs.auto || docs.autoDocuments || docs.autoDocs),
+        offers,
+        healthForms,
+        journals,
+        autoDocs,
       };
     }
+
+    if (bundle && global.CcoHairtpDocumentCloud?.buildV11DocumentPayloadFromBundle) {
+      const payload = global.CcoHairtpDocumentCloud.buildV11DocumentPayloadFromBundle(bundle);
+      const offers = enrichV11RowList(payload.offers, bundleIndex);
+      const healthForms = enrichV11RowList(payload.healthForms, bundleIndex);
+      const journals = enrichV11RowList(payload.journals, bundleIndex);
+      const autoDocs = enrichV11RowList(payload.autoDocs, bundleIndex);
+      const allRows = [...offers, ...healthForms, ...journals, ...autoDocs];
+      const contentCounts = countV11ContentStatuses(allRows);
+      return {
+        ...payload,
+        counts: {
+          ...payload.counts,
+          contentFull: contentCounts.full,
+          contentPartial: contentCounts.partial,
+          contentMissing: contentCounts.missing,
+        },
+        offers,
+        healthForms,
+        journals,
+        autoDocs,
+      };
+    }
+
     return {
       ready: false,
-      counts: { total: 0, done: 0, pending: 0, upcoming: 0 },
+      counts: {
+        total: 0,
+        done: 0,
+        pending: 0,
+        upcoming: 0,
+        contentFull: 0,
+        contentPartial: 0,
+        contentMissing: 0,
+      },
       offers: [],
       healthForms: [],
       journals: [],
@@ -1916,15 +2021,22 @@
       sent: 'Skickad',
     };
     return {
+      registryId: item.registryId || item.documentTypeId || defaults.registryId || '',
       title: item.title || item.name || item.label || 'Dokument',
       flowLabel: item.flowLabel || item.flow || defaults.flowLabel || 'TP',
       amount: item.amount || item.total || '',
       status,
       statusLabel: item.statusLabel || statusLabels[status] || status,
+      contentStatus: String(item.contentStatus || defaults.contentStatus || '').toUpperCase(),
+      blockers: asArray(item.blockers || defaults.blockers),
       filler: item.filler || defaults.filler || 'patient',
       flow: item.flow || defaults.flow || 'tp',
       journeyStep: item.journeyStep || defaults.journeyStep || '',
-      dashed: status === 'planned' || item.planned === true,
+      previewable: item.previewable === true || item.filler === 'auto',
+      dashed:
+        status === 'planned' ||
+        item.planned === true ||
+        (item.contentStatus && item.contentStatus !== 'FULL'),
     };
   }
 
@@ -1936,13 +2048,27 @@
     const stepHtml = row.journeyStep
       ? `<span class="v11-doc-row__step">steg ${escapeHtml(String(row.journeyStep))}</span>`
       : '';
+    const prepHtml = row.contentStatus
+      ? `<span class="v11-doc-row__prep v11-doc-row__prep--${escapeHtml(row.contentStatus.toLowerCase())}">${escapeHtml(row.contentStatus)}</span>`
+      : '';
+    const blockerHtml =
+      row.contentStatus && row.contentStatus !== 'FULL' && row.blockers?.length
+        ? `<span class="v11-doc-row__blocker" title="${escapeHtml(row.blockers[0])}">!</span>`
+        : '';
+    const clickable =
+      row.previewable || (row.registryId && /^offert_/.test(row.registryId))
+        ? ' v11-doc-row--clickable'
+        : '';
     return `
       <div
-        class="v11-doc-row${row.dashed ? ' v11-doc-row--planned' : ''}"
+        class="v11-doc-row${row.dashed ? ' v11-doc-row--planned' : ''}${clickable}"
         data-v11-doc-row
+        data-v11-doc-registry="${escapeHtml(row.registryId || '')}"
         data-v11-doc-filler="${escapeHtml(row.filler)}"
         data-v11-doc-flow="${escapeHtml(row.flow)}"
         data-v11-doc-status="${escapeHtml(row.status)}"
+        data-v11-doc-content-status="${escapeHtml(row.contentStatus || '')}"
+        ${row.previewable ? 'role="button" tabindex="0"' : ''}
       >
         <div class="v11-doc-row__main">
           <span class="v11-doc-row__title">${escapeHtml(row.title)}</span>
@@ -1951,6 +2077,8 @@
         <div class="v11-doc-row__meta">
           <span class="v11-doc-row__flow">${escapeHtml(row.flowLabel)}</span>
           ${amountHtml}
+          ${prepHtml}
+          ${blockerHtml}
           <span class="v11-doc-row__pill v11-doc-row__pill--${escapeHtml(row.status)}">${escapeHtml(row.statusLabel)}</span>
         </div>
       </div>`;
@@ -1963,9 +2091,7 @@
             ${rows.map((row) => renderV11DocumentRow(row.title ? row : mapV11DocumentRow(row))).join('')}
           </div>`
         : `<p class="v11-doc-empty${ready ? '' : ' v11-doc-empty--pending'}">${
-            ready
-              ? 'Inga dokument i denna grupp.'
-              : 'Dokumentsegment laddas — väntar backend ORD-24.'
+            ready ? 'Inga dokument i denna grupp.' : 'Laddar registry från content-bundle…'
           }</p>`;
 
     return `
@@ -1982,8 +2108,12 @@
     const payload = resolveV11DocumentPayload(card, dossierBundle);
     const counts = payload.counts;
     const countLine = payload.ready
-      ? `${counts.total} dokument · ${counts.done} klara · ${counts.pending} väntar · ${counts.upcoming} kommer`
-      : '0 dokument · backend ORD-24 saknas';
+      ? payload.source === 'hairtp-document-content-bundle'
+        ? `${counts.total} registry · ${counts.contentFull ?? counts.done} FULL · ${counts.contentPartial ?? counts.pending} PARTIAL · ${counts.contentMissing ?? counts.upcoming} MISSING`
+        : payload.source === 'dossier-bundle+content-bundle'
+          ? `${counts.total} dokument · ${counts.done} klara · ${counts.pending} väntar · facit ${counts.contentFull} FULL / ${counts.contentPartial} PARTIAL / ${counts.contentMissing} MISSING`
+          : `${counts.total} dokument · ${counts.done} klara · ${counts.pending} väntar · ${counts.upcoming} kommer`
+      : 'Laddar Hair TP content-bundle…';
 
     const rowsByGroup = {
       offers: payload.offers,
@@ -2710,6 +2840,20 @@
       </div>`;
   }
 
+  function handleV11DocumentRowActivate(root, row) {
+    if (!row) return;
+    const registryId = row.getAttribute('data-v11-doc-registry') || '';
+    const filler = row.getAttribute('data-v11-doc-filler') || '';
+    if (!registryId) return;
+    if (filler === 'auto' || registryId.startsWith('auto_')) {
+      global.CcoHairtpDocumentCloud?.openAutoDocPreview?.(registryId);
+      return;
+    }
+    if (registryId.startsWith('offert_')) {
+      global.CcoHairtpDocumentCloud?.openSteg7ForOfferRegistry?.(registryId);
+    }
+  }
+
   function applyV11DocumentFilters(root, filterState) {
     if (!root) return;
     const rows = root.querySelectorAll('[data-v11-doc-row]');
@@ -3288,6 +3432,12 @@
           btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
         applyV11DocumentFilters(root, state);
+        return;
+      }
+
+      const docRow = event.target.closest('[data-v11-doc-row][data-v11-doc-registry]');
+      if (docRow) {
+        handleV11DocumentRowActivate(root, docRow);
         return;
       }
 
@@ -3921,6 +4071,14 @@
     bindAggBulkActions(api);
     bindV9BulkSelection(api);
     syncGlobalSearchInput();
+
+    if (global.CcoMeridiqContent?.preloadForKundkort) {
+      global.CcoMeridiqContent.preloadForKundkort().catch(() => {});
+    }
+
+    global.addEventListener('cco:hairtp-document-bundle-ready', () => {
+      api.renderRows?.();
+    });
 
     global.addEventListener('cco:v9-ghost-booking', (event) => {
       const label = event.detail?.label || 'Bokningsförslag';
