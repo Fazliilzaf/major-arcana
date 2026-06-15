@@ -7,6 +7,8 @@
 
 **Owner GO:** Fazli merge + deploy efter alla tre rapporterat klart.
 
+**ORD-47 V1 — Owner godkänd:** 2026-05-20. Nästa epok: **ORD-48** ([`ORD-48-PARALLEL-SVEP-3-AGENTS.md`](./ORD-48-PARALLEL-SVEP-3-AGENTS.md)).
+
 ---
 
 ## Regler (läs först)

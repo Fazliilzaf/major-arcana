@@ -13605,6 +13605,7 @@ process.once('SIGTERM', () => {
       treatmentEncounterStore: ccoTreatmentEncounterStore,
       migrationIndexStore: ccoMigrationIndexStore,
       patientSystemStore: ccoPatientSystemStore,
+      bookingStore: ccoBookingStore,
       authStore,
       config,
       requireAuth: auth.requireAuth,

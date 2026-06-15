@@ -9,7 +9,11 @@ const {
   buildPatient360SyncContext,
 } = require('./ccoRouteShared');
 const { syncPatient360FromJournalCase } = require('../ops/ccoPatient360Bridge');
-const { syncConsultationPhotoToEncounter, syncJournalEntryToEncounter, lockEncounterOnJournalSign } = require('../ops/ccoJournalBookingBridge');
+const {
+  syncConsultationPhotoToEncounter,
+  syncJournalEntryToEncounter,
+  lockEncounterOnJournalSign,
+} = require('../ops/ccoJournalBookingBridge');
 const { JOURNAL_TYPES } = require('../ops/ccoJournalStore');
 const { catalog: journalSchemaCatalog, listSchemas } = require('../ops/ccoJournalSchemas');
 const {
@@ -18,10 +22,8 @@ const {
 } = require('../ops/ccoJournalPhotoProcess');
 const { listJournalTextTemplates } = require('../ops/ccoJournalTextTemplates');
 const { listBeforeAfterPhotos, normalizePhotoPhase } = require('../ops/ccoJournalBeforeAfter');
-const {
-  getPhotoPublishConsent,
-  setPhotoPublishConsent,
-} = require('../ops/ccoPhotoPublishConsent');
+const { getPhotoPublishConsent, setPhotoPublishConsent } = require('../ops/ccoPhotoPublishConsent');
+const { assertOperationDayJournalAllowedForPatient } = require('../ops/ccoOperationDayGate');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -59,6 +61,7 @@ function createCcoJournalRouter({
   treatmentEncounterStore = null,
   migrationIndexStore = null,
   patientSystemStore = null,
+  bookingStore = null,
   authStore,
   config,
   requireAuth,
@@ -94,6 +97,29 @@ function createCcoJournalRouter({
       throw error;
     }
     patientMasterStore.assertPatientJournalWritable(patient);
+    return patient;
+  }
+
+  async function assertOperationDayGate(actor, patientId, journalType, patient = null) {
+    const resolvedPatient =
+      patient ||
+      (await patientMasterStore?.getPatient?.({
+        tenantId: actor.tenantId,
+        patientId,
+      }));
+    const gate = await assertOperationDayJournalAllowedForPatient({
+      journalType,
+      patient: resolvedPatient || {},
+      journalStore,
+      bookingStore,
+      tenantId: actor.tenantId,
+      patientId,
+    });
+    if (gate.allowed) return;
+    const error = new Error(gate.message || 'Operationsdags-gate blockerar journal.');
+    error.statusCode = 409;
+    error.metadata = { code: gate.reason || 'operation_day_fitness_required' };
+    throw error;
   }
 
   async function auditJournal(actor, action, targetId) {
@@ -159,7 +185,7 @@ function createCcoJournalRouter({
         }
         await auditJournal(actor, 'cco.journal.stats.read', actor.tenantId);
         return res.json({ tenantId: actor.tenantId, journal, patientMasterCount });
-      }),
+      })
   );
 
   router.get(
@@ -235,7 +261,8 @@ function createCcoJournalRouter({
         const body = req.body && typeof req.body === 'object' ? req.body : {};
         const patientId = normalizeText(body.patientId);
         if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
-        await requirePatientJournalWritable(actor, patientId);
+        const patient = await requirePatientJournalWritable(actor, patientId);
+        await assertOperationDayGate(actor, patientId, body.journalType, patient);
         const entry = await journalStore.upsertEntry(
           {
             ...body,
@@ -288,7 +315,18 @@ function createCcoJournalRouter({
         if (!patientId || !entryId) {
           return res.status(400).json({ error: 'patientId och entryId krävs.' });
         }
-        await requirePatientJournalWritable(actor, patientId);
+        const patient = await requirePatientJournalWritable(actor, patientId);
+        const existingEntry = await journalStore.getEntry({
+          tenantId: actor.tenantId,
+          patientId,
+          entryId,
+        });
+        await assertOperationDayGate(
+          actor,
+          patientId,
+          existingEntry?.journalType || body.journalType,
+          patient
+        );
         const entry = await journalStore.signEntry({
           tenantId: actor.tenantId,
           patientId,

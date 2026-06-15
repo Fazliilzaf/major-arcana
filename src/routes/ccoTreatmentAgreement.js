@@ -17,6 +17,7 @@ const {
 const {
   applyConsentTemplateToAgreement,
   assertBundleReadyToSend,
+  buildSignedBundleAgreementUpdate,
   parsePublicConsentAck,
   resolveConsentTemplateForAgreement,
 } = require('../ops/ccoTreatmentAgreementBundle');
@@ -108,6 +109,7 @@ function createCcoTreatmentAgreementRouter({
           treatmentAgreementStore,
           templateVersionApprovalStore,
           patientMasterStore,
+          bookingStore: null,
           tenantId: actor.tenantId,
           patientId,
           customerEmail,
@@ -458,23 +460,29 @@ function createCcoTreatmentAgreementRouter({
           });
         }
 
+        const consentResolution = resolveConsentTemplateForAgreement(existing);
+        if (!consentResolution?.found) {
+          return res.status(409).json({
+            error: 'Behandlingssamtycke saknas — bundle kan inte signeras.',
+          });
+        }
+        if (!parsePublicConsentAck(body)) {
+          return res.status(409).json({
+            error: 'Behandlingssamtycke måste godkännas innan signering (consent_ack).',
+          });
+        }
+
         const signedAt = new Date().toISOString();
-        const agreement = await treatmentAgreementStore.upsertAgreement({
-          ...existing,
-          agreementStatus: 'bookable',
-          signedAt,
-          customerSignedName: customerSignedName || existing.customerSignedName || 'Kund',
-          esignStatus: 'signed',
-          events: [
-            ...(Array.isArray(existing.events) ? existing.events : []),
-            {
-              type: 'agreement_signed',
-              label: 'Behandlingsavtal signerat',
-              detail: customerSignedName || 'Kund',
-              actorUserId: actor.userId,
-            },
-          ],
-        });
+        const signer = customerSignedName || existing.customerSignedName || 'Kund';
+        const agreement = await treatmentAgreementStore.upsertAgreement(
+          buildSignedBundleAgreementUpdate(existing, {
+            signer,
+            signedAt,
+            actorUserId: actor.userId,
+            eventType: 'agreement_signed',
+            eventLabel: 'Avtal + behandlingssamtycke signerat (staff)',
+          })
+        );
 
         return res.json({
           agreement,
@@ -573,32 +581,14 @@ function createCcoTreatmentAgreementRouter({
 
       const signedAt = new Date().toISOString();
       const signer = customerSignedName || 'Kund';
-      await treatmentAgreementStore.upsertAgreement({
-        ...existing,
-        agreementStatus: 'bookable',
-        bundleStatus: 'signed',
-        signedAt,
-        customerSignedName: signer,
-        esignStatus: 'signed',
-        consent: {
-          ...(existing.consent || {}),
-          templateId: consentResolution.template.id,
-          templateApiId: consentResolution.template.apiId,
-          templateVersion: consentResolution.template.version,
-          templateTitle: consentResolution.template.title,
-          signed: true,
+      await treatmentAgreementStore.upsertAgreement(
+        buildSignedBundleAgreementUpdate(existing, {
+          signer,
           signedAt,
-          signedBy: signer,
-        },
-        events: [
-          ...(Array.isArray(existing.events) ? existing.events : []),
-          {
-            type: 'bundle_signed_public',
-            label: 'Avtal + behandlingssamtycke signerat (publik)',
-            detail: `${signer} · consent ${consentResolution.template.apiId}`,
-          },
-        ],
-      });
+          eventType: 'bundle_signed_public',
+          eventLabel: 'Avtal + behandlingssamtycke signerat (publik)',
+        })
+      );
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.send(

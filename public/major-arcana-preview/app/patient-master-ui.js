@@ -1258,6 +1258,8 @@
             driveFiles,
             commercialCase: runtime.commercialCase || null,
             occasionTimeline,
+            agreementReadout: runtime.agreementReadout || null,
+            treatmentAgreement: runtime.treatmentAgreement || null,
           }) +
           '</div>'
         : window.CcoKundkortBlueprint.renderKundkort(
@@ -5003,6 +5005,8 @@
       driveFiles,
       commercialCase: runtime.commercialCase || null,
       occasionTimeline,
+      agreementReadout: runtime.agreementReadout || null,
+      treatmentAgreement: runtime.treatmentAgreement || null,
     });
   }
 
@@ -6262,6 +6266,8 @@
         occasionTimeline,
         driveFiles: dedupeDriveFiles(driveFiles),
         commercialCase: runtime.commercialCase || null,
+        agreementReadout: runtime.agreementReadout || null,
+        treatmentAgreement: runtime.treatmentAgreement || null,
       }
     );
 
@@ -10001,6 +10007,7 @@
         body: {
           patientId,
           customerSignedName,
+          consent_ack: true,
           forceAccept: forceAccept === true,
         },
       });
@@ -11425,6 +11432,10 @@
         normalizeText(runtime.treatmentAgreement?.offerType) ||
         undefined,
       legalReviewApproved,
+      agreementReadout: readout || null,
+      onSigned: async () => {
+        await loadPatientDetail(runtime.selectedPatientId);
+      },
       onJournalSubmit: async (journalPayload) => {
         const created = await apiRequest('/api/v1/cco-journal/entry', {
           method: 'PUT',

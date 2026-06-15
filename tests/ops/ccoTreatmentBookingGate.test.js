@@ -59,7 +59,13 @@ test('checkTreatmentBookingGate blockerar behandling utan signerat avtal', async
       tenantId: 'hair-tp-clinic',
       patientId: 'patient-1',
       agreementStatus: 'bookable',
+      bundleStatus: 'signed',
       signedAt: new Date().toISOString(),
+      consent: {
+        signed: true,
+        signedAt: new Date().toISOString(),
+        signedBy: 'Test Kund',
+      },
     });
 
     const allowed = await checkTreatmentBookingGate({

@@ -447,6 +447,7 @@ function createCcoBookingEngineRouter({
     return assertTreatmentBookingAllowed({
       treatmentAgreementStore,
       patientMasterStore,
+      bookingStore,
       tenantId: context.tenantId,
       customerEmail: context.customerEmail,
       patientId: normalizeText(body?.patientId),
@@ -470,6 +471,7 @@ function createCcoBookingEngineRouter({
       treatmentAgreementStore,
       templateVersionApprovalStore,
       patientMasterStore,
+      bookingStore,
       tenantId: context.tenantId,
       customerEmail: context.customerEmail,
       patientId: normalizeText(body?.patientId),
