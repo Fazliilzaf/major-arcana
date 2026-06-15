@@ -6,6 +6,10 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
 const catalogPath = path.join(repoRoot, 'src/ops/hairtp-document-types.catalog.json');
+const resolverPath = path.join(
+  repoRoot,
+  'public/major-arcana-preview/app/cco-journey-doc-resolver.js'
+);
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 
 const allowedCards = new Set([
@@ -88,6 +92,55 @@ for (const [card, expected] of Object.entries(expectedPrimaryCounts)) {
   if (primaryCounts[card] !== expected) {
     errors.push(`Primary card ${card} expected ${expected}, got ${primaryCounts[card]}`);
   }
+}
+
+try {
+  const vm = require('vm');
+  const context = { window: {} };
+  vm.runInNewContext(fs.readFileSync(resolverPath, 'utf8'), context, {
+    filename: resolverPath,
+  });
+  const resolver = context.window.CcoJourneyDocResolver;
+  if (!resolver) {
+    errors.push('Resolver did not attach window.CcoJourneyDocResolver');
+  } else {
+    for (const fn of [
+      'resolveActiveFlow',
+      'resolvePatientJourneyStep',
+      'uiCardForStep',
+      'filterOffersByFlow',
+      'listDocsForUiCard',
+      'railStatusLine',
+    ]) {
+      if (typeof resolver[fn] !== 'function') errors.push(`Resolver missing ${fn}()`);
+    }
+    if (typeof resolver?.uiCardForStep === 'function') {
+      const expectedCards = {
+        2: 'bokning',
+        3: 'halsa',
+        4: 'halsa',
+        5: 'behandling',
+        6: 'juridik',
+        7: 'juridik',
+        8: 'operation',
+        9: 'foto',
+      };
+      for (const [step, card] of Object.entries(expectedCards)) {
+        if (resolver.uiCardForStep(step) !== card) {
+          errors.push(`Resolver uiCardForStep(${step}) expected ${card}`);
+        }
+      }
+    }
+    if (typeof resolver?.filterOffersByFlow === 'function') {
+      const offers = [{ registryId: 'offert_tp' }, { registryId: 'offert_prp_hair' }];
+      const prp = resolver.filterOffersByFlow(offers, 'prp_hair');
+      if (prp.length !== 1 || prp[0].registryId !== 'offert_prp_hair') {
+        errors.push('Resolver filterOffersByFlow(prp_hair) did not select PRP offer');
+      }
+    }
+  }
+} catch (error) {
+  errors.push(`Resolver compatibility check failed: ${error.message}`);
 }
 
 if (errors.length) {

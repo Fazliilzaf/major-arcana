@@ -578,6 +578,51 @@
     return flows.includes(normalizeToken(activeFlow));
   }
 
+  function uiCardForStep(step) {
+    const stepKey = String(step || '')
+      .trim()
+      .toLowerCase();
+    const map = {
+      2: 'bokning',
+      3: 'halsa',
+      4: 'halsa',
+      5: 'behandling',
+      6: 'juridik',
+      7: 'juridik',
+      8: 'operation',
+      9: 'foto',
+      'post-8': 'uppfoljning',
+      post8: 'uppfoljning',
+      cross: '',
+    };
+    return map[stepKey] || '';
+  }
+
+  function filterOffersByFlow(offers, activeFlow) {
+    const rows = Array.isArray(offers) ? offers : [];
+    if (!rows.length) return rows;
+    const flow = normalizeToken(activeFlow || 'tp');
+    const registryByFlow = {
+      tp: 'offert_tp',
+      prp_hair: 'offert_prp_hair',
+      prp_skin: 'offert_prp_skin',
+      microneedling: 'offert_microneedling',
+      prf: 'offert_prf',
+      profhilo: 'offert_profilo',
+    };
+    const wantedRegistryId = registryByFlow[flow] || registryByFlow.tp;
+    const exact = rows.filter((row) => normalizeToken(row && row.registryId) === wantedRegistryId);
+    if (exact.length) return exact;
+    const fuzzyNeedle = flow.split('_')[0];
+    const fuzzy = rows.filter((row) => {
+      const blob = normalizeToken(
+        [row?.registryId, row?.type, row?.title, row?.label, row?.name].filter(Boolean).join(' ')
+      );
+      return blob.includes(fuzzyNeedle);
+    });
+    return fuzzy.length ? fuzzy : rows.slice(0, 1);
+  }
+
   function listDocsForUiCard(card, uiCard) {
     const key = normalizeUiCard(uiCard);
     const activeFlow = resolveActiveFlow(card || {});
@@ -633,6 +678,8 @@
     documentTypes: DOCUMENT_TYPES,
     resolveActiveFlow,
     resolvePatientJourneyStep,
+    uiCardForStep,
+    filterOffersByFlow,
     listDocsForUiCard,
     railStatusLine,
   });
