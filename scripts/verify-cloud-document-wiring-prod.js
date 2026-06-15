@@ -8,7 +8,7 @@
 const https = require('node:https');
 
 const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
-const EXPECT_COMMIT = (process.env.ARCANA_CLOUD_EXPECT_COMMIT || 'b2bbce7b').slice(0, 8);
+const EXPECT_COMMIT = (process.env.ARCANA_CLOUD_EXPECT_COMMIT || '7e7ac22b').slice(0, 8);
 const STRICT_COMMIT = Boolean(process.env.ARCANA_CLOUD_EXPECT_COMMIT);
 
 const checks = [];
@@ -114,16 +114,12 @@ function checkOrd47Assets(referens, resolver, index) {
   } else fail('ord47 mallbibliotek hidden default', String(referens.status));
 
   if (
-    referens.status === 200 &&
-    /typeof resolver\.filterOffersByFlow !== 'function'/.test(referens.body)
+    resolver.status === 200 &&
+    /uiCardForStep/.test(resolver.body) &&
+    /filterOffersByFlow/.test(resolver.body)
   ) {
-    pass('ord47 resolver augment patch');
-  } else if (
-    referens.status === 200 &&
-    /if \(window\.CcoJourneyDocResolver\) return/.test(referens.body)
-  ) {
-    fail('ord47 resolver augment patch', 'broken early-return — deploy b2bbce7b+');
-  } else fail('ord47 resolver augment patch', String(referens.status));
+    pass('ord47 resolver helpers exported');
+  } else fail('ord47 resolver helpers exported', String(resolver.status));
 
   if (
     referens.status === 200 &&

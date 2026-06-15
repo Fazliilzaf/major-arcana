@@ -81,16 +81,21 @@ function get(path) {
       }
     }
 
-    const referens = await get('/major-arcana-preview/app/cco-kundkort-referens.js');
+    const [referens, resolver] = await Promise.all([
+      get('/major-arcana-preview/app/cco-kundkort-referens.js'),
+      get('/major-arcana-preview/app/cco-journey-doc-resolver.js'),
+    ]);
     if (/buildOrd47CardsBlock/.test(referens.body)) pass('stick asset', '§-kort builder live');
     else fail('stick asset', '§-kort builder missing');
 
-    if (/typeof resolver\.filterOffersByFlow !== 'function'/.test(referens.body)) {
-      pass('stick asset', 'resolver augment patch live');
-    } else if (/if \(window\.CcoJourneyDocResolver\) return/.test(referens.body)) {
-      fail('stick asset', 'broken early-return resolver stub (needs b2bbce7b+)');
+    if (
+      resolver.status === 200 &&
+      /uiCardForStep/.test(resolver.body) &&
+      /filterOffersByFlow/.test(resolver.body)
+    ) {
+      pass('stick asset', 'resolver helpers exported (7e7ac22b+)');
     } else {
-      fail('stick asset', 'resolver patch indeterminate');
+      fail('stick asset', 'resolver missing uiCardForStep/filterOffersByFlow — deploy 7e7ac22b+');
     }
   } catch (error) {
     fail('stick fetch', error.message);

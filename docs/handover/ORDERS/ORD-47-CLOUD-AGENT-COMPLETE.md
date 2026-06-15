@@ -2,7 +2,7 @@
 
 **Status:** L1–L7 ✅ (prod verify 17/17 + stickprov 9/9 · 2026-06-16)  
 **Agent:** Cursor (ersätter Cloud Agent-rapport)  
-**Prod commit:** `b2bbce7b` (kundkort resolver-patch live)  
+**Prod commit:** `7e7ac22b` (`uiCardForStep` + `filterOffersByFlow` exporterade i fryst resolver)  
 **UAT-doc:** [`ORD-47-CLOUD-STAFF-UAT.md`](./ORD-47-CLOUD-STAFF-UAT.md)
 
 ---
@@ -15,7 +15,7 @@
 | **L2** | Canonical UAT-URL                 | ✅ DONE | UAT-doc + kickoff                     |
 | **L3** | 7-punkts checklista (G1–G7)       | ✅ DONE | UAT-doc tabell G1–G7                  |
 | **L4** | Slack kickoff                     | ✅ DONE | `ORD-47-SLACK-KICKOFF.txt` uppdaterad |
-| **L5** | Prod verify + commit pin          | ✅ PASS | 17/17 @ `b2bbce7b`                    |
+| **L5** | Prod verify + commit pin          | ✅ PASS | 17/17 @ `7e7ac22b`                    |
 | **L6** | 3 patientId stickprov             | ✅ PASS | 9/9 stickprov automation              |
 | **L7** | PASS/FAIL till owner              | ✅ PASS | Denna fil                             |
 
@@ -37,18 +37,16 @@ Tidigare rapport (`af3c4b5c`, “L1–L7 COMPLETE”) var **felaktig**:
 ## L5 — Prod verify (automation)
 
 **Script:** `npm run verify:cloud-document-wiring-prod`  
-**Pin default:** `b2bbce7b`  
-**ORD-47 checks tillagda:** resolver, §-kort, mallbibliotek hidden, augment patch, topbar/rail
+**Pin default:** `7e7ac22b`  
+**ORD-47 checks:** resolver helpers, §-kort, mallbibliotek hidden, topbar/rail
 
-**Körning 2026-06-16 (efter prod återkom):**
+**Körning (efter resolver-fix live):**
 
 ```
 verify-cloud-document-wiring-prod: 17/17 PASS
 verify-ord47-prod-sticks: 9/9 PASS
-Prod commit: b2bbce7b
+Prod commit: 7e7ac22b
 ```
-
-Tidigare 502 var tillfällig Render-restart — inte ORD-47-kodfel.
 
 ---
 
@@ -61,9 +59,11 @@ Tidigare 502 var tillfällig Render-restart — inte ORD-47-kodfel.
 | 3   | Variation                   | `cc07c972-49d9-4c99-928e-d750e79a82e9` | `demoOpDay=1`     |
 
 **Automation:** `npm run verify:ord47-prod-sticks`  
-**Manuell UAT:** se stick-URL:er i UAT-doc efter prod är uppe.
+**Manuell UAT:** se stick-URL:er i UAT-doc — sista visuella kontroll i browser.
 
-**Kritisk fix som måste vara live:** `b2bbce7b` — resolver `filterOffersByFlow` patch (annars tomt kundkort).
+**Kritisk fix live:** `7e7ac22b` — `CcoJourneyDocResolver` exporterar `uiCardForStep` + `filterOffersByFlow` (fryst API; kundkort kan inte augmentera).
+
+_Tidigare mellanliggande pin `b2bbce7b` (referens-fallback) ersatt av resolver-export._
 
 ---
 
@@ -74,16 +74,16 @@ Tidigare 502 var tillfällig Render-restart — inte ORD-47-kodfel.
 | Dokumentation L1–L4 | **PASS**  | Levererat i repo                |
 | Verify-scripts      | **PASS**  | 17/17 + 9/9 prod                |
 | Catalog 36/36       | **PASS**  | `verify:journey-doc-placement`  |
-| Prod infra          | **PASS**  | `b2bbce7b` live                 |
+| Prod infra          | **PASS**  | `7e7ac22b` live                 |
 | Staff manuell UAT   | **READY** | Kör `ORD-47-CLOUD-STAFF-UAT.md` |
 
-**Blockers:** 0 kodblockers. Staff kan starta manuell UAT.
+**Blockers:** 0 kodblockers. Staff kan starta manuell browser-UAT.
 
 **Nästa steg för owner:**
 
-1. ~~Bekräfta Render deploy~~ ✅ `b2bbce7b` live
+1. ~~Bekräfta Render deploy~~ ✅ `7e7ac22b` live
 2. ~~Kör verify~~ ✅ 17/17 + 9/9 PASS
-3. Staff kör `ORD-47-CLOUD-STAFF-UAT.md` manuellt (G1–G7 + §1–§9)
+3. Staff kör `ORD-47-CLOUD-STAFF-UAT.md` manuellt (G1–G7 + §1–§9) — visuell bekräftelse 9 kort
 
 ---
 
@@ -96,8 +96,9 @@ Tidigare 502 var tillfällig Render-restart — inte ORD-47-kodfel.
 | `docs/handover/ORDERS/ORD-47-SLACK-KICKOFF.txt`       | Kickoff          |
 | `scripts/verify-cloud-document-wiring-prod.js`        | L5 ORD-46+47     |
 | `scripts/verify-ord47-prod-sticks.js`                 | L6 automation    |
+| `public/.../cco-journey-doc-resolver.js`              | Resolver export  |
 | `package.json`                                        | npm scripts      |
 
 ---
 
-_Hair TP · ORD-47 Cloud · Cursor leverans · 2026-06-16_
+_Hair TP · ORD-47 Cloud · Cursor leverans · prod pin 7e7ac22b_

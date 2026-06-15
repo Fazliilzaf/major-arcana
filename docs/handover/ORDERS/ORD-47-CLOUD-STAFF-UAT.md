@@ -1,6 +1,6 @@
 # ORD-47 — Cloud Staff UAT (§-kort · V1)
 
-**Status:** Ready efter prod deploy `b2bbce7b`+  
+**Status:** Ready · prod live `7e7ac22b`+  
 **Prod:** `https://arcana.hairtpclinic.com`  
 **Facit:** [`docs/strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md`](../../strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md)  
 **Föregångare:** ORD-46 wiring (bundle v7, op-day, HD/FC/foto) — fortsatt giltig under §-kort  
@@ -137,13 +137,13 @@ https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&p
 
 ## Felsökning
 
-| Symptom                                | Åtgärd                                                               |
-| -------------------------------------- | -------------------------------------------------------------------- |
-| Tomt kundkort / vit panel              | Hårdladda (Cmd+Shift+R). Kräver commit `b2bbce7b`+ (resolver-patch). |
-| Flat registry som default              | Bug — ska vara dold; öppna Mallbibliotek medvetet                    |
-| Konversationer istället för Kunder     | Ladda canonical URL                                                  |
-| 502 / vit sida                         | Vänta 60 s, ladda om                                                 |
-| `filterOffersByFlow is not a function` | Prod saknar `b2bbce7b` — deploy om                                   |
+| Symptom                                | Åtgärd                                                                             |
+| -------------------------------------- | ---------------------------------------------------------------------------------- |
+| Tomt kundkort / vit panel              | Hårdladda (Cmd+Shift+R). Kräver commit `7e7ac22b`+ (resolver helpers exporterade). |
+| Flat registry som default              | Bug — ska vara dold; öppna Mallbibliotek medvetet                                  |
+| Konversationer istället för Kunder     | Ladda canonical URL                                                                |
+| 502 / vit sida                         | Vänta 60 s, ladda om                                                               |
+| `filterOffersByFlow is not a function` | Prod saknar `7e7ac22b` — deploy om                                                 |
 
 ---
 

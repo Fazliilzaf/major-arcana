@@ -1,4 +1,4 @@
-ORD-47 — Staff UAT (§-kort V1) · GO efter deploy b2bbce7b+
+ORD-47 — Staff UAT (§-kort V1) · prod live 7e7ac22b+
 
 V1: 9 §-kort i kundkort — flat registry är INTE default längre.
 
