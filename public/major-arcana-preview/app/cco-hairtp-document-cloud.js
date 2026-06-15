@@ -57,6 +57,7 @@
 
   const PREVIEW_ROOT_ID = 'cco-auto-doc-preview-scrim';
   let previewEscapeHandler = null;
+  let autoDocPreviewRowsBound = false;
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -572,6 +573,48 @@
     return 'tp';
   }
 
+  function activateAutoDocPreviewRow(row) {
+    const registryId =
+      row?.getAttribute?.('data-kk-auto-doc-preview') ||
+      row?.getAttribute?.('data-v11-doc-registry') ||
+      '';
+    if (!isAutoDocRegistryId(registryId)) return false;
+    void openAutoDocPreviewAsync(registryId);
+    return true;
+  }
+
+  function bindAutoDocPreviewRows(root = document) {
+    if (autoDocPreviewRowsBound || !root?.addEventListener) return;
+    autoDocPreviewRowsBound = true;
+    root.addEventListener(
+      'click',
+      (event) => {
+        const row = event.target?.closest?.(
+          '[data-kk-auto-doc-preview][data-v11-doc-previewable="1"]'
+        );
+        if (!row) return;
+        event.preventDefault();
+        event.stopPropagation();
+        activateAutoDocPreviewRow(row);
+      },
+      true
+    );
+    root.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const row = event.target?.closest?.(
+          '[data-kk-auto-doc-preview][data-v11-doc-previewable="1"]'
+        );
+        if (!row) return;
+        event.preventDefault();
+        event.stopPropagation();
+        activateAutoDocPreviewRow(row);
+      },
+      true
+    );
+  }
+
   global.CcoHairtpDocumentCloud = {
     STEG7_OFFER_BY_FLOW,
     FLOW_LABELS,
@@ -610,5 +653,7 @@
     openSteg7ForOfferRegistry,
     resolveTreatmentFlow,
     listPost8JournalDocs,
+    bindAutoDocPreviewRows,
   };
+  bindAutoDocPreviewRows();
 })(typeof window !== 'undefined' ? window : global);

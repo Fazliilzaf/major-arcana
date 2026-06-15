@@ -4621,3 +4621,12 @@ html[data-v9-enabled="on"] .cr-v10 .cr-revenue-pot {
   font-weight: 600;
   margin-top: 1px;
 }
+
+/* C1.1: .kkref ligger i ett shell-lager som kan stänga av klick globalt.
+   Auto-dokumentraderna måste vara klickbara för SMS/e-post-preview. */
+html[data-v9-enabled="on"] .kkref .row.kk-auto-doc-preview-row,
+html[data-v9-enabled="on"] .kkref .gk-rad.kk-auto-doc-preview-row,
+html[data-v9-enabled="on"] .kkref [data-kk-auto-doc-preview][data-v11-doc-previewable="1"] {
+  pointer-events: auto !important;
+  cursor: pointer;
+}
