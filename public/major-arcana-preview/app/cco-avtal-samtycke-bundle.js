@@ -14,7 +14,7 @@
   const STYLE_ID = 'cco-steg7-bundle-styles';
   const DISMISS_KEY = 'arcana.steg7bundle.dismissed';
   const SIGNED_KEY = 'arcana.steg7bundle.signed';
-  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-cloud-fas12-v7';
+  const CACHE_BUST = global.CcoStepModalDesign?.CACHE_BUST || 'hairtp-cloud-fas3-v8';
 
   let meridiqContent = null;
 

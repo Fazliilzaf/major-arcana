@@ -1876,7 +1876,8 @@
         row.previewable === true ||
         meta.filler === 'system_auto' ||
         /^auto_/.test(registryId) ||
-        /^offert_/.test(registryId),
+        /^offert_/.test(registryId) ||
+        global.CcoHairtpDocumentCloud?.isInteractiveRegistryId?.(registryId) === true,
     };
   }
 
@@ -2059,12 +2060,20 @@
       row.previewable === true ||
       row.filler === 'auto' ||
       (row.registryId && /^auto_/.test(row.registryId)) ||
-      (row.registryId && /^offert_/.test(row.registryId));
+      (row.registryId && /^offert_/.test(row.registryId)) ||
+      global.CcoHairtpDocumentCloud?.isInteractiveRegistryId?.(row.registryId) === true;
     const isAutoPreview =
       row.filler === 'auto' || (row.registryId && /^auto_/.test(row.registryId));
+    const isStaffPreview =
+      row.registryId &&
+      (global.CcoHairtpDocumentCloud?.isStaffPreviewRegistryId?.(row.registryId) ||
+        global.CcoHairtpDocumentCloud?.isStaffJournalRegistryId?.(row.registryId) ||
+        global.CcoHairtpDocumentCloud?.isSteg8RegistryId?.(row.registryId));
     const previewHint = isAutoPreview
       ? '<span class="v11-doc-row__preview" aria-hidden="true">Visa mall</span>'
-      : '';
+      : isStaffPreview
+        ? '<span class="v11-doc-row__preview" aria-hidden="true">Öppna</span>'
+        : '';
     return `
       <div
         class="v11-doc-row${row.dashed ? ' v11-doc-row--planned' : ''}${isClickable ? ' v11-doc-row--clickable' : ''}"
@@ -2334,9 +2343,11 @@
       : `Boka nästa ${treatment}`;
     const confirmDisabled = upcomingCount === 0;
     const helper = resolveV11StickyHelper(card, journalEntries);
+    const opDayActions = global.CcoHairtpDocumentCloud?.buildOpDayStaffActionsHtml?.(card) || '';
 
     return `
       <div class="v11-sticky-actions" data-v11-sticky-actions aria-label="Snabbåtgärder">
+        ${opDayActions}
         <div class="v11-sticky-actions__row">
           <button type="button" class="v11-sticky-actions__hero" data-v9-intel-action="book">${escapeHtml(bookLabel)}</button>
           <button type="button" class="v11-sticky-actions__assist v11-sticky-actions__assist--vellum" data-v9-intel-action="photo">Ta bild</button>
@@ -2763,6 +2774,11 @@
     const future = journey.steps.filter(
       (row) => row.status === 'future' || row.status === 'pending'
     );
+    const step8Done = journey.steps.some((row) => row.step === 8 && row.status === 'done');
+    const post8Timeline = global.CcoHairtpDocumentCloud?.buildPost8JournalTimelineHtml?.(
+      global.CcoMeridiqContent?.getFullDocumentBundle?.(),
+      { show: step8Done }
+    );
 
     return `
       <section class="v11-customer-journey" data-v11-customer-journey aria-label="Kundresan">
@@ -2785,6 +2801,7 @@
             ? `<div class="v11-customer-journey__future-row">${future.slice(0, 3).map(renderV11JourneyFutureStep).join('')}</div>`
             : ''
         }
+        ${post8Timeline || ''}
       </section>`;
   }
 
@@ -2852,16 +2869,9 @@
     void root;
     if (!row) return;
     const registryId = row.getAttribute('data-v11-doc-registry') || '';
-    const filler = row.getAttribute('data-v11-doc-filler') || '';
     const previewable = row.getAttribute('data-v11-doc-previewable') === '1';
     if (!registryId || !previewable) return;
-    if (filler === 'auto' || registryId.startsWith('auto_')) {
-      void global.CcoHairtpDocumentCloud?.openAutoDocPreviewAsync?.(registryId);
-      return;
-    }
-    if (registryId.startsWith('offert_')) {
-      void global.CcoHairtpDocumentCloud?.openSteg7ForOfferRegistry?.(registryId);
-    }
+    if (global.CcoHairtpDocumentCloud?.activateRegistryDocument?.(registryId)) return;
   }
 
   function applyV11DocumentFilters(root, filterState) {
@@ -3635,7 +3645,9 @@
   }
 
   function bindDossierScroll(root, handlers = {}) {
+    void handlers;
     if (!root) return;
+    global.CcoHairtpDocumentCloud?.bindOpDayStaffActions?.(root);
     root.querySelectorAll('[data-v9-insight-idx]').forEach((btn) => {
       if (btn.dataset.bound === '1') return;
       btn.dataset.bound = '1';

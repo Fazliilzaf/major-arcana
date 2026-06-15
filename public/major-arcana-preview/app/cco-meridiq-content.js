@@ -235,6 +235,10 @@
       })
       .join('\n');
 
+    const formMetaBanner = global.CcoHairtpDocumentCloud?.buildContentStatusBanner?.(
+      steg8.formMeta
+    );
+
     return `
   <div class="wrap">
     <header class="demo-header">
@@ -245,6 +249,7 @@
 
     <div class="demo-scroll" id="steg8FormPanel">
       <section class="section-block" aria-label="Friskförsäkran">
+      ${formMetaBanner || ''}
       <div class="legal">${steg8.legalIntro.html}</div>
       ${rendered}
       <div class="status" id="status" role="status" aria-live="polite"></div>
@@ -412,6 +417,47 @@
     return step789;
   }
 
+  function mergeSteg8FromBundle(step789, bundle) {
+    if (!step789) return step789;
+    const hit = bundle ? findDocumentByRegistryId(bundle, 'friskfoers_tp') : null;
+    const doc = hit?.document;
+    const steg8 = { ...(step789.steg8 || {}) };
+    if (!doc) return { ...step789, steg8 };
+
+    steg8.formMeta = {
+      registryId: 'friskfoers_tp',
+      contentStatus: doc.contentStatus,
+      blockers: doc.blockers || [],
+      label: doc.label || 'Friskförsäkran | TP',
+    };
+
+    const meridiq = doc.meridiq || {};
+    const bundleQuestions = asArray(meridiq.questions);
+    if (bundleQuestions.length >= 13) {
+      steg8.form = {
+        ...(steg8.form || {}),
+        apiId: meridiq.apiId || meridiq.questionaryApiId || steg8.form?.apiId,
+        title: meridiq.title || steg8.form?.title,
+        questions: bundleQuestions,
+      };
+    }
+
+    return { ...step789, steg8 };
+  }
+
+  function asArray(value) {
+    return Array.isArray(value) ? value : value ? [value] : [];
+  }
+
+  async function loadForSteg8(options = {}) {
+    const [step789, bundle] = await Promise.all([
+      load(options.force),
+      global.CcoHairtpDocumentCloud?.ensureDocumentBundle?.() ||
+        loadFullDocumentBundle().catch(() => null),
+    ]);
+    return mergeSteg8FromBundle(step789, bundle);
+  }
+
   async function loadForSteg9(options = {}) {
     const [step789, bundle] = await Promise.all([
       load(options.force),
@@ -521,6 +567,8 @@
   global.CcoMeridiqContent = {
     load,
     loadForSteg7,
+    loadForSteg8,
+    mergeSteg8FromBundle,
     loadForSteg9,
     preloadForKundkort,
     getContent,

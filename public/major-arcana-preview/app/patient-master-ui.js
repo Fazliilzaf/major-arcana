@@ -4782,6 +4782,15 @@
       switchDetailTab('avtal');
       return;
     }
+    if (actionKey === 'fitness_tp') {
+      if (window.CcoHairtpDocumentCloud?.openSteg8Friskforsakran) {
+        void window.CcoHairtpDocumentCloud.openSteg8Friskforsakran({
+          patientName:
+            normalizeText(ctx?.card?.displayName) || normalizeText(ctx?.card?.name) || undefined,
+        });
+        return;
+      }
+    }
     switchDetailTab('journal');
     const selectorByAction = {
       health_tp: '[data-patient-action="new-health-declaration"]',
@@ -11318,6 +11327,33 @@
       window.addEventListener('cco:hairtp-document-bundle-ready', () => {
         if (!runtime.detail?.card || !runtime.selectedPatientId) return;
         renderDetailPanel();
+      });
+    }
+    if (!window.__ARCANA_CLOUD_STAFF_ACTION_LISTENER__) {
+      window.__ARCANA_CLOUD_STAFF_ACTION_LISTENER__ = true;
+      window.addEventListener('cco:cloud-staff-action', (event) => {
+        const detail = event.detail || {};
+        if (detail.kind === 'steg8') {
+          const overlay = window.CcoFriskforsakranDemoOverlay;
+          if (overlay?.mount) {
+            const card = runtime.detail?.card;
+            void overlay.mount({
+              patientName:
+                normalizeText(detail.patientName) ||
+                normalizeText(card?.displayName) ||
+                normalizeText(card?.name) ||
+                undefined,
+              operationLabel: detail.operationLabel,
+            });
+          }
+          return;
+        }
+        const patientAction = normalizeText(detail.patientAction);
+        if (!patientAction) return;
+        switchDetailTab('journal');
+        window.requestAnimationFrame(() => {
+          void handleJournalTemplateAction(patientAction, detail.dataset || {});
+        });
       });
     }
     renderModeChrome();

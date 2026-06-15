@@ -1,5 +1,5 @@
 /**
- * Cloud Agent — Hair TP document bundle wiring (Fas 0–2).
+ * Cloud Agent — Hair TP document bundle wiring (Fas 0–3).
  * Reads hairtp-document-content-bundle.json — never writes patient text.
  */
 (function (global) {
@@ -24,6 +24,36 @@
   });
 
   const V11_FLOW_LABELS = FLOW_LABELS;
+
+  const POST8_JOURNAL_REGISTRY_IDS = Object.freeze([
+    'journal_tp_post_prp',
+    'journal_tp_follow_4',
+    'journal_tp_follow_6',
+    'journal_tp_follow_12',
+  ]);
+
+  const STAFF_JOURNAL_REGISTRY_IDS = Object.freeze(['journal_tp', 'journal_prp_multi']);
+
+  const STAFF_PREVIEW_REGISTRY_IDS = Object.freeze([
+    'ordination_tp',
+    'ordination_recept',
+    'fore_efter_bildmall',
+    'konsultationsmall',
+  ]);
+
+  const STAFF_JOURNAL_BY_FLOW = Object.freeze({
+    tp: 'journal_tp',
+    prp_hair: 'journal_prp_multi',
+    prp_skin: 'journal_prp_multi',
+    microneedling: 'journal_prp_multi',
+    prf: 'journal_prp_multi',
+    profhilo: 'journal_prp_multi',
+  });
+
+  const STAFF_JOURNAL_PATIENT_ACTION = Object.freeze({
+    journal_tp: 'new-tp-journal',
+    journal_prp_multi: 'new-prp-journal',
+  });
 
   const PREVIEW_ROOT_ID = 'cco-auto-doc-preview-scrim';
   let previewEscapeHandler = null;
@@ -116,11 +146,224 @@
     return 'healthForms';
   }
 
+  function isPost8JournalRegistryId(registryId) {
+    return POST8_JOURNAL_REGISTRY_IDS.includes(String(registryId || ''));
+  }
+
+  function isStaffJournalRegistryId(registryId) {
+    return STAFF_JOURNAL_REGISTRY_IDS.includes(String(registryId || ''));
+  }
+
+  function isStaffPreviewRegistryId(registryId) {
+    return STAFF_PREVIEW_REGISTRY_IDS.includes(String(registryId || ''));
+  }
+
+  function isSteg8RegistryId(registryId) {
+    return String(registryId || '') === 'friskfoers_tp';
+  }
+
+  function isInteractiveRegistryId(registryId) {
+    return (
+      isAutoDocRegistryId(registryId) ||
+      /^offert_/.test(String(registryId || '')) ||
+      isSteg8RegistryId(registryId) ||
+      isStaffJournalRegistryId(registryId) ||
+      isStaffPreviewRegistryId(registryId)
+    );
+  }
+
+  function resolveStaffJournalRegistryId(flow) {
+    return STAFF_JOURNAL_BY_FLOW[flow] || STAFF_JOURNAL_BY_FLOW.tp;
+  }
+
+  function resolveStaffJournalPatientAction(registryId) {
+    return STAFF_JOURNAL_PATIENT_ACTION[registryId] || 'new-tp-journal';
+  }
+
+  function listPost8JournalDocs(bundle) {
+    return POST8_JOURNAL_REGISTRY_IDS.map((registryId) => findDoc(bundle, registryId))
+      .filter(Boolean)
+      .map((hit) => hit.document);
+  }
+
+  function daysUntilIso(iso) {
+    if (!iso) return null;
+    const target = new Date(iso);
+    if (Number.isNaN(target.getTime())) return null;
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    return Math.round((end - start) / 86400000);
+  }
+
+  function isOpDayContext(card) {
+    if (!card) return false;
+    try {
+      if (new URLSearchParams(global.location.search || '').get('demoOpDay') === '1') return true;
+    } catch {
+      /* ignore */
+    }
+    if (card.missingFitnessCertificate && card.hasUpcomingBooking) return true;
+    const days = daysUntilIso(card.nextBookingAt);
+    if (card.hasUpcomingBooking && days !== null && days >= 0 && days <= 1) return true;
+    return false;
+  }
+
+  function dispatchCloudStaffAction(detail) {
+    if (typeof global.dispatchEvent !== 'function') return false;
+    global.dispatchEvent(new CustomEvent('cco:cloud-staff-action', { detail: detail || {} }));
+    return true;
+  }
+
+  function openSteg8Friskforsakran(options = {}) {
+    if (global.CcoFriskforsakranDemoOverlay?.mount) {
+      return global.CcoFriskforsakranDemoOverlay.mount(options);
+    }
+    return Promise.resolve(dispatchCloudStaffAction({ kind: 'steg8', ...options }));
+  }
+
+  function openStaffJournal(options = {}) {
+    const flow = resolveTreatmentFlow(options);
+    const registryId = options.registryId || resolveStaffJournalRegistryId(flow);
+    const patientAction = resolveStaffJournalPatientAction(registryId);
+    dispatchCloudStaffAction({
+      kind: 'journal',
+      patientAction,
+      registryId,
+      flow,
+    });
+    return true;
+  }
+
+  function buildStaffDocumentPreviewHtml(registryId, bundle) {
+    const hit = findDoc(bundle, registryId);
+    if (!hit) {
+      return '<p class="cco-auto-preview__empty">Ingen preview — dokument saknas i content-bundle.</p>';
+    }
+    const doc = hit.document;
+    const content = doc.content || {};
+    const meridiq = doc.meridiq || {};
+    const banner = buildContentStatusBanner({
+      contentStatus: doc.contentStatus,
+      blockers: doc.blockers,
+    });
+    const text = content.text || content.note || meridiq.title || '';
+    const stages = asArray(content.stages);
+    const stagesHtml = stages.length
+      ? `<ul class="cco-auto-preview__list">${stages.map((stage) => `<li>${escapeHtml(stage)}</li>`).join('')}</ul>`
+      : '';
+    const textHtml = text ? `<pre class="cco-auto-preview__pre">${escapeHtml(text)}</pre>` : '';
+    const body =
+      stagesHtml + textHtml ||
+      '<p class="cco-auto-preview__empty">Ingen malltext i bundle — endast registry-metadata.</p>';
+    return `
+      ${banner}
+      <p class="cco-auto-preview__meta">${escapeHtml(doc.label || registryId)} · ${escapeHtml(doc.contentStatus || '')}</p>
+      ${body}`;
+  }
+
+  async function openStaffDocumentPreviewAsync(registryId) {
+    if (!registryId) return false;
+    mountAutoDocPreviewScrim(
+      registryId,
+      '<p class="cco-auto-preview__loading" role="status">Laddar staff-mall…</p>',
+      { title: 'Staff-mall · preview' }
+    );
+    const bundle = await ensureDocumentBundle();
+    const body = bundle
+      ? buildStaffDocumentPreviewHtml(registryId, bundle)
+      : '<p class="cco-auto-preview__empty">Kunde inte ladda content-bundle.</p>';
+    const scrim = document.getElementById(PREVIEW_ROOT_ID);
+    const bodyEl = scrim?.querySelector('[data-auto-preview-body]');
+    if (bodyEl) bodyEl.innerHTML = body;
+    return Boolean(bundle);
+  }
+
+  function activateRegistryDocument(registryId, options = {}) {
+    if (!registryId) return false;
+    if (isAutoDocRegistryId(registryId)) {
+      void openAutoDocPreviewAsync(registryId);
+      return true;
+    }
+    if (registryId.startsWith('offert_')) {
+      openSteg7ForOfferRegistry(registryId, options);
+      return true;
+    }
+    if (isSteg8RegistryId(registryId)) {
+      void openSteg8Friskforsakran(options);
+      return true;
+    }
+    if (isStaffJournalRegistryId(registryId)) {
+      openStaffJournal({ ...options, registryId });
+      return true;
+    }
+    if (isStaffPreviewRegistryId(registryId)) {
+      void openStaffDocumentPreviewAsync(registryId);
+      return true;
+    }
+    return false;
+  }
+
+  function buildOpDayStaffActionsHtml(card) {
+    if (!isOpDayContext(card)) return '';
+    const flow = resolveTreatmentFlow({ card });
+    const journalRegistryId = resolveStaffJournalRegistryId(flow);
+    const journalLabel = flow === 'tp' ? 'TP-journal' : 'PRP-journal';
+    const actions = [
+      { id: 'steg8', label: 'Friskförsäkran', registryId: 'friskfoers_tp' },
+      { id: 'journal', label: journalLabel, registryId: journalRegistryId },
+      { id: 'ordination', label: 'Ordination', registryId: 'ordination_tp' },
+      { id: 'photo_proto', label: 'Före/efter-bild', registryId: 'fore_efter_bildmall' },
+    ];
+    return `
+      <div class="v11-opday-actions" data-v11-opday-actions aria-label="Op-dag · personal">
+        <span class="v11-opday-actions__kicker">Op-dag</span>
+        <div class="v11-opday-actions__row">
+          ${actions
+            .map(
+              (action) =>
+                `<button type="button" class="v11-opday-actions__btn" data-v11-opday-action="${escapeHtml(action.id)}" data-v11-opday-registry="${escapeHtml(action.registryId)}">${escapeHtml(action.label)}</button>`
+            )
+            .join('')}
+        </div>
+      </div>`;
+  }
+
+  function bindOpDayStaffActions(root) {
+    if (!root || root.dataset.opdayBound === '1') return;
+    root.dataset.opdayBound = '1';
+    root.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-v11-opday-action]');
+      if (!btn) return;
+      const registryId = btn.getAttribute('data-v11-opday-registry') || '';
+      activateRegistryDocument(registryId);
+    });
+  }
+
+  function buildPost8JournalTimelineHtml(bundle, { show = false } = {}) {
+    if (!show) return '';
+    const docs = listPost8JournalDocs(bundle);
+    if (!docs.length) return '';
+    return `
+      <div class="v11-post8-timeline" data-v11-post8-timeline aria-label="Uppföljningsjournaler efter op-dag">
+        <span class="v11-post8-timeline__kicker">Efter op-dag</span>
+        <ul class="v11-post8-timeline__list">
+          ${docs
+            .map(
+              (doc) =>
+                `<li><span class="v11-post8-timeline__label">${escapeHtml(doc.label || doc.registryId)}</span><span class="v11-post8-timeline__status">${escapeHtml(doc.contentStatus || '')}</span></li>`
+            )
+            .join('')}
+        </ul>
+      </div>`;
+  }
+
   function mapBundleDocumentToRow(doc) {
     if (!doc || typeof doc !== 'object') return null;
     const flow = asArray(doc.flowApplies)[0] || 'tp';
     const contentStatus = String(doc.contentStatus || 'PARTIAL').toUpperCase();
     const autoDoc = doc.filler === 'system_auto' || isAutoDocRegistryId(doc.registryId);
+    const registryId = String(doc.registryId || '');
     return {
       registryId: doc.registryId,
       title: doc.label || doc.registryId,
@@ -138,7 +381,7 @@
             ? 'Saknas'
             : 'Delvis',
       dashed: contentStatus !== 'FULL',
-      previewable: autoDoc,
+      previewable: isInteractiveRegistryId(registryId) || autoDoc,
     };
   }
 
@@ -159,6 +402,7 @@
     let missing = 0;
 
     for (const doc of allDocs) {
+      if (isPost8JournalRegistryId(doc.registryId)) continue;
       const row = mapBundleDocumentToRow(doc);
       if (!row) continue;
       rowsByGroup[resolveV11DocGroup(doc)].push(row);
@@ -314,19 +558,38 @@
   global.CcoHairtpDocumentCloud = {
     STEG7_OFFER_BY_FLOW,
     FLOW_LABELS,
+    POST8_JOURNAL_REGISTRY_IDS,
+    STAFF_JOURNAL_BY_FLOW,
     isAutoDocRegistryId,
     isAutoDocRow,
+    isPost8JournalRegistryId,
+    isStaffJournalRegistryId,
+    isStaffPreviewRegistryId,
+    isSteg8RegistryId,
+    isInteractiveRegistryId,
+    isOpDayContext,
     ensureDocumentBundle,
     buildContentStatusBanner,
     resolveSteg7ForFlow,
+    resolveStaffJournalRegistryId,
+    resolveStaffJournalPatientAction,
     resolveV11DocGroup,
     mapBundleDocumentToRow,
     buildV11DocumentPayloadFromBundle,
     buildAutoDocPreviewHtml,
+    buildStaffDocumentPreviewHtml,
+    buildOpDayStaffActionsHtml,
+    buildPost8JournalTimelineHtml,
+    bindOpDayStaffActions,
     openAutoDocPreview,
     openAutoDocPreviewAsync,
+    openStaffDocumentPreviewAsync,
+    openSteg8Friskforsakran,
+    openStaffJournal,
+    activateRegistryDocument,
     closeAutoDocPreview,
     openSteg7ForOfferRegistry,
     resolveTreatmentFlow,
+    listPost8JournalDocs,
   };
 })(typeof window !== 'undefined' ? window : global);
