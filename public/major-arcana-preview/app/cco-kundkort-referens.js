@@ -974,6 +974,16 @@
     );
   }
 
+  function buildOrd48ReadyKalenderBlock(card, extras, gateSignals, patientId) {
+    if (!ORD47_V1) return '';
+    return (
+      '<div class="kk-ord48-shell kk-ord48-shell--compact" data-kk-ord48-shell>' +
+      buildOrd48ReadyBlock(card, extras, gateSignals) +
+      buildOrd48KalenderCta(card, extras, gateSignals, patientId || card.patientId || card.id) +
+      '</div>'
+    );
+  }
+
   function buildOrd47DocCard(id, num, title, statusPill, inner, openDefault) {
     var openAttr = openDefault ? ' open' : '';
     return (
@@ -2062,6 +2072,18 @@
       (autoN ? chip('Auto', autoN) : '') +
       chip('Ta bild') +
       '</nav>';
+    var gkExtras = {
+      agreementReadout: ctx.agreementReadout || null,
+      treatmentAgreement: ctx.treatmentAgreement || null,
+    };
+    var ord48StorvyHtml = ctx.bcard
+      ? buildOrd48ReadyKalenderBlock(
+          ctx.bcard,
+          gkExtras,
+          ctx.gateSignals,
+          ctx.patientId || ctx.customerId || ''
+        )
+      : '';
     var head =
       '<header class="gk-khead"><div class="gk-khead-row"><div class="gk-avatar">' +
       esc(ini(name)) +
@@ -2075,6 +2097,7 @@
       '<button type="button" class="gk-btn gk-btn-gold" data-gk-proxy="[data-kk-forbered]">Förbered besök</button>' +
       '<button type="button" class="gk-btn" data-gk-proxy="[data-kk-atgarder]">Åtgärder</button>' +
       '</div></div>' +
+      ord48StorvyHtml +
       '<div class="gk-smartline"><span class="gk-kicker">Smart sammanfattning</span><span>' +
       smart +
       '</span></div>' +
@@ -5850,6 +5873,8 @@
         bundle: bundle,
         bcard: bcard,
         commercialCase: commercialCase,
+        agreementReadout: extras.agreementReadout || null,
+        treatmentAgreement: extras.treatmentAgreement || null,
         ltv: Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0 ? Number(ltvRaw) : '',
         ltvLabel: ltvLabel || '',
       };

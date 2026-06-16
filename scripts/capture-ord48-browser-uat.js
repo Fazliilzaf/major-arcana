@@ -253,18 +253,90 @@ async function ensurePatientOpen(page, patientId) {
       typeof window.ArcanaPatientMasterUi?.openPatient === 'function' &&
       Boolean(document.querySelector('[data-patient-master-rail]')),
     null,
-    { timeout: 60000 }
+    { timeout: 120000 }
   );
-  await page.evaluate(async (pid) => {
+  await page.waitForFunction(
+    () => {
+      const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
+      return rt?.mode === 'register' && !rt?.authRequired;
+    },
+    null,
+    { timeout: 120000 }
+  );
+  await page.waitForFunction(
+    () => {
+      const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
+      return Boolean(rt?.loaded || rt?.patients?.length);
+    },
+    null,
+    { timeout: 120000 }
+  );
+  const openMeta = await page.evaluate(async (pid) => {
     const api = window.ArcanaPatientMasterUi;
-    if (!api?.openPatient) return;
-    const rt = api.getRuntime?.();
-    const rail = document.querySelector('[data-patient-master-rail]');
-    const hasShell = Boolean(rail?.querySelector('.v10-dossier-referens [data-kk-doc-cards]'));
-    if (rt?.selectedPatientId === pid && rt?.detail?.card && hasShell) return;
-    await api.openPatient(pid);
+    if (!api?.openPatient) return { ok: false, reason: 'no-api' };
+    document.querySelector('.customers-layout')?.setAttribute('data-v9-dossier-open', 'on');
+    const opened = await api.openPatient(pid);
+    for (let i = 0; i < 80; i += 1) {
+      const rt = api.getRuntime?.();
+      const rail = document.querySelector('[data-patient-master-rail]');
+      const ready = rail?.querySelector('[data-kk-ord48-ready]');
+      const referens = rail?.querySelector('.v10-dossier-referens [data-kk-doc-cards]');
+      if (
+        rt?.selectedPatientId === pid &&
+        rt?.detail?.card &&
+        ready &&
+        referens &&
+        referens.getBoundingClientRect().height >= 80
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
     await api.refreshV10KundkortFacit?.();
+    const rt1 = api.getRuntime?.();
+    const rail1 = document.querySelector('[data-patient-master-rail]');
+    const ready1 = rail1?.querySelector('[data-kk-ord48-ready]');
+    return {
+      ok:
+        Boolean(opened) &&
+        rt1?.selectedPatientId === pid &&
+        Boolean(rt1?.detail?.card) &&
+        Boolean(ready1),
+      via: 'openPatient',
+      opened,
+      selected: rt1?.selectedPatientId || '',
+      name: rt1?.detail?.card?.displayName || rt1?.detail?.card?.name || '',
+      detailLoading: Boolean(rt1?.detailLoading),
+      authRequired: Boolean(rt1?.authRequired),
+    };
   }, patientId);
+  if (process.env.CAPTURE_DEBUG === '1') {
+    console.log(`openPatient(${patientId.slice(0, 8)}…):`, JSON.stringify(openMeta));
+  }
+
+  const row = page.locator(`[data-patient-row="${patientId}"]`).first();
+  if (!openMeta.ok && (await row.count())) {
+    const rt = await page.evaluate((pid) => {
+      const api = window.ArcanaPatientMasterUi;
+      const runtime = api?.getRuntime?.();
+      return {
+        selected: runtime?.selectedPatientId || '',
+        hasDetail: Boolean(runtime?.detail?.card),
+      };
+    }, patientId);
+    if (rt.selected !== patientId || !rt.hasDetail) {
+      await row.click({ timeout: 15000 }).catch(() => {});
+      await page.waitForTimeout(3000);
+      await page.evaluate(async (pid) => {
+        const api = window.ArcanaPatientMasterUi;
+        if (!api?.openPatient) return;
+        await api.openPatient(pid);
+        await api.refreshV10KundkortFacit?.();
+        document.querySelector('.customers-layout')?.setAttribute('data-v9-dossier-open', 'on');
+      }, patientId);
+    }
+  }
+  return openMeta;
 }
 
 async function waitForReferensShell(page, pilot, timeoutMs = 90000) {
@@ -298,15 +370,25 @@ async function waitForReferensShell(page, pilot, timeoutMs = 90000) {
 }
 
 async function capturePilot(page, pilot) {
-  await page.goto(pilot.url, { waitUntil: 'domcontentloaded', timeout: 90000 });
-  await page.waitForTimeout(3000);
-  await ensurePatientOpen(page, pilot.patientId);
-  await page.waitForTimeout(2000);
-  let opened = await waitForReferensShell(page, pilot, 90000);
+  await page.goto(pilot.url, { waitUntil: 'load', timeout: 120000 });
+  await page.waitForTimeout(5000);
+  const openMeta = await ensurePatientOpen(page, pilot.patientId);
+  let opened = Boolean(openMeta?.ok);
   if (!opened) {
-    await ensurePatientOpen(page, pilot.patientId);
-    await page.waitForTimeout(3000);
-    opened = await waitForReferensShell(page, pilot, 45000);
+    await page.waitForTimeout(2000);
+    opened = await waitForKundkortReady(page, pilot, 120000);
+  }
+  if (!opened) {
+    const row = page.locator(`[data-patient-row="${pilot.patientId}"]`).first();
+    if (await row.count()) {
+      await row.click({ timeout: 15000 }).catch(() => {});
+      await page.waitForTimeout(3000);
+    }
+    const retryMeta = await ensurePatientOpen(page, pilot.patientId);
+    if (process.env.CAPTURE_DEBUG === '1') {
+      console.log(`openPatient-retry(${pilot.patientId.slice(0, 8)}…):`, JSON.stringify(retryMeta));
+    }
+    opened = Boolean(retryMeta?.ok) || (await waitForKundkortReady(page, pilot, 90000));
   }
   let state = await page.evaluate(readVisualState, pilot.expectOpDay);
   state.pass = opened && isCaptureReady(state, pilot);
@@ -316,10 +398,9 @@ async function capturePilot(page, pilot) {
 
   const outPath = path.join(OUT_DIR, pilot.file);
   const captureSelectors = [
-    '[data-patient-master-rail] .v10-dossier-referens',
-    '[data-patient-master-rail] .kkref .doss',
-    '[data-patient-master-rail] [data-kk-doc-cards]',
-    '[data-patient-master-rail]',
+    '[data-patient-master-rail] .v10-dossier-referens:visible',
+    '[data-patient-master-rail] .kkref .doss:visible',
+    '[data-patient-master-rail] [data-kk-ord48-shell]:visible',
   ];
   let shot = false;
   for (const selector of captureSelectors) {
@@ -347,7 +428,10 @@ async function main() {
   const prodCommit = await fetchProdCommit();
   const token = await loginToken();
   const results = [];
-  for (const pilot of PILOTS) {
+  const pilots = process.env.CAPTURE_PILOT
+    ? PILOTS.filter((p) => p.file.includes(process.env.CAPTURE_PILOT))
+    : PILOTS;
+  for (const pilot of pilots) {
     const browser = await chromium.launch({
       headless: true,
       executablePath: fs.existsSync(CHROME_PATH) ? CHROME_PATH : undefined,

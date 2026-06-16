@@ -4879,3 +4879,153 @@ html[data-v9-enabled="on"]
     grid-template-columns: 1fr;
   }
 }
+
+/* ORD-48 · Storvy (⤢) — samma ready-rad + kalender-CTA som höger rail */
+#kk-storvy .gk-khead .kk-ord48-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  margin: 12px 0 0;
+  padding: 12px 14px 13px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.92));
+  box-shadow:
+    0 3px 12px rgba(56, 40, 28, 0.08),
+    inset 0 0 0 1px rgba(212, 168, 71, 0.22);
+}
+
+#kk-storvy .kk-ord48-ready {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 88px;
+  padding: 10px 10px 9px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(93, 74, 60, 0.1);
+}
+
+#kk-storvy .kk-ord48-ready[data-ready="true"] {
+  background: linear-gradient(180deg, rgba(212, 229, 214, 0.55), rgba(255, 255, 255, 0.82));
+  box-shadow: inset 0 0 0 1px rgba(74, 130, 104, 0.35);
+}
+
+#kk-storvy .kk-ord48-ready__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#kk-storvy .kk-ord48-ready__k {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #94897b;
+}
+
+#kk-storvy .kk-ord48-ready__state {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+#kk-storvy .kk-ord48-ready__state.is-ready {
+  color: #4a8268;
+  background: rgba(74, 130, 104, 0.16);
+}
+
+#kk-storvy .kk-ord48-ready__state.is-blocked {
+  color: #c8821e;
+  background: rgba(200, 130, 30, 0.14);
+}
+
+#kk-storvy .kk-ready-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#kk-storvy .kk-ready-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+}
+
+#kk-storvy .kk-ready-pill[data-state="success"] {
+  color: #4a8268;
+  background: linear-gradient(180deg, rgba(74, 130, 104, 0.18), rgba(74, 130, 104, 0.1));
+}
+
+#kk-storvy .kk-ready-pill[data-state="warning"] {
+  color: #c8821e;
+  background: linear-gradient(180deg, rgba(200, 130, 30, 0.2), rgba(200, 130, 30, 0.12));
+}
+
+#kk-storvy .kk-ready-pill[data-state="neutral"] {
+  color: #94897b;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(148, 137, 123, 0.18);
+}
+
+#kk-storvy .kk-ready-reason {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #6b6052;
+}
+
+#kk-storvy .kk-ready-reason strong {
+  color: #2b251f;
+}
+
+#kk-storvy .kk-ord48-cal-cta {
+  display: block;
+  width: 100%;
+}
+
+#kk-storvy .kk-ord48-cal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 11px 18px;
+  color: #5a4310;
+  background: linear-gradient(180deg, #f4dca3, #e3bd62);
+  box-shadow:
+    0 4px 14px rgba(91, 65, 20, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+#kk-storvy .kk-ord48-cal-btn--ready:hover:not(:disabled) {
+  filter: brightness(1.03);
+}
+
+#kk-storvy .kk-ord48-cal-btn:disabled,
+#kk-storvy .kk-ord48-cal-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.62;
+  color: #94897b;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 241, 236, 0.86));
+  box-shadow: inset 0 0 0 1px rgba(148, 137, 123, 0.22);
+}
