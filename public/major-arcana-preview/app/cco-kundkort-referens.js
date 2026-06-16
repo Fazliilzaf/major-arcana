@@ -848,7 +848,7 @@
     card = card || {};
     extras = extras || {};
     var agr = extras.agreementReadout || {};
-    gateSignals = A2(gateSignals);
+    gateSignals = A(gateSignals);
     function sigId(s) {
       return String((s && (s.ruleId || s.id)) || '');
     }
