@@ -6,6 +6,8 @@
 **Browser capture:** `npm run capture:ord29-browser-uat`  
 **Förväntad tid:** 25–35 min
 
+**Fas 2:** Struktur-ingest (mailbox HD → `patient.healthDeclaration`) **väntar PNR enrichment-spår** — se `ORD-29-PNR-ENRICHMENT.md`. Fas 1 UAT nedan är **CLOSED**.
+
 ---
 
 ## Förutsättningar

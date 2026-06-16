@@ -157,28 +157,25 @@ Om dry-run failar med auth/Graph: fixa creds innan corpus eller commit.
 
 ---
 
-## Blocker — Cliento sync + reprocess (2026-06-16, owner GO)
+## Blocker — PNR enrichment (2026-06-16, owner GO)
 
-**Status:** Batch 2 **hold** until Cliento customer-delta sync succeeds and review-reprocess dry-run shows material match improvement vs batch 1 slice (`unmatched` 27 on batch 1 dry-run).
+**Status:** Batch 2 **hold**. CSV **Kundexport** sync succeeded (+50 net in prod master) but HD review-reprocess dry-run **unchanged** vs baseline — **not** sufficient for HD reprocess improvement.
 
-| Step                     | Command                                                 | Result                                                                                                                                            |
-| ------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cliento → patient master | `npm run sync:cliento-customers`                        | **exit 2** — `cliento_api_key_missing` (0 patients synced). Set `CLIENTO_API_KEY` or CSV path per script hint; retry before reprocess `--commit`. |
-| Review reprocess dry-run | `npm run ingest:halso-hd-review-reprocess -- --dry-run` | **exit 0** — queue 76 · patient master 7288                                                                                                       |
+**Kundexport CSV path (tested):** `/Users/fazlikrasniqi/Downloads/Kundexport_nya 1 maj 2021 - 16 juni 2026.csv`
 
-**Reprocess dry-run aggregates (no PII):**
+| Step                     | Command                                                 | Result                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cliento → patient master | `npm run sync:cliento-customers -- --commit` (CSV)      | created **50**, updated **11**, unchanged **6455**, reviewQueued **376**, invalid **0**                                                      |
+| Push delta prod          | `npm run push:cliento-delta-prod`                       | **127** PUT ok · prod **7288 → 7338** (+50 net)                                                                                              |
+| Review reprocess dry-run | `npm run ingest:halso-hd-review-reprocess -- --dry-run` | wouldMatchNow **15**, stillUnmatched **53**, needsReview **8**, duplicate **10**, unmatched **46** · putOk **0** — **NO change vs baseline** |
 
-| Metric                  | Count |
-| ----------------------- | ----- |
-| total processed         | 76    |
-| wouldMatchNow (triage)  | 15    |
-| stillUnmatched (triage) | 53    |
-| needsReview (triage)    | 8     |
-| duplicate (stats)       | 10    |
-| unmatched (stats)       | 46    |
-| putOk                   | 0     |
+**Why CSV Kundexport is insufficient for HD reprocess:** no **Personnummer** column → patient master still lacks PNR for HD mailbox matching. **Dataexport** was **not** used for customer sync (booking grain; wrong for `sync:cliento-customers`). **mass-paminnelse** excluded.
 
-**Decision:** Do **not** run `ingest:halso-hd-review-reprocess -- --commit` yet — Cliento sync did not run; `stillUnmatched` not materially below batch 1 slice (27). Re-run **batch 1 dry-run** after successful Cliento sync, then batch 2 dry-run → stickprov → commit per runbook.
+**Decision (locked):**
+
+- **NO** batch 2 yet
+- **NO** `ingest:halso-hd-review-reprocess -- --commit`
+- **Next track:** PNR enrichment from Dataexport — see **`docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md`**
 
 PII report (gitignored): `data/reports/halso-hd-review-reprocess-report.json` · summary: `node scripts/summarize-halso-hd-batch-outcomes.js` on that path.
 
@@ -187,5 +184,6 @@ PII report (gitignored): `data/reports/halso-hd-review-reprocess-report.json` ·
 - `docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md`
 - `docs/handover/ORDERS/ORD-29-CLOUD-STAFF-UAT.md` (Fas 1)
 - `docs/handover/ORDERS/ORD-6-29-LINEAR-CLOSE-COMMENT.md`
+- `docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md` (PNR track — prerequisite for batch 2 / reprocess commit)
 
 _Hair TP · ORD-29 Fas 2 GO runbook · 2026-06-16_

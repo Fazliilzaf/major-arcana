@@ -5,10 +5,10 @@
 **Claude-spår:** Spec + historisk import (~1660 via `m365_halso`) + UAT efter deploy  
 **Prio:** P0
 
-| Fas                                            | Status                                     | Deploy                             |
-| ---------------------------------------------- | ------------------------------------------ | ---------------------------------- |
-| **Phase 1** — enrichment (Claude `m365_halso`) | **CLOSED** (UAT PASS 2026-06-16)           | **Live**                           |
-| **Phase 2** — mailbox struktur-ingest          | **GO 2026-06-16** — In progress (owner GO) | Batch PUT (flag fortfarande false) |
+| Fas                                            | Status                                                     | Deploy                             |
+| ---------------------------------------------- | ---------------------------------------------------------- | ---------------------------------- |
+| **Phase 1** — enrichment (Claude `m365_halso`) | **CLOSED** (UAT PASS 2026-06-16)                           | **Live**                           |
+| **Phase 2** — mailbox struktur-ingest          | **Blocked** — PNR enrichment (ej generisk Kundexport-sync) | Batch PUT (flag fortfarande false) |
 
 ---
 
@@ -89,9 +89,30 @@
 | Commit batch 1                           | **ok** — samma counts som dry-run · putOk 0 · putFailed 0 (inga nya match → inga PUT)                                   |
 | `verify:ord29-prod-sticks` (post-commit) | **14/14 PASS**                                                                                                          |
 
-**Nästa:** batch 2 dry-run → stickprov/verify → commit (samma runbook).
+### GO CSV commit facit (2026-06-16)
 
-**2026-06-16 hold — Cliento sync + reprocess before batch 2:** `sync:cliento-customers` failed (exit 2, API key missing). Review reprocess dry-run: processed 76 · wouldMatchNow 15 · stillUnmatched 53 · needsReview 8 · duplicate 10 · unmatched 46 · putOk 0. No reprocess `--commit` until Cliento sync succeeds and unmatched improves vs batch 1 dry-run (27). See ORD-29-FAS2-GO-RUNBOOK.md blocker section.
+**Kundexport only:** `/Users/fazlikrasniqi/Downloads/Kundexport_nya 1 maj 2021 - 16 juni 2026.csv`
+
+| Steg                                                    | Resultat                                                                                                                                                            |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run sync:cliento-customers -- --commit` (CSV)      | created **50**, updated **11**, unchanged **6455**, reviewQueued **376**, invalid **0**                                                                             |
+| `npm run push:cliento-delta-prod`                       | **127** PUT ok · prod patient master **7288 → 7338** (+50 net)                                                                                                      |
+| `npm run ingest:halso-hd-review-reprocess -- --dry-run` | wouldMatchNow **15**, stillUnmatched **53**, needsReview **8**, duplicate **10**, stats unmatched **46** · putOk **0** — **ingen förändring vs baseline** (pre-CSV) |
+
+**Slutsats:** Kundexport-sync fungerade (+50 patienter i master). ORD-29 HD-matchning **förbättrades inte** — flaskhals kvar: **PNR saknas i patient master** (Kundexport har **ingen Personnummer-kolumn**).
+
+- **Dataexport** användes **inte** för sync (bokningsexport, fel grain).
+- **mass-paminnelse** exkluderad från detta spår.
+
+**Beslut (låsta 2026-06-16):**
+
+- **NO** batch 2 ännu
+- **NO** `ingest:halso-hd-review-reprocess -- --commit`
+- **Nästa spår:** separat PNR-enrichment från Dataexport — **inte** fortsatt batch-körning. Se `ORD-29-PNR-ENRICHMENT.md`.
+
+**Tidigare hold (API key):** Första blocker var `cliento_api_key_missing` (exit 2). CSV-commit löste customer-delta men **inte** HD reprocess-metrics.
+
+**Phase 2 status:** Blockerad på **PNR enrichment**, inte på generisk customer sync.
 
 **Committa aldrig:** `data/reports/halso-hd-*.json`, `*.stickprov.json`, review queue JSONL.
 
