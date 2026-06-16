@@ -804,14 +804,16 @@
 
   function buildOrd47TopBar(ctx) {
     ctx = ctx || {};
-    var step = ctx.cur != null ? 'Steg ' + ctx.cur + ' / ' + (ctx.total || 9) : 'Steg —';
+    var total = ctx.total || 9;
+    var step = ctx.cur != null ? 'STEG ' + String(ctx.cur) + ' AV ' + String(total) : 'STEG —';
     var next = ctx.nextLabel ? esc(ctx.nextLabel) : '—';
     var opWhen = ctx.opWhen ? esc(ctx.opWhen) : '—';
     return (
       '<div class="kk-ord47-topbar" data-kk-ord47-topbar aria-label="Kundresa status">' +
-      '<span class="kk-ord47-topbar__item"><span class="kk-ord47-topbar__k">Steg</span>' +
+      '<span class="kk-ord47-topbar__item kk-ord47-topbar__item--step">' +
+      '<span class="kk-ord47-step-badge">' +
       esc(step) +
-      '</span>' +
+      '</span></span>' +
       '<span class="kk-ord47-topbar__item"><span class="kk-ord47-topbar__k">Nästa</span>' +
       next +
       '</span>' +
@@ -915,6 +917,13 @@
       '<div class="kk-ord48-ready" data-kk-ord48-ready data-ready="' +
       (st.ready ? 'true' : 'false') +
       '">' +
+      '<div class="kk-ord48-ready__head">' +
+      '<span class="kk-ord48-ready__k">Redo för behandling</span>' +
+      '<span class="kk-ord48-ready__state' +
+      (st.ready ? ' is-ready' : ' is-blocked') +
+      '">' +
+      (st.ready ? 'REDO' : 'EJ REDO') +
+      '</span></div>' +
       '<div class="kk-ready-row">' +
       pills +
       '</div>' +
@@ -941,7 +950,26 @@
       pid +
       '" title="' +
       esc(hint) +
-      '">📅 Öppna kalender</button>' +
+      '"><span class="kk-ord48-cal-btn__icon" aria-hidden="true">📅</span> Öppna kalender</button>' +
+      '</div>'
+    );
+  }
+
+  function buildOrd48JourneyShell(card, extras, gateSignals, ctx) {
+    ctx = ctx || {};
+    return (
+      '<div class="kk-ord48-shell" data-kk-ord48-shell>' +
+      buildOrd47TopBar(ctx) +
+      buildOrd47RailStatus(
+        getOrd47Resolver().railStatusLine(card, {
+          cur: ctx.cur,
+          nextLabel: ctx.nextLabel,
+          gateSignals: gateSignals,
+          opDate: ctx.opWhen,
+        })
+      ) +
+      buildOrd48ReadyBlock(card, extras, gateSignals) +
+      buildOrd48KalenderCta(card, extras, gateSignals, card.patientId || card.id) +
       '</div>'
     );
   }
@@ -4530,22 +4558,12 @@
     if (ORD47_V1) {
       var ord47OpWhen =
         bkWhen || (nextBk && String(nextBk.date || nextBk.dateLabel || '').slice(0, 10)) || '—';
-      h += buildOrd47TopBar({
+      h += buildOrd48JourneyShell(bcard, extras, gateSignals, {
         cur: cur,
         total: total,
         nextLabel: nextLabel,
         opWhen: ord47OpWhen,
       });
-      h += buildOrd47RailStatus(
-        getOrd47Resolver().railStatusLine(bcard, {
-          cur: cur,
-          nextLabel: nextLabel,
-          gateSignals: gateSignals,
-          opDate: ord47OpWhen,
-        })
-      );
-      h += buildOrd48ReadyBlock(bcard, extras, gateSignals);
-      h += buildOrd48KalenderCta(bcard, extras, gateSignals, bcard.patientId || bcard.id);
     } else if (nextLabel || cur || bkStr) {
       var nx = bkStr ? bkStr + (summAction ? ' — ' + summAction : '') : summAction;
       h +=
@@ -5791,7 +5809,7 @@
         (ord48ReadySt.ready ? '' : ' is-disabled') +
         '"' +
         (ord48ReadySt.ready ? '' : ' disabled aria-disabled="true"') +
-        ' data-kk-ord48-open-calendar data-patient-id="' +
+        ' data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="' +
         ord48Pid +
         '">Boka nästa</button>' +
         '<div class="r2"><div class="btn">✎ Anteckna</div><div class="btn">✉ Svarstudio</div></div>' +
@@ -7169,6 +7187,26 @@
       /* förstoring får aldrig fälla dossiern */
     }
   }
+  function kkPromoteOrd48Shell(doss) {
+    if (!doss) return;
+    var shell = doss.querySelector('[data-kk-ord48-shell]');
+    if (!shell) return;
+    var sticky = doss.querySelector('.kk-sticky');
+    if (!sticky) {
+      var head = doss.querySelector('.dhead');
+      if (!head) return;
+      sticky = document.createElement('div');
+      sticky.className = 'kk-sticky';
+      var ds = doss.querySelector('.ds');
+      doss.insertBefore(sticky, ds || head.nextSibling);
+      sticky.appendChild(head);
+    }
+    if (shell.parentElement === sticky) return;
+    var nav = sticky.querySelector('.kk-nav');
+    if (nav) sticky.insertBefore(shell, nav);
+    else sticky.appendChild(shell);
+  }
+
   window.__enhanceReferensKundkort = function (rootEl) {
     try {
       var bindRoot =
@@ -7183,6 +7221,13 @@
     }
     // Rail ska vara ren v9-dossier. Enda tillägget: förstorings-knappen.
     kkAddForstoring(rootEl);
+    try {
+      var dossRoot = rootEl && rootEl.querySelector ? rootEl : document;
+      var dossEarly = dossRoot.querySelector('.kkref .doss');
+      if (dossEarly) kkPromoteOrd48Shell(dossEarly);
+    } catch (_ord48Shell) {
+      /* best-effort */
+    }
     if (window.__KK_ENHANCER_PA !== true) return;
     try {
       var root = rootEl && rootEl.querySelector ? rootEl : document;
@@ -7236,6 +7281,7 @@
       nav.className = 'kk-nav';
       nav.innerHTML = navHtml;
       sticky.appendChild(nav);
+      kkPromoteOrd48Shell(doss);
       var scroller = doss.parentElement;
       while (scroller && scroller !== document.body) {
         var cs = getComputedStyle(scroller);

@@ -13,6 +13,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 function loadDotEnv() {
   const envPath = path.join(__dirname, '..', '.env');
@@ -92,7 +93,12 @@ async function loginToken() {
     const res = await fetch(`${BASE}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email, password, tenantId: tenant }),
+      body: JSON.stringify({
+        client: 'major_arcana_admin',
+        email,
+        password,
+        tenantId: tenant,
+      }),
     });
     const raw = await res.text();
     let payload = {};
@@ -120,7 +126,7 @@ function readVisualState(expectOpDay) {
   function isVisible(el) {
     if (!el || typeof el.getBoundingClientRect !== 'function') return false;
     const rect = el.getBoundingClientRect();
-    if (rect.width < 200 || rect.height < 80) return false;
+    if (rect.width < 200 || rect.height < 72) return false;
     const style = window.getComputedStyle(el);
     return (
       style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity || 1) > 0.05
@@ -174,6 +180,7 @@ function readVisualState(expectOpDay) {
     hasReadyRow: Boolean(readyBlock),
     readyRowVisible: isVisible(readyBlock),
     hasCalCta: Boolean(calBtn),
+    calCtaVisible: isVisible(calBtn),
     readyForTreatment: readyAttr,
     calEnabled: Boolean(
       calBtn && !calBtn.disabled && calBtn.getAttribute('aria-disabled') !== 'true'
@@ -200,6 +207,7 @@ function isCaptureReady(state, pilot) {
   if (!state.hasReferensShell || !state.hasDetail) return false;
   if (!state.hasDocCards || !state.docCardsVisible || (state.docCardCount || 0) < 4) return false;
   if (!state.hasReadyRow || !state.hasCalCta) return false;
+  if (!state.readyRowVisible || !state.calCtaVisible) return false;
   if ((state.captureWidth || 0) < 280 || (state.captureHeight || 0) < 200) return false;
   if (!pilot.expectName.test(state.railSnippet)) return false;
   if (pilot.expectOpDay && !state.hasOpDay) return false;
@@ -208,6 +216,17 @@ function isCaptureReady(state, pilot) {
 
 async function dismissCaptureOverlays(page) {
   await page.evaluate(() => {
+    try {
+      window.localStorage.setItem('cco.onboardingTour.v1', 'done');
+      window.sessionStorage.setItem('cco.onboardingTour.v1', 'done');
+    } catch {}
+    document.querySelector('[data-tour-skip]')?.click();
+    document.querySelector('[data-tour-next]')?.click();
+    document
+      .querySelectorAll('.arcana-tour-overlay, .arcana-tour-spotlight, .arcana-tour-card')
+      .forEach((el) => {
+        el.remove();
+      });
     document.getElementById('kk-storvy')?.classList.remove('open');
     document.getElementById('cco-steg7-bundle-scrim')?.remove();
     document.getElementById('cco-steg7-bundle-gate-scrim')?.remove();
@@ -279,7 +298,6 @@ async function waitForReferensShell(page, pilot, timeoutMs = 90000) {
 }
 
 async function capturePilot(page, pilot) {
-  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.goto(pilot.url, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForTimeout(3000);
   await ensurePatientOpen(page, pilot.patientId);
@@ -319,7 +337,7 @@ async function capturePilot(page, pilot) {
 
   const label = state.pass ? 'PASS' : 'PARTIAL';
   console.log(
-    `${label} ${pilot.file} [${pilot.scenario}] referens=${state.hasReferensShell} docCards=${state.docCardCount} visible=${state.docCardsVisible} ready=${state.readyRowVisible} capture=${state.captureWidth}x${state.captureHeight} storvy=${state.storvyOpen}`
+    `${label} ${pilot.file} [${pilot.scenario}] referens=${state.hasReferensShell} docCards=${state.docCardCount} visible=${state.docCardsVisible} ready=${state.readyRowVisible} cal=${state.calCtaVisible} capture=${state.captureWidth}x${state.captureHeight} storvy=${state.storvyOpen}`
   );
   return state;
 }
@@ -330,13 +348,19 @@ async function main() {
   const token = await loginToken();
   const results = [];
   for (const pilot of PILOTS) {
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({
+      headless: true,
+      executablePath: fs.existsSync(CHROME_PATH) ? CHROME_PATH : undefined,
+    });
     const context = await browser.newContext({
       viewport: { width: 1512, height: 900 },
       locale: 'sv-SE',
     });
     await context.addInitScript((sessionToken) => {
       window.localStorage.setItem('ARCANA_ADMIN_TOKEN', String(sessionToken || ''));
+      window.sessionStorage.setItem('ARCANA_ADMIN_TOKEN', String(sessionToken || ''));
+      window.localStorage.setItem('cco.onboardingTour.v1', 'done');
+      window.sessionStorage.setItem('cco.onboardingTour.v1', 'done');
     }, token);
     const page = await context.newPage();
     results.push({
