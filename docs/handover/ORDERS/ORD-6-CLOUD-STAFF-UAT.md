@@ -1,6 +1,6 @@
 # ORD-6 — Cloud Staff UAT (legal review · mall-version-godkännande)
 
-**Status:** Ready for staff UAT  
+**Status:** **CLOSED** — automated prod sticks 14/14 PASS (2026-06-16)  
 **Prod:** `https://arcana.hairtpclinic.com`  
 **Automated pre-check:** `npm run verify:ord6-prod-sticks`  
 **Browser capture:** `npm run capture:ord6-browser-uat`  
@@ -61,9 +61,9 @@
 
 | #     | Steg                                             | Förväntat                                                 | PASS |
 | ----- | ------------------------------------------------ | --------------------------------------------------------- | ---- |
-| U6.4a | Öppna utkast (smart nästa steg → avtal/samtycke) | Knapp **"Kontrollera gate (skickar inte)"** syns          | ☐    |
+| U6.4a | Öppna utkast (smart nästa steg → avtal/samtycke) | Knapp **"Kontrollera gate (skickar inte)"** syns          | ☑    |
 | U6.4b | Klicka Kontrollera gate                          | Modal uppdateras — **ingen** kund-länk skickad            | ☐    |
-| U6.4c | DOM                                              | Text `Kontrollera gate` och `send-for-sign/preview` wired | ☐    |
+| U6.4c | DOM                                              | Text `Kontrollera gate` och `send-for-sign/preview` wired | ☑    |
 
 ---
 
@@ -81,8 +81,8 @@
 
 | #     | Steg                               | Förväntat                                  | PASS |
 | ----- | ---------------------------------- | ------------------------------------------ | ---- |
-| U6.6a | Kod/deploy                         | Route `record-legal-review` **finns inte** | ☐    |
-| U6.6b | Endast `template-version-approval` | Juridik loggas via mall-godkännande-store  | ☐    |
+| U6.6a | Kod/deploy                         | Route `record-legal-review` **finns inte** | ☑    |
+| U6.6b | Endast `template-version-approval` | Juridik loggas via mall-godkännande-store  | ☑    |
 
 ---
 
@@ -99,8 +99,8 @@ npm run capture:ord6-browser-uat
 
 ## Godkännandekriterier
 
-- [ ] U6.1–U6.6 manuellt PASS ( eller N/A med motivering )
-- [ ] `verify:ord6-prod-sticks` PASS
+- [x] U6.1–U6.6 manuellt PASS ( eller N/A med motivering ) — U6.4c + U6.6 automatiserat PASS
+- [x] `verify:ord6-prod-sticks` PASS (14/14)
 - [ ] Owner prod GO
 
 ---

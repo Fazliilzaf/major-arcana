@@ -9,6 +9,7 @@
 require('dotenv').config({ quiet: true });
 
 const { getProdToken, fetchPatient, BASE } = require('./lib/halsoHdProdClient');
+const { evaluateHdStickprov } = require('./lib/halsoHdStickprovCheck');
 
 const STICKPROV = [
   { id: '3cdf4d6c-8f3d-4b2a-9c1e-2a4f8b0e9d12', label: 'Omar Khalid (HD PDF ref)' },
@@ -17,22 +18,6 @@ const STICKPROV = [
   { id: '134562c1-ce60-49a3-82dd-f5489defaf09', label: 'Johan Magnusson (HD PDF)' },
   { id: '2cd06d37-44f7-4ff8-ab1a-35eda42671a7', label: 'Henrik Martinsson' },
 ];
-
-function checkPatient(patient) {
-  const hd = patient.healthDeclaration || {};
-  const fc = patient.fitnessCertificate || {};
-  return {
-    patientId: patient.id,
-    name: patient.displayName || '',
-    hdSignedAt: hd.signedAt || null,
-    hdSource: hd.source || hd.sourceSystem || null,
-    fcSignedAt: fc.signedAt || null,
-    hasHealthDeclaration: Boolean(hd.signedAt || patient.hasHealthDeclaration),
-    missingHealthDeclaration:
-      patient.missingHealthDeclaration !== false && !hd.signedAt && !patient.hasHealthDeclaration,
-    fitnessSigned: Boolean(fc.signedAt || patient.fitnessSigned),
-  };
-}
 
 async function probeAssetDownload(token, assetId) {
   const url = `${BASE}/api/v1/cco/assets/${encodeURIComponent(assetId)}/download?inline=1`;
@@ -59,7 +44,7 @@ async function main() {
   for (const row of STICKPROV) {
     try {
       const patient = await fetchPatient(token, row.id);
-      results.push({ label: row.label, ...checkPatient(patient) });
+      results.push({ label: row.label, ...evaluateHdStickprov(patient) });
     } catch (error) {
       results.push({ label: row.label, patientId: row.id, error: error.message || String(error) });
     }

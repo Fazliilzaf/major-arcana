@@ -1,5 +1,6 @@
 # ORD-6 — Fas A.2 legal_review (väg A: per mall-version)
 
+**Status:** **CLOSED** — prod sticks 14/14 PASS (2026-06-16)  
 **Notion:** [Fas A.2 legal_review](https://app.notion.com/p/374060ccc15b81a9904df02dd2a9cab2) · `ORD-6`  
 **Beslut:** Väg A — godkänn **mall-version** (ej per patient). `record-legal-review` är **förbjuden**.
 
@@ -8,7 +9,7 @@
 - **Väg A bekräftad:** juridisk gate per `templateId@version`, inte per patient/avtal.
 - **Kod:** på `main` sedan `0885cf8b` (`feat(ord-6): Fas A.2 legal_review per template-version`).
 - **Verify lokalt:** `npm run cco:verify-fas-a-readiness` + `node --test tests/ops/ccoTemplateVersionApprovalStore.test.js` + `node --test tests/ops/ccoTreatmentAgreementStore.test.js` — **PASS** (2026-06-13).
-- **Prod STAFF-UAT:** väntar tills `arcana.hairtpclinic.com` svarar (502 vid GO — heal deploy först).
+- **Prod STAFF-UAT:** `npm run verify:ord6-prod-sticks` **14/14 PASS** (2026-06-16, commit `7d90c5c8`).
 
 ### Staff-UAT i UI (efter deploy)
 

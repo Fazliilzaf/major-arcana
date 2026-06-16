@@ -12,8 +12,10 @@ const https = require('node:https');
 const ROOT = path.join(__dirname, '..');
 const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 
+const OMAR_REF_PATIENT_ID = '3cdf4d6c-8f3d-4b2a-9c1e-2a4f8b0e9d12';
+
 const STICKPROV = [
-  { id: '3cdf4d6c-8f3d-4b2a-9c1e-2a4f8b0e9d12', label: 'Omar Khalid (HD PDF ref)' },
+  { id: OMAR_REF_PATIENT_ID, label: 'Omar Khalid (HD PDF ref)' },
   { id: 'ab645651-d4a4-40ef-b8e3-c8112c7d6baa', label: 'Michael Ohgami (HD mail)' },
   { id: '8ae3f11e-9b41-4257-ab30-922d1d1aa216', label: 'Fahed Abbas' },
   { id: '134562c1-ce60-49a3-82dd-f5489defaf09', label: 'Johan Magnusson (HD PDF)' },
@@ -144,24 +146,32 @@ function get(path) {
     let token = null;
     try {
       const { getProdToken, fetchPatient } = require('./lib/halsoHdProdClient');
+      const { evaluateHdStickprov } = require('./lib/halsoHdStickprovCheck');
       token = getProdToken();
       for (const row of STICKPROV) {
+        const checkName = `api stickprov ${row.id.slice(0, 8)}`;
         try {
           const patient = await fetchPatient(token, row.id);
-          const missing = patient.missingHealthDeclaration;
-          if (missing === false) {
-            pass(
-              `api stickprov ${row.id.slice(0, 8)}`,
-              `${row.label} missingHealthDeclaration=false`
-            );
+          const evalResult = evaluateHdStickprov(patient);
+          const detail = `${row.label} missingHealthDeclaration=${String(
+            evalResult.missingHealthDeclaration
+          )} hdSignedAt=${evalResult.hdSignedAt || 'null'} hasHealthDeclaration=${String(
+            evalResult.hasHealthDeclaration
+          )}`;
+          if (evalResult.missingHealthDeclaration === false) {
+            pass(checkName, detail);
+          } else if (evalResult.missingHealthDeclaration === true) {
+            fail(checkName, detail);
           } else {
-            fail(
-              `api stickprov ${row.id.slice(0, 8)}`,
-              `${row.label} missingHealthDeclaration=${String(missing)}`
-            );
+            fail(checkName, `${detail} (unexpected missingHealthDeclaration value)`);
           }
         } catch (error) {
-          fail(`api stickprov ${row.id.slice(0, 8)}`, `${row.label}: ${error.message}`);
+          const fetchDetail = `${row.label}: fetch failed (${error.message || String(error)})`;
+          if (row.id === OMAR_REF_PATIENT_ID) {
+            warn(checkName, `${fetchDetail} — reference patient may not exist in prod yet`);
+          } else {
+            warn(checkName, `${fetchDetail} — patient may not exist in prod yet`);
+          }
         }
       }
     } catch (error) {

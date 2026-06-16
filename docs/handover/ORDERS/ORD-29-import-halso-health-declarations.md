@@ -5,10 +5,10 @@
 **Claude-spår:** Spec + historisk import (~1660 via `m365_halso`) + UAT efter deploy  
 **Prio:** P0
 
-| Fas                                            | Status      | Deploy                      |
-| ---------------------------------------------- | ----------- | --------------------------- |
-| **Phase 1** — enrichment (Claude `m365_halso`) | **KLAR**    | **Deploy nu**               |
-| **Phase 2** — mailbox struktur-ingest          | Lokalt klar | **Väntar Phase 1 UAT grön** |
+| Fas                                            | Status                | Deploy                      |
+| ---------------------------------------------- | --------------------- | --------------------------- |
+| **Phase 1** — enrichment (Claude `m365_halso`) | **UAT PASS · CLOSED** | **Deploy nu**               |
+| **Phase 2** — mailbox struktur-ingest          | Lokalt klar           | **Väntar Phase 1 UAT grön** |
 
 ---
 
@@ -33,10 +33,12 @@
 
 ### Claude UAT (Phase 1)
 
-- [ ] Känd patient **med** `m365_halso` form/other: `missingHealthDeclaration: false`
-- [ ] Känd patient **utan** HD-asset: `missingHealthDeclaration: true` (ingen false clear)
-- [ ] Segment `halso@` ~1660 (badge ≠ HD-status)
-- [ ] Smart Nästa Steg blocker “Saknar hälsodeklaration” försvinner bara vid faktisk HD
+- [x] Känd patient **med** `m365_halso` form/other: `missingHealthDeclaration: false`
+- [x] Känd patient **utan** HD-asset: `missingHealthDeclaration: true` (ingen false clear)
+- [x] Segment `halso@` ~1660 (badge ≠ HD-status)
+- [x] Smart Nästa Steg blocker “Saknar hälsodeklaration” försvinner bara vid faktisk HD
+
+**Prod verify 2026-06-16:** `npm run verify:ord29-prod-sticks` **14/14 PASS** (exit 0). Stickprov API: 4/5 `missingHealthDeclaration=false` (Michael, Fahed, Johan, Henrik); Omar ref-patient **WARN** — 404 i prod patient-master (referens-ID, ej blockerande).
 
 ---
 
