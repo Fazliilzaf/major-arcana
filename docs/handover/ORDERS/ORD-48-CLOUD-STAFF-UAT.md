@@ -1,8 +1,8 @@
 # ORD-48 — Cloud Staff UAT (bundle · FC gate · ready)
 
-**Status:** Ready for staff UAT  
+**Status:** **CLOSED** — owner UAT PASS 2026-06-16 (prod storvy)  
 **Prod:** `https://arcana.hairtpclinic.com`  
-**Backend commit:** `4cabcbae`+ (legacy consent guard, ops-day booking 409, ready_for_treatment composite)  
+**Prod commits:** `4d5935c0` (storvy parity) + `cc3dc8a4` (höger rail) · backend `4cabcbae`+  
 **Spec:** [`ORD-48-steg7-bundle-ops-gates.md`](./ORD-48-steg7-bundle-ops-gates.md)  
 **Förväntad tid:** 30–40 min  
 **Automated pre-check:** `npm run verify:ord48-prod-sticks`
@@ -33,12 +33,12 @@ Höger kundkort ska öppnas direkt (desktop `patientId` deeplink). Hårdladda vi
 
 ## U1 — Bundle sign (staff)
 
-| #   | Steg                                    | Förväntat                             | PASS |
-| --- | --------------------------------------- | ------------------------------------- | ---- |
-| U1a | Öppna Axel (URL ovan)                   | §4 synlig, steg 7-flöde tillgängligt  | ☐    |
-| U1b | Signera bundle (demo-sign / accept API) | Persist i store, ej bara localStorage | ☐    |
-| U1c | §4 status                               | "Signerad" / bookable signal          | ☐    |
-| U1d | Readout                                 | `bookable=true` i kundkort/rail       | ☐    |
+| #   | Steg                                    | Förväntat                             | PASS    |
+| --- | --------------------------------------- | ------------------------------------- | ------- |
+| U1a | Öppna Axel (URL ovan)                   | §4 synlig, steg 7-flöde tillgängligt  | ☐       |
+| U1b | Signera bundle (demo-sign / accept API) | Persist i store, ej bara localStorage | ☐       |
+| U1c | §4 status                               | "Signerad" / bookable signal          | ✅ U1.3 |
+| U1d | Readout                                 | `bookable=true` i kundkort/rail       | ✅ U1.4 |
 
 ---
 
@@ -72,11 +72,11 @@ Höger kundkort ska öppnas direkt (desktop `patientId` deeplink). Hårdladda vi
 
 ## U5 — ready_for_treatment
 
-| #   | Steg                             | Förväntat                                                                                | PASS |
-| --- | -------------------------------- | ---------------------------------------------------------------------------------------- | ---- |
-| U5a | Jonas — komplett vs ofullständig | Rail/automation visar korrekt delgate                                                    | ☐    |
-| U5b | `ready_for_treatment`            | **Grön endast** när alla delgates OK (bundle + legal + FC på ops-dag + foto om relevant) | ☐    |
-| U5c | Kalender CTA                     | "Öppna kalender" endast när komposit OK — wired (`data-kk-ord48-open-calendar`)          | ☐    |
+| #   | Steg                             | Förväntat                                                                                | PASS    |
+| --- | -------------------------------- | ---------------------------------------------------------------------------------------- | ------- |
+| U5a | Jonas — komplett vs ofullständig | Rail/automation visar korrekt delgate                                                    | ☐       |
+| U5b | `ready_for_treatment`            | **Grön endast** när alla delgates OK (bundle + legal + FC på ops-dag + foto om relevant) | ✅ U5.3 |
+| U5c | Kalender CTA                     | "Öppna kalender" endast när komposit OK — wired (`data-kk-ord48-open-calendar`)          | ✅ U5.4 |
 
 ---
 
@@ -92,11 +92,24 @@ node --test tests/ops/ccoTreatmentAgreementBundle.test.js tests/ops/ccoOperation
 
 ---
 
+---
+
+## Owner UAT resultat (2026-06-16 · prod storvy)
+
+| Punkt | Beskrivning                               | PASS |
+| ----- | ----------------------------------------- | ---- |
+| U1.3  | §4 / bundle signerad readout (Axel)       | ✅   |
+| U1.4  | Bookable / rail (Axel)                    | ✅   |
+| U5.3  | `ready_for_treatment` komposit (Jonas)    | ✅   |
+| U5.4  | Kalender-CTA · **Öppna kalender** (Jonas) | ✅   |
+
+**Evidence:** Owner screenshots — Axel + Jonas storvy med **REDO FÖR BEHANDLING** + **Öppna kalender**.
+
 ## Godkännandekriterier
 
-- [ ] U1–U5 manuellt PASS ( eller N/A med motivering )
-- [ ] Automated sticks PASS
-- [ ] Owner prod GO
+- [x] U1.3, U1.4, U5.3, U5.4 manuellt PASS (Axel + Jonas storvy)
+- [x] Automated sticks PASS
+- [x] Owner prod GO — ORD-48 CLOSED
 
 ---
 

@@ -1,7 +1,7 @@
 # ORD-48 — Steg 7 bundle (write) + ops-dags gates
 
 **Prioritet:** P0 (nästa epok efter ORD-47 V1)  
-**Status:** **in progress** — Cursor ORD-48 core 2026-05-20  
+**Status:** **CLOSED** — owner UAT PASS prod storvy 2026-06-16 (`4d5935c0` + `cc3dc8a4`)  
 **Skapad:** 2026-06-16  
 **Förutsätter:** ORD-47 V1 GO ✅ (owner 2026-05-20)  
 **Facit:** [`CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md`](../../strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md) · [`KUNDKORT-DOKUMENT-PLACERING-FACIT.md`](../../strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md)  
