@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-15T20:23:14.192Z",
+  "generatedAt": "2026-06-16T00:05:22.904Z",
   "cacheVersion": "hairtp-document-content-v7",
   "description": "Samlad Hair TP content-bundle — Meridiq + steg7-facit + cco-templates (SharePoint/Nordbro)",
   "sources": {
@@ -17,8 +17,8 @@
   },
   "summary": {
     "customerFilled": {
-      "FULL": 16,
-      "PARTIAL": 1,
+      "FULL": 17,
+      "PARTIAL": 0,
       "MISSING": 0
     },
     "staffFilled": {
@@ -1561,11 +1561,8 @@
       "registryId": "foto_samtycke",
       "label": "Samtycke till foto-publicering (vid signering i Hair TP)",
       "filler": "patient",
-      "contentStatus": "PARTIAL",
-      "blockers": [
-        "cco-templates har Nordbro-stub — full juridisk text saknas i snapshot",
-        "Meridiq consent-catalog saknar foto-publicering-post"
-      ],
+      "contentStatus": "FULL",
+      "blockers": [],
       "sources": [
         "cco-templates#consent_photo_internal",
         "cco-templates#consent_photo_publish",

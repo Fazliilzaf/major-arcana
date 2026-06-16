@@ -65,7 +65,8 @@ function checkBundle(bundleRes) {
   else fail('friskfoers 13 questions', String(frisk?.meridiq?.questions?.length));
 
   const foto = (bundle.customerFilled || []).find((d) => d.registryId === 'foto_samtycke');
-  if (foto?.contentStatus === 'PARTIAL') pass('foto_samtycke PARTIAL (expected until ORD-24)');
+  if (foto?.contentStatus === 'FULL')
+    pass('foto_samtycke FULL (scope-samtycke wired — ORD-24 stängd)');
   else fail('foto_samtycke status', foto?.contentStatus);
 }
 
