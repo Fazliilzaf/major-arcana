@@ -123,7 +123,7 @@ test('staff preview html includes ordination stub text from bundle', () => {
   const { cloud } = loadCloud();
   const html = cloud.buildStaffDocumentPreviewHtml('ordination_tp', bundle);
   assert.match(html, /Ordination enligt behandlingsplan/);
-  assert.match(html, /PARTIAL/);
+  assert.match(html, /FULL/);
 });
 
 test('fore_efter_bildmall preview lists photo stages', () => {

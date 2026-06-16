@@ -261,7 +261,14 @@
       blockers: doc.blockers,
     });
     const text = content.text || content.note || meridiq.title || '';
-    const stages = asArray(content.stages);
+    let stages = asArray(content.stages);
+    if (!stages.length && Array.isArray(content.reviewStages)) {
+      // Före/efter-bildmall: härled stadie-etiketter ur reviewStages + stageDisplay.
+      const display = content.stageDisplay || {};
+      stages = content.reviewStages
+        .map((s) => (s && (display[s.id] || s.label || s.id)) || '')
+        .filter(Boolean);
+    }
     const stagesHtml = stages.length
       ? `<ul class="cco-auto-preview__list">${stages.map((stage) => `<li>${escapeHtml(stage)}</li>`).join('')}</ul>`
       : '';
