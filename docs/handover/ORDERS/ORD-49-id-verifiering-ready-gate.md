@@ -1,7 +1,7 @@
 # ORD-49 — ID-verifiering: synlig ready-pill + ev. behandlingsgate
 
 **Prioritet:** P1 (efter ORD-48 manuell UAT · parallellt med Codex idle)  
-**Status:** **Fas 2 Done** (owner GO 2026-06-16 · tester PASS)  
+**Status:** **Fas 2 CLOSED** (owner prod GO 2026-06-16 · prod UAT PASS Jonas storvy · tester PASS)  
 **Skapad:** 2026-06-16  
 **Prod vid skrivning:** `6fd798f5`  
 **Förutsätter:** ORD-48 backend ✅ · bundle-klassning PR #116 ✅
@@ -117,6 +117,25 @@ node --test tests/ops/ccoKunderFasAReadiness.test.js tests/ops/ccoTreatmentBooki
 - [x] Ej förväxlad med dokument-bundle PARTIAL/FULL
 - [ ] ORD-48 manuell UAT U1–U5 rapporterad (parallellt spår)
 - [x] Hard gate: owner GO + `computeReadyForTreatment` + booking gate + tester
+- [x] Prod UAT Jonas storvy U5.1–U5.5 PASS (2026-06-16)
+
+---
+
+## Prod UAT PASS (2026-06-16)
+
+**Miljö:** prod · **Storvy:** Jonas  
+**Resultat:** U5.1–U5.5 **PASS**
+
+| Check        | Observation                            |
+| ------------ | -------------------------------------- |
+| ID-pill      | Tom / ej verifierad                    |
+| Ready        | **EJ REDO** (inte REDO FÖR BEHANDLING) |
+| Blocker-copy | **Saknas: ID-verifiering**             |
+| Kalender-CTA | Disabled                               |
+
+**Not:** Axel mirror **optional** — samma gate-logik; Jonas storvy räcker som prod-facit.
+
+**Fas 2:** fully **CLOSED** med owner prod GO.
 
 ---
 
