@@ -157,6 +157,31 @@ Om dry-run failar med auth/Graph: fixa creds innan corpus eller commit.
 
 ---
 
+## Blocker — Cliento sync + reprocess (2026-06-16, owner GO)
+
+**Status:** Batch 2 **hold** until Cliento customer-delta sync succeeds and review-reprocess dry-run shows material match improvement vs batch 1 slice (`unmatched` 27 on batch 1 dry-run).
+
+| Step                     | Command                                                 | Result                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cliento → patient master | `npm run sync:cliento-customers`                        | **exit 2** — `cliento_api_key_missing` (0 patients synced). Set `CLIENTO_API_KEY` or CSV path per script hint; retry before reprocess `--commit`. |
+| Review reprocess dry-run | `npm run ingest:halso-hd-review-reprocess -- --dry-run` | **exit 0** — queue 76 · patient master 7288                                                                                                       |
+
+**Reprocess dry-run aggregates (no PII):**
+
+| Metric                  | Count |
+| ----------------------- | ----- |
+| total processed         | 76    |
+| wouldMatchNow (triage)  | 15    |
+| stillUnmatched (triage) | 53    |
+| needsReview (triage)    | 8     |
+| duplicate (stats)       | 10    |
+| unmatched (stats)       | 46    |
+| putOk                   | 0     |
+
+**Decision:** Do **not** run `ingest:halso-hd-review-reprocess -- --commit` yet — Cliento sync did not run; `stillUnmatched` not materially below batch 1 slice (27). Re-run **batch 1 dry-run** after successful Cliento sync, then batch 2 dry-run → stickprov → commit per runbook.
+
+PII report (gitignored): `data/reports/halso-hd-review-reprocess-report.json` · summary: `node scripts/summarize-halso-hd-batch-outcomes.js` on that path.
+
 ## Relaterade docs
 
 - `docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md`

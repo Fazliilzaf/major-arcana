@@ -91,6 +91,8 @@
 
 **Nästa:** batch 2 dry-run → stickprov/verify → commit (samma runbook).
 
+**2026-06-16 hold — Cliento sync + reprocess before batch 2:** `sync:cliento-customers` failed (exit 2, API key missing). Review reprocess dry-run: processed 76 · wouldMatchNow 15 · stillUnmatched 53 · needsReview 8 · duplicate 10 · unmatched 46 · putOk 0. No reprocess `--commit` until Cliento sync succeeds and unmatched improves vs batch 1 dry-run (27). See ORD-29-FAS2-GO-RUNBOOK.md blocker section.
+
 **Committa aldrig:** `data/reports/halso-hd-*.json`, `*.stickprov.json`, review queue JSONL.
 
 ---
