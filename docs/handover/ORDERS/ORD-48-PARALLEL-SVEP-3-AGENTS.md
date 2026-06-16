@@ -182,11 +182,7 @@ npm run verify:cloud-document-wiring-prod
 
 **Rör INTE:** `public/major-arcana-preview/`, handover-UAT-docs, Playwright.
 
-**Todo (vänta på owner UAT om inget FAIL):**
-
-- [ ] **X6** A2 komm-panel guard (valfri polish — inte blocker om UAT PASS)
-- [ ] **X7** Backend-fix vid API-fail i UAT
-- [ ] **X8/X9** Nästa epok efter owner GO
+~~**Todo (vänta på owner UAT om inget FAIL):**~~ → se **Codex sign-off** ovan.
 
 ---
 
