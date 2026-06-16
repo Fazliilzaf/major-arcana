@@ -762,7 +762,7 @@
       };
     } else if (resolver.railStatusLine.length < 2) {
       var catalogRail = resolver.railStatusLine;
-      resolver.railStatusLine = function (card, ctx) {
+      var wrappedRailStatusLine = function (card, ctx) {
         ctx = ctx || {};
         if (ctx.cur != null && ctx.cur !== '') {
           var cur = Number(ctx.cur) || 0;
@@ -790,6 +790,10 @@
         }
         return catalogRail(card);
       };
+      if (Object.isFrozen(resolver)) {
+        return Object.assign({}, resolver, { railStatusLine: wrappedRailStatusLine });
+      }
+      resolver.railStatusLine = wrappedRailStatusLine;
     }
     return window.CcoJourneyDocResolver;
   }
