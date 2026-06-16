@@ -11008,7 +11008,7 @@ function transformPreviewHtml(html) {
     html = html.replace('<head>', '<head>\n    <base href="/major-arcana-preview/">');
   }
   const desktopPatientDeepLinkShim =
-    "<script>(function(){try{var p=new URLSearchParams(location.search);var id=(p.get('patientId')||'').trim();if(!id||(p.get('view')||'customers')!=='customers')return;if(window.matchMedia&&window.matchMedia('(max-width:767px)').matches)return;var n=0;(function a(){n+=1;var u=window.ArcanaPatientMasterUi;if(u&&typeof u.openPatient==='function'){var r=typeof u.getRuntime==='function'?u.getRuntime():null;if(r&&r.selectedPatientId===id&&r.detail&&r.detail.card)return;void u.openPatient(id);return}if(n<120)window.setTimeout(a,250)})()}catch(_e){}})();</script>";
+    "<script>(function(){try{var p=new URLSearchParams(location.search);var id=(p.get('patientId')||'').trim();if(!id||(p.get('view')||'customers')!=='customers')return;if(window.matchMedia&&window.matchMedia('(max-width:767px)').matches)return;var n=0;(function a(){n+=1;var u=window.ArcanaPatientMasterUi;if(u&&typeof u.openPatient==='function'){var r=typeof u.getRuntime==='function'?u.getRuntime():null;if(r&&r.selectedPatientId===id&&r.detail&&r.detail.card){try{document.querySelector('[data-patient-master-rail]')?.scrollIntoView({block:'nearest'});}catch(_s){}return}void u.openPatient(id).then(function(){try{u.refreshV10KundkortFacit?.();document.querySelector('.customers-layout')?.setAttribute('data-v9-dossier-open','on');document.querySelector('[data-patient-master-rail]')?.scrollIntoView({block:'nearest'});}catch(_e){}});return}if(n<120)window.setTimeout(a,250)})()}catch(_e){}})();</script>";
   if (html.includes('</body>')) {
     html = html.replace('</body>', `${desktopPatientDeepLinkShim}</body>`);
   }

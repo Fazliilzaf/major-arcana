@@ -11342,15 +11342,19 @@
         deepLinkId &&
         !needsStaffLogin() &&
         (isMobileViewport() || isCustomersShellActive() || startup.view === 'customers');
-      const preserveDetail =
+      const hasDeepLinkShell =
         deepLinkId &&
-        isMobileViewport() &&
-        normalizeText(runtime.selectedPatientId) === deepLinkId &&
         (runtime.detailLoading ||
           Boolean(runtime.detail?.card) ||
           patientDetailInflight.has(normalizeText(deepLinkId)) ||
           railHasPatientDetailShell());
-      if (!preserveDetail) {
+      const preserveDetail =
+        deepLinkId &&
+        normalizeText(runtime.selectedPatientId) === deepLinkId &&
+        hasDeepLinkShell &&
+        (isMobileViewport() || deepLinkActive);
+      // Desktop patientId-URL: hoppa över aggregate-tom vy — annars försvinner högerpanelen.
+      if (!preserveDetail && !(deepLinkActive && deepLinkId)) {
         renderDetailEmpty();
       }
       if (
@@ -11646,8 +11650,12 @@
     if (!id) return false;
     runtime.selectedPatientId = id;
     updatePatientRowSelection('', id);
+    if (!railHasPatientDetailShell()) {
+      renderDetailLoadingSkeleton(id);
+    }
     syncMobilePatientLayout();
     await loadPatientDetail(id);
+    syncV9CustomersLayoutState();
     if (options.tab) setPatientTab(options.tab);
     return true;
   }
