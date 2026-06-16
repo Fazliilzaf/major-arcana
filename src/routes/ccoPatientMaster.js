@@ -37,6 +37,10 @@ const {
   enrichPatientCardPreTreatmentForms,
   loadAssetSignalsIndex,
 } = require('../ops/ccoKunderEnrichment');
+const {
+  applyFasAReadoutFields,
+  loadFasAContextForPatients,
+} = require('../ops/ccoKunderFasAReadiness');
 const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
 const { assetToPatientFile, resolvePatientAssetIds } = require('../ops/ccoPatientAssetIdentity');
 
@@ -546,6 +550,21 @@ function createCcoPatientMasterRouter({
       card = enrichPatientCardPreTreatmentForms(card, patient, assetIndex);
     } catch {
       card = enrichPatientCardPreTreatmentForms(card, patient, null);
+    }
+
+    try {
+      const fasAMap = await loadFasAContextForPatients({
+        config,
+        tenantId: actor.tenantId,
+        patients: [patient],
+        patientMasterStore,
+      });
+      const fasA = fasAMap.get(patient.id);
+      if (fasA) {
+        card = applyFasAReadoutFields(card, fasA, null);
+      }
+    } catch {
+      /* keep card without Fas A identity fields */
     }
 
     return {

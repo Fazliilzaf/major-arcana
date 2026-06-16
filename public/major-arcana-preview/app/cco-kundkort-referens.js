@@ -70,6 +70,9 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function normalizeText(v) {
+    return typeof v === 'string' ? v.trim() : '';
+  }
   var A = function (x) {
     return Array.isArray(x) ? x : x ? [x] : [];
   };
@@ -833,17 +836,68 @@
     );
   }
 
-  function readyPill(label, state) {
+  function readyPill(label, state, title) {
     var icon = state === 'success' ? '✓' : state === 'warning' ? '⚠' : '○';
+    var titleAttr = title ? ' title="' + esc(title) + '"' : '';
     return (
       '<span class="kk-ready-pill" data-state="' +
       esc(state) +
-      '">' +
+      '"' +
+      titleAttr +
+      '>' +
       icon +
       ' ' +
       esc(label) +
       '</span>'
     );
+  }
+
+  var ID_METHOD_HINTS = {
+    manual_id_upload: 'Manual ID-uppladdning (pass, körkort eller nationellt ID)',
+    selfie_match: 'Selfie matchas mot ID-foto av personal',
+    in_person: 'Verifierat vid fysiskt besök',
+    bankid_se: 'BankID Sverige',
+    freja_eid: 'Freja eID+',
+    eu_wallet: 'EU Digital Identity Wallet',
+    kyc_provider: 'KYC-leverantör (iDenfy, Onfido eller liknande)',
+  };
+
+  function resolveIdHint(status, method) {
+    var m = normalizeText(method);
+    if (m && ID_METHOD_HINTS[m]) return ID_METHOD_HINTS[m];
+    var s = normalizeText(status) || 'unverified';
+    if (s === 'verified') return 'ID verifierat';
+    if (s === 'pending_review') return 'ID väntar på granskning av personal';
+    if (s === 'pending_upload') return 'Patient ska ladda upp ID';
+    if (s === 'rejected') return 'ID avvisat — ny verifiering krävs';
+    if (s === 'expired') return 'ID-verifiering har gått ut';
+    return 'ID ej verifierat';
+  }
+
+  function resolveOrd48IdState(card) {
+    card = card || {};
+    var status =
+      normalizeText(card.identityStatus) ||
+      (card.identityVerified === true ? 'verified' : 'unverified');
+    var idOk = card.identityVerified === true || status === 'verified';
+    var idState = 'neutral';
+    if (idOk || status === 'verified') {
+      idState = 'success';
+    } else if (/^pending_/.test(status)) {
+      idState = 'warning';
+    } else if (
+      status === 'unverified' ||
+      status === 'rejected' ||
+      status === 'expired' ||
+      !status
+    ) {
+      idState = 'neutral';
+    }
+    return {
+      idOk: idOk,
+      idState: idState,
+      idHint: resolveIdHint(status, card.identityMethod),
+    };
   }
 
   function resolveOrd48ReadyState(card, extras, gateSignals) {
@@ -886,6 +940,7 @@
     if (!bundleOk) blockers.push('avtal och samtycke');
     if (todayVisit && !fcOk) blockers.push('friskförsäkran');
     if (photoNeeded && !photoOk) blockers.push('foto-samtycke');
+    var idFields = resolveOrd48IdState(card);
     return {
       ready: ready,
       hdOk: hdOk,
@@ -894,6 +949,9 @@
       fcState: fcState,
       photoNeeded: photoNeeded,
       photoOk: photoOk,
+      idOk: idFields.idOk,
+      idState: idFields.idState,
+      idHint: idFields.idHint,
       blockers: blockers,
     };
   }
@@ -904,7 +962,8 @@
       readyPill('Hälsodekl.', st.hdOk ? 'success' : 'warning') +
       readyPill('Samtycke', st.bundleOk ? 'success' : 'warning') +
       readyPill('Avtal', st.bundleOk ? 'success' : 'warning') +
-      readyPill('Friskförs.', st.fcState);
+      readyPill('Friskförs.', st.fcState) +
+      readyPill('ID', st.idState, st.idHint);
     if (st.photoNeeded) {
       pills += readyPill('Foto', st.photoOk ? 'success' : 'warning');
     }

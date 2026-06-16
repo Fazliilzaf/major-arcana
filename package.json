@@ -44,6 +44,7 @@
     "verify:cloud-document-wiring-prod": "node ./scripts/verify-cloud-document-wiring-prod.js",
     "verify:ord47-prod-sticks": "node ./scripts/verify-ord47-prod-sticks.js",
     "verify:ord48-prod-sticks": "node ./scripts/verify-ord48-prod-sticks.js",
+    "verify:ord49-id-ready-wiring": "node ./scripts/verify-ord49-id-ready-wiring.js",
     "capture:ord48-browser-uat": "node ./scripts/capture-ord48-browser-uat.js",
     "test:visual": "playwright test --config=playwright.config.js",
     "test:visual:update": "playwright test --config=playwright.config.js --update-snapshots",

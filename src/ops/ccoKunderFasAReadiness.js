@@ -41,6 +41,10 @@ function applyFasAReadoutFields(readout, fasA = {}, agreement = null) {
       : emptyPhotoConsent();
   safe.fitnessSigned = fasA.fitnessSigned === true;
   safe.hasJournalPhoto = Boolean(safe.needsPhotoReview);
+  safe.identityStatus = normalizeText(fasA.identityStatus) || 'unverified';
+  safe.identityVerified = fasA.identityVerified === true;
+  safe.identityMethod = normalizeText(fasA.identityMethod) || null;
+  safe.identityVerifiedAt = normalizeText(fasA.identityVerifiedAt) || null;
   safe.readyForTreatment = computeReadyForTreatment(safe, agreement);
   safe.readyForVisit = safe.readyForTreatment;
   return safe;
@@ -74,6 +78,20 @@ async function loadFasAContextForPatients({
     journalStore = await createCcoJournalStore({ filePath: journalPath });
   } catch {
     journalStore = null;
+  }
+
+  let identityStore = null;
+  try {
+    const { createPatientIdentityStore } = require('./patientIdentityVerification');
+    const identityPath =
+      config?.ccoPatientIdentityStorePath ||
+      (config?.stateRoot
+        ? path.join(config.stateRoot, 'cco-patient-identity.json')
+        : path.join(process.cwd(), 'data', 'cco-patient-identity.json'));
+    identityStore = createPatientIdentityStore({ filePath: identityPath });
+    await identityStore.load();
+  } catch {
+    identityStore = null;
   }
 
   for (const patient of list) {
@@ -127,7 +145,34 @@ async function loadFasAContextForPatients({
       }
     }
 
-    map.set(patientId, { treatmentPlanStatus, photoConsent, fitnessSigned });
+    let identityStatus = 'unverified';
+    let identityVerified = false;
+    let identityMethod = null;
+    let identityVerifiedAt = null;
+    if (identityStore?.getPatientVerificationStatus) {
+      try {
+        const idReadout = identityStore.getPatientVerificationStatus(patientId);
+        identityStatus = normalizeText(idReadout?.status) || 'unverified';
+        identityVerified = identityStore.isVerified(patientId);
+        identityMethod = normalizeText(idReadout?.method) || null;
+        identityVerifiedAt = normalizeText(idReadout?.verifiedAt) || null;
+      } catch {
+        identityStatus = 'unverified';
+        identityVerified = false;
+        identityMethod = null;
+        identityVerifiedAt = null;
+      }
+    }
+
+    map.set(patientId, {
+      treatmentPlanStatus,
+      photoConsent,
+      fitnessSigned,
+      identityStatus,
+      identityVerified,
+      identityMethod,
+      identityVerifiedAt,
+    });
   }
 
   return map;
