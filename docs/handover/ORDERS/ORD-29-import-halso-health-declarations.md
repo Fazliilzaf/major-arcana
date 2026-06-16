@@ -5,10 +5,10 @@
 **Claude-spår:** Spec + historisk import (~1660 via `m365_halso`) + UAT efter deploy  
 **Prio:** P0
 
-| Fas                                            | Status                           | Deploy                                      |
-| ---------------------------------------------- | -------------------------------- | ------------------------------------------- |
-| **Phase 1** — enrichment (Claude `m365_halso`) | **CLOSED** (UAT PASS 2026-06-16) | **Live**                                    |
-| **Phase 2** — mailbox struktur-ingest          | Lokalt klar                      | **Väntar explicit owner GO** (Fas 1 CLOSED) |
+| Fas                                            | Status                                     | Deploy                             |
+| ---------------------------------------------- | ------------------------------------------ | ---------------------------------- |
+| **Phase 1** — enrichment (Claude `m365_halso`) | **CLOSED** (UAT PASS 2026-06-16)           | **Live**                           |
+| **Phase 2** — mailbox struktur-ingest          | **GO 2026-06-16** — In progress (owner GO) | Batch PUT (flag fortfarande false) |
 
 ---
 
@@ -44,7 +44,7 @@
 
 ---
 
-## Phase 2 — Mailbox struktur-ingest (väntar explicit owner GO)
+## Phase 2 — Mailbox struktur-ingest (owner GO 2026-06-16)
 
 **Mål:** Löpande mejl → `patient.healthDeclaration` (answers, flags, allergier).
 
@@ -53,10 +53,35 @@
 | `src/ops/ccoHalsoHealthDeclarationParser.js`     | Parser                        |
 | `src/ops/ccoHalsoHealthDeclarationIngest.js`     | Match, upsert, dedup          |
 | `src/ops/ccoMailIngestion/pipeline.js`           | Gren före non-patient-dismiss |
-| `scripts/run-halso-health-declaration-ingest.js` | Prod-körning                  |
+| `scripts/run-halso-health-declaration-ingest.js` | Prod mail-ingestion (valfri)  |
+| `scripts/run-halso-hd-batch-ingest.js`           | **Primär Fas 2 GO-väg** (PUT) |
 
-**Deploy Phase 2 + `npm run ingest:halso-hd` först efter explicit owner GO** (Fas 1 CLOSED · sticks 14/14).
+**Förutsättningar:** Graph lokalt · prod owner-token · corpus `complete: true` · `ARCANA_CCO_HALSO_HD_INGEST_ENABLED=false` (batch PUT-modell).
+
+**Körschema:** Se `docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md`.
+
+### Fas 2 execution checklist (explore report)
+
+- [ ] **1. Fas 0 sanity** — `npm run dry-run:halso-hd -- --max 500 --stickprov 5 --out ./data/reports/halso-hd-dry-run.json` (valfritt om redan signerat)
+- [ ] **2. Corpus scan** — `npm run scan:halso-hd-corpus` (resume: `--resume`); checkpoint `complete: true` + `halso-hd-corpus-index.jsonl`
+- [ ] **3. Batch dry-run batch 1** — `npm run ingest:halso-hd-batch -- --batch 1 --dry-run`; granska `halso-hd-batch-report.json` (PII, committa inte)
+- [ ] **4. Stickprov** — `npm run push:halso-hd-stickprov-prod -- --from ./data/reports/halso-hd-dry-run.stickprov.json` → `npm run verify:ord29-prod-sticks`
+- [ ] **5. GO batch commit** — `npm run ingest:halso-hd-batch -- --batch N --commit` per batch (endast efter dry-run + stickprov PASS)
+- [ ] **6. Review queue** — `ingest:halso-hd-review-reprocess --dry-run` → `--commit` efter Cliento-delta
+- [ ] **7. Löpande ingest** — scheduler `cco_halso_hd_mailbox_ingest` (8h, 3-dagars lookback); mail-ingestion-väg (`ingest:halso-hd`) endast om flag flip beslutas
+- [ ] **8. UAT** — `verify:ord29-prod-sticks` + valfritt `capture:ord29-browser-uat`
+
+**2026-06-16 preflight (owner GO):**
+
+| Gate                                                            | Resultat                                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `node --test tests/ops/ccoHalsoHealthDeclarationIngest.test.js` | **11/11 PASS**                                                      |
+| `halso-hd-corpus.checkpoint.json`                               | **complete: true** (100 HD headers, 5293 mejl skannade)             |
+| `dry-run:halso-hd --max 50 --stickprov 3`                       | **ok** → `./data/reports/halso-hd-dry-run-go.json` (Graph creds OK) |
+
+**Committa aldrig:** `data/reports/halso-hd-*.json`, `*.stickprov.json`, review queue JSONL.
 
 ---
 
-_Cursor rapport 2026-06-05 · Phase 1 commit = enrichment only · Phase 2 commit = ingest pipeline (hold deploy)_
+_Cursor rapport 2026-06-05 · Phase 1 commit = enrichment only · Phase 2 commit = ingest pipeline (hold deploy)_  
+_Fas 2 owner GO dokumenterad 2026-06-16 · runbook ORD-29-FAS2-GO-RUNBOOK.md_
