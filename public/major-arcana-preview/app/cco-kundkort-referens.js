@@ -831,6 +831,121 @@
     );
   }
 
+  function readyPill(label, state) {
+    var icon = state === 'success' ? '✓' : state === 'warning' ? '⚠' : '○';
+    return (
+      '<span class="kk-ready-pill" data-state="' +
+      esc(state) +
+      '">' +
+      icon +
+      ' ' +
+      esc(label) +
+      '</span>'
+    );
+  }
+
+  function resolveOrd48ReadyState(card, extras, gateSignals) {
+    card = card || {};
+    extras = extras || {};
+    var agr = extras.agreementReadout || {};
+    gateSignals = A2(gateSignals);
+    function sigId(s) {
+      return String((s && (s.ruleId || s.id)) || '');
+    }
+    var ready =
+      card.readyForTreatment === true ||
+      agr.readyForTreatment === true ||
+      gateSignals.some(function (s) {
+        return /ready_for_treatment/i.test(sigId(s));
+      });
+    var hdOk = card.missingHealthDeclaration !== true && card.missingForm !== true;
+    var bundleOk =
+      agr.bookable === true ||
+      card.agreementSigned === true ||
+      (card.missingAgreement === false && card.hasAgreement === true);
+    var fcOk =
+      card.fitnessSigned === true ||
+      card.missingFitnessCertificate === false ||
+      card.hasFitnessCertificate === true;
+    var todayVisit = card.todayVisit === true || agr.todayVisit === true;
+    var fcState = !todayVisit ? (fcOk ? 'success' : 'neutral') : fcOk ? 'success' : 'warning';
+    var photoNeeded =
+      card.hasJournalPhoto === true ||
+      card.needsPhotoReview === true ||
+      gateSignals.some(function (s) {
+        return /missing_photo_consent/i.test(sigId(s));
+      });
+    var photoOk =
+      !photoNeeded ||
+      (agr.photoConsent && agr.photoConsent.signed) ||
+      (card.photoConsent && card.photoConsent.signed);
+    var blockers = [];
+    if (!hdOk) blockers.push('hälsodeklaration');
+    if (!bundleOk) blockers.push('avtal och samtycke');
+    if (todayVisit && !fcOk) blockers.push('friskförsäkran');
+    if (photoNeeded && !photoOk) blockers.push('foto-samtycke');
+    return {
+      ready: ready,
+      hdOk: hdOk,
+      bundleOk: bundleOk,
+      fcOk: fcOk,
+      fcState: fcState,
+      photoNeeded: photoNeeded,
+      photoOk: photoOk,
+      blockers: blockers,
+    };
+  }
+
+  function buildOrd48ReadyBlock(card, extras, gateSignals) {
+    var st = resolveOrd48ReadyState(card, extras, gateSignals);
+    var pills =
+      readyPill('Hälsodekl.', st.hdOk ? 'success' : 'warning') +
+      readyPill('Samtycke', st.bundleOk ? 'success' : 'warning') +
+      readyPill('Avtal', st.bundleOk ? 'success' : 'warning') +
+      readyPill('Friskförs.', st.fcState);
+    if (st.photoNeeded) {
+      pills += readyPill('Foto', st.photoOk ? 'success' : 'warning');
+    }
+    var reason = st.ready
+      ? 'Kunden är <strong>redo för behandling</strong> — alla obligatoriska delgates OK.'
+      : st.blockers.length
+        ? 'Kunden är <strong>inte redo</strong>. Saknas: ' + esc(st.blockers.join(', ')) + '.'
+        : 'Komplettera delgates innan kalenderbokning.';
+    return (
+      '<div class="kk-ord48-ready" data-kk-ord48-ready data-ready="' +
+      (st.ready ? 'true' : 'false') +
+      '">' +
+      '<div class="kk-ready-row">' +
+      pills +
+      '</div>' +
+      '<div class="kk-ready-reason">' +
+      reason +
+      '</div></div>'
+    );
+  }
+
+  function buildOrd48KalenderCta(card, extras, gateSignals, patientId) {
+    var st = resolveOrd48ReadyState(card, extras, gateSignals);
+    var pid = esc(patientId || card.patientId || card.id || '');
+    var disabled = st.ready ? '' : ' disabled aria-disabled="true"';
+    var hint = st.ready
+      ? 'Öppna kalendern och boka behandling'
+      : 'Kräver ready_for_treatment — ' + (st.blockers.join(', ') || 'ofullständig profil');
+    return (
+      '<div class="kk-ord48-cal-cta">' +
+      '<button type="button" class="btn kk-ord48-cal-btn' +
+      (st.ready ? ' kk-ord48-cal-btn--ready' : '') +
+      '"' +
+      disabled +
+      ' data-kk-ord48-open-calendar data-patient-id="' +
+      pid +
+      '" title="' +
+      esc(hint) +
+      '">📅 Öppna kalender</button>' +
+      '</div>'
+    );
+  }
+
   function buildOrd47DocCard(id, num, title, statusPill, inner, openDefault) {
     var openAttr = openDefault ? ' open' : '';
     return (
@@ -4429,6 +4544,8 @@
           opDate: ord47OpWhen,
         })
       );
+      h += buildOrd48ReadyBlock(bcard, extras, gateSignals);
+      h += buildOrd48KalenderCta(bcard, extras, gateSignals, bcard.patientId || bcard.id);
     } else if (nextLabel || cur || bkStr) {
       var nx = bkStr ? bkStr + (summAction ? ' — ' + summAction : '') : summAction;
       h +=
@@ -5665,13 +5782,31 @@
       h += buildOrd47MallbibliotekWrap(ord47RegistryHtml);
     }
 
-    h +=
-      '<div class="acts"><div class="btn dark">📷 Ta bild · spara i journal</div>' +
-      '<div class="btn gold">Boka nästa</div>' +
-      '<div class="r2"><div class="btn">✎ Anteckna</div><div class="btn">✉ Svarstudio</div></div>' +
-      '<div class="btn green">✓ Bekräfta kommande tider' +
-      (up.length ? ' (' + up.length + ')' : '') +
-      '</div></div>';
+    if (ORD47_V1) {
+      var ord48ReadySt = resolveOrd48ReadyState(bcard, extras, gateSignals);
+      var ord48Pid = esc(bcard.patientId || bcard.id || '');
+      h +=
+        '<div class="acts"><div class="btn dark">📷 Ta bild · spara i journal</div>' +
+        '<button type="button" class="btn gold' +
+        (ord48ReadySt.ready ? '' : ' is-disabled') +
+        '"' +
+        (ord48ReadySt.ready ? '' : ' disabled aria-disabled="true"') +
+        ' data-kk-ord48-open-calendar data-patient-id="' +
+        ord48Pid +
+        '">Boka nästa</button>' +
+        '<div class="r2"><div class="btn">✎ Anteckna</div><div class="btn">✉ Svarstudio</div></div>' +
+        '<div class="btn green">✓ Bekräfta kommande tider' +
+        (up.length ? ' (' + up.length + ')' : '') +
+        '</div></div>';
+    } else {
+      h +=
+        '<div class="acts"><div class="btn dark">📷 Ta bild · spara i journal</div>' +
+        '<div class="btn gold">Boka nästa</div>' +
+        '<div class="r2"><div class="btn">✎ Anteckna</div><div class="btn">✉ Svarstudio</div></div>' +
+        '<div class="btn green">✓ Bekräfta kommande tider' +
+        (up.length ? ' (' + up.length + ')' : '') +
+        '</div></div>';
+    }
 
     h += '</div></div>';
 
@@ -6365,6 +6500,24 @@
           if (medForm) {
             expandMedForm(document.querySelector('.kkref .doss') || document, medForm);
           }
+        }
+        return;
+      }
+      var calBtn = e.target.closest && e.target.closest('[data-kk-ord48-open-calendar]');
+      if (calBtn) {
+        e.preventDefault();
+        if (calBtn.disabled || calBtn.getAttribute('aria-disabled') === 'true') return;
+        try {
+          var calUrl = new URL(window.location.href);
+          calUrl.searchParams.set('view', 'calendar');
+          calUrl.searchParams.set('v9', 'on');
+          var calPid = calBtn.getAttribute('data-patient-id') || '';
+          if (calPid) calUrl.searchParams.set('patientId', calPid);
+          window.location.href = calUrl.toString();
+        } catch (_calNav) {
+          window.location.href =
+            '/staff?view=calendar&v9=on&patientId=' +
+            encodeURIComponent(calBtn.getAttribute('data-patient-id') || '');
         }
         return;
       }

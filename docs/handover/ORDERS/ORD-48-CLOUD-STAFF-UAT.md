@@ -76,7 +76,7 @@ Höger kundkort ska öppnas direkt (desktop `patientId` deeplink). Hårdladda vi
 | --- | -------------------------------- | ---------------------------------------------------------------------------------------- | ---- |
 | U5a | Jonas — komplett vs ofullständig | Rail/automation visar korrekt delgate                                                    | ☐    |
 | U5b | `ready_for_treatment`            | **Grön endast** när alla delgates OK (bundle + legal + FC på ops-dag + foto om relevant) | ☐    |
-| U5c | Kalender CTA                     | "Öppna kalender" endast när komposit OK (Fas D — PARTIAL om ej wired)                    | ☐    |
+| U5c | Kalender CTA                     | "Öppna kalender" endast när komposit OK — wired (`data-kk-ord48-open-calendar`)          | ☐    |
 
 ---
 

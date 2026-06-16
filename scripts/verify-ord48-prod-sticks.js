@@ -116,10 +116,18 @@ function get(path) {
       fail('asset bundle-ui', 'missing accept API in cco-avtal-samtycke-bundle.js');
     }
 
-    if (referens.status === 200 && /ready_for_treatment|readyForTreatment/.test(referens.body)) {
+    if (
+      referens.status === 200 &&
+      /data-kk-ord48-open-calendar|kk-ord48-ready/.test(referens.body)
+    ) {
+      pass('asset kundkort', 'ORD-48 ready row + kalender CTA in referens');
+    } else if (
+      referens.status === 200 &&
+      /ready_for_treatment|readyForTreatment/.test(referens.body)
+    ) {
       pass('asset kundkort', 'ready_for_treatment signal in referens');
     } else {
-      fail('asset kundkort', 'ready_for_treatment missing in referens');
+      fail('asset kundkort', 'ORD-48 ready/CTA missing in referens');
     }
 
     if (referens.status === 200 && /Object\.isFrozen\(resolver\)/.test(referens.body)) {

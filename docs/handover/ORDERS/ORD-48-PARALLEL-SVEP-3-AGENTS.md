@@ -141,10 +141,11 @@ npm run verify:cloud-document-wiring-prod
 **Todo:**
 
 - [ ] **L1** COMPLETE-rapport när owner rapporterat U1–U5
+- [x] **L1** `ORD-48-CLOUD-AGENT-COMPLETE.md` (automation + pending owner UAT)
 - [ ] **L2** UI-fixar från UAT (om några)
-- [ ] **L3** Kalender-CTA enligt mockup v6 (eller N/A)
-- [ ] **L5** Ev. browser capture script
-- [ ] **L6** CI smoke grön
+- [x] **L3** Kalender-CTA enligt mockup v6
+- [x] **L5** `capture-ord48-browser-uat.js`
+- [ ] **L6** CI smoke grön (kör om deploy-cloud-safe efter deploy)
 
 ---
 
@@ -227,8 +228,8 @@ Handover: docs/handover/ORDERS/ORD-48-PARALLEL-SVEP-3-AGENTS.md
 - [x] Cursor sammanfattning + wiring verify PASS
 - [x] Merge A → B → C/D → deploy
 - [x] `ORD-48-CLOUD-STAFF-UAT.md` + `verify:ord48-prod-sticks`
-- [ ] Owner manuell UAT U1–U5
-- [ ] `ORD-48-CLOUD-AGENT-COMPLETE.md`
+- [x] D3 kalender-CTA + `capture-ord48-browser-uat.js`
+- [x] `ORD-48-CLOUD-AGENT-COMPLETE.md` (automation; owner UAT pending)
 - [ ] Owner prod GO
 
 ---
