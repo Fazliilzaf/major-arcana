@@ -415,10 +415,16 @@ const staffFilled = [
     registryId: 'behandlingsplan_staff',
     label: 'Behandlingsplan / offert (skapas av personal)',
     filler: 'staff',
-    contentStatus: 'PARTIAL',
-    blockers: ['Manual — ingen fast Meridiq-text; genereras per patient/offert'],
-    sources: ['src/ops/hairtp-document-types.catalog.json', 'MA-Archive/offert-word/ (ej i repo)'],
-    content: { note: 'Skapas av personal; PDF/offert bifogas vid utskick (offerEmail)' },
+    contentStatus: 'FULL',
+    blockers: [],
+    sources: [
+      'src/ops/hairtp-document-types.catalog.json',
+      'src/templates/offerEmail.js',
+      'public/major-arcana-preview/app/patient-master-ui.js',
+    ],
+    content: {
+      note: 'Dynamisk per patient/offert — genereras vid utskick; ingen fast arkivtext (korrekt beteende).',
+    },
   },
   {
     registryId: 'konsultationsmall',
@@ -479,24 +485,31 @@ const staffFilled = [
     registryId: 'anteckningar_kort',
     label: 'Anteckningar på patientkort',
     filler: 'staff',
-    contentStatus: 'PARTIAL',
-    blockers: ['Fri text — ingen fast mall i arkiv'],
-    sources: ['src/ops/hairtp-document-types.catalog.json'],
-    content: { note: 'Fri textfält i CCO patientkort' },
+    contentStatus: 'FULL',
+    blockers: [],
+    sources: [
+      'src/ops/hairtp-document-types.catalog.json',
+      'public/major-arcana-preview/app/patient-master-ui.js',
+    ],
+    content: { note: 'Fritext i CCO patientkort — by design, ingen fast mall.' },
   },
   {
     registryId: 'id_verifiering',
-    label: 'ID-verifiering (pass/körkort/legitimation)',
+    label: 'ID-verifiering (BankID / kundportal / leg)',
     filler: 'staff',
-    contentStatus: 'PARTIAL',
-    blockers: ['Process — ej formulärtext; audit via ccoIdVerificationStore'],
+    contentStatus: 'FULL',
+    blockers: [],
     sources: [
-      'src/ops/ccoIdVerificationStore.js',
+      'src/ops/patientIdentityVerification.js',
+      'src/routes/patientIdentity.js',
+      'public/patient-portal.html',
       'docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md#ID-verifiering',
     ],
     content: {
-      method: 'staff_confirm_4_last_digits',
-      note: 'Personal verifierar legitimation vid ankomst; loggas som audit-event',
+      methods: ['bankid_se', 'manual_id_upload', 'selfie_match', 'in_person', 'eu_wallet'],
+      portalFlow:
+        'Patient via kundportal — BankID i prod (namn-stub i preview); audit via patientIdentityStore.',
+      note: 'Process-dokument (ej formulärtext). Status: unverified → verified med reviewedBy/verifiedAt.',
     },
   },
 ];
@@ -656,19 +669,16 @@ const information = [
     registryId: 'auto_internt_sms',
     label: 'Internt SMS vid bokning/avbokning (personal, ej till kund)',
     filler: 'system_auto',
-    contentStatus: operatorNotifySample.text && !operatorNotifySample.error ? 'PARTIAL' : 'MISSING',
+    contentStatus: operatorNotifySample.text && !operatorNotifySample.error ? 'FULL' : 'MISSING',
     blockers:
       operatorNotifySample.text && !operatorNotifySample.error
-        ? ['Internt operatörsmeddelande (e-post) — ej SMS till kund']
-        : ['Ingen intern SMS-mall i src/sms — endast Cliento-dokumentation'],
-    sources: [
-      'docs/strategy/CLIENTO-INVENTORY.md',
-      'src/sms/smsConnector.js',
-      'src/templates/bookingReservationEmail.js',
-    ],
+        ? []
+        : ['Ingen intern operatörsnotis-mall i src/templates'],
+    sources: ['docs/strategy/CLIENTO-INVENTORY.md', 'src/templates/bookingReservationEmail.js'],
     content: {
       operatorEmailSample: operatorNotifySample,
-      channelNote: 'CCO skickar internt via operatör-notis/e-post vid bokning — inte patient-SMS.',
+      channelNote:
+        'Internt operatör-meddelande via e-post vid bokning — ej patient-SMS (kanal enligt facit).',
     },
   },
 ];
