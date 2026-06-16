@@ -5,7 +5,7 @@
 **Staff UAT:** [`ORD-48-CLOUD-STAFF-UAT.md`](./ORD-48-CLOUD-STAFF-UAT.md)  
 **Kalender facit:** [`MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html)  
 **Förutsätter:** ORD-47 V1 ✅ Owner GO 2026-05-20  
-**Prod:** `https://arcana.hairtpclinic.com` · commit `edbcd737`+ (D3 kalender-CTA live)
+**Prod:** `https://arcana.hairtpclinic.com` · commit `6fd798f5` (bundle #116 + ORD-48)
 
 ---
 
@@ -161,7 +161,7 @@ npm run verify:cloud-document-wiring-prod
 | `cco:verify-fas-a-readiness`        | PASS        |
 | `verify:ord48-prod-sticks`          | 16/16 PASS  |
 
-**Slutsats:** Backend/prod grön. **X6/X7 ej aktiverade** — väntar owner manuell UAT; Codex idle tills API-fail eller ORD-49 GO.
+**Slutsats:** Backend/prod grön. **X6/X7 ej aktiverade** — väntar owner U1/U5 visuell UAT; Codex idle tills API-fail eller ORD-49 Fas 2 hard-GO.
 
 **Todo (Codex):**
 
@@ -173,12 +173,12 @@ npm run verify:cloud-document-wiring-prod
 
 **Äger:** backend routes, stores, gates, unit tests
 
-| #      | Uppgift                                                  | Filer                                                          | Trigger                  |
-| ------ | -------------------------------------------------------- | -------------------------------------------------------------- | ------------------------ |
-| **X6** | **A2 rest** — blockera separat consent-send i komm-panel | `ccoLegacyConsentSendGuard.js`, ev. komm-routes                | UAT visar legacy-flöde   |
-| **X7** | 409/`reason`-fix i booking eller journal-gate            | `ccoTreatmentBookingGate.js`, `ccoOperationDayGate.js`, routes | U2/U3 API-fail           |
-| **X8** | **ORD-49** steg 2 mail + HD-länk (nästa epok)            | mail/template/backend                                          | Efter ORD-48 GO          |
-| **X9** | **ORD-24** foto_samtycke backend                         | scope-consent API                                              | Parallellt om owner vill |
+| #      | Uppgift                                                  | Filer                                                          | Trigger                       |
+| ------ | -------------------------------------------------------- | -------------------------------------------------------------- | ----------------------------- |
+| **X6** | **A2 rest** — blockera separat consent-send i komm-panel | `ccoLegacyConsentSendGuard.js`, ev. komm-routes                | UAT visar legacy-flöde        |
+| **X7** | 409/`reason`-fix i booking eller journal-gate            | `ccoTreatmentBookingGate.js`, `ccoOperationDayGate.js`, routes | U2/U3 API-fail                |
+| **X8** | **ORD-49** ID ready-pill + ev. gate (Fas 2 backend)      | `ccoKunderFasAReadiness.js`, identity readout                  | Efter ORD-49 Fas 1 + owner GO |
+| **X9** | **ORD-24** foto_samtycke backend                         | scope-consent API                                              | Parallellt om owner vill      |
 
 **Rör INTE:** `public/major-arcana-preview/`, handover-UAT-docs, Playwright.
 
@@ -228,13 +228,16 @@ Handover: docs/handover/ORDERS/ORD-48-PARALLEL-SVEP-3-AGENTS.md
 
 ---
 
-## Nästa epok (efter ORD-48 GO)
+## Nästa epok (parallellt spår)
 
-| ORD                   | Codex                     | Cursor                  |
-| --------------------- | ------------------------- | ----------------------- |
-| **49** steg 2 mail    | Mail/template/backend     | Preview i kundkort §1   |
-| **51** §-kort body V2 | Data/enrichment om behövs | §3/§4/§8/§9 UI-innehåll |
-| **24** foto           | scope-consent API         | §6 modal + status       |
+| ORD                  | Scope                                            | Codex              | Cursor                                                                                    |
+| -------------------- | ------------------------------------------------ | ------------------ | ----------------------------------------------------------------------------------------- |
+| **49** ID ready-pill | Synlig pill + ev. hard gate · **ej** bundle-FULL | Fas 2 readout/gate | Fas 1 UI · [`ORD-49-id-verifiering-ready-gate.md`](./ORD-49-id-verifiering-ready-gate.md) |
+| **48** (kvar)        | Manuell U1/U4/U5 visuell                         | Idle               | Deeplink/capture-fix                                                                      |
+| **24** foto          | scope-consent API                                | backend            | §6 modal                                                                                  |
+| **51** §-kort V2     | body-innehåll                                    | data               | §3/§4/§8/§9 UI                                                                            |
+
+**Stängt:** bundle-klassning PR #116 @ `6fd798f5` — `id_verifiering` FULL i dokument-bundle (process/API), separat från ORD-49 UI-gate.
 
 ---
 

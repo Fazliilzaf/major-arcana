@@ -2,9 +2,10 @@
 
 **Status:** Automated PASS · manuell Staff UAT U1–U5 **väntar owner**  
 **Agent:** Cursor (lokal)  
-**Prod commit:** `a71cf54e` (D3 + A2 hotfix)  
+**Prod commit:** `6fd798f5` (bundle-klassning #116 + ORD-48 D3)  
 **UAT-doc:** [`ORD-48-CLOUD-STAFF-UAT.md`](./ORD-48-CLOUD-STAFF-UAT.md)  
-**Spec:** [`ORD-48-steg7-bundle-ops-gates.md`](./ORD-48-steg7-bundle-ops-gates.md)
+**Spec:** [`ORD-48-steg7-bundle-ops-gates.md`](./ORD-48-steg7-bundle-ops-gates.md)  
+**Nästa order (ID UI):** [`ORD-49-id-verifiering-ready-gate.md`](./ORD-49-id-verifiering-ready-gate.md)
 
 ---
 
@@ -30,13 +31,13 @@ npm run cco:verify-bundle-sign-flow
 BASE_URL=https://arcana.hairtpclinic.com bash scripts/smoke-public.sh
 ```
 
-| Script                     | Senaste körning | Resultat                         |
-| -------------------------- | --------------- | -------------------------------- |
-| `verify:ord48-prod-sticks` | `a71cf54e` prod | **16/16 PASS**                   |
-| `verify:ord47-prod-sticks` | `a71cf54e` prod | **9/9 PASS**                     |
-| `smoke-public.sh`          | deploy-safe CI  | **PASS**                         |
-| Browser ORD-48 capture     | `a71cf54e` prod | **2/3 PASS** (Dino → manuell U3) |
-| Browser ORD-47 capture     | tidigare        | **3/3 PASS**                     |
+| Script                          | Senaste körning | Resultat                                    |
+| ------------------------------- | --------------- | ------------------------------------------- |
+| `verify:ord48-prod-sticks`      | `6fd798f5` prod | **16/16 PASS**                              |
+| `verify:ord47-prod-sticks`      | `6fd798f5` prod | **9/9 PASS**                                |
+| `build:hairtp-document-content` | lokal           | **OK** (v7 · staff PARTIAL 0)               |
+| `verify:journey-doc-placement`  | lokal           | **PASS**                                    |
+| Browser ORD-48 capture          | strict v2       | **0/3** tills deeplink-fix deployas — se L5 |
 
 ---
 
@@ -67,15 +68,17 @@ Facit: [`CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mocku
 
 ## L5 — Manuell Staff UAT (owner)
 
-| #   | Scenario                             | Status  |
-| --- | ------------------------------------ | ------- |
-| U1  | Bundle sign → §4 Signerad            | ☐ Owner |
-| U2  | Boka utan bundle → 409               | ☐ Owner |
-| U3  | Ops-dag utan FC → blockerad          | ☐ Owner |
-| U4  | Ops-dag med FC → 5 knappar           | ☐ Owner |
-| U5  | `ready_for_treatment` + kalender-CTA | ☐ Owner |
+| #   | Scenario                             | Status     | Anteckning                                       |
+| --- | ------------------------------------ | ---------- | ------------------------------------------------ |
+| U1  | Bundle sign → §4 Signerad            | ☐ Owner    | Visuell: referens-kundkort + §-kort (ej legacy)  |
+| U2  | Boka utan bundle → 409               | ✅ Backend | Gate/test/sticks PASS; UI-tråd valfri dubbelkoll |
+| U3  | Ops-dag utan FC → blockerad          | ✅ PASS    | Dino op-dag + FC-gate                            |
+| U4  | Ops-dag med FC → 5 knappar           | ☐ Partial  | Op-dag OK; FC signerad ej visuellt genomkört     |
+| U5  | `ready_for_treatment` + kalender-CTA | ☐ Owner    | Jonas deeplink — bekräfta höger rail             |
 
-**Rapportera:** `U1 PASS, U2 FAIL, …` i Slack eller chat → Cursor fixar UI vid behov.
+**Rapportera:** `U1 PASS, U5 FAIL, …` här i chat → Cursor fixar UI/deeplink vid behov.
+
+**Ej ORD-48:** ID-pill / hard ID-gate → [`ORD-49-id-verifiering-ready-gate.md`](./ORD-49-id-verifiering-ready-gate.md).
 
 ---
 
@@ -96,8 +99,10 @@ Facit: [`CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mocku
 | Cursor frontend Fas B/C/D | **PASS**    | Steg 7 API, §4/§5, deeplink                          |
 | Prod verify sticks        | **PASS**    | 16/16                                                |
 | D3 kalender-CTA           | **PASS**    | Wired i kundkort                                     |
-| Manuell UAT U1–U5         | **PENDING** | Owner                                                |
-| Owner prod GO             | **PENDING** | Efter UAT                                            |
+| Manuell UAT U1–U5         | **PENDING** | U2/U3 backend+auto OK · U1/U4/U5 visuellt kvar       |
+| Bundle-klassning (#116)   | **CLOSED**  | `6fd798f5` live · ID = FULL i bundle, ej lucka       |
+| ORD-49 ID ready-pill      | **READY**   | Separat spår — ej blandat med ORD-48 closeout        |
+| Owner prod GO             | **PENDING** | Efter U1/U5 visuell PASS                             |
 
 **Blockers:** 0 kodblockers för att starta manuell UAT.
 

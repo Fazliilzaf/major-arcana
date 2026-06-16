@@ -9684,10 +9684,16 @@
   }
 
   function railHasHydratedDeepLinkShell(patientId) {
-    return (
-      normalizeText(window.__ARCANA_DEEPLINK_HYDRATED__) === normalizeText(patientId) &&
-      Boolean(document.querySelector('[data-patient-master-rail] .patient-master-camera-button'))
-    );
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (!rail) return false;
+    if (normalizeText(window.__ARCANA_DEEPLINK_HYDRATED__) === normalizeText(patientId)) {
+      return Boolean(
+        rail.querySelector('[data-kk-doc-cards]') ||
+        rail.querySelector('.v10-dossier-referens .kkref') ||
+        rail.querySelector('.patient-master-camera-button')
+      );
+    }
+    return false;
   }
 
   async function loadPatientDetailInternal(patientId) {

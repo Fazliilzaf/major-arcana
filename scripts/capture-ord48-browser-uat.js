@@ -117,26 +117,62 @@ async function loginToken() {
 }
 
 function readVisualState(expectOpDay) {
+  function isVisible(el) {
+    if (!el || typeof el.getBoundingClientRect !== 'function') return false;
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 200 || rect.height < 80) return false;
+    const style = window.getComputedStyle(el);
+    return (
+      style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity || 1) > 0.05
+    );
+  }
   const rail = document.querySelector('[data-patient-master-rail]');
   const railText = rail?.innerText || '';
   const runtime = window.ArcanaPatientMasterUi?.getRuntime?.();
-  const topbar = document.querySelector('.kk-ord47-topbar');
-  const docCards = document.querySelector('[data-kk-doc-cards]');
-  const readyBlock = document.querySelector('[data-kk-ord48-ready]');
-  const calBtn = document.querySelector('[data-kk-ord48-open-calendar]');
-  const opDay = document.querySelector('.v11-opday-actions');
+  const referensShell =
+    rail?.querySelector('.v10-dossier-referens') || rail?.querySelector('.kkref');
+  const topbar =
+    rail?.querySelector('.kk-ord47-topbar') || document.querySelector('.kk-ord47-topbar');
+  const docCards =
+    rail?.querySelector('[data-kk-doc-cards]') || document.querySelector('[data-kk-doc-cards]');
+  const readyBlock =
+    rail?.querySelector('[data-kk-ord48-ready]') || document.querySelector('[data-kk-ord48-ready]');
+  const calBtn =
+    rail?.querySelector('[data-kk-ord48-open-calendar]') ||
+    document.querySelector('[data-kk-ord48-open-calendar]');
+  const opDay =
+    rail?.querySelector('.v11-opday-actions') || document.querySelector('.v11-opday-actions');
   const opDisabled = document.querySelector(
     '.v11-opday-actions button[disabled], .v11-opday-actions [aria-disabled="true"]'
   );
+  const storvyOpen = Boolean(document.getElementById('kk-storvy')?.classList.contains('open'));
+  const bundleOpen = Boolean(
+    document.getElementById('cco-steg7-bundle-scrim') ||
+    document.getElementById('cco-steg7-bundle-gate-scrim')
+  );
   const isError = /Patienten hittades inte|Kunde inte ladda kund|HTTP 502|HTTP 503/i.test(railText);
-  const isLoading = /Laddar kund|Läser kundregister|detail-loading/i.test(railText);
+  const isLoading = Boolean(
+    rail?.querySelector('[data-patient-loading="true"]') ||
+    /Laddar kund|Läser kundregister|detail-loading/i.test(railText)
+  );
   const nameOk = Boolean(runtime?.detail?.card?.displayName || runtime?.detail?.card?.name);
   const readyAttr = readyBlock?.getAttribute('data-ready') === 'true';
+  const docCardCount = docCards
+    ? docCards.querySelectorAll('.kk-doc-card, [data-kk-doc-card]').length
+    : 0;
+  const captureTarget =
+    rail?.querySelector('.v10-dossier-referens') ||
+    rail?.querySelector('[data-kk-doc-cards]')?.closest('.kkref') ||
+    referensShell;
+  const captureRect = captureTarget?.getBoundingClientRect?.();
   return {
+    hasReferensShell: Boolean(referensShell),
     hasTopbar: Boolean(topbar),
     hasDocCards: Boolean(docCards),
+    docCardsVisible: isVisible(docCards),
     hasDetail: Boolean(runtime?.detail?.card),
     hasReadyRow: Boolean(readyBlock),
+    readyRowVisible: isVisible(readyBlock),
     hasCalCta: Boolean(calBtn),
     readyForTreatment: readyAttr,
     calEnabled: Boolean(
@@ -144,89 +180,146 @@ function readVisualState(expectOpDay) {
     ),
     hasOpDay: Boolean(opDay),
     hasOpDisabled: Boolean(opDisabled),
+    storvyOpen,
+    bundleOpen,
     selectedPatientId: runtime?.selectedPatientId || '',
     isError,
     isLoading,
     nameOk,
     railSnippet: railText.slice(0, 600),
-    docCardCount: docCards
-      ? docCards.querySelectorAll('.kk-doc-card, [data-kk-doc-card]').length
-      : 0,
+    docCardCount,
+    captureWidth: captureRect ? Math.round(captureRect.width) : 0,
+    captureHeight: captureRect ? Math.round(captureRect.height) : 0,
     expectOpDay,
   };
 }
 
-async function waitForKundkortReady(page, pilot, timeoutMs = 150000) {
+function isCaptureReady(state, pilot) {
+  if (!state || state.isError || state.isLoading || !state.nameOk) return false;
+  if (state.storvyOpen || state.bundleOpen) return false;
+  if (!state.hasReferensShell || !state.hasDetail) return false;
+  if (!state.hasDocCards || !state.docCardsVisible || (state.docCardCount || 0) < 4) return false;
+  if (!state.hasReadyRow || !state.hasCalCta) return false;
+  if ((state.captureWidth || 0) < 280 || (state.captureHeight || 0) < 200) return false;
+  if (!pilot.expectName.test(state.railSnippet)) return false;
+  if (pilot.expectOpDay && !state.hasOpDay) return false;
+  return true;
+}
+
+async function dismissCaptureOverlays(page) {
+  await page.evaluate(() => {
+    document.getElementById('kk-storvy')?.classList.remove('open');
+    document.getElementById('cco-steg7-bundle-scrim')?.remove();
+    document.getElementById('cco-steg7-bundle-gate-scrim')?.remove();
+    document.querySelector('.customers-layout')?.setAttribute('data-v9-dossier-open', 'on');
+  });
+  await page.keyboard.press('Escape').catch(() => {});
+}
+
+async function waitForKundkortReady(page, pilot, timeoutMs = 90000) {
   const deadline = Date.now() + timeoutMs;
   let last = null;
   while (Date.now() < deadline) {
+    await dismissCaptureOverlays(page);
     last = await page.evaluate(readVisualState, pilot.expectOpDay);
-    const shellReady =
-      last.hasTopbar &&
-      last.hasDocCards &&
-      last.hasDetail &&
-      last.hasReadyRow &&
-      last.hasCalCta &&
-      !last.isError;
-    if (shellReady && last.nameOk) {
-      if (pilot.expectOpDay && !last.hasOpDay) {
-        await page.waitForTimeout(1500);
-        continue;
-      }
-      return { ...last, pass: true };
-    }
-    if (
-      last.hasDetail &&
-      !last.isLoading &&
-      !last.isError &&
-      pilot.expectName.test(last.railSnippet)
-    ) {
-      if (last.hasTopbar && last.hasDocCards && last.hasReadyRow) {
-        return { ...last, pass: true };
-      }
-    }
+    if (isCaptureReady(last, pilot)) return { ...last, pass: true };
     await page.waitForTimeout(1500);
   }
   return { ...(last || {}), pass: false };
 }
 
 async function ensurePatientOpen(page, patientId) {
+  await page.waitForFunction(
+    () =>
+      typeof window.ArcanaPatientMasterUi?.openPatient === 'function' &&
+      Boolean(document.querySelector('[data-patient-master-rail]')),
+    null,
+    { timeout: 60000 }
+  );
   await page.evaluate(async (pid) => {
     const api = window.ArcanaPatientMasterUi;
     if (!api?.openPatient) return;
     const rt = api.getRuntime?.();
-    if (rt?.selectedPatientId === pid && rt?.detail?.card) return;
+    const rail = document.querySelector('[data-patient-master-rail]');
+    const hasShell = Boolean(rail?.querySelector('.v10-dossier-referens [data-kk-doc-cards]'));
+    if (rt?.selectedPatientId === pid && rt?.detail?.card && hasShell) return;
     await api.openPatient(pid);
+    await api.refreshV10KundkortFacit?.();
   }, patientId);
+}
+
+async function waitForReferensShell(page, pilot, timeoutMs = 90000) {
+  try {
+    await page.waitForFunction(
+      ({ pid, namePattern }) => {
+        function normalizeText(value) {
+          return String(value || '').trim();
+        }
+        const rail = document.querySelector('[data-patient-master-rail]');
+        const referens = rail?.querySelector('.v10-dossier-referens [data-kk-doc-cards]');
+        const ready = rail?.querySelector('[data-kk-ord48-ready]');
+        const runtime = window.ArcanaPatientMasterUi?.getRuntime?.();
+        const displayName = runtime?.detail?.card?.displayName || runtime?.detail?.card?.name || '';
+        if (normalizeText(runtime?.selectedPatientId) !== normalizeText(pid)) return false;
+        if (!referens || !ready) return false;
+        if (!new RegExp(namePattern, 'i').test(displayName)) return false;
+        const rect = referens.getBoundingClientRect();
+        return rect.width >= 200 && rect.height >= 80;
+      },
+      {
+        pid: pilot.patientId,
+        namePattern: pilot.expectName.source.replace(/^\^|\$$/g, '').replace(/\\b/g, ''),
+      },
+      { timeout: timeoutMs }
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function capturePilot(page, pilot) {
   await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.goto(pilot.url, { waitUntil: 'networkidle', timeout: 120000 });
+  await page.goto(pilot.url, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForTimeout(3000);
   await ensurePatientOpen(page, pilot.patientId);
   await page.waitForTimeout(2000);
-  let state = await waitForKundkortReady(page, pilot);
-  if (!state.pass) {
+  let opened = await waitForReferensShell(page, pilot, 90000);
+  if (!opened) {
     await ensurePatientOpen(page, pilot.patientId);
-    await page.waitForTimeout(5000);
-    state = await waitForKundkortReady(page, pilot, 90000);
+    await page.waitForTimeout(3000);
+    opened = await waitForReferensShell(page, pilot, 45000);
   }
+  let state = await page.evaluate(readVisualState, pilot.expectOpDay);
+  state.pass = opened && isCaptureReady(state, pilot);
+
+  await dismissCaptureOverlays(page);
+  state = { ...(await page.evaluate(readVisualState, pilot.expectOpDay)), pass: state.pass };
 
   const outPath = path.join(OUT_DIR, pilot.file);
-  const clipTarget = page.locator('.patient-master-rail .kk-storvy-body').first();
-  const railTarget = page.locator('[data-patient-master-rail]').first();
-  if (await clipTarget.count()) {
-    await clipTarget.screenshot({ path: outPath, timeout: 30000 });
-  } else if (await railTarget.count()) {
-    await railTarget.screenshot({ path: outPath, timeout: 30000 });
-  } else {
+  const captureSelectors = [
+    '[data-patient-master-rail] .v10-dossier-referens',
+    '[data-patient-master-rail] .kkref .doss',
+    '[data-patient-master-rail] [data-kk-doc-cards]',
+    '[data-patient-master-rail]',
+  ];
+  let shot = false;
+  for (const selector of captureSelectors) {
+    const target = page.locator(selector).first();
+    if (!(await target.count())) continue;
+    const box = await target.boundingBox().catch(() => null);
+    if (!box || box.width < 280 || box.height < 200) continue;
+    await target.screenshot({ path: outPath, timeout: 30000 });
+    shot = true;
+    break;
+  }
+  if (!shot) {
     await page.screenshot({ path: outPath, fullPage: false });
   }
 
   const label = state.pass ? 'PASS' : 'PARTIAL';
   console.log(
-    `${label} ${pilot.file} [${pilot.scenario}] ready=${state.hasReadyRow} cta=${state.hasCalCta} opDay=${state.hasOpDay} detail=${state.hasDetail}`
+    `${label} ${pilot.file} [${pilot.scenario}] referens=${state.hasReferensShell} docCards=${state.docCardCount} visible=${state.docCardsVisible} ready=${state.readyRowVisible} capture=${state.captureWidth}x${state.captureHeight} storvy=${state.storvyOpen}`
   );
   return state;
 }
