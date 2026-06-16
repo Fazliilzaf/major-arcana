@@ -90,14 +90,14 @@ Facit: [`CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mocku
 
 ## L7 — PASS/FAIL sammanfattning
 
-| Område                    | Resultat    | Anteckning                  |
-| ------------------------- | ----------- | --------------------------- |
-| Codex backend Fas A/C/D   | **PASS**    | Live `4cabcbae`+            |
-| Cursor frontend Fas B/C/D | **PASS**    | Steg 7 API, §4/§5, deeplink |
-| Prod verify sticks        | **PASS**    | 16/16                       |
-| D3 kalender-CTA           | **PASS**    | Wired i kundkort            |
-| Manuell UAT U1–U5         | **PENDING** | Owner                       |
-| Owner prod GO             | **PENDING** | Efter UAT                   |
+| Område                    | Resultat    | Anteckning                                           |
+| ------------------------- | ----------- | ---------------------------------------------------- |
+| Codex backend Fas A/C/D   | **PASS**    | Owner prod verify 2026-05-20 · idle tills UAT/ORD-49 |
+| Cursor frontend Fas B/C/D | **PASS**    | Steg 7 API, §4/§5, deeplink                          |
+| Prod verify sticks        | **PASS**    | 16/16                                                |
+| D3 kalender-CTA           | **PASS**    | Wired i kundkort                                     |
+| Manuell UAT U1–U5         | **PENDING** | Owner                                                |
+| Owner prod GO             | **PENDING** | Efter UAT                                            |
 
 **Blockers:** 0 kodblockers för att starta manuell UAT.
 

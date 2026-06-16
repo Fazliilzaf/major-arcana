@@ -5,7 +5,7 @@
 **Staff UAT:** [`ORD-48-CLOUD-STAFF-UAT.md`](./ORD-48-CLOUD-STAFF-UAT.md)  
 **Kalender facit:** [`MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mockup-v6-UTGANGSLAGE.html)  
 **Förutsätter:** ORD-47 V1 ✅ Owner GO 2026-05-20  
-**Prod:** `https://arcana.hairtpclinic.com` · commit `b92f1abd`+
+**Prod:** `https://arcana.hairtpclinic.com` · commit `edbcd737`+ (D3 kalender-CTA live)
 
 ---
 
@@ -145,11 +145,31 @@ npm run verify:cloud-document-wiring-prod
 - [ ] **L2** UI-fixar från UAT (om några)
 - [x] **L3** Kalender-CTA enligt mockup v6
 - [x] **L5** `capture-ord48-browser-uat.js`
-- [ ] **L6** CI smoke grön (kör om deploy-cloud-safe efter deploy)
+- [x] **L6** CI smoke grön — [deploy-cloud-safe 27602428791](https://github.com/Fazliilzaf/major-arcana/actions/runs/27602428791)
 
 ---
 
-## 🤖 CODEX — endast vid UAT-gap eller efter GO
+## 🤖 CODEX — backend sign-off ✅ (owner 2026-05-20)
+
+**Scope:** Prod-verify only — ingen kodändring.
+
+| Verify                              | Resultat    |
+| ----------------------------------- | ----------- |
+| `/readyz` + `/api/public/status`    | operational |
+| `ccoLegacyConsentSendGuard.test.js` | 2/2 PASS    |
+| `ccoTreatmentBookingGate.test.js`   | 4/4 PASS    |
+| `cco:verify-fas-a-readiness`        | PASS        |
+| `verify:ord48-prod-sticks`          | 16/16 PASS  |
+
+**Slutsats:** Backend/prod grön. **X6/X7 ej aktiverade** — väntar owner manuell UAT; Codex idle tills API-fail eller ORD-49 GO.
+
+**Todo (Codex):**
+
+- [x] **X1–X5** Fas A/C/D backend (merged `4cabcbae`+)
+- [x] **Prod stickprov** — owner verifiering PASS
+- [ ] **X6** A2 komm-panel guard — valfri polish, **ej blocker**
+- [ ] **X7** Backend-fix — **endast om** UAT U2/U3 API-fail
+- [ ] **X8/X9** Nästa epok efter ORD-48 owner GO
 
 **Äger:** backend routes, stores, gates, unit tests
 
