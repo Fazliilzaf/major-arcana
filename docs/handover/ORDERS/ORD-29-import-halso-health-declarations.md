@@ -64,9 +64,9 @@
 
 - [ ] **1. Fas 0 sanity** — `npm run dry-run:halso-hd -- --max 500 --stickprov 5 --out ./data/reports/halso-hd-dry-run.json` (valfritt om redan signerat)
 - [ ] **2. Corpus scan** — `npm run scan:halso-hd-corpus` (resume: `--resume`); checkpoint `complete: true` + `halso-hd-corpus-index.jsonl`
-- [ ] **3. Batch dry-run batch 1** — `npm run ingest:halso-hd-batch -- --batch 1 --dry-run`; granska `halso-hd-batch-report.json` (PII, committa inte)
-- [ ] **4. Stickprov** — `npm run push:halso-hd-stickprov-prod -- --from ./data/reports/halso-hd-dry-run.stickprov.json` → `npm run verify:ord29-prod-sticks`
-- [ ] **5. GO batch commit** — `npm run ingest:halso-hd-batch -- --batch N --commit` per batch (endast efter dry-run + stickprov PASS)
+- [x] **3. Batch dry-run batch 1** — `npm run ingest:halso-hd-batch -- --batch 1 --dry-run`; granska `halso-hd-batch-report.json` (PII, committa inte)
+- [x] **4. Stickprov** (batch 1 GO: `halso-hd-dry-run-go.stickprov.json`) — `npm run push:halso-hd-stickprov-prod -- --from ./data/reports/halso-hd-dry-run.stickprov.json` → `npm run verify:ord29-prod-sticks`
+- [x] **5. GO batch commit** (batch 1 — se tabell nedan) — `npm run ingest:halso-hd-batch -- --batch N --commit` per batch (endast efter dry-run + stickprov PASS)
 - [ ] **6. Review queue** — `ingest:halso-hd-review-reprocess --dry-run` → `--commit` efter Cliento-delta
 - [ ] **7. Löpande ingest** — scheduler `cco_halso_hd_mailbox_ingest` (8h, 3-dagars lookback); mail-ingestion-väg (`ingest:halso-hd`) endast om flag flip beslutas
 - [ ] **8. UAT** — `verify:ord29-prod-sticks` + valfritt `capture:ord29-browser-uat`
@@ -78,6 +78,18 @@
 | `node --test tests/ops/ccoHalsoHealthDeclarationIngest.test.js` | **11/11 PASS**                                                      |
 | `halso-hd-corpus.checkpoint.json`                               | **complete: true** (100 HD headers, 5293 mejl skannade)             |
 | `dry-run:halso-hd --max 50 --stickprov 3`                       | **ok** → `./data/reports/halso-hd-dry-run-go.json` (Graph creds OK) |
+
+**Batch 1 — GO run 2026-06-16** (corpus 100 HD headers · batch size 50 · prod `6817e200`):
+
+| Steg                                     | Resultat                                                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Dry-run batch 1                          | **ok** — processed 50 · parsedOk 50 · parseFailed 0 · matched 0 · needsReview 0 · duplicate 23 · unmatched 27 · putOk 0 |
+| Stickprov push                           | **ok** — `halso-hd-dry-run-go.stickprov.json` · 3/3 PUT ok (`halso-stickprov-2026-06-16`)                               |
+| `verify:ord29-prod-sticks` (pre-commit)  | **14/14 PASS** (1 WARN: ref patient 3cdf4d6c saknas i prod)                                                             |
+| Commit batch 1                           | **ok** — samma counts som dry-run · putOk 0 · putFailed 0 (inga nya match → inga PUT)                                   |
+| `verify:ord29-prod-sticks` (post-commit) | **14/14 PASS**                                                                                                          |
+
+**Nästa:** batch 2 dry-run → stickprov/verify → commit (samma runbook).
 
 **Committa aldrig:** `data/reports/halso-hd-*.json`, `*.stickprov.json`, review queue JSONL.
 
