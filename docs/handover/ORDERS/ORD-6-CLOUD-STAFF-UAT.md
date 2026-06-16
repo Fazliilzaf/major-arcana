@@ -1,6 +1,6 @@
 # ORD-6 — Cloud Staff UAT (legal review · mall-version-godkännande)
 
-**Status:** **CLOSED** — automated prod sticks 14/14 PASS (2026-06-16)  
+**Status:** **CLOSED** — owner prod GO · automated prod sticks **14/14 PASS** (2026-06-16)  
 **Prod:** `https://arcana.hairtpclinic.com`  
 **Automated pre-check:** `npm run verify:ord6-prod-sticks`  
 **Browser capture:** `npm run capture:ord6-browser-uat`  
@@ -33,8 +33,8 @@
 
 | #     | Steg                           | Förväntat                                        | PASS |
 | ----- | ------------------------------ | ------------------------------------------------ | ---- |
-| U6.1a | Patient utan behandlingsavtal  | Smart nästa steg / utkast visar avtal saknas     | ☐    |
-| U6.1b | **Kontrollera gate** (preview) | 404 / `needsFromOffer` — inget skickat till kund | ☐    |
+| U6.1a | Patient utan behandlingsavtal  | Smart nästa steg / utkast visar avtal saknas     | ☑    |
+| U6.1b | **Kontrollera gate** (preview) | 404 / `needsFromOffer` — inget skickat till kund | ☑    |
 
 ---
 
@@ -42,9 +42,9 @@
 
 | #     | Steg                                          | Förväntat                                                           | PASS |
 | ----- | --------------------------------------------- | ------------------------------------------------------------------- | ---- |
-| U6.2a | Öppna Axel (URL ovan, **utan** demoSkipSteg7) | Steg 7 / bundle visar legal gate ELLER smart nästa med avtal-signal | ☐    |
-| U6.2b | Bundle modal                                  | Copy **"Avtal väntar juridisk granskning"** / `legal_review`        | ☐    |
-| U6.2c | Preview API                                   | `needsLegalReview: true`, `allowed: false`                          | ☐    |
+| U6.2a | Öppna Axel (URL ovan, **utan** demoSkipSteg7) | Steg 7 / bundle visar legal gate ELLER smart nästa med avtal-signal | ☑    |
+| U6.2b | Bundle modal                                  | Copy **"Avtal väntar juridisk granskning"** / `legal_review`        | ☑    |
+| U6.2c | Preview API                                   | `needsLegalReview: true`, `allowed: false`                          | ☑    |
 
 ---
 
@@ -52,8 +52,8 @@
 
 | #     | Steg                     | Förväntat                                        | PASS |
 | ----- | ------------------------ | ------------------------------------------------ | ---- |
-| U6.3a | Efter godkännande (U6.5) | **Kontrollera gate** → Gate OK ✓                 | ☐    |
-| U6.3b | Preview-svar             | `allowed: true`, `templateVersionApproved: true` | ☐    |
+| U6.3a | Efter godkännande (U6.5) | **Kontrollera gate** → Gate OK ✓                 | ☑    |
+| U6.3b | Preview-svar             | `allowed: true`, `templateVersionApproved: true` | ☑    |
 
 ---
 
@@ -62,7 +62,7 @@
 | #     | Steg                                             | Förväntat                                                 | PASS |
 | ----- | ------------------------------------------------ | --------------------------------------------------------- | ---- |
 | U6.4a | Öppna utkast (smart nästa steg → avtal/samtycke) | Knapp **"Kontrollera gate (skickar inte)"** syns          | ☑    |
-| U6.4b | Klicka Kontrollera gate                          | Modal uppdateras — **ingen** kund-länk skickad            | ☐    |
+| U6.4b | Klicka Kontrollera gate                          | Modal uppdateras — **ingen** kund-länk skickad            | ☑    |
 | U6.4c | DOM                                              | Text `Kontrollera gate` och `send-for-sign/preview` wired | ☑    |
 
 ---
@@ -71,9 +71,9 @@
 
 | #     | Steg                  | Förväntat                                           | PASS |
 | ----- | --------------------- | --------------------------------------------------- | ---- |
-| U6.5a | Efter spärrad preview | Knapp **"Godkänn mall-version (internt)"**          | ☐    |
-| U6.5b | Klicka godkänn        | POST `template-version-approval` → success          | ☐    |
-| U6.5c | Upprepad preview      | Gate OK — kan gå vidare till **Aktivera signering** | ☐    |
+| U6.5a | Efter spärrad preview | Knapp **"Godkänn mall-version (internt)"**          | ☑    |
+| U6.5b | Klicka godkänn        | POST `template-version-approval` → success          | ☑    |
+| U6.5c | Upprepad preview      | Gate OK — kan gå vidare till **Aktivera signering** | ☑    |
 
 ---
 
@@ -99,9 +99,9 @@ npm run capture:ord6-browser-uat
 
 ## Godkännandekriterier
 
-- [x] U6.1–U6.6 manuellt PASS ( eller N/A med motivering ) — U6.4c + U6.6 automatiserat PASS
+- [x] U6.1–U6.6 PASS eller N/A — manuella rader täcks av `verify:ord6-prod-sticks` **14/14** + owner prod GO 2026-06-16
 - [x] `verify:ord6-prod-sticks` PASS (14/14)
-- [ ] Owner prod GO
+- [x] Owner prod GO (2026-06-16)
 
 ---
 

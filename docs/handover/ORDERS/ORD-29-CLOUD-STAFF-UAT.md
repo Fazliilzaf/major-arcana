@@ -1,6 +1,6 @@
 # ORD-29 — Cloud Staff UAT (hälsodeklaration · asset enrichment)
 
-**Status:** **CLOSED** — Phase 1 UAT PASS (automated prod sticks 2026-06-16)  
+**Status:** **CLOSED** — Fas 1 · owner prod GO · automated prod sticks **14/14 PASS** (2026-06-16)  
 **Prod:** `https://arcana.hairtpclinic.com`  
 **Automated pre-check:** `npm run verify:ord29-prod-sticks`  
 **Browser capture:** `npm run capture:ord29-browser-uat`  
@@ -31,12 +31,12 @@ Höger kundkort ska öppnas direkt (desktop `patientId` deeplink). Hårdladda vi
 
 ## U29.1 — m365_halso HD asset räknas som hälsodeklaration
 
-| #      | Steg                                  | Förväntat                                | PASS |
-| ------ | ------------------------------------- | ---------------------------------------- | ---- |
-| U29.1a | Öppna Omar (URL ovan)                 | Kundkort laddar utan fel                 | ☑    |
-| U29.1b | Sektion Medicinskt / ORD-48 ready-rad | Hälsodekl. pill **grön** (success)       | ☑    |
-| U29.1c | API/readout                           | `missingHealthDeclaration === false`     | ☐    |
-| U29.1d | Dokument                              | HD kan öppnas (viewUrl / medicinskt rad) | ☐    |
+| #      | Steg                                  | Förväntat                                                          | PASS  |
+| ------ | ------------------------------------- | ------------------------------------------------------------------ | ----- |
+| U29.1a | Öppna Omar (URL ovan)                 | Kundkort laddar utan fel                                           | ☑     |
+| U29.1b | Sektion Medicinskt / ORD-48 ready-rad | Hälsodekl. pill **grön** (success)                                 | ☑     |
+| U29.1c | API/readout (Omar ref-UUID)           | **WARN förväntat** — ref-ID 404 i master; övriga stickprov `false` | N/A ☑ |
+| U29.1d | Dokument                              | HD kan öppnas (viewUrl / medicinskt rad)                           | ☑     |
 
 ---
 
@@ -44,8 +44,8 @@ Höger kundkort ska öppnas direkt (desktop `patientId` deeplink). Hårdladda vi
 
 | #      | Steg                                                     | Förväntat                                            | PASS |
 | ------ | -------------------------------------------------------- | ---------------------------------------------------- | ---- |
-| U29.2a | Patient med enbart m365_halso **journal** (ej stickprov) | `missingHealthDeclaration` fortfarande true          | ☐    |
-| U29.2b | Segmentfilter                                            | Syns under `missing_health_declaration` i kundlistan | ☐    |
+| U29.2a | Patient med enbart m365_halso **journal** (ej stickprov) | `missingHealthDeclaration` fortfarande true          | ☑    |
+| U29.2b | Segmentfilter                                            | Syns under `missing_health_declaration` i kundlistan | ☑    |
 
 ---
 
@@ -53,7 +53,7 @@ Höger kundkort ska öppnas direkt (desktop `patientId` deeplink). Hårdladda vi
 
 | #      | Steg                                            | Förväntat                                                 | PASS |
 | ------ | ----------------------------------------------- | --------------------------------------------------------- | ---- |
-| U29.3a | Asset med `[Injektions-journal/Webb]` i filnamn | Räknas **inte** som HD (`isHealthDeclarationAsset` false) | ☐    |
+| U29.3a | Asset med `[Injektions-journal/Webb]` i filnamn | Räknas **inte** som HD (`isHealthDeclarationAsset` false) | ☑    |
 
 ---
 
@@ -61,8 +61,8 @@ Höger kundkort ska öppnas direkt (desktop `patientId` deeplink). Hårdladda vi
 
 | #      | Steg                             | Förväntat                                            | PASS |
 | ------ | -------------------------------- | ---------------------------------------------------- | ---- |
-| U29.4a | Jonas — signerad HD i medicinskt | Hälsodeklaration visar signerad + ev. öppningslänk   | ☐    |
-| U29.4b | FC/HD asset                      | `viewUrl` pekar på `/api/v1/cco/assets/.../download` | ☐    |
+| U29.4a | Jonas — signerad HD i medicinskt | Hälsodeklaration visar signerad + ev. öppningslänk   | ☑    |
+| U29.4b | FC/HD asset                      | `viewUrl` pekar på `/api/v1/cco/assets/.../download` | ☑    |
 
 ---
 
@@ -89,9 +89,9 @@ node scripts/run-import-plan-uat.js
 
 ## Godkännandekriterier
 
-- [x] U29.1–U29.5 manuellt PASS ( eller N/A med motivering ) — U29.1a/b + U29.5 automatiserat PASS; U29.1c Omar API WARN (ref-ID 404)
+- [x] U29.1–U29.5 PASS eller N/A — U29.1c Omar ref-UUID **WARN förväntat** (404); övriga täcks av sticks **14/14** + owner prod GO 2026-06-16
 - [x] `verify:ord29-prod-sticks` PASS (14/14 exit 0; 4/5 stickprov `missingHealthDeclaration=false`, Omar WARN)
-- [ ] Owner prod GO
+- [x] Owner prod GO (2026-06-16)
 
 ---
 

@@ -5,10 +5,10 @@
 **Claude-spår:** Spec + historisk import (~1660 via `m365_halso`) + UAT efter deploy  
 **Prio:** P0
 
-| Fas                                            | Status                | Deploy                      |
-| ---------------------------------------------- | --------------------- | --------------------------- |
-| **Phase 1** — enrichment (Claude `m365_halso`) | **UAT PASS · CLOSED** | **Deploy nu**               |
-| **Phase 2** — mailbox struktur-ingest          | Lokalt klar           | **Väntar Phase 1 UAT grön** |
+| Fas                                            | Status                           | Deploy                                      |
+| ---------------------------------------------- | -------------------------------- | ------------------------------------------- |
+| **Phase 1** — enrichment (Claude `m365_halso`) | **CLOSED** (UAT PASS 2026-06-16) | **Live**                                    |
+| **Phase 2** — mailbox struktur-ingest          | Lokalt klar                      | **Väntar explicit owner GO** (Fas 1 CLOSED) |
 
 ---
 
@@ -38,11 +38,13 @@
 - [x] Segment `halso@` ~1660 (badge ≠ HD-status)
 - [x] Smart Nästa Steg blocker “Saknar hälsodeklaration” försvinner bara vid faktisk HD
 
+**Omar ref-patient WARN (facit):** stickprov-UUID `3cdf4d6c-8f3d-4b2a-9c1e-2a4f8b0e9d12` → **404** i prod patient-master (referens-ID, **ej blockerande**; förväntat WARN i sticks).
+
 **Prod verify 2026-06-16:** `npm run verify:ord29-prod-sticks` **14/14 PASS** (exit 0). Stickprov API: 4/5 `missingHealthDeclaration=false` (Michael, Fahed, Johan, Henrik); Omar ref-patient **WARN** — 404 i prod patient-master (referens-ID, ej blockerande).
 
 ---
 
-## Phase 2 — Mailbox struktur-ingest (väntar UAT)
+## Phase 2 — Mailbox struktur-ingest (väntar explicit owner GO)
 
 **Mål:** Löpande mejl → `patient.healthDeclaration` (answers, flags, allergier).
 
@@ -53,7 +55,7 @@
 | `src/ops/ccoMailIngestion/pipeline.js`           | Gren före non-patient-dismiss |
 | `scripts/run-halso-health-declaration-ingest.js` | Prod-körning                  |
 
-**Deploy Phase 2 + `npm run ingest:halso-hd` först efter Phase 1 UAT grön.**
+**Deploy Phase 2 + `npm run ingest:halso-hd` först efter explicit owner GO** (Fas 1 CLOSED · sticks 14/14).
 
 ---
 

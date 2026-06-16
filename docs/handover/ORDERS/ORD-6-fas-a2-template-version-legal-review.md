@@ -1,6 +1,7 @@
 # ORD-6 — Fas A.2 legal_review (väg A: per mall-version)
 
-**Status:** **CLOSED** — prod sticks 14/14 PASS (2026-06-16)  
+**Status:** **CLOSED** — prod sticks **14/14 PASS** låst facit (2026-06-16)  
+**Owner prod GO:** ✅ (2026-06-16)
 **Notion:** [Fas A.2 legal_review](https://app.notion.com/p/374060ccc15b81a9904df02dd2a9cab2) · `ORD-6`  
 **Beslut:** Väg A — godkänn **mall-version** (ej per patient). `record-legal-review` är **förbjuden**.
 
