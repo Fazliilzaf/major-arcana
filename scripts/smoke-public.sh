@@ -31,6 +31,15 @@ fi
 
 BASE_URL="${BASE_URL%/}"
 
+# All prod smoke mot canonical HTTPS (undvik 301 HTML från http→https på /healthz).
+case "$BASE_URL" in
+  http://*) BASE_URL="https://${BASE_URL#http://}" ;;
+esac
+
+curl_smoke() {
+  curl -sSL --max-redirs 5 "$@"
+}
+
 dotenv_get() {
   local key="$1"
   if [[ ! -f ".env" ]]; then
@@ -290,7 +299,7 @@ echo "== Arcana Public Smoke =="
 echo "BASE_URL:  $BASE_URL"
 echo
 
-HEALTH_RESPONSE="$(curl -sS "$BASE_URL/healthz")"
+HEALTH_RESPONSE="$(curl_smoke "$BASE_URL/healthz")"
 HEALTH_OK="$(printf '%s' "$HEALTH_RESPONSE" | json_get ok || true)"
 if [[ "$HEALTH_OK" != "true" ]]; then
   echo "❌ healthz ej ok"
@@ -299,7 +308,7 @@ if [[ "$HEALTH_OK" != "true" ]]; then
 fi
 echo "✅ healthz OK"
 
-READY_RESPONSE="$(curl -sS "$BASE_URL/readyz")"
+READY_RESPONSE="$(curl_smoke "$BASE_URL/readyz")"
 READY_OK="$(printf '%s' "$READY_RESPONSE" | json_get ready || true)"
 if [[ "$READY_OK" != "true" ]]; then
   echo "❌ readyz ej ready"

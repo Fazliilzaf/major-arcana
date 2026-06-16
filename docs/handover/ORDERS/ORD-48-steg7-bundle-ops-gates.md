@@ -183,7 +183,7 @@ Owner kan ändra G1/G2 senare utan att stoppa svepet.
 | U4  | Ops-dag med FC signerad                          | Op-dag 5 knappar OK                    |
 | U5  | `ready_for_treatment` synlig endast när komplett | Rail + automation                      |
 
-Dokumentera i `ORD-48-CLOUD-STAFF-UAT.md` (skapas vid Fas D klar).
+Dokumentera i [`ORD-48-CLOUD-STAFF-UAT.md`](./ORD-48-CLOUD-STAFF-UAT.md).
 
 ---
 

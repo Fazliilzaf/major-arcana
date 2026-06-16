@@ -43,6 +43,7 @@
     "verify:journey-doc-placement": "node ./scripts/verify-journey-doc-placement.js",
     "verify:cloud-document-wiring-prod": "node ./scripts/verify-cloud-document-wiring-prod.js",
     "verify:ord47-prod-sticks": "node ./scripts/verify-ord47-prod-sticks.js",
+    "verify:ord48-prod-sticks": "node ./scripts/verify-ord48-prod-sticks.js",
     "test:visual": "playwright test --config=playwright.config.js",
     "test:visual:update": "playwright test --config=playwright.config.js --update-snapshots",
     "test:system-mail-parser": "node scripts/test/system-mail-parser.test.js",

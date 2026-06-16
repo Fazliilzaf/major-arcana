@@ -13,19 +13,19 @@ const STICKS = [
   {
     id: 'tp-tidig',
     label: 'TP tidig · demoSkipSteg7',
-    patientId: '2e8d3535-cd89-418e-8b68-ca239f8836a4',
+    patientId: '54a658c8-7412-4f10-877e-9e607e03b74f',
     params: 'view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1',
   },
   {
     id: 'tp-op-dag',
     label: 'TP op-dag',
-    patientId: 'f8233fca-779c-488b-a980-0e41bc01c0c0',
+    patientId: '4db24289-7f9e-431e-b7f3-bd9014d8c9f3',
     params: 'view=customers&v9=on&demo=on&demoOpDay=1',
   },
   {
     id: 'variation',
     label: 'Variation · Jonas Lundvall',
-    patientId: 'cc07c972-49d9-4c99-928e-d750e79a82e9',
+    patientId: 'a6a55cae-8c12-4d7d-83da-adbcdd368b00',
     params: 'view=customers&v9=on&demo=on&demoOpDay=1',
   },
 ];

@@ -6,6 +6,8 @@
 /**
  * ORD-47 prod browser UAT — 3 pilot deep links → kundkort screenshots.
  *   node scripts/capture-ord47-browser-uat.js
+ *
+ * Pass = detail loaded + .kk-ord47-topbar + [data-kk-doc-cards] (ej placeholder/fel).
  */
 
 const fs = require('node:fs');
@@ -44,20 +46,34 @@ const OUT_DIR = path.join(__dirname, '..', 'data', 'reports', 'ord47-browser-uat
 const PILOTS = [
   {
     file: 'axel-meijer.png',
+    patientId: '54a658c8-7412-4f10-877e-9e607e03b74f',
     url: `${BASE}/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1&patientId=54a658c8-7412-4f10-877e-9e607e03b74f`,
     expectName: /axel/i,
   },
   {
     file: 'dino-placo.png',
+    patientId: '4db24289-7f9e-431e-b7f3-bd9014d8c9f3',
     url: `${BASE}/staff?view=customers&v9=on&demo=on&demoOpDay=1&patientId=4db24289-7f9e-431e-b7f3-bd9014d8c9f3`,
     expectName: /dino/i,
   },
   {
     file: 'jonas-lundvall.png',
+    patientId: 'a6a55cae-8c12-4d7d-83da-adbcdd368b00',
     url: `${BASE}/staff?view=customers&v9=on&demo=on&demoOpDay=1&patientId=a6a55cae-8c12-4d7d-83da-adbcdd368b00`,
     expectName: /jonas/i,
   },
 ];
+
+async function fetchProdCommit() {
+  try {
+    const res = await fetch(`${BASE}/api/v1/_diag/version`);
+    if (!res.ok) return '';
+    const payload = await res.json();
+    return String(payload?.commit || '').slice(0, 8);
+  } catch {
+    return '';
+  }
+}
 
 async function loginToken() {
   const email = String(process.env.ARCANA_OWNER_EMAIL || '');
@@ -94,54 +110,96 @@ async function loginToken() {
   throw new Error('Login misslyckades efter retries');
 }
 
-async function waitForKundkort(page, expectName, timeoutMs = 120000) {
+function readVisualState() {
+  const rail = document.querySelector('[data-patient-master-rail]');
+  const railText = rail?.innerText || '';
+  const runtime = window.ArcanaPatientMasterUi?.getRuntime?.();
+  const topbar = document.querySelector('.kk-ord47-topbar');
+  const docCards = document.querySelector('[data-kk-doc-cards]');
+  const storvyBody = document.querySelector('.patient-master-rail .kk-storvy-body');
+  const isError = /Patienten hittades inte|Kunde inte ladda kund|HTTP 502|HTTP 503/i.test(railText);
+  const isLoading = /Laddar kund|Läser kundregister|detail-loading/i.test(railText);
+  const nameOk = Boolean(runtime?.detail?.card?.displayName || runtime?.detail?.card?.name);
+  return {
+    hasTopbar: Boolean(topbar),
+    hasDocCards: Boolean(docCards),
+    hasDetail: Boolean(runtime?.detail?.card),
+    hasStorvyBody: Boolean(storvyBody),
+    selectedPatientId: runtime?.selectedPatientId || '',
+    isError,
+    isLoading,
+    nameOk,
+    railSnippet: railText.slice(0, 600),
+    docCardCount: docCards
+      ? docCards.querySelectorAll('.kk-doc-card, [data-kk-doc-card]').length
+      : 0,
+  };
+}
+
+async function waitForKundkortReady(page, pilot, timeoutMs = 150000) {
   const deadline = Date.now() + timeoutMs;
+  let last = null;
   while (Date.now() < deadline) {
-    const state = await page.evaluate(() => {
-      const card = document.querySelector(
-        '.kkref, .kk-doc-cards, .patient-detail-panel, .v9-dossier, .patient-master-rail .kk-storvy-body'
-      );
-      const topbar = document.querySelector('.kk-ord47-topbar');
-      const selected = document.querySelector('.customer-row.is-selected, .customer-row.selected');
-      const bodyText = document.body?.innerText || '';
-      const runtime = window.ArcanaPatientMasterUi?.getRuntime?.();
-      return {
-        hasCard: Boolean(card),
-        hasTopbar: Boolean(topbar),
-        hasSelected: Boolean(selected),
-        hasDetail: Boolean(runtime?.detail?.card),
-        selectedPatientId: runtime?.selectedPatientId || '',
-        snippet: bodyText.slice(0, 4000),
-      };
-    });
-    if (state.hasCard || state.hasTopbar || state.hasDetail) return state;
-    if (state.selectedPatientId && state.hasDetail) return state;
-    if (expectName.test(state.snippet) && state.hasDetail) return state;
+    last = await page.evaluate(readVisualState);
+    const ord47Ready = last.hasTopbar && last.hasDocCards && last.hasDetail && !last.isError;
+    if (ord47Ready && last.nameOk) return { ...last, pass: true };
+    if (
+      last.hasDetail &&
+      !last.isLoading &&
+      !last.isError &&
+      pilot.expectName.test(last.railSnippet)
+    ) {
+      if (last.hasTopbar && last.hasDocCards) return { ...last, pass: true };
+    }
     await page.waitForTimeout(1500);
   }
-  throw new Error('Timeout: kundkort öppnades inte från patientId-deeplink');
+  return { ...(last || {}), pass: false };
+}
+
+async function ensurePatientOpen(page, patientId) {
+  await page.evaluate(async (pid) => {
+    const api = window.ArcanaPatientMasterUi;
+    if (!api?.openPatient) return;
+    const rt = api.getRuntime?.();
+    if (rt?.selectedPatientId === pid && rt?.detail?.card) return;
+    await api.openPatient(pid);
+  }, patientId);
 }
 
 async function capturePilot(page, pilot) {
   await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.goto(pilot.url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await page.waitForTimeout(4000);
-  const state = await waitForKundkort(page, pilot.expectName);
+  await page.goto(pilot.url, { waitUntil: 'networkidle', timeout: 120000 });
+  await page.waitForTimeout(3000);
+  await ensurePatientOpen(page, pilot.patientId);
+  await page.waitForTimeout(2000);
+  let state = await waitForKundkortReady(page, pilot);
+  if (!state.pass) {
+    await ensurePatientOpen(page, pilot.patientId);
+    await page.waitForTimeout(5000);
+    state = await waitForKundkortReady(page, pilot, 90000);
+  }
+
   const outPath = path.join(OUT_DIR, pilot.file);
-  const panel = page.locator('[data-patient-master-rail]').first();
-  if (await panel.count()) {
-    await panel.screenshot({ path: outPath, timeout: 30000 });
+  const clipTarget = page.locator('.patient-master-rail .kk-storvy-body').first();
+  const railTarget = page.locator('[data-patient-master-rail]').first();
+  if (await clipTarget.count()) {
+    await clipTarget.screenshot({ path: outPath, timeout: 30000 });
+  } else if (await railTarget.count()) {
+    await railTarget.screenshot({ path: outPath, timeout: 30000 });
   } else {
     await page.screenshot({ path: outPath, fullPage: false });
   }
+
+  const label = state.pass ? 'PASS' : 'PARTIAL';
   console.log(
-    `OK ${pilot.file} card=${state.hasCard} topbar=${state.hasTopbar} detail=${state.hasDetail}`
+    `${label} ${pilot.file} topbar=${state.hasTopbar} docCards=${state.hasDocCards} detail=${state.hasDetail} cards=${state.docCardCount || 0}`
   );
   return state;
 }
 
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
+  const prodCommit = await fetchProdCommit();
   const token = await loginToken();
   const results = [];
   for (const pilot of PILOTS) {
@@ -154,19 +212,27 @@ async function main() {
       window.localStorage.setItem('ARCANA_ADMIN_TOKEN', String(sessionToken || ''));
     }, token);
     const page = await context.newPage();
-    results.push({ file: pilot.file, ...(await capturePilot(page, pilot)) });
+    results.push({
+      file: pilot.file,
+      patientId: pilot.patientId,
+      ...(await capturePilot(page, pilot)),
+    });
     await browser.close();
   }
 
+  const passCount = results.filter((r) => r.pass).length;
   const manifest = {
     capturedAt: new Date().toISOString(),
     baseUrl: BASE,
-    commit: '9e69bda4',
+    prodCommit,
+    summary: `${passCount}/${results.length} PASS (topbar + doc-cards + detail)`,
     results,
     outDir: OUT_DIR,
   };
   fs.writeFileSync(path.join(OUT_DIR, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log(`\nScreenshots: ${OUT_DIR}`);
+  console.log(`\n${manifest.summary}`);
+  console.log(`Screenshots: ${OUT_DIR}`);
+  if (passCount < results.length) process.exit(1);
 }
 
 main().catch((err) => {
