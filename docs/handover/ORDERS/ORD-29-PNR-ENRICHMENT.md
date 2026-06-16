@@ -1,7 +1,7 @@
 # ORD-29 — PNR enrichment from Dataexport (separate track)
 
 **Skapad:** 2026-06-16 (owner GO facit)  
-**Status:** **Open** — prerequisite before batch 2 HD ingest / review-reprocess `--commit`  
+**Status:** **Implemented** (2026-06-16) — script + prod commit (1 enrichment); review-reprocess delta unchanged vs baseline (see facit below)  
 **Owner:** Cursor (implementation) · Codex (review / prod execution split as appropriate)
 
 ---
@@ -50,11 +50,24 @@ HD reprocess dry-run efter Kundexport CSV-commit (2026-06-16): **ingen förbätt
 
 ### npm script placeholder
 
-Lägg i `package.json` när script finns:
-
 ```json
 "enrich:patient-master-pnr-from-dataexport": "node scripts/enrich-patient-master-pnr-from-dataexport.js"
 ```
+
+Körning:
+
+```bash
+npm run enrich:patient-master-pnr-from-dataexport -- --from ./path/to/Dataexport.csv --dry-run
+npm run enrich:patient-master-pnr-from-dataexport -- --from ./path/to/Dataexport.csv --commit --prod
+```
+
+### Implementation facit (2026-06-16)
+
+- **Script:** `scripts/enrich-patient-master-pnr-from-dataexport.js` (+ lib `scripts/lib/enrichPatientMasterPnrFromDataexport.js`, tests `tests/ops/enrichPatientMasterPnrFromDataexport.test.js`)
+- **Dataexport dry-run (prod patients):** 6475 unika Kund-id · 10 med giltigt PNR · **wouldEnrich 1** (email) · skipAlreadyHasPnr 7 · skipPnrConflict 1 · ambiguous 1
+- **Prod commit:** 1 patient enriched (`pnrSource: cliento_dataexport`)
+- **Review-reprocess dry-run efter commit:** `stillUnmatched` **53** · `wouldMatchNow` **15** · stats `unmatched` **46** — oförändrat vs baseline (endast 1 prod-PNR tillagd; Dataexport har få PNR-rader)
+- **verify:ord29-prod-sticks:** PASS (14/14)
 
 Körning (facit när implementerad):
 
