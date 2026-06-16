@@ -43,6 +43,7 @@ const {
 } = require('../ops/ccoKunderFasAReadiness');
 const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
 const { assetToPatientFile, resolvePatientAssetIds } = require('../ops/ccoPatientAssetIdentity');
+const { hydratePatientHealthProjection } = require('../ops/ccoPatientMasterStore');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -568,7 +569,7 @@ function createCcoPatientMasterRouter({
     }
 
     return {
-      patient,
+      patient: hydratePatientHealthProjection(patient),
       card,
       journalEntries: enrichedJournalReadouts,
       driveFiles: filesForUi,
@@ -1029,7 +1030,7 @@ function createCcoPatientMasterRouter({
           targetId: patientId,
         });
         return res.json({
-          patient,
+          patient: hydratePatientHealthProjection(patient),
           card: patientMasterStore.buildPatientCardReadout(patient),
         });
       })
@@ -1129,7 +1130,7 @@ function createCcoPatientMasterRouter({
           targetId: patient.id,
         });
         return res.json({
-          patient,
+          patient: hydratePatientHealthProjection(patient),
           card: patientMasterStore.buildPatientCardReadout(patient),
         });
       })

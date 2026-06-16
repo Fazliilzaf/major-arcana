@@ -8,6 +8,8 @@ require('dotenv').config({ quiet: true });
 const { execSync } = require('node:child_process');
 const path = require('node:path');
 
+const { hydratePatientHealthProjection } = require('../../src/ops/ccoPatientMasterStore');
+
 const ROOT = path.join(__dirname, '../..');
 const BASE = (
   process.env.ARCANA_PROD_URL ||
@@ -94,7 +96,10 @@ async function fetchPatient(token, patientId) {
     { label: `get patient ${patientId}` }
   );
   const patient = payload.patient || {};
-  return { ...patient, id: patient.id || patient.patientId || patientId };
+  return hydratePatientHealthProjection({
+    ...patient,
+    id: patient.id || patient.patientId || patientId,
+  });
 }
 
 async function putPatient(token, body) {

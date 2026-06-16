@@ -626,11 +626,60 @@ function sumPipedriveWonDeals(pipedrive) {
   return { total, wonCount };
 }
 
+function derivePatientHealthProjection(patient = {}) {
+  const safe = asObject(patient);
+  const hd = asObject(safe.healthDeclaration);
+  const fc = asObject(safe.fitnessCertificate);
+  const hasHealthDeclaration = Boolean(hd.signedAt || safe.hasHealthDeclaration);
+  const hasFitnessCertificate = Boolean(fc.signedAt || safe.hasFitnessCertificate);
+  const missingHealthDeclaration =
+    safe.missingHealthDeclaration === false
+      ? false
+      : safe.missingHealthDeclaration === true
+        ? true
+        : !hasHealthDeclaration;
+  const missingFitnessCertificate =
+    safe.missingFitnessCertificate === false
+      ? false
+      : safe.missingFitnessCertificate === true
+        ? true
+        : !hasFitnessCertificate;
+  return {
+    hdSignedAt: normalizeText(hd.signedAt) || normalizeText(safe.hdSignedAt) || null,
+    hdSource:
+      normalizeText(hd.source) ||
+      normalizeText(hd.sourceSystem) ||
+      normalizeText(safe.hdSource) ||
+      null,
+    hasHealthDeclaration,
+    missingHealthDeclaration,
+    hasFitnessCertificate,
+    missingFitnessCertificate,
+    fitnessSigned: Boolean(fc.signedAt || safe.fitnessSigned),
+    fitnessCertificateAt:
+      normalizeText(fc.signedAt) || normalizeText(safe.fitnessCertificateAt) || null,
+    fitnessCertificateBy:
+      normalizeText(fc.source) ||
+      normalizeText(fc.sourceSystem) ||
+      normalizeText(safe.fitnessCertificateBy) ||
+      null,
+  };
+}
+
+function hydratePatientHealthProjection(patient = {}) {
+  const safe = asObject(patient);
+  return {
+    ...safe,
+    ...derivePatientHealthProjection(safe),
+  };
+}
+
 function buildPatientCardReadout(patient) {
   const safe = asObject(patient);
   const access = normalizePatientAccess(safe.access);
   const patientOrigin = derivePatientOrigin(safe);
   const pipedriveWon = sumPipedriveWonDeals(safe.pipedrive);
+  const healthProjection = derivePatientHealthProjection(safe);
   return {
     patientId: safe.id,
     personnummer: safe.personnummer || '',
@@ -663,16 +712,7 @@ function buildPatientCardReadout(patient) {
     healthDeclaration: asObject(safe.healthDeclaration),
     fitnessCertificate: asObject(safe.fitnessCertificate),
     allergies: asArray(safe.allergies),
-    hasHealthDeclaration: Boolean(asObject(safe.healthDeclaration).signedAt),
-    missingHealthDeclaration: !asObject(safe.healthDeclaration).signedAt,
-    hasFitnessCertificate: Boolean(asObject(safe.fitnessCertificate).signedAt),
-    missingFitnessCertificate: !asObject(safe.fitnessCertificate).signedAt,
-    fitnessCertificateAt: normalizeText(asObject(safe.fitnessCertificate).signedAt) || null,
-    fitnessCertificateBy:
-      normalizeText(asObject(safe.fitnessCertificate).source) ||
-      normalizeText(asObject(safe.fitnessCertificate).sourceSystem) ||
-      null,
-    fitnessSigned: Boolean(asObject(safe.fitnessCertificate).signedAt),
+    ...healthProjection,
     updatedAt: safe.updatedAt || null,
     contactEmail: safe.primaryEmail || '',
     contactPhone: safe.primaryPhone || '',
@@ -1496,6 +1536,8 @@ module.exports = {
   PATIENT_FLAGS,
   assertPatientJournalWritable,
   buildPatientCardReadout,
+  derivePatientHealthProjection,
+  hydratePatientHealthProjection,
   derivePatientOrigin,
   normalizePatientAccess,
   createCcoPatientMasterStore,
