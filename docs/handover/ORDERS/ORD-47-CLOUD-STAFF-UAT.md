@@ -5,7 +5,9 @@
 **Facit:** [`docs/strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md`](../../strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md)  
 **Föregångare:** ORD-46 wiring (bundle v7, op-day, HD/FC/foto) — fortsatt giltig under §-kort  
 **Förväntad tid:** 25–35 min per testare  
-**Kända PARTIAL (förväntat):** `foto_samtycke` (ORD-24), `behandlingsplan_staff`, `anteckningar_kort`, `id_verifiering`, `auto_internt_sms`
+**Kända PARTIAL (förväntat):** `foto_samtycke` (ORD-24) endast
+
+**Inte PARTIAL (process/dynamisk — FULL i dokument-bundle v7):** `id_verifiering` (BankID/kundportal · `patientIdentityVerification.js`), `auto_internt_sms` (internt operatör-meddelande), `behandlingsplan_staff` och `anteckningar_kort` (dynamisk/fritext by design)
 
 ---
 

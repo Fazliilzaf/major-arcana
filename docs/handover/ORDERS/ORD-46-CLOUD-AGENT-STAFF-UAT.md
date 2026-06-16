@@ -3,7 +3,9 @@
 **Status:** ✅ Ready (prod verified 11/11)  
 **Prod:** `https://arcana.hairtpclinic.com` · commit `87768ada` (bundle v7 `720f157a`)  
 **Förväntad tid:** 20–30 min per testare  
-**Kända PARTIAL (5 st — förväntat, inte bugg):** `foto_samtycke` (ORD-24), `behandlingsplan_staff`, `anteckningar_kort`, `id_verifiering`, `auto_internt_sms`
+**Kända PARTIAL (1 st — förväntat, inte bugg):** `foto_samtycke` (ORD-24)
+
+**FULL i bundle (ej lucka):** `id_verifiering`, `auto_internt_sms`, `behandlingsplan_staff`, `anteckningar_kort` — se `fix/id-verifiering-bundle-classification`
 
 ---
 
