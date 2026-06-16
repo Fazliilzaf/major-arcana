@@ -28,9 +28,9 @@ https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&d
 
 | Stickprov                   | Kund           | patientId                              |
 | --------------------------- | -------------- | -------------------------------------- |
-| TP tidig (steg 7 demo-skip) | Axel Meijer    | `2e8d3535-cd89-418e-8b68-ca239f8836a4` |
-| TP op-dag                   | Dino Placo     | `f8233fca-779c-488b-a980-0e41bc01c0c0` |
-| Variation / PRP-flöde       | Jonas Lundvall | `cc07c972-49d9-4c99-928e-d750e79a82e9` |
+| TP tidig (steg 7 demo-skip) | Axel Meijer    | `54a658c8-7412-4f10-877e-9e607e03b74f` |
+| TP op-dag                   | Dino Placo     | `4db24289-7f9e-431e-b7f3-bd9014d8c9f3` |
+| Variation / PRP-flöde       | Jonas Lundvall | `a6a55cae-8c12-4d7d-83da-adbcdd368b00` |
 
 **Var i UI:** UAT-länken ska **direkt öppna kundkort** i höger panel (desktop + mobil). Kräver `view=customers` + `patientId` i URL. Hårdladda (Cmd+Shift+R) vid cache-problem.
 
@@ -124,13 +124,13 @@ Markera **PASS / FAIL / N/A**. Screenshot vid FAIL.
 
 ```
 # 1 · TP tidig (demo skip steg 7)
-https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1&patientId=2e8d3535-cd89-418e-8b68-ca239f8836a4
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1&patientId=54a658c8-7412-4f10-877e-9e607e03b74f
 
 # 2 · TP op-dag
-https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&patientId=f8233fca-779c-488b-a980-0e41bc01c0c0
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&patientId=4db24289-7f9e-431e-b7f3-bd9014d8c9f3
 
 # 3 · Variation
-https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&patientId=cc07c972-49d9-4c99-928e-d750e79a82e9
+https://arcana.hairtpclinic.com/staff?view=customers&v9=on&demo=on&demoOpDay=1&patientId=a6a55cae-8c12-4d7d-83da-adbcdd368b00
 ```
 
 ---
