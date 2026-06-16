@@ -368,15 +368,12 @@ const customerFilled = [
     registryId: 'foto_samtycke',
     label: 'Samtycke till foto-publicering (vid signering i Hair TP)',
     filler: 'patient',
-    contentStatus: (() => {
-      const internal = getCcoTemplate(ccoTemplateIndex, 'consent_photo_internal');
-      const publish = getCcoTemplate(ccoTemplateIndex, 'consent_photo_publish');
-      return internal || publish ? 'PARTIAL' : 'PARTIAL';
-    })(),
-    blockers: [
-      'cco-templates har Nordbro-stub — full juridisk text saknas i snapshot',
-      'Meridiq consent-catalog saknar foto-publicering-post',
-    ],
+    // FULL: scope-samtycket nedan (summary + bullets + ackLabel) är den kanoniska
+    // texten för steg 9 enligt CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md (intern
+    // journalföring/uppföljning, aldrig ansikte, ingen marknadsföring utan separat
+    // samtycke). En lång Nordbro-kropp krävs inte — owner-beslut 2026-06-15.
+    contentStatus: 'FULL',
+    blockers: [],
     sources: [
       'cco-templates#consent_photo_internal',
       'cco-templates#consent_photo_publish',
