@@ -10,6 +10,8 @@
 
 **Committa aldrig:** rapporter under `data/reports/halso-hd-*`, stickprov-filer, review queue JSONL (PII).
 
+> **HOLD — batch 2 blocked (2026-06-16):** Do **not** run `ingest:halso-hd-batch -- --batch 2` or `ingest:halso-hd-review-reprocess -- --commit` until patient master has more PNR (manual triage or better export). Kundexport + Dataexport enrichment **tested** — no HD reprocess improvement. See `ORD-29-MANUAL-REVIEW-TRIAGE.md`.
+
 ---
 
 ## Preflight (varje session)
@@ -175,7 +177,7 @@ Om dry-run failar med auth/Graph: fixa creds innan corpus eller commit.
 
 - **NO** batch 2 yet
 - **NO** `ingest:halso-hd-review-reprocess -- --commit`
-- **Next track:** PNR enrichment from Dataexport — see **`docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md`**
+- **Next track:** Manual review-queue triage (staff/owner) — see **`docs/handover/ORDERS/ORD-29-MANUAL-REVIEW-TRIAGE.md`**. PNR enrichment tested insufficient — **`ORD-29-PNR-ENRICHMENT.md`**
 
 PII report (gitignored): `data/reports/halso-hd-review-reprocess-report.json` · summary: `node scripts/summarize-halso-hd-batch-outcomes.js` on that path.
 
@@ -184,6 +186,7 @@ PII report (gitignored): `data/reports/halso-hd-review-reprocess-report.json` ·
 - `docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md`
 - `docs/handover/ORDERS/ORD-29-CLOUD-STAFF-UAT.md` (Fas 1)
 - `docs/handover/ORDERS/ORD-6-29-LINEAR-CLOSE-COMMENT.md`
-- `docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md` (PNR track — prerequisite for batch 2 / reprocess commit)
+- `docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md` (PNR — tested, insufficient source)
+- `docs/handover/ORDERS/ORD-29-MANUAL-REVIEW-TRIAGE.md` (active ops track)
 
 _Hair TP · ORD-29 Fas 2 GO runbook · 2026-06-16_

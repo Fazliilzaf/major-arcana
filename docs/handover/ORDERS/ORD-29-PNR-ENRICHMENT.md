@@ -1,7 +1,7 @@
 # ORD-29 — PNR enrichment from Dataexport (separate track)
 
 **Skapad:** 2026-06-16 (owner GO facit)  
-**Status:** **Implemented** (2026-06-16) — script + prod commit (1 enrichment); review-reprocess delta unchanged vs baseline (see facit below)  
+**Status:** **Tested — insufficient data source** (2026-06-16) — script shipped + prod commit (1 enrichment); review-reprocess metrics unchanged vs baseline; **not** an open implementation track  
 **Owner:** Cursor (implementation) · Codex (review / prod execution split as appropriate)
 
 ---
@@ -97,5 +97,11 @@ npm run enrich:patient-master-pnr-from-dataexport -- --from ./path/to/Dataexport
 
 - `docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md` (GO CSV commit facit)
 - `docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md` (batch GO — blocker section)
+
+## Conclusion
+
+Dataexport-backed PNR enrichment is **implemented and exercised in prod**, but the **data source is too sparse** (10 Kund-id with valid PNR in export; only 1 safe prod enrich) to materially improve HD mailbox matching (`stillUnmatched` **53**, stats `unmatched` **46**, `wouldMatchNow` **15** unchanged after commit). **Fas 2 batch ingest is not blocked on code** — it is blocked on **getting PNR into patient master** via clinic records, manual triage, or a future richer PNR export. Do **not** resume batch 2 or review-reprocess `--commit` until stickprov or queue metrics improve. Next operational track: **`ORD-29-MANUAL-REVIEW-TRIAGE.md`**.
+
+---
 
 _Hair TP · ORD-29 PNR enrichment track · 2026-06-16_

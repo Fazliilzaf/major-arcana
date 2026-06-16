@@ -5,10 +5,10 @@
 **Claude-spår:** Spec + historisk import (~1660 via `m365_halso`) + UAT efter deploy  
 **Prio:** P0
 
-| Fas                                            | Status                                                     | Deploy                             |
-| ---------------------------------------------- | ---------------------------------------------------------- | ---------------------------------- |
-| **Phase 1** — enrichment (Claude `m365_halso`) | **CLOSED** (UAT PASS 2026-06-16)                           | **Live**                           |
-| **Phase 2** — mailbox struktur-ingest          | **Blocked** — PNR enrichment (ej generisk Kundexport-sync) | Batch PUT (flag fortfarande false) |
+| Fas                                            | Status                                                    | Deploy                                                |
+| ---------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------- |
+| **Phase 1** — enrichment (Claude `m365_halso`) | **CLOSED** (UAT PASS 2026-06-16)                          | **Live**                                              |
+| **Phase 2** — mailbox struktur-ingest          | **Operativt blockerad av PNR-källa, inte implementation** | Batch PUT (flag fortfarande false) · **batch 2 HOLD** |
 
 ---
 
@@ -104,19 +104,30 @@
 - **Dataexport** användes **inte** för sync (bokningsexport, fel grain).
 - **mass-paminnelse** exkluderad från detta spår.
 
+### Facit 2026-06-16 (låst — PNR-källa, inte kod)
+
+| Spår                                | Resultat                                                                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **CSV Kundexport**                  | `sync:cliento-customers --commit`: created **50**, updated **11** · `push:cliento-delta-prod`: prod master **7288 → 7338** (+50 net)                                                       |
+| **HD review-reprocess** (efter CSV) | `wouldMatchNow` **15**, `stillUnmatched` **53**, stats `unmatched` **46**, `putOk` **0** — **ingen förbättring** vs baseline                                                               |
+| **PNR enrichment (Dataexport)**     | Prod commit: **1** patient enriched (`pnrSource: cliento_dataexport`) · **10** unika Kund-id med giltigt PNR i export · review-reprocess dry-run **oförändrad** (**53** / **46** / **15**) |
+| **Dataexport PNR**                  | För gles för bulk-matchning — enrichment-spår **testat, otillräcklig källa**                                                                                                               |
+| **Batch 2**                         | **HOLD** tills bättre PNR-källa eller manuell triage ger stickprov-förbättring                                                                                                             |
+
 **Beslut (låsta 2026-06-16):**
 
-- **NO** batch 2 ännu
+- **NO** batch 2 (`ingest:halso-hd-batch -- --batch 2`)
 - **NO** `ingest:halso-hd-review-reprocess -- --commit`
-- **Nästa spår:** separat PNR-enrichment från Dataexport — **inte** fortsatt batch-körning. Se `ORD-29-PNR-ENRICHMENT.md`.
+- **NO** mer bulk Kundexport/Dataexport-sync som “fix” för HD-matchning
+- **Nästa spår:** **manuell review-queue triage** (staff/owner) — se `ORD-29-MANUAL-REVIEW-TRIAGE.md`. PNR enrichment-doc: `ORD-29-PNR-ENRICHMENT.md` (**tested — insufficient**).
 
 **Tidigare hold (API key):** Första blocker var `cliento_api_key_missing` (exit 2). CSV-commit löste customer-delta men **inte** HD reprocess-metrics.
 
-**Phase 2 status:** Blockerad på **PNR enrichment**, inte på generisk customer sync.
+**Phase 2 status:** **Operativt blockerad av PNR-källa, inte implementation** — pipeline/deploy klar; matchning väntar PNR i master eller manuell länkning.
 
 **Committa aldrig:** `data/reports/halso-hd-*.json`, `*.stickprov.json`, review queue JSONL.
 
 ---
 
 _Cursor rapport 2026-06-05 · Phase 1 commit = enrichment only · Phase 2 commit = ingest pipeline (hold deploy)_  
-_Fas 2 owner GO dokumenterad 2026-06-16 · runbook ORD-29-FAS2-GO-RUNBOOK.md_
+_Fas 2 owner GO dokumenterad 2026-06-16 · runbook ORD-29-FAS2-GO-RUNBOOK.md · manual triage ORD-29-MANUAL-REVIEW-TRIAGE.md_
