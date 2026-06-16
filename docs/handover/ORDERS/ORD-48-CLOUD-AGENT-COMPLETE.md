@@ -30,12 +30,13 @@ npm run cco:verify-bundle-sign-flow
 BASE_URL=https://arcana.hairtpclinic.com bash scripts/smoke-public.sh
 ```
 
-| Script                     | Senaste körning (pre-D3 deploy) | Resultat                      |
-| -------------------------- | ------------------------------- | ----------------------------- |
-| `verify:ord48-prod-sticks` | 2026-05-20                      | **16/16 PASS**                |
-| `verify:ord47-prod-sticks` | 2026-05-20                      | **9/9 PASS** (regression)     |
-| `smoke-public.sh`          | 2026-05-20                      | **PASS** (HTTPS redirect fix) |
-| Browser ORD-47 capture     | 2026-05-20                      | **3/3 PASS**                  |
+| Script                     | Senaste körning | Resultat                         |
+| -------------------------- | --------------- | -------------------------------- |
+| `verify:ord48-prod-sticks` | `a71cf54e` prod | **16/16 PASS**                   |
+| `verify:ord47-prod-sticks` | `a71cf54e` prod | **9/9 PASS**                     |
+| `smoke-public.sh`          | deploy-safe CI  | **PASS**                         |
+| Browser ORD-48 capture     | `a71cf54e` prod | **2/3 PASS** (Dino → manuell U3) |
+| Browser ORD-47 capture     | tidigare        | **3/3 PASS**                     |
 
 ---
 
@@ -80,15 +81,10 @@ Facit: [`CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mocku
 
 ## L6 — CI / deploy-cloud-safe
 
-| Item                             | Status                                |
-| -------------------------------- | ------------------------------------- |
-| `smoke-public.sh` HTTPS + `-sSL` | ✅ Fix live (`b92f1abd`)              |
-| Senaste `deploy-cloud-safe`      | ⚠️ FAIL @ `9e69bda4` (före smoke-fix) |
-| Nästa steg                       | Kör om workflow efter D3-deploy       |
-
-```bash
-gh workflow run deploy-cloud-safe.yml -f base_url=https://arcana.hairtpclinic.com
-```
+| Item                             | Status                                                                                               |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `smoke-public.sh` HTTPS + `-sSL` | ✅                                                                                                   |
+| `deploy-cloud-safe`              | ✅ **GRÖN** — [run 27602428791](https://github.com/Fazliilzaf/major-arcana/actions/runs/27602428791) |
 
 ---
 
