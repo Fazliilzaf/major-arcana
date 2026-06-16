@@ -1,8 +1,12 @@
 'use strict';
 
+const path = require('node:path');
 const { buildTreatmentAgreementReadout } = require('./ccoTreatmentAgreementStore');
 const { resolveTemplateApprovalForAgreement } = require('./ccoTreatmentAgreementTemplateGate');
-const { computeReadyForTreatment } = require('./ccoKunderFasAReadiness');
+const {
+  computeReadyForTreatment,
+  isIdVerificationHardGateEnabled,
+} = require('./ccoKunderFasAReadiness');
 const {
   assertOperationDayJournalAllowedForPatient,
   patientFitnessSigned,
@@ -54,6 +58,38 @@ function treatmentServiceIds(body = {}) {
   return collectServiceIds(body).filter(requiresTreatmentAgreement);
 }
 
+async function resolvePatientIdentityVerified({
+  patientIdentityStore = null,
+  config = null,
+  patientId,
+} = {}) {
+  if (!isIdVerificationHardGateEnabled()) return true;
+  const pid = normalizeText(patientId);
+  if (!pid) return false;
+
+  let store = patientIdentityStore;
+  if (!store) {
+    try {
+      const { createPatientIdentityStore } = require('./patientIdentityVerification');
+      const identityPath =
+        config?.ccoPatientIdentityStorePath ||
+        (config?.stateRoot
+          ? path.join(config.stateRoot, 'cco-patient-identity.json')
+          : path.join(process.cwd(), 'data', 'cco-patient-identity.json'));
+      store = createPatientIdentityStore({ filePath: identityPath });
+      await store.load();
+    } catch {
+      return false;
+    }
+  }
+
+  try {
+    return store.isVerified(pid);
+  } catch {
+    return false;
+  }
+}
+
 async function resolvePatientId({ patientMasterStore, tenantId, patientId, customerEmail } = {}) {
   const direct = normalizeText(patientId);
   if (direct) return direct;
@@ -67,7 +103,9 @@ async function checkTreatmentBookingGate({
   treatmentAgreementStore,
   templateVersionApprovalStore = null,
   patientMasterStore,
+  patientIdentityStore = null,
   bookingStore = null,
+  config = null,
   tenantId,
   patientId,
   customerEmail,
@@ -156,6 +194,11 @@ async function checkTreatmentBookingGate({
     tenantId,
   });
   const fitnessSigned = patientFitnessSigned(patientCard || {});
+  const identityVerified = await resolvePatientIdentityVerified({
+    patientIdentityStore,
+    config,
+    patientId: resolvedPatientId,
+  });
   const readinessReadout = {
     missingAgreement: false,
     missingHealthDeclaration: patientCard?.missingHealthDeclaration === true,
@@ -165,6 +208,7 @@ async function checkTreatmentBookingGate({
     photoConsent: { signed: true },
     todayVisit,
     fitnessSigned,
+    identityVerified,
   };
   const readyForTreatment = computeReadyForTreatment(readinessReadout, {
     bookable: true,
@@ -193,6 +237,20 @@ async function checkTreatmentBookingGate({
       patientId: resolvedPatientId,
       reason: 'treatment_not_ready',
       message: 'Betänketid eller readiness-krav är inte uppfyllda än.',
+      agreement,
+      agreementReadout,
+      readyForTreatment,
+    };
+  }
+
+  if (isIdVerificationHardGateEnabled() && !identityVerified) {
+    return {
+      allowed: false,
+      gated: true,
+      serviceIds: gatedServiceIds,
+      patientId: resolvedPatientId,
+      reason: 'identity_verification_required',
+      message: 'ID-verifiering krävs innan behandlingsbokning.',
       agreement,
       agreementReadout,
       readyForTreatment,

@@ -941,6 +941,7 @@
     if (todayVisit && !fcOk) blockers.push('friskförsäkran');
     if (photoNeeded && !photoOk) blockers.push('foto-samtycke');
     var idFields = resolveOrd48IdState(card);
+    if (!idFields.idOk) blockers.push('ID-verifiering');
     return {
       ready: ready,
       hdOk: hdOk,

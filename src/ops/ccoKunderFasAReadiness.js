@@ -16,16 +16,22 @@ function emptyPhotoConsent() {
   return { signed: false, grantedAt: '', grantedBy: '' };
 }
 
+function isIdVerificationHardGateEnabled() {
+  return process.env.CCO_ID_VERIFICATION_HARD_GATE !== 'false';
+}
+
 function computeReadyForTreatment(readout = {}, agreement = null) {
   const cooling = agreement?.coolingOff || { active: false };
   const bundleOk = agreement?.bookable === true;
   const opsOk = readout.todayVisit !== true || readout.fitnessSigned === true;
   const photoOk = readout.hasJournalPhoto !== true || readout.photoConsent?.signed === true;
+  const idOk = !isIdVerificationHardGateEnabled() || readout.identityVerified === true;
   return (
     bundleOk &&
     !cooling.active &&
     opsOk &&
     photoOk &&
+    idOk &&
     readout.missingHealthDeclaration !== true &&
     readout.missingForm !== true &&
     readout.missingJournal !== true
@@ -180,6 +186,7 @@ async function loadFasAContextForPatients({
 
 module.exports = {
   TREATMENT_PLAN_OK,
+  isIdVerificationHardGateEnabled,
   computeReadyForTreatment,
   applyFasAReadoutFields,
   loadFasAContextForPatients,
