@@ -1,12 +1,14 @@
-ORD-48 — Steg 7 bundle write + FC ops-gates · GO
+ORD-48 — Fas 2: Owner UAT + ev. polish
 
-ORD-47 V1: Owner godkänd 2026-05-20.
+Fas 1 ✅ live i prod (Codex backend + Cursor frontend + verify 16/16).
 
-ORD-48: Jobba direkt — ingen förhandsrapport. Sammanfattning + verify när klart.
+Nästa steg:
+Owner: Kör U1–U5 manuellt (~35 min)
+  → docs/handover/ORDERS/ORD-48-CLOUD-STAFF-UAT.md
+  → Rapportera: U1 PASS, U2 FAIL, … + screenshot vid FAIL
 
-Codex: Fas A + C/D backend (bundle write, FC 409, ready_for_treatment)
-Cursor: Fas B + UI gates (steg 7 → API, §4/§5, kalender CTA)
-Cloud: Efter deploy — prod verify + UAT U1–U5
+Cursor: COMPLETE-rapport + UI-fixar + kalender-CTA (D3) efter UAT
+Codex: Vänta — eller fixa backend om UAT visar API-gap (409/reason, legacy consent)
 
-Handover: docs/handover/ORDERS/ORD-48-PARALLEL-SVEP-3-AGENTS.md
-Default G1: demo-sign + persist. Default G2: minimal FC block på ops-dag.
+Fördelning: docs/handover/ORDERS/ORD-48-PARALLEL-SVEP-3-AGENTS.md (Fas 2)
+Pre-check: npm run verify:ord48-prod-sticks
