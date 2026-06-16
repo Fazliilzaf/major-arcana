@@ -2,7 +2,7 @@
 
 **Status:** Automated PASS · manuell Staff UAT U1–U5 **väntar owner**  
 **Agent:** Cursor (lokal)  
-**Prod:** `https://arcana.hairtpclinic.com`  
+**Prod commit:** `a71cf54e` (D3 + A2 hotfix)  
 **UAT-doc:** [`ORD-48-CLOUD-STAFF-UAT.md`](./ORD-48-CLOUD-STAFF-UAT.md)  
 **Spec:** [`ORD-48-steg7-bundle-ops-gates.md`](./ORD-48-steg7-bundle-ops-gates.md)
 
