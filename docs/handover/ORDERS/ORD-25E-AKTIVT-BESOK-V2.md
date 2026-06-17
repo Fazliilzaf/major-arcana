@@ -2,7 +2,7 @@
 
 **Skapad:** 2026-06-17  
 **Prio:** P1  
-**Status:** **Fas 0 CLOSED** · **Fas 1 backend/adapter GO (Codex)** · **Cursor UI NO-GO** tills `activeVisit` finns  
+**Status:** **Fas 0 CLOSED** · **Fas 1 adapter CLOSED (lokal diff)** · **Cursor UI PARTIAL GO** · **full locked mockup NO-GO**  
 **Förälder:** [`ORD-25-kundkort-v11-port.md`](ORD-25-kundkort-v11-port.md) (Fas A–D **CLOSED** prod `a18b54e7`)
 
 ---
@@ -80,11 +80,81 @@ activeVisit: {
 
 ```
 Fas 0 audit ✓
-  → Fas 1 Codex: activeVisit-adapter (smalt)
-  → GO/NO-GO för Cursor UI (delvis eller full mockup)
-  → Fas 2 Cursor: segment + states + wiring
-  → Codex prod UAT med patient som har besök idag
+  → Fas 1 Codex: activeVisit-adapter ✓ (lokal diff, ej prod)
+  → Cursor: delvis Aktivt besök-segment (PARTIAL GO)
+  → Codex: prod deploy + stickprov med patient som har besök idag
+  → Senare: encounter-states → full locked mockup
 ```
+
+---
+
+## Fas 1 adapter — facit (2026-06-17, Codex)
+
+**CLOSED (lokal diff)** — smal `activeVisit`-adapter i `src/routes/ccoPatientMaster.js`.
+
+### Implementation
+
+| Del                         | Plats                       |
+| --------------------------- | --------------------------- |
+| `buildActiveVisitPayload()` | `ccoPatientMaster.js` ~L129 |
+| Byggs i patient payload     | ~L655                       |
+| Exponeras i dossier-bundle  | ~L859                       |
+
+### Beteende (ärligt)
+
+- `visible`: `card.todayVisit === true` **eller** bokning med `startsAt` idag i upcoming/history
+- `state`: alltid `scheduled_today` när visible (ingen fejkad `in_progress`)
+- `checkedInAt`: alltid `null` tills riktig check-in-sanning finns
+- `blockers`: från card (`missingHealthDeclaration`, `missingAgreement`, etc.)
+- `journalStarted`: journal-entry med dagens datum
+
+### Exempelpayload (mål)
+
+```js
+activeVisit: {
+  visible: true,
+  state: 'scheduled_today',
+  bookingId: '...',
+  encounterId: '...',
+  startsAt: '2026-06-17T14:30:00.000Z',
+  serviceLabel: 'Konsultation',
+  practitionerLabel: 'Erik Holm',
+  checkedInAt: null,
+  journalStarted: false,
+  photoCaptureAvailable: true,
+  notesAvailable: true,
+  blockers: [
+    { code: 'health_declaration', label: 'Hälsodeklaration saknas' },
+    { code: 'agreement', label: 'Avtal och samtycke saknas' },
+  ],
+}
+```
+
+### GO / NO-GO efter Fas 1
+
+| Spår                         | Beslut                                                                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Cursor delvis mockup**     | **GO** — `visible`, `state`, `bookingId`, `startsAt`, `serviceLabel`, `blockers`, actions (disabled där data saknas) |
+| **Cursor full locked Fas E** | **NO-GO** — saknar `checked_in / in_progress / completed_today`, timeline, check-in CTA                              |
+
+### Lokal verify
+
+Efter omstart av lokal server (`./start-cco-local.sh` — `server.js`-ändring kräver restart):
+
+```bash
+# 1. Token (prod eller lokal med auth)
+TOKEN=$(node scripts/get-prod-auth-token.js --skip-if-open-access)
+AUTH=()
+[ -n "$TOKEN" ] && AUTH=(-H "Authorization: Bearer $TOKEN")
+
+# 2. Proba dossier-bundle (byt PATIENT_ID)
+curl -sS "http://localhost:3100/api/v1/cco-patient-master/patient/dossier-bundle?patientId=PATIENT_ID&includeJournal=1" \
+  "${AUTH[@]}" | node -pe 'JSON.stringify(JSON.parse(fs.readFileSync(0,"utf8")).activeVisit,null,2)'
+```
+
+Förväntat: `activeVisit.visible` + `state: "scheduled_today"` för patient med dagens bokning; `visible: false` annars.
+
+**Obs:** `activeVisit: null` på localhost = gammal process — starta om servern.
 
 ---
 
@@ -196,14 +266,15 @@ Se **Fas 0 audit — facit** ovan. Sammanfattning:
 
 ## Cursor vs Codex
 
-| Steg                               | Ägare      | Leverabel                                               |
-| ---------------------------------- | ---------- | ------------------------------------------------------- |
-| **0** Datamodell-audit             | **Codex**  | **CLOSED** — GO adapter / NO-GO full UI                 |
-| **1** `activeVisit`-adapter        | **Codex**  | Litet diff i dossier-bundle, verify/stickprov           |
-| **2** UI-segment + states + wiring | **Cursor** | **efter Fas 1 GO** — `renderV11ActiveVisit` i parity.js |
-| **3** CSS (v11-tokens)             | **Cursor** | samma skal som locked mockup                            |
-| **4** Verify                       | **Cursor** | utöka `verify-v11-paritet.js`                           |
-| **5** Prod UAT                     | **Codex**  | patient **med** besök idag · 380px · journal-CTA        |
+| Steg                         | Ägare      | Leverabel                                               |
+| ---------------------------- | ---------- | ------------------------------------------------------- |
+| **0** Datamodell-audit       | **Codex**  | **CLOSED**                                              |
+| **1** `activeVisit`-adapter  | **Codex**  | **CLOSED** (lokal diff)                                 |
+| **2** UI-segment delvis      | **Cursor** | **PARTIAL GO** — `scheduled_today` + blockers + actions |
+| **2b** UI full locked mockup | **Cursor** | **NO-GO** tills encounter-states                        |
+| **3** CSS (v11-tokens)       | **Cursor** | samma skal som locked mockup                            |
+| **4** Verify                 | **Cursor** | utöka `verify-v11-paritet.js`                           |
+| **5** Prod UAT               | **Codex**  | patient **med** besök idag · 380px · journal-CTA        |
 
 **Filer (Cursor, efter GO):**
 
@@ -273,27 +344,25 @@ Leverera: exempelpayload · GO/NO-GO för Cursor (hel eller delvis mockup)
 
 ---
 
-## Cursor brief (copy-paste, efter Fas 1 GO)
+## Cursor brief (copy-paste, PARTIAL GO)
 
 ```text
-ORD-25E — Aktivt besök / Nytt besök (Cursor)
+ORD-25E Fas 2 — Aktivt besök segment, delvis (Cursor) PARTIAL GO
 
-Bakgrund: ORD-25 A–D live. v11-cutover default. Codex GO på payload.
+Backend: activeVisit i dossier-bundle (Fas 1, lokal diff).
+Använd: visible, state=scheduled_today, bookingId, startsAt, serviceLabel,
+        practitionerLabel, blockers, journalStarted, photoCaptureAvailable, notesAvailable.
 
-Mål: Konditionellt segment under hero, före dokument — operativ arbetsyta.
+Bygg:
+- Konditionellt segment under hero, före dokument (self-hide när visible=false)
+- State A: Väntar / nytt besök idag (scheduled_today)
+- Pre-flight från blockers[]
+- Actions: Starta journal · Ta bild · Anteckning (wire befintliga hooks)
+- INTE: amber puls timeline, checked_in/in_progress/completed_today, check-in CTA
 
-Måste stödja:
-- dagens bokning/status
-- states: scheduled_today / checked_in / in_progress / completed_today
-- Starta journal · Ta bild · Anteckning · Avsluta besök
-- pre-flight blockerare (hjälp, inte dashboard)
-
-Design: AKTIVT-BESOK-LOCKED-2026-06-17.md — samma v11 tokens, ingen ny familj.
-Self-hide när visible=false.
-
-Scope: UI + wiring mot befintliga actions. Rapportera backend-gap separat, ingen fejk.
-
-Filer: cco-v9-customers-parity.js, cco-v9-customers.css, patient-master-ui.js (minimal)
+Design: AKTIVT-BESOK-LOCKED-2026-06-17.md — samma v11 tokens, förenklad layout OK.
+Filer: cco-v9-customers-parity.js, cco-v9-customers.css
+Data: runtime.detail.dossierBundle.activeVisit
 Verify: utöka verify-v11-paritet.js
 ```
 
@@ -301,19 +370,21 @@ Verify: utöka verify-v11-paritet.js
 
 ## Acceptance
 
-### Codex (Fas 0)
+### Codex (Fas 0–1)
 
 - [x] Audit: fält som finns / saknas dokumenterad
-- [ ] Minsta payload exponerad i dossier-bundle eller card readout → **Fas 1**
-- [ ] Exempelpayload för 1 patient med besök idag → **Fas 1**
-- [x] GO/NO-GO för Cursor uttalat — **NO-GO full UI · GO Fas 1 adapter**
+- [x] Minsta payload i dossier-bundle — **Fas 1 adapter**
+- [ ] Exempelpayload prod stickprov (patient med besök idag) — **efter deploy**
+- [x] GO/NO-GO — **PARTIAL GO Cursor · NO-GO full mockup**
 
-### Cursor (efter GO)
+### Cursor (PARTIAL GO)
 
-- [ ] Segment synligt endast vid relevant besök idag
-- [ ] Tre states A/B/C enligt mockup
-- [ ] Actions wired (eller tydlig disabled + varför)
-- [ ] Self-hide verifierad (patient utan besök idag)
+- [ ] Segment synligt vid `activeVisit.visible=true`
+- [ ] State `scheduled_today` (neutral, ingen fejk-puls)
+- [ ] Pre-flight från `blockers[]`
+- [ ] Actions wired (eller disabled + varför)
+- [ ] Self-hide när `visible=false`
+- [ ] **Ej scope:** full timeline / check-in / avsluta-besök states
 - [ ] 380px mobil
 - [ ] verify-v11 utökad
 
@@ -337,21 +408,20 @@ Det ska kännas som den naturliga operativa mitten i kundkortet.
 
 ## Slack-pingar
 
-**Team (4 rader):**
+**Team:**
 
 ```text
-ORD-25E Fas 0: CLOSED. GO liten activeVisit-adapter (Codex Fas 1).
-NO-GO: full locked Fas E-UI i Cursor ännu — saknar besöksstate, inte styling.
-Nästa: Codex Fas 1 → sedan Cursor segment.
-Mockup: AKTIVT-BESOK-LOCKED-2026-06-17
+ORD-25E Fas 1: activeVisit-adapter klar (lokal). PARTIAL GO för Cursor UI.
+Bygg scheduled_today-segment — inte full locked mockup ännu.
+Nästa: commit/deploy Fas 1 → Cursor Fas 2 delvis segment.
 ```
 
-**Codex (Fas 1):**
+**Cursor (PARTIAL GO):**
 
 ```text
-ORD-25E Fas 1: bygg activeVisit-adapter i dossier-bundle.
-Minsta: visible + scheduled_today + blockers. Ärlig state, ingen fejk.
-Spec: ORD-25E-AKTIVT-BESOK-V2.md · leverera exempelpayload + Cursor GO/NO-GO
+ORD-25E Fas 2: delvis Aktivt besök-segment. activeVisit från dossier-bundle.
+scheduled_today + blockers + actions. Self-hide. Ingen fejk in_progress.
+Spec: ORD-25E-AKTIVT-BESOK-V2.md
 ```
 
 **Cursor (kort, efter GO):**
@@ -374,4 +444,4 @@ Actions: journal · bild · anteckning · avsluta. Samma v11 UX. Ingen fejk-back
 
 ---
 
-_Skapad 2026-06-17 · Fas 0 audit closed · Fas 1 adapter GO (Codex)_
+_Skapad 2026-06-17 · Fas 0 audit closed · Fas 1 adapter closed · Cursor PARTIAL GO_

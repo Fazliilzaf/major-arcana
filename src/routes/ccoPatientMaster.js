@@ -84,6 +84,92 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function isoToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isTodayIso(value) {
+  return normalizeText(value).slice(0, 10) === isoToday();
+}
+
+function resolveActiveVisitBlockers(card = {}) {
+  const blockers = [];
+  const push = (code, label) => {
+    if (blockers.some((item) => item.code === code)) return;
+    blockers.push({ code, label });
+  };
+  if (card.missingHealthDeclaration === true || card.missingForm === true) {
+    push('health_declaration', 'Hälsodeklaration saknas');
+  }
+  if (card.missingAgreement === true) {
+    push('agreement', 'Avtal och samtycke saknas');
+  }
+  if (card.missingFitnessCertificate === true) {
+    push('fitness_certificate', 'Friskförsäkran saknas');
+  }
+  if (card.identityVerified === false) {
+    push('identity_verification', 'ID-verifiering saknas');
+  }
+  if (card.missingPhotoConsent === true) {
+    push('photo_consent', 'Foto-samtycke saknas');
+  }
+  return blockers;
+}
+
+function resolveScheduledTodayBooking(bookingContext = {}) {
+  const rows = [
+    ...asArray(bookingContext.upcomingBookings),
+    ...asArray(bookingContext.historyBookings),
+  ].filter((row) => isTodayIso(row?.startsAt || row?.startAt || ''));
+  if (!rows.length) return null;
+  rows.sort((left, right) => Date.parse(left?.startsAt || 0) - Date.parse(right?.startsAt || 0));
+  return rows[0];
+}
+
+function buildActiveVisitPayload({
+  card = {},
+  bookingContext = {},
+  includeJournal = true,
+  journalEntries = [],
+}) {
+  const scheduled = resolveScheduledTodayBooking(bookingContext);
+  const visible = Boolean(card.todayVisit === true || scheduled);
+  if (!visible) {
+    return {
+      visible: false,
+      state: null,
+      bookingId: null,
+      encounterId: null,
+      startsAt: null,
+      serviceLabel: null,
+      practitionerLabel: null,
+      blockers: [],
+    };
+  }
+  const entryRows = includeJournal ? asArray(journalEntries) : [];
+  const journalStarted = entryRows.some((entry) => {
+    const date =
+      normalizeText(entry?.signedAt) ||
+      normalizeText(entry?.updatedAt) ||
+      normalizeText(entry?.createdAt);
+    return isTodayIso(date);
+  });
+  return {
+    visible: true,
+    state: 'scheduled_today',
+    bookingId: normalizeText(scheduled?.id) || null,
+    encounterId: normalizeText(card.encounterId) || null,
+    startsAt: normalizeText(scheduled?.startsAt || scheduled?.startAt) || null,
+    serviceLabel: normalizeText(scheduled?.serviceName || scheduled?.title) || null,
+    practitionerLabel: normalizeText(scheduled?.staff || scheduled?.resourceLabel) || null,
+    checkedInAt: null,
+    journalStarted,
+    photoCaptureAvailable: true,
+    notesAvailable: true,
+    blockers: resolveActiveVisitBlockers(card),
+  };
+}
+
 function isPreviewableImageMime(mime) {
   return [
     'image/jpeg',
@@ -571,6 +657,12 @@ function createCcoPatientMasterRouter({
     return {
       patient: hydratePatientHealthProjection(patient),
       card,
+      activeVisit: buildActiveVisitPayload({
+        card,
+        bookingContext,
+        includeJournal,
+        journalEntries: enrichedJournalReadouts,
+      }),
       journalEntries: enrichedJournalReadouts,
       driveFiles: filesForUi,
       occasionTimeline: buildOccasionTimeline(filesForUi),
@@ -769,6 +861,7 @@ function createCcoPatientMasterRouter({
         return res.json({
           patientId: patient.id,
           card: payload.card,
+          activeVisit: payload.activeVisit || null,
           journalEntries: payload.journalEntries,
           bookings: payload.bookings,
           upcomingBookings: payload.upcomingBookings || [],
