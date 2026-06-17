@@ -1014,6 +1014,136 @@
     return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
   }
 
+  const ACTIVE_VISIT_UI_STATES = new Set([
+    'scheduled_today',
+    'checked_in',
+    'in_progress',
+    'completed_today',
+  ]);
+
+  function normalizeActiveVisitState(state) {
+    const normalized = String(state || '').trim();
+    return ACTIVE_VISIT_UI_STATES.has(normalized) ? normalized : 'scheduled_today';
+  }
+
+  function formatActiveVisitMinutesSince(iso) {
+    const ms = Date.parse(String(iso || ''));
+    if (!Number.isFinite(ms)) return '';
+    const mins = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    if (mins < 1) return 'nyss';
+    return `${mins} min sedan check-in`;
+  }
+
+  function renderV11ActiveVisitTimelineHtml(visit, state) {
+    const checkedInTime = formatActiveVisitTime(visit?.checkedInAt);
+    const startedTime = formatActiveVisitTime(visit?.startedAt || visit?.checkedInAt);
+    const completedTime = formatActiveVisitTime(visit?.completedAt);
+
+    const nodeClass = (phase) => {
+      if (state === 'completed_today') return 'is-done';
+      if (state === 'in_progress') {
+        if (phase === 'checkin') return 'is-done';
+        if (phase === 'progress') return 'is-active';
+        return '';
+      }
+      if (state === 'checked_in' && phase === 'checkin') return 'is-active';
+      return '';
+    };
+
+    const nodes = [
+      {
+        phase: 'checkin',
+        label: checkedInTime ? `${checkedInTime} incheckad` : 'Incheckad',
+      },
+      {
+        phase: 'progress',
+        label: startedTime ? `${startedTime} pågår` : 'Pågår',
+      },
+      {
+        phase: 'done',
+        label: completedTime ? `${completedTime} klart` : 'Klart',
+      },
+    ];
+
+    return `
+      <div class="v11-active-visit__timeline" aria-label="Besöksförlopp">
+        ${nodes
+          .map(
+            (node) => `
+          <div class="v11-active-visit__timeline-node ${nodeClass(node.phase)}">
+            <span class="v11-active-visit__timeline-dot" aria-hidden="true"></span>
+            <span class="v11-active-visit__timeline-label">${escapeHtml(node.label)}</span>
+          </div>`
+          )
+          .join('')}
+      </div>`;
+  }
+
+  function resolveActiveVisitPresentation(visit) {
+    const state = normalizeActiveVisitState(visit?.state);
+    const timeLabel = formatActiveVisitTime(visit?.startsAt);
+    const checkedInTime = formatActiveVisitTime(visit?.checkedInAt);
+    const completedTime = formatActiveVisitTime(visit?.completedAt || visit?.startedAt);
+    const journalLabel = visit?.journalStarted ? 'Fortsätt journal' : 'Starta journal';
+    const journalDetail = normalizeIntelText(visit?.serviceLabel);
+
+    const kickerByState = {
+      scheduled_today: 'Nytt besök · idag',
+      checked_in: 'Incheckad',
+      in_progress: 'Pågår',
+      completed_today: completedTime ? `Besök avslutat ${completedTime}` : 'Besök avslutat',
+    };
+
+    const statusByState = {
+      scheduled_today: 'Väntar incheckning',
+      checked_in: 'Redo att starta',
+      in_progress: 'Behandling pågår',
+      completed_today: 'Klart för idag',
+    };
+
+    const headMetaByState = {
+      scheduled_today: timeLabel ? `Kl ${timeLabel}` : '',
+      checked_in: checkedInTime ? `Incheckad ${checkedInTime}` : '',
+      in_progress:
+        formatActiveVisitMinutesSince(visit?.checkedInAt || visit?.startedAt) ||
+        (checkedInTime ? `Incheckad ${checkedInTime}` : ''),
+      completed_today: completedTime ? `Avslutat ${completedTime}` : '',
+    };
+
+    const primaryByState = {
+      scheduled_today: { action: 'checkin', label: 'Checka in' },
+      checked_in: { action: 'journal', label: journalLabel },
+      in_progress: { action: 'journal', label: journalLabel },
+      completed_today: { action: 'followup', label: 'Boka uppföljning' },
+    };
+
+    const secondaryByState = {
+      scheduled_today: { action: 'journal', label: journalLabel },
+      checked_in: null,
+      in_progress: { action: 'journal', label: 'Avsluta besök' },
+      completed_today: { action: 'journal', label: 'Visa journal' },
+    };
+
+    return {
+      state,
+      sectionClass: `v11-active-visit--${state.replace(/_/g, '-')}`,
+      dotClass:
+        state === 'in_progress'
+          ? 'v11-active-visit__dot v11-active-visit__dot--pulse'
+          : state === 'completed_today'
+            ? 'v11-active-visit__dot v11-active-visit__dot--done'
+            : 'v11-active-visit__dot',
+      kicker: kickerByState[state] || kickerByState.scheduled_today,
+      statusLine: statusByState[state] || statusByState.scheduled_today,
+      headMeta: headMetaByState[state] || '',
+      showTimeline: state !== 'scheduled_today',
+      preflightCompact: state === 'completed_today',
+      primary: primaryByState[state] || primaryByState.scheduled_today,
+      secondary: secondaryByState[state] || null,
+      journalDetail,
+    };
+  }
+
   function resolveActiveVisitPayload(dossierBundle) {
     const visit = dossierBundle?.activeVisit;
     if (!visit || visit.visible !== true) return null;
@@ -1047,40 +1177,88 @@
     const visit = resolveActiveVisitPayload(dossierBundle);
     if (!visit) return '';
 
-    const timeLabel = formatActiveVisitTime(visit.startsAt);
+    const presentation = resolveActiveVisitPresentation(visit);
     const title = normalizeIntelText(visit.serviceLabel) || 'Besök idag';
     const practitioner = normalizeIntelText(visit.practitionerLabel);
-    const journalLabel = visit.journalStarted ? 'Fortsätt journal' : 'Starta journal';
-    const journalDetail = normalizeIntelText(visit.serviceLabel);
     const photoDisabled = visit.photoCaptureAvailable === false;
     const notesDisabled = visit.notesAvailable === false;
+    const primaryLabel =
+      presentation.primary.action === 'journal' && presentation.journalDetail
+        ? `${presentation.primary.label} · ${presentation.journalDetail}`
+        : presentation.primary.label;
+    const secondaryLabel =
+      presentation.secondary?.action === 'journal' && presentation.journalDetail
+        ? `${presentation.secondary.label} · ${presentation.journalDetail}`
+        : presentation.secondary?.label || '';
 
     return `
       <section
-        class="v11-active-visit"
+        class="v11-active-visit ${presentation.sectionClass}"
         data-v11-active-visit
-        data-v11-active-visit-state="${escapeHtml(visit.state || 'scheduled_today')}"
+        data-v11-active-visit-state="${escapeHtml(presentation.state)}"
         aria-label="Aktivt besök idag"
       >
         <header class="v11-active-visit__head">
           <span class="v11-active-visit__status">
-            <span class="v11-active-visit__dot" aria-hidden="true"></span>
-            <span class="v11-active-visit__kicker">Nytt besök · idag</span>
+            <span class="${presentation.dotClass}" aria-hidden="true"></span>
+            <span class="v11-active-visit__kicker">${escapeHtml(presentation.kicker)}</span>
           </span>
-          ${timeLabel ? `<span class="v11-active-visit__time">${escapeHtml(timeLabel)}</span>` : ''}
+          ${
+            presentation.headMeta
+              ? `<span class="v11-active-visit__time">${escapeHtml(presentation.headMeta)}${
+                  practitioner ? ` · ${escapeHtml(practitioner)}` : ''
+                }</span>`
+              : practitioner
+                ? `<span class="v11-active-visit__time">${escapeHtml(practitioner)}</span>`
+                : ''
+          }
         </header>
         <div class="v11-active-visit__context">
           <h3 class="v11-active-visit__title">${escapeHtml(title)}</h3>
-          ${practitioner ? `<p class="v11-active-visit__meta">${escapeHtml(practitioner)}</p>` : ''}
+          <p class="v11-active-visit__status-line">${escapeHtml(presentation.statusLine)}</p>
+          ${
+            practitioner && !presentation.headMeta
+              ? `<p class="v11-active-visit__meta">${escapeHtml(practitioner)}</p>`
+              : ''
+          }
         </div>
-        <div class="v11-active-visit__preflight" data-v11-active-visit-preflight>
-          <span class="v11-active-visit__preflight-kicker">Innan besöket</span>
-          ${renderV11ActiveVisitBlockers(visit.blockers)}
+        ${
+          presentation.showTimeline
+            ? renderV11ActiveVisitTimelineHtml(visit, presentation.state)
+            : ''
+        }
+        <div
+          class="v11-active-visit__preflight${
+            presentation.preflightCompact ? ' v11-active-visit__preflight--compact' : ''
+          }"
+          data-v11-active-visit-preflight
+        >
+          ${
+            presentation.preflightCompact
+              ? '<p class="v11-active-visit__preflight-ok">Besöket är avslutat för idag.</p>'
+              : `<span class="v11-active-visit__preflight-kicker">Innan besöket</span>
+          ${renderV11ActiveVisitBlockers(visit.blockers)}`
+          }
         </div>
         <div class="v11-active-visit__actions" data-v11-active-visit-actions>
-          <button type="button" class="v11-active-visit__primary" data-v11-active-visit-action="journal">
-            ${escapeHtml(journalLabel)}${journalDetail ? ` · ${escapeHtml(journalDetail)}` : ''}
+          <button
+            type="button"
+            class="v11-active-visit__primary"
+            data-v11-active-visit-action="${escapeHtml(presentation.primary.action)}"
+          >
+            ${escapeHtml(primaryLabel)}
           </button>
+          ${
+            presentation.secondary
+              ? `<button
+                  type="button"
+                  class="v11-active-visit__secondary v11-active-visit__secondary--ghost"
+                  data-v11-active-visit-action="${escapeHtml(presentation.secondary.action)}"
+                >
+                  ${escapeHtml(secondaryLabel)}
+                </button>`
+              : ''
+          }
           <button
             type="button"
             class="v11-active-visit__secondary${photoDisabled ? ' is-disabled' : ''}"
@@ -3587,6 +3765,10 @@
           root.querySelector('.v9-camera-bridge [data-patient-photo-camera]')?.click();
         } else if (action === 'journal') {
           liveHandlers.openJournal?.();
+        } else if (action === 'checkin') {
+          void liveHandlers.checkInVisit?.();
+        } else if (action === 'followup') {
+          liveHandlers.openBook?.();
         } else if (action === 'notes') {
           liveHandlers.openNotes?.() || liveHandlers.switchTab?.('anteckningar');
         }

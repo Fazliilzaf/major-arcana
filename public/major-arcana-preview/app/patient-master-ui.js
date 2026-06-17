@@ -4830,6 +4830,21 @@
       openJournal: () => switchDetailTab('journal'),
       openNotes: () => switchDetailTab('anteckningar'),
       openForm: () => switchDetailTab('journal'),
+      checkInVisit: async () => {
+        const patientId = ctx.card?.patientId;
+        const bookingId = runtime.detail?.dossierBundle?.activeVisit?.bookingId || null;
+        if (!patientId) return;
+        try {
+          await apiRequest('/api/v1/cco/staff/watch-checkin', {
+            method: 'POST',
+            body: { patientId, bookingId },
+          });
+          renderDetailPanel({ forceFullRender: true });
+        } catch (error) {
+          console.warn('Aktivt besök check-in misslyckades.', error);
+          setStatus('Check-in misslyckades.', 'error');
+        }
+      },
     };
     if (root.querySelector('[data-kundkort-slide-over]')) {
       window.CcoV9CustomersParity?.bindKundkortSlideOver?.(root, journeyHandlers, ctx);

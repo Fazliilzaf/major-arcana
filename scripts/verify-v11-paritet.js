@@ -114,6 +114,14 @@ if (!css) {
     hasHairstrand ? 'finns' : 'SAKNAS — behövs för zon-skarvar'
   );
 
+  const activeVisitCss =
+    css.includes('.v11-active-visit__timeline') && css.includes('.v11-active-visit__dot--pulse');
+  check(
+    'Aktivt besök timeline + pulse CSS (Fas 3b)',
+    activeVisitCss,
+    activeVisitCss ? 'timeline + pulse definierade' : 'saknar Fas 3b CSS'
+  );
+
   // ─────────────────────────────────────────────────────────────
   // Frusna designval (negativ-check)
   // ─────────────────────────────────────────────────────────────
@@ -280,12 +288,29 @@ if (!parityJs) {
     selfHide ? 'resolveActiveVisitPayload' : 'saknar visible-gate'
   );
 
-  const noFakeStates =
-    !parityJs.includes("state: 'in_progress'") && !parityJs.includes('checked_in');
+  const stateFromPayload =
+    parityJs.includes('resolveActiveVisitPresentation') &&
+    parityJs.includes('normalizeActiveVisitState(visit?.state)');
   check(
-    'Ingen fejkad in_progress/checked_in i UI',
-    noFakeStates,
-    noFakeStates ? 'rent' : 'hårdkodad encounter-state i parity.js'
+    'Aktivt besök state från payload (ORD-25E Fas 3b)',
+    stateFromPayload,
+    stateFromPayload ? 'resolveActiveVisitPresentation' : 'saknar payload-driven state'
+  );
+
+  const timelineGated =
+    parityJs.includes("showTimeline: state !== 'scheduled_today'") ||
+    parityJs.includes("showTimeline: state !== 'scheduled_today'");
+  check(
+    'Timeline endast efter incheckning (Fas 3b)',
+    timelineGated,
+    timelineGated ? 'scheduled_today utan timeline' : 'timeline inte state-gated'
+  );
+
+  const checkinAction = parityJs.includes("action === 'checkin'");
+  check(
+    'Check-in action i parity (Fas 3b)',
+    checkinAction,
+    checkinAction ? 'checkin handler finns' : 'saknar checkin handler'
   );
 }
 
@@ -298,6 +323,15 @@ if (!patientUiJs) {
   check('patient-master-ui läsbar', false, `Hittade inte ${PATIENT_UI_JS}`);
 } else {
   check('patient-master-ui läsbar', true, `${patientUiJs.length} bytes`);
+
+  const checkinWired =
+    patientUiJs.includes('checkInVisit:') &&
+    patientUiJs.includes('/api/v1/cco/staff/watch-checkin');
+  check(
+    'Check-in wired till watch-checkin (Fas 3b)',
+    checkinWired,
+    checkinWired ? 'checkInVisit → watch-checkin' : 'saknar checkInVisit wiring'
+  );
 
   const cutoverEnabled =
     patientUiJs.includes('function usesV11DossierCutover()') &&
