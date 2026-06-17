@@ -1,36 +1,44 @@
 ---
-description: Inventera befintlig kod före implementation; koda bara det som saknas — utan att fråga först.
+description: Dubbelkolla att funktionen inte redan är byggd innan ny implementation eller ny ORD
 alwaysApply: true
 ---
 
-# Check before code — inventera först, implementera det som saknas
+# Dubbelkolla innan nytt byggs
 
-## Grundregel
+**Ingen ny feature, ORD eller större kodpass utan inventering först.**
 
-Innan du skriver eller ändrar kod för en uppgift:
+## Obligatorisk checklista (kör i ordning)
 
-1. **Sök i repot** — `docs/`, `src/`, `public/`, `scripts/`, ORD-handover, befintliga routes, CSS, tester.
-2. **Rapportera kort** vad som redan finns vs vad som faktiskt saknas.
-3. **Implementera direkt** endast det som saknas — **fråga inte** "ska jag börja koda?" om uppgiften redan är given.
+1. **ORD / handover** — `docs/handover/ORDERS/ORD-*`, `*-COMPLETE.md`, `*-PARALLEL*.md`
+2. **Strategi/facit** — `docs/strategy/` (kundresa, automation, facit-tabeller)
+3. **Kod** — `src/`, `public/major-arcana-preview/`, `scripts/` (grep + semantisk sök)
+4. **Tester & verify** — `tests/`, `npm run verify:*`, `scripts/verify-*.js`
+5. **Prod (vid behov)** — `_diag/version`, relevant static asset, befintlig verify-script
+
+## Rapportera innan kod (4 rader)
+
+| Del | Finns? | Var | Gap |
+|-----|--------|-----|-----|
+| Backend | hel/del/nej | fil/route | … |
+| UI | hel/del/nej | fil | … |
+| Verify/UAT | hel/del/nej | script/doc | … |
+
+- **Hel** → koppla in / utöka; **bygg inte parallellt**
+- **Del** → minimal diff på det som saknas
+- **Nej** → ny implementation OK
+
+## Förbjudet
+
+- Ny ORD-handover som listar "saknas" utan sökning ovan
+- Duplicera modul som redan finns (t.ex. ny resolver, ny registry-vy)
+- Påstå "ej påbörjat" när `PARTIAL` / demo / ej deployat räcker som status
+- Bygga V2 när V1 finns lokalt men ej committat — säg det istället
 
 ## Additivt som standard
 
-- **Lägg till** saknad funktion — **ändra inte** befintligt beteende, layout eller styling om det redan fungerar.
-- Visuell polish (typografi, färger, storlekar, mockup-paritet) görs **inte** om uppgiften bara saknar funktion.
-- Om något måste justeras för att ny kod ska fungera: **minimal diff** — t.ex. `:not(:disabled)` i stället för att skriva om hela blocket.
+- Lägg till saknat; ändra inte fungerande beteende utan skäl
+- Minimal diff när befintlig kod måste röras
 
-## Skillnad mot "saknas"
+## Undantag (får fråga owner)
 
-- **Finns delvis** → återanvänd/utöka; duplicera inte parallell logik.
-- **Finns i annan fil/scope** → koppla in eller flytta minimal diff; påstå inte "ej påbörjat".
-- **Finns bara lokalt / ej deployat** → säg det; implementera inte om prod-redo kod redan ligger i working tree utan commit.
-
-## Undantag (får fråga)
-
-- Destruktivt arbete (radera prod-data, force push, mass-merge).
-- Juridisk/compliance-blocker som kräver owner GO.
-- Två likvärdiga arkitekturval utan spec (sällan — föredra befintligt mönster i repot).
-
-## Verifiering
-
-Efter implementation: kör relevanta tester/scripts som redan finns (`check:syntax`, unit tests, `verify-*-prod` där det passar).
+- Destruktivt arbete, compliance-blocker, två likvärdiga arkitekturval utan facit

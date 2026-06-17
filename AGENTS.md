@@ -18,6 +18,16 @@
 - For advanced passes, explicitly tell the user at the start of ASK MODE when a model/reasoning upgrade is recommended before substantial work begins.
 - Do not ask for an upgrade unless the task complexity materially justifies it.
 
+## Inventory before new build (obligatorisk)
+
+Innan ny feature, ny ORD-handover eller större implementation:
+
+1. Sök **ORD/handover**, **docs/strategy**, **src/**, **public/**, **scripts/**, **verify-scripts**
+2. Rapportera kort: **finns hel / delvis / saknas** med filreferens
+3. Bygg **endast gapet** — duplicera inte parallell logik som redan finns (även demo, PARTIAL, eller ej deployat)
+
+Se `.cursor/rules/check-before-code.mdc`.
+
 ## Preservation rule
 
 - Preserve existing working functionality by default.

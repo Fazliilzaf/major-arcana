@@ -248,8 +248,8 @@ Handover: docs/handover/ORDERS/ORD-48-PARALLEL-SVEP-3-AGENTS.md
 - [x] Merge A → B → C/D → deploy
 - [x] `ORD-48-CLOUD-STAFF-UAT.md` + `verify:ord48-prod-sticks`
 - [x] D3 kalender-CTA + `capture-ord48-browser-uat.js`
-- [x] `ORD-48-CLOUD-AGENT-COMPLETE.md` (CLOSED · owner UAT PASS)
-- [x] Owner prod GO — UAT PASS U1.3/U1.4/U5.3/U5.4 · 2026-06-16
+- [x] `ORD-48-CLOUD-AGENT-COMPLETE.md` (automation; owner UAT pending)
+- [ ] Owner prod GO
 
 ---
 
@@ -267,6 +267,4 @@ Handover: docs/handover/ORDERS/ORD-48-PARALLEL-SVEP-3-AGENTS.md
 
 ---
 
-**ORD-48 CLOSED:** 2026-06-16 · prod storvy · commits `4d5935c0` + `cc3dc8a4` · evidence: Axel + Jonas screenshots (REDO FÖR BEHANDLING + Öppna kalender).
-
-_Hair TP · ORD-48 · Fas 2 UAT + polish · CLOSED 2026-06-16_
+_Hair TP · ORD-48 · Fas 2 UAT + polish · 2026-05-20_

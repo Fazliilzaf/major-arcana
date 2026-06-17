@@ -1203,11 +1203,9 @@
         ? `${presentation.secondary.label} · ${presentation.journalDetail}`
         : presentation.secondary?.label || '';
 
-    const referensSkin = prefix === 'kkref-active-visit';
-
     return `
       <section
-        class="${prefix} ${presentation.sectionClass}${referensSkin ? ' kkref-active-visit--skin-referens' : ''}"
+        class="${prefix} ${presentation.sectionClass}"
         data-v11-active-visit
         data-v11-active-visit-state="${escapeHtml(presentation.state)}"
         aria-label="Aktivt besök idag"
@@ -1250,11 +1248,11 @@
           ${
             presentation.preflightCompact
               ? `<p class="${activeVisitCls(prefix, 'preflight-ok')}">Besöket är avslutat för idag.</p>`
-              : `<span class="${activeVisitCls(prefix, 'preflight-kicker')}${referensSkin ? ' kkref-active-visit__sec-label' : ''}">${referensSkin ? 'Besök idag · innan' : 'Innan besöket'}</span>
+              : `<span class="${activeVisitCls(prefix, 'preflight-kicker')}">Innan besöket</span>
           ${renderActiveVisitBlockers(visit.blockers, prefix)}`
           }
         </div>
-        <div class="${activeVisitCls(prefix, 'actions')}${referensSkin ? ' kkref-active-visit__acts' : ''}" data-v11-active-visit-actions>
+        <div class="${activeVisitCls(prefix, 'actions')}" data-v11-active-visit-actions>
           <button
             type="button"
             class="${activeVisitCls(prefix, 'primary')}"
@@ -1294,7 +1292,83 @@
   }
 
   function renderReferensActiveVisit(dossierBundle, card) {
-    return renderActiveVisitHtml(dossierBundle, card, { prefix: 'kkref-active-visit' });
+    void card;
+    const visit = resolveActiveVisitPayload(dossierBundle);
+    if (!visit) return '';
+
+    const presentation = resolveActiveVisitPresentation(visit);
+    const title = normalizeIntelText(visit.serviceLabel) || 'Besök idag';
+    const practitioner = normalizeIntelText(visit.practitionerLabel);
+    const timeLabel = formatActiveVisitTime(visit?.startsAt);
+    const photoDisabled = visit.photoCaptureAvailable === false;
+    const notesDisabled = visit.notesAvailable === false;
+
+    const primaryLabel =
+      presentation.primary.action === 'journal' && presentation.journalDetail
+        ? `${presentation.primary.label} · ${presentation.journalDetail}`
+        : presentation.primary.label;
+
+    const statusPill =
+      presentation.state === 'in_progress'
+        ? '<span class="sb-chip">Pågår</span>'
+        : presentation.state === 'completed_today'
+          ? '<span class="sb-chip" style="background:var(--success-bg);color:var(--success)">Klart</span>'
+          : presentation.state === 'checked_in'
+            ? '<span class="sb-chip" style="background:var(--info-bg);color:var(--info)">Incheckad</span>'
+            : '<span class="sb-chip">Idag</span>';
+
+    const metaParts = [];
+    if (presentation.headMeta) metaParts.push(presentation.headMeta);
+    else if (timeLabel) metaParts.push(`Kl ${timeLabel}`);
+    if (practitioner) metaParts.push(practitioner);
+    const metaLine = metaParts.join(' · ');
+
+    const blockers = asArray(visit.blockers);
+    const blockerHtml = blockers.length
+      ? blockers
+          .map(
+            (row) => `
+          <div class="flag">
+            <div class="fi" aria-hidden="true">!</div>
+            <div><b>${escapeHtml(row.label || 'Blockerare')}</b> Krävs idag</div>
+          </div>`
+          )
+          .join('')
+      : presentation.preflightCompact
+        ? '<p class="empty">Besöket är avslutat för idag.</p>'
+        : '<p class="empty">Inga blockerare för dagens besök.</p>';
+
+    const secondaryBtn = presentation.secondary
+      ? `<button type="button" class="btn" data-v11-active-visit-action="${escapeHtml(presentation.secondary.action)}">${escapeHtml(presentation.secondary.label)}</button>`
+      : '';
+
+    const ghostBtn = `<button type="button" class="btn"${photoDisabled ? ' disabled aria-disabled="true"' : ''} data-v11-active-visit-action="photo">Ta bild</button>`;
+    const notesBtn = `<button type="button" class="btn"${notesDisabled ? ' disabled aria-disabled="true"' : ''} data-v11-active-visit-action="notes">Anteckning</button>`;
+
+    return `
+      <details
+        class="dossier-section kkref-active-visit-native"
+        data-sek="besok"
+        data-v11-active-visit
+        data-v11-active-visit-state="${escapeHtml(presentation.state)}"
+        open
+      >
+        <summary>Besök idag<span class="count">${statusPill}</span></summary>
+        <div class="dossier-section-body">
+          <div class="row acc teal">
+            <div style="flex:1">
+              <div class="rt">${escapeHtml(title)}</div>
+              <div class="rm">${escapeHtml(presentation.statusLine)}${metaLine ? ` · ${escapeHtml(metaLine)}` : ''}</div>
+            </div>
+          </div>
+          ${blockerHtml}
+          <div class="acts">
+            <button type="button" class="btn gold" data-v11-active-visit-action="${escapeHtml(presentation.primary.action)}">${escapeHtml(primaryLabel)}</button>
+            ${secondaryBtn}
+            <div class="r2">${ghostBtn}${notesBtn}</div>
+          </div>
+        </div>
+      </details>`;
   }
 
   const INTEL_TONE_ORDER = { next: 0, coming: 1, future: 2, done: 3, neutral: 4 };

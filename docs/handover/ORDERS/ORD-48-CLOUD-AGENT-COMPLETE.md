@@ -1,8 +1,8 @@
 # ORD-48 — Cloud Agent COMPLETE (Cursor · Fas 2)
 
-**Status:** **CLOSED** — owner UAT PASS på prod storvy 2026-06-16  
+**Status:** Automated PASS · manuell Staff UAT U1–U5 **väntar owner**  
 **Agent:** Cursor (lokal)  
-**Prod commit:** `4d5935c0` (storvy parity) + `cc3dc8a4` (höger rail) · tidigare `6fd798f5` (bundle #116 + D3)  
+**Prod commit:** `6fd798f5` (bundle-klassning #116 + ORD-48 D3)  
 **UAT-doc:** [`ORD-48-CLOUD-STAFF-UAT.md`](./ORD-48-CLOUD-STAFF-UAT.md)  
 **Spec:** [`ORD-48-steg7-bundle-ops-gates.md`](./ORD-48-steg7-bundle-ops-gates.md)  
 **Nästa order (ID UI):** [`ORD-49-id-verifiering-ready-gate.md`](./ORD-49-id-verifiering-ready-gate.md)
@@ -68,26 +68,15 @@ Facit: [`CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mocku
 
 ## L5 — Manuell Staff UAT (owner)
 
-**Miljö:** prod storvy · **Datum:** 2026-06-16 · **Testare:** Axel (U1), Jonas (U5)
+| #   | Scenario                             | Status     | Anteckning                                       |
+| --- | ------------------------------------ | ---------- | ------------------------------------------------ |
+| U1  | Bundle sign → §4 Signerad            | ☐ Owner    | Visuell: referens-kundkort + §-kort (ej legacy)  |
+| U2  | Boka utan bundle → 409               | ✅ Backend | Gate/test/sticks PASS; UI-tråd valfri dubbelkoll |
+| U3  | Ops-dag utan FC → blockerad          | ✅ PASS    | Dino op-dag + FC-gate                            |
+| U4  | Ops-dag med FC → 5 knappar           | ☐ Partial  | Op-dag OK; FC signerad ej visuellt genomkört     |
+| U5  | `ready_for_treatment` + kalender-CTA | ☐ Owner    | Jonas deeplink — bekräfta höger rail             |
 
-| #   | Scenario                             | Status     | Anteckning                                                    |
-| --- | ------------------------------------ | ---------- | ------------------------------------------------------------- |
-| U1  | Bundle sign → §4 Signerad            | ✅ PASS    | U1.3 + U1.4 — Axel storvy                                     |
-| U2  | Boka utan bundle → 409               | ✅ Backend | Gate/test/sticks PASS                                         |
-| U3  | Ops-dag utan FC → blockerad          | ✅ PASS    | Dino op-dag + FC-gate (automation)                            |
-| U4  | Ops-dag med FC → 5 knappar           | ☐ Partial  | Op-dag OK; FC signerad ej visuellt genomkört i denna closeout |
-| U5  | `ready_for_treatment` + kalender-CTA | ✅ PASS    | U5.3 + U5.4 — Jonas storvy                                    |
-
-### UAT PASS (owner sign-off)
-
-| Punkt | Scenario                       | Resultat |
-| ----- | ------------------------------ | -------- |
-| U1.3  | §4 / bundle readout            | **PASS** |
-| U1.4  | Bookable / rail signal         | **PASS** |
-| U5.3  | `ready_for_treatment` komposit | **PASS** |
-| U5.4  | Kalender-CTA gating            | **PASS** |
-
-**Evidence:** Owner screenshots — Axel + Jonas **storvy** visar **REDO FÖR BEHANDLING** + **Öppna kalender** (prod, 2026-06-16).
+**Rapportera:** `U1 PASS, U5 FAIL, …` här i chat → Cursor fixar UI/deeplink vid behov.
 
 **Ej ORD-48:** ID-pill / hard ID-gate → [`ORD-49-id-verifiering-ready-gate.md`](./ORD-49-id-verifiering-ready-gate.md).
 
@@ -99,26 +88,23 @@ Facit: [`CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mocku
 | -------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `smoke-public.sh` HTTPS + `-sSL` | ✅                                                                                                   |
 | `deploy-cloud-safe`              | ✅ **GRÖN** — [run 27602428791](https://github.com/Fazliilzaf/major-arcana/actions/runs/27602428791) |
-| Storvy parity deploy             | ✅ `4d5935c0`                                                                                        |
-| Höger rail deploy                | ✅ `cc3dc8a4`                                                                                        |
 
 ---
 
 ## L7 — PASS/FAIL sammanfattning
 
-| Område                    | Resultat   | Anteckning                                            |
-| ------------------------- | ---------- | ----------------------------------------------------- |
-| Codex backend Fas A/C/D   | **PASS**   | Prod verify 2026-05-20+                               |
-| Cursor frontend Fas B/C/D | **PASS**   | Steg 7 API, §4/§5, deeplink, storvy/rail              |
-| Prod verify sticks        | **PASS**   | 16/16 @ `6fd798f5`; re-kör efter `cc3dc8a4` vid behov |
-| D3 kalender-CTA           | **PASS**   | Owner U5.3/U5.4 på Jonas storvy                       |
-| Manuell UAT U1/U5         | **PASS**   | U1.3, U1.4, U5.3, U5.4 · 2026-06-16                   |
-| Bundle-klassning (#116)   | **CLOSED** | `6fd798f5` live · ID = FULL i bundle, ej lucka        |
-| ORD-49 ID ready-pill      | **READY**  | Separat spår — ej blandat med ORD-48 closeout         |
-| Owner prod GO             | **CLOSED** | UAT PASS storvy Axel + Jonas                          |
-| **ORD-48 order**          | **CLOSED** | 2026-06-16                                            |
+| Område                    | Resultat    | Anteckning                                           |
+| ------------------------- | ----------- | ---------------------------------------------------- |
+| Codex backend Fas A/C/D   | **PASS**    | Owner prod verify 2026-05-20 · idle tills UAT/ORD-49 |
+| Cursor frontend Fas B/C/D | **PASS**    | Steg 7 API, §4/§5, deeplink                          |
+| Prod verify sticks        | **PASS**    | 16/16                                                |
+| D3 kalender-CTA           | **PASS**    | Wired i kundkort                                     |
+| Manuell UAT U1–U5         | **PENDING** | U2/U3 backend+auto OK · U1/U4/U5 visuellt kvar       |
+| Bundle-klassning (#116)   | **CLOSED**  | `6fd798f5` live · ID = FULL i bundle, ej lucka       |
+| ORD-49 ID ready-pill      | **READY**   | Separat spår — ej blandat med ORD-48 closeout        |
+| Owner prod GO             | **PENDING** | Efter U1/U5 visuell PASS                             |
 
-**Blockers:** 0
+**Blockers:** 0 kodblockers för att starta manuell UAT.
 
 ---
 
@@ -136,4 +122,4 @@ Facit: [`CCO-Kalender-Mockup-v6-UTGANGSLAGE.html`](../MOCKUPS/CCO-Kalender-Mocku
 
 ---
 
-_Hair TP · ORD-48 Cloud · CLOSED · 2026-06-16_
+_Hair TP · ORD-48 Cloud · Cursor Fas 2 · 2026-05-20_

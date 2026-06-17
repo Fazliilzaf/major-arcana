@@ -1725,6 +1725,21 @@
       kkref.querySelector(`[data-sek="${slug}"]`);
     if (!target) return false;
     if (target.tagName === 'DETAILS') target.open = true;
+
+    const scrollHost =
+      root.querySelector('[data-v9-dossier-scroll]') ||
+      root.querySelector('.v10-dossier-referens') ||
+      kkref.closest('.v10-dossier-referens') ||
+      null;
+
+    if (scrollHost && typeof scrollHost.scrollTop === 'number') {
+      const hostRect = scrollHost.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const nextTop = scrollHost.scrollTop + (targetRect.top - hostRect.top) - 12;
+      scrollHost.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
+      return true;
+    }
+
     target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return true;
   }

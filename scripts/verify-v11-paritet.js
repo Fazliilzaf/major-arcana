@@ -329,11 +329,12 @@ if (!parityJs) {
 
   const referensActiveVisit =
     parityJs.includes('function renderReferensActiveVisit(') &&
-    parityJs.includes("prefix: 'kkref-active-visit'");
+    parityJs.includes('data-sek="besok"') &&
+    parityJs.includes('kkref-active-visit-native');
   check(
-    'renderReferensActiveVisit (ORD-25E Fas 2 referens)',
+    'renderReferensActiveVisit (ORD-25E Fas 2c native)',
     referensActiveVisit,
-    referensActiveVisit ? 'kkref-active-visit export' : 'SAKNAS'
+    referensActiveVisit ? 'native besok-sektion' : 'SAKNAS'
   );
 }
 
@@ -401,17 +402,17 @@ if (!patientUiJs) {
     referensJournalCta ? 'openReferensJournalWorkspace wired' : 'saknar referens journal CTA'
   );
 
-  const referensSkin =
-    Boolean(parityJs?.includes('kkref-active-visit--skin-referens')) &&
+  const referensNativeSection =
+    Boolean(parityJs?.includes('kkref-active-visit-native')) &&
     Boolean(
       readFileSafe(
         path.join(REPO_ROOT, 'public/major-arcana-preview/cco-kundkort-referens.css')
-      )?.includes('kkref-active-visit--skin-referens')
+      )?.includes('kkref-active-visit-native')
     );
   check(
-    'Aktivt besök referens-skin (Fas 2b)',
-    referensSkin,
-    referensSkin ? 'skin-referens markup + CSS' : 'saknar referens skin'
+    'Aktivt besök native referens (Fas 2c)',
+    referensNativeSection,
+    referensNativeSection ? 'dossier-section besok + CSS' : 'saknar native aktivt besök'
   );
 }
 
