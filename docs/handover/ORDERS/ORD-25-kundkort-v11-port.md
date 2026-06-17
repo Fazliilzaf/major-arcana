@@ -318,8 +318,8 @@ Ersätt befintlig insikter/action-zon:
 ### Prod UAT (Codex, efter deploy)
 
 - [x] Patient **utan** besök idag → ingen Fas E, v11 tre zoner (Abdelkader Bensahla, prod)
-- [ ] Patient **med** besök idag → Fas E + pre-flight + journal-CTA (ORD-25E)
-- [ ] Patient med HD-blocker → amber pre-flight + helper i sticky (ORD-25E)
+- [ ] Patient **med** besök idag → Fas E segment (ORD-25E) — **datablockerad** prod 2026-06-17
+- [ ] Patient med HD-blocker → amber pre-flight (ORD-25E) — **datablockerad**
 - [x] `node scripts/verify-v11-paritet.js` — 49/50 PASS
 
 ---

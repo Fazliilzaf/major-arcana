@@ -2,8 +2,39 @@
 
 **Skapad:** 2026-06-17  
 **Prio:** P1  
-**Status:** **Fas 0 CLOSED** · **Fas 1 adapter CLOSED (lokal diff)** · **Cursor UI PARTIAL GO** · **full locked mockup NO-GO**  
+**Status:** **Fas 0–2 CLOSED (prod `d62e819e`)** · **UAT PARTIAL** (A PASS · B/C datablock · D/E manuell) · **Fas 3 encounter-states OPEN**  
 **Förälder:** [`ORD-25-kundkort-v11-port.md`](ORD-25-kundkort-v11-port.md) (Fas A–D **CLOSED** prod `a18b54e7`)
+
+---
+
+## Prod UAT closeout (2026-06-17, Codex)
+
+**Prod commit:** `d62e819e` · **Render:** `/readyz` OK · `/api/public/status` operational  
+**Verify:** `node scripts/verify-v11-paritet.js` — **53/54 PASS** (rosa-accent `#bb4779`, ej ORD-25E-blocker)
+
+| Punkt                                        | Resultat         | Bedömning                                                                                                                               |
+| -------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** Patient utan dagens besök              | **PASS**         | Ingen `[data-v11-active-visit]` · hero → dokument → insikter oförändrat                                                                 |
+| **B** Patient med dagens besök (visuellt)    | **BLOCKERAD**    | Prod: **0 patienter** med `todayVisit=true` idag — inget skarpt stickprov utan att fejka                                                |
+| **C** API-shape (dossier-bundle)             | **PARTIAL PASS** | No-visit: `visible=false`, `state=null`, `bookingId=null`, `blockers=[]` ✓ · `scheduled_today` ej bekräftad i prod (saknar testpatient) |
+| **D** 380px mobil                            | **EJ KÖRD**      | Browser-automation kunde inte tvinga viewport — kör manuellt i lokal/vanlig prod-flik                                                   |
+| **E** Rollback `__ARCANA_V11_KUNDKORT=false` | **EJ KÖRD**      | Prod-flik: `window` non-extensible i automation-session — kör manuellt i devtools                                                       |
+
+**Slutsats:** Implementationen ser **inte trasig** ut. Blockerare är **testdata i prod**, inte kod-FAIL för Fas 2.
+
+### Nästa verifiering (manuell, när data finns)
+
+1. Patient med dagens bokning → bekräfta segment + blockers + journal/bild/anteckning
+2. dossier-bundle → `activeVisit.visible=true`, `state: "scheduled_today"`
+3. 380px + rollback i vanlig browser-session
+
+### Beslut efter UAT
+
+| Spår                         | Status                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| **Fas 2 delvis UI**          | **GO** — ship accepterad för no-visit + API-shape                               |
+| **Fas 2 visuellt med besök** | **VÄNTAR** prod-patient med `todayVisit` / dagens bokning                       |
+| **Fas 3 encounter-states**   | **OPEN** — `checked_in`, `in_progress`, `completed_today` + persistent check-in |
 
 ---
 
@@ -373,26 +404,26 @@ Verify: utöka verify-v11-paritet.js
 ### Codex (Fas 0–1)
 
 - [x] Audit: fält som finns / saknas dokumenterad
-- [x] Minsta payload i dossier-bundle — **Fas 1 adapter**
-- [ ] Exempelpayload prod stickprov (patient med besök idag) — **efter deploy**
+- [x] Minsta payload i dossier-bundle — **Fas 1 adapter** prod `d62e819e`
+- [ ] Exempelpayload prod med `scheduled_today` — **datablockerad** (0 todayVisit idag)
 - [x] GO/NO-GO — **PARTIAL GO Cursor · NO-GO full mockup**
 
-### Cursor (PARTIAL GO)
+### Cursor (Fas 2 — delvis)
 
-- [ ] Segment synligt vid `activeVisit.visible=true`
-- [ ] State `scheduled_today` (neutral, ingen fejk-puls)
-- [ ] Pre-flight från `blockers[]`
-- [ ] Actions wired (eller disabled + varför)
-- [ ] Self-hide när `visible=false`
-- [ ] **Ej scope:** full timeline / check-in / avsluta-besök states
-- [ ] 380px mobil
-- [ ] verify-v11 utökad
+- [ ] Segment synligt vid `activeVisit.visible=true` — **datablockerad** (ingen prod-patient)
+- [ ] State `scheduled_today` visuellt — **datablockerad**
+- [x] Pre-flight från `blockers[]` — implementerad (ej visuellt verifierad)
+- [x] Actions wired — journal · bild · anteckning
+- [x] Self-hide när `visible=false` — **UAT A PASS**
+- [x] **Ej scope:** full timeline / check-in / avsluta — ej byggt
+- [x] verify-v11 utökad — 53/54 PASS
+- [ ] 380px mobil — **manuell kvar**
 
-### Prod UAT (Codex)
+### Prod UAT (Codex, 2026-06-17)
 
-- [ ] Patient **med** besök idag → segment + pre-flight + journal-CTA
-- [ ] Patient **utan** besök idag → ingen regression (tre zoner som idag)
-- [ ] Rollback-check kvar: `__ARCANA_V11_KUNDKORT=false`
+- [ ] Patient **med** besök idag — **datablockerad**
+- [x] Patient **utan** besök idag — **PASS (A)**
+- [ ] Rollback `__ARCANA_V11_KUNDKORT=false` — **manuell kvar (E)**
 
 ---
 
@@ -411,25 +442,17 @@ Det ska kännas som den naturliga operativa mitten i kundkortet.
 **Team:**
 
 ```text
-ORD-25E Fas 1: activeVisit-adapter klar (lokal). PARTIAL GO för Cursor UI.
-Bygg scheduled_today-segment — inte full locked mockup ännu.
-Nästa: commit/deploy Fas 1 → Cursor Fas 2 delvis segment.
+ORD-25E Fas 0–2: live prod d62e819e. UAT A PASS. B/C datablockerade (0 todayVisit idag).
+Fas 2 delvis UI ship:ad — väntar prod-patient med dagens bokning för visuellt stickprov.
+Nästa: Fas 3 encounter-states (checked_in/in_progress/completed_today).
 ```
 
-**Cursor (PARTIAL GO):**
+**Manuell kvar (D/E + B visuellt):**
 
 ```text
-ORD-25E Fas 2: delvis Aktivt besök-segment. activeVisit från dossier-bundle.
-scheduled_today + blockers + actions. Self-hide. Ingen fejk in_progress.
-Spec: ORD-25E-AKTIVT-BESOK-V2.md
-```
-
-**Cursor (kort, efter GO):**
-
-```text
-ORD-25E (Cursor): bygg Aktivt besök-segment i v11-skalet.
-Placering: under hero, före dokument, self-hide.
-Actions: journal · bild · anteckning · avsluta. Samma v11 UX. Ingen fejk-backend.
+- 380px i vanlig browser
+- __ARCANA_V11_KUNDKORT=false i devtools
+- öppna kund med dagens bokning när sådan finns
 ```
 
 ---
@@ -440,8 +463,8 @@ Actions: journal · bild · anteckning · avsluta. Samma v11 UX. Ingen fejk-back
 - **Mockup locked:** `docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md`
 - **v11 baseline:** `docs/handover/MOCKUPS/KUNDKORT-V11-LOCKED-2026-06-05.md`
 - **Backend-deps:** ORD-23a · ORD-41 · encounter/booking-spår
-- **Prod baseline:** `a18b54e7`
+- **Prod baseline:** `d62e819e` (Fas 1 adapter + Fas 2 delvis UI)
 
 ---
 
-_Skapad 2026-06-17 · Fas 0 audit closed · Fas 1 adapter closed · Cursor PARTIAL GO_
+_Skapad 2026-06-17 · Fas 0–2 prod `d62e819e` · UAT partial (A PASS, B/C data-block) · Fas 3 OPEN_
