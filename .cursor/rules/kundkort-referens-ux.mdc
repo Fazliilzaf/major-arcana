@@ -81,4 +81,4 @@ npm run check:syntax
 
 Prod UAT-URL (referens): `/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1&patientId=…`
 
-Se `.cursor/rules/prod-verify-before-user.mdc` — rapportera egna PASS/FAIL före användartest.
+Se `docs/handover/ORD-25E-P0-REFERENS-FACIT.md` — en fil för P0-facit + prod UAT.

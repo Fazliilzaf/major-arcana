@@ -1764,10 +1764,22 @@
         if (entry.locked) return false;
         return (
           normalizeText(entry.encounterId) === encounterId ||
-          normalizeText(entry.visitId) === encounterId
+          normalizeText(entry.visitId) === encounterId ||
+          normalizeText(entry.treatmentEncounterId) === encounterId
         );
       });
       entryId = normalizeText(byEncounter?.entryId);
+    }
+    if (!entryId && visit.bookingId) {
+      const bookingId = normalizeText(visit.bookingId);
+      const byBooking = entries.find((entry) => {
+        if (entry.locked) return false;
+        return (
+          normalizeText(entry.bookingId) === bookingId ||
+          normalizeText(entry.sourceBookingId) === bookingId
+        );
+      });
+      entryId = normalizeText(byBooking?.entryId);
     }
     if (!entryId && journalType) {
       const draft = entries.find((entry) => entry.journalType === journalType && !entry.locked);
@@ -1783,12 +1795,13 @@
     const kkref = root?.querySelector('.kkref') || root;
     const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
     const hints = { ...resolveActiveVisitJournalHints(dossierBundle), ...options };
+    const forceKkx = options.forceKkx === true || options.fromActiveVisit === true;
     scrollReferensKundkortSection(root, 'journal');
 
     const journalOpen =
       kkref?.querySelector('[data-sek="journal"] .openb:not([disabled])') ||
       kkref?.querySelector('details.dossier-section[data-sek="journal"] .kkx-openb');
-    if (journalOpen && !options.forceKkx && !hints.entryId) {
+    if (journalOpen && !forceKkx && !hints.entryId && !hints.templateId) {
       journalOpen.click();
       return true;
     }
@@ -1798,27 +1811,50 @@
         onMount: (shell) => {
           const slot = shell.querySelector('[data-kkx-journal-mount]');
           if (!slot) return;
-          if (!hints.entryId && hints.templateId) {
-            void activateKkxJournalTemplate(hints.templateId, slot, hints);
-            return;
+          const mount = () => {
+            if (!hints.entryId && hints.templateId) {
+              void activateKkxJournalTemplate(hints.templateId, slot, hints);
+              return;
+            }
+            mountKkxJournalBig(slot, {
+              entryId: hints.entryId,
+              journalType: hints.journalType,
+              templateId: hints.templateId,
+            });
+          };
+          mount();
+          if (options.focusNotes) {
+            window.requestAnimationFrame(() => {
+              shell
+                .querySelector('[data-kkx-note-visibility]')
+                ?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+            });
           }
-          mountKkxJournalBig(slot, {
-            entryId: hints.entryId,
-            journalType: hints.journalType,
-            templateId: hints.templateId,
-          });
         },
       });
       return true;
     }
 
+    if (isReferensKundkortRoot(root)) {
+      setStatus('Journal-arbetsytan kunde inte öppnas — ladda om kundkortet.', 'error');
+      return false;
+    }
     switchDetailTab('journal');
     return false;
   }
 
   function openReferensNotesSection(root) {
-    if (scrollReferensKundkortSection(root, 'anteckningar')) return true;
-    return scrollReferensKundkortSection(root, 'journal');
+    const kkref = root?.querySelector('.kkref') || root;
+    if (scrollReferensKundkortSection(root, 'anteckningar')) {
+      const noteOpen =
+        kkref?.querySelector('[data-sek="anteckningar"] .openb:not([disabled])') ||
+        kkref?.querySelector('details.dossier-section[data-sek="anteckningar"] .kkx-openb');
+      if (noteOpen) {
+        noteOpen.click();
+        return true;
+      }
+    }
+    return openReferensJournalWorkspace(root, { forceKkx: true, focusNotes: true });
   }
 
   function setRuntimeEditingJournalEntry(entry) {
@@ -4940,11 +4976,15 @@
       },
       switchTab: (tabKey) => switchDetailTab(tabKey),
       openJournal: () =>
-        referensKkref ? openReferensJournalWorkspace(root) : switchDetailTab('journal'),
+        referensKkref
+          ? openReferensJournalWorkspace(root, { forceKkx: true, fromActiveVisit: true })
+          : switchDetailTab('journal'),
       openNotes: () =>
         referensKkref ? openReferensNotesSection(root) : switchDetailTab('anteckningar'),
       openForm: () =>
-        referensKkref ? openReferensJournalWorkspace(root) : switchDetailTab('journal'),
+        referensKkref
+          ? openReferensJournalWorkspace(root, { forceKkx: true, fromActiveVisit: true })
+          : switchDetailTab('journal'),
       checkInVisit: async () => {
         const patientId = ctx.card?.patientId;
         const bookingId = runtime.detail?.dossierBundle?.activeVisit?.bookingId || null;
@@ -4981,7 +5021,9 @@
         );
       },
       openJournal: () =>
-        referensKkref ? openReferensJournalWorkspace(root) : switchDetailTab('journal'),
+        referensKkref
+          ? openReferensJournalWorkspace(root, { forceKkx: true })
+          : switchDetailTab('journal'),
       openReply: () => {
         document.querySelector('[data-studio-open]')?.click();
       },

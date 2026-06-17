@@ -3866,7 +3866,9 @@
         } else if (action === 'followup') {
           liveHandlers.openBook?.();
         } else if (action === 'notes') {
-          liveHandlers.openNotes?.() || liveHandlers.switchTab?.('anteckningar');
+          if (liveHandlers.openNotes?.()) return;
+          if (!liveHandlers.switchTab) return;
+          liveHandlers.switchTab('anteckningar');
         }
         return;
       }

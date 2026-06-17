@@ -395,11 +395,55 @@ if (!patientUiJs) {
 
   const referensJournalCta =
     patientUiJs.includes('function openReferensJournalWorkspace(') &&
-    patientUiJs.includes('openReferensJournalWorkspace(root)');
+    patientUiJs.includes('openReferensJournalWorkspace(root') &&
+    patientUiJs.includes('forceKkx: true') &&
+    patientUiJs.includes('mountKkxJournalBig');
   check(
-    'Journal-CTA → KKX i referens (Fas 2b)',
+    'Journal-CTA → KKX i referens (P0 #1)',
     referensJournalCta,
-    referensJournalCta ? 'openReferensJournalWorkspace wired' : 'saknar referens journal CTA'
+    referensJournalCta
+      ? 'openReferensJournalWorkspace + forceKkx + KKX'
+      : 'saknar referens journal CTA'
+  );
+
+  const referensNotesCta =
+    patientUiJs.includes('function openReferensNotesSection(') &&
+    (patientUiJs.includes('focusNotes: true') || patientUiJs.includes('[data-sek="anteckningar"]'));
+  check(
+    'Anteckning-CTA i referens (P0 #2)',
+    referensNotesCta,
+    referensNotesCta ? 'openReferensNotesSection + anteckningar/KKX' : 'saknar referens notes CTA'
+  );
+
+  const activeVisitEncounterHints =
+    patientUiJs.includes('resolveActiveVisitJournalHints') &&
+    patientUiJs.includes('visit.encounterId') &&
+    patientUiJs.includes('treatmentEncounterId');
+  check(
+    'Journal-hints från encounter (P0 #1)',
+    activeVisitEncounterHints,
+    activeVisitEncounterHints ? 'encounterId → entryId/template' : 'saknar encounter-hints'
+  );
+
+  const activeVisitActions =
+    parityJs?.includes("action === 'photo'") &&
+    parityJs?.includes("action === 'journal'") &&
+    parityJs?.includes("action === 'checkin'") &&
+    parityJs?.includes("action === 'followup'") &&
+    parityJs?.includes("action === 'notes'");
+  check(
+    'Aktivt besök actions wired (P0 #3)',
+    Boolean(activeVisitActions),
+    activeVisitActions ? 'photo/journal/checkin/followup/notes' : 'saknar action handlers'
+  );
+
+  const referensNoTabFallback =
+    patientUiJs.includes('isReferensKundkortRoot(root)') &&
+    !patientUiJs.includes('referensKkref ? openReferensJournalWorkspace(root) : switchDetailTab');
+  check(
+    'Referens journal utan naiv switchDetailTab (P0 #1)',
+    referensNoTabFallback,
+    referensNoTabFallback ? 'referens → KKX path' : 'journal kan fortfarande bara byta flik'
   );
 
   const referensNativeSection =
