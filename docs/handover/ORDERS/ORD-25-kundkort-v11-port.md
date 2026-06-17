@@ -1,22 +1,120 @@
-# ORD-25 — Port v11 kundkort till live SPA
+# ORD-25 — Port v11 kundkort till live SPA (+ Aktivt besök)
 
-**Skapad:** 2026-06-05
-**Owner-spår:** Cursor (write — frontend refactor i SPA-render-path)
-**Claude-spår:** UAT efter deploy
-**Prio:** P1 (post-pilot — owner-GO explicit override)
-**Status:** PENDING
+**Skapad:** 2026-06-05 · **Uppdaterad:** 2026-06-17 (sammanslagen spec)  
+**Prio:** P1  
+**Status:** **IN PROGRESS** — Fas 0 audit **GO (A–D)** · Fas E **NO-GO** (datamodell saknas)
+
+---
+
+## Fas 0 audit — facit (2026-06-17, Codex)
+
+**GO:** Cursor cutover **Fas A–D** (v11 Hero → Dokument → Insikter + sticky).  
+**NO-GO:** **Fas E** (Aktivt besök) tills dagsmodell + encounter-state finns.
+
+### Live vs kod idag
+
+| Sektion                                      | referens/v10 live | parity v11            | Åtgärd                 |
+| -------------------------------------------- | ----------------- | --------------------- | ---------------------- |
+| Hero + stat + briefing                       | default ja        | byggd                 | cutover                |
+| Dokument 4 grupper                           | delvis            | byggd                 | cutover + bundle       |
+| Insikter + sticky                            | ja                | byggd                 | cutover                |
+| Journey / bokningar / veckomönster / context | —                 | **felplacerad i v11** | **ta bort ur default** |
+| Aktivt besök (Fas E)                         | saknas            | saknas                | senare ORD             |
+
+**Blockerare live:** `usesV11DossierCutover()` → `false` (`patient-master-ui.js`) → `renderV10ReferensDossierHtml`.
+
+**Fel i v11-path:** `renderV11DossierZonesHtml` injicerar `renderV11ContextPanels` (journey/bokningar/veckomönster) **före** dokument — strider mot locked spec.
+
+### dossier-bundle (prod stickprov)
+
+Grupper stabila: `offers`, `healthForms`, `consents`, `journalStatus.expected`, `autoDokument` — **PASS för Fas C**.
+
+Verifiering: `node scripts/verify-ord24-prod.js` (inget npm-alias än).
+
+### Fas E datagap (varför NO-GO)
+
+- Ingen `bookings.today[]` i dossier-bundle
+- Encounter-store: `reserved | confirmed | cancelled` — saknar `checked_in | in_progress | completed_today`
+- `watch-checkin` returnerar timestamp, matar inte tillbaka persistent “pågår idag”-zon
+- Finns: `upcomingBookings`, `todayVisit`, `encounterId`, `missingEncounterForBooking` — **otillräckligt för mockup Fas E**
+
+**Nästa efter A–D cutover:** eget segment **Aktivt besök / Nytt besök** + journalstart — kräver ORD-23a/encounter-spår innan UI.
+
+---
+
+## Sammanslagen produktvision (facit 2026-06-17)
+
+**Live kundkort = v11 dossier (alltid) + Aktivt besök (när kunden är här idag).**
+
+| Källa                  | Bidrag                                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| v11 locked mockup      | Bas: Hero → Dokument → Insikter + sticky                                                  |
+| Operations (Cloud)     | Konditionell **Aktivt besök**-zon mellan hero och stat-row                                |
+| Port-disciplin (Codex) | Audit facit, fasad leverans, primär arbetsyta i live SPA — **inte** porta allt i ett svep |
+
+**Kanonisk facit-yta:** `KUNDKORT-V11-LOCKED-2026-06-05.md` + Fas E (Aktivt besök) nedan.  
+**Inte facit:** referens-only layout som default (`cco-kundkort-referens.js` / v10 facit när `usesV11DossierCutover()` är false).
+
+### Komposition (live SPA)
+
+```
+Utan aktivt besök idag:
+  [ Zon 1 Hero ] ─hairstrand─ [ Zon 2 Dokument ] ─hairstrand─ [ Zon 3 Insikter + sticky ]
+
+Med aktivt besök idag (Fas E):
+  [ Zon 1 Hero ] ─hairstrand─ [ Aktivt besök ] ─hairstrand─ [ stat-row om ej i hero ]
+  ─hairstrand─ [ Zon 2 Dokument ] ─hairstrand─ [ Zon 3 Insikter + sticky ]
+```
+
+**ORD-26 slide-over** (15 sektioner) förblir **komplement** — inte primär dossier-layout.
+
+**Backend som inte sväljer ORD-25:** ORD-23a (allergier, journal grid, besök), ORD-24 (dokument-segment payload), ORD-41 (besöksgruppering + assets). Journal **per besök** (encounter) — princip i Fas E + 23a, inte lös text i kortet.
 
 ---
 
 ## Bakgrund
 
-Owner låste **kundkort v11** 2026-06-05 efter 6 iterationer (v6→v11). Full design-spec ligger i `docs/handover/MOCKUPS/KUNDKORT-V11-LOCKED-2026-06-05.md`. Mockup-snapshot fanns i visualize-widget `kundkort_v11_stitched_hero_dokument_insikter`.
+Owner låste **kundkort v11** 2026-06-05 (v6→v11). Detta ORD portar designen till **live staff SPA** — idag routas detaljvy fortfarande via referens/v10 facit trots att v11-renderers finns i `cco-v9-customers-parity.js`.
 
-Detta ORD portar v11-designen till live SPA — refactor av befintlig dossier-render-path i `cco-v9-customers-parity.js` (Cursor äger denna path; `patient-master-ui.js` är Claude-display-track och rörs inte här).
+**Render-path (Cursor):** `public/major-arcana-preview/app/cco-v9-customers-parity.js` + `cco-v9-customers.css`  
+**Routing/cutover (minimal):** `patient-master-ui.js` — endast `usesV11DossierCutover()`, bundle-fetch, flaggor  
+**Inte ORD-25:** journal-editor, `patient-master-ui.js` övrig display-logik
+
+---
+
+## Cursor vs Codex — uppgiftsfördelning
+
+| #             | Uppgift                                                                             | Ägare                                               | Leverabel                                     |
+| ------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------- |
+| **0**         | Audit: live vs referens vs v11-kod, 1 stickprovspatient, gap-lista                  | **Codex**                                           | Kort rapport i PR-kommentar / handover-append |
+| **0b**        | Validera `dossier-bundle` payload vs dokument-inventory (1–2 patienter)             | **Codex**                                           | PASS/FAIL per grupp (offers/HD/journal/auto)  |
+| **A**         | CSS v11-tokens + hairstrand utility                                                 | **Cursor**                                          | PR, `npm test`                                |
+| **B**         | Hero + medicinsk briefing + stat-row                                                | **Cursor**                                          | PR                                            |
+| **C**         | Dokument-segment (4 grupper + filter)                                               | **Cursor**                                          | PR; tom-state om payload saknas               |
+| **D**         | Insikter + sticky + helper vid blocker                                              | **Cursor**                                          | PR                                            |
+| **E**         | Aktivt besök-zon (3 states, konditionell)                                           | **Cursor**                                          | PR **efter** A–D cutover                      |
+| **Cutover**   | `usesV11DossierCutover()` true; rensa journey/bokningar/veckomönster ur v11-default | **Cursor**                                          | PR                                            |
+| **Verify**    | Utöka/nytt v11-zone verify + befintliga sticks                                      | **Cursor**                                          | Script i `scripts/`                           |
+| **UAT prod**  | 3 patienter: utan besök / med besök / med HD-blocker · 380px                        | **Codex**                                           | PASS/FAIL + screenshots                       |
+| **Deploy**    | Push, Render live, `_diag/version`                                                  | **Codex**                                           | Commit på prod                                |
+| **23a slice** | Structured allergies i briefing (ersätt `importantNote`-parse)                      | **Codex** om backend · **Cursor** om endast UI-wire | Efter Fas B                                   |
+
+**Regel:** Cursor skriver inte prod batch/encounter utan owner GO. Codex rör inte `cco-v9-customers-parity.js` render utom cutover-rad i `patient-master-ui.js` om överenskommet.
 
 ---
 
 ## Scope (strikt, fasad leverans)
+
+### Fas 0 · Audit + facit-lås (Codex, före cutover)
+
+1. Bekräfta **facit** = v11 locked + Fas E (inte referens-default).
+2. Tabell: sektion → finns i live / referens / parity.js v11 / saknas.
+3. En stickprovspatient: `dossier-bundle` + `card` + `bookings.today[]` + encounter-state.
+4. Output: gap-lista som styr A–E (max 1 sida, inga PII i handover).
+
+**Exit:** Owner/Cursor GO på facit innan cutover-PR.
+
+### Fas A · Design-tokens + system foundation (additivt, säkert)
 
 ### Fas A · Design-tokens + system foundation (additivt, säkert)
 
@@ -119,36 +217,90 @@ Ersätt befintlig insikter/action-zon:
 2. **Sticky bottom** — flex med 1 hjälte-CTA (gold-fill "Boka nästa PRP", full-width-flex) + 2 assistenter (vellum "Ta bild" + grön-pill "Bekräfta · {count}").
 3. **Helper-text under sticky** — 11px ink-soft, vänsterställt, kontextuell ("Signera hälsodeklarationen innan du skapar behandlingsplan." när blocker finns).
 
+### Fas E · Aktivt besök (konditionell operations-zon) — **efter A–D cutover**
+
+**Placering:** mellan Hero och stat-row (eller direkt under hero om stat-row ingår i hero), separerad med hairstrand.
+
+**Render-villkor:** visa endast om `bookings.today[]` har bokning med status  
+`checked_in | in_progress | completed_today` (exakt fältnamn valideras i Fas 0).  
+**Inget aktivt besök → zonen kollapsar helt** (v11 default oförändrat).
+
+**Innehåll (pågår-state, referens-mockup 2026-06-17):**
+
+1. **Kicker** — pulsande amber-dot + `AKTIVT BESÖK · PÅGÅR` + tidsstämpel (check-in)
+2. **Visit-kontext** — rubrik (behandling/session), detalj (område · planerad tid), behandlare + rum
+3. **Pre-flight** (3-kol): HD signerad · allergier granskade · FC krävs idag (amber + Öppna)
+4. **Encounter-timeline** — incheckad → pågår → ~klart (horisontell tråd)
+5. **Journal-actions** — gold primary `Starta journal · {protokoll}` + Ta bild · Anteckning · Avsluta
+
+**3 states:**
+
+| State              | UI                                 | Primär CTA       |
+| ------------------ | ---------------------------------- | ---------------- |
+| Väntar incheckning | Ingen puls; pre-flight kvar        | Checka in        |
+| Pågår              | Amber-puls + aktiv timeline        | Starta journal   |
+| Avslutat idag      | Grön kicker `Besök avslutat {tid}` | Boka uppföljning |
+
+**Datakällor (validera i Fas 0):**
+
+- `dossier-bundle.bookings.today[]` — dagens bokning
+- Encounter/check-in store — tider + state (kan kräva ORD-23a/41)
+- Pre-flight: `dossier-bundle.documents` (HD/FC) + `card.allergies` (ORD-23)
+- `Starta journal` → `journalType` från flow + journeyStep (koppling i 23a)
+
+**Roll vs Zon 3 sticky:** Fas E = **besöksbundet** (idag). Sticky = **kundrelation generellt**. Undvik dubbla "Ta bild" utan tydlig hierarki — besök-CTA vinner när Fas E är synlig.
+
+**OUT OF SCOPE Fas E:** permanent bokningslista; tidigare besök grupperat (ORD-41); full encounter-backend om Fas 0 visar gap.
+
 ---
 
-## OUT OF SCOPE
+## OUT OF SCOPE (ORD-25 — inte i första cutover)
 
-- **Kundresan-sektion** — v11 har INTE en separat kundresa-sektion (ersatt av "Visa kundresa ›" link i insikter + journeyStep-meta på varje dokumentrad). Den befintliga journey-stepper-sektionen i SPA tas BORT i denna refactor.
-- **Bokningar-sektion** — flyttas till separat vy/tab, inte i kundkortet
-- **Veckans mönster / analytiska insikter** — utanför v11-scope (kan komma som senare ORD)
-- **Backend datamodell** — ligger i ORD-23 (allergi-fält) och ORD-24 (dokument-segment). Detta ORD är endast frontend-port.
-- **`patient-master-ui.js`** — Claude-display-track, rörs inte.
+- **Permanent kundresa-sektion** — endast länk "Visa kundresa ›" i insikter + journeyStep på dokumentrader
+- **Permanent bokningslista** — kalender / Fas E när aktivt besök
+- **Veckans mönster / analytiska insikter** — senare ORD
+- **Tidigare besök grupperat per datum** — ORD-41 + ORD-23a (journal per encounter)
+- **Full backend datamodell** — ORD-23a, ORD-24, ORD-41 (ORD-25 wire:ar bara befintliga payloads)
+- **Referens-default som prod facit** — cutover ska använda v11, inte `renderV10ReferensDossierHtml`
+- **Journal-editor i `patient-master-ui.js`** — utom bundle-fetch / cutover-flaggor
+
+**Bort i v11-default-path (ska inte renderas före dokument):** `renderV11CustomerJourney`, `renderV11WeeklyPatterns`, `renderV11UpcomingBookings`, `renderV11ContextPanels` — dölj eller ta bort från `renderV11DossierZonesHtml` vid cutover.
 
 ---
 
 ## Acceptance Criteria
 
-### Per fas
+### Fas 0 (Codex)
+
+- [ ] Facit dokumenterat: v11 + Fas E, inte referens-default
+- [ ] Gap-lista: live / referens / v11-kod per sektion
+- [ ] `dossier-bundle` validerad på ≥1 stickprovspatient (4 dokumentgrupper)
+
+### Per fas (Cursor)
 
 - [ ] **Fas A:** CSS-tokens definierade · `npm test` PASS · ingen visuell regression
-- [ ] **Fas B:** Hero matchar v11-mockup pixel-nära (avatar/identitet/briefing/stat-row) · medicinsk briefing visar allergi-fält från backend (eller fallback) · `--shadow-lift` på hero-card
-- [ ] **Fas C:** 4 dokument-grupper renderar från `dossier-bundle` · filter-chips fungerar (klick uppdaterar list) · status-pillar och flow-chips matchar token-färger
-- [ ] **Fas D:** Insikter-strip visar 3 kort med rätt state-färger · sticky har 1 primary + 2 secondaries · helper-text visas när blocker finns
+- [ ] **Fas B:** Hero matchar v11-mockup · briefing (allergies eller fallback) · `--shadow-lift`
+- [ ] **Fas C:** 4 dokument-grupper från `dossier-bundle` · filter-chips · tom-state om payload saknas
+- [ ] **Fas D:** 3 insikt-kort · sticky 1+2 · helper vid blocker
+- [ ] **Cutover:** `usesV11DossierCutover()` true i prod path · inga out-of-scope zoner i default
+- [ ] **Fas E:** Aktivt besök synlig endast vid today+encounter · 3 states · journal-CTA · zon kollapsar annars
 
 ### Globalt
 
 - [ ] V9 default-ON kvar (feature-flag intakt)
-- [ ] Ingen rosa accent någonstans · inga blå stripes · inga bruna checkmarks (per v11-frusna designval)
-- [ ] 5 typstorlekar max i hela kundkortet (10/11/13/16/22)
-- [ ] Hairstrand mellan zon 1→2 och 2→3 (inte rak hr)
+- [ ] Inga rosa/blå stripes/bruna checkmarks (v11-frusna val)
+- [ ] 5 typstorlekar max (10/11/13/16/22)
+- [ ] Hairstrand mellan zoner
 - [ ] `npm test` PASS
-- [ ] verify-script 13/13 oförändrat
-- [ ] Mobile-render testat på 380px viewport (responsivt eller dedicerad m-version)
+- [ ] v11 verify script PASS (ny eller utökad)
+- [ ] Mobile 380px (Codex UAT)
+
+### Prod UAT (Codex, efter deploy)
+
+- [ ] Patient **utan** besök idag → ingen Fas E, v11 tre zoner
+- [ ] Patient **med** besök idag → Fas E + pre-flight + journal-CTA
+- [ ] Patient med HD-blocker → amber pre-flight + helper i sticky
+- [ ] `node scripts/verify-ord16-progress.js` oförändrat eller utökad v11-check PASS
 
 ---
 
@@ -163,26 +315,41 @@ Ersätt befintlig insikter/action-zon:
 
 ---
 
-## När Cursor klar — Claude UAT
+## När Cursor klar — Codex UAT
 
-1. Öppna prod dossier → klick kund → verifiera v11-layout matchar mockup 1:1
-2. Audit color-tokens i devtools: bara lila/grön/amber + parchment används
-3. Räkna typstorlekar: max 5 unika `font-size`-värden i v11-card
-4. Verifiera hairstrand renderar mellan zoner
-5. Test medicinsk briefing med och utan allergi-data (fallback-path)
-6. Mobile-test 380px
-7. `node scripts/verify-ord16-progress.js` 13/13 PASS
+Se **Acceptance → Prod UAT** ovan. Codex äger deploy + manuell staff-UAT; Cursor äger verify-scripts.
+
+---
+
+## Byggordning (sammanslagen)
+
+```
+Fas 0 audit (Codex) → GO
+  → Fas A tokens (Cursor)
+  → Rensa out-of-scope zoner i v11-path (Cursor)
+  → Fas B hero (Cursor)
+  → Fas C dokument (Cursor)
+  → Fas D insikter (Cursor)
+  → Cutover PR (Cursor)
+  → Codex deploy + UAT utan besök
+  → Fas E Aktivt besök (Cursor)
+  → Codex UAT med besök idag
+  → ORD-23a/41 backend-gap (separata ORD, inte blockera cutover)
+```
 
 ---
 
 ## Referens
 
 - **Canonical mockup-spec:** `docs/handover/MOCKUPS/KUNDKORT-V11-LOCKED-2026-06-05.md`
-- **Document inventory:** `docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md` (för Grupp 3+4 data-shape)
-- **Backend deps:** ORD-23 (allergier) + ORD-24 (dokument-segment, ej skapat än)
-- **Befintlig render-path:** `public/major-arcana-preview/app/cco-v9-customers-parity.js`
+- **Aktivt besök mockup:** owner screenshot 2026-06-17 (Fas E)
+- **Document inventory:** `docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md`
+- **Backend deps:** ORD-23a (allergier, journal/besök) · ORD-24 (dokument-segment) · ORD-41 (besöksgruppering)
+- **Render-path:** `public/major-arcana-preview/app/cco-v9-customers-parity.js`
+- **Cutover/routing:** `public/major-arcana-preview/app/patient-master-ui.js` (`usesV11DossierCutover`)
 - **CSS:** `public/major-arcana-preview/cco-v9-customers.css`
+- **Slide-over (klar):** `ORD-26` — `cco-kundkort-slide-over.js`
 
 ---
 
-_Skapad av Claude · 2026-06-05 · Owner GO: "porta v1[1]"_
+_Uppdaterad 2026-06-17 · Sammanslagen spec (v11 + Aktivt besök + Cursor/Codex-fördelning)_
