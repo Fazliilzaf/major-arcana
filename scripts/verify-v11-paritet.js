@@ -20,6 +20,7 @@ const PARITY_JS = path.join(
   REPO_ROOT,
   'public/major-arcana-preview/app/cco-v9-customers-parity.js'
 );
+const PATIENT_UI_JS = path.join(REPO_ROOT, 'public/major-arcana-preview/app/patient-master-ui.js');
 
 const ANSI = {
   reset: '\x1b[0m',
@@ -223,6 +224,72 @@ if (!parityJs) {
   // V9 feature-flag intakt (regression-check)
   const flagIntact = parityJs.includes('v9-enabled') || parityJs.includes('data-v9-enabled');
   check('V9 feature-flag intakt', flagIntact, flagIntact ? 'kvar' : 'BORTTAGEN — regression!');
+
+  const zonesFnMatch = parityJs.match(/function renderV11DossierZonesHtml\([\s\S]*?\n {2}\}/);
+  const zonesFnBody = zonesFnMatch ? zonesFnMatch[0] : '';
+  const noContextInDefault =
+    zonesFnBody.length > 0 && !zonesFnBody.includes('renderV11ContextPanels');
+  check(
+    'v11-default utan context panels (journey/bokningar)',
+    noContextInDefault,
+    noContextInDefault
+      ? 'renderV11ContextPanels ej i renderV11DossierZonesHtml'
+      : 'renderV11ContextPanels kvar i default-zoner — bryter locked spec'
+  );
+
+  const zoneOrderOk =
+    zonesFnBody.includes('renderV11DocumentSegments') &&
+    zonesFnBody.includes('renderV11InsightsStrip') &&
+    zonesFnBody.indexOf('renderV11DocumentSegments') <
+      zonesFnBody.indexOf('renderV11InsightsStrip');
+  check(
+    'v11-zonordning dokument före insikter',
+    zoneOrderOk,
+    zoneOrderOk ? 'dokument → insikter' : 'fel ordning i renderV11DossierZonesHtml'
+  );
+
+  const cutoverRoute =
+    parityJs.includes('usesV11DossierCutover()') &&
+    /if \(usesV11DossierCutover\(\)\)/.test(parityJs);
+  check(
+    'v11-cutover routar intelligent bubbles → dossier-zoner',
+    cutoverRoute,
+    cutoverRoute
+      ? 'parity cutover-gren finns'
+      : 'saknar cutover-gren i renderIntelligentJourneyBubblesHtml'
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Cutover: patient-master-ui routing
+// ─────────────────────────────────────────────────────────────
+
+const patientUiJs = readFileSafe(PATIENT_UI_JS);
+if (!patientUiJs) {
+  check('patient-master-ui läsbar', false, `Hittade inte ${PATIENT_UI_JS}`);
+} else {
+  check('patient-master-ui läsbar', true, `${patientUiJs.length} bytes`);
+
+  const cutoverEnabled =
+    patientUiJs.includes('function usesV11DossierCutover()') &&
+    patientUiJs.includes('__ARCANA_V11_KUNDKORT') &&
+    (patientUiJs.includes('isV9CustomersEnabled()') ||
+      patientUiJs.includes('return isV9CustomersEnabled()'));
+  check(
+    'usesV11DossierCutover() aktiv (ej hårdkodad false)',
+    cutoverEnabled,
+    cutoverEnabled ? 'v9 → v11 default' : 'cutover fortfarande av'
+  );
+
+  const referensGated =
+    patientUiJs.includes('v10Facit && !v11Cutover') && patientUiJs.includes('renderV11Hero');
+  check(
+    'referens/v10 default av när v11-cutover',
+    referensGated,
+    referensGated
+      ? 'v10Facit && !v11Cutover + renderV11Hero'
+      : 'saknar cutover-routing i renderV9MockupDetailShell'
+  );
 }
 
 // ─────────────────────────────────────────────────────────────

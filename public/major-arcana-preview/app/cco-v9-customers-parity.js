@@ -29,6 +29,13 @@
     return global.__ARCANA_V10_KUNDKORT_FACIT !== false;
   }
 
+  /** ORD-25 — v11 dossier default när v9 på; opt-out via __ARCANA_V11_KUNDKORT=false. */
+  function usesV11DossierCutover() {
+    if (global.__ARCANA_V11_KUNDKORT === false) return false;
+    if (global.__ARCANA_V11_KUNDKORT === true) return true;
+    return isV9On();
+  }
+
   function resolveFileViewUrl(file) {
     if (file?.viewUrl) return String(file.viewUrl);
     if (file?.id) {
@@ -2865,7 +2872,6 @@
 
     return `
       <div class="v11-dossier-zones" data-v11-dossier-zones>
-        ${renderV11ContextPanels(card, journalEntries, dossierBundle, occasionTimeline)}
         ${renderV11Hairstrand()}
         ${renderV11DocumentSegments(card, dossierBundle, filterState)}
         ${renderV11Hairstrand()}
@@ -3357,8 +3363,12 @@
   ) {
     if (!isV9On() || !card) return '';
 
-    if (usesV10KundkortFacit()) {
+    if (usesV10KundkortFacit() && !usesV11DossierCutover()) {
       return '';
+    }
+
+    if (usesV11DossierCutover()) {
+      return renderV11DossierZonesHtml(card, journalEntries, dossierBundle, {}, occasionTimeline);
     }
 
     const slideOver = renderKundkortSlideOverHtml(

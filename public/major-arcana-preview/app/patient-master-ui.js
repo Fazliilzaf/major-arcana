@@ -1121,9 +1121,11 @@
     return window.__ARCANA_V10_KUNDKORT_FACIT !== false;
   }
 
-  /** v11 cutover av — v10 mockup är canonical kundkort-yta. */
+  /** ORD-25 — v11 dossier default när v9 på; opt-out via __ARCANA_V11_KUNDKORT=false. */
   function usesV11DossierCutover() {
-    return false;
+    if (window.__ARCANA_V11_KUNDKORT === false) return false;
+    if (window.__ARCANA_V11_KUNDKORT === true) return true;
+    return isV9CustomersEnabled();
   }
 
   /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
@@ -5061,7 +5063,11 @@
     return `
       <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis${v10Facit ? ' v9-mockup-dossier--v10-facit' : ''}${v11Cutover ? ' v9-mockup-dossier--v11-cutover' : ''}" data-patient-detail${v11Cutover ? ' data-v11-cutover="1"' : ''}>
         <div class="v9-dossier-chrome">
-          ${v11Cutover ? '' : renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
+          ${
+            v11Cutover
+              ? window.CcoV9CustomersParity?.renderV11Hero?.(card, journalEntries) || ''
+              : renderPatientDetailHero(card, journalEntries, { occasionTimeline })
+          }
           ${renderV9IntelligentBubblesBlock(card, journalEntries, occasionTimeline)}
           ${v11Cutover ? '' : renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
         </div>
@@ -5735,6 +5741,9 @@
     journalEntries = [],
     { loading = false, occasionTimeline = null } = {}
   ) {
+    if (usesV11DossierCutover()) {
+      return window.CcoV9CustomersParity?.renderV11Hero?.(card, journalEntries, { loading }) || '';
+    }
     if (usesV10KundkortFacit()) {
       return renderV10DossierHeroHtml(card, journalEntries, { loading, occasionTimeline });
     }
@@ -6392,6 +6401,30 @@
           </div>
         </article>`;
         })();
+    const v11Cutover = usesV11DossierCutover();
+    const loadingSkeleton = `
+        <div class="patient-master-detail-skeleton" aria-hidden="true">
+          <div class="patient-master-detail-skeleton-bar"></div>
+          <div class="patient-master-detail-skeleton-bar is-short"></div>
+          <div class="patient-master-detail-skeleton-bar"></div>
+        </div>`;
+    if (v11Cutover && isV9CustomersEnabled()) {
+      setPatientRailHtml(
+        rail,
+        `
+      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--v11-cutover patient-master-card-loading" data-patient-detail data-patient-loading="true" data-v11-cutover="1" aria-busy="true">
+        <div class="v9-dossier-chrome">
+          ${heroHtml}
+          ${loadingSkeleton}
+        </div>
+      </section>
+    `
+      );
+      syncV9CustomersLayoutState();
+      syncMobilePatientLayout();
+      window.ArcanaMobileShell?.syncFromApp?.();
+      return;
+    }
     setPatientRailHtml(
       rail,
       `
@@ -6399,11 +6432,7 @@
         ${heroHtml}
         ${renderPatientDetailTabsMarkup(runtime.detailTab, 0, { ariaHidden: true })}
         ${renderPatientDetailBodyOpen()}
-        <div class="patient-master-detail-skeleton" aria-hidden="true">
-          <div class="patient-master-detail-skeleton-bar"></div>
-          <div class="patient-master-detail-skeleton-bar is-short"></div>
-          <div class="patient-master-detail-skeleton-bar"></div>
-        </div>
+        ${loadingSkeleton}
         ${renderPatientDetailBodyClose()}
       </section>
     `
