@@ -333,25 +333,24 @@ if (!patientUiJs) {
     checkinWired ? 'checkInVisit → watch-checkin' : 'saknar checkInVisit wiring'
   );
 
-  const cutoverEnabled =
+  const cutoverOptIn =
     patientUiJs.includes('function usesV11DossierCutover()') &&
-    patientUiJs.includes('__ARCANA_V11_KUNDKORT') &&
-    (patientUiJs.includes('isV9CustomersEnabled()') ||
-      patientUiJs.includes('return isV9CustomersEnabled()'));
+    patientUiJs.includes('__ARCANA_V11_KUNDKORT === true');
   check(
-    'usesV11DossierCutover() aktiv (ej hårdkodad false)',
-    cutoverEnabled,
-    cutoverEnabled ? 'v9 → v11 default' : 'cutover fortfarande av'
+    'usesV11DossierCutover() opt-in (__ARCANA_V11_KUNDKORT=true)',
+    cutoverOptIn,
+    cutoverOptIn ? 'referens default, v11 opt-in' : 'saknar opt-in cutover flag'
   );
 
-  const referensGated =
-    patientUiJs.includes('v10Facit && !v11Cutover') && patientUiJs.includes('renderV11Hero');
+  const referensPath =
+    patientUiJs.includes('v10Facit && !v11Cutover') &&
+    patientUiJs.includes('renderV10ReferensDossierHtml');
   check(
-    'referens/v10 default av när v11-cutover',
-    referensGated,
-    referensGated
-      ? 'v10Facit && !v11Cutover + renderV11Hero'
-      : 'saknar cutover-routing i renderV9MockupDetailShell'
+    'referens path när cutover av',
+    referensPath,
+    referensPath
+      ? 'v10Facit && !v11Cutover → renderV10ReferensDossierHtml'
+      : 'saknar referens-routing i renderV9MockupDetailShell'
   );
 }
 

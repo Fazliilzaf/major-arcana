@@ -1121,11 +1121,11 @@
     return window.__ARCANA_V10_KUNDKORT_FACIT !== false;
   }
 
-  /** ORD-25 — v11 dossier default när v9 på; opt-out via __ARCANA_V11_KUNDKORT=false. */
+  /** ORD-25 — referens (ORD-47 §-kort) default; opt-in v11 via __ARCANA_V11_KUNDKORT=true. */
   function usesV11DossierCutover() {
-    if (window.__ARCANA_V11_KUNDKORT === false) return false;
     if (window.__ARCANA_V11_KUNDKORT === true) return true;
-    return isV9CustomersEnabled();
+    if (window.__ARCANA_V11_KUNDKORT === false) return false;
+    return false;
   }
 
   /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
