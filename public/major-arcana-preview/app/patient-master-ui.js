@@ -4828,6 +4828,7 @@
       },
       switchTab: (tabKey) => switchDetailTab(tabKey),
       openJournal: () => switchDetailTab('journal'),
+      openNotes: () => switchDetailTab('anteckningar'),
       openForm: () => switchDetailTab('journal'),
     };
     if (root.querySelector('[data-kundkort-slide-over]')) {

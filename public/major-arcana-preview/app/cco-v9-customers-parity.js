@@ -1007,6 +1007,96 @@
     return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }).replace('.', '');
   }
 
+  function formatActiveVisitTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function resolveActiveVisitPayload(dossierBundle) {
+    const visit = dossierBundle?.activeVisit;
+    if (!visit || visit.visible !== true) return null;
+    return visit;
+  }
+
+  function renderV11ActiveVisitBlockers(blockers) {
+    const rows = asArray(blockers);
+    if (!rows.length) {
+      return '<p class="v11-active-visit__preflight-ok">Inga blockerare för dagens besök.</p>';
+    }
+    return `
+      <div class="v11-active-visit__blockers" data-v11-active-visit-blockers>
+        ${rows
+          .map(
+            (row) => `
+          <div class="v11-active-visit__blocker" data-v11-active-visit-blocker="${escapeHtml(row.code || '')}">
+            <span class="v11-active-visit__blocker-badge" aria-hidden="true">!</span>
+            <span class="v11-active-visit__blocker-copy">
+              <span class="v11-active-visit__blocker-label">${escapeHtml(row.label || 'Blockerare')}</span>
+              <span class="v11-active-visit__blocker-hint">Krävs idag</span>
+            </span>
+          </div>`
+          )
+          .join('')}
+      </div>`;
+  }
+
+  function renderV11ActiveVisit(dossierBundle, card) {
+    void card;
+    const visit = resolveActiveVisitPayload(dossierBundle);
+    if (!visit) return '';
+
+    const timeLabel = formatActiveVisitTime(visit.startsAt);
+    const title = normalizeIntelText(visit.serviceLabel) || 'Besök idag';
+    const practitioner = normalizeIntelText(visit.practitionerLabel);
+    const journalLabel = visit.journalStarted ? 'Fortsätt journal' : 'Starta journal';
+    const journalDetail = normalizeIntelText(visit.serviceLabel);
+    const photoDisabled = visit.photoCaptureAvailable === false;
+    const notesDisabled = visit.notesAvailable === false;
+
+    return `
+      <section
+        class="v11-active-visit"
+        data-v11-active-visit
+        data-v11-active-visit-state="${escapeHtml(visit.state || 'scheduled_today')}"
+        aria-label="Aktivt besök idag"
+      >
+        <header class="v11-active-visit__head">
+          <span class="v11-active-visit__status">
+            <span class="v11-active-visit__dot" aria-hidden="true"></span>
+            <span class="v11-active-visit__kicker">Nytt besök · idag</span>
+          </span>
+          ${timeLabel ? `<span class="v11-active-visit__time">${escapeHtml(timeLabel)}</span>` : ''}
+        </header>
+        <div class="v11-active-visit__context">
+          <h3 class="v11-active-visit__title">${escapeHtml(title)}</h3>
+          ${practitioner ? `<p class="v11-active-visit__meta">${escapeHtml(practitioner)}</p>` : ''}
+        </div>
+        <div class="v11-active-visit__preflight" data-v11-active-visit-preflight>
+          <span class="v11-active-visit__preflight-kicker">Innan besöket</span>
+          ${renderV11ActiveVisitBlockers(visit.blockers)}
+        </div>
+        <div class="v11-active-visit__actions" data-v11-active-visit-actions>
+          <button type="button" class="v11-active-visit__primary" data-v11-active-visit-action="journal">
+            ${escapeHtml(journalLabel)}${journalDetail ? ` · ${escapeHtml(journalDetail)}` : ''}
+          </button>
+          <button
+            type="button"
+            class="v11-active-visit__secondary${photoDisabled ? ' is-disabled' : ''}"
+            data-v11-active-visit-action="photo"
+            ${photoDisabled ? 'disabled aria-disabled="true"' : ''}
+          >Ta bild</button>
+          <button
+            type="button"
+            class="v11-active-visit__secondary${notesDisabled ? ' is-disabled' : ''}"
+            data-v11-active-visit-action="notes"
+            ${notesDisabled ? 'disabled aria-disabled="true"' : ''}
+          >Anteckning</button>
+        </div>
+      </section>`;
+  }
+
   const INTEL_TONE_ORDER = { next: 0, coming: 1, future: 2, done: 3, neutral: 4 };
 
   function normalizeIntelText(value) {
@@ -2872,6 +2962,7 @@
 
     return `
       <div class="v11-dossier-zones" data-v11-dossier-zones>
+        ${renderV11ActiveVisit(dossierBundle, card)}
         ${renderV11Hairstrand()}
         ${renderV11DocumentSegments(card, dossierBundle, filterState)}
         ${renderV11Hairstrand()}
@@ -3486,6 +3577,19 @@
       const docRow = event.target.closest('[data-v11-doc-row][data-v11-doc-previewable="1"]');
       if (docRow) {
         handleV11DocumentRowActivate(root, docRow);
+        return;
+      }
+
+      const activeVisitAction = event.target.closest('[data-v11-active-visit-action]');
+      if (activeVisitAction && !activeVisitAction.disabled) {
+        const action = activeVisitAction.getAttribute('data-v11-active-visit-action') || '';
+        if (action === 'photo') {
+          root.querySelector('.v9-camera-bridge [data-patient-photo-camera]')?.click();
+        } else if (action === 'journal') {
+          liveHandlers.openJournal?.();
+        } else if (action === 'notes') {
+          liveHandlers.openNotes?.() || liveHandlers.switchTab?.('anteckningar');
+        }
         return;
       }
 
@@ -4150,6 +4254,8 @@
     renderV11DocumentSegments,
     renderV11InsightsStrip,
     renderV11StickyActions,
+    renderV11ActiveVisit,
+    resolveActiveVisitPayload,
     renderV11UpcomingBookings,
     buildHistoryBookings,
     buildUpcomingBookings,

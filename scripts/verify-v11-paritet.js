@@ -258,6 +258,35 @@ if (!parityJs) {
       ? 'parity cutover-gren finns'
       : 'saknar cutover-gren i renderIntelligentJourneyBubblesHtml'
   );
+
+  const activeVisitFn = parityJs.includes('function renderV11ActiveVisit(');
+  check(
+    'Render-fn renderV11ActiveVisit (ORD-25E Fas 2)',
+    activeVisitFn,
+    activeVisitFn ? 'finns' : 'SAKNAS'
+  );
+
+  const zonesWithActive = /renderV11ActiveVisit\(dossierBundle/.test(parityJs);
+  check(
+    'Aktivt besök före dokument i v11-zoner',
+    zonesWithActive,
+    zonesWithActive ? 'mount ordning OK' : 'renderV11ActiveVisit saknas i renderV11DossierZonesHtml'
+  );
+
+  const selfHide = parityJs.includes('visit.visible !== true');
+  check(
+    'Aktivt besök self-hide (visible=false)',
+    selfHide,
+    selfHide ? 'resolveActiveVisitPayload' : 'saknar visible-gate'
+  );
+
+  const noFakeStates =
+    !parityJs.includes("state: 'in_progress'") && !parityJs.includes('checked_in');
+  check(
+    'Ingen fejkad in_progress/checked_in i UI',
+    noFakeStates,
+    noFakeStates ? 'rent' : 'hårdkodad encounter-state i parity.js'
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
