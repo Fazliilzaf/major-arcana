@@ -7427,11 +7427,6 @@ html[data-v9-enabled="on"] .kundkort-slide-over--v2 .v11-context-panels {
   display: none !important;
 }
 
-html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v9-dossier-zone1,
-html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v11-dossier-hero {
-  display: none !important;
-}
-
 html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover [data-v9-smart-next-step],
 html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover [data-v9-capability-actions],
 html[data-v9-enabled="on"] .v9-mockup-dossier--v11-cutover .v9-dossier-actions {
