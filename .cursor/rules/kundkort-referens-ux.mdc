@@ -16,7 +16,7 @@ alwaysApply: false
 | CSS: `cco-kundkort-referens.css` (scope `.kkref`) | Global CSS utan `.kkref` |
 | Storvy: `#kkx-ov` + `CcoKundkortKkx.openBig` | Ny fullskärms-modal |
 | Journal: `mountKkxJournalBig` | Eget formulär-UI |
-| Aktivt besök: `.kkref-active-visit*` | v11 medicinsk grid |
+| Aktivt besök: `kkref-active-visit-native` / `data-sek="besok"` | v11 medicinsk grid |
 | v11 | Endast `window.__ARCANA_V11_KUNDKORT === true` |
 
 ## Skal (rör inte)
