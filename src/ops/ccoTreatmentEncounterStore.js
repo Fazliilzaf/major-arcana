@@ -3,7 +3,14 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 
-const ENCOUNTER_STATUSES = Object.freeze(['reserved', 'confirmed', 'cancelled']);
+const ENCOUNTER_STATUSES = Object.freeze([
+  'reserved',
+  'confirmed',
+  'checked_in',
+  'in_progress',
+  'completed',
+  'cancelled',
+]);
 const ENCOUNTER_TYPES = Object.freeze([
   'consultation',
   'transplant_fue',

@@ -13458,6 +13458,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoStaffRouter({
       patientMasterStore: ccoPatientMasterStore,
+      treatmentEncounterStore: ccoTreatmentEncounterStore,
       documentInstanceStore: ccoDocumentInstanceStore,
       readCache: ccoReadCache,
       dashboardSnapshot: ccoDashboardSnapshot,
@@ -13572,6 +13573,7 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       customerStore: ccoCustomerStore,
       journalStore: ccoJournalStore,
+      treatmentEncounterStore: ccoTreatmentEncounterStore,
       migrationIndexStore: ccoMigrationIndexStore,
       patientSystemStore: ccoPatientSystemStore,
       documentInstanceStore: ccoDocumentInstanceStore,

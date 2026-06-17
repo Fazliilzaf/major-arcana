@@ -1,6 +1,11 @@
 'use strict';
 
-const { normalizeEmail, normalizePhone, normalizeText, splitName } = require('../../scripts/migration/lib/migrationUtils');
+const {
+  normalizeEmail,
+  normalizePhone,
+  normalizeText,
+  splitName,
+} = require('../../scripts/migration/lib/migrationUtils');
 
 function serviceToPlanMethod(serviceId = '') {
   const id = normalizeText(serviceId).toLowerCase();
@@ -263,7 +268,11 @@ async function syncConsultationPhotoToEncounter({
   }
 
   if (!encounter) {
-    const encounters = await treatmentEncounterStore.listByPatient({ tenantId, patientId, limit: 20 });
+    const encounters = await treatmentEncounterStore.listByPatient({
+      tenantId,
+      patientId,
+      limit: 20,
+    });
     encounter =
       encounters.find(
         (item) =>
@@ -380,7 +389,11 @@ async function resolveEncounterForJournalEntry({
     if (encounter) return encounter;
   }
 
-  const encounters = await treatmentEncounterStore.listByPatient({ tenantId, patientId, limit: 20 });
+  const encounters = await treatmentEncounterStore.listByPatient({
+    tenantId,
+    patientId,
+    limit: 20,
+  });
   return encounters.find((item) => item.status !== 'cancelled') || null;
 }
 
@@ -454,29 +467,54 @@ async function syncJournalEntryToEncounter({
     entryId: updated.entryId,
   });
 
+  const now = new Date().toISOString();
+  encounter = await treatmentEncounterStore.upsertEncounter({
+    ...encounter,
+    status: normalizeText(encounter.status) === 'completed' ? 'completed' : 'in_progress',
+    metadata: {
+      ...(encounter.metadata || {}),
+      startedAt: normalizeText(encounter.metadata?.startedAt) || now,
+      lastJournalEntryAt: now,
+      lastJournalEntryId: updated.entryId,
+    },
+  });
+
   return { entry: updated, encounter, skipped: false };
 }
 
-async function lockEncounterOnJournalSign({
-  treatmentEncounterStore,
-  tenantId,
-  entry = {},
-} = {}) {
+async function lockEncounterOnJournalSign({ treatmentEncounterStore, tenantId, entry = {} } = {}) {
   const patientId = normalizeText(entry.patientId);
   const encounterId = normalizeText(entry.treatmentEncounterId);
   if (!treatmentEncounterStore || !patientId || !encounterId) {
     return { encounter: null, skipped: true };
   }
-  const encounter = await treatmentEncounterStore.getEncounter({ tenantId, patientId, encounterId });
+  const encounter = await treatmentEncounterStore.getEncounter({
+    tenantId,
+    patientId,
+    encounterId,
+  });
   if (!encounter) return { encounter: null, skipped: true };
   const lockedEntryIds = [
-    ...new Set([...asArray(encounter.metadata?.lockedEntryIds), normalizeText(entry.entryId)].filter(Boolean)),
+    ...new Set(
+      [...asArray(encounter.metadata?.lockedEntryIds), normalizeText(entry.entryId)].filter(Boolean)
+    ),
   ];
   const locked = await treatmentEncounterStore.upsertEncounter({
     ...encounter,
+    status: 'completed',
     metadata: {
       ...(encounter.metadata || {}),
-      journalLockedAt: normalizeText(encounter.metadata?.journalLockedAt) || new Date().toISOString(),
+      journalLockedAt:
+        normalizeText(encounter.metadata?.journalLockedAt) || new Date().toISOString(),
+      completedAt:
+        normalizeText(encounter.metadata?.completedAt) ||
+        normalizeText(entry.signedAt) ||
+        new Date().toISOString(),
+      startedAt:
+        normalizeText(encounter.metadata?.startedAt) ||
+        normalizeText(entry.updatedAt) ||
+        normalizeText(entry.createdAt) ||
+        new Date().toISOString(),
       lockedEntryIds,
     },
   });

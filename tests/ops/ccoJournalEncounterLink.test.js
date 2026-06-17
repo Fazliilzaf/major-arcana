@@ -86,6 +86,9 @@ test('syncJournalEntryToEncounter links health declaration to plan encounter', a
     encounterId: encounter.encounterId,
   });
   assert.ok(linked.journalEntryIds.includes(synced.entry.entryId));
+  assert.equal(linked.status, 'in_progress');
+  assert.ok(linked.metadata.startedAt);
+  assert.equal(linked.metadata.lastJournalEntryId, synced.entry.entryId);
 });
 
 test('lockEncounterOnJournalSign marks encounter metadata', async () => {
@@ -119,6 +122,8 @@ test('lockEncounterOnJournalSign marks encounter metadata', async () => {
     entry: signed,
   });
   assert.equal(locked.skipped, false);
+  assert.equal(locked.encounter.status, 'completed');
   assert.ok(locked.encounter.metadata.journalLockedAt);
+  assert.ok(locked.encounter.metadata.completedAt);
   assert.ok(locked.encounter.metadata.lockedEntryIds.includes(signed.entryId));
 });

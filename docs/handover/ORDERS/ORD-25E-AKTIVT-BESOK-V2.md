@@ -2,7 +2,7 @@
 
 **Skapad:** 2026-06-17  
 **Prio:** P1  
-**Status:** **Fas 0–2 CLOSED** (prod `d62e819e`, Fas 2 **låst — rör ej**) · **Fas 3 OPEN** (encounter-states + persistent check-in)  
+**Status:** **Fas 0–2 CLOSED** · **Fas 3a CLOSED (lokal, ej prod)** · **Fas 3b UI-nivå 2 GO (Cursor)** · prod UAT B/C väntar testdata  
 **Förälder:** [`ORD-25-kundkort-v11-port.md`](ORD-25-kundkort-v11-port.md) (Fas A–D **CLOSED** prod `a18b54e7`)
 
 ---
@@ -54,7 +54,54 @@
 
 ---
 
-## Fas 3 — encounter-states + persistent check-in (OPEN)
+## Fas 3a closeout — encounter-states (2026-06-17, Codex)
+
+**CLOSED (lokal diff, ej prod än)** · **GO för Cursor UI-nivå 2** på payload-nivå.
+
+### Implementation
+
+| Del                         | Fil                                                                                |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `activeVisit` state mapping | `src/ops/ccoActiveVisit.js` _(ny)_                                                 |
+| Encounter-status utvidgad   | `src/ops/ccoTreatmentEncounterStore.js` — `checked_in`, `in_progress`, `completed` |
+| Journal → encounter         | `src/ops/ccoJournalBookingBridge.js`                                               |
+| dossier-bundle payload      | `src/routes/ccoPatientMaster.js` — `treatmentEncounterStore.listByPatient`         |
+| Persistent watch check-in   | `src/routes/ccoStaff.js`                                                           |
+| DI wiring                   | `server.js`                                                                        |
+
+### State mapping (facit)
+
+| `activeVisit.state` | Källa                                                               |
+| ------------------- | ------------------------------------------------------------------- |
+| `scheduled_today`   | Dagens bokning, ingen encounter-progress                            |
+| `checked_in`        | Encounter `checked_in` eller `metadata.checkedInAt` (watch-checkin) |
+| `in_progress`       | Encounter `in_progress` / journal start idag                        |
+| `completed_today`   | Encounter `completed` / journal signerad idag                       |
+
+### Payload-fält (utökad)
+
+`checkedInAt`, `startedAt`, `completedAt`, `journalStarted` — från encounter + journal, inte UI-gissning.
+
+### Tester (lokal)
+
+```bash
+node --test tests/ops/ccoActiveVisit.test.js
+node --test tests/ops/ccoJournalEncounterLink.test.js
+node --test tests/routes/ccoStaffWatchCheckin.test.js
+```
+
+**6/6 PASS**
+
+### GO / NO-GO
+
+| Spår                          | Beslut                                             |
+| ----------------------------- | -------------------------------------------------- |
+| **Cursor Fas 3b (UI nivå 2)** | **GO** — bygg mot riktiga states i payload         |
+| **Fas 3 visuellt prod-UAT**   | **VÄNTAR** patient med dagens bokning efter deploy |
+
+---
+
+## Fas 3 — encounter-states + persistent check-in (3a done · 3b OPEN)
 
 **Ägare först:** **Codex** (audit + backend) → **Cursor** (UI-nivå 2 efter GO)
 
@@ -406,14 +453,14 @@ Se **Fas 0 audit — facit** ovan. Sammanfattning:
 
 ## Cursor vs Codex
 
-| Steg                                | Ägare      | Leverabel                     |
-| ----------------------------------- | ---------- | ----------------------------- |
-| **0** Datamodell-audit              | **Codex**  | **CLOSED**                    |
-| **1** `activeVisit`-adapter         | **Codex**  | **CLOSED** prod `d62e819e`    |
-| **2** UI delvis (`scheduled_today`) | **Cursor** | **CLOSED** — **rör ej**       |
-| **3a** Encounter-states + check-in  | **Codex**  | **OPEN** — payload + GO/NO-GO |
-| **3b** UI-nivå 2 (full states)      | **Cursor** | **efter 3a GO**               |
-| **UAT** B/C visuellt                | **Codex**  | när prod har dagens bokning   |
+| Steg                                | Ägare      | Leverabel                                |
+| ----------------------------------- | ---------- | ---------------------------------------- |
+| **0** Datamodell-audit              | **Codex**  | **CLOSED**                               |
+| **1** `activeVisit`-adapter         | **Codex**  | **CLOSED** prod `d62e819e`               |
+| **2** UI delvis (`scheduled_today`) | **Cursor** | **CLOSED** — **rör ej**                  |
+| **3a** Encounter-states + check-in  | **Codex**  | **CLOSED** (lokal) · GO UI nivå 2        |
+| **3b** UI-nivå 2 (full states)      | **Cursor** | **GO** — efter deploy valfritt stickprov |
+| **UAT** B/C visuellt                | **Codex**  | när prod har dagens bokning              |
 
 **Filer (Cursor, efter GO):**
 
@@ -550,9 +597,9 @@ Det ska kännas som den naturliga operativa mitten i kundkortet.
 **Team:**
 
 ```text
-ORD-25E: Fas 2 låst (d62e819e). Nästa = Fas 3 encounter-states + persistent check-in.
-Codex först (3a). Cursor UI-nivå 2 efter GO. Ingen mer Fas 2-polish.
-Spec: ORD-25E-AKTIVT-BESOK-V2.md § Fas 3
+ORD-25E: Fas 3a backend klar (lokal). GO Cursor UI nivå 2.
+States: scheduled_today | checked_in | in_progress | completed_today.
+Nästa: commit/deploy 3a → Cursor 3b → prod UAT med dagens bokning.
 ```
 
 **Manuell kvar (D/E + B visuellt):**
@@ -575,4 +622,4 @@ Spec: ORD-25E-AKTIVT-BESOK-V2.md § Fas 3
 
 ---
 
-_Skapad 2026-06-17 · Fas 0–2 prod `d62e819e` · UAT partial (A PASS, B/C data-block) · Fas 3 OPEN_
+_Skapad 2026-06-17 · Fas 3a closed (lokal) · Fas 3b GO Cursor · prod UAT pending_
