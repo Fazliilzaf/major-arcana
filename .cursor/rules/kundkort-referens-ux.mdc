@@ -1,0 +1,84 @@
+---
+description: Kundkort live-UI — referens (.kkref) facit, samma komponenter, inga parallella skal
+globs: public/major-arcana-preview/app/cco-kundkort*.js,public/major-arcana-preview/app/cco-v9-customers*.js,public/major-arcana-preview/app/patient-master-ui.js,public/major-arcana-preview/cco-kundkort-referens.css,public/major-arcana-preview/cco-v9-customers.css,docs/handover/ORDERS/ORD-*-*.md
+alwaysApply: false
+---
+
+# Kundkort — samma UI (referens facit)
+
+**Prod-default:** ORD-47 referens-kort (`.kkref .doss`) — inte v11-rail, inte staff-flikar, inte nytt skal per feature.
+
+## Ett UI-system
+
+| Live (använd) | Får inte bli default |
+|---------------|----------------------|
+| `window.__renderReferensKundkort` i `cco-kundkort-referens.js` | v11 `renderV11DossierZonesHtml` |
+| CSS: `cco-kundkort-referens.css` (scope `.kkref`) | Global CSS utan `.kkref` |
+| Storvy: `#kkx-ov` + `CcoKundkortKkx.openBig` | Ny fullskärms-modal |
+| Journal: `mountKkxJournalBig` | Eget formulär-UI |
+| Aktivt besök: `.kkref-active-visit*` | v11 medicinsk grid |
+| v11 | Endast `window.__ARCANA_V11_KUNDKORT === true` |
+
+## Skal (rör inte)
+
+```
+.kkref → .doss (392px) → .dhead + .ds (scroll)
+```
+
+Ny vy = ny **sektion/block inuti `.ds`** — aldrig ny detailpanel, ny flik i referens-läge, eller separat route.
+
+## Vy-nivå — välj ett lager
+
+1. **Sektion** — översikt i scroll (`sec()`, `.sec`, `data-sek="slug"`, lägg slug i `orderDossierHtml`)
+2. **Storvy** — skriva/signera (`#kkx-ov`, `.openb` / `.kkx-openb`, `mountKkxJournalBig`)
+3. **Aktivt besök** — dagens genvägar (`renderReferensActiveVisit`, `journeyHandlers`)
+4. **Slide-over** — djup historik (ORD-26, `data-kundkort-slide-over`) — komplement, inte ersättning
+
+## Återanvänd komponenter (kopiera granne)
+
+| Behov | Mönster | Klasser |
+|-------|---------|---------|
+| Sektion | Journaler, Besök, Historik | `sec()`, `.sec`, `.lab` |
+| Rad + status | Journal/bokningsrader | `.row`, `.rt`, `.rm`, `.pill` |
+| Action | Öppna, gå vidare | `.openb`, `.kkx-openb` |
+| Gate/varning | Smart nästa steg | `.pill.p-warn`, tokens `--warning` / `--success` |
+| Tomt | Överallt | `empty('…')` |
+| Foto | Besök / Ta bild | `.gk-foto-grid`, `.gk-btn` |
+
+**Regel:** Hitta närmaste befintlig sektion → samma HTML-struktur + samma klasser. Bara data ändras.
+
+## Wiring (referens-läge)
+
+- Render: `__renderReferensKundkort(card, bundle, journalEntries, extras)`
+- Data: `dossier-bundle` — ingen demo på riktiga patienter
+- Bind: `bindKkxReferensPanel` → `CcoKundkortKkx.bindPanel`
+- Aktivt besök: `data-v11-active-visit-action` → `journeyHandlers` i `bindV9MockupDossierHandlers`
+- **Förbjudet i referens:** `switchDetailTab('journal'|'anteckningar')` som enda CTA — öppna KKX/scroll till `data-sek` istället
+
+## CSS
+
+- Nya klasser: prefix `kkref-` eller befintliga under `.kkref`
+- Tokens från `cco-kundkort-referens.css` (`--brand`, `--card`, `--csh`, …)
+- Inga egna hex inline, inga nya typ-skala, inga blå accenter
+
+## Före merge — PR-checklista
+
+- [ ] Vy-nivå vald (sektion / storvy / aktivt besök / slide-over)
+- [ ] Visuell förebild namngiven (befintlig sektion)
+- [ ] Markup under `.kkref`, CSS scoped
+- [ ] `data-sek` + `orderDossierHtml` om ny sektion
+- [ ] CTA → KKX eller scroll — inte `switchDetailTab` i referens
+- [ ] `node scripts/verify-v11-paritet.js` PASS
+- [ ] Prod-screenshot: samma `.kkref`-kort (ej ny layout)
+
+## Verify (obligatoriskt)
+
+```bash
+node scripts/verify-v11-paritet.js
+npm run verify:ord47-prod-sticks
+npm run check:syntax
+```
+
+Prod UAT-URL (referens): `/staff?view=customers&v9=on&demo=on&demoOpDay=1&demoSkipSteg7=1&patientId=…`
+
+Se `.cursor/rules/prod-verify-before-user.mdc` — rapportera egna PASS/FAIL före användartest.
