@@ -1203,9 +1203,11 @@
         ? `${presentation.secondary.label} · ${presentation.journalDetail}`
         : presentation.secondary?.label || '';
 
+    const referensSkin = prefix === 'kkref-active-visit';
+
     return `
       <section
-        class="${prefix} ${presentation.sectionClass}"
+        class="${prefix} ${presentation.sectionClass}${referensSkin ? ' kkref-active-visit--skin-referens' : ''}"
         data-v11-active-visit
         data-v11-active-visit-state="${escapeHtml(presentation.state)}"
         aria-label="Aktivt besök idag"
@@ -1248,11 +1250,11 @@
           ${
             presentation.preflightCompact
               ? `<p class="${activeVisitCls(prefix, 'preflight-ok')}">Besöket är avslutat för idag.</p>`
-              : `<span class="${activeVisitCls(prefix, 'preflight-kicker')}">Innan besöket</span>
+              : `<span class="${activeVisitCls(prefix, 'preflight-kicker')}${referensSkin ? ' kkref-active-visit__sec-label' : ''}">${referensSkin ? 'Besök idag · innan' : 'Innan besöket'}</span>
           ${renderActiveVisitBlockers(visit.blockers, prefix)}`
           }
         </div>
-        <div class="${activeVisitCls(prefix, 'actions')}" data-v11-active-visit-actions>
+        <div class="${activeVisitCls(prefix, 'actions')}${referensSkin ? ' kkref-active-visit__acts' : ''}" data-v11-active-visit-actions>
           <button
             type="button"
             class="${activeVisitCls(prefix, 'primary')}"

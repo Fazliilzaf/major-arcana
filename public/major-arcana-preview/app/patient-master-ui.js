@@ -1710,6 +1710,102 @@
     window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
 
+  function isReferensKundkortRoot(root) {
+    return Boolean(
+      root?.querySelector?.('.v9-mockup-dossier--referens .kkref') ||
+      root?.querySelector?.('.kkref .doss')
+    );
+  }
+
+  function scrollReferensKundkortSection(root, slug) {
+    if (!root || !slug) return false;
+    const kkref = root.querySelector('.kkref') || root;
+    const target =
+      kkref.querySelector(`details.dossier-section[data-sek="${slug}"]`) ||
+      kkref.querySelector(`[data-sek="${slug}"]`);
+    if (!target) return false;
+    if (target.tagName === 'DETAILS') target.open = true;
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return true;
+  }
+
+  function resolveActiveVisitJournalHints(dossierBundle) {
+    const visit = dossierBundle?.activeVisit;
+    if (!visit) return {};
+    const service = normalizeText(
+      visit.serviceLabel || visit.journalType || visit.title || ''
+    ).toLowerCase();
+    let journalType = normalizeText(visit.journalType);
+    if (!journalType) {
+      if (/prp|efterbehandling/.test(service)) journalType = 'prp_treatment';
+      else if (/tp|transplant|fue|dhi|behandling/.test(service)) journalType = 'tp_treatment';
+      else if (/uppfölj|follow/.test(service)) journalType = 'follow_up';
+    }
+    const entries = asArray(runtime.detail?.journalEntries);
+    let entryId = normalizeText(visit.journalEntryId || visit.entryId);
+    if (!entryId && visit.encounterId) {
+      const encounterId = normalizeText(visit.encounterId);
+      const byEncounter = entries.find((entry) => {
+        if (entry.locked) return false;
+        return (
+          normalizeText(entry.encounterId) === encounterId ||
+          normalizeText(entry.visitId) === encounterId
+        );
+      });
+      entryId = normalizeText(byEncounter?.entryId);
+    }
+    if (!entryId && journalType) {
+      const draft = entries.find((entry) => entry.journalType === journalType && !entry.locked);
+      entryId = normalizeText(draft?.entryId);
+    }
+    const templateId = journalType
+      ? resolveKkxTemplateIdFromJournalType(journalType, visit.formVariant || '')
+      : '';
+    return { entryId, journalType, templateId };
+  }
+
+  function openReferensJournalWorkspace(root, options = {}) {
+    const kkref = root?.querySelector('.kkref') || root;
+    const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    const hints = { ...resolveActiveVisitJournalHints(dossierBundle), ...options };
+    scrollReferensKundkortSection(root, 'journal');
+
+    const journalOpen =
+      kkref?.querySelector('[data-sek="journal"] .openb:not([disabled])') ||
+      kkref?.querySelector('details.dossier-section[data-sek="journal"] .kkx-openb');
+    if (journalOpen && !options.forceKkx && !hints.entryId) {
+      journalOpen.click();
+      return true;
+    }
+
+    if (window.CcoKundkortKkx?.openBig && typeof mountKkxJournalBig === 'function') {
+      window.CcoKundkortKkx.openBig('Journal · arbetsyta', '<div data-kkx-journal-mount></div>', {
+        onMount: (shell) => {
+          const slot = shell.querySelector('[data-kkx-journal-mount]');
+          if (!slot) return;
+          if (!hints.entryId && hints.templateId) {
+            void activateKkxJournalTemplate(hints.templateId, slot, hints);
+            return;
+          }
+          mountKkxJournalBig(slot, {
+            entryId: hints.entryId,
+            journalType: hints.journalType,
+            templateId: hints.templateId,
+          });
+        },
+      });
+      return true;
+    }
+
+    switchDetailTab('journal');
+    return false;
+  }
+
+  function openReferensNotesSection(root) {
+    if (scrollReferensKundkortSection(root, 'anteckningar')) return true;
+    return scrollReferensKundkortSection(root, 'journal');
+  }
+
   function setRuntimeEditingJournalEntry(entry) {
     runtime.editingTpEntryId = '';
     runtime.editingPrpEntryId = '';
@@ -4814,6 +4910,7 @@
   function bindV9MockupDossierHandlers(root, ctx) {
     if (!root || !isV9CustomersEnabled()) return;
     bindV9Zone1Handlers(root, ctx);
+    const referensKkref = isReferensKundkortRoot(root);
     const journeyHandlers = {
       openBook: () => {
         window.dispatchEvent(
@@ -4827,9 +4924,12 @@
         navigateShellView('booking');
       },
       switchTab: (tabKey) => switchDetailTab(tabKey),
-      openJournal: () => switchDetailTab('journal'),
-      openNotes: () => switchDetailTab('anteckningar'),
-      openForm: () => switchDetailTab('journal'),
+      openJournal: () =>
+        referensKkref ? openReferensJournalWorkspace(root) : switchDetailTab('journal'),
+      openNotes: () =>
+        referensKkref ? openReferensNotesSection(root) : switchDetailTab('anteckningar'),
+      openForm: () =>
+        referensKkref ? openReferensJournalWorkspace(root) : switchDetailTab('journal'),
       checkInVisit: async () => {
         const patientId = ctx.card?.patientId;
         const bookingId = runtime.detail?.dossierBundle?.activeVisit?.bookingId || null;
@@ -4865,7 +4965,8 @@
           })
         );
       },
-      openJournal: () => switchDetailTab('journal'),
+      openJournal: () =>
+        referensKkref ? openReferensJournalWorkspace(root) : switchDetailTab('journal'),
       openReply: () => {
         document.querySelector('[data-studio-open]')?.click();
       },

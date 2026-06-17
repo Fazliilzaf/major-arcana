@@ -391,6 +391,28 @@ if (!patientUiJs) {
       ? 'v10Facit && !v11Cutover → renderV10ReferensDossierHtml'
       : 'saknar referens-routing i renderV9MockupDetailShell'
   );
+
+  const referensJournalCta =
+    patientUiJs.includes('function openReferensJournalWorkspace(') &&
+    patientUiJs.includes('openReferensJournalWorkspace(root)');
+  check(
+    'Journal-CTA → KKX i referens (Fas 2b)',
+    referensJournalCta,
+    referensJournalCta ? 'openReferensJournalWorkspace wired' : 'saknar referens journal CTA'
+  );
+
+  const referensSkin =
+    Boolean(parityJs?.includes('kkref-active-visit--skin-referens')) &&
+    Boolean(
+      readFileSafe(
+        path.join(REPO_ROOT, 'public/major-arcana-preview/cco-kundkort-referens.css')
+      )?.includes('kkref-active-visit--skin-referens')
+    );
+  check(
+    'Aktivt besök referens-skin (Fas 2b)',
+    referensSkin,
+    referensSkin ? 'skin-referens markup + CSS' : 'saknar referens skin'
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
