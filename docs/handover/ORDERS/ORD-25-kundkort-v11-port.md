@@ -1,8 +1,28 @@
 # ORD-25 — Port v11 kundkort till live SPA (+ Aktivt besök)
 
-**Skapad:** 2026-06-05 · **Uppdaterad:** 2026-06-17 (sammanslagen spec)  
+**Skapad:** 2026-06-05 · **Uppdaterad:** 2026-06-17 (A–D closeout)  
 **Prio:** P1  
-**Status:** **IN PROGRESS** — Fas 0 audit **GO (A–D)** · Fas E **NO-GO** (datamodell saknas)
+**Status:** **Fas A–D CLOSED (prod GO)** · **Fas E** → eget spår [`ORD-25E-AKTIVT-BESOK-V2.md`](ORD-25E-AKTIVT-BESOK-V2.md)
+
+---
+
+## Closeout — Fas A–D (2026-06-17)
+
+| Fas                     | Status          | Prod commit                        |
+| ----------------------- | --------------- | ---------------------------------- |
+| **0 Audit**             | **CLOSED**      | facit i denna fil                  |
+| **A Tokens**            | **CLOSED**      | `047d8a88`                         |
+| **B Hero**              | **CLOSED**      | `047d8a88` + hero CSS `a18b54e7`   |
+| **C Dokument**          | **CLOSED**      | `047d8a88`                         |
+| **D Insikter + sticky** | **CLOSED**      | `047d8a88`                         |
+| **Cutover**             | **CLOSED**      | `047d8a88` — v11 default när v9 på |
+| **E Aktivt besök**      | **NOT STARTED** | väntar datamodell — se ORD-25E     |
+
+**Prod UAT (Codex):** PASS — patient utan dagens besök · tre v11-zoner · ingen journey/bokningar ovanför dokument · 380px · rollback `__ARCANA_V11_KUNDKORT=false` → referens/v10.
+
+**Verify:** `node scripts/verify-v11-paritet.js` — 49/50 PASS (rosa-accent kvarstår, ej cutover-blocker).
+
+**Rollback:** `window.__ARCANA_V11_KUNDKORT = false` → referens/v10 facit.
 
 ---
 
@@ -21,9 +41,9 @@
 | Journey / bokningar / veckomönster / context | —                 | **felplacerad i v11** | **ta bort ur default** |
 | Aktivt besök (Fas E)                         | saknas            | saknas                | senare ORD             |
 
-**Blockerare live:** `usesV11DossierCutover()` → `false` (`patient-master-ui.js`) → `renderV10ReferensDossierHtml`.
+**Tidigare blockerare (löst i cutover):** `usesV11DossierCutover()` var `false` → referens/v10 default. Nu v11 default när v9 på.
 
-**Fel i v11-path:** `renderV11DossierZonesHtml` injicerar `renderV11ContextPanels` (journey/bokningar/veckomönster) **före** dokument — strider mot locked spec.
+**Tidigare fel i v11-path (löst):** `renderV11ContextPanels` före dokument — borttaget ur default-zoner.
 
 ### dossier-bundle (prod stickprov)
 
@@ -278,12 +298,12 @@ Ersätt befintlig insikter/action-zon:
 
 ### Per fas (Cursor)
 
-- [ ] **Fas A:** CSS-tokens definierade · `npm test` PASS · ingen visuell regression
-- [ ] **Fas B:** Hero matchar v11-mockup · briefing (allergies eller fallback) · `--shadow-lift`
-- [ ] **Fas C:** 4 dokument-grupper från `dossier-bundle` · filter-chips · tom-state om payload saknas
-- [ ] **Fas D:** 3 insikt-kort · sticky 1+2 · helper vid blocker
-- [ ] **Cutover:** `usesV11DossierCutover()` true i prod path · inga out-of-scope zoner i default
-- [ ] **Fas E:** Aktivt besök synlig endast vid today+encounter · 3 states · journal-CTA · zon kollapsar annars
+- [x] **Fas A:** CSS-tokens definierade · `npm test` PASS · ingen visuell regression
+- [x] **Fas B:** Hero matchar v11-mockup · briefing (allergies eller fallback) · `--shadow-lift` · prod `a18b54e7`
+- [x] **Fas C:** 4 dokument-grupper från `dossier-bundle` · filter-chips · tom-state om payload saknas
+- [x] **Fas D:** 3 insikt-kort · sticky 1+2 · helper vid blocker
+- [x] **Cutover:** `usesV11DossierCutover()` true i prod path · inga out-of-scope zoner i default
+- [ ] **Fas E:** → [`ORD-25E-AKTIVT-BESOK-V2.md`](ORD-25E-AKTIVT-BESOK-V2.md) (ej påbörjad)
 
 ### Globalt
 
@@ -297,10 +317,10 @@ Ersätt befintlig insikter/action-zon:
 
 ### Prod UAT (Codex, efter deploy)
 
-- [ ] Patient **utan** besök idag → ingen Fas E, v11 tre zoner
-- [ ] Patient **med** besök idag → Fas E + pre-flight + journal-CTA
-- [ ] Patient med HD-blocker → amber pre-flight + helper i sticky
-- [ ] `node scripts/verify-ord16-progress.js` oförändrat eller utökad v11-check PASS
+- [x] Patient **utan** besök idag → ingen Fas E, v11 tre zoner (Abdelkader Bensahla, prod)
+- [ ] Patient **med** besök idag → Fas E + pre-flight + journal-CTA (ORD-25E)
+- [ ] Patient med HD-blocker → amber pre-flight + helper i sticky (ORD-25E)
+- [x] `node scripts/verify-v11-paritet.js` — 49/50 PASS
 
 ---
 
@@ -342,7 +362,8 @@ Fas 0 audit (Codex) → GO
 ## Referens
 
 - **Canonical mockup-spec:** `docs/handover/MOCKUPS/KUNDKORT-V11-LOCKED-2026-06-05.md`
-- **Aktivt besök mockup:** owner screenshot 2026-06-17 (Fas E)
+- **Aktivt besök mockup:** `docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md`
+- **Fas E brief:** `ORD-25E-AKTIVT-BESOK-V2.md`
 - **Document inventory:** `docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md`
 - **Backend deps:** ORD-23a (allergier, journal/besök) · ORD-24 (dokument-segment) · ORD-41 (besöksgruppering)
 - **Render-path:** `public/major-arcana-preview/app/cco-v9-customers-parity.js`
@@ -352,4 +373,4 @@ Fas 0 audit (Codex) → GO
 
 ---
 
-_Uppdaterad 2026-06-17 · Sammanslagen spec (v11 + Aktivt besök + Cursor/Codex-fördelning)_
+_Uppdaterad 2026-06-17 · Fas A–D closed prod `a18b54e7` · Fas E utbruten till ORD-25E_
