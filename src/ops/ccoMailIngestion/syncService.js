@@ -25,6 +25,7 @@ function createCcoMailIngestionSyncService({
   patientDirectoryProvider = null,
   documentTriage = null,
   healthDeclarationIngest = null,
+  clientoBookingIngest = null,
   logger = console,
 } = {}) {
   if (!ingestionStore) {
@@ -144,6 +145,7 @@ function createCcoMailIngestionSyncService({
           persist: false,
           documentTriage,
           healthDeclarationIngest,
+          clientoBookingIngest,
           tenantId: config.defaultTenantId || config.defaultTenant || 'hair-tp-clinic',
         });
         results.push(result);

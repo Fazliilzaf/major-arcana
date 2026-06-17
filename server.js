@@ -12340,6 +12340,15 @@ process.once('SIGTERM', () => {
           : './data/cco/cliento-bookings.json'),
     })
   );
+  const { createCcoClientoBookingIngest } = require('./src/ops/ccoClientoBookingIngest');
+  const ccoClientoBookingIngest =
+    config.ccoClientoBookingIngestEnabled === false
+      ? null
+      : createCcoClientoBookingIngest({
+          config,
+          clientoBookingStore,
+          logger: console,
+        });
   const ccoConversationStateStore = await startupStep('ccoConversationStateStore', () =>
     createCcoConversationStateStore({
       filePath: config.ccoConversationStateStorePath,
@@ -12840,6 +12849,7 @@ process.once('SIGTERM', () => {
     truthStore: ccoMailboxTruthStore,
     documentTriage: ccoDocumentTriageEngine,
     healthDeclarationIngest: ccoHalsoHealthDeclarationIngest,
+    clientoBookingIngest: ccoClientoBookingIngest,
     patientDirectoryProvider: async () => {
       const tenantId = config.defaultTenantId || 'hair-tp-clinic';
       const listed = await ccoPatientMasterStore.listPatients({ tenantId, limit: 20000 });

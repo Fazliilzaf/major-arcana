@@ -38,13 +38,36 @@
     if (!/^[A-ZÅÄÖ]/.test(t)) return false;
     // Skipp uppenbara icke-namn
     const blocklist = [
-      'okänd', 'unknown', 'no reply', 'noreply', 'notifications', 'system',
-      'support', 'admin', 'info', 'kontakt', 'contact', 'team',
-      'bekräftelse', 'bokning', 'order', 'faktura', 'invoice', 'receipt',
-      'hair tp', 'hairtp', 'klinik', 'clinic',
+      'okänd',
+      'unknown',
+      'no reply',
+      'noreply',
+      'notifications',
+      'system',
+      'support',
+      'admin',
+      'info',
+      'kontakt',
+      'contact',
+      'team',
+      'bekräftelse',
+      'bokning',
+      'order',
+      'faktura',
+      'invoice',
+      'receipt',
+      'hair tp',
+      'hairtp',
+      'klinik',
+      'clinic',
       // Dokument-prefix som annars råkar fångas in i namn
-      'behandling', 'behandlingsavtal', 'avtal', 'samtycke', 'fullmakt',
-      'document', 'dokument',
+      'behandling',
+      'behandlingsavtal',
+      'avtal',
+      'samtycke',
+      'fullmakt',
+      'document',
+      'dokument',
     ];
     if (blocklist.some((b) => t.toLowerCase().includes(b))) return false;
     return true;
@@ -71,7 +94,7 @@
     const emailPlaceholders = [];
     let out = s.replace(/<([^<>\s]+@[^<>\s]+)>/g, (_match, email) => {
       emailPlaceholders.push(email);
-      return `EMAIL${emailPlaceholders.length - 1}`;
+      return `__EMAIL_PLACEHOLDER_${emailPlaceholders.length - 1}__`;
     });
     // Behåll line-break för <br> + </p> + </div> + </tr> så att radvis
     // parsing fortsätter att fungera korrekt.
@@ -80,7 +103,7 @@
       .replace(/<\s*\/\s*(?:p|div|tr|li|h[1-6])\s*>/gi, '\n')
       .replace(/<[^>]+>/g, '');
     // Återställ emails
-    out = out.replace(/EMAIL(\d+)/g, (_m, idx) => {
+    out = out.replace(/__EMAIL_PLACEHOLDER_(\d+)__/g, (_m, idx) => {
       return `<${emailPlaceholders[Number(idx)]}>`;
     });
     // Vanliga HTML-entities
@@ -107,10 +130,7 @@
   function matchLabeledName(body, labels) {
     if (!body) return null;
     for (const label of labels) {
-      const rx = new RegExp(
-        `(?:^|[\\n\\r])\\s*${label}\\s*[:|]\\s*(${NAME_PATTERN})`,
-        'i',
-      );
+      const rx = new RegExp(`(?:^|[\\n\\r])\\s*${label}\\s*[:|]\\s*(${NAME_PATTERN})`, 'i');
       const m = body.match(rx);
       if (m && looksLikePersonName(m[1])) return m[1].trim();
     }
@@ -125,7 +145,12 @@
    */
   function matchGreeting(body) {
     if (!body) return null;
-    const m = body.match(new RegExp(`(?:^|[\\n\\r])\\s*(?:hej|hi|hallå|hello|tjena|dear)\\s+(${NAME_PATTERN})\\s*[,!]`, 'i'));
+    const m = body.match(
+      new RegExp(
+        `(?:^|[\\n\\r])\\s*(?:hej|hi|hallå|hello|tjena|dear)\\s+(${NAME_PATTERN})\\s*[,!]`,
+        'i'
+      )
+    );
     if (m && looksLikePersonName(m[1])) return m[1].trim();
     return null;
   }
@@ -136,8 +161,15 @@
   function matchSignature(body) {
     if (!body) return null;
     const closers = [
-      'med vänlig hälsning', 'mvh', 'vänligen', 'hälsningar',
-      'best regards', 'kind regards', 'regards', 'sincerely', 'thanks',
+      'med vänlig hälsning',
+      'mvh',
+      'vänligen',
+      'hälsningar',
+      'best regards',
+      'kind regards',
+      'regards',
+      'sincerely',
+      'thanks',
     ];
     for (const c of closers) {
       const rx = new RegExp(`${c}[,\\s]*[\\n\\r]+\\s*(${NAME_PATTERN})`, 'i');
@@ -155,7 +187,7 @@
     if (!body) return null;
     const rx = new RegExp(
       `(?:^|[\\n\\r])\\s*(?:från|from)\\s*[:|]?\\s*(${NAME_PATTERN})\\s*[<(]`,
-      'i',
+      'i'
     );
     const m = body.match(rx);
     if (m && looksLikePersonName(m[1])) return m[1].trim();
@@ -177,9 +209,7 @@
     const parts = localPart.split(/[._-]/).filter(Boolean);
     if (parts.length < 2 || parts.length > 4) return null;
     if (parts.some((p) => p.length < 2)) return null;
-    const cap = parts
-      .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-      .join(' ');
+    const cap = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
     if (looksLikePersonName(cap)) return cap;
     return null;
   }
@@ -190,9 +220,22 @@
    * lista av kund-labels som täcker svenska + engelska.
    */
   const KUND_LABELS = [
-    'kund', 'patient', 'mottagare', 'customer', 'client', 'till',
-    'namn', 'name', 'avsändare', 'sender', 'kontakt', 'contact person',
-    'för', 'for', 'patientnamn', 'kundnamn',
+    'kund',
+    'patient',
+    'mottagare',
+    'customer',
+    'client',
+    'till',
+    'namn',
+    'name',
+    'avsändare',
+    'sender',
+    'kontakt',
+    'contact person',
+    'för',
+    'for',
+    'patientnamn',
+    'kundnamn',
   ];
   /**
    * Skanna en rad bakifrån och plocka SISTA 2-3-ords-sekvensen som ser ut
@@ -201,7 +244,9 @@
    */
   function tailNameFromLine(line) {
     if (!line) return null;
-    const words = String(line).split(/[\s,]+/).filter(Boolean);
+    const words = String(line)
+      .split(/[\s,]+/)
+      .filter(Boolean);
     // Försök 3, 2 ords-namn (i den ordningen — föredra 3 om båda passar)
     for (const len of [3, 2]) {
       for (let i = words.length - len; i >= 0; i--) {
@@ -224,10 +269,7 @@
     // inte avsändaren. Att lägga in den skulle felaktigt visa vår personal
     // som "kund" på interna eskaleringsmejl.
     return (
-      matchLabeledName(body, KUND_LABELS) ||
-      matchSignature(body) ||
-      matchQuotedFrom(body) ||
-      null
+      matchLabeledName(body, KUND_LABELS) || matchSignature(body) || matchQuotedFrom(body) || null
     );
   }
 
@@ -239,15 +281,25 @@
     // Cliento-format: "Bokning · Anna Karlsson · 15 maj 14:00"
     //                 "Anna Karlsson har bokat tid"
     //                 "Bekräftelse: Anna Karlsson, 15 maj"
+    //                 "Ny bokning (web): Carl-Marcus Ahlengren, onsdag 17 juni 2026 15:15"
     const s = subject || '';
     const b = body || '';
     let m;
-    // "Bokning · Namn · ..." eller "Bekräftelse: Namn, ..."
-    m = s.match(/(?:bokning|bekräftelse|booking)[\s·:,-]+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Cliento' };
+    m = s.match(/ny bokning\s*\(web\)\s*[:-]\s*([^,]+)/i);
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Cliento' };
+    // "Bokning · Namn · ..." eller "Bekräftelse: Namn, ..." eller "Ny bokning: Namn - ..."
+    m = s.match(
+      /(?:bokning|bekräftelse|booking)[\s·:,-]+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Cliento' };
     // "Namn har bokat" eller "Namn har bekräftat"
-    m = s.match(/^([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+har\s+(bokat|bekräftat|avbokat)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Cliento' };
+    m = s.match(
+      /^([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+har\s+(bokat|bekräftat|avbokat)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Cliento' };
     // Body: "Kund:/Patient:/Namn:" labeled, sedan generic greeting/signature
     const bodyName = extractFromBody(b);
     if (bodyName) return { customerName: bodyName, systemLabel: 'via Cliento' };
@@ -260,13 +312,21 @@
     const s = subject || '';
     const b = body || '';
     let m;
-    m = s.match(/^([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+har\s+(signerat|öppnat|granskat)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Smartdocs' };
-    m = s.match(/[Dd]okumentet\s+["']([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)[\s\S]*?["']/);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Smartdocs' };
+    m = s.match(
+      /^([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+har\s+(signerat|öppnat|granskat)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Smartdocs' };
+    m = s.match(
+      /[Dd]okumentet\s+["']([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)[\s\S]*?["']/
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Smartdocs' };
     // Body: "Dokument: Behandlingsavtal Erik Svensson" — scanna varje rad
     // som börjar med dokument/avtal och plocka SISTA 2-3-ords-namnet.
-    const docLine = b.match(/(?:^|[\n\r])\s*(?:dokument(?:et|namn)?|avtal|fil)\s*[:|]?\s*([^\n\r]+)/i);
+    const docLine = b.match(
+      /(?:^|[\n\r])\s*(?:dokument(?:et|namn)?|avtal|fil)\s*[:|]?\s*([^\n\r]+)/i
+    );
     if (docLine) {
       const tail = tailNameFromLine(docLine[1]);
       if (tail) return { customerName: tail, systemLabel: 'via Smartdocs' };
@@ -284,8 +344,11 @@
     let m;
     // OBS: använder INTE /i på hela regexen — då blir [A-ZÅÄÖ] case-insensitive
     // och kan börja matcha namnet mitt i ordet "from". Case-sensitive prefix:
-    m = s.match(/(?:[Bb]ooking [Rr]equest|[Bb]okningsförfrågan)[\s:.,-]+(?:[Ff]rom\s+)?([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Bokadirekt' };
+    m = s.match(
+      /(?:[Bb]ooking [Rr]equest|[Bb]okningsförfrågan)[\s:.,-]+(?:[Ff]rom\s+)?([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Bokadirekt' };
     // Body: "Customer: Jimmy Skoglund\nPhone: ..." vanligt format
     const bodyName = extractFromBody(b);
     if (bodyName) return { customerName: bodyName, systemLabel: 'via Bokadirekt' };
@@ -298,13 +361,20 @@
     const s = subject || '';
     const b = body || '';
     let m;
-    m = (s + ' ' + b).match(/[-—]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+(?:är på väg|har öppnat|har signerat)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
+    m = (s + ' ' + b).match(
+      /[-—]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+(?:är på väg|har öppnat|har signerat)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
     m = s.match(/^([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+har\s+(öppnat|signerat)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
     // Body: "Mottagare: Albert Mattsson <email>"
-    m = b.match(/(?:mottagare|recipient|signer)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
+    m = b.match(
+      /(?:mottagare|recipient|signer)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
     const bodyName = extractFromBody(b);
     if (bodyName) return { customerName: bodyName, systemLabel: 'via GetAccept' };
     return null;
@@ -317,14 +387,23 @@
     const s = subject || '';
     const b = body || '';
     let m;
-    m = s.match(/(?:preliminärt tackat ja|accepterat|avböjt|tackat ja)[\s:]+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[a-zåäöéüø][a-zåäöéüø]+)+)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
+    m = s.match(
+      /(?:preliminärt tackat ja|accepterat|avböjt|tackat ja)[\s:]+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[a-zåäöéüø][a-zåäöéüø]+)+)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
     // Body: "Gäster: Anna Karlsson <email>, Erik <email>"  → ta första gästen
-    m = b.match(/(?:gäster|guests|attendees|deltagare)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
+    m = b.match(
+      /(?:gäster|guests|attendees|deltagare)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
     // Body: "Organiserad av Anna Karlsson" / "Organized by"
-    m = b.match(/(?:organiserad? av|organized by|invited by)\s+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
+    m = b.match(
+      /(?:organiserad? av|organized by|invited by)\s+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
     return null;
   }
 
@@ -335,7 +414,8 @@
     const b = body || '';
     let m;
     m = s.match(/(?:från|from)\s+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Kivra' };
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Kivra' };
     // Body: "Avsändare: Anna Karlsson"
     const bodyName = extractFromBody(b);
     if (bodyName) return { customerName: bodyName, systemLabel: 'via Kivra' };
@@ -349,11 +429,17 @@
     const b = body || '';
     let m;
     // Case-sensitive prefix (samma anledning som Bokadirekt — /i förstör namnet)
-    m = s.match(/(?:[Aa]ctivity|[Dd]eal|[Tt]ask|[Nn]ote|[Nn]ew\s+[Dd]eal)[\s:.,-]+(?:[Aa]ssigned[\s:.,-]+)?(?:to\s+)?([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Pipedrive' };
+    m = s.match(
+      /(?:[Aa]ctivity|[Dd]eal|[Tt]ask|[Nn]ote|[Nn]ew\s+[Dd]eal)[\s:.,-]+(?:[Aa]ssigned[\s:.,-]+)?(?:to\s+)?([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Pipedrive' };
     // Body: "Contact: Anna Karlsson" / "Person: Anna Karlsson"
-    m = b.match(/(?:contact|person|lead)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Pipedrive' };
+    m = b.match(
+      /(?:contact|person|lead)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i
+    );
+    if (m && looksLikePersonName(m[1]))
+      return { customerName: m[1].trim(), systemLabel: 'via Pipedrive' };
     const bodyName = extractFromBody(b);
     if (bodyName) return { customerName: bodyName, systemLabel: 'via Pipedrive' };
     return null;
@@ -366,7 +452,9 @@
   function parseGeneric({ subject, body }) {
     const s = (subject || '') + ' ' + (body || '').slice(0, 200);
     // Letar efter "från Anna Karlsson" / "om Anna Karlsson" / "till Anna Karlsson"
-    let m = s.match(/(?:från|from|om|to|till|för|for)\s+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
+    let m = s.match(
+      /(?:från|from|om|to|till|för|for)\s+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i
+    );
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: null };
     // Annars: leta efter ett tvåordigt namn i början av subject
     m = (subject || '').match(/^([A-ZÅÄÖ][a-zåäöéüø]+\s+[A-ZÅÄÖ][a-zåäöéüø]+)\b/);
@@ -383,7 +471,11 @@
     { match: /smartdocs|documents\.pipedrive/i, parser: parseSmartdocs, label: 'via Smartdocs' },
     { match: /bokadirekt/i, parser: parseBokadirekt, label: 'via Bokadirekt' },
     { match: /getaccept/i, parser: parseGetAccept, label: 'via GetAccept' },
-    { match: /calendar-notification@google|calendar\.google/i, parser: parseGoogleCalendar, label: 'via Kalender' },
+    {
+      match: /calendar-notification@google|calendar\.google/i,
+      parser: parseGoogleCalendar,
+      label: 'via Kalender',
+    },
     { match: /kivra/i, parser: parseKivra, label: 'via Kivra' },
     { match: /pipedrive/i, parser: parsePipedrive, label: 'via Pipedrive' },
   ];

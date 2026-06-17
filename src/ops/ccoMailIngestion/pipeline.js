@@ -166,6 +166,7 @@ async function processRawMessage({
   documentTriage = null,
   tenantId = '',
   healthDeclarationIngest = null,
+  clientoBookingIngest = null,
 } = {}) {
   if (!store || !rawMessage?.id) {
     throw new Error('processRawMessage requires store and rawMessage.id');
@@ -215,6 +216,24 @@ async function processRawMessage({
         { persist }
       );
       return { skipped: true, reason: source.reason, ledger: activeLedger, rawMessage };
+    }
+
+    if (
+      clientoBookingIngest &&
+      typeof clientoBookingIngest.isClientoWebBookingMessage === 'function' &&
+      clientoBookingIngest.isClientoWebBookingMessage(rawMessage)
+    ) {
+      try {
+        await clientoBookingIngest.processRawMessage({
+          rawMessage,
+          mode,
+          tenantId: tenantId || 'hair-tp-clinic',
+          store,
+          persist,
+        });
+      } catch (error) {
+        logger?.warn?.('[cliento-booking-ingest] side-effect failed', error?.message || error);
+      }
     }
 
     if (
