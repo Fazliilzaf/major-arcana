@@ -29,11 +29,11 @@
     return global.__ARCANA_V10_KUNDKORT_FACIT !== false;
   }
 
-  /** ORD-25 — v11 dossier default när v9 på; opt-out via __ARCANA_V11_KUNDKORT=false. */
+  /** ORD-25 — referens default; v11 rail endast via __ARCANA_V11_KUNDKORT=true. */
   function usesV11DossierCutover() {
-    if (global.__ARCANA_V11_KUNDKORT === false) return false;
     if (global.__ARCANA_V11_KUNDKORT === true) return true;
-    return isV9On();
+    if (global.__ARCANA_V11_KUNDKORT === false) return false;
+    return false;
   }
 
   function resolveFileViewUrl(file) {
@@ -1034,7 +1034,11 @@
     return `${mins} min sedan check-in`;
   }
 
-  function renderV11ActiveVisitTimelineHtml(visit, state) {
+  function activeVisitCls(prefix, part) {
+    return `${prefix}__${part}`;
+  }
+
+  function renderActiveVisitTimelineHtml(visit, state, prefix = 'v11-active-visit') {
     const checkedInTime = formatActiveVisitTime(visit?.checkedInAt);
     const startedTime = formatActiveVisitTime(visit?.startedAt || visit?.checkedInAt);
     const completedTime = formatActiveVisitTime(visit?.completedAt);
@@ -1066,20 +1070,24 @@
     ];
 
     return `
-      <div class="v11-active-visit__timeline" aria-label="Besöksförlopp">
+      <div class="${activeVisitCls(prefix, 'timeline')}" aria-label="Besöksförlopp">
         ${nodes
           .map(
             (node) => `
-          <div class="v11-active-visit__timeline-node ${nodeClass(node.phase)}">
-            <span class="v11-active-visit__timeline-dot" aria-hidden="true"></span>
-            <span class="v11-active-visit__timeline-label">${escapeHtml(node.label)}</span>
+          <div class="${activeVisitCls(prefix, 'timeline-node')} ${nodeClass(node.phase)}">
+            <span class="${activeVisitCls(prefix, 'timeline-dot')}" aria-hidden="true"></span>
+            <span class="${activeVisitCls(prefix, 'timeline-label')}">${escapeHtml(node.label)}</span>
           </div>`
           )
           .join('')}
       </div>`;
   }
 
-  function resolveActiveVisitPresentation(visit) {
+  function renderV11ActiveVisitTimelineHtml(visit, state) {
+    return renderActiveVisitTimelineHtml(visit, state, 'v11-active-visit');
+  }
+
+  function resolveActiveVisitPresentation(visit, prefix = 'v11-active-visit') {
     const state = normalizeActiveVisitState(visit?.state);
     const timeLabel = formatActiveVisitTime(visit?.startsAt);
     const checkedInTime = formatActiveVisitTime(visit?.checkedInAt);
@@ -1126,13 +1134,13 @@
 
     return {
       state,
-      sectionClass: `v11-active-visit--${state.replace(/_/g, '-')}`,
+      sectionClass: `${prefix}--${state.replace(/_/g, '-')}`,
       dotClass:
         state === 'in_progress'
-          ? 'v11-active-visit__dot v11-active-visit__dot--pulse'
+          ? `${activeVisitCls(prefix, 'dot')} ${activeVisitCls(prefix, 'dot--pulse')}`
           : state === 'completed_today'
-            ? 'v11-active-visit__dot v11-active-visit__dot--done'
-            : 'v11-active-visit__dot',
+            ? `${activeVisitCls(prefix, 'dot')} ${activeVisitCls(prefix, 'dot--done')}`
+            : activeVisitCls(prefix, 'dot'),
       kicker: kickerByState[state] || kickerByState.scheduled_today,
       statusLine: statusByState[state] || statusByState.scheduled_today,
       headMeta: headMetaByState[state] || '',
@@ -1150,21 +1158,21 @@
     return visit;
   }
 
-  function renderV11ActiveVisitBlockers(blockers) {
+  function renderActiveVisitBlockers(blockers, prefix = 'v11-active-visit') {
     const rows = asArray(blockers);
     if (!rows.length) {
-      return '<p class="v11-active-visit__preflight-ok">Inga blockerare för dagens besök.</p>';
+      return `<p class="${activeVisitCls(prefix, 'preflight-ok')}">Inga blockerare för dagens besök.</p>`;
     }
     return `
-      <div class="v11-active-visit__blockers" data-v11-active-visit-blockers>
+      <div class="${activeVisitCls(prefix, 'blockers')}" data-v11-active-visit-blockers>
         ${rows
           .map(
             (row) => `
-          <div class="v11-active-visit__blocker" data-v11-active-visit-blocker="${escapeHtml(row.code || '')}">
-            <span class="v11-active-visit__blocker-badge" aria-hidden="true">!</span>
-            <span class="v11-active-visit__blocker-copy">
-              <span class="v11-active-visit__blocker-label">${escapeHtml(row.label || 'Blockerare')}</span>
-              <span class="v11-active-visit__blocker-hint">Krävs idag</span>
+          <div class="${activeVisitCls(prefix, 'blocker')}" data-v11-active-visit-blocker="${escapeHtml(row.code || '')}">
+            <span class="${activeVisitCls(prefix, 'blocker-badge')}" aria-hidden="true">!</span>
+            <span class="${activeVisitCls(prefix, 'blocker-copy')}">
+              <span class="${activeVisitCls(prefix, 'blocker-label')}">${escapeHtml(row.label || 'Blockerare')}</span>
+              <span class="${activeVisitCls(prefix, 'blocker-hint')}">Krävs idag</span>
             </span>
           </div>`
           )
@@ -1172,12 +1180,16 @@
       </div>`;
   }
 
-  function renderV11ActiveVisit(dossierBundle, card) {
+  function renderV11ActiveVisitBlockers(blockers) {
+    return renderActiveVisitBlockers(blockers, 'v11-active-visit');
+  }
+
+  function renderActiveVisitHtml(dossierBundle, card, { prefix = 'v11-active-visit' } = {}) {
     void card;
     const visit = resolveActiveVisitPayload(dossierBundle);
     if (!visit) return '';
 
-    const presentation = resolveActiveVisitPresentation(visit);
+    const presentation = resolveActiveVisitPresentation(visit, prefix);
     const title = normalizeIntelText(visit.serviceLabel) || 'Besök idag';
     const practitioner = normalizeIntelText(visit.practitionerLabel);
     const photoDisabled = visit.photoCaptureAvailable === false;
@@ -1193,57 +1205,57 @@
 
     return `
       <section
-        class="v11-active-visit ${presentation.sectionClass}"
+        class="${prefix} ${presentation.sectionClass}"
         data-v11-active-visit
         data-v11-active-visit-state="${escapeHtml(presentation.state)}"
         aria-label="Aktivt besök idag"
       >
-        <header class="v11-active-visit__head">
-          <span class="v11-active-visit__status">
+        <header class="${activeVisitCls(prefix, 'head')}">
+          <span class="${activeVisitCls(prefix, 'status')}">
             <span class="${presentation.dotClass}" aria-hidden="true"></span>
-            <span class="v11-active-visit__kicker">${escapeHtml(presentation.kicker)}</span>
+            <span class="${activeVisitCls(prefix, 'kicker')}">${escapeHtml(presentation.kicker)}</span>
           </span>
           ${
             presentation.headMeta
-              ? `<span class="v11-active-visit__time">${escapeHtml(presentation.headMeta)}${
+              ? `<span class="${activeVisitCls(prefix, 'time')}">${escapeHtml(presentation.headMeta)}${
                   practitioner ? ` · ${escapeHtml(practitioner)}` : ''
                 }</span>`
               : practitioner
-                ? `<span class="v11-active-visit__time">${escapeHtml(practitioner)}</span>`
+                ? `<span class="${activeVisitCls(prefix, 'time')}">${escapeHtml(practitioner)}</span>`
                 : ''
           }
         </header>
-        <div class="v11-active-visit__context">
-          <h3 class="v11-active-visit__title">${escapeHtml(title)}</h3>
-          <p class="v11-active-visit__status-line">${escapeHtml(presentation.statusLine)}</p>
+        <div class="${activeVisitCls(prefix, 'context')}">
+          <h3 class="${activeVisitCls(prefix, 'title')}">${escapeHtml(title)}</h3>
+          <p class="${activeVisitCls(prefix, 'status-line')}">${escapeHtml(presentation.statusLine)}</p>
           ${
             practitioner && !presentation.headMeta
-              ? `<p class="v11-active-visit__meta">${escapeHtml(practitioner)}</p>`
+              ? `<p class="${activeVisitCls(prefix, 'meta')}">${escapeHtml(practitioner)}</p>`
               : ''
           }
         </div>
         ${
           presentation.showTimeline
-            ? renderV11ActiveVisitTimelineHtml(visit, presentation.state)
+            ? renderActiveVisitTimelineHtml(visit, presentation.state, prefix)
             : ''
         }
         <div
-          class="v11-active-visit__preflight${
-            presentation.preflightCompact ? ' v11-active-visit__preflight--compact' : ''
+          class="${activeVisitCls(prefix, 'preflight')}${
+            presentation.preflightCompact ? ` ${activeVisitCls(prefix, 'preflight--compact')}` : ''
           }"
           data-v11-active-visit-preflight
         >
           ${
             presentation.preflightCompact
-              ? '<p class="v11-active-visit__preflight-ok">Besöket är avslutat för idag.</p>'
-              : `<span class="v11-active-visit__preflight-kicker">Innan besöket</span>
-          ${renderV11ActiveVisitBlockers(visit.blockers)}`
+              ? `<p class="${activeVisitCls(prefix, 'preflight-ok')}">Besöket är avslutat för idag.</p>`
+              : `<span class="${activeVisitCls(prefix, 'preflight-kicker')}">Innan besöket</span>
+          ${renderActiveVisitBlockers(visit.blockers, prefix)}`
           }
         </div>
-        <div class="v11-active-visit__actions" data-v11-active-visit-actions>
+        <div class="${activeVisitCls(prefix, 'actions')}" data-v11-active-visit-actions>
           <button
             type="button"
-            class="v11-active-visit__primary"
+            class="${activeVisitCls(prefix, 'primary')}"
             data-v11-active-visit-action="${escapeHtml(presentation.primary.action)}"
           >
             ${escapeHtml(primaryLabel)}
@@ -1252,7 +1264,7 @@
             presentation.secondary
               ? `<button
                   type="button"
-                  class="v11-active-visit__secondary v11-active-visit__secondary--ghost"
+                  class="${activeVisitCls(prefix, 'secondary')} ${activeVisitCls(prefix, 'secondary--ghost')}"
                   data-v11-active-visit-action="${escapeHtml(presentation.secondary.action)}"
                 >
                   ${escapeHtml(secondaryLabel)}
@@ -1261,18 +1273,26 @@
           }
           <button
             type="button"
-            class="v11-active-visit__secondary${photoDisabled ? ' is-disabled' : ''}"
+            class="${activeVisitCls(prefix, 'secondary')}${photoDisabled ? ' is-disabled' : ''}"
             data-v11-active-visit-action="photo"
             ${photoDisabled ? 'disabled aria-disabled="true"' : ''}
           >Ta bild</button>
           <button
             type="button"
-            class="v11-active-visit__secondary${notesDisabled ? ' is-disabled' : ''}"
+            class="${activeVisitCls(prefix, 'secondary')}${notesDisabled ? ' is-disabled' : ''}"
             data-v11-active-visit-action="notes"
             ${notesDisabled ? 'disabled aria-disabled="true"' : ''}
           >Anteckning</button>
         </div>
       </section>`;
+  }
+
+  function renderV11ActiveVisit(dossierBundle, card) {
+    return renderActiveVisitHtml(dossierBundle, card, { prefix: 'v11-active-visit' });
+  }
+
+  function renderReferensActiveVisit(dossierBundle, card) {
+    return renderActiveVisitHtml(dossierBundle, card, { prefix: 'kkref-active-visit' });
   }
 
   const INTEL_TONE_ORDER = { next: 0, coming: 1, future: 2, done: 3, neutral: 4 };
@@ -4437,6 +4457,8 @@
     renderV11InsightsStrip,
     renderV11StickyActions,
     renderV11ActiveVisit,
+    renderReferensActiveVisit,
+    renderActiveVisitHtml,
     resolveActiveVisitPayload,
     renderV11UpcomingBookings,
     buildHistoryBookings,

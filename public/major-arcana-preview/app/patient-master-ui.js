@@ -4839,6 +4839,8 @@
             method: 'POST',
             body: { patientId, bookingId },
           });
+          window.ArcanaCcoData?.invalidate?.(`dossier-bundle:${normalizeText(patientId)}`);
+          await loadPatientDocumentBundle(patientId);
           renderDetailPanel({ forceFullRender: true });
         } catch (error) {
           console.warn('Aktivt besök check-in misslyckades.', error);
@@ -6298,6 +6300,11 @@
 
     if (typeof window.__enhanceReferensKundkort === 'function') {
       window.__enhanceReferensKundkort(rail);
+    }
+    const detailRoot = rail.querySelector('[data-patient-detail]') || rail;
+    if (detailRoot._v9IntelCtx) {
+      detailRoot._v9IntelCtx.card = mergedCard;
+      detailRoot._v9IntelCtx.journalEntries = asArray(journalEntries);
     }
     if (typeof window.CcoHairtpDocumentCloud?.bindAutoDocPreviewRows === 'function') {
       window.CcoHairtpDocumentCloud.bindAutoDocPreviewRows(rail);

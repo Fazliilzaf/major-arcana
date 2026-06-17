@@ -4685,33 +4685,49 @@
       (Number(noshow) > 0 ? 'följ upp' : 'klockren') +
       '</div></div></div>';
 
+    var activeVisitHtml = '';
+    if (
+      window.CcoV9CustomersParity &&
+      typeof window.CcoV9CustomersParity.renderReferensActiveVisit === 'function'
+    ) {
+      activeVisitHtml = window.CcoV9CustomersParity.renderReferensActiveVisit(bundle, bcard) || '';
+    }
+    if (activeVisitHtml) h += activeVisitHtml;
+
+    var hideLegacyAttend =
+      window.CcoV9CustomersParity &&
+      typeof window.CcoV9CustomersParity.resolveActiveVisitPayload === 'function' &&
+      window.CcoV9CustomersParity.resolveActiveVisitPayload(bundle);
+
     // ===== Närvaro: Show / No-show (receptionist markerar, syns för behandlare, loggas) =====
-    var att = bcard.attendance && typeof bcard.attendance === 'object' ? bcard.attendance : {};
-    var attStatus = att.status || '';
-    var attAt = att.at ? new Date(att.at) : null;
-    var attTime =
-      attAt && !isNaN(attAt)
-        ? attAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-        : '';
-    h +=
-      '<div class="kk-attend' +
-      (attStatus ? ' is-' + esc(attStatus) : '') +
-      '" data-patient-id="' +
-      esc(bcard.patientId || bcard.id || '') +
-      '">' +
-      '<div class="kk-attend-status' +
-      (attStatus ? ' is-' + esc(attStatus) : '') +
-      '" data-kk-attend-status>' +
-      (attStatus === 'show'
-        ? '✓ Ankommen' + (attTime ? ' ' + esc(attTime) : '') + (att.by ? ' · ' + esc(att.by) : '')
-        : attStatus === 'no_show'
-          ? '✕ No-show · kontakta kunden'
-          : 'Närvaro ej markerad') +
-      '</div>' +
-      '<div class="kk-attend-btns">' +
-      '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Show</button>' +
-      '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> No-show</button>' +
-      '</div></div>';
+    if (!hideLegacyAttend) {
+      var att = bcard.attendance && typeof bcard.attendance === 'object' ? bcard.attendance : {};
+      var attStatus = att.status || '';
+      var attAt = att.at ? new Date(att.at) : null;
+      var attTime =
+        attAt && !isNaN(attAt)
+          ? attAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+          : '';
+      h +=
+        '<div class="kk-attend' +
+        (attStatus ? ' is-' + esc(attStatus) : '') +
+        '" data-patient-id="' +
+        esc(bcard.patientId || bcard.id || '') +
+        '">' +
+        '<div class="kk-attend-status' +
+        (attStatus ? ' is-' + esc(attStatus) : '') +
+        '" data-kk-attend-status>' +
+        (attStatus === 'show'
+          ? '✓ Ankommen' + (attTime ? ' ' + esc(attTime) : '') + (att.by ? ' · ' + esc(att.by) : '')
+          : attStatus === 'no_show'
+            ? '✕ No-show · kontakta kunden'
+            : 'Närvaro ej markerad') +
+        '</div>' +
+        '<div class="kk-attend-btns">' +
+        '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Show</button>' +
+        '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> No-show</button>' +
+        '</div></div>';
+    }
 
     var opDayHtml = '';
     if (

@@ -21,6 +21,10 @@ const PARITY_JS = path.join(
   'public/major-arcana-preview/app/cco-v9-customers-parity.js'
 );
 const PATIENT_UI_JS = path.join(REPO_ROOT, 'public/major-arcana-preview/app/patient-master-ui.js');
+const REFERENS_JS = path.join(
+  REPO_ROOT,
+  'public/major-arcana-preview/app/cco-kundkort-referens.js'
+);
 
 const ANSI = {
   reset: '\x1b[0m',
@@ -311,6 +315,41 @@ if (!parityJs) {
     'Check-in action i parity (Fas 3b)',
     checkinAction,
     checkinAction ? 'checkin handler finns' : 'saknar checkin handler'
+  );
+
+  const cutoverOptInParity =
+    parityJs.includes('function usesV11DossierCutover()') &&
+    parityJs.includes('__ARCANA_V11_KUNDKORT === true') &&
+    parityJs.includes('return false;');
+  check(
+    'usesV11DossierCutover() opt-in i parity',
+    cutoverOptInParity,
+    cutoverOptInParity ? 'referens default, v11 opt-in' : 'parity cutover default ej opt-in'
+  );
+
+  const referensActiveVisit =
+    parityJs.includes('function renderReferensActiveVisit(') &&
+    parityJs.includes("prefix: 'kkref-active-visit'");
+  check(
+    'renderReferensActiveVisit (ORD-25E Fas 2 referens)',
+    referensActiveVisit,
+    referensActiveVisit ? 'kkref-active-visit export' : 'SAKNAS'
+  );
+}
+
+const referensJs = readFileSafe(REFERENS_JS);
+if (!referensJs) {
+  check('cco-kundkort-referens.js läsbar', false, `Hittade inte ${REFERENS_JS}`);
+} else {
+  check('cco-kundkort-referens.js läsbar', true, `${referensJs.length} bytes`);
+  const referensMountsActive =
+    referensJs.includes('renderReferensActiveVisit') && referensJs.includes('hideLegacyAttend');
+  check(
+    'Referens kort mountar aktivt besök (Fas 2)',
+    referensMountsActive,
+    referensMountsActive
+      ? 'renderReferensActiveVisit + hideLegacyAttend'
+      : 'saknar aktivt-besök i __renderReferensKundkort'
   );
 }
 
