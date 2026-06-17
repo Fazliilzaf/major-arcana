@@ -408,11 +408,22 @@ if (!patientUiJs) {
 
   const referensNotesCta =
     patientUiJs.includes('function openReferensNotesSection(') &&
-    (patientUiJs.includes('focusNotes: true') || patientUiJs.includes('[data-sek="anteckningar"]'));
+    patientUiJs.includes('fromActiveVisit: true') &&
+    patientUiJs.includes('focusNotes: true');
   check(
     'Anteckning-CTA i referens (P0 #2)',
     referensNotesCta,
-    referensNotesCta ? 'openReferensNotesSection + anteckningar/KKX' : 'saknar referens notes CTA'
+    referensNotesCta ? 'openReferensNotesSection → KKX force' : 'saknar referens notes CTA'
+  );
+
+  const completeVisitWired =
+    patientUiJs.includes('completeVisit:') &&
+    patientUiJs.includes('/api/v1/cco/staff/watch-complete-visit') &&
+    parityJs?.includes("action === 'complete'");
+  check(
+    'Avsluta besök wired (P0 bugfix)',
+    completeVisitWired,
+    completeVisitWired ? 'complete → watch-complete-visit' : 'saknar complete visit wiring'
   );
 
   const activeVisitEncounterHints =
@@ -430,11 +441,12 @@ if (!patientUiJs) {
     parityJs?.includes("action === 'journal'") &&
     parityJs?.includes("action === 'checkin'") &&
     parityJs?.includes("action === 'followup'") &&
-    parityJs?.includes("action === 'notes'");
+    parityJs?.includes("action === 'notes'") &&
+    parityJs?.includes("action === 'complete'");
   check(
     'Aktivt besök actions wired (P0 #3)',
     Boolean(activeVisitActions),
-    activeVisitActions ? 'photo/journal/checkin/followup/notes' : 'saknar action handlers'
+    activeVisitActions ? 'photo/journal/checkin/followup/notes/complete' : 'saknar action handlers'
   );
 
   const referensNoTabFallback =

@@ -111,3 +111,72 @@ test('watch-checkin persists checked_in on today encounter', async () => {
     await fs.rm(tmp, { recursive: true, force: true });
   }
 });
+
+test('watch-complete-visit persists completed on today encounter', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'cco-staff-complete-'));
+  try {
+    const patientMasterStore = await createCcoPatientMasterStore({
+      filePath: path.join(tmp, 'patient-master.json'),
+    });
+    const treatmentEncounterStore = await createCcoTreatmentEncounterStore({
+      filePath: path.join(tmp, 'encounters.json'),
+    });
+    const authStore = fakeAuthStore();
+    const patient = await patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      displayName: 'Today Complete',
+      primaryEmail: 'complete@example.com',
+    });
+    const encounter = await treatmentEncounterStore.upsertEncounter({
+      tenantId: TENANT,
+      patientId: patient.id,
+      bookingId: 'booking-today-complete',
+      serviceLabel: 'PRP',
+      startsAt: new Date().toISOString(),
+      status: 'in_progress',
+      metadata: { checkedInAt: new Date().toISOString() },
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createCcoStaffRouter({
+        patientMasterStore,
+        treatmentEncounterStore,
+        authStore,
+        config: {
+          defaultTenant: TENANT,
+          ccoBookingEngineStorePath: path.join(tmp, 'booking-engine.json'),
+          ccoBookingStorePath: path.join(tmp, 'booking-store.json'),
+          ccoTreatmentEncounterStorePath: path.join(tmp, 'encounters.json'),
+        },
+        requireAuth: authStore.requireAuth.bind(authStore),
+        requireRole,
+      })
+    );
+
+    await withServer(app, async (base) => {
+      const res = await fetch(`${base}/cco/staff/watch-complete-visit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ patientId: patient.id, bookingId: 'booking-today-complete' }),
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.persisted, true);
+      assert.equal(body.encounterId, encounter.encounterId);
+    });
+
+    const persisted = await treatmentEncounterStore.getEncounter({
+      tenantId: TENANT,
+      patientId: patient.id,
+      encounterId: encounter.encounterId,
+    });
+    assert.equal(persisted.status, 'completed');
+    assert.ok(persisted.metadata.completedAt);
+    assert.equal(persisted.metadata.completedSource, 'v9_active_visit');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});

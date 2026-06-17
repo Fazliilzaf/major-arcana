@@ -436,6 +436,98 @@ function createCcoStaffRouter({
   );
 
   router.post(
+    '/cco/staff/watch-complete-visit',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.body?.patientId);
+        if (!patientId) {
+          return res.status(400).json({ error: 'patientId saknas.' });
+        }
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId,
+        });
+        if (!patient) {
+          return res.status(404).json({ error: 'patient_not_found' });
+        }
+        const completedAt = new Date().toISOString();
+        let persistedEncounter = null;
+        let persisted = false;
+        let reason = null;
+        if (treatmentEncounterStore?.upsertEncounter) {
+          try {
+            const bookingIndex = await loadKunderBookingIndex(config, actor.tenantId, [patient]);
+            const signals = getBookingSignals(bookingIndex.index, patient.id);
+            const bookingContext = {
+              upcomingBookings: signals.upcomingBookings || [],
+              historyBookings: signals.historyBookings || [],
+            };
+            const scheduledBooking = resolveScheduledTodayBooking(bookingContext);
+            const visitEncounters = await treatmentEncounterStore.listByPatient({
+              tenantId: actor.tenantId,
+              patientId,
+              limit: 20,
+            });
+            const encounter = resolveTodayEncounter(visitEncounters, {
+              scheduledBooking,
+              cardEncounterId: signals.encounterId,
+            });
+            if (encounter || scheduledBooking) {
+              const base = encounter || {};
+              persistedEncounter = await treatmentEncounterStore.upsertEncounter({
+                ...base,
+                tenantId: actor.tenantId,
+                patientId,
+                bookingId:
+                  normalizeText(req.body?.bookingId) ||
+                  normalizeText(base.bookingId) ||
+                  normalizeText(scheduledBooking?.id || scheduledBooking?.bookingId),
+                serviceLabel:
+                  normalizeText(base.serviceLabel) ||
+                  normalizeText(scheduledBooking?.serviceName || scheduledBooking?.title),
+                resourceLabel:
+                  normalizeText(base.resourceLabel) ||
+                  normalizeText(scheduledBooking?.resourceLabel || scheduledBooking?.staff),
+                startsAt:
+                  normalizeText(base.startsAt) ||
+                  normalizeText(scheduledBooking?.startsAt || scheduledBooking?.startAt),
+                status: 'completed',
+                metadata: {
+                  ...(base.metadata || {}),
+                  completedAt,
+                  completedSource: 'v9_active_visit',
+                },
+              });
+              persisted = true;
+            } else {
+              reason = 'no_today_booking';
+            }
+          } catch (error) {
+            console.warn('[cco/staff/watch-complete-visit] persist failed', error);
+            reason = 'persist_failed';
+          }
+        } else {
+          reason = 'encounter_store_unavailable';
+        }
+        return res.json({
+          ok: true,
+          patientId,
+          bookingId:
+            normalizeText(req.body?.bookingId) ||
+            normalizeText(persistedEncounter?.bookingId) ||
+            null,
+          completedAt,
+          source: 'v9_active_visit',
+          persisted,
+          reason,
+          encounterId: normalizeText(persistedEncounter?.encounterId) || null,
+        });
+      })
+  );
+
+  router.post(
     '/cco/staff/watch-sms',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),

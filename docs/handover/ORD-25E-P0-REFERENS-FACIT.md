@@ -1,20 +1,41 @@
 # ORD-25E · P0 referens facit (låst riktning)
 
 **Updated:** 2026-06-17  
-**Status:** P0 levererat i kod — prod browser-UAT = Fazli efter Cloud script-rapport
+**Status:** P0 bugfix efter prod UAT — Anteckning + Avsluta besök
+
+---
+
+## Prod UAT (Fazli, 2026-06-17)
+
+| Test                 | Resultat före fix | Rotorsak                                                                                     |
+| -------------------- | ----------------- | -------------------------------------------------------------------------------------------- |
+| Aktivt besök-segment | **PASS**          | —                                                                                            |
+| Starta journal → KKX | **PASS**          | —                                                                                            |
+| Anteckning           | **FAIL**          | Död `.openb`-path + `switchDetailTab`-fallback i referens; ORD47 slug `kk-card-anteckningar` |
+| Avsluta besök        | **PARTIAL**       | Knappen hade `action=journal` → öppnade KKX, avslutade inte encounter                        |
+
+**Fix (denna commit):**
+
+- Anteckning → alltid `openReferensJournalWorkspace({ forceKkx, fromActiveVisit, focusNotes })`
+- Avsluta besök → `action=complete` + `POST /api/v1/cco/staff/watch-complete-visit` + confirm
+- Scroll-alias: `anteckningar` → `kk-card-anteckningar`
+- `patchReferensKundkortRail` uppdaterar journey-handlers efter DOM-patch
+
+**Re-test efter deploy:** Anteckning + Avsluta besök på facit-URL.
 
 ---
 
 ## Facit-beslut (ingen A/B)
 
-| Beslut                | Värde                                                              |
-| --------------------- | ------------------------------------------------------------------ |
-| Prod-default kundkort | ORD-47 **referens** (`.kkref .doss`)                               |
-| v11 rail              | Endast `window.__ARCANA_V11_KUNDKORT === true`                     |
-| Journal / formulär    | **KKX** (`#kkx-ov`, `mountKkxJournalBig`) — inte staff-flikar      |
-| Anteckning            | Scroll `data-sek="anteckningar"` eller KKX med `focusNotes`        |
-| Aktivt besök          | Native sektion `data-sek="besok"` + `data-v11-active-visit-action` |
-| Scroll                | `.v10-dossier-referens` (inte `.kkref .ds` som scrollport)         |
+| Beslut                | Värde                                                                        |
+| --------------------- | ---------------------------------------------------------------------------- |
+| Prod-default kundkort | ORD-47 **referens** (`.kkref .doss`)                                         |
+| v11 rail              | Endast `window.__ARCANA_V11_KUNDKORT === true`                               |
+| Journal / formulär    | **KKX** (`#kkx-ov`, `mountKkxJournalBig`) — inte staff-flikar                |
+| Anteckning            | Scroll `kk-card-anteckningar` eller KKX med `focusNotes` + `fromActiveVisit` |
+| Avsluta besök         | `action=complete` → confirm → `watch-complete-visit` → `completed_today`     |
+| Aktivt besök          | Native sektion `data-sek="besok"` + `data-v11-active-visit-action`           |
+| Scroll                | `.v10-dossier-referens` (inte `.kkref .ds` som scrollport)                   |
 
 **Förbjudet i referens-läge:** `switchDetailTab('journal'|'anteckningar')` som enda CTA.
 

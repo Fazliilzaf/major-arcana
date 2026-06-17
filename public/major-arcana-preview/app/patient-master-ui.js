@@ -1717,12 +1717,27 @@
     );
   }
 
+  const REFERENS_SECTION_ALIASES = {
+    anteckningar: ['anteckningar', 'kk-card-anteckningar'],
+    journal: ['journal', 'kk-card-journal', 'kk-card-behandling', 'behandling'],
+  };
+
+  function findReferensKundkortSection(kkref, slug) {
+    if (!kkref || !slug) return null;
+    const candidates = REFERENS_SECTION_ALIASES[slug] || [slug];
+    for (const candidate of candidates) {
+      const target =
+        kkref.querySelector(`details.dossier-section[data-sek="${candidate}"]`) ||
+        kkref.querySelector(`[data-sek="${candidate}"]`);
+      if (target) return target;
+    }
+    return null;
+  }
+
   function scrollReferensKundkortSection(root, slug) {
     if (!root || !slug) return false;
     const kkref = root.querySelector('.kkref') || root;
-    const target =
-      kkref.querySelector(`details.dossier-section[data-sek="${slug}"]`) ||
-      kkref.querySelector(`[data-sek="${slug}"]`);
+    const target = findReferensKundkortSection(kkref, slug);
     if (!target) return false;
     if (target.tagName === 'DETAILS') target.open = true;
 
@@ -1844,17 +1859,12 @@
   }
 
   function openReferensNotesSection(root) {
-    const kkref = root?.querySelector('.kkref') || root;
-    if (scrollReferensKundkortSection(root, 'anteckningar')) {
-      const noteOpen =
-        kkref?.querySelector('[data-sek="anteckningar"] .openb:not([disabled])') ||
-        kkref?.querySelector('details.dossier-section[data-sek="anteckningar"] .kkx-openb');
-      if (noteOpen) {
-        noteOpen.click();
-        return true;
-      }
-    }
-    return openReferensJournalWorkspace(root, { forceKkx: true, focusNotes: true });
+    scrollReferensKundkortSection(root, 'anteckningar');
+    return openReferensJournalWorkspace(root, {
+      forceKkx: true,
+      fromActiveVisit: true,
+      focusNotes: true,
+    });
   }
 
   function setRuntimeEditingJournalEntry(entry) {
@@ -4958,11 +4968,9 @@
     window.requestAnimationFrame(() => window.requestAnimationFrame(clickTarget));
   }
 
-  function bindV9MockupDossierHandlers(root, ctx) {
-    if (!root || !isV9CustomersEnabled()) return;
-    bindV9Zone1Handlers(root, ctx);
+  function buildV9JourneyHandlers(root, ctx) {
     const referensKkref = isReferensKundkortRoot(root);
-    const journeyHandlers = {
+    return {
       openBook: () => {
         window.dispatchEvent(
           new CustomEvent('cco:v9-ghost-booking', {
@@ -5002,7 +5010,35 @@
           setStatus('Check-in misslyckades.', 'error');
         }
       },
+      completeVisit: async () => {
+        const patientId = ctx.card?.patientId;
+        const bookingId = runtime.detail?.dossierBundle?.activeVisit?.bookingId || null;
+        if (!patientId) return;
+        if (!window.confirm('Avsluta besöket för idag? Kundkortet uppdateras till avslutat.')) {
+          return;
+        }
+        try {
+          await apiRequest('/api/v1/cco/staff/watch-complete-visit', {
+            method: 'POST',
+            body: { patientId, bookingId },
+          });
+          window.ArcanaCcoData?.invalidate?.(`dossier-bundle:${normalizeText(patientId)}`);
+          await loadPatientDocumentBundle(patientId);
+          renderDetailPanel({ forceFullRender: true });
+          setStatus('Besöket är avslutat för idag.', 'success');
+        } catch (error) {
+          console.warn('Aktivt besök avslut misslyckades.', error);
+          setStatus('Kunde inte avsluta besöket.', 'error');
+        }
+      },
     };
+  }
+
+  function bindV9MockupDossierHandlers(root, ctx) {
+    if (!root || !isV9CustomersEnabled()) return;
+    bindV9Zone1Handlers(root, ctx);
+    const journeyHandlers = buildV9JourneyHandlers(root, ctx);
+    const referensKkref = isReferensKundkortRoot(root);
     if (root.querySelector('[data-kundkort-slide-over]')) {
       window.CcoV9CustomersParity?.bindKundkortSlideOver?.(root, journeyHandlers, ctx);
     } else {
@@ -6460,10 +6496,14 @@
       window.__enhanceReferensKundkort(rail);
     }
     const detailRoot = rail.querySelector('[data-patient-detail]') || rail;
-    if (detailRoot._v9IntelCtx) {
-      detailRoot._v9IntelCtx.card = mergedCard;
-      detailRoot._v9IntelCtx.journalEntries = asArray(journalEntries);
-    }
+    const patchCtx = {
+      card: mergedCard,
+      journalEntries,
+      occasionTimeline,
+      driveFiles: dedupeDriveFiles(driveFiles),
+    };
+    const journeyHandlers = buildV9JourneyHandlers(detailRoot, patchCtx);
+    window.CcoV9CustomersParity?.bindIntelligentJourney?.(detailRoot, patchCtx, journeyHandlers);
     if (typeof window.CcoHairtpDocumentCloud?.bindAutoDocPreviewRows === 'function') {
       window.CcoHairtpDocumentCloud.bindAutoDocPreviewRows(rail);
     }

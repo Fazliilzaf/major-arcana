@@ -1128,7 +1128,7 @@
     const secondaryByState = {
       scheduled_today: { action: 'journal', label: journalLabel },
       checked_in: null,
-      in_progress: { action: 'journal', label: 'Avsluta besök' },
+      in_progress: { action: 'complete', label: 'Avsluta besök' },
       completed_today: { action: 'journal', label: 'Visa journal' },
     };
 
@@ -3865,10 +3865,10 @@
           void liveHandlers.checkInVisit?.();
         } else if (action === 'followup') {
           liveHandlers.openBook?.();
+        } else if (action === 'complete') {
+          void liveHandlers.completeVisit?.();
         } else if (action === 'notes') {
-          if (liveHandlers.openNotes?.()) return;
-          if (!liveHandlers.switchTab) return;
-          liveHandlers.switchTab('anteckningar');
+          liveHandlers.openNotes?.();
         }
         return;
       }
