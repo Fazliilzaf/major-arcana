@@ -1038,7 +1038,41 @@
     return `${prefix}__${part}`;
   }
 
+  function renderReferensActiveVisitTimelineHtml(visit, state) {
+    const startedTime = formatActiveVisitTime(visit?.startedAt || visit?.checkedInAt);
+    const completedTime = formatActiveVisitTime(visit?.completedAt);
+    const progressLabel = startedTime ? `${startedTime} pågår` : 'Pågår';
+    const doneLabel = completedTime ? `${completedTime} klart` : 'Klart';
+    const checkinDone =
+      state === 'checked_in' || state === 'in_progress' || state === 'completed_today';
+    const progressActive = state === 'in_progress';
+    const progressDone = state === 'completed_today';
+
+    return `
+      <div class="kkref-active-visit__timeline" aria-label="Besöksförlopp">
+        <div class="kkref-active-visit__timeline-track">
+          <span class="kkref-active-visit__timeline-dot${checkinDone ? ' is-done' : ''}" aria-hidden="true"></span>
+          <span class="kkref-active-visit__timeline-line${checkinDone ? ' is-done' : ''}" aria-hidden="true"></span>
+          <span class="kkref-active-visit__timeline-dot${
+            progressDone ? ' is-done' : progressActive ? ' is-active' : ''
+          }" aria-hidden="true"></span>
+          <span class="kkref-active-visit__timeline-line${
+            progressActive ? ' is-active' : progressDone ? ' is-done' : ''
+          }" aria-hidden="true"></span>
+          <span class="kkref-active-visit__timeline-dot is-pending" aria-hidden="true"></span>
+        </div>
+        <div class="kkref-active-visit__timeline-labels">
+          <span class="${checkinDone ? 'is-done' : ''}">Incheckad</span>
+          <span class="${progressActive ? 'is-active' : progressDone ? 'is-done' : ''}">${escapeHtml(progressLabel)}</span>
+          <span class="is-pending">${escapeHtml(doneLabel)}</span>
+        </div>
+      </div>`;
+  }
+
   function renderActiveVisitTimelineHtml(visit, state, prefix = 'v11-active-visit') {
+    if (prefix === 'kkref-active-visit') {
+      return renderReferensActiveVisitTimelineHtml(visit, state);
+    }
     const checkedInTime = formatActiveVisitTime(visit?.checkedInAt);
     const startedTime = formatActiveVisitTime(visit?.startedAt || visit?.checkedInAt);
     const completedTime = formatActiveVisitTime(visit?.completedAt);
@@ -1141,6 +1175,7 @@
           : state === 'completed_today'
             ? `${activeVisitCls(prefix, 'dot')} ${activeVisitCls(prefix, 'dot--done')}`
             : activeVisitCls(prefix, 'dot'),
+      pulseAmber: state === 'in_progress',
       kicker: kickerByState[state] || kickerByState.scheduled_today,
       statusLine: statusByState[state] || statusByState.scheduled_today,
       headMeta: headMetaByState[state] || '',
@@ -1168,7 +1203,7 @@
         ${rows
           .map(
             (row) => `
-          <div class="${activeVisitCls(prefix, 'blocker')}" data-v11-active-visit-blocker="${escapeHtml(row.code || '')}">
+          <div class="${activeVisitCls(prefix, 'blocker')}" data-v11-preflight="blocker" data-v11-active-visit-blocker="${escapeHtml(row.code || '')}">
             <span class="${activeVisitCls(prefix, 'blocker-badge')}" aria-hidden="true">!</span>
             <span class="${activeVisitCls(prefix, 'blocker-copy')}">
               <span class="${activeVisitCls(prefix, 'blocker-label')}">${escapeHtml(row.label || 'Blockerare')}</span>
@@ -1184,7 +1219,11 @@
     return renderActiveVisitBlockers(blockers, 'v11-active-visit');
   }
 
-  function renderActiveVisitHtml(dossierBundle, card, { prefix = 'v11-active-visit' } = {}) {
+  function renderActiveVisitHtml(
+    dossierBundle,
+    card,
+    { prefix = 'v11-active-visit', attendHtml = '' } = {}
+  ) {
     void card;
     const visit = resolveActiveVisitPayload(dossierBundle);
     if (!visit) return '';
@@ -1201,18 +1240,23 @@
     const secondaryLabel =
       presentation.secondary?.action === 'journal' && presentation.journalDetail
         ? `${presentation.secondary.label} · ${presentation.journalDetail}`
-        : presentation.secondary?.label || '';
+        : presentation.secondary?.action === 'complete' && presentation.journalDetail
+          ? `${presentation.secondary.label} · ${presentation.journalDetail}`
+          : presentation.secondary?.label || '';
 
     return `
       <section
         class="${prefix} ${presentation.sectionClass}"
         data-v11-active-visit
         data-v11-active-visit-state="${escapeHtml(presentation.state)}"
+        ${prefix === 'kkref-active-visit' ? 'data-kk-active-visit-inline="1"' : ''}
         aria-label="Aktivt besök idag"
       >
         <header class="${activeVisitCls(prefix, 'head')}">
           <span class="${activeVisitCls(prefix, 'status')}">
-            <span class="${presentation.dotClass}" aria-hidden="true"></span>
+            <span class="${presentation.dotClass}"${
+              presentation.pulseAmber ? ' data-v11-pulse="amber"' : ''
+            } aria-hidden="true"></span>
             <span class="${activeVisitCls(prefix, 'kicker')}">${escapeHtml(presentation.kicker)}</span>
           </span>
           ${
@@ -1284,6 +1328,11 @@
             ${notesDisabled ? 'disabled aria-disabled="true"' : ''}
           >Anteckning</button>
         </div>
+        ${
+          attendHtml && prefix === 'kkref-active-visit'
+            ? `<div class="kkref-active-visit__attend">${attendHtml}</div>`
+            : ''
+        }
       </section>`;
   }
 
@@ -1292,83 +1341,20 @@
   }
 
   function renderReferensActiveVisit(dossierBundle, card) {
-    void card;
     const visit = resolveActiveVisitPayload(dossierBundle);
-    if (!visit) return '';
-
-    const presentation = resolveActiveVisitPresentation(visit);
-    const title = normalizeIntelText(visit.serviceLabel) || 'Besök idag';
-    const practitioner = normalizeIntelText(visit.practitionerLabel);
-    const timeLabel = formatActiveVisitTime(visit?.startsAt);
-    const photoDisabled = visit.photoCaptureAvailable === false;
-    const notesDisabled = visit.notesAvailable === false;
-
-    const primaryLabel =
-      presentation.primary.action === 'journal' && presentation.journalDetail
-        ? `${presentation.primary.label} · ${presentation.journalDetail}`
-        : presentation.primary.label;
-
-    const statusPill =
-      presentation.state === 'in_progress'
-        ? '<span class="sb-chip">Pågår</span>'
-        : presentation.state === 'completed_today'
-          ? '<span class="sb-chip" style="background:var(--success-bg);color:var(--success)">Klart</span>'
-          : presentation.state === 'checked_in'
-            ? '<span class="sb-chip" style="background:var(--info-bg);color:var(--info)">Incheckad</span>'
-            : '<span class="sb-chip">Idag</span>';
-
-    const metaParts = [];
-    if (presentation.headMeta) metaParts.push(presentation.headMeta);
-    else if (timeLabel) metaParts.push(`Kl ${timeLabel}`);
-    if (practitioner) metaParts.push(practitioner);
-    const metaLine = metaParts.join(' · ');
-
-    const blockers = asArray(visit.blockers);
-    const blockerHtml = blockers.length
-      ? blockers
-          .map(
-            (row) => `
-          <div class="flag">
-            <div class="fi" aria-hidden="true">!</div>
-            <div><b>${escapeHtml(row.label || 'Blockerare')}</b> Krävs idag</div>
-          </div>`
-          )
-          .join('')
-      : presentation.preflightCompact
-        ? '<p class="empty">Besöket är avslutat för idag.</p>'
-        : '<p class="empty">Inga blockerare för dagens besök.</p>';
-
-    const secondaryBtn = presentation.secondary
-      ? `<button type="button" class="btn" data-v11-active-visit-action="${escapeHtml(presentation.secondary.action)}">${escapeHtml(presentation.secondary.label)}</button>`
-      : '';
-
-    const ghostBtn = `<button type="button" class="btn"${photoDisabled ? ' disabled aria-disabled="true"' : ''} data-v11-active-visit-action="photo">Ta bild</button>`;
-    const notesBtn = `<button type="button" class="btn"${notesDisabled ? ' disabled aria-disabled="true"' : ''} data-v11-active-visit-action="notes">Anteckning</button>`;
-
-    return `
-      <details
-        class="dossier-section kkref-active-visit-native"
-        data-sek="besok"
-        data-v11-active-visit
-        data-v11-active-visit-state="${escapeHtml(presentation.state)}"
-        open
-      >
-        <summary>Besök idag<span class="count">${statusPill}</span></summary>
-        <div class="dossier-section-body">
-          <div class="row acc teal">
-            <div style="flex:1">
-              <div class="rt">${escapeHtml(title)}</div>
-              <div class="rm">${escapeHtml(presentation.statusLine)}${metaLine ? ` · ${escapeHtml(metaLine)}` : ''}</div>
-            </div>
-          </div>
-          ${blockerHtml}
-          <div class="acts">
-            <button type="button" class="btn gold" data-v11-active-visit-action="${escapeHtml(presentation.primary.action)}">${escapeHtml(primaryLabel)}</button>
-            ${secondaryBtn}
-            <div class="r2">${ghostBtn}${notesBtn}</div>
-          </div>
-        </div>
-      </details>`;
+    let attendHtml = '';
+    if (visit && normalizeActiveVisitState(visit.state) === 'scheduled_today') {
+      const att =
+        card && card.attendance && typeof card.attendance === 'object' ? card.attendance : {};
+      const hasStatus = att.status === 'show' || att.status === 'no_show';
+      if (typeof global.__buildKkAttendHtml === 'function') {
+        attendHtml = global.__buildKkAttendHtml(card, { showButtons: !hasStatus });
+      }
+    }
+    return renderActiveVisitHtml(dossierBundle, card, {
+      prefix: 'kkref-active-visit',
+      attendHtml,
+    });
   }
 
   const INTEL_TONE_ORDER = { next: 0, coming: 1, future: 2, done: 3, neutral: 4 };

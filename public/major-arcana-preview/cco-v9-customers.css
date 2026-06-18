@@ -1096,16 +1096,340 @@ html[data-v9-enabled="on"] .v11-active-visit__secondary--ghost {
   background: transparent;
 }
 
-/* ORD-25E Fas 2 — aktivt besök i referens-kort (.kkref), ej v11-rail */
-html[data-v9-enabled="on"] .kkref .kkref-active-visit {
-  margin: 10px 0 12px;
-  padding: 12px 14px;
+/* ORD-25E — Anna-facit profil + zonordning i .kkref */
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile {
+  margin: 0 0 8px;
+  padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(180, 160, 140, 0.22);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.88));
+  background: var(--v11-vellum);
+  border: var(--v11-vellum-border);
+  box-shadow: var(--v11-shadow-lift);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__top {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__identity {
+  flex: 1;
+  min-width: 0;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__edit {
+  flex-shrink: 0;
+  padding: 6px 11px;
+  border-radius: 8px;
+  border: var(--v11-amber-border);
+  background: linear-gradient(180deg, #fff, #fdf6ec);
+  color: var(--v11-amber-text);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: default;
+  pointer-events: none;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__tags {
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+  margin-bottom: 9px;
+  padding-left: 57px;
+  gap: 5px;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .dtag.vip {
+  background: linear-gradient(180deg, rgba(252, 238, 218, 0.95), rgba(244, 221, 158, 0.85));
+  color: #5a4310;
+  border: 1px solid rgba(212, 168, 71, 0.5);
+  letter-spacing: 0.04em;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .dtag.cure {
+  background: var(--v11-lila-pill);
+  color: var(--v11-lila-text);
+  border: var(--v11-lila-pill-border);
+  font-weight: 600;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .dtag.eng {
+  background: var(--v11-gron-pill);
+  color: var(--v11-gron-text);
+  border: var(--v11-gron-pill-border);
+  font-weight: 700;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__contact {
+  position: relative;
+  z-index: 1;
+  padding-left: 57px;
+  font-size: 11px;
+  color: var(--v11-ink-soft);
+  line-height: 1.55;
+  margin-bottom: 9px;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__contact a,
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__contact .kk-contact {
+  color: var(--v11-ink-soft);
+  text-decoration: none;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__alert {
+  position: relative;
+  z-index: 1;
+  padding: 8px 11px 8px 14px;
+  border-radius: 9px;
+  background: var(--v11-amber-wash);
+  border: var(--v11-amber-border);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--v11-amber-text);
+  overflow: hidden;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .kkref-profile__alert::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 7px;
+  margin: 0 0 8px;
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--v11-vellum);
+  border: var(--v11-vellum-border);
+  box-shadow: var(--v11-shadow-base);
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k .l {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--v11-ink-soft);
+  margin-bottom: 3px;
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k .v {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--v11-ink);
+  margin-top: 0;
+  min-height: 16px;
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k .v.is-good {
+  color: var(--v11-gron-text);
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k .s {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  margin-top: 3px;
+  line-height: 1.2;
+  min-height: 12px;
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k .s.is-pos {
+  color: var(--v11-gron-text);
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k .s.is-mute {
+  color: var(--v11-ink-mute);
+}
+
+html[data-v9-enabled="on"] .kkref .v11-hairstrand {
+  height: 20px;
+  margin: 8px 0;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(124, 58, 237, 0.05), transparent 70%);
+  pointer-events: none;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .ring {
+  width: 46px;
+  height: 46px;
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .av {
+  top: 0;
+  left: 0;
+  width: 46px;
+  height: 46px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: #5d3a8e;
+  background: linear-gradient(180deg, #fdfaf3, #efe6d6);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.85) inset,
-    0 2px 8px rgba(56, 40, 28, 0.05);
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 5px rgba(120, 90, 50, 0.1),
+    inset 0 0 0 1px rgba(212, 168, 71, 0.45),
+    0 0 0 1px rgba(212, 168, 71, 0.18),
+    0 2px 6px rgba(120, 90, 50, 0.16);
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .dk {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--v11-lila-strong);
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .dn {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--v11-ink);
+}
+
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .dc {
+  font-size: 11px;
+  color: var(--v11-ink-soft);
+  line-height: 1.55;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-anna-summ {
+  margin: 0 0 8px;
+  padding: 10px 13px;
+  border-radius: 11px;
+  background: var(--v11-amber-wash);
+  border: var(--v11-amber-border);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  position: relative;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--v11-ink);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-anna-summ::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-anna-summ .sk {
+  display: block;
+  margin-bottom: 3px;
+  padding-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--v11-amber-text);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-anna-summ strong {
+  font-weight: 600;
+  color: var(--v11-ink);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-med-band {
+  margin: 0 0 8px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  background: var(--v11-amber-wash);
+  border: var(--v11-amber-border);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  position: relative;
+  overflow: hidden;
+  display: block;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-med-band::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-med-band__copy {
+  padding-left: 6px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--v11-ink);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-med-band__copy strong {
+  color: var(--v11-amber-text);
+  font-weight: 700;
+}
+
+html[data-v9-enabled="on"] .kkref:has([data-kk-active-visit-inline="1"]) .kk-ord47-rail,
+html[data-v9-enabled="on"] .kkref:has([data-kk-active-visit-inline="1"]) [data-kk-ord48-ready] {
+  display: none !important;
+}
+
+/* ORD-25E Fas 2 — aktivt besök i referens-kort (.kkref), ej v11-rail — Cloud facit */
+html[data-v9-enabled="on"] .kkref .kkref-active-visit {
+  margin: 4px 0 6px;
+  padding: 14px;
+  border-radius: 14px;
+  border: var(--v11-vellum-border);
+  background: var(--v11-vellum);
+  box-shadow: var(--v11-shadow-base);
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(200, 130, 30, 0.05), transparent 70%);
+  pointer-events: none;
+}
+
+html[data-v9-enabled="on"] .kkref:has([data-kk-active-visit-inline="1"]) [data-kk-ord48-ready] {
+  display: none !important;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__head {
@@ -1113,7 +1437,7 @@ html[data-v9-enabled="on"] .kkref .kkref-active-visit__head {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 9px;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__status {
@@ -1132,8 +1456,12 @@ html[data-v9-enabled="on"] .kkref .kkref-active-visit__dot {
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__dot--pulse {
+  width: 9px;
+  height: 9px;
   background: #c4881e;
-  box-shadow: 0 0 0 4px rgba(200, 130, 30, 0.18);
+  box-shadow:
+    0 0 0 3px rgba(200, 130, 30, 0.14),
+    0 0 0 6px rgba(200, 130, 30, 0.06);
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__dot--done {
@@ -1141,9 +1469,9 @@ html[data-v9-enabled="on"] .kkref .kkref-active-visit__dot--done {
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__kicker {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: rgba(70, 60, 50, 0.72);
 }
@@ -1163,16 +1491,16 @@ html[data-v9-enabled="on"] .kkref .kkref-active-visit__time {
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__title {
-  margin: 0;
+  margin: 0 0 3px;
   font-size: 16px;
   line-height: 1.2;
-  font-weight: 700;
+  font-weight: 600;
   color: #2b251f;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__status-line {
-  margin: 4px 0 0;
-  font-size: 12px;
+  margin: 0 0 12px;
+  font-size: 12.5px;
   color: rgba(70, 60, 50, 0.72);
 }
 
@@ -1181,15 +1509,15 @@ html[data-v9-enabled="on"] .kkref .kkref-active-visit__context {
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__preflight {
-  margin-bottom: 10px;
+  margin-bottom: 11px;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__preflight-kicker {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgba(70, 60, 50, 0.58);
 }
@@ -1202,34 +1530,107 @@ html[data-v9-enabled="on"] .kkref .kkref-active-visit__preflight-ok {
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__blocker {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(200, 130, 30, 0.28);
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  border: 1px solid rgba(200, 130, 30, 0.3);
   background: linear-gradient(180deg, rgba(252, 238, 218, 0.92), rgba(247, 228, 196, 0.82));
-  border-left: 3px solid #7a4014;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  border-left: 3px solid #dc9640;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__blockers {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__blocker-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #7a4014;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  border: 1px solid rgba(200, 130, 30, 0.35);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__blocker-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__blocker-label {
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2b251f;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__blocker-hint {
-  font-size: 10.5px;
+  font-size: 11px;
+  font-weight: 600;
   color: #7a4014;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline {
+  margin: 0 0 18px;
+  padding: 0;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-track {
   display: flex;
-  margin: 0 0 10px;
+  align-items: center;
+  gap: 0;
+  padding: 0 10px;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-line {
+  flex: 1 1 auto;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, rgba(180, 160, 140, 0.3), rgba(180, 160, 140, 0.3));
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-line.is-done {
+  background: linear-gradient(90deg, #5fae84, #dc9640);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-line.is-active {
+  background: linear-gradient(90deg, rgba(200, 130, 30, 0.5), rgba(180, 160, 140, 0.3));
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  padding: 0 4px;
+  font-size: 11px;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-labels .is-done {
+  color: #1f5236;
+  font-weight: 600;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-labels .is-active {
+  color: #7a4014;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-labels .is-pending {
+  color: rgba(70, 60, 50, 0.42);
+  font-weight: 500;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-node {
@@ -1243,10 +1644,33 @@ html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-node {
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-dot {
-  width: 8px;
-  height: 8px;
+  width: 11px;
+  height: 11px;
   border-radius: 999px;
   background: rgba(70, 60, 50, 0.18);
+  flex-shrink: 0;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-dot.is-done {
+  width: 12px;
+  height: 12px;
+  background: #3e8a5e;
+  box-shadow: 0 0 0 3px rgba(62, 138, 94, 0.2);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-dot.is-active {
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(180deg, #f4cc80, #dc9640);
+  box-shadow:
+    0 0 0 4px rgba(200, 130, 30, 0.2),
+    0 0 0 8px rgba(200, 130, 30, 0.08);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-dot.is-pending {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1.5px dashed rgba(180, 160, 140, 0.55);
+  box-shadow: none;
 }
 
 html[data-v9-enabled="on"]
@@ -1264,41 +1688,119 @@ html[data-v9-enabled="on"]
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
 }
 
 html[data-v9-enabled="on"] .kkref .kkref-active-visit__primary {
-  flex: 1 1 140px;
+  grid-column: 1 / -1;
+  width: 100%;
   border: 0;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 12px;
+  border-radius: 13px;
+  padding: 13px 14px;
+  font-size: 12.5px;
   font-weight: 700;
-  color: #7a4014;
-  background: linear-gradient(180deg, #f4cc80, #dc9640);
+  line-height: 1.35;
+  color: #3a230a;
+  background: linear-gradient(180deg, #e8b94f, #c4881e);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 3px 10px rgba(196, 136, 30, 0.22),
+    inset 0 1px 0 rgba(255, 235, 180, 0.55);
   cursor: pointer;
 }
 
-html[data-v9-enabled="on"] .kkref .kkref-active-visit__secondary {
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 11px;
-  font-weight: 650;
-  border: 1px solid rgba(180, 160, 140, 0.22);
-  background: rgba(255, 255, 255, 0.82);
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__secondary--ghost {
+  grid-column: 1 / -1;
+  width: 100%;
+  border-radius: 13px;
+  padding: 11px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1.5px dashed rgba(180, 160, 140, 0.5);
+  background: transparent;
   cursor: pointer;
 }
 
-html[data-v9-enabled="on"] .kkref .kkref-active-visit__secondary.is-disabled {
+html[data-v9-enabled="on"]
+  .kkref
+  .kkref-active-visit__secondary:not(.kkref-active-visit__secondary--ghost) {
+  border-radius: 11px;
+  padding: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.88));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 2px 6px rgba(56, 40, 28, 0.05);
+  cursor: pointer;
+}
+
+html[data-v9-enabled="on"]
+  .kkref
+  .kkref-active-visit__secondary:not(.kkref-active-visit__secondary--ghost).is-disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-html[data-v9-enabled="on"] .kkref .kkref-active-visit__secondary--ghost {
-  border-style: dashed;
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__secondary--ghost.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(180, 160, 140, 0.22);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend .kk-attend {
+  margin: 0;
+  padding: 0;
   background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend .kk-attend-status {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 7px;
+  color: rgba(70, 60, 50, 0.72);
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend .kk-attend-status.is-show {
+  color: #2e7d52;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend .kk-attend-status.is-no_show {
+  color: #b94a4a;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend .kk-attend-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend .kk-att-btn {
+  padding: 9px 10px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(180, 160, 140, 0.28);
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend .kk-att-show {
+  color: #2e7d52;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__attend .kk-att-noshow {
+  color: #b94a4a;
 }
 
 html[data-v9-enabled="on"] .v11-opday-actions {
@@ -8172,4 +8674,572 @@ html[data-v9-enabled="on"] .customer-row-head.cr-ref-head,
   color: #3a342e;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   v11 POLISH PASS · 2026-06-17 · CSS endast (Cloud-spec)
+   Appendix-block — overrides + förstärkningar utan struktur-ändring
+   ════════════════════════════════════════════════════════════════ */
+
+/* 1. Hero avatar · paper-monogram med gold-passepartout */
+html[data-v9-enabled="on"] .v11-hero-avatar {
+  background: linear-gradient(180deg, #fdfaf3, #efe6d6) !important;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 5px rgba(120, 90, 50, 0.1),
+    inset 0 0 0 1px rgba(212, 168, 71, 0.45),
+    0 0 0 1px rgba(212, 168, 71, 0.18),
+    0 2px 6px rgba(120, 90, 50, 0.16) !important;
+}
+html[data-v9-enabled="on"] .v11-hero-avatar__monogram {
+  font-family: Georgia, "Cormorant Garamond", serif !important;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 17px;
+  color: #5d3a8e;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* 2. Hero pills · inset-highlight + djupare borders */
+html[data-v9-enabled="on"] .v11-hero-pill {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(56, 40, 28, 0.06) !important;
+}
+
+/* 3+4. Stat-row · lifting + halo-amplifiering */
+html[data-v9-enabled="on"] .v11-stat-row__hero,
+html[data-v9-enabled="on"] .v11-stat-row__sub {
+  background: var(--v11-vellum) !important;
+  border: var(--v11-vellum-border) !important;
+  box-shadow: var(--v11-shadow-base) !important;
+  border-radius: 12px;
+}
+html[data-v9-enabled="on"] .v11-stat-row__hero-halo {
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.07), transparent 65%) !important;
+}
+
+/* 5. Aktivt besök container · shadow-lift + topp-glow */
+html[data-v9-enabled="on"] .v11-active-visit {
+  background: var(--v11-vellum) !important;
+  border: var(--v11-vellum-border) !important;
+  border-radius: 16px;
+  box-shadow: var(--v11-shadow-lift) !important;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+}
+html[data-v9-enabled="on"] .v11-active-visit::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(200, 130, 30, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+/* 6. Pulserande amber-dot · dubbel halo */
+html[data-v9-enabled="on"] .v11-active-visit__dot--pulse,
+html[data-v9-enabled="on"] [data-v11-pulse="amber"] {
+  background: #c4881e !important;
+  box-shadow:
+    0 0 0 4px rgba(200, 130, 30, 0.18),
+    0 0 0 8px rgba(200, 130, 30, 0.08) !important;
+}
+
+/* 7. Encounter-timeline · gradient mellan noder */
+html[data-v9-enabled="on"] .v11-active-visit__timeline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 10px;
+}
+html[data-v9-enabled="on"] .v11-active-visit__timeline-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, #5fae84, #dc9640);
+  border-radius: 1px;
+}
+html[data-v9-enabled="on"] .v11-active-visit__timeline-line--late {
+  background: linear-gradient(90deg, rgba(200, 130, 30, 0.5), rgba(180, 160, 140, 0.3)) !important;
+}
+
+/* 8. Pre-flight rader · amber-stripe + djup */
+html[data-v9-enabled="on"] .v11-active-visit__blocker,
+html[data-v9-enabled="on"] [data-v11-preflight="blocker"] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  background: var(--v11-amber-wash) !important;
+  border: var(--v11-amber-border) !important;
+  border-radius: 11px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+html[data-v9-enabled="on"] .v11-active-visit__blocker::before,
+html[data-v9-enabled="on"] [data-v11-preflight="blocker"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+
+/* 9. Medicinskt warning-band · stripe + djup */
+html[data-v9-enabled="on"] .v11-medical-briefing {
+  position: relative;
+  overflow: hidden;
+}
+html[data-v9-enabled="on"] .v11-medical-briefing::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+
+/* 10+11. Hälsodeklaration list-rows · vellum-bg + djup-pillar */
+html[data-v9-enabled="on"] .dossier-section[data-v9-section="halsa"] .kk-row,
+html[data-v9-enabled="on"] .kk-card-halsa .kk-row,
+html[data-v9-enabled="on"] [data-v11-hd-row] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+  border-radius: 8px;
+  margin-bottom: 3px;
+}
+html[data-v9-enabled="on"] [data-v11-hd-row] .pill,
+html[data-v9-enabled="on"] [data-v11-hd-row] .kk-pill {
+  padding: 2px 9px !important;
+  border-radius: 999px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+html[data-v9-enabled="on"] [data-v11-hd-row] .pill--nej {
+  background: var(--v11-gron-pill) !important;
+  color: var(--v11-gron-text) !important;
+  border: var(--v11-gron-pill-border) !important;
+}
+html[data-v9-enabled="on"] [data-v11-hd-row] .pill--ja {
+  background: var(--v11-amber-wash) !important;
+  color: var(--v11-amber-text) !important;
+  border: var(--v11-amber-border) !important;
+}
+html[data-v9-enabled="on"] [data-v11-hd-row][data-severity="severe"] .pill--ja {
+  background: linear-gradient(
+    180deg,
+    rgba(250, 228, 228, 0.95),
+    rgba(244, 210, 210, 0.7)
+  ) !important;
+  color: #7a1f1f !important;
+  border: 1px solid rgba(180, 60, 60, 0.32) !important;
+}
+
+/* 12. HD footer-länkar · dashed top + lila */
+html[data-v9-enabled="on"] [data-v11-hd-footer] {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(180, 160, 140, 0.25);
+  font-size: 11px;
+  color: var(--v11-ink-soft);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+html[data-v9-enabled="on"] [data-v11-hd-footer] a {
+  color: var(--v11-lila-strong) !important;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* 13. Kundresa progress-bar · gold-glow */
+html[data-v9-enabled="on"] .v11-journey-progress,
+html[data-v9-enabled="on"] [data-v11-progress-bar] {
+  height: 5px;
+  background: rgba(180, 160, 140, 0.18);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.05);
+}
+html[data-v9-enabled="on"] [data-v11-progress-bar] > .fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5fae84 0%, #3e8a5e 86%, #c4881e 86%, #dc9640 100%);
+  border-radius: 3px;
+  box-shadow: 0 0 8px rgba(212, 168, 71, 0.3);
+}
+
+/* 14. Kundresa active steg · amber halo + stripe */
+html[data-v9-enabled="on"] .v11-journey-step[data-state="active"],
+html[data-v9-enabled="on"] .v11-journey-step--active {
+  background: var(--v11-amber-wash) !important;
+  border: var(--v11-amber-border) !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+html[data-v9-enabled="on"] .v11-journey-step--active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+html[data-v9-enabled="on"] .v11-journey-step--active .v11-journey-step__badge {
+  background: var(--v11-amber-grad) !important;
+  color: #2a1d10 !important;
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18) !important;
+}
+
+/* 15. Smart nästa · blockerare-row stripe */
+html[data-v9-enabled="on"] [data-v11-blocker],
+html[data-v9-enabled="on"] .v11-smart-next__item--blocker {
+  background: var(--v11-amber-wash) !important;
+  border: var(--v11-amber-border) !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+html[data-v9-enabled="on"] [data-v11-blocker]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+
+/* 16. Kommande bokningar · datum-tile */
+html[data-v9-enabled="on"] .v11-booking-row__cal,
+html[data-v9-enabled="on"] [data-v11-date-tile] {
+  min-width: 44px;
+  text-align: center;
+  padding: 5px 4px;
+  background: var(--v11-amber-wash);
+  border: var(--v11-amber-border);
+  border-radius: 7px;
+}
+html[data-v9-enabled="on"] [data-v11-date-tile][data-tone="lila"] {
+  background: var(--v11-lila-wash);
+  border: var(--v11-lila-pill-border);
+}
+html[data-v9-enabled="on"] [data-v11-date-tile] .day {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+html[data-v9-enabled="on"] [data-v11-date-tile] .month {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+/* 17. Auto-dokument rader · vellum-djup */
+html[data-v9-enabled="on"] [data-v11-autodoc-row] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 11px;
+  background: rgba(255, 255, 255, 0.55);
+  border: var(--v11-card-rule);
+  border-radius: 9px;
+}
+
+/* 18. Filer · NYA-badge */
+html[data-v9-enabled="on"] [data-v11-file-tile] {
+  position: relative;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border: var(--v11-card-rule);
+  border-radius: 9px;
+  text-align: center;
+}
+html[data-v9-enabled="on"] [data-v11-file-tile][data-new]::after {
+  content: "NYA";
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  padding: 1px 6px;
+  background: var(--v11-gron-pill);
+  color: var(--v11-gron-text);
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: var(--v11-gron-pill-border);
+  letter-spacing: 0.04em;
+}
+
+/* 19. Foton · empty tiles dashed */
+html[data-v9-enabled="on"] [data-v11-photo-empty] {
+  aspect-ratio: 1;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1.5px dashed rgba(180, 160, 140, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--v11-ink-mute);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* 20. Anteckningar + Kommunikation · vellum-rader */
+html[data-v9-enabled="on"] [data-v11-note-row],
+html[data-v9-enabled="on"] [data-v11-comm-row] {
+  padding: 8px 11px;
+  background: rgba(255, 255, 255, 0.55);
+  border: var(--v11-card-rule);
+  border-radius: 9px;
+  margin-bottom: 5px;
+}
+
+/* 21. Ekonomi chart · grön gradient-fill + halo */
+html[data-v9-enabled="on"] [data-v11-eco-chart] path[data-fill] {
+  fill: url(#ekoFillGreen);
+}
+html[data-v9-enabled="on"] [data-v11-eco-chart] circle.last {
+  fill: #3e8a5e;
+}
+html[data-v9-enabled="on"] [data-v11-eco-chart] circle.last-halo {
+  fill: rgba(74, 130, 104, 0.18);
+}
+
+/* 22. Insikter empty-state · lila-wash */
+html[data-v9-enabled="on"] [data-v11-insight-empty] {
+  padding: 10px 13px;
+  background: var(--v11-lila-wash);
+  border: var(--v11-lila-pill-border);
+  border-radius: 11px;
+}
+html[data-v9-enabled="on"] [data-v11-insight-empty] .kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--v11-lila-strong);
+  margin-bottom: 3px;
+}
+
+/* 23. Sticky CTAs · gold-primary glow + inset */
+html[data-v9-enabled="on"] .v11-sticky-actions__hero,
+html[data-v9-enabled="on"] [data-v11-cta="gold"] {
+  background: linear-gradient(180deg, #e8b94f, #c4881e) !important;
+  color: #3a230a !important;
+  box-shadow:
+    var(--v11-shadow-lift),
+    0 4px 14px rgba(196, 136, 30, 0.32),
+    inset 0 1px 0 rgba(255, 235, 180, 0.65) !important;
+}
+
+/* Section-header kicker-typografi (generell hook) */
+html[data-v9-enabled="on"] [data-v11-section-kicker] {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--v11-ink-soft);
+  margin-bottom: 8px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   v11 polish → kkref bridges · referens-chassi · selektorbryggor
+   Mappar Cloud v11-* polish till kkref-* (ingen ny design)
+   ════════════════════════════════════════════════════════════════ */
+
+/* 1 · hero avatar / monogram (inkl. v10-facit override) */
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .av,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
+  .v10-dossier-referens
+  .kkref
+  .dhead.kkref-profile
+  .av,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .v10-dossier-referens .kkref .dhead .av {
+  background: linear-gradient(180deg, #fdfaf3, #efe6d6) !important;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 5px rgba(120, 90, 50, 0.1),
+    inset 0 0 0 1px rgba(212, 168, 71, 0.45),
+    0 0 0 1px rgba(212, 168, 71, 0.18),
+    0 2px 6px rgba(120, 90, 50, 0.16) !important;
+  font-family: Georgia, "Cormorant Garamond", serif !important;
+  font-style: italic !important;
+  font-weight: 500 !important;
+  font-size: 17px !important;
+  color: #5d3a8e !important;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* 2 · hero pills / profil-taggar */
+html[data-v9-enabled="on"] .kkref .dhead.kkref-profile .dtag {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(56, 40, 28, 0.06) !important;
+}
+
+/* 3+4 · stat-row lifting + lila halo på första kortet */
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k {
+  background: var(--v11-vellum) !important;
+  border: var(--v11-vellum-border) !important;
+  box-shadow: var(--v11-shadow-base) !important;
+  border-radius: 12px;
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k:first-child {
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-v9-enabled="on"] .kkref .s3.kkref-stats .k:first-child::after {
+  content: "";
+  position: absolute;
+  inset: -20% auto auto -10%;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.07), transparent 65%);
+  pointer-events: none;
+}
+
+/* 5 · aktivt besök container · shadow-lift + topp-glow */
+html[data-v9-enabled="on"] .kkref .kkref-active-visit {
+  background: var(--v11-vellum) !important;
+  border: var(--v11-vellum-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--v11-shadow-lift) !important;
+  padding: 18px !important;
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(200, 130, 30, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+/* 6 · pulserande dot · dubbel halo */
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__dot--pulse,
+html[data-v9-enabled="on"] .kkref [data-v11-pulse="amber"] {
+  background: #c4881e !important;
+  box-shadow:
+    0 0 0 4px rgba(200, 130, 30, 0.18),
+    0 0 0 8px rgba(200, 130, 30, 0.08) !important;
+}
+
+/* 7 · encounter-timeline · gradient-linjer (kkref track) */
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-line.is-done {
+  background: linear-gradient(90deg, #5fae84, #dc9640) !important;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__timeline-line.is-active {
+  background: linear-gradient(90deg, rgba(200, 130, 30, 0.5), rgba(180, 160, 140, 0.3)) !important;
+}
+
+/* 8 · pre-flight blocker (klass + data-hook) */
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__blocker,
+html[data-v9-enabled="on"] .kkref [data-v11-preflight="blocker"] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px !important;
+  background: var(--v11-amber-wash) !important;
+  border: var(--v11-amber-border) !important;
+  border-radius: 11px !important;
+  border-left: 0 !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-active-visit__blocker::before,
+html[data-v9-enabled="on"] .kkref [data-v11-preflight="blocker"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+
+/* 9 · medicinskt band */
+html[data-v9-enabled="on"] .kkref .kkref-med-band {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 13 · kundresa progress · gold-glow @ 86% */
+html[data-v9-enabled="on"] .kkref .kkref-facit-journey__bar[data-v11-progress-bar] > .fill,
+html[data-v9-enabled="on"] .kkref [data-v11-progress-bar] > .fill {
+  background: linear-gradient(90deg, #5fae84 0%, #3e8a5e 86%, #c4881e 86%, #dc9640 100%) !important;
+  box-shadow: 0 0 8px rgba(212, 168, 71, 0.3);
+}
+
+/* 14 · kundresa active steg · amber halo på badge/mark */
+html[data-v9-enabled="on"] .kkref .kkref-facit-row.v11-journey-step--active,
+html[data-v9-enabled="on"] .kkref .kkref-facit-row[data-state="active"] {
+  background: var(--v11-amber-wash) !important;
+  border: var(--v11-amber-border) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
+}
+
+html[data-v9-enabled="on"]
+  .kkref
+  .kkref-facit-row--journey.kkref-facit-row--act
+  .kkref-facit-row__mk,
+html[data-v9-enabled="on"] .kkref .v11-journey-step--active .kkref-facit-row__mk {
+  background: var(--v11-amber-grad) !important;
+  color: #2a1d10 !important;
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18) !important;
+  border: 0 !important;
+}
+
+/* 15 · smart nästa blockerare (zon-scopad) */
+html[data-v9-enabled="on"] .kkref .kkref-facit-zone [data-v11-blocker] {
+  background: var(--v11-amber-wash) !important;
+  border: var(--v11-amber-border) !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
+}
+
+html[data-v9-enabled="on"] .kkref .kkref-facit-zone [data-v11-blocker]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--v11-amber-grad);
+}
+
+/* 23 · sticky gold CTA */
+html[data-v9-enabled="on"] .kkref .acts .btn.gold[data-v11-cta="gold"],
+html[data-v9-enabled="on"] .kkref .acts [data-v11-cta="gold"] {
+  background: linear-gradient(180deg, #e8b94f, #c4881e) !important;
+  color: #3a230a !important;
+  box-shadow:
+    var(--v11-shadow-lift),
+    0 4px 14px rgba(196, 136, 30, 0.32),
+    inset 0 1px 0 rgba(255, 235, 180, 0.65) !important;
 }

@@ -585,7 +585,7 @@
   // Kundrese-steg → vilken sektion man hoppar till vid klick.
   function stepJumpSlug(label) {
     var l = String(label || '').toLowerCase();
-    if (ORD47_V1) {
+    if (ord47ScrollCards()) {
       if (/hälsodek|halsodek|konsultation/.test(l)) return 'kk-card-halsa';
       if (/offert|behandlingsplan/.test(l)) return 'kk-card-behandling';
       if (/betänketid|betanketid|avtal|samtycke|ånger|anger/.test(l)) return 'kk-card-juridik';
@@ -641,11 +641,260 @@
     return true;
   }
   window.__kkExpandMedForm = expandMedForm;
-  function sec(label, src, inner) {
-    // REN v9-DESKTOP: varje sektion = .dossier-section-kort (drop-in CSS, inga lager)
+
+  /** Närvaro — samma markup + data-kk-attend som bindAttendanceOnce (sanningskälla). */
+  function buildKkAttendHtml(bcard, opts) {
+    bcard = bcard || {};
+    opts = opts || {};
+    var att = bcard.attendance && typeof bcard.attendance === 'object' ? bcard.attendance : {};
+    var attStatus = att.status || '';
+    var attAt = att.at ? new Date(att.at) : null;
+    var attTime =
+      attAt && !isNaN(attAt)
+        ? attAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+        : '';
+    var showButtons = opts.showButtons !== false && !attStatus;
+    return (
+      '<div class="kk-attend' +
+      (attStatus ? ' is-' + esc(attStatus) : '') +
+      '" data-patient-id="' +
+      esc(bcard.patientId || bcard.id || '') +
+      '">' +
+      '<div class="kk-attend-status' +
+      (attStatus ? ' is-' + esc(attStatus) : '') +
+      '" data-kk-attend-status>' +
+      (attStatus === 'show'
+        ? '✓ Ankommen' + (attTime ? ' ' + esc(attTime) : '') + (att.by ? ' · ' + esc(att.by) : '')
+        : attStatus === 'no_show'
+          ? '✕ Utebliven · kontakta kunden'
+          : 'Närvaro ej markerad') +
+      '</div>' +
+      (showButtons
+        ? '<div class="kk-attend-btns">' +
+          '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Ankommen</button>' +
+          '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> Utebliven</button>' +
+          '</div>'
+        : '') +
+      '</div>'
+    );
+  }
+  window.__buildKkAttendHtml = buildKkAttendHtml;
+
+  /** Gemensam facit-rad: klar / aktiv / kommande (kundresa, journal, m.fl.) */
+  function buildReferensFacitRow(opts) {
+    opts = opts || {};
+    var st = opts.state || 'todo';
+    var cls =
+      'kkref-facit-row kkref-facit-row--' +
+      st +
+      (opts.extraClass ? ' ' + opts.extraClass : '') +
+      (opts.jump ? ' kk-jumpable' : '');
+    var attrs = opts.attrs || '';
+    if (opts.jump) attrs += ' data-kk-jump="' + esc(opts.jump) + '"';
+    if (opts.medForm) attrs += ' data-kk-med-form="' + esc(opts.medForm) + '"';
+    if (opts.role) attrs += ' role="' + esc(opts.role) + '" tabindex="0"';
+    var mark =
+      opts.mark != null && opts.mark !== ''
+        ? String(opts.mark)
+        : st === 'done'
+          ? '✓'
+          : st === 'act'
+            ? '!'
+            : st === 'neutral'
+              ? '–'
+              : opts.stepMark != null
+                ? String(opts.stepMark)
+                : '';
+    var markHtml =
+      st === 'todo' && mark === ''
+        ? '<span class="kkref-facit-row__mk"></span>'
+        : '<span class="kkref-facit-row__mk">' + esc(mark) + '</span>';
+    var title = opts.title || '';
+    var sub = opts.sub || '';
+    var btn = opts.btn
+      ? '<button type="button" class="kkref-facit-row__btn"' +
+        (opts.btnAttrs || '') +
+        '>' +
+        esc(opts.btn) +
+        '</button>'
+      : '';
+    var right = opts.right || '';
+    return (
+      '<div class="' +
+      cls +
+      '"' +
+      attrs +
+      '>' +
+      markHtml +
+      '<div class="kkref-facit-row__body"><div class="kkref-facit-row__title">' +
+      esc(title) +
+      '</div>' +
+      (sub ? '<div class="kkref-facit-row__sub">' + esc(sub) + '</div>' : '') +
+      '</div>' +
+      btn +
+      right +
+      '</div>'
+    );
+  }
+
+  function referensAutoDocIsDelivered(d) {
+    return (
+      d.planned === false ||
+      /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''))
+    );
+  }
+
+  function referensAutoDocSortKey(d) {
+    return String(d.signedAt || d.sentAt || d.deliveredAt || d.date || '');
+  }
+
+  function splitReferensAutoDocs(autoDocs) {
+    autoDocs = A(autoDocs);
+    var delivered = autoDocs.filter(referensAutoDocIsDelivered);
+    delivered.sort(function (a, b) {
+      return referensAutoDocSortKey(b).localeCompare(referensAutoDocSortKey(a));
+    });
+    var main = delivered.slice(0, 2);
+    if (main.length < 2) {
+      var planned = autoDocs.filter(function (d) {
+        return !referensAutoDocIsDelivered(d);
+      });
+      main = main.concat(planned.slice(0, 2 - main.length));
+    }
+    var mainSet = {};
+    main.forEach(function (d, i) {
+      mainSet[referensAutoDocRegistryId(d) || 'i' + i] = true;
+    });
+    var rest = autoDocs.filter(function (d, i) {
+      return !mainSet[referensAutoDocRegistryId(d) || 'i' + i];
+    });
+    return { main: main, rest: rest };
+  }
+
+  function referensJourneyDoneNote(s) {
+    var l = String(s.label || '').toLowerCase();
+    var id = Number(s.id) || 0;
+    if (id <= 4 || /bokning|konsultation/.test(l)) return 'Klar · journal signerad';
+    if (/offert|behandlingsplan/.test(l)) return 'Accepterad';
+    if (/betänke|betanke|avtal|samtycke/.test(l)) return 'Signerat · bundle klar';
+    return s.note || 'Klar';
+  }
+
+  function referensJourneyStepSub(s, st, ctx) {
+    ctx = ctx || {};
+    if (st === 'done') return s.note || referensJourneyDoneNote(s);
+    if (st === 'act') {
+      if (s.note && /saknas|krävs|kravs/i.test(String(s.note))) return s.note;
+      var dateHint = ctx.opDate || ctx.fcDate || '';
+      if (/frisk/i.test(String(s.label || ''))) {
+        return 'Saknas · krävs inför ' + (dateHint || 'besök');
+      }
+      return 'Saknas · krävs' + (dateHint ? ' inför ' + dateHint : '');
+    }
+    if (st === 'todo') return 'Kommande · saknar ännu inget';
+    return '—';
+  }
+
+  function buildReferensFacitJourneyInner(groupedSteps, cur, total, nextLabel, ctx) {
+    ctx = ctx || {};
+    var pct = cur ? Math.min(100, Math.round((cur / total) * 100)) : 0;
+    var stepHtml = groupedSteps
+      .map(function (s) {
+        var st =
+          s.state === 'done'
+            ? 'done'
+            : s.state === 'active'
+              ? 'act'
+              : s.state === 'neutral'
+                ? 'neutral'
+                : 'todo';
+        var stepMark =
+          st === 'done' ? '✓' : st === 'neutral' ? '–' : st === 'act' ? s.id || '!' : s.id || '';
+        return buildReferensFacitRow({
+          state: st,
+          mark: stepMark,
+          stepMark: stepMark,
+          title: s.label,
+          sub: referensJourneyStepSub(s, st, ctx),
+          jump: stepJumpSlug(s.label),
+          medForm: stepMedFormSlug(s.label),
+          extraClass:
+            'kkref-facit-row--journey' + (st === 'act' ? ' v11-journey-step--active' : ''),
+          attrs: st === 'act' ? ' data-state="active"' : '',
+        });
+      })
+      .join('');
+    return (
+      '<div class="kkref-facit-journey">' +
+      '<div class="kkref-facit-journey__meta">' +
+      (cur ? cur + ' / ' + total : '') +
+      (nextLabel ? (cur ? ' · nästa: ' : 'nästa: ') + esc(nextLabel) : '') +
+      '</div>' +
+      '<div class="kkref-facit-journey__bar" data-v11-progress-bar aria-hidden="true"><span class="fill" style="width:' +
+      pct +
+      '%"></span></div>' +
+      '<div class="kkref-facit-stack">' +
+      stepHtml +
+      '</div></div>'
+    );
+  }
+
+  function buildReferensFacitAutoDocRow(d) {
+    var step = d.journeyStep != null ? d.journeyStep : d.step;
+    var done =
+      d.planned === false ||
+      /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''));
+    var dt = String(d.signedAt || d.sentAt || d.deliveredAt || d.date || '').slice(0, 10);
+    var meta = [step != null && step !== '' ? 'Steg ' + step : '', dt].filter(Boolean).join(' · ');
+    var previewAttrs = referensAutoDocPreviewAttrs(d);
+    var statusText = done ? '✓ Levererat' : d.statusLabel || 'Planerad';
+    var statusCls = done
+      ? 'kkref-facit-doc-row__status--done'
+      : 'kkref-facit-doc-row__status--plan';
+    return (
+      '<div class="kkref-facit-doc-row' +
+      (previewAttrs ? ' kkref-facit-doc-row--clickable kk-auto-doc-preview-row' : '') +
+      '" data-v11-autodoc-row' +
+      previewAttrs +
+      '><div class="kkref-facit-doc-row__body"><div class="kkref-facit-doc-row__title">' +
+      esc(d.title) +
+      '</div>' +
+      (meta ? '<div class="kkref-facit-doc-row__sub">' + esc(meta) + '</div>' : '') +
+      '</div><span class="kkref-facit-doc-row__status ' +
+      statusCls +
+      '">' +
+      esc(statusText) +
+      '</span></div>'
+    );
+  }
+
+  function sec(label, src, inner, secOpts) {
+    secOpts = secOpts || {};
+    var slug = sekSlug(label);
+    if (REFERENS_FACIT_SCROLL) {
+      var metaParts = [];
+      if (secOpts.headAction) metaParts.push(secOpts.headAction);
+      if (src) metaParts.push(src);
+      return (
+        '<section class="dossier-section kkref-facit-zone" data-sek="' +
+        slug +
+        '">' +
+        '<header class="kkref-facit-zone__head">' +
+        '<h3 class="kkref-facit-zone__title">' +
+        esc(label) +
+        '</h3>' +
+        (metaParts.length
+          ? '<span class="kkref-facit-zone__meta">' + metaParts.join(' ') + '</span>'
+          : '') +
+        '</header>' +
+        '<div class="dossier-section-body kkref-facit-zone__body">' +
+        inner +
+        '</div></section>'
+      );
+    }
     return (
       '<details class="dossier-section" data-sek="' +
-      sekSlug(label) +
+      slug +
       '" open><summary>' +
       esc(label) +
       (src ? '<span class="count">' + src + '</span>' : '') +
@@ -654,12 +903,90 @@
       '</div></details>'
     );
   }
-  function empty(t) {
+  function empty(t, kind) {
+    if (REFERENS_FACIT_SCROLL) {
+      return facitEmptyState(t, kind);
+    }
     return '<div class="empty">' + esc(t) + '</div>';
+  }
+
+  function facitEmptyState(hint, kind) {
+    kind = kind || 'row';
+    if (kind === 'booking') {
+      return (
+        '<div class="kkref-facit-stack">' +
+        '<div class="kkref-facit-empty-row kkref-facit-empty-row--booking">' +
+        '<div class="kkref-facit-date-tile kkref-facit-date-tile--mute"><span class="kkref-facit-date-tile__d">—</span><span class="kkref-facit-date-tile__m">—</span></div>' +
+        '<div class="kkref-facit-empty-row__body">' +
+        '<div class="kkref-facit-empty-row__label">Ingen bokning inbokad</div>' +
+        '<div class="kkref-facit-empty-row__sub">' +
+        esc(hint) +
+        '</div></div></div></div>'
+      );
+    }
+    if (kind === 'photo') {
+      return (
+        '<div class="kkref-facit-empty-grid kkref-facit-empty-grid--photo">' +
+        ['FÖRE', 'EFTER', 'KRONA']
+          .map(function (lab) {
+            return (
+              '<div class="kkref-facit-photo-ph" data-v11-photo-empty><span>' +
+              esc(lab) +
+              '</span></div>'
+            );
+          })
+          .join('') +
+        '</div><div class="kkref-facit-empty-note">' +
+        esc(hint) +
+        '</div>'
+      );
+    }
+    if (kind === 'files') {
+      return (
+        '<div class="kkref-facit-empty-grid kkref-facit-empty-grid--files">' +
+        [1, 2, 3]
+          .map(function () {
+            return '<div class="kkref-facit-file-ph"><span>—</span></div>';
+          })
+          .join('') +
+        '</div><div class="kkref-facit-empty-note">' +
+        esc(hint) +
+        '</div>'
+      );
+    }
+    if (kind === 'journal') {
+      return (
+        '<div class="kkref-facit-stack">' +
+        '<div class="kkref-facit-row kkref-facit-row--todo">' +
+        '<span class="kkref-facit-row__mk"></span>' +
+        '<div class="kkref-facit-row__body">' +
+        '<div class="kkref-facit-row__title">Journal saknas</div>' +
+        '<div class="kkref-facit-row__sub">' +
+        esc(hint) +
+        '</div></div></div></div>'
+      );
+    }
+    return (
+      '<div class="kkref-facit-stack">' +
+      '<div class="kkref-facit-empty-row">' +
+      '<span class="kkref-facit-empty-row__dot"></span>' +
+      '<div class="kkref-facit-empty-row__body">' +
+      '<div class="kkref-facit-empty-row__sub">' +
+      esc(hint) +
+      '</div></div></div></div>'
+    );
   }
 
   /* ===== ORD-47 · 9 §-kort + rail status (stub resolver tills Codex levererar) ===== */
   var ORD47_V1 = true;
+  /* Referens-chassi: Anna-facit = sammanhängande sektions-scroll, inte §-kort-klump i .ds */
+  var REFERENS_FACIT_SCROLL = true;
+  function ord47ScrollCards() {
+    return ORD47_V1 && !REFERENS_FACIT_SCROLL;
+  }
+  function referensDossierContainer(doss) {
+    return (doss && doss.querySelector('.ds')) || doss;
+  }
 
   function ensureOrd47JourneyResolverStub() {
     var CARD_BY_STEP = {
@@ -1015,27 +1342,90 @@
     );
   }
 
-  function buildOrd48JourneyShell(card, extras, gateSignals, ctx) {
+  function buildOrd48JourneyShell(card, extras, gateSignals, ctx, options) {
     ctx = ctx || {};
+    options = options || {};
+    var skipReady = options.skipOrd48Ready === true;
+    var skipRail = options.skipOrd48Rail === true;
     return (
       '<div class="kk-ord48-shell" data-kk-ord48-shell>' +
       buildOrd47TopBar(ctx) +
-      buildOrd47RailStatus(
-        getOrd47Resolver().railStatusLine(card, {
-          cur: ctx.cur,
-          nextLabel: ctx.nextLabel,
-          gateSignals: gateSignals,
-          opDate: ctx.opWhen,
-        })
-      ) +
-      buildOrd48ReadyBlock(card, extras, gateSignals) +
-      buildOrd48KalenderCta(card, extras, gateSignals, card.patientId || card.id) +
+      (skipRail
+        ? ''
+        : buildOrd47RailStatus(
+            getOrd47Resolver().railStatusLine(card, {
+              cur: ctx.cur,
+              nextLabel: ctx.nextLabel,
+              gateSignals: gateSignals,
+              opDate: ctx.opWhen,
+            })
+          )) +
+      (skipReady ? '' : buildOrd48ReadyBlock(card, extras, gateSignals)) +
+      (skipReady
+        ? ''
+        : buildOrd48KalenderCta(card, extras, gateSignals, card.patientId || card.id)) +
       '</div>'
     );
   }
 
-  function buildOrd48ReadyKalenderBlock(card, extras, gateSignals, patientId) {
+  function buildReferensAnnaSmartSummary(nextLabel, cur, total, bkStr, summAction) {
+    var nx = bkStr ? bkStr + (summAction ? ' — ' + summAction : '') : summAction || nextLabel;
+    var body = nx ? '<strong>Nästa:</strong> ' + esc(nx) + '.' : 'Kundresan pågår.';
+    if (cur) {
+      body += ' Steg ' + esc(cur) + ' av ' + esc(total) + '.';
+    }
+    return (
+      '<div class="summ kkx-summ kkref-anna-summ" data-kk-anna-summ aria-label="Smart sammanfattning">' +
+      '<span class="sk">Smart sammanfattning</span>' +
+      body +
+      '</div>'
+    );
+  }
+
+  function buildReferensMedicinsktBand(allergies, gateSignals, bcard) {
+    var parts = [];
+    if (allergies.length) {
+      parts.push('Allergi · ' + allergies.join(' · '));
+    }
+    if (
+      gateSignals.some(function (s) {
+        return /operation_day_insurance/.test(String((s && (s.ruleId || s.id)) || ''));
+      })
+    ) {
+      parts.push('<strong>Friskförsäkran saknas</strong>');
+    }
+    if (bcard && bcard.missingHealthDeclaration) {
+      parts.push('Hälsodeklaration saknas');
+    }
+    if (
+      bcard &&
+      (bcard.missingFitnessCertificate === true || bcard.missingOperationDayInsurance === true)
+    ) {
+      parts.push('<strong>Friskförsäkran saknas</strong>');
+    }
+    if (!parts.length) return '';
+    return (
+      '<div class="kkref-med-band kkx-med" data-kk-med-band role="note">' +
+      '<div class="kkref-med-band__copy"><strong>Medicinskt:</strong> ' +
+      parts.join('. ') +
+      '.</div></div>'
+    );
+  }
+
+  function referensHairstrandHtml() {
+    if (
+      window.CcoV9CustomersParity &&
+      typeof window.CcoV9CustomersParity.renderV11Hairstrand === 'function'
+    ) {
+      return window.CcoV9CustomersParity.renderV11Hairstrand();
+    }
+    return '<div class="v11-hairstrand" role="presentation" aria-hidden="true"></div>';
+  }
+
+  function buildOrd48ReadyKalenderBlock(card, extras, gateSignals, patientId, options) {
     if (!ORD47_V1) return '';
+    options = options || {};
+    if (options.skipOrd48Ready === true) return '';
     return (
       '<div class="kk-ord48-shell kk-ord48-shell--compact" data-kk-ord48-shell>' +
       buildOrd48ReadyBlock(card, extras, gateSignals) +
@@ -1316,6 +1706,16 @@
       })
       .join('');
     var inner = filters + body;
+    if (REFERENS_FACIT_SCROLL) {
+      return (
+        '<details class="dossier-section kk-mallbibliotek" data-sek="dokument-registry" id="kk-mallbibliotek">' +
+        '<summary>Mallbibliotek · dokumenttyper<span class="count">' +
+        esc(String(rows.length)) +
+        '</span></summary><div class="dossier-section-body">' +
+        inner +
+        '</div></details>'
+      );
+    }
     if (ORD47_V1) {
       return (
         '<details class="dossier-section kk-mallbibliotek" data-sek="dokument-registry" id="kk-mallbibliotek">' +
@@ -1518,9 +1918,12 @@
 
   function buildDocViewRow(label, meta, viewUrl, dataKey) {
     var key = dataKey || 'doc';
+    var fileHook = key && String(key).indexOf('file_') === 0 ? ' data-v11-file-tile' : '';
     if (!viewUrl) {
       return (
-        '<div class="gk-med-doc gk-med-doc--missing" data-kk-med-form="' +
+        '<div class="gk-med-doc gk-med-doc--missing"' +
+        fileHook +
+        ' data-kk-med-form="' +
         esc(key) +
         '">' +
         '<span class="gk-med-doc-title">' +
@@ -1532,7 +1935,9 @@
       );
     }
     return (
-      '<button type="button" class="gk-med-doc" data-kk-med-form="' +
+      '<button type="button" class="gk-med-doc"' +
+      fileHook +
+      ' data-kk-med-form="' +
       esc(key) +
       '" data-kk-open-doc="' +
       esc(viewUrl) +
@@ -1704,6 +2109,295 @@
       );
     }
     return buildDocViewRow('Behandlingsavtal', metaParts.join(' · '), url, 'agreement');
+  }
+
+  function buildReferensFacitHdRow(label, sub, value, risk) {
+    var val = value != null && value !== '' ? String(value) : 'Saknas';
+    var pill =
+      val === 'Saknas'
+        ? 'a-am'
+        : /^ja/i.test(val)
+          ? risk === 'flag'
+            ? 'a-fl'
+            : risk === 'amber'
+              ? 'a-am'
+              : 'a-yes'
+          : ansClass(risk);
+    var severity = 'none';
+    if (/^ja/i.test(val)) {
+      severity = risk === 'flag' || risk === 'severe' ? 'severe' : 'warning';
+    }
+    var pillHook = /^nej/i.test(val) ? 'pill pill--nej' : 'pill pill--ja';
+    return (
+      '<div class="kkref-facit-hd-row" data-v11-hd-row data-severity="' +
+      severity +
+      '">' +
+      '<div class="kkref-facit-hd-row__text"><div class="kkref-facit-hd-row__label">' +
+      esc(label) +
+      '</div>' +
+      (sub ? '<div class="kkref-facit-hd-row__sub">' + esc(sub) + '</div>' : '') +
+      '</div><span class="ans ' +
+      pill +
+      ' ' +
+      pillHook +
+      '">' +
+      esc(val) +
+      '</span></div>'
+    );
+  }
+
+  function referensHdMetaLabel(hd, bcard) {
+    var parts = [];
+    if (hd && (hd.sourceSystem || hd.source)) {
+      parts.push(String(hd.sourceSystem || hd.source));
+    } else if (hdSourceLabel(hd, bcard)) {
+      parts.push(hdSourceLabel(hd, bcard));
+    }
+    if (hd && hd.signedAt) {
+      parts.push(gkSharedFmtDate(String(hd.signedAt).slice(0, 10)));
+    } else if (bcard && bcard.missingHealthDeclaration) {
+      parts.push('Saknas');
+    }
+    return parts.join(' · ');
+  }
+
+  var REFERENS_HD_FACIT_CONDITIONS = [
+    { key: 'allergies', label: 'Allergier', subDefault: '', match: ['allergi'] },
+    {
+      key: 'blood_thinner',
+      label: 'Blodförtunnande läkemedel',
+      subDefault: 'Waran / Trombyl / NSAID',
+      match: ['blodförtunn', 'blodfortunn', 'waran', 'trombyl', 'nsaid'],
+    },
+    {
+      key: 'medications',
+      label: 'Pågående mediciner',
+      subDefault: '',
+      match: ['medicin', 'läkemedel', 'lakemedel'],
+    },
+    {
+      key: 'heart_diabetes',
+      label: 'Hjärt-/kärlsjukdom · diabetes',
+      subDefault: '',
+      match: ['hjärt', 'hjart', 'kärl', 'karl', 'diabetes'],
+    },
+    {
+      key: 'coagulation',
+      label: 'Blödnings-/koagulationssjukdom',
+      subDefault: '',
+      match: ['blödn', 'blodn', 'koagul'],
+    },
+    {
+      key: 'keloid',
+      label: 'Keloid / ärrbildningstendens',
+      subDefault: '',
+      match: ['keloid', 'ärr', 'arr'],
+    },
+    {
+      key: 'smoking',
+      label: 'Rökning / nikotin',
+      subDefault: 'påverkar läkning',
+      match: ['rök', 'rok', 'nikotin', 'tobak'],
+    },
+    {
+      key: 'pregnancy',
+      label: 'Graviditet / amning',
+      subDefault: '',
+      match: ['gravid', 'amning'],
+    },
+    {
+      key: 'hair_treatment',
+      label: 'Pågående hårbehandling',
+      subDefault: '',
+      match: ['hårbehand', 'harbehand', 'minoxidil', 'finasterid'],
+    },
+  ];
+
+  function normalizeHdMatchKey(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9åäö]+/g, ' ')
+      .trim();
+  }
+
+  function findHdAnswerForCondition(answers, condition) {
+    var keys = [condition.key].concat(A(condition.match));
+    for (var i = 0; i < answers.length; i++) {
+      var a = answers[i];
+      var lab = normalizeHdMatchKey(a.label || a.question || a.key || '');
+      for (var k = 0; k < keys.length; k++) {
+        if (lab.indexOf(normalizeHdMatchKey(keys[k])) >= 0) return a;
+      }
+    }
+    return null;
+  }
+
+  function buildReferensFacitHdConditionRows(bcard, allergies, hd, hdSigned) {
+    var answers = A(hd && (hd.answers || hd.items || hd.questions));
+    return REFERENS_HD_FACIT_CONDITIONS.map(function (cond) {
+      var sub = cond.subDefault || '';
+      var val = 'Saknas';
+      var risk = 'amber';
+      if (cond.key === 'allergies') {
+        if (allergies.length) {
+          val = 'Ja';
+          risk = 'flag';
+          sub = allergies.join(' · ');
+        } else {
+          var allergyAns = findHdAnswerForCondition(answers, cond);
+          if (allergyAns) {
+            var ar = allergyAns.value != null ? allergyAns.value : allergyAns.answer;
+            risk = allergyAns.risk || allergyAns.level || '';
+            val = ansLabel(ar, risk);
+            sub = allergyAns.detail || allergyAns.note || sub;
+          } else if (hdSigned) {
+            val = 'Nej';
+            risk = '';
+          }
+        }
+      } else {
+        var ans = findHdAnswerForCondition(answers, cond);
+        if (ans) {
+          var raw = ans.value != null ? ans.value : ans.answer;
+          risk = ans.risk || ans.level || '';
+          val = ansLabel(raw, risk);
+          sub = ans.detail || ans.note || cond.subDefault || sub;
+        } else if (hdSigned) {
+          val = 'Nej';
+          risk = '';
+        }
+      }
+      if (val === 'Saknas') risk = 'amber';
+      return buildReferensFacitHdRow(cond.label, sub, val, risk);
+    }).join('');
+  }
+
+  function buildReferensFacitJournalRow(it) {
+    var title = it.serie || it.title || 'Journal';
+    var subParts = [];
+    if (it.step != null && it.step !== '') subParts.push('Steg ' + it.step);
+    if (it.date) subParts.push(it.date);
+    if (it.by) subParts.push(it.by);
+    var sub = subParts.join(' · ');
+    var st = it.st || 'todo';
+    if (!it.planned && it.viewUrl) st = 'done';
+    else if (!it.planned && !it.viewUrl && st !== 'done') st = 'act';
+    var attrs = '';
+    var btn = '';
+    var btnAttrs = '';
+    if (st === 'done' && it.viewUrl) {
+      attrs =
+        ' data-kk-open-doc="' +
+        esc(it.viewUrl) +
+        '" data-kk-doc-title="' +
+        esc(title) +
+        '" role="button" tabindex="0"';
+    }
+    if (st === 'act') {
+      var actSub = it.planned && it.date ? 'Inför ' + it.date : sub || 'Saknas · krävs';
+      sub = actSub;
+      btn = 'Öppna';
+      if (it.viewUrl) {
+        btnAttrs =
+          ' data-kk-open-doc="' + esc(it.viewUrl) + '" data-kk-doc-title="' + esc(title) + '"';
+      } else {
+        btnAttrs = ' data-kk-open-storvy="journal"';
+      }
+    }
+    if (st === 'todo' && !sub) sub = 'Kommande';
+    return buildReferensFacitRow({
+      state: st,
+      title: title,
+      sub: sub,
+      attrs: attrs,
+      btn: btn,
+      btnAttrs: btnAttrs,
+      extraClass: 'kkref-facit-row--journal',
+    });
+  }
+
+  function buildReferensFacitJournalInner(jAll) {
+    if (!jAll.length) return '';
+    return jAll.map(buildReferensFacitJournalRow).join('');
+  }
+
+  function buildReferensHdRiskBanner(bcard, allergies, hd, hdSigned, gateSignals) {
+    var flags = [];
+    var answers = A(hd && (hd.answers || hd.items || hd.questions));
+    answers.forEach(function (a) {
+      var risk = String(a.risk || a.level || '').toLowerCase();
+      var val = String(a.value != null ? a.value : a.answer || '').toLowerCase();
+      if ((risk === 'flag' || /▲|varning/.test(val)) && /ja|yes|true/.test(val)) {
+        var lab = a.label || a.question || a.key || '';
+        var det = a.detail || a.note || '';
+        flags.push(det ? lab + ' (' + det + ')' : lab);
+      }
+    });
+    if (
+      allergies.length &&
+      !flags.some(function (f) {
+        return /allergi/i.test(f);
+      })
+    ) {
+      flags.unshift('Allergi · ' + allergies.join(' · '));
+    }
+    if (flags.length) {
+      return (
+        '<div class="kkref-facit-flag"><strong>' +
+        flags.length +
+        ' riskflaggor:</strong> ' +
+        esc(flags.join(' · ')) +
+        ' — verifiera före ingrepp.</div>'
+      );
+    }
+    var fallback = [];
+    if (bcard && bcard.missingHealthDeclaration && !hdSigned) {
+      fallback.push('Hälsodeklaration saknas — krävs före besök');
+    }
+    if (
+      gateSignals.some(function (s) {
+        return /operation_day_insurance|missing_fitness/i.test(
+          String((s && (s.ruleId || s.id)) || '')
+        );
+      }) ||
+      (bcard && bcard.missingFitnessCertificate)
+    ) {
+      fallback.push('Friskförsäkran saknas');
+    }
+    if (!fallback.length) return '';
+    return (
+      '<div class="kkref-facit-flag"><strong>' +
+      (fallback.length > 1 ? fallback.length + ' riskflaggor:' : 'Medicinskt:') +
+      '</strong> ' +
+      esc(fallback.join(' · ')) +
+      '</div>'
+    );
+  }
+
+  function buildReferensHalsofacitInner(bcard, allergies, gateSignals, driveFiles) {
+    var hd = (bcard && bcard.healthDeclaration) || null;
+    var hdSigned =
+      referensHasSignedHd(bcard) ||
+      formSigned(hd, bcard, 'hasHealthDeclaration', 'missingHealthDeclaration');
+    var rows = [];
+    var banner = buildReferensHdRiskBanner(bcard, allergies, hd, hdSigned, gateSignals);
+
+    var answerItems = A(hd && (hd.answers || hd.items || hd.questions));
+    if (answerItems.length >= REFERENS_HD_FACIT_CONDITIONS.length) {
+      answerItems.forEach(function (it) {
+        var label = it.label || it.question || it.key || '—';
+        var sub = it.detail || it.note || it.hint || '';
+        var risk = it.risk || it.level || '';
+        var val = it.value != null ? it.value : it.answer;
+        rows.push(buildReferensFacitHdRow(label, sub, ansLabel(val, risk), risk));
+      });
+    } else {
+      rows.push(buildReferensFacitHdConditionRows(bcard, allergies, hd, hdSigned));
+    }
+
+    var foot =
+      '<div class="hdfoot" data-v11-hd-footer>Endast visning · medicinsk data · ingen extern AI</div>';
+    return banner + '<div class="kkref-facit-stack">' + rows.join('') + '</div>' + foot;
   }
 
   function buildMedicinsktFormsInner(bcard, driveFiles) {
@@ -2136,12 +2830,19 @@
       agreementReadout: ctx.agreementReadout || null,
       treatmentAgreement: ctx.treatmentAgreement || null,
     };
+    var gkBundle = ctx.bundle || ctx.dossierBundle || null;
+    var gkSkipOrd48Ready =
+      gkBundle &&
+      window.CcoV9CustomersParity &&
+      typeof window.CcoV9CustomersParity.resolveActiveVisitPayload === 'function' &&
+      window.CcoV9CustomersParity.resolveActiveVisitPayload(gkBundle);
     var ord48StorvyHtml = ctx.bcard
       ? buildOrd48ReadyKalenderBlock(
           ctx.bcard,
           gkExtras,
           ctx.gateSignals,
-          ctx.patientId || ctx.customerId || ''
+          ctx.patientId || ctx.customerId || '',
+          { skipOrd48Ready: Boolean(gkSkipOrd48Ready) }
         )
       : '';
     var head =
@@ -4390,6 +5091,19 @@
     if (ORD47_V1) {
       offers = getOrd47Resolver().filterOffersByFlow(offers, ord47Flow);
     }
+    var activeVisitVisible =
+      window.CcoV9CustomersParity &&
+      typeof window.CcoV9CustomersParity.resolveActiveVisitPayload === 'function' &&
+      window.CcoV9CustomersParity.resolveActiveVisitPayload(bundle);
+    var activeVisitHtml = '';
+    if (
+      activeVisitVisible &&
+      window.CcoV9CustomersParity &&
+      typeof window.CcoV9CustomersParity.renderReferensActiveVisit === 'function'
+    ) {
+      activeVisitHtml = window.CcoV9CustomersParity.renderReferensActiveVisit(bundle, bcard) || '';
+    }
+
     var ord47Cards = {
       bokning: '',
       halsa: '',
@@ -4403,17 +5117,21 @@
     };
     var ord47RegistryHtml = '';
     var autoDocs = A(docsPayload.autoDocs);
+    var autoDocSplit =
+      REFERENS_FACIT_SCROLL && autoDocs.length
+        ? splitReferensAutoDocs(autoDocs)
+        : { main: autoDocs, rest: [] };
     var photos = resolveReferensPhotos(bcard, driveFiles.length ? driveFiles : A(bundle.photos));
 
     /* ---- header tags ---- */
     var tags = '';
-    if (bcard.vip || (bcard.tags && bcard.tags.vip)) tags += '<span class="dtag vip">VIP</span>';
+    if (bcard.vip || (bcard.tags && bcard.tags.vip)) tags += '<span class="dtag vip">★ VIP</span>';
     if (treatment) tags += '<span class="dtag cure">' + esc(treatment) + '</span>';
     if (bcard.engagement || (bcard.tags && bcard.tags.engagement))
       tags +=
         '<span class="dtag eng">' +
         esc(bcard.engagement || bcard.tags.engagement) +
-        '% engagemang</span>';
+        '% engagement</span>';
 
     /* ---- journey (mockup canonical 9 steg — samma facit som ⤢ overlay) ---- */
     var steps = null;
@@ -4468,15 +5186,13 @@
     var oppSignals = signals.filter(function (s) {
       return !isBlockerSignal(s);
     });
-    // Header-pill: friskförsäkran saknas (ur gate-signal, frontend — VIP/engagemang/PRP-kur via ORD-39)
-    if (
+    // Friskförsäkran: amber-banner i profil (Anna-facit), inte röd tagg
+    var profileFriskAlert =
       gateSignals.some(function (s) {
         return /operation_day_insurance/.test(String((s && (s.ruleId || s.id)) || ''));
-      })
-    ) {
-      tags +=
-        '<span class="dtag" style="background:#f6e3e3;color:#b94a4a">⚠ Friskförs. saknas</span>';
-    }
+      }) ||
+      bcard.missingFitnessCertificate === true ||
+      bcard.missingOperationDayInsurance === true;
     // Datadrivna möjligheter (klientsida, ur data vi redan har) — merförsäljning/mönster.
     (function addComputedInsights() {
       var up = A(ctxExtras.upcomingBookings);
@@ -4501,24 +5217,22 @@
 
     function orderDossierHtml(html) {
       var order = [
+        'halso',
         'kundresa',
         'nastasteg',
-        'opdag',
-        'halso',
-        'besok',
         'bokningar',
-        'journal',
-        'foto',
         'historik',
+        'journal',
         'offert',
-        'ekonomi',
-        'betalning',
-        'dokument',
-        'personal',
         'auto',
+        'foto',
+        'dokument',
         'anteckningar',
         'kommunikation',
+        'ekonomi',
+        'betalning',
         'insikter',
+        'besok',
         'tabild',
       ];
       try {
@@ -4527,15 +5241,28 @@
         var doss = tpl.content.querySelector('.doss');
         if (!doss) return html;
         var sections = Array.prototype.slice.call(
-          doss.querySelectorAll('details.dossier-section[data-sek]')
+          doss.querySelectorAll('.dossier-section[data-sek]')
         );
         if (!sections.length) return html;
-        var container = sections[0].parentElement;
+        var container = referensDossierContainer(doss);
         order.forEach(function (slug) {
-          var el = doss.querySelector('details.dossier-section[data-sek="' + slug + '"]');
+          if (REFERENS_FACIT_SCROLL && slug === 'dokument-registry') return;
+          var el = doss.querySelector('.dossier-section[data-sek="' + slug + '"]');
           if (el) container.appendChild(el);
         });
-        if (ORD47_V1) {
+        doss.querySelectorAll('.dossier-section[data-sek]').forEach(function (el) {
+          if (REFERENS_FACIT_SCROLL && el.getAttribute('data-sek') === 'dokument-registry') return;
+          if (el.parentElement === container) container.appendChild(el);
+        });
+        Array.prototype.forEach.call(
+          doss.querySelectorAll(
+            '[data-kk-mallbibliotek-host], .kk-mallbibliotek-actions, .v9-zone3-context, .acts'
+          ),
+          function (block) {
+            if (block.parentElement === container) container.appendChild(block);
+          }
+        );
+        if (ord47ScrollCards()) {
           var cardsEl = doss.querySelector('[data-kk-doc-cards]');
           var kundresaEl = doss.querySelector('details.dossier-section[data-sek="kundresa"]');
           var mallHost = doss.querySelector('[data-kk-mallbibliotek-host]');
@@ -4556,13 +5283,19 @@
     var h = '<div class="doss">';
 
     h +=
-      '<div class="dhead"><div class="ring"><div class="av">' +
+      '<div class="dhead kkref-profile">' +
+      '<div class="kkref-profile__top">' +
+      '<div class="ring"><div class="av">' +
       esc(initials(name)) +
       '</div></div>' +
-      '<div style="flex:1"><div class="dk">KUNDDOSSIÉR</div><div class="dn">' +
+      '<div class="kkref-profile__identity">' +
+      '<div class="dk">Kunddossiér</div>' +
+      '<div class="dn">' +
       esc(name) +
+      '</div></div>' +
+      '<button type="button" class="kkref-profile__edit" tabindex="-1" aria-hidden="true">Ändra profil</button>' +
       '</div>' +
-      '<div class="dc">' +
+      '<div class="kkref-profile__contact">' +
       (phone
         ? '<a class="kk-contact" href="tel:' +
           esc(String(phone).replace(/[^\d+]/g, '')) +
@@ -4578,16 +5311,17 @@
           esc(email) +
           '</a>'
         : '') +
-      '</div>' +
       (addrLine
-        ? '<div class="dc"><span class="kk-contact kk-copy" data-kk-copy="' +
+        ? '<br><span class="kk-contact kk-copy" data-kk-copy="' +
           esc(addrLine) +
           '" title="Kopiera adress">📍 ' +
           esc(addrLine) +
-          ' <span class="kk-copy-ic">⧉</span></span></div>'
+          ' <span class="kk-copy-ic">⧉</span></span>'
         : '') +
-      (tags ? '<div class="dtags">' + tags + '</div>' : '') +
-      '</div></div>';
+      '</div>' +
+      (tags ? '<div class="dtags kkref-profile__tags">' + tags + '</div>' : '') +
+      (profileFriskAlert ? '<div class="kkref-profile__alert">★ Friskförsäkran saknas</div>' : '') +
+      '</div>';
 
     h += '<div class="ds">';
 
@@ -4641,12 +5375,22 @@
     if (ORD47_V1) {
       var ord47OpWhen =
         bkWhen || (nextBk && String(nextBk.date || nextBk.dateLabel || '').slice(0, 10)) || '—';
-      h += buildOrd48JourneyShell(bcard, extras, gateSignals, {
-        cur: cur,
-        total: total,
-        nextLabel: nextLabel,
-        opWhen: ord47OpWhen,
-      });
+      if (activeVisitVisible) {
+        h += buildReferensAnnaSmartSummary(nextLabel, cur, total, bkStr, summAction);
+      } else {
+        h += buildOrd48JourneyShell(
+          bcard,
+          extras,
+          gateSignals,
+          {
+            cur: cur,
+            total: total,
+            nextLabel: nextLabel,
+            opWhen: ord47OpWhen,
+          },
+          { skipOrd48Ready: false }
+        );
+      }
     } else if (nextLabel || cur || bkStr) {
       var nx = bkStr ? bkStr + (summAction ? ' — ' + summAction : '') : summAction;
       h +=
@@ -4656,78 +5400,126 @@
         '</div>';
     }
 
+    var histEarly = A(ctxExtras.historyBookings);
     var visits = bcard.visits ?? bcard.visitCount ?? (bcard.stats && bcard.stats.visits);
     var revenue =
       bcard.lifetimeValueLabel ||
       (Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0 ? ltvRaw : null) ||
       (bcard.stats && bcard.stats.revenue);
+    var revenueNum = Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0 ? Number(ltvRaw) : null;
     var revenueKr =
-      Number.isFinite(Number(ltvRaw)) && Number(ltvRaw) > 0
-        ? Number(ltvRaw).toLocaleString('sv-SE') + ' kr'
-        : (bcard.stats && bcard.stats.revenue) || null;
+      revenueNum != null
+        ? revenueNum.toLocaleString('sv-SE')
+        : revenue != null && revenue !== '—'
+          ? String(revenue).replace(/\s*kr\s*$/i, '')
+          : null;
     var noshow = bcard.noShows != null ? bcard.noShows : bcard.stats && bcard.stats.noShows;
-    // FACIT: visa alltid 3 statrutor (Besök/Intäkt/No-shows) med subtext-rad
+    var visitCount =
+      visits != null && Number.isFinite(Number(visits)) ? Number(visits) : histEarly.length;
+    var visitVal = String(Math.max(0, visitCount));
+    function referensBookingYear(bk) {
+      if (!bk) return null;
+      var raw = bk.date || bk.occurredAt || bk.startAt || bk.when || '';
+      if (/^\d{4}-\d{2}-\d{2}/.test(String(raw))) return Number(String(raw).slice(0, 4));
+      var dt = new Date(raw);
+      return isNaN(dt.getTime()) ? null : dt.getFullYear();
+    }
+    var calendarYear = new Date().getFullYear();
+    var visitsThisYear = histEarly.filter(function (b) {
+      return referensBookingYear(b) === calendarYear;
+    }).length;
+    if (bcard.stats && Number.isFinite(Number(bcard.stats.visitsThisYear))) {
+      visitsThisYear = Number(bcard.stats.visitsThisYear);
+    } else if (bcard.visitsThisYear != null && Number.isFinite(Number(bcard.visitsThisYear))) {
+      visitsThisYear = Number(bcard.visitsThisYear);
+    }
+    var visitSub = 'ny kund';
+    var visitSubCls = 'is-mute';
+    if (visitsThisYear > 0) {
+      visitSub = '+' + visitsThisYear + ' i år';
+      visitSubCls = 'is-pos';
+    } else if (visitCount > 0) {
+      visitSub = 'totalt';
+      visitSubCls = 'is-pos';
+    } else if (histEarly.length) {
+      visitSub = '+' + histEarly.length + ' i historik';
+      visitSubCls = 'is-pos';
+    } else if (cur) {
+      visitSub = 'steg ' + cur + ' · resa';
+      visitSubCls = 'is-pos';
+    }
+    var revenueSub = 'kr';
+    var revenueSubCls = 'is-mute';
+    var revTrendRaw =
+      bcard.revenueTrend ||
+      bcard.ltvTrend ||
+      (bcard.stats &&
+        (bcard.stats.revenueTrend ||
+          bcard.stats.ltvTrend ||
+          bcard.stats.ytdPct ||
+          bcard.stats.revenueYtdPct));
+    if (revTrendRaw != null && /ytd|%/i.test(String(revTrendRaw))) {
+      revenueSub = String(revTrendRaw).trim();
+      if (!/ytd/i.test(revenueSub) && /%/.test(revenueSub)) revenueSub += ' YTD';
+      revenueSubCls = 'is-pos';
+    } else if (revTrendRaw != null && Number.isFinite(Number(revTrendRaw))) {
+      var ytdPct = Math.round(Number(revTrendRaw));
+      revenueSub = (ytdPct > 0 ? '+' : '') + ytdPct + '% YTD';
+      revenueSubCls = 'is-pos';
+    } else if (ltvLabel && /%/.test(String(ltvLabel))) {
+      revenueSub = String(ltvLabel).trim();
+      if (!/ytd/i.test(revenueSub)) revenueSub += ' YTD';
+      revenueSubCls = 'is-pos';
+    } else if (revenueNum != null) {
+      revenueSub = 'kr totalt';
+      revenueSubCls = 'is-pos';
+    } else if (cur && total) {
+      revenueSub = 'steg ' + cur + '/' + total;
+      revenueSubCls = 'is-pos';
+    } else if (nextLabel) {
+      revenueSub = String(nextLabel).slice(0, 22);
+      revenueSubCls = 'is-pos';
+    }
+    var noshowVal = noshow != null ? String(noshow) : '0';
+    var noshowSub = Number(noshow) > 0 ? 'följ upp' : 'Klockren';
+    var noshowValCls = Number(noshowVal) === 0 ? 'is-good' : '';
+    var noshowSubCls = Number(noshowVal) === 0 ? 'is-pos' : '';
     h +=
-      '<div class="s3">' +
+      '<div class="s3 kkref-stats">' +
       '<div class="k"><div class="l">Besök</div><div class="v">' +
-      esc(visits != null ? visits : '—') +
-      '</div><div class="s">' +
-      (visits != null ? 'totalt' : 'inga än') +
+      esc(visitVal) +
+      '</div><div class="s ' +
+      visitSubCls +
+      '">' +
+      esc(visitSub) +
       '</div></div>' +
       '<div class="k"><div class="l">Intäkt</div><div class="v">' +
-      esc(revenueKr != null ? revenueKr : '—') +
-      '</div><div class="s">' +
-      esc(revenueKr != null ? ltvLabel || 'LTV' : '—') +
+      esc(revenueKr != null ? revenueKr : '0') +
+      '</div><div class="s ' +
+      revenueSubCls +
+      '">' +
+      esc(revenueSub) +
       '</div></div>' +
-      '<div class="k"><div class="l">No-shows</div><div class="v">' +
-      esc(noshow != null ? noshow : '0') +
-      '</div><div class="s">' +
-      (Number(noshow) > 0 ? 'följ upp' : 'klockren') +
+      '<div class="k"><div class="l">No-show</div><div class="v ' +
+      noshowValCls +
+      '">' +
+      esc(noshowVal) +
+      '</div><div class="s ' +
+      noshowSubCls +
+      '">' +
+      esc(noshowSub) +
       '</div></div></div>';
 
-    var activeVisitHtml = '';
-    if (
-      window.CcoV9CustomersParity &&
-      typeof window.CcoV9CustomersParity.renderReferensActiveVisit === 'function'
-    ) {
-      activeVisitHtml = window.CcoV9CustomersParity.renderReferensActiveVisit(bundle, bcard) || '';
+    if (activeVisitVisible && activeVisitHtml) {
+      h += referensHairstrandHtml();
+      h += activeVisitHtml;
+      h += referensHairstrandHtml();
+      h += buildReferensMedicinsktBand(allergies, gateSignals, bcard);
+    } else if (activeVisitHtml) {
+      h += activeVisitHtml;
     }
-    if (activeVisitHtml) h += activeVisitHtml;
 
-    var hideLegacyAttend =
-      window.CcoV9CustomersParity &&
-      typeof window.CcoV9CustomersParity.resolveActiveVisitPayload === 'function' &&
-      window.CcoV9CustomersParity.resolveActiveVisitPayload(bundle);
-
-    // ===== Närvaro: Show / No-show (receptionist markerar, syns för behandlare, loggas) =====
-    if (!hideLegacyAttend) {
-      var att = bcard.attendance && typeof bcard.attendance === 'object' ? bcard.attendance : {};
-      var attStatus = att.status || '';
-      var attAt = att.at ? new Date(att.at) : null;
-      var attTime =
-        attAt && !isNaN(attAt)
-          ? attAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-          : '';
-      h +=
-        '<div class="kk-attend' +
-        (attStatus ? ' is-' + esc(attStatus) : '') +
-        '" data-patient-id="' +
-        esc(bcard.patientId || bcard.id || '') +
-        '">' +
-        '<div class="kk-attend-status' +
-        (attStatus ? ' is-' + esc(attStatus) : '') +
-        '" data-kk-attend-status>' +
-        (attStatus === 'show'
-          ? '✓ Ankommen' + (attTime ? ' ' + esc(attTime) : '') + (att.by ? ' · ' + esc(att.by) : '')
-          : attStatus === 'no_show'
-            ? '✕ No-show · kontakta kunden'
-            : 'Närvaro ej markerad') +
-        '</div>' +
-        '<div class="kk-attend-btns">' +
-        '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Show</button>' +
-        '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> No-show</button>' +
-        '</div></div>';
-    }
+    // Närvaro inbäddas i aktivt besök via renderReferensActiveVisit (Fas 0b)
 
     var opDayHtml = '';
     if (
@@ -4737,17 +5529,19 @@
       opDayHtml = window.CcoHairtpDocumentCloud.buildOpDayStaffActionsHtml(bcard) || '';
     }
     if (opDayHtml) {
-      if (ORD47_V1) {
+      if (ord47ScrollCards()) {
         ord47Cards.operation = '<div class="kk-card-kicker">Op-dag · personal</div>' + opDayHtml;
-      } else {
+      } else if (!REFERENS_FACIT_SCROLL || cur === 8) {
         h += sec('Op-dag · personal', '5', opDayHtml);
       }
     }
 
-    h += '<div class="gthread"></div>';
+    if (!activeVisitVisible && !REFERENS_FACIT_SCROLL) {
+      h += '<div class="gthread"></div>';
+    }
 
-    if (ORD47_V1) {
-      if (allergies.length) {
+    if (ord47ScrollCards()) {
+      if (allergies.length && !activeVisitVisible) {
         ord47Cards.halsa +=
           '<div class="med kkx-med"><div class="mi">!</div><div style="font-size:10.5px"><b>Medicinskt:</b> Allergi — ' +
           esc(allergies.join(' · ')) +
@@ -4755,16 +5549,21 @@
       }
       ord47Cards.halsa += buildMedicinsktFormsInner(bcard, driveFiles);
     } else {
-      if (allergies.length) {
+      if (allergies.length && !activeVisitVisible) {
         h +=
           '<div class="med kkx-med"><div class="mi">!</div><div style="font-size:10.5px"><b>Medicinskt:</b> Allergi — ' +
           esc(allergies.join(' · ')) +
           '.</div></div>';
       }
       h += sec(
-        'Medicinskt läge',
-        medicinsktSectionPill(bcard),
-        buildMedicinsktFormsInner(bcard, driveFiles)
+        'Hälsodeklaration',
+        REFERENS_FACIT_SCROLL
+          ? referensHdMetaLabel(bcard.healthDeclaration || null, bcard) ||
+              medicinsktSectionPill(bcard)
+          : medicinsktSectionPill(bcard),
+        REFERENS_FACIT_SCROLL
+          ? buildReferensHalsofacitInner(bcard, allergies, gateSignals, driveFiles)
+          : buildMedicinsktFormsInner(bcard, driveFiles)
       );
     }
 
@@ -4775,13 +5574,24 @@
         if (run.length === 1) return run[0];
         var first = run[0];
         var last = run[run.length - 1];
-        var range = (first.id || '') + '–' + (last.id || '');
-        var lbl =
-          range +
-          ' · ' +
-          first.label +
-          (last.label && last.label !== first.label ? ' → ' + last.label : '');
-        return { state: 'done', id: range, label: lbl, note: last.note || 'Klar' };
+        var range =
+          (first.id || '') + (last.id && String(last.id) !== String(first.id) ? '–' + last.id : '');
+        var lbl = range + ' · ' + first.label;
+        if (last.label && last.label !== first.label) {
+          var tail = String(last.label).split('·').pop();
+          lbl =
+            range +
+            ' · ' +
+            String(first.label).split('·')[0].trim() +
+            ' + ' +
+            String(tail || last.label).trim();
+        }
+        return {
+          state: 'done',
+          id: range,
+          label: lbl,
+          note: referensJourneyDoneNote(last),
+        };
       }
       var groupedSteps = [];
       var doneRun = [];
@@ -4798,58 +5608,76 @@
       });
       if (doneRun.length) groupedSteps.push(kkMergeDone(doneRun));
 
-      var stepHtml = groupedSteps
-        .map(function (s) {
-          var st =
-            s.state === 'done'
-              ? 'done'
-              : s.state === 'active'
-                ? 'act'
-                : s.state === 'neutral'
-                  ? 'neutral'
-                  : 'todo';
-          var mk =
-            st === 'done' ? '✓' : st === 'neutral' ? '–' : st === 'act' ? s.id || '!' : s.id || '';
-          var jump = stepJumpSlug(s.label);
-          var medForm = stepMedFormSlug(s.label);
-          return (
-            '<div class="step kkx-step ' +
-            st +
-            (jump ? ' kk-jumpable" data-kk-jump="' + jump + '"' : '"') +
-            (medForm ? ' data-kk-med-form="' + medForm + '"' : '') +
-            '><div class="mk kkx-mk">' +
-            esc(mk) +
-            '</div><div><div class="t">' +
-            esc(s.label) +
-            '</div>' +
-            '<div class="s">' +
-            esc(
-              s.note ||
-                (st === 'done'
-                  ? 'Klar'
-                  : st === 'act'
-                    ? 'Pågår · nästa steg'
-                    : st === 'neutral'
-                      ? '—'
-                      : 'Kommande')
-            ) +
-            '</div>' +
-            '</div></div>'
-          );
-        })
-        .join('');
+      var journeyCtx = {
+        opDate:
+          bcard.opDate ||
+          extras.opDate ||
+          (extras.agreementReadout && extras.agreementReadout.opDate) ||
+          '',
+        fcDate: bcard.fitnessDueDate || '',
+      };
+      var journeyInner = REFERENS_FACIT_SCROLL
+        ? buildReferensFacitJourneyInner(groupedSteps, cur, total, nextLabel, journeyCtx)
+        : groupedSteps
+            .map(function (s) {
+              var st =
+                s.state === 'done'
+                  ? 'done'
+                  : s.state === 'active'
+                    ? 'act'
+                    : s.state === 'neutral'
+                      ? 'neutral'
+                      : 'todo';
+              var mk =
+                st === 'done'
+                  ? '✓'
+                  : st === 'neutral'
+                    ? '–'
+                    : st === 'act'
+                      ? s.id || '!'
+                      : s.id || '';
+              var jump = stepJumpSlug(s.label);
+              var medForm = stepMedFormSlug(s.label);
+              return (
+                '<div class="step kkx-step ' +
+                st +
+                (jump ? ' kk-jumpable" data-kk-jump="' + jump + '"' : '"') +
+                (medForm ? ' data-kk-med-form="' + medForm + '"' : '') +
+                '><div class="mk kkx-mk">' +
+                esc(mk) +
+                '</div><div><div class="t">' +
+                esc(s.label) +
+                '</div>' +
+                '<div class="s">' +
+                esc(
+                  s.note ||
+                    (st === 'done'
+                      ? 'Klar'
+                      : st === 'act'
+                        ? 'Pågår · nästa steg'
+                        : st === 'neutral'
+                          ? '—'
+                          : 'Kommande')
+                ) +
+                '</div>' +
+                '</div></div>'
+              );
+            })
+            .join('');
       h += sec(
         'Kundresa · ' + total + ' steg',
         cur ? '<span class="sb-chip">Steg ' + esc(cur) + '</span>' : '',
-        '<div class="jcard"><div class="stepwrap kkx-barwrap"><div class="sbar kkx-bar" style="width:' +
-          pct +
-          '%"></div></div>' +
-          '<div class="sl kkx-bl">' +
-          (cur ? cur + ' / ' + total + ' steg' : '') +
-          (nextLabel ? ' · nästa: ' + esc(nextLabel) : '') +
-          '</div>' +
-          stepHtml +
-          '</div>'
+        REFERENS_FACIT_SCROLL
+          ? journeyInner
+          : '<div class="jcard"><div class="stepwrap kkx-barwrap"><div class="sbar kkx-bar" style="width:' +
+              pct +
+              '%"></div></div>' +
+              '<div class="sl kkx-bl">' +
+              (cur ? cur + ' / ' + total + ' steg' : '') +
+              (nextLabel ? ' · nästa: ' + esc(nextLabel) : '') +
+              '</div>' +
+              journeyInner +
+              '</div>'
       );
     }
 
@@ -4865,7 +5693,9 @@
           return (
             '<div class="row acc ' +
             tone +
-            '"><div style="flex:1"><div class="rt">' +
+            '"' +
+            (tone === 'block' ? ' data-v11-blocker' : '') +
+            '><div style="flex:1"><div class="rt">' +
             esc(s.what || s.label || '—') +
             '</div><div class="rm">' +
             esc(signalSub(s)) +
@@ -4880,19 +5710,21 @@
           );
         })
         .join('');
-      if (ORD47_V1) {
+      if (ord47ScrollCards()) {
         ord47Cards.juridik = buildJuridikBundleStatusHtml(extras) + gateRowsHtml;
       }
       h += sec('Smart nästa steg', String(gateSignals.length), gateRowsHtml);
     } else {
       h += sec('Smart nästa steg', '0', empty('Inga aktiva gates just nu.'));
-      if (ORD47_V1) {
+      if (ord47ScrollCards()) {
         var juridikOnly = buildJuridikBundleStatusHtml(extras);
         if (juridikOnly) ord47Cards.juridik = juridikOnly;
       }
     }
 
-    h += '<div class="gthread"></div>';
+    if (!REFERENS_FACIT_SCROLL) {
+      h += '<div class="gthread"></div>';
+    }
 
     var hist = A(ctxExtras.historyBookings);
     var up = A(ctxExtras.upcomingBookings);
@@ -4906,8 +5738,8 @@
             return bookingRow(b, false, { needsFrisk: needsFrisk && i === 0 });
           })
           .join('')
-      : empty('Inga kommande bokningar.');
-    if (ORD47_V1) {
+      : empty('Inga kommande bokningar.', 'booking');
+    if (ord47ScrollCards()) {
       ord47Cards.bokning = upComingHtml;
     } else {
       h += sec('Kommande bokningar', String(up.length), upComingHtml);
@@ -4941,7 +5773,15 @@
           })
           .join('');
     } else {
-      histInner = empty('Ingen historik ännu.');
+      histInner = empty('Ingen historik ännu.', 'booking');
+    }
+    if (REFERENS_FACIT_SCROLL && autoDocSplit.rest.length) {
+      histInner +=
+        '<div class="kkref-facit-auto-hist">' +
+        '<div class="kkref-facit-auto-hist__k">Auto-dokument · historik</div>' +
+        '<div class="kkref-facit-stack">' +
+        autoDocSplit.rest.map(buildReferensFacitAutoDocRow).join('') +
+        '</div></div>';
     }
     h += sec('Historik', String(hist.length), histInner);
 
@@ -5111,7 +5951,9 @@
       else if (it.st === 'act') jAct++;
       else jTodo++;
     });
-    var jHtml = buildJournalDocRows(jItems, jrs, driveFiles, jPlanned);
+    var jHtml = REFERENS_FACIT_SCROLL
+      ? buildReferensFacitJournalInner(jAll)
+      : buildJournalDocRows(jItems, jrs, driveFiles, jPlanned);
     var jCount = jAll.length
       ? '<span style="color:#4a8268">' +
         jDone +
@@ -5124,7 +5966,11 @@
     h += sec(
       'Journaler · personal',
       jCount,
-      jHtml ? '<div class="gk-med-forms">' + jHtml + '</div>' : empty('Inga journaler ännu.')
+      jHtml
+        ? REFERENS_FACIT_SCROLL
+          ? '<div class="kkref-facit-stack">' + jHtml + '</div>'
+          : '<div class="gk-med-forms">' + jHtml + '</div>'
+        : empty('Inga journaler ännu · skrivs vid besök.', 'journal')
     );
 
     if (offers.length) {
@@ -5190,7 +6036,7 @@
           );
         })
         .join('');
-      if (ORD47_V1) {
+      if (ord47ScrollCards()) {
         ord47Cards.behandling =
           '<div class="kk-card-kicker">Offerter · commit · ' +
           esc(String(ord47Flow).toUpperCase()) +
@@ -5199,58 +6045,73 @@
       } else {
         h += sec('Offerter · commit', offTotal, offerRowsHtml);
       }
-    } else if (ORD47_V1) {
+    } else if (ord47ScrollCards()) {
       ord47Cards.behandling = empty('Inga offerter i patient-case/dossier ännu.');
     } else {
-      h += sec('Offerter · commit', '0', empty('Inga offerter i patient-case/dossier ännu.'));
+      h += sec(
+        'Offerter · commit',
+        '0',
+        empty('Inga offerter i patient-case/dossier ännu.', 'row')
+      );
     }
 
-    if (ORD47_V1) {
+    if (ord47ScrollCards()) {
+      ord47RegistryHtml = buildReferensRegistryDocsSection(docsPayload);
+    } else if (REFERENS_FACIT_SCROLL) {
       ord47RegistryHtml = buildReferensRegistryDocsSection(docsPayload);
     } else {
       h += buildReferensRegistryDocsSection(docsPayload);
     }
 
-    if (autoDocs.length && !ORD47_V1) {
+    if (autoDocs.length && !ord47ScrollCards()) {
+      var autoDocsMain = REFERENS_FACIT_SCROLL ? autoDocSplit.main : autoDocs;
+      var autoDocInner = REFERENS_FACIT_SCROLL
+        ? '<div class="kkref-facit-stack">' +
+          autoDocsMain.map(buildReferensFacitAutoDocRow).join('') +
+          '</div>'
+        : autoDocs
+            .map(function (d) {
+              var step = d.journeyStep != null ? d.journeyStep : d.step;
+              var done =
+                d.planned === false ||
+                /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''));
+              var dt = String(d.signedAt || d.sentAt || d.deliveredAt || d.date || '').slice(0, 10);
+              var meta = [step != null && step !== '' ? 'Steg ' + step : '', dt]
+                .filter(Boolean)
+                .join(' · ');
+              var previewAttrs = referensAutoDocPreviewAttrs(d);
+              var statusHtml = done
+                ? '<span style="font-size:10px;font-weight:800;color:#4a8268">✓ levererat</span>'
+                : '<span style="font-size:10px;font-weight:800;color:#94897b">' +
+                  esc(d.statusLabel || 'Planerad') +
+                  '</span>';
+              return (
+                '<div class="row' +
+                (previewAttrs ? ' kk-auto-doc-preview-row' : '') +
+                '"' +
+                previewAttrs +
+                '><div style="flex:1"><div class="rt">' +
+                esc(d.title) +
+                '</div><div class="rm">' +
+                esc(meta) +
+                '</div></div>' +
+                statusHtml +
+                '</div>'
+              );
+            })
+            .join('');
+      var autoSecOpts = {};
+      if (REFERENS_FACIT_SCROLL && autoDocSplit.rest.length) {
+        autoSecOpts.headAction =
+          '<button type="button" class="kkref-facit-zone__action" data-kk-jump="historik">Historik ›</button>';
+      }
       h += sec(
-        'Auto-dokument',
-        String(autoDocs.length),
-        autoDocs
-          .map(function (d) {
-            var step = d.journeyStep != null ? d.journeyStep : d.step;
-            var done =
-              d.planned === false ||
-              /sent|deliver|levererat|signed|skickad|klar/i.test(String(d.status || ''));
-            var dt = String(d.signedAt || d.sentAt || d.deliveredAt || d.date || '').slice(0, 10);
-            var meta = [step != null && step !== '' ? 'Steg ' + step : '', dt]
-              .filter(Boolean)
-              .join(' · ');
-            var previewAttrs = referensAutoDocPreviewAttrs(d);
-            var statusHtml = done
-              ? '<span style="font-size:10px;font-weight:800;color:#4a8268">✓ levererat</span>'
-              : '<span style="font-size:10px;font-weight:800;color:#94897b">' +
-                esc(d.statusLabel || 'Planerad') +
-                '</span>';
-            return (
-              '<div class="row' +
-              (previewAttrs ? ' kk-auto-doc-preview-row' : '') +
-              '"' +
-              previewAttrs +
-              '><div style="flex:1"><div class="rt">' +
-              esc(d.title) +
-              '</div><div class="rm">' +
-              esc(meta) +
-              '</div></div>' +
-              (previewAttrs
-                ? '<span class="kk-auto-doc-preview-label" aria-hidden="true">Visa mall</span>'
-                : '') +
-              statusHtml +
-              '</div>'
-            );
-          })
-          .join('')
+        REFERENS_FACIT_SCROLL ? 'Auto-dokument · system' : 'Auto-dokument',
+        String(autoDocsMain.length),
+        autoDocInner,
+        autoSecOpts
       );
-    } else if (ORD47_V1 && autoDocs.length) {
+    } else if (ord47ScrollCards() && autoDocs.length) {
       var bokAutoHtml = autoDocs
         .filter(function (d) {
           var id = referensAutoDocRegistryId(d);
@@ -5272,7 +6133,9 @@
       }
     }
 
-    h += '<div class="gthread"></div>';
+    if (!REFERENS_FACIT_SCROLL) {
+      h += '<div class="gthread"></div>';
+    }
 
     var fotoMediaRows = A(driveFiles)
       .filter(isReferensMediaFile)
@@ -5290,7 +6153,7 @@
             gkSharedPhotoGrid(offerReadyRows, 'gk-foto-grid--offer-ready')
           : '<div class="gk-offer-ready-empty">Inga markerade offertbilder ännu. Öppna en bild, rita och välj “behandlingsplan/offert”.</div>') +
         '</div></div>';
-      if (ORD47_V1) {
+      if (ord47ScrollCards()) {
         ord47Cards.foto = fotoRows;
       } else {
         h += sec(
@@ -5300,22 +6163,22 @@
         );
       }
     } else if (photos.length) {
-      var fotoEmpty = empty('Inga markerade offertbilder ännu.');
-      if (ORD47_V1) {
+      var fotoEmpty = empty('Inga foton ännu · foto-samtycke vid steg 9.', 'photo');
+      if (ord47ScrollCards()) {
         ord47Cards.foto =
           fotoEmpty +
           '<p class="kk-card-hint">Foto-samtycke (steg 9) · öppna via Op-dag-knappen i Operation.</p>';
       } else {
-        h += sec('Foto', '0 offertbilder', fotoEmpty);
+        h += sec('Foton', '0', fotoEmpty);
       }
     } else {
-      var fotoNone = empty('Inga markerade offertbilder ännu.');
-      if (ORD47_V1) {
+      var fotoNone = empty('Inga foton ännu · foto-samtycke vid steg 9.', 'photo');
+      if (ord47ScrollCards()) {
         ord47Cards.foto =
           fotoNone +
           '<p class="kk-card-hint">Foto-samtycke (steg 9) · öppna via Op-dag-knappen i Operation.</p>';
       } else {
-        h += sec('Foto', '0 offertbilder', fotoNone);
+        h += sec('Foton', '0', fotoNone);
       }
     }
 
@@ -5346,7 +6209,7 @@
           'Kund ' + fnxId,
           fnxSynced ? 'Synkad ' + String(fnxSynced).slice(0, 10) : 'Kopplad'
         );
-      if (ORD47_V1) {
+      if (ord47ScrollCards()) {
         ord47Cards.ekonomi = (ord47Cards.ekonomi || '') + ekoRows;
       } else {
         h += sec(
@@ -5355,6 +6218,18 @@
           ekoRows || empty('Ingen ekonomidata ännu.')
         );
       }
+    } else if (!ord47ScrollCards() && REFERENS_FACIT_SCROLL) {
+      h += sec(
+        'Ekonomi',
+        '—',
+        '<div class="kkref-facit-eko-empty">' +
+          '<div class="kkref-facit-eko-empty__grid">' +
+          '<div><div class="kkref-facit-eko-empty__k">Total intäkt</div><div class="kkref-facit-eko-empty__v">—</div></div>' +
+          '<div><div class="kkref-facit-eko-empty__k">Livstidsvärde</div><div class="kkref-facit-eko-empty__v">—</div></div>' +
+          '</div>' +
+          '<div class="kkref-facit-empty">Ingen intäkt kopplad ännu · Pipedrive/Fortnox saknas för den här patienten.</div>' +
+          '</div>'
+      );
     }
 
     // ===== Betalning: committad offert följer med + status + betalvägar (historik = backend nästa) =====
@@ -5475,7 +6350,7 @@
             : 'Ingen betalningshistorik ännu.';
         inner += '<div class="empty">' + esc(note) + '</div>';
       }
-      if (ORD47_V1) {
+      if (ord47ScrollCards()) {
         ord47Cards.ekonomi =
           (ord47Cards.ekonomi || '') + '<div class="kk-card-kicker">Betalning</div>' + inner;
       } else {
@@ -5760,7 +6635,7 @@
               return buildDocViewRow(fnamn, meta, url, 'file_' + (f.id || f.assetId || fnamn));
             })
             .join('')
-        : empty('Inga filer kopplade ännu.')
+        : empty('Inga filer kopplade ännu.', 'files')
     );
     var notes = A(journalEntries).filter(function (e) {
       return /note|anteck|privat/i.test(String((e && (e.type || e.journalType)) || ''));
@@ -5770,7 +6645,7 @@
           .slice(0, 6)
           .map(function (n) {
             return (
-              '<div class="qrow"><div><div class="q">' +
+              '<div class="qrow" data-v11-note-row><div><div class="q">' +
               esc(String(n.text || n.summary || n.note || '').slice(0, 140)) +
               '</div>' +
               (n.author || n.by ? '<div class="qv">' + esc(n.author || n.by) + '</div>' : '') +
@@ -5778,8 +6653,8 @@
             );
           })
           .join('')
-      : empty('Inga anteckningar ännu.');
-    if (ORD47_V1) {
+      : empty('Inga anteckningar ännu.', 'row');
+    if (ord47ScrollCards()) {
       ord47Cards.anteckningar = notesHtml;
     } else {
       h += sec('Anteckningar', String(notes.length), notesHtml);
@@ -5827,7 +6702,7 @@
               return (
                 '<div class="kk-comm kk-comm--' +
                 kanal +
-                '"><span class="kk-comm-ico">' +
+                '" data-v11-comm-row><span class="kk-comm-ico">' +
                 ikon +
                 '</span><div style="flex:1;min-width:0"><div class="rt">' +
                 esc(titel) +
@@ -5841,7 +6716,7 @@
               );
             })
             .join('')
-        : empty('Ingen kommunikation loggad ännu.')
+        : empty('Ingen kommunikation loggad ännu.', 'row')
     );
     h += sec(
       'Insikter',
@@ -5851,6 +6726,22 @@
             .map(function (s) {
               var sig = esc(s.ruleId || s.id || '');
               var lbl = esc(s.label || s.title || s.text || 'Insikt');
+              if (REFERENS_FACIT_SCROLL) {
+                return (
+                  '<div class="kkref-facit-doc-row kkref-facit-doc-row--insight"><div class="kkref-facit-doc-row__body"><div class="kkref-facit-doc-row__title">' +
+                  lbl +
+                  '</div>' +
+                  (s.detail
+                    ? '<div class="kkref-facit-doc-row__sub">' + esc(s.detail) + '</div>'
+                    : '') +
+                  '</div><span class="kkref-facit-doc-row__pill">Möjlighet</span>' +
+                  '<button type="button" class="kk-sig-act" data-kk-sig="' +
+                  sig +
+                  '" data-kk-sig-label="' +
+                  lbl +
+                  '" title="Agera">→</button></div>'
+                );
+              }
               return (
                 '<div class="row acc info"><div style="flex:1"><div class="rt">' +
                 lbl +
@@ -5867,10 +6758,12 @@
               );
             })
             .join('')
-        : empty('Inga möjligheter just nu.')
+        : '<div data-v11-insight-empty><div class="kicker">Insikter</div><div>' +
+            esc('Inga möjligheter just nu.') +
+            '</div></div>'
     );
 
-    if (ORD47_V1) {
+    if (ord47ScrollCards()) {
       var post8Re = /journal_tp_post_prp|journal_tp_follow/;
       var uppRows = A(docsPayload.journals)
         .filter(function (j) {
@@ -5897,6 +6790,12 @@
         },
       });
       h += buildOrd47MallbibliotekWrap(ord47RegistryHtml);
+    } else {
+      h +=
+        '<div class="kk-mallbibliotek-actions kk-mallbibliotek-actions--facit">' +
+        '<button type="button" class="btn kk-mallbibliotek-btn" data-kk-open-mallbibliotek>Mallbibliotek · alla dokumenttyper</button>' +
+        '</div>';
+      h += buildOrd47MallbibliotekWrap(ord47RegistryHtml);
     }
 
     if (ORD47_V1) {
@@ -5908,7 +6807,7 @@
         (ord48ReadySt.ready ? '' : ' is-disabled') +
         '"' +
         (ord48ReadySt.ready ? '' : ' disabled aria-disabled="true"') +
-        ' data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="' +
+        ' data-v11-cta="gold" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="' +
         ord48Pid +
         '">Boka nästa</button>' +
         '<div class="r2"><div class="btn">✎ Anteckna</div><div class="btn">✉ Svarstudio</div></div>' +
@@ -5918,7 +6817,7 @@
     } else {
       h +=
         '<div class="acts"><div class="btn dark">📷 Ta bild · spara i journal</div>' +
-        '<div class="btn gold">Boka nästa</div>' +
+        '<div class="btn gold" data-v11-cta="gold">Boka nästa</div>' +
         '<div class="r2"><div class="btn">✎ Anteckna</div><div class="btn">✉ Svarstudio</div></div>' +
         '<div class="btn green">✓ Bekräfta kommande tider' +
         (up.length ? ' (' + up.length + ')' : '') +
@@ -6018,9 +6917,11 @@
       '" data-kk-open-storvy="' +
       (isHist ? 'historik' : 'bokningar') +
       '">' +
-      '<div class="bd"><div class="d">' +
+      '<div class="bd" data-v11-date-tile data-tone="' +
+      (isHist ? 'lila' : 'amber') +
+      '"><div class="d day">' +
       esc2(day) +
-      '</div><div class="m">' +
+      '</div><div class="m month">' +
       esc2(mon) +
       '</div></div>' +
       '<div style="flex:1"><div class="rt">' +
@@ -6469,8 +7370,12 @@
       if (statusEl) {
         statusEl.className = 'kk-attend-status is-' + status;
         statusEl.textContent =
-          status === 'show' ? '✓ Ankommen ' + tid + ' · reception' : '✕ No-show · kontakta kunden';
+          status === 'show'
+            ? '✓ Ankommen ' + tid + ' · reception'
+            : '✕ Utebliven · kontakta kunden';
       }
+      var btns = wrap.querySelector('.kk-attend-btns');
+      if (btns) btns.remove();
       var token = '';
       try {
         token = (
@@ -7573,33 +8478,32 @@
     return ut.slice(0, 3);
   }
   var KK_ORDNING = [
+    'halso',
     'kundresa',
     'nastasteg',
-    'halso',
-    'besok',
     'bokningar',
-    'journal',
-    'foto',
     'historik',
+    'journal',
     'offert',
-    'ekonomi',
-    'betalning',
-    'dokument',
-    'personal',
     'auto',
+    'foto',
+    'dokument',
     'anteckningar',
     'kommunikation',
+    'ekonomi',
+    'betalning',
     'insikter',
+    'besok',
     'tabild',
   ];
   var KK_RUBRIK = {
     kundresa: 'Kundresa · 9 steg',
     nastasteg: 'Smart nästa steg',
-    halso: 'Medicinskt läge',
+    halso: REFERENS_FACIT_SCROLL ? 'Hälsodeklaration' : 'Medicinskt läge',
     besok: 'Besök',
     bokningar: 'Kommande bokningar',
     historik: 'Historik',
-    journal: 'Journal',
+    journal: 'Journaler · personal',
     personal: 'Personal',
     offert: 'Offert',
     foto: 'Foto',
@@ -7612,20 +8516,39 @@
     insikter: 'Insikter',
     tabild: 'Ta bild',
   };
+  function kkReferensEnsureRegistryInMallHost(doss) {
+    if (!REFERENS_FACIT_SCROLL || !doss || !doss.querySelector) return;
+    var host = doss.querySelector('[data-kk-mallbibliotek-host]');
+    var reg = doss.querySelector('[data-sek="dokument-registry"]');
+    if (host && reg && reg.parentElement !== host) host.appendChild(reg);
+  }
+  function kkReferensPinFooterBlocks(doss, container) {
+    if (!container) return;
+    kkReferensEnsureRegistryInMallHost(doss);
+    Array.prototype.forEach.call(
+      doss.querySelectorAll(
+        '[data-kk-mallbibliotek-host], .kk-mallbibliotek-actions, .v9-zone3-context, .acts'
+      ),
+      function (block) {
+        if (block.parentElement === container) container.appendChild(block);
+      }
+    );
+  }
   function kkMockupParity(doss) {
     /* Mockupens struktur: rätt ordning, öppna kort, mockup-rubriker,
        historik-verktyg, Ta bild-sektion. Allt på befintlig live-data. */
-    var seks = Array.prototype.slice.call(
-      doss.querySelectorAll('details.dossier-section[data-sek]')
-    );
+    var seks = Array.prototype.slice.call(doss.querySelectorAll('.dossier-section[data-sek]'));
     if (!seks.length) return;
-    var container = seks[0].parentElement;
+    var container = referensDossierContainer(doss);
     /* 1. Mockup-rubriker + öppna */
     seks.forEach(function (s) {
-      s.open = true;
+      if (s.tagName === 'DETAILS') s.open = true;
       var slug = s.getAttribute('data-sek');
+      var titleEl = s.querySelector('.kkref-facit-zone__title');
       var summary = s.querySelector('summary');
-      if (summary && KK_RUBRIK[slug] && summary.childNodes[0]) {
+      if (titleEl && KK_RUBRIK[slug]) {
+        titleEl.textContent = KK_RUBRIK[slug];
+      } else if (summary && KK_RUBRIK[slug] && summary.childNodes[0]) {
         if (summary.childNodes[0].nodeType === 3) {
           summary.childNodes[0].textContent = KK_RUBRIK[slug] + ' ';
         }
@@ -7633,14 +8556,18 @@
     });
     /* 2. Ta bild-sektion (kopplar till befintlig kamera-knapp om den finns) */
     if (!doss.querySelector('[data-sek="tabild"]')) {
-      var tb = document.createElement('details');
-      tb.className = 'dossier-section';
+      var tb = document.createElement(REFERENS_FACIT_SCROLL ? 'section' : 'details');
+      tb.className = 'dossier-section kkref-facit-zone' + (REFERENS_FACIT_SCROLL ? '' : '');
       tb.setAttribute('data-sek', 'tabild');
-      tb.open = true;
-      tb.innerHTML =
-        '<summary>Ta bild </summary>' +
-        '<div class="kk-tbrad">Foto-samtycke krävs · scope: hårlinje + krona — aldrig ansikte.</div>' +
-        '<button type="button" class="kk-btn kk-btn-gold" data-kk-tabild>📷 Ta bild · spara i journal</button>';
+      if (tb.tagName === 'DETAILS') tb.open = true;
+      tb.innerHTML = REFERENS_FACIT_SCROLL
+        ? '<header class="kkref-facit-zone__head"><h3 class="kkref-facit-zone__title">Ta bild</h3></header>' +
+          '<div class="dossier-section-body kkref-facit-zone__body">' +
+          '<div class="kk-tbrad">Foto-samtycke krävs · scope: hårlinje + krona — aldrig ansikte.</div>' +
+          '<button type="button" class="kk-btn kk-btn-gold" data-kk-tabild>📷 Ta bild · spara i journal</button></div>'
+        : '<summary>Ta bild </summary>' +
+          '<div class="kk-tbrad">Foto-samtycke krävs · scope: hårlinje + krona — aldrig ansikte.</div>' +
+          '<button type="button" class="kk-btn kk-btn-gold" data-kk-tabild>📷 Ta bild · spara i journal</button>';
       container.appendChild(tb);
       tb.querySelector('[data-kk-tabild]').addEventListener('click', function () {
         var knapp = document.querySelector(
@@ -7702,38 +8629,38 @@
       var el = doss.querySelector('[data-sek="' + slug + '"]');
       if (el) container.appendChild(el);
     });
-    /* 5. Snabbknappar (app-funktioner, behålls) flyttas SIST — mockupen
-       har sektionerna direkt under chipsen */
-    Array.prototype.forEach.call(
-      doss.querySelectorAll('.v9-zone3-context, .acts'),
-      function (block) {
-        container.appendChild(block);
-      }
-    );
+    doss.querySelectorAll('details.dossier-section[data-sek]').forEach(function (el) {
+      if (el.parentElement === container) container.appendChild(el);
+    });
+    /* 5. Snabbknappar + mallbibliotek flyttas SIST */
+    kkReferensPinFooterBlocks(doss, container);
     /* gthread-linjerna mellan chips och sektioner bort — mockupen har inga */
     Array.prototype.forEach.call(doss.querySelectorAll('.gthread'), function (g) {
       g.remove();
     });
   }
   function kkReorderSections(doss) {
-    var seks = Array.prototype.slice.call(
-      doss.querySelectorAll('details.dossier-section[data-sek]')
-    );
+    var seks = Array.prototype.slice.call(doss.querySelectorAll('.dossier-section[data-sek]'));
     if (!seks.length) return;
-    var container = seks[0].parentElement;
+    var container = referensDossierContainer(doss);
     var current = seks
       .map(function (el) {
         return el.getAttribute('data-sek');
       })
       .filter(Boolean);
     var desired = KK_ORDNING.filter(function (slug) {
-      return !!doss.querySelector('details.dossier-section[data-sek="' + slug + '"]');
+      return !!doss.querySelector('.dossier-section[data-sek="' + slug + '"]');
     });
     if (current.join('|') === desired.join('|')) return;
     KK_ORDNING.forEach(function (slug) {
-      var el = doss.querySelector('details.dossier-section[data-sek="' + slug + '"]');
+      var el = doss.querySelector('.dossier-section[data-sek="' + slug + '"]');
       if (el) container.appendChild(el);
     });
+    doss.querySelectorAll('.dossier-section[data-sek]').forEach(function (el) {
+      if (REFERENS_FACIT_SCROLL && el.getAttribute('data-sek') === 'dokument-registry') return;
+      if (el.parentElement === container) container.appendChild(el);
+    });
+    kkReferensPinFooterBlocks(doss, container);
   }
   function kkReorderAllDossiers() {
     Array.prototype.forEach.call(
