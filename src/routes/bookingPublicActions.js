@@ -444,10 +444,17 @@ min-height:100dvh;padding:32px 16px 40px;
 display:flex;flex-direction:column;align-items:center;
 -webkit-font-smoothing:antialiased;
 }
-.logo{height:36px;margin-bottom:18px;opacity:.92}
+.logo{
+display:block;height:60px;width:auto;
+margin:0 auto -30px;position:relative;z-index:2;
+filter:
+drop-shadow(0 1px 0 rgba(255,255,255,.7))
+drop-shadow(0 6px 14px rgba(56,40,28,.20))
+drop-shadow(0 14px 30px rgba(93,74,60,.18));
+}
 .shell{
 position:relative;width:100%;max-width:460px;
-border-radius:28px;padding:32px 28px 26px;
+border-radius:28px;padding:54px 28px 26px;
 background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));
 box-shadow:var(--panel-shell-shadow);
 backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
