@@ -525,11 +525,34 @@
     collapseExceptFirst(document.body);
   }
 
+  function bindMobileCustomerRowOpen() {
+    if (!isV9On()) return;
+    document.addEventListener('click', (event) => {
+      if (document.documentElement.getAttribute('data-cco-mobile-shell') !== 'on') return;
+      const row = event.target?.closest?.('.customer-row[data-patient-row]');
+      if (!row) return;
+      if (
+        event.target?.closest?.(
+          'input, label, button, a, select, textarea, [role="button"], [data-v9-bulk]'
+        )
+      ) {
+        return;
+      }
+      const patientId = row.getAttribute('data-patient-row');
+      if (!patientId) return;
+      event.preventDefault();
+      void window.ArcanaPatientMasterUi?.openPatient?.(patientId, {
+        source: 'mobile-row-tap',
+      });
+    });
+  }
+
   if (isV9On()) {
     syncDemoChrome();
     bindOverlayEvents();
     bindKeyboard();
     bindDossierAccordion();
+    bindMobileCustomerRowOpen();
     window.addEventListener('cco:v9-open-search', () => openSearch());
   }
 })();

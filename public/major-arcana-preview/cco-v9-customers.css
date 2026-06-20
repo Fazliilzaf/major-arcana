@@ -8173,3 +8173,273 @@ html[data-v9-enabled="on"] .customer-row-head.cr-ref-head,
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* CCO mobile hardening — staff iPhone list/detail. Keep last. */
+@media (max-width: 767px) {
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-shell,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-surface,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-layout,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-center-shell,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-list,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-list-panel,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] [data-customer-list],
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-rail,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] [data-patient-master-rail],
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] [data-patient-detail] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-surface {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-layout {
+    display: block !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-v9-agg-insights {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .agg-insight,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .agg-insight-body,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .agg-insight-action {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-v9-filters {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-v9-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customers-v9-filters .filter-chip {
+    flex: 0 0 auto;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] [data-patient-row].customer-row {
+    display: grid !important;
+    grid-template-columns: 44px 48px minmax(0, 1fr) 28px !important;
+    grid-template-areas:
+      "check avatar identity arrow"
+      "check avatar status arrow" !important;
+    align-items: center !important;
+    column-gap: 10px !important;
+    row-gap: 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 92px !important;
+    height: auto !important;
+    padding: 14px !important;
+    overflow: hidden !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 > input,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .customer-select,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 [type="checkbox"] {
+    grid-area: check !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-avatar {
+    grid-area: avatar !important;
+    position: static !important;
+    transform: none !important;
+    width: 42px !important;
+    height: 42px !important;
+    align-self: center !important;
+    justify-self: center !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-name-block {
+    grid-area: identity !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 6px !important;
+    z-index: 2 !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-name,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-name-meta {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-name {
+    font-size: 16px !important;
+    line-height: 1.2 !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-status,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-next-text {
+    grid-area: status !important;
+    justify-self: start !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 > div:has(.cr-status) {
+    grid-area: status !important;
+    min-width: 0 !important;
+    justify-self: start !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-arrow {
+    grid-area: arrow !important;
+    justify-self: end !important;
+    align-self: center !important;
+    width: auto !important;
+    min-width: 24px !important;
+    max-width: 28px !important;
+    z-index: 3 !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-last-visit,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-contact,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 .cr-ltv {
+    display: none !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-list,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .customers-list-panel {
+    display: none !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .customers-shell,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .customers-surface,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .customers-layout,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .customers-center-shell,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .customers-rail {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .customers-rail {
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 0 12px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow: visible !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .v10-dossier-referens,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .doss,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .kk-sticky,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .dhead,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .kk-ord48-shell,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .ds {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .dhead {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 12px !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .dn,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .dc,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .kkref-profile__identity,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .kkref-profile__contact {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .acts,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .kk-attend {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .gk-nav,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .gk-chips {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-bottom: 4px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .gk-nav::-webkit-scrollbar,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .gk-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .btn,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .gk-btn,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .gk-chip {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 44px !important;
+    white-space: normal !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .kkref .gk-chip {
+    flex: 0 0 auto !important;
+    max-width: 82vw !important;
+  }
+}
