@@ -254,6 +254,10 @@
 .kkref .sec.nb {
   box-shadow: none;
 }
+
+/* V11 polish-reglerna flyttade till cco-v11-polish.css som laddas sist
+   i index.html (efter cco-v10-skin.css) för cascade-vinst utan
+   !important. Datapaths: data-v11-bg, data-v11-kicker, data-v11-pill-lift. */
 .kkref .lab {
   display: flex;
   align-items: center;

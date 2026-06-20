@@ -1,0 +1,153 @@
+/* CCO V11 polish — ORD-25G visuell paritet.
+   Laddas SIST i index.html så cascade-order säkerställer att V11-hooks
+   vinner när specificity är lika med legacy-regler i v10-skin. */
+
+/* Regel 2 · inner card vellum gradient (ersätter platt vit) */
+html[data-v9-enabled="on"] .kkref [data-v11-bg="vellum"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 241, 236, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+/* Regel 3 · inner card hover-lift */
+html[data-v9-enabled="on"] .kkref [data-v11-bg="vellum"]:hover {
+  box-shadow:
+    0 8px 22px rgba(56, 40, 28, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  transform: translateY(-1px);
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+/* Regel 6 · kicker · amber + tracking */
+html[data-v9-enabled="on"][data-v9-enabled][data-v9-enabled]
+  .kkref
+  .doss
+  [data-v11-kicker="amber"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v11-amber, #c8821e);
+}
+
+/* Regel 7 · kicker · puls-prick (amber DNA) */
+html[data-v9-enabled="on"][data-v9-enabled][data-v9-enabled]
+  .kkref
+  .doss
+  [data-v11-kicker="amber"]::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--v11-amber, #c8821e);
+  box-shadow:
+    0 0 0 3px rgba(200, 130, 30, 0.18),
+    0 0 0 6px rgba(200, 130, 30, 0.08);
+  animation: v11-pulse 1.6s ease-in-out infinite;
+}
+@keyframes v11-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(200, 130, 30, 0.18),
+      0 0 0 6px rgba(200, 130, 30, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(200, 130, 30, 0.22),
+      0 0 0 9px rgba(200, 130, 30, 0.1);
+  }
+}
+
+/* Regel 12 · pill 3D-lift */
+html[data-v9-enabled="on"] .kkref [data-v11-pill-lift="true"] {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 2px rgba(56, 40, 28, 0.08);
+}
+
+/* Regel 8 · Aktivt steg · amber-vellum + 3px vänster-stripe + glow */
+html[data-v9-enabled="on"][data-v9-enabled] .kkref [data-v11-journey-active="true"] {
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 3px 0 0 #c8821e,
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 6px 16px rgba(200, 130, 30, 0.18);
+}
+
+/* Regel 9 · Aktivt steg-badge · 24px amber-gradient med halo.
+   Live har badge = .mk.kkx-mk istället för spec's .v11-journey-step__badge.
+   .doss i selektor matchar 0,6,1 mot v10-skin's .step.act .mk, vinner via cascade. */
+html[data-v9-enabled="on"][data-v9-enabled] .kkref .doss [data-v11-journey-active="true"] .mk {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(180deg, #e89a2e, #c8821e);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 3px 8px rgba(200, 130, 30, 0.32),
+    0 0 0 3px rgba(200, 130, 30, 0.16);
+}
+
+/* Regel 10 · Klart steg · grön-stripe */
+html[data-v9-enabled="on"][data-v9-enabled] .kkref [data-v11-step-state="done"] {
+  box-shadow:
+    inset 3px 0 0 #4a8268,
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(56, 40, 28, 0.06);
+}
+
+/* Regel 11 · Danger steg · röd-stripe + röd-vellum */
+html[data-v9-enabled="on"][data-v9-enabled] .kkref [data-v11-step-state="danger"] {
+  background: linear-gradient(180deg, rgba(252, 235, 235, 0.95), rgba(247, 210, 210, 0.78));
+  box-shadow:
+    inset 3px 0 0 #b94a4a,
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 6px 16px rgba(185, 74, 74, 0.18);
+}
+
+/* Regel 16 · CTA hero · gold-gradient + glow.
+   .acts i selektor matchar specificity 0,5,1 så vi slår v10-skins .acts .btn.gold. */
+html[data-v9-enabled="on"][data-v9-enabled] .kkref .acts [data-v11-cta-tone="hero"] {
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(56, 40, 28, 0.1),
+    0 8px 22px rgba(200, 130, 30, 0.28);
+}
+
+/* Regel 17 · CTA hero · hover-lift */
+html[data-v9-enabled="on"][data-v9-enabled] .kkref .acts [data-v11-cta-tone="hero"]:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 4px rgba(56, 40, 28, 0.12),
+    0 12px 28px rgba(200, 130, 30, 0.34);
+  transform: translateY(-1px);
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+/* Regel 18 · CTA secondary · vellum + subtle lift */
+html[data-v9-enabled="on"][data-v9-enabled] .kkref .acts [data-v11-cta-tone="secondary"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.82));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: #2b251f;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(56, 40, 28, 0.08);
+}

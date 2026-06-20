@@ -840,7 +840,7 @@
     var icon = state === 'success' ? '✓' : state === 'warning' ? '⚠' : '○';
     var titleAttr = title ? ' title="' + esc(title) + '"' : '';
     return (
-      '<span class="kk-ready-pill" data-state="' +
+      '<span class="kk-ready-pill" data-v11-pill-lift="true" data-state="' +
       esc(state) +
       '"' +
       titleAttr +
@@ -974,11 +974,11 @@
         ? 'Kunden är <strong>inte redo</strong>. Saknas: ' + esc(st.blockers.join(', ')) + '.'
         : 'Komplettera delgates innan kalenderbokning.';
     return (
-      '<div class="kk-ord48-ready" data-kk-ord48-ready data-ready="' +
+      '<div class="kk-ord48-ready" data-kk-ord48-ready data-v11-bg="vellum" data-ready="' +
       (st.ready ? 'true' : 'false') +
       '">' +
       '<div class="kk-ord48-ready__head">' +
-      '<span class="kk-ord48-ready__k">Redo för behandling</span>' +
+      '<span class="kk-ord48-ready__k" data-v11-kicker="amber">Redo för behandling</span>' +
       '<span class="kk-ord48-ready__state' +
       (st.ready ? ' is-ready' : ' is-blocked') +
       '">' +
@@ -4559,7 +4559,7 @@
       '<div class="dhead"><div class="ring"><div class="av">' +
       esc(initials(name)) +
       '</div></div>' +
-      '<div style="flex:1"><div class="dk">KUNDDOSSIÉR</div><div class="dn">' +
+      '<div style="flex:1"><div class="dk" data-v11-kicker="amber">KUNDDOSSIÉR</div><div class="dn">' +
       esc(name) +
       '</div>' +
       '<div class="dc">' +
@@ -4817,6 +4817,16 @@
             st +
             (jump ? ' kk-jumpable" data-kk-jump="' + jump + '"' : '"') +
             (medForm ? ' data-kk-med-form="' + medForm + '"' : '') +
+            ' data-v11-step-state="' +
+            (st === 'act'
+              ? 'active'
+              : st === 'done'
+                ? 'done'
+                : st === 'neutral'
+                  ? 'pending'
+                  : 'pending') +
+            '"' +
+            (st === 'act' ? ' data-v11-journey-active="true"' : '') +
             '><div class="mk kkx-mk">' +
             esc(mk) +
             '</div><div><div class="t">' +
@@ -5906,20 +5916,20 @@
         '<div class="acts"><div class="btn dark">📷 Ta bild · spara i journal</div>' +
         '<button type="button" class="btn gold' +
         (ord48ReadySt.ready ? '' : ' is-disabled') +
-        '"' +
+        '" data-v11-cta-tone="hero"' +
         (ord48ReadySt.ready ? '' : ' disabled aria-disabled="true"') +
         ' data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="' +
         ord48Pid +
         '">Boka nästa</button>' +
-        '<div class="r2"><div class="btn">✎ Anteckna</div><div class="btn">✉ Svarstudio</div></div>' +
+        '<div class="r2"><div class="btn" data-v11-cta-tone="secondary">✎ Anteckna</div><div class="btn" data-v11-cta-tone="secondary">✉ Svarstudio</div></div>' +
         '<div class="btn green">✓ Bekräfta kommande tider' +
         (up.length ? ' (' + up.length + ')' : '') +
         '</div></div>';
     } else {
       h +=
         '<div class="acts"><div class="btn dark">📷 Ta bild · spara i journal</div>' +
-        '<div class="btn gold">Boka nästa</div>' +
-        '<div class="r2"><div class="btn">✎ Anteckna</div><div class="btn">✉ Svarstudio</div></div>' +
+        '<div class="btn gold" data-v11-cta-tone="hero">Boka nästa</div>' +
+        '<div class="r2"><div class="btn" data-v11-cta-tone="secondary">✎ Anteckna</div><div class="btn" data-v11-cta-tone="secondary">✉ Svarstudio</div></div>' +
         '<div class="btn green">✓ Bekräfta kommande tider' +
         (up.length ? ' (' + up.length + ')' : '') +
         '</div></div>';
