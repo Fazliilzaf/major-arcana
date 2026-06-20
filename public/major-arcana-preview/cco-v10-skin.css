@@ -1334,22 +1334,22 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]
   box-sizing: border-box;
 }
 
-/* Fazli 2026-06-07: högerspalten — topplinje med vänsterspalten, bredare (400px),
+/* Fazli 2026-06-07: högerspalten — topplinje med vänsterspalten, bredare (424px per ORD-25F),
    samma kantmarginaler. Kortet fyller spalten utan inre luft. */
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] {
-  --v9-layout-col-intel: 400px;
-  --v9-layout-grid-cols: 200px minmax(0, 1fr) 400px;
+  --v9-layout-col-intel: 424px;
+  --v9-layout-grid-cols: 200px minmax(0, 1fr) 424px;
 }
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
   .preview-canvas[data-app-shell-view="customers"]
   .customers-layout[data-v10-facit-app-grid] {
-  grid-template-columns: 200px minmax(0, 1fr) 400px !important;
+  grid-template-columns: 200px minmax(0, 1fr) 424px !important;
 }
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
   .preview-canvas[data-app-shell-view="customers"]
   .customers-layout[data-v10-facit-app-grid]
   .customers-rail.intel-shell {
-  max-width: 400px;
+  max-width: 424px;
 }
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
   .preview-canvas[data-app-shell-view="customers"]
