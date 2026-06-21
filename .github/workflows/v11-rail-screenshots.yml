@@ -54,6 +54,9 @@ jobs:
       - name: Generate Block 7 screenshots (D + A + V + B + C + E + F Customer Journey)
         run: npm run shots:v11rail:block7
 
+      - name: Generate Block 8 screenshots (D + A + V + B + C + E + F + G Smart Next Step)
+        run: npm run shots:v11rail:block8
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -107,5 +110,13 @@ jobs:
         with:
           name: v11-rail-block7-F-journey-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block7-F-journey/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 8 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block8-G-smartnext-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block8-G-smartnext/*.png
           if-no-files-found: error
           retention-days: 30
