@@ -1,0 +1,55 @@
+/* V11-RAIL Fas 3 · Block 0 — scaffold CSS.
+ *
+ * Ren .v11-rail__*-namespace per canon §5. Inga .kkref/.cr-v10/v9/v10-
+ * override-klasser. Laddas SIST i index.html (efter cco-v11-polish.css).
+ * Block 0 innehåller endast shell + empty-state; A–S/V-sektionernas
+ * layout + responsiva regler (320/768/1024) byggs per sektion i Block 1+.
+ */
+
+.v11-rail {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+}
+
+.v11-rail__scroll {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Scaffold-/empty-state (Block 0) */
+.v11-rail__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px 20px;
+  border-radius: 12px;
+  color: #6b5d4f;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.v11-rail__empty-title {
+  font-weight: 700;
+}
+
+.v11-rail__empty-hint {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* Responsiva brytpunkter — placeholder per canon §4.
+   Sektionsspecifika regler tillkommer i Block 1+. */
+@media (max-width: 767px) {
+  /* Mobile 320-767px */
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* iPad / tablet 768-1023px */
+}
+
+@media (min-width: 1024px) {
+  /* Web / desktop 1024px+ */
+}

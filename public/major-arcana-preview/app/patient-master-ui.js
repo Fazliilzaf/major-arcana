@@ -1128,6 +1128,15 @@
     return false;
   }
 
+  /** V11-RAIL Fas 3 · Block 0 — opt-in via ?v11rail=on (cco-v11-rail-flag.js sätter attributet). */
+  function usesV11Rail() {
+    try {
+      return document.documentElement.getAttribute('data-v11-rail') === 'on';
+    } catch (_error) {
+      return false;
+    }
+  }
+
   /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
   function usesBlueprintDesktopLayout() {
     if (usesV10KundkortFacit()) return false;
@@ -5224,6 +5233,53 @@
     });
   }
 
+  /**
+   * V11-RAIL Fas 3 · Block 0 — tom rail-shell.
+   * Återanvänder enbart befintliga close-/scroll-hooks (data-v9-dossier-close,
+   * data-v9-dossier-scroll) så panelens öppna/stäng-beteende bevaras; allt
+   * innehåll renderas i ren .v11-rail__*-namespace utan .kkref. Block 0
+   * implementerar ingen A–S/V-sektion → explicit scaffold-empty-state.
+   */
+  function renderV11RailDetailShell(
+    card,
+    journalEntries,
+    occasionTimeline,
+    driveFiles,
+    patient,
+    { tab, lite = false } = {}
+  ) {
+    let inner = '';
+    try {
+      if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
+        inner =
+          window.CcoV11Rail.render({
+            card,
+            journalEntries,
+            occasionTimeline,
+            driveFiles,
+            patient,
+            tab,
+            lite,
+          }) || '';
+      }
+    } catch (_error) {
+      inner = '';
+    }
+    const body =
+      inner ||
+      '<div class="v11-rail__empty" role="status">' +
+        '<div class="v11-rail__empty-title">V11 Rail · Block 0</div>' +
+        '<div class="v11-rail__empty-hint">Scaffold aktiv (?v11rail=on). Inga sektioner implementerade ännu.</div>' +
+        '</div>';
+    return `
+      <section class="patient-master-card v11-rail" data-patient-detail data-v11-rail-shell="1">
+        <button type="button" class="dossier-close v11-rail__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v11-rail__scroll" data-v9-dossier-scroll aria-label="Kunddossiér (V11 Rail)">
+          ${body}
+        </div>
+      </section>`;
+  }
+
   function renderV9MockupDetailShell(
     card,
     journalEntries,
@@ -5234,6 +5290,15 @@
     { lite = false } = {}
   ) {
     const normalizedTab = normalizeDetailTab(tab);
+    // V11-RAIL Fas 3 · Block 0 — mount/switch. Enda legacy-kontaktpunkten per
+    // canon §5: när ?v11rail=on monteras den nya railen istället för kkref.
+    // Default OFF → legacy-paths nedan körs helt oförändrade.
+    if (usesV11Rail()) {
+      return renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+        tab: normalizedTab,
+        lite,
+      });
+    }
     const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
     const v11Cutover = usesV11DossierCutover();
     const v10Facit = usesV10KundkortFacit();

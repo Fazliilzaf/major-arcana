@@ -166,6 +166,7 @@
     "verify:post-op-uppfoljning-prod": "BASE=${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se} node ./scripts/verify-post-op-uppfoljning-prod.mjs",
     "test:playwright:post-op": "bash ./scripts/run-post-op-playwright-local.sh",
     "test:visual:mobile": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.mobile.config.js",
+    "test:visual:v11rail": "playwright test --config=playwright.v11rail.config.js",
     "test:visual:mobile:android": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.android.config.js",
     "verify:booking-plan-a-prod": "bash ./scripts/verify-booking-plan-a-prod.sh",
     "verify:booking-engine-policy-prod": "node ./scripts/verify-booking-engine-policy-prod.js",
