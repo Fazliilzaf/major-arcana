@@ -1,0 +1,45 @@
+name: v11-rail-screenshots
+
+# Genererar riktiga PNG-screenshots (390/820/1440) av V11-RAIL-komponenterna
+# via headless chromium på GitHub-runner (öppen internet → kan ladda browser,
+# till skillnad från web-sessionens egress-policy). Laddar upp PNG:erna som
+# build-artifact för Codex-granskning. Ingen annan kodändring.
+
+on:
+  push:
+    branches:
+      - "claude/v11-rail-**"
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate screenshots (390/820/1440)
+        run: npm run shots:v11rail
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block1-A-profile-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block1-A-profile/*.png
+          if-no-files-found: error
+          retention-days: 30
