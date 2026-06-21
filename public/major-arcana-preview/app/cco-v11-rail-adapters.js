@@ -20,6 +20,7 @@
  * Block 13: K Offers — KEEP (buildOffersFromPayload).
  * Block 14: L Auto-documents — KEEP (buildAutoDocsFromPayload).
  * Block 15: M Photos — KEEP (buildPhotosFromDriveFiles).
+ * Block 16: N Files — KEEP (buildFilesFromDriveFiles).
  */
 (function (global) {
   'use strict';
@@ -1013,6 +1014,51 @@
     return { items: items, count: items.length };
   }
 
+  function fileExtLabel(name) {
+    var m = /\.([a-z0-9]{1,5})$/i.exec(String(name || ''));
+    return m ? m[1].toUpperCase() : '';
+  }
+
+  /**
+   * N · Files (KEEP) — V11-presentation av kundens dokumentfiler (icke-media:
+   * PDF, Word m.m.) ovanpå befintlig drive-files-logik (canon KEEP). Bevarar
+   * fil-workflow utan ny handler eller ändrad betydelse:
+   *
+   *  - Filtrerar ctx.driveFiles på dokument (inversen av media, speglar parity
+   *    isV10DocumentFile) och bygger länkar med samma URL-logik som parity
+   *    (resolveFileViewUrl). Inga påhittade filer.
+   *  - Renderaren gör varje fil NÅBAR som native-länk (target=_blank) — samma
+   *    sätt som legacy dokumentrader (renderV10FileTile), ingen ny handler.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (inga filer ännu är normalt).
+   *
+   * @returns {{items:Array, count:number}}
+   */
+  function buildFilesFromDriveFiles(driveFiles) {
+    var docs = toArray(driveFiles).filter(function (f) {
+      return f && typeof f === 'object' && !isRailMediaFile(f);
+    });
+    var items = docs
+      .map(function (f) {
+        var name = text(f.originalFileName || f.fileName || f.relativePath || f.name) || 'Fil';
+        var isPdf = f.fileType === 'journal_pdf' || /\.pdf$/i.test(name);
+        var badge = f.ccoNative ? 'CCO' : isPdf ? 'PDF' : fileExtLabel(name);
+        return {
+          id: text(f.id),
+          name: name,
+          href: railFileViewUrl(f),
+          badge: badge,
+        };
+      })
+      .filter(function (it) {
+        return it.href;
+      })
+      .slice(0, 8);
+
+    return { items: items, count: items.length };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -1030,6 +1076,7 @@
     buildOffersFromPayload: buildOffersFromPayload,
     buildAutoDocsFromPayload: buildAutoDocsFromPayload,
     buildPhotosFromDriveFiles: buildPhotosFromDriveFiles,
-    // Block 16+ section adapters registreras här.
+    buildFilesFromDriveFiles: buildFilesFromDriveFiles,
+    // Block 17+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
