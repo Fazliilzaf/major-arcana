@@ -72,6 +72,9 @@ jobs:
       - name: Generate Block 13 screenshots (… + K Offers KEEP)
         run: npm run shots:v11rail:block13
 
+      - name: Generate Block 14 screenshots (… + L Auto-documents KEEP)
+        run: npm run shots:v11rail:block14
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -173,5 +176,13 @@ jobs:
         with:
           name: v11-rail-block13-K-offers-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block13-K-offers/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 14 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block14-L-autodocs-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block14-L-autodocs/*.png
           if-no-files-found: error
           retention-days: 30
