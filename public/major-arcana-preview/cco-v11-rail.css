@@ -902,6 +902,162 @@
   color: var(--v11-rail-amber);
 }
 
+/* ===== H · Bookings (KEEP) ===== */
+.v11-rail__bookings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__bookings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__bookings-count {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--v11-rail-amber);
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.v11-rail__bookings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v11-rail__booking-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid rgba(56, 40, 28, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+}
+.v11-rail__booking-row:hover {
+  border-color: var(--v11-rail-amber);
+  background: rgba(255, 248, 236, 0.9);
+}
+
+.v11-rail__booking-when {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 64px;
+  gap: 1px;
+}
+.v11-rail__booking-cal {
+  font-size: 12px;
+}
+.v11-rail__booking-date {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--v11-rail-ink);
+}
+.v11-rail__booking-time {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__booking-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.v11-rail__booking-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v11-rail-ink);
+  overflow-wrap: anywhere;
+}
+.v11-rail__booking-sub {
+  font-size: 11.5px;
+  color: var(--v11-rail-muted);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__booking-staff {
+  flex: none;
+}
+.v11-rail__booking-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--v11-rail-ink);
+  background: rgba(200, 130, 30, 0.16);
+  border: 1px solid rgba(200, 130, 30, 0.3);
+}
+
+.v11-rail__booking-status {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--v11-rail-muted);
+  background: rgba(56, 40, 28, 0.07);
+}
+.v11-rail__booking-status[data-state="ready"] {
+  color: #2c6b3d;
+  background: rgba(60, 140, 80, 0.14);
+}
+.v11-rail__booking-status[data-state="warn"] {
+  color: #8b5e12;
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v11-rail__booking-chevron {
+  flex: none;
+  color: var(--v11-rail-muted);
+  font-size: 16px;
+}
+
+.v11-rail__bookings-actions {
+  display: flex;
+}
+.v11-rail__bookings-confirm {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #2c6b3d;
+  border: 1px solid rgba(60, 140, 80, 0.4);
+  background: linear-gradient(135deg, rgba(214, 240, 222, 0.9) 0%, rgba(196, 232, 206, 0.85) 100%);
+}
+.v11-rail__bookings-confirm:hover {
+  filter: brightness(1.02);
+}
+
 /* ===== S · Sticky Footer ===== */
 .v11-rail__sticky {
   display: flex;
@@ -1011,6 +1167,11 @@
     min-height: 44px;
     flex: 1 1 100%;
   }
+  /* H Bookings: tappbara rader + confirm ≥44px på mobil */
+  .v11-rail__booking-row,
+  .v11-rail__bookings-confirm {
+    min-height: 44px;
+  }
   /* S Sticky Footer: fäst längst ner i rail-scrollern på mobil (canon §6 S),
      touch-targets ≥44px, säkert avstånd så den aldrig täcker CTA-innehåll */
   .v11-rail__sticky {
@@ -1036,7 +1197,9 @@
   .v11-rail__av-primary,
   .v11-rail__av-secondary,
   .v11-rail__sticky-primary,
-  .v11-rail__sticky-secondary {
+  .v11-rail__sticky-secondary,
+  .v11-rail__booking-row,
+  .v11-rail__bookings-confirm {
     min-height: 44px;
   }
 }

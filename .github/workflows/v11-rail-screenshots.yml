@@ -60,6 +60,9 @@ jobs:
       - name: Generate Block 9 screenshots (D + A + V + B + C + E + F + G + S Sticky Footer)
         run: npm run shots:v11rail:block9
 
+      - name: Generate Block 10 screenshots (… + H Bookings KEEP)
+        run: npm run shots:v11rail:block10
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -129,5 +132,13 @@ jobs:
         with:
           name: v11-rail-block9-S-sticky-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block9-S-sticky/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 10 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block10-H-bookings-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block10-H-bookings/*.png
           if-no-files-found: error
           retention-days: 30

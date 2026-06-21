@@ -14,6 +14,7 @@
  * Block 7: F Customer Journey (buildJourneyFromState).
  * Block 8: G Smart Next Step (buildSmartNextStep).
  * Block 9: S Sticky Footer (buildStickyActions).
+ * Block 10: H Bookings — KEEP (buildBookingsFromExtras).
  */
 (function (global) {
   'use strict';
@@ -579,6 +580,130 @@
     };
   }
 
+  var BOOKING_DAY_NAMES = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
+  var BOOKING_MONTHS = [
+    'jan',
+    'feb',
+    'mar',
+    'apr',
+    'maj',
+    'jun',
+    'jul',
+    'aug',
+    'sep',
+    'okt',
+    'nov',
+    'dec',
+  ];
+
+  /** Staff/initialer ur "Tjänst · Personal"-sub (speglar parity staffFromSub). */
+  function bookingStaff(sub) {
+    var parts = String(sub || '')
+      .split('·')
+      .map(function (x) {
+        return x.trim();
+      })
+      .filter(Boolean);
+    var staff = parts.length ? parts[parts.length - 1] : '';
+    var words = staff.split(/\s+/).filter(Boolean);
+    var ini = words
+      .map(function (w) {
+        return w[0];
+      })
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    return { staff: staff, initials: ini };
+  }
+
+  /** Normaliserar en bokningsrad till ren presentationsdata (ingen fejk). */
+  function normalizeBooking(item) {
+    item = item || {};
+    var iso = text(item.iso) || text(item.at) || text(item.startsAt) || text(item.nextBookingAt);
+    var d = iso ? new Date(iso) : null;
+    var valid = d && !isNaN(d.getTime());
+    var whenLong =
+      text(item.whenLong) ||
+      (item.num != null && item.mon
+        ? text(item.num) + ' ' + String(item.mon).toLowerCase()
+        : valid
+          ? d.getDate() + ' ' + BOOKING_MONTHS[d.getMonth()]
+          : '');
+    var whenShort =
+      text(item.whenShort) ||
+      text(item.day) ||
+      (valid
+        ? BOOKING_DAY_NAMES[d.getDay()] +
+          ' ' +
+          d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+        : '');
+    var title =
+      text(item.title) || text(item.type) || text(item.serviceLabel) || text(item.nextBookingType);
+    var sub = text(item.area) || text(item.sub) || text(item.resourceLabel);
+    var st = bookingStaff(item.sub || sub);
+    return {
+      iso: iso,
+      whenLong: whenLong,
+      whenShort: whenShort,
+      title: title || 'Besök',
+      sub: sub,
+      state: text(item.state) || 'planned',
+      stateLabel: text(item.stateLabel),
+      staff: st.staff,
+      initials: st.initials,
+    };
+  }
+
+  /**
+   * H · Bookings (KEEP) — V11-presentation av KOMMANDE bokningar ovanpå
+   * befintlig bokningslogik (canon KEEP). Bevarar bokningsworkflow utan ny
+   * handler eller ändrad betydelse:
+   *
+   *  - Listan byggs från det EXPORTERADE referens-booking-lagret
+   *    (CcoKundkortKkx.resolveReferensBookingExtras → upcomingBookings, som i sin
+   *    tur återanvänder parity.buildUpcomingBookings). Fallback: card/bcard
+   *    .upcomingBookings. Inga påhittade bokningar.
+   *  - Varje rad är NÅBAR via den befintliga data-v9-section-link="upcoming"
+   *    (öppnar tidslinjen där avboka/omboka/bekräfta-flödet lever) — samma
+   *    handler som legacy bokningsrader, graceful tills KEEP-Zon 2 är wire:ad.
+   *  - confirm-action bevaras via data-v9-quick="confirm" (renderaren), så
+   *    "Bekräfta kommande tider" aldrig tappas.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (kommande bokningar saknas är normalt).
+   *
+   * @returns {{items:Array, count:number, patientId:string}}
+   */
+  function buildBookingsFromExtras(card, bcard, dossierBundle, occasionTimeline) {
+    card = card || {};
+    bcard = bcard || {};
+    var rows = [];
+    var kkx = global.CcoKundkortKkx;
+    if (kkx && typeof kkx.resolveReferensBookingExtras === 'function') {
+      try {
+        var bx = kkx.resolveReferensBookingExtras(card, dossierBundle || {}, {
+          occasionTimeline:
+            occasionTimeline || (dossierBundle && dossierBundle.occasionTimeline) || null,
+        });
+        rows = toArray(bx && bx.upcomingBookings);
+      } catch (_bx) {
+        rows = [];
+      }
+    }
+    if (!rows.length) rows = toArray(card.upcomingBookings);
+    if (!rows.length) rows = toArray(bcard.upcomingBookings);
+
+    var items = rows.map(normalizeBooking).filter(function (it) {
+      return it.whenLong || it.title;
+    });
+
+    return {
+      items: items,
+      count: items.length,
+      patientId: text(card.patientId || card.id || bcard.patientId || bcard.id || card.customerId),
+    };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -590,6 +715,7 @@
     buildJourneyFromState: buildJourneyFromState,
     buildSmartNextStep: buildSmartNextStep,
     buildStickyActions: buildStickyActions,
-    // Block 10+ section adapters registreras här.
+    buildBookingsFromExtras: buildBookingsFromExtras,
+    // Block 11+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
