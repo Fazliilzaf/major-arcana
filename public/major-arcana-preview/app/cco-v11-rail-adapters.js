@@ -18,6 +18,7 @@
  * Block 11: I History — KEEP (buildHistoryFromExtras).
  * Block 12: J Journals — KEEP (buildJournalsFromEntries).
  * Block 13: K Offers — KEEP (buildOffersFromPayload).
+ * Block 14: L Auto-documents — KEEP (buildAutoDocsFromPayload).
  */
 (function (global) {
   'use strict';
@@ -878,6 +879,68 @@
     return { items: items, count: items.length };
   }
 
+  function normalizeAutoDoc(item) {
+    item = item || {};
+    var registryId = text(item.registryId || item.documentTypeId);
+    var status = (text(item.status) || 'planned').toLowerCase();
+    return {
+      title: text(item.title) || text(item.name) || text(item.label) || 'Auto-dokument',
+      status: status,
+      statusLabel: text(item.statusLabel) || OFFER_STATUS_LABELS[status] || status,
+      journeyStep: text(item.journeyStep),
+      registryId: registryId,
+      previewable: item.previewable === true || item.filler === 'auto' || /^auto_/.test(registryId),
+    };
+  }
+
+  /**
+   * L · Auto-documents (KEEP) — V11-presentation av auto-genererade dokument
+   * (mallar/system-dokument) ovanpå befintlig dokument-logik (canon KEEP).
+   * Bevarar dokument-workflow utan ny handler eller ändrad betydelse:
+   *
+   *  - Bygger på det EXPORTERADE CcoV9CustomersParity.resolveV11DocumentPayload
+   *    (→ autoDocs); fallback: dossierBundle.documents.autoDokument/auto/
+   *    autoDocuments/autoDocs eller card.autoDocs. Inga påhittade dokument.
+   *  - Renderaren gör varje rad NÅBAR via befintliga data-v11-doc-row/
+   *    data-v11-doc-registry/data-v11-doc-previewable (öppnar mall-/dokument-
+   *    preview) — samma handler som legacy dokumentrader, graceful tills
+   *    KEEP-Zon 2 är wire:ad.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (inga auto-dokument ännu är normalt).
+   *
+   * @returns {{items:Array, count:number}}
+   */
+  function buildAutoDocsFromPayload(card, dossierBundle) {
+    card = card || {};
+    var rows = [];
+    var parity = global.CcoV9CustomersParity;
+    if (parity && typeof parity.resolveV11DocumentPayload === 'function') {
+      try {
+        var payload = parity.resolveV11DocumentPayload(card, dossierBundle || {});
+        rows = toArray(payload && payload.autoDocs);
+      } catch (_p) {
+        rows = [];
+      }
+    }
+    if (!rows.length) {
+      var docs = dossierBundle && dossierBundle.documents;
+      if (docs) {
+        rows = toArray(docs.autoDokument || docs.auto || docs.autoDocuments || docs.autoDocs);
+      }
+    }
+    if (!rows.length) rows = toArray(card.autoDocs);
+
+    var items = rows
+      .map(normalizeAutoDoc)
+      .filter(function (it) {
+        return it.title;
+      })
+      .slice(0, 6);
+
+    return { items: items, count: items.length };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -893,6 +956,7 @@
     buildHistoryFromExtras: buildHistoryFromExtras,
     buildJournalsFromEntries: buildJournalsFromEntries,
     buildOffersFromPayload: buildOffersFromPayload,
-    // Block 14+ section adapters registreras här.
+    buildAutoDocsFromPayload: buildAutoDocsFromPayload,
+    // Block 15+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

@@ -818,6 +818,78 @@
   }
 
   /**
+   * L · Auto-documents (KEEP) — V11-presentation av auto-genererade dokument/
+   * mallar. Bevarar dokument-workflow: varje rad bär data-v11-doc-row/
+   * data-v11-doc-registry/data-v11-doc-previewable + data-v11-doc-filler="auto"
+   * (öppnar mall-/dokument-preview) — BEFINTLIGA handlers, inga nya. Tom lista →
+   * explicit empty-state.
+   * @param {object} l - output från CcoV11RailAdapters.buildAutoDocsFromPayload
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderAutoDocs(l) {
+    if (!l) return '';
+    var count = Number(l.count) > 0 ? Number(l.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Auto-dokument">' +
+        '<div class="v11-rail__empty-title">Inga auto-dokument ännu</div>' +
+        '<div class="v11-rail__empty-hint">Inga auto-genererade dokument registrerade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__autodocs-list">' +
+        l.items
+          .map(function (it) {
+            var meta = it.journeyStep
+              ? '<span class="v11-rail__autodoc-step">steg ' + esc(it.journeyStep) + '</span>'
+              : '';
+            return (
+              '<li class="v11-rail__autodoc-item">' +
+              '<div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="' +
+              esc(it.registryId) +
+              '" data-v11-doc-status="' +
+              esc(it.status) +
+              '" data-v11-doc-previewable="' +
+              (it.previewable ? '1' : '0') +
+              '"' +
+              (it.previewable ? ' role="button" tabindex="0"' : '') +
+              '>' +
+              '<span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span>' +
+              '<span class="v11-rail__autodoc-main">' +
+              '<span class="v11-rail__autodoc-title">' +
+              esc(it.title) +
+              '</span>' +
+              (meta ? '<span class="v11-rail__autodoc-meta">' + meta + '</span>' : '') +
+              '</span>' +
+              (it.previewable
+                ? '<span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span>'
+                : '<span class="v11-rail__autodoc-status" data-state="' +
+                  esc(it.status) +
+                  '">' +
+                  esc(it.statusLabel) +
+                  '</span>') +
+              '</div>' +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+    }
+
+    return (
+      '<section class="v11-rail__autodocs" data-v11-rail-autodocs aria-label="Auto-dokument">' +
+      '<header class="v11-rail__autodocs-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">AUTO-DOKUMENT</div>' +
+      (count ? '<span class="v11-rail__autodocs-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -866,7 +938,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -950,6 +1022,11 @@
       out += renderOffers(adapters.buildOffersFromPayload(card, ctx.dossierBundle));
     }
 
+    // L · Auto-documents (KEEP) — auto-genererade dokument, bevarar dokument-workflow
+    if (typeof adapters.buildAutoDocsFromPayload === 'function') {
+      out += renderAutoDocs(adapters.buildAutoDocsFromPayload(card, ctx.dossierBundle));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -962,7 +1039,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 13,
+    BLOCK: 14,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -976,6 +1053,7 @@
     renderHistory: renderHistory,
     renderJournals: renderJournals,
     renderOffers: renderOffers,
+    renderAutoDocs: renderAutoDocs,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };
