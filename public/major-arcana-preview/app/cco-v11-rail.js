@@ -91,21 +91,80 @@
   /**
    * Renderar V11-rail-innehåll för en kund.
    * @param {object} [ctx] - { card, bcard, journalEntries, occasionTimeline, driveFiles, patient, tab, lite }
+   * B · Smart information — separat vellum smart-info-kort: amber kicker,
+   * ett tydligt primärt signal-värde plus koncis stödmetadata (canon §6 B).
+   * @param {object} info - output från CcoV11RailAdapters.buildSmartInfoFromSignals
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderSmartInfo(info) {
+    if (!info) return '';
+
+    var why = info.why
+      ? '<div class="v11-rail__smart-meta"><strong>Varför:</strong> ' + esc(info.why) + '</div>'
+      : '';
+    var next = info.next
+      ? '<div class="v11-rail__smart-meta"><strong>Nästa:</strong> ' + esc(info.next) + '</div>'
+      : '';
+
+    var metaBits = '';
+    if (info.approvalRequired) {
+      metaBits += '<span class="v11-rail__smart-flag">Kräver godkännande</span>';
+    }
+    if (info.moreCount > 0) {
+      metaBits +=
+        '<span class="v11-rail__smart-more">+' +
+        esc(String(info.moreCount)) +
+        ' fler signaler</span>';
+    }
+    var metaRow = metaBits ? '<div class="v11-rail__smart-row">' + metaBits + '</div>' : '';
+
+    return (
+      '<section class="v11-rail__smart-info" aria-label="Smart information">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">SMART INFORMATION</div>' +
+      '<div class="v11-rail__smart-primary">' +
+      esc(info.primary) +
+      '</div>' +
+      why +
+      next +
+      metaRow +
+      '</section>'
+    );
+  }
+
+  /**
+   * Renderar V11-rail-innehåll för en kund.
+   * @param {object} [ctx] - { card, bcard, journalEntries, occasionTimeline, driveFiles, patient, tab, lite }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
   function render(ctx) {
     ctx = ctx || {};
     var adapters = global.CcoV11RailAdapters;
-    if (!adapters || typeof adapters.buildProfileFromBcard !== 'function') return '';
+    if (!adapters) return '';
     var bcard = ctx.bcard || ctx.card || {};
-    // Block 1: endast A Profile.
-    return renderProfile(adapters.buildProfileFromBcard(bcard));
+    var card = ctx.card || {};
+    var out = '';
+
+    // A · Profile
+    if (typeof adapters.buildProfileFromBcard === 'function') {
+      out += renderProfile(adapters.buildProfileFromBcard(bcard));
+    }
+
+    // B · Smart information (empty-state när inga signaler — ingen fejk)
+    if (typeof adapters.buildSmartInfoFromSignals === 'function') {
+      var info = adapters.buildSmartInfoFromSignals(card);
+      out += info
+        ? renderSmartInfo(info)
+        : adapters.v11RailEmpty('Smart information', 'Inga öppna signaler.');
+    }
+
+    return out;
   }
 
   global.CcoV11Rail = {
-    BLOCK: 1,
+    BLOCK: 2,
     esc: esc,
     renderProfile: renderProfile,
+    renderSmartInfo: renderSmartInfo,
     render: render,
   };
 })(typeof window !== 'undefined' ? window : global);

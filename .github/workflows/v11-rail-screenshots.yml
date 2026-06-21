@@ -33,13 +33,24 @@ jobs:
       - name: Install chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Generate screenshots (390/820/1440)
+      - name: Generate Block 1 screenshots (A Profile)
         run: npm run shots:v11rail
 
-      - name: Upload screenshot artifact
+      - name: Generate Block 2 screenshots (A Profile + B Smart information)
+        run: npm run shots:v11rail:block2
+
+      - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
           name: v11-rail-block1-A-profile-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block1-A-profile/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 2 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block2-B-smart-info-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block2-B-smart-info/*.png
           if-no-files-found: error
           retention-days: 30

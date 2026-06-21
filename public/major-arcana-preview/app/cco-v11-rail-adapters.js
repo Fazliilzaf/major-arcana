@@ -5,7 +5,8 @@
  * rent input/output-kontrakt mellan live-datakällor (bcard, extras,
  * gateSignals, bookings ...) och renderaren i cco-v11-rail.js.
  *
- * Block 1: A Profile (buildProfileFromBcard). Inga andra sektioner ännu.
+ * Block 1: A Profile (buildProfileFromBcard).
+ * Block 2: B Smart information (buildSmartInfoFromSignals).
  */
 (function (global) {
   'use strict';
@@ -99,9 +100,62 @@
     };
   }
 
+  /**
+   * B · Smart information — bygger en sammanfattning från kundens
+   * automation-signaler via logik-lagret CcoKunderSmartNextStep (canon §6 B:
+   * "one clear primary signal plus concise supporting metadata").
+   *
+   * Endast riktig data: topp-aktiv signal (what/why/next) eller, om ingen
+   * aktiv signal finns, en meningsfull step-label. Returnerar null när inget
+   * finns → renderaren visar explicit empty-state (ingen fejk).
+   *
+   * @param {object} card - kund-readout med automationSignals/automationTop
+   * @returns {null|{primary:string, why:string, next:string,
+   *                  approvalRequired:boolean, confidence:string, moreCount:number}}
+   */
+  function buildSmartInfoFromSignals(card) {
+    card = card || {};
+    var mod = global.CcoKunderSmartNextStep;
+    var raw = toArray(card.automationSignals);
+    var signals = mod && typeof mod.sortSignals === 'function' ? mod.sortSignals(raw) : raw;
+    var active = signals.filter(function (s) {
+      return s && s.status === 'active';
+    });
+    var top = active[0] || null;
+
+    if (top && text(top.what)) {
+      return {
+        primary: text(top.what),
+        why: text(top.why),
+        next: text(top.next),
+        approvalRequired: !!top.humanApprovalRequired,
+        confidence: text(top.confidence),
+        moreCount: Math.max(0, active.length - 1),
+      };
+    }
+
+    var label =
+      mod && typeof mod.listStepLabel === 'function'
+        ? mod.listStepLabel(card)
+        : text(card.nextStep) || text(card.nextRequirement);
+    label = text(label);
+    if (label && label !== '—') {
+      return {
+        primary: label,
+        why: '',
+        next: '',
+        approvalRequired: false,
+        confidence: '',
+        moreCount: 0,
+      };
+    }
+    return null;
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
-    // Block 2+ section adapters registreras här.
+    buildSmartInfoFromSignals: buildSmartInfoFromSignals,
+    // Block 3+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
