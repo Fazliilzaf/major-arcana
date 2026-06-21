@@ -538,6 +538,91 @@
   }
 
   /**
+   * H · Bookings (KEEP) — V11-presentation av kommande bokningar. Bevarar
+   * bokningsworkflow: varje rad bär data-v9-section-link="upcoming" (öppnar
+   * tidslinjen där avboka/omboka lever) och sektionen har en confirm-action med
+   * data-v9-quick="confirm" — båda är BEFINTLIGA handlers (inga nya). Tom lista
+   * → explicit empty-state.
+   * @param {object} b - output från CcoV11RailAdapters.buildBookingsFromExtras
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderBookings(b) {
+    if (!b) return '';
+    var count = Number(b.count) > 0 ? Number(b.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Kommande bokningar">' +
+        '<div class="v11-rail__empty-title">Inga kommande bokningar</div>' +
+        '<div class="v11-rail__empty-hint">Inga kommande tider bokade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__bookings-list">' +
+        b.items
+          .map(function (it) {
+            var staff = it.staff
+              ? '<span class="v11-rail__booking-staff" title="' +
+                esc(it.staff) +
+                '"><span class="v11-rail__booking-avatar" aria-hidden="true">' +
+                esc(it.initials || '—') +
+                '</span></span>'
+              : '';
+            var status = it.stateLabel
+              ? '<span class="v11-rail__booking-status" data-state="' +
+                esc(it.state) +
+                '">' +
+                esc(it.stateLabel) +
+                '</span>'
+              : '';
+            return (
+              '<li class="v11-rail__booking">' +
+              '<button type="button" class="v11-rail__booking-row" data-v9-section-link="upcoming">' +
+              '<span class="v11-rail__booking-when">' +
+              '<span class="v11-rail__booking-cal" aria-hidden="true">📅</span>' +
+              '<span class="v11-rail__booking-date">' +
+              esc(it.whenLong || '—') +
+              '</span>' +
+              (it.whenShort
+                ? '<span class="v11-rail__booking-time">' + esc(it.whenShort) + '</span>'
+                : '') +
+              '</span>' +
+              '<span class="v11-rail__booking-copy">' +
+              '<span class="v11-rail__booking-title">' +
+              esc(it.title) +
+              '</span>' +
+              (it.sub ? '<span class="v11-rail__booking-sub">' + esc(it.sub) + '</span>' : '') +
+              '</span>' +
+              staff +
+              status +
+              '<span class="v11-rail__booking-chevron" aria-hidden="true">›</span>' +
+              '</button>' +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>' +
+        '<div class="v11-rail__bookings-actions">' +
+        '<button type="button" class="v11-rail__bookings-confirm" data-v9-quick="confirm">' +
+        'Bekräfta kommande tider (' +
+        count +
+        ')</button>' +
+        '</div>';
+    }
+
+    return (
+      '<section class="v11-rail__bookings" data-v11-rail-bookings aria-label="Kommande bokningar">' +
+      '<header class="v11-rail__bookings-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMANDE BOKNINGAR</div>' +
+      (count ? '<span class="v11-rail__bookings-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -586,7 +671,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -646,6 +731,13 @@
       out += renderSmartNextStep(adapters.buildSmartNextStep(card));
     }
 
+    // H · Bookings (KEEP) — kommande bokningar, bevarar bokningsworkflow
+    if (typeof adapters.buildBookingsFromExtras === 'function') {
+      out += renderBookings(
+        adapters.buildBookingsFromExtras(card, bcard, ctx.dossierBundle, ctx.occasionTimeline)
+      );
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -658,7 +750,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 9,
+    BLOCK: 10,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -668,6 +760,7 @@
     renderHealthPreview: renderHealthPreview,
     renderJourney: renderJourney,
     renderSmartNextStep: renderSmartNextStep,
+    renderBookings: renderBookings,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };
