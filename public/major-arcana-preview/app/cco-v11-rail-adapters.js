@@ -1,24 +1,35 @@
 /**
- * V11-RAIL Fas 3 · Block 0 — data-adapter-lager (tomt scaffold).
+ * V11-RAIL Fas 3 — data-adapter-lager.
  *
- * Per canon §5: varje sektion (A–S + V) får en egen data-adapter som
- * exponerar ett rent input/output-kontrakt mellan live-datakällor
- * (bcard, extras, gateSignals, bookings ...) och renderaren i
- * cco-v11-rail.js. Inga adaptrar implementerade i Block 0 — endast
- * namespace + en konsekvent empty-state-helper enligt inventory §2.
+ * Per canon §5: varje sektion får en egen data-adapter som exponerar ett
+ * rent input/output-kontrakt mellan live-datakällor (bcard, extras,
+ * gateSignals, bookings ...) och renderaren i cco-v11-rail.js.
  *
- * Block 1+ fyller på: buildProfileFromBcard, buildStatsFromExtras,
- * buildActiveVisitFromBookings, splitGateSignalsCritical, debtSignal, ...
+ * Block 1: A Profile (buildProfileFromBcard). Inga andra sektioner ännu.
  */
 (function (global) {
   'use strict';
 
+  function toArray(x) {
+    return Array.isArray(x) ? x : x ? [x] : [];
+  }
+
+  function text(v) {
+    if (v == null) return '';
+    return typeof v === 'string' ? v.trim() : String(v);
+  }
+
+  function initials(name) {
+    var p = String(name || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    return ((p[0] || '')[0] || '?') + ((p[1] || '')[0] || '');
+  }
+
   /**
    * Konsekvent empty-state-markup för en sektion (canon §5:
    * "Missing data produces an explicit empty state, not a layout compromise").
-   * @param {string} section - kort sektionsnamn för aria/debug
-   * @param {string} [hint] - valfri ledtext
-   * @returns {string} HTML-sträng i .v11-rail__*-namespace
    */
   function v11RailEmpty(section, hint) {
     var label = section ? String(section) : 'Sektion';
@@ -33,8 +44,56 @@
     );
   }
 
+  /**
+   * A · Profile — bygger profil-data från bcard (Pipedrive person/org-dossier
+   * mergad med card). Returnerar ren data; renderaren escapar/HTML-ar.
+   *
+   * Pills byggs ENDAST från riktiga fält (canon §6 A: "if tags are missing,
+   * show no fake pills"). Inga platshållar-pills.
+   *
+   * @param {object} bcard
+   * @returns {{name:string, initials:string, phone:string, email:string,
+   *            addrLine:string, pills:Array<{label:string,tone:string}>}}
+   */
+  function buildProfileFromBcard(bcard) {
+    bcard = bcard || {};
+    var name = text(bcard.displayName) || text(bcard.name) || text(bcard.fullName) || 'Kund';
+    var phone = text(bcard.primaryPhone) || text(bcard.contact && bcard.contact.phone);
+    var email = text(bcard.primaryEmail) || text(bcard.contact && bcard.contact.email);
+    var addr = bcard.contact && bcard.contact.address;
+    var addrLine = addr
+      ? [text(addr.street), [text(addr.zip), text(addr.city)].filter(Boolean).join(' ')]
+          .filter(Boolean)
+          .join(', ')
+      : '';
+
+    var pills = [];
+    if (bcard.vip || (bcard.tags && bcard.tags.vip)) {
+      pills.push({ label: 'VIP', tone: 'vip' });
+    }
+    toArray(bcard.treatmentTypes).forEach(function (t) {
+      var label = text(t);
+      if (label) pills.push({ label: label, tone: 'treatment' });
+    });
+    // Fri-form etiketter om de finns som sträng-array (riktig data, ej fejk).
+    toArray(bcard.tags && bcard.tags.labels).forEach(function (t) {
+      var label = text(t);
+      if (label) pills.push({ label: label, tone: 'label' });
+    });
+
+    return {
+      name: name,
+      initials: initials(name),
+      phone: phone,
+      email: email,
+      addrLine: addrLine,
+      pills: pills,
+    };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
-    // Block 1+ section adapters registreras här.
+    buildProfileFromBcard: buildProfileFromBcard,
+    // Block 2+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

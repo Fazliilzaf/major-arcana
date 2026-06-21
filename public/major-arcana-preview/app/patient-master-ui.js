@@ -5248,12 +5248,20 @@
     patient,
     { tab, lite = false } = {}
   ) {
+    // Bygg bcard på samma sätt som legacy referens-path (card + dossierBundle.card)
+    // så adaptrarna får samma Pipedrive-dossier-data. Ren data in, ingen UI-koppling.
+    const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    const bcard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card || {};
     let inner = '';
     try {
       if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
         inner =
           window.CcoV11Rail.render({
             card,
+            bcard,
             journalEntries,
             occasionTimeline,
             driveFiles,
