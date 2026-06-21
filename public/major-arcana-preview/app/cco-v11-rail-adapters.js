@@ -11,6 +11,7 @@
  * Block 4: V Active Visit (buildActiveVisitFromBundle).
  * Block 5: D Critical warnings (buildCriticalWarnings).
  * Block 6: E Health Declaration preview (buildHealthPreview).
+ * Block 7: F Customer Journey (buildJourneyFromState).
  */
 (function (global) {
   'use strict';
@@ -418,6 +419,75 @@
     };
   }
 
+  // F · Customer Journey — bevarad stepJumpSlug/stepMedFormSlug-mappning
+  // (ORD47_V1=true-grenen), replikerad så data-kk-jump/data-kk-med-form matchar
+  // legacy exakt (workflow-betydelse oförändrad).
+  function journeyJumpSlug(label) {
+    var l = String(label || '').toLowerCase();
+    if (/hälsodek|halsodek|konsultation/.test(l)) return 'kk-card-halsa';
+    if (/offert|behandlingsplan/.test(l)) return 'kk-card-behandling';
+    if (/betänketid|betanketid|avtal|samtycke|ånger|anger/.test(l)) return 'kk-card-juridik';
+    if (/friskförs|friskfors|operation|op-dag/.test(l)) return 'kk-card-operation';
+    if (/foto/.test(l)) return 'kk-card-foto';
+    if (/bokning|bekräftelse|bekraftelse/.test(l)) return 'kk-card-bokning';
+    if (/uppfölj|uppfolj|efterkontroll/.test(l)) return 'kk-card-uppfoljning';
+    return '';
+  }
+  function journeyMedFormSlug(label) {
+    var l = String(label || '').toLowerCase();
+    if (/hälsodek|halsodek/.test(l)) return 'health_declaration';
+    if (/friskförs|friskfors/.test(l)) return 'fitness_certificate';
+    return '';
+  }
+
+  /**
+   * F · Customer Journey — V11 visuell stepper ovanpå BEFINTLIG journey-logik
+   * (canon §6 F). Återanvänder CcoKundkortKkx.buildCanonicalJourneyLive (samma
+   * källa som legacy groupedSteps) → bevarar den kanoniska 9-stegsmeningen och
+   * workflow-betydelsen. Endast presentation; jump/med-form-mappningen behålls.
+   *
+   * Returnerar null när journey-logiken saknas (F utelämnas).
+   *
+   * @returns {null|{steps:Array, cur:number|null, total:number, pct:number, nextLabel:string}}
+   */
+  function buildJourneyFromState(card, journalEntries, dossierBundle) {
+    var kkx = global.CcoKundkortKkx;
+    if (!kkx || typeof kkx.buildCanonicalJourneyLive !== 'function') return null;
+    var j = kkx.buildCanonicalJourneyLive(card || {}, journalEntries, dossierBundle, {});
+    if (!j || !j.steps || !j.steps.length) return null;
+
+    var steps = j.steps.map(function (s) {
+      var state =
+        s.status === 'done'
+          ? 'done'
+          : s.status === 'active'
+            ? 'active'
+            : s.status === 'neutral'
+              ? 'neutral'
+              : 'todo';
+      return {
+        id: s.step,
+        label: text(s.label),
+        note: text(s.meta),
+        state: state,
+        jump: journeyJumpSlug(s.label),
+        medForm: journeyMedFormSlug(s.label),
+      };
+    });
+    var doneCount = steps.filter(function (s) {
+      return s.state === 'done';
+    }).length;
+    var total = steps.length;
+
+    return {
+      steps: steps,
+      cur: j.activeStep || null,
+      total: total,
+      pct: total ? Math.round((doneCount / total) * 100) : 0,
+      nextLabel: text(j.nextLabel),
+    };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -426,6 +496,7 @@
     buildActiveVisitFromBundle: buildActiveVisitFromBundle,
     buildCriticalWarnings: buildCriticalWarnings,
     buildHealthPreview: buildHealthPreview,
-    // Block 7+ section adapters registreras här.
+    buildJourneyFromState: buildJourneyFromState,
+    // Block 8+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

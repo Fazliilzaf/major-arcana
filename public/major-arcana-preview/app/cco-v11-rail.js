@@ -404,7 +404,88 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E.
+   * F · Customer Journey — V11 visuell stepper (canon §6 F). Bevarar den
+   * kanoniska 9-stegsmeningen + jump/med-form-mappningen (data-kk-jump /
+   * data-kk-med-form) så workflow-betydelsen är oförändrad; endast presentation.
+   * @param {object} j - output från CcoV11RailAdapters.buildJourneyFromState
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderJourney(j) {
+    if (!j || !j.steps || !j.steps.length) return '';
+
+    var steps = j.steps
+      .map(function (s) {
+        var mk =
+          s.state === 'done'
+            ? '✓'
+            : s.state === 'neutral'
+              ? '–'
+              : s.id != null
+                ? String(s.id)
+                : '!';
+        var v11State = s.state === 'active' ? 'active' : s.state === 'done' ? 'done' : 'pending';
+        var jumpAttr = s.jump ? ' kk-jumpable" data-kk-jump="' + esc(s.jump) + '"' : '"';
+        var medFormAttr = s.medForm ? ' data-kk-med-form="' + esc(s.medForm) + '"' : '';
+        var activeAttr = s.state === 'active' ? ' data-v11-journey-active="true"' : '';
+        var note =
+          s.note ||
+          (s.state === 'done'
+            ? 'Klar'
+            : s.state === 'active'
+              ? 'Pågår · nästa steg'
+              : s.state === 'neutral'
+                ? '—'
+                : 'Kommande');
+        return (
+          '<div class="v11-rail__journey-step ' +
+          esc(s.state) +
+          jumpAttr +
+          medFormAttr +
+          ' data-v11-step-state="' +
+          esc(v11State) +
+          '"' +
+          activeAttr +
+          '>' +
+          '<div class="v11-rail__journey-mk" aria-hidden="true">' +
+          esc(mk) +
+          '</div>' +
+          '<div class="v11-rail__journey-body">' +
+          '<div class="v11-rail__journey-label">' +
+          esc(s.label) +
+          '</div>' +
+          '<div class="v11-rail__journey-note">' +
+          esc(note) +
+          '</div>' +
+          '</div>' +
+          '</div>'
+        );
+      })
+      .join('');
+
+    var chip = j.cur
+      ? '<span class="v11-rail__journey-chip">Steg ' + esc(String(j.cur)) + '</span>'
+      : '';
+
+    return (
+      '<section class="v11-rail__journey" aria-label="Kundresa">' +
+      '<div class="v11-rail__journey-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDRESA · ' +
+      esc(String(j.total)) +
+      ' STEG</div>' +
+      chip +
+      '</div>' +
+      '<div class="v11-rail__journey-bar"><span style="width:' +
+      esc(String(j.pct)) +
+      '%"></span></div>' +
+      '<div class="v11-rail__journey-steps">' +
+      steps +
+      '</div>' +
+      '</section>'
+    );
+  }
+
+  /**
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -452,11 +533,18 @@
       out += renderHealthPreview(adapters.buildHealthPreview(bcard));
     }
 
+    // F · Customer Journey (V11 visuell stepper ovanpå befintlig journey-logik)
+    if (typeof adapters.buildJourneyFromState === 'function') {
+      out += renderJourney(
+        adapters.buildJourneyFromState(card, ctx.journalEntries, ctx.dossierBundle)
+      );
+    }
+
     return out;
   }
 
   global.CcoV11Rail = {
-    BLOCK: 6,
+    BLOCK: 7,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -464,6 +552,7 @@
     renderActiveVisit: renderActiveVisit,
     renderCriticalWarnings: renderCriticalWarnings,
     renderHealthPreview: renderHealthPreview,
+    renderJourney: renderJourney,
     render: render,
   };
 })(typeof window !== 'undefined' ? window : global);
