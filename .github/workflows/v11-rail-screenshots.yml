@@ -66,6 +66,9 @@ jobs:
       - name: Generate Block 11 screenshots (… + I History KEEP)
         run: npm run shots:v11rail:block11
 
+      - name: Generate Block 12 screenshots (… + J Journals KEEP)
+        run: npm run shots:v11rail:block12
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -151,5 +154,13 @@ jobs:
         with:
           name: v11-rail-block11-I-history-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block11-I-history/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 12 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block12-J-journals-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block12-J-journals/*.png
           if-no-files-found: error
           retention-days: 30
