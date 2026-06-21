@@ -892,8 +892,13 @@
   /**
    * M · Photos (KEEP) — V11-presentation av kundens foton/media. Bevarar foto-
    * workflow: varje foto är en native-länk (target=_blank) med data-photo=<id>
-   * så ev. befintlig lightbox-handler wire:as — ingen ny handler. Tom lista →
-   * explicit empty-state.
+   * så ev. befintlig lightbox-handler wire:as — ingen ny handler.
+   *
+   * Riktiga thumbnails laddas via <img src=href> (samma fil-URL som legacy:
+   * viewUrl / /api/v1/cco-patient-master/file). Om bilden inte kan laddas (eller
+   * för film) visas en snygg fallback-tile (ikon + typ-etikett) i stället för
+   * broken-image — inline onerror togglar .is-missing (tillåtet av app-CSP,
+   * presentationellt, ingen workflow-handler). Tom lista → explicit empty-state.
    * @param {object} m - output från CcoV11RailAdapters.buildPhotosFromDriveFiles
    * @returns {string} HTML i .v11-rail__*-namespace
    */
@@ -913,16 +918,38 @@
         '<div class="v11-rail__photos-grid">' +
         m.items
           .map(function (it) {
+            var kindLabel = it.isImage ? 'Foto' : 'Film';
+            var fallback =
+              '<span class="v11-rail__photo-fallback" aria-hidden="true">' +
+              '<span class="v11-rail__photo-fallback-icon">' +
+              (it.isImage ? '🖼' : '🎬') +
+              '</span>' +
+              '<span class="v11-rail__photo-fallback-label">' +
+              kindLabel +
+              '</span>' +
+              '</span>';
+            // Bara bilder försöker ladda en thumbnail; film visar alltid fallback.
+            var thumbInner = it.isImage
+              ? '<img class="v11-rail__photo-img" src="' +
+                esc(it.href) +
+                '" alt="' +
+                esc(it.name) +
+                '" loading="lazy" decoding="async"' +
+                " onerror=\"this.closest('.v11-rail__photo').classList.add('is-missing')\" />" +
+                fallback
+              : fallback;
             return (
-              '<a class="v11-rail__photo" href="' +
+              '<a class="v11-rail__photo' +
+              (it.isImage ? '' : ' is-missing') +
+              '" href="' +
               esc(it.href) +
               '" target="_blank" rel="noopener"' +
               (it.id ? ' data-photo="' + esc(it.id) + '"' : '') +
               ' title="' +
               esc(it.name) +
               '">' +
-              '<span class="v11-rail__photo-thumb" aria-hidden="true">' +
-              (it.isImage ? '🖼' : '🎬') +
+              '<span class="v11-rail__photo-thumb">' +
+              thumbInner +
               '</span>' +
               '<span class="v11-rail__photo-name">' +
               esc(it.name) +

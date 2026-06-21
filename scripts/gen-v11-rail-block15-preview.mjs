@@ -100,10 +100,42 @@ const journalEntries = [
     locked: true,
   },
 ];
+// Riktiga thumbnails som data-URI så screenshots visar laddade bilder.
+function thumb(label, c1, c2) {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160">' +
+    '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+    '<stop offset="0" stop-color="' +
+    c1 +
+    '"/><stop offset="1" stop-color="' +
+    c2 +
+    '"/></linearGradient></defs>' +
+    '<rect width="160" height="160" fill="url(#g)"/>' +
+    '<text x="80" y="88" font-size="18" fill="#fff" text-anchor="middle" ' +
+    'font-family="sans-serif" font-weight="700">' +
+    label +
+    '</text></svg>';
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
 const driveFiles = [
-  { id: 'f1', fileType: 'image', originalFileName: '2026-05-12 · före · hårlinje.jpg' },
-  { id: 'f2', fileType: 'image', originalFileName: '2026-05-12 · efter · hårlinje.jpg' },
-  { id: 'f3', fileType: 'image', originalFileName: '2026-04-02 · översikt.png' },
+  {
+    id: 'f1',
+    fileType: 'image',
+    viewUrl: thumb('FÖRE', '#7a5a32', '#b9842f'),
+    originalFileName: '2026-05-12 · före · hårlinje.jpg',
+  },
+  {
+    id: 'f2',
+    fileType: 'image',
+    viewUrl: thumb('EFTER', '#3c6b4a', '#6fae74'),
+    originalFileName: '2026-05-12 · efter · hårlinje.jpg',
+  },
+  {
+    id: 'f3',
+    fileType: 'image',
+    viewUrl: thumb('ÖVERSIKT', '#42577a', '#7d9ec9'),
+    originalFileName: '2026-04-02 · översikt.png',
+  },
   { id: 'f4', mimeType: 'video/mp4', originalFileName: 'PRP-session · film.mp4' },
   { id: 'f5', fileType: 'image', originalFileName: '2026-02-18 · donator.heic' },
   { id: 'd1', fileType: 'journal_pdf', originalFileName: 'Journal.pdf' },
