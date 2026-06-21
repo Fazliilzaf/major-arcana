@@ -179,6 +179,7 @@
     "shots:v11rail:block10": "node ./scripts/shot-v11-rail-block10.mjs",
     "shots:v11rail:block11": "node ./scripts/shot-v11-rail-block11.mjs",
     "shots:v11rail:block12": "node ./scripts/shot-v11-rail-block12.mjs",
+    "shots:v11rail:block13": "node ./scripts/shot-v11-rail-block13.mjs",
     "test:visual:mobile:android": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.android.config.js",
     "verify:booking-plan-a-prod": "bash ./scripts/verify-booking-plan-a-prod.sh",
     "verify:booking-engine-policy-prod": "node ./scripts/verify-booking-engine-policy-prod.js",
