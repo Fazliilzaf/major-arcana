@@ -19,6 +19,12 @@
     return typeof v === 'string' ? v.trim() : String(v);
   }
 
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   function initials(name) {
     var p = String(name || '')
       .trim()
@@ -30,10 +36,12 @@
   /**
    * Konsekvent empty-state-markup för en sektion (canon §5:
    * "Missing data produces an explicit empty state, not a layout compromise").
+   * section/hint escapas alltid — det är en gemensam helper som kan få riktig
+   * data senare och får aldrig kunna injicera HTML.
    */
   function v11RailEmpty(section, hint) {
-    var label = section ? String(section) : 'Sektion';
-    var sub = hint ? '<div class="v11-rail__empty-hint">' + String(hint) + '</div>' : '';
+    var label = esc(section ? String(section) : 'Sektion');
+    var sub = hint ? '<div class="v11-rail__empty-hint">' + esc(hint) + '</div>' : '';
     return (
       '<div class="v11-rail__empty" role="status" data-v11-rail-section="' +
       label +
