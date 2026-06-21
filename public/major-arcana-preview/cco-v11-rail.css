@@ -1469,6 +1469,120 @@
   background: rgba(56, 40, 28, 0.07);
 }
 
+/* ===== M · Photos (KEEP) ===== */
+.v11-rail__photos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__photos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__photos-count {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--v11-rail-amber);
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.v11-rail__photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.v11-rail__photo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 6px;
+  border: 1px solid rgba(56, 40, 28, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+}
+.v11-rail__photo:hover {
+  border-color: var(--v11-rail-amber);
+  background: rgba(255, 248, 236, 0.9);
+}
+
+.v11-rail__photo-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(245, 236, 224, 0.95) 0%, rgba(232, 220, 205, 0.9) 100%);
+  border: 1px solid rgba(56, 40, 28, 0.08);
+}
+
+.v11-rail__photo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: rgba(245, 236, 224, 0.95);
+}
+
+/* Fallback-tile (film, eller bild som inte kunde laddas) — snygg, ej broken-image */
+.v11-rail__photo-fallback {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--v11-rail-muted);
+  background: linear-gradient(135deg, rgba(245, 236, 224, 0.95) 0%, rgba(232, 220, 205, 0.9) 100%);
+}
+.v11-rail__photo.is-missing .v11-rail__photo-fallback {
+  display: flex;
+}
+.v11-rail__photo.is-missing .v11-rail__photo-img {
+  display: none;
+}
+.v11-rail__photo-fallback-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.v11-rail__photo-fallback-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.v11-rail__photo-name {
+  min-width: 0;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--v11-rail-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ===== S · Sticky Footer ===== */
 .v11-rail__sticky {
   display: flex;
@@ -1621,6 +1735,10 @@
   .v11-rail__autodoc-row[role="button"] {
     min-height: 44px;
   }
+  /* M Photos: 3 kolumner på tablet (ryms inom rail-card) */
+  .v11-rail__photos-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 1024px) {
@@ -1630,5 +1748,9 @@
   }
   .v11-rail__sticky {
     position: static;
+  }
+  /* M Photos: 3 kolumner på desktop, contained i rail-card (minmax(0,1fr)) */
+  .v11-rail__photos-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

@@ -19,6 +19,7 @@
  * Block 12: J Journals — KEEP (buildJournalsFromEntries).
  * Block 13: K Offers — KEEP (buildOffersFromPayload).
  * Block 14: L Auto-documents — KEEP (buildAutoDocsFromPayload).
+ * Block 15: M Photos — KEEP (buildPhotosFromDriveFiles).
  */
 (function (global) {
   'use strict';
@@ -941,6 +942,77 @@
     return { items: items, count: items.length };
   }
 
+  var PHOTO_EXT = /\.(heic|heif|jpe?g|png|webp|gif|mp4|mov|m4v|webm|dng)$/i;
+  var IMG_EXT = /\.(jpe?g|png|webp|gif|heic|heif|dng)$/i;
+
+  /** Speglar parity isV10MediaFile: bild/film-detektering (self-contained). */
+  function isRailMediaFile(file) {
+    file = file || {};
+    var name = String(
+      file.fileName || file.relativePath || file.originalFileName || file.name || file.title || ''
+    ).toLowerCase();
+    var mime = String(file.mimeType || file.contentType || '').toLowerCase();
+    var type = String(file.fileType || '').toLowerCase();
+    var category = String(file.category || '').toLowerCase();
+    return (
+      type === 'image' ||
+      type === 'video' ||
+      mime.indexOf('image/') === 0 ||
+      mime.indexOf('video/') === 0 ||
+      /^(photo|image|video|film)_(before|during|after|overview|donor|hairline|crown)$/.test(
+        category
+      ) ||
+      /(^|\s·\s)(foto|photo|film|video)(\s·|$)/.test(name) ||
+      PHOTO_EXT.test(name)
+    );
+  }
+
+  function railFileViewUrl(file) {
+    if (file && file.viewUrl) return String(file.viewUrl);
+    if (file && file.id) {
+      return '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(file.id);
+    }
+    return '';
+  }
+
+  /**
+   * M · Photos (KEEP) — V11-presentation av kundens foton/media ovanpå
+   * befintlig drive-files-logik (canon KEEP). Bevarar foto-workflow utan ny
+   * handler eller ändrad betydelse:
+   *
+   *  - Filtrerar ctx.driveFiles på media (speglar parity isV10MediaFile) och
+   *    bygger länkar med samma URL-logik som parity (resolveFileViewUrl:
+   *    viewUrl → /api/v1/cco-patient-master/file?fileId=). Inga påhittade foton.
+   *  - Renderaren gör varje foto NÅBART som en native-länk (target=_blank) och
+   *    behåller data-photo=<id> så ev. befintlig lightbox-handler wire:as —
+   *    ingen ny handler.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (inga foton ännu är normalt).
+   *
+   * @returns {{items:Array, count:number}}
+   */
+  function buildPhotosFromDriveFiles(driveFiles) {
+    var media = toArray(driveFiles).filter(isRailMediaFile);
+    var items = media
+      .map(function (f) {
+        var name = text(f.originalFileName || f.fileName || f.relativePath || f.name) || 'Foto';
+        var nameLc = name.toLowerCase();
+        return {
+          id: text(f.id),
+          name: name,
+          href: railFileViewUrl(f),
+          isImage: f.fileType === 'image' || IMG_EXT.test(nameLc),
+        };
+      })
+      .filter(function (it) {
+        return it.href;
+      })
+      .slice(0, 9);
+
+    return { items: items, count: items.length };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -957,6 +1029,7 @@
     buildJournalsFromEntries: buildJournalsFromEntries,
     buildOffersFromPayload: buildOffersFromPayload,
     buildAutoDocsFromPayload: buildAutoDocsFromPayload,
-    // Block 15+ section adapters registreras här.
+    buildPhotosFromDriveFiles: buildPhotosFromDriveFiles,
+    // Block 16+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

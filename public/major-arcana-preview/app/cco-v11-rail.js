@@ -890,6 +890,89 @@
   }
 
   /**
+   * M · Photos (KEEP) — V11-presentation av kundens foton/media. Bevarar foto-
+   * workflow: varje foto är en native-länk (target=_blank) med data-photo=<id>
+   * så ev. befintlig lightbox-handler wire:as — ingen ny handler.
+   *
+   * Riktiga thumbnails laddas via <img src=href> (samma fil-URL som legacy:
+   * viewUrl / /api/v1/cco-patient-master/file). Om bilden inte kan laddas (eller
+   * för film) visas en snygg fallback-tile (ikon + typ-etikett) i stället för
+   * broken-image — inline onerror togglar .is-missing (tillåtet av app-CSP,
+   * presentationellt, ingen workflow-handler). Tom lista → explicit empty-state.
+   * @param {object} m - output från CcoV11RailAdapters.buildPhotosFromDriveFiles
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderPhotos(m) {
+    if (!m) return '';
+    var count = Number(m.count) > 0 ? Number(m.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Foton">' +
+        '<div class="v11-rail__empty-title">Inga foton ännu</div>' +
+        '<div class="v11-rail__empty-hint">Inga foton eller media registrerade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<div class="v11-rail__photos-grid">' +
+        m.items
+          .map(function (it) {
+            var kindLabel = it.isImage ? 'Foto' : 'Film';
+            var fallback =
+              '<span class="v11-rail__photo-fallback" aria-hidden="true">' +
+              '<span class="v11-rail__photo-fallback-icon">' +
+              (it.isImage ? '🖼' : '🎬') +
+              '</span>' +
+              '<span class="v11-rail__photo-fallback-label">' +
+              kindLabel +
+              '</span>' +
+              '</span>';
+            // Bara bilder försöker ladda en thumbnail; film visar alltid fallback.
+            var thumbInner = it.isImage
+              ? '<img class="v11-rail__photo-img" src="' +
+                esc(it.href) +
+                '" alt="' +
+                esc(it.name) +
+                '" loading="lazy" decoding="async"' +
+                " onerror=\"this.closest('.v11-rail__photo').classList.add('is-missing')\" />" +
+                fallback
+              : fallback;
+            return (
+              '<a class="v11-rail__photo' +
+              (it.isImage ? '' : ' is-missing') +
+              '" href="' +
+              esc(it.href) +
+              '" target="_blank" rel="noopener"' +
+              (it.id ? ' data-photo="' + esc(it.id) + '"' : '') +
+              ' title="' +
+              esc(it.name) +
+              '">' +
+              '<span class="v11-rail__photo-thumb">' +
+              thumbInner +
+              '</span>' +
+              '<span class="v11-rail__photo-name">' +
+              esc(it.name) +
+              '</span>' +
+              '</a>'
+            );
+          })
+          .join('') +
+        '</div>';
+    }
+
+    return (
+      '<section class="v11-rail__photos" data-v11-rail-photos aria-label="Foton">' +
+      '<header class="v11-rail__photos-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">FOTON</div>' +
+      (count ? '<span class="v11-rail__photos-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -938,7 +1021,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -1027,6 +1110,11 @@
       out += renderAutoDocs(adapters.buildAutoDocsFromPayload(card, ctx.dossierBundle));
     }
 
+    // M · Photos (KEEP) — foton/media, bevarar foto-workflow
+    if (typeof adapters.buildPhotosFromDriveFiles === 'function') {
+      out += renderPhotos(adapters.buildPhotosFromDriveFiles(ctx.driveFiles));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -1039,7 +1127,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 14,
+    BLOCK: 15,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -1054,6 +1142,7 @@
     renderJournals: renderJournals,
     renderOffers: renderOffers,
     renderAutoDocs: renderAutoDocs,
+    renderPhotos: renderPhotos,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };
