@@ -17,6 +17,7 @@
  * Block 10: H Bookings — KEEP (buildBookingsFromExtras).
  * Block 11: I History — KEEP (buildHistoryFromExtras).
  * Block 12: J Journals — KEEP (buildJournalsFromEntries).
+ * Block 13: K Offers — KEEP (buildOffersFromPayload).
  */
 (function (global) {
   'use strict';
@@ -809,6 +810,74 @@
     return { items: items, count: items.length };
   }
 
+  var OFFER_STATUS_LABELS = {
+    signed: 'Signerad',
+    pending: 'Att fylla i',
+    planned: 'Planerad',
+    sent: 'Skickad',
+  };
+
+  function normalizeOffer(item) {
+    item = item || {};
+    var registryId = text(item.registryId || item.documentTypeId);
+    var status = (text(item.status) || 'planned').toLowerCase();
+    return {
+      title: text(item.title) || text(item.name) || text(item.label) || 'Offert',
+      amount: text(item.amount) || text(item.total),
+      status: status,
+      statusLabel: text(item.statusLabel) || OFFER_STATUS_LABELS[status] || status,
+      journeyStep: text(item.journeyStep),
+      registryId: registryId,
+      previewable: item.previewable === true || /^offert_/.test(registryId),
+    };
+  }
+
+  /**
+   * K · Offers (KEEP) — V11-presentation av offerter/behandlingsplaner ovanpå
+   * befintlig dokument-logik (canon KEEP). Bevarar offert-workflow utan ny
+   * handler eller ändrad betydelse:
+   *
+   *  - Bygger på det EXPORTERADE CcoV9CustomersParity.resolveV11DocumentPayload
+   *    (→ offers); fallback: dossierBundle.documents.offers/offerter eller
+   *    card.offers. Inga påhittade offerter.
+   *  - Renderaren gör varje rad NÅBAR via befintliga data-v11-doc-row/
+   *    data-v11-doc-registry/data-v11-doc-previewable (öppnar offert-preview/
+   *    dokumentvyn) — samma handler som legacy dokumentrader, graceful tills
+   *    KEEP-Zon 2 är wire:ad.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (inga offerter ännu är normalt).
+   *
+   * @returns {{items:Array, count:number}}
+   */
+  function buildOffersFromPayload(card, dossierBundle) {
+    card = card || {};
+    var rows = [];
+    var parity = global.CcoV9CustomersParity;
+    if (parity && typeof parity.resolveV11DocumentPayload === 'function') {
+      try {
+        var payload = parity.resolveV11DocumentPayload(card, dossierBundle || {});
+        rows = toArray(payload && payload.offers);
+      } catch (_p) {
+        rows = [];
+      }
+    }
+    if (!rows.length) {
+      var docs = dossierBundle && dossierBundle.documents;
+      if (docs) rows = toArray(docs.offers || docs.offerter);
+    }
+    if (!rows.length) rows = toArray(card.offers);
+
+    var items = rows
+      .map(normalizeOffer)
+      .filter(function (it) {
+        return it.title;
+      })
+      .slice(0, 6);
+
+    return { items: items, count: items.length };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -823,6 +892,7 @@
     buildBookingsFromExtras: buildBookingsFromExtras,
     buildHistoryFromExtras: buildHistoryFromExtras,
     buildJournalsFromEntries: buildJournalsFromEntries,
-    // Block 13+ section adapters registreras här.
+    buildOffersFromPayload: buildOffersFromPayload,
+    // Block 14+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

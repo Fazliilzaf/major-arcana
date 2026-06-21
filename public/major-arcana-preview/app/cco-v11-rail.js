@@ -746,6 +746,78 @@
   }
 
   /**
+   * K · Offers (KEEP) — V11-presentation av offerter/behandlingsplaner. Bevarar
+   * offert-workflow: varje rad bär data-v11-doc-row/data-v11-doc-registry/
+   * data-v11-doc-previewable (öppnar offert-preview/dokumentvyn) — BEFINTLIGA
+   * handlers, inga nya. Tom lista → explicit empty-state.
+   * @param {object} k - output från CcoV11RailAdapters.buildOffersFromPayload
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderOffers(k) {
+    if (!k) return '';
+    var count = Number(k.count) > 0 ? Number(k.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Offerter">' +
+        '<div class="v11-rail__empty-title">Inga offerter ännu</div>' +
+        '<div class="v11-rail__empty-hint">Inga offerter eller behandlingsplaner registrerade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__offers-list">' +
+        k.items
+          .map(function (it) {
+            var meta =
+              (it.journeyStep
+                ? '<span class="v11-rail__offer-step">steg ' + esc(it.journeyStep) + '</span>'
+                : '') +
+              (it.amount
+                ? '<span class="v11-rail__offer-amount">' + esc(it.amount) + '</span>'
+                : '');
+            return (
+              '<li class="v11-rail__offer-item">' +
+              '<div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="' +
+              esc(it.registryId) +
+              '" data-v11-doc-status="' +
+              esc(it.status) +
+              '" data-v11-doc-previewable="' +
+              (it.previewable ? '1' : '0') +
+              '"' +
+              (it.previewable ? ' role="button" tabindex="0"' : '') +
+              '>' +
+              '<span class="v11-rail__offer-main">' +
+              '<span class="v11-rail__offer-title">' +
+              esc(it.title) +
+              '</span>' +
+              (meta ? '<span class="v11-rail__offer-meta">' + meta + '</span>' : '') +
+              '</span>' +
+              '<span class="v11-rail__offer-status" data-state="' +
+              esc(it.status) +
+              '">' +
+              esc(it.statusLabel) +
+              '</span>' +
+              '</div>' +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+    }
+
+    return (
+      '<section class="v11-rail__offers" data-v11-rail-offers aria-label="Offerter">' +
+      '<header class="v11-rail__offers-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">OFFERTER</div>' +
+      (count ? '<span class="v11-rail__offers-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -794,7 +866,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -873,6 +945,11 @@
       out += renderJournals(adapters.buildJournalsFromEntries(ctx.journalEntries));
     }
 
+    // K · Offers (KEEP) — offerter/behandlingsplaner, bevarar offert-workflow
+    if (typeof adapters.buildOffersFromPayload === 'function') {
+      out += renderOffers(adapters.buildOffersFromPayload(card, ctx.dossierBundle));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -885,7 +962,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 12,
+    BLOCK: 13,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -898,6 +975,7 @@
     renderBookings: renderBookings,
     renderHistory: renderHistory,
     renderJournals: renderJournals,
+    renderOffers: renderOffers,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };
