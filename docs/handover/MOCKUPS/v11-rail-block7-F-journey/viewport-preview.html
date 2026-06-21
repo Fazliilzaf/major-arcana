@@ -1,0 +1,2662 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <title>V11 Rail · Block 7 · D + A + V + B + C + E + F — viewport-preview</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #222;
+        color: #eee;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      }
+      h1 {
+        font-size: 16px;
+      }
+      p {
+        color: #bbb;
+        font-size: 13px;
+        max-width: 72ch;
+      }
+      .row {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+        overflow: auto;
+        padding-bottom: 16px;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        font-size: 12px;
+        color: #ccc;
+        margin-bottom: 6px;
+      }
+      iframe {
+        border: 1px solid #444;
+        background: #efe7df;
+        max-width: none;
+      }
+      code {
+        color: #e8c07d;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>V11 Rail · Fas 3 · Block 7 — F Customer Journey (visuell stepper)</h1>
+    <p>
+      Riktiga komponenterna i tre iframes (ordning D → A → V → B → C → E → F). F = V11 visuell
+      stepper ovanpå befintlig journey-logik; kanoniska 9-stegssekvensen + jump/med-form-mappningen
+      bevaras. Varje iframe har egen viewport så @media (canon §4) resolvar per bredd. Raster-PNG:
+      <code>npm run shots:v11rail:block7</code>.
+    </p>
+    <div class="row">
+      <figure>
+        <figcaption>mobile 390×844</figcaption>
+        <iframe
+          width="390"
+          height="844"
+          srcdoc='<!doctype html><html lang="sv" data-v9-enabled="on" data-v11-rail="on"><head><meta charset="UTF-8"><meta name="viewport" content="width=390"><style>body{margin:0;background:#efe7df;font-family:-apple-system,BlinkMacSystemFont,&apos;Segoe UI&apos;,Roboto,Arial,sans-serif}/* V11-RAIL Fas 3 — rail CSS.
+ *
+ * Ren .v11-rail__*-namespace per canon §5. Inga .kkref/.cr-v10/v9/v10-
+ * override-klasser. Laddas SIST i index.html (efter cco-v11-polish.css).
+ * Block 1: shell + empty-state + A Profile. Responsiva regler per canon §4
+ * (mobile 320-767 / iPad 768-1023 / web 1024+).
+ */
+
+.v11-rail {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  --v11-rail-amber: #c8821e;
+  --v11-rail-ink: #2c2218;
+  --v11-rail-muted: #6b5d4f;
+}
+
+.v11-rail__scroll {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+}
+
+.v11-rail *,
+.v11-rail *::before,
+.v11-rail *::after {
+  box-sizing: border-box;
+}
+
+/* Scaffold-/empty-state */
+.v11-rail__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px 20px;
+  border-radius: 12px;
+  color: var(--v11-rail-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.v11-rail__empty-title {
+  font-weight: 700;
+}
+
+.v11-rail__empty-hint {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* Vertikalt avstånd mellan staplade sektioner */
+.v11-rail__scroll > * + * {
+  margin-top: 12px;
+}
+
+/* ===== A · Profile ===== */
+.v11-rail__profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+/* amber kicker + puls-prick (DNA) */
+.v11-rail__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__kicker::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--v11-rail-amber);
+  box-shadow:
+    0 0 0 3px rgba(200, 130, 30, 0.18),
+    0 0 0 6px rgba(200, 130, 30, 0.08);
+}
+
+.v11-rail__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.v11-rail__avatar {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 6px rgba(185, 112, 26, 0.3);
+}
+
+.v11-rail__id-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.v11-rail__name {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--v11-rail-ink);
+  word-break: break-word;
+}
+
+.v11-rail__contact-row {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 12.5px;
+}
+
+.v11-rail__contact {
+  color: var(--v11-rail-muted);
+  text-decoration: none;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__contact:hover {
+  color: var(--v11-rail-amber);
+  text-decoration: underline;
+}
+
+.v11-rail__sep {
+  color: rgba(107, 93, 79, 0.5);
+}
+
+.v11-rail__addr {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--v11-rail-muted);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__edit {
+  flex: none;
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 40, 28, 0.14);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--v11-rail-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.v11-rail__edit:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v11-rail__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--v11-rail-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 2px rgba(56, 40, 28, 0.08);
+}
+
+.v11-rail__pill[data-tone="vip"] {
+  color: #fff;
+  background: linear-gradient(135deg, #bb4779 0%, #98305f 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.v11-rail__pill[data-tone="treatment"] {
+  color: #7a4e12;
+  background: rgba(200, 130, 30, 0.12);
+  border-color: rgba(200, 130, 30, 0.25);
+}
+
+/* ===== B · Smart information ===== */
+.v11-rail__smart-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96) 0%, rgba(250, 246, 242, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__smart-primary {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--v11-rail-ink);
+}
+
+.v11-rail__smart-meta {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v11-rail-muted);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__smart-meta strong {
+  color: var(--v11-rail-ink);
+  font-weight: 600;
+}
+
+.v11-rail__smart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.v11-rail__smart-flag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.14);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+}
+
+.v11-rail__smart-more {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+}
+
+/* ===== C · Stats ===== */
+.v11-rail__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.v11-rail__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 2px 8px rgba(56, 40, 28, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__stat-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--v11-rail-ink);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__stat-sub {
+  font-size: 10.5px;
+  color: var(--v11-rail-muted);
+}
+
+/* SKULD-tillstånd: utestående skuld markeras, okänd dämpas — ingen fejk */
+.v11-rail__stat[data-skuld-state="debt"] .v11-rail__stat-value {
+  color: #98305f;
+}
+.v11-rail__stat[data-skuld-state="unknown"] .v11-rail__stat-value {
+  color: var(--v11-rail-muted);
+}
+
+/* ===== V · Active Visit (hero) ===== */
+.v11-rail__active-visit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 248, 236, 0.97) 0%, rgba(252, 240, 222, 0.9) 100%);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+  box-shadow:
+    0 6px 16px rgba(200, 130, 30, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.v11-rail__av-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__av-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.v11-rail__av-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v11-rail-amber);
+  flex: none;
+}
+.v11-rail__av-dot--in_progress {
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.2);
+  animation: v11-rail-av-pulse 1.6s ease-in-out infinite;
+}
+.v11-rail__av-dot--completed_today {
+  background: #4a8268;
+}
+@keyframes v11-rail-av-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(200, 130, 30, 0.08);
+  }
+}
+
+.v11-rail__av-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__av-time {
+  font-size: 11.5px;
+  color: var(--v11-rail-muted);
+  text-align: right;
+}
+
+.v11-rail__av-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--v11-rail-ink);
+}
+
+.v11-rail__av-status-line {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--v11-rail-muted);
+}
+
+/* Timeline */
+.v11-rail__av-timeline {
+  display: flex;
+  gap: 6px;
+}
+.v11-rail__av-node {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  opacity: 0.55;
+}
+.v11-rail__av-node.is-active,
+.v11-rail__av-node.is-done {
+  opacity: 1;
+}
+.v11-rail__av-node .v11-rail__av-dot {
+  background: rgba(107, 93, 79, 0.4);
+}
+.v11-rail__av-node.is-done .v11-rail__av-dot {
+  background: #4a8268;
+}
+.v11-rail__av-node.is-active .v11-rail__av-dot {
+  background: var(--v11-rail-amber);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+.v11-rail__av-node-label {
+  font-size: 10px;
+  color: var(--v11-rail-muted);
+  line-height: 1.2;
+}
+
+/* Preflight */
+.v11-rail__av-preflight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.v11-rail__av-preflight-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v11-rail-muted);
+}
+.v11-rail__av-preflight-ok {
+  margin: 0;
+  font-size: 12px;
+  color: #1f5c33;
+}
+.v11-rail__av-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.v11-rail__av-blocker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(229, 168, 168, 0.18);
+  border: 1px solid rgba(200, 90, 90, 0.3);
+}
+.v11-rail__av-blocker-badge {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: #b5524f;
+}
+.v11-rail__av-blocker-label {
+  font-size: 12px;
+  color: #8b2e2e;
+  font-weight: 600;
+}
+
+/* Actions */
+.v11-rail__av-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.v11-rail__av-primary,
+.v11-rail__av-secondary {
+  appearance: none;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 14px;
+  cursor: pointer;
+  min-height: 38px;
+}
+.v11-rail__av-primary {
+  flex: 1 1 auto;
+  color: #fff;
+  border: 1px solid rgba(185, 112, 26, 0.5);
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 12px rgba(200, 130, 30, 0.28);
+}
+.v11-rail__av-secondary {
+  color: var(--v11-rail-ink);
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.v11-rail__av-primary:hover {
+  filter: brightness(1.03);
+}
+.v11-rail__av-secondary:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+.v11-rail__av-secondary.is-disabled,
+.v11-rail__av-primary:disabled,
+.v11-rail__av-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== D · Critical warnings (röda top-banners) ===== */
+.v11-rail__warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v11-rail__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(253, 235, 235, 0.97) 0%, rgba(249, 224, 224, 0.9) 100%);
+  border: 1px solid rgba(200, 90, 90, 0.38);
+  box-shadow:
+    0 3px 10px rgba(150, 40, 40, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.v11-rail__warning-badge {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
+  background: #b5524f;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.v11-rail__warning-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v11-rail__warning-what {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b2e2e;
+}
+
+.v11-rail__warning-legal {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #5c2d7a;
+  background: rgba(201, 168, 232, 0.3);
+  border: 1px solid rgba(150, 90, 200, 0.35);
+}
+
+.v11-rail__warning-why {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #7a3b3b;
+  overflow-wrap: anywhere;
+}
+
+/* ===== E · Health Declaration (preview) ===== */
+.v11-rail__health {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96) 0%, rgba(250, 246, 242, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__health-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v11-rail__health-status {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.v11-rail__health-status[data-status="signed"] {
+  color: #1f5c33;
+  background: rgba(159, 212, 173, 0.28);
+  border-color: rgba(95, 170, 120, 0.4);
+}
+.v11-rail__health-status[data-status="missing"] {
+  color: #8b2e2e;
+  background: rgba(232, 168, 168, 0.25);
+  border-color: rgba(200, 90, 90, 0.4);
+}
+.v11-rail__health-status[data-status="unknown"] {
+  color: var(--v11-rail-muted);
+  background: rgba(132, 117, 107, 0.14);
+  border-color: rgba(132, 117, 107, 0.28);
+}
+
+.v11-rail__health-meta {
+  font-size: 12px;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__health-open {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v11-rail-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.v11-rail__health-open:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__health-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__health-allergies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.v11-rail__health-allergy {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #7a4e12;
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.25);
+}
+
+/* ===== F · Customer Journey (visuell stepper) ===== */
+.v11-rail__journey {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__journey-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__journey-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--v11-rail-amber);
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+}
+
+.v11-rail__journey-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(132, 117, 107, 0.18);
+  overflow: hidden;
+}
+.v11-rail__journey-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d79433, #b9701a);
+}
+
+.v11-rail__journey-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.v11-rail__journey-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+}
+.v11-rail__journey-step.kk-jumpable {
+  cursor: pointer;
+}
+.v11-rail__journey-step.kk-jumpable:hover {
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v11-rail__journey-mk {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--v11-rail-muted);
+  background: rgba(132, 117, 107, 0.14);
+  border: 1px solid rgba(132, 117, 107, 0.2);
+}
+.v11-rail__journey-step.done .v11-rail__journey-mk {
+  color: #fff;
+  background: #4a8268;
+  border-color: rgba(74, 130, 104, 0.5);
+}
+.v11-rail__journey-step.active .v11-rail__journey-mk {
+  color: #fff;
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  border-color: rgba(185, 112, 26, 0.5);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+
+.v11-rail__journey-body {
+  min-width: 0;
+}
+.v11-rail__journey-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v11-rail-ink);
+  line-height: 1.25;
+}
+.v11-rail__journey-step.active .v11-rail__journey-label {
+  font-weight: 700;
+}
+.v11-rail__journey-note {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+  line-height: 1.3;
+}
+
+/* aktivt steg — amber-vellum (DNA-paritet) */
+.v11-rail__journey-step[data-v11-journey-active="true"] {
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.9), rgba(252, 233, 200, 0.7));
+  border-color: rgba(200, 130, 30, 0.3);
+  box-shadow: inset 3px 0 0 #c8821e;
+}
+
+/* ===== Responsive (canon §4) ===== */
+@media (max-width: 767px) {
+  /* Mobile 320-767px — touch-targets ≥ 44px, ingen horisontell scroll */
+  .v11-rail__scroll {
+    padding: 12px;
+  }
+  .v11-rail__edit,
+  .v11-rail__health-open {
+    min-height: 44px;
+  }
+  .v11-rail__avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+  /* Stats: behåll 3-kolumn men kompaktare värde så text ryms (canon §6 C) */
+  .v11-rail__stat {
+    padding: 10px 6px;
+  }
+  .v11-rail__stat-value {
+    font-size: 15px;
+  }
+  /* V Active Visit: touch-targets ≥44px, knappar full bredd */
+  .v11-rail__av-primary,
+  .v11-rail__av-secondary {
+    min-height: 44px;
+    flex: 1 1 100%;
+  }
+  /* F Journey: tappbara steg ≥44px på mobil */
+  .v11-rail__journey-step.kk-jumpable {
+    min-height: 44px;
+    align-items: center;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* iPad / tablet 768-1023px */
+  .v11-rail__edit,
+  .v11-rail__health-open,
+  .v11-rail__av-primary,
+  .v11-rail__av-secondary {
+    min-height: 44px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Web / desktop 1024px+ — tätare layout i rail */
+  .v11-rail__scroll {
+    padding: 16px;
+  }
+}
+.v11-rail{width:100%;margin:0 auto}@media(min-width:1024px){.v11-rail{max-width:424px}}</style></head><body><section class="patient-master-card v11-rail" data-v11-rail-shell="1"><div class="v11-rail__scroll"><section class="v11-rail__warnings" role="alert" aria-label="Kritiska varningar"><div class="v11-rail__warning" data-rule-id="customer.missing_agreement_consent_bundle"><span class="v11-rail__warning-badge" aria-hidden="true">⚠</span><span class="v11-rail__warning-copy"><span class="v11-rail__warning-what">Avtal + samtycke saknas<span class="v11-rail__warning-legal">Juridik</span></span><span class="v11-rail__warning-why">Steg 7 — samma transaktion.</span></span></div></section><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div><div class="v11-rail__addr">📍 Storgatan 1, 111 22 Stockholm</div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><section class="v11-rail__active-visit" data-v11-active-visit data-v11-active-visit-state="in_progress" aria-label="Aktivt besök idag"><header class="v11-rail__av-head"><span class="v11-rail__av-status"><span class="v11-rail__av-dot v11-rail__av-dot--in_progress" aria-hidden="true"></span><span class="v11-rail__av-kicker">Pågår</span></span><span class="v11-rail__av-time">351 min sedan check-in · Dr. Lind</span></header><div class="v11-rail__av-context"><h3 class="v11-rail__av-title">PRP-behandling</h3><p class="v11-rail__av-status-line">Behandling pågår</p></div><div class="v11-rail__av-timeline" aria-label="Besöksförlopp"><div class="v11-rail__av-node is-done"><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">09:10 incheckad</span></div><div class="v11-rail__av-node is-active"><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">09:25 pågår</span></div><div class="v11-rail__av-node "><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">Klart</span></div></div><div class="v11-rail__av-preflight" data-v11-active-visit-preflight><span class="v11-rail__av-preflight-kicker">Innan besöket</span><div class="v11-rail__av-blockers"><div class="v11-rail__av-blocker" data-blocker="photo_consent"><span class="v11-rail__av-blocker-badge" aria-hidden="true">!</span><span class="v11-rail__av-blocker-label">Foto-samtycke ej signerat</span></div></div></div><div class="v11-rail__av-actions" data-v11-active-visit-actions><button type="button" class="v11-rail__av-primary" data-v11-active-visit-action="journal">Fortsätt journal · PRP-behandling</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="complete">Avsluta besök</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="photo">Ta bild</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="notes">Anteckning</button></div></section><section class="v11-rail__smart-info" aria-label="Smart information"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">SMART INFORMATION</div><div class="v11-rail__smart-primary">Avtal + samtycke saknas</div><div class="v11-rail__smart-meta"><strong>Varför:</strong> Steg 7 — samma transaktion.</div></section><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="debt"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">1 200 kr</div><div class="v11-rail__stat-sub">utestående</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="signed">Signerad</span><span class="v11-rail__health-meta">2026-05-10 · halso@</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div><details class="v11-rail__health-details"><summary>Allergier (2)</summary><div class="v11-rail__health-allergies"><span class="v11-rail__health-allergy">Penicillin</span><span class="v11-rail__health-allergy">Lidokain</span></div></details></section><section class="v11-rail__journey" aria-label="Kundresa"><div class="v11-rail__journey-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDRESA · 9 STEG</div><span class="v11-rail__journey-chip">Steg 5</span></div><div class="v11-rail__journey-bar"><span style="width:44%"></span></div><div class="v11-rail__journey-steps"><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Bokning konsultation</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-bokning" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Bokningsbekräftelse-mail</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-kk-med-form="health_declaration" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Hälsodeklaration</div><div class="v11-rail__journey-note">Signerad</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Konsultation</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step active kk-jumpable" data-kk-jump="kk-card-behandling" data-v11-step-state="active" data-v11-journey-active="true"><div class="v11-rail__journey-mk" aria-hidden="true">5</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Offert + behandlingsplan</div><div class="v11-rail__journey-note">Pågår · nästa steg</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">6</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Betänketid 2 dagar</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">7</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Avtal + behandlingssamtycke</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-operation" data-kk-med-form="fitness_certificate" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">8</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Friskförsäkran</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">9</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Foto-samtycke</div><div class="v11-rail__journey-note">Kommande</div></div></div></div></section></div></section></body></html>'
+          title="mobile 390×844"
+        ></iframe>
+      </figure>
+      <figure>
+        <figcaption>tablet 820×1180</figcaption>
+        <iframe
+          width="820"
+          height="1180"
+          srcdoc='<!doctype html><html lang="sv" data-v9-enabled="on" data-v11-rail="on"><head><meta charset="UTF-8"><meta name="viewport" content="width=820"><style>body{margin:0;background:#efe7df;font-family:-apple-system,BlinkMacSystemFont,&apos;Segoe UI&apos;,Roboto,Arial,sans-serif}/* V11-RAIL Fas 3 — rail CSS.
+ *
+ * Ren .v11-rail__*-namespace per canon §5. Inga .kkref/.cr-v10/v9/v10-
+ * override-klasser. Laddas SIST i index.html (efter cco-v11-polish.css).
+ * Block 1: shell + empty-state + A Profile. Responsiva regler per canon §4
+ * (mobile 320-767 / iPad 768-1023 / web 1024+).
+ */
+
+.v11-rail {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  --v11-rail-amber: #c8821e;
+  --v11-rail-ink: #2c2218;
+  --v11-rail-muted: #6b5d4f;
+}
+
+.v11-rail__scroll {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+}
+
+.v11-rail *,
+.v11-rail *::before,
+.v11-rail *::after {
+  box-sizing: border-box;
+}
+
+/* Scaffold-/empty-state */
+.v11-rail__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px 20px;
+  border-radius: 12px;
+  color: var(--v11-rail-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.v11-rail__empty-title {
+  font-weight: 700;
+}
+
+.v11-rail__empty-hint {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* Vertikalt avstånd mellan staplade sektioner */
+.v11-rail__scroll > * + * {
+  margin-top: 12px;
+}
+
+/* ===== A · Profile ===== */
+.v11-rail__profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+/* amber kicker + puls-prick (DNA) */
+.v11-rail__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__kicker::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--v11-rail-amber);
+  box-shadow:
+    0 0 0 3px rgba(200, 130, 30, 0.18),
+    0 0 0 6px rgba(200, 130, 30, 0.08);
+}
+
+.v11-rail__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.v11-rail__avatar {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 6px rgba(185, 112, 26, 0.3);
+}
+
+.v11-rail__id-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.v11-rail__name {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--v11-rail-ink);
+  word-break: break-word;
+}
+
+.v11-rail__contact-row {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 12.5px;
+}
+
+.v11-rail__contact {
+  color: var(--v11-rail-muted);
+  text-decoration: none;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__contact:hover {
+  color: var(--v11-rail-amber);
+  text-decoration: underline;
+}
+
+.v11-rail__sep {
+  color: rgba(107, 93, 79, 0.5);
+}
+
+.v11-rail__addr {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--v11-rail-muted);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__edit {
+  flex: none;
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 40, 28, 0.14);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--v11-rail-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.v11-rail__edit:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v11-rail__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--v11-rail-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 2px rgba(56, 40, 28, 0.08);
+}
+
+.v11-rail__pill[data-tone="vip"] {
+  color: #fff;
+  background: linear-gradient(135deg, #bb4779 0%, #98305f 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.v11-rail__pill[data-tone="treatment"] {
+  color: #7a4e12;
+  background: rgba(200, 130, 30, 0.12);
+  border-color: rgba(200, 130, 30, 0.25);
+}
+
+/* ===== B · Smart information ===== */
+.v11-rail__smart-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96) 0%, rgba(250, 246, 242, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__smart-primary {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--v11-rail-ink);
+}
+
+.v11-rail__smart-meta {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v11-rail-muted);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__smart-meta strong {
+  color: var(--v11-rail-ink);
+  font-weight: 600;
+}
+
+.v11-rail__smart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.v11-rail__smart-flag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.14);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+}
+
+.v11-rail__smart-more {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+}
+
+/* ===== C · Stats ===== */
+.v11-rail__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.v11-rail__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 2px 8px rgba(56, 40, 28, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__stat-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--v11-rail-ink);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__stat-sub {
+  font-size: 10.5px;
+  color: var(--v11-rail-muted);
+}
+
+/* SKULD-tillstånd: utestående skuld markeras, okänd dämpas — ingen fejk */
+.v11-rail__stat[data-skuld-state="debt"] .v11-rail__stat-value {
+  color: #98305f;
+}
+.v11-rail__stat[data-skuld-state="unknown"] .v11-rail__stat-value {
+  color: var(--v11-rail-muted);
+}
+
+/* ===== V · Active Visit (hero) ===== */
+.v11-rail__active-visit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 248, 236, 0.97) 0%, rgba(252, 240, 222, 0.9) 100%);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+  box-shadow:
+    0 6px 16px rgba(200, 130, 30, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.v11-rail__av-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__av-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.v11-rail__av-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v11-rail-amber);
+  flex: none;
+}
+.v11-rail__av-dot--in_progress {
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.2);
+  animation: v11-rail-av-pulse 1.6s ease-in-out infinite;
+}
+.v11-rail__av-dot--completed_today {
+  background: #4a8268;
+}
+@keyframes v11-rail-av-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(200, 130, 30, 0.08);
+  }
+}
+
+.v11-rail__av-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__av-time {
+  font-size: 11.5px;
+  color: var(--v11-rail-muted);
+  text-align: right;
+}
+
+.v11-rail__av-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--v11-rail-ink);
+}
+
+.v11-rail__av-status-line {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--v11-rail-muted);
+}
+
+/* Timeline */
+.v11-rail__av-timeline {
+  display: flex;
+  gap: 6px;
+}
+.v11-rail__av-node {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  opacity: 0.55;
+}
+.v11-rail__av-node.is-active,
+.v11-rail__av-node.is-done {
+  opacity: 1;
+}
+.v11-rail__av-node .v11-rail__av-dot {
+  background: rgba(107, 93, 79, 0.4);
+}
+.v11-rail__av-node.is-done .v11-rail__av-dot {
+  background: #4a8268;
+}
+.v11-rail__av-node.is-active .v11-rail__av-dot {
+  background: var(--v11-rail-amber);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+.v11-rail__av-node-label {
+  font-size: 10px;
+  color: var(--v11-rail-muted);
+  line-height: 1.2;
+}
+
+/* Preflight */
+.v11-rail__av-preflight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.v11-rail__av-preflight-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v11-rail-muted);
+}
+.v11-rail__av-preflight-ok {
+  margin: 0;
+  font-size: 12px;
+  color: #1f5c33;
+}
+.v11-rail__av-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.v11-rail__av-blocker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(229, 168, 168, 0.18);
+  border: 1px solid rgba(200, 90, 90, 0.3);
+}
+.v11-rail__av-blocker-badge {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: #b5524f;
+}
+.v11-rail__av-blocker-label {
+  font-size: 12px;
+  color: #8b2e2e;
+  font-weight: 600;
+}
+
+/* Actions */
+.v11-rail__av-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.v11-rail__av-primary,
+.v11-rail__av-secondary {
+  appearance: none;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 14px;
+  cursor: pointer;
+  min-height: 38px;
+}
+.v11-rail__av-primary {
+  flex: 1 1 auto;
+  color: #fff;
+  border: 1px solid rgba(185, 112, 26, 0.5);
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 12px rgba(200, 130, 30, 0.28);
+}
+.v11-rail__av-secondary {
+  color: var(--v11-rail-ink);
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.v11-rail__av-primary:hover {
+  filter: brightness(1.03);
+}
+.v11-rail__av-secondary:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+.v11-rail__av-secondary.is-disabled,
+.v11-rail__av-primary:disabled,
+.v11-rail__av-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== D · Critical warnings (röda top-banners) ===== */
+.v11-rail__warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v11-rail__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(253, 235, 235, 0.97) 0%, rgba(249, 224, 224, 0.9) 100%);
+  border: 1px solid rgba(200, 90, 90, 0.38);
+  box-shadow:
+    0 3px 10px rgba(150, 40, 40, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.v11-rail__warning-badge {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
+  background: #b5524f;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.v11-rail__warning-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v11-rail__warning-what {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b2e2e;
+}
+
+.v11-rail__warning-legal {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #5c2d7a;
+  background: rgba(201, 168, 232, 0.3);
+  border: 1px solid rgba(150, 90, 200, 0.35);
+}
+
+.v11-rail__warning-why {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #7a3b3b;
+  overflow-wrap: anywhere;
+}
+
+/* ===== E · Health Declaration (preview) ===== */
+.v11-rail__health {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96) 0%, rgba(250, 246, 242, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__health-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v11-rail__health-status {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.v11-rail__health-status[data-status="signed"] {
+  color: #1f5c33;
+  background: rgba(159, 212, 173, 0.28);
+  border-color: rgba(95, 170, 120, 0.4);
+}
+.v11-rail__health-status[data-status="missing"] {
+  color: #8b2e2e;
+  background: rgba(232, 168, 168, 0.25);
+  border-color: rgba(200, 90, 90, 0.4);
+}
+.v11-rail__health-status[data-status="unknown"] {
+  color: var(--v11-rail-muted);
+  background: rgba(132, 117, 107, 0.14);
+  border-color: rgba(132, 117, 107, 0.28);
+}
+
+.v11-rail__health-meta {
+  font-size: 12px;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__health-open {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v11-rail-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.v11-rail__health-open:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__health-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__health-allergies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.v11-rail__health-allergy {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #7a4e12;
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.25);
+}
+
+/* ===== F · Customer Journey (visuell stepper) ===== */
+.v11-rail__journey {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__journey-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__journey-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--v11-rail-amber);
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+}
+
+.v11-rail__journey-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(132, 117, 107, 0.18);
+  overflow: hidden;
+}
+.v11-rail__journey-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d79433, #b9701a);
+}
+
+.v11-rail__journey-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.v11-rail__journey-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+}
+.v11-rail__journey-step.kk-jumpable {
+  cursor: pointer;
+}
+.v11-rail__journey-step.kk-jumpable:hover {
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v11-rail__journey-mk {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--v11-rail-muted);
+  background: rgba(132, 117, 107, 0.14);
+  border: 1px solid rgba(132, 117, 107, 0.2);
+}
+.v11-rail__journey-step.done .v11-rail__journey-mk {
+  color: #fff;
+  background: #4a8268;
+  border-color: rgba(74, 130, 104, 0.5);
+}
+.v11-rail__journey-step.active .v11-rail__journey-mk {
+  color: #fff;
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  border-color: rgba(185, 112, 26, 0.5);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+
+.v11-rail__journey-body {
+  min-width: 0;
+}
+.v11-rail__journey-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v11-rail-ink);
+  line-height: 1.25;
+}
+.v11-rail__journey-step.active .v11-rail__journey-label {
+  font-weight: 700;
+}
+.v11-rail__journey-note {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+  line-height: 1.3;
+}
+
+/* aktivt steg — amber-vellum (DNA-paritet) */
+.v11-rail__journey-step[data-v11-journey-active="true"] {
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.9), rgba(252, 233, 200, 0.7));
+  border-color: rgba(200, 130, 30, 0.3);
+  box-shadow: inset 3px 0 0 #c8821e;
+}
+
+/* ===== Responsive (canon §4) ===== */
+@media (max-width: 767px) {
+  /* Mobile 320-767px — touch-targets ≥ 44px, ingen horisontell scroll */
+  .v11-rail__scroll {
+    padding: 12px;
+  }
+  .v11-rail__edit,
+  .v11-rail__health-open {
+    min-height: 44px;
+  }
+  .v11-rail__avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+  /* Stats: behåll 3-kolumn men kompaktare värde så text ryms (canon §6 C) */
+  .v11-rail__stat {
+    padding: 10px 6px;
+  }
+  .v11-rail__stat-value {
+    font-size: 15px;
+  }
+  /* V Active Visit: touch-targets ≥44px, knappar full bredd */
+  .v11-rail__av-primary,
+  .v11-rail__av-secondary {
+    min-height: 44px;
+    flex: 1 1 100%;
+  }
+  /* F Journey: tappbara steg ≥44px på mobil */
+  .v11-rail__journey-step.kk-jumpable {
+    min-height: 44px;
+    align-items: center;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* iPad / tablet 768-1023px */
+  .v11-rail__edit,
+  .v11-rail__health-open,
+  .v11-rail__av-primary,
+  .v11-rail__av-secondary {
+    min-height: 44px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Web / desktop 1024px+ — tätare layout i rail */
+  .v11-rail__scroll {
+    padding: 16px;
+  }
+}
+.v11-rail{width:100%;margin:0 auto}@media(min-width:1024px){.v11-rail{max-width:424px}}</style></head><body><section class="patient-master-card v11-rail" data-v11-rail-shell="1"><div class="v11-rail__scroll"><section class="v11-rail__warnings" role="alert" aria-label="Kritiska varningar"><div class="v11-rail__warning" data-rule-id="customer.missing_agreement_consent_bundle"><span class="v11-rail__warning-badge" aria-hidden="true">⚠</span><span class="v11-rail__warning-copy"><span class="v11-rail__warning-what">Avtal + samtycke saknas<span class="v11-rail__warning-legal">Juridik</span></span><span class="v11-rail__warning-why">Steg 7 — samma transaktion.</span></span></div></section><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div><div class="v11-rail__addr">📍 Storgatan 1, 111 22 Stockholm</div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><section class="v11-rail__active-visit" data-v11-active-visit data-v11-active-visit-state="in_progress" aria-label="Aktivt besök idag"><header class="v11-rail__av-head"><span class="v11-rail__av-status"><span class="v11-rail__av-dot v11-rail__av-dot--in_progress" aria-hidden="true"></span><span class="v11-rail__av-kicker">Pågår</span></span><span class="v11-rail__av-time">351 min sedan check-in · Dr. Lind</span></header><div class="v11-rail__av-context"><h3 class="v11-rail__av-title">PRP-behandling</h3><p class="v11-rail__av-status-line">Behandling pågår</p></div><div class="v11-rail__av-timeline" aria-label="Besöksförlopp"><div class="v11-rail__av-node is-done"><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">09:10 incheckad</span></div><div class="v11-rail__av-node is-active"><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">09:25 pågår</span></div><div class="v11-rail__av-node "><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">Klart</span></div></div><div class="v11-rail__av-preflight" data-v11-active-visit-preflight><span class="v11-rail__av-preflight-kicker">Innan besöket</span><div class="v11-rail__av-blockers"><div class="v11-rail__av-blocker" data-blocker="photo_consent"><span class="v11-rail__av-blocker-badge" aria-hidden="true">!</span><span class="v11-rail__av-blocker-label">Foto-samtycke ej signerat</span></div></div></div><div class="v11-rail__av-actions" data-v11-active-visit-actions><button type="button" class="v11-rail__av-primary" data-v11-active-visit-action="journal">Fortsätt journal · PRP-behandling</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="complete">Avsluta besök</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="photo">Ta bild</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="notes">Anteckning</button></div></section><section class="v11-rail__smart-info" aria-label="Smart information"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">SMART INFORMATION</div><div class="v11-rail__smart-primary">Avtal + samtycke saknas</div><div class="v11-rail__smart-meta"><strong>Varför:</strong> Steg 7 — samma transaktion.</div></section><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="debt"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">1 200 kr</div><div class="v11-rail__stat-sub">utestående</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="signed">Signerad</span><span class="v11-rail__health-meta">2026-05-10 · halso@</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div><details class="v11-rail__health-details"><summary>Allergier (2)</summary><div class="v11-rail__health-allergies"><span class="v11-rail__health-allergy">Penicillin</span><span class="v11-rail__health-allergy">Lidokain</span></div></details></section><section class="v11-rail__journey" aria-label="Kundresa"><div class="v11-rail__journey-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDRESA · 9 STEG</div><span class="v11-rail__journey-chip">Steg 5</span></div><div class="v11-rail__journey-bar"><span style="width:44%"></span></div><div class="v11-rail__journey-steps"><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Bokning konsultation</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-bokning" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Bokningsbekräftelse-mail</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-kk-med-form="health_declaration" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Hälsodeklaration</div><div class="v11-rail__journey-note">Signerad</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Konsultation</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step active kk-jumpable" data-kk-jump="kk-card-behandling" data-v11-step-state="active" data-v11-journey-active="true"><div class="v11-rail__journey-mk" aria-hidden="true">5</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Offert + behandlingsplan</div><div class="v11-rail__journey-note">Pågår · nästa steg</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">6</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Betänketid 2 dagar</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">7</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Avtal + behandlingssamtycke</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-operation" data-kk-med-form="fitness_certificate" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">8</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Friskförsäkran</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">9</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Foto-samtycke</div><div class="v11-rail__journey-note">Kommande</div></div></div></div></section></div></section></body></html>'
+          title="tablet 820×1180"
+        ></iframe>
+      </figure>
+      <figure>
+        <figcaption>desktop 1440×1000 (rail 424px)</figcaption>
+        <iframe
+          width="1440"
+          height="1000"
+          srcdoc='<!doctype html><html lang="sv" data-v9-enabled="on" data-v11-rail="on"><head><meta charset="UTF-8"><meta name="viewport" content="width=1440"><style>body{margin:0;background:#efe7df;font-family:-apple-system,BlinkMacSystemFont,&apos;Segoe UI&apos;,Roboto,Arial,sans-serif}/* V11-RAIL Fas 3 — rail CSS.
+ *
+ * Ren .v11-rail__*-namespace per canon §5. Inga .kkref/.cr-v10/v9/v10-
+ * override-klasser. Laddas SIST i index.html (efter cco-v11-polish.css).
+ * Block 1: shell + empty-state + A Profile. Responsiva regler per canon §4
+ * (mobile 320-767 / iPad 768-1023 / web 1024+).
+ */
+
+.v11-rail {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  --v11-rail-amber: #c8821e;
+  --v11-rail-ink: #2c2218;
+  --v11-rail-muted: #6b5d4f;
+}
+
+.v11-rail__scroll {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+}
+
+.v11-rail *,
+.v11-rail *::before,
+.v11-rail *::after {
+  box-sizing: border-box;
+}
+
+/* Scaffold-/empty-state */
+.v11-rail__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px 20px;
+  border-radius: 12px;
+  color: var(--v11-rail-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.v11-rail__empty-title {
+  font-weight: 700;
+}
+
+.v11-rail__empty-hint {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* Vertikalt avstånd mellan staplade sektioner */
+.v11-rail__scroll > * + * {
+  margin-top: 12px;
+}
+
+/* ===== A · Profile ===== */
+.v11-rail__profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+/* amber kicker + puls-prick (DNA) */
+.v11-rail__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__kicker::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--v11-rail-amber);
+  box-shadow:
+    0 0 0 3px rgba(200, 130, 30, 0.18),
+    0 0 0 6px rgba(200, 130, 30, 0.08);
+}
+
+.v11-rail__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.v11-rail__avatar {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 6px rgba(185, 112, 26, 0.3);
+}
+
+.v11-rail__id-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.v11-rail__name {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--v11-rail-ink);
+  word-break: break-word;
+}
+
+.v11-rail__contact-row {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 12.5px;
+}
+
+.v11-rail__contact {
+  color: var(--v11-rail-muted);
+  text-decoration: none;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__contact:hover {
+  color: var(--v11-rail-amber);
+  text-decoration: underline;
+}
+
+.v11-rail__sep {
+  color: rgba(107, 93, 79, 0.5);
+}
+
+.v11-rail__addr {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--v11-rail-muted);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__edit {
+  flex: none;
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 40, 28, 0.14);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--v11-rail-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.v11-rail__edit:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v11-rail__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--v11-rail-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 2px rgba(56, 40, 28, 0.08);
+}
+
+.v11-rail__pill[data-tone="vip"] {
+  color: #fff;
+  background: linear-gradient(135deg, #bb4779 0%, #98305f 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.v11-rail__pill[data-tone="treatment"] {
+  color: #7a4e12;
+  background: rgba(200, 130, 30, 0.12);
+  border-color: rgba(200, 130, 30, 0.25);
+}
+
+/* ===== B · Smart information ===== */
+.v11-rail__smart-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96) 0%, rgba(250, 246, 242, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__smart-primary {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--v11-rail-ink);
+}
+
+.v11-rail__smart-meta {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v11-rail-muted);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__smart-meta strong {
+  color: var(--v11-rail-ink);
+  font-weight: 600;
+}
+
+.v11-rail__smart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.v11-rail__smart-flag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.14);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+}
+
+.v11-rail__smart-more {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+}
+
+/* ===== C · Stats ===== */
+.v11-rail__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.v11-rail__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 2px 8px rgba(56, 40, 28, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__stat-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--v11-rail-ink);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__stat-sub {
+  font-size: 10.5px;
+  color: var(--v11-rail-muted);
+}
+
+/* SKULD-tillstånd: utestående skuld markeras, okänd dämpas — ingen fejk */
+.v11-rail__stat[data-skuld-state="debt"] .v11-rail__stat-value {
+  color: #98305f;
+}
+.v11-rail__stat[data-skuld-state="unknown"] .v11-rail__stat-value {
+  color: var(--v11-rail-muted);
+}
+
+/* ===== V · Active Visit (hero) ===== */
+.v11-rail__active-visit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 248, 236, 0.97) 0%, rgba(252, 240, 222, 0.9) 100%);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+  box-shadow:
+    0 6px 16px rgba(200, 130, 30, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.v11-rail__av-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__av-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.v11-rail__av-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v11-rail-amber);
+  flex: none;
+}
+.v11-rail__av-dot--in_progress {
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.2);
+  animation: v11-rail-av-pulse 1.6s ease-in-out infinite;
+}
+.v11-rail__av-dot--completed_today {
+  background: #4a8268;
+}
+@keyframes v11-rail-av-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(200, 130, 30, 0.08);
+  }
+}
+
+.v11-rail__av-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__av-time {
+  font-size: 11.5px;
+  color: var(--v11-rail-muted);
+  text-align: right;
+}
+
+.v11-rail__av-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--v11-rail-ink);
+}
+
+.v11-rail__av-status-line {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--v11-rail-muted);
+}
+
+/* Timeline */
+.v11-rail__av-timeline {
+  display: flex;
+  gap: 6px;
+}
+.v11-rail__av-node {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  opacity: 0.55;
+}
+.v11-rail__av-node.is-active,
+.v11-rail__av-node.is-done {
+  opacity: 1;
+}
+.v11-rail__av-node .v11-rail__av-dot {
+  background: rgba(107, 93, 79, 0.4);
+}
+.v11-rail__av-node.is-done .v11-rail__av-dot {
+  background: #4a8268;
+}
+.v11-rail__av-node.is-active .v11-rail__av-dot {
+  background: var(--v11-rail-amber);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+.v11-rail__av-node-label {
+  font-size: 10px;
+  color: var(--v11-rail-muted);
+  line-height: 1.2;
+}
+
+/* Preflight */
+.v11-rail__av-preflight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.v11-rail__av-preflight-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v11-rail-muted);
+}
+.v11-rail__av-preflight-ok {
+  margin: 0;
+  font-size: 12px;
+  color: #1f5c33;
+}
+.v11-rail__av-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.v11-rail__av-blocker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(229, 168, 168, 0.18);
+  border: 1px solid rgba(200, 90, 90, 0.3);
+}
+.v11-rail__av-blocker-badge {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: #b5524f;
+}
+.v11-rail__av-blocker-label {
+  font-size: 12px;
+  color: #8b2e2e;
+  font-weight: 600;
+}
+
+/* Actions */
+.v11-rail__av-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.v11-rail__av-primary,
+.v11-rail__av-secondary {
+  appearance: none;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 14px;
+  cursor: pointer;
+  min-height: 38px;
+}
+.v11-rail__av-primary {
+  flex: 1 1 auto;
+  color: #fff;
+  border: 1px solid rgba(185, 112, 26, 0.5);
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 12px rgba(200, 130, 30, 0.28);
+}
+.v11-rail__av-secondary {
+  color: var(--v11-rail-ink);
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.v11-rail__av-primary:hover {
+  filter: brightness(1.03);
+}
+.v11-rail__av-secondary:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+.v11-rail__av-secondary.is-disabled,
+.v11-rail__av-primary:disabled,
+.v11-rail__av-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== D · Critical warnings (röda top-banners) ===== */
+.v11-rail__warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v11-rail__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(253, 235, 235, 0.97) 0%, rgba(249, 224, 224, 0.9) 100%);
+  border: 1px solid rgba(200, 90, 90, 0.38);
+  box-shadow:
+    0 3px 10px rgba(150, 40, 40, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.v11-rail__warning-badge {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
+  background: #b5524f;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.v11-rail__warning-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v11-rail__warning-what {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b2e2e;
+}
+
+.v11-rail__warning-legal {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #5c2d7a;
+  background: rgba(201, 168, 232, 0.3);
+  border: 1px solid rgba(150, 90, 200, 0.35);
+}
+
+.v11-rail__warning-why {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #7a3b3b;
+  overflow-wrap: anywhere;
+}
+
+/* ===== E · Health Declaration (preview) ===== */
+.v11-rail__health {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96) 0%, rgba(250, 246, 242, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__health-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v11-rail__health-status {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.v11-rail__health-status[data-status="signed"] {
+  color: #1f5c33;
+  background: rgba(159, 212, 173, 0.28);
+  border-color: rgba(95, 170, 120, 0.4);
+}
+.v11-rail__health-status[data-status="missing"] {
+  color: #8b2e2e;
+  background: rgba(232, 168, 168, 0.25);
+  border-color: rgba(200, 90, 90, 0.4);
+}
+.v11-rail__health-status[data-status="unknown"] {
+  color: var(--v11-rail-muted);
+  background: rgba(132, 117, 107, 0.14);
+  border-color: rgba(132, 117, 107, 0.28);
+}
+
+.v11-rail__health-meta {
+  font-size: 12px;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__health-open {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v11-rail-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.v11-rail__health-open:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__health-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__health-allergies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.v11-rail__health-allergy {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #7a4e12;
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.25);
+}
+
+/* ===== F · Customer Journey (visuell stepper) ===== */
+.v11-rail__journey {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__journey-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__journey-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--v11-rail-amber);
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+}
+
+.v11-rail__journey-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(132, 117, 107, 0.18);
+  overflow: hidden;
+}
+.v11-rail__journey-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d79433, #b9701a);
+}
+
+.v11-rail__journey-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.v11-rail__journey-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+}
+.v11-rail__journey-step.kk-jumpable {
+  cursor: pointer;
+}
+.v11-rail__journey-step.kk-jumpable:hover {
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v11-rail__journey-mk {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--v11-rail-muted);
+  background: rgba(132, 117, 107, 0.14);
+  border: 1px solid rgba(132, 117, 107, 0.2);
+}
+.v11-rail__journey-step.done .v11-rail__journey-mk {
+  color: #fff;
+  background: #4a8268;
+  border-color: rgba(74, 130, 104, 0.5);
+}
+.v11-rail__journey-step.active .v11-rail__journey-mk {
+  color: #fff;
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  border-color: rgba(185, 112, 26, 0.5);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+
+.v11-rail__journey-body {
+  min-width: 0;
+}
+.v11-rail__journey-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v11-rail-ink);
+  line-height: 1.25;
+}
+.v11-rail__journey-step.active .v11-rail__journey-label {
+  font-weight: 700;
+}
+.v11-rail__journey-note {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+  line-height: 1.3;
+}
+
+/* aktivt steg — amber-vellum (DNA-paritet) */
+.v11-rail__journey-step[data-v11-journey-active="true"] {
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.9), rgba(252, 233, 200, 0.7));
+  border-color: rgba(200, 130, 30, 0.3);
+  box-shadow: inset 3px 0 0 #c8821e;
+}
+
+/* ===== Responsive (canon §4) ===== */
+@media (max-width: 767px) {
+  /* Mobile 320-767px — touch-targets ≥ 44px, ingen horisontell scroll */
+  .v11-rail__scroll {
+    padding: 12px;
+  }
+  .v11-rail__edit,
+  .v11-rail__health-open {
+    min-height: 44px;
+  }
+  .v11-rail__avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+  /* Stats: behåll 3-kolumn men kompaktare värde så text ryms (canon §6 C) */
+  .v11-rail__stat {
+    padding: 10px 6px;
+  }
+  .v11-rail__stat-value {
+    font-size: 15px;
+  }
+  /* V Active Visit: touch-targets ≥44px, knappar full bredd */
+  .v11-rail__av-primary,
+  .v11-rail__av-secondary {
+    min-height: 44px;
+    flex: 1 1 100%;
+  }
+  /* F Journey: tappbara steg ≥44px på mobil */
+  .v11-rail__journey-step.kk-jumpable {
+    min-height: 44px;
+    align-items: center;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* iPad / tablet 768-1023px */
+  .v11-rail__edit,
+  .v11-rail__health-open,
+  .v11-rail__av-primary,
+  .v11-rail__av-secondary {
+    min-height: 44px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Web / desktop 1024px+ — tätare layout i rail */
+  .v11-rail__scroll {
+    padding: 16px;
+  }
+}
+.v11-rail{width:100%;margin:0 auto}@media(min-width:1024px){.v11-rail{max-width:424px}}</style></head><body><section class="patient-master-card v11-rail" data-v11-rail-shell="1"><div class="v11-rail__scroll"><section class="v11-rail__warnings" role="alert" aria-label="Kritiska varningar"><div class="v11-rail__warning" data-rule-id="customer.missing_agreement_consent_bundle"><span class="v11-rail__warning-badge" aria-hidden="true">⚠</span><span class="v11-rail__warning-copy"><span class="v11-rail__warning-what">Avtal + samtycke saknas<span class="v11-rail__warning-legal">Juridik</span></span><span class="v11-rail__warning-why">Steg 7 — samma transaktion.</span></span></div></section><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div><div class="v11-rail__addr">📍 Storgatan 1, 111 22 Stockholm</div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><section class="v11-rail__active-visit" data-v11-active-visit data-v11-active-visit-state="in_progress" aria-label="Aktivt besök idag"><header class="v11-rail__av-head"><span class="v11-rail__av-status"><span class="v11-rail__av-dot v11-rail__av-dot--in_progress" aria-hidden="true"></span><span class="v11-rail__av-kicker">Pågår</span></span><span class="v11-rail__av-time">351 min sedan check-in · Dr. Lind</span></header><div class="v11-rail__av-context"><h3 class="v11-rail__av-title">PRP-behandling</h3><p class="v11-rail__av-status-line">Behandling pågår</p></div><div class="v11-rail__av-timeline" aria-label="Besöksförlopp"><div class="v11-rail__av-node is-done"><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">09:10 incheckad</span></div><div class="v11-rail__av-node is-active"><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">09:25 pågår</span></div><div class="v11-rail__av-node "><span class="v11-rail__av-dot" aria-hidden="true"></span><span class="v11-rail__av-node-label">Klart</span></div></div><div class="v11-rail__av-preflight" data-v11-active-visit-preflight><span class="v11-rail__av-preflight-kicker">Innan besöket</span><div class="v11-rail__av-blockers"><div class="v11-rail__av-blocker" data-blocker="photo_consent"><span class="v11-rail__av-blocker-badge" aria-hidden="true">!</span><span class="v11-rail__av-blocker-label">Foto-samtycke ej signerat</span></div></div></div><div class="v11-rail__av-actions" data-v11-active-visit-actions><button type="button" class="v11-rail__av-primary" data-v11-active-visit-action="journal">Fortsätt journal · PRP-behandling</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="complete">Avsluta besök</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="photo">Ta bild</button><button type="button" class="v11-rail__av-secondary" data-v11-active-visit-action="notes">Anteckning</button></div></section><section class="v11-rail__smart-info" aria-label="Smart information"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">SMART INFORMATION</div><div class="v11-rail__smart-primary">Avtal + samtycke saknas</div><div class="v11-rail__smart-meta"><strong>Varför:</strong> Steg 7 — samma transaktion.</div></section><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="debt"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">1 200 kr</div><div class="v11-rail__stat-sub">utestående</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="signed">Signerad</span><span class="v11-rail__health-meta">2026-05-10 · halso@</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div><details class="v11-rail__health-details"><summary>Allergier (2)</summary><div class="v11-rail__health-allergies"><span class="v11-rail__health-allergy">Penicillin</span><span class="v11-rail__health-allergy">Lidokain</span></div></details></section><section class="v11-rail__journey" aria-label="Kundresa"><div class="v11-rail__journey-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDRESA · 9 STEG</div><span class="v11-rail__journey-chip">Steg 5</span></div><div class="v11-rail__journey-bar"><span style="width:44%"></span></div><div class="v11-rail__journey-steps"><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Bokning konsultation</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-bokning" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Bokningsbekräftelse-mail</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-kk-med-form="health_declaration" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Hälsodeklaration</div><div class="v11-rail__journey-note">Signerad</div></div></div><div class="v11-rail__journey-step done kk-jumpable" data-kk-jump="kk-card-halsa" data-v11-step-state="done"><div class="v11-rail__journey-mk" aria-hidden="true">✓</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Konsultation</div><div class="v11-rail__journey-note">Klar</div></div></div><div class="v11-rail__journey-step active kk-jumpable" data-kk-jump="kk-card-behandling" data-v11-step-state="active" data-v11-journey-active="true"><div class="v11-rail__journey-mk" aria-hidden="true">5</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Offert + behandlingsplan</div><div class="v11-rail__journey-note">Pågår · nästa steg</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">6</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Betänketid 2 dagar</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">7</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Avtal + behandlingssamtycke</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-operation" data-kk-med-form="fitness_certificate" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">8</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Friskförsäkran</div><div class="v11-rail__journey-note">Kommande</div></div></div><div class="v11-rail__journey-step todo kk-jumpable" data-kk-jump="kk-card-juridik" data-v11-step-state="pending"><div class="v11-rail__journey-mk" aria-hidden="true">9</div><div class="v11-rail__journey-body"><div class="v11-rail__journey-label">Foto-samtycke</div><div class="v11-rail__journey-note">Kommande</div></div></div></div></section></div></section></body></html>'
+          title="desktop 1440×1000 (rail 424px)"
+        ></iframe>
+      </figure>
+    </div>
+  </body>
+</html>
