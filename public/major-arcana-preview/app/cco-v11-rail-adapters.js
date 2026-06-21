@@ -7,6 +7,7 @@
  *
  * Block 1: A Profile (buildProfileFromBcard).
  * Block 2: B Smart information (buildSmartInfoFromSignals).
+ * Block 3: C Stats (buildStatsFromExtras).
  */
 (function (global) {
   'use strict';
@@ -152,10 +153,76 @@
     return null;
   }
 
+  /**
+   * C · Stats — tre nyckeltal: BESÖK, VÄRDE TOT, SKULD (canon §6 C).
+   *
+   * - BESÖK: visits/visitCount/stats.visits.
+   * - VÄRDE TOT: nuvarande revenue/LTV-logik (lifetimeValueLabel →
+   *   lifetimeValue/dealValue/pipedriveDealValue → stats.revenue).
+   * - SKULD: outstandingBalance (debt/öppna fakturor) OM data finns. Saknas
+   *   fältet helt → explicit unknown-state ('—', 'okänd'); ingen fejkad skuld.
+   *   '0 kr'/0 är riktig data = ingen skuld.
+   *
+   * @param {object} bcard
+   * @returns {{besok:{value:string,sub:string},
+   *            vardeTot:{value:string,sub:string},
+   *            skuld:{value:string,sub:string,unknown:boolean,hasDebt:boolean}}}
+   */
+  function buildStatsFromExtras(bcard) {
+    bcard = bcard || {};
+    var stats = bcard.stats || {};
+
+    // BESÖK
+    var visits = bcard.visits != null ? bcard.visits : bcard.visitCount;
+    if (visits == null) visits = stats.visits;
+    var besok = {
+      value: visits != null ? String(visits) : '—',
+      sub: visits != null ? 'totalt' : 'inga än',
+    };
+
+    // VÄRDE TOT (revenue/LTV)
+    var ltvRaw = bcard.lifetimeValue != null ? bcard.lifetimeValue : bcard.dealValue;
+    if (ltvRaw == null) ltvRaw = bcard.pipedriveDealValue;
+    var ltvNum = Number(ltvRaw);
+    var revenue =
+      text(bcard.lifetimeValueLabel) ||
+      (Number.isFinite(ltvNum) && ltvNum > 0 ? ltvNum.toLocaleString('sv-SE') + ' kr' : '') ||
+      text(stats.revenue);
+    var vardeTot = {
+      value: revenue || '—',
+      sub: revenue ? 'LTV' : 'okänt',
+    };
+
+    // SKULD (debt / öppna fakturor) — ingen fejk vid saknad data
+    var rawDebt = bcard.outstandingBalance;
+    var skuld;
+    if (rawDebt == null || text(rawDebt) === '') {
+      skuld = { value: '—', sub: 'okänd', unknown: true, hasDebt: false };
+    } else {
+      var debtStr = text(rawDebt);
+      var debtNum = Number(
+        String(debtStr)
+          .replace(/[^\d.,-]/g, '')
+          .replace(/\s/g, '')
+          .replace(',', '.')
+      );
+      var isZero = debtStr === '0 kr' || debtNum === 0;
+      skuld = {
+        value: debtStr,
+        sub: isZero ? 'ingen skuld' : 'utestående',
+        unknown: false,
+        hasDebt: Number.isFinite(debtNum) && debtNum > 0,
+      };
+    }
+
+    return { besok: besok, vardeTot: vardeTot, skuld: skuld };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
     buildSmartInfoFromSignals: buildSmartInfoFromSignals,
-    // Block 3+ section adapters registreras här.
+    buildStatsFromExtras: buildStatsFromExtras,
+    // Block 4+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

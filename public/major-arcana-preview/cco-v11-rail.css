@@ -271,6 +271,56 @@
   color: var(--v11-rail-muted);
 }
 
+/* ===== C · Stats ===== */
+.v11-rail__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.v11-rail__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 2px 8px rgba(56, 40, 28, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__stat-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--v11-rail-ink);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__stat-sub {
+  font-size: 10.5px;
+  color: var(--v11-rail-muted);
+}
+
+/* SKULD-tillstånd: utestående skuld markeras, okänd dämpas — ingen fejk */
+.v11-rail__stat[data-skuld-state="debt"] .v11-rail__stat-value {
+  color: #98305f;
+}
+.v11-rail__stat[data-skuld-state="unknown"] .v11-rail__stat-value {
+  color: var(--v11-rail-muted);
+}
+
 /* ===== Responsive (canon §4) ===== */
 @media (max-width: 767px) {
   /* Mobile 320-767px — touch-targets ≥ 44px, ingen horisontell scroll */
@@ -284,6 +334,13 @@
     width: 48px;
     height: 48px;
     font-size: 16px;
+  }
+  /* Stats: behåll 3-kolumn men kompaktare värde så text ryms (canon §6 C) */
+  .v11-rail__stat {
+    padding: 10px 6px;
+  }
+  .v11-rail__stat-value {
+    font-size: 15px;
   }
 }
 

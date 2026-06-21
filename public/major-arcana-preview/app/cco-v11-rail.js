@@ -132,6 +132,44 @@
   }
 
   /**
+   * C · Stats — tre vellum-celler: BESÖK, VÄRDE TOT, SKULD (canon §6 C).
+   * SKULD visar unknown-state ('—' / 'okänd') när debt-data saknas — ingen fejk.
+   * @param {object} stats - output från CcoV11RailAdapters.buildStatsFromExtras
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderStats(stats) {
+    if (!stats) return '';
+
+    function cell(label, data, extraAttr) {
+      return (
+        '<div class="v11-rail__stat"' +
+        (extraAttr || '') +
+        '>' +
+        '<div class="v11-rail__stat-label">' +
+        esc(label) +
+        '</div>' +
+        '<div class="v11-rail__stat-value">' +
+        esc(data.value) +
+        '</div>' +
+        '<div class="v11-rail__stat-sub">' +
+        esc(data.sub) +
+        '</div>' +
+        '</div>'
+      );
+    }
+
+    var skuldState = stats.skuld.unknown ? 'unknown' : stats.skuld.hasDebt ? 'debt' : 'clear';
+
+    return (
+      '<section class="v11-rail__stats" aria-label="Nyckeltal">' +
+      cell('Besök', stats.besok) +
+      cell('Värde tot', stats.vardeTot) +
+      cell('Skuld', stats.skuld, ' data-skuld-state="' + esc(skuldState) + '"') +
+      '</section>'
+    );
+  }
+
+  /**
    * Renderar V11-rail-innehåll för en kund.
    * @param {object} [ctx] - { card, bcard, journalEntries, occasionTimeline, driveFiles, patient, tab, lite }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
@@ -157,14 +195,20 @@
         : adapters.v11RailEmpty('Smart information', 'Inga öppna signaler.');
     }
 
+    // C · Stats (BESÖK / VÄRDE TOT / SKULD)
+    if (typeof adapters.buildStatsFromExtras === 'function') {
+      out += renderStats(adapters.buildStatsFromExtras(bcard));
+    }
+
     return out;
   }
 
   global.CcoV11Rail = {
-    BLOCK: 2,
+    BLOCK: 3,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
+    renderStats: renderStats,
     render: render,
   };
 })(typeof window !== 'undefined' ? window : global);
