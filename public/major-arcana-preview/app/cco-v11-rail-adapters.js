@@ -10,6 +10,7 @@
  * Block 3: C Stats (buildStatsFromExtras).
  * Block 4: V Active Visit (buildActiveVisitFromBundle).
  * Block 5: D Critical warnings (buildCriticalWarnings).
+ * Block 6: E Health Declaration preview (buildHealthPreview).
  */
 (function (global) {
   'use strict';
@@ -377,6 +378,46 @@
     return out;
   }
 
+  /**
+   * E · Health Declaration (preview) — summerar HD-status (canon §6 E:
+   * "top expandable preview"). Duplicerar INTE workflow; deep-link till HÄLSA
+   * (data-kk-jump="kk-card-halsa") öppnar full HÄLSA-arbetsyta i Zon 2.
+   *
+   * Status från riktig data: signerad (hd.signedAt/signed eller
+   * hasHealthDeclaration / missingHealthDeclaration===false), saknas
+   * (missingHealthDeclaration===true), annars okänd. Ingen fejk.
+   *
+   * @param {object} bcard
+   * @returns {{status:'signed'|'missing'|'unknown', signedAt:string,
+   *            source:string, allergies:string[]}}
+   */
+  function buildHealthPreview(bcard) {
+    bcard = bcard || {};
+    var hd = bcard.healthDeclaration || null;
+
+    var signedSignal =
+      (hd && (hd.signedAt || hd.signed)) ||
+      bcard.hasHealthDeclaration === true ||
+      bcard.missingHealthDeclaration === false;
+    var missingSignal = bcard.missingHealthDeclaration === true;
+    var status = signedSignal ? 'signed' : missingSignal ? 'missing' : 'unknown';
+
+    var srcRaw = text((hd && (hd.sourceSystem || hd.source)) || bcard.healthDeclarationSource);
+    var source = /halso|m365/i.test(srcRaw) ? 'halso@' : '';
+
+    var allergies = toArray(bcard.allergies).length
+      ? toArray(bcard.allergies)
+      : toArray(hd && hd.allergies);
+    allergies = allergies.map(text).filter(Boolean);
+
+    return {
+      status: status,
+      signedAt: hd ? text(hd.signedAt) : '',
+      source: source,
+      allergies: allergies,
+    };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -384,6 +425,7 @@
     buildStatsFromExtras: buildStatsFromExtras,
     buildActiveVisitFromBundle: buildActiveVisitFromBundle,
     buildCriticalWarnings: buildCriticalWarnings,
-    // Block 6+ section adapters registreras här.
+    buildHealthPreview: buildHealthPreview,
+    // Block 7+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
