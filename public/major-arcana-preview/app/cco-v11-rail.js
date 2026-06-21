@@ -485,7 +485,60 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F.
+   * G · Smart Next Step — fokuserat rekommendationskort med EN primär CTA
+   * (canon §6 G). CTA:n bär `data-kk-sig` som den BEFINTLIGA globala
+   * kk-sig-handlern wire:ar (ingen ny handler). "Granska utkast" behålls som
+   * nåbar sekundär. Endast presentation.
+   * @param {object} g - output från CcoV11RailAdapters.buildSmartNextStep
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderSmartNextStep(g) {
+    if (!g) return '';
+
+    function sigAttrs() {
+      return (
+        ' data-kk-sig="' +
+        esc(g.ruleId) +
+        '" data-kk-sig-label="' +
+        esc(g.what) +
+        '" data-kk-patient-id="' +
+        esc(g.patientId) +
+        '"'
+      );
+    }
+
+    var toneClass = g.tone === 'Blockerare' ? 'blocker' : 'suggested';
+
+    return (
+      '<section class="v11-rail__next" aria-label="Smart nästa steg">' +
+      '<div class="v11-rail__next-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">SMART NÄSTA STEG</div>' +
+      '<span class="v11-rail__next-tone" data-tone="' +
+      esc(toneClass) +
+      '">' +
+      esc(g.tone) +
+      '</span>' +
+      '</div>' +
+      '<div class="v11-rail__next-what">' +
+      esc(g.what) +
+      '</div>' +
+      (g.why ? '<div class="v11-rail__next-why">' + esc(g.why) + '</div>' : '') +
+      '<div class="v11-rail__next-actions">' +
+      '<button type="button" class="v11-rail__next-primary"' +
+      sigAttrs() +
+      '>' +
+      esc(g.ctaLabel) +
+      '</button>' +
+      '<button type="button" class="v11-rail__next-secondary"' +
+      sigAttrs() +
+      '>Granska utkast</button>' +
+      '</div>' +
+      '</section>'
+    );
+  }
+
+  /**
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -540,11 +593,16 @@
       );
     }
 
+    // G · Smart Next Step (fokuserat rekommendationskort, en primär CTA)
+    if (typeof adapters.buildSmartNextStep === 'function') {
+      out += renderSmartNextStep(adapters.buildSmartNextStep(card));
+    }
+
     return out;
   }
 
   global.CcoV11Rail = {
-    BLOCK: 7,
+    BLOCK: 8,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -553,6 +611,7 @@
     renderCriticalWarnings: renderCriticalWarnings,
     renderHealthPreview: renderHealthPreview,
     renderJourney: renderJourney,
+    renderSmartNextStep: renderSmartNextStep,
     render: render,
   };
 })(typeof window !== 'undefined' ? window : global);

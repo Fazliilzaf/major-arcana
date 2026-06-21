@@ -12,6 +12,7 @@
  * Block 5: D Critical warnings (buildCriticalWarnings).
  * Block 6: E Health Declaration preview (buildHealthPreview).
  * Block 7: F Customer Journey (buildJourneyFromState).
+ * Block 8: G Smart Next Step (buildSmartNextStep).
  */
 (function (global) {
   'use strict';
@@ -488,6 +489,42 @@
     };
   }
 
+  /**
+   * G · Smart Next Step — fokuserat rekommendationskort med EN primär CTA
+   * (canon §6 G). Top-aktiv signal via logik-lagret CcoKunderSmartNextStep
+   * (sortSignals); CTA-etikett från exporterade SIGNAL_ACTIONS. CTA:n
+   * återanvänder den BEFINTLIGA globala kk-sig-handlern (data-kk-sig) — ingen
+   * ny handler. "Granska utkast" behålls som nåbar sekundär (samma handler).
+   *
+   * Returnerar null när ingen aktiv signal finns (G utelämnas).
+   *
+   * @returns {null|{ruleId,what,why,tone,ctaLabel,patientId}}
+   */
+  function buildSmartNextStep(card) {
+    card = card || {};
+    var mod = global.CcoKunderSmartNextStep;
+    if (!mod || typeof mod.sortSignals !== 'function') return null;
+    var signals = mod.sortSignals(toArray(card.automationSignals));
+    var active = signals.filter(function (s) {
+      return s && s.status === 'active';
+    });
+    var top = active[0] || null;
+    if (!top || !text(top.what)) return null;
+
+    var actions = mod.SIGNAL_ACTIONS || {};
+    var act = actions[String(top.ruleId || '')] || {};
+    var risk = String(top.risk || '');
+
+    return {
+      ruleId: text(top.ruleId),
+      what: text(top.what),
+      why: text(top.why) || text(top.next),
+      tone: /block|legal/i.test(risk) ? 'Blockerare' : 'Föreslaget',
+      ctaLabel: text(act.buttonLabel) || 'Granska & åtgärda',
+      patientId: text(card.patientId || card.id || card.customerId),
+    };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -497,6 +534,7 @@
     buildCriticalWarnings: buildCriticalWarnings,
     buildHealthPreview: buildHealthPreview,
     buildJourneyFromState: buildJourneyFromState,
-    // Block 8+ section adapters registreras här.
+    buildSmartNextStep: buildSmartNextStep,
+    // Block 9+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
