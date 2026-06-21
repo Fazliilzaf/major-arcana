@@ -623,6 +623,66 @@
   }
 
   /**
+   * I · History (KEEP) — V11-presentation av tidigare besök/bokningar. Bevarar
+   * historik-workflow: varje rad bär data-v9-section-link="historik" (öppnar
+   * tidslinjen) — BEFINTLIG handler, ingen ny. Tom lista → explicit empty-state.
+   * @param {object} h - output från CcoV11RailAdapters.buildHistoryFromExtras
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderHistory(h) {
+    if (!h) return '';
+    var count = Number(h.count) > 0 ? Number(h.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Historik">' +
+        '<div class="v11-rail__empty-title">Ingen historik ännu</div>' +
+        '<div class="v11-rail__empty-hint">Inga tidigare besök registrerade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__history-list">' +
+        h.items
+          .map(function (it) {
+            return (
+              '<li class="v11-rail__history-item">' +
+              '<button type="button" class="v11-rail__history-row" data-v9-section-link="historik">' +
+              '<span class="v11-rail__history-when">' +
+              '<span class="v11-rail__history-date">' +
+              esc(it.whenLong || '—') +
+              '</span>' +
+              (it.whenShort
+                ? '<span class="v11-rail__history-time">' + esc(it.whenShort) + '</span>'
+                : '') +
+              '</span>' +
+              '<span class="v11-rail__history-copy">' +
+              '<span class="v11-rail__history-title">' +
+              esc(it.title) +
+              '</span>' +
+              (it.sub ? '<span class="v11-rail__history-sub">' + esc(it.sub) + '</span>' : '') +
+              '</span>' +
+              '<span class="v11-rail__history-badge" aria-hidden="true">✓</span>' +
+              '</button>' +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+    }
+
+    return (
+      '<section class="v11-rail__history" data-v11-rail-history aria-label="Historik">' +
+      '<header class="v11-rail__history-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">HISTORIK</div>' +
+      (count ? '<span class="v11-rail__history-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -671,7 +731,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -738,6 +798,13 @@
       );
     }
 
+    // I · History (KEEP) — tidigare besök/bokningar, bevarar historik-workflow
+    if (typeof adapters.buildHistoryFromExtras === 'function') {
+      out += renderHistory(
+        adapters.buildHistoryFromExtras(card, bcard, ctx.dossierBundle, ctx.occasionTimeline)
+      );
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -750,7 +817,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 10,
+    BLOCK: 11,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -761,6 +828,7 @@
     renderJourney: renderJourney,
     renderSmartNextStep: renderSmartNextStep,
     renderBookings: renderBookings,
+    renderHistory: renderHistory,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };
