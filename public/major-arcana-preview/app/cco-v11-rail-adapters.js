@@ -9,6 +9,7 @@
  * Block 2: B Smart information (buildSmartInfoFromSignals).
  * Block 3: C Stats (buildStatsFromExtras).
  * Block 4: V Active Visit (buildActiveVisitFromBundle).
+ * Block 5: D Critical warnings (buildCriticalWarnings).
  */
 (function (global) {
   'use strict';
@@ -324,12 +325,65 @@
     };
   }
 
+  // D · Critical warnings — blocker/legal-gates (cooling_off=info exkluderas).
+  // Etiketter speglar CcoKundkortKkx SIGNAL_BLURBS; fallback om signal saknar risk.
+  var CRITICAL_BY_RULE = {
+    missing_health_declaration: { what: 'Hälsodeklaration saknas', legal: false },
+    missing_journal: { what: 'Journal saknas', legal: false },
+    missing_treatment_plan: { what: 'Behandlingsplan/offert saknas', legal: false },
+    missing_agreement_consent_bundle: { what: 'Avtal + samtycke saknas', legal: true },
+    missing_operation_day_insurance: { what: 'Friskförsäkran saknas', legal: false },
+    missing_photo_consent: { what: 'Foto-samtycke saknas', legal: true },
+  };
+
+  function criticalRuleKey(ruleId) {
+    var id = String(ruleId || '').replace(/^customer\./, '');
+    return CRITICAL_BY_RULE[id] ? id : '';
+  }
+
+  /**
+   * D · Critical warnings — kritiska blocker-/legal-gates som röda top-banners
+   * (canon §6 D). Datakälla: CcoKundkortKkx.resolvePanelSignals (canonical
+   * logik-lager), fallback card.automationSignals. Kritisk = aktiv signal med
+   * risk blocker/legal_blocker/legal (eller, om risk saknas, ruleId i
+   * blocker-allowlist). info-signaler (t.ex. betänketid) exkluderas.
+   *
+   * Returnerar [] när inga kritiska varningar → D utelämnas (ingen tom banner).
+   *
+   * @returns {Array<{ruleId:string, what:string, why:string, legal:boolean}>}
+   */
+  function buildCriticalWarnings(card, journalEntries, dossierBundle) {
+    var kkx = global.CcoKundkortKkx;
+    var signals =
+      kkx && typeof kkx.resolvePanelSignals === 'function'
+        ? toArray(kkx.resolvePanelSignals(card || {}, journalEntries, dossierBundle, {}))
+        : toArray(card && card.automationSignals);
+
+    var out = [];
+    signals.forEach(function (s) {
+      if (!s || s.status !== 'active') return;
+      var risk = String(s.risk || '');
+      var key = criticalRuleKey(s.ruleId);
+      var isCritical = risk ? /blocker|legal/i.test(risk) : !!key;
+      if (!isCritical) return;
+      var def = key ? CRITICAL_BY_RULE[key] : null;
+      out.push({
+        ruleId: text(s.ruleId),
+        what: text(s.what) || (def && def.what) || 'Kritisk varning',
+        why: text(s.why),
+        legal: /legal/i.test(risk) || !!(def && def.legal),
+      });
+    });
+    return out;
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
     buildSmartInfoFromSignals: buildSmartInfoFromSignals,
     buildStatsFromExtras: buildStatsFromExtras,
     buildActiveVisitFromBundle: buildActiveVisitFromBundle,
-    // Block 5+ section adapters registreras här.
+    buildCriticalWarnings: buildCriticalWarnings,
+    // Block 6+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

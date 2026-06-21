@@ -320,7 +320,40 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning (LÅST): A → V → B → C.
+   * D · Critical warnings — röda top-banner-kort (canon §6 D). Visas överst när
+   * kritiska blocker-/legal-gates är aktiva; tom lista → inget renderas.
+   * @param {Array} list - output från CcoV11RailAdapters.buildCriticalWarnings
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderCriticalWarnings(list) {
+    if (!list || !list.length) return '';
+    var cards = list
+      .map(function (w) {
+        return (
+          '<div class="v11-rail__warning" data-rule-id="' +
+          esc(w.ruleId) +
+          '">' +
+          '<span class="v11-rail__warning-badge" aria-hidden="true">⚠</span>' +
+          '<span class="v11-rail__warning-copy">' +
+          '<span class="v11-rail__warning-what">' +
+          esc(w.what) +
+          (w.legal ? '<span class="v11-rail__warning-legal">Juridik</span>' : '') +
+          '</span>' +
+          (w.why ? '<span class="v11-rail__warning-why">' + esc(w.why) + '</span>' : '') +
+          '</span>' +
+          '</div>'
+        );
+      })
+      .join('');
+    return (
+      '<section class="v11-rail__warnings" role="alert" aria-label="Kritiska varningar">' +
+      cards +
+      '</section>'
+    );
+  }
+
+  /**
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -331,6 +364,13 @@
     var bcard = ctx.bcard || ctx.card || {};
     var card = ctx.card || {};
     var out = '';
+
+    // D · Critical warnings (röda top-banners) — överst, endast när kritiska
+    if (typeof adapters.buildCriticalWarnings === 'function') {
+      out += renderCriticalWarnings(
+        adapters.buildCriticalWarnings(card, ctx.journalEntries, ctx.dossierBundle)
+      );
+    }
 
     // A · Profile
     if (typeof adapters.buildProfileFromBcard === 'function') {
@@ -360,12 +400,13 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 4,
+    BLOCK: 5,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
     renderStats: renderStats,
     renderActiveVisit: renderActiveVisit,
+    renderCriticalWarnings: renderCriticalWarnings,
     render: render,
   };
 })(typeof window !== 'undefined' ? window : global);
