@@ -16,6 +16,7 @@
  * Block 9: S Sticky Footer (buildStickyActions).
  * Block 10: H Bookings — KEEP (buildBookingsFromExtras).
  * Block 11: I History — KEEP (buildHistoryFromExtras).
+ * Block 12: J Journals — KEEP (buildJournalsFromEntries).
  */
 (function (global) {
   'use strict';
@@ -752,6 +753,62 @@
     return { items: items, count: items.length };
   }
 
+  function journalNoteText(entry) {
+    if (!entry) return '';
+    return text(entry.summary || entry.note || entry.clinicalSummary || entry.title).slice(0, 140);
+  }
+
+  function journalMeta(entry) {
+    var parts = [];
+    var who = text(entry.authorName || entry.signedByName);
+    if (who) parts.push(who);
+    var ts = entry.signedAt || entry.updatedAt || entry.createdAt;
+    if (ts) parts.push(String(ts).slice(0, 10));
+    return parts.join(' · ') || 'Journal';
+  }
+
+  /**
+   * J · Journals (KEEP) — V11-presentation av journalposter ovanpå befintlig
+   * journal-logik (canon KEEP). Bevarar journal-workflow utan ny handler eller
+   * ändrad betydelse. Self-contained: speglar parity-preview-logiken
+   * (buildJournalPreviewEntries/journalEntryState/normalizeNoteText/
+   * formatNoteMeta) utan beroende på interna funktioner (canon §5).
+   *
+   *  - Bygger på ctx.journalEntries (riktiga journalposter). Sorteras på
+   *    signedAt/updatedAt/createdAt (senaste först), kapas till 5.
+   *  - State: locked||signedAt → 'signed'; annars 'draft'. Ingen påhittad text.
+   *  - Renderaren gör varje rad NÅBAR via befintlig data-v9-section-link="journal"
+   *    (öppnar journal-fliken) — befintlig handler, graceful tills KEEP-Zon 2.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (inga journalposter ännu är normalt).
+   *
+   * @returns {{items:Array, count:number}}
+   */
+  function buildJournalsFromEntries(journalEntries) {
+    var entries = toArray(journalEntries).filter(function (e) {
+      return e && typeof e === 'object';
+    });
+    var sorted = entries.slice().sort(function (a, b) {
+      var ta = Date.parse(a.signedAt || a.updatedAt || a.createdAt || 0) || 0;
+      var tb = Date.parse(b.signedAt || b.updatedAt || b.createdAt || 0) || 0;
+      return tb - ta;
+    });
+
+    var items = sorted.slice(0, 5).map(function (e) {
+      var state = e.locked || e.signedAt ? 'signed' : 'draft';
+      return {
+        title: text(e.title) || text(e.journalType) || text(e.formKey) || 'Journalpost',
+        snippet: journalNoteText(e),
+        meta: journalMeta(e),
+        state: state,
+        badge: state === 'signed' ? 'Signerad' : 'Utkast',
+      };
+    });
+
+    return { items: items, count: items.length };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -765,6 +822,7 @@
     buildStickyActions: buildStickyActions,
     buildBookingsFromExtras: buildBookingsFromExtras,
     buildHistoryFromExtras: buildHistoryFromExtras,
-    // Block 12+ section adapters registreras här.
+    buildJournalsFromEntries: buildJournalsFromEntries,
+    // Block 13+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

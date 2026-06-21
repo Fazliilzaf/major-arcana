@@ -683,6 +683,69 @@
   }
 
   /**
+   * J · Journals (KEEP) — V11-presentation av journalposter. Bevarar journal-
+   * workflow: varje rad bär data-v9-section-link="journal" (öppnar journal-
+   * fliken) — BEFINTLIG handler, ingen ny. Tom lista → explicit empty-state.
+   * @param {object} j - output från CcoV11RailAdapters.buildJournalsFromEntries
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderJournals(j) {
+    if (!j) return '';
+    var count = Number(j.count) > 0 ? Number(j.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Journal">' +
+        '<div class="v11-rail__empty-title">Inga journalposter ännu</div>' +
+        '<div class="v11-rail__empty-hint">Inga journalanteckningar registrerade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__journal-list">' +
+        j.items
+          .map(function (it) {
+            return (
+              '<li class="v11-rail__journal-item">' +
+              '<button type="button" class="v11-rail__journal-row" data-v9-section-link="journal" data-journal-state="' +
+              esc(it.state) +
+              '">' +
+              '<span class="v11-rail__journal-head">' +
+              '<span class="v11-rail__journal-title">' +
+              esc(it.title) +
+              '</span>' +
+              '<span class="v11-rail__journal-badge" data-state="' +
+              esc(it.state) +
+              '">' +
+              esc(it.badge) +
+              '</span>' +
+              '</span>' +
+              (it.snippet
+                ? '<span class="v11-rail__journal-snippet">' + esc(it.snippet) + '</span>'
+                : '') +
+              '<span class="v11-rail__journal-meta">' +
+              esc(it.meta) +
+              '</span>' +
+              '</button>' +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+    }
+
+    return (
+      '<section class="v11-rail__journals" data-v11-rail-journals aria-label="Journal">' +
+      '<header class="v11-rail__journals-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">JOURNAL</div>' +
+      (count ? '<span class="v11-rail__journals-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -731,7 +794,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -805,6 +868,11 @@
       );
     }
 
+    // J · Journals (KEEP) — journalposter, bevarar journal-workflow
+    if (typeof adapters.buildJournalsFromEntries === 'function') {
+      out += renderJournals(adapters.buildJournalsFromEntries(ctx.journalEntries));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -817,7 +885,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 11,
+    BLOCK: 12,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -829,6 +897,7 @@
     renderSmartNextStep: renderSmartNextStep,
     renderBookings: renderBookings,
     renderHistory: renderHistory,
+    renderJournals: renderJournals,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };

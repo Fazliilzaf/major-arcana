@@ -1165,6 +1165,106 @@
   border: 1px solid rgba(60, 140, 80, 0.28);
 }
 
+/* ===== J · Journals (KEEP) ===== */
+.v11-rail__journals {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__journals-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__journals-count {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--v11-rail-amber);
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.28);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.v11-rail__journal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v11-rail__journal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid rgba(56, 40, 28, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+}
+.v11-rail__journal-row:hover {
+  border-color: var(--v11-rail-amber);
+  background: rgba(255, 248, 236, 0.9);
+}
+
+.v11-rail__journal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.v11-rail__journal-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v11-rail-ink);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__journal-badge {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--v11-rail-muted);
+  background: rgba(56, 40, 28, 0.07);
+}
+.v11-rail__journal-badge[data-state="signed"] {
+  color: #2c6b3d;
+  background: rgba(60, 140, 80, 0.14);
+}
+.v11-rail__journal-badge[data-state="draft"] {
+  color: #8b5e12;
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v11-rail__journal-snippet {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--v11-rail-ink);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__journal-meta {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+}
+
 /* ===== S · Sticky Footer ===== */
 .v11-rail__sticky {
   display: flex;
@@ -1274,10 +1374,11 @@
     min-height: 44px;
     flex: 1 1 100%;
   }
-  /* H Bookings + I History: tappbara rader + confirm ≥44px på mobil */
+  /* H/I/J KEEP: tappbara rader + confirm ≥44px på mobil */
   .v11-rail__booking-row,
   .v11-rail__bookings-confirm,
-  .v11-rail__history-row {
+  .v11-rail__history-row,
+  .v11-rail__journal-row {
     min-height: 44px;
   }
   /* S Sticky Footer: fäst längst ner i rail-scrollern på mobil (canon §6 S),
@@ -1308,7 +1409,8 @@
   .v11-rail__sticky-secondary,
   .v11-rail__booking-row,
   .v11-rail__bookings-confirm,
-  .v11-rail__history-row {
+  .v11-rail__history-row,
+  .v11-rail__journal-row {
     min-height: 44px;
   }
 }
