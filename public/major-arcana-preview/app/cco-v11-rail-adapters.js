@@ -13,6 +13,7 @@
  * Block 6: E Health Declaration preview (buildHealthPreview).
  * Block 7: F Customer Journey (buildJourneyFromState).
  * Block 8: G Smart Next Step (buildSmartNextStep).
+ * Block 9: S Sticky Footer (buildStickyActions).
  */
 (function (global) {
   'use strict';
@@ -525,6 +526,59 @@
     };
   }
 
+  /**
+   * S · Sticky Footer — persistent åtgärdsrad (canon §6 S). Två livscykel-
+   * actions med riktig data:
+   *
+   *  - "Boka nästa" (primär): återanvänder den BEFINTLIGA dokument-delegerade
+   *    ord48-kalenderhandlern via data-kk-ord48-open-calendar (ingen ny
+   *    handler). Aktiv endast när kunden är redo för behandling — speglar det
+   *    primära villkoret i legacy resolveOrd48ReadyState (card.readyForTreatment
+   *    === true). Inte redo → disabled + förklarande text (ingen fejkad CTA).
+   *
+   *  - "Bekräfta kommande tider (N)": N hämtas från det EXPORTERADE booking-
+   *    lagret (CcoKundkortKkx.resolveReferensBookingExtras → upcomingBooking-
+   *    Count). Inga kommande tider → disabled, ingen påhittad siffra.
+   *
+   * Returnerar alltid ett objekt (footern är den persistenta åtgärdsraden och
+   * renderas alltid när rail-innehåll finns).
+   *
+   * @returns {{patientId:string, bookCount:number, ready:boolean}}
+   */
+  function buildStickyActions(card, bcard, dossierBundle, occasionTimeline) {
+    card = card || {};
+    bcard = bcard || {};
+    var pid = text(card.patientId || card.id || bcard.patientId || bcard.id || card.customerId);
+
+    // N kommande bokningar — återanvänd det exporterade referens-booking-lagret.
+    var bookCount = 0;
+    var kkx = global.CcoKundkortKkx;
+    if (kkx && typeof kkx.resolveReferensBookingExtras === 'function') {
+      try {
+        var bx = kkx.resolveReferensBookingExtras(card, dossierBundle || {}, {
+          occasionTimeline:
+            occasionTimeline || (dossierBundle && dossierBundle.occasionTimeline) || null,
+        });
+        var n = bx ? Number(bx.upcomingBookingCount) : NaN;
+        if (Number.isFinite(n) && n > 0) bookCount = n;
+      } catch (_bx) {
+        bookCount = 0;
+      }
+    }
+    if (!bookCount) {
+      bookCount =
+        toArray(card.upcomingBookings).length ||
+        toArray(bcard.upcomingBookings).length ||
+        (Number(bcard.bookings) > 0 ? Number(bcard.bookings) : 0);
+    }
+
+    return {
+      patientId: pid,
+      bookCount: bookCount,
+      ready: card.readyForTreatment === true,
+    };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -535,6 +589,7 @@
     buildHealthPreview: buildHealthPreview,
     buildJourneyFromState: buildJourneyFromState,
     buildSmartNextStep: buildSmartNextStep,
-    // Block 9+ section adapters registreras här.
+    buildStickyActions: buildStickyActions,
+    // Block 10+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

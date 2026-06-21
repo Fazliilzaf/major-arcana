@@ -538,7 +538,55 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G.
+   * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
+   * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
+   * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
+   * "Bekräfta kommande tider (N)" bär data-v9-quick="confirm" och visar N från
+   * riktig booking-data (disabled vid 0). Inga nya handlers.
+   * @param {object} s - output från CcoV11RailAdapters.buildStickyActions
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderStickyFooter(s) {
+    if (!s) return '';
+    var pid = esc(s.patientId);
+    var ready = s.ready === true;
+    var count = Number(s.bookCount) > 0 ? Number(s.bookCount) : 0;
+
+    var bookBtn =
+      '<button type="button" class="v11-rail__sticky-primary' +
+      (ready ? '' : ' is-disabled') +
+      '" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="' +
+      pid +
+      '"' +
+      (ready ? '' : ' disabled aria-disabled="true"') +
+      '>Boka nästa</button>';
+
+    var confirmBtn =
+      '<button type="button" class="v11-rail__sticky-secondary' +
+      (count ? '' : ' is-disabled') +
+      '" data-v9-quick="confirm"' +
+      (count ? '' : ' disabled aria-disabled="true"') +
+      '>Bekräfta kommande tider' +
+      (count ? ' (' + count + ')' : '') +
+      '</button>';
+
+    var hint = ready
+      ? ''
+      : '<p class="v11-rail__sticky-hint">Boka nästa aktiveras när kunden är redo för behandling.</p>';
+
+    return (
+      '<section class="v11-rail__sticky" data-v11-rail-sticky aria-label="Snabbåtgärder">' +
+      '<div class="v11-rail__sticky-actions">' +
+      bookBtn +
+      confirmBtn +
+      '</div>' +
+      hint +
+      '</section>'
+    );
+  }
+
+  /**
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -598,11 +646,19 @@
       out += renderSmartNextStep(adapters.buildSmartNextStep(card));
     }
 
+    // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
+    // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
+    if (out && typeof adapters.buildStickyActions === 'function') {
+      out += renderStickyFooter(
+        adapters.buildStickyActions(card, bcard, ctx.dossierBundle, ctx.occasionTimeline)
+      );
+    }
+
     return out;
   }
 
   global.CcoV11Rail = {
-    BLOCK: 8,
+    BLOCK: 9,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -612,6 +668,7 @@
     renderHealthPreview: renderHealthPreview,
     renderJourney: renderJourney,
     renderSmartNextStep: renderSmartNextStep,
+    renderStickyFooter: renderStickyFooter,
     render: render,
   };
 })(typeof window !== 'undefined' ? window : global);
