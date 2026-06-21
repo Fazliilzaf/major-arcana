@@ -15,6 +15,7 @@
  * Block 8: G Smart Next Step (buildSmartNextStep).
  * Block 9: S Sticky Footer (buildStickyActions).
  * Block 10: H Bookings — KEEP (buildBookingsFromExtras).
+ * Block 11: I History — KEEP (buildHistoryFromExtras).
  */
 (function (global) {
   'use strict';
@@ -704,6 +705,53 @@
     };
   }
 
+  /**
+   * I · History (KEEP) — V11-presentation av TIDIGARE besök/bokningar ovanpå
+   * befintlig historik-logik (canon KEEP). Bevarar historik-workflow utan ny
+   * handler eller ändrad betydelse:
+   *
+   *  - Listan byggs från det EXPORTERADE referens-booking-lagret
+   *    (CcoKundkortKkx.resolveReferensBookingExtras → historyBookings, som i sin
+   *    tur återanvänder parity.buildHistoryBookings: senaste besök +
+   *    occasionTimeline, deduppat, kapat). Inga påhittade besök.
+   *  - Renderaren gör varje rad NÅBAR via befintlig
+   *    data-v9-section-link="historik" (öppnar tidslinjen) — samma handler som
+   *    legacy historik, graceful tills KEEP-Zon 2 är wire:ad.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (ingen historik ännu är normalt).
+   *
+   * @returns {{items:Array, count:number}}
+   */
+  function buildHistoryFromExtras(card, bcard, dossierBundle, occasionTimeline) {
+    card = card || {};
+    bcard = bcard || {};
+    var rows = [];
+    var kkx = global.CcoKundkortKkx;
+    if (kkx && typeof kkx.resolveReferensBookingExtras === 'function') {
+      try {
+        var bx = kkx.resolveReferensBookingExtras(card, dossierBundle || {}, {
+          occasionTimeline:
+            occasionTimeline || (dossierBundle && dossierBundle.occasionTimeline) || null,
+        });
+        rows = toArray(bx && bx.historyBookings);
+      } catch (_bx) {
+        rows = [];
+      }
+    }
+    if (!rows.length) rows = toArray(card.bookingHistory);
+    if (!rows.length) rows = toArray(bcard.bookingHistory);
+
+    var items = rows
+      .map(normalizeBooking)
+      .filter(function (it) {
+        return it.whenLong || it.title;
+      })
+      .slice(0, 8);
+
+    return { items: items, count: items.length };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -716,6 +764,7 @@
     buildSmartNextStep: buildSmartNextStep,
     buildStickyActions: buildStickyActions,
     buildBookingsFromExtras: buildBookingsFromExtras,
-    // Block 11+ section adapters registreras här.
+    buildHistoryFromExtras: buildHistoryFromExtras,
+    // Block 12+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
