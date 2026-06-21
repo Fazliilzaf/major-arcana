@@ -1,6 +1,6 @@
 # V11-RAIL · V Active Visit — Data Contract (förslag att låsa)
 
-**Status:** FÖRSLAG — ska låsas av owner/Codex innan kod skrivs (Block 4).
+**Status:** LÅST 2026-06-21 (owner-svar). Block 4-kod kan börja.
 **Datum:** 2026-06-21
 **Sektion:** V · Active Visit (canon §6 V — "facit: new hero with timeline and journal CTA").
 **Syfte:** Låsa exakt datakontrakt + CTA-wiring innan `.v11-rail__active-visit` byggs, så att journal-/check-in-flödet inte tappas under riktigt besök (inventory-blocker #1).
@@ -88,8 +88,11 @@ handler-logik. Detta är den enda legacy-kontaktpunkten utöver mount-switchen.
 ## 6. Adapter + renderer (Block 4, EFTER lås)
 
 - `buildActiveVisitFromBundle(dossierBundle)` i `cco-v11-rail-adapters.js`
-  = tunn wrapper kring `resolveActiveVisitPayload` + presentation-mappning till
-  ren data (inga klasser).
+  = **self-contained**: läser `dossierBundle.activeVisit` (grind `visible===true`)
+  och speglar det dokumenterade state→presentation-kontraktet i §4 **utan**
+  beroende på `CcoV9CustomersParity`-interna funktioner (`resolveActiveVisitPresentation`
+  är inte exporterad; v11-rail ska vara oberoende per canon §5). Returnerar ren
+  data, inga klasser.
 - `renderActiveVisit(data)` i `cco-v11-rail.js` → `.v11-rail__active-visit` med
   egen `esc`, men **samma `data-v11-active-visit-action`-kontrakt**.
 - `render()`-ordning: V placeras enligt canon (hero) — föreslås **efter A Profile,
@@ -101,15 +104,13 @@ handler-logik. Detta är den enda legacy-kontaktpunkten utöver mount-switchen.
 `.v11-rail__active-visit` får egna 320/768/1024-regler; CTA-knappar ≥44px touch
 på mobil/tablet; timeline klipper ej horisontellt.
 
-## 8. Öppna punkter att bekräfta vid lås
+## 8. Låsta beslut (owner 2026-06-21)
 
-1. **Placering** i rail-ordningen (förslag: A → **V** → B → C). OK?
-2. **Återanvänd handler** i `cco-v9-customers-parity.js` oförändrad (v11-rail
-   återanvänder `data-v11-active-visit-action`) — OK, eller egen handler i rail?
-3. Ska `practitionerLabel`/`serviceLabel` visas i v11-rail-hero (samma som facit)?
-4. `blockers`-preflight: visa alltid (även tom → "Inga blockerare"), eller dölj
-   vid tom lista i kompakt rail?
+1. **Placering:** `A → V → B → C` — V som hero direkt efter A Profile när aktivt besök finns.
+2. **CTA-handler:** v11-rail behåller `data-v11-active-visit-action` och **återanvänder befintlig handler** (`cco-v9-customers-parity.js` → `liveHandlers`). Ingen ny rail-handler. Befintliga journal/checkin/complete-flöden bevaras.
+3. **Hero-innehåll:** visa både `practitionerLabel` och `serviceLabel`.
+4. **Blockers/preflight:** visa **alltid**; tom lista → "Inga blockerare för dagens besök."
 
 ---
 
-**När detta kontrakt är godkänt/låst (här eller i PR-beskrivning) börjar Block 4-kod.**
+**Kontraktet är LÅST. Block 4-kod (adapter + renderer + CSS + screenshots) byggs på denna gren och stoppar sedan för Codex-granskning.**

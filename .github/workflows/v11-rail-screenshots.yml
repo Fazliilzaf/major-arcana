@@ -42,6 +42,9 @@ jobs:
       - name: Generate Block 3 screenshots (A Profile + B Smart information + C Stats)
         run: npm run shots:v11rail:block3
 
+      - name: Generate Block 4 screenshots (A + V Active Visit + B + C)
+        run: npm run shots:v11rail:block4
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -63,5 +66,13 @@ jobs:
         with:
           name: v11-rail-block3-C-stats-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block3-C-stats/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 4 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block4-V-active-visit-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block4-V-active-visit/*.png
           if-no-files-found: error
           retention-days: 30
