@@ -8,6 +8,7 @@
  * Block 1: A Profile (buildProfileFromBcard).
  * Block 2: B Smart information (buildSmartInfoFromSignals).
  * Block 3: C Stats (buildStatsFromExtras).
+ * Block 4: V Active Visit (buildActiveVisitFromBundle).
  */
 (function (global) {
   'use strict';
@@ -218,11 +219,117 @@
     return { besok: besok, vardeTot: vardeTot, skuld: skuld };
   }
 
+  var ACTIVE_VISIT_STATES = ['scheduled_today', 'checked_in', 'in_progress', 'completed_today'];
+
+  function avTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    return isNaN(d.getTime())
+      ? ''
+      : d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function avMinutesSince(iso) {
+    var ms = Date.parse(String(iso || ''));
+    if (!Number.isFinite(ms)) return '';
+    var mins = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    return mins < 1 ? 'nyss' : mins + ' min sedan check-in';
+  }
+
+  /**
+   * V · Active Visit — bygger hero-data från dossierBundle.activeVisit
+   * (data-contract LÅST 2026-06-21). Self-contained: speglar det dokumenterade
+   * state→presentation-kontraktet utan beroende på CcoV9CustomersParity-interna
+   * funktioner (canon §5). Behåller CTA-actions (checkin/journal/complete/
+   * followup) så den BEFINTLIGA handlern wire:ar dem.
+   *
+   * Returnerar null när inget aktivt besök är synligt (V utelämnas — besök
+   * saknas är normalt, ej empty-state).
+   *
+   * @param {object} dossierBundle
+   * @returns {null|object} ren hero-data (inga klasser)
+   */
+  function buildActiveVisitFromBundle(dossierBundle) {
+    var visit =
+      dossierBundle && dossierBundle.activeVisit && dossierBundle.activeVisit.visible === true
+        ? dossierBundle.activeVisit
+        : null;
+    if (!visit) return null;
+
+    var state =
+      ACTIVE_VISIT_STATES.indexOf(String(visit.state || '')) >= 0
+        ? String(visit.state)
+        : 'scheduled_today';
+
+    var startsTime = avTime(visit.startsAt);
+    var checkedInTime = avTime(visit.checkedInAt);
+    var completedTime = avTime(visit.completedAt || visit.startedAt);
+    var journalLabel = visit.journalStarted ? 'Fortsätt journal' : 'Starta journal';
+
+    var kicker = {
+      scheduled_today: 'Nytt besök · idag',
+      checked_in: 'Incheckad',
+      in_progress: 'Pågår',
+      completed_today: completedTime ? 'Besök avslutat ' + completedTime : 'Besök avslutat',
+    }[state];
+
+    var statusLine = {
+      scheduled_today: 'Väntar incheckning',
+      checked_in: 'Redo att starta',
+      in_progress: 'Behandling pågår',
+      completed_today: 'Klart för idag',
+    }[state];
+
+    var headMeta = {
+      scheduled_today: startsTime ? 'Kl ' + startsTime : '',
+      checked_in: checkedInTime ? 'Incheckad ' + checkedInTime : '',
+      in_progress:
+        avMinutesSince(visit.checkedInAt || visit.startedAt) ||
+        (checkedInTime ? 'Incheckad ' + checkedInTime : ''),
+      completed_today: completedTime ? 'Avslutat ' + completedTime : '',
+    }[state];
+
+    var primary = {
+      scheduled_today: { action: 'checkin', label: 'Checka in' },
+      checked_in: { action: 'journal', label: journalLabel },
+      in_progress: { action: 'journal', label: journalLabel },
+      completed_today: { action: 'followup', label: 'Boka uppföljning' },
+    }[state];
+
+    var secondary = {
+      scheduled_today: { action: 'journal', label: journalLabel },
+      checked_in: null,
+      in_progress: { action: 'complete', label: 'Avsluta besök' },
+      completed_today: { action: 'journal', label: 'Visa journal' },
+    }[state];
+
+    return {
+      state: state,
+      kicker: kicker,
+      statusLine: statusLine,
+      headMeta: headMeta,
+      showTimeline: state !== 'scheduled_today',
+      preflightCompact: state === 'completed_today',
+      primary: primary,
+      secondary: secondary,
+      journalDetail: text(visit.serviceLabel),
+      title: text(visit.serviceLabel) || 'Besök idag',
+      practitioner: text(visit.practitionerLabel),
+      checkedInAt: text(visit.checkedInAt),
+      startedAt: text(visit.startedAt),
+      completedAt: text(visit.completedAt),
+      blockers: toArray(visit.blockers),
+      photoDisabled: visit.photoCaptureAvailable === false,
+      notesDisabled: visit.notesAvailable === false,
+    };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
     buildSmartInfoFromSignals: buildSmartInfoFromSignals,
     buildStatsFromExtras: buildStatsFromExtras,
-    // Block 4+ section adapters registreras här.
+    buildActiveVisitFromBundle: buildActiveVisitFromBundle,
+    // Block 5+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

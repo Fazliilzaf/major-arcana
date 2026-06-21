@@ -169,9 +169,159 @@
     );
   }
 
+  function fmtTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  }
+
   /**
-   * Renderar V11-rail-innehåll för en kund.
-   * @param {object} [ctx] - { card, bcard, journalEntries, occasionTimeline, driveFiles, patient, tab, lite }
+   * V · Active Visit — hero med timeline, preflight och journal-CTA (canon §6 V,
+   * data-contract LÅST 2026-06-21). CTA-knappar bär `data-v11-active-visit-action`
+   * som den BEFINTLIGA handlern (CcoV9CustomersParity/bindIntelligentJourney)
+   * wire:ar — ingen ny handler. Ren .v11-rail__active-visit-presentation.
+   * @param {object} av - output från CcoV11RailAdapters.buildActiveVisitFromBundle
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderActiveVisit(av) {
+    if (!av) return '';
+
+    // Timeline-noder (checkin/progress/done) per state
+    var ci = fmtTime(av.checkedInAt);
+    var st = fmtTime(av.startedAt || av.checkedInAt);
+    var co = fmtTime(av.completedAt);
+    function nodeState(phase) {
+      if (av.state === 'completed_today') return 'is-done';
+      if (av.state === 'in_progress')
+        return phase === 'checkin' ? 'is-done' : phase === 'progress' ? 'is-active' : '';
+      if (av.state === 'checked_in' && phase === 'checkin') return 'is-active';
+      return '';
+    }
+    var nodes = [
+      { phase: 'checkin', label: ci ? ci + ' incheckad' : 'Incheckad' },
+      { phase: 'progress', label: st ? st + ' pågår' : 'Pågår' },
+      { phase: 'done', label: co ? co + ' klart' : 'Klart' },
+    ];
+    var timeline = av.showTimeline
+      ? '<div class="v11-rail__av-timeline" aria-label="Besöksförlopp">' +
+        nodes
+          .map(function (n) {
+            return (
+              '<div class="v11-rail__av-node ' +
+              nodeState(n.phase) +
+              '"><span class="v11-rail__av-dot" aria-hidden="true"></span>' +
+              '<span class="v11-rail__av-node-label">' +
+              esc(n.label) +
+              '</span></div>'
+            );
+          })
+          .join('') +
+        '</div>'
+      : '';
+
+    // Preflight — visas ALLTID (locked); tom lista → klartext
+    var preflight;
+    if (av.preflightCompact) {
+      preflight = '<p class="v11-rail__av-preflight-ok">Besöket är avslutat för idag.</p>';
+    } else if (av.blockers.length) {
+      preflight =
+        '<span class="v11-rail__av-preflight-kicker">Innan besöket</span>' +
+        '<div class="v11-rail__av-blockers">' +
+        av.blockers
+          .map(function (b) {
+            return (
+              '<div class="v11-rail__av-blocker" data-blocker="' +
+              esc(b.code || '') +
+              '"><span class="v11-rail__av-blocker-badge" aria-hidden="true">!</span>' +
+              '<span class="v11-rail__av-blocker-label">' +
+              esc(b.label || 'Blockerare') +
+              '</span></div>'
+            );
+          })
+          .join('') +
+        '</div>';
+    } else {
+      preflight =
+        '<span class="v11-rail__av-preflight-kicker">Innan besöket</span>' +
+        '<p class="v11-rail__av-preflight-ok">Inga blockerare för dagens besök.</p>';
+    }
+
+    // CTA-knappar — behåll data-v11-active-visit-action (befintlig handler)
+    function actionBtn(act, label, cls, disabled) {
+      return (
+        '<button type="button" class="' +
+        cls +
+        (disabled ? ' is-disabled' : '') +
+        '" data-v11-active-visit-action="' +
+        esc(act) +
+        '"' +
+        (disabled ? ' disabled aria-disabled="true"' : '') +
+        '>' +
+        esc(label) +
+        '</button>'
+      );
+    }
+    function withDetail(action, label) {
+      return action === 'journal' && av.journalDetail ? label + ' · ' + av.journalDetail : label;
+    }
+    var actions =
+      '<div class="v11-rail__av-actions" data-v11-active-visit-actions>' +
+      actionBtn(
+        av.primary.action,
+        withDetail(av.primary.action, av.primary.label),
+        'v11-rail__av-primary'
+      ) +
+      (av.secondary
+        ? actionBtn(
+            av.secondary.action,
+            withDetail(av.secondary.action, av.secondary.label),
+            'v11-rail__av-secondary'
+          )
+        : '') +
+      actionBtn('photo', 'Ta bild', 'v11-rail__av-secondary', av.photoDisabled) +
+      actionBtn('notes', 'Anteckning', 'v11-rail__av-secondary', av.notesDisabled) +
+      '</div>';
+
+    var headMeta = '';
+    if (av.headMeta) headMeta = av.headMeta + (av.practitioner ? ' · ' + av.practitioner : '');
+    else if (av.practitioner) headMeta = av.practitioner;
+
+    return (
+      '<section class="v11-rail__active-visit" data-v11-active-visit data-v11-active-visit-state="' +
+      esc(av.state) +
+      '" aria-label="Aktivt besök idag">' +
+      '<header class="v11-rail__av-head">' +
+      '<span class="v11-rail__av-status"><span class="v11-rail__av-dot v11-rail__av-dot--' +
+      esc(av.state) +
+      '" aria-hidden="true"></span>' +
+      '<span class="v11-rail__av-kicker">' +
+      esc(av.kicker) +
+      '</span></span>' +
+      (headMeta ? '<span class="v11-rail__av-time">' + esc(headMeta) + '</span>' : '') +
+      '</header>' +
+      '<div class="v11-rail__av-context">' +
+      '<h3 class="v11-rail__av-title">' +
+      esc(av.title) +
+      '</h3>' +
+      '<p class="v11-rail__av-status-line">' +
+      esc(av.statusLine) +
+      '</p>' +
+      '</div>' +
+      timeline +
+      '<div class="v11-rail__av-preflight' +
+      (av.preflightCompact ? ' v11-rail__av-preflight--compact' : '') +
+      '" data-v11-active-visit-preflight>' +
+      preflight +
+      '</div>' +
+      actions +
+      '</section>'
+    );
+  }
+
+  /**
+   * Renderar V11-rail-innehåll för en kund. Ordning (LÅST): A → V → B → C.
+   * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
   function render(ctx) {
@@ -185,6 +335,12 @@
     // A · Profile
     if (typeof adapters.buildProfileFromBcard === 'function') {
       out += renderProfile(adapters.buildProfileFromBcard(bcard));
+    }
+
+    // V · Active Visit (hero) — endast när synligt aktivt besök finns
+    if (typeof adapters.buildActiveVisitFromBundle === 'function') {
+      var av = adapters.buildActiveVisitFromBundle(ctx.dossierBundle);
+      if (av) out += renderActiveVisit(av);
     }
 
     // B · Smart information (empty-state när inga signaler — ingen fejk)
@@ -204,11 +360,12 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 3,
+    BLOCK: 4,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
     renderStats: renderStats,
+    renderActiveVisit: renderActiveVisit,
     render: render,
   };
 })(typeof window !== 'undefined' ? window : global);

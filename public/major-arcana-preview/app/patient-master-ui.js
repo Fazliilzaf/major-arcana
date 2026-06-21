@@ -5262,6 +5262,7 @@
           window.CcoV11Rail.render({
             card,
             bcard,
+            dossierBundle,
             journalEntries,
             occasionTimeline,
             driveFiles,
