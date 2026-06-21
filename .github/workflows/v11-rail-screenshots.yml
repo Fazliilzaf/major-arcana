@@ -48,6 +48,9 @@ jobs:
       - name: Generate Block 5 screenshots (D Critical warnings + A + V + B + C)
         run: npm run shots:v11rail:block5
 
+      - name: Generate Block 6 screenshots (D + A + V + B + C + E Health preview)
+        run: npm run shots:v11rail:block6
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -85,5 +88,13 @@ jobs:
         with:
           name: v11-rail-block5-D-warnings-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block5-D-warnings/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 6 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block6-E-health-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block6-E-health/*.png
           if-no-files-found: error
           retention-days: 30

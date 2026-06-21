@@ -353,7 +353,58 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C.
+   * E · Health Declaration (preview) — top expandable preview (canon §6 E).
+   * Summerar HD-status + allergier; deep-link (data-kk-jump="kk-card-halsa")
+   * öppnar full HÄLSA-arbetsyta i Zon 2 (workflow dupliceras ej).
+   * @param {object} hp - output från CcoV11RailAdapters.buildHealthPreview
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderHealthPreview(hp) {
+    if (!hp) return '';
+
+    var statusText =
+      hp.status === 'signed' ? 'Signerad' : hp.status === 'missing' ? 'Saknas' : 'Okänd';
+    var meta = [];
+    if (hp.status === 'signed') {
+      if (hp.signedAt) meta.push(esc(String(hp.signedAt).slice(0, 10)));
+      if (hp.source) meta.push(esc(hp.source));
+    }
+    var metaLine = meta.length
+      ? '<span class="v11-rail__health-meta">' + meta.join(' · ') + '</span>'
+      : '';
+
+    var allergies =
+      hp.allergies && hp.allergies.length
+        ? '<details class="v11-rail__health-details"><summary>Allergier (' +
+          esc(String(hp.allergies.length)) +
+          ')</summary><div class="v11-rail__health-allergies">' +
+          hp.allergies
+            .map(function (a) {
+              return '<span class="v11-rail__health-allergy">' + esc(a) + '</span>';
+            })
+            .join('') +
+          '</div></details>'
+        : '';
+
+    return (
+      '<section class="v11-rail__health" aria-label="Hälsodeklaration">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div>' +
+      '<div class="v11-rail__health-row">' +
+      '<span class="v11-rail__health-status" data-status="' +
+      esc(hp.status) +
+      '">' +
+      esc(statusText) +
+      '</span>' +
+      metaLine +
+      '<button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button>' +
+      '</div>' +
+      allergies +
+      '</section>'
+    );
+  }
+
+  /**
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -396,17 +447,23 @@
       out += renderStats(adapters.buildStatsFromExtras(bcard));
     }
 
+    // E · Health Declaration (preview + deep-link, workflow ligger kvar i Zon 2)
+    if (typeof adapters.buildHealthPreview === 'function') {
+      out += renderHealthPreview(adapters.buildHealthPreview(bcard));
+    }
+
     return out;
   }
 
   global.CcoV11Rail = {
-    BLOCK: 5,
+    BLOCK: 6,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
     renderStats: renderStats,
     renderActiveVisit: renderActiveVisit,
     renderCriticalWarnings: renderCriticalWarnings,
+    renderHealthPreview: renderHealthPreview,
     render: render,
   };
 })(typeof window !== 'undefined' ? window : global);

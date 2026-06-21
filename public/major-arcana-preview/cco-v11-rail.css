@@ -600,13 +600,104 @@
   overflow-wrap: anywhere;
 }
 
+/* ===== E · Health Declaration (preview) ===== */
+.v11-rail__health {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96) 0%, rgba(250, 246, 242, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__health-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v11-rail__health-status {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.v11-rail__health-status[data-status="signed"] {
+  color: #1f5c33;
+  background: rgba(159, 212, 173, 0.28);
+  border-color: rgba(95, 170, 120, 0.4);
+}
+.v11-rail__health-status[data-status="missing"] {
+  color: #8b2e2e;
+  background: rgba(232, 168, 168, 0.25);
+  border-color: rgba(200, 90, 90, 0.4);
+}
+.v11-rail__health-status[data-status="unknown"] {
+  color: var(--v11-rail-muted);
+  background: rgba(132, 117, 107, 0.14);
+  border-color: rgba(132, 117, 107, 0.28);
+}
+
+.v11-rail__health-meta {
+  font-size: 12px;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__health-open {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v11-rail-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.v11-rail__health-open:hover {
+  border-color: var(--v11-rail-amber);
+  color: var(--v11-rail-amber);
+}
+
+.v11-rail__health-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v11-rail-muted);
+}
+
+.v11-rail__health-allergies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.v11-rail__health-allergy {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #7a4e12;
+  background: rgba(200, 130, 30, 0.12);
+  border: 1px solid rgba(200, 130, 30, 0.25);
+}
+
 /* ===== Responsive (canon §4) ===== */
 @media (max-width: 767px) {
   /* Mobile 320-767px — touch-targets ≥ 44px, ingen horisontell scroll */
   .v11-rail__scroll {
     padding: 12px;
   }
-  .v11-rail__edit {
+  .v11-rail__edit,
+  .v11-rail__health-open {
     min-height: 44px;
   }
   .v11-rail__avatar {
@@ -632,6 +723,7 @@
 @media (min-width: 768px) and (max-width: 1023px) {
   /* iPad / tablet 768-1023px */
   .v11-rail__edit,
+  .v11-rail__health-open,
   .v11-rail__av-primary,
   .v11-rail__av-secondary {
     min-height: 44px;
