@@ -940,7 +940,7 @@
               : fallback;
             return (
               '<a class="v11-rail__photo' +
-              (it.isImage ? '' : ' is-missing') +
+              (it.isImage ? '' : ' is-missing is-film') +
               '" href="' +
               esc(it.href) +
               '" target="_blank" rel="noopener"' +
