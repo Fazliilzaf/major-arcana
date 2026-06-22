@@ -1185,6 +1185,62 @@
   }
 
   /**
+   * R · Insights (LATER) — V11-presentation av operativa insikter byggda på
+   * kundens riktiga automation-signaler. Display-only insiktskort (ton:
+   * blocker/review/insight) — ingen handler. Tom → explicit empty-state.
+   * @param {object} r - output från CcoV11RailAdapters.buildInsightsFromSignals
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderInsights(r) {
+    if (!r) return '';
+    var count = Number(r.count) > 0 ? Number(r.count) : 0;
+    var icons = { blocker: '⚠', review: '◐', insight: '↗' };
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Insikter">' +
+        '<div class="v11-rail__empty-title">Inga insikter just nu</div>' +
+        '<div class="v11-rail__empty-hint">Inga aktiva signaler att lyfta.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__insights-list">' +
+        r.items
+          .map(function (it) {
+            var icon = icons[it.tone] || '↗';
+            return (
+              '<li class="v11-rail__insight" data-tone="' +
+              esc(it.tone) +
+              '">' +
+              '<span class="v11-rail__insight-icon" aria-hidden="true">' +
+              icon +
+              '</span>' +
+              '<span class="v11-rail__insight-main">' +
+              '<span class="v11-rail__insight-title">' +
+              esc(it.title) +
+              '</span>' +
+              (it.text ? '<span class="v11-rail__insight-text">' + esc(it.text) + '</span>' : '') +
+              '</span>' +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+    }
+
+    return (
+      '<section class="v11-rail__insights" data-v11-rail-insights aria-label="Insikter">' +
+      '<header class="v11-rail__insights-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">INSIKTER</div>' +
+      (count ? '<span class="v11-rail__insights-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -1233,7 +1289,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → O → P → Q → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → O → P → Q → R → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -1347,6 +1403,11 @@
       out += renderEconomy(adapters.buildEconomyFromCard(bcard));
     }
 
+    // R · Insights (LATER) — operativa insikter från riktiga signaler (display-only)
+    if (typeof adapters.buildInsightsFromSignals === 'function') {
+      out += renderInsights(adapters.buildInsightsFromSignals(card));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -1359,7 +1420,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 19,
+    BLOCK: 20,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -1379,6 +1440,7 @@
     renderNotes: renderNotes,
     renderCommunication: renderCommunication,
     renderEconomy: renderEconomy,
+    renderInsights: renderInsights,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };

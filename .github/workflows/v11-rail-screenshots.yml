@@ -90,6 +90,9 @@ jobs:
       - name: Generate Block 19 screenshots (… + Q Economy KEEP)
         run: npm run shots:v11rail:block19
 
+      - name: Generate Block 20 screenshots (… + R Insights LATER)
+        run: npm run shots:v11rail:block20
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -239,5 +242,13 @@ jobs:
         with:
           name: v11-rail-block19-Q-economy-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block19-Q-economy/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 20 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block20-R-insights-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block20-R-insights/*.png
           if-no-files-found: error
           retention-days: 30
