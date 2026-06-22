@@ -765,8 +765,8 @@
 
 .v11-rail__journey-mk {
   flex: none;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
   display: flex;
   align-items: center;
@@ -776,17 +776,26 @@
   color: var(--v11-rail-muted);
   background: rgba(132, 117, 107, 0.14);
   border: 1px solid rgba(132, 117, 107, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 1px 3px rgba(56, 40, 28, 0.16);
 }
 .v11-rail__journey-step.done .v11-rail__journey-mk {
   color: #fff;
-  background: #4a8268;
-  border-color: rgba(74, 130, 104, 0.5);
+  background: linear-gradient(135deg, #5a9478 0%, #3d6e57 100%);
+  border-color: rgba(61, 110, 87, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 2px 6px rgba(61, 110, 87, 0.3);
 }
 .v11-rail__journey-step.active .v11-rail__journey-mk {
   color: #fff;
   background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
   border-color: rgba(185, 112, 26, 0.5);
-  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 6px rgba(200, 130, 30, 0.3),
+    0 0 0 3px rgba(200, 130, 30, 0.18);
 }
 
 .v11-rail__journey-body {
