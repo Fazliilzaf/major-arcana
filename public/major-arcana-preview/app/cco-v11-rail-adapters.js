@@ -24,6 +24,7 @@
  * Block 17: O Notes — KEEP (buildNotesFromState).
  * Block 18: P Communication — KEEP (buildCommunicationFromState).
  * Block 19: Q Economy — KEEP (buildEconomyFromCard).
+ * Block 20: R Insights — LATER (buildInsightsFromSignals).
  */
 (function (global) {
   'use strict';
@@ -1257,6 +1258,45 @@
     return { items: items, count: hasData ? items.length : 0 };
   }
 
+  /**
+   * R · Insights (KEEP/LATER) — V11-presentation av operativa insikter byggda på
+   * kundens RIKTIGA automation-signaler via logik-lagret CcoKunderSmartNextStep
+   * (samma sortSignals som B/G). Varje aktiv signal blir ett insikts-kort
+   * (what + why/next, ton från risk). Display-only — ingen handler. Inga aktiva
+   * signaler → explicit empty-state (ingen heuristisk/fejkad insikt, till
+   * skillnad från legacy default-copy).
+   *
+   * @returns {{items:Array<{title,text,tone}>, count:number}}
+   */
+  function buildInsightsFromSignals(card) {
+    card = card || {};
+    var mod = global.CcoKunderSmartNextStep;
+    var raw = toArray(card.automationSignals);
+    var signals = mod && typeof mod.sortSignals === 'function' ? mod.sortSignals(raw) : raw;
+    var active = signals.filter(function (s) {
+      return s && s.status === 'active';
+    });
+
+    var items = active
+      .map(function (s) {
+        var title = text(s.what) || text(s.label) || text(s.title);
+        var body = text(s.why) || text(s.next) || text(s.summary) || text(s.message);
+        var risk = String(s.risk || '');
+        var tone = /block|legal/i.test(risk)
+          ? 'blocker'
+          : /review|needs/i.test(risk)
+            ? 'review'
+            : 'insight';
+        return { title: title, text: body, tone: tone };
+      })
+      .filter(function (it) {
+        return it.title;
+      })
+      .slice(0, 6);
+
+    return { items: items, count: items.length };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -1278,6 +1318,7 @@
     buildNotesFromState: buildNotesFromState,
     buildCommunicationFromState: buildCommunicationFromState,
     buildEconomyFromCard: buildEconomyFromCard,
-    // Block 20+ section adapters registreras här.
+    buildInsightsFromSignals: buildInsightsFromSignals,
+    // Block 21+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
