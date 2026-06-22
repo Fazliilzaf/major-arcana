@@ -387,6 +387,59 @@
     );
   }
 
+  /**
+   * Hälsa-modul (sektion 4) — hälsodeklaration-status + allergier. Återanvänder
+   * V11-adaptern buildHealthPreview + befintlig "Öppna"-jump `data-kk-jump="kk-card-halsa"`
+   * (navigation, ingen ny handler). Läkemedel/kontraindikationer finns ej i
+   * datakällan idag → explicit deferred (visas när data finns; ingen fejk, Fas 3).
+   */
+  function renderHealthModule(hp) {
+    hp = hp || { status: 'unknown', allergies: [] };
+    var statusText =
+      hp.status === 'signed' ? 'Signerad' : hp.status === 'missing' ? 'Saknas' : 'Okänd';
+    var meta = [];
+    if (hp.status === 'signed') {
+      if (hp.signedAt) meta.push(esc(String(hp.signedAt).slice(0, 10)));
+      if (hp.source) meta.push(esc(hp.source));
+    }
+    var metaLine = meta.length
+      ? '<span class="v12-workspace__health-meta">' + meta.join(' · ') + '</span>'
+      : '';
+
+    var allergies =
+      hp.allergies && hp.allergies.length
+        ? '<div class="v12-workspace__subhead">Allergier · ' +
+          esc(String(hp.allergies.length)) +
+          '</div><div class="v12-workspace__health-allergies">' +
+          hp.allergies
+            .map(function (a) {
+              return '<span class="v12-workspace__health-allergy">' + esc(a) + '</span>';
+            })
+            .join('') +
+          '</div>'
+        : '<div class="v12-workspace__subhead">Allergier</div>' +
+          '<div class="v12-workspace__health-muted">Inga registrerade allergier</div>';
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa">' +
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">HÄLSA</div>' +
+      '</header>' +
+      '<div class="v12-workspace__health-row">' +
+      '<span class="v12-workspace__health-status" data-status="' +
+      esc(hp.status) +
+      '">' +
+      esc(statusText) +
+      '</span>' +
+      metaLine +
+      '<button type="button" class="v12-workspace__health-open" data-kk-jump="kk-card-halsa">Öppna full hälsoprofil</button>' +
+      '</div>' +
+      allergies +
+      '<div class="v12-workspace__health-muted">Läkemedel &amp; kontraindikationer: visas när data finns.</div>' +
+      '</section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var av = null;
@@ -415,6 +468,17 @@
       }
     } catch (_error) {
       warnings = [];
+    }
+    var health = null;
+    try {
+      if (
+        global.CcoV11RailAdapters &&
+        typeof global.CcoV11RailAdapters.buildHealthPreview === 'function'
+      ) {
+        health = global.CcoV11RailAdapters.buildHealthPreview(ctx.bcard || ctx.card) || null;
+      }
+    } catch (_error) {
+      health = null;
     }
     var journal = { items: [], count: 0 };
     try {
@@ -460,6 +524,7 @@
       '<div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div>' +
       renderActiveVisitModule(av) +
       renderCriticalWarningsModule(warnings) +
+      renderHealthModule(health) +
       renderJournalModule(journal) +
       renderBookingsModule(bookings, history) +
       '</div>'
