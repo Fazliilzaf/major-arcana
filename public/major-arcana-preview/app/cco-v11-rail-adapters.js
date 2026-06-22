@@ -23,6 +23,7 @@
  * Block 16: N Files — KEEP (buildFilesFromDriveFiles).
  * Block 17: O Notes — KEEP (buildNotesFromState).
  * Block 18: P Communication — KEEP (buildCommunicationFromState).
+ * Block 19: Q Economy — KEEP (buildEconomyFromCard).
  */
 (function (global) {
   'use strict';
@@ -1187,6 +1188,75 @@
     };
   }
 
+  function econFormatSek(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '—';
+    return Math.round(n).toLocaleString('sv-SE') + ' kr';
+  }
+
+  /**
+   * Q · Economy (KEEP) — V11-presentation av kundens ekonomi-nyckeltal ovanpå
+   * befintlig dossier-logik (canon KEEP). Återanvänder det EXPORTERADE
+   * CcoV9CustomersParity.buildEconomyFields(card); fallback speglar samma logik
+   * self-contained (canon §5). Display-only — ingen handler. Saknas ekonomidata
+   * helt → explicit empty-state (ingen fejkad ekonomi).
+   *
+   * @returns {{items:Array<{label,value}>, count:number}}
+   */
+  function buildEconomyFromCard(card) {
+    card = card || {};
+    var fields = null;
+    var parity = global.CcoV9CustomersParity;
+    if (parity && typeof parity.buildEconomyFields === 'function') {
+      try {
+        fields = parity.buildEconomyFields(card);
+      } catch (_e) {
+        fields = null;
+      }
+    }
+    if (!Array.isArray(fields) || !fields.length) {
+      var ltv =
+        card.lifetimeValue != null
+          ? card.lifetimeValue
+          : card.dealValue != null
+            ? card.dealValue
+            : card.pipedriveDealValue != null
+              ? card.pipedriveDealValue
+              : card.potentialValue != null
+                ? card.potentialValue
+                : null;
+      var visits = Number(card.visitCount || card.bookingCount || 0);
+      var total = ltv != null ? econFormatSek(ltv) : '—';
+      var avg =
+        visits > 0 && Number(ltv) > 0
+          ? econFormatSek(Number(ltv) / visits)
+          : text(card.avgVisitRevenue) || '—';
+      fields = [
+        { label: 'Total intäkt', value: total },
+        { label: 'Utestående', value: text(card.outstandingBalance) || '0 kr' },
+        { label: 'Snitt/besök', value: avg },
+        { label: 'Livstidsvärde', value: text(card.lifetimeValueLabel) || total },
+      ];
+    }
+
+    var items = fields.map(function (f) {
+      return { label: text(f && f.label), value: text(f && f.value) || '—' };
+    });
+
+    // Ekonomidata finns om något fält har ett riktigt värde (utöver '—'/'0 kr').
+    var hasData =
+      card.lifetimeValue != null ||
+      card.dealValue != null ||
+      card.pipedriveDealValue != null ||
+      card.potentialValue != null ||
+      text(card.outstandingBalance) !== '' ||
+      text(card.lifetimeValueLabel) !== '' ||
+      text(card.avgVisitRevenue) !== '' ||
+      Number(card.visitCount || card.bookingCount || 0) > 0;
+
+    return { items: items, count: hasData ? items.length : 0 };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -1207,6 +1277,7 @@
     buildFilesFromDriveFiles: buildFilesFromDriveFiles,
     buildNotesFromState: buildNotesFromState,
     buildCommunicationFromState: buildCommunicationFromState,
-    // Block 19+ section adapters registreras här.
+    buildEconomyFromCard: buildEconomyFromCard,
+    // Block 20+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
