@@ -33,12 +33,18 @@
 - **Adapter/handler-återbruk:** **alla** `CcoV11RailAdapters.build*` (H/I/K/L/N/P/Q/G/R/S) återanvändbara as-is som datakälla. Handlers `confirmBookings`, `openReply`, `openJournal/switchTab`, `bindIntelligentJourney`, ord48-kalender, signal-action — **återanvänds; inga nya write-handlers behövs** för 8–13. V12 lägger bara rikare data-contracts (D5) där sektionen behöver mer (full text, etiketter, betalstatus).
 - **Mobil/iPad/webb:** D3-modellen (mobil = V12 ersätter ytan; iPad/webb = Zon 1 bredvid Zon 2) är CSS-driven och fungerar för Journal; verifiera per ny modul att Zon 2-innehållet inte trunkeras vid 768 och att sticky-baren inte täcker sista sektionen.
 
-## Owner spike-frågor (3 — oväntade blockerare)
+## Owner spike-frågor (3) — BESVARADE 2026-06-22
 
-1. **Profil-edit utan handler:** `data-v11-rail-edit-profile` finns men har **ingen bunden handler idag**. Ska V12 "redigera profil" (sektion 1) (a) öppna befintlig legacy-edit, (b) bli en ny write-handler i V12, eller (c) display-only i v1?
-2. **Personnummer saknas i datakällan:** canon §1 listar "personnummer/kund-ID", men bcard har bara namn/kontakt/kund-ID — **personnr finns inte i någon adapter/store idag**. Krävs personnr i v1 (ny data-plumbning + PII-hantering) eller räcker kund-ID tills vidare?
-3. **Saknad data för Bilder & Ekonomi:** före/efter-etiketter + datum-koppling (sektion 7) och fakturor/betalstatus + skuld-breakdown (sektion 11) finns **inte** i nuvarande data. Ska dessa moduler i v1 visa endast det som finns (filnamn / LTV+skuld-topline) och defer:a det saknade, eller är full data ett krav innan de byggs?
+> **Vägledande princip (ägare):** Bygg V12 v1 med **riktig befintlig data, inga fejkade värden**,
+> och **inga blockerande data-projekt innan UI kan komma igång**. Saknad data blockerar inte Fas 3
+> om sektionen kan visa befintlig data + tydlig empty/unknown-state.
+
+1. **Profil-edit utan handler** — ✅ **Återanvänd befintliga V11/V9-handlers/adapters där möjligt. Ny handler endast om workflow saknas helt.** (För edit: koppla till befintlig legacy-edit om sådan finns; annars display-only i v1 — ingen ny write-handler bara för att fylla en knapp.)
+2. **Personnummer saknas i datakällan** — ✅ **Blockerar inte.** Kund-ID räcker i v1; personnr visas som explicit unknown/empty tills data finns. Ingen ny data-plumbning/PII-projekt före UI.
+3. **Saknad data Bilder & Ekonomi** — ✅ **Visa endast befintlig data i v1.** Saknade etiketter/datum (Bilder) och fakturor/betalstatus/skuld-breakdown (Ekonomi) → explicit unknown/empty-state, **deferred**. Full data är **inte** krav före bygge.
+
+**Konsekvens för bygget:** alla 13 sektioner är ofblockerade för Fas 3 — partial/missing-fält renderas som unknown/empty (aldrig fejk), och write-actions återanvänder befintliga handlers (nya endast där workflow helt saknas).
 
 ## Stopp
 
-Inventory klar. **Ingen kod-edit, ingen scaffold, ingen design.** Inväntar **GO för Fas 3** (bygg-prompt till bygg-agenten) efter din canon-granskning + svar på spike-frågorna.
+Inventory klar + spikes besvarade. **Ingen kod-edit, ingen scaffold, ingen design.** **Full paus tills Codex har granskat #149.** Därefter GO för Fas 3 (bygg-prompt till bygg-agenten).
