@@ -675,6 +675,137 @@
   opacity: 0.85;
 }
 
+/* ===== Insikter & nästa åtgärd-modul (sektion 12) ===== */
+.v12-workspace__next {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--v12-card-border);
+  background: var(--v12-cream-neutral);
+}
+
+.v12-workspace__next[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.38);
+  background: rgba(181, 82, 74, 0.08);
+}
+
+.v12-workspace__next-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v12-workspace__next-tone {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.14);
+}
+
+.v12-workspace__next-tone[data-tone="blocker"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.16);
+}
+
+.v12-workspace__next-what {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.35;
+}
+
+.v12-workspace__next-why {
+  font-size: 12.5px;
+  color: var(--v12-muted);
+  line-height: 1.4;
+}
+
+.v12-workspace__next-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.v12-workspace__next-secondary {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__next-secondary:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__insights-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__insight[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.3);
+}
+
+.v12-workspace__insight-icon {
+  flex: none;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--v12-amber);
+}
+
+.v12-workspace__insight[data-tone="blocker"] .v12-workspace__insight-icon {
+  color: #8a2820;
+}
+
+.v12-workspace__insight-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v12-workspace__insight-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.35;
+}
+
+.v12-workspace__insight-text {
+  font-size: 12px;
+  color: var(--v12-muted);
+  line-height: 1.4;
+}
+
 /* ===== iPad/webb: Zon 1-rail bredvid Zon 2 ===== */
 @media (min-width: 768px) {
   .v12-workspace__zones {

@@ -86,3 +86,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-health/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Generate Insights module screenshots (Block 6)
+        run: npm run shots:v12workspace:insights
+
+      - name: Upload Insights screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-insights-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-insights/*.png
+          if-no-files-found: error
+          retention-days: 30
