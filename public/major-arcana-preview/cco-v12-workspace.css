@@ -199,6 +199,214 @@
   margin-top: 2px;
 }
 
+/* ===== Aktivt besök-modul (hero, sektion 2) ===== */
+.v12-workspace__av {
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 248, 236, 0.97) 0%, rgba(252, 240, 222, 0.9) 100%);
+  border: 1px solid rgba(200, 130, 30, 0.22);
+  box-shadow: 0 3px 12px rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__av-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v12-workspace__av-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.v12-workspace__av-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v12-amber);
+}
+
+.v12-workspace__av-dot--scheduled_today {
+  background: #6b5d4f;
+}
+.v12-workspace__av-dot--in_progress {
+  background: #c8821e;
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+.v12-workspace__av-dot--completed_today {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-time {
+  font-size: 11.5px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__av-context {
+  margin-top: 8px;
+}
+
+.v12-workspace__av-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__av-status-line {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--v12-muted);
+}
+
+/* Timeline */
+.v12-workspace__av-timeline {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.v12-workspace__av-node {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--v12-muted);
+  text-align: center;
+}
+
+.v12-workspace__av-node .v12-workspace__av-dot {
+  width: 10px;
+  height: 10px;
+  background: rgba(56, 40, 28, 0.2);
+}
+
+.v12-workspace__av-node.is-active .v12-workspace__av-dot {
+  background: var(--v12-amber);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+.v12-workspace__av-node.is-done .v12-workspace__av-dot {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-node-label {
+  line-height: 1.2;
+}
+
+/* Preflight / blockerare */
+.v12-workspace__av-preflight {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--v12-card-border);
+}
+
+.v12-workspace__av-preflight.is-compact {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.v12-workspace__av-preflight-kicker {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+  margin-bottom: 6px;
+}
+
+.v12-workspace__av-preflight-ok {
+  margin: 0;
+  font-size: 12px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__av-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v12-workspace__av-blocker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v12-workspace__av-blocker-badge {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: #b5524a;
+}
+
+.v12-workspace__av-blocker-label {
+  font-size: 12px;
+  color: var(--v12-ink);
+  overflow-wrap: anywhere;
+}
+
+/* CTA-knappar */
+.v12-workspace__av-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.v12-workspace__av-primary {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-amber);
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.v12-workspace__av-secondary {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__av-primary:hover,
+.v12-workspace__av-secondary:hover {
+  filter: brightness(1.03);
+}
+
+.v12-workspace__av-secondary.is-disabled,
+.v12-workspace__av-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ===== iPad/webb: Zon 1-rail bredvid Zon 2 ===== */
 @media (min-width: 768px) {
   .v12-workspace__zones {
