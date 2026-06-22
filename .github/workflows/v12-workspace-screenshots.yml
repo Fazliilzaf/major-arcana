@@ -53,3 +53,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-active-visit/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Generate Critical Warnings module screenshots (Block 3)
+        run: npm run shots:v12workspace:warnings
+
+      - name: Upload Critical Warnings screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-warnings-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-warnings/*.png
+          if-no-files-found: error
+          retention-days: 30

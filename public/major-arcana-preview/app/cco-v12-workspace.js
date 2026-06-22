@@ -243,6 +243,51 @@
     );
   }
 
+  /**
+   * Kritiska varningar-modul (sektion 3) — röda blocker/legal-gates. Display-only
+   * (inga handlers, inga write-actions). Datakälla: återanvänd V11-adapter
+   * buildCriticalWarnings (CcoKundkortKkx-logiklager med fallback automationSignals).
+   */
+  function renderCriticalWarningsModule(list) {
+    var head =
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="warn">KRITISKA VARNINGAR</div>' +
+      '</header>';
+    if (!list || !list.length) {
+      return (
+        '<section class="v12-workspace__module v12-workspace__warn" data-v12-module="warnings" aria-label="Kritiska varningar">' +
+        head +
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Inga kritiska varningar</div>' +
+        '<div class="v12-workspace__empty-hint">Inga blockerare eller risker att åtgärda.</div>' +
+        '</div></section>'
+      );
+    }
+    var cards = list
+      .map(function (w) {
+        return (
+          '<div class="v12-workspace__warn-card" data-rule-id="' +
+          esc(w.ruleId) +
+          '"><span class="v12-workspace__warn-badge" aria-hidden="true">⚠</span>' +
+          '<span class="v12-workspace__warn-copy">' +
+          '<span class="v12-workspace__warn-what">' +
+          esc(w.what) +
+          (w.legal ? '<span class="v12-workspace__warn-legal">Juridik</span>' : '') +
+          '</span>' +
+          (w.why ? '<span class="v12-workspace__warn-why">' + esc(w.why) + '</span>' : '') +
+          '</span></div>'
+        );
+      })
+      .join('');
+    return (
+      '<section class="v12-workspace__module v12-workspace__warn" role="alert" data-v12-module="warnings" aria-label="Kritiska varningar">' +
+      head +
+      '<div class="v12-workspace__warn-list">' +
+      cards +
+      '</div></section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var av = null;
@@ -255,6 +300,22 @@
       }
     } catch (_error) {
       av = null;
+    }
+    var warnings = [];
+    try {
+      if (
+        global.CcoV11RailAdapters &&
+        typeof global.CcoV11RailAdapters.buildCriticalWarnings === 'function'
+      ) {
+        warnings =
+          global.CcoV11RailAdapters.buildCriticalWarnings(
+            ctx.card,
+            ctx.journalEntries,
+            ctx.dossierBundle
+          ) || [];
+      }
+    } catch (_error) {
+      warnings = [];
     }
     var journal = { items: [], count: 0 };
     try {
@@ -272,6 +333,7 @@
       '<div class="v12-workspace__inner" data-v12-workspace-inner="1">' +
       '<div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div>' +
       renderActiveVisitModule(av) +
+      renderCriticalWarningsModule(warnings) +
       renderJournalModule(journal) +
       '</div>'
     );
