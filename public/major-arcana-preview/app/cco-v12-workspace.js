@@ -288,6 +288,105 @@
     );
   }
 
+  /**
+   * Bokningar-modul (sektion 8) — kommande + tidigare besök. Återanvänder
+   * V11-adaptrarna buildBookingsFromExtras/buildHistoryFromExtras och de
+   * BEFINTLIGA handlers: "Bekräfta tider" `data-v9-quick="confirm"` (confirmBookings)
+   * + rader `data-v9-section-link="upcoming"/"historik"`. INGEN ny handler.
+   */
+  function renderBookingsModule(bookings, history) {
+    var upCount = (bookings && bookings.count) || 0;
+    var histCount = (history && history.count) || 0;
+
+    function bookingRow(it) {
+      var staff = it.staff
+        ? '<span class="v12-workspace__booking-staff" title="' +
+          esc(it.staff) +
+          '"><span class="v12-workspace__booking-avatar" aria-hidden="true">' +
+          esc(it.initials || '—') +
+          '</span></span>'
+        : '';
+      var status = it.stateLabel
+        ? '<span class="v12-workspace__booking-status" data-state="' +
+          esc(it.state) +
+          '">' +
+          esc(it.stateLabel) +
+          '</span>'
+        : '';
+      return (
+        '<li class="v12-workspace__booking"><button type="button" class="v12-workspace__booking-row" data-v9-section-link="upcoming">' +
+        '<span class="v12-workspace__booking-when"><span class="v12-workspace__booking-date">' +
+        esc(it.whenLong || '—') +
+        '</span>' +
+        (it.whenShort
+          ? '<span class="v12-workspace__booking-time">' + esc(it.whenShort) + '</span>'
+          : '') +
+        '</span><span class="v12-workspace__booking-copy"><span class="v12-workspace__booking-title">' +
+        esc(it.title) +
+        '</span>' +
+        (it.sub ? '<span class="v12-workspace__booking-sub">' + esc(it.sub) + '</span>' : '') +
+        '</span>' +
+        staff +
+        status +
+        '</button></li>'
+      );
+    }
+    function historyRow(it) {
+      return (
+        '<li class="v12-workspace__booking"><button type="button" class="v12-workspace__booking-row v12-workspace__booking-row--history" data-v9-section-link="historik">' +
+        '<span class="v12-workspace__booking-when"><span class="v12-workspace__booking-date">' +
+        esc(it.whenLong || '—') +
+        '</span>' +
+        (it.whenShort
+          ? '<span class="v12-workspace__booking-time">' + esc(it.whenShort) + '</span>'
+          : '') +
+        '</span><span class="v12-workspace__booking-copy"><span class="v12-workspace__booking-title">' +
+        esc(it.title) +
+        '</span>' +
+        (it.sub ? '<span class="v12-workspace__booking-sub">' + esc(it.sub) + '</span>' : '') +
+        '</span><span class="v12-workspace__booking-done" aria-hidden="true">✓</span></button></li>'
+      );
+    }
+
+    var head =
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">BOKNINGAR</div>' +
+      (upCount ? '<span class="v12-workspace__count">' + esc(String(upCount)) + '</span>' : '') +
+      '</header>';
+
+    var upcoming = upCount
+      ? '<ul class="v12-workspace__booking-list">' +
+        bookings.items.map(bookingRow).join('') +
+        '</ul>' +
+        '<div class="v12-workspace__booking-actions">' +
+        '<button type="button" class="v12-workspace__primary" data-v9-quick="confirm">Bekräfta kommande tider (' +
+        esc(String(upCount)) +
+        ')</button></div>'
+      : '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Inga kommande bokningar</div>' +
+        '<div class="v12-workspace__empty-hint">Inga kommande tider bokade.</div></div>';
+
+    var historyBlock =
+      '<div class="v12-workspace__subhead">Tidigare besök' +
+      (histCount ? ' · ' + esc(String(histCount)) : '') +
+      '</div>' +
+      (histCount
+        ? '<ul class="v12-workspace__booking-list v12-workspace__booking-list--history">' +
+          history.items.map(historyRow).join('') +
+          '</ul>'
+        : '<div class="v12-workspace__empty" role="status">' +
+          '<div class="v12-workspace__empty-title">Ingen historik ännu</div>' +
+          '<div class="v12-workspace__empty-hint">Inga tidigare besök registrerade.</div></div>');
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__bookings" data-v12-module="bookings" aria-label="Bokningar">' +
+      head +
+      upcoming +
+      historyBlock +
+      '</section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var av = null;
@@ -328,6 +427,33 @@
     } catch (_error) {
       journal = { items: [], count: 0 };
     }
+    var bookings = { items: [], count: 0 };
+    var history = { items: [], count: 0 };
+    try {
+      if (global.CcoV11RailAdapters) {
+        if (typeof global.CcoV11RailAdapters.buildBookingsFromExtras === 'function') {
+          bookings =
+            global.CcoV11RailAdapters.buildBookingsFromExtras(
+              ctx.card,
+              ctx.bcard,
+              ctx.dossierBundle,
+              ctx.occasionTimeline
+            ) || bookings;
+        }
+        if (typeof global.CcoV11RailAdapters.buildHistoryFromExtras === 'function') {
+          history =
+            global.CcoV11RailAdapters.buildHistoryFromExtras(
+              ctx.card,
+              ctx.bcard,
+              ctx.dossierBundle,
+              ctx.occasionTimeline
+            ) || history;
+        }
+      }
+    } catch (_error) {
+      bookings = { items: [], count: 0 };
+      history = { items: [], count: 0 };
+    }
 
     return (
       '<div class="v12-workspace__inner" data-v12-workspace-inner="1">' +
@@ -335,6 +461,7 @@
       renderActiveVisitModule(av) +
       renderCriticalWarningsModule(warnings) +
       renderJournalModule(journal) +
+      renderBookingsModule(bookings, history) +
       '</div>'
     );
   }
