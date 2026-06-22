@@ -64,3 +64,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-warnings/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Generate Bookings module screenshots (Block 4)
+        run: npm run shots:v12workspace:bookings
+
+      - name: Upload Bookings screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-bookings-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-bookings/*.png
+          if-no-files-found: error
+          retention-days: 30
