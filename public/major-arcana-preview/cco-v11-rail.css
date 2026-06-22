@@ -1553,8 +1553,8 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  color: var(--v11-rail-muted);
-  background: linear-gradient(135deg, rgba(245, 236, 224, 0.95) 0%, rgba(232, 220, 205, 0.9) 100%);
+  color: var(--v11-rail-amber);
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.95) 0%, rgba(252, 233, 200, 0.78) 100%);
 }
 .v11-rail__photo.is-missing .v11-rail__photo-fallback {
   display: flex;
