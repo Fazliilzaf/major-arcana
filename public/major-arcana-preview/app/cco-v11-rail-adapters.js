@@ -21,6 +21,7 @@
  * Block 14: L Auto-documents — KEEP (buildAutoDocsFromPayload).
  * Block 15: M Photos — KEEP (buildPhotosFromDriveFiles).
  * Block 16: N Files — KEEP (buildFilesFromDriveFiles).
+ * Block 17: O Notes — KEEP (buildNotesFromState).
  */
 (function (global) {
   'use strict';
@@ -1059,6 +1060,62 @@
     return { items: items, count: items.length };
   }
 
+  /**
+   * O · Notes (KEEP) — V11-presentation av kundens anteckningar/noteringar
+   * ovanpå befintlig dossier-logik (canon KEEP). Self-contained: speglar parity
+   * buildSlideOverNotes (importantNote + allergier + recentEvents note/anteck)
+   * utan beroende på interna funktioner (canon §5). Bevarar betydelsen utan ny
+   * handler — anteckningar är display-only även i legacy. Inga påhittade
+   * noteringar.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (inga anteckningar är normalt).
+   *
+   * @returns {{items:Array, count:number}}
+   */
+  function buildNotesFromState(card, dossierBundle) {
+    card = card || {};
+    dossierBundle = dossierBundle || {};
+    var notes = [];
+
+    var important = text(card.importantNote);
+    if (important) {
+      notes.push({ text: important, meta: 'Viktig notering · patientkort', tone: 'important' });
+    }
+
+    // Allergier från bundle, annars från card.
+    var allergies = toArray(dossierBundle.allergies);
+    if (!allergies.length) allergies = toArray(card.allergies);
+    allergies.forEach(function (a) {
+      var name = typeof a === 'string' ? a : text(a && (a.name || a.label));
+      if (!name) return;
+      var sev = a && a.severity ? ' (' + text(a.severity) + ')' : '';
+      notes.push({
+        text: 'Allergi: ' + name + sev,
+        meta: text((a && (a.noteAt || a.source)) || 'Medicinsk'),
+        tone: 'medical',
+      });
+    });
+
+    toArray(dossierBundle.recentEvents).forEach(function (ev) {
+      var kind = String((ev && ev.kind) || '').toLowerCase();
+      if (kind.indexOf('note') < 0 && kind.indexOf('anteck') < 0) return;
+      notes.push({
+        text: text((ev && (ev.subject || ev.body || ev.text)) || 'Anteckning'),
+        meta: text((ev && (ev.at || ev.occurredAt)) || ''),
+        tone: 'note',
+      });
+    });
+
+    var items = notes
+      .filter(function (n) {
+        return n.text;
+      })
+      .slice(0, 5);
+
+    return { items: items, count: items.length };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -1077,6 +1134,7 @@
     buildAutoDocsFromPayload: buildAutoDocsFromPayload,
     buildPhotosFromDriveFiles: buildPhotosFromDriveFiles,
     buildFilesFromDriveFiles: buildFilesFromDriveFiles,
-    // Block 17+ section adapters registreras här.
+    buildNotesFromState: buildNotesFromState,
+    // Block 18+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

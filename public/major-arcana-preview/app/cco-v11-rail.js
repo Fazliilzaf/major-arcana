@@ -1029,6 +1029,55 @@
   }
 
   /**
+   * O · Notes (KEEP) — V11-presentation av kundens anteckningar/noteringar.
+   * Display-only (som legacy) — ingen handler. Tonklass markerar viktig/medicinsk/
+   * notering. Tom lista → explicit empty-state.
+   * @param {object} o - output från CcoV11RailAdapters.buildNotesFromState
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderNotes(o) {
+    if (!o) return '';
+    var count = Number(o.count) > 0 ? Number(o.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Anteckningar">' +
+        '<div class="v11-rail__empty-title">Inga anteckningar</div>' +
+        '<div class="v11-rail__empty-hint">Inga noteringar registrerade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__notes-list">' +
+        o.items
+          .map(function (it) {
+            return (
+              '<li class="v11-rail__note" data-tone="' +
+              esc(it.tone || 'note') +
+              '">' +
+              '<div class="v11-rail__note-text">' +
+              esc(it.text) +
+              '</div>' +
+              (it.meta ? '<div class="v11-rail__note-meta">' + esc(it.meta) + '</div>' : '') +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+    }
+
+    return (
+      '<section class="v11-rail__notes" data-v11-rail-notes aria-label="Anteckningar">' +
+      '<header class="v11-rail__notes-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">ANTECKNINGAR</div>' +
+      (count ? '<span class="v11-rail__notes-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -1077,7 +1126,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → O → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -1176,6 +1225,11 @@
       out += renderFiles(adapters.buildFilesFromDriveFiles(ctx.driveFiles));
     }
 
+    // O · Notes (KEEP) — anteckningar/noteringar (display-only)
+    if (typeof adapters.buildNotesFromState === 'function') {
+      out += renderNotes(adapters.buildNotesFromState(card, ctx.dossierBundle));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -1188,7 +1242,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 16,
+    BLOCK: 17,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -1205,6 +1259,7 @@
     renderAutoDocs: renderAutoDocs,
     renderPhotos: renderPhotos,
     renderFiles: renderFiles,
+    renderNotes: renderNotes,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };
