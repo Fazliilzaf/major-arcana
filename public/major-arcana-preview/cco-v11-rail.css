@@ -908,6 +908,16 @@
   color: var(--v11-rail-amber);
 }
 
+/* #4 stripe-accent uniformity — lås banner-korten till 3px vänster-stripe.
+   __insight/__note bär redan en 3px tone-stripe via border-left. */
+.v11-rail__smart-info,
+.v11-rail__next {
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 3px 0 0 var(--v11-rail-amber);
+}
+
 /* ===== H · Bookings (KEEP) ===== */
 .v11-rail__bookings {
   display: flex;
