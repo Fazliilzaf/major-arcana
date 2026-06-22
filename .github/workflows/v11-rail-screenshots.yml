@@ -78,6 +78,9 @@ jobs:
       - name: Generate Block 15 screenshots (… + M Photos KEEP)
         run: npm run shots:v11rail:block15
 
+      - name: Generate Block 16 screenshots (… + N Files KEEP)
+        run: npm run shots:v11rail:block16
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -195,5 +198,13 @@ jobs:
         with:
           name: v11-rail-block15-M-photos-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block15-M-photos/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 16 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block16-N-files-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block16-N-files/*.png
           if-no-files-found: error
           retention-days: 30

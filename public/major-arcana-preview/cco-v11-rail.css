@@ -1583,6 +1583,90 @@
   white-space: nowrap;
 }
 
+/* ===== N · Files (KEEP) ===== */
+.v11-rail__files {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(252, 250, 247, 0.96) 0%, rgba(244, 238, 232, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.v11-rail__files-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__files-count {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--v11-rail-muted);
+  background: rgba(56, 40, 28, 0.07);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.v11-rail__files-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v11-rail__file-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  text-decoration: none;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 40, 28, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+}
+.v11-rail__file-row:hover {
+  border-color: var(--v11-rail-amber);
+  background: rgba(255, 248, 236, 0.85);
+}
+
+.v11-rail__file-icon {
+  flex: none;
+  font-size: 15px;
+}
+
+.v11-rail__file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--v11-rail-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v11-rail__file-badge {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: var(--v11-rail-muted);
+  background: rgba(56, 40, 28, 0.08);
+  border: 1px solid rgba(56, 40, 28, 0.12);
+}
+
 /* ===== S · Sticky Footer ===== */
 .v11-rail__sticky {
   display: flex;
@@ -1698,7 +1782,8 @@
   .v11-rail__history-row,
   .v11-rail__journal-row,
   .v11-rail__offer-row[role="button"],
-  .v11-rail__autodoc-row[role="button"] {
+  .v11-rail__autodoc-row[role="button"],
+  .v11-rail__file-row {
     min-height: 44px;
   }
   /* S Sticky Footer: fäst längst ner i rail-scrollern på mobil (canon §6 S),
@@ -1732,7 +1817,8 @@
   .v11-rail__history-row,
   .v11-rail__journal-row,
   .v11-rail__offer-row[role="button"],
-  .v11-rail__autodoc-row[role="button"] {
+  .v11-rail__autodoc-row[role="button"],
+  .v11-rail__file-row {
     min-height: 44px;
   }
   /* M Photos: 3 kolumner på tablet (ryms inom rail-card) */

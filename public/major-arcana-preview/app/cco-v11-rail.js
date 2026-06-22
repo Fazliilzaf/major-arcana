@@ -973,6 +973,62 @@
   }
 
   /**
+   * N · Files (KEEP) — V11-presentation av kundens dokumentfiler. Bevarar fil-
+   * workflow: varje fil är en native-länk (target=_blank) — samma sätt som legacy
+   * dokumentrader, ingen ny handler. Tom lista → explicit empty-state.
+   * @param {object} n - output från CcoV11RailAdapters.buildFilesFromDriveFiles
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderFiles(n) {
+    if (!n) return '';
+    var count = Number(n.count) > 0 ? Number(n.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Filer">' +
+        '<div class="v11-rail__empty-title">Inga filer ännu</div>' +
+        '<div class="v11-rail__empty-hint">Inga dokumentfiler registrerade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__files-list">' +
+        n.items
+          .map(function (it) {
+            return (
+              '<li class="v11-rail__file-item">' +
+              '<a class="v11-rail__file-row" href="' +
+              esc(it.href) +
+              '" target="_blank" rel="noopener"' +
+              (it.id ? ' data-file-id="' + esc(it.id) + '"' : '') +
+              ' title="' +
+              esc(it.name) +
+              '">' +
+              '<span class="v11-rail__file-icon" aria-hidden="true">📄</span>' +
+              '<span class="v11-rail__file-name">' +
+              esc(it.name) +
+              '</span>' +
+              (it.badge ? '<span class="v11-rail__file-badge">' + esc(it.badge) + '</span>' : '') +
+              '</a>' +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+    }
+
+    return (
+      '<section class="v11-rail__files" data-v11-rail-files aria-label="Filer">' +
+      '<header class="v11-rail__files-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">FILER</div>' +
+      (count ? '<span class="v11-rail__files-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -1021,7 +1077,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -1115,6 +1171,11 @@
       out += renderPhotos(adapters.buildPhotosFromDriveFiles(ctx.driveFiles));
     }
 
+    // N · Files (KEEP) — dokumentfiler (icke-media), bevarar fil-workflow
+    if (typeof adapters.buildFilesFromDriveFiles === 'function') {
+      out += renderFiles(adapters.buildFilesFromDriveFiles(ctx.driveFiles));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -1127,7 +1188,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 15,
+    BLOCK: 16,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -1143,6 +1204,7 @@
     renderOffers: renderOffers,
     renderAutoDocs: renderAutoDocs,
     renderPhotos: renderPhotos,
+    renderFiles: renderFiles,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };
