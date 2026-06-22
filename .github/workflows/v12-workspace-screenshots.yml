@@ -1,0 +1,44 @@
+name: v12-workspace-screenshots
+
+# Genererar riktiga PNG-screenshots (390/820/1440) av V12 Customer Workspace-
+# moduler via headless chromium på GitHub-runner (öppen internet). Laddar upp
+# PNG:erna som build-artifact för granskning. Ingen annan kodändring.
+
+on:
+  push:
+    branches:
+      - "claude/v12-workspace-**"
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Journal module screenshots (Block 0)
+        run: npm run shots:v12workspace:journal
+
+      - name: Upload Journal screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-journal-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-journal/*.png
+          if-no-files-found: error
+          retention-days: 30

@@ -33,6 +33,8 @@
     "app/journal-photo-client.js",
     "app/cco-v11-rail-adapters.js",
     "app/cco-v11-rail.js",
+    "app/cco-v12-workspace-adapters.js",
+    "app/cco-v12-workspace.js",
     "app/patient-master-ui.js",
     "app/cco-kundkort-referens.js",
     "app/cco-v9-customers-parity.js",

@@ -1,0 +1,228 @@
+/* V12 Customer Workspace — Block 0 · Journal-modul.
+ *
+ * Rent .v12-workspace__*-namespace (canon §5). Inga legacy-override-klasser.
+ * Laddas additivt; syns bara när ?v12workspace=on (default OFF).
+ * Responsivt per canon D3:
+ *   - mobil (<768): V12 (Zon 2) ersätter ytan; Zon 1-rail döljs.
+ *   - iPad/webb (>=768): Zon 1-rail bredvid Zon 2-arbetsyta.
+ */
+
+.v12-workspace {
+  --v12-amber: #c8821e;
+  --v12-ink: #2c2218;
+  --v12-muted: #6b5d4f;
+  --v12-cream-neutral: rgba(252, 250, 246, 0.92);
+  --v12-card-border: rgba(56, 40, 28, 0.1);
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.v12-workspace *,
+.v12-workspace *::before,
+.v12-workspace *::after {
+  box-sizing: border-box;
+}
+
+/* ===== Två-zon-shell ===== */
+.v12-workspace__zones {
+  display: block;
+}
+
+/* Zon 1 (V11-rail) döljs på mobil — V12 äger ytan */
+.v12-workspace__zone1 {
+  display: none;
+}
+
+.v12-workspace__zone2 {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.v12-workspace__zone-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+  margin-bottom: 10px;
+}
+
+/* ===== Journal-modul ===== */
+.v12-workspace__inner {
+  display: block;
+  padding: 16px;
+}
+
+.v12-workspace__module {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.v12-workspace__module-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.v12-workspace__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v12-amber);
+}
+
+.v12-workspace__count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__primary {
+  margin-left: auto;
+  min-height: 34px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--v12-amber);
+  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.v12-workspace__primary:hover {
+  filter: brightness(1.04);
+}
+
+/* Journal-lista — full djupvy */
+.v12-workspace__journal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.v12-workspace__journal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--v12-card-border);
+  border-left: 3px solid rgba(56, 40, 28, 0.2);
+  background: var(--v12-cream-neutral);
+  cursor: pointer;
+}
+
+.v12-workspace__journal-card[data-journal-state="signed"] {
+  border-left-color: var(--v12-amber);
+}
+
+.v12-workspace__journal-card:hover {
+  border-color: var(--v12-amber);
+}
+
+.v12-workspace__journal-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v12-workspace__journal-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--v12-ink);
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__journal-badge {
+  margin-left: auto;
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--v12-muted);
+  background: rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__journal-badge[data-state="signed"] {
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__journal-body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--v12-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__journal-meta {
+  font-size: 11px;
+  color: var(--v12-muted);
+}
+
+/* Empty-state */
+.v12-workspace__empty {
+  padding: 24px 20px;
+  border-radius: 12px;
+  border: 1px dashed var(--v12-card-border);
+  text-align: center;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__empty-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__empty-hint {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* ===== iPad/webb: Zon 1-rail bredvid Zon 2 ===== */
+@media (min-width: 768px) {
+  .v12-workspace__zones {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .v12-workspace__zone1 {
+    display: block;
+    flex: 0 0 360px;
+    max-width: 360px;
+    min-width: 0;
+  }
+  .v12-workspace__zone2 {
+    flex: 1 1 auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  .v12-workspace__zone1 {
+    flex-basis: 400px;
+    max-width: 400px;
+  }
+  .v12-workspace__inner {
+    padding: 20px 24px;
+  }
+}
