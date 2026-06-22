@@ -1138,6 +1138,53 @@
   }
 
   /**
+   * Q · Economy (KEEP) — V11-presentation av ekonomi-nyckeltal (intäkt/utestående/
+   * snitt/LTV). Display-only — ingen handler. Saknas ekonomidata → empty-state.
+   * @param {object} q - output från CcoV11RailAdapters.buildEconomyFromCard
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderEconomy(q) {
+    if (!q) return '';
+    var count = Number(q.count) > 0 ? Number(q.count) : 0;
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Ekonomi">' +
+        '<div class="v11-rail__empty-title">Ingen ekonomidata</div>' +
+        '<div class="v11-rail__empty-hint">Inga ekonomi-nyckeltal registrerade.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<div class="v11-rail__econ-grid">' +
+        q.items
+          .map(function (it) {
+            return (
+              '<div class="v11-rail__econ-cell">' +
+              '<div class="v11-rail__econ-label">' +
+              esc(it.label) +
+              '</div>' +
+              '<div class="v11-rail__econ-value">' +
+              esc(it.value) +
+              '</div>' +
+              '</div>'
+            );
+          })
+          .join('') +
+        '</div>';
+    }
+
+    return (
+      '<section class="v11-rail__econ" data-v11-rail-economy aria-label="Ekonomi">' +
+      '<header class="v11-rail__econ-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">EKONOMI</div>' +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -1186,7 +1233,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → O → P → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → O → P → Q → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -1295,6 +1342,11 @@
       out += renderCommunication(adapters.buildCommunicationFromState(card, ctx.occasionTimeline));
     }
 
+    // Q · Economy (KEEP) — ekonomi-nyckeltal (display-only)
+    if (typeof adapters.buildEconomyFromCard === 'function') {
+      out += renderEconomy(adapters.buildEconomyFromCard(bcard));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -1307,7 +1359,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 18,
+    BLOCK: 19,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -1326,6 +1378,7 @@
     renderFiles: renderFiles,
     renderNotes: renderNotes,
     renderCommunication: renderCommunication,
+    renderEconomy: renderEconomy,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };
