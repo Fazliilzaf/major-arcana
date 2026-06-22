@@ -1,8 +1,8 @@
 # V12 Customer Workspace — CANON / scope (DRAFT)
 
-> **Status:** DRAFT-canon, scope-underlag. **Inget bygge** sker förrän denna canon är
-> Codex-granskad och låst. Detta dokument definierar _vad_ V12 är och _spelreglerna_ —
-> inte implementation.
+> **Status:** Scope-beslut **D1–D5 låsta av ägare 2026-06-22** (se §8) — **pending Codex-granskning**.
+> **Inget bygge** sker förrän denna canon är Codex-låst. Dokumentet definierar _vad_ V12 är
+> och _spelreglerna_ — inte implementation.
 > **Datum:** 2026-06-22 · **Föregående spår:** V11 Rail (cutover klar, default ON i `main` @ `3b8146f`).
 
 ---
@@ -32,7 +32,9 @@ snabböversikt (Zon 1).
 Moduler härleds från V11-railens sektioner men på **arbetsnivå** (göra, inte bara se).
 **En modul i taget** byggs, var och en låst i canon innan bygge.
 
-> **ÖPPET BESLUT (D1):** exakt v1-modulset + ordning. Förslag nedan — låses av dig/Codex.
+> **D1 LÅST:** V12 = full customer workspace (Zon 2), **inte** utökad rail. v1-modulset enligt
+> tabellen nedan (Journal + Bokningar must-have; Historik/Hälsodeklaration/Dokument v1; övriga
+> later). Exakt modulordning bekräftas per modul-canon.
 
 | Modul (kandidat)                                                  | Zon 1-källa                       | v1?           | Not                          |
 | ----------------------------------------------------------------- | --------------------------------- | ------------- | ---------------------------- |
@@ -58,22 +60,22 @@ rail-only — #142:s kända V2-begränsning). V12 är målet de ska öppna.
 | `data-v9-quick`                                                  | snabbåtgärder                     | Modul-kontextuell quick-action (återanvänd handler) |
 | `data-v11-active-visit-action`                                   | aktivt besök-CTA                  | Aktivt besök / Journal-flöde                        |
 
-> **ÖPPET BESLUT (D2):** navigeringsmodell — öppnar deep-link V12 som (a) ny route/URL,
-> (b) overlay/panel ovanpå nuvarande vy, eller (c) byte av huvudyta? Påverkar back-knapp,
-> djuplänkning och mobil. Låses innan bygge.
+> **D2 LÅST:** V12 öppnas från V11:s deep-links/moduler men byggs bakom `?v12workspace=on`
+> (default OFF). Navigeringsmodellen följer ytmodellen i §4: webb/iPad → modulen öppnas i Zon 2
+> _bredvid_ Zon 1-railen; mobil → V12 öppnas som egen vy (ytbyte). Routing/back per D4.
 
 ---
 
 ## 4. Responsivitet (webb / iPad / mobil från start)
 
-| Breakpoint    | Princip (utkast)                                                     |
-| ------------- | -------------------------------------------------------------------- |
-| **Mobil 390** | En kolumn, modul-navigering top/botten, inga horisontella scrollbars |
-| **iPad 820**  | Två zoner möjliga (lista + detalj) eller staplat, touch-först        |
-| **Webb 1440** | Full workspace, ev. Zon 1-rail + Zon 2-workspace samtidigt           |
+| Breakpoint    | Ytmodell (D3 LÅST)                                                                  |
+| ------------- | ----------------------------------------------------------------------------------- |
+| **Mobil 390** | V12 **ersätter ytan** som egen vy; en kolumn; back → kundkortet; inga h-scrollbars  |
+| **iPad 820**  | Zon 1-rail + Zon 2 **sida vid sida där det får plats**, annars ytbyte (touch-först) |
+| **Webb 1440** | Zon 1-rail **bredvid** V12 Zon 2 samtidigt                                          |
 
-> **ÖPPET BESLUT (D3):** ska Zon 1 (rail) vara synlig _bredvid_ Zon 2 på webb/iPad, eller
-> ersätter V12 hela ytan? Avgör layout-grid per breakpoint.
+> **D3 LÅST:** Webb/iPad visar V11-railen (Zon 1) _bredvid_ V12 (Zon 2) där det får plats;
+> mobil → V12 ersätter ytan som egen vy.
 
 ---
 
@@ -96,6 +98,9 @@ rail-only — #142:s kända V2-begränsning). V12 är målet de ska öppna.
   - Dokument-preview: befintlig doc-preview-handler (`data-v11-doc-*`-konsumenten)
 - Ny handler tillåts **endast** för genuint ny interaktion som saknar motsvarighet —
   dokumenteras + motiveras i modulens canon-tillägg.
+- **Data/adapters (D5 LÅST):** återanvänd V11-adapters (`CcoV11RailAdapters.build*`) och
+  befintliga handlers där det går; nya data-contracts införs **endast** där V12-modulen kräver
+  mer data än railen — och dokumenteras i modulens canon-tillägg.
 
 ---
 
@@ -109,13 +114,13 @@ rail-only — #142:s kända V2-begränsning). V12 är målet de ska öppna.
 
 ---
 
-## 8. Öppna beslut att låsa före bygge
+## 8. Låsta beslut (ägare 2026-06-22) — pending Codex
 
-- **D1** — v1-modulset + ordning (§2).
-- **D2** — navigeringsmodell för deep-links: route / overlay / ytbyte (§3).
-- **D3** — samexisterar Zon 1-rail med Zon 2 på webb/iPad, eller ersätter? (§4).
-- **D4** — URL/routing-strategi & back-beteende (följer av D2).
-- **D5** — data-contracts per modul (återanvänd V11-adapters där möjligt?).
+- **D1 ✅** — V12 = full customer workspace (Zon 2), inte en utökad rail. v1-modulset enligt §2.
+- **D2 ✅** — Öppnas från V11:s deep-links/moduler; byggs bakom `?v12workspace=on` (default OFF).
+- **D3 ✅** — Webb/iPad: Zon 1-rail _bredvid_ Zon 2 där det får plats. Mobil: V12 ersätter ytan som egen vy.
+- **D4 ✅** — URL/routing stödjer tillbaka till kundkortet + deep-link till rätt V12-modul.
+- **D5 ✅** — Återanvänd V11-adapters + befintliga handlers; nya data-contracts endast där V12 behöver mer data.
 
 ---
 
