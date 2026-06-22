@@ -7,7 +7,7 @@
  *
  *   ?v11rail=on  → localStorage arcana.v11rail.enabled = '1'  (sticky ON)
  *   ?v11rail=off → localStorage arcana.v11rail.enabled = '0'  (sticky OFF)
- *   inget        → enabled = (localStorage === '1')           (default OFF, opt-in)
+ *   inget        → enabled = (localStorage !== '0')           (default ON, opt-out)
  *
  * Resultat:
  *   document.documentElement[data-v11-rail] = 'on' | 'off'
@@ -48,11 +48,11 @@
     }
   }
 
-  var enabled = false;
+  var enabled = true;
   try {
-    enabled = localStorage.getItem(KEY) === '1';
+    enabled = localStorage.getItem(KEY) !== '0';
   } catch (_error) {
-    enabled = false;
+    enabled = true;
   }
 
   document.documentElement.setAttribute('data-v11-rail', enabled ? 'on' : 'off');
