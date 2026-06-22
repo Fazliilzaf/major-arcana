@@ -27,23 +27,34 @@ snabböversikt (Zon 1).
 
 ---
 
-## 2. Arbetsflöden (moduler)
+## 2. Innehåll — hela kundresan (LÅST struktur)
 
-Moduler härleds från V11-railens sektioner men på **arbetsnivå** (göra, inte bara se).
-**En modul i taget** byggs, var och en låst i canon innan bygge.
+V12 ska innehålla **hela kundresan i full storlek**, i denna ordning. Det ska kännas som
+**V11 Rail expanderad till en riktig arbetsyta — inte en dashboard med lösa flikar.**
+Flöde uppifrån och ned. **En modul i taget** byggs, var och en låst i modul-canon innan bygge.
 
-> **D1 LÅST:** V12 = full customer workspace (Zon 2), **inte** utökad rail. v1-modulset enligt
-> tabellen nedan (Journal + Bokningar must-have; Historik/Hälsodeklaration/Dokument v1; övriga
-> later). Exakt modulordning bekräftas per modul-canon.
+Visuell strukturkarta: `docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg`.
 
-| Modul (kandidat)                                                  | Zon 1-källa                       | v1?           | Not                          |
-| ----------------------------------------------------------------- | --------------------------------- | ------------- | ---------------------------- |
-| Journal                                                           | `data-v9-section-link="journal"`  | **must-have** | Skriv/läs journal, signering |
-| Bokningar                                                         | `data-v9-section-link="upcoming"` | must-have     | Boka nästa, bekräfta tider   |
-| Historik                                                          | `data-v9-section-link="historik"` | v1            | Tidslinje besök/åtgärder     |
-| Hälsodeklaration                                                  | `data-kk-jump="kk-card-halsa"`    | v1            | Signera/förbered TP          |
-| Dokument                                                          | `data-v11-doc-*`                  | v1            | Preview/registry/auto-docs   |
-| Ekonomi / Offerter / Foton / Filer / Kommunikation / Anteckningar | resp. section-link                | later         | Efter v1-kärnan              |
+| #   | Modul                             | Nyckelinnehåll                                                                                                                                                                                                | V11-källa                                                             | Status           |
+| --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------- |
+| 1   | **Kundens nuläge**                | Namn · avatar · kund-ID · kontakt · tags (VIP/PRP/Botox/risk/ny/återkommande) · status (redo/blockerad/aktivt besök/uppföljning) · snabbknappar (ring/SMS/mejl/redigera/boka)                                 | A Profile + C Stats                                                   | senare           |
+| 2   | **Aktivt besök** _(hero)_         | Dagens behandling · behandlare · timeline bokad→incheckad→behandling→journal→eftervård→klar · CTA fortsätt/starta journal · check-in/avsluta/anteckning/foto · blockerare (samtycke/hälsodekl/foto/betalning) | V Active Visit                                                        | senare           |
+| 3   | **Kritiska varningar**            | Allergier · medicinska risker · saknat samtycke · juridik/signering · ekonomisk risk/skuld · “måste lösas innan behandling”                                                                                   | D Critical warnings                                                   | senare           |
+| 4   | **Hälsa**                         | Hälsodeklaration · allergier · läkemedel · kontraindikationer · senast uppdaterad · öppna full hälsoprofil                                                                                                    | E Health (`data-kk-jump`)                                             | senare           |
+| 5   | **Kundresa / steg**               | Var i resan · alla steg första kontakt→uppföljning · klart/aktuellt/nästa · koppling dok/journal/foto per steg                                                                                                | F Customer Journey                                                    | senare           |
+| 6   | **Journal**                       | Dagens + tidigare journaler · draft/signerad · behandlingsprotokoll · intern anteckning · signera/skicka/spara                                                                                                | J Journals (`data-v9-section-link="journal"`)                         | **byggd (#148)** |
+| 7   | **Bilder / före–efter**           | Före · efter · översikt · film · datum+behandling per bild · jämförelsevy                                                                                                                                     | M Photos                                                              | senare           |
+| 8   | **Bokningar**                     | Kommande · tidigare · status (bokad/genomförd/avbokad/no-show) · personal+tjänst · bekräfta tider                                                                                                             | H Bookings + I History (`data-v9-section-link="upcoming"/"historik"`) | senare           |
+| 9   | **Dokument**                      | Samtycken · behandlingsplan · eftervård · offerter · auto-genererat · PDF/DOCX/XLSX · signeringsstatus                                                                                                        | L Auto-docs + K Offers + N Files (`data-v11-doc-*`)                   | senare           |
+| 10  | **Kommunikation**                 | Mejl · SMS · samtalslogg · svarstudio · viktiga kundmeddelanden · senaste kontakt                                                                                                                             | P Communication                                                       | senare           |
+| 11  | **Ekonomi**                       | Total intäkt · livstidsvärde · utestående skuld · snitt/besök · offerter · fakturor/betalstatus                                                                                                               | Q Economy                                                             | senare           |
+| 12  | **Insikter & nästa bästa åtgärd** | Vad personalen bör göra nu · varför · nästa rekommenderade steg · risker/möjligheter · boka uppföljning / skicka samtycke / kontakta                                                                          | G Smart Next Step + R Insights                                        | senare           |
+| 13  | **Sticky arbetsbar**              | Primär åtgärd efter läge (Starta journal / Slutför besök / Skicka eftervård / Boka uppföljning) · sekundär åtgärd · mobil/iPad/webb utan att täcka innehåll                                                   | S Sticky Footer                                                       | senare           |
+
+> **D1 LÅST (uppdaterad):** V12 = full customer workspace (Zon 2), **hela kundresan ovan** —
+> inte en utökad rail och inte en dashboard. Sektionsordning 1→13 låst. Journal (6) byggd i
+> #148; övriga byggs en modul/PR efter att denna canon är Codex-låst. Exakt build-ordning
+> (vilken modul efter Journal) bekräftas separat.
 
 ---
 
@@ -116,7 +127,7 @@ rail-only — #142:s kända V2-begränsning). V12 är målet de ska öppna.
 
 ## 8. Låsta beslut (ägare 2026-06-22) — pending Codex
 
-- **D1 ✅** — V12 = full customer workspace (Zon 2), inte en utökad rail. v1-modulset enligt §2.
+- **D1 ✅** — V12 = full customer workspace (Zon 2) = **hela kundresan, 13 sektioner i låst ordning** (§2), inte en utökad rail och inte en dashboard. Journal (6) byggd i #148.
 - **D2 ✅** — Öppnas från V11:s deep-links/moduler; byggs bakom `?v12workspace=on` (default OFF).
 - **D3 ✅** — Webb/iPad: Zon 1-rail _bredvid_ Zon 2 där det får plats. Mobil: V12 ersätter ytan som egen vy.
 - **D4 ✅** — URL/routing stödjer tillbaka till kundkortet + deep-link till rätt V12-modul.
