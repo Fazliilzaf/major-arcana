@@ -1137,6 +1137,15 @@
     }
   }
 
+  /** V12 Customer Workspace · Block 0 — opt-in via ?v12workspace=on (cco-v12-workspace-flag.js). */
+  function usesV12Workspace() {
+    try {
+      return document.documentElement.getAttribute('data-v12-workspace') === 'on';
+    } catch (_error) {
+      return false;
+    }
+  }
+
   /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
   function usesBlueprintDesktopLayout() {
     if (usesV10KundkortFacit()) return false;
@@ -5289,6 +5298,73 @@
       </section>`;
   }
 
+  /**
+   * V12 Customer Workspace · Block 0 — två-zon-shell (canon D3).
+   * Zon 1 = befintliga V11-railen (återanvänd CcoV11Rail.render), Zon 2 = V12
+   * arbetsyta (CcoV12Workspace.render, Journal-modul). Återanvänder enbart
+   * befintliga close-/scroll-/section-link-hooks → inga nya handlers. CSS döljer
+   * Zon 1 på mobil (V12 äger ytan) och visar den bredvid på iPad/webb.
+   */
+  function renderV12WorkspaceDetailShell(
+    card,
+    journalEntries,
+    occasionTimeline,
+    driveFiles,
+    patient,
+    { tab, lite = false } = {}
+  ) {
+    const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    const bcard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card || {};
+    const ctx = {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries,
+      occasionTimeline,
+      driveFiles,
+      patient,
+      tab,
+      lite,
+    };
+    let railInner = '';
+    try {
+      if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
+        railInner = window.CcoV11Rail.render(ctx) || '';
+      }
+    } catch (_error) {
+      railInner = '';
+    }
+    let wsInner = '';
+    try {
+      if (window.CcoV12Workspace && typeof window.CcoV12Workspace.render === 'function') {
+        wsInner = window.CcoV12Workspace.render(ctx) || '';
+      }
+    } catch (_error) {
+      wsInner = '';
+    }
+    const zone1 = railInner
+      ? '<div class="v11-rail"><div class="v11-rail__scroll" aria-label="Kunddossiér (Zon 1)">' +
+        railInner +
+        '</div></div>'
+      : '';
+    const zone2 =
+      wsInner ||
+      '<div class="v12-workspace__inner"><div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">V12 Workspace</div>' +
+        '<div class="v12-workspace__empty-hint">Inga moduler renderade.</div></div></div>';
+    return `
+      <section class="patient-master-card v12-workspace" data-patient-detail data-v12-workspace-shell="1">
+        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (V12)">
+          <div class="v12-workspace__zone1">${zone1}</div>
+          <div class="v12-workspace__zone2">${zone2}</div>
+        </div>
+      </section>`;
+  }
+
   function renderV9MockupDetailShell(
     card,
     journalEntries,
@@ -5302,6 +5378,18 @@
     // V11-RAIL Fas 3 · Block 0 — mount/switch. Enda legacy-kontaktpunkten per
     // canon §5: när ?v11rail=on monteras den nya railen istället för kkref.
     // Default OFF → legacy-paths nedan körs helt oförändrade.
+    // V12 Customer Workspace · Block 0 — mount/switch (opt-in, default OFF). Tar
+    // precedens när ?v12workspace=on; annars körs V11/legacy oförändrat nedan.
+    if (usesV12Workspace()) {
+      return renderV12WorkspaceDetailShell(
+        card,
+        journalEntries,
+        occasionTimeline,
+        driveFiles,
+        patient,
+        { tab: normalizedTab, lite }
+      );
+    }
     if (usesV11Rail()) {
       return renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
         tab: normalizedTab,
