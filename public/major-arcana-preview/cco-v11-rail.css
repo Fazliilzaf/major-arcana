@@ -1737,6 +1737,98 @@
   color: var(--v11-rail-muted);
 }
 
+/* ===== P · Communication (KEEP) ===== */
+.v11-rail__comm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 236, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.v11-rail__comm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v11-rail__comm-count {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--v11-rail-muted);
+  background: rgba(56, 40, 28, 0.07);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.v11-rail__comm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v11-rail__comm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 40, 28, 0.08);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.v11-rail__comm-icon {
+  flex: none;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.v11-rail__comm-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.v11-rail__comm-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--v11-rail-ink);
+  overflow-wrap: anywhere;
+}
+.v11-rail__comm-meta {
+  font-size: 11px;
+  color: var(--v11-rail-muted);
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__comm-actions {
+  display: flex;
+}
+.v11-rail__comm-reply {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--v11-rail-amber);
+  border: 1px solid rgba(200, 130, 30, 0.4);
+  background: rgba(200, 130, 30, 0.1);
+}
+.v11-rail__comm-reply:hover {
+  background: rgba(200, 130, 30, 0.16);
+}
+
 /* ===== S · Sticky Footer ===== */
 .v11-rail__sticky {
   display: flex;
@@ -1853,7 +1945,8 @@
   .v11-rail__journal-row,
   .v11-rail__offer-row[role="button"],
   .v11-rail__autodoc-row[role="button"],
-  .v11-rail__file-row {
+  .v11-rail__file-row,
+  .v11-rail__comm-reply {
     min-height: 44px;
   }
   /* S Sticky Footer: fäst längst ner i rail-scrollern på mobil (canon §6 S),
@@ -1888,7 +1981,8 @@
   .v11-rail__journal-row,
   .v11-rail__offer-row[role="button"],
   .v11-rail__autodoc-row[role="button"],
-  .v11-rail__file-row {
+  .v11-rail__file-row,
+  .v11-rail__comm-reply {
     min-height: 44px;
   }
   /* M Photos: 3 kolumner på tablet (ryms inom rail-card) */

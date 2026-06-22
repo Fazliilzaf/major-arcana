@@ -1078,6 +1078,66 @@
   }
 
   /**
+   * P · Communication (KEEP) — V11-presentation av kommunikationslogg (mejl/SMS/
+   * samtal). Loggraderna är display-only (som legacy); "Svarstudio"-actionen
+   * bär befintlig data-v9-quick="reply" — ingen ny handler. Tom lista → explicit
+   * empty-state.
+   * @param {object} p - output från CcoV11RailAdapters.buildCommunicationFromState
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderCommunication(p) {
+    if (!p) return '';
+    var count = Number(p.count) > 0 ? Number(p.count) : 0;
+    var icons = { mail: '✉', sms: '💬', call: '📞' };
+
+    var body;
+    if (!count) {
+      body =
+        '<div class="v11-rail__empty" role="status" data-v11-rail-section="Kommunikation">' +
+        '<div class="v11-rail__empty-title">Ingen kommunikation</div>' +
+        '<div class="v11-rail__empty-hint">Ingen registrerad kommunikation.</div>' +
+        '</div>';
+    } else {
+      body =
+        '<ul class="v11-rail__comm-list">' +
+        p.items
+          .map(function (it) {
+            var icon = icons[it.type] || '•';
+            return (
+              '<li class="v11-rail__comm-item" data-type="' +
+              esc(it.type) +
+              '">' +
+              '<span class="v11-rail__comm-icon" aria-hidden="true">' +
+              icon +
+              '</span>' +
+              '<span class="v11-rail__comm-main">' +
+              '<span class="v11-rail__comm-text">' +
+              esc(it.text) +
+              '</span>' +
+              (it.meta ? '<span class="v11-rail__comm-meta">' + esc(it.meta) + '</span>' : '') +
+              '</span>' +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>' +
+        '<div class="v11-rail__comm-actions">' +
+        '<button type="button" class="v11-rail__comm-reply" data-v9-quick="reply">✉ Svarstudio</button>' +
+        '</div>';
+    }
+
+    return (
+      '<section class="v11-rail__comm" data-v11-rail-comm aria-label="Kommunikation">' +
+      '<header class="v11-rail__comm-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMUNIKATION</div>' +
+      (count ? '<span class="v11-rail__comm-count">' + count + '</span>' : '') +
+      '</header>' +
+      body +
+      '</section>'
+    );
+  }
+
+  /**
    * S · Sticky Footer — persistent åtgärdsrad längst ner i rail (canon §6 S).
    * "Boka nästa" återanvänder den dokument-delegerade ord48-kalenderhandlern
    * (data-kk-ord48-open-calendar) och är disabled tills kunden är redo;
@@ -1126,7 +1186,7 @@
   }
 
   /**
-   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → O → S.
+   * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → O → P → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
    */
@@ -1230,6 +1290,11 @@
       out += renderNotes(adapters.buildNotesFromState(card, ctx.dossierBundle));
     }
 
+    // P · Communication (KEEP) — kommunikationslogg, bevarar reply-action
+    if (typeof adapters.buildCommunicationFromState === 'function') {
+      out += renderCommunication(adapters.buildCommunicationFromState(card, ctx.occasionTimeline));
+    }
+
     // S · Sticky Footer (persistent åtgärdsrad längst ner) — endast när
     // rail-innehåll finns ovanför (inget tomt skal får en flytande footer).
     if (out && typeof adapters.buildStickyActions === 'function') {
@@ -1242,7 +1307,7 @@
   }
 
   global.CcoV11Rail = {
-    BLOCK: 17,
+    BLOCK: 18,
     esc: esc,
     renderProfile: renderProfile,
     renderSmartInfo: renderSmartInfo,
@@ -1260,6 +1325,7 @@
     renderPhotos: renderPhotos,
     renderFiles: renderFiles,
     renderNotes: renderNotes,
+    renderCommunication: renderCommunication,
     renderStickyFooter: renderStickyFooter,
     render: render,
   };

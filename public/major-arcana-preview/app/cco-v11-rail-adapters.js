@@ -22,6 +22,7 @@
  * Block 15: M Photos — KEEP (buildPhotosFromDriveFiles).
  * Block 16: N Files — KEEP (buildFilesFromDriveFiles).
  * Block 17: O Notes — KEEP (buildNotesFromState).
+ * Block 18: P Communication — KEEP (buildCommunicationFromState).
  */
 (function (global) {
   'use strict';
@@ -1116,6 +1117,76 @@
     return { items: items, count: items.length };
   }
 
+  /**
+   * P · Communication (KEEP) — V11-presentation av kundens kommunikationslogg
+   * (mejl/SMS/samtal) ovanpå befintlig dossier-logik (canon KEEP). Self-contained:
+   * speglar parity buildCommunicationItems (occasionTimeline-events mail/email/
+   * send/sms/call/phone, med kontaktväg-fallback) utan beroende på interna
+   * funktioner (canon §5). Reply ("Svarstudio") bevaras via befintlig
+   * data-v9-quick="reply" i renderaren — ingen ny handler. Inga påhittade
+   * meddelanden.
+   *
+   * Returnerar { items, count }; tom lista → renderaren visar explicit
+   * empty-state (ingen registrerad kommunikation är normalt).
+   *
+   * @returns {{items:Array, count:number}}
+   */
+  function buildCommunicationFromState(card, occasionTimeline) {
+    card = card || {};
+    var items = [];
+    toArray(occasionTimeline).forEach(function (ev) {
+      if (!ev) return;
+      var kind = String(ev.kind || ev.type || ev.category || '').toLowerCase();
+      if (kind.indexOf('mail') >= 0 || kind.indexOf('email') >= 0 || kind === 'send') {
+        items.push({
+          type: 'mail',
+          text: text(ev.title || ev.label) || 'Mejl',
+          meta: text((ev.detail && ev.detail.subject) || ev.summary || ev.occurredAt || ev.ts),
+        });
+      } else if (kind.indexOf('sms') >= 0) {
+        items.push({
+          type: 'sms',
+          text: text(ev.title) || 'SMS',
+          meta: text(ev.summary || ev.occurredAt || ev.ts),
+        });
+      } else if (kind.indexOf('call') >= 0 || kind.indexOf('phone') >= 0) {
+        items.push({
+          type: 'call',
+          text: text(ev.title) || 'Telefonsamtal',
+          meta: text(ev.summary || ev.occurredAt || ev.ts),
+        });
+      }
+    });
+
+    // Fallback: senaste kontaktväg (speglar parity) när ingen logg finns.
+    if (!items.length && text(card.primaryEmail)) {
+      items.push({
+        type: 'mail',
+        text: 'Senaste kontaktväg: e-post',
+        meta: text(card.primaryEmail),
+      });
+    }
+    if (!items.length && text(card.primaryPhone)) {
+      items.push({
+        type: 'call',
+        text: 'Senaste kontaktväg: telefon',
+        meta: text(card.primaryPhone),
+      });
+    }
+
+    items = items
+      .filter(function (it) {
+        return it.text;
+      })
+      .slice(0, 8);
+
+    return {
+      items: items,
+      count: items.length,
+      patientId: text(card.patientId || card.id || card.customerId),
+    };
+  }
+
   global.CcoV11RailAdapters = {
     v11RailEmpty: v11RailEmpty,
     buildProfileFromBcard: buildProfileFromBcard,
@@ -1135,6 +1206,7 @@
     buildPhotosFromDriveFiles: buildPhotosFromDriveFiles,
     buildFilesFromDriveFiles: buildFilesFromDriveFiles,
     buildNotesFromState: buildNotesFromState,
-    // Block 18+ section adapters registreras här.
+    buildCommunicationFromState: buildCommunicationFromState,
+    // Block 19+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
