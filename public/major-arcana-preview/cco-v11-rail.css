@@ -382,7 +382,7 @@
 .v11-rail__av-kicker {
   font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--v11-rail-amber);
 }
@@ -450,7 +450,7 @@
 .v11-rail__av-preflight-kicker {
   font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--v11-rail-muted);
 }
