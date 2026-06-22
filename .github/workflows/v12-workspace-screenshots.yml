@@ -42,3 +42,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-journal/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Generate Active Visit module screenshots (Block 2)
+        run: npm run shots:v12workspace:activevisit
+
+      - name: Upload Active Visit screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-active-visit-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-active-visit/*.png
+          if-no-files-found: error
+          retention-days: 30
