@@ -281,7 +281,7 @@
 /* ===== C · Stats ===== */
 .v11-rail__stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -2100,6 +2100,10 @@
   }
   .v11-rail__stat-value {
     font-size: 15px;
+  }
+  /* M Photos: lås 3-kolumn även på mobil (FÖRE/EFTER/FILM bredvid varandra) */
+  .v11-rail__photos-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   /* V Active Visit: touch-targets ≥44px, knappar full bredd */
   .v11-rail__av-primary,
