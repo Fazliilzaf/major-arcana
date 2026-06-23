@@ -1092,14 +1092,15 @@
    * not (ingen fejk; per inventory-spike #3). Ingen ekonomidata → explicit
    * empty-state.
    */
-  function renderEconomyModule(econ) {
+  function renderEconomyModule(econ, invoices) {
     var count = (econ && econ.count) || 0;
+    var invoiceCount = (invoices && invoices.count) || 0;
     var head =
       '<header class="v12-workspace__module-head">' +
       '<div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div>' +
       '</header>';
 
-    if (!count) {
+    if (!count && !invoiceCount) {
       return (
         '<section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi">' +
         head +
@@ -1110,27 +1111,60 @@
       );
     }
 
-    var grid =
-      '<div class="v12-workspace__econ-grid">' +
-      econ.items
-        .map(function (it) {
-          return (
-            '<div class="v12-workspace__econ-cell">' +
-            '<div class="v12-workspace__econ-label">' +
-            esc(it.label) +
-            '</div><div class="v12-workspace__econ-value">' +
-            esc(it.value) +
-            '</div></div>'
-          );
-        })
-        .join('') +
-      '</div>';
+    var grid = count
+      ? '<div class="v12-workspace__econ-grid">' +
+        econ.items
+          .map(function (it) {
+            return (
+              '<div class="v12-workspace__econ-cell">' +
+              '<div class="v12-workspace__econ-label">' +
+              esc(it.label) +
+              '</div><div class="v12-workspace__econ-value">' +
+              esc(it.value) +
+              '</div></div>'
+            );
+          })
+          .join('') +
+        '</div>'
+      : '';
+
+    // Fakturarader/betalstatus ur RIKTIG paymentHistory (Fortnox + Swish).
+    var invoiceBlock = invoiceCount
+      ? '<div class="v12-workspace__subhead">Fakturor &amp; betalningar</div>' +
+        '<div class="v12-workspace__econ-invoices">' +
+        invoices.rows
+          .map(function (r) {
+            return (
+              '<div class="v12-workspace__econ-invoice" data-status="' +
+              esc(r.status) +
+              '">' +
+              '<div class="v12-workspace__econ-invoice-main">' +
+              '<div class="v12-workspace__econ-invoice-title">' +
+              esc(r.title) +
+              '</div>' +
+              '<div class="v12-workspace__econ-invoice-date">' +
+              esc(r.date) +
+              '</div></div>' +
+              '<div class="v12-workspace__econ-invoice-amount">' +
+              esc(r.amount) +
+              '</div>' +
+              '<div class="v12-workspace__econ-invoice-status" data-status="' +
+              esc(r.status) +
+              '">' +
+              esc(r.statusLabel) +
+              '</div></div>'
+            );
+          })
+          .join('') +
+        '</div>'
+      : '';
 
     return (
       '<section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi">' +
       head +
       grid +
-      '<div class="v12-workspace__health-muted">Fakturor &amp; betalstatus, skuld-breakdown och rabatter: visas när data finns.</div>' +
+      invoiceBlock +
+      '<div class="v12-workspace__health-muted">Skuld-breakdown och rabatter: visas när data finns.</div>' +
       '</section>'
     );
   }
@@ -1312,6 +1346,21 @@
     } catch (_error) {
       econ = { items: [], count: 0 };
     }
+    // Fakturarader/betalstatus ur dossier-bundlens RIKTIGA paymentHistory
+    // (Fortnox + Swish). Display-only; tom lista → renderaren visar dämpad not.
+    var econInvoices = { rows: [], count: 0 };
+    try {
+      if (
+        global.CcoV11RailAdapters &&
+        typeof global.CcoV11RailAdapters.buildEconomyInvoices === 'function'
+      ) {
+        var paymentHistory = ctx.dossierBundle && ctx.dossierBundle.paymentHistory;
+        econInvoices =
+          global.CcoV11RailAdapters.buildEconomyInvoices(paymentHistory) || econInvoices;
+      }
+    } catch (_error) {
+      econInvoices = { rows: [], count: 0 };
+    }
     var nextStep = null;
     var insights = { items: [], count: 0 };
     try {
@@ -1358,7 +1407,7 @@
       renderBookingsModule(bookings, history) +
       renderDocumentsModule(offers, autoDocs, files) +
       renderCommunicationModule(comm) +
-      renderEconomyModule(econ) +
+      renderEconomyModule(econ, econInvoices) +
       renderInsightsModule(nextStep, insights) +
       renderStickyBarModule(sticky) +
       '</div>'
