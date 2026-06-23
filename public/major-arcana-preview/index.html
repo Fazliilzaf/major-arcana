@@ -9,13 +9,7 @@
     <!-- V12 Customer Workspace — feature flag (default ON, opt-out via ?v12workspace=off; sätter data-v12-workspace) -->
     <script src="./app/cco-v12-workspace-flag.js?v=v12workspace-cutover-v1"></script>
     <!-- ARCANA bundle URLs (content-hash: 5733dc48f1) -->
-    <script>
-      window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.5733dc48f1.min.js',
-        staffCore: './app.bundle.staff-core.a26732d3f3.min.js',
-        staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
-      };
-    </script>
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.5733dc48f1.min.js","staffCore":"./app.bundle.staff-core.a26732d3f3.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -43,8 +37,8 @@
     </script>
 
     <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
-    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=v12-customer-modal-v1" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=v12-customer-modal-v1" />
+    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=v12-real-customer-surface-v1" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=v12-real-customer-surface-v1" />
     <script>
       (function deferInboxUntilNeeded() {
         try {
@@ -98,7 +92,7 @@
         }
       })();
     </script>
-    <script src="./app/mobile-deeplink-boot.js?v=v12-customer-modal-v1"></script>
+    <script src="./app/mobile-deeplink-boot.js?v=v12-real-customer-surface-v1"></script>
     <title>Operatörsvy · Arcana</title>
     <meta name="theme-color" content="#fbf7f1" />
     <meta name="description" content="HairTP Clinic CCO — Major Arcana Preview" />
@@ -3617,7 +3611,7 @@
                   <script defer src="/cco-scalp-analysis.js"></script>
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script src="./app/journal-photo-client.js?v=kkx-photo-uat2"></script>
-                  <script async src="./app/patient-master-ui.js?v=v12-customer-modal-v1"></script>
+                  <script async src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"></script>
                   <script
                     defer
                     src="./app/cco-v9-interactions.js?v=build-cmdk-server-search"
@@ -3665,8 +3659,8 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=v12-customer-modal-v1"></script>
-                  <div data-patient-identity-rail hidden>
+                  <script async src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"></script>
+<div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
                         <h2>Kundidentitetshantering</h2>
