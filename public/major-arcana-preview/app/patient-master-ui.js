@@ -7034,11 +7034,7 @@
   }
 
   async function fetchGkMediaObjectUrl(primaryUrl, fallbackUrl = '') {
-    const urls = [];
-    const primary = normalizeText(primaryUrl);
-    const fallback = normalizeText(fallbackUrl);
-    if (primary && primary !== '#') urls.push(primary);
-    if (fallback && fallback !== '#' && fallback !== primary) urls.push(fallback);
+    const urls = expandGkMediaUrls(primaryUrl, fallbackUrl);
     if (!urls.length) return '';
 
     const token = getAdminToken();
@@ -7066,6 +7062,40 @@
     return '';
   }
 
+  function isCcoProtectedAssetUrl(url) {
+    const raw = normalizeText(url);
+    return (
+      /\/api\/v1\/cco\/assets\/[^/]+\/(?:download|thumbnail)\b/.test(raw) ||
+      /\/api\/v1\/cco-patient-master\/(?:file|file-preview)\b/.test(raw)
+    );
+  }
+
+  function ccoProtectedAssetThumbnailUrl(url) {
+    const raw = normalizeText(url);
+    const match = raw.match(/\/api\/v1\/cco\/assets\/([^/?#]+)\/download\b/);
+    if (!match) return '';
+    return `/api/v1/cco/assets/${match[1]}/thumbnail`;
+  }
+
+  function pushGkMediaUrl(urls, seen, url) {
+    const raw = normalizeText(url);
+    if (!raw || raw === '#' || seen.has(raw)) return;
+    seen.add(raw);
+    urls.push(raw);
+  }
+
+  function expandGkMediaUrls(primaryUrl, fallbackUrl = '') {
+    const urls = [];
+    const seen = new Set();
+    const thumbnail = ccoProtectedAssetThumbnailUrl(primaryUrl);
+    if (thumbnail) pushGkMediaUrl(urls, seen, thumbnail);
+    pushGkMediaUrl(urls, seen, primaryUrl);
+    const fallbackThumbnail = ccoProtectedAssetThumbnailUrl(fallbackUrl);
+    if (fallbackThumbnail) pushGkMediaUrl(urls, seen, fallbackThumbnail);
+    pushGkMediaUrl(urls, seen, fallbackUrl);
+    return urls;
+  }
+
   async function applyGkMediaObjectUrl(node, objectUrl) {
     if (!node || !objectUrl) return false;
     if (node.tagName !== 'IMG') {
@@ -7091,8 +7121,12 @@
     );
     const visibleNodes = Array.from(mediaNodes).filter((node) => {
       const tile = node.closest('.gk-foto');
+      const nativeSrc = node.tagName === 'IMG' ? node.getAttribute('src') || '' : '';
       const hasNativeImageSrc =
-        node.tagName === 'IMG' && node.getAttribute('src') && !node.classList.contains('is-broken');
+        node.tagName === 'IMG' &&
+        nativeSrc &&
+        !isCcoProtectedAssetUrl(nativeSrc) &&
+        !node.classList.contains('is-broken');
       return (
         !hasNativeImageSrc &&
         (!tile || window.getComputedStyle(tile).display !== 'none') &&
@@ -7112,6 +7146,9 @@
           node.getAttribute('data-gk-allow-full-fallback') === '1'
             ? node.getAttribute('data-gk-img-full') || ''
             : '';
+        if (node.tagName === 'IMG' && isCcoProtectedAssetUrl(node.getAttribute('src') || '')) {
+          node.removeAttribute('src');
+        }
         node.dataset.gkLoading = 'true';
         node.classList.add('is-loading');
         const objectUrl = await fetchGkMediaObjectUrl(primary, fallback);

@@ -73,6 +73,42 @@
   function normalizeText(v) {
     return typeof v === 'string' ? v.trim() : '';
   }
+  function gkIsProtectedMediaUrl(url) {
+    var raw = normalizeText(url);
+    return (
+      /\/api\/v1\/cco\/assets\/[^/]+\/(?:download|thumbnail)\b/.test(raw) ||
+      /\/api\/v1\/cco-patient-master\/(?:file|file-preview)\b/.test(raw)
+    );
+  }
+  function gkProtectedAssetThumbnailUrl(url) {
+    var raw = normalizeText(url);
+    var match = raw.match(/\/api\/v1\/cco\/assets\/([^/?#]+)\/download\b/);
+    if (!match) return '';
+    return '/api/v1/cco/assets/' + match[1] + '/thumbnail';
+  }
+  function gkNativeMediaSrcAttr(src) {
+    if (!src || gkIsProtectedMediaUrl(src)) return '';
+    return 'src="' + esc(src) + '" ';
+  }
+  function gkPushMediaUrl(list, seen, url) {
+    var raw = normalizeText(url);
+    if (!raw || raw === '#' || seen[raw]) return;
+    seen[raw] = true;
+    list.push(raw);
+  }
+  function gkExpandMediaUrls(primary, fallback, allowFullFallback) {
+    var list = [];
+    var seen = {};
+    var thumb = gkProtectedAssetThumbnailUrl(primary);
+    if (thumb) gkPushMediaUrl(list, seen, thumb);
+    gkPushMediaUrl(list, seen, primary);
+    if (allowFullFallback) {
+      thumb = gkProtectedAssetThumbnailUrl(fallback);
+      if (thumb) gkPushMediaUrl(list, seen, thumb);
+      gkPushMediaUrl(list, seen, fallback);
+    }
+    return list;
+  }
   var A = function (x) {
     return Array.isArray(x) ? x : x ? [x] : [];
   };
@@ -445,7 +481,9 @@
                 '" muted playsinline preload="' +
                 (deferred ? 'none' : 'metadata') +
                 '">' +
-                (deferred ? '' : '<source src="' + esc(fallback) + '">') +
+                (deferred || gkIsProtectedMediaUrl(fallback)
+                  ? ''
+                  : '<source src="' + esc(fallback) + '">') +
                 '</video><span class="gk-video-chip">Film</span>'
               : missingPreview
                 ? '<div class="gk-foto-placeholder"><b>Miniatyr saknas</b><small>Original finns · behöver thumbnail</small></div>'
@@ -456,7 +494,7 @@
                   (deferred ? 'data-gk-deferred-img-full="' : 'data-gk-img-full="') +
                   esc(fallback) +
                   '" ' +
-                  (deferred ? '' : 'src="' + esc(src) + '" ') +
+                  (deferred ? '' : gkNativeMediaSrcAttr(src)) +
                   'alt="' +
                   esc(p.name || p.zone || 'Foto') +
                   '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />';
@@ -1979,7 +2017,7 @@
                       (deferred ? 'data-gk-deferred-img-full="' : 'data-gk-img-full="') +
                       esc(fallback) +
                       '" ' +
-                      (deferred ? '' : 'src="' + esc(src) + '" ') +
+                      (deferred ? '' : gkNativeMediaSrcAttr(src)) +
                       'alt="' +
                       esc(p.name || p.zone || 'Foto') +
                       '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />'
@@ -4268,9 +4306,11 @@
       )
       .filter(function (node) {
         var tile = node.closest && node.closest('.gk-foto');
+        var nativeSrc = node.tagName === 'IMG' ? node.getAttribute('src') || '' : '';
         var hasNativeImageSrc =
           node.tagName === 'IMG' &&
-          node.getAttribute('src') &&
+          nativeSrc &&
+          !gkIsProtectedMediaUrl(nativeSrc) &&
           !node.classList.contains('is-broken');
         return (
           !hasNativeImageSrc &&
@@ -4292,16 +4332,14 @@
       if (node.dataset.gkLoaded === 'true' || node.dataset.gkLoading === 'true') return;
       var primary = node.getAttribute('data-gk-img-src') || '';
       var fallback = node.getAttribute('data-gk-img-full') || '';
-      var urls = [];
-      if (primary && primary !== '#') urls.push(primary);
-      if (
-        fallback &&
-        fallback !== '#' &&
-        fallback !== primary &&
-        node.getAttribute('data-gk-allow-full-fallback') === '1'
-      ) {
-        urls.push(fallback);
+      if (node.tagName === 'IMG' && gkIsProtectedMediaUrl(node.getAttribute('src') || '')) {
+        node.removeAttribute('src');
       }
+      var urls = gkExpandMediaUrls(
+        primary,
+        fallback,
+        node.getAttribute('data-gk-allow-full-fallback') === '1'
+      );
       if (!urls.length) return;
       node.dataset.gkLoading = 'true';
       active += 1;
