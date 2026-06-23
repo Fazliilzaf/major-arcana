@@ -3336,11 +3336,30 @@
       return;
     }
     window.__GK_DRIVE_LOADING[pid] = true;
+    // Staff-auth i prod är en Bearer-token (inte cookie) → anropet MÅSTE bära
+    // Authorization-headern, annars svarar requireAuth 401. Samma token-mönster
+    // som övriga auth-anrop i denna fil (ARCANA_ADMIN_TOKEN).
+    var __gkDriveTok = '';
+    try {
+      __gkDriveTok = (
+        window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        ''
+      ).trim();
+    } catch (e) {
+      __gkDriveTok = '';
+    }
     fetch(
       '/api/v1/cco-patient-master/patient/summary?patientId=' +
         encodeURIComponent(pid) +
         '&includeDriveFiles=1',
-      { credentials: 'same-origin' }
+      {
+        credentials: 'same-origin',
+        headers:
+          __gkDriveTok && __gkDriveTok !== '__preview_local__'
+            ? { Authorization: 'Bearer ' + __gkDriveTok }
+            : {},
+      }
     )
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
