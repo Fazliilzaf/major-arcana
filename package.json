@@ -206,6 +206,8 @@
     "shots:v12workspace:journey-steps": "node ./scripts/shot-v12-workspace-journey.mjs",
     "gen:v12workspace:sticky": "node ./scripts/gen-v12-workspace-sticky-preview.mjs",
     "shots:v12workspace:sticky": "node ./scripts/shot-v12-workspace-sticky.mjs",
+    "gen:v12workspace:documents": "node ./scripts/gen-v12-workspace-documents-preview.mjs",
+    "shots:v12workspace:documents": "node ./scripts/shot-v12-workspace-documents.mjs",
     "test:visual:mobile:android": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.android.config.js",
     "verify:booking-plan-a-prod": "bash ./scripts/verify-booking-plan-a-prod.sh",
     "verify:booking-engine-policy-prod": "node ./scripts/verify-booking-engine-policy-prod.js",

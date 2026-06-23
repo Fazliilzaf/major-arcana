@@ -809,6 +809,142 @@
     );
   }
 
+  /**
+   * Dokument-modul (sektion 9) — offerter + auto-dokument + filer i en sektion.
+   * Återanvänder V11-adaptrarna buildOffersFromPayload + buildAutoDocsFromPayload
+   * + buildFilesFromDriveFiles (via CcoV9CustomersParity.resolveV11DocumentPayload
+   * / driveFiles). Rader bär de BEFINTLIGA `data-v11-doc-*`-attributen (öppnar
+   * dokument-/mall-preview — samma handler som legacy dokumentrader, INGEN ny
+   * handler; signering-write ingår ej). Filer = native länkar (target=_blank).
+   * Tomma listor → explicit empty-state (inga påhittade dokument).
+   */
+  function renderDocumentsModule(offers, autoDocs, files) {
+    var offCount = (offers && offers.count) || 0;
+    var autoCount = (autoDocs && autoDocs.count) || 0;
+    var fileCount = (files && files.count) || 0;
+
+    function docRow(it, fillerAuto) {
+      var previewable = it.previewable === true;
+      var meta =
+        (it.journeyStep
+          ? '<span class="v12-workspace__doc-step">steg ' + esc(it.journeyStep) + '</span>'
+          : '') +
+        (it.amount ? '<span class="v12-workspace__doc-amount">' + esc(it.amount) + '</span>' : '');
+      return (
+        '<li class="v12-workspace__doc-item">' +
+        '<div class="v12-workspace__doc-row" data-v11-doc-row' +
+        (fillerAuto ? ' data-v11-doc-filler="auto"' : '') +
+        ' data-v11-doc-registry="' +
+        esc(it.registryId) +
+        '" data-v11-doc-status="' +
+        esc(it.status) +
+        '" data-v11-doc-previewable="' +
+        (previewable ? '1' : '0') +
+        '"' +
+        (previewable ? ' role="button" tabindex="0"' : '') +
+        '>' +
+        (fillerAuto ? '<span class="v12-workspace__doc-icon" aria-hidden="true">📄</span>' : '') +
+        '<span class="v12-workspace__doc-main">' +
+        '<span class="v12-workspace__doc-title">' +
+        esc(it.title) +
+        '</span>' +
+        (meta ? '<span class="v12-workspace__doc-meta">' + meta + '</span>' : '') +
+        '</span>' +
+        '<span class="v12-workspace__doc-status" data-state="' +
+        esc(it.status) +
+        '">' +
+        esc(it.statusLabel) +
+        '</span>' +
+        '</div></li>'
+      );
+    }
+
+    function emptyState(title, hint) {
+      return (
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">' +
+        esc(title) +
+        '</div><div class="v12-workspace__empty-hint">' +
+        esc(hint) +
+        '</div></div>'
+      );
+    }
+
+    var offersBlock =
+      '<div class="v12-workspace__subhead">Offerter &amp; behandlingsplaner' +
+      (offCount ? ' · ' + esc(String(offCount)) : '') +
+      '</div>' +
+      (offCount
+        ? '<ul class="v12-workspace__doc-list">' +
+          offers.items
+            .map(function (it) {
+              return docRow(it, false);
+            })
+            .join('') +
+          '</ul>'
+        : emptyState('Inga offerter ännu', 'Inga offerter eller behandlingsplaner registrerade.'));
+
+    var autoBlock =
+      '<div class="v12-workspace__subhead">Auto-dokument' +
+      (autoCount ? ' · ' + esc(String(autoCount)) : '') +
+      '</div>' +
+      (autoCount
+        ? '<ul class="v12-workspace__doc-list">' +
+          autoDocs.items
+            .map(function (it) {
+              return docRow(it, true);
+            })
+            .join('') +
+          '</ul>'
+        : emptyState('Inga auto-dokument ännu', 'Inga auto-genererade dokument registrerade.'));
+
+    var filesBlock =
+      '<div class="v12-workspace__subhead">Filer' +
+      (fileCount ? ' · ' + esc(String(fileCount)) : '') +
+      '</div>' +
+      (fileCount
+        ? '<ul class="v12-workspace__doc-list">' +
+          files.items
+            .map(function (it) {
+              return (
+                '<li class="v12-workspace__doc-item">' +
+                '<a class="v12-workspace__doc-row v12-workspace__doc-file" href="' +
+                esc(it.href) +
+                '" target="_blank" rel="noopener"' +
+                (it.id ? ' data-file-id="' + esc(it.id) + '"' : '') +
+                ' title="' +
+                esc(it.name) +
+                '"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span>' +
+                '<span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">' +
+                esc(it.name) +
+                '</span></span>' +
+                (it.badge
+                  ? '<span class="v12-workspace__doc-badge">' + esc(it.badge) + '</span>'
+                  : '') +
+                '</a></li>'
+              );
+            })
+            .join('') +
+          '</ul>'
+        : emptyState('Inga filer ännu', 'Inga dokumentfiler registrerade.'));
+
+    var total = offCount + autoCount + fileCount;
+    var head =
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">DOKUMENT</div>' +
+      (total ? '<span class="v12-workspace__count">' + esc(String(total)) + '</span>' : '') +
+      '</header>';
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__documents" data-v12-module="documents" aria-label="Dokument">' +
+      head +
+      offersBlock +
+      autoBlock +
+      filesBlock +
+      '</section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var profile = null;
@@ -928,6 +1064,29 @@
       bookings = { items: [], count: 0 };
       history = { items: [], count: 0 };
     }
+    var offers = { items: [], count: 0 };
+    var autoDocs = { items: [], count: 0 };
+    var files = { items: [], count: 0 };
+    try {
+      if (global.CcoV11RailAdapters) {
+        if (typeof global.CcoV11RailAdapters.buildOffersFromPayload === 'function') {
+          offers =
+            global.CcoV11RailAdapters.buildOffersFromPayload(ctx.card, ctx.dossierBundle) || offers;
+        }
+        if (typeof global.CcoV11RailAdapters.buildAutoDocsFromPayload === 'function') {
+          autoDocs =
+            global.CcoV11RailAdapters.buildAutoDocsFromPayload(ctx.card, ctx.dossierBundle) ||
+            autoDocs;
+        }
+        if (typeof global.CcoV11RailAdapters.buildFilesFromDriveFiles === 'function') {
+          files = global.CcoV11RailAdapters.buildFilesFromDriveFiles(ctx.driveFiles) || files;
+        }
+      }
+    } catch (_error) {
+      offers = { items: [], count: 0 };
+      autoDocs = { items: [], count: 0 };
+      files = { items: [], count: 0 };
+    }
     var nextStep = null;
     var insights = { items: [], count: 0 };
     try {
@@ -971,6 +1130,7 @@
       renderJourneyModule(journey) +
       renderJournalModule(journal) +
       renderBookingsModule(bookings, history) +
+      renderDocumentsModule(offers, autoDocs, files) +
       renderInsightsModule(nextStep, insights) +
       renderStickyBarModule(sticky) +
       '</div>'
