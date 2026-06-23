@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, '..');
 const INDEX_HTML = path.join(ROOT, 'public/major-arcana-preview/index.html');
 const LATEST_JSON = path.join(ROOT, 'public/major-arcana-preview/app.bundle.latest.json');
 
-const CACHE_BUST = 'build-bundle-split-a';
+const CACHE_BUST = 'disable-prod-mock-api-v1';
 const PATIENT_UI_PRELOAD = `./app/patient-master-ui.js?v=${CACHE_BUST}`;
 const MOBILE_DEEPLINK_BOOT = `./app/mobile-deeplink-boot.js?v=${CACHE_BUST}`;
 
@@ -33,7 +33,9 @@ const staffDeferredRel = latest.staffDeferred ? `./${latest.staffDeferred.filena
 console.log(`Senaste bundle: ${latest.filename} (hash=${latest.hash})`);
 if (staffCoreRel) {
   console.log(`Staff core:     ${latest.staffCore.filename} (${latest.staffCore.minBytes} bytes)`);
-  console.log(`Staff deferred: ${latest.staffDeferred.filename} (${latest.staffDeferred.minBytes} bytes)`);
+  console.log(
+    `Staff deferred: ${latest.staffDeferred.filename} (${latest.staffDeferred.minBytes} bytes)`
+  );
 }
 
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
@@ -131,7 +133,9 @@ let newHtml = html;
 const existingMatches = [...html.matchAll(EXISTING_BUNDLE_RE)];
 
 if (existingMatches.length > 0) {
-  console.log(`Hittade ${existingMatches.length} befintlig(a) bundle-tag(s) — ersätter med ny hash`);
+  console.log(
+    `Hittade ${existingMatches.length} befintlig(a) bundle-tag(s) — ersätter med ny hash`
+  );
   const firstMatchStart = existingMatches[0].index;
   let stripped = html;
   for (let i = existingMatches.length - 1; i >= 0; i--) {
@@ -154,9 +158,7 @@ if (existingMatches.length > 0) {
   }
 
   if (!target || target.count < 5) {
-    console.error(
-      'FEL: hittade inget script-block med >5 taggar och ingen befintlig bundle-tag.'
-    );
+    console.error('FEL: hittade inget script-block med >5 taggar och ingen befintlig bundle-tag.');
     process.exit(1);
   }
 

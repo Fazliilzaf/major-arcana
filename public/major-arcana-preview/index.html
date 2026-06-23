@@ -8,8 +8,8 @@
     <script src="./app/cco-v11-rail-flag.js?v=v11rail-cutover-default-on"></script>
     <!-- V12 Customer Workspace — feature flag (default ON, opt-out via ?v12workspace=off; sätter data-v12-workspace) -->
     <script src="./app/cco-v12-workspace-flag.js?v=v12workspace-cutover-v1"></script>
-    <!-- ARCANA bundle URLs (content-hash: ee88b14eee) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.ee88b14eee.min.js","staffCore":"./app.bundle.staff-core.2372598a93.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
+    <!-- ARCANA bundle URLs (content-hash: a878f595ae) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.a878f595ae.min.js","staffCore":"./app.bundle.staff-core.b55fc72228.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -37,8 +37,8 @@
     </script>
 
     <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
-    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-bundle-split-a" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=fix-v12-mount-bypass-v1" />
+    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=disable-prod-mock-api-v1" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=disable-prod-mock-api-v1" />
     <script>
       (function deferInboxUntilNeeded() {
         try {
@@ -92,7 +92,7 @@
         }
       })();
     </script>
-    <script src="./app/mobile-deeplink-boot.js?v=build-bundle-split-a"></script>
+    <script src="./app/mobile-deeplink-boot.js?v=disable-prod-mock-api-v1"></script>
     <title>Operatörsvy · Arcana</title>
     <meta name="theme-color" content="#fbf7f1" />
     <meta name="description" content="HairTP Clinic CCO — Major Arcana Preview" />
@@ -3611,7 +3611,7 @@
                   <script defer src="/cco-scalp-analysis.js"></script>
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script src="./app/journal-photo-client.js?v=kkx-photo-uat2"></script>
-                  <script async src="./app/patient-master-ui.js?v=fix-v12-mount-bypass-v1"></script>
+                  <script async src="./app/patient-master-ui.js?v=disable-prod-mock-api-v1"></script>
                   <script
                     defer
                     src="./app/cco-v9-interactions.js?v=build-cmdk-server-search"
@@ -3659,7 +3659,7 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=fix-v12-mount-bypass-v1"></script>
+                  <script async src="./app/patient-master-ui.js?v=disable-prod-mock-api-v1"></script>
                   <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
@@ -11486,12 +11486,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: ee88b14eee) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: a878f595ae) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.ee88b14eee.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.2372598a93.min.js';
+        var fullSrc = urls.full || './app.bundle.a878f595ae.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.b55fc72228.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.6d4631df1b.min.js';
 
         function injectScript(src, onload) {
