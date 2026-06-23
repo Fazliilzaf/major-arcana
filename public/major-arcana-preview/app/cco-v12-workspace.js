@@ -1084,6 +1084,57 @@
     );
   }
 
+  /**
+   * Ekonomi-modul (sektion 11) — nyckeltal (intäkt/utestående/snitt/LTV).
+   * Återanvänder V11-adaptern buildEconomyFromCard (parity.buildEconomyFields +
+   * fallback). Display-only — ingen handler (som legacy). Fakturor/betalstatus,
+   * skuld-breakdown och rabatter saknas i datakällan idag → uppskjutet med dämpad
+   * not (ingen fejk; per inventory-spike #3). Ingen ekonomidata → explicit
+   * empty-state.
+   */
+  function renderEconomyModule(econ) {
+    var count = (econ && econ.count) || 0;
+    var head =
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div>' +
+      '</header>';
+
+    if (!count) {
+      return (
+        '<section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi">' +
+        head +
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Ingen ekonomidata</div>' +
+        '<div class="v12-workspace__empty-hint">Inga ekonomi-nyckeltal registrerade.</div>' +
+        '</div></section>'
+      );
+    }
+
+    var grid =
+      '<div class="v12-workspace__econ-grid">' +
+      econ.items
+        .map(function (it) {
+          return (
+            '<div class="v12-workspace__econ-cell">' +
+            '<div class="v12-workspace__econ-label">' +
+            esc(it.label) +
+            '</div><div class="v12-workspace__econ-value">' +
+            esc(it.value) +
+            '</div></div>'
+          );
+        })
+        .join('') +
+      '</div>';
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi">' +
+      head +
+      grid +
+      '<div class="v12-workspace__health-muted">Fakturor &amp; betalstatus, skuld-breakdown och rabatter: visas när data finns.</div>' +
+      '</section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var profile = null;
@@ -1250,6 +1301,17 @@
     } catch (_error) {
       comm = { items: [], count: 0 };
     }
+    var econ = { items: [], count: 0 };
+    try {
+      if (
+        global.CcoV11RailAdapters &&
+        typeof global.CcoV11RailAdapters.buildEconomyFromCard === 'function'
+      ) {
+        econ = global.CcoV11RailAdapters.buildEconomyFromCard(ctx.bcard || ctx.card) || econ;
+      }
+    } catch (_error) {
+      econ = { items: [], count: 0 };
+    }
     var nextStep = null;
     var insights = { items: [], count: 0 };
     try {
@@ -1296,6 +1358,7 @@
       renderBookingsModule(bookings, history) +
       renderDocumentsModule(offers, autoDocs, files) +
       renderCommunicationModule(comm) +
+      renderEconomyModule(econ) +
       renderInsightsModule(nextStep, insights) +
       renderStickyBarModule(sticky) +
       '</div>'

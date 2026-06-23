@@ -1146,6 +1146,42 @@
   }
 }
 
+/* ===== Ekonomi-modul (sektion 11) ===== */
+.v12-workspace__econ-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.v12-workspace__econ-cell {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__econ-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__econ-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__econ-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 /* ===== Kommunikation-modul (sektion 10) ===== */
 .v12-workspace__comm-list {
   list-style: none;
