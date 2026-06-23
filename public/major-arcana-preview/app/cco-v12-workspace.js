@@ -761,6 +761,54 @@
     );
   }
 
+  /**
+   * Sticky arbetsbar-modul (sektion 13) — persistent åtgärdsrad sist i
+   * arbetsytan. Återanvänder V11-adaptern buildStickyActions och de BEFINTLIGA
+   * handlers: "Boka nästa" bär `data-kk-ord48-open-calendar` (delegerad ord48-
+   * kalender, disabled tills kunden är redo) och "Bekräfta kommande tider (N)"
+   * bär `data-v9-quick="confirm"` (confirmBookings). INGEN ny handler. N och
+   * ready härleds från riktig data; inga kommande tider → disabled (ingen
+   * påhittad siffra).
+   */
+  function renderStickyBarModule(s) {
+    s = s || { patientId: '', bookCount: 0, ready: false };
+    var pid = esc(s.patientId);
+    var ready = s.ready === true;
+    var count = Number(s.bookCount) > 0 ? Number(s.bookCount) : 0;
+
+    var bookBtn =
+      '<button type="button" class="v12-workspace__primary v12-workspace__sticky-primary' +
+      (ready ? '' : ' is-disabled') +
+      '" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="' +
+      pid +
+      '"' +
+      (ready ? '' : ' disabled aria-disabled="true"') +
+      '>Boka nästa</button>';
+
+    var confirmBtn =
+      '<button type="button" class="v12-workspace__sticky-secondary' +
+      (count ? '' : ' is-disabled') +
+      '" data-v9-quick="confirm"' +
+      (count ? '' : ' disabled aria-disabled="true"') +
+      '>Bekräfta kommande tider' +
+      (count ? ' (' + esc(String(count)) + ')' : '') +
+      '</button>';
+
+    var hint = ready
+      ? ''
+      : '<p class="v12-workspace__sticky-hint">Boka nästa aktiveras när kunden är redo för behandling.</p>';
+
+    return (
+      '<section class="v12-workspace__sticky" data-v12-module="sticky" aria-label="Snabbåtgärder">' +
+      '<div class="v12-workspace__sticky-actions">' +
+      bookBtn +
+      confirmBtn +
+      '</div>' +
+      hint +
+      '</section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var profile = null;
@@ -895,6 +943,23 @@
       nextStep = null;
       insights = { items: [], count: 0 };
     }
+    var sticky = null;
+    try {
+      if (
+        global.CcoV11RailAdapters &&
+        typeof global.CcoV11RailAdapters.buildStickyActions === 'function'
+      ) {
+        sticky =
+          global.CcoV11RailAdapters.buildStickyActions(
+            ctx.card,
+            ctx.bcard,
+            ctx.dossierBundle,
+            ctx.occasionTimeline
+          ) || null;
+      }
+    } catch (_error) {
+      sticky = null;
+    }
 
     return (
       '<div class="v12-workspace__inner" data-v12-workspace-inner="1">' +
@@ -907,6 +972,7 @@
       renderJournalModule(journal) +
       renderBookingsModule(bookings, history) +
       renderInsightsModule(nextStep, insights) +
+      renderStickyBarModule(sticky) +
       '</div>'
     );
   }
