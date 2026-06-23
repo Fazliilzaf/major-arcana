@@ -19,131 +19,97 @@
   width: 100%;
 }
 
-/*
- * Cutover hardening: the real CCO Customers view still carries v10-facit grid
- * rules that constrain the detail rail to 360px. When V12 is enabled and a
- * customer is open, the new workspace must own the real customer detail area
- * instead of being squeezed into the old rail.
- */
-@media (min-width: 1024px) {
-  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v9-dossier-open] {
-    grid-template-columns: 200px minmax(0, 1fr) !important;
+/* V12 öppnas från lilla V11-railens sektioner som stor kundvy-overlay.
+   Detta ersätter inte första kundklicket: första klicket visar fortfarande railen. */
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 12080 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: clamp(18px, 3vw, 44px) !important;
+  border-radius: 0 !important;
+  background: rgba(41, 36, 31, 0.58) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace[hidden] {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 0;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__close {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: #2c2218;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 !important;
+  border-radius: 28px;
+  background: #f5eee5;
+  box-shadow: 0 28px 90px rgba(34, 26, 19, 0.32);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace {
+  min-height: 100%;
+  max-height: none;
+}
+
+html[data-v12-workspace="on"]
+  .v9-dossier-deep--v12-workspace
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: none;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace__close {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] [data-v12-focus-pulse="1"] {
+  outline: 3px solid rgba(216, 145, 32, 0.45);
+  outline-offset: 4px;
+  transition: outline-color 0.2s ease;
+}
+
+@media (max-width: 767px) {
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+    padding: 0 !important;
   }
 
-  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v9-dossier-open]
-    .customers-center-shell,
-  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v9-dossier-open]
-    .v9-aggregate-panel {
-    display: none !important;
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(41, 36, 31, 0.64);
   }
 
-  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v9-dossier-open]
-    .customers-rail,
-  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v9-dossier-open]
-    .customers-rail.customers-rail--dominant {
-    grid-column: 2 !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-  }
-
-  html[data-v12-workspace="on"][data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not(
-      [data-cco-mobile-shell="on"]
-    )
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open] {
-    grid-template-columns: 200px minmax(0, 1fr) !important;
-  }
-
-  html[data-v12-workspace="on"][data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not(
-      [data-cco-mobile-shell="on"]
-    )
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
-    .customers-center-shell,
-  html[data-v12-workspace="on"][data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not(
-      [data-cco-mobile-shell="on"]
-    )
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
-    .v9-aggregate-panel {
-    display: none !important;
-  }
-
-  html[data-v12-workspace="on"][data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not(
-      [data-cco-mobile-shell="on"]
-    )
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
-    .customers-rail.intel-shell,
-  html[data-v12-workspace="on"][data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not(
-      [data-cco-mobile-shell="on"]
-    )
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
-    .customers-rail.intel-shell.customers-rail--dominant,
-  html[data-v12-workspace="on"][data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not(
-      [data-cco-mobile-shell="on"]
-    )
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
-    .customers-rail.intel-shell[data-context="customer"] {
-    grid-column: 2 !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    position: relative !important;
-    top: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  html[data-v12-workspace="on"][data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not(
-      [data-cco-mobile-shell="on"]
-    )
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
-    .customers-rail.intel-shell
-    > [data-patient-master-rail] {
-    display: block !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-  }
-
-  html[data-v12-workspace="on"][data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not(
-      [data-cco-mobile-shell="on"]
-    )
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
-    .customers-rail.intel-shell
-    [data-patient-detail].v12-workspace {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+    width: 100%;
+    border-radius: 0;
   }
 }
 
 /*
- * Scroll-ownership (verifierat via live-DOM-probe 2026-06-23):
- * I V12-cutover-grid:en växer HELA ancestor-kedjan till innehållshöjd
- * (intel-shell = overflow visible, [data-patient-master-rail] = overflow hidden,
- * preview-canvas/page sid-scroll triggar inte för denna vy → body/html
- * scrollH == clientH). En höjd-baserad (height:100%) ansats resolvar därför till
- * `auto` och ger ingen scroll. Lösningen är att ge V12-arbetsytans zon-container
- * en VIEWPORT-bunden max-height så dess egen overflow-y:auto faktiskt aktiveras.
- * Scoped till V12-detalj-shellen ([data-v12-workspace-shell]) → rör inte legacy/V11.
- * Offset 8rem ≈ topp-nav + stäng-knapp; matchar appens sticky-rail-offset (7rem).
+ * Scroll-ownership för V12-skalet. Första kundklicket visar lilla V11-rail;
+ * V12 renderas först i overlayn efter sektionsklick, men skalet behöver fortsatt
+ * viewport-bunden intern scroll när det ligger i en höjdbegränsad container.
  */
 .v12-workspace[data-v12-workspace-shell="1"] .v12-workspace__zones[data-v9-dossier-scroll] {
   max-height: calc(100dvh - 8rem);
