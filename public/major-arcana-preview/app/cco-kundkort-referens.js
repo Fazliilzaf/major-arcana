@@ -6640,6 +6640,10 @@
       var op = e.target.closest && e.target.closest('[data-kk-open-storvy]');
       if (op && typeof window.__kkOpenStorvy === 'function') {
         e.preventDefault();
+        if (document.documentElement.getAttribute('data-v12-workspace') === 'on') {
+          e.stopPropagation();
+          return;
+        }
         window.__kkOpenStorvy(
           op.getAttribute('data-kk-open-storvy') || '',
           op.getAttribute('data-kk-entry') || ''
@@ -7226,6 +7230,7 @@
   // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt
   // landat på en sektion (#slug). Används av header-förstoringen OCH sektions-⤢.
   window.__kkOpenStorvy = function (slug, entryId, medForm) {
+    if (document.documentElement.getAttribute('data-v12-workspace') === 'on') return;
     var ov = document.getElementById('kk-storvy');
     if (!ov) {
       ov = document.createElement('div');

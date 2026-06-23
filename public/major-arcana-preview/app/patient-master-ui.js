@@ -6649,6 +6649,7 @@
   }
 
   function patchReferensKundkortRail() {
+    if (usesV12Workspace() || usesV11Rail()) return false;
     const rail = els.patientRail || document.querySelector('[data-patient-master-rail]');
     if (!rail || !runtime.detail?.card) return false;
     const kkrefHost = rail.querySelector('.v10-dossier-referens .kkref');

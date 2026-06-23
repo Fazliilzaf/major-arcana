@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, '..');
 const INDEX_HTML = path.join(ROOT, 'public/major-arcana-preview/index.html');
 const LATEST_JSON = path.join(ROOT, 'public/major-arcana-preview/app.bundle.latest.json');
 
-const CACHE_BUST = 'disable-prod-mock-api-v1';
+const CACHE_BUST = 'v12-real-customer-surface-v1';
 const PATIENT_UI_PRELOAD = `./app/patient-master-ui.js?v=${CACHE_BUST}`;
 const MOBILE_DEEPLINK_BOOT = `./app/mobile-deeplink-boot.js?v=${CACHE_BUST}`;
 
