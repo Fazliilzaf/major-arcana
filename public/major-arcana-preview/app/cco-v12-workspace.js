@@ -440,6 +440,106 @@
     );
   }
 
+  /**
+   * Insikter & nästa bästa åtgärd-modul (sektion 12) — kombinerar V11:s
+   * Smart Next Step (G) + Insights (R). Återanvänder adaptrarna
+   * buildSmartNextStep + buildInsightsFromSignals och de BEFINTLIGA CTA-
+   * attributen `data-kk-sig` / `data-kk-sig-label` / `data-kk-patient-id`
+   * som den globala signal-action-handlern redan wire:ar. INGEN ny handler.
+   * Inga aktiva signaler → explicit empty-state (ingen fejkad rekommendation).
+   */
+  function renderInsightsModule(nextStep, insights) {
+    var icons = { blocker: '⚠', review: '◐', insight: '↗' };
+    var items = (insights && insights.items) || [];
+    var count = items.length;
+
+    var head =
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">INSIKTER &amp; NÄSTA ÅTGÄRD</div>' +
+      (count ? '<span class="v12-workspace__count">' + esc(String(count)) + '</span>' : '') +
+      '</header>';
+
+    var nextBlock = '';
+    if (nextStep && nextStep.what) {
+      var sigAttrs =
+        ' data-kk-sig="' +
+        esc(nextStep.ruleId) +
+        '" data-kk-sig-label="' +
+        esc(nextStep.what) +
+        '" data-kk-patient-id="' +
+        esc(nextStep.patientId) +
+        '"';
+      var toneClass = nextStep.tone === 'Blockerare' ? 'blocker' : 'suggested';
+      nextBlock =
+        '<div class="v12-workspace__next" data-tone="' +
+        esc(toneClass) +
+        '">' +
+        '<div class="v12-workspace__next-head">' +
+        '<span class="v12-workspace__subhead">Nästa bästa åtgärd</span>' +
+        '<span class="v12-workspace__next-tone" data-tone="' +
+        esc(toneClass) +
+        '">' +
+        esc(nextStep.tone) +
+        '</span>' +
+        '</div>' +
+        '<div class="v12-workspace__next-what">' +
+        esc(nextStep.what) +
+        '</div>' +
+        (nextStep.why
+          ? '<div class="v12-workspace__next-why">' + esc(nextStep.why) + '</div>'
+          : '') +
+        '<div class="v12-workspace__next-actions">' +
+        '<button type="button" class="v12-workspace__primary"' +
+        sigAttrs +
+        '>' +
+        esc(nextStep.ctaLabel || 'Granska & åtgärda') +
+        '</button>' +
+        '<button type="button" class="v12-workspace__next-secondary"' +
+        sigAttrs +
+        '>Granska utkast</button>' +
+        '</div></div>';
+    }
+
+    var insightsBlock;
+    if (!count) {
+      insightsBlock =
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Inga insikter just nu</div>' +
+        '<div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div>';
+    } else {
+      insightsBlock =
+        '<ul class="v12-workspace__insights-list">' +
+        items
+          .map(function (it) {
+            var icon = icons[it.tone] || '↗';
+            return (
+              '<li class="v12-workspace__insight" data-tone="' +
+              esc(it.tone) +
+              '"><span class="v12-workspace__insight-icon" aria-hidden="true">' +
+              icon +
+              '</span><span class="v12-workspace__insight-main">' +
+              '<span class="v12-workspace__insight-title">' +
+              esc(it.title) +
+              '</span>' +
+              (it.text
+                ? '<span class="v12-workspace__insight-text">' + esc(it.text) + '</span>'
+                : '') +
+              '</span></li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+    }
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__insights" data-v12-module="insights" aria-label="Insikter och nästa åtgärd">' +
+      head +
+      nextBlock +
+      insightsBlock +
+      '</section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var av = null;
@@ -518,6 +618,21 @@
       bookings = { items: [], count: 0 };
       history = { items: [], count: 0 };
     }
+    var nextStep = null;
+    var insights = { items: [], count: 0 };
+    try {
+      if (global.CcoV11RailAdapters) {
+        if (typeof global.CcoV11RailAdapters.buildSmartNextStep === 'function') {
+          nextStep = global.CcoV11RailAdapters.buildSmartNextStep(ctx.card) || null;
+        }
+        if (typeof global.CcoV11RailAdapters.buildInsightsFromSignals === 'function') {
+          insights = global.CcoV11RailAdapters.buildInsightsFromSignals(ctx.card) || insights;
+        }
+      }
+    } catch (_error) {
+      nextStep = null;
+      insights = { items: [], count: 0 };
+    }
 
     return (
       '<div class="v12-workspace__inner" data-v12-workspace-inner="1">' +
@@ -527,6 +642,7 @@
       renderHealthModule(health) +
       renderJournalModule(journal) +
       renderBookingsModule(bookings, history) +
+      renderInsightsModule(nextStep, insights) +
       '</div>'
     );
   }
