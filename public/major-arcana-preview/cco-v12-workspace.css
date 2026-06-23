@@ -1070,6 +1070,113 @@
   line-height: 1.4;
 }
 
+/* ===== Dokument-modul (sektion 9) ===== */
+.v12-workspace__doc-list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v12-workspace__doc-item {
+  display: block;
+}
+
+.v12-workspace__doc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--v12-ink);
+  font: inherit;
+  text-decoration: none;
+}
+
+.v12-workspace__doc-row[role="button"],
+.v12-workspace__doc-file {
+  cursor: pointer;
+}
+
+.v12-workspace__doc-row[role="button"]:hover,
+.v12-workspace__doc-file:hover {
+  border-color: var(--v12-amber);
+}
+
+.v12-workspace__doc-icon {
+  flex: none;
+  font-size: 15px;
+}
+
+.v12-workspace__doc-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.v12-workspace__doc-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v12-workspace__doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__doc-amount {
+  font-weight: 700;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__doc-status {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--v12-muted);
+  background: rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__doc-status[data-state="signed"] {
+  color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.14);
+}
+
+.v12-workspace__doc-status[data-state="pending"] {
+  color: #8a5a00;
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v12-workspace__doc-badge {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.12);
+}
+
 /* ===== Sticky arbetsbar-modul (sektion 13) ===== */
 .v12-workspace__sticky {
   position: sticky;

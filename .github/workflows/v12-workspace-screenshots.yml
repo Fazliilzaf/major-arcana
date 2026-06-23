@@ -130,3 +130,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-sticky/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Generate Documents module screenshots (Block 10)
+        run: npm run shots:v12workspace:documents
+
+      - name: Upload Documents screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-documents-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-documents/*.png
+          if-no-files-found: error
+          retention-days: 30
