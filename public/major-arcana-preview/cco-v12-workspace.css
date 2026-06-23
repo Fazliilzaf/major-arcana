@@ -1070,6 +1070,82 @@
   line-height: 1.4;
 }
 
+/* ===== Bilder / före–efter-modul (sektion 7) ===== */
+.v12-workspace__photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.v12-workspace__photo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__photo-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(56, 40, 28, 0.06);
+}
+
+.v12-workspace__photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.v12-workspace__photo-fallback {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__photo.is-missing .v12-workspace__photo-fallback {
+  display: flex;
+}
+
+.v12-workspace__photo.is-missing .v12-workspace__photo-img {
+  display: none;
+}
+
+.v12-workspace__photo-fallback-icon {
+  font-size: 24px;
+}
+
+.v12-workspace__photo-fallback-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.v12-workspace__photo-name {
+  font-size: 11.5px;
+  color: var(--v12-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__photos-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 /* ===== Dokument-modul (sektion 9) ===== */
 .v12-workspace__doc-list {
   list-style: none;

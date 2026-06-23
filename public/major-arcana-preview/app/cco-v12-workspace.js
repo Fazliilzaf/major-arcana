@@ -810,6 +810,84 @@
   }
 
   /**
+   * Bilder / före–efter-modul (sektion 7) — kundens foton/media. Återanvänder
+   * V11-adaptern buildPhotosFromDriveFiles (driveFiles). Varje bild är en native
+   * länk (target=_blank) med `data-photo=<id>` så ev. BEFINTLIG lightbox-handler
+   * wire:as — INGEN ny handler. Bilder försöker ladda thumbnail (onerror →
+   * fallback-tile, presentationellt); film visar alltid fallback. Före/efter-
+   * etikett + datum-koppling saknas i datakällan idag (endast filnamn) →
+   * jämförelsevy uppskjuten med dämpad not (ingen fejk; per inventory-spike #3).
+   * Tom lista → explicit empty-state.
+   */
+  function renderPhotosModule(photos) {
+    var count = (photos && photos.count) || 0;
+    var head =
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div>' +
+      (count ? '<span class="v12-workspace__count">' + esc(String(count)) + '</span>' : '') +
+      '</header>';
+
+    if (!count) {
+      return (
+        '<section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder">' +
+        head +
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Inga bilder ännu</div>' +
+        '<div class="v12-workspace__empty-hint">Inga foton eller media registrerade.</div>' +
+        '</div></section>'
+      );
+    }
+
+    var grid =
+      '<div class="v12-workspace__photos-grid">' +
+      photos.items
+        .map(function (it) {
+          var kindLabel = it.isImage ? 'Foto' : 'Film';
+          var fallback =
+            '<span class="v12-workspace__photo-fallback" aria-hidden="true">' +
+            '<span class="v12-workspace__photo-fallback-icon">' +
+            (it.isImage ? '🖼' : '🎬') +
+            '</span><span class="v12-workspace__photo-fallback-label">' +
+            kindLabel +
+            '</span></span>';
+          var thumbInner = it.isImage
+            ? '<img class="v12-workspace__photo-img" src="' +
+              esc(it.href) +
+              '" alt="' +
+              esc(it.name) +
+              '" loading="lazy" decoding="async"' +
+              " onerror=\"this.closest('.v12-workspace__photo').classList.add('is-missing')\" />" +
+              fallback
+            : fallback;
+          return (
+            '<a class="v12-workspace__photo' +
+            (it.isImage ? '' : ' is-missing') +
+            '" href="' +
+            esc(it.href) +
+            '" target="_blank" rel="noopener"' +
+            (it.id ? ' data-photo="' + esc(it.id) + '"' : '') +
+            ' title="' +
+            esc(it.name) +
+            '"><span class="v12-workspace__photo-thumb">' +
+            thumbInner +
+            '</span><span class="v12-workspace__photo-name">' +
+            esc(it.name) +
+            '</span></a>'
+          );
+        })
+        .join('') +
+      '</div>';
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder">' +
+      head +
+      grid +
+      '<div class="v12-workspace__health-muted">Före/efter-etiketter &amp; jämförelsevy: visas när bild-metadata finns.</div>' +
+      '</section>'
+    );
+  }
+
+  /**
    * Dokument-modul (sektion 9) — offerter + auto-dokument + filer i en sektion.
    * Återanvänder V11-adaptrarna buildOffersFromPayload + buildAutoDocsFromPayload
    * + buildFilesFromDriveFiles (via CcoV9CustomersParity.resolveV11DocumentPayload
@@ -1037,6 +1115,17 @@
     } catch (_error) {
       journal = { items: [], count: 0 };
     }
+    var photos = { items: [], count: 0 };
+    try {
+      if (
+        global.CcoV11RailAdapters &&
+        typeof global.CcoV11RailAdapters.buildPhotosFromDriveFiles === 'function'
+      ) {
+        photos = global.CcoV11RailAdapters.buildPhotosFromDriveFiles(ctx.driveFiles) || photos;
+      }
+    } catch (_error) {
+      photos = { items: [], count: 0 };
+    }
     var bookings = { items: [], count: 0 };
     var history = { items: [], count: 0 };
     try {
@@ -1129,6 +1218,7 @@
       renderHealthModule(health) +
       renderJourneyModule(journey) +
       renderJournalModule(journal) +
+      renderPhotosModule(photos) +
       renderBookingsModule(bookings, history) +
       renderDocumentsModule(offers, autoDocs, files) +
       renderInsightsModule(nextStep, insights) +
