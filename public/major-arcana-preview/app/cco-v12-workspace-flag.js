@@ -1,13 +1,13 @@
 /**
- * V12 Customer Workspace — Block 0 · feature flag (opt-in, default OFF).
+ * V12 Customer Workspace — Block 0 · feature flag (default ON, opt-out).
  *
  * Speglar cco-v11-rail-flag.js men med EGEN nyckel och EGET attribut. Isolerad
  * från v11rail/v9-flaggor (canon §5 — clean namespace). Sätter ett data-attribut
  * som mount-switchen i patient-master-ui.js läser; ändrar inget i V11/v9.
  *
  *   ?v12workspace=on  → localStorage arcana.v12workspace.enabled = '1'  (sticky ON)
- *   ?v12workspace=off → localStorage arcana.v12workspace.enabled = '0'  (sticky OFF)
- *   inget             → enabled = (localStorage === '1')   (default OFF, opt-in)
+ *   ?v12workspace=off → localStorage arcana.v12workspace.enabled = '0'  (sticky OFF, kill-switch)
+ *   inget             → enabled = (localStorage !== '0')   (default ON, opt-out)
  *
  * Resultat:
  *   document.documentElement[data-v12-workspace] = 'on' | 'off'
@@ -48,11 +48,11 @@
     }
   }
 
-  var enabled = false;
+  var enabled = true;
   try {
-    enabled = localStorage.getItem(KEY) === '1';
+    enabled = localStorage.getItem(KEY) !== '0';
   } catch (_error) {
-    enabled = false;
+    enabled = true;
   }
 
   document.documentElement.setAttribute('data-v12-workspace', enabled ? 'on' : 'off');
