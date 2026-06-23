@@ -135,45 +135,28 @@
 }
 
 /*
- * Scroll-ownership: när V12 äger den riktiga kund-detaljytan (cutover-grid ovan)
- * blir detaljkolumnen höjd-bunden. V12-detalj-shellen måste då äga sin EGEN
- * scroll så att hela arbetsytan (13 sektioner) går att nå — annars klipps
- * innehållet. Scoped till V12-detalj-shellen ([data-v12-workspace-shell]) →
- * rör inte legacy/V11. Är föräldern obunden faller height:100% tillbaka till
- * auto (= nuvarande sid-scroll-beteende), så detta kan inte försämra något.
+ * Scroll-ownership (verifierat via live-DOM-probe 2026-06-23):
+ * I V12-cutover-grid:en växer HELA ancestor-kedjan till innehållshöjd
+ * (intel-shell = overflow visible, [data-patient-master-rail] = overflow hidden,
+ * preview-canvas/page sid-scroll triggar inte för denna vy → body/html
+ * scrollH == clientH). En höjd-baserad (height:100%) ansats resolvar därför till
+ * `auto` och ger ingen scroll. Lösningen är att ge V12-arbetsytans zon-container
+ * en VIEWPORT-bunden max-height så dess egen overflow-y:auto faktiskt aktiveras.
+ * Scoped till V12-detalj-shellen ([data-v12-workspace-shell]) → rör inte legacy/V11.
+ * Offset 8rem ≈ topp-nav + stäng-knapp; matchar appens sticky-rail-offset (7rem).
  */
-.v12-workspace[data-v12-workspace-shell="1"] {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  max-height: 100%;
-}
-
 .v12-workspace[data-v12-workspace-shell="1"] .v12-workspace__zones[data-v9-dossier-scroll] {
-  flex: 1 1 auto;
-  min-height: 0;
+  max-height: calc(100dvh - 8rem);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
-@media (min-width: 1024px) {
-  /* Tillåt grid-cellen som V12 tar över att låta barnet scrolla (annars
-     tvingar min-height:auto cellen att växa med innehållet → ingen scroll). */
-  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
-    .preview-canvas[data-app-shell-view="customers"]
-    .customers-layout[data-v9-dossier-open]
-    .customers-rail {
-    min-height: 0;
-  }
-}
-
-/* Mobil-shell: V12 äger ytan → bind scrollen till viewporten. */
+/* Mobil-shell: V12 äger hela ytan → lite mer scroll-höjd (mindre topp-chrome). */
 html[data-cco-mobile-shell="on"]
   .v12-workspace[data-v12-workspace-shell="1"]
   .v12-workspace__zones[data-v9-dossier-scroll] {
-  max-height: 100dvh;
+  max-height: calc(100dvh - 4rem);
 }
 
 .v12-workspace *,
