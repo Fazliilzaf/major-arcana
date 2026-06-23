@@ -1265,6 +1265,160 @@
     deep.querySelector('[data-v9-deep-close]')?.addEventListener('click', close, { once: true });
   }
 
+  const V12_RAIL_SECTION_MODULES = {
+    kontakt: 'current-state',
+    profil: 'current-state',
+    compliance: 'warnings',
+    health: 'health',
+    halsa: 'health',
+    journal: 'journal',
+    foto: 'photos',
+    photos: 'photos',
+    upcoming: 'bookings',
+    historik: 'bookings',
+    tidslinje: 'bookings',
+    filer: 'documents',
+    avtal: 'documents',
+    ekonomi: 'economy',
+  };
+
+  const V12_RAIL_CLASS_MODULES = [
+    ['current-state', ['.v11-rail__profile', '.v11-rail__identity', '.v11-rail__contact']],
+    ['active-visit', ['.v11-rail__active-visit', '[class*="v11-rail__av-"]']],
+    ['warnings', ['.v11-rail__warnings', '.v11-rail__warning']],
+    ['health', ['.v11-rail__health']],
+    ['journey', ['.v11-rail__journey']],
+    ['journal', ['.v11-rail__journals', '[class*="v11-rail__journal-"]']],
+    ['photos', ['.v11-rail__photos', '[class*="v11-rail__photo-"]']],
+    ['bookings', ['.v11-rail__bookings', '[class*="v11-rail__booking-"]', '.v11-rail__history']],
+    [
+      'documents',
+      [
+        '.v11-rail__offers',
+        '[class*="v11-rail__offer-"]',
+        '.v11-rail__autodocs',
+        '[class*="v11-rail__autodoc-"]',
+        '.v11-rail__files',
+        '[class*="v11-rail__file-"]',
+      ],
+    ],
+    ['communication', ['.v11-rail__comm', '[class*="v11-rail__comm-"]']],
+    ['economy', ['.v11-rail__econ', '[class*="v11-rail__econ-"]', '.v11-rail__stats']],
+    ['insights', ['.v11-rail__smart-info', '.v11-rail__next', '.v11-rail__insights']],
+  ];
+
+  function inferV12ModuleFromRailClick(target) {
+    if (!target || !usesV12Workspace()) return '';
+    if (
+      target.closest(
+        'a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"],[data-v11-active-visit-action],[data-v9-quick],[data-kk-sig],[data-kk-ord48-open-calendar],[data-patient-photo-camera],[data-v11-doc-action]'
+      )
+    ) {
+      return '';
+    }
+    const explicit = target.closest('[data-v12-open-module]');
+    if (explicit?.dataset?.v12OpenModule) return explicit.dataset.v12OpenModule;
+    const sectionLink = target.closest('[data-v9-section-link]');
+    if (sectionLink?.dataset?.v9SectionLink) {
+      const moduleName = V12_RAIL_SECTION_MODULES[sectionLink.dataset.v9SectionLink];
+      if (moduleName) return moduleName;
+    }
+    const kkJump = target.closest('[data-kk-jump]');
+    if (kkJump) {
+      if (target.closest('.v11-rail__health')) return 'health';
+      if (target.closest('.v11-rail__journey')) return 'journey';
+    }
+    for (const [moduleName, selectors] of V12_RAIL_CLASS_MODULES) {
+      if (selectors.some((selector) => target.closest(selector))) return moduleName;
+    }
+    return '';
+  }
+
+  function scrollV12WorkspaceModule(scope, moduleName) {
+    if (!scope || !moduleName) return;
+    const module = scope.querySelector(`[data-v12-module="${moduleName}"]`);
+    if (!module) return;
+    module.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    module.setAttribute('data-v12-focus-pulse', '1');
+    window.setTimeout(() => module.removeAttribute('data-v12-focus-pulse'), 1200);
+  }
+
+  function bindV12WorkspaceOverlayBody(body, ctx) {
+    if (!body) return;
+    const journeyHandlers = buildV9JourneyHandlers(body, ctx);
+    window.CcoV9CustomersParity?.bindDossierScroll?.(body, journeyHandlers);
+    window.CcoV9CustomersParity?.bindIntelligentJourney?.(body, ctx, journeyHandlers);
+    window.CcoV9CustomersParity?.bindKundkortSlideOver?.(body, journeyHandlers, ctx);
+    bindJournalPhotoOpenLinks(body);
+    bindV9DossierCapabilityHandlers(body);
+    void hydrateJournalPhotoElements(body);
+    void hydratePatientFileImages(body);
+    void hydrateGkMediaElements(body);
+  }
+
+  function openV12WorkspaceFromRail(root, ctx, moduleName) {
+    if (!root || !ctx || !usesV12Workspace()) return;
+    const deep = root.querySelector('[data-v9-dossier-deep]');
+    const body = deep?.querySelector('[data-v9-deep-body]');
+    if (!deep || !body) return;
+    const title = deep.querySelector('[data-v9-deep-title]');
+    if (title) title.textContent = 'Kundvy';
+    deep.classList.add('v9-dossier-deep--v12-workspace');
+    body.innerHTML = renderV12WorkspaceDetailShell(
+      ctx.card,
+      ctx.journalEntries,
+      ctx.occasionTimeline,
+      ctx.driveFiles,
+      ctx.patient,
+      { tab: normalizeDetailTab(runtime.detailTab) }
+    );
+    deep.hidden = false;
+    deep.setAttribute('aria-hidden', 'false');
+    bindV12WorkspaceOverlayBody(body, ctx);
+    const close = () => {
+      deep.hidden = true;
+      deep.setAttribute('aria-hidden', 'true');
+      deep.classList.remove('v9-dossier-deep--v12-workspace');
+      body.innerHTML = '';
+    };
+    deep.__v12WorkspaceClose = close;
+    const closeBtn = deep.querySelector('[data-v9-deep-close]');
+    closeBtn?.addEventListener('click', close, { once: true });
+    if (deep.dataset.v12BackdropBound !== '1') {
+      deep.dataset.v12BackdropBound = '1';
+      deep.addEventListener('click', (event) => {
+        if (event.target === deep && typeof deep.__v12WorkspaceClose === 'function') {
+          deep.__v12WorkspaceClose();
+        }
+      });
+    }
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() =>
+        scrollV12WorkspaceModule(body, moduleName || 'current-state')
+      )
+    );
+  }
+
+  function bindV12WorkspaceRailLauncher(root, ctx) {
+    if (!root || !usesV12Workspace()) return;
+    const railShell = root.querySelector('[data-v11-rail-shell="1"]');
+    if (!railShell || root.querySelector('[data-v12-workspace-shell="1"]')) return;
+    if (railShell.dataset.v12WorkspaceLauncherBound === '1') return;
+    railShell.dataset.v12WorkspaceLauncherBound = '1';
+    railShell.addEventListener(
+      'click',
+      (event) => {
+        const moduleName = inferV12ModuleFromRailClick(event.target);
+        if (!moduleName) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        openV12WorkspaceFromRail(root, ctx, moduleName);
+      },
+      true
+    );
+  }
+
   function renderBlueprintDetailPanels(
     card,
     journalEntries,
@@ -1279,7 +1433,7 @@
     if (usesV12Workspace()) {
       setPatientRailHtml(
         rail,
-        renderV12WorkspaceDetailShell(card, journalEntries, occasionTimeline, driveFiles, null, {
+        renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, null, {
           tab: normalizeDetailTab(runtime.detailTab),
         })
       );
@@ -5082,6 +5236,7 @@
     bindV9Zone1Handlers(root, ctx);
     const journeyHandlers = buildV9JourneyHandlers(root, ctx);
     const referensKkref = isReferensKundkortRoot(root);
+    bindV12WorkspaceRailLauncher(root, ctx);
     if (root.querySelector('[data-kundkort-slide-over]')) {
       window.CcoV9CustomersParity?.bindKundkortSlideOver?.(root, journeyHandlers, ctx);
     } else {
@@ -5320,6 +5475,7 @@
         <div class="v11-rail__scroll" data-v9-dossier-scroll aria-label="Kunddossiér (V11 Rail)">
           ${body}
         </div>
+        ${renderV9MockupDossierDeepShell()}
       </section>`;
   }
 
@@ -5406,14 +5562,10 @@
     // V12 Customer Workspace · Block 0 — mount/switch (opt-in, default OFF). Tar
     // precedens när ?v12workspace=on; annars körs V11/legacy oförändrat nedan.
     if (usesV12Workspace()) {
-      return renderV12WorkspaceDetailShell(
-        card,
-        journalEntries,
-        occasionTimeline,
-        driveFiles,
-        patient,
-        { tab: normalizedTab, lite }
-      );
+      return renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+        tab: normalizedTab,
+        lite,
+      });
     }
     if (usesV11Rail()) {
       return renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
@@ -9081,6 +9233,13 @@
           normalizeDetailTab(runtime.detailTab),
           { lite: true }
         );
+        bindV9MockupDossierHandlers(rail, {
+          card,
+          journalEntries,
+          driveFiles,
+          patient: runtime.detail?.patient,
+          occasionTimeline,
+        });
         ensureV9DossierDeepClosed();
         runtime.detailShellOnly = true;
         syncV9CustomersLayoutState();
