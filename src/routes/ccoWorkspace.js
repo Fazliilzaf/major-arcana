@@ -762,18 +762,7 @@ function createCcoWorkspaceRouter({
       const hasLiveContext = hasWorkspaceConversationContext(context);
       const bootstrapScope = normalizeKey(req.query.scope) === 'light' ? 'light' : 'full';
       const isLightBootstrap = bootstrapScope === 'light';
-      const [
-        savedNotes,
-        latestFollowUp,
-        bookingCase,
-        consultationCase,
-        aftercareCase,
-        aftercareQueueCases,
-        operationCase,
-        commercialCase,
-        prefs,
-        portalOverview,
-      ] = await Promise.all([
+      const __bootResults = await Promise.allSettled([
         hasLiveContext ? noteStore.getNotesByConversation(context) : Promise.resolve([]),
         hasLiveContext ? followUpStore.getLatestFollowUp(context) : Promise.resolve(null),
         hasLiveContext && bookingStore && typeof bookingStore.ensureCase === 'function'
@@ -841,6 +830,28 @@ function createCcoWorkspaceRouter({
             })
           : Promise.resolve(null),
       ]);
+      // Feltolerant bootstrap: ett enskilt store-anrop som fallerar får INTE
+      // 500:a hela workspacen. Degradera grasiöst med exakt samma defaults som
+      // no-context-grenen ovan (verifierat säkra nedströms: prefs?-guard,
+      // buildXReadout(null), asArray()).
+      const __bootPick = (i, fb) => {
+        const r = __bootResults[i];
+        if (r && r.status === 'fulfilled') return r.value;
+        if (r && r.reason) {
+          console.warn('[cco-workspace] bootstrap-anrop #' + i + ' fallerade', r.reason);
+        }
+        return fb;
+      };
+      const savedNotes = __bootPick(0, []);
+      const latestFollowUp = __bootPick(1, null);
+      const bookingCase = __bootPick(2, null);
+      const consultationCase = __bootPick(3, null);
+      const aftercareCase = __bootPick(4, null);
+      const aftercareQueueCases = __bootPick(5, []);
+      const operationCase = __bootPick(6, null);
+      const commercialCase = __bootPick(7, null);
+      const prefs = __bootPick(8, null);
+      const portalOverview = __bootPick(9, null);
       const patientRecord =
         hasLiveContext && patientSystemStore && !isLightBootstrap
           ? await Promise.all([
@@ -896,7 +907,12 @@ function createCcoWorkspaceRouter({
                     includeTimelineEvent: false,
                   })
                 : Promise.resolve(null),
-            ]).then((records) => pickLatestPatient360Record(...records))
+            ])
+              .then((records) => pickLatestPatient360Record(...records))
+              .catch((error) => {
+                console.warn('[cco-workspace] patient360-sync fallerade', error);
+                return null;
+              })
           : null;
 
       const noteDefinitions = mergeSavedNotes(
@@ -908,17 +924,29 @@ function createCcoWorkspaceRouter({
         .map((item) => buildAftercareQueueItem(item, context))
         .filter(Boolean);
 
-      const patientCard =
-        !isLightBootstrap && hasLiveContext
-          ? await resolvePatientCardFromContext(patientMasterStore, context)
-          : null;
-      const journalEntries =
-        !isLightBootstrap && patientCard && journalStore
-          ? await journalStore.listEntries({
-              tenantId: context.tenantId,
-              patientId: patientCard.patientId,
-            })
-          : [];
+      let patientCard = null;
+      try {
+        patientCard =
+          !isLightBootstrap && hasLiveContext
+            ? await resolvePatientCardFromContext(patientMasterStore, context)
+            : null;
+      } catch (error) {
+        console.warn('[cco-workspace] patientCard-resolve fallerade', error);
+        patientCard = null;
+      }
+      let journalEntries = [];
+      try {
+        journalEntries =
+          !isLightBootstrap && patientCard && journalStore
+            ? await journalStore.listEntries({
+                tenantId: context.tenantId,
+                patientId: patientCard.patientId,
+              })
+            : [];
+      } catch (error) {
+        console.warn('[cco-workspace] journalEntries-listning fallerade', error);
+        journalEntries = [];
+      }
       const journalReadout = buildJournalWorkspaceReadout({
         entries: journalEntries,
         patientCard,
