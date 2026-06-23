@@ -18,6 +18,130 @@
     });
   }
 
+  /**
+   * Kundens nuläge-modul (sektion 1) — identitet, kontakt, tags, status och
+   * nyckeltal överst i arbetsytan. Återanvänder V11-adaptrarna
+   * buildProfileFromBcard + buildStatsFromExtras. Snabbåtgärder ring/SMS/mejl
+   * är native länkar (tel:/sms:/mailto:) precis som V11:s kontaktlänkar —
+   * INGEN ny handler. Status härleds endast från riktig data (readyForTreatment);
+   * saknas fältet visas ingen påhittad status. Personnummer saknas i datakällan
+   * idag → renderas inte (explicit utelämnat, ingen fejk; per inventory-spike).
+   */
+  function renderCurrentStateModule(profile, stats, status) {
+    profile = profile || { name: 'Kund', initials: '–', pills: [] };
+
+    function telHref(p) {
+      return String(p == null ? '' : p).replace(/[^\d+]/g, '');
+    }
+
+    var actions = [];
+    if (profile.phone) {
+      actions.push(
+        '<a class="v12-workspace__cs-action" href="tel:' +
+          esc(telHref(profile.phone)) +
+          '"><span aria-hidden="true">📞</span> Ring</a>'
+      );
+      actions.push(
+        '<a class="v12-workspace__cs-action" href="sms:' +
+          esc(telHref(profile.phone)) +
+          '"><span aria-hidden="true">💬</span> SMS</a>'
+      );
+    }
+    if (profile.email) {
+      actions.push(
+        '<a class="v12-workspace__cs-action" href="mailto:' +
+          esc(profile.email) +
+          '"><span aria-hidden="true">✉</span> Mejl</a>'
+      );
+    }
+    var actionsRow = actions.length
+      ? '<div class="v12-workspace__cs-actions">' + actions.join('') + '</div>'
+      : '';
+
+    var contactBits = [];
+    if (profile.phone) contactBits.push(esc(profile.phone));
+    if (profile.email) contactBits.push(esc(profile.email));
+    var contactRow = contactBits.length
+      ? '<div class="v12-workspace__cs-contact">' + contactBits.join(' · ') + '</div>'
+      : '<div class="v12-workspace__cs-contact v12-workspace__health-muted">Inga kontaktuppgifter registrerade</div>';
+
+    var addr = profile.addrLine
+      ? '<div class="v12-workspace__cs-addr">📍 ' + esc(profile.addrLine) + '</div>'
+      : '';
+
+    var pills =
+      profile.pills && profile.pills.length
+        ? '<div class="v12-workspace__cs-pills">' +
+          profile.pills
+            .map(function (pill) {
+              return (
+                '<span class="v12-workspace__cs-pill" data-tone="' +
+                esc(pill.tone) +
+                '">' +
+                esc(pill.label) +
+                '</span>'
+              );
+            })
+            .join('') +
+          '</div>'
+        : '';
+
+    var statusBadge = status
+      ? '<span class="v12-workspace__cs-status" data-tone="' +
+        esc(status.tone) +
+        '">' +
+        esc(status.label) +
+        '</span>'
+      : '';
+
+    var statBlock = '';
+    if (stats) {
+      var skuldState = stats.skuld.unknown ? 'unknown' : stats.skuld.hasDebt ? 'debt' : 'clear';
+      function cell(label, data, extraAttr) {
+        return (
+          '<div class="v12-workspace__cs-stat"' +
+          (extraAttr || '') +
+          '><div class="v12-workspace__cs-stat-label">' +
+          esc(label) +
+          '</div><div class="v12-workspace__cs-stat-value">' +
+          esc(data.value) +
+          '</div><div class="v12-workspace__cs-stat-sub">' +
+          esc(data.sub) +
+          '</div></div>'
+        );
+      }
+      statBlock =
+        '<div class="v12-workspace__cs-stats">' +
+        cell('Besök', stats.besok) +
+        cell('Värde tot', stats.vardeTot) +
+        cell('Skuld', stats.skuld, ' data-skuld-state="' + esc(skuldState) + '"') +
+        '</div>';
+    }
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__current-state" data-v12-module="current-state" aria-label="Kundens nuläge">' +
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDENS NULÄGE</div>' +
+      statusBadge +
+      '</header>' +
+      '<div class="v12-workspace__cs-identity">' +
+      '<div class="v12-workspace__cs-avatar" aria-hidden="true">' +
+      esc(profile.initials) +
+      '</div>' +
+      '<div class="v12-workspace__cs-id-main">' +
+      '<div class="v12-workspace__cs-name">' +
+      esc(profile.name) +
+      '</div>' +
+      contactRow +
+      addr +
+      '</div></div>' +
+      pills +
+      actionsRow +
+      statBlock +
+      '</section>'
+    );
+  }
+
   /** Journal-modul — full djupvy (full nottext), till skillnad från railens snippet. */
   function renderJournalModule(journal) {
     var count = (journal && journal.count) || 0;
@@ -542,6 +666,31 @@
 
   function render(ctx) {
     ctx = ctx || {};
+    var profile = null;
+    var stats = null;
+    try {
+      if (global.CcoV11RailAdapters) {
+        if (typeof global.CcoV11RailAdapters.buildProfileFromBcard === 'function') {
+          profile = global.CcoV11RailAdapters.buildProfileFromBcard(ctx.bcard || ctx.card) || null;
+        }
+        if (typeof global.CcoV11RailAdapters.buildStatsFromExtras === 'function') {
+          stats = global.CcoV11RailAdapters.buildStatsFromExtras(ctx.bcard || ctx.card) || null;
+        }
+      }
+    } catch (_error) {
+      profile = null;
+      stats = null;
+    }
+    // Status härleds endast från riktig data (readyForTreatment). Saknas fältet
+    // → ingen påhittad status (null).
+    var status = null;
+    var srcCard = ctx.card || ctx.bcard || {};
+    if (srcCard.readyForTreatment === true) {
+      status = { label: 'Redo för behandling', tone: 'ready' };
+    } else if (srcCard.readyForTreatment === false) {
+      status = { label: 'Ej redo', tone: 'blocked' };
+    }
+
     var av = null;
     try {
       if (
@@ -637,6 +786,7 @@
     return (
       '<div class="v12-workspace__inner" data-v12-workspace-inner="1">' +
       '<div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div>' +
+      renderCurrentStateModule(profile, stats, status) +
       renderActiveVisitModule(av) +
       renderCriticalWarningsModule(warnings) +
       renderHealthModule(health) +

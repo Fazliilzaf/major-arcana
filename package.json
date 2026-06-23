@@ -200,6 +200,8 @@
     "shots:v12workspace:health": "node ./scripts/shot-v12-workspace-health.mjs",
     "gen:v12workspace:insights": "node ./scripts/gen-v12-workspace-insights-preview.mjs",
     "shots:v12workspace:insights": "node ./scripts/shot-v12-workspace-insights.mjs",
+    "gen:v12workspace:currentstate": "node ./scripts/gen-v12-workspace-current-state-preview.mjs",
+    "shots:v12workspace:currentstate": "node ./scripts/shot-v12-workspace-current-state.mjs",
     "test:visual:mobile:android": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.android.config.js",
     "verify:booking-plan-a-prod": "bash ./scripts/verify-booking-plan-a-prod.sh",
     "verify:booking-engine-policy-prod": "node ./scripts/verify-booking-engine-policy-prod.js",

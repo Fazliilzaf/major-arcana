@@ -602,6 +602,170 @@
   width: 100%;
 }
 
+/* ===== Kundens nuläge-modul (sektion 1) ===== */
+.v12-workspace__cs-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.v12-workspace__cs-avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--v12-amber);
+}
+
+.v12-workspace__cs-id-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.v12-workspace__cs-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  line-height: 1.2;
+}
+
+.v12-workspace__cs-contact {
+  font-size: 12.5px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__cs-addr {
+  font-size: 12px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__cs-status {
+  flex: none;
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--v12-muted);
+  background: rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__cs-status[data-tone="ready"] {
+  color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.14);
+}
+
+.v12-workspace__cs-status[data-tone="blocked"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.16);
+}
+
+.v12-workspace__cs-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__cs-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--v12-ink);
+  background: rgba(56, 40, 28, 0.08);
+  border: 1px solid var(--v12-card-border);
+}
+
+.v12-workspace__cs-pill[data-tone="vip"] {
+  color: #8a5a00;
+  background: rgba(200, 130, 30, 0.16);
+  border-color: rgba(200, 130, 30, 0.3);
+}
+
+.v12-workspace__cs-pill[data-tone="treatment"] {
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.1);
+}
+
+.v12-workspace__cs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v12-workspace__cs-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.v12-workspace__cs-action:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__cs-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.v12-workspace__cs-stat {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__cs-stat-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__cs-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.v12-workspace__cs-stat-sub {
+  font-size: 11px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__cs-stat[data-skuld-state="debt"] .v12-workspace__cs-stat-value {
+  color: #8a2820;
+}
+
+.v12-workspace__cs-stat[data-skuld-state="clear"] .v12-workspace__cs-stat-value {
+  color: #2f7d4f;
+}
+
 /* ===== Hälsa-modul (sektion 4) ===== */
 .v12-workspace__health-row {
   display: flex;
