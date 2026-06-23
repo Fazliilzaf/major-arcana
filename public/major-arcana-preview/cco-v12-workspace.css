@@ -1146,6 +1146,63 @@
   }
 }
 
+/* ===== Kommunikation-modul (sektion 10) ===== */
+.v12-workspace__comm-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v12-workspace__comm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__comm-icon {
+  flex: none;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--v12-amber);
+}
+
+.v12-workspace__comm-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v12-workspace__comm-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.3;
+}
+
+.v12-workspace__comm-meta {
+  font-size: 11.5px;
+  color: var(--v12-muted);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v12-workspace__comm-actions {
+  display: flex;
+}
+
+.v12-workspace__comm-actions .v12-workspace__primary {
+  width: 100%;
+}
+
 /* ===== Dokument-modul (sektion 9) ===== */
 .v12-workspace__doc-list {
   list-style: none;

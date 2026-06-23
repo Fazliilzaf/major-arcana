@@ -1023,6 +1023,67 @@
     );
   }
 
+  /**
+   * Kommunikation-modul (sektion 10) — mejl/SMS/samtalslogg + svarstudio.
+   * Återanvänder V11-adaptern buildCommunicationFromState (occasionTimeline +
+   * fallback senaste kontaktväg). "Svarstudio" bär det BEFINTLIGA
+   * `data-v9-quick="reply"` (openReply) — INGEN ny handler. Avsändaridentitet,
+   * meddelande-snippet och läst-status saknas i datakällan idag → uppskjutet
+   * med dämpad not (ingen fejk; per inventory). Tom lista → explicit empty-state.
+   */
+  function renderCommunicationModule(comm) {
+    var count = (comm && comm.count) || 0;
+    var icons = { mail: '✉', sms: '💬', call: '📞' };
+    var head =
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">KOMMUNIKATION</div>' +
+      (count ? '<span class="v12-workspace__count">' + esc(String(count)) + '</span>' : '') +
+      '</header>';
+
+    if (!count) {
+      return (
+        '<section class="v12-workspace__module v12-workspace__comm" data-v12-module="communication" aria-label="Kommunikation">' +
+        head +
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Ingen kommunikation</div>' +
+        '<div class="v12-workspace__empty-hint">Ingen registrerad kommunikation.</div>' +
+        '</div></section>'
+      );
+    }
+
+    var list =
+      '<ul class="v12-workspace__comm-list">' +
+      comm.items
+        .map(function (it) {
+          var icon = icons[it.type] || '•';
+          return (
+            '<li class="v12-workspace__comm-item" data-type="' +
+            esc(it.type) +
+            '"><span class="v12-workspace__comm-icon" aria-hidden="true">' +
+            icon +
+            '</span><span class="v12-workspace__comm-main">' +
+            '<span class="v12-workspace__comm-text">' +
+            esc(it.text) +
+            '</span>' +
+            (it.meta ? '<span class="v12-workspace__comm-meta">' + esc(it.meta) + '</span>' : '') +
+            '</span></li>'
+          );
+        })
+        .join('') +
+      '</ul>';
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__comm" data-v12-module="communication" aria-label="Kommunikation">' +
+      head +
+      list +
+      '<div class="v12-workspace__comm-actions">' +
+      '<button type="button" class="v12-workspace__primary" data-v9-quick="reply">✉ Svarstudio</button>' +
+      '</div>' +
+      '<div class="v12-workspace__health-muted">Avsändare, meddelande-utdrag &amp; läst-status: visas när data finns.</div>' +
+      '</section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var profile = null;
@@ -1176,6 +1237,19 @@
       autoDocs = { items: [], count: 0 };
       files = { items: [], count: 0 };
     }
+    var comm = { items: [], count: 0 };
+    try {
+      if (
+        global.CcoV11RailAdapters &&
+        typeof global.CcoV11RailAdapters.buildCommunicationFromState === 'function'
+      ) {
+        comm =
+          global.CcoV11RailAdapters.buildCommunicationFromState(ctx.card, ctx.occasionTimeline) ||
+          comm;
+      }
+    } catch (_error) {
+      comm = { items: [], count: 0 };
+    }
     var nextStep = null;
     var insights = { items: [], count: 0 };
     try {
@@ -1221,6 +1295,7 @@
       renderPhotosModule(photos) +
       renderBookingsModule(bookings, history) +
       renderDocumentsModule(offers, autoDocs, files) +
+      renderCommunicationModule(comm) +
       renderInsightsModule(nextStep, insights) +
       renderStickyBarModule(sticky) +
       '</div>'
