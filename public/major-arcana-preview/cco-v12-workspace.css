@@ -1340,11 +1340,13 @@ html[data-cco-mobile-shell="on"]
 }
 
 .v12-workspace__econ-invoice-status[data-status="pending"],
-.v12-workspace__econ-invoice-status[data-status="overdue"] {
+.v12-workspace__econ-invoice-status[data-status="overdue"],
+.v12-workspace__econ-invoice-status[data-status="partially_paid"] {
   color: #c8821e;
 }
 
-.v12-workspace__econ-invoice-status[data-status="cancelled"] {
+.v12-workspace__econ-invoice-status[data-status="cancelled"],
+.v12-workspace__econ-invoice-status[data-status="failed"] {
   color: #b94a4a;
 }
 

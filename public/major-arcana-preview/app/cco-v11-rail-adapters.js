@@ -1258,7 +1258,9 @@
     return { items: items, count: hasData ? items.length : 0 };
   }
 
-  /** Betalstatus-token → svensk etikett (display-only). */
+  /** Betalstatus-token → svensk etikett (display-only). Tokens speglar
+   *  backend (src/ops/ccoPatientPaymentHistory.js): paid/pending/overdue/
+   *  cancelled/partially_paid/failed. Okänd status → "Okänd" (ingen fejk). */
   function econInvoiceStatusLabel(status) {
     switch (text(status).toLowerCase()) {
       case 'paid':
@@ -1269,8 +1271,10 @@
         return 'Förfallen';
       case 'cancelled':
         return 'Makulerad';
-      case 'partial':
+      case 'partially_paid':
         return 'Delbetald';
+      case 'failed':
+        return 'Misslyckad';
       default:
         return text(status) || 'Okänd';
     }
