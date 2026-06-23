@@ -9118,6 +9118,8 @@
       !options.forceFullRender &&
       preserveRailScroll &&
       railHasReferensKundkortShell() &&
+      !usesV12Workspace() &&
+      !usesV11Rail() &&
       usesV10KundkortFacit() &&
       !usesV11DossierCutover()
     ) {
