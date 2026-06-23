@@ -4109,6 +4109,17 @@
       btn.dataset.bound = '1';
       btn.addEventListener('click', () => {
         const sectionId = btn.getAttribute('data-v9-section-link') || '';
+        const detailRoot = root.closest('[data-patient-detail]') || root;
+        // GAP-1 · V12 Customer Workspace: enkolumns-arbetsyta utan flikar → hoppa
+        // direkt till motsvarande V12-sektion i stället för flikbyte. Additivt:
+        // gäller bara när V12-moduler finns i DOM; V11/legacy (utan
+        // [data-v12-module]) tar oförändrad flik-/scroll-väg nedan.
+        if (
+          detailRoot.querySelector('[data-v12-module]') &&
+          scrollDossierSection(detailRoot, sectionId)
+        ) {
+          return;
+        }
         const tabBySection = {
           filer: 'filer',
           upcoming: 'tidslinje',
@@ -4132,14 +4143,40 @@
     });
   }
 
+  // GAP-1 · V12 Customer Workspace: V11/V9-deep-links (data-v9-section-link) pekar
+  // på legacy-sektion-id:n. V12-arbetsytan exponerar sektionerna som
+  // [data-v12-module]. Mappa legacy-id → V12-modulnamn så att SAMMA deep-links
+  // hittar rätt V12-sektion. Id:n som redan motsvarar ett modulnamn (t.ex.
+  // "journal") faller igenom via `|| sectionId`. Endast navigation/scroll —
+  // inga nya handlers, inga write-flöden.
+  const V12_SECTION_MODULE = {
+    kontakt: 'current-state',
+    profil: 'current-state',
+    compliance: 'warnings',
+    upcoming: 'bookings',
+    historik: 'bookings',
+    tidslinje: 'bookings',
+    filer: 'documents',
+    avtal: 'documents',
+    ekonomi: 'economy',
+  };
+
   function scrollDossierSection(root, sectionId) {
     if (!root || !sectionId) return false;
     const zone2 =
       root.querySelector('[data-kundkort-slide-over-scroll]') ||
       root.querySelector('[data-v9-dossier-scroll]');
-    const target =
+    // V11/legacy-anchors först (oförändrat beteende).
+    let target =
       root.querySelector(`[data-kundkort-section="${sectionId}"]`) ||
       root.querySelector(`[data-v9-section="${sectionId}"]`);
+    // GAP-1: fallback till V12-modul ([data-v12-module]) när legacy-anchor saknas.
+    let isV12Target = false;
+    if (!target) {
+      const v12Module = V12_SECTION_MODULE[sectionId] || sectionId;
+      target = root.querySelector(`[data-v12-module="${v12Module}"]`);
+      isV12Target = !!target;
+    }
     if (!target) return false;
 
     if (target.tagName === 'DETAILS') {
@@ -4150,7 +4187,11 @@
 
     setDossierNavActive(root, sectionId);
 
-    if (zone2) {
+    if (isV12Target) {
+      // V12-zonerna är ingen egen scroll-container (panelen/sidan scrollar) →
+      // scrollIntoView hittar närmaste scrollbara förälder.
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (zone2) {
       const top =
         target.getBoundingClientRect().top -
         zone2.getBoundingClientRect().top +

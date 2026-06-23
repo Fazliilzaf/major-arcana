@@ -174,3 +174,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-economy/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Verify + screenshot deep-link → V12 section (GAP-1)
+        run: npm run shots:v12workspace:deeplink
+
+      - name: Upload Deep-link screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-deeplink-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-deeplink/*.png
+          if-no-files-found: error
+          retention-days: 30
