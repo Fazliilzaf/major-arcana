@@ -24,7 +24,7 @@
 - [ ] **Kundresa (#5)** — per-steg-länkar/koppling till dokument/foto/journal per steg. Live har stepper utan per-steg-länkar.
 - [ ] **Bilder (#7)** — jämför-rad (före/efter-par) + krona-vy/gap-varning. Live har grid utan jämför/gap.
 - [ ] **Dokument (#9)** — facit-gruppering / 2-kol dokumentkort. Live har 3 subsektioner (offers/autodocs/files).
-- [ ] **Ekonomi (#11)** — fakturarader från `paymentHistory` → **#172** (under granskning/merge).
+- [x] **Ekonomi (#11)** — fakturarader från `paymentHistory` → **#172 MERGED 2026-06-23** (`8773e8e8`). partially_paid/failed härdade, betalstatus-färger, unknown-state bevarad.
 - [ ] **Insikter (#12)** — amber "Gör nu" + grön "Möjlighet"-kort tydligt åtskilda. Live har next-block + insights-lista utan grön möjlighet-kort-styling.
 
 ### QA / förutsättning
@@ -39,7 +39,7 @@
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **Canon-beslut**            | Layout-modell (overlay vs full-sida + jump-rail)                                                                                       |
 | **Backend/datamodell**      | Hälsa läkemedel/kontra                                                                                                                 |
-| **Frontend (pågår)**        | Ekonomi fakturarader (#172)                                                                                                            |
+| **Frontend (klart)**        | Ekonomi fakturarader (#172 MERGED 2026-06-23)                                                                                          |
 | **Frontend (presentation)** | Nuläge-CTA/snabbknappar, 6-node timeline, Kundresa steg-länkar, Bilder jämför/gap, Dokument-gruppering, Insikter grön-kort, palett-ton |
 | **QA**                      | Full-data testkund                                                                                                                     |
 
