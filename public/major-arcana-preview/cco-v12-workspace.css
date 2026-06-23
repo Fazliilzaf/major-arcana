@@ -19,6 +19,45 @@
   width: 100%;
 }
 
+/*
+ * Cutover hardening: the real CCO Customers view still carries v10-facit grid
+ * rules that constrain the detail rail to 360px. When V12 is enabled and a
+ * customer is open, the new workspace must own the real customer detail area
+ * instead of being squeezed into the old rail.
+ */
+@media (min-width: 1024px) {
+  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v9-dossier-open] {
+    grid-template-columns: 200px minmax(0, 1fr) !important;
+  }
+
+  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v9-dossier-open]
+    .customers-center-shell,
+  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v9-dossier-open]
+    .v9-aggregate-panel {
+    display: none !important;
+  }
+
+  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v9-dossier-open]
+    .customers-rail,
+  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v9-dossier-open]
+    .customers-rail.customers-rail--dominant {
+    grid-column: 2 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+}
+
 .v12-workspace *,
 .v12-workspace *::before,
 .v12-workspace *::after {

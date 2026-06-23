@@ -1233,14 +1233,24 @@
     const deep = root?.querySelector('[data-v9-dossier-deep]');
     const body = deep?.querySelector('[data-v9-deep-body]');
     if (!deep || !body) return;
-    const slideOver =
-      window.CcoV9CustomersParity?.renderKundkortSlideOverHtml?.(
-        card,
-        journalEntries,
-        dossierBundle,
-        occasionTimeline,
-        driveFiles
-      ) || '<p class="patient-master-muted">Full dossier kunde inte renderas.</p>';
+    const slideOver = usesV12Workspace()
+      ? renderV12WorkspaceDetailShell(
+          card,
+          journalEntries,
+          occasionTimeline,
+          driveFiles,
+          ctx.patient,
+          {
+            tab: normalizeDetailTab(runtime.detailTab),
+          }
+        )
+      : window.CcoV9CustomersParity?.renderKundkortSlideOverHtml?.(
+          card,
+          journalEntries,
+          dossierBundle,
+          occasionTimeline,
+          driveFiles
+        ) || '<p class="patient-master-muted">Full dossier kunde inte renderas.</p>';
     body.innerHTML = slideOver;
     deep.hidden = false;
     deep.removeAttribute('aria-hidden');
@@ -1266,6 +1276,21 @@
     const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
     if (!rail || !window.CcoKundkortBlueprint) return false;
     els.patientRail = rail;
+    if (usesV12Workspace()) {
+      setPatientRailHtml(
+        rail,
+        renderV12WorkspaceDetailShell(card, journalEntries, occasionTimeline, driveFiles, null, {
+          tab: normalizeDetailTab(runtime.detailTab),
+        })
+      );
+      if (workspace) {
+        workspace.innerHTML = '';
+        workspace.hidden = true;
+        workspace.setAttribute('aria-hidden', 'true');
+        workspace.style.setProperty('display', 'none', 'important');
+      }
+      return true;
+    }
     const referensMasterDetail = usesReferensMasterDetail();
     if (referensMasterDetail) {
       applyReferensMasterDetailLayout();
@@ -9002,12 +9027,28 @@
     if (!rail || !runtime.detail?.card) return;
     els.patientRail = rail;
     const { card: rawCard } = runtime.detail;
-    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries);
     const journalEntries = asArray(runtime.detail.journalEntries);
+    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries);
     const occasionTimeline = runtime.detail?.occasionTimeline;
     const driveFiles = runtime.detail?.driveFiles;
 
     if (isV9CustomersEnabled()) {
+      if (usesV12Workspace()) {
+        rail.innerHTML = renderV9MockupDetailShell(
+          card,
+          journalEntries,
+          occasionTimeline,
+          driveFiles,
+          runtime.detail?.patient,
+          normalizeDetailTab(runtime.detailTab),
+          { lite: true }
+        );
+        ensureV9DossierDeepClosed();
+        runtime.detailShellOnly = true;
+        syncV9CustomersLayoutState();
+        syncMobilePatientLayout();
+        return;
+      }
       if (usesBlueprintDesktopLayout()) {
         renderBlueprintDetailPanels(card, journalEntries, null, occasionTimeline, driveFiles);
         bindV9MockupDossierHandlers(rail, { card, journalEntries, driveFiles });
@@ -9150,7 +9191,20 @@
     if (isV9CustomersEnabled()) {
       const tab = normalizeDetailTab(runtime.detailTab);
       const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
-      if (usesBlueprintDesktopLayout()) {
+      if (usesV12Workspace()) {
+        setPatientRailHtml(
+          rail,
+          renderV9MockupDetailShell(
+            card,
+            journalEntries,
+            occasionTimeline,
+            uniqueDriveFiles,
+            patient,
+            tab
+          ),
+          { preserveScroll: preserveRailScroll }
+        );
+      } else if (usesBlueprintDesktopLayout()) {
         renderBlueprintDetailPanels(
           card,
           journalEntries,
@@ -9165,19 +9219,20 @@
         syncV9CustomersLayoutState();
         syncMobilePatientLayout();
         return;
+      } else {
+        setPatientRailHtml(
+          rail,
+          renderV9MockupDetailShell(
+            card,
+            journalEntries,
+            occasionTimeline,
+            uniqueDriveFiles,
+            patient,
+            tab
+          ),
+          { preserveScroll: preserveRailScroll }
+        );
       }
-      setPatientRailHtml(
-        rail,
-        renderV9MockupDetailShell(
-          card,
-          journalEntries,
-          occasionTimeline,
-          uniqueDriveFiles,
-          patient,
-          tab
-        ),
-        { preserveScroll: preserveRailScroll }
-      );
       bindJournalPhotoOpenLinks(els.patientRail);
       bindV9MockupDossierHandlers(rail, {
         card,
