@@ -119,3 +119,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-journey-steps/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Generate Sticky action bar module screenshots (Block 9)
+        run: npm run shots:v12workspace:sticky
+
+      - name: Upload Sticky action bar screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-sticky-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-sticky/*.png
+          if-no-files-found: error
+          retention-days: 30
