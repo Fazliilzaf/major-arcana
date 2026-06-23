@@ -142,6 +142,103 @@
     );
   }
 
+  /**
+   * Kundresa / steg-modul (sektion 5) — visuell stepper ovanpå BEFINTLIG
+   * journey-logik. Återanvänder V11-adaptern buildJourneyFromState (samma
+   * CcoKundkortKkx.buildCanonicalJourneyLive som legacy) och de BEFINTLIGA
+   * deep-link-attributen `data-kk-jump` / `data-kk-med-form` (navigation, ingen
+   * ny handler). Saknad journey-logik → explicit empty-state ("Kundresan har
+   * inte startat"), ingen fejkad resa.
+   */
+  function renderJourneyModule(j) {
+    var head =
+      '<header class="v12-workspace__module-head">' +
+      '<div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDRESA' +
+      (j && j.total ? ' · ' + esc(String(j.total)) + ' STEG' : '') +
+      '</div>' +
+      (j && j.cur
+        ? '<span class="v12-workspace__count">Steg ' + esc(String(j.cur)) + '</span>'
+        : '') +
+      '</header>';
+
+    if (!j || !j.steps || !j.steps.length) {
+      return (
+        '<section class="v12-workspace__module v12-workspace__journey" data-v12-module="journey" aria-label="Kundresa">' +
+        head +
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Kundresan har inte startat</div>' +
+        '<div class="v12-workspace__empty-hint">Inga steg registrerade ännu.</div>' +
+        '</div></section>'
+      );
+    }
+
+    var steps = j.steps
+      .map(function (s) {
+        var mk =
+          s.state === 'done'
+            ? '✓'
+            : s.state === 'neutral'
+              ? '–'
+              : s.id != null
+                ? String(s.id)
+                : '!';
+        var note =
+          s.note ||
+          (s.state === 'done'
+            ? 'Klar'
+            : s.state === 'active'
+              ? 'Pågår · nästa steg'
+              : s.state === 'neutral'
+                ? '—'
+                : 'Kommande');
+        var inner =
+          '<span class="v12-workspace__journey-mk" aria-hidden="true">' +
+          esc(mk) +
+          '</span>' +
+          '<span class="v12-workspace__journey-body">' +
+          '<span class="v12-workspace__journey-label">' +
+          esc(s.label) +
+          '</span>' +
+          '<span class="v12-workspace__journey-note">' +
+          esc(note) +
+          '</span></span>';
+        // Steg med jump-slug → klickbar knapp som bär de BEFINTLIGA deep-link-
+        // attributen. Övriga steg = ren rad (ingen död knapp).
+        if (s.jump) {
+          return (
+            '<li class="v12-workspace__journey-step" data-state="' +
+            esc(s.state) +
+            '"><button type="button" class="v12-workspace__journey-row" data-kk-jump="' +
+            esc(s.jump) +
+            '"' +
+            (s.medForm ? ' data-kk-med-form="' + esc(s.medForm) + '"' : '') +
+            '>' +
+            inner +
+            '</button></li>'
+          );
+        }
+        return (
+          '<li class="v12-workspace__journey-step" data-state="' +
+          esc(s.state) +
+          '"><div class="v12-workspace__journey-row v12-workspace__journey-row--static">' +
+          inner +
+          '</div></li>'
+        );
+      })
+      .join('');
+
+    return (
+      '<section class="v12-workspace__module v12-workspace__journey" data-v12-module="journey" aria-label="Kundresa">' +
+      head +
+      '<div class="v12-workspace__journey-bar"><span style="width:' +
+      esc(String(j.pct || 0)) +
+      '%"></span></div>' +
+      '<ul class="v12-workspace__journey-steps">' +
+      steps +
+      '</ul></section>'
+    );
+  }
+
   /** Journal-modul — full djupvy (full nottext), till skillnad från railens snippet. */
   function renderJournalModule(journal) {
     var count = (journal && journal.count) || 0;
@@ -729,6 +826,22 @@
     } catch (_error) {
       health = null;
     }
+    var journey = null;
+    try {
+      if (
+        global.CcoV11RailAdapters &&
+        typeof global.CcoV11RailAdapters.buildJourneyFromState === 'function'
+      ) {
+        journey =
+          global.CcoV11RailAdapters.buildJourneyFromState(
+            ctx.card,
+            ctx.journalEntries,
+            ctx.dossierBundle
+          ) || null;
+      }
+    } catch (_error) {
+      journey = null;
+    }
     var journal = { items: [], count: 0 };
     try {
       if (
@@ -790,6 +903,7 @@
       renderActiveVisitModule(av) +
       renderCriticalWarningsModule(warnings) +
       renderHealthModule(health) +
+      renderJourneyModule(journey) +
       renderJournalModule(journal) +
       renderBookingsModule(bookings, history) +
       renderInsightsModule(nextStep, insights) +

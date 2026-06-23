@@ -108,3 +108,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-current-state/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Generate Journey module screenshots (Block 8)
+        run: npm run shots:v12workspace:journey-steps
+
+      - name: Upload Journey screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-journey-steps-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-journey-steps/*.png
+          if-no-files-found: error
+          retention-days: 30
