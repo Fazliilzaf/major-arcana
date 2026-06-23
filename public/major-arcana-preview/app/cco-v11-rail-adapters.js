@@ -1258,6 +1258,66 @@
     return { items: items, count: hasData ? items.length : 0 };
   }
 
+  /** Betalstatus-token → svensk etikett (display-only). */
+  function econInvoiceStatusLabel(status) {
+    switch (text(status).toLowerCase()) {
+      case 'paid':
+        return 'Betald';
+      case 'pending':
+        return 'Väntar';
+      case 'overdue':
+        return 'Förfallen';
+      case 'cancelled':
+        return 'Makulerad';
+      case 'partial':
+        return 'Delbetald';
+      default:
+        return text(status) || 'Okänd';
+    }
+  }
+
+  /** ISO → "12 maj 2026" (återanvänder BOOKING_MONTHS). '—' om ogiltig. */
+  function econFormatHistoryDate(iso) {
+    var raw = text(iso);
+    if (!raw) return '—';
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) return '—';
+    return d.getDate() + ' ' + BOOKING_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  /**
+   * Q · Economy fakturor/betalningar (frontend-wiring 2026-06-23) — läser
+   * dossier-bundlens RIKTIGA paymentHistory (Fortnox-fakturor + Swish) och
+   * mappar till display-rader. Display-only — ingen handler, ingen write.
+   * Tom/saknad lista → count:0 (renderaren visar dämpad not, ingen fejk).
+   *
+   * paymentHistory item-form (src/ops/ccoPatientPaymentHistory.js):
+   *   { id, dateIso, method:'invoice'|'swish', amountLabel, status, ref, source }
+   *
+   * @returns {{rows:Array<{id,date,title,amount,status,statusLabel}>, count:number}}
+   */
+  function buildEconomyInvoices(paymentHistory) {
+    var list = toArray(paymentHistory);
+    if (!list.length) return { rows: [], count: 0 };
+    var rows = list
+      .map(function (p) {
+        if (!p) return null;
+        var method = text(p.method);
+        var ref = text(p.ref);
+        var title = (method === 'swish' ? 'Swish' : 'Faktura') + (ref ? ' ' + ref : '');
+        return {
+          id: text(p.id),
+          date: econFormatHistoryDate(p.dateIso),
+          title: title,
+          amount: text(p.amountLabel) || '—',
+          status: text(p.status) || 'unknown',
+          statusLabel: econInvoiceStatusLabel(p.status),
+        };
+      })
+      .filter(Boolean);
+    return { rows: rows, count: rows.length };
+  }
+
   /**
    * R · Insights (KEEP/LATER) — V11-presentation av operativa insikter byggda på
    * kundens RIKTIGA automation-signaler via logik-lagret CcoKunderSmartNextStep
@@ -1318,6 +1378,7 @@
     buildNotesFromState: buildNotesFromState,
     buildCommunicationFromState: buildCommunicationFromState,
     buildEconomyFromCard: buildEconomyFromCard,
+    buildEconomyInvoices: buildEconomyInvoices,
     buildInsightsFromSignals: buildInsightsFromSignals,
     // Block 21+ section adapters registreras här.
   };

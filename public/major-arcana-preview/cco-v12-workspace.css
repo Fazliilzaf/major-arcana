@@ -1288,6 +1288,66 @@ html[data-cco-mobile-shell="on"]
   }
 }
 
+/* Fakturarader/betalningar ur RIKTIG paymentHistory (frontend-wiring 2026-06-23).
+   Matchar befintligt econ/doc-mönster — ingen ny design. */
+.v12-workspace__econ-invoices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.v12-workspace__econ-invoice {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__econ-invoice-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__econ-invoice-date {
+  font-size: 10px;
+  color: var(--v12-muted);
+  margin-top: 1px;
+}
+
+.v12-workspace__econ-invoice-amount {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.v12-workspace__econ-invoice-status {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__econ-invoice-status[data-status="paid"] {
+  color: #4a8268;
+}
+
+.v12-workspace__econ-invoice-status[data-status="pending"],
+.v12-workspace__econ-invoice-status[data-status="overdue"] {
+  color: #c8821e;
+}
+
+.v12-workspace__econ-invoice-status[data-status="cancelled"] {
+  color: #b94a4a;
+}
+
 /* ===== Kommunikation-modul (sektion 10) ===== */
 .v12-workspace__comm-list {
   list-style: none;
