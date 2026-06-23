@@ -141,3 +141,14 @@ jobs:
           path: docs/handover/MOCKUPS/v12-workspace-documents/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - name: Generate Photos module screenshots (Block 11)
+        run: npm run shots:v12workspace:photos
+
+      - name: Upload Photos screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-photos-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-photos/*.png
+          if-no-files-found: error
+          retention-days: 30
