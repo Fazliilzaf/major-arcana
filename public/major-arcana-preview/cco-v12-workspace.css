@@ -134,6 +134,48 @@
   }
 }
 
+/*
+ * Scroll-ownership: när V12 äger den riktiga kund-detaljytan (cutover-grid ovan)
+ * blir detaljkolumnen höjd-bunden. V12-detalj-shellen måste då äga sin EGEN
+ * scroll så att hela arbetsytan (13 sektioner) går att nå — annars klipps
+ * innehållet. Scoped till V12-detalj-shellen ([data-v12-workspace-shell]) →
+ * rör inte legacy/V11. Är föräldern obunden faller height:100% tillbaka till
+ * auto (= nuvarande sid-scroll-beteende), så detta kan inte försämra något.
+ */
+.v12-workspace[data-v12-workspace-shell="1"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.v12-workspace[data-v12-workspace-shell="1"] .v12-workspace__zones[data-v9-dossier-scroll] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 1024px) {
+  /* Tillåt grid-cellen som V12 tar över att låta barnet scrolla (annars
+     tvingar min-height:auto cellen att växa med innehållet → ingen scroll). */
+  html[data-v12-workspace="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v9-dossier-open]
+    .customers-rail {
+    min-height: 0;
+  }
+}
+
+/* Mobil-shell: V12 äger ytan → bind scrollen till viewporten. */
+html[data-cco-mobile-shell="on"]
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: 100dvh;
+}
+
 .v12-workspace *,
 .v12-workspace *::before,
 .v12-workspace *::after {
