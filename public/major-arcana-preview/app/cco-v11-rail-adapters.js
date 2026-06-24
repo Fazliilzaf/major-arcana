@@ -1044,6 +1044,14 @@
     return '';
   }
 
+  // Foto-VY ur RIKTIG asset-angle (fritext, exponerad via assetToPatientFile.angle).
+  function photoView(angle) {
+    var a = String(angle || '').toLowerCase();
+    if (/krona|crown|vertex|hj[äa]ss/.test(a)) return 'crown';
+    if (/h[åa]rlinj|hairline|front|panna/.test(a)) return 'hairline';
+    return a ? 'other' : '';
+  }
+
   function buildPhotosFromDriveFiles(driveFiles) {
     var media = toArray(driveFiles).filter(isRailMediaFile);
     var all = media
@@ -1066,6 +1074,7 @@
           capturedAt: capturedAt,
           dateLabel: photoDateLabel(capturedAt),
           phase: phase,
+          view: photoView(f.angle),
         };
       })
       .filter(function (it) {
@@ -1093,11 +1102,34 @@
       else if (after && !before) gap = 'Före-bild saknas för fullständig dokumentation';
     }
 
+    // Vy-gap (krona/hårlinje) — ENDAST om vy-taggning faktiskt används för
+    // kunden (minst en bild har angle) men en nyckelvy saknas. Annars ingen
+    // notis (vi kan inte bedöma utan taggar — ingen brus, ingen fejk).
+    var taggedViews = all
+      .map(function (it) {
+        return it.view;
+      })
+      .filter(Boolean);
+    var viewGap = '';
+    if (taggedViews.length) {
+      var missing = [];
+      if (taggedViews.indexOf('crown') < 0) missing.push('Krona-vy');
+      if (taggedViews.indexOf('hairline') < 0) missing.push('Hårlinje-vy');
+      if (missing.length) viewGap = missing.join(' & ') + ' saknas för fullständig dokumentation';
+    }
+
     var items = all.slice(0, 9);
     var dated = items.filter(function (it) {
       return it.dateLabel;
     }).length;
-    return { items: items, count: items.length, dated: dated, compare: compare, gap: gap };
+    return {
+      items: items,
+      count: items.length,
+      dated: dated,
+      compare: compare,
+      gap: gap,
+      viewGap: viewGap,
+    };
   }
 
   function fileExtLabel(name) {

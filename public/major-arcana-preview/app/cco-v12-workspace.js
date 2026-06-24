@@ -1094,6 +1094,12 @@
         esc(photos.gap) +
         '</div>'
       : '';
+    // Vy-gap (krona/hårlinje) — visas bara när vy-taggning används men en vy saknas.
+    var viewGapNotice = photos.viewGap
+      ? '<div class="v12-workspace__photo-gap"><span aria-hidden="true">⚠</span> ' +
+        esc(photos.viewGap) +
+        '</div>'
+      : '';
 
     return (
       '<section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder">' +
@@ -1101,6 +1107,7 @@
       grid +
       compareRow +
       gapNotice +
+      viewGapNotice +
       '</section>'
     );
   }
