@@ -972,6 +972,26 @@ html[data-cco-mobile-shell="on"]
   line-height: 1.35;
 }
 
+/* Facit-parity: per-steg-länk till relaterad sektion (dok/foto/journal). */
+.v12-workspace__journey-link {
+  flex: none;
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__journey-row:hover .v12-workspace__journey-link {
+  background: rgba(200, 130, 30, 0.18);
+}
+
 /* ===== Hälsa-modul (sektion 4) ===== */
 .v12-workspace__health-row {
   display: flex;

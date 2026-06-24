@@ -150,6 +150,19 @@
    * ny handler). Saknad journey-logik → explicit empty-state ("Kundresan har
    * inte startat"), ingen fejkad resa.
    */
+  // Facit-parity: synliggör vart varje steg länkar (dok/foto/journal/sektion).
+  // Mappningen är EXAKT samma som adapterns journeyJumpSlug → ingen ny koppling,
+  // bara en läsbar etikett för den BEFINTLIGA data-kk-jump-destinationen.
+  var JOURNEY_DEST_LABEL = {
+    'kk-card-halsa': 'Hälsa',
+    'kk-card-behandling': 'Behandling',
+    'kk-card-juridik': 'Avtal',
+    'kk-card-operation': 'Operation',
+    'kk-card-foto': 'Foto',
+    'kk-card-bokning': 'Bokning',
+    'kk-card-uppfoljning': 'Uppföljning',
+  };
+
   function renderJourneyModule(j) {
     var head =
       '<header class="v12-workspace__module-head">' +
@@ -205,6 +218,10 @@
         // Steg med jump-slug → klickbar knapp som bär de BEFINTLIGA deep-link-
         // attributen. Övriga steg = ren rad (ingen död knapp).
         if (s.jump) {
+          var destLabel = JOURNEY_DEST_LABEL[s.jump];
+          var linkChip = destLabel
+            ? '<span class="v12-workspace__journey-link">Öppna ' + esc(destLabel) + ' →</span>'
+            : '';
           return (
             '<li class="v12-workspace__journey-step" data-state="' +
             esc(s.state) +
@@ -214,6 +231,7 @@
             (s.medForm ? ' data-kk-med-form="' + esc(s.medForm) + '"' : '') +
             '>' +
             inner +
+            linkChip +
             '</button></li>'
           );
         }
