@@ -1358,11 +1358,22 @@
 
   function openV12WorkspaceFromRail(root, ctx, moduleName) {
     if (!root || !ctx || !usesV12Workspace()) return;
-    const deep = root.querySelector('[data-v9-dossier-deep]');
+    const deep =
+      root.querySelector('[data-v9-dossier-deep]') ||
+      document.querySelector('[data-v9-dossier-deep]');
     const body = deep?.querySelector('[data-v9-deep-body]');
     if (!deep || !body) return;
     const title = deep.querySelector('[data-v9-deep-title]');
     if (title) title.textContent = 'Kundvy';
+    // Portala overlayn till <body> så den position:fixed-ytan slipper de
+    // nästlade stacking-contexterna i kund-railen (customers-layout/-surface/
+    // -shell + preview-workspace, alla z:1). Annars målas kundlistan ovanpå
+    // trots z-index 12080. Återställs till ursprunglig DOM-plats vid close.
+    if (deep.parentElement && deep.parentElement !== document.body) {
+      deep.__v12OriginalParent = deep.parentElement;
+      deep.__v12OriginalNext = deep.nextSibling;
+      document.body.appendChild(deep);
+    }
     deep.classList.add('v9-dossier-deep--v12-workspace');
     body.innerHTML = renderV12WorkspaceDetailShell(
       ctx.card,
@@ -1380,6 +1391,16 @@
       deep.setAttribute('aria-hidden', 'true');
       deep.classList.remove('v9-dossier-deep--v12-workspace');
       body.innerHTML = '';
+      // Återställ overlayn till ursprunglig DOM-plats (portal-restore).
+      if (deep.__v12OriginalParent) {
+        try {
+          deep.__v12OriginalParent.insertBefore(deep, deep.__v12OriginalNext || null);
+        } catch (_e) {
+          /* original-parent borta (rerender) → lämna i body, oskadligt */
+        }
+        deep.__v12OriginalParent = null;
+        deep.__v12OriginalNext = null;
+      }
     };
     deep.__v12WorkspaceClose = close;
     const closeBtn = deep.querySelector('[data-v9-deep-close]');
