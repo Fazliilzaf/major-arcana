@@ -1401,6 +1401,14 @@
           });
         return;
       }
+      // Dokument "+ Lägg till PDF" → öppna det dolda file-inputet.
+      const docAdd = event.target.closest('[data-v12-doc-add]');
+      if (docAdd && body.contains(docAdd)) {
+        event.preventDefault();
+        const input = body.querySelector('[data-v12-doc-input]');
+        if (input) input.click();
+        return;
+      }
       // "Förbered besök" / Åtgärder-meny → scrolla till V12-modul.
       const trigger = event.target.closest('[data-v12-scroll-module]');
       if (!trigger || !body.contains(trigger)) return;
@@ -1456,6 +1464,58 @@
         if (saveBtn) saveBtn.disabled = false;
       }
     });
+    // Dokument "+ Lägg till PDF" → multipart-upload → POST /cco-journal-quick/document.
+    // Lokalt, ingen extern integration. Vid klart → ladda om dossiern så filen syns.
+    body.addEventListener('change', (event) => {
+      const input = event.target.closest('[data-v12-doc-input]');
+      if (!input || !body.contains(input)) return;
+      const patientId = input.getAttribute('data-v12-doc-input');
+      const file = input.files && input.files[0];
+      if (!patientId || !file) return;
+      const isPdf = /pdf$/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
+      const btn = body.querySelector('[data-v12-doc-add="' + patientId + '"]');
+      const setBtn = (txt, disabled) => {
+        if (!btn) return;
+        btn.textContent = txt;
+        btn.disabled = !!disabled;
+      };
+      if (!isPdf) {
+        setBtn('Endast PDF', false);
+        input.value = '';
+        window.setTimeout(() => setBtn('+ Lägg till PDF', false), 2000);
+        return;
+      }
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('patientId', patientId);
+      const token = getAdminToken();
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      setBtn('Laddar upp…', true);
+      fetch(new URL('/api/v1/cco-journal-quick/document', window.location.origin), {
+        method: 'POST',
+        headers,
+        credentials: 'same-origin',
+        body: formData,
+      })
+        .then(async (response) => {
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (response.status === 413) throw new Error('Filen är för stor (max 25 MB).');
+            throw new Error(payload.error || `HTTP ${response.status}`);
+          }
+          setBtn('Tillagd ✓', true);
+          window.setTimeout(() => void loadPatientDetail(patientId), 500);
+        })
+        .catch((err) => {
+          setBtn(err && err.message ? err.message : 'Kunde inte ladda upp', false);
+          window.setTimeout(() => setBtn('+ Lägg till PDF', false), 2600);
+        })
+        .finally(() => {
+          input.value = '';
+        });
+    });
+
     const journeyHandlers = buildV9JourneyHandlers(body, ctx);
     window.CcoV9CustomersParity?.bindDossierScroll?.(body, journeyHandlers);
     window.CcoV9CustomersParity?.bindIntelligentJourney?.(body, ctx, journeyHandlers);
