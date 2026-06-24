@@ -20,7 +20,7 @@
 
 - [ ] **Kundens nuläge (#1)** — Förbered besök-CTA, Ny bokning, Redigera + snabbknappar (Ring/SMS/Mejl) enligt facit. Live har tel/sms/mail-länkar men saknar quick-knapp-rad + hero-CTA.
 - [ ] **Aktivt besök (#2)** — 6-node timeline enligt facit (bokad→incheckad→behandling→journal→eftervård→klar). Live har 3-node (checkin→progress→done).
-- [ ] **Hälsa (#4)** — läkemedel/kontraindikationer-kort. **Kräver backend/datamodell-beslut** (ingen datakälla idag; allergier är live). RÖRS EJ förrän owner-beslut.
+- [~] **Hälsa (#4)** — Fas A **KLAR** (#175, `0c679d18` merged 2026-06-24): kontraindikationer surfas från hälsodeklarationens riktiga `hd.flags` (röd/amber). **KVAR = B1:** pågående läkemedel (namn) saknar datakälla — kräver formulär-fråga + parser + lagring (owner-beslut). Läkemedel visar empty/unknown-state tills dess.
 - [ ] **Kundresa (#5)** — per-steg-länkar/koppling till dokument/foto/journal per steg. Live har stepper utan per-steg-länkar.
 - [ ] **Bilder (#7)** — jämför-rad (före/efter-par) + krona-vy/gap-varning. Live har grid utan jämför/gap.
 - [ ] **Dokument (#9)** — facit-gruppering / 2-kol dokumentkort. Live har 3 subsektioner (offers/autodocs/files).
@@ -38,7 +38,7 @@
 | Typ                         | Punkter                                                                                                                                |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **Canon-beslut**            | Layout-modell (overlay vs full-sida + jump-rail)                                                                                       |
-| **Backend/datamodell**      | Hälsa läkemedel/kontra                                                                                                                 |
+| **Backend/datamodell**      | Hälsa B1 läkemedel-namn (kontraindikationer KLAR via #175; läkemedel kräver formulär-fråga + owner-beslut)                             |
 | **Frontend (klart)**        | Ekonomi fakturarader (#172 MERGED 2026-06-23)                                                                                          |
 | **Frontend (presentation)** | Nuläge-CTA/snabbknappar, 6-node timeline, Kundresa steg-länkar, Bilder jämför/gap, Dokument-gruppering, Insikter grön-kort, palett-ton |
 | **QA**                      | Full-data testkund                                                                                                                     |
