@@ -2223,6 +2223,112 @@
   width: 100%;
 }
 
+/* V12 öppnas från lilla V11-railens sektioner som stor kundvy-overlay.
+   Detta ersätter inte första kundklicket: första klicket visar fortfarande railen. */
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 12080 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: clamp(18px, 3vw, 44px) !important;
+  border-radius: 0 !important;
+  background: rgba(41, 36, 31, 0.58) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace[hidden] {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 0;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__close {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: #2c2218;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 !important;
+  border-radius: 28px;
+  background: #f5eee5;
+  box-shadow: 0 28px 90px rgba(34, 26, 19, 0.32);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace {
+  min-height: 100%;
+  max-height: none;
+}
+
+html[data-v12-workspace="on"]
+  .v9-dossier-deep--v12-workspace
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: none;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace__close {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] [data-v12-focus-pulse="1"] {
+  outline: 3px solid rgba(216, 145, 32, 0.45);
+  outline-offset: 4px;
+  transition: outline-color 0.2s ease;
+}
+
+@media (max-width: 767px) {
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+    padding: 0 !important;
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(41, 36, 31, 0.64);
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+    width: 100%;
+    border-radius: 0;
+  }
+}
+
+/*
+ * Scroll-ownership för V12-skalet. Första kundklicket visar lilla V11-rail;
+ * V12 renderas först i overlayn efter sektionsklick, men skalet behöver fortsatt
+ * viewport-bunden intern scroll när det ligger i en höjdbegränsad container.
+ */
+.v12-workspace[data-v12-workspace-shell="1"] .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Mobil-shell: V12 äger hela ytan → lite mer scroll-höjd (mindre topp-chrome). */
+html[data-cco-mobile-shell="on"]
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: calc(100dvh - 4rem);
+}
+
 .v12-workspace *,
 .v12-workspace *::before,
 .v12-workspace *::after {
@@ -2295,7 +2401,7 @@
   padding: 7px 14px;
   border-radius: 9px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 12.5px;
   font-weight: 700;
@@ -2475,6 +2581,7 @@
 }
 
 .v12-workspace__av-node {
+  position: relative;
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
@@ -2485,7 +2592,30 @@
   text-align: center;
 }
 
+/* Facit-parity: connector-linje mellan noderna (grön klart → amber aktiv → grå kvar). */
+.v12-workspace__av-node:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 50%;
+  width: calc(100% + 6px);
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(56, 40, 28, 0.2);
+  z-index: 0;
+}
+
+.v12-workspace__av-node.is-done::before {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-node.is-active::before {
+  background: linear-gradient(90deg, #2f7d4f, var(--v12-amber));
+}
+
 .v12-workspace__av-node .v12-workspace__av-dot {
+  position: relative;
+  z-index: 1;
   width: 10px;
   height: 10px;
   background: rgba(56, 40, 28, 0.2);
@@ -2580,7 +2710,7 @@
   padding: 10px 16px;
   border-radius: 10px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 13.5px;
   font-weight: 800;
@@ -2930,8 +3060,14 @@
 
 .v12-workspace__cs-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__cs-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__cs-stat {
@@ -3070,6 +3206,26 @@
   line-height: 1.35;
 }
 
+/* Facit-parity: per-steg-länk till relaterad sektion (dok/foto/journal). */
+.v12-workspace__journey-link {
+  flex: none;
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__journey-row:hover .v12-workspace__journey-link {
+  background: rgba(200, 130, 30, 0.18);
+}
+
 /* ===== Hälsa-modul (sektion 4) ===== */
 .v12-workspace__health-row {
   display: flex;
@@ -3141,6 +3297,33 @@
   font-size: 12px;
   color: var(--v12-muted);
   opacity: 0.85;
+}
+
+/* Kontraindikationer — riskflaggor ur hälsodeklarationen (röd/amber per level) */
+.v12-workspace__health-contra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__health-flag {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.v12-workspace__health-flag[data-level="red"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.12);
+  border-color: rgba(181, 82, 74, 0.28);
+}
+
+.v12-workspace__health-flag[data-level="amber"] {
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.12);
+  border-color: rgba(200, 130, 30, 0.28);
 }
 
 /* ===== Insikter & nästa åtgärd-modul (sektion 12) ===== */
@@ -3274,6 +3457,65 @@
   line-height: 1.4;
 }
 
+/* Facit-parity: insikter grupperade i amber "Gör nu" vs grön "Möjlighet". */
+.v12-workspace__insight-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.v12-workspace__insight-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__insight-group .v12-workspace__insights-list {
+  margin-top: 0;
+}
+
+.v12-workspace__insight-group-label {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.v12-workspace__insight-group-label[data-tone="amber"] {
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v12-workspace__insight-group-label[data-tone="green"] {
+  color: #2c6b3d;
+  background: rgba(74, 130, 104, 0.16);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight {
+  border-color: rgba(200, 130, 30, 0.3);
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.3);
+  background: rgba(181, 82, 74, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight {
+  border-color: rgba(74, 130, 104, 0.32);
+  background: rgba(74, 130, 104, 0.08);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight-icon {
+  color: #2f7d4f;
+}
+
 /* ===== Bilder / före–efter-modul (sektion 7) ===== */
 .v12-workspace__photos-grid {
   display: grid;
@@ -3386,6 +3628,68 @@
   }
 }
 
+/* Fakturarader/betalningar ur RIKTIG paymentHistory (frontend-wiring 2026-06-23).
+   Matchar befintligt econ/doc-mönster — ingen ny design. */
+.v12-workspace__econ-invoices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.v12-workspace__econ-invoice {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__econ-invoice-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__econ-invoice-date {
+  font-size: 10px;
+  color: var(--v12-muted);
+  margin-top: 1px;
+}
+
+.v12-workspace__econ-invoice-amount {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.v12-workspace__econ-invoice-status {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__econ-invoice-status[data-status="paid"] {
+  color: #4a8268;
+}
+
+.v12-workspace__econ-invoice-status[data-status="pending"],
+.v12-workspace__econ-invoice-status[data-status="overdue"],
+.v12-workspace__econ-invoice-status[data-status="partially_paid"] {
+  color: #c8821e;
+}
+
+.v12-workspace__econ-invoice-status[data-status="cancelled"],
+.v12-workspace__econ-invoice-status[data-status="failed"] {
+  color: #b94a4a;
+}
+
 /* ===== Kommunikation-modul (sektion 10) ===== */
 .v12-workspace__comm-list {
   list-style: none;
@@ -3444,13 +3748,21 @@
 }
 
 /* ===== Dokument-modul (sektion 9) ===== */
+/* Facit-parity: dokument som 2-kolumners kort-rutnät (1-kol mobil → 2-kol ≥768px),
+   grupperingen offerter/auto/filer behålls. Ren layout — samma data-v11-doc-*-rader. */
 .v12-workspace__doc-list {
   list-style: none;
   margin: 0 0 4px;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__doc-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__doc-item {
@@ -3462,6 +3774,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
+  height: 100%;
   text-align: left;
   padding: 10px 12px;
   border-radius: 10px;
@@ -3644,7 +3957,7 @@
     padding: 20px 24px;
   }
 }
-</style></head><body><section class="patient-master-card v12-workspace" data-v12-workspace-shell="1"><div class="v12-workspace__zones"><div class="v12-workspace__zone1"><div class="v11-rail"><div class="v11-rail__scroll"><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><div class="v11-rail__empty" role="status" data-v11-rail-section="Smart information"><div class="v11-rail__empty-title">Ingen data</div><div class="v11-rail__empty-hint">Inga öppna signaler.</div></div><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="unknown"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">—</div><div class="v11-rail__stat-sub">okänd</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="unknown">Okänd</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div></section><section class="v11-rail__bookings" data-v11-rail-bookings aria-label="Kommande bokningar"><header class="v11-rail__bookings-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMANDE BOKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Kommande bokningar"><div class="v11-rail__empty-title">Inga kommande bokningar</div><div class="v11-rail__empty-hint">Inga kommande tider bokade.</div></div></section><section class="v11-rail__history" data-v11-rail-history aria-label="Historik"><header class="v11-rail__history-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HISTORIK</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Historik"><div class="v11-rail__empty-title">Ingen historik ännu</div><div class="v11-rail__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v11-rail__journals" data-v11-rail-journals aria-label="Journal"><header class="v11-rail__journals-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">JOURNAL</div><span class="v11-rail__journals-count">1</span></header><ul class="v11-rail__journal-list"><li class="v11-rail__journal-item"><button type="button" class="v11-rail__journal-row" data-v9-section-link="journal" data-journal-state="draft"><span class="v11-rail__journal-head"><span class="v11-rail__journal-title">Konsultation</span><span class="v11-rail__journal-badge" data-state="draft">Utkast</span></span><span class="v11-rail__journal-snippet">Inledande konsultation.</span><span class="v11-rail__journal-meta">Dr. Lind · 2026-06-18</span></button></li></ul></section><section class="v11-rail__offers" data-v11-rail-offers aria-label="Offerter"><header class="v11-rail__offers-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">OFFERTER</div><span class="v11-rail__offers-count">2</span></header><ul class="v11-rail__offers-list"><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Behandlingsplan PRP-hår</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">18 000 kr</span></span></span><span class="v11-rail__offer-status" data-state="sent">Skickad</span></div></li><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Offert Botox</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">4 500 kr</span></span></span><span class="v11-rail__offer-status" data-state="signed">Signerad</span></div></li></ul></section><section class="v11-rail__autodocs" data-v11-rail-autodocs aria-label="Auto-dokument"><header class="v11-rail__autodocs-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">AUTO-DOKUMENT</div><span class="v11-rail__autodocs-count">2</span></header><ul class="v11-rail__autodocs-list"><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Samtycke PRP</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Eftervårdsinstruktion</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li></ul></section><section class="v11-rail__photos" data-v11-rail-photos aria-label="Foton"><header class="v11-rail__photos-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FOTON</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Foton"><div class="v11-rail__empty-title">Inga foton ännu</div><div class="v11-rail__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v11-rail__files" data-v11-rail-files aria-label="Filer"><header class="v11-rail__files-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FILER</div><span class="v11-rail__files-count">2</span></header><ul class="v11-rail__files-list"><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Journal-2026-06-18.pdf</span><span class="v11-rail__file-badge">PDF</span></a></li><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Remiss.docx</span><span class="v11-rail__file-badge">DOCX</span></a></li></ul></section><section class="v11-rail__notes" data-v11-rail-notes aria-label="Anteckningar"><header class="v11-rail__notes-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">ANTECKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Anteckningar"><div class="v11-rail__empty-title">Inga anteckningar</div><div class="v11-rail__empty-hint">Inga noteringar registrerade.</div></div></section><section class="v11-rail__comm" data-v11-rail-comm aria-label="Kommunikation"><header class="v11-rail__comm-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMUNIKATION</div><span class="v11-rail__comm-count">1</span></header><ul class="v11-rail__comm-list"><li class="v11-rail__comm-item" data-type="mail"><span class="v11-rail__comm-icon" aria-hidden="true">✉</span><span class="v11-rail__comm-main"><span class="v11-rail__comm-text">Senaste kontaktväg: e-post</span><span class="v11-rail__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v11-rail__comm-actions"><button type="button" class="v11-rail__comm-reply" data-v9-quick="reply">✉ Svarstudio</button></div></section><section class="v11-rail__econ" data-v11-rail-economy aria-label="Ekonomi"><header class="v11-rail__econ-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">EKONOMI</div></header><div class="v11-rail__econ-grid"><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Total intäkt</div><div class="v11-rail__econ-value">48 000 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Utestående</div><div class="v11-rail__econ-value">0 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Snitt/besök</div><div class="v11-rail__econ-value">—</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Livstidsvärde</div><div class="v11-rail__econ-value">48 000 kr</div></div></div></section><section class="v11-rail__insights" data-v11-rail-insights aria-label="Insikter"><header class="v11-rail__insights-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">INSIKTER</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Insikter"><div class="v11-rail__empty-title">Inga insikter just nu</div><div class="v11-rail__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v11-rail__sticky" data-v11-rail-sticky aria-label="Snabbåtgärder"><div class="v11-rail__sticky-actions"><button type="button" class="v11-rail__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v11-rail__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div><div class="v12-workspace__zone2"><div class="v12-workspace__inner" data-v12-workspace-inner="1"><div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div><section class="v12-workspace__module v12-workspace__current-state" data-v12-module="current-state" aria-label="Kundens nuläge"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDENS NULÄGE</div><span class="v12-workspace__cs-status" data-tone="ready">Redo för behandling</span></header><div class="v12-workspace__cs-identity"><div class="v12-workspace__cs-avatar" aria-hidden="true">AK</div><div class="v12-workspace__cs-id-main"><div class="v12-workspace__cs-name">Anna Karlsson</div><div class="v12-workspace__cs-contact">070-123 45 67 · anna.karlsson@example.se</div></div></div><div class="v12-workspace__cs-pills"><span class="v12-workspace__cs-pill" data-tone="vip">VIP</span><span class="v12-workspace__cs-pill" data-tone="treatment">PRP-hår</span><span class="v12-workspace__cs-pill" data-tone="treatment">Botox</span></div><div class="v12-workspace__cs-actions"><a class="v12-workspace__cs-action" href="tel:0701234567"><span aria-hidden="true">📞</span> Ring</a><a class="v12-workspace__cs-action" href="sms:0701234567"><span aria-hidden="true">💬</span> SMS</a><a class="v12-workspace__cs-action" href="mailto:anna.karlsson@example.se"><span aria-hidden="true">✉</span> Mejl</a></div><div class="v12-workspace__cs-stats"><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Besök</div><div class="v12-workspace__cs-stat-value">7</div><div class="v12-workspace__cs-stat-sub">totalt</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Värde tot</div><div class="v12-workspace__cs-stat-value">48 000 kr</div><div class="v12-workspace__cs-stat-sub">LTV</div></div><div class="v12-workspace__cs-stat" data-skuld-state="unknown"><div class="v12-workspace__cs-stat-label">Skuld</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">okänd</div></div></div></section><section class="v12-workspace__module v12-workspace__av" data-v12-module="active-visit" aria-label="Aktivt besök"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">AKTIVT BESÖK</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inget aktivt besök idag</div><div class="v12-workspace__empty-hint">Dagens behandling visas här vid incheckning.</div></div></section><section class="v12-workspace__module v12-workspace__warn" data-v12-module="warnings" aria-label="Kritiska varningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="warn">KRITISKA VARNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kritiska varningar</div><div class="v12-workspace__empty-hint">Inga blockerare eller risker att åtgärda.</div></div></section><section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">HÄLSA</div></header><div class="v12-workspace__health-row"><span class="v12-workspace__health-status" data-status="unknown">Okänd</span><button type="button" class="v12-workspace__health-open" data-kk-jump="kk-card-halsa">Öppna full hälsoprofil</button></div><div class="v12-workspace__subhead">Allergier</div><div class="v12-workspace__health-muted">Inga registrerade allergier</div><div class="v12-workspace__health-muted">Läkemedel &amp; kontraindikationer: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__journey" data-v12-module="journey" aria-label="Kundresa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDRESA</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Kundresan har inte startat</div><div class="v12-workspace__empty-hint">Inga steg registrerade ännu.</div></div></section><section class="v12-workspace__module" data-v12-module="journal" aria-label="Journal"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">JOURNAL</div><span class="v12-workspace__count">1</span><button type="button" class="v12-workspace__primary" data-v9-quick="journal">+ Ny anteckning</button></header><ul class="v12-workspace__journal-list"><li class="v12-workspace__journal-item"><button type="button" class="v12-workspace__journal-card" data-v9-section-link="journal" data-journal-state="draft"><span class="v12-workspace__journal-top"><span class="v12-workspace__journal-title">Konsultation</span><span class="v12-workspace__journal-badge" data-state="draft">Utkast</span></span><span class="v12-workspace__journal-body">Inledande konsultation.</span><span class="v12-workspace__journal-meta">Dr. Lind · 2026-06-18 09:15</span></button></li></ul></section><section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga bilder ännu</div><div class="v12-workspace__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__bookings" data-v12-module="bookings" aria-label="Bokningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BOKNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kommande bokningar</div><div class="v12-workspace__empty-hint">Inga kommande tider bokade.</div></div><div class="v12-workspace__subhead">Tidigare besök</div><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Ingen historik ännu</div><div class="v12-workspace__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__documents" data-v12-module="documents" aria-label="Dokument"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">DOKUMENT</div><span class="v12-workspace__count">6</span></header><div class="v12-workspace__subhead">Offerter &amp; behandlingsplaner · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Behandlingsplan PRP-hår</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">18 000 kr</span></span></span><span class="v12-workspace__doc-status" data-state="sent">Skickad</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Offert Botox</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">4 500 kr</span></span></span><span class="v12-workspace__doc-status" data-state="signed">Signerad</span></div></li></ul><div class="v12-workspace__subhead">Auto-dokument · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Samtycke PRP</span></span><span class="v12-workspace__doc-status" data-state="pending">Att fylla i</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Eftervårdsinstruktion</span></span><span class="v12-workspace__doc-status" data-state="planned">Planerad</span></div></li></ul><div class="v12-workspace__subhead">Filer · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Journal-2026-06-18.pdf</span></span><span class="v12-workspace__doc-badge">PDF</span></a></li><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Remiss.docx</span></span><span class="v12-workspace__doc-badge">DOCX</span></a></li></ul></section><section class="v12-workspace__module v12-workspace__comm" data-v12-module="communication" aria-label="Kommunikation"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KOMMUNIKATION</div><span class="v12-workspace__count">1</span></header><ul class="v12-workspace__comm-list"><li class="v12-workspace__comm-item" data-type="mail"><span class="v12-workspace__comm-icon" aria-hidden="true">✉</span><span class="v12-workspace__comm-main"><span class="v12-workspace__comm-text">Senaste kontaktväg: e-post</span><span class="v12-workspace__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v12-workspace__comm-actions"><button type="button" class="v12-workspace__primary" data-v9-quick="reply">✉ Svarstudio</button></div><div class="v12-workspace__health-muted">Avsändare, meddelande-utdrag &amp; läst-status: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div></header><div class="v12-workspace__econ-grid"><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Total intäkt</div><div class="v12-workspace__econ-value">48 000 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Utestående</div><div class="v12-workspace__econ-value">0 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Snitt/besök</div><div class="v12-workspace__econ-value">—</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Livstidsvärde</div><div class="v12-workspace__econ-value">48 000 kr</div></div></div><div class="v12-workspace__health-muted">Fakturor &amp; betalstatus, skuld-breakdown och rabatter: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__insights" data-v12-module="insights" aria-label="Insikter och nästa åtgärd"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">INSIKTER &amp; NÄSTA ÅTGÄRD</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga insikter just nu</div><div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v12-workspace__sticky" data-v12-module="sticky" aria-label="Snabbåtgärder"><div class="v12-workspace__sticky-actions"><button type="button" class="v12-workspace__primary v12-workspace__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v12-workspace__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div></section></body></html>'
+</style></head><body><section class="patient-master-card v12-workspace" data-v12-workspace-shell="1"><div class="v12-workspace__zones"><div class="v12-workspace__zone1"><div class="v11-rail"><div class="v11-rail__scroll"><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><div class="v11-rail__empty" role="status" data-v11-rail-section="Smart information"><div class="v11-rail__empty-title">Ingen data</div><div class="v11-rail__empty-hint">Inga öppna signaler.</div></div><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="unknown"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">—</div><div class="v11-rail__stat-sub">okänd</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="unknown">Okänd</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div></section><section class="v11-rail__bookings" data-v11-rail-bookings aria-label="Kommande bokningar"><header class="v11-rail__bookings-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMANDE BOKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Kommande bokningar"><div class="v11-rail__empty-title">Inga kommande bokningar</div><div class="v11-rail__empty-hint">Inga kommande tider bokade.</div></div></section><section class="v11-rail__history" data-v11-rail-history aria-label="Historik"><header class="v11-rail__history-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HISTORIK</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Historik"><div class="v11-rail__empty-title">Ingen historik ännu</div><div class="v11-rail__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v11-rail__journals" data-v11-rail-journals aria-label="Journal"><header class="v11-rail__journals-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">JOURNAL</div><span class="v11-rail__journals-count">1</span></header><ul class="v11-rail__journal-list"><li class="v11-rail__journal-item"><button type="button" class="v11-rail__journal-row" data-v9-section-link="journal" data-journal-state="draft"><span class="v11-rail__journal-head"><span class="v11-rail__journal-title">Konsultation</span><span class="v11-rail__journal-badge" data-state="draft">Utkast</span></span><span class="v11-rail__journal-snippet">Inledande konsultation.</span><span class="v11-rail__journal-meta">Dr. Lind · 2026-06-18</span></button></li></ul></section><section class="v11-rail__offers" data-v11-rail-offers aria-label="Offerter"><header class="v11-rail__offers-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">OFFERTER</div><span class="v11-rail__offers-count">2</span></header><ul class="v11-rail__offers-list"><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Behandlingsplan PRP-hår</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">18 000 kr</span></span></span><span class="v11-rail__offer-status" data-state="sent">Skickad</span></div></li><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Offert Botox</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">4 500 kr</span></span></span><span class="v11-rail__offer-status" data-state="signed">Signerad</span></div></li></ul></section><section class="v11-rail__autodocs" data-v11-rail-autodocs aria-label="Auto-dokument"><header class="v11-rail__autodocs-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">AUTO-DOKUMENT</div><span class="v11-rail__autodocs-count">2</span></header><ul class="v11-rail__autodocs-list"><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Samtycke PRP</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Eftervårdsinstruktion</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li></ul></section><section class="v11-rail__photos" data-v11-rail-photos aria-label="Foton"><header class="v11-rail__photos-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FOTON</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Foton"><div class="v11-rail__empty-title">Inga foton ännu</div><div class="v11-rail__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v11-rail__files" data-v11-rail-files aria-label="Filer"><header class="v11-rail__files-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FILER</div><span class="v11-rail__files-count">2</span></header><ul class="v11-rail__files-list"><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Journal-2026-06-18.pdf</span><span class="v11-rail__file-badge">PDF</span></a></li><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Remiss.docx</span><span class="v11-rail__file-badge">DOCX</span></a></li></ul></section><section class="v11-rail__notes" data-v11-rail-notes aria-label="Anteckningar"><header class="v11-rail__notes-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">ANTECKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Anteckningar"><div class="v11-rail__empty-title">Inga anteckningar</div><div class="v11-rail__empty-hint">Inga noteringar registrerade.</div></div></section><section class="v11-rail__comm" data-v11-rail-comm aria-label="Kommunikation"><header class="v11-rail__comm-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMUNIKATION</div><span class="v11-rail__comm-count">1</span></header><ul class="v11-rail__comm-list"><li class="v11-rail__comm-item" data-type="mail"><span class="v11-rail__comm-icon" aria-hidden="true">✉</span><span class="v11-rail__comm-main"><span class="v11-rail__comm-text">Senaste kontaktväg: e-post</span><span class="v11-rail__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v11-rail__comm-actions"><button type="button" class="v11-rail__comm-reply" data-v9-quick="reply">✉ Svarstudio</button></div></section><section class="v11-rail__econ" data-v11-rail-economy aria-label="Ekonomi"><header class="v11-rail__econ-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">EKONOMI</div></header><div class="v11-rail__econ-grid"><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Total intäkt</div><div class="v11-rail__econ-value">48 000 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Utestående</div><div class="v11-rail__econ-value">0 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Snitt/besök</div><div class="v11-rail__econ-value">—</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Livstidsvärde</div><div class="v11-rail__econ-value">48 000 kr</div></div></div></section><section class="v11-rail__insights" data-v11-rail-insights aria-label="Insikter"><header class="v11-rail__insights-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">INSIKTER</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Insikter"><div class="v11-rail__empty-title">Inga insikter just nu</div><div class="v11-rail__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v11-rail__sticky" data-v11-rail-sticky aria-label="Snabbåtgärder"><div class="v11-rail__sticky-actions"><button type="button" class="v11-rail__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v11-rail__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div><div class="v12-workspace__zone2"><div class="v12-workspace__inner" data-v12-workspace-inner="1"><div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div><section class="v12-workspace__module v12-workspace__current-state" data-v12-module="current-state" aria-label="Kundens nuläge"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDENS NULÄGE</div><span class="v12-workspace__cs-status" data-tone="ready">Redo för behandling</span></header><div class="v12-workspace__cs-identity"><div class="v12-workspace__cs-avatar" aria-hidden="true">AK</div><div class="v12-workspace__cs-id-main"><div class="v12-workspace__cs-name">Anna Karlsson</div><div class="v12-workspace__cs-contact">070-123 45 67 · anna.karlsson@example.se</div></div></div><div class="v12-workspace__cs-pills"><span class="v12-workspace__cs-pill" data-tone="vip">VIP</span><span class="v12-workspace__cs-pill" data-tone="treatment">PRP-hår</span><span class="v12-workspace__cs-pill" data-tone="treatment">Botox</span></div><div class="v12-workspace__cs-actions"><a class="v12-workspace__cs-action" href="tel:0701234567"><span aria-hidden="true">📞</span> Ring</a><a class="v12-workspace__cs-action" href="sms:0701234567"><span aria-hidden="true">💬</span> SMS</a><a class="v12-workspace__cs-action" href="mailto:anna.karlsson@example.se"><span aria-hidden="true">✉</span> Mejl</a><button type="button" class="v12-workspace__cs-action" data-kk-ord48-open-calendar data-patient-id="p-1001"><span aria-hidden="true">📅</span> Ny bokning</button></div><div class="v12-workspace__cs-stats"><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Besök</div><div class="v12-workspace__cs-stat-value">7</div><div class="v12-workspace__cs-stat-sub">totalt</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Värde tot</div><div class="v12-workspace__cs-stat-value">48 000 kr</div><div class="v12-workspace__cs-stat-sub">LTV</div></div><div class="v12-workspace__cs-stat" data-skuld-state="unknown"><div class="v12-workspace__cs-stat-label">Skuld</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">okänd</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Nästa besök</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">inga bokningar</div></div></div></section><section class="v12-workspace__module v12-workspace__av" data-v12-module="active-visit" aria-label="Aktivt besök"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">AKTIVT BESÖK</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inget aktivt besök idag</div><div class="v12-workspace__empty-hint">Dagens behandling visas här vid incheckning.</div></div></section><section class="v12-workspace__module v12-workspace__warn" data-v12-module="warnings" aria-label="Kritiska varningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="warn">KRITISKA VARNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kritiska varningar</div><div class="v12-workspace__empty-hint">Inga blockerare eller risker att åtgärda.</div></div></section><section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">HÄLSA</div></header><div class="v12-workspace__health-row"><span class="v12-workspace__health-status" data-status="unknown">Okänd</span><button type="button" class="v12-workspace__health-open" data-kk-jump="kk-card-halsa">Öppna full hälsoprofil</button></div><div class="v12-workspace__subhead">Allergier</div><div class="v12-workspace__health-muted">Inga registrerade allergier</div><div class="v12-workspace__subhead">Kontraindikationer</div><div class="v12-workspace__health-muted">Inga registrerade kontraindikationer</div><div class="v12-workspace__subhead">Läkemedel</div><div class="v12-workspace__health-muted">Pågående läkemedel registreras inte i hälsodeklarationen ännu.</div></section><section class="v12-workspace__module v12-workspace__journey" data-v12-module="journey" aria-label="Kundresa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDRESA</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Kundresan har inte startat</div><div class="v12-workspace__empty-hint">Inga steg registrerade ännu.</div></div></section><section class="v12-workspace__module" data-v12-module="journal" aria-label="Journal"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">JOURNAL</div><span class="v12-workspace__count">1</span><button type="button" class="v12-workspace__primary" data-v9-quick="journal">+ Ny anteckning</button></header><ul class="v12-workspace__journal-list"><li class="v12-workspace__journal-item"><button type="button" class="v12-workspace__journal-card" data-v9-section-link="journal" data-journal-state="draft"><span class="v12-workspace__journal-top"><span class="v12-workspace__journal-title">Konsultation</span><span class="v12-workspace__journal-badge" data-state="draft">Utkast</span></span><span class="v12-workspace__journal-body">Inledande konsultation.</span><span class="v12-workspace__journal-meta">Dr. Lind · 2026-06-18 11:15</span></button></li></ul></section><section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga bilder ännu</div><div class="v12-workspace__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__bookings" data-v12-module="bookings" aria-label="Bokningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BOKNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kommande bokningar</div><div class="v12-workspace__empty-hint">Inga kommande tider bokade.</div></div><div class="v12-workspace__subhead">Tidigare besök</div><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Ingen historik ännu</div><div class="v12-workspace__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__documents" data-v12-module="documents" aria-label="Dokument"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">DOKUMENT</div><span class="v12-workspace__count">6</span></header><div class="v12-workspace__subhead">Offerter &amp; behandlingsplaner · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Behandlingsplan PRP-hår</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">18 000 kr</span></span></span><span class="v12-workspace__doc-status" data-state="sent">Skickad</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Offert Botox</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">4 500 kr</span></span></span><span class="v12-workspace__doc-status" data-state="signed">Signerad</span></div></li></ul><div class="v12-workspace__subhead">Auto-dokument · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Samtycke PRP</span></span><span class="v12-workspace__doc-status" data-state="pending">Att fylla i</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Eftervårdsinstruktion</span></span><span class="v12-workspace__doc-status" data-state="planned">Planerad</span></div></li></ul><div class="v12-workspace__subhead">Filer · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Journal-2026-06-18.pdf</span></span><span class="v12-workspace__doc-badge">PDF</span></a></li><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Remiss.docx</span></span><span class="v12-workspace__doc-badge">DOCX</span></a></li></ul></section><section class="v12-workspace__module v12-workspace__comm" data-v12-module="communication" aria-label="Kommunikation"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KOMMUNIKATION</div><span class="v12-workspace__count">1</span></header><ul class="v12-workspace__comm-list"><li class="v12-workspace__comm-item" data-type="mail"><span class="v12-workspace__comm-icon" aria-hidden="true">✉</span><span class="v12-workspace__comm-main"><span class="v12-workspace__comm-text">Senaste kontaktväg: e-post</span><span class="v12-workspace__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v12-workspace__comm-actions"><button type="button" class="v12-workspace__primary" data-v9-quick="reply">✉ Svarstudio</button></div><div class="v12-workspace__health-muted">Avsändare, meddelande-utdrag &amp; läst-status: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div></header><div class="v12-workspace__econ-grid"><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Total intäkt</div><div class="v12-workspace__econ-value">48 000 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Utestående</div><div class="v12-workspace__econ-value">0 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Snitt/besök</div><div class="v12-workspace__econ-value">—</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Livstidsvärde</div><div class="v12-workspace__econ-value">48 000 kr</div></div></div><div class="v12-workspace__health-muted">Skuld-breakdown och rabatter: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__insights" data-v12-module="insights" aria-label="Insikter och nästa åtgärd"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">INSIKTER &amp; NÄSTA ÅTGÄRD</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga insikter just nu</div><div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v12-workspace__sticky" data-v12-module="sticky" aria-label="Snabbåtgärder"><div class="v12-workspace__sticky-actions"><button type="button" class="v12-workspace__primary v12-workspace__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v12-workspace__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div></section></body></html>'
           title="mobil 390×844 (V12 äger ytan, Zon 1 dold)"
         ></iframe>
       </figure>
@@ -5817,6 +6130,112 @@
   width: 100%;
 }
 
+/* V12 öppnas från lilla V11-railens sektioner som stor kundvy-overlay.
+   Detta ersätter inte första kundklicket: första klicket visar fortfarande railen. */
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 12080 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: clamp(18px, 3vw, 44px) !important;
+  border-radius: 0 !important;
+  background: rgba(41, 36, 31, 0.58) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace[hidden] {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 0;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__close {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: #2c2218;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 !important;
+  border-radius: 28px;
+  background: #f5eee5;
+  box-shadow: 0 28px 90px rgba(34, 26, 19, 0.32);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace {
+  min-height: 100%;
+  max-height: none;
+}
+
+html[data-v12-workspace="on"]
+  .v9-dossier-deep--v12-workspace
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: none;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace__close {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] [data-v12-focus-pulse="1"] {
+  outline: 3px solid rgba(216, 145, 32, 0.45);
+  outline-offset: 4px;
+  transition: outline-color 0.2s ease;
+}
+
+@media (max-width: 767px) {
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+    padding: 0 !important;
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(41, 36, 31, 0.64);
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+    width: 100%;
+    border-radius: 0;
+  }
+}
+
+/*
+ * Scroll-ownership för V12-skalet. Första kundklicket visar lilla V11-rail;
+ * V12 renderas först i overlayn efter sektionsklick, men skalet behöver fortsatt
+ * viewport-bunden intern scroll när det ligger i en höjdbegränsad container.
+ */
+.v12-workspace[data-v12-workspace-shell="1"] .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Mobil-shell: V12 äger hela ytan → lite mer scroll-höjd (mindre topp-chrome). */
+html[data-cco-mobile-shell="on"]
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: calc(100dvh - 4rem);
+}
+
 .v12-workspace *,
 .v12-workspace *::before,
 .v12-workspace *::after {
@@ -5889,7 +6308,7 @@
   padding: 7px 14px;
   border-radius: 9px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 12.5px;
   font-weight: 700;
@@ -6069,6 +6488,7 @@
 }
 
 .v12-workspace__av-node {
+  position: relative;
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
@@ -6079,7 +6499,30 @@
   text-align: center;
 }
 
+/* Facit-parity: connector-linje mellan noderna (grön klart → amber aktiv → grå kvar). */
+.v12-workspace__av-node:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 50%;
+  width: calc(100% + 6px);
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(56, 40, 28, 0.2);
+  z-index: 0;
+}
+
+.v12-workspace__av-node.is-done::before {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-node.is-active::before {
+  background: linear-gradient(90deg, #2f7d4f, var(--v12-amber));
+}
+
 .v12-workspace__av-node .v12-workspace__av-dot {
+  position: relative;
+  z-index: 1;
   width: 10px;
   height: 10px;
   background: rgba(56, 40, 28, 0.2);
@@ -6174,7 +6617,7 @@
   padding: 10px 16px;
   border-radius: 10px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 13.5px;
   font-weight: 800;
@@ -6524,8 +6967,14 @@
 
 .v12-workspace__cs-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__cs-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__cs-stat {
@@ -6664,6 +7113,26 @@
   line-height: 1.35;
 }
 
+/* Facit-parity: per-steg-länk till relaterad sektion (dok/foto/journal). */
+.v12-workspace__journey-link {
+  flex: none;
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__journey-row:hover .v12-workspace__journey-link {
+  background: rgba(200, 130, 30, 0.18);
+}
+
 /* ===== Hälsa-modul (sektion 4) ===== */
 .v12-workspace__health-row {
   display: flex;
@@ -6735,6 +7204,33 @@
   font-size: 12px;
   color: var(--v12-muted);
   opacity: 0.85;
+}
+
+/* Kontraindikationer — riskflaggor ur hälsodeklarationen (röd/amber per level) */
+.v12-workspace__health-contra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__health-flag {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.v12-workspace__health-flag[data-level="red"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.12);
+  border-color: rgba(181, 82, 74, 0.28);
+}
+
+.v12-workspace__health-flag[data-level="amber"] {
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.12);
+  border-color: rgba(200, 130, 30, 0.28);
 }
 
 /* ===== Insikter & nästa åtgärd-modul (sektion 12) ===== */
@@ -6868,6 +7364,65 @@
   line-height: 1.4;
 }
 
+/* Facit-parity: insikter grupperade i amber "Gör nu" vs grön "Möjlighet". */
+.v12-workspace__insight-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.v12-workspace__insight-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__insight-group .v12-workspace__insights-list {
+  margin-top: 0;
+}
+
+.v12-workspace__insight-group-label {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.v12-workspace__insight-group-label[data-tone="amber"] {
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v12-workspace__insight-group-label[data-tone="green"] {
+  color: #2c6b3d;
+  background: rgba(74, 130, 104, 0.16);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight {
+  border-color: rgba(200, 130, 30, 0.3);
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.3);
+  background: rgba(181, 82, 74, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight {
+  border-color: rgba(74, 130, 104, 0.32);
+  background: rgba(74, 130, 104, 0.08);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight-icon {
+  color: #2f7d4f;
+}
+
 /* ===== Bilder / före–efter-modul (sektion 7) ===== */
 .v12-workspace__photos-grid {
   display: grid;
@@ -6980,6 +7535,68 @@
   }
 }
 
+/* Fakturarader/betalningar ur RIKTIG paymentHistory (frontend-wiring 2026-06-23).
+   Matchar befintligt econ/doc-mönster — ingen ny design. */
+.v12-workspace__econ-invoices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.v12-workspace__econ-invoice {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__econ-invoice-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__econ-invoice-date {
+  font-size: 10px;
+  color: var(--v12-muted);
+  margin-top: 1px;
+}
+
+.v12-workspace__econ-invoice-amount {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.v12-workspace__econ-invoice-status {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__econ-invoice-status[data-status="paid"] {
+  color: #4a8268;
+}
+
+.v12-workspace__econ-invoice-status[data-status="pending"],
+.v12-workspace__econ-invoice-status[data-status="overdue"],
+.v12-workspace__econ-invoice-status[data-status="partially_paid"] {
+  color: #c8821e;
+}
+
+.v12-workspace__econ-invoice-status[data-status="cancelled"],
+.v12-workspace__econ-invoice-status[data-status="failed"] {
+  color: #b94a4a;
+}
+
 /* ===== Kommunikation-modul (sektion 10) ===== */
 .v12-workspace__comm-list {
   list-style: none;
@@ -7038,13 +7655,21 @@
 }
 
 /* ===== Dokument-modul (sektion 9) ===== */
+/* Facit-parity: dokument som 2-kolumners kort-rutnät (1-kol mobil → 2-kol ≥768px),
+   grupperingen offerter/auto/filer behålls. Ren layout — samma data-v11-doc-*-rader. */
 .v12-workspace__doc-list {
   list-style: none;
   margin: 0 0 4px;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__doc-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__doc-item {
@@ -7056,6 +7681,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
+  height: 100%;
   text-align: left;
   padding: 10px 12px;
   border-radius: 10px;
@@ -7238,7 +7864,7 @@
     padding: 20px 24px;
   }
 }
-</style></head><body><section class="patient-master-card v12-workspace" data-v12-workspace-shell="1"><div class="v12-workspace__zones"><div class="v12-workspace__zone1"><div class="v11-rail"><div class="v11-rail__scroll"><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><div class="v11-rail__empty" role="status" data-v11-rail-section="Smart information"><div class="v11-rail__empty-title">Ingen data</div><div class="v11-rail__empty-hint">Inga öppna signaler.</div></div><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="unknown"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">—</div><div class="v11-rail__stat-sub">okänd</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="unknown">Okänd</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div></section><section class="v11-rail__bookings" data-v11-rail-bookings aria-label="Kommande bokningar"><header class="v11-rail__bookings-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMANDE BOKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Kommande bokningar"><div class="v11-rail__empty-title">Inga kommande bokningar</div><div class="v11-rail__empty-hint">Inga kommande tider bokade.</div></div></section><section class="v11-rail__history" data-v11-rail-history aria-label="Historik"><header class="v11-rail__history-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HISTORIK</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Historik"><div class="v11-rail__empty-title">Ingen historik ännu</div><div class="v11-rail__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v11-rail__journals" data-v11-rail-journals aria-label="Journal"><header class="v11-rail__journals-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">JOURNAL</div><span class="v11-rail__journals-count">1</span></header><ul class="v11-rail__journal-list"><li class="v11-rail__journal-item"><button type="button" class="v11-rail__journal-row" data-v9-section-link="journal" data-journal-state="draft"><span class="v11-rail__journal-head"><span class="v11-rail__journal-title">Konsultation</span><span class="v11-rail__journal-badge" data-state="draft">Utkast</span></span><span class="v11-rail__journal-snippet">Inledande konsultation.</span><span class="v11-rail__journal-meta">Dr. Lind · 2026-06-18</span></button></li></ul></section><section class="v11-rail__offers" data-v11-rail-offers aria-label="Offerter"><header class="v11-rail__offers-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">OFFERTER</div><span class="v11-rail__offers-count">2</span></header><ul class="v11-rail__offers-list"><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Behandlingsplan PRP-hår</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">18 000 kr</span></span></span><span class="v11-rail__offer-status" data-state="sent">Skickad</span></div></li><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Offert Botox</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">4 500 kr</span></span></span><span class="v11-rail__offer-status" data-state="signed">Signerad</span></div></li></ul></section><section class="v11-rail__autodocs" data-v11-rail-autodocs aria-label="Auto-dokument"><header class="v11-rail__autodocs-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">AUTO-DOKUMENT</div><span class="v11-rail__autodocs-count">2</span></header><ul class="v11-rail__autodocs-list"><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Samtycke PRP</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Eftervårdsinstruktion</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li></ul></section><section class="v11-rail__photos" data-v11-rail-photos aria-label="Foton"><header class="v11-rail__photos-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FOTON</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Foton"><div class="v11-rail__empty-title">Inga foton ännu</div><div class="v11-rail__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v11-rail__files" data-v11-rail-files aria-label="Filer"><header class="v11-rail__files-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FILER</div><span class="v11-rail__files-count">2</span></header><ul class="v11-rail__files-list"><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Journal-2026-06-18.pdf</span><span class="v11-rail__file-badge">PDF</span></a></li><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Remiss.docx</span><span class="v11-rail__file-badge">DOCX</span></a></li></ul></section><section class="v11-rail__notes" data-v11-rail-notes aria-label="Anteckningar"><header class="v11-rail__notes-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">ANTECKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Anteckningar"><div class="v11-rail__empty-title">Inga anteckningar</div><div class="v11-rail__empty-hint">Inga noteringar registrerade.</div></div></section><section class="v11-rail__comm" data-v11-rail-comm aria-label="Kommunikation"><header class="v11-rail__comm-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMUNIKATION</div><span class="v11-rail__comm-count">1</span></header><ul class="v11-rail__comm-list"><li class="v11-rail__comm-item" data-type="mail"><span class="v11-rail__comm-icon" aria-hidden="true">✉</span><span class="v11-rail__comm-main"><span class="v11-rail__comm-text">Senaste kontaktväg: e-post</span><span class="v11-rail__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v11-rail__comm-actions"><button type="button" class="v11-rail__comm-reply" data-v9-quick="reply">✉ Svarstudio</button></div></section><section class="v11-rail__econ" data-v11-rail-economy aria-label="Ekonomi"><header class="v11-rail__econ-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">EKONOMI</div></header><div class="v11-rail__econ-grid"><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Total intäkt</div><div class="v11-rail__econ-value">48 000 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Utestående</div><div class="v11-rail__econ-value">0 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Snitt/besök</div><div class="v11-rail__econ-value">—</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Livstidsvärde</div><div class="v11-rail__econ-value">48 000 kr</div></div></div></section><section class="v11-rail__insights" data-v11-rail-insights aria-label="Insikter"><header class="v11-rail__insights-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">INSIKTER</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Insikter"><div class="v11-rail__empty-title">Inga insikter just nu</div><div class="v11-rail__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v11-rail__sticky" data-v11-rail-sticky aria-label="Snabbåtgärder"><div class="v11-rail__sticky-actions"><button type="button" class="v11-rail__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v11-rail__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div><div class="v12-workspace__zone2"><div class="v12-workspace__inner" data-v12-workspace-inner="1"><div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div><section class="v12-workspace__module v12-workspace__current-state" data-v12-module="current-state" aria-label="Kundens nuläge"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDENS NULÄGE</div><span class="v12-workspace__cs-status" data-tone="ready">Redo för behandling</span></header><div class="v12-workspace__cs-identity"><div class="v12-workspace__cs-avatar" aria-hidden="true">AK</div><div class="v12-workspace__cs-id-main"><div class="v12-workspace__cs-name">Anna Karlsson</div><div class="v12-workspace__cs-contact">070-123 45 67 · anna.karlsson@example.se</div></div></div><div class="v12-workspace__cs-pills"><span class="v12-workspace__cs-pill" data-tone="vip">VIP</span><span class="v12-workspace__cs-pill" data-tone="treatment">PRP-hår</span><span class="v12-workspace__cs-pill" data-tone="treatment">Botox</span></div><div class="v12-workspace__cs-actions"><a class="v12-workspace__cs-action" href="tel:0701234567"><span aria-hidden="true">📞</span> Ring</a><a class="v12-workspace__cs-action" href="sms:0701234567"><span aria-hidden="true">💬</span> SMS</a><a class="v12-workspace__cs-action" href="mailto:anna.karlsson@example.se"><span aria-hidden="true">✉</span> Mejl</a></div><div class="v12-workspace__cs-stats"><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Besök</div><div class="v12-workspace__cs-stat-value">7</div><div class="v12-workspace__cs-stat-sub">totalt</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Värde tot</div><div class="v12-workspace__cs-stat-value">48 000 kr</div><div class="v12-workspace__cs-stat-sub">LTV</div></div><div class="v12-workspace__cs-stat" data-skuld-state="unknown"><div class="v12-workspace__cs-stat-label">Skuld</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">okänd</div></div></div></section><section class="v12-workspace__module v12-workspace__av" data-v12-module="active-visit" aria-label="Aktivt besök"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">AKTIVT BESÖK</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inget aktivt besök idag</div><div class="v12-workspace__empty-hint">Dagens behandling visas här vid incheckning.</div></div></section><section class="v12-workspace__module v12-workspace__warn" data-v12-module="warnings" aria-label="Kritiska varningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="warn">KRITISKA VARNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kritiska varningar</div><div class="v12-workspace__empty-hint">Inga blockerare eller risker att åtgärda.</div></div></section><section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">HÄLSA</div></header><div class="v12-workspace__health-row"><span class="v12-workspace__health-status" data-status="unknown">Okänd</span><button type="button" class="v12-workspace__health-open" data-kk-jump="kk-card-halsa">Öppna full hälsoprofil</button></div><div class="v12-workspace__subhead">Allergier</div><div class="v12-workspace__health-muted">Inga registrerade allergier</div><div class="v12-workspace__health-muted">Läkemedel &amp; kontraindikationer: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__journey" data-v12-module="journey" aria-label="Kundresa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDRESA</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Kundresan har inte startat</div><div class="v12-workspace__empty-hint">Inga steg registrerade ännu.</div></div></section><section class="v12-workspace__module" data-v12-module="journal" aria-label="Journal"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">JOURNAL</div><span class="v12-workspace__count">1</span><button type="button" class="v12-workspace__primary" data-v9-quick="journal">+ Ny anteckning</button></header><ul class="v12-workspace__journal-list"><li class="v12-workspace__journal-item"><button type="button" class="v12-workspace__journal-card" data-v9-section-link="journal" data-journal-state="draft"><span class="v12-workspace__journal-top"><span class="v12-workspace__journal-title">Konsultation</span><span class="v12-workspace__journal-badge" data-state="draft">Utkast</span></span><span class="v12-workspace__journal-body">Inledande konsultation.</span><span class="v12-workspace__journal-meta">Dr. Lind · 2026-06-18 09:15</span></button></li></ul></section><section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga bilder ännu</div><div class="v12-workspace__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__bookings" data-v12-module="bookings" aria-label="Bokningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BOKNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kommande bokningar</div><div class="v12-workspace__empty-hint">Inga kommande tider bokade.</div></div><div class="v12-workspace__subhead">Tidigare besök</div><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Ingen historik ännu</div><div class="v12-workspace__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__documents" data-v12-module="documents" aria-label="Dokument"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">DOKUMENT</div><span class="v12-workspace__count">6</span></header><div class="v12-workspace__subhead">Offerter &amp; behandlingsplaner · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Behandlingsplan PRP-hår</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">18 000 kr</span></span></span><span class="v12-workspace__doc-status" data-state="sent">Skickad</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Offert Botox</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">4 500 kr</span></span></span><span class="v12-workspace__doc-status" data-state="signed">Signerad</span></div></li></ul><div class="v12-workspace__subhead">Auto-dokument · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Samtycke PRP</span></span><span class="v12-workspace__doc-status" data-state="pending">Att fylla i</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Eftervårdsinstruktion</span></span><span class="v12-workspace__doc-status" data-state="planned">Planerad</span></div></li></ul><div class="v12-workspace__subhead">Filer · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Journal-2026-06-18.pdf</span></span><span class="v12-workspace__doc-badge">PDF</span></a></li><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Remiss.docx</span></span><span class="v12-workspace__doc-badge">DOCX</span></a></li></ul></section><section class="v12-workspace__module v12-workspace__comm" data-v12-module="communication" aria-label="Kommunikation"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KOMMUNIKATION</div><span class="v12-workspace__count">1</span></header><ul class="v12-workspace__comm-list"><li class="v12-workspace__comm-item" data-type="mail"><span class="v12-workspace__comm-icon" aria-hidden="true">✉</span><span class="v12-workspace__comm-main"><span class="v12-workspace__comm-text">Senaste kontaktväg: e-post</span><span class="v12-workspace__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v12-workspace__comm-actions"><button type="button" class="v12-workspace__primary" data-v9-quick="reply">✉ Svarstudio</button></div><div class="v12-workspace__health-muted">Avsändare, meddelande-utdrag &amp; läst-status: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div></header><div class="v12-workspace__econ-grid"><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Total intäkt</div><div class="v12-workspace__econ-value">48 000 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Utestående</div><div class="v12-workspace__econ-value">0 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Snitt/besök</div><div class="v12-workspace__econ-value">—</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Livstidsvärde</div><div class="v12-workspace__econ-value">48 000 kr</div></div></div><div class="v12-workspace__health-muted">Fakturor &amp; betalstatus, skuld-breakdown och rabatter: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__insights" data-v12-module="insights" aria-label="Insikter och nästa åtgärd"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">INSIKTER &amp; NÄSTA ÅTGÄRD</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga insikter just nu</div><div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v12-workspace__sticky" data-v12-module="sticky" aria-label="Snabbåtgärder"><div class="v12-workspace__sticky-actions"><button type="button" class="v12-workspace__primary v12-workspace__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v12-workspace__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div></section></body></html>'
+</style></head><body><section class="patient-master-card v12-workspace" data-v12-workspace-shell="1"><div class="v12-workspace__zones"><div class="v12-workspace__zone1"><div class="v11-rail"><div class="v11-rail__scroll"><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><div class="v11-rail__empty" role="status" data-v11-rail-section="Smart information"><div class="v11-rail__empty-title">Ingen data</div><div class="v11-rail__empty-hint">Inga öppna signaler.</div></div><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="unknown"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">—</div><div class="v11-rail__stat-sub">okänd</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="unknown">Okänd</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div></section><section class="v11-rail__bookings" data-v11-rail-bookings aria-label="Kommande bokningar"><header class="v11-rail__bookings-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMANDE BOKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Kommande bokningar"><div class="v11-rail__empty-title">Inga kommande bokningar</div><div class="v11-rail__empty-hint">Inga kommande tider bokade.</div></div></section><section class="v11-rail__history" data-v11-rail-history aria-label="Historik"><header class="v11-rail__history-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HISTORIK</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Historik"><div class="v11-rail__empty-title">Ingen historik ännu</div><div class="v11-rail__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v11-rail__journals" data-v11-rail-journals aria-label="Journal"><header class="v11-rail__journals-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">JOURNAL</div><span class="v11-rail__journals-count">1</span></header><ul class="v11-rail__journal-list"><li class="v11-rail__journal-item"><button type="button" class="v11-rail__journal-row" data-v9-section-link="journal" data-journal-state="draft"><span class="v11-rail__journal-head"><span class="v11-rail__journal-title">Konsultation</span><span class="v11-rail__journal-badge" data-state="draft">Utkast</span></span><span class="v11-rail__journal-snippet">Inledande konsultation.</span><span class="v11-rail__journal-meta">Dr. Lind · 2026-06-18</span></button></li></ul></section><section class="v11-rail__offers" data-v11-rail-offers aria-label="Offerter"><header class="v11-rail__offers-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">OFFERTER</div><span class="v11-rail__offers-count">2</span></header><ul class="v11-rail__offers-list"><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Behandlingsplan PRP-hår</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">18 000 kr</span></span></span><span class="v11-rail__offer-status" data-state="sent">Skickad</span></div></li><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Offert Botox</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">4 500 kr</span></span></span><span class="v11-rail__offer-status" data-state="signed">Signerad</span></div></li></ul></section><section class="v11-rail__autodocs" data-v11-rail-autodocs aria-label="Auto-dokument"><header class="v11-rail__autodocs-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">AUTO-DOKUMENT</div><span class="v11-rail__autodocs-count">2</span></header><ul class="v11-rail__autodocs-list"><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Samtycke PRP</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Eftervårdsinstruktion</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li></ul></section><section class="v11-rail__photos" data-v11-rail-photos aria-label="Foton"><header class="v11-rail__photos-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FOTON</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Foton"><div class="v11-rail__empty-title">Inga foton ännu</div><div class="v11-rail__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v11-rail__files" data-v11-rail-files aria-label="Filer"><header class="v11-rail__files-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FILER</div><span class="v11-rail__files-count">2</span></header><ul class="v11-rail__files-list"><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Journal-2026-06-18.pdf</span><span class="v11-rail__file-badge">PDF</span></a></li><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Remiss.docx</span><span class="v11-rail__file-badge">DOCX</span></a></li></ul></section><section class="v11-rail__notes" data-v11-rail-notes aria-label="Anteckningar"><header class="v11-rail__notes-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">ANTECKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Anteckningar"><div class="v11-rail__empty-title">Inga anteckningar</div><div class="v11-rail__empty-hint">Inga noteringar registrerade.</div></div></section><section class="v11-rail__comm" data-v11-rail-comm aria-label="Kommunikation"><header class="v11-rail__comm-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMUNIKATION</div><span class="v11-rail__comm-count">1</span></header><ul class="v11-rail__comm-list"><li class="v11-rail__comm-item" data-type="mail"><span class="v11-rail__comm-icon" aria-hidden="true">✉</span><span class="v11-rail__comm-main"><span class="v11-rail__comm-text">Senaste kontaktväg: e-post</span><span class="v11-rail__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v11-rail__comm-actions"><button type="button" class="v11-rail__comm-reply" data-v9-quick="reply">✉ Svarstudio</button></div></section><section class="v11-rail__econ" data-v11-rail-economy aria-label="Ekonomi"><header class="v11-rail__econ-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">EKONOMI</div></header><div class="v11-rail__econ-grid"><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Total intäkt</div><div class="v11-rail__econ-value">48 000 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Utestående</div><div class="v11-rail__econ-value">0 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Snitt/besök</div><div class="v11-rail__econ-value">—</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Livstidsvärde</div><div class="v11-rail__econ-value">48 000 kr</div></div></div></section><section class="v11-rail__insights" data-v11-rail-insights aria-label="Insikter"><header class="v11-rail__insights-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">INSIKTER</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Insikter"><div class="v11-rail__empty-title">Inga insikter just nu</div><div class="v11-rail__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v11-rail__sticky" data-v11-rail-sticky aria-label="Snabbåtgärder"><div class="v11-rail__sticky-actions"><button type="button" class="v11-rail__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v11-rail__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div><div class="v12-workspace__zone2"><div class="v12-workspace__inner" data-v12-workspace-inner="1"><div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div><section class="v12-workspace__module v12-workspace__current-state" data-v12-module="current-state" aria-label="Kundens nuläge"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDENS NULÄGE</div><span class="v12-workspace__cs-status" data-tone="ready">Redo för behandling</span></header><div class="v12-workspace__cs-identity"><div class="v12-workspace__cs-avatar" aria-hidden="true">AK</div><div class="v12-workspace__cs-id-main"><div class="v12-workspace__cs-name">Anna Karlsson</div><div class="v12-workspace__cs-contact">070-123 45 67 · anna.karlsson@example.se</div></div></div><div class="v12-workspace__cs-pills"><span class="v12-workspace__cs-pill" data-tone="vip">VIP</span><span class="v12-workspace__cs-pill" data-tone="treatment">PRP-hår</span><span class="v12-workspace__cs-pill" data-tone="treatment">Botox</span></div><div class="v12-workspace__cs-actions"><a class="v12-workspace__cs-action" href="tel:0701234567"><span aria-hidden="true">📞</span> Ring</a><a class="v12-workspace__cs-action" href="sms:0701234567"><span aria-hidden="true">💬</span> SMS</a><a class="v12-workspace__cs-action" href="mailto:anna.karlsson@example.se"><span aria-hidden="true">✉</span> Mejl</a><button type="button" class="v12-workspace__cs-action" data-kk-ord48-open-calendar data-patient-id="p-1001"><span aria-hidden="true">📅</span> Ny bokning</button></div><div class="v12-workspace__cs-stats"><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Besök</div><div class="v12-workspace__cs-stat-value">7</div><div class="v12-workspace__cs-stat-sub">totalt</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Värde tot</div><div class="v12-workspace__cs-stat-value">48 000 kr</div><div class="v12-workspace__cs-stat-sub">LTV</div></div><div class="v12-workspace__cs-stat" data-skuld-state="unknown"><div class="v12-workspace__cs-stat-label">Skuld</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">okänd</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Nästa besök</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">inga bokningar</div></div></div></section><section class="v12-workspace__module v12-workspace__av" data-v12-module="active-visit" aria-label="Aktivt besök"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">AKTIVT BESÖK</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inget aktivt besök idag</div><div class="v12-workspace__empty-hint">Dagens behandling visas här vid incheckning.</div></div></section><section class="v12-workspace__module v12-workspace__warn" data-v12-module="warnings" aria-label="Kritiska varningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="warn">KRITISKA VARNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kritiska varningar</div><div class="v12-workspace__empty-hint">Inga blockerare eller risker att åtgärda.</div></div></section><section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">HÄLSA</div></header><div class="v12-workspace__health-row"><span class="v12-workspace__health-status" data-status="unknown">Okänd</span><button type="button" class="v12-workspace__health-open" data-kk-jump="kk-card-halsa">Öppna full hälsoprofil</button></div><div class="v12-workspace__subhead">Allergier</div><div class="v12-workspace__health-muted">Inga registrerade allergier</div><div class="v12-workspace__subhead">Kontraindikationer</div><div class="v12-workspace__health-muted">Inga registrerade kontraindikationer</div><div class="v12-workspace__subhead">Läkemedel</div><div class="v12-workspace__health-muted">Pågående läkemedel registreras inte i hälsodeklarationen ännu.</div></section><section class="v12-workspace__module v12-workspace__journey" data-v12-module="journey" aria-label="Kundresa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDRESA</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Kundresan har inte startat</div><div class="v12-workspace__empty-hint">Inga steg registrerade ännu.</div></div></section><section class="v12-workspace__module" data-v12-module="journal" aria-label="Journal"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">JOURNAL</div><span class="v12-workspace__count">1</span><button type="button" class="v12-workspace__primary" data-v9-quick="journal">+ Ny anteckning</button></header><ul class="v12-workspace__journal-list"><li class="v12-workspace__journal-item"><button type="button" class="v12-workspace__journal-card" data-v9-section-link="journal" data-journal-state="draft"><span class="v12-workspace__journal-top"><span class="v12-workspace__journal-title">Konsultation</span><span class="v12-workspace__journal-badge" data-state="draft">Utkast</span></span><span class="v12-workspace__journal-body">Inledande konsultation.</span><span class="v12-workspace__journal-meta">Dr. Lind · 2026-06-18 11:15</span></button></li></ul></section><section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga bilder ännu</div><div class="v12-workspace__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__bookings" data-v12-module="bookings" aria-label="Bokningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BOKNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kommande bokningar</div><div class="v12-workspace__empty-hint">Inga kommande tider bokade.</div></div><div class="v12-workspace__subhead">Tidigare besök</div><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Ingen historik ännu</div><div class="v12-workspace__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__documents" data-v12-module="documents" aria-label="Dokument"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">DOKUMENT</div><span class="v12-workspace__count">6</span></header><div class="v12-workspace__subhead">Offerter &amp; behandlingsplaner · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Behandlingsplan PRP-hår</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">18 000 kr</span></span></span><span class="v12-workspace__doc-status" data-state="sent">Skickad</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Offert Botox</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">4 500 kr</span></span></span><span class="v12-workspace__doc-status" data-state="signed">Signerad</span></div></li></ul><div class="v12-workspace__subhead">Auto-dokument · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Samtycke PRP</span></span><span class="v12-workspace__doc-status" data-state="pending">Att fylla i</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Eftervårdsinstruktion</span></span><span class="v12-workspace__doc-status" data-state="planned">Planerad</span></div></li></ul><div class="v12-workspace__subhead">Filer · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Journal-2026-06-18.pdf</span></span><span class="v12-workspace__doc-badge">PDF</span></a></li><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Remiss.docx</span></span><span class="v12-workspace__doc-badge">DOCX</span></a></li></ul></section><section class="v12-workspace__module v12-workspace__comm" data-v12-module="communication" aria-label="Kommunikation"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KOMMUNIKATION</div><span class="v12-workspace__count">1</span></header><ul class="v12-workspace__comm-list"><li class="v12-workspace__comm-item" data-type="mail"><span class="v12-workspace__comm-icon" aria-hidden="true">✉</span><span class="v12-workspace__comm-main"><span class="v12-workspace__comm-text">Senaste kontaktväg: e-post</span><span class="v12-workspace__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v12-workspace__comm-actions"><button type="button" class="v12-workspace__primary" data-v9-quick="reply">✉ Svarstudio</button></div><div class="v12-workspace__health-muted">Avsändare, meddelande-utdrag &amp; läst-status: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div></header><div class="v12-workspace__econ-grid"><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Total intäkt</div><div class="v12-workspace__econ-value">48 000 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Utestående</div><div class="v12-workspace__econ-value">0 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Snitt/besök</div><div class="v12-workspace__econ-value">—</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Livstidsvärde</div><div class="v12-workspace__econ-value">48 000 kr</div></div></div><div class="v12-workspace__health-muted">Skuld-breakdown och rabatter: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__insights" data-v12-module="insights" aria-label="Insikter och nästa åtgärd"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">INSIKTER &amp; NÄSTA ÅTGÄRD</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga insikter just nu</div><div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v12-workspace__sticky" data-v12-module="sticky" aria-label="Snabbåtgärder"><div class="v12-workspace__sticky-actions"><button type="button" class="v12-workspace__primary v12-workspace__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v12-workspace__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div></section></body></html>'
           title="iPad 820×1180 (Zon 1 + Zon 2)"
         ></iframe>
       </figure>
@@ -9411,6 +10037,112 @@
   width: 100%;
 }
 
+/* V12 öppnas från lilla V11-railens sektioner som stor kundvy-overlay.
+   Detta ersätter inte första kundklicket: första klicket visar fortfarande railen. */
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 12080 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: clamp(18px, 3vw, 44px) !important;
+  border-radius: 0 !important;
+  background: rgba(41, 36, 31, 0.58) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace[hidden] {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 0;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__close {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: #2c2218;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 !important;
+  border-radius: 28px;
+  background: #f5eee5;
+  box-shadow: 0 28px 90px rgba(34, 26, 19, 0.32);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace {
+  min-height: 100%;
+  max-height: none;
+}
+
+html[data-v12-workspace="on"]
+  .v9-dossier-deep--v12-workspace
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: none;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace__close {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] [data-v12-focus-pulse="1"] {
+  outline: 3px solid rgba(216, 145, 32, 0.45);
+  outline-offset: 4px;
+  transition: outline-color 0.2s ease;
+}
+
+@media (max-width: 767px) {
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+    padding: 0 !important;
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(41, 36, 31, 0.64);
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+    width: 100%;
+    border-radius: 0;
+  }
+}
+
+/*
+ * Scroll-ownership för V12-skalet. Första kundklicket visar lilla V11-rail;
+ * V12 renderas först i overlayn efter sektionsklick, men skalet behöver fortsatt
+ * viewport-bunden intern scroll när det ligger i en höjdbegränsad container.
+ */
+.v12-workspace[data-v12-workspace-shell="1"] .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Mobil-shell: V12 äger hela ytan → lite mer scroll-höjd (mindre topp-chrome). */
+html[data-cco-mobile-shell="on"]
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: calc(100dvh - 4rem);
+}
+
 .v12-workspace *,
 .v12-workspace *::before,
 .v12-workspace *::after {
@@ -9483,7 +10215,7 @@
   padding: 7px 14px;
   border-radius: 9px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 12.5px;
   font-weight: 700;
@@ -9663,6 +10395,7 @@
 }
 
 .v12-workspace__av-node {
+  position: relative;
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
@@ -9673,7 +10406,30 @@
   text-align: center;
 }
 
+/* Facit-parity: connector-linje mellan noderna (grön klart → amber aktiv → grå kvar). */
+.v12-workspace__av-node:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 50%;
+  width: calc(100% + 6px);
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(56, 40, 28, 0.2);
+  z-index: 0;
+}
+
+.v12-workspace__av-node.is-done::before {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-node.is-active::before {
+  background: linear-gradient(90deg, #2f7d4f, var(--v12-amber));
+}
+
 .v12-workspace__av-node .v12-workspace__av-dot {
+  position: relative;
+  z-index: 1;
   width: 10px;
   height: 10px;
   background: rgba(56, 40, 28, 0.2);
@@ -9768,7 +10524,7 @@
   padding: 10px 16px;
   border-radius: 10px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 13.5px;
   font-weight: 800;
@@ -10118,8 +10874,14 @@
 
 .v12-workspace__cs-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__cs-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__cs-stat {
@@ -10258,6 +11020,26 @@
   line-height: 1.35;
 }
 
+/* Facit-parity: per-steg-länk till relaterad sektion (dok/foto/journal). */
+.v12-workspace__journey-link {
+  flex: none;
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__journey-row:hover .v12-workspace__journey-link {
+  background: rgba(200, 130, 30, 0.18);
+}
+
 /* ===== Hälsa-modul (sektion 4) ===== */
 .v12-workspace__health-row {
   display: flex;
@@ -10329,6 +11111,33 @@
   font-size: 12px;
   color: var(--v12-muted);
   opacity: 0.85;
+}
+
+/* Kontraindikationer — riskflaggor ur hälsodeklarationen (röd/amber per level) */
+.v12-workspace__health-contra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__health-flag {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.v12-workspace__health-flag[data-level="red"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.12);
+  border-color: rgba(181, 82, 74, 0.28);
+}
+
+.v12-workspace__health-flag[data-level="amber"] {
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.12);
+  border-color: rgba(200, 130, 30, 0.28);
 }
 
 /* ===== Insikter & nästa åtgärd-modul (sektion 12) ===== */
@@ -10462,6 +11271,65 @@
   line-height: 1.4;
 }
 
+/* Facit-parity: insikter grupperade i amber "Gör nu" vs grön "Möjlighet". */
+.v12-workspace__insight-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.v12-workspace__insight-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__insight-group .v12-workspace__insights-list {
+  margin-top: 0;
+}
+
+.v12-workspace__insight-group-label {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.v12-workspace__insight-group-label[data-tone="amber"] {
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v12-workspace__insight-group-label[data-tone="green"] {
+  color: #2c6b3d;
+  background: rgba(74, 130, 104, 0.16);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight {
+  border-color: rgba(200, 130, 30, 0.3);
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.3);
+  background: rgba(181, 82, 74, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight {
+  border-color: rgba(74, 130, 104, 0.32);
+  background: rgba(74, 130, 104, 0.08);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight-icon {
+  color: #2f7d4f;
+}
+
 /* ===== Bilder / före–efter-modul (sektion 7) ===== */
 .v12-workspace__photos-grid {
   display: grid;
@@ -10574,6 +11442,68 @@
   }
 }
 
+/* Fakturarader/betalningar ur RIKTIG paymentHistory (frontend-wiring 2026-06-23).
+   Matchar befintligt econ/doc-mönster — ingen ny design. */
+.v12-workspace__econ-invoices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.v12-workspace__econ-invoice {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__econ-invoice-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__econ-invoice-date {
+  font-size: 10px;
+  color: var(--v12-muted);
+  margin-top: 1px;
+}
+
+.v12-workspace__econ-invoice-amount {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.v12-workspace__econ-invoice-status {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__econ-invoice-status[data-status="paid"] {
+  color: #4a8268;
+}
+
+.v12-workspace__econ-invoice-status[data-status="pending"],
+.v12-workspace__econ-invoice-status[data-status="overdue"],
+.v12-workspace__econ-invoice-status[data-status="partially_paid"] {
+  color: #c8821e;
+}
+
+.v12-workspace__econ-invoice-status[data-status="cancelled"],
+.v12-workspace__econ-invoice-status[data-status="failed"] {
+  color: #b94a4a;
+}
+
 /* ===== Kommunikation-modul (sektion 10) ===== */
 .v12-workspace__comm-list {
   list-style: none;
@@ -10632,13 +11562,21 @@
 }
 
 /* ===== Dokument-modul (sektion 9) ===== */
+/* Facit-parity: dokument som 2-kolumners kort-rutnät (1-kol mobil → 2-kol ≥768px),
+   grupperingen offerter/auto/filer behålls. Ren layout — samma data-v11-doc-*-rader. */
 .v12-workspace__doc-list {
   list-style: none;
   margin: 0 0 4px;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__doc-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__doc-item {
@@ -10650,6 +11588,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
+  height: 100%;
   text-align: left;
   padding: 10px 12px;
   border-radius: 10px;
@@ -10832,7 +11771,7 @@
     padding: 20px 24px;
   }
 }
-</style></head><body><section class="patient-master-card v12-workspace" data-v12-workspace-shell="1"><div class="v12-workspace__zones"><div class="v12-workspace__zone1"><div class="v11-rail"><div class="v11-rail__scroll"><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><div class="v11-rail__empty" role="status" data-v11-rail-section="Smart information"><div class="v11-rail__empty-title">Ingen data</div><div class="v11-rail__empty-hint">Inga öppna signaler.</div></div><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="unknown"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">—</div><div class="v11-rail__stat-sub">okänd</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="unknown">Okänd</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div></section><section class="v11-rail__bookings" data-v11-rail-bookings aria-label="Kommande bokningar"><header class="v11-rail__bookings-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMANDE BOKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Kommande bokningar"><div class="v11-rail__empty-title">Inga kommande bokningar</div><div class="v11-rail__empty-hint">Inga kommande tider bokade.</div></div></section><section class="v11-rail__history" data-v11-rail-history aria-label="Historik"><header class="v11-rail__history-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HISTORIK</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Historik"><div class="v11-rail__empty-title">Ingen historik ännu</div><div class="v11-rail__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v11-rail__journals" data-v11-rail-journals aria-label="Journal"><header class="v11-rail__journals-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">JOURNAL</div><span class="v11-rail__journals-count">1</span></header><ul class="v11-rail__journal-list"><li class="v11-rail__journal-item"><button type="button" class="v11-rail__journal-row" data-v9-section-link="journal" data-journal-state="draft"><span class="v11-rail__journal-head"><span class="v11-rail__journal-title">Konsultation</span><span class="v11-rail__journal-badge" data-state="draft">Utkast</span></span><span class="v11-rail__journal-snippet">Inledande konsultation.</span><span class="v11-rail__journal-meta">Dr. Lind · 2026-06-18</span></button></li></ul></section><section class="v11-rail__offers" data-v11-rail-offers aria-label="Offerter"><header class="v11-rail__offers-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">OFFERTER</div><span class="v11-rail__offers-count">2</span></header><ul class="v11-rail__offers-list"><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Behandlingsplan PRP-hår</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">18 000 kr</span></span></span><span class="v11-rail__offer-status" data-state="sent">Skickad</span></div></li><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Offert Botox</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">4 500 kr</span></span></span><span class="v11-rail__offer-status" data-state="signed">Signerad</span></div></li></ul></section><section class="v11-rail__autodocs" data-v11-rail-autodocs aria-label="Auto-dokument"><header class="v11-rail__autodocs-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">AUTO-DOKUMENT</div><span class="v11-rail__autodocs-count">2</span></header><ul class="v11-rail__autodocs-list"><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Samtycke PRP</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Eftervårdsinstruktion</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li></ul></section><section class="v11-rail__photos" data-v11-rail-photos aria-label="Foton"><header class="v11-rail__photos-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FOTON</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Foton"><div class="v11-rail__empty-title">Inga foton ännu</div><div class="v11-rail__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v11-rail__files" data-v11-rail-files aria-label="Filer"><header class="v11-rail__files-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FILER</div><span class="v11-rail__files-count">2</span></header><ul class="v11-rail__files-list"><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Journal-2026-06-18.pdf</span><span class="v11-rail__file-badge">PDF</span></a></li><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Remiss.docx</span><span class="v11-rail__file-badge">DOCX</span></a></li></ul></section><section class="v11-rail__notes" data-v11-rail-notes aria-label="Anteckningar"><header class="v11-rail__notes-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">ANTECKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Anteckningar"><div class="v11-rail__empty-title">Inga anteckningar</div><div class="v11-rail__empty-hint">Inga noteringar registrerade.</div></div></section><section class="v11-rail__comm" data-v11-rail-comm aria-label="Kommunikation"><header class="v11-rail__comm-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMUNIKATION</div><span class="v11-rail__comm-count">1</span></header><ul class="v11-rail__comm-list"><li class="v11-rail__comm-item" data-type="mail"><span class="v11-rail__comm-icon" aria-hidden="true">✉</span><span class="v11-rail__comm-main"><span class="v11-rail__comm-text">Senaste kontaktväg: e-post</span><span class="v11-rail__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v11-rail__comm-actions"><button type="button" class="v11-rail__comm-reply" data-v9-quick="reply">✉ Svarstudio</button></div></section><section class="v11-rail__econ" data-v11-rail-economy aria-label="Ekonomi"><header class="v11-rail__econ-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">EKONOMI</div></header><div class="v11-rail__econ-grid"><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Total intäkt</div><div class="v11-rail__econ-value">48 000 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Utestående</div><div class="v11-rail__econ-value">0 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Snitt/besök</div><div class="v11-rail__econ-value">—</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Livstidsvärde</div><div class="v11-rail__econ-value">48 000 kr</div></div></div></section><section class="v11-rail__insights" data-v11-rail-insights aria-label="Insikter"><header class="v11-rail__insights-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">INSIKTER</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Insikter"><div class="v11-rail__empty-title">Inga insikter just nu</div><div class="v11-rail__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v11-rail__sticky" data-v11-rail-sticky aria-label="Snabbåtgärder"><div class="v11-rail__sticky-actions"><button type="button" class="v11-rail__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v11-rail__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div><div class="v12-workspace__zone2"><div class="v12-workspace__inner" data-v12-workspace-inner="1"><div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div><section class="v12-workspace__module v12-workspace__current-state" data-v12-module="current-state" aria-label="Kundens nuläge"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDENS NULÄGE</div><span class="v12-workspace__cs-status" data-tone="ready">Redo för behandling</span></header><div class="v12-workspace__cs-identity"><div class="v12-workspace__cs-avatar" aria-hidden="true">AK</div><div class="v12-workspace__cs-id-main"><div class="v12-workspace__cs-name">Anna Karlsson</div><div class="v12-workspace__cs-contact">070-123 45 67 · anna.karlsson@example.se</div></div></div><div class="v12-workspace__cs-pills"><span class="v12-workspace__cs-pill" data-tone="vip">VIP</span><span class="v12-workspace__cs-pill" data-tone="treatment">PRP-hår</span><span class="v12-workspace__cs-pill" data-tone="treatment">Botox</span></div><div class="v12-workspace__cs-actions"><a class="v12-workspace__cs-action" href="tel:0701234567"><span aria-hidden="true">📞</span> Ring</a><a class="v12-workspace__cs-action" href="sms:0701234567"><span aria-hidden="true">💬</span> SMS</a><a class="v12-workspace__cs-action" href="mailto:anna.karlsson@example.se"><span aria-hidden="true">✉</span> Mejl</a></div><div class="v12-workspace__cs-stats"><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Besök</div><div class="v12-workspace__cs-stat-value">7</div><div class="v12-workspace__cs-stat-sub">totalt</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Värde tot</div><div class="v12-workspace__cs-stat-value">48 000 kr</div><div class="v12-workspace__cs-stat-sub">LTV</div></div><div class="v12-workspace__cs-stat" data-skuld-state="unknown"><div class="v12-workspace__cs-stat-label">Skuld</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">okänd</div></div></div></section><section class="v12-workspace__module v12-workspace__av" data-v12-module="active-visit" aria-label="Aktivt besök"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">AKTIVT BESÖK</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inget aktivt besök idag</div><div class="v12-workspace__empty-hint">Dagens behandling visas här vid incheckning.</div></div></section><section class="v12-workspace__module v12-workspace__warn" data-v12-module="warnings" aria-label="Kritiska varningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="warn">KRITISKA VARNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kritiska varningar</div><div class="v12-workspace__empty-hint">Inga blockerare eller risker att åtgärda.</div></div></section><section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">HÄLSA</div></header><div class="v12-workspace__health-row"><span class="v12-workspace__health-status" data-status="unknown">Okänd</span><button type="button" class="v12-workspace__health-open" data-kk-jump="kk-card-halsa">Öppna full hälsoprofil</button></div><div class="v12-workspace__subhead">Allergier</div><div class="v12-workspace__health-muted">Inga registrerade allergier</div><div class="v12-workspace__health-muted">Läkemedel &amp; kontraindikationer: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__journey" data-v12-module="journey" aria-label="Kundresa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDRESA</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Kundresan har inte startat</div><div class="v12-workspace__empty-hint">Inga steg registrerade ännu.</div></div></section><section class="v12-workspace__module" data-v12-module="journal" aria-label="Journal"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">JOURNAL</div><span class="v12-workspace__count">1</span><button type="button" class="v12-workspace__primary" data-v9-quick="journal">+ Ny anteckning</button></header><ul class="v12-workspace__journal-list"><li class="v12-workspace__journal-item"><button type="button" class="v12-workspace__journal-card" data-v9-section-link="journal" data-journal-state="draft"><span class="v12-workspace__journal-top"><span class="v12-workspace__journal-title">Konsultation</span><span class="v12-workspace__journal-badge" data-state="draft">Utkast</span></span><span class="v12-workspace__journal-body">Inledande konsultation.</span><span class="v12-workspace__journal-meta">Dr. Lind · 2026-06-18 09:15</span></button></li></ul></section><section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga bilder ännu</div><div class="v12-workspace__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__bookings" data-v12-module="bookings" aria-label="Bokningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BOKNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kommande bokningar</div><div class="v12-workspace__empty-hint">Inga kommande tider bokade.</div></div><div class="v12-workspace__subhead">Tidigare besök</div><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Ingen historik ännu</div><div class="v12-workspace__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__documents" data-v12-module="documents" aria-label="Dokument"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">DOKUMENT</div><span class="v12-workspace__count">6</span></header><div class="v12-workspace__subhead">Offerter &amp; behandlingsplaner · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Behandlingsplan PRP-hår</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">18 000 kr</span></span></span><span class="v12-workspace__doc-status" data-state="sent">Skickad</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Offert Botox</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">4 500 kr</span></span></span><span class="v12-workspace__doc-status" data-state="signed">Signerad</span></div></li></ul><div class="v12-workspace__subhead">Auto-dokument · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Samtycke PRP</span></span><span class="v12-workspace__doc-status" data-state="pending">Att fylla i</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Eftervårdsinstruktion</span></span><span class="v12-workspace__doc-status" data-state="planned">Planerad</span></div></li></ul><div class="v12-workspace__subhead">Filer · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Journal-2026-06-18.pdf</span></span><span class="v12-workspace__doc-badge">PDF</span></a></li><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Remiss.docx</span></span><span class="v12-workspace__doc-badge">DOCX</span></a></li></ul></section><section class="v12-workspace__module v12-workspace__comm" data-v12-module="communication" aria-label="Kommunikation"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KOMMUNIKATION</div><span class="v12-workspace__count">1</span></header><ul class="v12-workspace__comm-list"><li class="v12-workspace__comm-item" data-type="mail"><span class="v12-workspace__comm-icon" aria-hidden="true">✉</span><span class="v12-workspace__comm-main"><span class="v12-workspace__comm-text">Senaste kontaktväg: e-post</span><span class="v12-workspace__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v12-workspace__comm-actions"><button type="button" class="v12-workspace__primary" data-v9-quick="reply">✉ Svarstudio</button></div><div class="v12-workspace__health-muted">Avsändare, meddelande-utdrag &amp; läst-status: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div></header><div class="v12-workspace__econ-grid"><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Total intäkt</div><div class="v12-workspace__econ-value">48 000 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Utestående</div><div class="v12-workspace__econ-value">0 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Snitt/besök</div><div class="v12-workspace__econ-value">—</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Livstidsvärde</div><div class="v12-workspace__econ-value">48 000 kr</div></div></div><div class="v12-workspace__health-muted">Fakturor &amp; betalstatus, skuld-breakdown och rabatter: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__insights" data-v12-module="insights" aria-label="Insikter och nästa åtgärd"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">INSIKTER &amp; NÄSTA ÅTGÄRD</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga insikter just nu</div><div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v12-workspace__sticky" data-v12-module="sticky" aria-label="Snabbåtgärder"><div class="v12-workspace__sticky-actions"><button type="button" class="v12-workspace__primary v12-workspace__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v12-workspace__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div></section></body></html>'
+</style></head><body><section class="patient-master-card v12-workspace" data-v12-workspace-shell="1"><div class="v12-workspace__zones"><div class="v12-workspace__zone1"><div class="v11-rail"><div class="v11-rail__scroll"><section class="v11-rail__profile" aria-label="Profil"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KUNDDOSSIÉR</div><div class="v11-rail__identity"><div class="v11-rail__avatar" aria-hidden="true">AK</div><div class="v11-rail__id-main"><div class="v11-rail__name">Anna Karlsson</div><div class="v11-rail__contact-row"><a class="v11-rail__contact" href="tel:0701234567">📞 070-123 45 67</a><span class="v11-rail__sep" aria-hidden="true">·</span><a class="v11-rail__contact" href="mailto:anna.karlsson@example.se">✉ anna.karlsson@example.se</a></div></div><button type="button" class="v11-rail__edit" data-v11-rail-edit-profile aria-label="Redigera profil">✎ Redigera</button></div><div class="v11-rail__pills"><span class="v11-rail__pill" data-tone="vip">VIP</span><span class="v11-rail__pill" data-tone="treatment">PRP-hår</span><span class="v11-rail__pill" data-tone="treatment">Botox</span></div></section><div class="v11-rail__empty" role="status" data-v11-rail-section="Smart information"><div class="v11-rail__empty-title">Ingen data</div><div class="v11-rail__empty-hint">Inga öppna signaler.</div></div><section class="v11-rail__stats" aria-label="Nyckeltal"><div class="v11-rail__stat"><div class="v11-rail__stat-label">Besök</div><div class="v11-rail__stat-value">7</div><div class="v11-rail__stat-sub">totalt</div></div><div class="v11-rail__stat"><div class="v11-rail__stat-label">Värde tot</div><div class="v11-rail__stat-value">48 000 kr</div><div class="v11-rail__stat-sub">LTV</div></div><div class="v11-rail__stat" data-skuld-state="unknown"><div class="v11-rail__stat-label">Skuld</div><div class="v11-rail__stat-value">—</div><div class="v11-rail__stat-sub">okänd</div></div></section><section class="v11-rail__health" aria-label="Hälsodeklaration"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HÄLSODEKLARATION</div><div class="v11-rail__health-row"><span class="v11-rail__health-status" data-status="unknown">Okänd</span><button type="button" class="v11-rail__health-open" data-kk-jump="kk-card-halsa">Öppna</button></div></section><section class="v11-rail__bookings" data-v11-rail-bookings aria-label="Kommande bokningar"><header class="v11-rail__bookings-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMANDE BOKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Kommande bokningar"><div class="v11-rail__empty-title">Inga kommande bokningar</div><div class="v11-rail__empty-hint">Inga kommande tider bokade.</div></div></section><section class="v11-rail__history" data-v11-rail-history aria-label="Historik"><header class="v11-rail__history-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">HISTORIK</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Historik"><div class="v11-rail__empty-title">Ingen historik ännu</div><div class="v11-rail__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v11-rail__journals" data-v11-rail-journals aria-label="Journal"><header class="v11-rail__journals-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">JOURNAL</div><span class="v11-rail__journals-count">1</span></header><ul class="v11-rail__journal-list"><li class="v11-rail__journal-item"><button type="button" class="v11-rail__journal-row" data-v9-section-link="journal" data-journal-state="draft"><span class="v11-rail__journal-head"><span class="v11-rail__journal-title">Konsultation</span><span class="v11-rail__journal-badge" data-state="draft">Utkast</span></span><span class="v11-rail__journal-snippet">Inledande konsultation.</span><span class="v11-rail__journal-meta">Dr. Lind · 2026-06-18</span></button></li></ul></section><section class="v11-rail__offers" data-v11-rail-offers aria-label="Offerter"><header class="v11-rail__offers-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">OFFERTER</div><span class="v11-rail__offers-count">2</span></header><ul class="v11-rail__offers-list"><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Behandlingsplan PRP-hår</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">18 000 kr</span></span></span><span class="v11-rail__offer-status" data-state="sent">Skickad</span></div></li><li class="v11-rail__offer-item"><div class="v11-rail__offer-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__offer-main"><span class="v11-rail__offer-title">Offert Botox</span><span class="v11-rail__offer-meta"><span class="v11-rail__offer-step">steg 4</span><span class="v11-rail__offer-amount">4 500 kr</span></span></span><span class="v11-rail__offer-status" data-state="signed">Signerad</span></div></li></ul></section><section class="v11-rail__autodocs" data-v11-rail-autodocs aria-label="Auto-dokument"><header class="v11-rail__autodocs-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">AUTO-DOKUMENT</div><span class="v11-rail__autodocs-count">2</span></header><ul class="v11-rail__autodocs-list"><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Samtycke PRP</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li><li class="v11-rail__autodoc-item"><div class="v11-rail__autodoc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v11-rail__autodoc-icon" aria-hidden="true">📄</span><span class="v11-rail__autodoc-main"><span class="v11-rail__autodoc-title">Eftervårdsinstruktion</span></span><span class="v11-rail__autodoc-preview" aria-hidden="true">Visa mall</span></div></li></ul></section><section class="v11-rail__photos" data-v11-rail-photos aria-label="Foton"><header class="v11-rail__photos-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FOTON</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Foton"><div class="v11-rail__empty-title">Inga foton ännu</div><div class="v11-rail__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v11-rail__files" data-v11-rail-files aria-label="Filer"><header class="v11-rail__files-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">FILER</div><span class="v11-rail__files-count">2</span></header><ul class="v11-rail__files-list"><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Journal-2026-06-18.pdf</span><span class="v11-rail__file-badge">PDF</span></a></li><li class="v11-rail__file-item"><a class="v11-rail__file-row" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v11-rail__file-icon" aria-hidden="true">📄</span><span class="v11-rail__file-name">Remiss.docx</span><span class="v11-rail__file-badge">DOCX</span></a></li></ul></section><section class="v11-rail__notes" data-v11-rail-notes aria-label="Anteckningar"><header class="v11-rail__notes-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">ANTECKNINGAR</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Anteckningar"><div class="v11-rail__empty-title">Inga anteckningar</div><div class="v11-rail__empty-hint">Inga noteringar registrerade.</div></div></section><section class="v11-rail__comm" data-v11-rail-comm aria-label="Kommunikation"><header class="v11-rail__comm-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">KOMMUNIKATION</div><span class="v11-rail__comm-count">1</span></header><ul class="v11-rail__comm-list"><li class="v11-rail__comm-item" data-type="mail"><span class="v11-rail__comm-icon" aria-hidden="true">✉</span><span class="v11-rail__comm-main"><span class="v11-rail__comm-text">Senaste kontaktväg: e-post</span><span class="v11-rail__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v11-rail__comm-actions"><button type="button" class="v11-rail__comm-reply" data-v9-quick="reply">✉ Svarstudio</button></div></section><section class="v11-rail__econ" data-v11-rail-economy aria-label="Ekonomi"><header class="v11-rail__econ-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">EKONOMI</div></header><div class="v11-rail__econ-grid"><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Total intäkt</div><div class="v11-rail__econ-value">48 000 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Utestående</div><div class="v11-rail__econ-value">0 kr</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Snitt/besök</div><div class="v11-rail__econ-value">—</div></div><div class="v11-rail__econ-cell"><div class="v11-rail__econ-label">Livstidsvärde</div><div class="v11-rail__econ-value">48 000 kr</div></div></div></section><section class="v11-rail__insights" data-v11-rail-insights aria-label="Insikter"><header class="v11-rail__insights-head"><div class="v11-rail__kicker" data-v11-rail-kicker="amber">INSIKTER</div></header><div class="v11-rail__empty" role="status" data-v11-rail-section="Insikter"><div class="v11-rail__empty-title">Inga insikter just nu</div><div class="v11-rail__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v11-rail__sticky" data-v11-rail-sticky aria-label="Snabbåtgärder"><div class="v11-rail__sticky-actions"><button type="button" class="v11-rail__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v11-rail__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div><div class="v12-workspace__zone2"><div class="v12-workspace__inner" data-v12-workspace-inner="1"><div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div><section class="v12-workspace__module v12-workspace__current-state" data-v12-module="current-state" aria-label="Kundens nuläge"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDENS NULÄGE</div><span class="v12-workspace__cs-status" data-tone="ready">Redo för behandling</span></header><div class="v12-workspace__cs-identity"><div class="v12-workspace__cs-avatar" aria-hidden="true">AK</div><div class="v12-workspace__cs-id-main"><div class="v12-workspace__cs-name">Anna Karlsson</div><div class="v12-workspace__cs-contact">070-123 45 67 · anna.karlsson@example.se</div></div></div><div class="v12-workspace__cs-pills"><span class="v12-workspace__cs-pill" data-tone="vip">VIP</span><span class="v12-workspace__cs-pill" data-tone="treatment">PRP-hår</span><span class="v12-workspace__cs-pill" data-tone="treatment">Botox</span></div><div class="v12-workspace__cs-actions"><a class="v12-workspace__cs-action" href="tel:0701234567"><span aria-hidden="true">📞</span> Ring</a><a class="v12-workspace__cs-action" href="sms:0701234567"><span aria-hidden="true">💬</span> SMS</a><a class="v12-workspace__cs-action" href="mailto:anna.karlsson@example.se"><span aria-hidden="true">✉</span> Mejl</a><button type="button" class="v12-workspace__cs-action" data-kk-ord48-open-calendar data-patient-id="p-1001"><span aria-hidden="true">📅</span> Ny bokning</button></div><div class="v12-workspace__cs-stats"><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Besök</div><div class="v12-workspace__cs-stat-value">7</div><div class="v12-workspace__cs-stat-sub">totalt</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Värde tot</div><div class="v12-workspace__cs-stat-value">48 000 kr</div><div class="v12-workspace__cs-stat-sub">LTV</div></div><div class="v12-workspace__cs-stat" data-skuld-state="unknown"><div class="v12-workspace__cs-stat-label">Skuld</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">okänd</div></div><div class="v12-workspace__cs-stat"><div class="v12-workspace__cs-stat-label">Nästa besök</div><div class="v12-workspace__cs-stat-value">—</div><div class="v12-workspace__cs-stat-sub">inga bokningar</div></div></div></section><section class="v12-workspace__module v12-workspace__av" data-v12-module="active-visit" aria-label="Aktivt besök"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">AKTIVT BESÖK</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inget aktivt besök idag</div><div class="v12-workspace__empty-hint">Dagens behandling visas här vid incheckning.</div></div></section><section class="v12-workspace__module v12-workspace__warn" data-v12-module="warnings" aria-label="Kritiska varningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="warn">KRITISKA VARNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kritiska varningar</div><div class="v12-workspace__empty-hint">Inga blockerare eller risker att åtgärda.</div></div></section><section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">HÄLSA</div></header><div class="v12-workspace__health-row"><span class="v12-workspace__health-status" data-status="unknown">Okänd</span><button type="button" class="v12-workspace__health-open" data-kk-jump="kk-card-halsa">Öppna full hälsoprofil</button></div><div class="v12-workspace__subhead">Allergier</div><div class="v12-workspace__health-muted">Inga registrerade allergier</div><div class="v12-workspace__subhead">Kontraindikationer</div><div class="v12-workspace__health-muted">Inga registrerade kontraindikationer</div><div class="v12-workspace__subhead">Läkemedel</div><div class="v12-workspace__health-muted">Pågående läkemedel registreras inte i hälsodeklarationen ännu.</div></section><section class="v12-workspace__module v12-workspace__journey" data-v12-module="journey" aria-label="Kundresa"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KUNDRESA</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Kundresan har inte startat</div><div class="v12-workspace__empty-hint">Inga steg registrerade ännu.</div></div></section><section class="v12-workspace__module" data-v12-module="journal" aria-label="Journal"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">JOURNAL</div><span class="v12-workspace__count">1</span><button type="button" class="v12-workspace__primary" data-v9-quick="journal">+ Ny anteckning</button></header><ul class="v12-workspace__journal-list"><li class="v12-workspace__journal-item"><button type="button" class="v12-workspace__journal-card" data-v9-section-link="journal" data-journal-state="draft"><span class="v12-workspace__journal-top"><span class="v12-workspace__journal-title">Konsultation</span><span class="v12-workspace__journal-badge" data-state="draft">Utkast</span></span><span class="v12-workspace__journal-body">Inledande konsultation.</span><span class="v12-workspace__journal-meta">Dr. Lind · 2026-06-18 11:15</span></button></li></ul></section><section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga bilder ännu</div><div class="v12-workspace__empty-hint">Inga foton eller media registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__bookings" data-v12-module="bookings" aria-label="Bokningar"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">BOKNINGAR</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga kommande bokningar</div><div class="v12-workspace__empty-hint">Inga kommande tider bokade.</div></div><div class="v12-workspace__subhead">Tidigare besök</div><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Ingen historik ännu</div><div class="v12-workspace__empty-hint">Inga tidigare besök registrerade.</div></div></section><section class="v12-workspace__module v12-workspace__documents" data-v12-module="documents" aria-label="Dokument"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">DOKUMENT</div><span class="v12-workspace__count">6</span></header><div class="v12-workspace__subhead">Offerter &amp; behandlingsplaner · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_prp" data-v11-doc-status="sent" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Behandlingsplan PRP-hår</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">18 000 kr</span></span></span><span class="v12-workspace__doc-status" data-state="sent">Skickad</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-registry="offert_botox" data-v11-doc-status="signed" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Offert Botox</span><span class="v12-workspace__doc-meta"><span class="v12-workspace__doc-step">steg 4</span><span class="v12-workspace__doc-amount">4 500 kr</span></span></span><span class="v12-workspace__doc-status" data-state="signed">Signerad</span></div></li></ul><div class="v12-workspace__subhead">Auto-dokument · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_samtycke_prp" data-v11-doc-status="pending" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Samtycke PRP</span></span><span class="v12-workspace__doc-status" data-state="pending">Att fylla i</span></div></li><li class="v12-workspace__doc-item"><div class="v12-workspace__doc-row" data-v11-doc-row data-v11-doc-filler="auto" data-v11-doc-registry="auto_eftervard" data-v11-doc-status="planned" data-v11-doc-previewable="1" role="button" tabindex="0"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Eftervårdsinstruktion</span></span><span class="v12-workspace__doc-status" data-state="planned">Planerad</span></div></li></ul><div class="v12-workspace__subhead">Filer · 2</div><ul class="v12-workspace__doc-list"><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-1" target="_blank" rel="noopener" data-file-id="f-1" title="Journal-2026-06-18.pdf"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Journal-2026-06-18.pdf</span></span><span class="v12-workspace__doc-badge">PDF</span></a></li><li class="v12-workspace__doc-item"><a class="v12-workspace__doc-row v12-workspace__doc-file" href="/api/v1/cco-patient-master/file?fileId=f-2" target="_blank" rel="noopener" data-file-id="f-2" title="Remiss.docx"><span class="v12-workspace__doc-icon" aria-hidden="true">📄</span><span class="v12-workspace__doc-main"><span class="v12-workspace__doc-title">Remiss.docx</span></span><span class="v12-workspace__doc-badge">DOCX</span></a></li></ul></section><section class="v12-workspace__module v12-workspace__comm" data-v12-module="communication" aria-label="Kommunikation"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">KOMMUNIKATION</div><span class="v12-workspace__count">1</span></header><ul class="v12-workspace__comm-list"><li class="v12-workspace__comm-item" data-type="mail"><span class="v12-workspace__comm-icon" aria-hidden="true">✉</span><span class="v12-workspace__comm-main"><span class="v12-workspace__comm-text">Senaste kontaktväg: e-post</span><span class="v12-workspace__comm-meta">anna.karlsson@example.se</span></span></li></ul><div class="v12-workspace__comm-actions"><button type="button" class="v12-workspace__primary" data-v9-quick="reply">✉ Svarstudio</button></div><div class="v12-workspace__health-muted">Avsändare, meddelande-utdrag &amp; läst-status: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__econ" data-v12-module="economy" aria-label="Ekonomi"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div></header><div class="v12-workspace__econ-grid"><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Total intäkt</div><div class="v12-workspace__econ-value">48 000 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Utestående</div><div class="v12-workspace__econ-value">0 kr</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Snitt/besök</div><div class="v12-workspace__econ-value">—</div></div><div class="v12-workspace__econ-cell"><div class="v12-workspace__econ-label">Livstidsvärde</div><div class="v12-workspace__econ-value">48 000 kr</div></div></div><div class="v12-workspace__health-muted">Skuld-breakdown och rabatter: visas när data finns.</div></section><section class="v12-workspace__module v12-workspace__insights" data-v12-module="insights" aria-label="Insikter och nästa åtgärd"><header class="v12-workspace__module-head"><div class="v12-workspace__kicker" data-v12-kicker="amber">INSIKTER &amp; NÄSTA ÅTGÄRD</div></header><div class="v12-workspace__empty" role="status"><div class="v12-workspace__empty-title">Inga insikter just nu</div><div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div></section><section class="v12-workspace__sticky" data-v12-module="sticky" aria-label="Snabbåtgärder"><div class="v12-workspace__sticky-actions"><button type="button" class="v12-workspace__primary v12-workspace__sticky-primary" data-kk-ord48-open-calendar data-kk-ord48-cal-footer data-patient-id="p-1001">Boka nästa</button><button type="button" class="v12-workspace__sticky-secondary is-disabled" data-v9-quick="confirm" disabled aria-disabled="true">Bekräfta kommande tider</button></div></section></div></div></div></section></body></html>'
           title="webb 1440×1000 (Zon 1 + Zon 2)"
         ></iframe>
       </figure>
