@@ -5,6 +5,7 @@
   const MQ_DESKTOP = "(min-width: 1024px)";
   const TIMELINE_START = 8 * 60;
   const TIMELINE_END = 18 * 60;
+  const V8_HOUR_H = 62; // v8 kalender: pixelhöjd per timme i veckogriden.
 
   let viewMode = "week";
   let viewAnchor = startOfWeek(new Date());
@@ -115,39 +116,42 @@
     shell.className = "cco-cal-workstation";
     shell.hidden = true;
     shell.innerHTML = `
-      <header class="cco-cal-toolbar studio-toolbar">
-        <div class="cco-cal-toolbar-main studio-toolbar-main">
-          <span class="studio-toolbar-kicker">KALENDER</span>
-          <span class="studio-mark cco-cal-mark" aria-hidden="true">
-            <svg viewBox="0 0 16 16"><rect x="2.6" y="3.4" width="10.8" height="10" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.4v2M10.8 2.4v2M2.7 6.4h10.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3"/></svg>
+      <div class="calendar-surface cco-cal-v8-surface">
+      <header class="calendar-toolbar">
+        <div class="calendar-toolbar-main">
+          <span class="calendar-toolbar-kicker">Kalender</span>
+          <span class="calendar-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
           </span>
           <h2 data-cal-title>Veckokalender</h2>
-          <span class="studio-status-pill studio-status-pill-green cco-cal-pill" data-cal-pill-confirmed hidden></span>
-          <span class="studio-status-pill studio-status-pill-gold cco-cal-pill" data-cal-pill-tentative hidden></span>
-          <span class="studio-status-pill studio-status-pill-neutral cco-cal-pill" data-cal-pill-open hidden></span>
-          <span class="studio-status-pill cco-cal-pill-rose cco-cal-pill" data-cal-pill-conflict hidden></span>
         </div>
-        <div class="cco-cal-toolbar-actions studio-toolbar-actions">
-          <div class="cco-cal-segments" role="tablist" aria-label="Kalendervy">
-            <button class="cco-cal-segment is-active" type="button" role="tab" data-cal-view="week" aria-selected="true">Vecka</button>
-            <button class="cco-cal-segment" type="button" role="tab" data-cal-view="day" aria-selected="false">Dag</button>
-            <button class="cco-cal-segment" type="button" role="tab" data-cal-view="resource" aria-selected="false">Resurs</button>
+        <div class="calendar-toolbar-actions">
+          <div class="segment-group" role="tablist" aria-label="Kalendervy">
+            <button class="segment-tab active" type="button" role="tab" data-cal-view="week" aria-selected="true">Vecka</button>
+            <button class="segment-tab" type="button" role="tab" data-cal-view="day" aria-selected="false">Dag</button>
+            <button class="segment-tab" type="button" role="tab" data-cal-view="resource" aria-selected="false">Resurs</button>
           </div>
-          <div class="cco-cal-nav">
-            <button class="cco-cal-nav-btn" type="button" data-cal-prev title="Föregående (←)" aria-label="Föregående">‹</button>
-            <button class="cco-cal-nav-btn" type="button" data-cal-today title="Idag (T)">Idag</button>
-            <button class="cco-cal-nav-btn" type="button" data-cal-next title="Nästa (→)" aria-label="Nästa">›</button>
-            <button class="cco-cal-nav-btn cco-cal-nav-btn-print" type="button" data-cal-print title="Skriv ut (P)" aria-label="Skriv ut">
-              <svg viewBox="0 0 16 16" aria-hidden="true" width="14" height="14"><path d="M5 6V2.8h6V6M4 6h8a1 1 0 0 1 1 1v3.4a1 1 0 0 1-1 1h-1V9.4H5v3H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm1 3.4h6v3.8H5Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
+          <button class="nav-btn" type="button" data-cal-prev title="Föregående (←)" aria-label="Föregående">‹</button>
+          <button class="nav-btn nav-btn--today" type="button" data-cal-today title="Idag (T)">Idag</button>
+          <button class="nav-btn" type="button" data-cal-next title="Nästa (→)" aria-label="Nästa">›</button>
+          <button class="nav-btn nav-btn--icon" type="button" data-cal-print title="Skriv ut (P)" aria-label="Skriv ut">
+            <svg viewBox="0 0 16 16" aria-hidden="true" width="14" height="14"><path d="M5 6V2.8h6V6M4 6h8a1 1 0 0 1 1 1v3.4a1 1 0 0 1-1 1h-1V9.4H5v3H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm1 3.4h6v3.8H5Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
       </header>
+      <div class="calendar-status-bar">
+        <span class="week-pill">Vecka <span class="num" data-cal-weeknum>—</span></span>
+        <span class="status-pill status-pill--success" data-cal-pill-confirmed hidden></span>
+        <span class="status-pill status-pill--warning" data-cal-pill-tentative hidden></span>
+        <span class="status-pill status-pill--neutral" data-cal-pill-open hidden></span>
+        <span class="status-pill status-pill--conflict" data-cal-pill-conflict hidden></span>
+        <span class="spacer"></span>
+      </div>
       <div class="cco-cal-filter-bar">
         <div class="cco-cal-filters" data-cal-filters aria-label="Resursfilter"></div>
         <div class="cco-cal-filters cco-cal-filters-type" data-cal-type-filters aria-label="Behandlingstypfilter"></div>
       </div>
-      <div class="cco-cal-body" data-cal-body>
+      <div class="calendar-content cco-cal-body" data-cal-body>
         <div class="cco-cal-grid-wrap" data-cal-grid-wrap>
           <div class="cco-cal-empty">Hämtar kalender…</div>
         </div>
@@ -193,6 +197,7 @@
           </div>
         </aside>
       </div>
+      </div>
     `;
 
     const host =
@@ -210,6 +215,7 @@
     shell.dataset.calViewMode = viewMode;
     shell.querySelectorAll("[data-cal-view]").forEach((button) => {
       const active = button.getAttribute("data-cal-view") === viewMode;
+      button.classList.toggle("active", active);
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-selected", active ? "true" : "false");
     });
@@ -328,7 +334,113 @@
       .join("");
   }
 
+  // v8: status → data-status-värde (confirmed/tentative/cancelled/followup).
+  function v8StatusFor(slot) {
+    const st = String(slot?.status || slot?.caseStatus || "").toLowerCase();
+    if (st.includes("cancel") || st.includes("avbok")) return "cancelled";
+    if (st.includes("follow") || st.includes("återbes") || st.includes("aterbes"))
+      return "followup";
+    if (st.includes("confirm") || st.includes("bekräft") || st.includes("bekraft"))
+      return "confirmed";
+    return "tentative";
+  }
+
+  // v8: positionera ett slot i en day-slots-kolumn (px utifrån klinikens timfönster).
+  function v8SlotPosition(slot) {
+    const s = shared();
+    const start = s.slotStartMinutes(slot);
+    const dur = Math.max(15, s.slotDurationMinutes(slot));
+    const top = Math.max(0, ((start - TIMELINE_START) / 60) * V8_HOUR_H);
+    const maxH = ((TIMELINE_END - TIMELINE_START) / 60) * V8_HOUR_H;
+    const height = Math.max(22, Math.min(maxH - top, (dur / 60) * V8_HOUR_H));
+    return { top: Math.round(top), height: Math.round(height) };
+  }
+
+  // v8: rendera ett kort (booking/empty-slot/lunch-block) — behåller data-cal-event-hooken.
+  function v8RenderSlot(slot, iso, conflict) {
+    const s = shared();
+    const { top, height } = v8SlotPosition(slot);
+    const payload = s.escapeAttr(JSON.stringify({ ...slot, eventKey: s.eventKey(slot) }));
+    const style = `top:${top}px;height:${height}px`;
+    if (slot?.kind === "available") {
+      return `<div class="empty-slot" data-cal-event="${payload}" data-cal-drop-day="${s.escapeAttr(iso)}" style="${style}"><span class="empty-label">+ Ledig ${s.escapeHtml(s.formatTimeRange(slot))}</span></div>`;
+    }
+    if (slot?.kind === "block") {
+      return `<div class="lunch-block" style="${style}">⌣ ${s.escapeHtml(s.eventTitle(slot) || "Blockerad")}</div>`;
+    }
+    const source =
+      String(slot?.source || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "") || "info";
+    const status = v8StatusFor(slot);
+    const selectedClass = isSelectedEvent(slot) ? " is-selected" : "";
+    const conflictClass = conflict ? " is-conflict" : "";
+    const sub = s.eventMeta(slot);
+    return `<button type="button" class="booking${selectedClass}${conflictClass}" draggable="true" data-cal-event="${payload}" data-source="${s.escapeAttr(source)}" data-status="${status}" style="${style}">
+      <div class="booking-time">${s.escapeHtml(s.formatTimeRange(slot))}</div>
+      <div class="booking-title">${s.escapeHtml(s.eventTitle(slot))}</div>
+      ${sub ? `<div class="booking-sub">${s.escapeHtml(sub)}</div>` : ""}
+    </button>`;
+  }
+
   function renderWeekGrid(container) {
+    const s = shared();
+    const days = Array.from({ length: 7 }, (_, index) => addDays(viewAnchor, index));
+    const today = s.todayIso();
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowTopPx =
+      nowMinutes >= TIMELINE_START && nowMinutes <= TIMELINE_END
+        ? Math.round(((nowMinutes - TIMELINE_START) / 60) * V8_HOUR_H)
+        : null;
+    const nowLabel = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+    // v8: tid-kolumn (klinikens timfönster) + 7 dag-kolumner med positionerade kort.
+    const startHour = Math.floor(TIMELINE_START / 60);
+    const endHour = Math.floor(TIMELINE_END / 60);
+    const ticks = [];
+    for (let h = startHour; h <= endHour; h++) {
+      ticks.push(`<div class="time-tick">${String(h).padStart(2, "0")}</div>`);
+    }
+    const weekNumEl = document
+      .getElementById("cco-desktop-calendar")
+      ?.querySelector("[data-cal-weeknum]");
+    if (weekNumEl) weekNumEl.textContent = getIsoWeek(viewAnchor);
+
+    const columns = days
+      .map((day) => {
+        const iso = isoFromDate(day);
+        const slots = filterSlots(slotsByDate.get(iso) || []);
+        const conflictKeys = s.findConflictKeys(slots);
+        const isToday = iso === today;
+        const cells = slots
+          .map((slot) => v8RenderSlot(slot, iso, conflictKeys.has(s.eventKey(slot))))
+          .join("");
+        const nowLine =
+          isToday && nowTopPx != null
+            ? `<div class="now-line" style="top:${nowTopPx}px"><span class="now-label">${s.escapeHtml(nowLabel)}</span></div>`
+            : "";
+        return `<div class="day-col${isToday ? " today" : ""}" data-cal-day="${s.escapeAttr(iso)}">
+          <div class="day-head cco-cal-day-open" data-cal-open-day="${s.escapeAttr(iso)}" role="button" tabindex="0" aria-label="Öppna dagvy ${s.escapeAttr(formatDayLabel(day))}">
+            <span class="day-label">${s.escapeHtml(formatDayLabel(day).replace(/\s+\d+$/, ""))}</span>
+            <span class="day-date">${day.getDate()}</span>
+          </div>
+          <div class="day-slots cco-cal-drop-zone" data-cal-drop-day="${s.escapeAttr(iso)}">
+            ${nowLine}${cells}
+          </div>
+        </div>`;
+      })
+      .join("");
+
+    container.innerHTML = `<div class="calendar-week" style="--calendar-hour-h:${V8_HOUR_H}px;--calendar-hour-start:${startHour};--calendar-hour-end:${endHour}">
+      <div class="time-col">${ticks.join("")}</div>
+      ${columns}
+    </div>`;
+    return;
+  }
+
+  // (legacy week-grid behålls nedan ej-anropad; v8 ovan ersätter den)
+  function renderWeekGridLegacy(container) {
     const s = shared();
     const days = Array.from({ length: 7 }, (_, index) => addDays(viewAnchor, index));
     const today = s.todayIso();
