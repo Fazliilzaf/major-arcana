@@ -1,7 +1,16 @@
 # Saknade moduler i repot — inventering & byggspec
 
 Datum: 2026-06-24
-Status: **23 `src/ops/cco*`-moduler + 3 frontend-patchar som `server.js` `require()`:ar har ALDRIG skrivits.**
+Status: **✅ ALLA 23 `src/ops/cco*`-moduler byggda (väg 1 vald). Kvar: 3 frontend-patchar (separat beslut).**
+
+> **Resultat (2026-06-24):** Owner valde _bygga_. Alla 23 saknade `src/ops`-stores
+> är nu implementerade enligt byggspecen nedan, var och en med JSON-fil-persistens,
+> audit-loggning och enhetstester (**168/168 gröna**). Boot-test bekräftar att
+> samtliga tidigare döda CCO-block nu **monterar live** (`[cco-*] monterad` i stället
+> för `kunde inte montera`). Endast de 3 frontend-`customers/*`-patcharna återstår —
+> de saknar extraherbart kontrakt (öppna `function(app, opts)`-monteringar) och tas
+> som separat beslut. Separat datalucka upptäckt: `data/cco-templates.json` saknar
+> innehåll (påverkar cco-templates smoke-test, ej store-koden).
 
 > **Korrigerad slutsats (2026-06-24):** Den tidigare hypotesen — "filerna finns lokalt
 > på Mac/iCloud men har inte committats" — är **motbevisad**. Owner körde
