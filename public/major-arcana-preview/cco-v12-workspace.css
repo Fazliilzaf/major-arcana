@@ -1049,6 +1049,42 @@ html[data-cco-mobile-shell="on"]
   cursor: default;
 }
 
+/* Ekonomi: Synka till Fortnox */
+.v12-workspace__econ-fortnox {
+  margin-left: auto;
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__econ-fortnox:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__econ-fortnox:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.v12-workspace__econ-fortnox-status {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--v12-amber);
+  text-align: right;
+}
+
+.v12-workspace__econ-fortnox-status:empty {
+  display: none;
+}
+
 .v12-workspace__cs-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
