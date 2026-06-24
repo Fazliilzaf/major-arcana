@@ -1,0 +1,19 @@
+{
+  "updatedAt": "2026-06-24",
+  "reason": "Known optional/lazy server.js requires that are missing from the repository as of the CCO route-split audit. Keep this list frozen; remove entries only when the module is restored or the dead mount is removed.",
+  "allow": [
+    "./public/major-arcana-preview/customers/server-patch",
+    "./public/major-arcana-preview/customers/ical-patch",
+    "./public/major-arcana-preview/customers/real-data-adapter",
+    "./src/ops/ccoBookingCaseStore",
+    "./src/ops/ccoDataFlowMapStore",
+    "./src/ops/ccoIdVerificationStore",
+    "./src/ops/ccoMarketingConsentStore",
+    "./src/ops/ccoNotificationFeedStore",
+    "./src/ops/ccoNotificationReadStore",
+    "./src/ops/ccoOfferDocumentPackageStore",
+    "./src/ops/ccoSendActionStore",
+    "../src/ops/ccoBlockingStore",
+    "../src/ops/ccoTemplateRegistry"
+  ]
+}

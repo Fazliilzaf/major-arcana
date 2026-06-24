@@ -88,7 +88,9 @@ async function smokeAnalyticsHydration() {
   });
   assert(summary.status === 'ok', `expected analytics ok, got ${summary.status}`);
   assert(summary.freshMetricCount >= 1, 'hydrated metrics should be fresh');
-  console.log(`OK analytics hydration (status=${summary.status}, fresh=${summary.freshMetricCount})`);
+  console.log(
+    `OK analytics hydration (status=${summary.status}, fresh=${summary.freshMetricCount})`
+  );
 }
 
 async function smokeDisabledConnectors() {
@@ -110,16 +112,18 @@ async function smokeDisabledConnectors() {
 
 async function smokeLiveOptional() {
   const mode = String(process.env.ARCANA_MARKETING_CONNECTORS_MODE || '').toLowerCase();
-  const liveFetch = String(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH || '').toLowerCase() === 'true';
+  const liveFetch =
+    String(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH || '').toLowerCase() === 'true';
   if (mode !== 'live' || !liveFetch) {
     console.log('SKIP live fetch (set ARCANA_MARKETING_CONNECTORS_MODE=live + LIVE_FETCH=true)');
     return;
   }
 
-  const config = require('../config');
+  const config = require('../src/config');
   const appConfig = config.config || config;
   const channels = ['google_ads', 'meta', 'linkedin'].filter((channel) => {
-    const block = appConfig.marketingConnectors?.[channel] || appConfig.marketing?.connectors?.[channel];
+    const block =
+      appConfig.marketingConnectors?.[channel] || appConfig.marketing?.connectors?.[channel];
     return block?.enabled === true || appConfig.marketingConnectorsEnabled === true;
   });
 
@@ -139,8 +143,12 @@ async function smokeLiveOptional() {
 }
 
 async function smokeHttpOptional() {
-  const baseUrl = String(process.env.ARCANA_SMOKE_BASE_URL || '').trim().replace(/\/$/, '');
-  const token = String(process.env.ARCANA_SMOKE_TOKEN || process.env.ARCANA_SMOKE_OWNER_TOKEN || '').trim();
+  const baseUrl = String(process.env.ARCANA_SMOKE_BASE_URL || '')
+    .trim()
+    .replace(/\/$/, '');
+  const token = String(
+    process.env.ARCANA_SMOKE_TOKEN || process.env.ARCANA_SMOKE_OWNER_TOKEN || ''
+  ).trim();
   if (!baseUrl) {
     console.log('SKIP http (set ARCANA_SMOKE_BASE_URL + ARCANA_SMOKE_TOKEN)');
     return;
