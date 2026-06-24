@@ -1613,6 +1613,28 @@ html[data-cco-mobile-shell="on"]
   white-space: nowrap;
 }
 
+/* Facit-parity: "Ta bild" i Bilder-headern (återanvänder kamera-handler) */
+.v12-workspace__photos-camera {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__photos-camera:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
 /* Facit-parity: datum-badge på fototile (ur capturedAt) */
 .v12-workspace__photo-date {
   position: absolute;

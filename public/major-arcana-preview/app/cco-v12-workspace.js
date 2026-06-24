@@ -1000,6 +1000,11 @@
       '<header class="v12-workspace__module-head">' +
       '<div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div>' +
       (countLabel ? '<span class="v12-workspace__count">' + countLabel + '</span>' : '') +
+      // Facit-parity: "Ta bild" → BEFINTLIG document-delegerad kamera-handler
+      // (data-patient-photo-camera → uploadConsultationPhoto). INGEN ny handler.
+      '<label class="v12-workspace__photos-camera">' +
+      '<input type="file" accept="image/*" capture="environment" hidden data-patient-photo-camera />' +
+      '<span aria-hidden="true">📷</span> Ta bild</label>' +
       '</header>';
 
     if (!count) {
