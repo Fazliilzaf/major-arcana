@@ -328,6 +328,7 @@
       preflightCompact: state === 'completed_today',
       primary: primary,
       secondary: secondary,
+      journalStarted: visit.journalStarted === true,
       journalDetail: text(visit.serviceLabel),
       title: text(visit.serviceLabel) || 'Besök idag',
       practitioner: text(visit.practitionerLabel),

@@ -27,7 +27,7 @@
    * saknas fältet visas ingen påhittad status. Personnummer saknas i datakällan
    * idag → renderas inte (explicit utelämnat, ingen fejk; per inventory-spike).
    */
-  function renderCurrentStateModule(profile, stats, status) {
+  function renderCurrentStateModule(profile, stats, status, bookings) {
     profile = profile || { name: 'Kund', initials: '–', pills: [] };
 
     function telHref(p) {
@@ -52,6 +52,18 @@
         '<a class="v12-workspace__cs-action" href="mailto:' +
           esc(profile.email) +
           '"><span aria-hidden="true">✉</span> Mejl</a>'
+      );
+    }
+    // Facit-parity: "Ny bokning"-snabbknapp. Återanvänder den BEFINTLIGA
+    // delegerade ord48-kalenderhandlern (data-kk-ord48-open-calendar — samma
+    // som sticky-barens "Boka nästa", redan wirad i V12-delegeringen). INGEN ny
+    // handler. patientId från boknings-adaptern; saknas pid → knappen utelämnas.
+    var nyBokningPid = bookings && bookings.patientId ? bookings.patientId : '';
+    if (nyBokningPid) {
+      actions.push(
+        '<button type="button" class="v12-workspace__cs-action" data-kk-ord48-open-calendar data-patient-id="' +
+          esc(nyBokningPid) +
+          '"><span aria-hidden="true">📅</span> Ny bokning</button>'
       );
     }
     var actionsRow = actions.length
@@ -110,11 +122,18 @@
           '</div></div>'
         );
       }
+      // Facit-parity: fjärde stat "Nästa besök" ur RIKTIG boknings-data
+      // (första kommande bokningen). Inga bokningar → explicit empty-state.
+      var nextB = bookings && bookings.items && bookings.items.length ? bookings.items[0] : null;
+      var nastaBesok = nextB
+        ? { value: nextB.whenLong || '—', sub: nextB.title || nextB.whenShort || 'bokad' }
+        : { value: '—', sub: 'inga bokningar' };
       statBlock =
         '<div class="v12-workspace__cs-stats">' +
         cell('Besök', stats.besok) +
         cell('Värde tot', stats.vardeTot) +
         cell('Skuld', stats.skuld, ' data-skuld-state="' + esc(skuldState) + '"') +
+        cell('Nästa besök', nastaBesok) +
         '</div>';
     }
 
@@ -150,6 +169,19 @@
    * ny handler). Saknad journey-logik → explicit empty-state ("Kundresan har
    * inte startat"), ingen fejkad resa.
    */
+  // Facit-parity: synliggör vart varje steg länkar (dok/foto/journal/sektion).
+  // Mappningen är EXAKT samma som adapterns journeyJumpSlug → ingen ny koppling,
+  // bara en läsbar etikett för den BEFINTLIGA data-kk-jump-destinationen.
+  var JOURNEY_DEST_LABEL = {
+    'kk-card-halsa': 'Hälsa',
+    'kk-card-behandling': 'Behandling',
+    'kk-card-juridik': 'Avtal',
+    'kk-card-operation': 'Operation',
+    'kk-card-foto': 'Foto',
+    'kk-card-bokning': 'Bokning',
+    'kk-card-uppfoljning': 'Uppföljning',
+  };
+
   function renderJourneyModule(j) {
     var head =
       '<header class="v12-workspace__module-head">' +
@@ -205,6 +237,10 @@
         // Steg med jump-slug → klickbar knapp som bär de BEFINTLIGA deep-link-
         // attributen. Övriga steg = ren rad (ingen död knapp).
         if (s.jump) {
+          var destLabel = JOURNEY_DEST_LABEL[s.jump];
+          var linkChip = destLabel
+            ? '<span class="v12-workspace__journey-link">Öppna ' + esc(destLabel) + ' →</span>'
+            : '';
           return (
             '<li class="v12-workspace__journey-step" data-state="' +
             esc(s.state) +
@@ -214,6 +250,7 @@
             (s.medForm ? ' data-kk-med-form="' + esc(s.medForm) + '"' : '') +
             '>' +
             inner +
+            linkChip +
             '</button></li>'
           );
         }
@@ -336,27 +373,40 @@
     }
 
     var ci = avFmtTime(av.checkedInAt);
-    var st = avFmtTime(av.startedAt || av.checkedInAt);
     var co = avFmtTime(av.completedAt);
-    function nodeState(phase) {
-      if (av.state === 'completed_today') return 'is-done';
-      if (av.state === 'in_progress')
-        return phase === 'checkin' ? 'is-done' : phase === 'progress' ? 'is-active' : '';
-      if (av.state === 'checked_in' && phase === 'checkin') return 'is-active';
+    // Facit 6-node besöksförlopp: bokad → incheckad → behandling → journal →
+    // eftervård → klar. Nod-status härleds ur den RIKTIGA visit-staten (inget
+    // påhittat): allt före aktuellt steg = klart, aktuellt = aktivt, efter = kvar.
+    // - in_progress med påbörjad journal → journal aktiv, behandling klar.
+    // - completed_today → dagens behandling+journal klar, eftervård är nästa steg
+    //   (uppföljning ej bokad), klar tänds först när hela resan är slut.
+    var avCurrent = {
+      scheduled_today: 1,
+      checked_in: 2,
+      in_progress: av.journalStarted ? 3 : 2,
+      completed_today: 4,
+    }[av.state];
+    if (typeof avCurrent !== 'number') avCurrent = 0;
+    var nodes = [
+      { label: 'Bokad' },
+      { label: ci ? ci + ' incheckad' : 'Incheckad' },
+      { label: 'Behandling' },
+      { label: 'Journal' },
+      { label: 'Eftervård' },
+      { label: co ? co + ' klar' : 'Klar' },
+    ];
+    function nodeState(i) {
+      if (i < avCurrent) return 'is-done';
+      if (i === avCurrent) return 'is-active';
       return '';
     }
-    var nodes = [
-      { phase: 'checkin', label: ci ? ci + ' incheckad' : 'Incheckad' },
-      { phase: 'progress', label: st ? st + ' pågår' : 'Pågår' },
-      { phase: 'done', label: co ? co + ' klart' : 'Klart' },
-    ];
     var timeline = av.showTimeline
       ? '<div class="v12-workspace__av-timeline" aria-label="Besöksförlopp">' +
         nodes
-          .map(function (n) {
+          .map(function (n, i) {
             return (
               '<div class="v12-workspace__av-node ' +
-              nodeState(n.phase) +
+              nodeState(i) +
               '"><span class="v12-workspace__av-dot" aria-hidden="true"></span>' +
               '<span class="v12-workspace__av-node-label">' +
               esc(n.label) +
@@ -752,16 +802,13 @@
         '</div></div>';
     }
 
-    var insightsBlock;
-    if (!count) {
-      insightsBlock =
-        '<div class="v12-workspace__empty" role="status">' +
-        '<div class="v12-workspace__empty-title">Inga insikter just nu</div>' +
-        '<div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div>';
-    } else {
-      insightsBlock =
+    // Facit-parity: insikter delas i amber "Gör nu" (blockerare/granska) och
+    // grön "Möjlighet" (positiva signaler). Endast grupper med riktiga items
+    // renderas — ingen påhittad rekommendation, inga tomma grupprubriker.
+    function renderInsightRows(list) {
+      return (
         '<ul class="v12-workspace__insights-list">' +
-        items
+        list
           .map(function (it) {
             var icon = icons[it.tone] || '↗';
             return (
@@ -780,7 +827,38 @@
             );
           })
           .join('') +
-        '</ul>';
+        '</ul>'
+      );
+    }
+
+    var insightsBlock;
+    if (!count) {
+      insightsBlock =
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Inga insikter just nu</div>' +
+        '<div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div>';
+    } else {
+      var gorNu = items.filter(function (it) {
+        return it.tone === 'blocker' || it.tone === 'review';
+      });
+      var mojlighet = items.filter(function (it) {
+        return it.tone !== 'blocker' && it.tone !== 'review';
+      });
+      insightsBlock =
+        '<div class="v12-workspace__insight-groups">' +
+        (gorNu.length
+          ? '<div class="v12-workspace__insight-group" data-group="gor-nu">' +
+            '<div class="v12-workspace__insight-group-label" data-tone="amber">Gör nu</div>' +
+            renderInsightRows(gorNu) +
+            '</div>'
+          : '') +
+        (mojlighet.length
+          ? '<div class="v12-workspace__insight-group" data-group="mojlighet">' +
+            '<div class="v12-workspace__insight-group-label" data-tone="green">Möjlighet</div>' +
+            renderInsightRows(mojlighet) +
+            '</div>'
+          : '') +
+        '</div>';
     }
 
     return (
@@ -1428,7 +1506,7 @@
     return (
       '<div class="v12-workspace__inner" data-v12-workspace-inner="1">' +
       '<div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div>' +
-      renderCurrentStateModule(profile, stats, status) +
+      renderCurrentStateModule(profile, stats, status, bookings) +
       renderActiveVisitModule(av) +
       renderCriticalWarningsModule(warnings) +
       renderHealthModule(health) +

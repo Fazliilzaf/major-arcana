@@ -197,7 +197,7 @@ html[data-cco-mobile-shell="on"]
   padding: 7px 14px;
   border-radius: 9px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 12.5px;
   font-weight: 700;
@@ -377,6 +377,7 @@ html[data-cco-mobile-shell="on"]
 }
 
 .v12-workspace__av-node {
+  position: relative;
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
@@ -387,7 +388,30 @@ html[data-cco-mobile-shell="on"]
   text-align: center;
 }
 
+/* Facit-parity: connector-linje mellan noderna (grön klart → amber aktiv → grå kvar). */
+.v12-workspace__av-node:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 50%;
+  width: calc(100% + 6px);
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(56, 40, 28, 0.2);
+  z-index: 0;
+}
+
+.v12-workspace__av-node.is-done::before {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-node.is-active::before {
+  background: linear-gradient(90deg, #2f7d4f, var(--v12-amber));
+}
+
 .v12-workspace__av-node .v12-workspace__av-dot {
+  position: relative;
+  z-index: 1;
   width: 10px;
   height: 10px;
   background: rgba(56, 40, 28, 0.2);
@@ -482,7 +506,7 @@ html[data-cco-mobile-shell="on"]
   padding: 10px 16px;
   border-radius: 10px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 13.5px;
   font-weight: 800;
@@ -832,8 +856,14 @@ html[data-cco-mobile-shell="on"]
 
 .v12-workspace__cs-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__cs-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__cs-stat {
@@ -970,6 +1000,26 @@ html[data-cco-mobile-shell="on"]
   font-size: 11.5px;
   color: var(--v12-muted);
   line-height: 1.35;
+}
+
+/* Facit-parity: per-steg-länk till relaterad sektion (dok/foto/journal). */
+.v12-workspace__journey-link {
+  flex: none;
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__journey-row:hover .v12-workspace__journey-link {
+  background: rgba(200, 130, 30, 0.18);
 }
 
 /* ===== Hälsa-modul (sektion 4) ===== */
@@ -1201,6 +1251,65 @@ html[data-cco-mobile-shell="on"]
   font-size: 12px;
   color: var(--v12-muted);
   line-height: 1.4;
+}
+
+/* Facit-parity: insikter grupperade i amber "Gör nu" vs grön "Möjlighet". */
+.v12-workspace__insight-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.v12-workspace__insight-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__insight-group .v12-workspace__insights-list {
+  margin-top: 0;
+}
+
+.v12-workspace__insight-group-label {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.v12-workspace__insight-group-label[data-tone="amber"] {
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v12-workspace__insight-group-label[data-tone="green"] {
+  color: #2c6b3d;
+  background: rgba(74, 130, 104, 0.16);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight {
+  border-color: rgba(200, 130, 30, 0.3);
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.3);
+  background: rgba(181, 82, 74, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight {
+  border-color: rgba(74, 130, 104, 0.32);
+  background: rgba(74, 130, 104, 0.08);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight-icon {
+  color: #2f7d4f;
 }
 
 /* ===== Bilder / före–efter-modul (sektion 7) ===== */
@@ -1435,13 +1544,21 @@ html[data-cco-mobile-shell="on"]
 }
 
 /* ===== Dokument-modul (sektion 9) ===== */
+/* Facit-parity: dokument som 2-kolumners kort-rutnät (1-kol mobil → 2-kol ≥768px),
+   grupperingen offerter/auto/filer behålls. Ren layout — samma data-v11-doc-*-rader. */
 .v12-workspace__doc-list {
   list-style: none;
   margin: 0 0 4px;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__doc-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__doc-item {
@@ -1453,6 +1570,7 @@ html[data-cco-mobile-shell="on"]
   align-items: center;
   gap: 10px;
   width: 100%;
+  height: 100%;
   text-align: left;
   padding: 10px 12px;
   border-radius: 10px;
