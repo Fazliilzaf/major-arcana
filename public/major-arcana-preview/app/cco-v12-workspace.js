@@ -65,6 +65,12 @@
           esc(nyBokningPid) +
           '"><span aria-hidden="true">📅</span> Ny bokning</button>'
       );
+      // Facit-parity: "Redigera" → öppnar edit-dialogen nedan. Sparar via den
+      // BEFINTLIGA PUT /cco-patient-master/patient (upsertPatient mergar med
+      // existing — partiella fält raderar inget). Handler i overlay-body.
+      actions.push(
+        '<button type="button" class="v12-workspace__cs-action" data-v12-edit-open><span aria-hidden="true">✏️</span> Redigera</button>'
+      );
     }
     var actionsRow = actions.length
       ? '<div class="v12-workspace__cs-actions">' + actions.join('') + '</div>'
@@ -93,6 +99,38 @@
       menuItems +
       '</div></details>' +
       '</div>';
+
+    // Facit-parity: Redigera-dialog (native <dialog>). Fält mappar till de
+    // RIKTIGA kort-fälten (displayName/primaryPhone/primaryEmail). Spara → PUT
+    // /cco-patient-master/patient (merge-upsert). Endast om patientId finns.
+    function editField(label, name, type, value) {
+      return (
+        '<label class="v12-workspace__edit-field"><span>' +
+        esc(label) +
+        '</span><input type="' +
+        type +
+        '" name="' +
+        name +
+        '" value="' +
+        esc(value || '') +
+        '" /></label>'
+      );
+    }
+    var editDialog = nyBokningPid
+      ? '<dialog class="v12-workspace__edit-dialog" data-v12-edit-dialog>' +
+        '<form class="v12-workspace__edit-form" data-v12-edit-form data-patient-id="' +
+        esc(nyBokningPid) +
+        '">' +
+        '<div class="v12-workspace__edit-title">Redigera kund</div>' +
+        editField('Namn', 'displayName', 'text', profile.name) +
+        editField('Telefon', 'primaryPhone', 'tel', profile.phone) +
+        editField('E-post', 'primaryEmail', 'email', profile.email) +
+        '<div class="v12-workspace__edit-status" data-v12-edit-status role="status" aria-live="polite"></div>' +
+        '<div class="v12-workspace__edit-actions">' +
+        '<button type="button" class="v12-workspace__edit-cancel" data-v12-edit-cancel>Avbryt</button>' +
+        '<button type="submit" class="v12-workspace__edit-save">Spara</button>' +
+        '</div></form></dialog>'
+      : '';
 
     var contactBits = [];
     if (profile.phone) contactBits.push(esc(profile.phone));
@@ -182,6 +220,7 @@
       actionsRow +
       heroActions +
       statBlock +
+      editDialog +
       '</section>'
     );
   }
