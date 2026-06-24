@@ -1121,7 +1121,7 @@
    * handler; signering-write ingår ej). Filer = native länkar (target=_blank).
    * Tomma listor → explicit empty-state (inga påhittade dokument).
    */
-  function renderDocumentsModule(offers, autoDocs, files) {
+  function renderDocumentsModule(offers, autoDocs, files, patientId) {
     var offCount = (offers && offers.count) || 0;
     var autoCount = (autoDocs && autoDocs.count) || 0;
     var fileCount = (files && files.count) || 0;
@@ -1232,10 +1232,23 @@
         : emptyState('Inga filer ännu', 'Inga dokumentfiler registrerade.'));
 
     var total = offCount + autoCount + fileCount;
+    var pid = patientId ? String(patientId) : '';
+    var addControl = pid
+      ? '<span class="v12-workspace__doc-add">' +
+        '<button type="button" class="v12-workspace__doc-add-btn" data-v12-doc-add="' +
+        esc(pid) +
+        '">+ Lägg till PDF</button>' +
+        '<input type="file" accept=".pdf,application/pdf" class="v12-workspace__doc-add-input" ' +
+        'data-v12-doc-input="' +
+        esc(pid) +
+        '" hidden />' +
+        '</span>'
+      : '';
     var head =
       '<header class="v12-workspace__module-head">' +
       '<div class="v12-workspace__kicker" data-v12-kicker="amber">DOKUMENT</div>' +
       (total ? '<span class="v12-workspace__count">' + esc(String(total)) + '</span>' : '') +
+      addControl +
       '</header>';
 
     return (
@@ -1639,7 +1652,12 @@
       renderJournalModule(journal) +
       renderPhotosModule(photos) +
       renderBookingsModule(bookings, history) +
-      renderDocumentsModule(offers, autoDocs, files) +
+      renderDocumentsModule(
+        offers,
+        autoDocs,
+        files,
+        (ctx.card && (ctx.card.patientId || ctx.card.id)) || (bookings && bookings.patientId) || ''
+      ) +
       renderCommunicationModule(comm) +
       renderEconomyModule(
         econ,

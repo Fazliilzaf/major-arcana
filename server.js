@@ -8904,8 +8904,106 @@ try {
     }
   );
 
+  // POST /api/v1/cco-journal-quick/document — manuell PDF-uppladdning till patient-dossiern
+  // Driver "+ Lägg till"-flödet i Dokument-modulen (V12). Helt lokalt: PDF → secureStorage
+  // (SHA-256 + dedup) → addAsset(category form/consent/agreement/other, status VISIBLE).
+  // Ingen extern integration — SharePoint/Drive-sync är ett separat, cred-gatat spår.
+  const multerDoc = require('multer');
+  const MAX_DOC_BYTES = 25 * 1024 * 1024;
+  const docUpload = multerDoc({
+    storage: multerDoc.memoryStorage(),
+    limits: { fileSize: MAX_DOC_BYTES, files: 1 },
+    fileFilter: (_req, file, cb) => {
+      const okMime = String(file.mimetype || '').toLowerCase() === 'application/pdf';
+      const okExt = /\.pdf$/i.test(file.originalname || '');
+      if (!okMime && !okExt) {
+        cb(Object.assign(new Error('Endast PDF stöds.'), { statusCode: 415 }));
+        return;
+      }
+      cb(null, true);
+    },
+  });
+
+  app.post(
+    '/api/v1/cco-journal-quick/document',
+    attachRole,
+    requirePermission('journal.write'),
+    docUpload.single('document'),
+    async (req, res) => {
+      const t = (v) => (typeof v === 'string' ? v.trim() : '');
+      try {
+        if (!req.file) return res.status(400).json({ error: 'document (PDF) krävs' });
+        const patientId = t(req.body?.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
+
+        const secureStorage = await resolveSharedSecureStorage();
+        const assetStore = await resolveSharedPatientAssetStore();
+        if (!secureStorage || !assetStore)
+          return res.status(503).json({ error: 'asset stores not ready' });
+
+        const allowedCategories = ['form', 'consent', 'agreement', 'other'];
+        const rawCategory = t(req.body?.category).toLowerCase();
+        const category = allowedCategories.includes(rawCategory) ? rawCategory : 'form';
+        const displayName = t(req.body?.displayName) || null;
+        const docDateRaw = t(req.body?.documentDate).slice(0, 10);
+        const documentDate = /^\d{4}-\d{2}-\d{2}$/.test(docDateRaw) ? docDateRaw : null;
+
+        const ym = new Date().toISOString().slice(0, 7);
+        const safeSuffix = `${Date.now()}`;
+        const storageKey = `patient-documents/${ym}/${patientId}/upload-${safeSuffix}.pdf`;
+        const put = await secureStorage.putObject({
+          key: storageKey,
+          body: req.file.buffer,
+          contentType: 'application/pdf',
+          metadata: { patientId, originalFileName: req.file.originalname || 'dokument.pdf' },
+        });
+
+        const actor = {
+          userId: req.headers['x-cco-user'] || 'demo-user',
+          role: req.cco?.role || 'staff',
+        };
+        const asset = await assetStore.addAsset(
+          {
+            patientId,
+            category,
+            sourceSystem: 'upload',
+            storageProvider: 'local',
+            storageKey: put.storageKey,
+            checksum: put.checksum,
+            fileSize: put.size,
+            mimeType: 'application/pdf',
+            originalFileName: req.file.originalname || 'dokument.pdf',
+            displayName,
+            documentDate,
+            status: 'VISIBLE_ON_PATIENT_CARD',
+            importedBy: actor.userId,
+          },
+          { actor }
+        );
+
+        auditA(
+          'patient.document.upload',
+          req.cco?.role,
+          { kind: 'patient_asset', id: asset.id },
+          { patientId, category, fileSize: put.size, deduped: !!put.deduped }
+        );
+        res.json({
+          ok: true,
+          asset: {
+            id: asset.id,
+            category: asset.category,
+            status: asset.status,
+            fileName: asset.displayName || asset.originalFileName,
+          },
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
+
   console.log(
-    '[cco-journal-quick] monterad: PUT /entry, POST /sign+/correction+/unlock, GET /entries+/stats+/pdf (RBAC: journal.read_any/write + unlock=owner)'
+    '[cco-journal-quick] monterad: PUT /entry, POST /sign+/correction+/unlock+/document, GET /entries+/stats+/pdf (RBAC: journal.read_any/write + unlock=owner)'
   );
 } catch (err) {
   console.warn('[cco-journal-quick] kunde inte montera:', err.message);
