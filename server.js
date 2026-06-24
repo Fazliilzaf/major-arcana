@@ -11106,6 +11106,7 @@ const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createCalendarRouter } = require('./src/routes/calendar');
+const { createExecutiveRouter } = require('./src/routes/executive');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -11643,40 +11644,11 @@ app.get('/api/v1/health/journal-photos', requireCcoAuthenticated, async (_req, r
   }
 });
 
-app.get('/api/v1/executive/feed', (req, res) => {
-  const entries = executiveDecisionFeed.list({
-    severity: req.query?.severity || undefined,
-    requiredOwnerAction: req.query?.ownerAction === 'true' ? true : undefined,
-    limit: Math.min(50, Math.max(1, Number(req.query?.limit) || 20)),
-  });
-  const summary = executiveDecisionFeed.getSummary();
-  return res.json({ ok: true, entries, summary });
-});
-
-app.get('/api/v1/executive/feed/summary', (req, res) => {
-  return res.json({ ok: true, ...executiveDecisionFeed.getSummary() });
-});
-
-app.post('/api/v1/executive/feed/:entryId/resolve', (req, res) => {
-  const result = executiveDecisionFeed.resolve({
-    entryId: req.params?.entryId,
-    resolvedBy: req.body?.resolvedBy || 'owner',
-    resolution: req.body?.resolution || 'acknowledged',
-  });
-  if (!result) return res.status(404).json({ error: 'Entry hittades inte.' });
-  return res.json({ ok: true, entry: result });
-});
-
-app.get('/api/v1/executive/agents/status', (req, res) => {
-  const feedSummary = executiveDecisionFeed.getSummary();
-  const agents = ['COO', 'CAO', 'CFO', 'CMO', 'CCO', 'Patient'].map((name) => ({
-    name,
-    lastRun: feedSummary.lastEntryByAgent?.[name] || null,
-    pendingActions: feedSummary.byAgent?.[name] || 0,
-    status: feedSummary.byAgent?.[name] > 0 ? 'action_required' : 'idle',
-  }));
-  return res.json({ ok: true, agents, feedSummary });
-});
+// ─── EXECUTIVE DECISION FEED ───
+// Routes flyttade till src/routes/executive.js (se ORGANISATION.md §4).
+// Monteras top-level (bevarar registreringsordning före rate-limit i startup).
+// getFeed-getter krävs eftersom executiveDecisionFeed omtilldelas async ovan.
+app.use('/api/v1', createExecutiveRouter({ getFeed: () => executiveDecisionFeed }));
 
 const { computeQaDashboard } = require('./src/ops/qaDashboard');
 const {
