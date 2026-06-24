@@ -609,10 +609,12 @@
   }
 
   /**
-   * Hälsa-modul (sektion 4) — hälsodeklaration-status + allergier. Återanvänder
-   * V11-adaptern buildHealthPreview + befintlig "Öppna"-jump `data-kk-jump="kk-card-halsa"`
-   * (navigation, ingen ny handler). Läkemedel/kontraindikationer finns ej i
-   * datakällan idag → explicit deferred (visas när data finns; ingen fejk, Fas 3).
+   * Hälsa-modul (sektion 4) — hälsodeklaration-status + allergier +
+   * kontraindikationer. Återanvänder V11-adaptern buildHealthPreview + befintlig
+   * "Öppna"-jump `data-kk-jump="kk-card-halsa"` (navigation, ingen ny handler).
+   * Kontraindikationer surfas från hälsodeklarationens RIKTIGA riskflaggor
+   * (hd.flags, röd/amber). Läkemedel (namn) saknar datakälla idag — formuläret
+   * fångar dem inte → explicit okänd-state (B3-beslut 2026-06-23; ingen fejk).
    */
   function renderHealthModule(hp) {
     hp = hp || { status: 'unknown', allergies: [] };
