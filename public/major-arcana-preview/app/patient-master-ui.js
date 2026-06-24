@@ -1409,6 +1409,30 @@
         if (input) input.click();
         return;
       }
+      // Fas 4 · Hybrid: jump-rail ankarklick → scrolla till modul i Zon 2.
+      const jump = event.target.closest('[data-v12-jump]');
+      if (jump && body.contains(jump)) {
+        event.preventDefault();
+        const jumpModule = jump.getAttribute('data-v12-jump');
+        body.querySelectorAll('[data-v12-jump].is-active').forEach((el) => {
+          el.classList.remove('is-active');
+        });
+        jump.classList.add('is-active');
+        scrollV12WorkspaceModule(body, jumpModule);
+        return;
+      }
+      // Jump-rail kollaps/expandera.
+      const jrToggle = event.target.closest('[data-v12-jumprail-toggle]');
+      if (jrToggle && body.contains(jrToggle)) {
+        event.preventDefault();
+        const rail = jrToggle.closest('[data-v12-jumprail]');
+        if (rail) {
+          const collapsed = rail.classList.toggle('is-collapsed');
+          jrToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+          jrToggle.setAttribute('title', collapsed ? 'Fäll ut' : 'Fäll ihop');
+        }
+        return;
+      }
       // "Förbered besök" / Åtgärder-meny → scrolla till V12-modul.
       const trigger = event.target.closest('[data-v12-scroll-module]');
       if (!trigger || !body.contains(trigger)) return;
@@ -5429,6 +5453,18 @@
     const journeyHandlers = buildV9JourneyHandlers(root, ctx);
     const referensKkref = isReferensKundkortRoot(root);
     bindV12WorkspaceRailLauncher(root, ctx);
+    // Fas 4 · Hybrid-canon: kundklick → V12 full-sida DIREKT (facit), istället för
+    // att vänta på sektionsklick i railen. Auto-öppnas en gång per ny kund
+    // (patientId-guard) så att close → re-bind inte triggar nytt auto-öppnande.
+    if (usesV12Workspace()) {
+      const autoPid = normalizeText(ctx?.card?.patientId || ctx?.card?.id);
+      if (autoPid && runtime.v12HybridAutoOpenedFor !== autoPid) {
+        runtime.v12HybridAutoOpenedFor = autoPid;
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(() => openV12WorkspaceFromRail(root, ctx, 'current-state'))
+        );
+      }
+    }
     if (root.querySelector('[data-kundkort-slide-over]')) {
       window.CcoV9CustomersParity?.bindKundkortSlideOver?.(root, journeyHandlers, ctx);
     } else {
@@ -5678,6 +5714,47 @@
    * befintliga close-/scroll-/section-link-hooks → inga nya handlers. CSS döljer
    * Zon 1 på mobil (V12 äger ytan) och visar den bredvid på iPad/webb.
    */
+  // Fas 4 · Hybrid-canon: jump-rail-moduler (ankarnav). Ordning speglar Zon 2:s
+  // primära modulordning; sticky-snabbåtgärderna saknar egen rail-länk. Varje rad
+  // scrollar till matchande data-v12-module via den befintliga
+  // scrollV12WorkspaceModule-hooken (ingen ny navigerings-infra).
+  const V12_JUMPRAIL_MODULES = [
+    ['current-state', 'Nuläge'],
+    ['active-visit', 'Aktivt besök'],
+    ['warnings', 'Varningar'],
+    ['health', 'Hälsa'],
+    ['journey', 'Kundresa'],
+    ['journal', 'Journal'],
+    ['photos', 'Bilder'],
+    ['bookings', 'Bokningar'],
+    ['documents', 'Dokument'],
+    ['communication', 'Kommunikation'],
+    ['economy', 'Ekonomi'],
+    ['insights', 'Insikter'],
+  ];
+
+  function renderV12JumpRail() {
+    const items = V12_JUMPRAIL_MODULES.map(
+      ([mod, label]) =>
+        '<li><button type="button" class="v12-jumprail__link" data-v12-jump="' +
+        mod +
+        '">' +
+        '<span class="v12-jumprail__dot" aria-hidden="true"></span>' +
+        '<span class="v12-jumprail__label">' +
+        escapeHtml(label) +
+        '</span></button></li>'
+    ).join('');
+    return (
+      '<nav class="v12-jumprail" data-v12-jumprail aria-label="Snabbnavigering (moduler)">' +
+      '<button type="button" class="v12-jumprail__toggle" data-v12-jumprail-toggle aria-expanded="true" title="Fäll ihop">' +
+      '<span class="v12-jumprail__toggle-icon" aria-hidden="true">‹</span>' +
+      '<span class="v12-jumprail__toggle-label">Moduler</span></button>' +
+      '<ul class="v12-jumprail__list">' +
+      items +
+      '</ul></nav>'
+    );
+  }
+
   function renderV12WorkspaceDetailShell(
     card,
     journalEntries,
@@ -5718,11 +5795,13 @@
     } catch (_error) {
       wsInner = '';
     }
-    const zone1 = railInner
-      ? '<div class="v11-rail"><div class="v11-rail__scroll" aria-label="Kunddossiér (Zon 1)">' +
-        railInner +
-        '</div></div>'
-      : '';
+    // Fas 4 · Hybrid-canon: Zon 1 är en minimal jump-rail (ankarnav till de
+    // primära modulerna) istället för full V11-rail. Modulerna bor i Zon 2; railen
+    // navigerar bara dit via den befintliga scrollV12WorkspaceModule-hooken.
+    // Full V11-rail (railInner) behålls som data-attribut-fritt fallback om
+    // jump-railen någonsin stängs av. Kollapsbar; dold på mobil (V12 äger ytan).
+    const zone1 = renderV12JumpRail();
+    void railInner;
     const zone2 =
       wsInner ||
       '<div class="v12-workspace__inner"><div class="v12-workspace__empty" role="status">' +
@@ -11747,6 +11826,9 @@
 
       const row = event.target.closest('[data-patient-row]');
       if (row && runtime.mode === 'register') {
+        // Fas 4 · Hybrid: genuint kundval re-armar auto-öppning av V12 full-sida
+        // (close + samma rad igen → öppnar på nytt; interna re-renders gör inte det).
+        runtime.v12HybridAutoOpenedFor = null;
         void loadPatientDetail(row.dataset.patientRow);
         return;
       }
