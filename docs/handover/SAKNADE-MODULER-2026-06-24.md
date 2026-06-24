@@ -1,67 +1,79 @@
-# Saknade moduler i repot — inventering
+# Saknade moduler i repot — inventering & byggspec
 
 Datum: 2026-06-24
-Status: **26 moduler som `server.js` `require()`:ar finns INTE i repot/git.**
+Status: **23 `src/ops/cco*`-moduler + 3 frontend-patchar som `server.js` `require()`:ar har ALDRIG skrivits.**
 
-> **Upptäckt** under server.js-refaktorn: `server.js` kräver 26 lokala moduler som
-> saknas i repot. Alla anrop ligger i `try/catch` (eller IIFE med catch), så de
-> **faller tyst** → motsvarande funktioner monteras aldrig och är **döda i
-> produktion**. Inget bygg-/genereringsskript skapar dem.
->
-> Trolig orsak: filerna finns **lokalt på Mac/iCloud men har aldrig committats** —
-> exakt den risk `ORGANISATION.md §0` ("bygg bara från repot") finns för.
+> **Korrigerad slutsats (2026-06-24):** Den tidigare hypotesen — "filerna finns lokalt
+> på Mac/iCloud men har inte committats" — är **motbevisad**. Owner körde
+> verifierings-snutten lokalt: alla 28 `require()` faller fortfarande (`KVAR`),
+> `git status` är ren (`nothing to commit, working tree clean`), och
+> `git log --all -- <fil>` ger **0 commits** för varje modul. Filerna existerar
+> alltså **inte någonstans** — varken i repot, på Mac:en eller i git-historien.
+> De skrevs aldrig. `server.js` `require()`:ar stores som ingen byggt.
 
-## Hur detta verifieras
+## Påverkan
+
+Alla anrop ligger i `(async () => { try { … } catch (err) { console.warn(…) } })()`
+-block (lazy `require` inuti route-monteringen). Servern **kraschar därför inte** —
+varje block failar tyst med en `console.warn` och **routsen monteras aldrig**.
+Resultat: ~20 hela CCO-funktionsblock är **döda i produktion** (tysta 404).
+
+## Bevis
 
 ```bash
-# Listar alla ./-require i server.js och visar vilka som ej kan resolvas:
-node -e '
-const fs=require("fs"),path=require("path");
-const src=fs.readFileSync("server.js","utf8");
-const re=/require\(([\x27"])(\.\/[^\x27"]+)\1\)/g; const seen=new Set();let m;
-while((m=re.exec(src))){const p=m[2];if(seen.has(p))continue;seen.add(p);
-  try{require.resolve(path.resolve(p))}catch{console.log("MISSING",p)}}'
+# 1. Resolvar någon ./-require i server.js inte? (kördes på Mac + remote → 28 KVAR)
+node -e 'const f=require("fs"),p=require("path");const s=f.readFileSync("server.js","utf8");
+const re=/require\((["\x27])(\.\/[^"\x27]+)\1\)/g;let m,n=0;
+while((m=re.exec(s))){try{require.resolve(p.resolve(m[2]))}catch{console.log("KVAR",m[2]);n++}}
+console.log(n?n+" kvar saknade":"alla resolvar")'
+
+# 2. Har modulen någonsin funnits i git? (→ 0 för samtliga)
+git log --all --oneline -- src/ops/ccoDsrStore.js | wc -l
 ```
 
-## Saknade moduler & död funktionalitet
+## Byggspec — vad varje saknad modul måste exportera
+
+Härlett ur hur `server.js` (och de redan flyttade `src/routes/*`) anropar varje modul.
+Konstruktor-options visar förväntad signatur; metoderna är det API route-koden kräver.
+`auditLog` = `ccoAuditLog` (finns i `src/security/`). `filePath` pekar mot `data/cco-*.json`.
 
 ### GDPR / compliance (högst prioritet)
 
-| Modul                              | server.js-rad | Feature / routes som är döda                                     |
-| ---------------------------------- | :-----------: | ---------------------------------------------------------------- |
-| `src/ops/ccoDsrStore`              |     4029      | `cco-dsr` — GDPR subject data requests (`/api/v1/cco-dsr`)       |
-| `src/ops/ccoDsrExportBuilder`      |     4138      | `cco-dsr` — GDPR export-bundle (`/cco-dsr/:id/build-export-zip`) |
-| `src/ops/ccoDataFlowMapStore`      |     4248      | `cco-dataflow` — Art. 30-register (`/api/v1/cco-dataflow`)       |
-| `src/ops/ccoPolicyStore`           |     4907      | `cco-policies` — policy/öppettider/mail-snooze                   |
-| `src/ops/ccoRetentionPolicy`       |     5614      | `cco-retention` — gallringspolicy                                |
-| `src/ops/ccoComplianceScanStore`   |     8220      | `cco-compliance-scan` — `/api/v1/cco-compliance-scan`            |
-| `src/ops/ccoVendorRegisterStore`   |     4681      | `cco-vendors` — PUB-register (redan flyttad i #217, men **död**) |
-| `src/ops/ccoMarketingConsentStore` |     7273      | `cco-marketing` — marknadsföringssamtycke                        |
-| `src/ops/ccoPhotoConsentStore`     |     5613      | `cco-photo-consent` — fotosamtycke                               |
+| Modul                      | Export                                             | Konstruktor-options                                                     | Metoder som anropas                                                                                                                                                          |
+| -------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ccoDsrStore`              | `createCcoDsrStore`                                | `{filePath, auditLog, secureStorage}`                                   | `createRequest, verifyIdentity, extendDeadline, recordPdlBlock, transitionStatus, getById, attachResponsePackage, listAll, listOverdue, listImminent`                        |
+| `ccoDsrExportBuilder`      | `buildDsrExport` (fn)                              | —                                                                       | `buildDsrExport(...)` (bygger GDPR export-zip)                                                                                                                               |
+| `ccoDataFlowMapStore`      | `createCcoDataFlowMapStore`                        | `{filePath, auditLog}`                                                  | `listSystems, listFlows, listNeedsLegalReview, exportArt30Register, upsertSystem, addFlow, markReviewed`                                                                     |
+| `ccoIncidentLogStore`      | `createCcoIncidentLogStore`                        | `{filePath, auditLog, secureStorage}`                                   | `createIncident, updateIncident, transitionStatus, addMitigationAction, markImyNotified, listAll, listImyDeadlineImminent, getById, exportReport`                            |
+| `ccoComplianceScanStore`   | `createCcoComplianceScanStore`                     | `{externalVersionsPath, meridiqSchemaPath, templateRegistry, auditLog}` | `getLatestScan, getActiveFlags, listScans, runFullScan`                                                                                                                      |
+| `ccoRetentionPolicy`       | default-export (helper)                            | —                                                                       | `retention.readoutForCustomer(...)`                                                                                                                                          |
+| `ccoVendorRegisterStore`   | `createCcoVendorRegisterStore`                     | `{filePath, auditLog}`                                                  | `createVendor, updateVendor, getById, listAll, addSubprocessor, exportRegister, listNeedsReview, markDpaReviewed, listLegacyExit, markLegacyExit, markUnderbilaga1Completed` |
+| `ccoMarketingConsentStore` | `createCcoMarketingConsentStore`, `VALID_CHANNELS` | `{filePath, auditLog}`                                                  | `getStatus, setOptIn, setOptOut, stats, canSendMarketing, createUnsubscribeToken`                                                                                            |
+| `ccoPhotoConsentStore`     | `createCcoPhotoConsentStore`                       | `{filePath, auditLog}`                                                  | `getConsent, setStatus, listGranted, stats`                                                                                                                                  |
 
 ### Mail / notiser
 
-| Modul                              | server.js-rad | Feature / routes som är döda                                            |
-| ---------------------------------- | :-----------: | ----------------------------------------------------------------------- |
-| `src/ops/ccoSendActionStore`       |     8341      | `cco-send` — mail form/consent/file/encounter + history/stats/templates |
-| `src/ops/ccoTemplateRegistry`      |     8103      | `cco-templates` — mall-registry (`/api/v1/cco-templates`)               |
-| `src/ops/ccoNotificationFeedStore` |     7146      | `cco-notifications-feed` — notisflöde                                   |
-| `src/ops/ccoNotificationReadStore` |     7147      | `cco-notifications-feed` — läs-status                                   |
+| Modul                      | Export                                                                                                       | Konstruktor-options                                                               | Metoder som anropas                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `ccoSendActionStore`       | `createCcoSendActionStore`, `isDryRunDefault`, `FORM_TEMPLATES`, `CONSENT_TEMPLATES`, `ALLOWED_MIME_BY_KIND` | `{filePath, auditLog, mailer, baseUrl, https, templateRegistry, snapshotForSend}` | `buildFormPayload, performSend, buildConsentPayload, buildFilePayload, buildEncounterPayload, listSends, stats` |
+| `ccoTemplateRegistry`      | `createCcoTemplateRegistry`                                                                                  | `{filePath, auditLog}`                                                            | `list, stats, get, getRevisions, upsert, setLegalReviewStatus, snapshotForSend`                                 |
+| `ccoNotificationFeedStore` | `createCcoNotificationFeedStore`, `NOTIFICATION_TYPES`                                                       | `{...}`                                                                           | `getFeed`                                                                                                       |
+| `ccoNotificationReadStore` | `createCcoNotificationReadStore`                                                                             | `{...}`                                                                           | `markRead, markAllRead, stats`                                                                                  |
 
 ### Övriga CCO-domäner
 
-| Modul                                  | server.js-rad | Feature / routes som är döda                     |
-| -------------------------------------- | :-----------: | ------------------------------------------------ |
-| `src/ops/ccoBookingCaseStore`          |      127      | `cco-booking-cases`                              |
-| `src/ops/ccoIncidentLogStore`          |     3896      | `cco-incidents`                                  |
-| `src/ops/ccoOfferDocumentPackageStore` |     4593      | `cco-offer-packages` / `cco-offers`              |
-| `src/ops/ccoOfferQuickStore`           |     7757      | `cco-offers` / `cco-agreements`                  |
-| `src/ops/ccoAgreementQuickStore`       |     7758      | `cco-offers` / `cco-agreements`                  |
-| `src/ops/ccoTelemetryStore`            |     5111      | `cco-telemetry` / `cco-collaboration`            |
-| `src/ops/ccoBrandUserStore`            |     5373      | `cco-brands` / `cco-users` / `cco-notifications` |
-| `src/ops/ccoIdVerificationStore`       |     7077      | `cco-id-verify`                                  |
-| `src/ops/ccoBlockingStore`             |     7625      | `cco-blocking`                                   |
-| `src/ops/ccoAiService`                 |     10344     | `cco-ai` — AI-tjänst (`/api/v1/cco-ai`)          |
+| Modul                          | Export                                                                                           | Konstruktor-options                                              | Metoder som anropas                                                                                                                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ccoBookingCaseStore`          | `createCcoBookingCaseStore`                                                                      | `{filePath, auditLog}`                                           | `listCases, stats, getCase, createCase, proposeCandidate, transitionState, updateHandoffChecklist, attemptHandoffComplete`                                                                                |
+| `ccoOfferDocumentPackageStore` | `createCcoOfferDocumentPackageStore`                                                             | `{filePath, auditLog, timelineStore}`                            | `preparePackage, getById, listByCustomer, updateDocStatus`                                                                                                                                                |
+| `ccoOfferQuickStore`           | `createCcoOfferQuickStore`                                                                       | `{filePath, auditLog, sendStore, buildFilePayload, performSend}` | `createOffer, updateDraft, sendOffer, acceptOffer, rejectOffer, deleteDraft, getById, listForCustomer, listAll, stats`                                                                                    |
+| `ccoAgreementQuickStore`       | `createCcoAgreementQuickStore`                                                                   | `{...}` (jfr OfferQuick)                                         | `createAgreement, updateDraft, sendAgreement, signAgreement, cancelAgreement, getById, listForCustomer, listAll, stats`                                                                                   |
+| `ccoPolicyStore`               | `createCcoPolicyStore`, `createCcoMailSnoozeStore`                                               | `{filePath, auditLog}`                                           | policy: `get, update, reset, evaluateBooking, evaluateCancellation, isOpenNow, shouldAutoReply, assignMail, upsertAutoAssignRule, deleteAutoAssignRule` · snooze: `active, list, ready, snooze, unsnooze` |
+| `ccoTelemetryStore`            | `createCcoTelemetryStore`, `createCcoCollaborationStore`                                         | `{filePath, auditLog, bookingCaseStore}`                         | `liveMetrics, teamStats, userStats, leaderboard, topTemplates, coachingInsights, recordDaily, updateUserStats` (collaboration-API ej lokaliserat)                                                         |
+| `ccoBrandUserStore`            | `createCcoBrandStore`, `createCcoUserStore`, `createCcoNotificationStore`, `createCronScheduler` | `{...}`                                                          | brand: `get, list, remove, upsert` · user: `get, upsert` · notif: `listCronJobs, listPushSubscriptions, markCronRan, sentLog, smsConfig, subscribePush, unsubscribePush, updateSmsConfig, upsertCronJob`  |
+| `ccoIdVerificationStore`       | `createCcoIdVerificationStore`                                                                   | `{filePath, auditLog}`                                           | `getStatus, setStatus, stats`                                                                                                                                                                             |
+| `ccoBlockingStore`             | `createCcoBlockingStore`                                                                         | `()`                                                             | `evaluateCustomer, evaluateDashboard`                                                                                                                                                                     |
+| `ccoAiService`                 | `draftReply`, `extractFields`, `VALID_TONES`                                                     | — (rena funktioner)                                              | `draftReply(...), extractFields(...)`                                                                                                                                                                     |
 
 ### Frontend-patchar (preview/customers)
 
@@ -74,17 +86,27 @@ while((m=re.exec(src))){const p=m[2];if(seen.has(p))continue;seen.add(p);
 ## Konsekvens för server.js-refaktorn
 
 Routes vars store saknas är **redan döda** — att flytta dem ur monoliten är
-beteende-neutralt men ger ingen funktion. Två redan mergade flyttar berör döda
-stores: **#217 cco-vendors** (`ccoVendorRegisterStore`). cco-audit (#216) är
-**inte** drabbad (`ccoAuditLog` finns i `src/security/`).
+beteende-neutralt men ger ingen funktion förrän modulen byggs. Redan mergad flytt
+som rör en död store: **#217 cco-vendors** (`ccoVendorRegisterStore`). cco-audit
+(#216) är **inte** drabbad (`ccoAuditLog` finns i `src/security/`).
 
-**Rekommendation:** committa de saknade modulerna (sannolikt lokalt på Mac)
-INNAN fler cco-domäner flyttas eller live-verifieras. Domäner vars moduler
-_finns_ i repot kan flyttas vidare under tiden.
+## Beslut: bygga eller städa
 
-## Att göra (Codex/owner, lokalt)
+Eftersom modulerna aldrig funnits är detta **inte** ett commit-problem. Två vägar:
 
-1. Kör verifierings-snutten ovan lokalt — bekräfta vilka filer som finns på Mac.
-2. `git add` + committa de saknade `src/ops/cco*`-modulerna + 3 frontend-patcharna.
-3. Kör smoke/`ops:suite:strict` — bekräfta att CCO-features faktiskt monterar.
-4. Bocka av här allteftersom moduler kommer in.
+1. **Bygg modulerna** enligt byggspec ovan — stort, GDPR/consent/compliance-känsligt,
+   kräver egna datamodeller och flera iterationer. Varje store behöver en
+   JSON-fil-backad implementation med metoderna i specen + `data/cco-*.json`.
+2. **Städa bort de döda blocken** ur `server.js` — ~20 IIFE-block som ändå aldrig
+   monterar. Reducerar hundratals rader spök-kod; reversibelt via git. Lämnar
+   features ofunktionella men gör monoliten ärlig.
+
+Vald väg dokumenteras här när den bestäms.
+
+## Verifiera när moduler kommer in
+
+```bash
+# 0 KVAR = alla resolvar; kör ops:suite:strict för montering
+node -e '…' # (snutt under "Bevis")
+npm run ops:suite:strict
+```
