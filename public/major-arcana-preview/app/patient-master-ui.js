@@ -1349,6 +1349,34 @@
     // via den befintliga scrollV12WorkspaceModule. Presentation/navigation —
     // ingen ny write-handler. (body återskapas per öppning → ingen dubbelbind.)
     body.addEventListener('click', (event) => {
+      // Nuläge "Redigera" → öppna edit-dialogen.
+      const editOpen = event.target.closest('[data-v12-edit-open]');
+      if (editOpen && body.contains(editOpen)) {
+        const dlg = body.querySelector('[data-v12-edit-dialog]');
+        if (dlg && typeof dlg.showModal === 'function') {
+          event.preventDefault();
+          try {
+            dlg.showModal();
+          } catch (_e) {
+            /* redan öppen */
+          }
+        }
+        return;
+      }
+      const editCancel = event.target.closest('[data-v12-edit-cancel]');
+      if (editCancel && body.contains(editCancel)) {
+        const dlg = editCancel.closest('dialog');
+        if (dlg) {
+          event.preventDefault();
+          try {
+            dlg.close();
+          } catch (_e) {
+            /* noop */
+          }
+        }
+        return;
+      }
+      // "Förbered besök" / Åtgärder-meny → scrolla till V12-modul.
       const trigger = event.target.closest('[data-v12-scroll-module]');
       if (!trigger || !body.contains(trigger)) return;
       const moduleName = trigger.getAttribute('data-v12-scroll-module');
@@ -1357,6 +1385,51 @@
       const menu = trigger.closest('details[open]');
       if (menu) menu.removeAttribute('open');
       scrollV12WorkspaceModule(body, moduleName);
+    });
+    // Redigera-formulär → PUT /cco-patient-master/patient (merge-upsert, ingen
+    // dataförlust). Optimistisk uppdatering av synliga fält + bakgrundsrefresh.
+    body.addEventListener('submit', async (event) => {
+      const form = event.target.closest('[data-v12-edit-form]');
+      if (!form || !body.contains(form)) return;
+      event.preventDefault();
+      const patientId = form.getAttribute('data-patient-id');
+      if (!patientId) return;
+      const dialog = form.closest('dialog');
+      const statusEl = form.querySelector('[data-v12-edit-status]');
+      const saveBtn = form.querySelector('.v12-workspace__edit-save');
+      const data = new FormData(form);
+      const payload = {
+        id: patientId,
+        displayName: String(data.get('displayName') || '').trim(),
+        primaryPhone: String(data.get('primaryPhone') || '').trim(),
+        primaryEmail: String(data.get('primaryEmail') || '').trim(),
+      };
+      if (saveBtn) saveBtn.disabled = true;
+      if (statusEl) statusEl.textContent = 'Sparar…';
+      try {
+        await apiRequest('/api/v1/cco-patient-master/patient', { method: 'PUT', body: payload });
+        if (statusEl) statusEl.textContent = 'Sparat ✓';
+        const nameEl = body.querySelector('.v12-workspace__cs-name');
+        if (nameEl && payload.displayName) nameEl.textContent = payload.displayName;
+        const contactEl = body.querySelector('.v12-workspace__cs-contact');
+        if (contactEl) {
+          const bits = [payload.primaryPhone, payload.primaryEmail].filter(Boolean);
+          if (bits.length) contactEl.textContent = bits.join(' · ');
+        }
+        window.setTimeout(() => {
+          try {
+            dialog && dialog.close();
+          } catch (_e) {
+            /* noop */
+          }
+        }, 650);
+        void loadPatientDetail(patientId);
+      } catch (error) {
+        if (statusEl)
+          statusEl.textContent = error && error.message ? error.message : 'Kunde inte spara.';
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+      }
     });
     const journeyHandlers = buildV9JourneyHandlers(body, ctx);
     window.CcoV9CustomersParity?.bindDossierScroll?.(body, journeyHandlers);
