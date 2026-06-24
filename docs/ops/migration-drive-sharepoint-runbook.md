@@ -5,13 +5,13 @@ Tenant: `hair-tp-clinic`
 
 ## Översikt
 
-| ID | Uppgift | Kommando | Klart när |
-|----|---------|----------|-----------|
-| C1 | Drive API scan | `npm run migration:preflight-drive` → `npm run migration:scan-drive-api` | `migration-index.json` har ≥20 profiler |
-| C2 | Bulk journalimport | `npm run migration:import-journals` | Journal store har `historical_import`-poster |
-| C3 | Spot-check | `npm run migration:spot-check` | ≥20 overlap, 0 avvikelser i sample |
-| C4 | SharePoint archive | `npm run migration:sync-sharepoint` | `verify:sharepoint-archive` grön |
-| C5 | PDL + EU region | `docs/legal/pdl-mdr-assessment.md` §6 | Frankfurt dokumenterad |
+| ID  | Uppgift            | Kommando                                                                 | Klart när                                    |
+| --- | ------------------ | ------------------------------------------------------------------------ | -------------------------------------------- |
+| C1  | Drive API scan     | `npm run migration:preflight-drive` → `npm run migration:scan-drive-api` | `migration-index.json` har ≥20 profiler      |
+| C2  | Bulk journalimport | `npm run migration:import-journals`                                      | Journal store har `historical_import`-poster |
+| C3  | Spot-check         | `npm run migration:spot-check`                                           | ≥20 overlap, 0 avvikelser i sample           |
+| C4  | SharePoint archive | `npm run migration:sync-sharepoint`                                      | `verify:sharepoint-archive` grön             |
+| C5  | PDL + EU region    | `docs/legal/pdl-mdr-assessment.md` §6                                    | Frankfurt dokumenterad                       |
 
 ## Förutsättningar
 
@@ -102,6 +102,11 @@ npm run verify:sharepoint-archive
 Manifest i repo: `docs/migration/sharepoint-manifest.json`  
 Fysisk arkivkopia: `~/Code/MA-Archive/sharepoint/`
 
+Obs: C4-kommandot ovan synkar arkivet från GitHub source of truth till `MA-Archive`.
+Det är inte en live-nedladdning från SharePoint. Ny read-only SharePoint template-sync
+ska hanteras som separat projekt enligt
+`docs/strategy/SHAREPOINT-TEMPLATE-SYNC-PROJECT.md`.
+
 ### 8. Prod verify
 
 ```bash
@@ -122,14 +127,14 @@ ARCANA_OWNER_TOKEN=... npm run verify:migration-prod
 
 ## Felsökning
 
-| Symptom | Åtgärd |
-|---------|--------|
-| `Drive API saknar konfiguration` | Kör preflight, kontrollera env |
-| `403 insufficientPermissions` | Dela Drive-mapp med service account email |
-| Spot-check overlap < 20 | Cliento personnummer matchar inte Drive-mappstruktur — kontrollera mappnamn `Namn YYYYMMDD-XXXX` |
-| `403` på migration/status | Använd OWNER-token, inte STAFF |
-| `404` på `/cco-patient-master/file` | Index OK men zip saknas — konfigurera Drive API eller `ARCANA_MIGRATION_ROOT` |
-| SharePoint archive saknas | `npm run migration:sync-sharepoint` |
+| Symptom                             | Åtgärd                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `Drive API saknar konfiguration`    | Kör preflight, kontrollera env                                                                   |
+| `403 insufficientPermissions`       | Dela Drive-mapp med service account email                                                        |
+| Spot-check overlap < 20             | Cliento personnummer matchar inte Drive-mappstruktur — kontrollera mappnamn `Namn YYYYMMDD-XXXX` |
+| `403` på migration/status           | Använd OWNER-token, inte STAFF                                                                   |
+| `404` på `/cco-patient-master/file` | Index OK men zip saknas — konfigurera Drive API eller `ARCANA_MIGRATION_ROOT`                    |
+| SharePoint archive saknas           | `npm run migration:sync-sharepoint`                                                              |
 
 ## Relaterat
 
