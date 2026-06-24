@@ -54,6 +54,18 @@
           '"><span aria-hidden="true">✉</span> Mejl</a>'
       );
     }
+    // Facit-parity: "Ny bokning"-snabbknapp. Återanvänder den BEFINTLIGA
+    // delegerade ord48-kalenderhandlern (data-kk-ord48-open-calendar — samma
+    // som sticky-barens "Boka nästa", redan wirad i V12-delegeringen). INGEN ny
+    // handler. patientId från boknings-adaptern; saknas pid → knappen utelämnas.
+    var nyBokningPid = bookings && bookings.patientId ? bookings.patientId : '';
+    if (nyBokningPid) {
+      actions.push(
+        '<button type="button" class="v12-workspace__cs-action" data-kk-ord48-open-calendar data-patient-id="' +
+          esc(nyBokningPid) +
+          '"><span aria-hidden="true">📅</span> Ny bokning</button>'
+      );
+    }
     var actionsRow = actions.length
       ? '<div class="v12-workspace__cs-actions">' + actions.join('') + '</div>'
       : '';
