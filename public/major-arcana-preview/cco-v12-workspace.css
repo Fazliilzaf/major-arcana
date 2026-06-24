@@ -854,6 +854,99 @@ html[data-cco-mobile-shell="on"]
   color: var(--v12-amber);
 }
 
+/* Facit-parity: hero-CTA "Förbered besök" + "Åtgärder ▾"-meny */
+.v12-workspace__cs-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.v12-workspace__cs-prepare {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 9px;
+  border: 1px solid var(--v12-amber);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.v12-workspace__cs-prepare:hover {
+  filter: brightness(1.04);
+}
+
+.v12-workspace__cs-menu {
+  position: relative;
+}
+
+.v12-workspace__cs-menu-trigger {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__cs-menu-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.v12-workspace__cs-menu[open] .v12-workspace__cs-menu-trigger {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__cs-menu-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--v12-card-border);
+  background: #fffdfa;
+  box-shadow: 0 14px 38px rgba(34, 26, 19, 0.18);
+}
+
+.v12-workspace__cs-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.v12-workspace__cs-menu-item:hover {
+  background: rgba(200, 130, 30, 0.1);
+  color: var(--v12-amber);
+}
+
 .v12-workspace__cs-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
