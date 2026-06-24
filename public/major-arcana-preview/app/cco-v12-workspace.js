@@ -1061,11 +1061,31 @@
         .join('') +
       '</div>';
 
+    // Facit-parity: före/efter-jämför-rad (ur fas-kategori) + gap-notis.
+    var compareRow = photos.compare
+      ? '<div class="v12-workspace__photo-compare">' +
+        '<span class="v12-workspace__photo-compare-label">Före/efter-par: <b>' +
+        esc(photos.compare.before.dateLabel || 'Före') +
+        '</b> ↔ <b>' +
+        esc(photos.compare.after.dateLabel || 'Efter') +
+        '</b></span>' +
+        '<a class="v12-workspace__photo-compare-cta" href="' +
+        esc(photos.compare.before.href) +
+        '" target="_blank" rel="noopener">Jämför →</a>' +
+        '</div>'
+      : '';
+    var gapNotice = photos.gap
+      ? '<div class="v12-workspace__photo-gap"><span aria-hidden="true">⚠</span> ' +
+        esc(photos.gap) +
+        '</div>'
+      : '';
+
     return (
       '<section class="v12-workspace__module v12-workspace__photos" data-v12-module="photos" aria-label="Bilder">' +
       head +
       grid +
-      '<div class="v12-workspace__health-muted">Före/efter-etiketter &amp; jämförelsevy: visas när bild-metadata finns.</div>' +
+      compareRow +
+      gapNotice +
       '</section>'
     );
   }
