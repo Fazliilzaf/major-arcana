@@ -39995,6 +39995,40 @@
             /* tyst */
           }
         },
+        // ── Svarstudio (P2) — wired mot draft-state-machine + gateway. ──
+        // Skicka (→ sent) anropas ALDRIG härifrån; det är owner-blockerat i
+        // backend och låst i UI:t.
+        async studioGenerate(payload) {
+          return apiRequest("/api/v1/cco-comm/drafts/generate-reply", {
+            method: "POST",
+            body: payload || {},
+          });
+        },
+        async studioSave(payload) {
+          const draftId = asText(payload?.draftId);
+          if (draftId) {
+            return apiRequest(`/api/v1/cco-comm/drafts/${encodeURIComponent(draftId)}`, {
+              method: "PATCH",
+              body: { subject: payload?.subject, body: payload?.body },
+            });
+          }
+          return apiRequest("/api/v1/cco-comm/drafts", {
+            method: "POST",
+            body: {
+              tenantId: payload?.tenantId,
+              customerId: payload?.customerId,
+              subject: payload?.subject,
+              body: payload?.body,
+              channel: "email",
+            },
+          });
+        },
+        async studioTransition(draftId, status) {
+          return apiRequest(
+            `/api/v1/cco-comm/drafts/${encodeURIComponent(asText(draftId))}/transition`,
+            { method: "POST", body: { status: asText(status) } }
+          );
+        },
         action(name) {
           // P0b: skrivande actions (Svarstudio/skicka/bokning) är inerta tills
           // owner-GO (P2/P3). Visa bara en notis, ingen sido-effekt.

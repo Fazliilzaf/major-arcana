@@ -11138,6 +11138,7 @@ const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
 const { createCcoCustomerCommRouter } = require('./src/routes/ccoCustomerComm');
+const { createCcoCommDraftRouter } = require('./src/routes/ccoCommDraft');
 const { createCcoStaffRouter } = require('./src/routes/ccoStaff');
 const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
 const { createCcoPatientPaymentsRouter } = require('./src/routes/ccoPatientPayments');
@@ -13276,6 +13277,21 @@ process.once('SIGTERM', () => {
       commDraftStore: app.locals?.ccoCommDraftStore || null,
       sendActionStore: ccoSendActionStore,
       auditLog: ccoAuditLog,
+    })
+  );
+
+  // Svarstudio v2 (P2): utkast-CRUD + gateway-styrd AI-generering.
+  // Live-utskick (→ sent) är hårt blockerat (owner-mandat); se router.
+  app.use(
+    '/api/v1',
+    createCcoCommDraftRouter({
+      config,
+      requireAuth: auth.requireAuth,
+      commDraftStore: app.locals?.ccoCommDraftStore || null,
+      executionGateway,
+      openai,
+      auditLog: ccoAuditLog,
+      appLocals: app.locals,
     })
   );
 
