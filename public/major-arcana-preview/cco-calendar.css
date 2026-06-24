@@ -1208,4 +1208,623 @@
     background: #14b8a6;
     box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.15);
   }
+
+  /* ════════════════════════════════════════════════════════════════
+     CCO KALENDER v8 — P1 (kärna): skal, toolbar, status-bar, veckogrid.
+     Portad från calendar-mockup-v8.html. Scope: .cco-cal-v8-surface.
+     Endast utseende — datalager + data-cal-*-hooks oförändrade.
+     ════════════════════════════════════════════════════════════════ */
+  .cco-cal-v8-surface {
+    --v8-brand: #2b251f;
+    --v8-text-secondary: rgba(70, 60, 50, 0.62);
+    --v8-text-tertiary: #8a8174;
+    --v8-success: #4a8268;
+    --v8-warning: #c8821e;
+    --v8-danger: #b94a4a;
+    --v8-info: #4a7ba8;
+    --v8-accent: #c8821e;
+    --v8-accent-soft: rgba(200, 130, 30, 0.14);
+    --v8-accent-glow: rgba(200, 130, 30, 0.22);
+    --v8-conflict: #d8526b;
+    --v8-panel-top: rgba(250, 246, 242, 0.94);
+    --v8-panel-bottom: rgba(244, 238, 233, 0.86);
+    --v8-card-top: rgba(255, 255, 255, 0.94);
+    --v8-card-bottom: rgba(247, 241, 236, 0.86);
+    --v8-card-shadow: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    --v8-card-shadow-hover:
+      0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    --rail-fazli: #7c3aed;
+    --rail-egzona: #a37433;
+    --rail-contact: #2596a8;
+    --rail-info: #84756b;
+    --calendar-hour-h: 62px;
+    position: relative;
+    border-radius: 28px;
+    padding: 18px 22px 16px;
+    background: linear-gradient(180deg, var(--v8-panel-top), var(--v8-panel-bottom));
+    box-shadow:
+      0 32px 70px rgba(93, 74, 60, 0.1),
+      0 14px 32px rgba(156, 145, 166, 0.06),
+      0 0 0 1px rgba(255, 255, 255, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    overflow: hidden;
+  }
+  /* skalet äger nu padding via surface; nollställ workstation-padding */
+  #cco-desktop-calendar.cco-cal-workstation {
+    padding: 0;
+    gap: 0;
+    background: transparent;
+  }
+  /* Scroll-säkerhet: i fullscreen-kalendern är höjden låst till 100dvh med
+   * overflow:hidden på flera nivåer. v8-ytan blir en flex-kolumn som fyller
+   * höjden; toolbar/status/filter är fixa och griden scrollar internt. */
+  .cco-cal-v8-surface {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: 100%;
+  }
+  .cco-cal-v8-surface .calendar-toolbar,
+  .cco-cal-v8-surface .calendar-status-bar,
+  .cco-cal-v8-surface .cco-cal-filter-bar {
+    flex: 0 0 auto;
+  }
+  .cco-cal-v8-surface .calendar-content {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .cco-cal-v8-surface .cco-cal-grid-wrap {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cco-cal-v8-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.6), transparent 24%),
+      radial-gradient(circle at 56% 10%, rgba(255, 236, 222, 0.32), transparent 24%),
+      radial-gradient(circle at 88% 14%, rgba(255, 228, 238, 0.28), transparent 22%);
+    pointer-events: none;
+  }
+
+  /* ─── Toolbar ─── */
+  .cco-cal-v8-surface .calendar-toolbar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 12px;
+    box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  }
+  .cco-cal-v8-surface .calendar-toolbar-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .cco-cal-v8-surface .calendar-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+  .cco-cal-v8-surface .calendar-toolbar-kicker {
+    color: var(--v8-text-tertiary);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .cco-cal-v8-surface .calendar-mark {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--v8-accent);
+    background: var(--v8-accent-soft);
+    border-radius: 7px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 2px 6px var(--v8-accent-glow);
+  }
+  .cco-cal-v8-surface .calendar-mark svg {
+    width: 13px;
+    height: 13px;
+  }
+  .cco-cal-v8-surface .calendar-toolbar h2 {
+    margin: 0;
+    color: #17191f;
+    font-size: 18px;
+    line-height: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cco-cal-v8-surface .segment-group {
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.05);
+  }
+  .cco-cal-v8-surface .segment-tab {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    min-height: 24px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--v8-text-secondary);
+    transition: color 0.12s ease;
+  }
+  .cco-cal-v8-surface .segment-tab:hover {
+    color: var(--v8-brand);
+  }
+  .cco-cal-v8-surface .segment-tab.active {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 238, 232, 0.9));
+    color: var(--v8-brand);
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  }
+  .cco-cal-v8-surface .nav-btn {
+    appearance: none;
+    cursor: pointer;
+    min-height: 26px;
+    min-width: 26px;
+    padding: 0 9px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+    color: var(--v8-brand);
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transition: transform 0.1s ease;
+  }
+  .cco-cal-v8-surface .nav-btn:hover {
+    transform: translateY(-1px);
+  }
+  .cco-cal-v8-surface .nav-btn--today {
+    font-size: 11px;
+    padding: 0 12px;
+  }
+
+  /* ─── Status-bar ─── */
+  .cco-cal-v8-surface .calendar-status-bar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0 12px;
+    box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .cco-cal-v8-surface .calendar-status-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .cco-cal-v8-surface .calendar-status-bar .spacer {
+    flex: 1 0 8px;
+  }
+  .cco-cal-v8-surface .week-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+    color: var(--v8-brand);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    flex-shrink: 0;
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  }
+  .cco-cal-v8-surface .week-pill .num {
+    color: var(--v8-accent);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .cco-cal-v8-surface .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 22px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.84);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+    font-size: 10.5px;
+    line-height: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  }
+  .cco-cal-v8-surface .status-pill strong {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .cco-cal-v8-surface .status-pill--success {
+    color: var(--v8-success);
+  }
+  .cco-cal-v8-surface .status-pill--warning {
+    color: var(--v8-warning);
+  }
+  .cco-cal-v8-surface .status-pill--info {
+    color: var(--v8-info);
+  }
+  .cco-cal-v8-surface .status-pill--neutral {
+    color: var(--v8-text-tertiary);
+  }
+  .cco-cal-v8-surface .status-pill--conflict {
+    color: var(--v8-conflict);
+  }
+
+  /* ─── Veckogrid ─── */
+  .cco-cal-v8-surface .calendar-week {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 44px repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    padding-top: 6px;
+  }
+  .cco-cal-v8-surface .time-col {
+    position: relative;
+    padding-top: 36px;
+  }
+  .cco-cal-v8-surface .time-tick {
+    position: relative;
+    height: var(--calendar-hour-h);
+    font-size: 9.5px;
+    color: var(--v8-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    padding-right: 8px;
+    text-align: right;
+    letter-spacing: 0.04em;
+  }
+  .cco-cal-v8-surface .time-tick::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -2px;
+    width: 5px;
+    height: 1px;
+    background: rgba(132, 117, 107, 0.25);
+  }
+  .cco-cal-v8-surface .day-col {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .cco-cal-v8-surface .day-head {
+    height: 32px;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 4px 4px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(132, 117, 107, 0.14);
+    cursor: pointer;
+    background: none;
+  }
+  .cco-cal-v8-surface .day-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--v8-text-tertiary);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .cco-cal-v8-surface .day-date {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--v8-brand);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .cco-cal-v8-surface .day-col.today .day-head {
+    border-bottom-color: var(--v8-accent);
+  }
+  .cco-cal-v8-surface .day-col.today .day-date {
+    color: var(--v8-accent);
+    position: relative;
+  }
+  .cco-cal-v8-surface .day-col.today .day-date::after {
+    content: "";
+    position: absolute;
+    inset: -3px -7px;
+    border-radius: 999px;
+    background: var(--v8-accent-soft);
+    z-index: -1;
+  }
+  .cco-cal-v8-surface .day-slots {
+    position: relative;
+    height: calc(
+      (var(--calendar-hour-end, 18) - var(--calendar-hour-start, 8)) * var(--calendar-hour-h)
+    );
+    border-radius: 12px;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.32) 0,
+      rgba(255, 255, 255, 0.32) calc(var(--calendar-hour-h) - 1px),
+      rgba(132, 117, 107, 0.1) calc(var(--calendar-hour-h) - 1px),
+      rgba(132, 117, 107, 0.1) var(--calendar-hour-h)
+    );
+    box-shadow: inset 0 0 0 1px rgba(132, 117, 107, 0.06);
+  }
+  .cco-cal-v8-surface .day-col.today .day-slots {
+    background:
+      repeating-linear-gradient(
+        135deg,
+        rgba(200, 130, 30, 0.03) 0,
+        rgba(200, 130, 30, 0.03) 6px,
+        transparent 6px,
+        transparent 12px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(252, 233, 240, 0.35) 0,
+        rgba(252, 233, 240, 0.35) calc(var(--calendar-hour-h) - 1px),
+        rgba(200, 130, 30, 0.18) calc(var(--calendar-hour-h) - 1px),
+        rgba(200, 130, 30, 0.18) var(--calendar-hour-h)
+      );
+    box-shadow:
+      inset 0 0 0 1px rgba(200, 130, 30, 0.22),
+      0 0 24px rgba(200, 130, 30, 0.08);
+  }
+  .cco-cal-v8-surface .day-slots.is-drop-target {
+    box-shadow: inset 0 0 0 2px var(--v8-accent);
+  }
+
+  /* now-line */
+  .cco-cal-v8-surface .now-line {
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--v8-accent), #e8a04e);
+    box-shadow: 0 0 8px var(--v8-accent-glow);
+    border-radius: 999px;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .cco-cal-v8-surface .now-line::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    background: var(--v8-accent);
+    border-radius: 999px;
+    transform: translateY(-50%);
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.9),
+      0 0 10px var(--v8-accent-glow);
+  }
+  .cco-cal-v8-surface .now-line .now-label {
+    position: absolute;
+    right: 6px;
+    top: -8px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: white;
+    background: var(--v8-accent);
+    padding: 1px 6px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px var(--v8-accent-glow);
+  }
+
+  /* ─── Bokning ─── */
+  .cco-cal-v8-surface .booking {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    text-align: left;
+    appearance: none;
+    padding: 5px 7px 5px 10px;
+    border-radius: 9px;
+    background: linear-gradient(180deg, var(--v8-card-top), var(--v8-card-bottom));
+    box-shadow: var(--v8-card-shadow);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    cursor: grab;
+    overflow: hidden;
+    z-index: 2;
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .cco-cal-v8-surface .booking:active {
+    cursor: grabbing;
+  }
+  .cco-cal-v8-surface .booking:hover {
+    transform: translateY(-1px);
+    z-index: 8;
+    overflow: visible;
+    box-shadow: var(--v8-card-shadow-hover);
+  }
+  .cco-cal-v8-surface .booking.is-dragging {
+    opacity: 0.5;
+  }
+  .cco-cal-v8-surface .booking.is-selected {
+    box-shadow:
+      0 0 0 2px var(--v8-accent),
+      var(--v8-card-shadow-hover);
+    z-index: 9;
+  }
+  .cco-cal-v8-surface .booking::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 5px;
+    bottom: 5px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--rail-color, var(--rail-info));
+    box-shadow: 0 0 6px var(--rail-color, var(--rail-info));
+    opacity: 0.85;
+  }
+  .cco-cal-v8-surface .booking::after {
+    content: "";
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--status-color, var(--v8-success));
+    box-shadow:
+      0 0 0 2px white,
+      0 0 6px var(--status-color, var(--v8-success));
+  }
+  .cco-cal-v8-surface .booking-time {
+    font-size: 9px;
+    color: var(--v8-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 14px;
+  }
+  .cco-cal-v8-surface .booking-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--v8-brand);
+    margin-top: 1px;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+    padding-right: 14px;
+  }
+  .cco-cal-v8-surface .booking-sub {
+    font-size: 10px;
+    color: var(--v8-text-secondary);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 14px;
+  }
+  /* source-rail + status-color/andning */
+  .cco-cal-v8-surface .booking[data-source="fazli"] {
+    --rail-color: var(--rail-fazli);
+  }
+  .cco-cal-v8-surface .booking[data-source="egzona"] {
+    --rail-color: var(--rail-egzona);
+  }
+  .cco-cal-v8-surface .booking[data-source="contact"] {
+    --rail-color: var(--rail-contact);
+  }
+  .cco-cal-v8-surface .booking[data-status="confirmed"] {
+    --status-color: var(--v8-success);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(238, 247, 242, 0.78));
+  }
+  .cco-cal-v8-surface .booking[data-status="tentative"] {
+    --status-color: var(--v8-warning);
+    background: linear-gradient(180deg, rgba(255, 253, 247, 0.96), rgba(255, 243, 221, 0.82));
+  }
+  .cco-cal-v8-surface .booking[data-status="followup"] {
+    --status-color: var(--v8-info);
+    background: linear-gradient(180deg, rgba(248, 252, 255, 0.96), rgba(228, 240, 250, 0.82));
+  }
+  .cco-cal-v8-surface .booking[data-status="cancelled"] {
+    --status-color: var(--v8-danger);
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+  .cco-cal-v8-surface .booking.is-conflict {
+    --status-color: var(--v8-conflict);
+    box-shadow:
+      0 0 0 1.5px var(--v8-conflict),
+      var(--v8-card-shadow);
+  }
+
+  /* ─── Ledig lucka + lunch ─── */
+  .cco-cal-v8-surface .empty-slot {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    border-radius: 8px;
+    border: 1.5px dashed rgba(132, 117, 107, 0.28);
+    background: rgba(255, 255, 255, 0.32);
+    color: var(--v8-text-tertiary);
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+  .cco-cal-v8-surface .empty-slot:hover {
+    background: rgba(255, 247, 234, 0.85);
+    color: var(--v8-accent);
+    border-color: var(--v8-accent);
+    border-style: solid;
+  }
+  .cco-cal-v8-surface .lunch-block {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    border-radius: 7px;
+    padding: 4px 8px 4px 10px;
+    background:
+      repeating-linear-gradient(
+        135deg,
+        rgba(132, 117, 107, 0.08),
+        rgba(132, 117, 107, 0.08) 4px,
+        transparent 4px,
+        transparent 9px
+      ),
+      rgba(245, 239, 230, 0.85);
+    color: var(--v8-text-tertiary);
+    font-size: 9.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px dashed rgba(132, 117, 107, 0.22);
+    z-index: 1;
+  }
 }

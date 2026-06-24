@@ -1,12 +1,12 @@
-'use strict';
+"use strict";
 
 (function initBookingLazyLoad() {
-  const VERSION = 'build-cal-p4-fullscreen';
+  const VERSION = "build-cal-v8-p1-desktop";
   const CSS_HREF = `./cco-calendar.css?v=${VERSION}`;
   const SCRIPTS = Object.freeze({
     shared: `./booking-calendar-shared.js?v=${VERSION}`,
-    mobileShell: './booking-mobile-shell.js?v=build-mobile-shell-e',
-    mobileSlot: './booking-mobile-slot-picker.js?v=build-mobile-shell-e',
+    mobileShell: "./booking-mobile-shell.js?v=build-mobile-shell-e",
+    mobileSlot: "./booking-mobile-slot-picker.js?v=build-mobile-shell-e",
     mobileDay: `./booking-mobile-calendar-day.js?v=${VERSION}`,
     desktopWeek: `./booking-desktop-week.js?v=${VERSION}`,
   });
@@ -15,19 +15,19 @@
 
   function readInitialView() {
     try {
-      return String(new URLSearchParams(window.location.search).get('view') || 'customers').trim();
+      return String(new URLSearchParams(window.location.search).get("view") || "customers").trim();
     } catch {
-      return 'customers';
+      return "customers";
     }
   }
 
   function isInboxView(view) {
-    return view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue';
+    return view === "conversations" || view === "inbox" || view === "home" || view === "queue";
   }
 
   function isMobileViewport() {
     try {
-      return window.matchMedia('(max-width: 768px)').matches;
+      return window.matchMedia("(max-width: 768px)").matches;
     } catch {
       return false;
     }
@@ -35,7 +35,7 @@
 
   function isTabletViewport() {
     try {
-      return window.matchMedia('(min-width: 768px) and (max-width: 1023px)').matches;
+      return window.matchMedia("(min-width: 768px) and (max-width: 1023px)").matches;
     } catch {
       return false;
     }
@@ -47,8 +47,8 @@
 
   function injectStylesheet(href) {
     if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
     link.href = href;
     document.head.appendChild(link);
   }
@@ -59,7 +59,7 @@
         resolve();
         return;
       }
-      const script = document.createElement('script');
+      const script = document.createElement("script");
       script.src = src;
       script.async = false;
       script.onload = () => resolve();
@@ -69,7 +69,7 @@
   }
 
   function scheduleIdle(fn, timeoutMs) {
-    if (typeof window.requestIdleCallback === 'function') {
+    if (typeof window.requestIdleCallback === "function") {
       window.requestIdleCallback(fn, { timeout: timeoutMs });
       return;
     }
@@ -113,7 +113,9 @@
     if (window.__ARCANA_INBOX_SCRIPTS_PROMISE__) {
       return window.__ARCANA_INBOX_SCRIPTS_PROMISE__;
     }
-    window.__ARCANA_INBOX_SCRIPTS_PROMISE__ = injectScript('./cco-mobile-queue.js?v=build-mobile-shell-e')
+    window.__ARCANA_INBOX_SCRIPTS_PROMISE__ = injectScript(
+      "./cco-mobile-queue.js?v=build-mobile-shell-e"
+    )
       .then(() => {
         window.__ARCANA_INBOX_SCRIPTS_READY__ = true;
       })
@@ -126,29 +128,29 @@
 
   function prefetchBookingShared() {
     if (document.querySelector(`link[rel="prefetch"][href="${SCRIPTS.shared}"]`)) return;
-    const link = document.createElement('link');
-    link.rel = 'prefetch';
-    link.as = 'script';
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.as = "script";
     link.href = SCRIPTS.shared;
     document.head.appendChild(link);
   }
 
   function watchBookingOverlay() {
-    const canvas = document.querySelector('.preview-canvas');
+    const canvas = document.querySelector(".preview-canvas");
     if (!canvas) return;
     const observer = new MutationObserver(() => {
-      if (canvas.classList.contains('is-booking-open')) {
+      if (canvas.classList.contains("is-booking-open")) {
         void window.__ARCANA_ENSURE_BOOKING_SCRIPTS__().catch(() => {});
       }
     });
-    observer.observe(canvas, { attributes: true, attributeFilter: ['class'] });
+    observer.observe(canvas, { attributes: true, attributeFilter: ["class"] });
   }
 
   function boot() {
     const view = readInitialView();
-    if (view === 'calendar') {
+    if (view === "calendar") {
       void window.__ARCANA_ENSURE_BOOKING_SCRIPTS__().catch((error) => {
-        console.warn('Kalender kunde inte laddas.', error);
+        console.warn("Kalender kunde inte laddas.", error);
       });
     } else if (!isInboxView(view)) {
       scheduleIdle(prefetchBookingShared, 3500);
@@ -156,8 +158,8 @@
     watchBookingOverlay();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
   } else {
     boot();
   }
