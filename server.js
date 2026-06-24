@@ -10921,7 +10921,7 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.get('/admin.html', (_req, res) => sendAdminHtml(res));
+// /admin.html flyttad till src/routes/admin.js (se ORGANISATION.md §4).
 
 // ════════════════════════════════════════════════════════════════════
 // Fas 27E (2026-05-18): server-side asset pipeline för major-arcana-preview
@@ -11110,6 +11110,7 @@ const { createExecutiveRouter } = require('./src/routes/executive');
 const { createOnboardingRouter } = require('./src/routes/onboarding');
 const { createDocsRouter } = require('./src/routes/docs');
 const { createPatientInformationRouter } = require('./src/routes/patientInformation');
+const { createAdminRouter } = require('./src/routes/admin');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -11459,39 +11460,10 @@ app.use(
   })
 );
 
-app.get('/admin', (req, res) => {
-  sendAdminHtml(res);
-});
-
-app.get('/admin/cmo/connectors', (_req, res) => {
-  res.redirect(302, '/admin#cmo-connectors');
-});
-
-app.get('/admin/cmo', (_req, res) => {
-  res.redirect(302, '/admin#cmo');
-});
-
-app.get('/cco', (req, res) => {
-  const query = String(req.url || '').includes('?')
-    ? String(req.url).slice(String(req.url).indexOf('?'))
-    : '';
-  res.redirect(302, `/admin${query}#cco`);
-});
-
-app.get('/unanswered', (req, res) => {
-  sendAdminHtml(res);
-});
-
-app.get(['/ccp', '/admin/cco'], (req, res) => {
-  const query = String(req.url || '').includes('?')
-    ? String(req.url).slice(String(req.url).indexOf('?'))
-    : '';
-  res.redirect(302, `/admin${query}#cco`);
-});
-
-app.get('/admin/unanswered', (req, res) => {
-  res.redirect(302, '/unanswered');
-});
+// ─── ADMIN-SHELL + ALIAS-REDIRECTS ───
+// Routes flyttade till src/routes/admin.js (se ORGANISATION.md §4).
+// sendAdminHtml bor kvar i server.js och injiceras.
+app.use(createAdminRouter({ sendAdminHtml }));
 
 // FIX2: publik diag-endpoint — visar vilka ARCANA_*-env är satta + bootstrap-status
 app.get('/api/v1/_diag/env', (req, res) => {
