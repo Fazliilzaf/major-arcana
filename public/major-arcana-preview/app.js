@@ -39982,6 +39982,19 @@
           workspaceSourceOfTruth.setActiveLaneId(normalized);
           renderRuntimeConversationShell();
         },
+        openDossier(thread) {
+          // Säker läsning/navigering: öppnar V12-kunddossiéren för tråden via
+          // befintligt API (ingen ny skriv-väg). Faller tillbaka på e-post.
+          try {
+            window.ArcanaBookingCalendarActions?.openCustomerCard?.({
+              patientId: asText(thread?.customerId || thread?.patientId),
+              customerEmail: asText(thread?.customerEmail || thread?.from?.address),
+              customerName: asText(thread?.customerName || thread?.from),
+            });
+          } catch (_error) {
+            /* tyst */
+          }
+        },
         action(name) {
           // P0b: skrivande actions (Svarstudio/skicka/bokning) är inerta tills
           // owner-GO (P2/P3). Visa bara en notis, ingen sido-effekt.
