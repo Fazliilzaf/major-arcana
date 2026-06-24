@@ -1734,6 +1734,20 @@
         workspace.setAttribute('aria-hidden', 'true');
         workspace.style.setProperty('display', 'none', 'important');
       }
+      const v12RailContext = {
+        card,
+        journalEntries,
+        driveFiles,
+        patient: null,
+        occasionTimeline,
+      };
+      bindJournalPhotoOpenLinks(rail);
+      bindV9MockupDossierHandlers(rail, v12RailContext);
+      bindV9DossierCapabilityHandlers(rail);
+      ensureV9DossierDeepClosed();
+      void hydrateJournalPhotoElements(rail);
+      void hydratePatientFileImages(rail);
+      void hydrateGkMediaElements(rail);
       return true;
     }
     const referensMasterDetail = usesReferensMasterDetail();
@@ -5523,15 +5537,18 @@
   }
 
   function bindV9MockupDossierHandlers(root, ctx) {
-    if (!root || !isV9CustomersEnabled()) return;
-    bindV9Zone1Handlers(root, ctx);
-    const journeyHandlers = buildV9JourneyHandlers(root, ctx);
-    const referensKkref = isReferensKundkortRoot(root);
+    if (!root) return;
+    // #179: railen binds FÖRE V9-grinden så V12-kundytan isoleras och funkar
+    // även när V9-kunder är av. (Kommentaren bevarad från main vid konfliktlösning.)
     bindV12WorkspaceRailLauncher(root, ctx);
     // Kundklick → liten V11-dossier-rail FÖRST. Stor kundvy öppnas via
     // sektionsklick i railen (bindV12WorkspaceRailLauncher → openV12WorkspaceFromRail
     // med rätt modul → scrollar dit). Ingen auto-öppning (Fas-4-Hybrid borttagen
     // på begäran — liten rail ska komma upp först).
+    if (!isV9CustomersEnabled()) return;
+    bindV9Zone1Handlers(root, ctx);
+    const journeyHandlers = buildV9JourneyHandlers(root, ctx);
+    const referensKkref = isReferensKundkortRoot(root);
     if (root.querySelector('[data-kundkort-slide-over]')) {
       window.CcoV9CustomersParity?.bindKundkortSlideOver?.(root, journeyHandlers, ctx);
     } else {
