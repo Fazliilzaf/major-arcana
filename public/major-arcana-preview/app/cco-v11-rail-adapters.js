@@ -1018,25 +1018,46 @@
    *
    * @returns {{items:Array, count:number}}
    */
+  function photoDateLabel(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+  }
+
   function buildPhotosFromDriveFiles(driveFiles) {
     var media = toArray(driveFiles).filter(isRailMediaFile);
     var items = media
       .map(function (f) {
         var name = text(f.originalFileName || f.fileName || f.relativePath || f.name) || 'Foto';
         var nameLc = name.toLowerCase();
+        // Datum ur RIKTIG fil-metadata (capturedAt; fallback occasionContext.date).
+        var capturedAt =
+          text(f.capturedAt) ||
+          (f.occasionContext && text(f.occasionContext.date)) ||
+          text(f.modifiedTime) ||
+          '';
         return {
           id: text(f.id),
           name: name,
           href: railFileViewUrl(f),
           isImage: f.fileType === 'image' || IMG_EXT.test(nameLc),
+          capturedAt: capturedAt,
+          dateLabel: photoDateLabel(capturedAt),
         };
       })
       .filter(function (it) {
         return it.href;
-      })
-      .slice(0, 9);
-
-    return { items: items, count: items.length };
+      });
+    // Nyast först (foton med datum sorteras före datumlösa).
+    items.sort(function (a, b) {
+      return (Date.parse(b.capturedAt || '') || 0) - (Date.parse(a.capturedAt || '') || 0);
+    });
+    items = items.slice(0, 9);
+    var dated = items.filter(function (it) {
+      return it.dateLabel;
+    }).length;
+    return { items: items, count: items.length, dated: dated };
   }
 
   function fileExtLabel(name) {

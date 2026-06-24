@@ -994,10 +994,12 @@
    */
   function renderPhotosModule(photos) {
     var count = (photos && photos.count) || 0;
+    var dated = (photos && photos.dated) || 0;
+    var countLabel = count ? esc(String(count)) + (dated ? ' · nyast först' : '') : '';
     var head =
       '<header class="v12-workspace__module-head">' +
       '<div class="v12-workspace__kicker" data-v12-kicker="amber">BILDER · FÖRE–EFTER</div>' +
-      (count ? '<span class="v12-workspace__count">' + esc(String(count)) + '</span>' : '') +
+      (countLabel ? '<span class="v12-workspace__count">' + countLabel + '</span>' : '') +
       '</header>';
 
     if (!count) {
@@ -1043,6 +1045,9 @@
             esc(it.name) +
             '"><span class="v12-workspace__photo-thumb">' +
             thumbInner +
+            (it.dateLabel
+              ? '<span class="v12-workspace__photo-date">' + esc(it.dateLabel) + '</span>'
+              : '') +
             '</span><span class="v12-workspace__photo-name">' +
             esc(it.name) +
             '</span></a>'
