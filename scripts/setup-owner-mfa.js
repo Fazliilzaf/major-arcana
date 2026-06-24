@@ -23,6 +23,15 @@ function parseBoolean(value, fallback = false) {
   return fallback;
 }
 
+function parsePositiveInt(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function parseArgs(argv) {
   const args = {
     baseUrl: process.env.BASE_URL || 'http://localhost:3000',
@@ -37,6 +46,8 @@ function parseArgs(argv) {
     quietSecrets: parseBoolean(process.env.ARCANA_OWNER_MFA_QUIET_SECRETS, false),
     showRecoveryCodes: parseBoolean(process.env.ARCANA_OWNER_MFA_SHOW_RECOVERY_CODES, false),
     printToken: parseBoolean(process.env.ARCANA_OWNER_MFA_PRINT_TOKEN, false),
+    retryAttempts: parsePositiveInt(process.env.ARCANA_OWNER_MFA_SETUP_RETRY_ATTEMPTS, 1),
+    retryDelayMs: parsePositiveInt(process.env.ARCANA_OWNER_MFA_SETUP_RETRY_DELAY_MS, 1000),
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -113,9 +124,28 @@ function parseArgs(argv) {
       args.printToken = false;
       continue;
     }
+    if (item === '--retry-attempts') {
+      args.retryAttempts = parsePositiveInt(argv[index + 1], args.retryAttempts);
+      index += 1;
+      continue;
+    }
+    if (item === '--retry-delay-ms') {
+      args.retryDelayMs = parsePositiveInt(argv[index + 1], args.retryDelayMs);
+      index += 1;
+      continue;
+    }
   }
 
   return args;
+}
+
+function isRetryableSetupError(error) {
+  const status = Number(error?.status || error?.statusCode || 0);
+  if (status === 429 || status >= 500) return true;
+  const message = String(error?.message || error || '');
+  return /\b(ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|fetch failed|socket hang up)\b/i.test(
+    message
+  );
 }
 
 function generateTotpCode(secretRaw, stepOffset = 0) {
@@ -324,8 +354,7 @@ async function completeMfaFlow({
   };
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
+async function runSetup(args) {
   const baseUrl = normalizeBaseUrl(args.baseUrl);
   const email = normalizeText(args.email);
   const password = String(args.password || '');
@@ -429,6 +458,26 @@ async function main() {
 
   if (args.printToken) {
     process.stdout.write(`\nTOKEN=${token}\n`);
+  }
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const attempts = Math.max(1, args.retryAttempts);
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await runSetup(args);
+      return;
+    } catch (error) {
+      if (attempt >= attempts || !isRetryableSetupError(error)) {
+        throw error;
+      }
+      const delayMs = Math.max(100, args.retryDelayMs * attempt);
+      console.warn(
+        `⚠️ OWNER MFA setup fick temporärt fel (${error?.message || error}); retry ${attempt + 1}/${attempts} om ${delayMs} ms.`
+      );
+      await sleep(delayMs);
+    }
   }
 }
 
