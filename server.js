@@ -105,38 +105,13 @@ let ccoAuditLog = null;
 try {
   const { createCcoAuditLog } = require('./src/security/ccoAuditLog');
   const { requireAnyRole, attachRole } = require('./src/security/ccoRbac');
+  const { createCcoAuditRouter } = require('./src/routes/ccoAudit');
   ccoAuditLog = createCcoAuditLog({
     filePath: path.join(__dirname, 'data', 'cco-audit.jsonl'),
   });
 
-  // GET /api/v1/cco-audit — bara owner+revisor
-  app.get('/api/v1/cco-audit', attachRole, requireAnyRole(['owner', 'revisor']), (req, res) => {
-    const items = ccoAuditLog.query({
-      limit: Number(req.query.limit) || 100,
-      since: req.query.since || null,
-      action: req.query.action || null,
-      role: req.query.role || null,
-      targetId: req.query.targetId || null,
-    });
-    res.json({ count: items.length, items, stats: ccoAuditLog.stats() });
-  });
-
-  // POST /api/v1/cco-audit — interna systemet kan logga
-  const express = require('express');
-  app.post('/api/v1/cco-audit', attachRole, express.json({ limit: '8kb' }), (req, res) => {
-    const entry = ccoAuditLog.append({
-      ...req.body,
-      actor: {
-        role: req.cco?.role || 'system',
-        ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
-          .toString()
-          .split(',')[0]
-          .trim(),
-        ...(req.body?.actor || {}),
-      },
-    });
-    res.json({ ok: true, traceId: entry.traceId });
-  });
+  // Routes flyttade till src/routes/ccoAudit.js (se ORGANISATION.md §4).
+  app.use('/api/v1', createCcoAuditRouter({ ccoAuditLog, attachRole, requireAnyRole }));
 
   // Expose to other handlers via app.locals
   app.locals.ccoAuditLog = ccoAuditLog;
