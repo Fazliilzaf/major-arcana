@@ -12429,9 +12429,67 @@
     });
   });
 
+  /**
+   * Kalender #17-seam (Alt A) — DATA-ONLY accessor. Återanvänder den befintliga
+   * detalj-/dossier-hämtningen (samma cco-workspace/bootstrap-data som
+   * loadPatientDetailInternal/renderV12WorkspaceDetailShell) men RETURNERAR en
+   * ctx UTAN att rendera eller navigera i kund-vyn — den muterar inte runtime,
+   * monterar inget i kund-shellen och ändrar inte selectedPatientId. Kalendern
+   * (booking-desktop-week.js) bygger sin kondenserade dossier ur denna ctx via
+   * CcoV11RailAdapters. Additiv, ingen befintlig V12-funktion påverkas.
+   *
+   * Fält-formerna speglar exakt renderV12WorkspaceDetailShell:
+   *   { card, bcard, dossierBundle, journalEntries, occasionTimeline,
+   *     driveFiles, patient }
+   *
+   * @param {string} patientId
+   * @returns {Promise<object|null>}
+   */
+  async function loadDossierData(patientId) {
+    const key = normalizeText(patientId);
+    if (!key) return null;
+    // Detaljpayload (card/journalEntries/occasionTimeline/driveFiles/patient).
+    // includeDriveFiles=true så Filer-/Foto-sektioner får riktig data.
+    const payload = await fetchPatientDetailFromApi(key, {
+      includeDriveFiles: true,
+    });
+    const card = payload?.card || null;
+    if (!card) return null;
+    // Dossier-bundle (samma endpoint/cache som loadPatientDocumentBundle) —
+    // best-effort: saknas den faller bcard tillbaka på card (empty-states ändå).
+    let dossierBundle = payload?.dossierBundle || payload?.documentBundle || null;
+    if (!dossierBundle) {
+      try {
+        const body = await apiRequest(
+          `/api/v1/cco-patient-master/patient/dossier-bundle?patientId=${encodeURIComponent(key)}&includeJournal=0`,
+          { cacheKey: `dossier-bundle:${key}`, staleTime: 30_000, gcTime: 120_000 }
+        );
+        dossierBundle = body?.documentBundle || body || null;
+      } catch {
+        dossierBundle = null;
+      }
+    }
+    const bcard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card || {};
+    const occasionTimeline = asArray(payload?.occasionTimeline || dossierBundle?.occasionTimeline);
+    const driveFiles = asArray(payload?.driveFiles || dossierBundle?.driveFiles);
+    return {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries: asArray(payload?.journalEntries),
+      occasionTimeline,
+      driveFiles,
+      patient: payload?.patient || card || null,
+    };
+  }
+
   window.ArcanaPatientMasterUi = {
     onCustomersViewOpen,
     setMode,
+    loadDossierData,
     getRuntime: () => ({ ...runtime }),
     isV9CustomersEnabled,
     isV9DemoEnabled,

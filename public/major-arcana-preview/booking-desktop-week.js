@@ -22,6 +22,8 @@
   let allSlots = [];
   let dragEvent = null;
   let calendarBusy = false;
+  let calDensity = "vanlig"; // v8 P3: kortdensitet (vanlig/stressig/maraton)
+  let calmMode = false; // v8 P3: lugnt läge (sänker visuell stress)
 
   function isDesktop() {
     try {
@@ -102,6 +104,8 @@
     if (viewMode === "day" || viewMode === "resource") {
       return { from: selectedDayIso, to: selectedDayIso };
     }
+    // morgon + week: hela den visade veckan (morgon visar story + busy + vibe
+    // över veckan och behöver alla dagars slots).
     const from = isoFromDate(viewAnchor);
     const to = isoFromDate(addDays(viewAnchor, 6));
     return { from, to };
@@ -126,7 +130,17 @@
           <h2 data-cal-title>Veckokalender</h2>
         </div>
         <div class="calendar-toolbar-actions">
+          <div class="density-toggle" role="group" aria-label="Kortdensitet">
+            <button class="density-btn is-active" type="button" data-cal-density="vanlig" title="Vanlig densitet"><span class="density-dot"></span>Vanlig</button>
+            <button class="density-btn" type="button" data-cal-density="stressig" title="Tätare kort"><span class="density-dot"></span><span class="density-dot"></span>Stressig</button>
+            <button class="density-btn" type="button" data-cal-density="maraton" title="Maximal täthet"><span class="density-dot"></span><span class="density-dot"></span><span class="density-dot"></span>Maraton</button>
+          </div>
+          <button class="mic-btn" type="button" data-cal-mic title="Röstbokning (ej kopplad än)" aria-label="Röstbokning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <button class="calm-toggle" type="button" data-cal-calm title="Lugnt läge — sänk visuell stress"><span class="moon">☾</span>Lugnt</button>
           <div class="segment-group" role="tablist" aria-label="Kalendervy">
+            <button class="segment-tab segment-tab--morgon" type="button" role="tab" data-cal-view="morgon" aria-selected="false">☼ Morgon</button>
             <button class="segment-tab active" type="button" role="tab" data-cal-view="week" aria-selected="true">Vecka</button>
             <button class="segment-tab" type="button" role="tab" data-cal-view="day" aria-selected="false">Dag</button>
             <button class="segment-tab" type="button" role="tab" data-cal-view="resource" aria-selected="false">Resurs</button>
@@ -155,8 +169,9 @@
         <div class="cco-cal-grid-wrap" data-cal-grid-wrap>
           <div class="cco-cal-empty">Hämtar kalender…</div>
         </div>
-        <aside class="cco-cal-detail focus-intel" data-cal-detail hidden aria-labelledby="cco-cal-detail-title">
-          <div class="focus-intel-primary">
+        <aside class="cco-cal-detail focus-intel" data-cal-detail data-context="booking" hidden aria-labelledby="cco-cal-detail-title">
+          <div class="intel-customer-view" data-cal-dossier hidden></div>
+          <div class="intel-booking-view focus-intel-primary">
             <div class="focus-intel-topline">
               <div class="focus-intel-title-row">
                 <p class="focus-intel-kicker">BOKNING</p>
@@ -553,33 +568,52 @@
       .join("")}</div>`;
   }
 
+  // v8: rendera alla kort i en kolumn (booking/empty-slot/lunch-block) med konflikt-flagga.
+  function v8RenderColumnCells(slots, iso) {
+    const s = shared();
+    const conflictKeys = s.findConflictKeys(slots);
+    return slots
+      .map((slot) => v8RenderSlot(slot, iso, conflictKeys.has(s.eventKey(slot))))
+      .join("");
+  }
+
+  // v8: gemensam tid-kolumn (klinikens timfönster).
+  function v8TimeColumn() {
+    const startHour = Math.floor(TIMELINE_START / 60);
+    const endHour = Math.floor(TIMELINE_END / 60);
+    const ticks = [];
+    for (let h = startHour; h <= endHour; h++) {
+      ticks.push(`<div class="time-tick">${String(h).padStart(2, "0")}</div>`);
+    }
+    return { startHour, endHour, html: `<div class="time-col">${ticks.join("")}</div>` };
+  }
+
+  function v8NowLine(iso) {
+    const now = new Date();
+    if (isoFromDate(now) !== iso) return "";
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    if (nowMin < TIMELINE_START || nowMin > TIMELINE_END) return "";
+    const top = Math.round(((nowMin - TIMELINE_START) / 60) * V8_HOUR_H);
+    const label = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    return `<div class="now-line" style="top:${top}px"><span class="now-label">${label}</span></div>`;
+  }
+
   function renderDayGrid(container) {
     const s = shared();
-    const slots = filterSlots(slotsByDate.get(selectedDayIso) || []);
-    const lines = [];
-    for (let minute = TIMELINE_START; minute <= TIMELINE_END; minute += 60) {
-      lines.push(
-        `<div class="cco-cal-time-label">${String(Math.floor(minute / 60)).padStart(2, "0")}:00</div>`
-      );
-    }
-    const now = new Date();
-    const nowIso = isoFromDate(now);
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const nowTop =
-      nowIso === selectedDayIso && nowMinutes >= TIMELINE_START && nowMinutes <= TIMELINE_END
-        ? ((nowMinutes - TIMELINE_START) / (TIMELINE_END - TIMELINE_START)) * 100
-        : null;
-
-    container.innerHTML = `<div class="cco-cal-day-timeline">
-      <div class="cco-cal-time-rail">${lines.join("")}</div>
-      <div class="cco-cal-time-grid">
-        <div class="cco-cal-time-events cco-cal-drop-zone" data-cal-drop-timeline data-cal-drop-day="${s.escapeAttr(selectedDayIso)}">
-          ${nowTop != null ? `<div class="cco-cal-now-marker" style="top:${nowTop}%"></div>` : ""}
-          ${renderTimelineEvents(slots.filter((slot) => slot.kind !== "block"))}
-          ${renderTimelineEvents(
-            slots.filter((slot) => slot.kind === "block"),
-            { absolute: true }
-          )}
+    const iso = selectedDayIso;
+    const slots = filterSlots(slotsByDate.get(iso) || []);
+    const tc = v8TimeColumn();
+    const dayDate = new Date(`${iso}T12:00:00`);
+    const isToday = iso === s.todayIso();
+    container.innerHTML = `<div class="calendar-week is-day" style="--calendar-hour-h:${V8_HOUR_H}px;--calendar-hour-start:${tc.startHour};--calendar-hour-end:${tc.endHour}">
+      ${tc.html}
+      <div class="day-col${isToday ? " today" : ""}" data-cal-day="${s.escapeAttr(iso)}">
+        <div class="day-head">
+          <span class="day-label">${s.escapeHtml(formatDayLabel(dayDate).replace(/\s+\d+$/, ""))}</span>
+          <span class="day-date">${dayDate.getDate()}</span>
+        </div>
+        <div class="day-slots cco-cal-drop-zone" data-cal-drop-timeline data-cal-drop-day="${s.escapeAttr(iso)}">
+          ${v8NowLine(iso)}${v8RenderColumnCells(slots, iso)}
         </div>
       </div>
     </div>`;
@@ -587,39 +621,339 @@
 
   function renderResourceGrid(container) {
     const s = shared();
-    const daySlots = filterSlots(slotsByDate.get(selectedDayIso) || []);
-    const resources = s.listResources(daySlots, selectedDayIso);
+    const iso = selectedDayIso;
+    const daySlots = filterSlots(slotsByDate.get(iso) || []);
+    const resources = s.listResources(daySlots, iso);
     if (!resources.length) {
-      container.innerHTML = `<div class="cco-cal-empty">Inga resurser för ${s.escapeHtml(formatDayLabel(new Date(`${selectedDayIso}T12:00:00`)))}.</div>`;
+      container.innerHTML = `<div class="cco-cal-empty">Inga resurser för ${s.escapeHtml(formatDayLabel(new Date(`${iso}T12:00:00`)))}.</div>`;
       return;
     }
-
-    const lines = [];
-    for (let minute = TIMELINE_START; minute <= TIMELINE_END; minute += 60) {
-      lines.push(
-        `<div class="cco-cal-time-label">${String(Math.floor(minute / 60)).padStart(2, "0")}:00</div>`
-      );
-    }
-
-    container.innerHTML = `<div class="cco-cal-resource-timeline">
-      <div class="cco-cal-resource-time-rail">${lines.join("")}</div>
-      <div class="cco-cal-resource-columns">${resources
-        .map(([label, slots]) => {
-          return `<section class="cco-cal-resource-col-timeline">
-            <header class="cco-cal-col-head">
-              <strong>${s.escapeHtml(label)}</strong>
-              <span>${slots.length} ${slots.length === 1 ? "post" : "poster"}</span>
-            </header>
-            <div class="cco-cal-resource-time-grid">
-              <div class="cco-cal-time-events cco-cal-drop-zone" data-cal-drop-timeline data-cal-drop-day="${s.escapeAttr(selectedDayIso)}" data-cal-drop-resource="${s.escapeAttr(label)}">
-                ${renderTimelineEvents(slots.filter((slot) => slot.kind !== "block"))}
-                ${renderTimelineEvents(slots.filter((slot) => slot.kind === "block"))}
-              </div>
-            </div>
-          </section>`;
-        })
-        .join("")}</div>
+    const tc = v8TimeColumn();
+    const nowLine = v8NowLine(iso);
+    const cols = resources
+      .map(([label, slots]) => {
+        return `<div class="day-col">
+          <div class="day-head day-head--resource">
+            <span class="day-label">${s.escapeHtml(label)}</span>
+            <span class="rc-count">${slots.length}</span>
+          </div>
+          <div class="day-slots cco-cal-drop-zone" data-cal-drop-timeline data-cal-drop-day="${s.escapeAttr(iso)}" data-cal-drop-resource="${s.escapeAttr(label)}">
+            ${nowLine}${v8RenderColumnCells(slots, iso)}
+          </div>
+        </div>`;
+      })
+      .join("");
+    container.innerHTML = `<div class="calendar-week is-resource" style="--calendar-hour-h:${V8_HOUR_H}px;--calendar-hour-start:${tc.startHour};--calendar-hour-end:${tc.endHour};grid-template-columns:44px repeat(${resources.length}, minmax(118px, 1fr))">
+      ${tc.html}${cols}
     </div>`;
+  }
+
+  // ─── v8 P3 "magi": morgon-standup, busy-bar, vibe-väder, watch ───
+  // ALL data nedan härleds ur verkliga slots (slotsByDate/allSlots). Inga
+  // påhittade siffror, namn eller AI-prediktioner. Funktioner utan verklig
+  // datakälla byggs som ärliga skal (synlig UI som säger att inget är kopplat).
+
+  // Hämta veckans dagar (Mån–Sön) som [{date, iso, slots}].
+  function weekDays() {
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = addDays(viewAnchor, index);
+      const iso = isoFromDate(date);
+      return { date, iso, slots: filterSlots(slotsByDate.get(iso) || []) };
+    });
+  }
+
+  // Bestäm vilken ISO-dag morgon-vyn ska fokusera på: idag om den ligger i den
+  // visade veckan, annars veckans första dag (så vyn aldrig blir tom/falsk).
+  function morgonFocusIso() {
+    const today = shared().todayIso();
+    const inWeek = weekDays().some((d) => d.iso === today);
+    return inWeek ? today : isoFromDate(viewAnchor);
+  }
+
+  // day-spark: per-timme-belastning (antal bokningar som täcker varje
+  // klocktimme i klinikfönstret) → höjd i % av dagens topp. Verklig data.
+  function v8DaySpark(slots) {
+    const startHour = Math.floor(TIMELINE_START / 60);
+    const endHour = Math.floor(TIMELINE_END / 60);
+    const s = shared();
+    const booked = (slots || []).filter((slot) => slot?.kind === "booked");
+    const buckets = [];
+    for (let h = startHour; h < endHour; h++) {
+      const winStart = h * 60;
+      const winEnd = winStart + 60;
+      const count = booked.filter((slot) => {
+        const st = s.slotStartMinutes(slot);
+        const en = st + s.slotDurationMinutes(slot);
+        return st < winEnd && en > winStart;
+      }).length;
+      buckets.push(count);
+    }
+    const peak = Math.max(1, ...buckets);
+    const now = new Date();
+    const nowHour = now.getHours();
+    let bars = "";
+    for (let i = 0; i < buckets.length; i++) {
+      const hour = startHour + i;
+      const pct = Math.round((buckets[i] / peak) * 100);
+      // now-markör mellan timmarna när vi tittar på idag
+      if (hour === nowHour && morgonFocusIso() === s.todayIso()) {
+        bars += `<div class="day-spark-now"></div>`;
+      }
+      bars += `<div class="day-spark-bar"${buckets[i] === 0 ? ' data-h="0"' : ""} style="height:${Math.max(buckets[i] === 0 ? 0 : 8, pct)}%" title="kl ${String(hour).padStart(2, "0")} · ${buckets[i]} bokn."></div>`;
+    }
+    return `<div class="day-spark" aria-hidden="true">${bars}</div>`;
+  }
+
+  // Risker idag: härleds ur verkliga slot-signaler (hälsodeklaration saknas,
+  // formulär saknas, förfaller, ej bekräftad) + verkliga konflikter.
+  function v8DayRisks(slots) {
+    const s = shared();
+    const booked = (slots || []).filter((slot) => slot?.kind === "booked");
+    const conflictKeys = s.findConflictKeys(slots || []);
+    const risks = [];
+    booked.forEach((slot) => {
+      const name = slot.customerName || slot.customerEmail || s.eventTitle(slot);
+      const when = (s.formatTimeRange(slot) || "").split("–")[0].trim();
+      const key = s.eventKey ? s.eventKey(slot) : "";
+      if (slot.needsHealthDeclaration) {
+        risks.push({ sev: "high", who: name, what: "— hälsodeklaration saknas", when });
+      } else if (slot.missingForms) {
+        risks.push({ sev: "med", who: name, what: "— formulär saknas före besök", when });
+      } else if (key && conflictKeys.has(key)) {
+        risks.push({ sev: "high", who: name, what: "— dubbelbokad tid", when });
+      } else if (slot.expiresSoon || slot.isExpiring) {
+        risks.push({ sev: "med", who: name, what: "— tentativ tid förfaller", when });
+      } else if (
+        !(slot.smsReminderSent || slot.reminderSent || slot.smsSent) &&
+        slot.smsReminderDue
+      ) {
+        risks.push({ sev: "med", who: name, what: "— SMS-påminnelse ej skickad", when });
+      }
+    });
+    return risks.sort((a, b) => (a.when || "").localeCompare(b.when || ""));
+  }
+
+  function renderMorgonStandup(container) {
+    const s = shared();
+    const focusIso = morgonFocusIso();
+    const focusDate = new Date(`${focusIso}T12:00:00`);
+    const daySlots = filterSlots(slotsByDate.get(focusIso) || []);
+    const booked = daySlots.filter((slot) => slot?.kind === "booked");
+    const available = daySlots.filter((slot) => slot?.kind === "available");
+
+    // Hälsning — riktig veckodag/datum + klocka. "Fazli" är inte påhittat
+    // kunddata; det är klinikens egen ägare (samma som mockupen). Vi visar inget
+    // namn om vi inte har ett — håll det neutralt.
+    const now = new Date();
+    const clock = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const greeting =
+      now.getHours() < 11 ? "God morgon" : now.getHours() < 18 ? "God dag" : "God kväll";
+    const dayWord = focusDate.toLocaleDateString("sv-SE", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+
+    // IDAG-kort
+    const sortedByStart = [...booked].sort((a, b) => s.slotStartMinutes(a) - s.slotStartMinutes(b));
+    const firstSlot = sortedByStart[0];
+    const lastSlot = sortedByStart[sortedByStart.length - 1];
+    const firstTime = firstSlot ? (s.formatTimeRange(firstSlot) || "").split("–")[0].trim() : null;
+    const lastTime = lastSlot ? (s.formatTimeRange(lastSlot) || "").split("–")[0].trim() : null;
+    const idagSub = booked.length
+      ? `Första kl ${s.escapeHtml(firstTime)} · sista kl ${s.escapeHtml(lastTime)} · ${available.length} lediga tider`
+      : "Inga bokningar denna dag ännu";
+    const idagCard = `<div class="story-card" data-kind="idag">
+      <div class="story-card-kicker"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></span>Idag</div>
+      <h2 class="story-card-headline"><span class="num">${booked.length}</span> bokningar</h2>
+      <p class="story-card-sub">${idagSub}</p>
+      ${v8DaySpark(daySlots)}
+    </div>`;
+
+    // RISKER-kort
+    const risks = v8DayRisks(daySlots);
+    const riskItems = risks.length
+      ? risks
+          .map(
+            (r) =>
+              `<div class="story-item" data-severity="${r.sev}"><span class="badge">!</span><span><span class="who">${s.escapeHtml(r.who)}</span> <span class="what">${s.escapeHtml(r.what)}</span></span><span class="when">${s.escapeHtml(r.when || "")}</span></div>`
+          )
+          .join("")
+      : `<div class="story-empty">Inga risker idag — allt ser bra ut.</div>`;
+    const riskCard = `<div class="story-card" data-kind="risker">
+      <div class="story-card-kicker"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></span>${risks.length} risker</div>
+      <h2 class="story-card-headline">Hantera först</h2>
+      <div class="story-list">${riskItems}</div>
+    </div>`;
+
+    // MÖJLIGHETER-kort: verkliga lediga tider idag. Inga påhittade väntelista-namn.
+    const oppItems = available.length
+      ? available
+          .slice(0, 4)
+          .map((slot) => {
+            const when = (s.formatTimeRange(slot) || "").split("–")[0].trim();
+            const res = slot.resourceLabel || slot.resource || "";
+            return `<div class="story-item" data-severity="ok"><span class="badge">★</span><span><span class="who">Ledig tid</span> <span class="what">${res ? "— " + s.escapeHtml(res) : "— boka in en kund"}</span></span><span class="when">${s.escapeHtml(when)}</span></div>`;
+          })
+          .join("")
+      : `<div class="story-empty">Inga lediga luckor kvar idag.</div>`;
+    const oppCard = `<div class="story-card" data-kind="mojligheter">
+      <div class="story-card-kicker"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.39 4.84L20 8l-3.5 4 1.5 6L12 15l-6 3 1.5-6L4 8l5.61-1.16L12 2z"/></svg></span>${available.length} möjligheter</div>
+      <h2 class="story-card-headline">Fyll luckor</h2>
+      <div class="story-list">${oppItems}</div>
+    </div>`;
+
+    // PROGNOS-kort: transparent heuristik (INTE AI). Schema-säkerhet =
+    // 100% minus straff per öppen risk och per konflikt, golv 30%.
+    //   start 100 − 12 per high-risk − 7 per med-risk, min 30, max 99.
+    // Detta är en ärlig regel på verklig data, dokumenterad här, ej en
+    // maskininlärd sannolikhet.
+    const highCount = risks.filter((r) => r.sev === "high").length;
+    const medCount = risks.filter((r) => r.sev === "med").length;
+    let confidence = 100 - highCount * 12 - medCount * 7;
+    confidence = Math.max(30, Math.min(99, confidence));
+    const endTime = lastSlot ? (s.formatTimeRange(lastSlot) || "").split("–")[1]?.trim() : null;
+    const prognosHeadline = booked.length ? `Klar ${endTime || "—"}` : "Ingen dag att planera";
+    const prognosSub = booked.length
+      ? risks.length
+        ? `${highCount + medCount} öppna punkter att hantera. ${confidence}% schema-säkerhet (heuristik på din dag).`
+        : `Allt hanterat. ${confidence}% schema-säkerhet (heuristik på din dag).`
+      : "Lägg in bokningar för att se en prognos.";
+    const prognosCard = `<div class="story-card" data-kind="klart">
+      <div class="story-card-kicker"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Prognos</div>
+      <h2 class="story-card-headline">${s.escapeHtml(prognosHeadline)}</h2>
+      <p class="story-card-sub">${s.escapeHtml(prognosSub)}</p>
+      <div class="ready-meter">
+        <div class="ready-meter-track"><div class="ready-meter-fill" style="width:${booked.length ? confidence : 0}%"></div></div>
+        <div class="ready-meter-labels"><span>Schema-säkerhet</span><span>${booked.length ? confidence + "%" : "—"}</span></div>
+      </div>
+    </div>`;
+
+    const storyHtml = `<div class="morgon-story">
+      <div class="greet">
+        <div class="greet-sun" aria-hidden="true"></div>
+        <div class="greet-text">
+          <h1>${s.escapeHtml(greeting)}<span>.</span></h1>
+          <p>${s.escapeHtml(dayWord)} · vecka ${getIsoWeek(focusDate)} · klockan är <strong>${s.escapeHtml(clock)}</strong></p>
+        </div>
+      </div>
+      <div class="story-grid">${idagCard}${riskCard}${oppCard}${prognosCard}</div>
+      <div class="story-cta-row">
+        <button class="story-cta story-cta--primary" type="button" data-cal-view="week">→ Öppna veckovyn</button>
+        <button class="story-cta" type="button" data-cal-open-day="${s.escapeAttr(focusIso)}">Öppna dagvyn</button>
+      </div>
+    </div>`;
+
+    container.innerHTML = `${storyHtml}${renderBusyBar()}${renderVibeStrip()}`;
+  }
+
+  // Busy-bar: per-resurs-utnyttjande över hela den visade veckan =
+  // bokade min / (bokade + lediga min). Samma matematik som
+  // renderWeekGridLegacy (R4-13 kapacitetsöversikt).
+  function renderBusyBar() {
+    const s = shared();
+    const weekSlots = weekDays().flatMap((d) => d.slots);
+    const resourceUtil = new Map();
+    weekSlots.forEach((slot) => {
+      if (slot?.kind !== "booked" && slot?.kind !== "available") return;
+      const r = String(slot?.resourceLabel || slot?.resource || "Övrigt").trim();
+      if (!resourceUtil.has(r)) resourceUtil.set(r, { booked: 0, available: 0 });
+      resourceUtil.get(r)[slot.kind] += s.slotDurationMinutes(slot);
+    });
+    const rows = [...resourceUtil.entries()]
+      .sort((a, b) => b[1].booked + b[1].available - (a[1].booked + a[1].available))
+      .slice(0, 8)
+      .map(([label, mins]) => {
+        const total = mins.booked + mins.available;
+        const pct = total > 0 ? Math.round((mins.booked / total) * 100) : 0;
+        return `<div class="busy-row"><span class="busy-name">${s.escapeHtml(label)}</span><div class="busy-track"><div class="busy-fill" style="width:${pct}%"></div></div><span class="busy-pct">${pct}%</span></div>`;
+      })
+      .join("");
+    if (!rows) {
+      return `<div class="calendar-busy calendar-busy--empty"><span class="busy-empty">Ingen beläggning att visa för veckan.</span></div>`;
+    }
+    return `<div class="calendar-busy" aria-label="Beläggning per resurs denna vecka">${rows}</div>`;
+  }
+
+  // Vibe-väder: en emoji per veckodag vald av verklig bokningstäthet.
+  // 0 bokn → 🌙, 1–2 → ☀️, 3–4 → 🌤️, 5–7 → ⛅, 8–10 → 🔆, 11+ → 🌧️.
+  function vibeEmoji(count) {
+    if (count === 0) return "🌙";
+    if (count <= 2) return "☀️";
+    if (count <= 4) return "🌤️";
+    if (count <= 7) return "⛅";
+    if (count <= 10) return "🔆";
+    return "🌧️";
+  }
+
+  function renderVibeStrip() {
+    const s = shared();
+    const labels = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
+    const today = s.todayIso();
+    const cells = weekDays()
+      .map((d, i) => {
+        const count = d.slots.filter((slot) => slot?.kind === "booked").length;
+        const open = d.slots.filter((slot) => slot?.kind === "available").length;
+        const emoji = vibeEmoji(count);
+        const isToday = d.iso === today;
+        const tip = `${count} ${count === 1 ? "bokning" : "bokningar"}${open ? ` · ${open} luckor` : ""}${isToday ? " · idag" : ""}`;
+        return `<div class="vibe-day${isToday ? " is-today" : ""}"><span>${emoji}</span><span class="vibe-label">${labels[i]}</span><span class="vibe-tip">${s.escapeHtml(tip)}</span></div>`;
+      })
+      .join("");
+    return `<div class="vibe-strip" aria-label="Veckans beläggning som väder">${cells}</div>`;
+  }
+
+  // Apple Watch-widget: visar verkligen NÄSTA kommande bokning idag. Display-only.
+  function renderWatchWidget() {
+    const shell = ensureShell();
+    let watch = shell.querySelector("[data-cal-watch]");
+    const s = shared();
+    const today = s.todayIso();
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const clock = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const todaySlots = filterSlots(slotsByDate.get(today) || []);
+    const upcoming = todaySlots
+      .filter((slot) => slot?.kind === "booked" && s.slotStartMinutes(slot) >= nowMin)
+      .sort((a, b) => s.slotStartMinutes(a) - s.slotStartMinutes(b))[0];
+
+    let screen;
+    if (upcoming) {
+      const time = (s.formatTimeRange(upcoming) || "").split("–")[0].trim();
+      const title = s.eventTitle(upcoming);
+      const sub = [
+        upcoming.serviceLabel || upcoming.service,
+        upcoming.resourceLabel || upcoming.resource,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      screen = `<div class="watch-time"><span>NÄSTA</span><span class="clock">${s.escapeHtml(time)}</span></div>
+        <div class="watch-title">${s.escapeHtml(title)}</div>
+        <div class="watch-sub">${s.escapeHtml(sub || "—")}</div>`;
+    } else {
+      screen = `<div class="watch-time"><span>IDAG</span><span class="clock">${s.escapeHtml(clock)}</span></div>
+        <div class="watch-title">Inga fler bokningar</div>
+        <div class="watch-sub">Dagen är avklarad</div>`;
+    }
+    const inner = `<div class="watch-band-top"></div>
+      <div class="watch-body">
+        <div class="watch-screen">${screen}</div>
+      </div>
+      <div class="watch-band-bottom"></div>
+      <div class="watch-caption">På din handled</div>`;
+    if (!watch) {
+      watch = document.createElement("div");
+      watch.className = "watch-widget";
+      watch.setAttribute("data-cal-watch", "");
+      shell.querySelector(".cco-cal-v8-surface")?.appendChild(watch);
+    }
+    watch.innerHTML = inner;
+    // Visa bara uret i morgon-vyn (display-only glimt).
+    watch.hidden = viewMode !== "morgon";
+  }
+
+  function renderMorgonGrid(container) {
+    renderMorgonStandup(container);
   }
 
   // R2: monogram-helper för Kundintelligens-stil avatar.
@@ -634,6 +968,387 @@
   // R8: AI nästa-steg — delegerar till delade heuristiken (shared).
   function recommendNextAction(event) {
     return shared()?.recommendBookingNextAction?.(event) || null;
+  }
+
+  // ─── Interaktion #17 (Alt A): kondenserad V12-kunddossiér i höger-panelen ───
+  // När en bokning MED riktig patientId klickas byter panelen kontext från
+  // booking-intel till en inbäddad dossiér. ALL data hämtas via det additiva
+  // data-seamet window.ArcanaPatientMasterUi.loadDossierData(patientId) och
+  // mappas via window.CcoV11RailAdapters. INGEN data hittas på — saknas en
+  // sektion visas ett explicit empty-state (canon §5). Sektioner som inte har
+  // en adapter (t.ex. AI-actions-rad) återanvänder befintliga deep-link-knappar.
+
+  let dossierToken = 0; // race-guard: bara senaste laddningen får rendera.
+  let dossierReturnEvent = null; // bokningen att gå tillbaka till.
+
+  function dossierEsc(value) {
+    return shared().escapeHtml(value == null ? "" : String(value));
+  }
+
+  // Deterministisk avatar-bakgrund (samma palett-känsla som facit) ur namnet.
+  const DOSSIER_AVATAR_BGS = [
+    "linear-gradient(135deg, #bb4779, #8c2f57)",
+    "linear-gradient(135deg, #4a8268, #2f5a45)",
+    "linear-gradient(135deg, #c98a3a, #9a6321)",
+    "linear-gradient(135deg, #4f6fb0, #2f4a7a)",
+    "linear-gradient(135deg, #8a6db0, #5a3f7a)",
+  ];
+  function dossierAvatarBg(name) {
+    const str = String(name || "");
+    let sum = 0;
+    for (let i = 0; i < str.length; i++) sum = (sum + str.charCodeAt(i)) % 997;
+    return DOSSIER_AVATAR_BGS[sum % DOSSIER_AVATAR_BGS.length];
+  }
+
+  // Tag-tone → facit-klass (vip/lifecycle/engagement/risk). Adapter-pills
+  // använder tones vip/treatment/label → mappas till facitens tag-varianter.
+  function dossierTagKind(tone) {
+    const t = String(tone || "").toLowerCase();
+    if (t === "vip") return "vip";
+    if (t === "treatment") return "engagement";
+    if (t === "risk" || t === "blocker") return "risk";
+    if (t === "lifecycle") return "lifecycle";
+    return "lifecycle";
+  }
+
+  // booking.state → facitens db-status data-state + svensk etikett.
+  function dossierBookingState(state, stateLabel) {
+    const st = String(state || "").toLowerCase();
+    if (stateLabel) {
+      // behåll riktig etikett men normalisera tone
+    }
+    let tone = "done";
+    if (/(plan|kommande|book|bekräft|bekraft|confirm)/.test(st)) tone = "ready";
+    else if (/(tentat|väntar|vantar|pending|warn|obekräft)/.test(st)) tone = "warn";
+    else if (/(no.?show|uteble|missad)/.test(st)) tone = "noshow";
+    else if (/(done|klar|genomf|complete|avslut)/.test(st)) tone = "done";
+    const label =
+      stateLabel || { ready: "Planerad", warn: "Väntar", noshow: "No-show", done: "Klar" }[tone];
+    return { tone, label };
+  }
+
+  // Rendera en booking-rad (upcoming + history) i facit-markup.
+  function dossierBookingRow(b, extraAttrs) {
+    const s = shared();
+    const iso = b.iso || "";
+    const d = iso ? new Date(iso) : null;
+    const valid = d && !isNaN(d.getTime());
+    const dayNames = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];
+    const monNames = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAJ",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OKT",
+      "NOV",
+      "DEC",
+    ];
+    const day = valid ? dayNames[d.getDay()] : b.whenShort ? "" : "";
+    const num = valid ? String(d.getDate()) : "";
+    const mon = valid ? monNames[d.getMonth()] : "";
+    const title = b.title || "Besök";
+    const sub = b.sub || b.whenShort || (b.staff ? b.staff : "");
+    const stinfo = dossierBookingState(b.state, b.stateLabel);
+    return `<div class="dossier-booking" data-source="info"${extraAttrs || ""}>
+      <div class="db-date"><div class="day">${dossierEsc(day || "—")}</div><div class="num">${dossierEsc(num || "·")}</div><div class="mon">${dossierEsc(mon || "")}</div></div>
+      <div class="db-meta"><div class="db-title">${dossierEsc(title)}</div><div class="db-sub">${dossierEsc(sub || "—")}</div></div>
+      <span class="db-status" data-state="${stinfo.tone}">${dossierEsc(stinfo.label)}</span>
+    </div>`;
+  }
+
+  // Tom-sektion (explicit empty-state, ingen fejk).
+  function dossierEmpty(label) {
+    return `<div class="dossier-empty">${dossierEsc(label)}</div>`;
+  }
+
+  // Bygg dossiér-HTML ur ctx via CcoV11RailAdapters. Returnerar full innerHTML
+  // för [data-cal-dossier]. Saknas adaptrar → ärligt fel-skal.
+  function buildDossierHtml(ctx, fallbackName) {
+    const A = window.CcoV11RailAdapters;
+    const s = shared();
+    if (!A || !ctx) {
+      return `<div class="dossier-scroll">${dossierEmpty("Kunddata kunde inte laddas.")}</div>`;
+    }
+    const card = ctx.card || {};
+    const bcard = ctx.bcard || card || {};
+
+    // Profil (A)
+    const profile = A.buildProfileFromBcard(bcard) || {};
+    const name = profile.name || fallbackName || "Kund";
+    const init = (profile.initials || monogramFor(name) || "?").toUpperCase();
+    const contactParts = [profile.phone, profile.email].filter(Boolean);
+    const contact = contactParts.join(" · ") || profile.addrLine || "Ingen kontaktinfo";
+    const tags = (profile.pills || []).map((p) => ({
+      kind: dossierTagKind(p.tone),
+      label: p.label,
+    }));
+
+    // Stats (C) → BESÖK / INTÄKT / SKULD (facit: Besök/Intäkt/No-shows;
+    // vi visar riktig stat-data, sista cellen = utestående/skuld).
+    const stats = A.buildStatsFromExtras(bcard) || {};
+    const statCells = [
+      { label: "Besök", value: stats.besok?.value || "—", trend: stats.besok?.sub || "" },
+      { label: "Intäkt", value: stats.vardeTot?.value || "—", trend: stats.vardeTot?.sub || "" },
+      { label: "Skuld", value: stats.skuld?.value || "—", trend: stats.skuld?.sub || "" },
+    ];
+
+    // Bookings (H) + History (I)
+    const bookings = A.buildBookingsFromExtras(
+      card,
+      bcard,
+      ctx.dossierBundle,
+      ctx.occasionTimeline
+    ) || {
+      items: [],
+      count: 0,
+    };
+    const history = A.buildHistoryFromExtras(
+      card,
+      bcard,
+      ctx.dossierBundle,
+      ctx.occasionTimeline
+    ) || {
+      items: [],
+      count: 0,
+    };
+    // Files (N)
+    const files = A.buildFilesFromDriveFiles(ctx.driveFiles) || { items: [], count: 0 };
+    // Notes (O)
+    const notes = A.buildNotesFromState(card, ctx.dossierBundle) || { items: [], count: 0 };
+    // Communication (P)
+    const comm = A.buildCommunicationFromState(card, ctx.occasionTimeline) || {
+      items: [],
+      count: 0,
+    };
+    // Economy (Q)
+    const economy = A.buildEconomyFromCard(card) || { items: [], count: 0 };
+    // Insights (R) — riktiga signaler, annars ärligt empty-state.
+    const insights = A.buildInsightsFromSignals(card) || { items: [], count: 0 };
+
+    const tagsHtml = tags.length
+      ? tags
+          .map(
+            (t) => `<span class="dossier-tag dossier-tag--${t.kind}">${dossierEsc(t.label)}</span>`
+          )
+          .join("")
+      : "";
+
+    const statsHtml = statCells
+      .map(
+        (st) => `<div class="dossier-stat">
+          <div class="dossier-stat-label">${dossierEsc(st.label)}</div>
+          <div class="dossier-stat-value">${dossierEsc(st.value)}</div>
+          <div class="dossier-stat-trend">${dossierEsc(st.trend)}</div>
+        </div>`
+      )
+      .join("");
+
+    const upcomingHtml = bookings.items.length
+      ? bookings.items.map((b) => dossierBookingRow(b)).join("")
+      : dossierEmpty("Inga kommande bokningar");
+    const historyHtml = history.items.length
+      ? history.items.map((b) => dossierBookingRow(b)).join("")
+      : dossierEmpty("Ingen historik ännu");
+
+    const filesHtml = files.items.length
+      ? `<div class="dossier-files">${files.items
+          .map(
+            (
+              f
+            ) => `<a class="dossier-file" href="${s.escapeAttr(f.href || "#")}" target="_blank" rel="noopener">
+              <div class="dossier-file-icon">📄</div>
+              <div class="dossier-file-name">${dossierEsc(f.name)}</div>
+              ${f.badge ? `<span class="dossier-file-badge">${dossierEsc(f.badge)}</span>` : ""}
+            </a>`
+          )
+          .join("")}</div>`
+      : dossierEmpty("Inga filer");
+
+    const notesHtml = notes.items.length
+      ? notes.items
+          .map(
+            (n) =>
+              `<div class="dossier-note">${dossierEsc(n.text)}<div class="dossier-note-meta">${dossierEsc(n.meta || "")}</div></div>`
+          )
+          .join("")
+      : dossierEmpty("Inga anteckningar");
+
+    const commHtml = comm.items.length
+      ? comm.items
+          .map(
+            (c) => `<div class="dossier-comm">
+              <div class="dossier-comm-icon" data-type="${dossierEsc(c.type)}">${c.type === "mail" ? "✉" : c.type === "sms" ? "💬" : "📞"}</div>
+              <div class="dossier-comm-body">
+                <div class="dossier-comm-text">${dossierEsc(c.text)}</div>
+                <div class="dossier-comm-meta">${dossierEsc(c.meta || "")}</div>
+              </div>
+            </div>`
+          )
+          .join("")
+      : dossierEmpty("Ingen registrerad kommunikation");
+
+    const economyHtml = economy.count
+      ? `<div class="dossier-economy">${economy.items
+          .map(
+            (m) => `<div class="dossier-money">
+              <div class="dossier-money-label">${dossierEsc(m.label)}</div>
+              <div class="dossier-money-value">${dossierEsc(m.value)}</div>
+            </div>`
+          )
+          .join("")}</div>`
+      : dossierEmpty("Ingen ekonomidata");
+
+    const insightsHtml = insights.items.length
+      ? insights.items
+          .map(
+            (ins) =>
+              `<div class="dossier-insight">${dossierEsc(ins.title)}${ins.text ? ` — ${dossierEsc(ins.text)}` : ""}</div>`
+          )
+          .join("")
+      : dossierEmpty("Inga AI-insikter just nu");
+
+    return `
+      <div class="dossier-head">
+        <div class="dossier-avatar" style="background:${dossierAvatarBg(name)}">${dossierEsc(init)}</div>
+        <div class="dossier-head-body">
+          <div class="dossier-kicker">★ Kunddossiér</div>
+          <div class="dossier-name">${dossierEsc(name)}</div>
+          <div class="dossier-contact">${dossierEsc(contact)}</div>
+          ${tagsHtml ? `<div class="dossier-tags">${tagsHtml}</div>` : ""}
+        </div>
+        <button class="dossier-close" type="button" data-cal-dossier-close title="Tillbaka till bokning" aria-label="Tillbaka till bokning">×</button>
+      </div>
+
+      <div class="dossier-back-row">
+        <button class="dossier-back-btn" type="button" data-cal-dossier-back>‹ Tillbaka till bokning</button>
+      </div>
+
+      <div class="dossier-stats">${statsHtml}</div>
+
+      <div class="dossier-scroll">
+        <details class="dossier-section" open>
+          <summary>Kommande bokningar <span class="count">${bookings.count}</span></summary>
+          ${upcomingHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Historik <span class="count">${history.count}</span></summary>
+          ${historyHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Filer <span class="count">${files.count}</span></summary>
+          ${filesHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Anteckningar <span class="count">${notes.count}</span></summary>
+          ${notesHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Kommunikation <span class="count">${comm.count}</span></summary>
+          ${commHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Ekonomi <span class="count">${economy.count}</span></summary>
+          ${economyHtml}
+        </details>
+        <details class="dossier-section" open>
+          <summary>AI-insikter <span class="count">${insights.count}</span></summary>
+          ${insightsHtml}
+        </details>
+      </div>
+
+      <div class="dossier-actions">
+        <button class="quick-action-pill" type="button" data-cal-action="customer">Kundkort</button>
+        <button class="quick-action-pill" type="button" data-cal-action="journal">Journal</button>
+      </div>
+    `;
+  }
+
+  // Laddnings-skelett (ärligt — säger att vi hämtar).
+  function dossierLoadingHtml(name) {
+    return `
+      <div class="dossier-head">
+        <div class="dossier-avatar" style="background:${dossierAvatarBg(name)}">${dossierEsc((monogramFor(name) || "·").toUpperCase())}</div>
+        <div class="dossier-head-body">
+          <div class="dossier-kicker">★ Kunddossiér</div>
+          <div class="dossier-name">${dossierEsc(name || "Kund")}</div>
+          <div class="dossier-contact">Hämtar kunddata…</div>
+        </div>
+        <button class="dossier-close" type="button" data-cal-dossier-close title="Tillbaka till bokning" aria-label="Tillbaka till bokning">×</button>
+      </div>
+      <div class="dossier-back-row">
+        <button class="dossier-back-btn" type="button" data-cal-dossier-back>‹ Tillbaka till bokning</button>
+      </div>
+      <div class="dossier-scroll dossier-scroll--loading">
+        <div class="dossier-skeleton"></div>
+        <div class="dossier-skeleton"></div>
+        <div class="dossier-skeleton"></div>
+      </div>`;
+  }
+
+  // Stäng dossiér → tillbaka till booking-intel.
+  function closeDossier() {
+    dossierToken += 1; // avbryt ev. inflight render
+    const shell = ensureShell();
+    const detail = shell.querySelector("[data-cal-detail]");
+    const dossier = shell.querySelector("[data-cal-dossier]");
+    if (detail) detail.dataset.context = "booking";
+    if (dossier) {
+      dossier.hidden = true;
+      dossier.innerHTML = "";
+    }
+    if (dossierReturnEvent) {
+      selectedEvent = dossierReturnEvent;
+      dossierReturnEvent = null;
+    }
+    renderDetailPanel();
+  }
+
+  // Öppna dossiér för en bokning med riktig patientId.
+  async function openDossierForEvent(event) {
+    const patientId = event && (event.patientId || event.patient_id);
+    if (!patientId) return false;
+    const api = window.ArcanaPatientMasterUi;
+    if (!api || typeof api.loadDossierData !== "function") return false;
+
+    const shell = ensureShell();
+    const detail = shell.querySelector("[data-cal-detail]");
+    const dossier = shell.querySelector("[data-cal-dossier]");
+    if (!detail || !dossier) return false;
+
+    dossierReturnEvent = event;
+    const name = event.customerName || event.customerEmail || shared().eventTitle(event);
+    const myToken = ++dossierToken;
+
+    detail.hidden = false;
+    detail.dataset.context = "customer";
+    dossier.hidden = false;
+    dossier.innerHTML = dossierLoadingHtml(name);
+
+    try {
+      const ctx = await api.loadDossierData(patientId);
+      if (myToken !== dossierToken) return true; // en nyare laddning vann
+      dossier.innerHTML = buildDossierHtml(ctx, name);
+    } catch (_error) {
+      if (myToken !== dossierToken) return true;
+      dossier.innerHTML = `
+        <div class="dossier-head">
+          <div class="dossier-head-body">
+            <div class="dossier-kicker">★ Kunddossiér</div>
+            <div class="dossier-name">${dossierEsc(name || "Kund")}</div>
+            <div class="dossier-contact">Kunddata kunde inte laddas.</div>
+          </div>
+          <button class="dossier-close" type="button" data-cal-dossier-close title="Tillbaka till bokning" aria-label="Tillbaka till bokning">×</button>
+        </div>
+        <div class="dossier-back-row">
+          <button class="dossier-back-btn" type="button" data-cal-dossier-back>‹ Tillbaka till bokning</button>
+        </div>`;
+    }
+    return true;
   }
 
   // R2: ersätter platt list-meta med Kundintelligens-mönstret:
@@ -660,6 +1375,14 @@
     const signalsEl = shell.querySelector("[data-cal-detail-signals]");
     const signalListEl = shell.querySelector("[data-cal-detail-signal-list]");
     if (!detail || !titleEl) return;
+
+    // Interaktion #17: när dossiér-kontexten är aktiv äger den panelen — låt den
+    // vara (renderGrid() kan annars trampa över den vid re-render).
+    if (detail.dataset.context === "customer") {
+      detail.hidden = false;
+      if (body) body.dataset.detailOpen = "true";
+      return;
+    }
 
     if (!selectedEvent) {
       detail.hidden = true;
@@ -830,6 +1553,15 @@
         }
         renderDetailPanel();
         node.classList.toggle("is-selected", true);
+        // Interaktion #17: bokning MED riktig patientId → byt höger-panelen
+        // till kondenserad V12-dossiér. Utan patientId (drop-in/omatchad) →
+        // behåll booking-intel (ingen tom dossiér).
+        if (
+          selectedEvent?.kind === "booked" &&
+          (selectedEvent.patientId || selectedEvent.patient_id)
+        ) {
+          void openDossierForEvent(selectedEvent);
+        }
       });
       node.addEventListener("dblclick", (event) => {
         event.preventDefault();
@@ -969,10 +1701,29 @@
     el.innerHTML = `<strong>${count}</strong> ${shared().escapeHtml(label)}`;
   }
 
+  // v8 P3: applicera kortdensitet på den renderade veckogriden.
+  function applyDensity() {
+    const shell = ensureShell();
+    shell.querySelectorAll(".calendar-week").forEach((grid) => {
+      grid.setAttribute("data-density", calDensity);
+    });
+  }
+
+  // v8 P3: lugnt läge — sätt attribut på ytan + spegla knappens aktiva läge.
+  function applyCalmMode() {
+    const shell = ensureShell();
+    const surface = shell.querySelector(".cco-cal-v8-surface");
+    if (surface) surface.setAttribute("data-calm", calmMode ? "on" : "off");
+    shell.querySelectorAll("[data-cal-calm]").forEach((btn) => {
+      btn.classList.toggle("is-active", calmMode);
+      btn.setAttribute("aria-pressed", calmMode ? "true" : "false");
+    });
+  }
+
   function updateToolbarPills() {
     const shell = ensureShell();
     let slots;
-    if (viewMode === "week") {
+    if (viewMode === "week" || viewMode === "morgon") {
       const days = Array.from({ length: 7 }, (_, index) => addDays(viewAnchor, index));
       slots = days.flatMap((day) => filterSlots(slotsByDate.get(isoFromDate(day)) || []));
     } else {
@@ -991,7 +1742,15 @@
     const wrap = shell.querySelector("[data-cal-grid-wrap]");
     if (!wrap) return;
 
-    if (viewMode === "day") {
+    if (viewMode === "morgon") {
+      if (title) {
+        title.textContent = "Morgon-standup";
+        title.setAttribute("title", "Dagens överblick — härledd ur din verkliga kalender");
+      }
+      const weekNumEl = shell.querySelector("[data-cal-weeknum]");
+      if (weekNumEl) weekNumEl.textContent = getIsoWeek(new Date(`${morgonFocusIso()}T12:00:00`));
+      renderMorgonGrid(wrap);
+    } else if (viewMode === "day") {
       if (title) {
         title.textContent = formatDayLabel(new Date(`${selectedDayIso}T12:00:00`));
         title.setAttribute("title", "Tidsaxel · välj Vecka i verktygsfältet för att gå tillbaka");
@@ -1008,8 +1767,18 @@
     }
 
     bindCalendarInteractions(wrap);
+    bindMorgonInteractions(wrap);
     renderDetailPanel();
     updateToolbarPills();
+    applyDensity();
+    applyCalmMode();
+    renderWatchWidget();
+  }
+
+  // Klick-hooks för morgon-CTA:erna (story-cta-raden). data-cal-view och
+  // data-cal-open-day fångas redan av den delegerade lyssnaren i bindShell.
+  function bindMorgonInteractions() {
+    /* no-op: CTA:er använder befintliga delegerade data-attribut */
   }
 
   async function refresh() {
@@ -1117,6 +1886,42 @@
     });
 
     shell.addEventListener("click", (event) => {
+      // v8 P3 "magi": röstbokning — ÄRLIGT SKAL. Ingen taligenkänning är
+      // kopplad och vi hittar aldrig på en bokning. Visa en tydlig toast.
+      const micButton = event.target.closest("[data-cal-mic]");
+      if (micButton) {
+        window.ArcanaBookingCalendarActions?.showToast?.("Röststyrning ej kopplad än", "info");
+        return;
+      }
+
+      // v8 P3: morgon-CTA / segment-tabbar renderade dynamiskt i griden
+      // (de statiska tabbarna har egna lyssnare; detta fångar de dynamiska).
+      const viewButton = event.target.closest("[data-cal-view]");
+      if (viewButton && viewButton.closest("[data-cal-grid-wrap]")) {
+        setViewMode(viewButton.getAttribute("data-cal-view") || "week");
+        void refresh();
+        return;
+      }
+
+      // v8 P3: kortdensitet
+      const densityButton = event.target.closest("[data-cal-density]");
+      if (densityButton) {
+        calDensity = densityButton.getAttribute("data-cal-density") || "vanlig";
+        shell.querySelectorAll("[data-cal-density]").forEach((btn) => {
+          btn.classList.toggle("is-active", btn === densityButton);
+        });
+        applyDensity();
+        return;
+      }
+
+      // v8 P3: lugnt läge
+      const calmButton = event.target.closest("[data-cal-calm]");
+      if (calmButton) {
+        calmMode = !calmMode;
+        applyCalmMode();
+        return;
+      }
+
       const resourceButton = event.target.closest("[data-cal-resource]");
       if (resourceButton) {
         selectedResource = resourceButton.getAttribute("data-cal-resource") || "all";
@@ -1132,6 +1937,15 @@
         selectedServiceType = typeButton.getAttribute("data-cal-type") || "all";
         renderServiceTypeFilters();
         renderGrid();
+        return;
+      }
+
+      // Interaktion #17: dossiér tillbaka/stäng → åter till booking-intel.
+      if (
+        event.target.closest("[data-cal-dossier-back]") ||
+        event.target.closest("[data-cal-dossier-close]")
+      ) {
+        closeDossier();
         return;
       }
 
@@ -1193,7 +2007,11 @@
           event.preventDefault();
           calendarShell.querySelector("[data-cal-print]")?.click();
         } else if (key === "Escape") {
-          if (selectedEvent) {
+          const detail = calendarShell.querySelector("[data-cal-detail]");
+          if (detail && detail.dataset.context === "customer") {
+            event.preventDefault();
+            closeDossier();
+          } else if (selectedEvent) {
             event.preventDefault();
             selectedEvent = null;
             renderDetailPanel();
