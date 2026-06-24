@@ -641,6 +641,34 @@
         : '<div class="v12-workspace__subhead">Allergier</div>' +
           '<div class="v12-workspace__health-muted">Inga registrerade allergier</div>';
 
+    // Kontraindikationer — RIKTIGA riskflaggor ur hälsodeklarationen (röd/amber).
+    // Tom lista → dämpad not. Ingen fejk.
+    var contra =
+      hp.contraindications && hp.contraindications.length
+        ? '<div class="v12-workspace__subhead">Kontraindikationer · ' +
+          esc(String(hp.contraindications.length)) +
+          '</div><div class="v12-workspace__health-contra">' +
+          hp.contraindications
+            .map(function (c) {
+              return (
+                '<span class="v12-workspace__health-flag" data-level="' +
+                esc(c.level) +
+                '">' +
+                esc(c.text) +
+                '</span>'
+              );
+            })
+            .join('') +
+          '</div>'
+        : '<div class="v12-workspace__subhead">Kontraindikationer</div>' +
+          '<div class="v12-workspace__health-muted">Inga registrerade kontraindikationer</div>';
+
+    // Läkemedel — saknar datakälla idag (owner-beslut B3, utredning 2026-06-23).
+    // Explicit okänd-state tills hälsodeklarationen fångar pågående läkemedel.
+    var medications =
+      '<div class="v12-workspace__subhead">Läkemedel</div>' +
+      '<div class="v12-workspace__health-muted">Pågående läkemedel registreras inte i hälsodeklarationen ännu.</div>';
+
     return (
       '<section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa">' +
       '<header class="v12-workspace__module-head">' +
@@ -656,7 +684,8 @@
       '<button type="button" class="v12-workspace__health-open" data-kk-jump="kk-card-halsa">Öppna full hälsoprofil</button>' +
       '</div>' +
       allergies +
-      '<div class="v12-workspace__health-muted">Läkemedel &amp; kontraindikationer: visas när data finns.</div>' +
+      contra +
+      medications +
       '</section>'
     );
   }

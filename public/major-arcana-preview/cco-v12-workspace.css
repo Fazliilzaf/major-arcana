@@ -1045,6 +1045,33 @@ html[data-cco-mobile-shell="on"]
   opacity: 0.85;
 }
 
+/* Kontraindikationer — riskflaggor ur hälsodeklarationen (röd/amber per level) */
+.v12-workspace__health-contra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__health-flag {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.v12-workspace__health-flag[data-level="red"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.12);
+  border-color: rgba(181, 82, 74, 0.28);
+}
+
+.v12-workspace__health-flag[data-level="amber"] {
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.12);
+  border-color: rgba(200, 130, 30, 0.28);
+}
+
 /* ===== Insikter & nästa åtgärd-modul (sektion 12) ===== */
 .v12-workspace__next {
   display: flex;

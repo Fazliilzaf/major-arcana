@@ -424,11 +424,31 @@
       : toArray(hd && hd.allergies);
     allergies = allergies.map(text).filter(Boolean);
 
+    // Kontraindikationer = hälsodeklarationens RIKTIGA riskflaggor
+    // (parser RISK_RULES → {level:'red'|'amber', text}). Endast riktig data;
+    // tom lista om inga flaggor. Ingen fejk.
+    var contraindications = toArray(hd && hd.flags)
+      .map(function (f) {
+        if (!f) return null;
+        var label = text(f.text || f.flagText || f.label);
+        if (!label) return null;
+        var lvl = text(f.level).toLowerCase();
+        return { text: label, level: lvl === 'red' || lvl === 'amber' ? lvl : 'amber' };
+      })
+      .filter(Boolean);
+
+    // Läkemedel (namn) saknar datakälla idag — formuläret fångar inte
+    // pågående läkemedel (utredning 2026-06-23, owner-beslut B3). Returneras
+    // alltid som okänd/uppskjuten tills datakälla finns; ingen fejk.
+    var medications = { items: [], known: false };
+
     return {
       status: status,
       signedAt: hd ? text(hd.signedAt) : '',
       source: source,
       allergies: allergies,
+      contraindications: contraindications,
+      medications: medications,
     };
   }
 
