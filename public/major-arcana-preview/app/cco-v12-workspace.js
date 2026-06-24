@@ -336,27 +336,40 @@
     }
 
     var ci = avFmtTime(av.checkedInAt);
-    var st = avFmtTime(av.startedAt || av.checkedInAt);
     var co = avFmtTime(av.completedAt);
-    function nodeState(phase) {
-      if (av.state === 'completed_today') return 'is-done';
-      if (av.state === 'in_progress')
-        return phase === 'checkin' ? 'is-done' : phase === 'progress' ? 'is-active' : '';
-      if (av.state === 'checked_in' && phase === 'checkin') return 'is-active';
+    // Facit 6-node besöksförlopp: bokad → incheckad → behandling → journal →
+    // eftervård → klar. Nod-status härleds ur den RIKTIGA visit-staten (inget
+    // påhittat): allt före aktuellt steg = klart, aktuellt = aktivt, efter = kvar.
+    // - in_progress med påbörjad journal → journal aktiv, behandling klar.
+    // - completed_today → dagens behandling+journal klar, eftervård är nästa steg
+    //   (uppföljning ej bokad), klar tänds först när hela resan är slut.
+    var avCurrent = {
+      scheduled_today: 1,
+      checked_in: 2,
+      in_progress: av.journalStarted ? 3 : 2,
+      completed_today: 4,
+    }[av.state];
+    if (typeof avCurrent !== 'number') avCurrent = 0;
+    var nodes = [
+      { label: 'Bokad' },
+      { label: ci ? ci + ' incheckad' : 'Incheckad' },
+      { label: 'Behandling' },
+      { label: 'Journal' },
+      { label: 'Eftervård' },
+      { label: co ? co + ' klar' : 'Klar' },
+    ];
+    function nodeState(i) {
+      if (i < avCurrent) return 'is-done';
+      if (i === avCurrent) return 'is-active';
       return '';
     }
-    var nodes = [
-      { phase: 'checkin', label: ci ? ci + ' incheckad' : 'Incheckad' },
-      { phase: 'progress', label: st ? st + ' pågår' : 'Pågår' },
-      { phase: 'done', label: co ? co + ' klart' : 'Klart' },
-    ];
     var timeline = av.showTimeline
       ? '<div class="v12-workspace__av-timeline" aria-label="Besöksförlopp">' +
         nodes
-          .map(function (n) {
+          .map(function (n, i) {
             return (
               '<div class="v12-workspace__av-node ' +
-              nodeState(n.phase) +
+              nodeState(i) +
               '"><span class="v12-workspace__av-dot" aria-hidden="true"></span>' +
               '<span class="v12-workspace__av-node-label">' +
               esc(n.label) +
