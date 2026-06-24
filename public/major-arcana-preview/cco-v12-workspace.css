@@ -1494,13 +1494,21 @@ html[data-cco-mobile-shell="on"]
 }
 
 /* ===== Dokument-modul (sektion 9) ===== */
+/* Facit-parity: dokument som 2-kolumners kort-rutnät (1-kol mobil → 2-kol ≥768px),
+   grupperingen offerter/auto/filer behålls. Ren layout — samma data-v11-doc-*-rader. */
 .v12-workspace__doc-list {
   list-style: none;
   margin: 0 0 4px;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__doc-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .v12-workspace__doc-item {
@@ -1512,6 +1520,7 @@ html[data-cco-mobile-shell="on"]
   align-items: center;
   gap: 10px;
   width: 100%;
+  height: 100%;
   text-align: left;
   padding: 10px 12px;
   border-radius: 10px;
