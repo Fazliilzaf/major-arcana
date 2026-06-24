@@ -74,6 +74,7 @@ iCloud är arkiv/facit — inte arbetsrepo.
 
 | # | Vad | Fil |
 |---|-----|-----|
+| 0 | **Status & backlog — en karta** | [`docs/strategy/STATUS-OVERSIKT.md`](docs/strategy/STATUS-OVERSIKT.md) |
 | 1 | Nuläge / daglig avbockning | [`docs/strategy/PROJECT-CHECKLIST.md`](docs/strategy/PROJECT-CHECKLIST.md) |
 | 2 | Samlad faslista (alla punkter) | [`docs/strategy/MASTER-TODO.md`](docs/strategy/MASTER-TODO.md) |
 | 3 | Utrullning i 6 faser | [`docs/strategy/ROLLOUT-PLAN.md`](docs/strategy/ROLLOUT-PLAN.md) |
