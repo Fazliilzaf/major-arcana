@@ -1,7 +1,7 @@
 "use strict";
 
 (function initBookingLazyLoad() {
-  const VERSION = "build-cal-v8-p2-dayres";
+  const VERSION = "build-cal-v8-p2-mobile";
   const CSS_HREF = `./cco-calendar.css?v=${VERSION}`;
   const SCRIPTS = Object.freeze({
     shared: `./booking-calendar-shared.js?v=${VERSION}`,
