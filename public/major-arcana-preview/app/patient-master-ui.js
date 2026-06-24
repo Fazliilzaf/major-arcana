@@ -6936,6 +6936,35 @@
       patientId,
       runtime.detail?.journalEntries
     );
+    // V11-RAIL / V12-WORKSPACE laddnings-skal: när nya railen/workspace är aktiv
+    // måste loading-läget rita V11-skalet (lite). Annars blinkar V10-referenskortet
+    // till i ~0,6 s innan den riktiga V11-renderingen tar över — "hopp mellan
+    // gammalt och nytt läge" i dossiern. Speglar renderDetailShellLite men använder
+    // det cachade list-kortet eftersom runtime.detail ännu pekar på förra kunden.
+    if (isV9CustomersEnabled() && (usesV12Workspace() || usesV11Rail())) {
+      rail.innerHTML = renderV9MockupDetailShell(
+        cached,
+        [],
+        null,
+        [],
+        null,
+        normalizeDetailTab(runtime.detailTab),
+        { lite: true }
+      );
+      bindV9MockupDossierHandlers(rail, {
+        card: cached,
+        journalEntries: [],
+        driveFiles: [],
+        patient: null,
+        occasionTimeline: null,
+      });
+      ensureV9DossierDeepClosed();
+      runtime.detailShellOnly = true;
+      syncV9CustomersLayoutState();
+      syncMobilePatientLayout();
+      window.ArcanaMobileShell?.syncFromApp?.();
+      return;
+    }
     if (
       isV9CustomersEnabled() &&
       usesV10KundkortFacit() &&
