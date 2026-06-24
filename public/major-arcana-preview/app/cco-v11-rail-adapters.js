@@ -1025,18 +1025,30 @@
     return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
   }
 
+  // Foto-fas ur RIKTIG asset-kategori (VALID_CATEGORIES: photo_before/_during/
+  // _after, exponerad via assetToPatientFile.category). Ingen ny datamodell.
+  function photoPhase(category) {
+    var c = String(category || '').toLowerCase();
+    if (/before/.test(c)) return 'before';
+    if (/after/.test(c)) return 'after';
+    if (/during/.test(c)) return 'during';
+    return '';
+  }
+
   function buildPhotosFromDriveFiles(driveFiles) {
     var media = toArray(driveFiles).filter(isRailMediaFile);
-    var items = media
+    var all = media
       .map(function (f) {
         var name = text(f.originalFileName || f.fileName || f.relativePath || f.name) || 'Foto';
         var nameLc = name.toLowerCase();
-        // Datum ur RIKTIG fil-metadata (capturedAt; fallback occasionContext.date).
+        // Datum ur RIKTIG fil-metadata (capturedAt/captureDate; fallback occasion).
         var capturedAt =
           text(f.capturedAt) ||
+          text(f.captureDate) ||
           (f.occasionContext && text(f.occasionContext.date)) ||
           text(f.modifiedTime) ||
           '';
+        var phase = photoPhase(f.category);
         return {
           id: text(f.id),
           name: name,
@@ -1044,20 +1056,39 @@
           isImage: f.fileType === 'image' || IMG_EXT.test(nameLc),
           capturedAt: capturedAt,
           dateLabel: photoDateLabel(capturedAt),
+          phase: phase,
         };
       })
       .filter(function (it) {
         return it.href;
       });
     // Nyast först (foton med datum sorteras före datumlösa).
-    items.sort(function (a, b) {
+    all.sort(function (a, b) {
       return (Date.parse(b.capturedAt || '') || 0) - (Date.parse(a.capturedAt || '') || 0);
     });
-    items = items.slice(0, 9);
+
+    // Före/efter-par + gap ur RIKTIG fas-kategori (senaste före ↔ senaste efter).
+    function latestOfPhase(p) {
+      for (var i = 0; i < all.length; i++) {
+        if (all[i].phase === p) return all[i];
+      }
+      return null;
+    }
+    var before = latestOfPhase('before');
+    var after = latestOfPhase('after');
+    var compare = before && after ? { before: before, after: after } : null;
+    var gap = '';
+    if (all.length) {
+      if (!before && !after) gap = 'Före/efter saknar fas-märkning';
+      else if (before && !after) gap = 'Efter-bild saknas för fullständig dokumentation';
+      else if (after && !before) gap = 'Före-bild saknas för fullständig dokumentation';
+    }
+
+    var items = all.slice(0, 9);
     var dated = items.filter(function (it) {
       return it.dateLabel;
     }).length;
-    return { items: items, count: items.length, dated: dated };
+    return { items: items, count: items.length, dated: dated, compare: compare, gap: gap };
   }
 
   function fileExtLabel(name) {
