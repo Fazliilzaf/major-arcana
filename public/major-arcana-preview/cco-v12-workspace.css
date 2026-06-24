@@ -197,7 +197,7 @@ html[data-cco-mobile-shell="on"]
   padding: 7px 14px;
   border-radius: 9px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 12.5px;
   font-weight: 700;
@@ -482,7 +482,7 @@ html[data-cco-mobile-shell="on"]
   padding: 10px 16px;
   border-radius: 10px;
   border: 1px solid var(--v12-amber);
-  background: linear-gradient(135deg, #d79433 0%, #b9701a 100%);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
   color: #fff;
   font-size: 13.5px;
   font-weight: 800;
@@ -1235,12 +1235,12 @@ html[data-cco-mobile-shell="on"]
 
 .v12-workspace__insight-group-label[data-tone="amber"] {
   color: var(--v12-amber);
-  background: rgba(200, 130, 30, 0.14);
+  background: rgba(200, 130, 30, 0.16);
 }
 
 .v12-workspace__insight-group-label[data-tone="green"] {
   color: #2c6b3d;
-  background: rgba(74, 130, 104, 0.14);
+  background: rgba(74, 130, 104, 0.16);
 }
 
 .v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight {
