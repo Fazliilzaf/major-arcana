@@ -60,8 +60,8 @@ function createCcoNotificationFeedStore({
   readStore = null,
 } = {}) {
   async function collectBooking() {
-    if (!bookingCaseStore?.list) return [];
-    const cases = asArray(await bookingCaseStore.list());
+    if (!bookingCaseStore?.listCases) return [];
+    const cases = asArray(await bookingCaseStore.listCases());
     return cases
       .map((c) =>
         notif({
@@ -79,14 +79,15 @@ function createCcoNotificationFeedStore({
 
   function collectCompliance() {
     if (!complianceScanStore?.getActiveFlags) return [];
-    const result = complianceScanStore.getActiveFlags() || {};
-    const flags = asArray(result.flags);
+    // getActiveFlags() returnerar en array av flaggor (inte { flags: [...] }).
+    const flags = asArray(complianceScanStore.getActiveFlags());
+    const latest = complianceScanStore.getLatestScan ? complianceScanStore.getLatestScan() : null;
     return flags.map((f) =>
       notif({
         type: 'compliance',
         title: normalizeText(f.title || f.code || 'Compliance-flagga'),
         body: normalizeText(f.message || f.detail || ''),
-        at: f.at || f.detectedAt || result.scannedAt,
+        at: f.at || f.detectedAt || latest?.completedAt || latest?.startedAt,
         severity: normalizeText(f.severity) || 'warning',
         source: { kind: 'compliance_flag', id: f.id || f.code || null },
       })
@@ -131,7 +132,7 @@ function createCcoNotificationFeedStore({
         out.push(
           notif({
             type: 'agreement',
-            title: `Avtal: ${normalizeText(a.status) || 'utkast'}`,
+            title: `Avtal: ${normalizeText(a.state) || 'utkast'}`,
             body: normalizeText(a.title || ''),
             at: a.updatedAt || a.createdAt,
             customerId: cid,

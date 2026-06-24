@@ -285,3 +285,21 @@ test('buildDsrExport works with missing stores and no photo bytes', async () => 
 test('buildDsrExport rejects blank customerId', async () => {
   await assert.rejects(() => buildDsrExport({ customerId: '  ', stores: {} }), /customerId krävs/);
 });
+
+// Regression (Bugbot #2, HIGH/GDPR): buildDsrExport får inte läcka andra kunders
+// data även om en store ignorerar sitt customer-filter (t.ex. listGranted(string)).
+test('buildDsrExport filtrerar bort andra kunders poster (GDPR)', async () => {
+  const leakyConsentStore = {
+    // Ignorerar argumentet med flit — returnerar ALLA samtycken.
+    listGranted: () => [
+      { id: 'c-subject', customerId: 'subject@e.com', status: 'granted' },
+      { id: 'c-other', customerId: 'other@e.com', status: 'granted' },
+    ],
+  };
+  const res = await buildDsrExport({
+    customerId: 'subject@e.com',
+    dsrId: 'dsr-1',
+    stores: { consentStore: leakyConsentStore },
+  });
+  assert.equal(res.counts.consents, 1, 'endast subjektets samtycke ska ingå');
+});

@@ -22,7 +22,7 @@ function buildSources() {
   const t4 = recentIso(4);
   return {
     bookingCaseStore: {
-      list: () => [
+      listCases: () => [
         {
           id: 'bc-1',
           state: 'blocked',
@@ -33,18 +33,17 @@ function buildSources() {
       ],
     },
     complianceScanStore: {
-      getActiveFlags: () => ({
-        scannedAt: t1,
-        flags: [
-          {
-            id: 'flag-1',
-            code: 'TPL_OUTDATED',
-            message: 'Mall föråldrad',
-            severity: 'warning',
-            at: t1,
-          },
-        ],
-      }),
+      // getActiveFlags returnerar en array (matchar ccoComplianceScanStore).
+      getActiveFlags: () => [
+        {
+          id: 'flag-1',
+          code: 'TPL_OUTDATED',
+          message: 'Mall föråldrad',
+          severity: 'warning',
+          at: t1,
+        },
+      ],
+      getLatestScan: () => ({ completedAt: t1 }),
     },
     idVerificationStore: {
       getStatus: (cid) => (cid === 'anna@e.com' ? { status: 'pending', updatedAt: t3 } : null),
@@ -52,7 +51,7 @@ function buildSources() {
     agreementStore: {
       listForCustomer: (cid) =>
         cid === 'anna@e.com'
-          ? [{ id: 'ag-1', status: 'sent', title: 'Behandlingsavtal', updatedAt: t4 }]
+          ? [{ id: 'ag-1', state: 'sent', title: 'Behandlingsavtal', updatedAt: t4 }]
           : [],
     },
     journalStore: {

@@ -89,7 +89,7 @@ test('blocking evaluateCustomer clear when consent present and brand matches', a
     agreementStore: {
       listForCustomer: () => [{ id: 'a1', state: 'signed', brand: 'curatiio' }],
     },
-    idVerificationStore: { getStatus: async () => ({ state: 'verified' }) },
+    idVerificationStore: { getStatus: async () => ({ status: 'verified' }) },
     treatmentRequirements,
   });
   const result = await store.evaluateCustomer('patient-3', { plannedTreatment: 'botox' });
