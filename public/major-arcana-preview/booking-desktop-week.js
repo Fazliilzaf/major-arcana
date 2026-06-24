@@ -553,33 +553,52 @@
       .join("")}</div>`;
   }
 
+  // v8: rendera alla kort i en kolumn (booking/empty-slot/lunch-block) med konflikt-flagga.
+  function v8RenderColumnCells(slots, iso) {
+    const s = shared();
+    const conflictKeys = s.findConflictKeys(slots);
+    return slots
+      .map((slot) => v8RenderSlot(slot, iso, conflictKeys.has(s.eventKey(slot))))
+      .join("");
+  }
+
+  // v8: gemensam tid-kolumn (klinikens timfönster).
+  function v8TimeColumn() {
+    const startHour = Math.floor(TIMELINE_START / 60);
+    const endHour = Math.floor(TIMELINE_END / 60);
+    const ticks = [];
+    for (let h = startHour; h <= endHour; h++) {
+      ticks.push(`<div class="time-tick">${String(h).padStart(2, "0")}</div>`);
+    }
+    return { startHour, endHour, html: `<div class="time-col">${ticks.join("")}</div>` };
+  }
+
+  function v8NowLine(iso) {
+    const now = new Date();
+    if (isoFromDate(now) !== iso) return "";
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    if (nowMin < TIMELINE_START || nowMin > TIMELINE_END) return "";
+    const top = Math.round(((nowMin - TIMELINE_START) / 60) * V8_HOUR_H);
+    const label = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    return `<div class="now-line" style="top:${top}px"><span class="now-label">${label}</span></div>`;
+  }
+
   function renderDayGrid(container) {
     const s = shared();
-    const slots = filterSlots(slotsByDate.get(selectedDayIso) || []);
-    const lines = [];
-    for (let minute = TIMELINE_START; minute <= TIMELINE_END; minute += 60) {
-      lines.push(
-        `<div class="cco-cal-time-label">${String(Math.floor(minute / 60)).padStart(2, "0")}:00</div>`
-      );
-    }
-    const now = new Date();
-    const nowIso = isoFromDate(now);
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const nowTop =
-      nowIso === selectedDayIso && nowMinutes >= TIMELINE_START && nowMinutes <= TIMELINE_END
-        ? ((nowMinutes - TIMELINE_START) / (TIMELINE_END - TIMELINE_START)) * 100
-        : null;
-
-    container.innerHTML = `<div class="cco-cal-day-timeline">
-      <div class="cco-cal-time-rail">${lines.join("")}</div>
-      <div class="cco-cal-time-grid">
-        <div class="cco-cal-time-events cco-cal-drop-zone" data-cal-drop-timeline data-cal-drop-day="${s.escapeAttr(selectedDayIso)}">
-          ${nowTop != null ? `<div class="cco-cal-now-marker" style="top:${nowTop}%"></div>` : ""}
-          ${renderTimelineEvents(slots.filter((slot) => slot.kind !== "block"))}
-          ${renderTimelineEvents(
-            slots.filter((slot) => slot.kind === "block"),
-            { absolute: true }
-          )}
+    const iso = selectedDayIso;
+    const slots = filterSlots(slotsByDate.get(iso) || []);
+    const tc = v8TimeColumn();
+    const dayDate = new Date(`${iso}T12:00:00`);
+    const isToday = iso === s.todayIso();
+    container.innerHTML = `<div class="calendar-week is-day" style="--calendar-hour-h:${V8_HOUR_H}px;--calendar-hour-start:${tc.startHour};--calendar-hour-end:${tc.endHour}">
+      ${tc.html}
+      <div class="day-col${isToday ? " today" : ""}" data-cal-day="${s.escapeAttr(iso)}">
+        <div class="day-head">
+          <span class="day-label">${s.escapeHtml(formatDayLabel(dayDate).replace(/\s+\d+$/, ""))}</span>
+          <span class="day-date">${dayDate.getDate()}</span>
+        </div>
+        <div class="day-slots cco-cal-drop-zone" data-cal-drop-timeline data-cal-drop-day="${s.escapeAttr(iso)}">
+          ${v8NowLine(iso)}${v8RenderColumnCells(slots, iso)}
         </div>
       </div>
     </div>`;
@@ -587,38 +606,30 @@
 
   function renderResourceGrid(container) {
     const s = shared();
-    const daySlots = filterSlots(slotsByDate.get(selectedDayIso) || []);
-    const resources = s.listResources(daySlots, selectedDayIso);
+    const iso = selectedDayIso;
+    const daySlots = filterSlots(slotsByDate.get(iso) || []);
+    const resources = s.listResources(daySlots, iso);
     if (!resources.length) {
-      container.innerHTML = `<div class="cco-cal-empty">Inga resurser för ${s.escapeHtml(formatDayLabel(new Date(`${selectedDayIso}T12:00:00`)))}.</div>`;
+      container.innerHTML = `<div class="cco-cal-empty">Inga resurser för ${s.escapeHtml(formatDayLabel(new Date(`${iso}T12:00:00`)))}.</div>`;
       return;
     }
-
-    const lines = [];
-    for (let minute = TIMELINE_START; minute <= TIMELINE_END; minute += 60) {
-      lines.push(
-        `<div class="cco-cal-time-label">${String(Math.floor(minute / 60)).padStart(2, "0")}:00</div>`
-      );
-    }
-
-    container.innerHTML = `<div class="cco-cal-resource-timeline">
-      <div class="cco-cal-resource-time-rail">${lines.join("")}</div>
-      <div class="cco-cal-resource-columns">${resources
-        .map(([label, slots]) => {
-          return `<section class="cco-cal-resource-col-timeline">
-            <header class="cco-cal-col-head">
-              <strong>${s.escapeHtml(label)}</strong>
-              <span>${slots.length} ${slots.length === 1 ? "post" : "poster"}</span>
-            </header>
-            <div class="cco-cal-resource-time-grid">
-              <div class="cco-cal-time-events cco-cal-drop-zone" data-cal-drop-timeline data-cal-drop-day="${s.escapeAttr(selectedDayIso)}" data-cal-drop-resource="${s.escapeAttr(label)}">
-                ${renderTimelineEvents(slots.filter((slot) => slot.kind !== "block"))}
-                ${renderTimelineEvents(slots.filter((slot) => slot.kind === "block"))}
-              </div>
-            </div>
-          </section>`;
-        })
-        .join("")}</div>
+    const tc = v8TimeColumn();
+    const nowLine = v8NowLine(iso);
+    const cols = resources
+      .map(([label, slots]) => {
+        return `<div class="day-col">
+          <div class="day-head day-head--resource">
+            <span class="day-label">${s.escapeHtml(label)}</span>
+            <span class="rc-count">${slots.length}</span>
+          </div>
+          <div class="day-slots cco-cal-drop-zone" data-cal-drop-timeline data-cal-drop-day="${s.escapeAttr(iso)}" data-cal-drop-resource="${s.escapeAttr(label)}">
+            ${nowLine}${v8RenderColumnCells(slots, iso)}
+          </div>
+        </div>`;
+      })
+      .join("");
+    container.innerHTML = `<div class="calendar-week is-resource" style="--calendar-hour-h:${V8_HOUR_H}px;--calendar-hour-start:${tc.startHour};--calendar-hour-end:${tc.endHour};grid-template-columns:44px repeat(${resources.length}, minmax(118px, 1fr))">
+      ${tc.html}${cols}
     </div>`;
   }
 
