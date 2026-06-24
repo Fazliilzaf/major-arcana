@@ -1255,6 +1255,30 @@
     gap: 0;
     background: transparent;
   }
+  /* Scroll-säkerhet: i fullscreen-kalendern är höjden låst till 100dvh med
+   * overflow:hidden på flera nivåer. v8-ytan blir en flex-kolumn som fyller
+   * höjden; toolbar/status/filter är fixa och griden scrollar internt. */
+  .cco-cal-v8-surface {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: 100%;
+  }
+  .cco-cal-v8-surface .calendar-toolbar,
+  .cco-cal-v8-surface .calendar-status-bar,
+  .cco-cal-v8-surface .cco-cal-filter-bar {
+    flex: 0 0 auto;
+  }
+  .cco-cal-v8-surface .calendar-content {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .cco-cal-v8-surface .cco-cal-grid-wrap {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
   .cco-cal-v8-surface::before {
     content: "";
     position: absolute;
