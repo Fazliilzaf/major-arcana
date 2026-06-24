@@ -540,7 +540,7 @@
       esc(text(thread.subject) || threadName(thread)) +
       '</h2></div>' +
       '<div class="thread-header-actions">' +
-      '<button class="nav-btn" type="button" data-v2-action="note" data-v2-soon>✎ Anteckna</button>' +
+      '<button class="nav-btn" type="button" data-v2-action="note">✎ Anteckna</button>' +
       '<button class="nav-btn nav-btn--ai" type="button" data-v2-action="studio">★ Svarstudio</button>' +
       '</div></header>' +
       '<div class="thread-status-bar">' +
@@ -551,9 +551,9 @@
       '</div>' +
       '<div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">' +
       '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio" data-v2-soon><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
-      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking" data-v2-soon><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
-      '<button class="action-btn action-btn--note" type="button" data-v2-action="note" data-v2-soon><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
-      '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar" data-v2-soon><span class="action-ico">📆</span><span>Kalender</span></button>' +
+      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
+      '<button class="action-btn action-btn--note" type="button" data-v2-action="note"><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
+      '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"><span class="action-ico">📆</span><span>Kalender</span></button>' +
       '</div>';
   }
 
@@ -594,7 +594,7 @@
       '</dl>' +
       '<div class="ctx-actions">' +
       '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier">👤 Kunddossiér</button>' +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking" data-v2-soon>📅 Bokning</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking">📅 Bokning</button>' +
       '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled" data-v2-soon>✓ Klar</button>' +
       '</div>';
   }
