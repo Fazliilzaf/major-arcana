@@ -20,6 +20,7 @@
     "app/state-paths.js",
     "app/render-components.js",
     "app.js",
+    "app/cco-conversations-v2-shell.js",
     "app/cco-shims.js",
     "app/cmd-k.js",
     "app/keyboard-nav.js",
