@@ -11105,6 +11105,7 @@ const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
+const { createDocsRouter } = require('./src/routes/docs');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -11692,41 +11693,11 @@ const {
   runCheck: runUptimeCheck,
 } = require('./src/ops/uptimeMonitor');
 const { createOnboardingStore } = require('./src/ops/staffOnboarding');
-const {
-  getDocContent,
-  getDocsForSection,
-  getAllSections,
-  getDocumentLibrary,
-  isAllowedDocPath,
-} = require('./src/ops/contextualDocs');
 
-app.get('/api/v1/docs/sections', (req, res) => {
-  return res.json({ ok: true, sections: getAllSections() });
-});
-
-// Complete document library — every doc in the repo, grouped by segment.
-app.get('/api/v1/docs/library', async (req, res) => {
-  try {
-    const library = await getDocumentLibrary();
-    return res.json({ ok: true, ...library });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error?.message || 'library_failed' });
-  }
-});
-
-app.get('/api/v1/docs/section/:sectionId', (req, res) => {
-  const docs = getDocsForSection(req.params.sectionId);
-  if (!docs.length) return res.status(404).json({ ok: false, error: 'section_not_found' });
-  return res.json({ ok: true, sectionId: req.params.sectionId, documents: docs });
-});
-
-app.get('/api/v1/docs/content', async (req, res) => {
-  const docPath = (req.query?.path || '').trim();
-  if (!isAllowedDocPath(docPath)) return res.status(400).json({ ok: false, error: 'invalid_path' });
-  const result = await getDocContent(docPath);
-  if (!result.ok) return res.status(404).json(result);
-  return res.json(result);
-});
+// ─── DOCS / KNOWLEDGE LIBRARY ───
+// Routes flyttade till src/routes/docs.js (se ORGANISATION.md §4).
+// Monteras top-level (bevarar registreringsordning före rate-limit i startup).
+app.use('/api/v1', createDocsRouter());
 
 // Knowledge layer (Fas 1) — ett enat index som admin OCH agenter läser från.
 const {
