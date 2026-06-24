@@ -4705,6 +4705,7 @@ let ccoBookingCaseStore = null;
   try {
     const { createCcoVendorRegisterStore } = require('./src/ops/ccoVendorRegisterStore');
     const { attachRole, requireAnyRole } = require('./src/security/ccoRbac');
+    const { createCcoVendorsRouter } = require('./src/routes/ccoVendors');
     const express = require('express');
     const jsonParser = express.json({ limit: '64kb' });
 
@@ -4713,132 +4714,8 @@ let ccoBookingCaseStore = null;
       auditLog: ccoAuditLog,
     });
     app.locals.ccoVendorRegisterStore = store;
-    const RBAC = ['owner', 'dpo', 'revisor'];
-
-    app.get('/api/v1/cco-vendors', attachRole, requireAnyRole(RBAC), (req, res) => {
-      res.json({
-        vendors: store.listAll(),
-        needsReview: store.listNeedsReview(),
-        legacyExit: store.listLegacyExit(),
-      });
-    });
-    app.get('/api/v1/cco-vendors/export', attachRole, requireAnyRole(RBAC), (req, res) => {
-      res.json(store.exportRegister());
-    });
-    app.get('/api/v1/cco-vendors/:id', attachRole, requireAnyRole(RBAC), (req, res) => {
-      const v = store.getById(req.params.id);
-      if (!v) return res.status(404).json({ error: 'not found' });
-      res.json(v);
-    });
-    app.post(
-      '/api/v1/cco-vendors',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.createVendor(req.body, { userId: req.role?.userId, role: req.role?.role })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.patch(
-      '/api/v1/cco-vendors/:id',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.updateVendor(req.params.id, req.body, {
-              userId: req.role?.userId,
-              role: req.role?.role,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.post(
-      '/api/v1/cco-vendors/:id/dpa-reviewed',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.markDpaReviewed({
-              vendorId: req.params.id,
-              actor: { userId: req.role?.userId, role: req.role?.role },
-              ...req.body,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.post(
-      '/api/v1/cco-vendors/:id/underbilaga1-completed',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.markUnderbilaga1Completed({
-              vendorId: req.params.id,
-              actor: { userId: req.role?.userId, role: req.role?.role },
-              ...req.body,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.post(
-      '/api/v1/cco-vendors/:id/subprocessor',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.addSubprocessor({
-              vendorId: req.params.id,
-              actor: { userId: req.role?.userId, role: req.role?.role },
-              subprocessor: req.body,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.post(
-      '/api/v1/cco-vendors/:id/legacy-exit',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.markLegacyExit({
-              vendorId: req.params.id,
-              actor: { userId: req.role?.userId, role: req.role?.role },
-              ...req.body,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
+    // Routes flyttade till src/routes/ccoVendors.js (se ORGANISATION.md §4).
+    app.use('/api/v1', createCcoVendorsRouter({ store, attachRole, requireAnyRole, jsonParser }));
     console.log('[cco-vendors] monterad: GET/POST /api/v1/cco-vendors + /export');
   } catch (err) {
     console.warn('[cco-vendors] kunde inte montera:', err.message);
