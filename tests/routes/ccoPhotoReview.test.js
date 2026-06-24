@@ -14,6 +14,8 @@ const {
 } = require('../../src/routes/ccoPhotoReviewWrite');
 const { attachRole } = require('../../src/security/ccoRbac');
 
+const passAuth = (_req, _res, next) => next();
+
 function createMockStore(initial = {}) {
   const items = { ...initial };
   return {
@@ -93,6 +95,7 @@ test('photo-review summary counts NEEDS_REVIEW photos only (Fas 1 read-only)', a
     '/api/v1/cco',
     createCcoPhotoReviewRouter({
       resolveStores: async () => ({ assetStore: createMockStore(items) }),
+      requireCcoAuthenticated: passAuth,
       attachRole,
       requirePermission: () => (_req, _res, next) => next(),
       auditLog: null,
@@ -220,6 +223,7 @@ test('photo-review decide endpoint not mounted when writeEnabled=false', async (
     '/api/v1/cco',
     createCcoPhotoReviewRouter({
       resolveStores: async () => ({ assetStore: createMockStore(items) }),
+      requireCcoAuthenticated: passAuth,
       attachRole,
       requirePermission: () => (_req, _res, next) => next(),
       auditLog: null,
@@ -262,6 +266,7 @@ test('photo-review decide endpoint returns 409 for non-review asset when write e
     '/api/v1/cco',
     createCcoPhotoReviewRouter({
       resolveStores: async () => ({ assetStore: createMockStore(items) }),
+      requireCcoAuthenticated: passAuth,
       attachRole,
       requirePermission: () => (_req, _res, next) => next(),
       auditLog: null,
