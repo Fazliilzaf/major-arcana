@@ -1203,6 +1203,65 @@ html[data-cco-mobile-shell="on"]
   line-height: 1.4;
 }
 
+/* Facit-parity: insikter grupperade i amber "Gör nu" vs grön "Möjlighet". */
+.v12-workspace__insight-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.v12-workspace__insight-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__insight-group .v12-workspace__insights-list {
+  margin-top: 0;
+}
+
+.v12-workspace__insight-group-label {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.v12-workspace__insight-group-label[data-tone="amber"] {
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.14);
+}
+
+.v12-workspace__insight-group-label[data-tone="green"] {
+  color: #2c6b3d;
+  background: rgba(74, 130, 104, 0.14);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight {
+  border-color: rgba(200, 130, 30, 0.3);
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.3);
+  background: rgba(181, 82, 74, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight {
+  border-color: rgba(74, 130, 104, 0.32);
+  background: rgba(74, 130, 104, 0.08);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight-icon {
+  color: #2f7d4f;
+}
+
 /* ===== Bilder / före–efter-modul (sektion 7) ===== */
 .v12-workspace__photos-grid {
   display: grid;

@@ -752,16 +752,13 @@
         '</div></div>';
     }
 
-    var insightsBlock;
-    if (!count) {
-      insightsBlock =
-        '<div class="v12-workspace__empty" role="status">' +
-        '<div class="v12-workspace__empty-title">Inga insikter just nu</div>' +
-        '<div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div>';
-    } else {
-      insightsBlock =
+    // Facit-parity: insikter delas i amber "Gör nu" (blockerare/granska) och
+    // grön "Möjlighet" (positiva signaler). Endast grupper med riktiga items
+    // renderas — ingen påhittad rekommendation, inga tomma grupprubriker.
+    function renderInsightRows(list) {
+      return (
         '<ul class="v12-workspace__insights-list">' +
-        items
+        list
           .map(function (it) {
             var icon = icons[it.tone] || '↗';
             return (
@@ -780,7 +777,38 @@
             );
           })
           .join('') +
-        '</ul>';
+        '</ul>'
+      );
+    }
+
+    var insightsBlock;
+    if (!count) {
+      insightsBlock =
+        '<div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">Inga insikter just nu</div>' +
+        '<div class="v12-workspace__empty-hint">Inga aktiva signaler att lyfta.</div></div>';
+    } else {
+      var gorNu = items.filter(function (it) {
+        return it.tone === 'blocker' || it.tone === 'review';
+      });
+      var mojlighet = items.filter(function (it) {
+        return it.tone !== 'blocker' && it.tone !== 'review';
+      });
+      insightsBlock =
+        '<div class="v12-workspace__insight-groups">' +
+        (gorNu.length
+          ? '<div class="v12-workspace__insight-group" data-group="gor-nu">' +
+            '<div class="v12-workspace__insight-group-label" data-tone="amber">Gör nu</div>' +
+            renderInsightRows(gorNu) +
+            '</div>'
+          : '') +
+        (mojlighet.length
+          ? '<div class="v12-workspace__insight-group" data-group="mojlighet">' +
+            '<div class="v12-workspace__insight-group-label" data-tone="green">Möjlighet</div>' +
+            renderInsightRows(mojlighet) +
+            '</div>'
+          : '') +
+        '</div>';
     }
 
     return (
