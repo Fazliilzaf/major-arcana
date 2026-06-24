@@ -22,6 +22,8 @@
   let allSlots = [];
   let dragEvent = null;
   let calendarBusy = false;
+  let calDensity = "vanlig"; // v8 P3: kortdensitet (vanlig/stressig/maraton)
+  let calmMode = false; // v8 P3: lugnt läge (sänker visuell stress)
 
   function isDesktop() {
     try {
@@ -126,6 +128,12 @@
           <h2 data-cal-title>Veckokalender</h2>
         </div>
         <div class="calendar-toolbar-actions">
+          <div class="density-toggle" role="group" aria-label="Kortdensitet">
+            <button class="density-btn is-active" type="button" data-cal-density="vanlig" title="Vanlig densitet"><span class="density-dot"></span>Vanlig</button>
+            <button class="density-btn" type="button" data-cal-density="stressig" title="Tätare kort"><span class="density-dot"></span><span class="density-dot"></span>Stressig</button>
+            <button class="density-btn" type="button" data-cal-density="maraton" title="Maximal täthet"><span class="density-dot"></span><span class="density-dot"></span><span class="density-dot"></span>Maraton</button>
+          </div>
+          <button class="calm-toggle" type="button" data-cal-calm title="Lugnt läge — sänk visuell stress"><span class="moon">☾</span>Lugnt</button>
           <div class="segment-group" role="tablist" aria-label="Kalendervy">
             <button class="segment-tab active" type="button" role="tab" data-cal-view="week" aria-selected="true">Vecka</button>
             <button class="segment-tab" type="button" role="tab" data-cal-view="day" aria-selected="false">Dag</button>
@@ -980,6 +988,25 @@
     el.innerHTML = `<strong>${count}</strong> ${shared().escapeHtml(label)}`;
   }
 
+  // v8 P3: applicera kortdensitet på den renderade veckogriden.
+  function applyDensity() {
+    const shell = ensureShell();
+    shell.querySelectorAll(".calendar-week").forEach((grid) => {
+      grid.setAttribute("data-density", calDensity);
+    });
+  }
+
+  // v8 P3: lugnt läge — sätt attribut på ytan + spegla knappens aktiva läge.
+  function applyCalmMode() {
+    const shell = ensureShell();
+    const surface = shell.querySelector(".cco-cal-v8-surface");
+    if (surface) surface.setAttribute("data-calm", calmMode ? "on" : "off");
+    shell.querySelectorAll("[data-cal-calm]").forEach((btn) => {
+      btn.classList.toggle("is-active", calmMode);
+      btn.setAttribute("aria-pressed", calmMode ? "true" : "false");
+    });
+  }
+
   function updateToolbarPills() {
     const shell = ensureShell();
     let slots;
@@ -1021,6 +1048,8 @@
     bindCalendarInteractions(wrap);
     renderDetailPanel();
     updateToolbarPills();
+    applyDensity();
+    applyCalmMode();
   }
 
   async function refresh() {
@@ -1128,6 +1157,25 @@
     });
 
     shell.addEventListener("click", (event) => {
+      // v8 P3: kortdensitet
+      const densityButton = event.target.closest("[data-cal-density]");
+      if (densityButton) {
+        calDensity = densityButton.getAttribute("data-cal-density") || "vanlig";
+        shell.querySelectorAll("[data-cal-density]").forEach((btn) => {
+          btn.classList.toggle("is-active", btn === densityButton);
+        });
+        applyDensity();
+        return;
+      }
+
+      // v8 P3: lugnt läge
+      const calmButton = event.target.closest("[data-cal-calm]");
+      if (calmButton) {
+        calmMode = !calmMode;
+        applyCalmMode();
+        return;
+      }
+
       const resourceButton = event.target.closest("[data-cal-resource]");
       if (resourceButton) {
         selectedResource = resourceButton.getAttribute("data-cal-resource") || "all";
