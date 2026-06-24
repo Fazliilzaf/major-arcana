@@ -27,7 +27,7 @@
    * saknas fältet visas ingen påhittad status. Personnummer saknas i datakällan
    * idag → renderas inte (explicit utelämnat, ingen fejk; per inventory-spike).
    */
-  function renderCurrentStateModule(profile, stats, status) {
+  function renderCurrentStateModule(profile, stats, status, bookings) {
     profile = profile || { name: 'Kund', initials: '–', pills: [] };
 
     function telHref(p) {
@@ -110,11 +110,18 @@
           '</div></div>'
         );
       }
+      // Facit-parity: fjärde stat "Nästa besök" ur RIKTIG boknings-data
+      // (första kommande bokningen). Inga bokningar → explicit empty-state.
+      var nextB = bookings && bookings.items && bookings.items.length ? bookings.items[0] : null;
+      var nastaBesok = nextB
+        ? { value: nextB.whenLong || '—', sub: nextB.title || nextB.whenShort || 'bokad' }
+        : { value: '—', sub: 'inga bokningar' };
       statBlock =
         '<div class="v12-workspace__cs-stats">' +
         cell('Besök', stats.besok) +
         cell('Värde tot', stats.vardeTot) +
         cell('Skuld', stats.skuld, ' data-skuld-state="' + esc(skuldState) + '"') +
+        cell('Nästa besök', nastaBesok) +
         '</div>';
     }
 
@@ -1487,7 +1494,7 @@
     return (
       '<div class="v12-workspace__inner" data-v12-workspace-inner="1">' +
       '<div class="v12-workspace__zone-label" aria-hidden="true">Zon 2 · Arbetsyta</div>' +
-      renderCurrentStateModule(profile, stats, status) +
+      renderCurrentStateModule(profile, stats, status, bookings) +
       renderActiveVisitModule(av) +
       renderCriticalWarningsModule(warnings) +
       renderHealthModule(health) +
