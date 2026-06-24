@@ -2074,4 +2074,630 @@
   .cco-cal-v8-surface[data-calm="on"]::before {
     opacity: 0.4;
   }
+
+  /* ════════════════════════════════════════════════════════════════
+     v8 P3 "magi": Morgon-standup, busy-bar, vibe-väder, watch, mic.
+     Portad från calendar-mockup-v8.html. Scope: .cco-cal-v8-surface.
+     Tokens mappade till v8-paletten.
+     ════════════════════════════════════════════════════════════════ */
+
+  /* ─── Mic-knapp (röstbokning — ärligt skal) ─── */
+  .cco-cal-v8-surface .mic-btn {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    color: var(--v8-brand);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease;
+  }
+  .cco-cal-v8-surface .mic-btn:hover {
+    transform: translateY(-1px);
+  }
+  .cco-cal-v8-surface .mic-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* ─── Morgon-standup ─── */
+  .cco-cal-v8-surface .morgon-story {
+    position: relative;
+    z-index: 1;
+    padding: 22px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: cco-cal-story-enter 0.5s cubic-bezier(0.34, 1.32, 0.64, 1);
+  }
+  @keyframes cco-cal-story-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .cco-cal-v8-surface .greet {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    padding-bottom: 4px;
+  }
+  .cco-cal-v8-surface .greet-sun {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    flex-shrink: 0;
+    background: radial-gradient(circle at 30% 30%, #ffe9b8, #f5b85a 60%, #e09933);
+    box-shadow:
+      0 0 40px rgba(255, 200, 120, 0.55),
+      0 0 80px rgba(255, 180, 100, 0.34),
+      inset -8px -8px 18px rgba(200, 100, 40, 0.32);
+    animation: cco-cal-sun-rays 16s linear infinite;
+  }
+  @keyframes cco-cal-sun-rays {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .cco-cal-v8-surface .greet-text h1 {
+    font-size: 25px;
+    margin: 0;
+    letter-spacing: -0.04em;
+    font-weight: 700;
+    color: var(--v8-brand);
+  }
+  .cco-cal-v8-surface .greet-text h1 span {
+    color: var(--v8-accent);
+  }
+  .cco-cal-v8-surface .greet-text p {
+    margin: 4px 0 0;
+    color: var(--v8-text-secondary);
+    font-size: 13px;
+  }
+
+  .cco-cal-v8-surface .story-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 1fr 0.9fr;
+    gap: 12px;
+  }
+  .cco-cal-v8-surface .story-card {
+    position: relative;
+    padding: 16px 16px 14px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--v8-card-top), var(--v8-card-bottom));
+    box-shadow: var(--v8-card-shadow);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .cco-cal-v8-surface .story-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 18% 6%, rgba(255, 255, 255, 0.5), transparent 36%);
+    pointer-events: none;
+  }
+  .cco-cal-v8-surface .story-card > * {
+    position: relative;
+    z-index: 1;
+  }
+  .cco-cal-v8-surface .story-card-kicker {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cco-cal-v8-surface .story-card-kicker .icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+  .cco-cal-v8-surface .story-card-kicker .icon svg {
+    width: 11px;
+    height: 11px;
+  }
+  .cco-cal-v8-surface .story-card[data-kind="idag"] .story-card-kicker {
+    color: var(--v8-accent);
+  }
+  .cco-cal-v8-surface .story-card[data-kind="idag"] .icon {
+    background: var(--v8-accent-soft);
+    color: var(--v8-accent);
+  }
+  .cco-cal-v8-surface .story-card[data-kind="risker"] .story-card-kicker {
+    color: var(--v8-warning);
+  }
+  .cco-cal-v8-surface .story-card[data-kind="risker"] .icon {
+    background: rgba(200, 130, 30, 0.14);
+    color: var(--v8-warning);
+  }
+  .cco-cal-v8-surface .story-card[data-kind="mojligheter"] .story-card-kicker {
+    color: var(--v8-info);
+  }
+  .cco-cal-v8-surface .story-card[data-kind="mojligheter"] .icon {
+    background: rgba(74, 123, 168, 0.14);
+    color: var(--v8-info);
+  }
+  .cco-cal-v8-surface .story-card[data-kind="klart"] .story-card-kicker {
+    color: var(--v8-success);
+  }
+  .cco-cal-v8-surface .story-card[data-kind="klart"] .icon {
+    background: rgba(74, 130, 104, 0.14);
+    color: var(--v8-success);
+  }
+  .cco-cal-v8-surface .story-card-headline {
+    font-size: 22px;
+    line-height: 1.15;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.03em;
+    color: var(--v8-brand);
+  }
+  .cco-cal-v8-surface .story-card-headline .num {
+    font-variant-numeric: tabular-nums;
+    color: var(--v8-accent);
+  }
+  .cco-cal-v8-surface .story-card-sub {
+    font-size: 11.5px;
+    color: var(--v8-text-secondary);
+    margin: 0;
+    line-height: 1.4;
+  }
+  .cco-cal-v8-surface .story-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .cco-cal-v8-surface .story-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 7px 9px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    line-height: 1.35;
+    transition:
+      background 0.14s ease,
+      transform 0.12s ease;
+  }
+  .cco-cal-v8-surface .story-item:hover {
+    background: rgba(255, 255, 255, 0.82);
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(56, 40, 28, 0.07);
+  }
+  .cco-cal-v8-surface .story-item .who {
+    font-weight: 700;
+    color: var(--v8-brand);
+  }
+  .cco-cal-v8-surface .story-item .what {
+    color: var(--v8-text-secondary);
+  }
+  .cco-cal-v8-surface .story-item .when {
+    font-size: 9.5px;
+    color: var(--v8-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .cco-cal-v8-surface .story-item .badge {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: white;
+  }
+  .cco-cal-v8-surface .story-item[data-severity="high"] .badge {
+    background: var(--v8-danger);
+    box-shadow: 0 0 8px rgba(185, 74, 74, 0.45);
+  }
+  .cco-cal-v8-surface .story-item[data-severity="med"] .badge {
+    background: var(--v8-warning);
+    box-shadow: 0 0 6px rgba(200, 130, 30, 0.34);
+  }
+  .cco-cal-v8-surface .story-item[data-severity="ok"] .badge {
+    background: var(--v8-success);
+  }
+  .cco-cal-v8-surface .story-empty {
+    font-size: 11.5px;
+    color: var(--v8-text-tertiary);
+    padding: 10px 9px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px dashed rgba(132, 117, 107, 0.28);
+    line-height: 1.4;
+  }
+  .cco-cal-v8-surface .day-spark {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 36px;
+    margin-top: 6px;
+    padding: 2px;
+    border-radius: 8px;
+    background: rgba(255, 247, 234, 0.5);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  }
+  .cco-cal-v8-surface .day-spark-bar {
+    flex: 1;
+    min-width: 0;
+    background: linear-gradient(180deg, var(--v8-warning), #e8a04e);
+    border-radius: 2px 2px 0 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+  .cco-cal-v8-surface .day-spark-bar[data-h="0"] {
+    background: rgba(132, 117, 107, 0.18);
+  }
+  .cco-cal-v8-surface .day-spark-now {
+    width: 2px;
+    background: var(--v8-accent);
+    border-radius: 999px;
+    align-self: stretch;
+    box-shadow: 0 0 6px var(--v8-accent-glow);
+  }
+  .cco-cal-v8-surface .ready-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+  }
+  .cco-cal-v8-surface .ready-meter-track {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(56, 40, 28, 0.08);
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.06);
+  }
+  .cco-cal-v8-surface .ready-meter-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--v8-success), #9ed8b8);
+    box-shadow: 0 0 8px rgba(74, 130, 104, 0.34);
+    transition: width 1.2s cubic-bezier(0.34, 1.32, 0.64, 1);
+  }
+  .cco-cal-v8-surface .ready-meter-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--v8-text-tertiary);
+    font-weight: 600;
+  }
+  .cco-cal-v8-surface .story-cta-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 4px 0 6px;
+  }
+  .cco-cal-v8-surface .story-cta {
+    appearance: none;
+    padding: 9px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+    box-shadow:
+      0 3px 10px rgba(56, 40, 28, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--v8-brand);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cco-cal-v8-surface .story-cta:hover {
+    transform: translateY(-1px);
+  }
+  .cco-cal-v8-surface .story-cta--primary {
+    background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+    color: var(--v8-accent);
+    border-color: rgba(200, 130, 30, 0.34);
+    box-shadow:
+      0 4px 14px var(--v8-accent-glow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  }
+
+  /* ─── Busy-bar ─── */
+  .cco-cal-v8-surface .calendar-busy {
+    position: relative;
+    z-index: 1;
+    margin: 4px 0 6px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px 14px;
+    padding: 8px 4px 0;
+  }
+  .cco-cal-v8-surface .busy-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10.5px;
+  }
+  .cco-cal-v8-surface .busy-name {
+    color: var(--v8-text-secondary);
+    white-space: nowrap;
+    min-width: 80px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cco-cal-v8-surface .busy-track {
+    flex: 1;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(56, 40, 28, 0.08);
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.06);
+  }
+  .cco-cal-v8-surface .busy-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #92d2af, var(--v8-warning));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      0 0 8px rgba(200, 130, 30, 0.18);
+  }
+  .cco-cal-v8-surface .busy-pct {
+    color: var(--v8-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: right;
+  }
+  .cco-cal-v8-surface .calendar-busy--empty {
+    display: block;
+    padding: 12px 4px;
+  }
+  .cco-cal-v8-surface .busy-empty {
+    font-size: 11px;
+    color: var(--v8-text-tertiary);
+  }
+
+  /* ─── Vibe-väder ─── */
+  .cco-cal-v8-surface .vibe-strip {
+    position: relative;
+    z-index: 1;
+    margin: 4px 0 8px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: 10px 0;
+    border-radius: 10px;
+    background: linear-gradient(
+      90deg,
+      rgba(146, 194, 168, 0.18) 0%,
+      rgba(146, 194, 168, 0.18) 14.28%,
+      rgba(184, 212, 232, 0.16) 14.28%,
+      rgba(184, 212, 232, 0.16) 28.56%,
+      rgba(255, 236, 180, 0.22) 28.56%,
+      rgba(255, 236, 180, 0.22) 42.84%,
+      rgba(255, 200, 150, 0.24) 42.84%,
+      rgba(255, 200, 150, 0.24) 57.12%,
+      rgba(212, 140, 160, 0.26) 57.12%,
+      rgba(212, 140, 160, 0.26) 71.4%,
+      rgba(180, 200, 180, 0.18) 71.4%,
+      rgba(180, 200, 180, 0.18) 85.68%,
+      rgba(200, 180, 160, 0.16) 85.68%,
+      rgba(200, 180, 160, 0.16) 100%
+    );
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  }
+  .cco-cal-v8-surface .vibe-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 16px;
+    cursor: help;
+    position: relative;
+    line-height: 1;
+    transition: transform 0.15s ease;
+  }
+  .cco-cal-v8-surface .vibe-day:hover {
+    transform: scale(1.18);
+  }
+  .cco-cal-v8-surface .vibe-day .vibe-label {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--v8-text-tertiary);
+  }
+  .cco-cal-v8-surface .vibe-day.is-today .vibe-label {
+    color: var(--v8-accent);
+  }
+  .cco-cal-v8-surface .vibe-day .vibe-tip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: rgba(43, 37, 31, 0.94);
+    color: white;
+    font-size: 10.5px;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 100;
+  }
+  .cco-cal-v8-surface .vibe-day:hover .vibe-tip {
+    opacity: 1;
+  }
+  .cco-cal-v8-surface .vibe-day .vibe-tip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(43, 37, 31, 0.94);
+  }
+
+  /* ─── Apple Watch-glimt (visar verklig nästa bokning, display-only) ─── */
+  .cco-cal-v8-surface .watch-widget {
+    position: absolute;
+    bottom: 18px;
+    right: 18px;
+    z-index: 40;
+    width: 152px;
+    user-select: none;
+    transition: transform 0.2s ease;
+  }
+  .cco-cal-v8-surface .watch-widget:hover {
+    transform: translateY(-3px);
+  }
+  .cco-cal-v8-surface .watch-band-top,
+  .cco-cal-v8-surface .watch-band-bottom {
+    margin: 0 auto;
+    width: 78px;
+    height: 20px;
+    background: linear-gradient(180deg, #2a2823, #1a1816);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  .cco-cal-v8-surface .watch-band-top {
+    border-radius: 10px 10px 4px 4px;
+    margin-bottom: -3px;
+  }
+  .cco-cal-v8-surface .watch-band-bottom {
+    border-radius: 4px 4px 10px 10px;
+    margin-top: -3px;
+  }
+  .cco-cal-v8-surface .watch-body {
+    position: relative;
+    width: 152px;
+    background: linear-gradient(135deg, #2a2823, #14110e);
+    border-radius: 36px;
+    padding: 4px;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.45),
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+  }
+  .cco-cal-v8-surface .watch-body::before {
+    content: "";
+    position: absolute;
+    top: 35%;
+    right: -5px;
+    width: 7px;
+    height: 26px;
+    background: linear-gradient(90deg, #2a2823, #4a453d, #2a2823);
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  }
+  .cco-cal-v8-surface .watch-body::after {
+    content: "";
+    position: absolute;
+    top: 62%;
+    right: -3px;
+    width: 5px;
+    height: 16px;
+    background: linear-gradient(90deg, #2a2823, #3a3530);
+    border-radius: 0 3px 3px 0;
+  }
+  .cco-cal-v8-surface .watch-screen {
+    position: relative;
+    background: #000;
+    border-radius: 32px;
+    padding: 14px 12px 12px;
+    color: white;
+    overflow: hidden;
+    min-height: 110px;
+  }
+  .cco-cal-v8-surface .watch-screen::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% -20%, rgba(255, 200, 120, 0.18), transparent 50%);
+    pointer-events: none;
+  }
+  .cco-cal-v8-surface .watch-time {
+    color: var(--v8-accent);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .cco-cal-v8-surface .watch-time .clock {
+    color: white;
+    font-variant-numeric: tabular-nums;
+  }
+  .cco-cal-v8-surface .watch-title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 1px;
+  }
+  .cco-cal-v8-surface .watch-sub {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.62);
+  }
+  .cco-cal-v8-surface .watch-caption {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--v8-text-tertiary);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Lugnt läge dämpar solens rotation och uret-pulsen */
+  .cco-cal-v8-surface[data-calm="on"] .greet-sun {
+    animation-duration: 60s;
+  }
+
+  @media (max-width: 1200px) {
+    .cco-cal-v8-surface .story-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .cco-cal-v8-surface .calendar-busy {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
 }
