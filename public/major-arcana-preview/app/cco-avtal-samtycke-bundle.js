@@ -406,39 +406,9 @@
   }
 
   function showLegalGate(context) {
-    if (document.getElementById(GATE_ID)) return document.getElementById(GATE_ID);
-    ensureStyles();
-    const root = document.createElement('div');
-    root.id = GATE_ID;
-    root.innerHTML = `
-      <div class="demo-modal" role="alertdialog" aria-modal="true" aria-label="Avtal väntar juridisk granskning">
-        <div class="wrap">
-          <header class="demo-header">
-            <span class="demo-kicker">★ Steg 7 · legal_review</span>
-            <h1 class="demo-title">Avtal väntar juridisk granskning</h1>
-            <p class="demo-subtitle">Behandlingsavtalet och ångerfristsamtycket kan inte signeras förrän mall-versionen är godkänd av juridik.</p>
-          </header>
-          <section class="gate-panel">
-            <p>Kontakta kliniken om du behöver signera innan godkännande finns.</p>
-            <p><strong>${escapeHtml(context.patientName)}</strong></p>
-            <button type="button" class="btn" id="gateCloseBtn">Stäng</button>
-          </section>
-        </div>
-      </div>`;
-    document.body.appendChild(root);
-    root.querySelector('#gateCloseBtn')?.addEventListener('click', () => unmountGate(true));
-    root.addEventListener('click', (event) => {
-      if (event.target === root) unmountGate(true);
-    });
-    gateKeyHandler = (event) => {
-      if (!document.getElementById(GATE_ID)) return;
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        unmountGate(true);
-      }
-    };
-    document.addEventListener('keydown', gateKeyHandler);
-    return root;
+    // The legal_review demo gate must never block the customer workspace.
+    // Keep the API as a no-op so existing callers remain safe.
+    return document.getElementById(GATE_ID);
   }
 
   function unmountGate(dismissed) {
