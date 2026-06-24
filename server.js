@@ -10575,44 +10575,8 @@ try {
   const feedbackDir = path.join(__dirname, 'data');
   const feedbackFile = path.join(feedbackDir, 'cco-feedback.jsonl');
   if (!fs.existsSync(feedbackDir)) fs.mkdirSync(feedbackDir, { recursive: true });
-  // Egen body-parser för att inte kollidera med ev. global express.json() limit
-  const express = require('express');
-  app.post('/api/v1/cco-feedback', express.json({ limit: '50kb' }), (req, res) => {
-    try {
-      const entry = req.body && typeof req.body === 'object' ? req.body : null;
-      if (!entry || !entry.text) {
-        return res.status(400).json({ error: 'text required' });
-      }
-      entry.receivedAt = new Date().toISOString();
-      entry.ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
-        .toString()
-        .split(',')[0]
-        .trim();
-      fs.appendFileSync(feedbackFile, JSON.stringify(entry) + '\n');
-      res.json({ ok: true });
-    } catch (err) {
-      res.status(400).json({ error: 'invalid json: ' + err.message });
-    }
-  });
-  app.get('/api/v1/cco-feedback', requireCcoAuthenticated, (req, res) => {
-    try {
-      const raw = fs.existsSync(feedbackFile) ? fs.readFileSync(feedbackFile, 'utf8') : '';
-      const items = raw
-        .split('\n')
-        .filter(Boolean)
-        .map((l) => {
-          try {
-            return JSON.parse(l);
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean);
-      res.json({ count: items.length, items: items.slice(-200) });
-    } catch (err) {
-      res.json({ count: 0, items: [] });
-    }
-  });
+  // Routes flyttade till src/routes/ccoFeedback.js (se ORGANISATION.md §4).
+  app.use('/api/v1', createCcoFeedbackRouter({ feedbackFile, requireCcoAuthenticated }));
   console.log('[cco-feedback] monterad: POST/GET /api/v1/cco-feedback');
 } catch (err) {
   console.warn('[cco-feedback] kunde inte montera:', err.message);
@@ -11109,6 +11073,7 @@ const { createCalendarRouter } = require('./src/routes/calendar');
 const { createExecutiveRouter } = require('./src/routes/executive');
 const { createOnboardingRouter } = require('./src/routes/onboarding');
 const { createDocsRouter } = require('./src/routes/docs');
+const { createCcoFeedbackRouter } = require('./src/routes/ccoFeedback');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
