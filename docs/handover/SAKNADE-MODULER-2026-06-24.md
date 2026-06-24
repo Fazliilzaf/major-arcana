@@ -1,7 +1,7 @@
 # Saknade moduler i repot — inventering & byggspec
 
 Datum: 2026-06-24
-Status: **✅ ALLA 23 `src/ops/cco*`-moduler byggda (väg 1 vald). Kvar: 3 frontend-patchar (separat beslut).**
+Status: **✅ KLART — 0 KVAR. Alla 23 `src/ops`-stores byggda + 3 frontend-patchar som ärliga stubbar. Varje `server.js`-require resolvar nu.**
 
 > **Resultat (2026-06-24):** Owner valde _bygga_. Alla 23 saknade `src/ops`-stores
 > är nu implementerade enligt byggspecen nedan, var och en med JSON-fil-persistens,
@@ -11,6 +11,13 @@ Status: **✅ ALLA 23 `src/ops/cco*`-moduler byggda (väg 1 vald). Kvar: 3 front
 > de saknar extraherbart kontrakt (öppna `function(app, opts)`-monteringar) och tas
 > som separat beslut. Separat datalucka upptäckt: `data/cco-templates.json` saknar
 > innehåll (påverkar cco-templates smoke-test, ej store-koden).
+>
+> **Uppföljning:** Owner valde _ärlig stub_ för frontend-patcharna. `customers/server-patch`,
+> `ical-patch` och `real-data-adapter` monterar nu förväntade endpoints men returnerar
+> **501 `not_implemented`** i stället för fabricerad kund/PHI-data. Skanningen ger nu
+> **0 KVAR** — varje `./`-require i server.js resolvar. Återstår (egna ärenden, ej i denna PR):
+> (1) riktig implementation av customers-patcharna när kontraktet är känt, (2) fylla
+> `data/cco-templates.json`.
 
 > **Korrigerad slutsats (2026-06-24):** Den tidigare hypotesen — "filerna finns lokalt
 > på Mac/iCloud men har inte committats" — är **motbevisad**. Owner körde
