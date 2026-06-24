@@ -70,6 +70,30 @@
       ? '<div class="v12-workspace__cs-actions">' + actions.join('') + '</div>'
       : '';
 
+    // Facit-parity: hero-CTA "Förbered besök" + "Åtgärder ▾"-meny.
+    // "Förbered besök" scrollar till Aktivt besök-modulen via den BEFINTLIGA
+    // scrollV12WorkspaceModule (delegerad data-v12-scroll-module-handler i
+    // overlay-body). Åtgärder = native <details> (ingen ny toggle-JS); item
+    // återanvänder befintliga handlers (ord48-kalender) + scroll-navigation.
+    // INGEN ny write-handler.
+    var menuItems =
+      (nyBokningPid
+        ? '<button type="button" class="v12-workspace__cs-menu-item" data-kk-ord48-open-calendar data-patient-id="' +
+          esc(nyBokningPid) +
+          '">📅 Ny bokning</button>'
+        : '') +
+      '<button type="button" class="v12-workspace__cs-menu-item" data-v12-scroll-module="active-visit">⚡ Förbered besök</button>' +
+      '<button type="button" class="v12-workspace__cs-menu-item" data-v12-scroll-module="health">🩺 Hälsoprofil</button>' +
+      '<button type="button" class="v12-workspace__cs-menu-item" data-v12-scroll-module="economy">💳 Ekonomi</button>';
+    var heroActions =
+      '<div class="v12-workspace__cs-hero">' +
+      '<button type="button" class="v12-workspace__cs-prepare" data-v12-scroll-module="active-visit"><span aria-hidden="true">⚡</span> Förbered besök</button>' +
+      '<details class="v12-workspace__cs-menu"><summary class="v12-workspace__cs-menu-trigger">Åtgärder ▾</summary>' +
+      '<div class="v12-workspace__cs-menu-list">' +
+      menuItems +
+      '</div></details>' +
+      '</div>';
+
     var contactBits = [];
     if (profile.phone) contactBits.push(esc(profile.phone));
     if (profile.email) contactBits.push(esc(profile.email));
@@ -156,6 +180,7 @@
       '</div></div>' +
       pills +
       actionsRow +
+      heroActions +
       statBlock +
       '</section>'
     );

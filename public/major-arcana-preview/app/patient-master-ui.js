@@ -1345,6 +1345,19 @@
 
   function bindV12WorkspaceOverlayBody(body, ctx) {
     if (!body) return;
+    // Nuläge "Förbered besök" / "Åtgärder ▾"-meny: scrolla till en V12-modul
+    // via den befintliga scrollV12WorkspaceModule. Presentation/navigation —
+    // ingen ny write-handler. (body återskapas per öppning → ingen dubbelbind.)
+    body.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-v12-scroll-module]');
+      if (!trigger || !body.contains(trigger)) return;
+      const moduleName = trigger.getAttribute('data-v12-scroll-module');
+      if (!moduleName) return;
+      event.preventDefault();
+      const menu = trigger.closest('details[open]');
+      if (menu) menu.removeAttribute('open');
+      scrollV12WorkspaceModule(body, moduleName);
+    });
     const journeyHandlers = buildV9JourneyHandlers(body, ctx);
     window.CcoV9CustomersParity?.bindDossierScroll?.(body, journeyHandlers);
     window.CcoV9CustomersParity?.bindIntelligentJourney?.(body, ctx, journeyHandlers);
