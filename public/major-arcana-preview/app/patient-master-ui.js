@@ -1376,6 +1376,31 @@
         }
         return;
       }
+      // Ekonomi "Synka till Fortnox" → BEFINTLIG POST /cco-fortnox/sync-patient.
+      const fnxBtn = event.target.closest('[data-v12-fortnox-sync]');
+      if (fnxBtn && body.contains(fnxBtn)) {
+        event.preventDefault();
+        const pid = fnxBtn.getAttribute('data-patient-id');
+        if (!pid) return;
+        const statusEl = body.querySelector('[data-v12-fortnox-status]');
+        fnxBtn.disabled = true;
+        if (statusEl) statusEl.textContent = 'Synkar…';
+        apiRequest('/api/v1/cco-fortnox/sync-patient', { method: 'POST', body: { patientId: pid } })
+          .then((res) => {
+            if (statusEl) {
+              statusEl.textContent =
+                'Synkad ✓' + (res && res.customerNumber ? ' · kundnr ' + res.customerNumber : '');
+            }
+          })
+          .catch((err) => {
+            if (statusEl)
+              statusEl.textContent = err && err.message ? err.message : 'Kunde inte synka.';
+          })
+          .finally(() => {
+            fnxBtn.disabled = false;
+          });
+        return;
+      }
       // "Förbered besök" / Åtgärder-meny → scrolla till V12-modul.
       const trigger = event.target.closest('[data-v12-scroll-module]');
       if (!trigger || !body.contains(trigger)) return;

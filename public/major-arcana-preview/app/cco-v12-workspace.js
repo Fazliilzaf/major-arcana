@@ -1265,12 +1265,21 @@
    * not (ingen fejk; per inventory-spike #3). Ingen ekonomidata → explicit
    * empty-state.
    */
-  function renderEconomyModule(econ, invoices) {
+  function renderEconomyModule(econ, invoices, patientId) {
     var count = (econ && econ.count) || 0;
     var invoiceCount = (invoices && invoices.count) || 0;
+    // Facit-parity: "Synka till Fortnox" → BEFINTLIG POST /cco-fortnox/sync-patient
+    // (owner-roll). Status surfas via data-v12-fortnox-status. INGEN ny endpoint.
+    var fortnoxAction = patientId
+      ? '<button type="button" class="v12-workspace__econ-fortnox" data-v12-fortnox-sync data-patient-id="' +
+        esc(patientId) +
+        '">↻ Synka till Fortnox</button>' +
+        '<span class="v12-workspace__econ-fortnox-status" data-v12-fortnox-status role="status" aria-live="polite"></span>'
+      : '';
     var head =
       '<header class="v12-workspace__module-head">' +
       '<div class="v12-workspace__kicker" data-v12-kicker="amber">EKONOMI</div>' +
+      fortnoxAction +
       '</header>';
 
     if (!count && !invoiceCount) {
@@ -1580,7 +1589,11 @@
       renderBookingsModule(bookings, history) +
       renderDocumentsModule(offers, autoDocs, files) +
       renderCommunicationModule(comm) +
-      renderEconomyModule(econ, econInvoices) +
+      renderEconomyModule(
+        econ,
+        econInvoices,
+        (ctx.card && (ctx.card.patientId || ctx.card.id)) || (bookings && bookings.patientId) || ''
+      ) +
       renderInsightsModule(nextStep, insights) +
       renderStickyBarModule(sticky) +
       '</div>'
