@@ -161,6 +161,29 @@ function pickField(fields, aliases = []) {
   return '';
 }
 
+// Pågående läkemedel ur hälsodeklarationens "Tar du några läkemedel? (detalj)"
+// (eller motsvarande). Endast riktig text; allergi/blodförtunnande/kosttillskott
+// exkluderas (egna frågor). Ingen fejk — tom sträng om inget anges.
+function pickMedications(fields = {}) {
+  const isMedKey = (k) => /l[äa]kemedel|medicin/.test(k);
+  const isOtherMedQ = (k) =>
+    /allerg|blodf[öo]rtunn|warfarin|noak|\basa\b|omega|fiskolja|kosttillskott/.test(k);
+  // Prioritera "(detalj)"-fältet som bär de riktiga namnen.
+  for (const [key, value] of Object.entries(fields)) {
+    const v = String(value || '').trim();
+    if (!v || /^(ja|nej)$/i.test(v)) continue;
+    if (!isMedKey(key) || isOtherMedQ(key)) continue;
+    if (/detalj/.test(key) && v.length > 1) return v;
+  }
+  // Fallback: valfritt läkemedels-fält med riktigt fritext-värde.
+  for (const [key, value] of Object.entries(fields)) {
+    const v = String(value || '').trim();
+    if (!v || /^(ja|nej)$/i.test(v)) continue;
+    if (isMedKey(key) && !isOtherMedQ(key) && v.length > 3) return v;
+  }
+  return '';
+}
+
 function parseSignedAt(rawValue, fallbackIso = '') {
   const value = normalizeText(rawValue);
   if (!value) return normalizeText(fallbackIso) || null;
@@ -338,6 +361,7 @@ function parseHealthDeclarationMessage(rawMessage = {}) {
     answers,
     flags,
     allergies,
+    medications: pickMedications(fields),
     fields,
     channel:
       formType === 'fitness_certificate' ? 'friskforsakran-hairtpclinic' : 'form-hairtpclinic',

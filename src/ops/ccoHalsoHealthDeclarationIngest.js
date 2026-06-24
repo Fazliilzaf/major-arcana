@@ -98,6 +98,7 @@ function mergeStructuredForm(existing = null, incoming = null) {
       ...incoming,
       answers: incoming.answers?.length ? incoming.answers : existing.answers,
       flags: incoming.flags?.length ? incoming.flags : existing.flags,
+      medications: incoming.medications || existing.medications || '',
     };
   }
   return existing;
@@ -300,6 +301,7 @@ function createCcoHalsoHealthDeclarationIngest({
       reviewRequired,
       answers: parsed.answers,
       flags: parsed.flags,
+      medications: parsed.medications || '',
       processorVersion: PROCESSOR_VERSION,
     };
   }

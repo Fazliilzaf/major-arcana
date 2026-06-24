@@ -438,10 +438,19 @@
       })
       .filter(Boolean);
 
-    // Läkemedel (namn) saknar datakälla idag — formuläret fångar inte
-    // pågående läkemedel (utredning 2026-06-23, owner-beslut B3). Returneras
-    // alltid som okänd/uppskjuten tills datakälla finns; ingen fejk.
-    var medications = { items: [], known: false };
+    // Läkemedel ur hälsodeklarationens RIKTIGA "(detalj)"-fält (parser →
+    // hd.medications). Splittas på komma/semikolon/radbrytning (dos-text
+    // behålls med läkemedlet). Tomt → okänd-state. Ingen fejk.
+    var medRaw = text(hd && hd.medications);
+    var medItems = medRaw
+      ? medRaw
+          .split(/[,;\n]+/)
+          .map(text)
+          .filter(function (s) {
+            return s && s.length > 1;
+          })
+      : [];
+    var medications = { items: medItems, known: !!medRaw };
 
     return {
       status: status,

@@ -779,11 +779,26 @@
         : '<div class="v12-workspace__subhead">Kontraindikationer</div>' +
           '<div class="v12-workspace__health-muted">Inga registrerade kontraindikationer</div>';
 
-    // Läkemedel — saknar datakälla idag (owner-beslut B3, utredning 2026-06-23).
-    // Explicit okänd-state tills hälsodeklarationen fångar pågående läkemedel.
-    var medications =
-      '<div class="v12-workspace__subhead">Läkemedel</div>' +
-      '<div class="v12-workspace__health-muted">Pågående läkemedel registreras inte i hälsodeklarationen ännu.</div>';
+    // Läkemedel — RIKTIGA pågående läkemedel ur hälsodeklarationens (detalj)-fält
+    // (hp.medications.items). Tom + känd deklaration → "inga angivna"; okänd →
+    // "ej registrerade ännu". Ingen fejk.
+    var medList = hp.medications && hp.medications.items ? hp.medications.items : [];
+    var medications = medList.length
+      ? '<div class="v12-workspace__subhead">Läkemedel · ' +
+        esc(String(medList.length)) +
+        '</div><div class="v12-workspace__health-meds">' +
+        medList
+          .map(function (m) {
+            return '<span class="v12-workspace__health-med">' + esc(m) + '</span>';
+          })
+          .join('') +
+        '</div>'
+      : '<div class="v12-workspace__subhead">Läkemedel</div>' +
+        '<div class="v12-workspace__health-muted">' +
+        (hp.medications && hp.medications.known
+          ? 'Inga pågående läkemedel angivna'
+          : 'Pågående läkemedel ej registrerade ännu') +
+        '</div>';
 
     return (
       '<section class="v12-workspace__module v12-workspace__health" data-v12-module="health" aria-label="Hälsa">' +
