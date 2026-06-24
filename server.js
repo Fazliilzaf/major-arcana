@@ -11107,6 +11107,7 @@ const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createCalendarRouter } = require('./src/routes/calendar');
 const { createExecutiveRouter } = require('./src/routes/executive');
+const { createOnboardingRouter } = require('./src/routes/onboarding');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -11833,25 +11834,10 @@ const onboardingStorePath = './data/cco-onboarding.json';
 const onboardingStore = createOnboardingStore({ filePath: onboardingStorePath });
 onboardingStore.load().catch((err) => console.warn('[onboarding] Load failed:', err?.message));
 
-app.get('/api/v1/onboarding/:userId', (req, res) => {
-  const status = onboardingStore.getStatus(req.params.userId);
-  return res.json({ ok: true, ...status });
-});
-app.post('/api/v1/onboarding/:userId/step/:stepId', async (req, res) => {
-  const result = await onboardingStore.completeStep(
-    req.params.userId,
-    req.params.stepId,
-    req.body?.verification
-  );
-  return res.json(result);
-});
-app.post('/api/v1/onboarding/:userId/reset', async (req, res) => {
-  const result = await onboardingStore.resetProgress(req.params.userId);
-  return res.json(result);
-});
-app.get('/api/v1/onboarding/admin/incomplete', (req, res) => {
-  return res.json({ ok: true, users: onboardingStore.listIncomplete() });
-});
+// ─── STAFF ONBOARDING ───
+// Routes flyttade till src/routes/onboarding.js (se ORGANISATION.md §4).
+// Monteras top-level (bevarar registreringsordning före rate-limit i startup).
+app.use('/api/v1', createOnboardingRouter({ onboardingStore }));
 
 // Start uptime monitoring
 startMonitoring();
