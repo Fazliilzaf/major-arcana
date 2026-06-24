@@ -11105,6 +11105,7 @@ const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
+const { createCalendarRouter } = require('./src/routes/calendar');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -11678,7 +11679,6 @@ app.get('/api/v1/executive/agents/status', (req, res) => {
 });
 
 const { computeQaDashboard } = require('./src/ops/qaDashboard');
-const { buildDayView, buildWeekView } = require('./src/ops/clinicCalendarView');
 const {
   runBackup,
   listBackups,
@@ -11807,45 +11807,17 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
   return res.json({ ok: true, ...dashboard });
 });
 
-app.get('/api/v1/calendar/day', (req, res) => {
-  const view = buildDayView({
-    date: req.query?.date,
-    bookingEngineStore: null,
-    encounterStore: null,
-    tenantId: req.query?.tenantId || '',
-  });
-  return res.json({ ok: true, ...view });
-});
+// ─── CALENDAR/iCAL ───
+// Calendar + iCal-routes flyttade till src/routes/calendar.js (se ORGANISATION.md §4).
+// Monteras här (top-level) för att bevara registreringsordning före rate-limit-
+// middleware i startup — calendar-GET var oratelimitad i originalet.
+app.use('/api/v1', createCalendarRouter());
 
-app.get('/api/v1/calendar/week', (req, res) => {
-  const view = buildWeekView({
-    startDate: req.query?.startDate,
-    bookingEngineStore: null,
-    encounterStore: null,
-    tenantId: req.query?.tenantId || '',
-  });
-  return res.json({ ok: true, ...view });
-});
-
-// ─── iCAL EXPORT ───
-const { buildIcalFeed, getBookingsForResource } = require('./src/ops/icalExport');
 const {
   createRecurringSeries,
   getSeriesProgress,
   SERIES_TEMPLATES,
 } = require('./src/ops/recurringBookings');
-
-app.get('/api/v1/calendar/ical/:resourceId.ics', (req, res) => {
-  const resourceId = req.params.resourceId || 'all';
-  const bookings = getBookingsForResource(null, resourceId, {
-    days: Number(req.query?.days) || 30,
-  });
-  const resourceLabel = resourceId === 'all' ? 'Alla behandlare' : resourceId;
-  const ical = buildIcalFeed({ resourceLabel, bookings });
-  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="${resourceId}-schema.ics"`);
-  return res.send(ical);
-});
 
 // ─── RECURRING BOOKINGS ───
 app.get('/api/v1/booking/series/templates', requireCcoAuthenticated, (req, res) => {
