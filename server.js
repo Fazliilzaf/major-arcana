@@ -11109,6 +11109,7 @@ const { createCalendarRouter } = require('./src/routes/calendar');
 const { createExecutiveRouter } = require('./src/routes/executive');
 const { createOnboardingRouter } = require('./src/routes/onboarding');
 const { createDocsRouter } = require('./src/routes/docs');
+const { createPatientInformationRouter } = require('./src/routes/patientInformation');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -11448,60 +11449,13 @@ app.get('/patient', (_req, res) => {
   res.sendFile('patient-hub.html', { root: __dirname + '/public' });
 });
 
-app.get('/patientinformation/hartransplantation-dhi-prp', (_req, res) => {
-  res.sendFile('patientinformation-hartransplantation-dhi-prp.html', {
-    root: __dirname + '/public',
-  });
-});
-
-app.get('/patientinformation/hartransplantation-dhi-prp-minimal', (_req, res) => {
-  res.sendFile('patientinformation-hartransplantation-dhi-prp-minimal.html', {
-    root: __dirname + '/public',
-  });
-});
-
-app.get('/patientinformation/hartransplantation-dhi-prp-minimal.pdf', (req, res) =>
-  sendStaticPagePdf(req, res, {
-    pagePath: '/patientinformation/hartransplantation-dhi-prp-minimal',
-    fileName: 'Patientinformation-Hartransplantation-DHI-och-PRP-Hair-TP-Clinic-Minimal.pdf',
-    media: 'screen',
-    viewport: { width: 1100, height: 1600 },
-    bodyClass: 'pdf-server-export',
-    pdfOptions: {
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: false,
-      margin: {
-        top: '10mm',
-        right: '10mm',
-        bottom: '12mm',
-        left: '10mm',
-      },
-    },
-  })
-);
-
-app.get('/patientinformation/hartransplantation-dhi-prp.pdf', (req, res) =>
-  sendStaticPagePdf(req, res, {
-    pagePath: '/patientinformation/hartransplantation-dhi-prp?export=pdf',
-    fileName: 'Patientinformation-Hartransplantation-DHI-och-PRP-Hair-TP-Clinic.pdf',
-    media: 'screen',
-    viewport: { width: 430, height: 932 },
-    pageOptions: { deviceScaleFactor: 2 },
-    bodyClass: 'pdf-server-export',
-    rasterizePage: true,
-  })
-);
-
-app.get('/patientinformation/ogonlocksplastik-curatiio.pdf', (req, res) =>
-  sendStaticPagePdf(req, res, {
-    pagePath: '/patientinformation-ogonlocksplastik-curatiio.html?v=20260309b',
-    fileName: 'Patientinformation-Ogonlocksplastik-Curatiio.pdf',
-    media: 'screen',
-    viewport: { width: 430, height: 932 },
-    pageOptions: { deviceScaleFactor: 2 },
-    bodyClass: 'pdf-server-export',
-    rasterizePage: true,
+// ─── PATIENTINFORMATION (statiska sidor + PDF) ───
+// Routes flyttade till src/routes/patientInformation.js (se ORGANISATION.md §4).
+// sendStaticPagePdf bor kvar i server.js och injiceras.
+app.use(
+  createPatientInformationRouter({
+    publicRoot: __dirname + '/public',
+    sendStaticPagePdf,
   })
 );
 
