@@ -169,8 +169,9 @@
         <div class="cco-cal-grid-wrap" data-cal-grid-wrap>
           <div class="cco-cal-empty">Hämtar kalender…</div>
         </div>
-        <aside class="cco-cal-detail focus-intel" data-cal-detail hidden aria-labelledby="cco-cal-detail-title">
-          <div class="focus-intel-primary">
+        <aside class="cco-cal-detail focus-intel" data-cal-detail data-context="booking" hidden aria-labelledby="cco-cal-detail-title">
+          <div class="intel-customer-view" data-cal-dossier hidden></div>
+          <div class="intel-booking-view focus-intel-primary">
             <div class="focus-intel-topline">
               <div class="focus-intel-title-row">
                 <p class="focus-intel-kicker">BOKNING</p>
@@ -969,6 +970,387 @@
     return shared()?.recommendBookingNextAction?.(event) || null;
   }
 
+  // ─── Interaktion #17 (Alt A): kondenserad V12-kunddossiér i höger-panelen ───
+  // När en bokning MED riktig patientId klickas byter panelen kontext från
+  // booking-intel till en inbäddad dossiér. ALL data hämtas via det additiva
+  // data-seamet window.ArcanaPatientMasterUi.loadDossierData(patientId) och
+  // mappas via window.CcoV11RailAdapters. INGEN data hittas på — saknas en
+  // sektion visas ett explicit empty-state (canon §5). Sektioner som inte har
+  // en adapter (t.ex. AI-actions-rad) återanvänder befintliga deep-link-knappar.
+
+  let dossierToken = 0; // race-guard: bara senaste laddningen får rendera.
+  let dossierReturnEvent = null; // bokningen att gå tillbaka till.
+
+  function dossierEsc(value) {
+    return shared().escapeHtml(value == null ? "" : String(value));
+  }
+
+  // Deterministisk avatar-bakgrund (samma palett-känsla som facit) ur namnet.
+  const DOSSIER_AVATAR_BGS = [
+    "linear-gradient(135deg, #bb4779, #8c2f57)",
+    "linear-gradient(135deg, #4a8268, #2f5a45)",
+    "linear-gradient(135deg, #c98a3a, #9a6321)",
+    "linear-gradient(135deg, #4f6fb0, #2f4a7a)",
+    "linear-gradient(135deg, #8a6db0, #5a3f7a)",
+  ];
+  function dossierAvatarBg(name) {
+    const str = String(name || "");
+    let sum = 0;
+    for (let i = 0; i < str.length; i++) sum = (sum + str.charCodeAt(i)) % 997;
+    return DOSSIER_AVATAR_BGS[sum % DOSSIER_AVATAR_BGS.length];
+  }
+
+  // Tag-tone → facit-klass (vip/lifecycle/engagement/risk). Adapter-pills
+  // använder tones vip/treatment/label → mappas till facitens tag-varianter.
+  function dossierTagKind(tone) {
+    const t = String(tone || "").toLowerCase();
+    if (t === "vip") return "vip";
+    if (t === "treatment") return "engagement";
+    if (t === "risk" || t === "blocker") return "risk";
+    if (t === "lifecycle") return "lifecycle";
+    return "lifecycle";
+  }
+
+  // booking.state → facitens db-status data-state + svensk etikett.
+  function dossierBookingState(state, stateLabel) {
+    const st = String(state || "").toLowerCase();
+    if (stateLabel) {
+      // behåll riktig etikett men normalisera tone
+    }
+    let tone = "done";
+    if (/(plan|kommande|book|bekräft|bekraft|confirm)/.test(st)) tone = "ready";
+    else if (/(tentat|väntar|vantar|pending|warn|obekräft)/.test(st)) tone = "warn";
+    else if (/(no.?show|uteble|missad)/.test(st)) tone = "noshow";
+    else if (/(done|klar|genomf|complete|avslut)/.test(st)) tone = "done";
+    const label =
+      stateLabel || { ready: "Planerad", warn: "Väntar", noshow: "No-show", done: "Klar" }[tone];
+    return { tone, label };
+  }
+
+  // Rendera en booking-rad (upcoming + history) i facit-markup.
+  function dossierBookingRow(b, extraAttrs) {
+    const s = shared();
+    const iso = b.iso || "";
+    const d = iso ? new Date(iso) : null;
+    const valid = d && !isNaN(d.getTime());
+    const dayNames = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];
+    const monNames = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAJ",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OKT",
+      "NOV",
+      "DEC",
+    ];
+    const day = valid ? dayNames[d.getDay()] : b.whenShort ? "" : "";
+    const num = valid ? String(d.getDate()) : "";
+    const mon = valid ? monNames[d.getMonth()] : "";
+    const title = b.title || "Besök";
+    const sub = b.sub || b.whenShort || (b.staff ? b.staff : "");
+    const stinfo = dossierBookingState(b.state, b.stateLabel);
+    return `<div class="dossier-booking" data-source="info"${extraAttrs || ""}>
+      <div class="db-date"><div class="day">${dossierEsc(day || "—")}</div><div class="num">${dossierEsc(num || "·")}</div><div class="mon">${dossierEsc(mon || "")}</div></div>
+      <div class="db-meta"><div class="db-title">${dossierEsc(title)}</div><div class="db-sub">${dossierEsc(sub || "—")}</div></div>
+      <span class="db-status" data-state="${stinfo.tone}">${dossierEsc(stinfo.label)}</span>
+    </div>`;
+  }
+
+  // Tom-sektion (explicit empty-state, ingen fejk).
+  function dossierEmpty(label) {
+    return `<div class="dossier-empty">${dossierEsc(label)}</div>`;
+  }
+
+  // Bygg dossiér-HTML ur ctx via CcoV11RailAdapters. Returnerar full innerHTML
+  // för [data-cal-dossier]. Saknas adaptrar → ärligt fel-skal.
+  function buildDossierHtml(ctx, fallbackName) {
+    const A = window.CcoV11RailAdapters;
+    const s = shared();
+    if (!A || !ctx) {
+      return `<div class="dossier-scroll">${dossierEmpty("Kunddata kunde inte laddas.")}</div>`;
+    }
+    const card = ctx.card || {};
+    const bcard = ctx.bcard || card || {};
+
+    // Profil (A)
+    const profile = A.buildProfileFromBcard(bcard) || {};
+    const name = profile.name || fallbackName || "Kund";
+    const init = (profile.initials || monogramFor(name) || "?").toUpperCase();
+    const contactParts = [profile.phone, profile.email].filter(Boolean);
+    const contact = contactParts.join(" · ") || profile.addrLine || "Ingen kontaktinfo";
+    const tags = (profile.pills || []).map((p) => ({
+      kind: dossierTagKind(p.tone),
+      label: p.label,
+    }));
+
+    // Stats (C) → BESÖK / INTÄKT / SKULD (facit: Besök/Intäkt/No-shows;
+    // vi visar riktig stat-data, sista cellen = utestående/skuld).
+    const stats = A.buildStatsFromExtras(bcard) || {};
+    const statCells = [
+      { label: "Besök", value: stats.besok?.value || "—", trend: stats.besok?.sub || "" },
+      { label: "Intäkt", value: stats.vardeTot?.value || "—", trend: stats.vardeTot?.sub || "" },
+      { label: "Skuld", value: stats.skuld?.value || "—", trend: stats.skuld?.sub || "" },
+    ];
+
+    // Bookings (H) + History (I)
+    const bookings = A.buildBookingsFromExtras(
+      card,
+      bcard,
+      ctx.dossierBundle,
+      ctx.occasionTimeline
+    ) || {
+      items: [],
+      count: 0,
+    };
+    const history = A.buildHistoryFromExtras(
+      card,
+      bcard,
+      ctx.dossierBundle,
+      ctx.occasionTimeline
+    ) || {
+      items: [],
+      count: 0,
+    };
+    // Files (N)
+    const files = A.buildFilesFromDriveFiles(ctx.driveFiles) || { items: [], count: 0 };
+    // Notes (O)
+    const notes = A.buildNotesFromState(card, ctx.dossierBundle) || { items: [], count: 0 };
+    // Communication (P)
+    const comm = A.buildCommunicationFromState(card, ctx.occasionTimeline) || {
+      items: [],
+      count: 0,
+    };
+    // Economy (Q)
+    const economy = A.buildEconomyFromCard(card) || { items: [], count: 0 };
+    // Insights (R) — riktiga signaler, annars ärligt empty-state.
+    const insights = A.buildInsightsFromSignals(card) || { items: [], count: 0 };
+
+    const tagsHtml = tags.length
+      ? tags
+          .map(
+            (t) => `<span class="dossier-tag dossier-tag--${t.kind}">${dossierEsc(t.label)}</span>`
+          )
+          .join("")
+      : "";
+
+    const statsHtml = statCells
+      .map(
+        (st) => `<div class="dossier-stat">
+          <div class="dossier-stat-label">${dossierEsc(st.label)}</div>
+          <div class="dossier-stat-value">${dossierEsc(st.value)}</div>
+          <div class="dossier-stat-trend">${dossierEsc(st.trend)}</div>
+        </div>`
+      )
+      .join("");
+
+    const upcomingHtml = bookings.items.length
+      ? bookings.items.map((b) => dossierBookingRow(b)).join("")
+      : dossierEmpty("Inga kommande bokningar");
+    const historyHtml = history.items.length
+      ? history.items.map((b) => dossierBookingRow(b)).join("")
+      : dossierEmpty("Ingen historik ännu");
+
+    const filesHtml = files.items.length
+      ? `<div class="dossier-files">${files.items
+          .map(
+            (
+              f
+            ) => `<a class="dossier-file" href="${s.escapeAttr(f.href || "#")}" target="_blank" rel="noopener">
+              <div class="dossier-file-icon">📄</div>
+              <div class="dossier-file-name">${dossierEsc(f.name)}</div>
+              ${f.badge ? `<span class="dossier-file-badge">${dossierEsc(f.badge)}</span>` : ""}
+            </a>`
+          )
+          .join("")}</div>`
+      : dossierEmpty("Inga filer");
+
+    const notesHtml = notes.items.length
+      ? notes.items
+          .map(
+            (n) =>
+              `<div class="dossier-note">${dossierEsc(n.text)}<div class="dossier-note-meta">${dossierEsc(n.meta || "")}</div></div>`
+          )
+          .join("")
+      : dossierEmpty("Inga anteckningar");
+
+    const commHtml = comm.items.length
+      ? comm.items
+          .map(
+            (c) => `<div class="dossier-comm">
+              <div class="dossier-comm-icon" data-type="${dossierEsc(c.type)}">${c.type === "mail" ? "✉" : c.type === "sms" ? "💬" : "📞"}</div>
+              <div class="dossier-comm-body">
+                <div class="dossier-comm-text">${dossierEsc(c.text)}</div>
+                <div class="dossier-comm-meta">${dossierEsc(c.meta || "")}</div>
+              </div>
+            </div>`
+          )
+          .join("")
+      : dossierEmpty("Ingen registrerad kommunikation");
+
+    const economyHtml = economy.count
+      ? `<div class="dossier-economy">${economy.items
+          .map(
+            (m) => `<div class="dossier-money">
+              <div class="dossier-money-label">${dossierEsc(m.label)}</div>
+              <div class="dossier-money-value">${dossierEsc(m.value)}</div>
+            </div>`
+          )
+          .join("")}</div>`
+      : dossierEmpty("Ingen ekonomidata");
+
+    const insightsHtml = insights.items.length
+      ? insights.items
+          .map(
+            (ins) =>
+              `<div class="dossier-insight">${dossierEsc(ins.title)}${ins.text ? ` — ${dossierEsc(ins.text)}` : ""}</div>`
+          )
+          .join("")
+      : dossierEmpty("Inga AI-insikter just nu");
+
+    return `
+      <div class="dossier-head">
+        <div class="dossier-avatar" style="background:${dossierAvatarBg(name)}">${dossierEsc(init)}</div>
+        <div class="dossier-head-body">
+          <div class="dossier-kicker">★ Kunddossiér</div>
+          <div class="dossier-name">${dossierEsc(name)}</div>
+          <div class="dossier-contact">${dossierEsc(contact)}</div>
+          ${tagsHtml ? `<div class="dossier-tags">${tagsHtml}</div>` : ""}
+        </div>
+        <button class="dossier-close" type="button" data-cal-dossier-close title="Tillbaka till bokning" aria-label="Tillbaka till bokning">×</button>
+      </div>
+
+      <div class="dossier-back-row">
+        <button class="dossier-back-btn" type="button" data-cal-dossier-back>‹ Tillbaka till bokning</button>
+      </div>
+
+      <div class="dossier-stats">${statsHtml}</div>
+
+      <div class="dossier-scroll">
+        <details class="dossier-section" open>
+          <summary>Kommande bokningar <span class="count">${bookings.count}</span></summary>
+          ${upcomingHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Historik <span class="count">${history.count}</span></summary>
+          ${historyHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Filer <span class="count">${files.count}</span></summary>
+          ${filesHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Anteckningar <span class="count">${notes.count}</span></summary>
+          ${notesHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Kommunikation <span class="count">${comm.count}</span></summary>
+          ${commHtml}
+        </details>
+        <details class="dossier-section">
+          <summary>Ekonomi <span class="count">${economy.count}</span></summary>
+          ${economyHtml}
+        </details>
+        <details class="dossier-section" open>
+          <summary>AI-insikter <span class="count">${insights.count}</span></summary>
+          ${insightsHtml}
+        </details>
+      </div>
+
+      <div class="dossier-actions">
+        <button class="quick-action-pill" type="button" data-cal-action="customer">Kundkort</button>
+        <button class="quick-action-pill" type="button" data-cal-action="journal">Journal</button>
+      </div>
+    `;
+  }
+
+  // Laddnings-skelett (ärligt — säger att vi hämtar).
+  function dossierLoadingHtml(name) {
+    return `
+      <div class="dossier-head">
+        <div class="dossier-avatar" style="background:${dossierAvatarBg(name)}">${dossierEsc((monogramFor(name) || "·").toUpperCase())}</div>
+        <div class="dossier-head-body">
+          <div class="dossier-kicker">★ Kunddossiér</div>
+          <div class="dossier-name">${dossierEsc(name || "Kund")}</div>
+          <div class="dossier-contact">Hämtar kunddata…</div>
+        </div>
+        <button class="dossier-close" type="button" data-cal-dossier-close title="Tillbaka till bokning" aria-label="Tillbaka till bokning">×</button>
+      </div>
+      <div class="dossier-back-row">
+        <button class="dossier-back-btn" type="button" data-cal-dossier-back>‹ Tillbaka till bokning</button>
+      </div>
+      <div class="dossier-scroll dossier-scroll--loading">
+        <div class="dossier-skeleton"></div>
+        <div class="dossier-skeleton"></div>
+        <div class="dossier-skeleton"></div>
+      </div>`;
+  }
+
+  // Stäng dossiér → tillbaka till booking-intel.
+  function closeDossier() {
+    dossierToken += 1; // avbryt ev. inflight render
+    const shell = ensureShell();
+    const detail = shell.querySelector("[data-cal-detail]");
+    const dossier = shell.querySelector("[data-cal-dossier]");
+    if (detail) detail.dataset.context = "booking";
+    if (dossier) {
+      dossier.hidden = true;
+      dossier.innerHTML = "";
+    }
+    if (dossierReturnEvent) {
+      selectedEvent = dossierReturnEvent;
+      dossierReturnEvent = null;
+    }
+    renderDetailPanel();
+  }
+
+  // Öppna dossiér för en bokning med riktig patientId.
+  async function openDossierForEvent(event) {
+    const patientId = event && (event.patientId || event.patient_id);
+    if (!patientId) return false;
+    const api = window.ArcanaPatientMasterUi;
+    if (!api || typeof api.loadDossierData !== "function") return false;
+
+    const shell = ensureShell();
+    const detail = shell.querySelector("[data-cal-detail]");
+    const dossier = shell.querySelector("[data-cal-dossier]");
+    if (!detail || !dossier) return false;
+
+    dossierReturnEvent = event;
+    const name = event.customerName || event.customerEmail || shared().eventTitle(event);
+    const myToken = ++dossierToken;
+
+    detail.hidden = false;
+    detail.dataset.context = "customer";
+    dossier.hidden = false;
+    dossier.innerHTML = dossierLoadingHtml(name);
+
+    try {
+      const ctx = await api.loadDossierData(patientId);
+      if (myToken !== dossierToken) return true; // en nyare laddning vann
+      dossier.innerHTML = buildDossierHtml(ctx, name);
+    } catch (_error) {
+      if (myToken !== dossierToken) return true;
+      dossier.innerHTML = `
+        <div class="dossier-head">
+          <div class="dossier-head-body">
+            <div class="dossier-kicker">★ Kunddossiér</div>
+            <div class="dossier-name">${dossierEsc(name || "Kund")}</div>
+            <div class="dossier-contact">Kunddata kunde inte laddas.</div>
+          </div>
+          <button class="dossier-close" type="button" data-cal-dossier-close title="Tillbaka till bokning" aria-label="Tillbaka till bokning">×</button>
+        </div>
+        <div class="dossier-back-row">
+          <button class="dossier-back-btn" type="button" data-cal-dossier-back>‹ Tillbaka till bokning</button>
+        </div>`;
+    }
+    return true;
+  }
+
   // R2: ersätter platt list-meta med Kundintelligens-mönstret:
   // monogram + namn + status-pill + 2-kolumns grid + action-row med quick-action-pills.
   function renderDetailPanel() {
@@ -993,6 +1375,14 @@
     const signalsEl = shell.querySelector("[data-cal-detail-signals]");
     const signalListEl = shell.querySelector("[data-cal-detail-signal-list]");
     if (!detail || !titleEl) return;
+
+    // Interaktion #17: när dossiér-kontexten är aktiv äger den panelen — låt den
+    // vara (renderGrid() kan annars trampa över den vid re-render).
+    if (detail.dataset.context === "customer") {
+      detail.hidden = false;
+      if (body) body.dataset.detailOpen = "true";
+      return;
+    }
 
     if (!selectedEvent) {
       detail.hidden = true;
@@ -1163,6 +1553,15 @@
         }
         renderDetailPanel();
         node.classList.toggle("is-selected", true);
+        // Interaktion #17: bokning MED riktig patientId → byt höger-panelen
+        // till kondenserad V12-dossiér. Utan patientId (drop-in/omatchad) →
+        // behåll booking-intel (ingen tom dossiér).
+        if (
+          selectedEvent?.kind === "booked" &&
+          (selectedEvent.patientId || selectedEvent.patient_id)
+        ) {
+          void openDossierForEvent(selectedEvent);
+        }
       });
       node.addEventListener("dblclick", (event) => {
         event.preventDefault();
@@ -1541,6 +1940,15 @@
         return;
       }
 
+      // Interaktion #17: dossiér tillbaka/stäng → åter till booking-intel.
+      if (
+        event.target.closest("[data-cal-dossier-back]") ||
+        event.target.closest("[data-cal-dossier-close]")
+      ) {
+        closeDossier();
+        return;
+      }
+
       const actionButton = event.target.closest("[data-cal-action]");
       if (actionButton) {
         runCalendarAction(actionButton.getAttribute("data-cal-action"));
@@ -1599,7 +2007,11 @@
           event.preventDefault();
           calendarShell.querySelector("[data-cal-print]")?.click();
         } else if (key === "Escape") {
-          if (selectedEvent) {
+          const detail = calendarShell.querySelector("[data-cal-detail]");
+          if (detail && detail.dataset.context === "customer") {
+            event.preventDefault();
+            closeDossier();
+          } else if (selectedEvent) {
             event.preventDefault();
             selectedEvent = null;
             renderDetailPanel();

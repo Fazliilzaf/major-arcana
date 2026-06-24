@@ -2700,4 +2700,581 @@
       grid-template-columns: repeat(2, 1fr);
     }
   }
+
+  /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION #17 (Alt A): KONDENSERAD V12-KUNDDOSSIÉR
+     Ported från calendarmockupv8.html (.dossier-*), SCOPED under
+     .cco-cal-v8-surface så reglerna bara gäller i kalenderns höger-panel.
+     Datakälla: ArcanaPatientMasterUi.loadDossierData + CcoV11RailAdapters.
+     ═══════════════════════════════════════════════════════════════ */
+
+  .cco-cal-v8-surface {
+    /* dossiér-lokala tokens med fallbacks (oberoende av skin-filerna) */
+    --dossier-rose-top: var(--rose-pill-top, rgba(252, 233, 240, 0.98));
+    --dossier-rose-bottom: var(--rose-pill-bottom, rgba(248, 214, 228, 0.92));
+    --dossier-accent: var(--accent-studio, #bb4779);
+    --dossier-ai-accent: var(--calendar-accent, #c98a3a);
+    --dossier-ai-glow: var(--calendar-accent-glow, rgba(201, 138, 58, 0.22));
+    --dossier-card-shadow: var(
+      --panel-card-shadow,
+      0 3px 10px rgba(56, 40, 28, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.86)
+    );
+    --dossier-card-shadow-hover: var(
+      --panel-card-shadow-hover,
+      0 8px 22px rgba(56, 40, 28, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92)
+    );
+  }
+
+  /* Kontext-byte: dölj booking-intel, visa dossiér (och vice versa) */
+  .cco-cal-v8-surface [data-cal-detail][data-context="customer"] .intel-booking-view {
+    display: none;
+  }
+  .cco-cal-v8-surface [data-cal-detail][data-context="customer"] [data-cal-dossier] {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+  }
+  .cco-cal-v8-surface [data-cal-detail][data-context="booking"] [data-cal-dossier] {
+    display: none;
+  }
+  .cco-cal-v8-surface [data-cal-detail][data-context="customer"] {
+    padding: 18px 0 0;
+    overflow: hidden;
+  }
+
+  /* Head: avatar + namn + kontakt + tags + close */
+  .cco-cal-v8-surface .dossier-head {
+    padding: 0 22px 14px;
+    display: flex;
+    gap: 12px;
+    box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+    align-items: flex-start;
+  }
+  .cco-cal-v8-surface .dossier-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 16px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      0 6px 16px rgba(56, 40, 28, 0.18);
+    flex-shrink: 0;
+  }
+  .cco-cal-v8-surface .dossier-head-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .cco-cal-v8-surface .dossier-kicker {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dossier-accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .cco-cal-v8-surface .dossier-name {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--cco-color-brand, #2b251f);
+  }
+  .cco-cal-v8-surface .dossier-contact {
+    font-size: 11px;
+    color: var(--cco-text-secondary, #5d544a);
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cco-cal-v8-surface .dossier-tags {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .cco-cal-v8-surface .dossier-tag {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  }
+  .cco-cal-v8-surface .dossier-tag--vip {
+    background: linear-gradient(180deg, var(--dossier-rose-top), var(--dossier-rose-bottom));
+    color: var(--dossier-accent);
+  }
+  .cco-cal-v8-surface .dossier-tag--lifecycle {
+    background: var(--cco-status-info-bg, rgba(74, 123, 168, 0.12));
+    color: var(--cco-status-info, #4a7ba8);
+  }
+  .cco-cal-v8-surface .dossier-tag--engagement {
+    background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+    color: var(--cco-status-success, #4a8268);
+  }
+  .cco-cal-v8-surface .dossier-tag--risk {
+    background: var(--cco-status-warning-bg, rgba(200, 130, 30, 0.12));
+    color: var(--cco-status-warning, #c8821e);
+  }
+  .cco-cal-v8-surface .dossier-close {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    color: var(--cco-text-tertiary, #8a8174);
+    font-size: 18px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition:
+      background 0.12s ease,
+      color 0.12s ease;
+  }
+  .cco-cal-v8-surface .dossier-close:hover {
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--dossier-accent);
+  }
+
+  /* "‹ Tillbaka till bokning"-rad */
+  .cco-cal-v8-surface .dossier-back-row {
+    padding: 10px 18px 0;
+  }
+  .cco-cal-v8-surface .dossier-back-btn {
+    appearance: none;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--dossier-accent);
+    background: linear-gradient(180deg, var(--dossier-rose-top), var(--dossier-rose-bottom));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    transition: transform 0.12s ease;
+  }
+  .cco-cal-v8-surface .dossier-back-btn:hover {
+    transform: translateX(-2px);
+  }
+
+  /* Quick-stats (Besök / Intäkt / Skuld) */
+  .cco-cal-v8-surface .dossier-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 14px 18px 0;
+  }
+  .cco-cal-v8-surface .dossier-stat {
+    padding: 9px 11px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(247, 241, 236, 0.7));
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+  .cco-cal-v8-surface .dossier-stat-label {
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cco-text-tertiary, #8a8174);
+  }
+  .cco-cal-v8-surface .dossier-stat-value {
+    font-size: 15px;
+    font-weight: 800;
+    margin-top: 2px;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--cco-color-brand, #2b251f);
+  }
+  .cco-cal-v8-surface .dossier-stat-trend {
+    font-size: 9px;
+    margin-top: 1px;
+    color: var(--cco-status-success, #4a8268);
+    font-weight: 700;
+  }
+
+  /* Scroll-wrapper för sektionerna */
+  .cco-cal-v8-surface .dossier-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 18px 16px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(132, 117, 107, 0.34) transparent;
+  }
+  .cco-cal-v8-surface .dossier-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .cco-cal-v8-surface .dossier-scroll::-webkit-scrollbar-thumb {
+    background: rgba(132, 117, 107, 0.34);
+    border-radius: 999px;
+  }
+
+  /* Sektion (collapsible <details>) */
+  .cco-cal-v8-surface .dossier-section {
+    margin-bottom: 14px;
+  }
+  .cco-cal-v8-surface .dossier-section summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cco-text-tertiary, #8a8174);
+    padding: 6px 0 8px;
+    user-select: none;
+  }
+  .cco-cal-v8-surface .dossier-section summary::-webkit-details-marker {
+    display: none;
+  }
+  .cco-cal-v8-surface .dossier-section summary::before {
+    content: "▸";
+    color: var(--cco-text-tertiary, #8a8174);
+    font-size: 10px;
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  .cco-cal-v8-surface .dossier-section[open] summary::before {
+    transform: rotate(90deg);
+  }
+  .cco-cal-v8-surface .dossier-section summary .count {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.5);
+    color: var(--cco-text-tertiary, #8a8174);
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Explicit empty-state (canon §5 — ingen fejk) */
+  .cco-cal-v8-surface .dossier-empty {
+    padding: 10px 12px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px dashed rgba(132, 117, 107, 0.3);
+    font-size: 11px;
+    color: var(--cco-text-tertiary, #8a8174);
+    font-weight: 600;
+  }
+
+  /* Laddnings-skelett */
+  .cco-cal-v8-surface .dossier-scroll--loading {
+    padding-top: 16px;
+  }
+  .cco-cal-v8-surface .dossier-skeleton {
+    height: 54px;
+    border-radius: 11px;
+    margin-bottom: 8px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.4),
+      rgba(247, 241, 236, 0.7),
+      rgba(255, 255, 255, 0.4)
+    );
+    background-size: 200% 100%;
+    animation: dossierShimmer 1.3s ease-in-out infinite;
+  }
+  @keyframes dossierShimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Booking-rad (upcoming + history) */
+  .cco-cal-v8-surface .dossier-booking {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 11px 9px 16px;
+    border-radius: 11px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(247, 241, 236, 0.62));
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: var(--dossier-card-shadow);
+    margin-bottom: 5px;
+  }
+  .cco-cal-v8-surface .dossier-booking::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 9px;
+    bottom: 9px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--rail-info, #84756b);
+    box-shadow: 0 0 4px var(--rail-info, #84756b);
+  }
+  .cco-cal-v8-surface .db-date {
+    flex-shrink: 0;
+    text-align: center;
+    min-width: 40px;
+    color: var(--cco-text-tertiary, #8a8174);
+  }
+  .cco-cal-v8-surface .db-date .day {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .cco-cal-v8-surface .db-date .num {
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--cco-color-brand, #2b251f);
+    font-variant-numeric: tabular-nums;
+  }
+  .cco-cal-v8-surface .db-date .mon {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  .cco-cal-v8-surface .db-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .cco-cal-v8-surface .db-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--cco-color-brand, #2b251f);
+  }
+  .cco-cal-v8-surface .db-sub {
+    font-size: 10.5px;
+    color: var(--cco-text-secondary, #5d544a);
+    margin-top: 1px;
+  }
+  .cco-cal-v8-surface .db-status {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+  .cco-cal-v8-surface .db-status[data-state="ready"] {
+    background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+    color: var(--cco-status-success, #4a8268);
+  }
+  .cco-cal-v8-surface .db-status[data-state="warn"] {
+    background: var(--cco-status-warning-bg, rgba(200, 130, 30, 0.12));
+    color: var(--cco-status-warning, #c8821e);
+  }
+  .cco-cal-v8-surface .db-status[data-state="done"] {
+    background: rgba(132, 117, 107, 0.16);
+    color: var(--cco-text-tertiary, #8a8174);
+  }
+  .cco-cal-v8-surface .db-status[data-state="noshow"] {
+    background: var(--cco-status-danger-bg, rgba(185, 74, 74, 0.12));
+    color: var(--cco-status-danger, #b94a4a);
+  }
+
+  /* Filer-grid */
+  .cco-cal-v8-surface .dossier-files {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .cco-cal-v8-surface .dossier-file {
+    aspect-ratio: 1;
+    border-radius: 11px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(247, 241, 236, 0.66));
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: var(--dossier-card-shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+  }
+  .cco-cal-v8-surface .dossier-file:hover {
+    transform: scale(1.05);
+  }
+  .cco-cal-v8-surface .dossier-file-icon {
+    font-size: 22px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .cco-cal-v8-surface .dossier-file-name {
+    font-size: 9px;
+    color: var(--cco-text-secondary, #5d544a);
+    text-align: center;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+  .cco-cal-v8-surface .dossier-file-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--cco-status-success, #4a8268);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 999px;
+  }
+
+  /* Anteckningar */
+  .cco-cal-v8-surface .dossier-note {
+    padding: 9px 11px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.62);
+    border-left: 2px solid var(--dossier-accent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    margin-bottom: 5px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--cco-color-brand, #2b251f);
+  }
+  .cco-cal-v8-surface .dossier-note-meta {
+    font-size: 9.5px;
+    color: var(--cco-text-tertiary, #8a8174);
+    margin-top: 4px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  /* Kommunikation */
+  .cco-cal-v8-surface .dossier-comm {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.55);
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+  .cco-cal-v8-surface .dossier-comm-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .cco-cal-v8-surface .dossier-comm-icon[data-type="mail"] {
+    background: var(--cco-status-info-bg, rgba(74, 123, 168, 0.12));
+    color: var(--cco-status-info, #4a7ba8);
+  }
+  .cco-cal-v8-surface .dossier-comm-icon[data-type="sms"] {
+    background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+    color: var(--cco-status-success, #4a8268);
+  }
+  .cco-cal-v8-surface .dossier-comm-icon[data-type="call"] {
+    background: var(--cco-status-warning-bg, rgba(200, 130, 30, 0.12));
+    color: var(--cco-status-warning, #c8821e);
+  }
+  .cco-cal-v8-surface .dossier-comm-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .cco-cal-v8-surface .dossier-comm-text {
+    color: var(--cco-color-brand, #2b251f);
+    font-weight: 600;
+  }
+  .cco-cal-v8-surface .dossier-comm-meta {
+    font-size: 9.5px;
+    color: var(--cco-text-tertiary, #8a8174);
+    margin-top: 1px;
+  }
+
+  /* Ekonomi */
+  .cco-cal-v8-surface .dossier-economy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .cco-cal-v8-surface .dossier-money {
+    padding: 9px 11px;
+    border-radius: 11px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(247, 241, 236, 0.65));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+  .cco-cal-v8-surface .dossier-money-label {
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cco-text-tertiary, #8a8174);
+  }
+  .cco-cal-v8-surface .dossier-money-value {
+    font-size: 14px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+    letter-spacing: -0.02em;
+    color: var(--cco-color-brand, #2b251f);
+  }
+
+  /* AI-insikter */
+  .cco-cal-v8-surface .dossier-insight {
+    position: relative;
+    padding: 10px 12px 10px 14px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.78));
+    border-left: 3px solid var(--dossier-ai-accent);
+    box-shadow:
+      0 3px 10px var(--dossier-ai-glow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+    line-height: 1.5;
+    margin-bottom: 5px;
+    color: var(--cco-color-brand, #2b251f);
+  }
+  .cco-cal-v8-surface .dossier-insight::before {
+    content: "★ AI";
+    display: block;
+    color: var(--dossier-ai-accent);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    margin-bottom: 3px;
+  }
+
+  /* Sticky actions (deep-link till full kundvy) */
+  .cco-cal-v8-surface [data-cal-detail][data-context="customer"] .dossier-actions {
+    flex-shrink: 0;
+    padding: 12px 18px 18px;
+    background: linear-gradient(180deg, transparent, rgba(244, 238, 233, 0.96) 30%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .cco-cal-v8-surface .dossier-actions .quick-action-pill {
+    justify-content: center;
+  }
 }
