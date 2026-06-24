@@ -1570,14 +1570,38 @@
       document.body.appendChild(deep);
     }
     deep.classList.add('v9-dossier-deep--v12-workspace');
-    body.innerHTML = renderV12WorkspaceDetailShell(
-      ctx.card,
-      ctx.journalEntries,
-      ctx.occasionTimeline,
-      ctx.driveFiles,
-      ctx.patient,
-      { tab: normalizeDetailTab(runtime.detailTab) }
-    );
+    // Robusthet (Fas 4 hotfix): rendera ALDRIG en blank helskärms-overlay. Om
+    // shell-renderingen kastar eller returnerar tomt → avbryt öppningen, återställ
+    // portalen och lämna kund-railen synlig (pre-Fas-4-beteende), istället för att
+    // visa en tom cream-yta som täcker hela skärmen.
+    let shellHtml = '';
+    try {
+      shellHtml = renderV12WorkspaceDetailShell(
+        ctx.card,
+        ctx.journalEntries,
+        ctx.occasionTimeline,
+        ctx.driveFiles,
+        ctx.patient,
+        { tab: normalizeDetailTab(runtime.detailTab) }
+      );
+    } catch (_shellError) {
+      shellHtml = '';
+    }
+    if (!shellHtml || shellHtml.indexOf('data-v12-workspace-shell') === -1) {
+      deep.classList.remove('v9-dossier-deep--v12-workspace');
+      if (deep.__v12OriginalParent) {
+        try {
+          deep.__v12OriginalParent.insertBefore(deep, deep.__v12OriginalNext || null);
+        } catch (_restoreError) {
+          /* original-parent borta — oskadligt */
+        }
+        deep.__v12OriginalParent = null;
+        deep.__v12OriginalNext = null;
+      }
+      runtime.v12HybridAutoOpenedFor = null;
+      return;
+    }
+    body.innerHTML = shellHtml;
     deep.hidden = false;
     deep.setAttribute('aria-hidden', 'false');
     bindV12WorkspaceOverlayBody(body, ctx);
@@ -5461,7 +5485,15 @@
       if (autoPid && runtime.v12HybridAutoOpenedFor !== autoPid) {
         runtime.v12HybridAutoOpenedFor = autoPid;
         window.requestAnimationFrame(() =>
-          window.requestAnimationFrame(() => openV12WorkspaceFromRail(root, ctx, 'current-state'))
+          window.requestAnimationFrame(() => {
+            try {
+              openV12WorkspaceFromRail(root, ctx, 'current-state');
+            } catch (_autoOpenError) {
+              // Auto-öppning misslyckades → nollställ guarden så kund-railen
+              // förblir användbar och nästa interaktion kan försöka igen.
+              runtime.v12HybridAutoOpenedFor = null;
+            }
+          })
         );
       }
     }
