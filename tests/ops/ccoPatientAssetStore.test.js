@@ -104,11 +104,25 @@ test('exports canonical enums per owner-spec', () => {
   assert.equal(VALID_CATEGORIES.length, 9);
   assert.deepEqual(
     [...VALID_SOURCE_SYSTEMS].sort(),
-    ['cco_camera', 'drive', 'meridiq', 'old_cco', 'upload'].sort()
+    [
+      'aisia_ds3',
+      'cco_camera',
+      'cco_journal_sign',
+      'drive',
+      'drive_import',
+      'getaccept_import',
+      'm365_halso',
+      'meridiq',
+      'old_cco',
+      'upload',
+    ].sort()
   );
   // P0.B++ — nya exports
   assert.ok(STATUS_TRANSITIONS);
-  assert.deepEqual([...SOFT_DELETE_TARGETS].sort(), ['DUPLICATE', 'NEEDS_REVIEW', 'REJECTED'].sort());
+  assert.deepEqual(
+    [...SOFT_DELETE_TARGETS].sort(),
+    ['DUPLICATE', 'NEEDS_REVIEW', 'REJECTED'].sort()
+  );
 });
 
 test('addAsset persists with UUID, default status, and emits asset.imported', async () => {
@@ -128,7 +142,7 @@ test('addAsset persists with UUID, default status, and emits asset.imported', as
     assert.ok(!ev.detail.personnummer);
     const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
     assert.equal(Object.keys(raw.items).length, 1);
-    assert.equal(raw.schemaVersion, '1.0.0');
+    assert.equal(raw.schemaVersion, '1.1.0');
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -172,11 +186,7 @@ test('updateAssetStatus walks the state-machine and emits asset.status_changed',
   const { tmp, store, audit } = await makeStore();
   try {
     const created = await store.addAsset({ ...BASE_ASSET });
-    const updated = await store.updateAssetStatus(
-      created.id,
-      'IMPORTING',
-      'starting copy'
-    );
+    const updated = await store.updateAssetStatus(created.id, 'IMPORTING', 'starting copy');
     assert.equal(updated.status, 'IMPORTING');
     assert.ok(updated.statusHistory.length >= 1);
     const last = updated.statusHistory[updated.statusHistory.length - 1];
@@ -369,7 +379,10 @@ test('transitionStatus: REJECTED är terminal — alla transitions kastar', asyn
   try {
     const a = await buildAssetAtStatus(store, 'REJECTED');
     await assert.rejects(() => store.transitionStatus(a.id, 'DISCOVERED'), /forbidden transition/);
-    await assert.rejects(() => store.transitionStatus(a.id, 'VERIFIED_IN_CCO'), /forbidden transition/);
+    await assert.rejects(
+      () => store.transitionStatus(a.id, 'VERIFIED_IN_CCO'),
+      /forbidden transition/
+    );
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -417,9 +430,7 @@ test('markAsVisibleOnPatientCard: full guards uppfyllda -> OK', async () => {
     assert.ok(audit.events.some((e) => e.action === 'asset.linked_to_patient'));
     assert.ok(
       audit.events.some(
-        (e) =>
-          e.action === 'asset.status_changed' &&
-          e.detail.to === 'VISIBLE_ON_PATIENT_CARD'
+        (e) => e.action === 'asset.status_changed' && e.detail.to === 'VISIBLE_ON_PATIENT_CARD'
       )
     );
   } finally {
@@ -438,10 +449,7 @@ test('markAsVisibleOnPatientCard: saknad storageKey -> error listar storageKey',
     await store.transitionStatus(a.id, 'VERIFIED_IN_CCO');
     // Manuell mutering via _state (test-only)
     store._state().items[a.id].storageKey = null;
-    await assert.rejects(
-      () => store.markAsVisibleOnPatientCard(a.id),
-      /storageKey/
-    );
+    await assert.rejects(() => store.markAsVisibleOnPatientCard(a.id), /storageKey/);
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -455,10 +463,7 @@ test('markAsVisibleOnPatientCard: saknad checksum -> error listar checksum', asy
     await store.transitionStatus(a.id, 'IMPORTED_TO_CCO');
     // Hoppa över recordChecksumVerified
     await store.transitionStatus(a.id, 'VERIFIED_IN_CCO');
-    await assert.rejects(
-      () => store.markAsVisibleOnPatientCard(a.id),
-      /checksum/
-    );
+    await assert.rejects(() => store.markAsVisibleOnPatientCard(a.id), /checksum/);
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -472,10 +477,7 @@ test('markAsVisibleOnPatientCard: utan patientId KASTAR ALLTID — review-bypass
     const a = await buildAssetAtStatus(store, 'VERIFIED_IN_CCO');
     // Nolla patientId post-hoc
     store._state().items[a.id].patientId = '';
-    await assert.rejects(
-      () => store.markAsVisibleOnPatientCard(a.id),
-      /patientId krävs ALLTID/
-    );
+    await assert.rejects(() => store.markAsVisibleOnPatientCard(a.id), /patientId krävs ALLTID/);
     // Även med (gammal) "reviewApproved"-flagga är det förbjudet:
     await assert.rejects(
       () => store.markAsVisibleOnPatientCard(a.id, { reviewApproved: true }),
@@ -483,10 +485,7 @@ test('markAsVisibleOnPatientCard: utan patientId KASTAR ALLTID — review-bypass
     );
     // patientId='unknown' (sentinel) räknas också som saknat
     store._state().items[a.id].patientId = 'unknown';
-    await assert.rejects(
-      () => store.markAsVisibleOnPatientCard(a.id),
-      /patientId krävs ALLTID/
-    );
+    await assert.rejects(() => store.markAsVisibleOnPatientCard(a.id), /patientId krävs ALLTID/);
     // När patientId är riktigt satt → OK
     store._state().items[a.id].patientId = 'pat-resolved';
     const ok = await store.markAsVisibleOnPatientCard(a.id);
@@ -511,10 +510,7 @@ test('reassignToPatient: happy path NEEDS_REVIEW → VERIFIED_IN_CCO → sedan m
     store._state().items[a.id].patientId = '';
 
     // markAsVisibleOnPatientCard ska KASTA (ingen patientId)
-    await assert.rejects(
-      () => store.markAsVisibleOnPatientCard(a.id),
-      /patientId krävs ALLTID/
-    );
+    await assert.rejects(() => store.markAsVisibleOnPatientCard(a.id), /patientId krävs ALLTID/);
 
     // reassignToPatient → sätter patientId + confidence='medium' + VERIFIED_IN_CCO
     const reassigned = await store.reassignToPatient(a.id, {
@@ -595,10 +591,7 @@ test('markAsVisibleOnPatientCard: fel current-status (IMPORTED_TO_CCO) -> error'
 test('markAsVisibleOnPatientCard: asset finns inte -> 404', async () => {
   const { tmp, store } = await makeStore();
   try {
-    await assert.rejects(
-      () => store.markAsVisibleOnPatientCard('does-not-exist'),
-      /hittades inte/
-    );
+    await assert.rejects(() => store.markAsVisibleOnPatientCard('does-not-exist'), /hittades inte/);
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -612,7 +605,10 @@ test('softDeleteAsset: default REJECTED från NEEDS_REVIEW', async () => {
   const { tmp, store } = await makeStore();
   try {
     const a = await buildAssetAtStatus(store, 'NEEDS_REVIEW');
-    const r = await store.softDeleteAsset(a.id, { reason: 'staff_reject', actor: { userId: 'u1' } });
+    const r = await store.softDeleteAsset(a.id, {
+      reason: 'staff_reject',
+      actor: { userId: 'u1' },
+    });
     assert.equal(r.status, 'REJECTED');
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
@@ -752,7 +748,9 @@ test('OS#2: softDeleteAsset emittar dedikerat asset.soft_deleted med previousSta
     assert.equal(ev.detail.reason, 'staff_reject_invalid_file');
     assert.equal(ev.detail.target, 'REJECTED');
     // Dessutom: status_changed-event ska också finnas
-    assert.ok(audit.events.some((e) => e.action === 'asset.status_changed' && e.detail.to === 'REJECTED'));
+    assert.ok(
+      audit.events.some((e) => e.action === 'asset.status_changed' && e.detail.to === 'REJECTED')
+    );
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -831,11 +829,7 @@ test('P0.B++++: hardDeleteAsset audit payload innehåller hashad originalFileNam
     const snap = ev.detail.fullAssetSnapshot;
     assert.ok(snap, 'fullAssetSnapshot saknas');
     // Rå originalFileName får INTE finnas i snapshot
-    assert.equal(
-      snap.originalFileName,
-      undefined,
-      'rå originalFileName läckte in i audit-payload'
-    );
+    assert.equal(snap.originalFileName, undefined, 'rå originalFileName läckte in i audit-payload');
     // Hash-fältet ska finnas, prefix 'sha256:', 16 hex-tecken
     assert.ok(
       typeof snap.originalFileName_hash === 'string' &&
@@ -879,11 +873,7 @@ test('P0.B++++: hardDeleteAsset audit payload innehåller struktur-hashad origin
       typeof snap.originalDrivePath_structure === 'string',
       'originalDrivePath_structure saknas'
     );
-    assert.equal(
-      snap.originalDrivePath_depth,
-      4,
-      'fel depth — förväntade 4 segment'
-    );
+    assert.equal(snap.originalDrivePath_depth, 4, 'fel depth — förväntade 4 segment');
     // Strukturformat: seg-<hash8>/seg-<hash8>/seg-<hash8>/seg-<hash8>
     assert.match(
       snap.originalDrivePath_structure,
@@ -1003,7 +993,11 @@ test('stats: blandning av statusar räknas korrekt över alla 9 counters', async
     assert.equal(s.failedImportCount, 1);
     // OWNER-SKÄRPNING #5: blocker-criterion (Drive-provenance + saknad binär)
     // räknar både den explicit LINK_ONLY_BLOCKER + alla utan checksum med Drive-id
-    assert.equal(s.linkOnlyBlockerCount, 4, 'IMPORTED_TO_CCO, NEEDS_REVIEW, FAILED_IMPORT, LINK_ONLY_BLOCKER har Drive-id + saknad checksum');
+    assert.equal(
+      s.linkOnlyBlockerCount,
+      4,
+      'IMPORTED_TO_CCO, NEEDS_REVIEW, FAILED_IMPORT, LINK_ONLY_BLOCKER har Drive-id + saknad checksum'
+    );
     assert.ok(s.assetsWithoutChecksumCount >= 1);
     assert.equal(s.assetsWithoutStorageKeyCount, 0); // BASE_ASSET sätter storageKey för alla
     assert.equal(s.assetsWithoutPatientIdCount, 0); // BASE_ASSET sätter patientId
@@ -1114,7 +1108,11 @@ test('OS#5: pipeline auto-sätter LINK_ONLY_BLOCKER om Drive-provenance + ingen 
     const s = store.stats();
     assert.equal(s.linkOnlyBlockerCount, 1);
     assert.equal(s.byStatus.LINK_ONLY_BLOCKER, 1);
-    assert.equal(s.assetsWithoutStorageKeyCount, 1, 'pending-no-binary räknas som "utan storageKey"');
+    assert.equal(
+      s.assetsWithoutStorageKeyCount,
+      1,
+      'pending-no-binary räknas som "utan storageKey"'
+    );
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }

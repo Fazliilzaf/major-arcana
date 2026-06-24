@@ -52,7 +52,7 @@ Resurs: Fysisk konsultation
     assert.equal(parsed.serviceLabel, 'Fysisk konsultation');
     assert.equal(parsed.staffName, 'Fysisk konsultation');
     assert.equal(parsed.startsAt, '2026-06-17T15:15:00.000Z');
-    assert.equal(parsed.status, 'upcoming');
+    assert.equal(parsed.status, 'completed');
     assert.match(parsed.bookingId, /^cliento-web:/);
   });
 

@@ -31,6 +31,9 @@ test('resolveCcoRouteActor reuses req.auth from open-access middleware', async (
   assert.deepEqual(actor, {
     tenantId: 'hair-tp-clinic',
     userId: 'preview-local-user',
+    email: '',
+    displayName: '',
+    staffName: '',
     role: 'OWNER',
     authMode: 'preview_local',
   });
