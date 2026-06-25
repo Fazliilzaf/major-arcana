@@ -3151,6 +3151,7 @@
   }
 
   function renderBadges(container, items) {
+    if (!container) return;
     container.innerHTML = '';
     for (const item of items) {
       const badge = document.createElement('span');
