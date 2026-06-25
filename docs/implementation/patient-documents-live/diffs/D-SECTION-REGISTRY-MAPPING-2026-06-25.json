@@ -1,0 +1,592 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-25",
+  "generatedAt": "2026-06-25T15:52:37.582Z",
+  "script": "build:patient-doc-d-section-registry",
+  "scope": "BOOKOFF sektion D — utökade Meridiq-samtycken",
+  "nonBlockingForHairTpCutover": true,
+  "workshopStatus": "SIGNED_OFF",
+  "workshopAgenda": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md",
+  "workshopRecord": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md",
+  "ownerDecisionDoc": "docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md",
+  "recommendedOptionsDocumented": 6,
+  "approvedOwnerDecisions": 6,
+  "consentCatalogCount": 39,
+  "catalog36Count": 36,
+  "workshopGroupCount": 6,
+  "pendingOwnerDecisions": 0,
+  "hairTpBlockingGroups": 0,
+  "groupsWithLetterText": 3,
+  "groupsNeedingLegalReview": 3,
+  "in36ConsentMappings": {
+    "152987": "prp_hair_info_eng",
+    "152994": "prp_hair_info_sve",
+    "152997": "microneedling_info",
+    "152998": "microneedling_info",
+    "154369": "samtycke_bokning_2d",
+    "170917": "offert_tp",
+    "170944": "offert_prp_skin",
+    "170945": "offert_prp_hair",
+    "170946": "offert_microneedling",
+    "170947": "offert_prf",
+    "170948": "offert_profilo",
+    "170955": "samtycke_angerratt"
+  },
+  "bundleSupplementary": {
+    "botulinum_info": [152988, 152981]
+  },
+  "groups": [
+    {
+      "id": "d_hyalase_swe",
+      "bookoffLabel": "Hyalase SWE",
+      "brand": "Hair TP Clinic",
+      "meridiqApiIds": [152991],
+      "bundleRegistryId": null,
+      "bundleNote": "bundle v7 — registryId null (buildConsentDoc utan id)",
+      "recommended": {
+        "action": "NEW_REGISTRY",
+        "proposedRegistryId": "hyalase_info",
+        "mapToExistingRegistryId": null,
+        "journeyStep": "3-4",
+        "uiPlacement": "§2 Hälsa · medicinskt tillägg",
+        "cutoverPhase": "post_hair_tp_optional"
+      },
+      "hairTpCutoverBlocking": false,
+      "ownerQuestion": "Ska Hyalase få egen rad i 36-katalogen (`hyalase_info`) eller ligga kvar som bundle-tillägg utan live-route?",
+      "ownerOptions": [
+        "A — Ny registryId `hyalase_info` i katalog + final-demo steg 3–4 (rekommenderat om behandling erbjuds)",
+        "B — Behåll bundle-only tills Curatiio/estetik-cutover",
+        "C — Mappa till befintlig `microneedling_info` (ej rekommenderat — annat scope)"
+      ],
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "post_hair_tp_optional",
+      "recommendedOption": "B",
+      "recommendedRationale": "Hyalase erbjuds sällan som separat Hair TP-spår — bundle räcker tills estetik-cutover.",
+      "consents": [
+        {
+          "apiId": 152991,
+          "title": "Hyalase - SWE",
+          "brand": "Hair TP Clinic",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 1803,
+          "in36RegistryId": null
+        }
+      ],
+      "missingMeridiqIds": [],
+      "contentReady": true,
+      "legalReviewRequired": false
+    },
+    {
+      "id": "d_botulinum_swe_eng",
+      "bookoffLabel": "Botulinumtoxin SWE/ENG",
+      "brand": "Hair TP Clinic (+ Curatiio-kontext)",
+      "meridiqApiIds": [152988, 152981],
+      "bundleRegistryId": "botulinum_info",
+      "bundleNote": "Finns i bundle men EJ i hairtp-document-types.catalog (36)",
+      "recommended": {
+        "action": "PROMOTE_BUNDLE_ID",
+        "proposedRegistryId": "botulinum_info",
+        "mapToExistingRegistryId": null,
+        "journeyStep": "3-4",
+        "uiPlacement": "§2 Hälsa · steg 3–4 (supplementary)",
+        "cutoverPhase": "post_hair_tp_optional"
+      },
+      "hairTpCutoverBlocking": false,
+      "ownerQuestion": "Ska `botulinum_info` promoted till 36-katalogen? Gäller vid Hair TP-estetik — Curatiio-flöde kräver brand-gate.",
+      "ownerOptions": [
+        "A — Promote `botulinum_info` → rad #37 i katalog + D/L/V (IMPLEMENTATION A16)",
+        "B — Bundle-only tills Curatiio-cutover med separat brand-filter",
+        "C — Ny Curatiio-specifik registryId (brand-isolation)"
+      ],
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "post_hair_tp_optional",
+      "recommendedOption": "B",
+      "recommendedRationale": "Behåll `botulinum_info` i bundle v7 — promote till katalog först vid aktiv Hair TP-estetik eller Curatiio brand-gate.",
+      "consents": [
+        {
+          "apiId": 152988,
+          "title": "Botulinumtoxin - SWE",
+          "brand": "Hair TP Clinic",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 2745,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 152981,
+          "title": "Botulinumtoxin - ENG",
+          "brand": "Hair TP Clinic",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 2294,
+          "in36RegistryId": null
+        }
+      ],
+      "missingMeridiqIds": [],
+      "contentReady": true,
+      "legalReviewRequired": false
+    },
+    {
+      "id": "d_fillers_swe",
+      "bookoffLabel": "Fillers SWE (+ ENG)",
+      "brand": "Curatiio",
+      "meridiqApiIds": [152990, 152984],
+      "agreementApiIds": [170950],
+      "bundleRegistryId": null,
+      "recommended": {
+        "action": "NEW_REGISTRY_CURATII",
+        "proposedRegistryId": "fillers_info",
+        "agreementRegistryId": "offert_fillers",
+        "mapToExistingRegistryId": null,
+        "journeyStep": "3-7",
+        "uiPlacement": "Curatiio §2 Hälsa + §4 Juridik",
+        "cutoverPhase": "curatiio_only"
+      },
+      "hairTpCutoverBlocking": false,
+      "ownerQuestion": "Fillers — eget Curatiio-flöde med info + avtal (170950 tom letterText → Nordbro)?",
+      "ownerOptions": [
+        "A — Ny info `fillers_info` + avtal `offert_fillers` (Curatiio cutover)",
+        "B — Endast Meridiq-modal tills legal review klar",
+        "C — Ej erbjud — arkivera consent i CCO"
+      ],
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "curatiio_only_after_legal",
+      "recommendedOption": "B",
+      "recommendedRationale": "Curatiio-only — avtal 170950 saknar letterText; Meridiq-modal tills Nordbro-PDF importerad.",
+      "consents": [
+        {
+          "apiId": 152990,
+          "title": "Fillers - SWE",
+          "brand": "Curatiio",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 3800,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 152984,
+          "title": "Filler - ENG",
+          "brand": "Curatiio",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 3000,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 170950,
+          "title": "Behandlingsavtal | Fillers",
+          "brand": "Curatiio",
+          "version": "0",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        }
+      ],
+      "missingMeridiqIds": [],
+      "contentReady": false,
+      "legalReviewRequired": true
+    },
+    {
+      "id": "d_peeling_ipl_plasma",
+      "bookoffLabel": "Kemisk peeling / IPL / Plasma Pen",
+      "brand": "Hair TP Clinic",
+      "meridiqApiIds": [152992, 152982, 152993, 152999, 153000, 153001],
+      "bundleRegistryId": null,
+      "recommended": {
+        "action": "DEFER_OR_GROUP",
+        "proposedRegistryId": "esthetic_consent_library",
+        "mapToExistingRegistryId": null,
+        "journeyStep": "3-4",
+        "uiPlacement": "Dolt bibliotek — aktiveras per behandling",
+        "cutoverPhase": "post_hair_tp_optional"
+      },
+      "hairTpCutoverBlocking": false,
+      "ownerQuestion": "Erbjuds peeling/IPL/Plasma Pen på Hair TP idag? Om ja: en registry per behandling eller gemensamt bibliotek?",
+      "ownerOptions": [
+        "A — Ej aktivt på Hair TP → DEFER (behåll Meridiq-arkiv, ingen CCO-live)",
+        "B — Per behandling: `peeling_info`, `ipl_info`, `plasma_pen_info`",
+        "C — En samlad `esthetic_consent_library` med under-typer"
+      ],
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "A",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "defer_meridiq_archive",
+      "recommendedOption": "A",
+      "recommendedRationale": "Peeling/IPL/Plasma Pen ej aktivt erbjudande på Hair TP idag — DEFER, behåll Meridiq-arkiv.",
+      "consents": [
+        {
+          "apiId": 152992,
+          "title": "Kemisk Peeling - SWE",
+          "brand": "Hair TP Clinic",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 3838,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 152982,
+          "title": "Chemical Peeling - ENG",
+          "brand": "Hair TP Clinic",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 3274,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 152993,
+          "title": "IPL - SWE",
+          "brand": "Hair TP Clinic",
+          "version": "2",
+          "hasLetterText": true,
+          "letterTextChars": 4238,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 152999,
+          "title": "Plasma Pen - ENG",
+          "brand": "Hair TP Clinic",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 3930,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 153000,
+          "title": "Plasma Pen - SWE",
+          "brand": "Hair TP Clinic",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 3977,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 153001,
+          "title": "Plasma Pen - SWE",
+          "brand": "Hair TP Clinic",
+          "version": "1",
+          "hasLetterText": true,
+          "letterTextChars": 3977,
+          "in36RegistryId": null
+        }
+      ],
+      "missingMeridiqIds": [],
+      "contentReady": true,
+      "legalReviewRequired": false
+    },
+    {
+      "id": "d_ortoped_prp_prf",
+      "bookoffLabel": "Ortopedisk PRP/PRF (+ HA)",
+      "brand": "Curatiio",
+      "meridiqApiIds": [153039, 153040],
+      "agreementApiIds": [170941, 170942, 170943],
+      "bundleRegistryId": null,
+      "recommended": {
+        "action": "NEW_REGISTRY_CURATII",
+        "proposedRegistryId": "ortoped_prp_info",
+        "agreementRegistryId": "offert_ortoped_prp",
+        "mapToExistingRegistryId": null,
+        "journeyStep": "3-7",
+        "uiPlacement": "Curatiio ortopedi-flöde",
+        "cutoverPhase": "curatiio_only"
+      },
+      "hairTpCutoverBlocking": false,
+      "ownerQuestion": "Ortopediska samtycken har tom letterText — Nordbro/Insatt-PDF krävs före live.",
+      "ownerOptions": [
+        "A — Curatiio cutover: info + avtal-rader efter legal import",
+        "B — Paus tills Nordbro-PDF importerad (19/39 consents saknar letterText)",
+        "C — Behåll endast Meridiq read-only"
+      ],
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "curatiio_only_after_nordbro_pdf",
+      "recommendedOption": "B",
+      "recommendedRationale": "Ortopediska avtal + info saknar letterText — paus tills Nordbro/Insatt-PDF (19/39 tomma).",
+      "consents": [
+        {
+          "apiId": 153039,
+          "title": "Ortopedisk PRP/PRF",
+          "brand": "Curatiio",
+          "version": "3",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 153040,
+          "title": "Ortopedisk PRP/PRF med hyaluronsyra",
+          "brand": "Curatiio",
+          "version": "3",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 170941,
+          "title": "Behandlingsavtal | Ortopedisk PRP/PRF",
+          "brand": "Curatiio",
+          "version": "1",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 170942,
+          "title": "Behandlingsavtal | Ortopedisk HA",
+          "brand": "Curatiio",
+          "version": "1",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 170943,
+          "title": "Behandlingsavtal | Ortopedisk HA och PRP/PRF",
+          "brand": "Curatiio",
+          "version": "0",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        }
+      ],
+      "missingMeridiqIds": [],
+      "contentReady": false,
+      "legalReviewRequired": true
+    },
+    {
+      "id": "d_curatiio_avtal_botox_fillers_bleph",
+      "bookoffLabel": "Behandlingsavtal Botox / Fillers / Ögonlock",
+      "brand": "Curatiio",
+      "meridiqApiIds": [],
+      "agreementApiIds": [170949, 170950, 170954],
+      "bundleRegistryId": null,
+      "recommended": {
+        "action": "NEW_REGISTRY_CURATII",
+        "proposedRegistryId": "offert_curatiio_estetik",
+        "mapToExistingRegistryId": null,
+        "journeyStep": "5-7",
+        "uiPlacement": "Curatiio §3 Behandling + §4 Juridik",
+        "cutoverPhase": "curatiio_only"
+      },
+      "hairTpCutoverBlocking": false,
+      "ownerQuestion": "Separata avtal per behandling (Botox 170949, Fillers 170950, Ögonlock 170954) eller en Curatiio-estetik-offert?",
+      "ownerOptions": [
+        "A — Tre registryId: `offert_botox`, `offert_fillers`, `offert_bleph`",
+        "B — En `offert_curatiio_estetik` med behandlingsväljare",
+        "C — Legal review först — ingen registry förrän PDF facit finns"
+      ],
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "C",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "curatiio_only_after_legal",
+      "recommendedOption": "C",
+      "recommendedRationale": "Legal review först — separata avtal per behandling när PDF-facit finns (Botox/Fillers/Ögonlock).",
+      "consents": [
+        {
+          "apiId": 170949,
+          "title": "Behandlingsavtal | Botulinumtoxin (Botox)",
+          "brand": "Curatiio",
+          "version": "0",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 170950,
+          "title": "Behandlingsavtal | Fillers",
+          "brand": "Curatiio",
+          "version": "0",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        },
+        {
+          "apiId": 170954,
+          "title": "Behandlingsavtal | Ögonlocksplastik",
+          "brand": "Curatiio",
+          "version": "1",
+          "hasLetterText": false,
+          "letterTextChars": 0,
+          "in36RegistryId": null
+        }
+      ],
+      "missingMeridiqIds": [],
+      "contentReady": false,
+      "legalReviewRequired": true
+    }
+  ],
+  "unmappedInventory": [
+    {
+      "apiId": 152983,
+      "title": "CO2-laser - ENG",
+      "brand": "Hair TP Clinic",
+      "version": "1",
+      "hasLetterText": true,
+      "letterTextChars": 6839,
+      "in36RegistryId": null,
+      "suggestedAction": "REVIEW_FOR_D_SECTION"
+    },
+    {
+      "apiId": 152995,
+      "title": "Fat dissolving injection - ENG",
+      "brand": "Hair TP Clinic",
+      "version": "1",
+      "hasLetterText": true,
+      "letterTextChars": 2913,
+      "in36RegistryId": null,
+      "suggestedAction": "REVIEW_FOR_D_SECTION"
+    },
+    {
+      "apiId": 152995,
+      "title": "Fat dissolving injection - ENG",
+      "brand": "Hair TP Clinic",
+      "version": "1",
+      "hasLetterText": true,
+      "letterTextChars": 2913,
+      "in36RegistryId": null,
+      "suggestedAction": "DEFER",
+      "note": "Fettuplösande — ej i 36-katalog; aktivera vid behandlingsbeslut"
+    },
+    {
+      "apiId": 152996,
+      "title": "Fettuplösande injektioner - SWE",
+      "brand": "Hair TP Clinic",
+      "version": "1",
+      "hasLetterText": true,
+      "letterTextChars": 2929,
+      "in36RegistryId": null,
+      "suggestedAction": "REVIEW_FOR_D_SECTION"
+    },
+    {
+      "apiId": 152996,
+      "title": "Fettuplösande injektioner - SWE",
+      "brand": "Hair TP Clinic",
+      "version": "1",
+      "hasLetterText": true,
+      "letterTextChars": 2929,
+      "in36RegistryId": null,
+      "suggestedAction": "DEFER",
+      "note": "Fettuplösande — ej i 36-katalog; aktivera vid behandlingsbeslut"
+    },
+    {
+      "apiId": 153002,
+      "title": "Profhilo - ENG",
+      "brand": "Hair TP Clinic",
+      "version": "3",
+      "hasLetterText": true,
+      "letterTextChars": 2402,
+      "in36RegistryId": null,
+      "suggestedAction": "REVIEW_FOR_D_SECTION"
+    },
+    {
+      "apiId": 153002,
+      "title": "Profhilo - ENG",
+      "brand": "Hair TP Clinic",
+      "version": "3",
+      "hasLetterText": true,
+      "letterTextChars": 2402,
+      "in36RegistryId": null,
+      "suggestedAction": "MAP_TO_EXISTING",
+      "mapToExistingRegistryId": "offert_profilo",
+      "note": "Patientinfo-samtycke — avtal redan offert_profilo (170948)"
+    },
+    {
+      "apiId": 153003,
+      "title": "Profhilo - SWE",
+      "brand": "Hair TP Clinic",
+      "version": "2",
+      "hasLetterText": true,
+      "letterTextChars": 1987,
+      "in36RegistryId": null,
+      "suggestedAction": "REVIEW_FOR_D_SECTION"
+    },
+    {
+      "apiId": 153003,
+      "title": "Profhilo - SWE",
+      "brand": "Hair TP Clinic",
+      "version": "2",
+      "hasLetterText": true,
+      "letterTextChars": 1987,
+      "in36RegistryId": null,
+      "suggestedAction": "MAP_TO_EXISTING",
+      "mapToExistingRegistryId": "offert_profilo",
+      "note": "Patientinfo-samtycke — avtal redan offert_profilo (170948)"
+    },
+    {
+      "apiId": 170951,
+      "title": "Behandlingsavtal | PRP hud | Curatiio",
+      "brand": "Hair TP Clinic",
+      "version": "0",
+      "hasLetterText": false,
+      "letterTextChars": 0,
+      "in36RegistryId": null,
+      "suggestedAction": "REVIEW_FOR_D_SECTION"
+    },
+    {
+      "apiId": 170951,
+      "title": "Behandlingsavtal | PRP hud | Curatiio",
+      "brand": "Hair TP Clinic",
+      "version": "0",
+      "hasLetterText": false,
+      "letterTextChars": 0,
+      "in36RegistryId": null,
+      "suggestedAction": "CURATII_SKIN_VARIANT",
+      "note": "Hair TP-titel med Curatiio-suffix — brand review"
+    },
+    {
+      "apiId": 170952,
+      "title": "Behandlingsavtal | PRF hud | Curatiio",
+      "brand": "Hair TP Clinic",
+      "version": "0",
+      "hasLetterText": false,
+      "letterTextChars": 0,
+      "in36RegistryId": null,
+      "suggestedAction": "REVIEW_FOR_D_SECTION"
+    },
+    {
+      "apiId": 170952,
+      "title": "Behandlingsavtal | PRF hud | Curatiio",
+      "brand": "Hair TP Clinic",
+      "version": "0",
+      "hasLetterText": false,
+      "letterTextChars": 0,
+      "in36RegistryId": null,
+      "suggestedAction": "CURATII_SKIN_VARIANT",
+      "note": "Hair TP-titel med Curatiio-suffix — brand review"
+    },
+    {
+      "apiId": 170953,
+      "title": "Behandlingsavtal | PRP och microneedling | Curatiio",
+      "brand": "Hair TP Clinic",
+      "version": "0",
+      "hasLetterText": false,
+      "letterTextChars": 0,
+      "in36RegistryId": null,
+      "suggestedAction": "REVIEW_FOR_D_SECTION"
+    },
+    {
+      "apiId": 170953,
+      "title": "Behandlingsavtal | PRP och microneedling | Curatiio",
+      "brand": "Hair TP Clinic",
+      "version": "0",
+      "hasLetterText": false,
+      "letterTextChars": 0,
+      "in36RegistryId": null,
+      "suggestedAction": "CURATII_SKIN_VARIANT",
+      "note": "Hair TP-titel med Curatiio-suffix — brand review"
+    }
+  ]
+}

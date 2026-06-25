@@ -1,0 +1,265 @@
+name: v11-rail-screenshots
+
+# Genererar riktiga PNG-screenshots (390/820/1440) av V11-RAIL-komponenterna
+# via headless chromium på GitHub-runner (öppen internet → kan ladda browser,
+# till skillnad från web-sessionens egress-policy). Laddar upp PNG:erna som
+# build-artifact för Codex-granskning. Ingen annan kodändring.
+
+on:
+  push:
+    branches:
+      - "claude/v11-rail-**"
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Block 1 screenshots (A Profile)
+        run: npm run shots:v11rail
+
+      - name: Generate Block 2 screenshots (A Profile + B Smart information)
+        run: npm run shots:v11rail:block2
+
+      - name: Generate Block 3 screenshots (A Profile + B Smart information + C Stats)
+        run: npm run shots:v11rail:block3
+
+      - name: Generate Block 4 screenshots (A + V Active Visit + B + C)
+        run: npm run shots:v11rail:block4
+
+      - name: Generate Block 5 screenshots (D Critical warnings + A + V + B + C)
+        run: npm run shots:v11rail:block5
+
+      - name: Generate Block 6 screenshots (D + A + V + B + C + E Health preview)
+        run: npm run shots:v11rail:block6
+
+      - name: Generate Block 7 screenshots (D + A + V + B + C + E + F Customer Journey)
+        run: npm run shots:v11rail:block7
+
+      - name: Generate Block 8 screenshots (D + A + V + B + C + E + F + G Smart Next Step)
+        run: npm run shots:v11rail:block8
+
+      - name: Generate Block 9 screenshots (D + A + V + B + C + E + F + G + S Sticky Footer)
+        run: npm run shots:v11rail:block9
+
+      - name: Generate Block 10 screenshots (… + H Bookings KEEP)
+        run: npm run shots:v11rail:block10
+
+      - name: Generate Block 11 screenshots (… + I History KEEP)
+        run: npm run shots:v11rail:block11
+
+      - name: Generate Block 12 screenshots (… + J Journals KEEP)
+        run: npm run shots:v11rail:block12
+
+      - name: Generate Block 13 screenshots (… + K Offers KEEP)
+        run: npm run shots:v11rail:block13
+
+      - name: Generate Block 14 screenshots (… + L Auto-documents KEEP)
+        run: npm run shots:v11rail:block14
+
+      - name: Generate Block 15 screenshots (… + M Photos KEEP)
+        run: npm run shots:v11rail:block15
+
+      - name: Generate Block 16 screenshots (… + N Files KEEP)
+        run: npm run shots:v11rail:block16
+
+      - name: Generate Block 17 screenshots (… + O Notes KEEP)
+        run: npm run shots:v11rail:block17
+
+      - name: Generate Block 18 screenshots (… + P Communication KEEP)
+        run: npm run shots:v11rail:block18
+
+      - name: Generate Block 19 screenshots (… + Q Economy KEEP)
+        run: npm run shots:v11rail:block19
+
+      - name: Generate Block 20 screenshots (… + R Insights LATER)
+        run: npm run shots:v11rail:block20
+
+      - name: Generate FULL rail screenshots (SLUTPASS — alla sektioner)
+        run: npm run shots:v11rail:full
+
+      - name: Upload Block 1 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block1-A-profile-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block1-A-profile/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 2 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block2-B-smart-info-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block2-B-smart-info/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 3 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block3-C-stats-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block3-C-stats/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 4 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block4-V-active-visit-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block4-V-active-visit/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 5 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block5-D-warnings-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block5-D-warnings/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 6 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block6-E-health-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block6-E-health/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 7 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block7-F-journey-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block7-F-journey/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 8 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block8-G-smartnext-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block8-G-smartnext/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 9 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block9-S-sticky-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block9-S-sticky/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 10 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block10-H-bookings-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block10-H-bookings/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 11 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block11-I-history-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block11-I-history/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 12 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block12-J-journals-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block12-J-journals/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 13 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block13-K-offers-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block13-K-offers/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 14 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block14-L-autodocs-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block14-L-autodocs/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 15 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block15-M-photos-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block15-M-photos/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 16 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block16-N-files-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block16-N-files/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 17 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block17-O-notes-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block17-O-notes/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 18 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block18-P-communication-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block18-P-communication/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 19 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block19-Q-economy-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block19-Q-economy/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Block 20 screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-block20-R-insights-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-block20-R-insights/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload FULL rail screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-full-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-full/*.png
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,114 @@
+{
+  "generatedAt": "2026-06-25T19:40:26.133Z",
+  "delivery": "NOT_DELIVERED",
+  "tracksDelivered": 0,
+  "tracksTotal": 4,
+  "overall": "NOT_DELIVERED",
+  "summary": "Inget spår A–D cutover-klart. Underlag: skript + dry-run + operator-UI. Owner-blockers och manuell drift återstår.",
+  "infraNote": "Detta är nuläge/underlag — inte leverans. Kö-siffror ≠ pågående cutover.",
+  "tracks": [
+    {
+      "id": "A",
+      "label": "Drive",
+      "title": "Drive service-account + master folder-ID",
+      "cutoverDelivered": false,
+      "infraReady": true,
+      "status": "NOT_DELIVERED",
+      "metrics": {
+        "predicted": 6268,
+        "withPredictedCoupling": 6268,
+        "verifiedCoupling": 0,
+        "totalPatients": 7257,
+        "withDriveFolderId": 0,
+        "predictedPct": 86.4,
+        "couplingGeneratedAt": "2026-06-25T16:18:01.358Z"
+      },
+      "blocker": {
+        "code": "DRIVE_NOT_ON_MASTER_CARD",
+        "ownerAction": "Promote predictedFolderId → driveFolderId på master-kort ELLER kör asset-import med coupling-fil",
+        "infraNote": "6268 predicted i coupling-fil · 0/7257 driveFolderId på cco-customers"
+      },
+      "scripts": [
+        "node scripts/backfill-master-card-drive-coupling.js",
+        "npm run migration:scan-drive-api",
+        "node scripts/backfill-drive-file-ids.js --apply"
+      ],
+      "operatorTool": null
+    },
+    {
+      "id": "B",
+      "label": "Meridiq",
+      "title": "Historisk journal-import",
+      "cutoverDelivered": false,
+      "infraReady": true,
+      "status": "NOT_DELIVERED",
+      "metrics": {
+        "eligible": 6268,
+        "withMeridiqPatientId": 0,
+        "meridiqEntriesImported": 0,
+        "entriesPlannedPilot": 0
+      },
+      "blocker": {
+        "code": "ARCANA_MERIDIQ_COOKIE",
+        "ownerAction": "Owner: cookie/token → npm run migration:preflight-meridiq",
+        "infraNote": "API-skript + dry-run finns — auth saknas"
+      },
+      "scripts": [
+        "npm run migration:preflight-meridiq",
+        "npm run migration:sync-meridiq-ids:commit",
+        "npm run migration:import-meridiq-journals:commit"
+      ],
+      "operatorTool": null
+    },
+    {
+      "id": "C",
+      "label": "Photo Review",
+      "title": "Migrerade bilder — manuell granskning",
+      "cutoverDelivered": false,
+      "infraReady": true,
+      "status": "NOT_DELIVERED",
+      "metrics": {
+        "pendingPhotos": 860,
+        "patientsWithPending": 150,
+        "photosVisible": 1,
+        "canaryUsed": 0,
+        "canaryMax": 25
+      },
+      "writeEnabled": false,
+      "readOnly": true,
+      "blocker": {
+        "code": "CANARY_OFF",
+        "ownerAction": "Sätt ENABLE_CCO_OPERATOR_CANARY + ENABLE_PHOTO_REVIEW_WRITE + ENABLE_PHOTO_REVIEW_CANARY_ON_PROD på Render",
+        "infraNote": "Operator-UI finns · 860 bilder i kö · 0 beslut · write AV"
+      },
+      "scripts": ["npm run photo-review:batch-status", "npm run verify:photo-review-prod"],
+      "operatorTool": "/photo-review.html",
+      "operatorToolAlias": "/cco-photo-review.html"
+    },
+    {
+      "id": "D",
+      "label": "Import review",
+      "title": "Osäkra kundmatchningar (halso@ + GetAccept)",
+      "cutoverDelivered": false,
+      "infraReady": true,
+      "status": "NOT_DELIVERED",
+      "metrics": {
+        "total": 1497,
+        "halsoPending": 1366,
+        "getacceptPending": 131,
+        "resolved": 0,
+        "canaryMax": 25
+      },
+      "writeEnabled": false,
+      "readOnly": true,
+      "blocker": {
+        "code": "CANARY_OFF",
+        "ownerAction": "Deploy ENABLE_IMPORT_REVIEW_WRITE + ENABLE_CCO_OPERATOR_CANARY på Render",
+        "infraNote": "Operator-UI finns · 1497 osäkra · 0 resolved · write AV"
+      },
+      "scripts": ["npm run import-review:batch-status", "npm run verify:import-review-prod"],
+      "operatorTool": "/cco-import-review.html"
+    }
+  ],
+  "recommendedOrder": ["A", "B", "C", "D"]
+}

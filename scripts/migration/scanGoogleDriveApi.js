@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 'use strict';
 
+require('dotenv').config({ quiet: true });
+
 const path = require('node:path');
 
 const { buildFileRecord } = require('./lib/migrationUtils');
 const { writeMigrationIndex } = require('./lib/migrationIndexWriter');
-const { resolveDriveCredentials, resolveMigrationPaths, loadServiceAccountFromCreds } = require('./lib/migrationEnv');
 const {
-  getAccessToken,
-  listAllDriveFiles,
-} = require('./lib/googleDriveApi');
+  resolveDriveCredentials,
+  resolveMigrationPaths,
+  loadServiceAccountFromCreds,
+} = require('./lib/migrationEnv');
+const { getAccessToken, listAllDriveFiles } = require('./lib/googleDriveApi');
 
 function parseArgs(argv) {
   const args = { verifyOnly: false };
@@ -67,6 +70,7 @@ async function main() {
   const driveFiles = await listAllDriveFiles({
     accessToken,
     rootFolderId: folderId,
+    serviceAccount,
     onProgress: ({ foldersScanned, filesIndexed }) => {
       console.log(`… ${foldersScanned} mappar, ${filesIndexed} filer`);
     },

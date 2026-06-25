@@ -27,7 +27,12 @@ async function makeStore() {
 }
 
 test('exports canonical enums per owner-spec', () => {
-  assert.deepEqual([...VALID_SOURCE_SYSTEMS].sort(), ['drive', 'meridiq', 'old_cco']);
+  assert.deepEqual([...VALID_SOURCE_SYSTEMS].sort(), [
+    'drive',
+    'drive_import',
+    'meridiq',
+    'old_cco',
+  ]);
   assert.deepEqual([...VALID_MODES].sort(), ['full', 'incremental', 'review_resolve']);
   assert.equal(COUNTER_NAMES.length, 6);
   assert.ok(COUNTER_NAMES.includes('totalLinkOnlyBlockers'));
@@ -42,10 +47,7 @@ test('startRun returns UUID, persists, and emits asset.import_run_started', asyn
       createdBy: 'owner-1',
     });
     assert.ok(runId);
-    assert.match(
-      runId,
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-    );
+    assert.match(runId, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     const run = store.getRun(runId);
     assert.equal(run.sourceSystem, 'drive');
     assert.equal(run.mode, 'full');
@@ -89,24 +91,15 @@ test('incrementCounter only accepts known counters and rejects closed runs', asy
     assert.equal(run.totalImported, 1);
     assert.equal(run.totalLinkOnlyBlockers, 3);
 
-    await assert.rejects(
-      () => store.incrementCounter(runId, 'totalBananas', 1),
-      /invalid counter/
-    );
+    await assert.rejects(() => store.incrementCounter(runId, 'totalBananas', 1), /invalid counter/);
     await assert.rejects(
       () => store.incrementCounter('nope', 'totalDiscovered', 1),
       /hittades inte/
     );
-    await assert.rejects(
-      () => store.incrementCounter(runId, 'totalImported', 'NaN'),
-      /numerisk/
-    );
+    await assert.rejects(() => store.incrementCounter(runId, 'totalImported', 'NaN'), /numerisk/);
 
     await store.finishRun(runId);
-    await assert.rejects(
-      () => store.incrementCounter(runId, 'totalImported', 1),
-      /redan stängd/
-    );
+    await assert.rejects(() => store.incrementCounter(runId, 'totalImported', 1), /redan stängd/);
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }

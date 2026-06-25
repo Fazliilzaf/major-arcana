@@ -322,6 +322,7 @@ function createCcoPatientMasterRouter({
   buildPatientDocumentBundle = null,
   readCache = null,
   resolvePatientAssetStore = null,
+  mailIngestionStore = null,
   swishStore = null,
   commercialStore = null,
   fortnoxInvoiceLister = null,
@@ -615,8 +616,42 @@ function createCcoPatientMasterRouter({
       upcomingBookings: bookingContext.upcomingBookings,
       historyBookings: bookingContext.historyBookings,
       driveJournalNativePilot: nativePilotMeta,
+      communicationMessages: buildCommunicationMessages(patient),
       ...(await buildPaymentContext(actor, patient)),
     };
+  }
+
+  // Per-patient kommunikation ur mail-ingestion-storen (RIKTIGA matchade
+  // mejl med snippet/body). Storen är cred-gatad (Graph) — saknas den eller är
+  // den tom returneras []. Display-only, ingen write. Ingen fejk.
+  function buildCommunicationMessages(patient) {
+    if (!mailIngestionStore || typeof mailIngestionStore.listPatientMessages !== 'function') {
+      return [];
+    }
+    let rows = [];
+    try {
+      rows = mailIngestionStore.listPatientMessages({ patientId: patient.id, limit: 50 }) || [];
+    } catch {
+      return [];
+    }
+    return rows
+      .map((m) => {
+        if (!m) return null;
+        const subject = String(m.subject || '').trim();
+        const preview = String(m.snippet || (m.bodyText || '').slice(0, 160) || '').trim();
+        const folder = String(m.folderType || '').toLowerCase();
+        const direction = /sent|outbox|skickat/.test(folder) ? 'out' : 'in';
+        return {
+          id: m.id || m.rawMessageId || null,
+          type: 'mail',
+          direction,
+          subject: subject || '(utan ämne)',
+          from: m.fromAddress || null,
+          preview,
+          occurredAt: m.receivedAt || m.sortIso || '',
+        };
+      })
+      .filter(Boolean);
   }
 
   async function buildPaymentContext(actor, patient) {
@@ -814,6 +849,7 @@ function createCcoPatientMasterRouter({
           paymentHistoryMeta: payload.paymentHistoryMeta || null,
           driveFiles: payload.driveFiles || [],
           occasionTimeline: payload.occasionTimeline || [],
+          communicationMessages: payload.communicationMessages || [],
           driveJournalNativePilot: payload.driveJournalNativePilot || null,
           ready: true,
           documents: documentBundle.documents,

@@ -1,0 +1,170 @@
+{
+  "generatedAt": "2026-06-25T15:14:40.621Z",
+  "script": "diff:patient-doc-journal-t-column",
+  "parityOk": 6,
+  "needsReview": 0,
+  "reports": [
+    {
+      "registryId": "journal_tp",
+      "schemaId": "tp_treatment:hair_tp",
+      "meridiqApiId": 16411,
+      "demoHtml": "steg8-journal-tp-final-demo.html",
+      "status": "PARITY_OK",
+      "parity": {
+        "status": "PARITY_OK",
+        "schemaId": "tp_treatment:hair_tp",
+        "schemaFieldCount": 52,
+        "demoFieldCount": 52,
+        "meridiqQuestionCount": 59,
+        "excludedMeridiqCount": 7,
+        "excludedMeridiqIds": [
+          {
+            "id": 450883,
+            "label": "FÖRBEREDELSE & PLANERING INFÖR INGREPP",
+            "reason": "inactive_or_section_header"
+          },
+          {
+            "id": 450896,
+            "label": "PATIENTSTATUS & INFORMATION",
+            "reason": "inactive_or_section_header"
+          },
+          {
+            "id": 450903,
+            "label": "STATUS & OBSERVATIONER FÖRE INGREPP",
+            "reason": "inactive_or_section_header"
+          },
+          {
+            "id": 450917,
+            "label": "LÄKEMEDEL",
+            "reason": "inactive_or_section_header"
+          },
+          {
+            "id": 450922,
+            "label": "GRAFTS SOM TRANSPLANTERATS",
+            "reason": "inactive_or_section_header"
+          },
+          {
+            "id": 450928,
+            "label": "TIDSREGISTRERING I PROCEDUREN",
+            "reason": "inactive_or_section_header"
+          },
+          {
+            "id": 450937,
+            "label": "ANVÄNDNING AV LÄKEMEDEL",
+            "reason": "inactive_or_section_header"
+          }
+        ],
+        "missingInDemo": [],
+        "extraInDemo": [],
+        "labelMismatch": [],
+        "canonicalSource": "migration/meridiq/journal-schema-catalog.json",
+        "reconciliationRef": "docs/strategy/TP-JOURNAL-PARITY-RECONCILIATION-2026-05-30.md"
+      }
+    },
+    {
+      "registryId": "journal_tp_post_prp",
+      "schemaId": "prp_treatment:tp_post_op",
+      "meridiqApiId": 16412,
+      "demoHtml": "steg8-journal-tp-post-prp-final-demo.html",
+      "status": "PARITY_OK",
+      "parity": {
+        "status": "PARITY_OK",
+        "schemaId": "prp_treatment:tp_post_op",
+        "schemaFieldCount": 24,
+        "demoFieldCount": 24,
+        "meridiqQuestionCount": 24,
+        "excludedMeridiqCount": 0,
+        "excludedMeridiqIds": [],
+        "missingInDemo": [],
+        "extraInDemo": [],
+        "labelMismatch": [],
+        "canonicalSource": "migration/meridiq/journal-schema-catalog.json",
+        "reconciliationRef": null
+      }
+    },
+    {
+      "registryId": "journal_tp_follow_4",
+      "schemaId": "follow_up:4_manader",
+      "meridiqApiId": 16407,
+      "demoHtml": "steg8-journal-tp-follow-4-final-demo.html",
+      "status": "PARITY_OK",
+      "parity": {
+        "status": "PARITY_OK",
+        "schemaId": "follow_up:4_manader",
+        "schemaFieldCount": 8,
+        "demoFieldCount": 8,
+        "meridiqQuestionCount": 8,
+        "excludedMeridiqCount": 0,
+        "excludedMeridiqIds": [],
+        "missingInDemo": [],
+        "extraInDemo": [],
+        "labelMismatch": [],
+        "canonicalSource": "migration/meridiq/journal-schema-catalog.json",
+        "reconciliationRef": null
+      }
+    },
+    {
+      "registryId": "journal_tp_follow_6",
+      "schemaId": "follow_up:6_manader",
+      "meridiqApiId": 16409,
+      "demoHtml": "steg8-journal-tp-follow-6-final-demo.html",
+      "status": "PARITY_OK",
+      "parity": {
+        "status": "PARITY_OK",
+        "schemaId": "follow_up:6_manader",
+        "schemaFieldCount": 8,
+        "demoFieldCount": 8,
+        "meridiqQuestionCount": 8,
+        "excludedMeridiqCount": 0,
+        "excludedMeridiqIds": [],
+        "missingInDemo": [],
+        "extraInDemo": [],
+        "labelMismatch": [],
+        "canonicalSource": "migration/meridiq/journal-schema-catalog.json",
+        "reconciliationRef": null
+      }
+    },
+    {
+      "registryId": "journal_tp_follow_12",
+      "schemaId": "follow_up:12_manader",
+      "meridiqApiId": 16390,
+      "demoHtml": "steg8-journal-tp-follow-12-final-demo.html",
+      "status": "PARITY_OK",
+      "parity": {
+        "status": "PARITY_OK",
+        "schemaId": "follow_up:12_manader",
+        "schemaFieldCount": 1,
+        "demoFieldCount": 1,
+        "meridiqQuestionCount": 1,
+        "excludedMeridiqCount": 0,
+        "excludedMeridiqIds": [],
+        "missingInDemo": [],
+        "extraInDemo": [],
+        "labelMismatch": [],
+        "canonicalSource": "migration/meridiq/journal-schema-catalog.json",
+        "reconciliationRef": null
+      }
+    },
+    {
+      "registryId": "journal_prp_multi",
+      "schemaId": "prp_treatment:prp_skin",
+      "meridiqApiId": 14988,
+      "demoHtml": "steg8-journal-prp-multi-final-demo.html",
+      "status": "PARITY_OK",
+      "parity": {
+        "status": "PARITY_OK",
+        "schemaId": "prp_treatment:prp_skin",
+        "schemaFieldCount": 12,
+        "demoFieldCount": 12,
+        "meridiqQuestionCount": 12,
+        "excludedMeridiqCount": 0,
+        "excludedMeridiqIds": [],
+        "missingInDemo": [],
+        "extraInDemo": [],
+        "labelMismatch": [],
+        "canonicalSource": "migration/meridiq/journal-schema-catalog.json",
+        "reconciliationRef": null
+      }
+    }
+  ]
+}

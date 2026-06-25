@@ -217,7 +217,28 @@
       "isActive": true,
       "version": "2",
       "letterText": "",
-      "publishBeforeAfterPhotos": true
+      "legalSource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+      "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json",
+      "publishBeforeAfterPhotos": true,
+      "source": "sharepoint_nordbro",
+      "templateVersion": "251203",
+      "revisions": [
+        {
+          "version": "251203",
+          "source": "sharepoint_nordbro",
+          "legalReviewStatus": "nordbro_approved",
+          "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+          "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+          "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+          "textHash": "5a88840a2935",
+          "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+          "syncedAt": "2026-06-25T18:58:09.475Z",
+          "replaceReason": "sharepoint_resync_inventory",
+          "archivedAt": "2026-06-25T18:58:09.475Z"
+        }
+      ]
     },
     {
       "apiId": 170941,
@@ -253,7 +274,28 @@
       "isActive": true,
       "version": "1",
       "letterText": "",
-      "publishBeforeAfterPhotos": true
+      "legalSource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateRef": "agreement_hair_tp_prp_nordbro",
+      "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json",
+      "publishBeforeAfterPhotos": true,
+      "source": "sharepoint_nordbro",
+      "templateVersion": "251203",
+      "revisions": [
+        {
+          "version": "251203",
+          "source": "sharepoint_nordbro",
+          "legalReviewStatus": "nordbro_approved",
+          "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+          "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+          "localWord": "251203-behandlingsavtal-prp.docx",
+          "textHash": "2023fc53aba6",
+          "sha256": "2023fc53aba6c8fe8cc25adde53b5785deac0e3fedb9a0c516a08c56a6c0164f",
+          "syncedAt": "2026-06-25T18:58:09.475Z",
+          "replaceReason": "sharepoint_resync_graph",
+          "archivedAt": "2026-06-25T18:58:09.475Z"
+        }
+      ]
     },
     {
       "apiId": 170945,
@@ -262,7 +304,28 @@
       "isActive": true,
       "version": "1",
       "letterText": "",
-      "publishBeforeAfterPhotos": true
+      "legalSource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateRef": "agreement_hair_tp_prp_nordbro",
+      "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json",
+      "publishBeforeAfterPhotos": true,
+      "source": "sharepoint_nordbro",
+      "templateVersion": "251203",
+      "revisions": [
+        {
+          "version": "251203",
+          "source": "sharepoint_nordbro",
+          "legalReviewStatus": "nordbro_approved",
+          "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+          "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+          "localWord": "251203-behandlingsavtal-prp.docx",
+          "textHash": "2023fc53aba6",
+          "sha256": "2023fc53aba6c8fe8cc25adde53b5785deac0e3fedb9a0c516a08c56a6c0164f",
+          "syncedAt": "2026-06-25T18:58:09.475Z",
+          "replaceReason": "sharepoint_resync_graph",
+          "archivedAt": "2026-06-25T18:58:09.475Z"
+        }
+      ]
     },
     {
       "apiId": 170946,
@@ -352,7 +415,29 @@
       "isActive": true,
       "version": "1",
       "letterText": "",
-      "publishBeforeAfterPhotos": true
+      "legalSource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json#cooling",
+      "publishBeforeAfterPhotos": true,
+      "source": "sharepoint_nordbro",
+      "templateVersion": "251203",
+      "templateRef": "agreement_hair_tp_dhi_2day_nordbro#cooling",
+      "revisions": [
+        {
+          "version": "251203",
+          "source": "sharepoint_nordbro",
+          "legalReviewStatus": "nordbro_approved",
+          "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+          "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+          "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+          "textHash": "5a88840a2935",
+          "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+          "syncedAt": "2026-06-25T18:59:11.679Z",
+          "replaceReason": "sharepoint_resync_inventory",
+          "archivedAt": "2026-06-25T18:59:11.679Z",
+          "note": "cooling consent bundled in DHI agreement"
+        }
+      ]
     }
   ]
 }

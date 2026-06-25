@@ -1,0 +1,288 @@
+{
+  "version": 2,
+  "updatedAt": "2026-06-25",
+  "scope": "U-pass batch 1 (mail C27–C30 + patientinfo A12–A14) + batch 2 (journal B17–B21, staff B23/B25/B26, auto/info C32/C34/C35/C36) + 2 medvetna undantag (A2 ENG HD, C33 MF)",
+  "inventoryRef": "docs/strategy/SHAREPOINT-TEMPLATE-INVENTORY.md",
+  "items": [
+    {
+      "id": "prp_hair_info_sve",
+      "batch": "1",
+      "registryIds": ["prp_hair_info_sve"],
+      "label": "PRP hår – patientinfo SWE",
+      "uPassRequired": true,
+      "localGlobs": ["prp.*h[aä]r.*\\.(pdf|docx)$", "tj[aä]nstespec.*prp.*h[aä]r.*\\.(pdf|docx)$"],
+      "sharepoint": [
+        {
+          "name": "Tjänstespecifikation - PRP-hårbehandling 2026.pdf",
+          "relative": "PDF-HTPC",
+          "inventoryKey": "patient_info_prp_hair"
+        },
+        {
+          "name": "NY Tjänstespecifikation - PRP-hårbehandling.docx",
+          "relative": "PRP/PRF/MN",
+          "inventoryKey": "patient_info_prp_hair"
+        }
+      ],
+      "meridiqApiId": 152994,
+      "bundleRegistryId": "prp_hair_info_sve"
+    },
+    {
+      "id": "prp_hair_info_eng",
+      "registryIds": ["prp_hair_info_eng"],
+      "label": "PRP – patientinfo ENG",
+      "uPassRequired": true,
+      "uMode": "meridiq_mq_only",
+      "uNote": "Ingen SharePoint ENG-PDF — Meridiq 152987 + bundle facit (samma modell som health_tp_eng U)",
+      "meridiqApiId": 152987,
+      "bundleRegistryId": "prp_hair_info_eng"
+    },
+    {
+      "id": "microneedling_info",
+      "registryIds": ["microneedling_info"],
+      "label": "Microneedling info SWE/ENG",
+      "uPassRequired": true,
+      "localGlobs": ["^tj[aä]nstespecifikation.*microneedling.*\\.(pdf|docx)$"],
+      "sharepoint": [
+        {
+          "name": "Tjänstespecifikation - Microneedling och PRP-hudbehandling 2026.pdf",
+          "relative": "PDF-HTPC",
+          "inventoryKey": "patient_info_microneedling_prp_hair_tp"
+        }
+      ],
+      "meridiqApiIds": [152998, 152997],
+      "bundleRegistryId": "microneedling_info"
+    },
+    {
+      "id": "mail_info_offert_tp",
+      "registryIds": ["info_offert_tp"],
+      "label": "Offert & behandlingsplan TP (auto mail)",
+      "uPassRequired": true,
+      "localNames": ["behandlingsplan-offert-hartransplantation.docx"],
+      "sharepoint": [
+        {
+          "name": "Behandlingsplan och offert - HÅRTRANSPLANTATION.docx",
+          "relative": "General/1. Kunddokument - KVALITETSSÄKRA/98. Mailmallar/Offert",
+          "inventoryKey": "offer_treatment_plan_hair_tp"
+        }
+      ],
+      "bundleRegistryId": "info_offert_tp",
+      "ccoTemplateId": null
+    },
+    {
+      "id": "mail_bokningsbekraftelse",
+      "registryIds": ["auto_bokningsbekraftelse"],
+      "label": "Bokningsbekräftelse SMS/e-post",
+      "uPassRequired": true,
+      "localGlobs": ["bokningsbekr[aä]ftelse.*\\.docx$", "konsultation.*boknings.*\\.docx$"],
+      "sharepoint": [
+        {
+          "name": "Konsultation – Bokningsbekräftelse.docx",
+          "relative": "98. Mailmallar",
+          "inventoryKey": "booking_confirmation_consultation"
+        },
+        {
+          "name": "Behandling med förskottsbetalning bokningsbekräftelse.docx",
+          "relative": "98. Mailmallar/Behandling bokningsbekräftelse",
+          "inventoryKey": "booking_confirmation_treatment_prepay_hair_tp"
+        },
+        {
+          "name": "Behandling utan förskottsbetalning bokningsbekräftelse.docx",
+          "relative": "98. Mailmallar/Behandling bokningsbekräftelse",
+          "inventoryKey": "booking_confirmation_treatment_no_prepay_hair_tp"
+        }
+      ],
+      "bundleRegistryId": "auto_bokningsbekraftelse",
+      "ccoTemplateId": "booking_confirmation_hair_tp"
+    },
+    {
+      "id": "mail_bokningspaminnelse",
+      "registryIds": ["auto_bokningspaminnelse"],
+      "label": "Bokningspåminnelse",
+      "uPassRequired": true,
+      "uMode": "cco_template",
+      "uNote": "Ingen dedikerad SharePoint Word — CCO template booking_reminder_24h + Cliento/SMS catalog",
+      "bundleRegistryId": "auto_bokningspaminnelse",
+      "ccoTemplateId": "booking_reminder_24h"
+    },
+    {
+      "id": "mail_avbokningsbekraftelse",
+      "registryIds": ["auto_avbokningsbekraftelse"],
+      "label": "Avbokningsbekräftelse",
+      "uPassRequired": true,
+      "uMode": "cco_template",
+      "uNote": "CCO-native cancellation_confirmation — ej separat Mailmallar-Word i inventory",
+      "bundleRegistryId": "auto_avbokningsbekraftelse",
+      "ccoTemplateId": "cancellation_confirmation"
+    },
+    {
+      "id": "journal_tp_post_prp",
+      "batch": "2",
+      "registryIds": ["journal_tp_post_prp"],
+      "label": "Journal · TP Efterbehandling PRP",
+      "uPassRequired": true,
+      "uMode": "meridiq_schema",
+      "schemaId": "prp_treatment:tp_post_op",
+      "meridiqApiId": 16412,
+      "bundleRegistryId": "journal_tp_post_prp",
+      "uNote": "Meridiq-driven — ingen Word-journalmall (MS-SAKNAS enligt inventory)"
+    },
+    {
+      "id": "journal_tp_follow_4",
+      "batch": "2",
+      "registryIds": ["journal_tp_follow_4"],
+      "label": "Journal · TP Uppföljning 4 mån",
+      "uPassRequired": true,
+      "uMode": "meridiq_schema",
+      "schemaId": "follow_up:4_manader",
+      "meridiqApiId": 16407,
+      "bundleRegistryId": "journal_tp_follow_4"
+    },
+    {
+      "id": "journal_tp_follow_6",
+      "batch": "2",
+      "registryIds": ["journal_tp_follow_6"],
+      "label": "Journal · TP Uppföljning 6 mån",
+      "uPassRequired": true,
+      "uMode": "meridiq_schema",
+      "schemaId": "follow_up:6_manader",
+      "meridiqApiId": 16409,
+      "bundleRegistryId": "journal_tp_follow_6"
+    },
+    {
+      "id": "journal_tp_follow_12",
+      "batch": "2",
+      "registryIds": ["journal_tp_follow_12"],
+      "label": "Journal · TP Resultat 12 mån",
+      "uPassRequired": true,
+      "uMode": "meridiq_schema",
+      "schemaId": "follow_up:12_manader",
+      "meridiqApiId": 16390,
+      "bundleRegistryId": "journal_tp_follow_12"
+    },
+    {
+      "id": "journal_prp_multi",
+      "batch": "2",
+      "registryIds": ["journal_prp_multi"],
+      "label": "Journal · PRP/PRF/Microneedling",
+      "uPassRequired": true,
+      "uMode": "meridiq_schema",
+      "schemaId": "prp_treatment:prp_skin",
+      "meridiqApiId": 14988,
+      "bundleRegistryId": "journal_prp_multi"
+    },
+    {
+      "id": "konsultationsmall",
+      "batch": "2",
+      "registryIds": ["konsultationsmall"],
+      "label": "Konsultationsmall · Hair TP",
+      "uPassRequired": true,
+      "uMode": "bundle_full",
+      "bundleRegistryId": "konsultationsmall",
+      "journalTemplateId": "consultation-summary",
+      "repoPaths": [
+        "migration/journal-text-templates.json",
+        "public/major-arcana-preview/app/patient-master-ui.js"
+      ],
+      "uNote": "Ingen dedikerad Word-mall — bundle + journal-text-templates + Nordbro patient_info_consultation stub"
+    },
+    {
+      "id": "anteckningar_kort",
+      "batch": "2",
+      "registryIds": ["anteckningar_kort"],
+      "label": "Anteckningar på patientkort",
+      "uPassRequired": true,
+      "uMode": "cco_native",
+      "bundleRegistryId": "anteckningar_kort",
+      "repoPaths": ["src/ops/hairtp-document-types.catalog.json"],
+      "uNote": "Fritext i patientkort — by design, ingen Word/PDF"
+    },
+    {
+      "id": "id_verifiering",
+      "batch": "2",
+      "registryIds": ["id_verifiering"],
+      "label": "ID-verifiering",
+      "uPassRequired": true,
+      "uMode": "process_facit",
+      "bundleRegistryId": "id_verifiering",
+      "repoPaths": ["src/ops/patientIdentityVerification.js", "src/routes/patientIdentity.js"],
+      "uNote": "Process-facit (BankID/kundportal/manuell) — ej formulär-Word"
+    },
+    {
+      "id": "auto_betanketid",
+      "batch": "2",
+      "registryIds": ["auto_betanketid"],
+      "label": "Betänketid enligt lag (e-post)",
+      "uPassRequired": true,
+      "uMode": "bundle_full",
+      "bundleRegistryId": "auto_betanketid",
+      "repoPaths": [
+        "migration/meridiq/steg7-tp-dhi-agreement-facit.json",
+        "src/templates/offerEmail.js"
+      ],
+      "requireBundleFields": ["agreementCoolingExcerpt", "emailSample"],
+      "uNote": "Nordbro ångerfrist-text + offerEmail — ingen separat Mailmallar-Word"
+    },
+    {
+      "id": "auto_integritet",
+      "batch": "2",
+      "registryIds": ["auto_integritet"],
+      "label": "Personuppgiftspolicy",
+      "uPassRequired": true,
+      "uMode": "legal_repo",
+      "bundleRegistryId": "auto_integritet",
+      "legalRepoPath": "docs/legal/personuppgiftspolicy-pub-maj-arcana.md",
+      "allowMsOnly": true,
+      "localGlobs": ["personuppgift.*HTPC.*\\.docx$", "information.*personuppgift.*HTPC.*\\.docx$"],
+      "sharepoint": [
+        {
+          "name": "Information om personuppgiftsbehandling - HTPC.docx",
+          "relative": "GDPR",
+          "inventoryKey": "policy_gdpr_info_hair_tp"
+        }
+      ],
+      "uNote": "PUB i docs/legal + SharePoint GDPR-mapp (lokal Word valfri)"
+    },
+    {
+      "id": "fore_efter_bildmall",
+      "batch": "2",
+      "registryIds": ["fore_efter_bildmall"],
+      "label": "Före/efter-bildmallar",
+      "uPassRequired": true,
+      "uMode": "cco_native",
+      "bundleRegistryId": "fore_efter_bildmall",
+      "repoPaths": ["src/ops/ccoAssetNaming/photoReviewNaming.js"],
+      "uNote": "Foto-taxonomi Op-dag — ingen binär bildmall i repo"
+    },
+    {
+      "id": "auto_internt_sms",
+      "batch": "2",
+      "registryIds": ["auto_internt_sms"],
+      "label": "Internt SMS/e-post bokning",
+      "uPassRequired": true,
+      "uMode": "cco_native",
+      "bundleRegistryId": "auto_internt_sms",
+      "repoPaths": [
+        "src/templates/bookingReservationEmail.js",
+        "docs/strategy/CLIENTO-INVENTORY.md"
+      ],
+      "uNote": "Intern operatör-notis — ej patient-SMS Word"
+    },
+    {
+      "id": "health_tp_eng_mq_only",
+      "batch": "excluded",
+      "registryIds": ["health_tp_eng"],
+      "label": "ENG HD — medvetet MQ-only",
+      "uPassRequired": false,
+      "uNote": "Ej U-pass — Meridiq 14865 + bundle facit (samma som prp_hair_info_eng) · se U-EXCEPTIONS-2026-06-25.md"
+    },
+    {
+      "id": "auto_medical_finance_external",
+      "batch": "excluded",
+      "registryIds": ["auto_medical_finance"],
+      "label": "Medical Finance — extern wrapper",
+      "uPassRequired": false,
+      "uMode": "external_wrapper",
+      "uNote": "Ingen Word/MQ — extern MF · se U-EXCEPTIONS-2026-06-25.md"
+    }
+  ]
+}

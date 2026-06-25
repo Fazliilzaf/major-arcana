@@ -77,6 +77,24 @@ module.exports = [
     },
   },
   {
+    // Node CommonJS-patchar som server.js require:ar (körs i Node, ej browser).
+    files: ['public/major-arcana-preview/customers/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-console': 'off',
+      'no-undef': 'error',
+      'prefer-const': 'warn',
+      'no-var': 'warn',
+    },
+  },
+  {
     files: ['public/major-arcana-preview/runtime-*.js'],
     languageOptions: {
       ecmaVersion: 2022,

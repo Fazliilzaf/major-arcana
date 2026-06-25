@@ -1,0 +1,94 @@
+/**
+ * Staff document shell — personal journaler (steg 8, Op-dag)
+ * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
+ * Kombineras med patient-document-shell.css + cco-staff-shell.css (inga nav-länkar)
+ */
+body.cco-shell {
+  padding: 0;
+}
+.cco-top-nav--static {
+  max-width: 720px;
+  margin: 14px auto 0;
+  padding: 0 24px 14px;
+}
+.cco-top-nav--static .cco-spacer {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-studio, #bb4779);
+}
+.page-wrapper.staff-doc {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+.header-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.header-badge--staff {
+  background: rgba(187, 71, 121, 0.12);
+  color: #9e3a68;
+}
+.journal-section .journal-field {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(132, 117, 107, 0.12);
+}
+.journal-section .journal-field:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.journal-section .journal-field:first-of-type {
+  padding-top: 4px;
+}
+.staff-meta .field input[readonly] {
+  background: rgba(245, 239, 230, 0.65);
+  color: var(--t2);
+}
+.staff-ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--t2);
+}
+.staff-ref-table th,
+.staff-ref-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(132, 117, 107, 0.14);
+  text-align: left;
+  vertical-align: top;
+}
+.staff-ref-table th {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.staff-ref-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--t2);
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+.staff-readonly-note {
+  font-size: 11px;
+  color: var(--t3);
+  margin: 8px 0 0;
+  line-height: 1.45;
+}
+.header-badge--intern {
+  background: rgba(74, 123, 168, 0.14);
+  color: #2f5680;
+}

@@ -10,11 +10,13 @@ globs:
 alwaysApply: false
 ---
 
-# Steg 7/8/9 — Meridiq facit (innehåll låst)
+# Steg 7/8/9 — Meridiq struktur · Nordbro juridik (innehåll låst)
 
-## Owner-beslut (2026-06-14)
+## Owner-beslut
 
-**Allt underlag för steg 7/8/9 är hämtat från Meridiq och stämmer.**  
+**2026-06-14:** Meridiq apiId + formulärstruktur för steg 7/8/9 stämmer.  
+**2026-06-25 (P0):** **Nordbro 251203** är juridisk primärkälla för steg 7 avtal (170917) och bundlat ångerfristsamtycke (170955). Meridiq `letterText` är tom i export — brödtext i `steg7-tp-dhi-agreement-facit.json`.
+
 Cloud ska **inte** improvisera, förkorta eller “skriva om” klinisk/juridisk text.
 
 ## Princip
@@ -22,42 +24,48 @@ Cloud ska **inte** improvisera, förkorta eller “skriva om” klinisk/juridisk
 | Vad | Var Cloud får ändra |
 |-----|---------------------|
 | Färger, skuggor, layout, 420px modal | `cco-step-modal-design.js` + `*_EXTRA_CSS` (presentation) |
-| Avtal, samtycke, frågor, checkbox-labels | **Endast** efter läsning av Meridiq-export (se nedan) |
+| Avtal, samtycke, frågor, checkbox-labels | **Endast** efter läsning av facit (se nedan) |
 
 ## Enda tillåtna innehållskällor (prioritet)
 
-1. `migration/meridiq/consent-catalog.json` — samtycken (apiId, title, version, letterText)
-2. `migration/meridiq/questionary-catalog.json` — formulär (apiId, questions, labels, options, types)
-3. `migration/meridiq/service-bindings-catalog.json` — vilken consent/form som gäller per tjänst
-4. `src/ops/meridiqConsentCatalogRuntime.js` — runtime-läsning av ovan (använd i kod)
-5. `docs/strategy/CCO-STEG789-CONTENT-SOURCE-MATRIX.md` — steg-mappning + parity-checklista
+**Steg 7 (avtal + ångerfrist):**
+1. `config/nordbro-insatt-facit-set.json` — Nordbro canonical registry
+2. `migration/meridiq/steg7-tp-dhi-agreement-facit.json` — blocks + cooling (legalSource nordbro)
+3. `migration/meridiq/nordbro-p0-source-bindings.json` — apiId 170917/170955 bindning
+4. Verifiering: `npm run diff:nordbro-p0`
 
-**Förbjudet som primär källa:** Word-filer, Nordbro-PDF, AI-omskrivning, `source: new` för patienttext.
+**Steg 8/9 + Meridiq metadata:**
+1. `migration/meridiq/consent-catalog.json` — samtycken (apiId, title, version)
+2. `migration/meridiq/questionary-catalog.json` — formulär (apiId, questions, labels)
+3. `migration/meridiq/service-bindings-catalog.json` — consentApiId per tjänst
+4. `src/ops/meridiqConsentCatalogRuntime.js` — runtime-läsning
+5. `docs/strategy/CCO-STEG789-CONTENT-SOURCE-MATRIX.md` — steg-mappning
+
+**Förbjudet som primär källa:** AI-omskrivning, `source: new` för patienttext, Insatt TP Avtal (SKIP_OLD).
 
 `source: new` är **endast** tillåtet för: modal-chrome, demo-sign, valideringsfelmeddelanden, UAT-bootstrap.
 
-## Per steg — Meridiq-pekare
+## Per steg — pekare
 
-| Steg | Meridiq | apiId / nyckel |
-|------|---------|----------------|
-| **7 avtal** | `consent-catalog.json` | **170917** *Behandlingsavtal \| TP* v2 |
-| **7 ångerfrist** | `consent-catalog.json` | **170955** *Begäran och samtycke… ångerfristen* v1 |
+| Steg | Primär text | apiId / nyckel |
+|------|-------------|----------------|
+| **7 avtal** | Nordbro 251203 facit | **170917** *Behandlingsavtal \| TP* v2 |
+| **7 ångerfrist** | facit#cooling (bundlat) | **170955** *Begäran och samtycke… ångerfristen* v1 |
 | **7 bundle-bindning** | `service-bindings-catalog.json` | TP-tjänster → `consentApiId: 170917` |
 | **8 friskförsäkran** | `questionary-catalog.json` | **16413** *Friskförsäkran \| TP* (13 frågor) |
-| **9 foto-samtycke** | Meridiq G4 (registry doc #15) + journey scope | `hairtp-document-types.catalog.json` → `foto_samtycke`, journey steg 9 |
+| **9 foto-samtycke** | Meridiq G4 + journey scope | `foto_samtycke`, journey steg 9 |
 
-## Innan innehållsändring
+## Innan innehållsändring (steg 7)
 
-1. Läs relevant post i Meridiq JSON (apiId).
-2. Jämför label/text **ordagrant** — ingen parafras.
-3. Uppdatera `Content registry`-block i filhuvudet.
-4. Uppdatera rad i `CCO-STEG789-CONTENT-SOURCE-MATRIX.md` om mapping ändras.
+1. Läs `steg7-tp-dhi-agreement-facit.json` + Nordbro Word.
+2. Kör `npm run diff:nordbro-p0` — inga driftpunkter.
+3. Uppdatera `CCO-STEG789-CONTENT-SOURCE-MATRIX.md` om mapping ändras.
 
 ## Parity-check
 
-- Steg 7: `170917` + `170955` metadata och visad text matchar Meridiq-export / bundlad facit i kod.
-- Steg 8: alla fråge-id **450966–451845** finns med samma label och typ som catalog 16413.
-- Steg 9: scope enligt `CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md` (hårlinje/krona, aldrig ansikte).
+- Steg 7: `170917` E6_OK mot Nordbro Word; `170955` facit 5/5; bindings i `nordbro-p0-source-bindings.json`.
+- Steg 8: alla fråge-id **450966–451845** verbatim från catalog 16413.
+- Steg 9: scope enligt `CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md`.
 
 ## Förbjudet
 

@@ -1,0 +1,220 @@
+{
+  "generatedAt": "2026-06-25T18:59:11.679Z",
+  "batch": "SHAREPOINT_NORDINSATT_RESYNC",
+  "graphMode": "live_graph",
+  "ownerConfirmation": {
+    "ownerConfirmed": true,
+    "noNewerVersionsOutside": true,
+    "blockers": [],
+    "warnings": [
+      {
+        "file": "Behandlingsavtal - Hårtransplantationer.docx",
+        "reason": "INTERN_2026_ARBETSKOPIA",
+        "action": "Superseded by agreement_hair_tp_dhi_2day_nordbro — ej juridisk facit"
+      }
+    ],
+    "facitFolders": [
+      "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+      "General/1. Kunddokument - KVALITETSSÄKRA/INSATT - HTPC"
+    ],
+    "canonicalRule": "251203_* i 97. Versioner från advokat > Insatt TP Avtal (SKIP_OLD) > interna 2026/99. Kundresan avtal"
+  },
+  "supersededOutsideFacit": [
+    {
+      "sharepointFile": "Behandlingsavtal - Hårtransplantationer.docx",
+      "folder": "2. Hair TP Clinic 2026/Hårtransplantation/Behandlingsavtal",
+      "lastModified": "2026-02-13",
+      "reason": "INTERN_2026_ARBETSKOPIA",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro",
+      "legalReviewStatus": "superseded_by_nordbro_251203"
+    },
+    {
+      "sharepointFile": "Behandlingsavtal - FUE Nuvarande.docx",
+      "folder": "99. Kundresan - mallar, blanketter och broschyrer/3. Avtal",
+      "lastModified": "2025-02-19",
+      "reason": "SKIP_OLD",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro"
+    },
+    {
+      "sharepointFile": "Avtal - Hårtransplantation med DHI-metoden 2.0.docx",
+      "folder": "99. Kundresan - mallar, blanketter och broschyrer/3. Avtal",
+      "lastModified": "2025-02-19",
+      "reason": "SKIP_OLD",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro"
+    },
+    {
+      "sharepointFile": "3. FUE Avtal.pdf",
+      "folder": "99. Kundresan - mallar, blanketter och broschyrer",
+      "lastModified": "2024-12-10",
+      "reason": "SKIP_OLD",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro"
+    },
+    {
+      "sharepointFile": "TP Avtal.docx",
+      "folder": "INSATT - HTPC",
+      "lastModified": "2025-04-30",
+      "reason": "INSATT_SKIP_OLD",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro",
+      "legalReviewStatus": "insatt_approved"
+    },
+    {
+      "sharepointFile": "251030_KLARSPRÅK Patientinformation & Tjänstespecifikation – Hårtransplantation med DHI-tekniken, med kommentarer.docx",
+      "folder": "97. Versioner från advokat",
+      "lastModified": "2026-02-09",
+      "reason": "NORDBRO_LEGACY_251030",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro"
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "agreement_hair_tp_dhi_2day_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+      "version": "251203",
+      "source": "sharepoint_nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "sync": {
+        "mode": "local_existing",
+        "destPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-dhi-2dagar.docx",
+        "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7"
+      },
+      "revision": {
+        "version": "251203",
+        "source": "sharepoint_nordbro",
+        "legalReviewStatus": "nordbro_approved",
+        "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+        "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+        "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+        "textHash": "5a88840a2935",
+        "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+        "syncedAt": "2026-06-25T18:59:11.679Z",
+        "replaceReason": "sharepoint_resync_inventory",
+        "archivedAt": "2026-06-25T18:59:11.679Z"
+      },
+      "legal": {
+        "templateId": "agreement_hair_tp_dhi_2day_nordbro",
+        "status": "E6_OK",
+        "wordHits": "6/7",
+        "bundleHits": "7/7",
+        "wordAnchorHits": "6/7",
+        "wordPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-dhi-2dagar.docx",
+        "wordSha256": "5a88840a2935",
+        "facitSha256": "e903dd58be49",
+        "skipped": false
+      }
+    },
+    {
+      "templateId": "agreement_hair_tp_dhi_7day_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 7 dagar1.docx",
+      "version": "251203",
+      "source": "sharepoint_nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "sync": {
+        "mode": "live_graph",
+        "itemId": "01OVMUU4UAAI3IX3D6FZC2KQCMN7RXPZ7U",
+        "webUrl": "https://hairtpclinic1.sharepoint.com/sites/Ledning/_layouts/15/Doc.aspx?sourcedoc=%7B8B360280-7EEC-452E-A540-4C6FE377E7F4%7D&file=251203_Behandlingsavtal%20Hair%20TP%20Clinic%20gbg%20AB%20(DHI-metoden),%207%20dagar1.docx&action=default&mobileredirect=true",
+        "lastModifiedDateTime": "2025-12-10T13:08:46Z",
+        "bytes": 29308,
+        "destPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-dhi-7dagar.docx",
+        "sha256": "811e2b04a9e0973fdb407d212e60cb241ab1ce543a72c80d51bd3b640acb85b4"
+      },
+      "revision": {
+        "version": "251203",
+        "source": "sharepoint_nordbro",
+        "legalReviewStatus": "nordbro_approved",
+        "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 7 dagar1.docx",
+        "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+        "localWord": "251203-behandlingsavtal-dhi-7dagar.docx",
+        "textHash": "811e2b04a9e0",
+        "sha256": "811e2b04a9e0973fdb407d212e60cb241ab1ce543a72c80d51bd3b640acb85b4",
+        "syncedAt": "2026-06-25T18:59:11.679Z",
+        "replaceReason": "sharepoint_resync_graph",
+        "archivedAt": "2026-06-25T18:59:11.679Z"
+      },
+      "legal": {
+        "templateId": "agreement_hair_tp_dhi_7day_nordbro",
+        "status": "DEPRECATED_OK",
+        "skipped": true
+      }
+    },
+    {
+      "templateId": "agreement_hair_tp_prp_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+      "version": "251203",
+      "source": "sharepoint_nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "sync": {
+        "mode": "live_graph",
+        "itemId": "01OVMUU4WSHDH4GRVUF5E3D6H3I4BASEI4",
+        "webUrl": "https://hairtpclinic1.sharepoint.com/sites/Ledning/_layouts/15/Doc.aspx?sourcedoc=%7BC3CF38D2-B446-492F-B1F8-FB470209111C%7D&file=251203_Behandlingsavtal%20Hair%20TP%20Clinic%20gbg%20AB%20(PRP-behandling).docx&action=default&mobileredirect=true",
+        "lastModifiedDateTime": "2025-12-10T13:38:35Z",
+        "bytes": 36971,
+        "destPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-prp.docx",
+        "sha256": "2023fc53aba6c8fe8cc25adde53b5785deac0e3fedb9a0c516a08c56a6c0164f"
+      },
+      "revision": {
+        "version": "251203",
+        "source": "sharepoint_nordbro",
+        "legalReviewStatus": "nordbro_approved",
+        "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+        "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+        "localWord": "251203-behandlingsavtal-prp.docx",
+        "textHash": "2023fc53aba6",
+        "sha256": "2023fc53aba6c8fe8cc25adde53b5785deac0e3fedb9a0c516a08c56a6c0164f",
+        "syncedAt": "2026-06-25T18:59:11.679Z",
+        "replaceReason": "sharepoint_resync_graph",
+        "archivedAt": "2026-06-25T18:59:11.679Z"
+      },
+      "legal": {
+        "templateId": "agreement_hair_tp_prp_nordbro",
+        "status": "E6_OK",
+        "wordHits": "6/7",
+        "bundleHits": "7/7",
+        "wordAnchorHits": "6/7",
+        "wordPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-prp.docx",
+        "wordSha256": "2023fc53aba6",
+        "facitSha256": "b1bf50b31717",
+        "skipped": false
+      }
+    },
+    {
+      "templateId": "agreement_hair_tp_fue_insatt",
+      "sharepointFile": "TP Avtal.docx",
+      "version": "2025-04-30",
+      "source": "sharepoint_insatt",
+      "legalReviewStatus": "insatt_approved",
+      "sync": {
+        "mode": "local_word_fallback",
+        "destPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-dhi-2dagar.docx",
+        "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+        "note": "Använder 251203-behandlingsavtal-dhi-2dagar.docx — kör download:patient-doc-word-e4 för insatt-tp-avtal.docx"
+      },
+      "revision": {
+        "version": "2025-04-30",
+        "source": "sharepoint_insatt",
+        "legalReviewStatus": "insatt_approved",
+        "sharepointFile": "TP Avtal.docx",
+        "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/INSATT - HTPC",
+        "localWord": "insatt-tp-avtal.docx",
+        "textHash": "5a88840a2935",
+        "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+        "syncedAt": "2026-06-25T18:59:11.679Z",
+        "replaceReason": "sharepoint_resync_inventory",
+        "archivedAt": "2026-06-25T18:59:11.679Z"
+      },
+      "legal": {
+        "templateId": "agreement_hair_tp_fue_insatt",
+        "status": "SKIP_NO_FACIT",
+        "skipped": true
+      }
+    }
+  ],
+  "metadataApply": {
+    "updates": {
+      "consentCatalog": 4,
+      "facitJson": 2,
+      "facitSet": 4
+    },
+    "dryRun": false
+  },
+  "overall": "RESYNC_PASS"
+}

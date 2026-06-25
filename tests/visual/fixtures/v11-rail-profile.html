@@ -1,0 +1,58 @@
+<!doctype html>
+<!--
+  V11-RAIL Fas 3 · Block 1 — A Profile screenshot-fixture.
+  Renderar den RIKTIGA komponenten (cco-v11-rail.css + adapter + renderer)
+  med representativ bcard-data. Används av scripts/shot-v11-rail-block1.mjs
+  för att fånga screenshots på 390/820/1440 utan att starta hela appen.
+
+  Öppna direkt i webbläsare för manuell inspektion, eller kör:
+    npm run shots:v11rail
+-->
+<html lang="sv" data-v9-enabled="on" data-v11-rail="on">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>V11 Rail · Block 1 · A Profile</title>
+    <link rel="stylesheet" href="../../../public/major-arcana-preview/cco-v11-rail.css" />
+    <style>
+      body {
+        margin: 0;
+        background: #efe7df;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      /* Emulerar rail-bredden: full bredd på mobil, 424px på desktop (canon §4). */
+      .v11-rail {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      @media (min-width: 1024px) {
+        .v11-rail {
+          max-width: 424px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="patient-master-card v11-rail" data-v11-rail-shell="1">
+      <div class="v11-rail__scroll" id="mount" aria-label="Kunddossiér (V11 Rail)"></div>
+    </section>
+
+    <script src="../../../public/major-arcana-preview/app/cco-v11-rail-adapters.js"></script>
+    <script src="../../../public/major-arcana-preview/app/cco-v11-rail.js"></script>
+    <script>
+      // Representativ bcard (riktiga fält; pills endast från riktig data).
+      var bcard = {
+        displayName: 'Anna Karlsson',
+        primaryPhone: '070-123 45 67',
+        primaryEmail: 'anna.karlsson@example.se',
+        vip: true,
+        treatmentTypes: ['PRP-hår', 'Botox'],
+        contact: { address: { street: 'Storgatan 1', zip: '111 22', city: 'Stockholm' } },
+      };
+      document.getElementById('mount').innerHTML = window.CcoV11Rail.render({ bcard: bcard });
+      document.documentElement.setAttribute('data-v11-rail-ready', '1');
+    </script>
+  </body>
+</html>

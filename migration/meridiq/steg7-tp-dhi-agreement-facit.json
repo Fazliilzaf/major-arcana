@@ -1,12 +1,32 @@
 {
-  "source": "migration/meridiq/consent-catalog.json — apiId 170917 (Meridiq G4 facit; letterText tom i API-export)",
+  "schemaVersion": "1.0.0",
+  "source": "sharepoint_nordbro:251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+  "legalSource": {
+    "primary": "nordbro",
+    "legalReviewStatus": "nordbro_approved",
+    "templateVersion": "251203",
+    "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+    "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+    "meridiqApiId": 170917,
+    "bindingRef": "migration/meridiq/nordbro-p0-source-bindings.json",
+    "facitSetRef": "config/nordbro-insatt-facit-set.json",
+    "source": "sharepoint_nordbro",
+    "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+    "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+    "textHash": "5a88840a2935",
+    "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+    "syncedAt": "2026-06-25T18:59:13.931Z"
+  },
   "consentApiId": 170917,
   "blocks": [
     {
       "kind": "title",
       "html": "Behandlingsavtal (hårtransplantation med DHI-metoden)"
     },
-    { "kind": "text", "html": "Mellan" },
+    {
+      "kind": "text",
+      "html": "Mellan"
+    },
     {
       "kind": "text",
       "html": "Hair TP Clinic, org. nr. 559034-2688, Vasaplatsen 2, 411 34 Göteborg, (Tjänstutövaren) och"
@@ -19,7 +39,10 @@
       "kind": "text",
       "html": "har träffats följande behandlingsavtal (Avtalet) om hårtransplantation i enlighet med tjänstbeskrivning (Behandlingen), se bilaga 1. Pris för Behandlingen framgår av lämnad offert, se bilaga 2{{#offerLabel}} ({{offerLabel}}){{/offerLabel}}."
     },
-    { "kind": "heading", "html": "Giltighetstid och betänketid" },
+    {
+      "kind": "heading",
+      "html": "Giltighetstid och betänketid"
+    },
     {
       "kind": "text",
       "html": "Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen."
@@ -28,8 +51,14 @@
       "kind": "text",
       "html": "Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden."
     },
-    { "kind": "heading", "html": "Betalningsvillkor" },
-    { "kind": "text", "html": "Behandlingen är en privat tjänst som bekostas av Kunden." },
+    {
+      "kind": "heading",
+      "html": "Betalningsvillkor"
+    },
+    {
+      "kind": "text",
+      "html": "Behandlingen är en privat tjänst som bekostas av Kunden."
+    },
     {
       "kind": "text",
       "html": "Kunden ska erlägga en förskottsbetalning (Förskottsbetalningen) om 20 % (tjugo procent) av den totala behandlingskostnaden. Tjänstutövaren fakturerar beloppet i samband med bokning av behandlingstillfälle. Genom erlagd förskottsbetalning bekräftas den bokade tiden."
@@ -38,7 +67,10 @@
       "kind": "text",
       "html": "Betalning ska erläggas via faktura, betalkort eller finansiering via Medical Finance (ingen kontantbetalning). Slutbetalning ska vara Tjänsteutövaren tillhanda innan behandlingen påbörjas. Tjänsteutövaren förbehålls rätten att avboka behandlingstiden och säga upp Avtalet med omedelbar verkan om slutbetalning inte skett i tid, varvid Kunden inte äger rätt till återbetalning av förskottsbetalningen."
     },
-    { "kind": "heading", "html": "Av- och ombokning" },
+    {
+      "kind": "heading",
+      "html": "Av- och ombokning"
+    },
     {
       "kind": "text",
       "html": "Kundens ombokning av behandlingstid ska ske senast 14 kalenderdagar före den planerade behandlingsdagen. Detta ger Tjänsteutövaren möjlighet att justera schemat och erbjuda tiden till annan kund vid behov. För ombokning ska Kunden kontakta contact@curatiio.com. Ombokningen är giltig först när Kunden mottagit en skriftlig bekräftelse på ombokning från Tjänsteutövaren."
@@ -59,21 +91,30 @@
       "kind": "text",
       "html": "Vid utebliven avbokning enligt ovanstående rutin äger Kunden inte rätt till återbetalning av Förskottsbetalningen. Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att Kunden kan uppvisa läkarintyg som intygar att Kunden inte bör genomgå behandlingen."
     },
-    { "kind": "heading", "html": "Resultat" },
     {
-      "kind": "text",
-      "html": "Kunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnås bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat."
+      "kind": "heading",
+      "html": "Resultat"
     },
     {
       "kind": "text",
-      "html": "Kunden är införstådd med att hårsäckarnas emotsedda överlevnad (95%) förutsätter att Kunden genomgår hela Behandlingen inklusive fyra (4) PRP-behandling, inte använder tobak eller nikotinprodukter före eller efter behandlingen och följer samtliga förberedelse- och eftervårdsinstruktioner. Resultatet utvärderas tillsammans med kliniken. För det fall att en tillfredsställande överlevnadsnivå för hårsäckarna inte uppnås genom behandlingen planeras eventuell korrigering efter medicinsk bedömning och överenskommelse med Kunden."
+      "html": "Kunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnå bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat."
     },
-    { "kind": "heading", "html": "Ansvar" },
+    {
+      "kind": "text",
+      "html": "Kunden är införstådd med att hårsäckarnas emotsedda överlevnad (95%) förutsätter att Kunden genomgår hela Behandlingen inklusive fyra (4) PRP-behandlingar, inte använder tobak eller nikotinprodukter före eller efter behandlingen och följer samtliga förberedelse- och eftervårdsinstruktioner. Resultatet utvärderas tillsammans med kliniken. För det fall att en tillfredsställande överlevnadsnivå för hårsäckarna inte uppnås genom behandlingen planeras eventuell korrigering efter medicinsk bedömning och överenskommelse med Kunden."
+    },
+    {
+      "kind": "heading",
+      "html": "Ansvar"
+    },
     {
       "kind": "text",
       "html": "Tjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets vårdslöshet. Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen, såsom för komplikationer, inkomstbortfall eller oönskat resultat. Tjänsteutövaren ansvarar inte heller för exempelvis felaktigt tillverkade medicinska produkter."
     },
-    { "kind": "heading", "html": "Ångerrätt" },
+    {
+      "kind": "heading",
+      "html": "Ångerrätt"
+    },
     {
       "kind": "text",
       "html": "Behandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett klart och tydligt meddelande till Tjänsteutövaren om att Patienten önskar utöva sin ångerrätt. Sådant meddelande kan skickas till contact@curatiio.com. Patienten kan även använda sig av standardformulär, se bilaga 3."
@@ -82,23 +123,38 @@
       "kind": "text",
       "html": "För det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke."
     },
-    { "kind": "heading", "html": "Avtalsbrott och force majeure" },
+    {
+      "kind": "heading",
+      "html": "Avtalsbrott och force majeure"
+    },
     {
       "kind": "text",
-      "html": "Om Tjänstutövaren fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänsteutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande ska detta utgöra befrielsegrund som medför rätt för Tjänsteutövaren att säga upp Avtalet med omedelbar verkan."
+      "html": "Om Tjänsteutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänsteutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande ska detta utgöra befrielsegrund som medför rätt för Tjänsteutövaren att säga upp Avtalet med omedelbar verkan."
     },
     {
       "kind": "text",
       "html": "Tjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens Väsentliga avtalsbrott eller upprepade avtalsbrott utan återbetalning av Förskottsbetalningen."
     },
-    { "kind": "heading", "html": "Information & samtycke" },
+    {
+      "kind": "heading",
+      "html": "Information & samtycke"
+    },
     {
       "kind": "text",
       "html": "Kunden bekräftar att Kunden har tagit del av skriftlig information, se bilaga 1, samt att Kunden tagit del av motsvarande information muntligt. Kunden har även tagit del av individuell behandlingsplan."
     },
-    { "kind": "text", "html": "Kunden lämnar sitt samtycke till att behandlingen får utföras." },
-    { "kind": "heading", "html": "Tvist" },
-    { "kind": "text", "html": "Svensk lag ska tillämpas på avtalet." },
+    {
+      "kind": "text",
+      "html": "Kunden lämnar sitt samtycke till att behandlingen får utföras."
+    },
+    {
+      "kind": "heading",
+      "html": "Tvist"
+    },
+    {
+      "kind": "text",
+      "html": "Svensk lag ska tillämpas på avtalet."
+    },
     {
       "kind": "text",
       "html": "För det fall utförd behandling omfattas av Tjänsteutövaren patientförsäkring enligt patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till Patientskadenämnden. Avseende frågor som inte kräver medicinsk sakkunskap har Kunden även möjlighet att hänskjuta tvist till prövning genom anmälan till Allmänna reklamationsnämnden (ARN). Tvist med anledning av avtalet ska slutligen avgöras av allmän domstol med Göteborgs tingsrätt som första instans."
@@ -106,7 +162,15 @@
   ],
   "cooling": {
     "consentApiId": 170955,
-    "source": "owner facit 2026-06 — Meridiq apiId 170955 (letterText tom i export)",
+    "source": "sharepoint_nordbro:251203 (bundlat ångerfristsamtycke — samma avtalspaket)",
+    "legalSource": {
+      "primary": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "meridiqApiId": 170955,
+      "bindingRef": "migration/meridiq/nordbro-p0-source-bindings.json#170955",
+      "source": "sharepoint_nordbro"
+    },
     "blocks": [
       {
         "kind": "title",
@@ -133,7 +197,39 @@
         "html": "Jag lämnar mitt samtycke."
       }
     ],
-    "ackLabel": "Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14 dagar)."
+    "ackLabel": "Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14 dagar).",
+    "revisions": [
+      {
+        "version": "251203",
+        "source": "sharepoint_nordbro",
+        "legalReviewStatus": "nordbro_approved",
+        "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+        "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+        "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+        "textHash": "5a88840a2935",
+        "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+        "syncedAt": "2026-06-25T18:58:09.475Z",
+        "replaceReason": "sharepoint_resync_inventory",
+        "archivedAt": "2026-06-25T18:58:09.475Z",
+        "meridiqApiId": 170955,
+        "note": "Bundlat ångerfristsamtycke — samma Nordbro 251203-paket"
+      }
+    ]
   },
-  "bundleAckLabel": "Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling innan ångerfristen löpt ut."
+  "bundleAckLabel": "Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling innan ångerfristen löpt ut.",
+  "revisions": [
+    {
+      "version": "251203",
+      "source": "sharepoint_nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+      "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+      "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+      "textHash": "5a88840a2935",
+      "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+      "syncedAt": "2026-06-25T18:58:09.475Z",
+      "replaceReason": "sharepoint_resync_inventory",
+      "archivedAt": "2026-06-25T18:58:09.475Z"
+    }
+  ]
 }

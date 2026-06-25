@@ -1,0 +1,4211 @@
+/* ════════════════════════════════════════════════════════════════════════
+ * cco-calendar-v8.css — facit-trogen kalender (v8), scopad under #cco-cal-v8-root.
+ * AUTOGENERERAD från calendar-mockup-v8.html <style> + scopad så den inte
+ * krockar med den befintliga kalenderns delade klassnamn. Redigera porten via
+ * scratchpad/scope-css.js, inte här för hand (utom riktade fidelity-fixar).
+ * ════════════════════════════════════════════════════════════════════════ */
+#cco-cal-v8-root {
+  --cco-bg-page: #faf6f2;
+  --cco-bg-surface: #ffffff;
+  --cco-bg-surface-sunken: #f5efe6;
+  --cco-color-brand: #2b251f;
+  --cco-text-secondary: rgba(70, 60, 50, 0.62);
+  --cco-text-tertiary: #8a8174;
+
+  --cco-status-success: #4a8268;
+  --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+  --cco-status-warning: #c8821e;
+  --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+  --cco-status-danger: #b94a4a;
+  --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
+  --cco-status-info: #4a7ba8;
+  --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+
+  --panel-shell-top: rgba(250, 246, 242, 0.94);
+  --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+  --panel-shell-shadow:
+    0 18px 38px rgba(93, 74, 60, 0.07), 0 6px 18px rgba(156, 145, 166, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --panel-shell-shadow-strong:
+    0 32px 70px rgba(93, 74, 60, 0.1), 0 14px 32px rgba(156, 145, 166, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --panel-card-top: rgba(255, 255, 255, 0.94);
+  --panel-card-bottom: rgba(247, 241, 236, 0.86);
+  --panel-card-shadow: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  --panel-card-shadow-hover:
+    0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+
+  --rose-pill-top: rgba(252, 233, 240, 0.98);
+  --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+  --accent-studio: #bb4779;
+
+  --rail-fazli: #7c3aed;
+  --rail-egzona: #a37433;
+  --rail-contact: #2596a8;
+  --rail-info: #84756b;
+
+  --calendar-accent: #c8821e;
+  --calendar-accent-soft: rgba(200, 130, 30, 0.14);
+  --calendar-accent-glow: rgba(200, 130, 30, 0.22);
+  --calendar-hour-h: 62px;
+  --calendar-hour-start: 6;
+  --calendar-hour-end: 23;
+
+  /* Guld för predictive */
+  --gold: #d4a847;
+  --gold-glow: rgba(212, 168, 71, 0.45);
+
+  /* Conflict */
+  --conflict-red: #d8526b;
+  --conflict-glow: rgba(216, 82, 107, 0.55);
+}
+#cco-cal-v8-root * {
+  box-sizing: border-box;
+}
+#cco-cal-v8-root,
+#cco-cal-v8-root {
+  margin: 0;
+  padding: 0;
+}
+#cco-cal-v8-root {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+    radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(220, 210, 255, 0.18), transparent 48%),
+    var(--cco-bg-page);
+  color: var(--cco-color-brand);
+  font-family:
+    Inter,
+    "Segoe UI",
+    -apple-system,
+    sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  min-height: 100vh;
+  padding: 14px;
+}
+#cco-cal-v8-root /* ─── Top-nav ─── */
+  .top-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 10px 14px;
+  color: var(--cco-text-tertiary);
+  font-size: 12px;
+}
+#cco-cal-v8-root .top-nav .brand {
+  font-weight: 800;
+  color: var(--cco-color-brand);
+  letter-spacing: 0.06em;
+  font-size: 13px;
+}
+#cco-cal-v8-root .top-nav a {
+  color: inherit;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+#cco-cal-v8-root .top-nav a:hover {
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .top-nav a.active {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 4px 14px rgba(187, 71, 121, 0.14);
+}
+#cco-cal-v8-root /* ─── Grid ─── */
+  .app-grid {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 360px;
+  gap: 16px;
+  align-items: start;
+}
+#cco-cal-v8-root /* ─── Sidomeny ─── */
+  .side-shell {
+  position: sticky;
+  top: 14px;
+  padding: 16px 14px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  box-shadow: var(--panel-shell-shadow);
+  backdrop-filter: blur(14px);
+}
+#cco-cal-v8-root .side-kicker {
+  color: #84756b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+#cco-cal-v8-root .side-h2 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  letter-spacing: -0.01em;
+}
+#cco-cal-v8-root .side-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+#cco-cal-v8-root .side-link {
+  padding: 6px 9px;
+  border-radius: 9px;
+  font-size: 11.5px;
+  color: var(--cco-text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+#cco-cal-v8-root .side-link:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+#cco-cal-v8-root .side-link.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 238, 232, 0.6));
+  color: var(--cco-color-brand);
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+#cco-cal-v8-root .side-link .count {
+  font-size: 9.5px;
+  color: var(--cco-text-tertiary);
+  background: rgba(255, 255, 255, 0.5);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+#cco-cal-v8-root .side-link.active .count {
+  color: var(--accent-studio);
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+}
+#cco-cal-v8-root .side-link .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+#cco-cal-v8-root .side-section {
+  margin-top: 14px;
+}
+#cco-cal-v8-root /* ─── KALENDER surface ─── */
+  .calendar-shell {
+  position: relative;
+}
+#cco-cal-v8-root .calendar-surface {
+  position: relative;
+  border-radius: 28px;
+  padding: 20px 22px 16px;
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  box-shadow: var(--panel-shell-shadow-strong);
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+  min-height: 800px;
+}
+#cco-cal-v8-root .calendar-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.6), transparent 24%),
+    radial-gradient(circle at 56% 10%, rgba(255, 236, 222, 0.32), transparent 24%),
+    radial-gradient(circle at 88% 14%, rgba(255, 228, 238, 0.28), transparent 22%);
+  pointer-events: none;
+}
+#cco-cal-v8-root /* ─── Toolbar ─── */
+  .calendar-toolbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+}
+#cco-cal-v8-root .calendar-toolbar-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#cco-cal-v8-root .calendar-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#cco-cal-v8-root .calendar-toolbar-kicker {
+  color: #84756b;
+  font-size: 10.5px;
+  line-height: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+#cco-cal-v8-root .calendar-mark {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--calendar-accent);
+  background: var(--calendar-accent-soft);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 6px var(--calendar-accent-glow);
+}
+#cco-cal-v8-root .calendar-mark svg {
+  width: 13px;
+  height: 13px;
+}
+#cco-cal-v8-root .calendar-toolbar h2 {
+  margin: 0;
+  color: #17191f;
+  font-size: 18px;
+  line-height: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+#cco-cal-v8-root .week-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+  color: var(--cco-color-brand);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#cco-cal-v8-root .week-pill .num {
+  color: var(--calendar-accent);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+#cco-cal-v8-root .status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  font-size: 10.5px;
+  line-height: 12px;
+  font-weight: 700;
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+}
+#cco-cal-v8-root .status-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+#cco-cal-v8-root .status-pill--success {
+  color: var(--cco-status-success);
+}
+#cco-cal-v8-root .status-pill--success .dot {
+  background: var(--cco-status-success);
+}
+#cco-cal-v8-root .status-pill--warning {
+  color: var(--cco-status-warning);
+}
+#cco-cal-v8-root .status-pill--warning .dot {
+  background: var(--cco-status-warning);
+}
+#cco-cal-v8-root .status-pill--info {
+  color: var(--cco-status-info);
+}
+#cco-cal-v8-root .status-pill--info .dot {
+  background: var(--cco-status-info);
+}
+#cco-cal-v8-root .status-pill--danger {
+  color: var(--cco-status-danger);
+}
+#cco-cal-v8-root .status-pill--danger .dot {
+  background: var(--cco-status-danger);
+}
+#cco-cal-v8-root .status-pill--neutral {
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .status-pill--conflict {
+  color: var(--conflict-red);
+}
+#cco-cal-v8-root .status-pill--conflict .dot {
+  background: var(--conflict-red);
+}
+#cco-cal-v8-root .segment-group {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.05);
+}
+#cco-cal-v8-root .segment-tab {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  min-height: 24px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cco-text-secondary);
+  transition: color 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+#cco-cal-v8-root .segment-tab:hover {
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .segment-tab.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 238, 232, 0.9));
+  color: var(--cco-color-brand);
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#cco-cal-v8-root .segment-tab--morgon {
+  color: var(--calendar-accent);
+  font-weight: 700;
+}
+#cco-cal-v8-root .segment-tab--morgon.active {
+  color: var(--calendar-accent);
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  box-shadow:
+    0 2px 8px var(--calendar-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+#cco-cal-v8-root .nav-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  min-height: 26px;
+  padding: 0 11px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cco-color-brand);
+  transition: transform 0.1s ease;
+}
+#cco-cal-v8-root .nav-btn:hover {
+  transform: translateY(-1px);
+}
+#cco-cal-v8-root .nav-btn--today {
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  color: var(--calendar-accent);
+  border-color: rgba(200, 130, 30, 0.32);
+  box-shadow:
+    0 2px 8px var(--calendar-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 5: MORGON-STANDUP STORY VIEW
+     ═══════════════════════════════════════════════════════════════ */
+
+  .morgon-story {
+  position: relative;
+  z-index: 1;
+  padding: 30px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  animation: storyEnter 0.5s cubic-bezier(0.34, 1.32, 0.64, 1);
+}
+@keyframes storyEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+#cco-cal-v8-root .greet {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding-bottom: 4px;
+}
+#cco-cal-v8-root .greet-sun {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #ffe9b8, #f5b85a 60%, #e09933);
+  box-shadow:
+    0 0 40px rgba(255, 200, 120, 0.55),
+    0 0 80px rgba(255, 180, 100, 0.34),
+    inset -8px -8px 18px rgba(200, 100, 40, 0.32);
+  position: relative;
+  animation: sunRays 16s linear infinite;
+}
+@keyframes sunRays {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+#cco-cal-v8-root .greet-text h1 {
+  font-size: 26px;
+  margin: 0;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+}
+#cco-cal-v8-root .greet-text h1 span {
+  color: var(--calendar-accent);
+}
+#cco-cal-v8-root .greet-text p {
+  margin: 4px 0 0;
+  color: var(--cco-text-secondary);
+  font-size: 13px;
+}
+#cco-cal-v8-root /* Story-grid: 4 kort */
+  .story-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr 0.9fr;
+  gap: 12px;
+}
+#cco-cal-v8-root .story-card {
+  position: relative;
+  padding: 16px 16px 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+  box-shadow: var(--panel-card-shadow);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+#cco-cal-v8-root .story-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 18% 6%, rgba(255, 255, 255, 0.5), transparent 36%);
+  pointer-events: none;
+}
+#cco-cal-v8-root .story-card > * {
+  position: relative;
+  z-index: 1;
+}
+#cco-cal-v8-root .story-card-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+#cco-cal-v8-root .story-card-kicker .icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+#cco-cal-v8-root .story-card-kicker .icon svg {
+  width: 11px;
+  height: 11px;
+}
+#cco-cal-v8-root .story-card[data-kind="idag"] .story-card-kicker {
+  color: var(--calendar-accent);
+}
+#cco-cal-v8-root .story-card[data-kind="idag"] .icon {
+  background: var(--calendar-accent-soft);
+  color: var(--calendar-accent);
+}
+#cco-cal-v8-root .story-card[data-kind="risker"] .story-card-kicker {
+  color: var(--cco-status-warning);
+}
+#cco-cal-v8-root .story-card[data-kind="risker"] .icon {
+  background: var(--cco-status-warning-bg);
+  color: var(--cco-status-warning);
+}
+#cco-cal-v8-root .story-card[data-kind="mojligheter"] .story-card-kicker {
+  color: var(--cco-status-info);
+}
+#cco-cal-v8-root .story-card[data-kind="mojligheter"] .icon {
+  background: var(--cco-status-info-bg);
+  color: var(--cco-status-info);
+}
+#cco-cal-v8-root .story-card[data-kind="klart"] .story-card-kicker {
+  color: var(--cco-status-success);
+}
+#cco-cal-v8-root .story-card[data-kind="klart"] .icon {
+  background: var(--cco-status-success-bg);
+  color: var(--cco-status-success);
+}
+#cco-cal-v8-root .story-card-headline {
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.03em;
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .story-card-headline .num {
+  font-variant-numeric: tabular-nums;
+}
+#cco-cal-v8-root .story-card-sub {
+  font-size: 11.5px;
+  color: var(--cco-text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+#cco-cal-v8-root .story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+#cco-cal-v8-root .story-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+  transition:
+    background 0.14s ease,
+    transform 0.12s ease;
+}
+#cco-cal-v8-root .story-item:hover {
+  background: rgba(255, 255, 255, 0.82);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(56, 40, 28, 0.07);
+}
+#cco-cal-v8-root .story-item .who {
+  font-weight: 700;
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .story-item .what {
+  color: var(--cco-text-secondary);
+}
+#cco-cal-v8-root .story-item .when {
+  font-size: 9.5px;
+  color: var(--cco-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#cco-cal-v8-root .story-item .badge {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: white;
+}
+#cco-cal-v8-root .story-item[data-severity="high"] .badge {
+  background: var(--cco-status-danger);
+  box-shadow: 0 0 8px rgba(185, 74, 74, 0.45);
+}
+#cco-cal-v8-root .story-item[data-severity="med"] .badge {
+  background: var(--cco-status-warning);
+  box-shadow: 0 0 6px rgba(200, 130, 30, 0.34);
+}
+#cco-cal-v8-root .story-item[data-severity="low"] .badge {
+  background: var(--cco-status-info);
+}
+#cco-cal-v8-root .story-item[data-severity="ok"] .badge {
+  background: var(--cco-status-success);
+}
+#cco-cal-v8-root /* Tidslinje-preview i Idag-kortet */
+  .day-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 36px;
+  margin-top: 6px;
+  padding: 2px;
+  border-radius: 8px;
+  background: rgba(255, 247, 234, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+#cco-cal-v8-root .day-spark-bar {
+  flex: 1;
+  min-width: 0;
+  background: linear-gradient(180deg, var(--cco-status-warning), #e8a04e);
+  border-radius: 2px 2px 0 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+#cco-cal-v8-root .day-spark-bar[data-h="0"] {
+  background: rgba(132, 117, 107, 0.18);
+}
+#cco-cal-v8-root .day-spark-now {
+  width: 2px;
+  background: var(--calendar-accent);
+  border-radius: 999px;
+  align-self: stretch;
+  box-shadow: 0 0 6px var(--calendar-accent-glow);
+}
+#cco-cal-v8-root /* Klart-för-dagen meter */
+  .ready-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+#cco-cal-v8-root .ready-meter-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cco-bg-surface-sunken);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.06);
+}
+#cco-cal-v8-root .ready-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cco-status-success), #9ed8b8);
+  box-shadow: 0 0 8px rgba(74, 130, 104, 0.34);
+  width: 0%;
+  transition: width 1.2s cubic-bezier(0.34, 1.32, 0.64, 1);
+}
+#cco-cal-v8-root .ready-meter-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--cco-text-tertiary);
+  font-weight: 600;
+}
+#cco-cal-v8-root /* Quick CTA-rad under story */
+  .story-cta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 14px 4px 6px;
+}
+#cco-cal-v8-root .story-cta {
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+  box-shadow:
+    0 3px 10px rgba(56, 40, 28, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+#cco-cal-v8-root .story-cta:hover {
+  transform: translateY(-1px);
+}
+#cco-cal-v8-root .story-cta--primary {
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  color: var(--calendar-accent);
+  border-color: rgba(200, 130, 30, 0.34);
+  box-shadow:
+    0 4px 14px var(--calendar-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#cco-cal-v8-root /* ─── Busy ─── */
+  .calendar-busy {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px 14px;
+  padding: 8px 4px 0;
+}
+#cco-cal-v8-root .busy-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+}
+#cco-cal-v8-root .busy-name {
+  color: var(--cco-text-secondary);
+  white-space: nowrap;
+  min-width: 80px;
+  font-weight: 600;
+}
+#cco-cal-v8-root .busy-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--cco-bg-surface-sunken);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.06);
+}
+#cco-cal-v8-root .busy-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #92d2af, var(--cco-status-warning));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 8px rgba(200, 130, 30, 0.18);
+}
+#cco-cal-v8-root .busy-pct {
+  color: var(--cco-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
+}
+#cco-cal-v8-root /* ─── Veckogrid ─── */
+  .calendar-week {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 48px repeat(7, 1fr);
+  gap: 4px;
+}
+#cco-cal-v8-root .time-col {
+  position: relative;
+  padding-top: 32px;
+}
+#cco-cal-v8-root .time-tick {
+  position: relative;
+  height: var(--calendar-hour-h);
+  font-size: 9.5px;
+  color: var(--cco-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  padding-right: 8px;
+  text-align: right;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root .time-tick::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 5px;
+  height: 1px;
+  background: rgba(132, 117, 107, 0.25);
+}
+#cco-cal-v8-root .day-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+#cco-cal-v8-root .day-head {
+  height: 32px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 4px 4px;
+  border-bottom: 1px solid rgba(132, 117, 107, 0.14);
+  margin-bottom: 4px;
+}
+#cco-cal-v8-root .day-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--cco-text-tertiary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+#cco-cal-v8-root .day-date {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cco-color-brand);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+#cco-cal-v8-root .day-col.today .day-head {
+  border-bottom-color: var(--calendar-accent);
+}
+#cco-cal-v8-root .day-col.today .day-date {
+  color: var(--calendar-accent);
+  position: relative;
+}
+#cco-cal-v8-root .day-col.today .day-date::after {
+  content: "";
+  position: absolute;
+  inset: -3px -7px;
+  border-radius: 999px;
+  background: var(--calendar-accent-soft);
+  z-index: -1;
+}
+#cco-cal-v8-root .day-slots {
+  position: relative;
+  height: calc((var(--calendar-hour-end) - var(--calendar-hour-start)) * var(--calendar-hour-h));
+  border-radius: 12px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.32) 0,
+    rgba(255, 255, 255, 0.32) calc(var(--calendar-hour-h) - 1px),
+    rgba(132, 117, 107, 0.1) calc(var(--calendar-hour-h) - 1px),
+    rgba(132, 117, 107, 0.1) var(--calendar-hour-h)
+  );
+  box-shadow: inset 0 0 0 1px rgba(132, 117, 107, 0.06);
+}
+#cco-cal-v8-root .day-col.today .day-slots {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(200, 130, 30, 0.03) 0,
+      rgba(200, 130, 30, 0.03) 6px,
+      transparent 6px,
+      transparent 12px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(252, 233, 240, 0.35) 0,
+      rgba(252, 233, 240, 0.35) calc(var(--calendar-hour-h) - 1px),
+      rgba(200, 130, 30, 0.18) calc(var(--calendar-hour-h) - 1px),
+      rgba(200, 130, 30, 0.18) var(--calendar-hour-h)
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(200, 130, 30, 0.22),
+    0 0 24px rgba(200, 130, 30, 0.08);
+}
+#cco-cal-v8-root .now-line {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--calendar-accent), #e8a04e);
+  box-shadow: 0 0 8px var(--calendar-accent-glow);
+  border-radius: 999px;
+  z-index: 5;
+  pointer-events: none;
+}
+#cco-cal-v8-root .now-line::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  background: var(--calendar-accent);
+  border-radius: 999px;
+  transform: translateY(-50%);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 0 10px var(--calendar-accent-glow);
+  animation: nowPulse 2s ease-in-out infinite;
+}
+#cco-cal-v8-root .now-line .now-label {
+  position: absolute;
+  right: 6px;
+  top: -8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: white;
+  background: var(--calendar-accent);
+  padding: 1px 6px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px var(--calendar-accent-glow);
+}
+@keyframes nowPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.9),
+      0 0 10px var(--calendar-accent-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.9),
+      0 0 18px var(--calendar-accent),
+      0 0 26px var(--calendar-accent-glow);
+  }
+}
+#cco-cal-v8-root /* ─── Andas-keyframes (v3) ─── */
+  @keyframes breatheSuccess {
+  0%,
+  100% {
+    box-shadow:
+      var(--panel-card-shadow),
+      0 0 0 0 rgba(74, 130, 104, 0);
+  }
+  50% {
+    box-shadow:
+      var(--panel-card-shadow),
+      0 0 22px 2px rgba(74, 130, 104, 0.22);
+  }
+}
+@keyframes breatheWarning {
+  0%,
+  100% {
+    box-shadow:
+      var(--panel-card-shadow),
+      0 0 0 0 rgba(200, 130, 30, 0);
+  }
+  50% {
+    box-shadow:
+      var(--panel-card-shadow),
+      0 0 24px 2px rgba(200, 130, 30, 0.32);
+  }
+}
+@keyframes breatheInfo {
+  0%,
+  100% {
+    box-shadow:
+      var(--panel-card-shadow),
+      0 0 0 0 rgba(74, 123, 168, 0);
+  }
+  50% {
+    box-shadow:
+      var(--panel-card-shadow),
+      0 0 22px 2px rgba(74, 123, 168, 0.2);
+  }
+}
+@keyframes breatheCritical {
+  0%,
+  100% {
+    box-shadow:
+      var(--panel-card-shadow),
+      0 0 0 0 rgba(200, 130, 30, 0);
+  }
+  50% {
+    box-shadow:
+      var(--panel-card-shadow),
+      0 0 28px 4px rgba(200, 80, 80, 0.42);
+  }
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 8: NO-SHOW VIBRATO
+     ═══════════════════════════════════════════════════════════════ */
+
+  @keyframes noshowTiltHigh {
+  0%,
+  100% {
+    transform: rotate(0.5deg);
+  }
+  50% {
+    transform: rotate(-0.5deg);
+  }
+}
+@keyframes noshowTiltMed {
+  0%,
+  100% {
+    transform: rotate(0.3deg);
+  }
+  50% {
+    transform: rotate(-0.3deg);
+  }
+}
+#cco-cal-v8-root /* ─── Bokning ─── */
+  .booking {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  padding: 5px 7px 5px 10px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+  box-shadow: var(--panel-card-shadow);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  cursor: grab;
+  overflow: visible;
+  z-index: 2;
+  transition: transform 0.12s ease;
+  will-change: transform, box-shadow;
+}
+#cco-cal-v8-root .booking > * {
+  position: relative;
+  z-index: 2;
+}
+#cco-cal-v8-root .booking:active {
+  cursor: grabbing;
+}
+#cco-cal-v8-root .booking:hover {
+  transform: translateY(-1px) !important;
+  z-index: 8;
+}
+#cco-cal-v8-root .booking::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--rail-color, var(--rail-info));
+  box-shadow: 0 0 6px var(--rail-color, var(--rail-info));
+  opacity: 0.85;
+  z-index: 3;
+}
+#cco-cal-v8-root .booking::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--status-color, var(--cco-status-success));
+  box-shadow:
+    0 0 0 2px white,
+    0 0 6px var(--status-color, var(--cco-status-success));
+  z-index: 3;
+}
+#cco-cal-v8-root .booking {
+  min-width: 0;
+}
+#cco-cal-v8-root .booking-time {
+  font-size: 9px;
+  color: var(--cco-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 14px;
+  max-width: 100%;
+  min-width: 0;
+}
+#cco-cal-v8-root .booking-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+  margin-top: 1px;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  padding-right: 14px;
+  max-width: 100%;
+  min-width: 0;
+}
+#cco-cal-v8-root .booking-sub {
+  font-size: 10px;
+  color: var(--cco-text-secondary);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 14px;
+  max-width: 100%;
+  min-width: 0;
+}
+#cco-cal-v8-root /* Korta bokningar: kompakt default, #cco-cal-v8-root hover visar förnamn+efternamn */
+  .booking[style*="height:31px"], #cco-cal-v8-root .booking[style*="height: 31px"] {
+  padding: 4px 8px 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition:
+    height 0.2s ease,
+    padding 0.2s ease;
+}
+#cco-cal-v8-root .booking[style*="height:31px"] .booking-time,
+#cco-cal-v8-root .booking[style*="height: 31px"] .booking-time {
+  padding-right: 0;
+  flex-shrink: 0;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+#cco-cal-v8-root .booking[style*="height:31px"] .booking-title,
+#cco-cal-v8-root .booking[style*="height: 31px"] .booking-title {
+  margin-top: 0;
+  -webkit-line-clamp: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.2;
+  padding-right: 14px;
+}
+#cco-cal-v8-root .booking[style*="height:31px"] .booking-sub,
+#cco-cal-v8-root .booking[style*="height: 31px"] .booking-sub,
+#cco-cal-v8-root .booking[style*="height:31px"] .booking-ai-badge,
+#cco-cal-v8-root .booking[style*="height: 31px"] .booking-ai-badge,
+#cco-cal-v8-root .booking[style*="height:31px"] .avatar-bubble,
+#cco-cal-v8-root .booking[style*="height: 31px"] .avatar-bubble {
+  display: none !important;
+}
+#cco-cal-v8-root .booking[style*="height:31px"]:hover,
+#cco-cal-v8-root .booking[style*="height: 31px"]:hover {
+  height: auto !important;
+  min-height: 62px;
+  padding: 6px 10px 7px 12px;
+  display: block;
+  z-index: 10;
+  box-shadow: var(--panel-card-shadow-hover) !important;
+}
+#cco-cal-v8-root .booking[style*="height:31px"]:hover .booking-title,
+#cco-cal-v8-root .booking[style*="height: 31px"]:hover .booking-title {
+  margin-top: 1px;
+}
+#cco-cal-v8-root .booking[style*="height:31px"]:hover .booking-sub,
+#cco-cal-v8-root .booking[style*="height: 31px"]:hover .booking-sub {
+  display: block;
+  margin-top: 2px;
+  font-weight: 600;
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .booking[style*="height:31px"]:hover .booking-ai-badge,
+#cco-cal-v8-root .booking[style*="height: 31px"]:hover .booking-ai-badge {
+  display: inline-flex;
+}
+#cco-cal-v8-root .booking-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  color: var(--calendar-accent);
+  font-size: 9px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+#cco-cal-v8-root /* Source */
+  .booking[data-source="fazli"] {
+  --rail-color: var(--rail-fazli);
+}
+#cco-cal-v8-root .booking[data-source="egzona"] {
+  --rail-color: var(--rail-egzona);
+}
+#cco-cal-v8-root .booking[data-source="contact"] {
+  --rail-color: var(--rail-contact);
+}
+#cco-cal-v8-root .booking[data-source="info"] {
+  --rail-color: var(--rail-info);
+}
+#cco-cal-v8-root /* Status + ANDNING */
+  .booking[data-status="confirmed"] {
+  --status-color: var(--cco-status-success);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(238, 247, 242, 0.78));
+  animation: breatheSuccess 4.2s ease-in-out infinite;
+}
+#cco-cal-v8-root .booking[data-status="tentative"] {
+  --status-color: var(--cco-status-warning);
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.96), rgba(255, 243, 221, 0.82));
+  animation: breatheWarning var(--breathe-speed, 2.4s) ease-in-out infinite;
+}
+#cco-cal-v8-root .booking[data-status="cancelled"] {
+  --status-color: var(--cco-status-danger);
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+#cco-cal-v8-root .booking[data-status="followup"] {
+  --status-color: var(--cco-status-info);
+  background: linear-gradient(180deg, rgba(248, 252, 255, 0.96), rgba(228, 240, 250, 0.82));
+  animation: breatheInfo 5s ease-in-out infinite;
+}
+#cco-cal-v8-root .booking[data-status="tentative"][data-expiry="far"] {
+  --breathe-speed: 3.4s;
+}
+#cco-cal-v8-root .booking[data-status="tentative"][data-expiry="near"] {
+  --breathe-speed: 1.8s;
+}
+#cco-cal-v8-root .booking[data-status="tentative"][data-expiry="critical"] {
+  --breathe-speed: 1s;
+  animation-name: breatheCritical;
+}
+#cco-cal-v8-root /* No-show vibrato — overlay-animation via en kombinerad transform */
+  .booking[data-noshow="high"] {
+  animation:
+    breatheSuccess 4.2s ease-in-out infinite,
+    noshowTiltHigh 1.6s ease-in-out infinite;
+}
+#cco-cal-v8-root .booking[data-status="tentative"][data-noshow="high"] {
+  animation:
+    breatheWarning var(--breathe-speed, 2.4s) ease-in-out infinite,
+    noshowTiltHigh 1.6s ease-in-out infinite;
+}
+#cco-cal-v8-root .booking[data-status="tentative"][data-expiry="critical"][data-noshow="high"] {
+  animation:
+    breatheCritical 1s ease-in-out infinite,
+    noshowTiltHigh 1.6s ease-in-out infinite;
+}
+#cco-cal-v8-root .booking[data-noshow="med"] {
+  animation:
+    breatheSuccess 4.2s ease-in-out infinite,
+    noshowTiltMed 2.4s ease-in-out infinite;
+}
+#cco-cal-v8-root /* No-show-badge under sub */
+  .booking[data-noshow]:not([data-noshow="none"]) .noshow-mark {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--cco-status-danger-bg);
+  color: var(--cco-status-danger);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  z-index: 4;
+}
+#cco-cal-v8-root .booking:hover {
+  animation-play-state: paused;
+  box-shadow: var(--panel-card-shadow-hover) !important;
+}
+#cco-cal-v8-root .booking.selected {
+  box-shadow:
+    0 0 0 2px var(--calendar-accent),
+    var(--panel-card-shadow-hover);
+  z-index: 7;
+  animation: none !important;
+}
+#cco-cal-v8-root .booking.selected::before {
+  opacity: 1;
+  box-shadow: 0 0 10px var(--rail-color);
+}
+#cco-cal-v8-root /* Conflict-bokningar markeras */
+  .booking[data-conflict] {
+  /* Subtil röd outline */
+  border-color: rgba(216, 82, 107, 0.5);
+}
+#cco-cal-v8-root .booking[data-conflict]::after {
+  background: var(--conflict-red) !important;
+  box-shadow:
+    0 0 0 2px white,
+    0 0 8px var(--conflict-red);
+}
+#cco-cal-v8-root .booking.conflict-hover {
+  box-shadow:
+    0 0 0 2px var(--conflict-red),
+    var(--panel-card-shadow-hover) !important;
+  z-index: 9;
+}
+#cco-cal-v8-root /* Drag-clone */
+  .booking.is-dragging {
+  opacity: 0.25;
+  cursor: grabbing;
+  animation: none !important;
+}
+#cco-cal-v8-root .booking.drag-clone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow:
+    0 18px 38px rgba(56, 40, 28, 0.22),
+    0 0 0 2px var(--calendar-accent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  transform: rotate(-1.5deg) scale(1.04);
+  transition: none;
+  animation: none !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(255, 247, 234, 0.95)) !important;
+}
+#cco-cal-v8-root .snap-indicator {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 9px;
+  border: 2px dashed var(--calendar-accent);
+  background: var(--calendar-accent-soft);
+  pointer-events: none;
+  z-index: 6;
+  box-shadow: 0 0 18px var(--calendar-accent-glow);
+  animation: snapPulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes snapPulse {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.02);
+  }
+}
+#cco-cal-v8-root .drag-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(43, 37, 31, 0.92);
+  color: white;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  z-index: 10000;
+  backdrop-filter: blur(8px);
+}
+#cco-cal-v8-root .drag-hint kbd {
+  background: rgba(255, 255, 255, 0.18);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 10.5px;
+  margin: 0 3px;
+}
+#cco-cal-v8-root /* AI-sparkles */
+  .quick-pill--ai.is-firing {
+  position: relative;
+  overflow: hidden;
+  animation: aiPress 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#cco-cal-v8-root .quick-pill--ai.is-firing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.85) 50%,
+    transparent 70%
+  );
+  animation: shimmerSweep 600ms ease-out forwards;
+}
+@keyframes aiPress {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes shimmerSweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+#cco-cal-v8-root .ai-spark {
+  position: fixed;
+  pointer-events: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: radial-gradient(circle, #fff8e0 0%, #ffcc66 50%, transparent 70%);
+  box-shadow:
+    0 0 10px #ffcc66,
+    0 0 18px rgba(200, 130, 30, 0.6);
+  z-index: 9998;
+  will-change: transform, opacity;
+}
+#cco-cal-v8-root .ai-spark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  filter: blur(4px);
+  transform: scale(1.4);
+  opacity: 0.6;
+}
+#cco-cal-v8-root .booking.is-receiving {
+  animation: receivedHit 700ms ease-out !important;
+}
+@keyframes receivedHit {
+  0% {
+    box-shadow: var(--panel-card-shadow);
+  }
+  20% {
+    box-shadow:
+      0 0 0 4px var(--calendar-accent),
+      0 0 30px var(--calendar-accent);
+  }
+  100% {
+    box-shadow: var(--panel-card-shadow);
+  }
+}
+#cco-cal-v8-root .ai-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  border: 1px solid rgba(200, 130, 30, 0.34);
+  color: var(--calendar-accent);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow:
+    0 14px 38px var(--calendar-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+#cco-cal-v8-root .ai-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 6: PREDICTIVE GOLD DOTS PÅ EMPTY-SLOTS
+     ═══════════════════════════════════════════════════════════════ */
+
+  .empty-slot {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 8px;
+  border: 1.5px dashed rgba(132, 117, 107, 0.28);
+  background: rgba(255, 255, 255, 0.32);
+  color: var(--cco-text-tertiary);
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    border-style 0.1s ease;
+}
+#cco-cal-v8-root .empty-slot:hover {
+  background: rgba(255, 247, 234, 0.85);
+  color: var(--calendar-accent);
+  border-color: var(--calendar-accent);
+  border-style: solid;
+}
+#cco-cal-v8-root /* GOLD-DOT */
+  .empty-slot[data-predictive]::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #fff3c8, var(--gold) 70%);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 0 8px var(--gold-glow),
+    0 0 16px var(--gold-glow);
+  z-index: 5;
+  animation: goldPulse 2.4s ease-in-out infinite;
+}
+@keyframes goldPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.85),
+      0 0 6px var(--gold-glow),
+      0 0 12px var(--gold-glow);
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.95),
+      0 0 14px var(--gold),
+      0 0 22px var(--gold-glow);
+  }
+}
+#cco-cal-v8-root /* Ghost-preview för predictive — guld-themed istället för amber */
+  .empty-slot[data-predictive]:hover {
+  background: linear-gradient(180deg, rgba(255, 248, 225, 0.95), rgba(255, 235, 180, 0.82));
+  border-color: var(--gold);
+}
+#cco-cal-v8-root .empty-slot .ghost-preview {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  padding: 5px 7px 5px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+  background: linear-gradient(180deg, rgba(255, 247, 234, 0.96), rgba(255, 228, 200, 0.86));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 6px 18px var(--calendar-accent-glow);
+  border: 1.5px solid var(--calendar-accent);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.22s ease 0.05s,
+    transform 0.22s ease 0.05s;
+  pointer-events: none;
+}
+#cco-cal-v8-root .empty-slot[data-predictive] .ghost-preview {
+  background: linear-gradient(180deg, rgba(255, 250, 225, 0.97), rgba(255, 232, 170, 0.88));
+  border-color: var(--gold);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 22px var(--gold-glow);
+}
+#cco-cal-v8-root .empty-slot[data-predictive] .ghost-preview::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+}
+#cco-cal-v8-root .empty-slot .ghost-preview::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--calendar-accent);
+  box-shadow: 0 0 6px var(--calendar-accent);
+}
+#cco-cal-v8-root .empty-slot:hover .ghost-preview {
+  opacity: 1;
+  transform: translateY(0);
+}
+#cco-cal-v8-root .empty-slot:hover > .empty-label {
+  opacity: 0;
+}
+#cco-cal-v8-root .empty-label {
+  transition: opacity 0.15s ease;
+}
+#cco-cal-v8-root .ghost-preview .gp-kicker {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--calendar-accent);
+  margin-bottom: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+#cco-cal-v8-root .empty-slot[data-predictive] .ghost-preview .gp-kicker {
+  color: #a07820;
+}
+#cco-cal-v8-root .ghost-preview .gp-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+  line-height: 1.2;
+}
+#cco-cal-v8-root .ghost-preview .gp-sub {
+  font-size: 9.5px;
+  color: var(--cco-text-secondary);
+  margin-top: 1px;
+}
+#cco-cal-v8-root /* Lunch */
+  .lunch-block {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 7px;
+  padding: 4px 8px 4px 10px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(132, 117, 107, 0.08),
+      rgba(132, 117, 107, 0.08) 4px,
+      transparent 4px,
+      transparent 9px
+    ),
+    rgba(245, 239, 230, 0.85);
+  color: var(--cco-text-tertiary);
+  font-size: 9.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px dashed rgba(132, 117, 107, 0.22);
+  z-index: 1;
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 7: CONFLICT-SPIDER-WEB (SVG overlay)
+     ═══════════════════════════════════════════════════════════════ */
+
+  .conflict-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+#cco-cal-v8-root .conflict-curve {
+  fill: none;
+  stroke: var(--conflict-red);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.42;
+  filter: drop-shadow(0 0 4px var(--conflict-glow));
+  transition:
+    opacity 0.2s ease,
+    stroke-width 0.2s ease;
+}
+#cco-cal-v8-root .conflict-curve.is-hot {
+  opacity: 1;
+  stroke-width: 2.5;
+  stroke-dasharray: 0;
+  filter: drop-shadow(0 0 8px var(--conflict-red)) drop-shadow(0 0 18px var(--conflict-glow));
+  animation: curveFlow 1.2s ease-in-out infinite;
+}
+@keyframes curveFlow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+#cco-cal-v8-root .conflict-label {
+  fill: var(--conflict-red);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+#cco-cal-v8-root .conflict-curve.is-hot + .conflict-label,
+#cco-cal-v8-root .conflict-label.is-hot {
+  opacity: 1;
+}
+#cco-cal-v8-root /* ─── Intel ─── */
+  .intel-shell {
+  position: sticky;
+  top: 14px;
+  padding: 20px 20px 16px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  box-shadow: var(--panel-shell-shadow-strong);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+#cco-cal-v8-root .intel-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(255, 255, 255, 0.5), transparent 26%),
+    radial-gradient(circle at 64% 6%, rgba(255, 228, 240, 0.35), transparent 26%),
+    radial-gradient(circle at 92% 12%, rgba(228, 236, 255, 0.28), transparent 22%);
+  pointer-events: none;
+}
+#cco-cal-v8-root .intel-shell > * {
+  position: relative;
+  z-index: 1;
+}
+#cco-cal-v8-root .intel-kicker {
+  color: #84756b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+#cco-cal-v8-root .intel-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 4px 0 0;
+  color: var(--cco-color-brand);
+  letter-spacing: -0.02em;
+}
+#cco-cal-v8-root .intel-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-bottom: 12px;
+  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+}
+#cco-cal-v8-root .intel-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d8c1f0, #b48ad6);
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 4px 12px rgba(180, 138, 214, 0.26);
+}
+#cco-cal-v8-root .intel-name {
+  font-weight: 700;
+  font-size: 13px;
+}
+#cco-cal-v8-root .intel-meta {
+  color: var(--cco-text-tertiary);
+  font-size: 10.5px;
+  margin-top: 2px;
+}
+#cco-cal-v8-root .intel-grid {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 5px 10px;
+  font-size: 11px;
+  margin: 0;
+}
+#cco-cal-v8-root .intel-grid dt {
+  color: var(--cco-text-tertiary);
+  font-weight: 600;
+}
+#cco-cal-v8-root .intel-grid dd {
+  margin: 0;
+  color: var(--cco-color-brand);
+  font-weight: 500;
+}
+#cco-cal-v8-root .intel-grid dd.warn {
+  color: var(--cco-status-warning);
+  font-weight: 700;
+}
+#cco-cal-v8-root .ready-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 10px;
+  box-shadow: inset 0 1px 0 rgba(215, 202, 194, 0.46);
+}
+#cco-cal-v8-root .ready-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+#cco-cal-v8-root .ready-pill[data-state="success"] {
+  color: var(--cco-status-success);
+  background: var(--cco-status-success-bg);
+}
+#cco-cal-v8-root .ready-pill[data-state="warning"] {
+  color: var(--cco-status-warning);
+  background: var(--cco-status-warning-bg);
+}
+#cco-cal-v8-root .ai-reason {
+  position: relative;
+  padding: 11px 13px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(255, 247, 234, 0.95), rgba(255, 239, 213, 0.82));
+  color: var(--cco-color-brand);
+  font-size: 11.5px;
+  line-height: 1.5;
+  border-left: 3px solid var(--cco-status-warning);
+  box-shadow:
+    0 4px 12px rgba(200, 130, 30, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+#cco-cal-v8-root .ai-reason strong {
+  color: var(--cco-status-warning);
+}
+#cco-cal-v8-root .ai-reason::before {
+  content: "★ AI";
+  display: block;
+  margin-bottom: 5px;
+  color: var(--cco-status-warning);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+#cco-cal-v8-root .intel-tabs {
+  display: flex;
+  gap: 4px;
+}
+#cco-cal-v8-root .intel-tab {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  min-height: 24px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cco-text-secondary);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+#cco-cal-v8-root .intel-tab.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+  color: var(--cco-color-brand);
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+}
+#cco-cal-v8-root .intel-actions {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 12px;
+  box-shadow: inset 0 1px 0 rgba(215, 202, 194, 0.46);
+}
+#cco-cal-v8-root .quick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--cco-color-brand);
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.12s ease;
+}
+#cco-cal-v8-root .quick-pill:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px rgba(56, 40, 28, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#cco-cal-v8-root .quick-pill--ai {
+  color: var(--calendar-accent);
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  border-color: rgba(200, 130, 30, 0.34);
+  box-shadow:
+    0 4px 12px var(--calendar-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#cco-cal-v8-root .quick-pill--success {
+  color: var(--cco-status-success);
+  background: linear-gradient(180deg, #eef7f2, #dceee4);
+  border-color: rgba(74, 130, 104, 0.34);
+  box-shadow:
+    0 4px 12px rgba(74, 130, 104, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#cco-cal-v8-root /* ─── Labels ─── */
+  .mockup-label {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  background: var(--cco-color-brand);
+  color: var(--cco-bg-page);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  z-index: 10;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+#cco-cal-v8-root .caption {
+  max-width: 1180px;
+  margin: 0 auto 12px;
+  padding: 8px 14px;
+  font-size: 11.5px;
+  color: var(--cco-text-secondary);
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+}
+#cco-cal-v8-root .caption strong {
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .caption .key {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-family: SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--calendar-accent);
+}
+#cco-cal-v8-root /* Vy-byte hiding */
+  .calendar-content[data-mode="morgon"] .calendar-week, #cco-cal-v8-root .calendar-content[data-mode="morgon"] .calendar-busy {
+  display: none;
+}
+#cco-cal-v8-root .calendar-content[data-mode="vecka"] .morgon-story {
+  display: none;
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 9: APPLE WATCH GLANCE
+     ═══════════════════════════════════════════════════════════════ */
+
+  .watch-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9000;
+  width: 168px;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.2s ease;
+}
+#cco-cal-v8-root .watch-widget:hover {
+  transform: translateY(-3px);
+}
+#cco-cal-v8-root .watch-widget.is-dragging {
+  cursor: grabbing;
+}
+#cco-cal-v8-root .watch-band-top,
+#cco-cal-v8-root .watch-band-bottom {
+  margin: 0 auto;
+  width: 86px;
+  height: 22px;
+  background: linear-gradient(180deg, #2a2823, #1a1816);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
+#cco-cal-v8-root .watch-band-top {
+  border-radius: 10px 10px 4px 4px;
+  margin-bottom: -3px;
+}
+#cco-cal-v8-root .watch-band-bottom {
+  border-radius: 4px 4px 10px 10px;
+  margin-top: -3px;
+}
+#cco-cal-v8-root .watch-body {
+  position: relative;
+  width: 168px;
+  background: linear-gradient(135deg, #2a2823, #14110e);
+  border-radius: 38px;
+  padding: 4px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+#cco-cal-v8-root .watch-body::before {
+  /* Digital Crown */
+  content: "";
+  position: absolute;
+  top: 35%;
+  right: -5px;
+  width: 7px;
+  height: 26px;
+  background: linear-gradient(90deg, #2a2823, #4a453d, #2a2823);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+#cco-cal-v8-root .watch-body::after {
+  /* Side button */
+  content: "";
+  position: absolute;
+  top: 62%;
+  right: -3px;
+  width: 5px;
+  height: 16px;
+  background: linear-gradient(90deg, #2a2823, #3a3530);
+  border-radius: 0 3px 3px 0;
+}
+#cco-cal-v8-root .watch-screen {
+  position: relative;
+  background: #000;
+  border-radius: 34px;
+  padding: 14px 12px 12px;
+  color: white;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+  overflow: hidden;
+  min-height: 184px;
+}
+#cco-cal-v8-root .watch-screen::before {
+  /* Subtilt skärm-glow */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% -20%, rgba(255, 200, 120, 0.18), transparent 50%);
+  pointer-events: none;
+}
+#cco-cal-v8-root .watch-time {
+  color: var(--calendar-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+#cco-cal-v8-root .watch-time .clock {
+  color: white;
+  font-variant-numeric: tabular-nums;
+}
+#cco-cal-v8-root .watch-kicker {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: var(--calendar-accent);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+#cco-cal-v8-root .watch-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 1px;
+}
+#cco-cal-v8-root .watch-sub {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.62);
+  margin-bottom: 8px;
+}
+#cco-cal-v8-root .watch-ai-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 200, 120, 0.95), rgba(220, 150, 60, 0.92));
+  color: #2a1d10;
+  font-size: 9px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(220, 150, 60, 0.32);
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+#cco-cal-v8-root .watch-swipe {
+  position: relative;
+  margin: 0 -2px -2px;
+  height: 38px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(74, 130, 104, 0.34), rgba(74, 130, 104, 0.18));
+  overflow: hidden;
+  cursor: grab;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+#cco-cal-v8-root .watch-swipe-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #4a8268, #6fb595);
+  transform: translateX(-100%);
+  transition: transform 0.15s ease-out;
+  border-radius: inherit;
+}
+#cco-cal-v8-root .watch-swipe-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.04em;
+  z-index: 2;
+  transition: color 0.15s ease;
+}
+#cco-cal-v8-root .watch-swipe-arrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: white;
+  color: #4a8268;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 3;
+  transition: transform 0.15s ease;
+}
+#cco-cal-v8-root .watch-swipe[data-swipe-state="ok"] .watch-swipe-fill {
+  transform: translateX(0);
+}
+#cco-cal-v8-root .watch-swipe[data-swipe-state="ok"] .watch-swipe-label {
+  color: white;
+}
+#cco-cal-v8-root .watch-swipe[data-swipe-state="ok"] .watch-swipe-arrow {
+  transform: translateY(-50%) translateX(120px);
+  opacity: 0;
+}
+#cco-cal-v8-root .watch-swipe[data-swipe-state="ok"]::after {
+  content: "✓ Ankommen";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  z-index: 4;
+  animation: confirmPop 0.35s ease-out;
+}
+@keyframes confirmPop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+#cco-cal-v8-root /* Notification-pulse på watch när det är critical */
+  .watch-body[data-alert="high"] {
+  animation: watchAlert 1.8s ease-in-out infinite;
+}
+@keyframes watchAlert {
+  0%,
+  100% {
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.45),
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 0 0 0 rgba(200, 130, 30, 0);
+  }
+  50% {
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.45),
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 0 0 6px rgba(200, 130, 30, 0.32);
+  }
+}
+#cco-cal-v8-root /* Label "din handled" under uret */
+  .watch-caption {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--cco-text-tertiary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 10: VOICE BOOKING
+     ═══════════════════════════════════════════════════════════════ */
+
+  .mic-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  color: var(--cco-color-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+  position: relative;
+}
+#cco-cal-v8-root .mic-btn:hover {
+  transform: translateY(-1px);
+}
+#cco-cal-v8-root .mic-btn svg {
+  width: 14px;
+  height: 14px;
+}
+#cco-cal-v8-root .mic-btn.is-listening {
+  background: linear-gradient(180deg, #ffe5e5, #ffb8b8);
+  color: var(--cco-status-danger);
+  border-color: rgba(216, 82, 107, 0.4);
+  animation: micPulse 1.2s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88),
+      0 0 0 0 rgba(216, 82, 107, 0.6);
+  }
+  50% {
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88),
+      0 0 0 8px rgba(216, 82, 107, 0);
+  }
+}
+#cco-cal-v8-root /* Voice listening overlay */
+  .voice-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(255, 255, 255, 0.94),
+    rgba(250, 246, 242, 0.88)
+  );
+  backdrop-filter: blur(20px);
+  z-index: 9500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+#cco-cal-v8-root .voice-overlay.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+#cco-cal-v8-root .voice-orb {
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle at 30% 30%,
+    #fff,
+    rgba(255, 200, 120, 0.85) 50%,
+    rgba(200, 130, 30, 0.7)
+  );
+  box-shadow:
+    0 0 60px rgba(200, 130, 30, 0.42),
+    0 0 100px rgba(200, 130, 30, 0.28),
+    inset -10px -10px 30px rgba(200, 100, 40, 0.32);
+  animation: orbPulse 1.6s ease-in-out infinite;
+  position: relative;
+}
+@keyframes orbPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 60px rgba(200, 130, 30, 0.42),
+      0 0 100px rgba(200, 130, 30, 0.28),
+      inset -10px -10px 30px rgba(200, 100, 40, 0.32);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow:
+      0 0 80px rgba(200, 130, 30, 0.6),
+      0 0 140px rgba(200, 130, 30, 0.42),
+      inset -10px -10px 30px rgba(200, 100, 40, 0.32);
+  }
+}
+#cco-cal-v8-root /* Pulserande ringar */
+  .voice-orb::before, #cco-cal-v8-root .voice-orb::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 999px;
+  border: 2px solid rgba(200, 130, 30, 0.4);
+  animation: orbRing 2s ease-out infinite;
+}
+#cco-cal-v8-root .voice-orb::after {
+  animation-delay: 1s;
+}
+@keyframes orbRing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+#cco-cal-v8-root .voice-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+  letter-spacing: -0.01em;
+  text-align: center;
+  max-width: 520px;
+  min-height: 24px;
+}
+#cco-cal-v8-root .voice-text .word {
+  display: inline;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+#cco-cal-v8-root .voice-text .word.is-visible {
+  opacity: 1;
+}
+#cco-cal-v8-root .voice-hint {
+  font-size: 12px;
+  color: var(--cco-text-tertiary);
+  letter-spacing: 0.06em;
+}
+#cco-cal-v8-root .voice-cancel {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--cco-text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+#cco-cal-v8-root /* Voice resultat-sheet (bottom-sheet-mönster) */
+  .voice-sheet {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(140%);
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  box-shadow: var(--panel-shell-shadow-strong);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  z-index: 9600;
+  transition: transform 0.42s cubic-bezier(0.34, 1.32, 0.64, 1);
+}
+#cco-cal-v8-root .voice-sheet.is-visible {
+  transform: translateX(-50%) translateY(0);
+}
+#cco-cal-v8-root .voice-sheet-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--calendar-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+#cco-cal-v8-root .voice-sheet h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+#cco-cal-v8-root .voice-sheet-original {
+  margin: 0 0 14px;
+  font-size: 11.5px;
+  color: var(--cco-text-tertiary);
+  font-style: italic;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  border-left: 3px solid var(--calendar-accent);
+}
+#cco-cal-v8-root .voice-sheet-grid {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+#cco-cal-v8-root .voice-sheet-grid dt {
+  color: var(--cco-text-tertiary);
+  font-weight: 600;
+}
+#cco-cal-v8-root .voice-sheet-grid dd {
+  margin: 0;
+  color: var(--cco-color-brand);
+  font-weight: 600;
+}
+#cco-cal-v8-root .voice-sheet-actions {
+  display: flex;
+  gap: 8px;
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 11: DENSITY-ADAPTIVE
+     ═══════════════════════════════════════════════════════════════ */
+
+  .density-toggle {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.05);
+}
+#cco-cal-v8-root .density-btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cco-text-secondary);
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+#cco-cal-v8-root .density-btn.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 238, 232, 0.9));
+  color: var(--cco-color-brand);
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+#cco-cal-v8-root .density-btn .density-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.6;
+}
+#cco-cal-v8-root /* Density-modes: tillämpas på .calendar-week */
+  .calendar-week[data-density="stressig"] .booking {
+  padding: 3px 5px 3px 9px;
+}
+#cco-cal-v8-root .calendar-week[data-density="stressig"] .booking-sub {
+  display: none;
+}
+#cco-cal-v8-root .calendar-week[data-density="stressig"] .booking-ai-badge {
+  padding: 1px 4px;
+  font-size: 8px;
+}
+#cco-cal-v8-root .calendar-week[data-density="stressig"] .booking-time {
+  font-size: 8px;
+}
+#cco-cal-v8-root .calendar-week[data-density="stressig"] .booking-title {
+  font-size: 10px;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking {
+  padding: 0;
+  min-height: 0;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking-time {
+  display: none;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking-sub {
+  display: none;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking-ai-badge {
+  display: none;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .noshow-mark {
+  display: none;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking-title {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  max-width: calc(100% - 22px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking::before {
+  width: 4px;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking::after {
+  width: 5px;
+  height: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 4px;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking:hover .booking-title {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 1px 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(56, 40, 28, 0.1);
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .lunch-block {
+  font-size: 0;
+  padding: 4px 8px;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .empty-slot {
+  font-size: 0;
+  padding: 0;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .empty-slot:hover {
+  font-size: 10px;
+  padding: 4px 8px;
+}
+#cco-cal-v8-root .calendar-week[data-density="maraton"] .booking {
+  animation: none !important;
+}
+#cco-cal-v8-root .calendar-week[data-density="stressig"] .booking[data-status="confirmed"] {
+  animation-duration: 6s;
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 12: LUGNT LÄGE (AI är arg → UI:t lugnar ner)
+     ═══════════════════════════════════════════════════════════════ */
+
+  .calm-toggle {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cco-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root .calm-toggle.is-active {
+  background: linear-gradient(180deg, #eef4f6, #d8e6ec);
+  color: #3a6b78;
+  border-color: rgba(74, 123, 168, 0.3);
+  box-shadow:
+    0 2px 8px rgba(74, 123, 168, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+#cco-cal-v8-root .calm-toggle .moon {
+  font-size: 11px;
+}
+#cco-cal-v8-root /* Lugnt läge: pågår via body[data-calm="on"] */
+  body[data-calm="on"] {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(232, 238, 242, 0.4), transparent 40%),
+    radial-gradient(ellipse at 88% 4%, rgba(230, 235, 242, 0.35), transparent 42%), #f4f1ec;
+}
+#cco-cal-v8-root [data-calm="on"] .calendar-surface {
+  filter: saturate(0.55) brightness(1.04);
+  transition: filter 0.6s ease;
+}
+#cco-cal-v8-root [data-calm="on"] .calendar-surface::before {
+  opacity: 0.5;
+}
+#cco-cal-v8-root /* Alla pulsande animationer pausas */
+  body[data-calm="on"] .booking {
+  animation: none !important;
+}
+#cco-cal-v8-root [data-calm="on"] .now-line::before {
+  animation: none !important;
+}
+#cco-cal-v8-root [data-calm="on"] .empty-slot[data-predictive]::before {
+  animation: none !important;
+  opacity: 0.5;
+}
+#cco-cal-v8-root [data-calm="on"] .conflict-curve {
+  opacity: 0.15 !important;
+}
+#cco-cal-v8-root [data-calm="on"] .conflict-curve.is-hot {
+  opacity: 0.42 !important;
+  animation: none !important;
+}
+#cco-cal-v8-root [data-calm="on"] .voice-orb {
+  animation: none;
+}
+#cco-cal-v8-root [data-calm="on"] .booking[data-noshow] {
+  animation: none !important;
+}
+#cco-cal-v8-root [data-calm="on"] .greet-sun {
+  animation-duration: 60s;
+}
+#cco-cal-v8-root /* Mer luft mellan bokningar i kalendern */
+  body[data-calm="on"] .calendar-week {
+  gap: 7px;
+}
+#cco-cal-v8-root [data-calm="on"] .booking {
+  left: 4px;
+  right: 4px;
+}
+#cco-cal-v8-root [data-calm="on"] .booking-ai-badge {
+  background: linear-gradient(180deg, #e8eef0, #cfdbe0);
+  color: #3a6b78;
+}
+#cco-cal-v8-root [data-calm="on"] .quick-pill--ai {
+  background: linear-gradient(180deg, #eef4f6, #d8e6ec);
+  color: #3a6b78;
+  border-color: rgba(74, 123, 168, 0.3);
+  box-shadow: 0 2px 6px rgba(74, 123, 168, 0.14);
+}
+#cco-cal-v8-root /* Diskret banner som förklarar */
+  .calm-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #eef4f6, #d8e6ec);
+  color: #3a6b78;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid rgba(74, 123, 168, 0.3);
+  box-shadow:
+    0 8px 24px rgba(74, 123, 168, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  z-index: 9500;
+  transition: transform 0.42s cubic-bezier(0.34, 1.32, 0.64, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.02em;
+}
+#cco-cal-v8-root .calm-banner.is-visible {
+  transform: translateX(-50%) translateY(0);
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 13: TID-MASKIN SLIDER
+     ═══════════════════════════════════════════════════════════════ */
+
+  .timemachine {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.05);
+}
+#cco-cal-v8-root .timemachine-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--cco-text-tertiary);
+  flex-shrink: 0;
+}
+#cco-cal-v8-root .timemachine-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--cco-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  min-width: 64px;
+  text-align: center;
+  transition: color 0.12s ease;
+}
+#cco-cal-v8-root .timemachine.is-past .timemachine-label {
+  color: var(--accent-studio);
+}
+#cco-cal-v8-root .timemachine.is-future .timemachine-label {
+  color: var(--cco-status-info);
+}
+#cco-cal-v8-root .timemachine input[type="range"] {
+  appearance: none;
+  width: 130px;
+  height: 16px;
+  background: transparent;
+  cursor: ew-resize;
+}
+#cco-cal-v8-root .timemachine input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(187, 71, 121, 0.4) 0%,
+    rgba(187, 71, 121, 0.15) 45%,
+    var(--calendar-accent) 50%,
+    rgba(74, 123, 168, 0.15) 55%,
+    rgba(74, 123, 168, 0.4) 100%
+  );
+  box-shadow: inset 0 1px 2px rgba(56, 40, 28, 0.08);
+}
+#cco-cal-v8-root .timemachine input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff, #f4ece2);
+  box-shadow:
+    0 0 0 1.5px var(--calendar-accent),
+    0 2px 6px rgba(200, 130, 30, 0.32);
+  margin-top: -5px;
+  cursor: grab;
+}
+#cco-cal-v8-root .timemachine input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(187, 71, 121, 0.4) 0%,
+    rgba(187, 71, 121, 0.15) 45%,
+    var(--calendar-accent) 50%,
+    rgba(74, 123, 168, 0.15) 55%,
+    rgba(74, 123, 168, 0.4) 100%
+  );
+}
+#cco-cal-v8-root .timemachine input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff, #f4ece2);
+  border: 1.5px solid var(--calendar-accent);
+  box-shadow: 0 2px 6px rgba(200, 130, 30, 0.32);
+  cursor: grab;
+}
+#cco-cal-v8-root /* Veckogrid får history-glow när vi inte är på nutid */
+  body[data-time-offset="0"] .calendar-week {
+  /* default */
+}
+#cco-cal-v8-root :not([data-time-offset="0"]):not([data-time-offset=""]) .calendar-week {
+  transition: filter 0.35s ease;
+}
+#cco-cal-v8-root [data-time-direction="past"] .calendar-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 100%, rgba(187, 71, 121, 0.12), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+  animation: historyGlow 3s ease-in-out infinite;
+}
+#cco-cal-v8-root [data-time-direction="future"] .calendar-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 0%, rgba(74, 123, 168, 0.1), transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+@keyframes historyGlow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+#cco-cal-v8-root /* Bokningar i historiskt läge — desaturade lite, #cco-cal-v8-root fade-status */
+  body[data-time-direction="past"] .booking {
+  filter: saturate(0.7) brightness(0.98);
+  animation-duration: 8s !important;
+}
+#cco-cal-v8-root [data-time-direction="past"] .now-line {
+  display: none;
+}
+#cco-cal-v8-root /* Undo-flash när Cmd+Z */
+  .undo-flash {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(187, 71, 121, 0.18), transparent 50%);
+  pointer-events: none;
+  z-index: 8500;
+  animation: undoFlash 0.5s ease-out forwards;
+}
+@keyframes undoFlash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 14: DRA FRÅN MEJL TILL SLOT (mini-inbox)
+     ═══════════════════════════════════════════════════════════════ */
+
+  .mini-inbox {
+  margin-top: 14px;
+  padding: 12px 12px 10px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 238, 232, 0.6));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+#cco-cal-v8-root .mini-inbox-kicker {
+  color: #84756b;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+#cco-cal-v8-root .mini-inbox-kicker .badge {
+  background: var(--accent-studio);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root .mail-thread {
+  position: relative;
+  padding: 7px 9px 7px 14px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 241, 236, 0.84));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--panel-card-shadow);
+  margin-bottom: 5px;
+  cursor: grab;
+  user-select: none;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+#cco-cal-v8-root .mail-thread:hover {
+  transform: translateX(2px);
+  box-shadow: var(--panel-card-shadow-hover);
+}
+#cco-cal-v8-root .mail-thread:active {
+  cursor: grabbing;
+}
+#cco-cal-v8-root .mail-thread::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--rail-color, var(--rail-info));
+  box-shadow: 0 0 4px var(--rail-color, var(--rail-info));
+}
+#cco-cal-v8-root .mail-thread[data-source="contact"] {
+  --rail-color: var(--rail-contact);
+}
+#cco-cal-v8-root .mail-thread[data-source="info"] {
+  --rail-color: var(--rail-info);
+}
+#cco-cal-v8-root .mail-thread[data-source="fazli"] {
+  --rail-color: var(--rail-fazli);
+}
+#cco-cal-v8-root .mail-thread[data-source="egzona"] {
+  --rail-color: var(--rail-egzona);
+}
+#cco-cal-v8-root .mail-from {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .mail-subj {
+  font-size: 10px;
+  color: var(--cco-text-secondary);
+  margin-top: 1px;
+  line-height: 1.3;
+}
+#cco-cal-v8-root .mail-meta {
+  font-size: 9px;
+  color: var(--cco-text-tertiary);
+  margin-top: 2px;
+  font-weight: 600;
+}
+#cco-cal-v8-root .mail-ai-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--calendar-accent-soft);
+  color: var(--calendar-accent);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root .mail-drag-clone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9700;
+  width: 220px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(247, 241, 236, 0.95));
+  box-shadow:
+    0 18px 38px rgba(56, 40, 28, 0.24),
+    0 0 0 2px var(--rail-color, var(--accent-studio));
+  transform: rotate(-2deg) scale(1.02);
+}
+#cco-cal-v8-root /* Kalendern blir preview-mode under mejl-drag */
+  body.is-mail-dragging .calendar-surface {
+  box-shadow:
+    var(--panel-shell-shadow-strong),
+    0 0 0 3px var(--rail-color, var(--accent-studio)),
+    0 0 60px var(--rail-color-glow, rgba(187, 71, 121, 0.32));
+  animation: dropHint 1.5s ease-in-out infinite;
+}
+@keyframes dropHint {
+  0%,
+  100% {
+    box-shadow:
+      var(--panel-shell-shadow-strong),
+      0 0 0 3px var(--rail-color, var(--accent-studio)),
+      0 0 60px var(--rail-color-glow, rgba(187, 71, 121, 0.22));
+  }
+  50% {
+    box-shadow:
+      var(--panel-shell-shadow-strong),
+      0 0 0 3px var(--rail-color, var(--accent-studio)),
+      0 0 90px var(--rail-color-glow, rgba(187, 71, 121, 0.45));
+  }
+}
+#cco-cal-v8-root .is-mail-dragging .day-slots {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      var(--rail-color-soft, rgba(187, 71, 121, 0.04)) 0,
+      var(--rail-color-soft, rgba(187, 71, 121, 0.04)) 6px,
+      transparent 6px,
+      transparent 12px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.32) 0,
+      rgba(255, 255, 255, 0.32) calc(var(--calendar-hour-h) - 1px),
+      rgba(132, 117, 107, 0.1) calc(var(--calendar-hour-h) - 1px),
+      rgba(132, 117, 107, 0.1) var(--calendar-hour-h)
+    );
+}
+#cco-cal-v8-root .is-mail-dragging .day-slots:hover {
+  box-shadow:
+    inset 0 0 0 2px var(--rail-color, var(--accent-studio)),
+    0 0 30px var(--rail-color-glow);
+}
+#cco-cal-v8-root /* Ny bokning poppar in när mejl släpps */
+  .booking.is-fresh {
+  animation: freshPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+@keyframes freshPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+    box-shadow: 0 0 0 4px var(--accent-studio);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow:
+      0 0 0 3px var(--accent-studio),
+      0 0 30px rgba(187, 71, 121, 0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: var(--panel-card-shadow);
+  }
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 15: AVATAR-BUBBLOR (Linear/Notion-mode)
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* Toggle-knapp i toolbar */
+  .avatar-toggle {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cco-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root .avatar-toggle.is-active {
+  background: linear-gradient(180deg, #efe6f4, #d8c6e3);
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, 0.32);
+  box-shadow:
+    0 2px 8px rgba(187, 71, 121, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+#cco-cal-v8-root /* Avatar-mode aktiveras via body */
+  body[data-avatar-mode="on"] .booking {
+  padding-left: 28px;
+}
+#cco-cal-v8-root [data-avatar-mode="on"] .booking::before {
+  /* Ta bort rail, ersätt med avatar */
+  display: none;
+}
+#cco-cal-v8-root .booking .avatar-bubble {
+  display: none;
+}
+#cco-cal-v8-root [data-avatar-mode="on"] .booking .avatar-bubble {
+  display: inline-flex;
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: white;
+  box-shadow:
+    0 0 0 2px white,
+    0 0 0 3.5px var(--rail-color, var(--rail-info)),
+    0 2px 4px rgba(56, 40, 28, 0.18);
+  z-index: 4;
+  background: var(--avatar-bg, linear-gradient(180deg, #d8c1f0, #b48ad6));
+  letter-spacing: -0.02em;
+}
+#cco-cal-v8-root [data-avatar-mode="on"] .booking::after {
+  /* Status-prick flyttar in i avataren som liten badge */
+  top: 50%;
+  right: auto;
+  left: 24px;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  margin-top: -8px;
+}
+#cco-cal-v8-root /* Avatar-färgvarianter per kund (mock — i prod blir det per initialer-hash) */
+  .avatar-bubble[data-init="AK"] {
+  --avatar-bg: linear-gradient(180deg, #d8c1f0, #b48ad6);
+}
+#cco-cal-v8-root .avatar-bubble[data-init="KL"] {
+  --avatar-bg: linear-gradient(180deg, #c5d8a8, #92b86e);
+}
+#cco-cal-v8-root .avatar-bubble[data-init="EJ"] {
+  --avatar-bg: linear-gradient(180deg, #ffd4b5, #f0a070);
+}
+#cco-cal-v8-root .avatar-bubble[data-init="MB"] {
+  --avatar-bg: linear-gradient(180deg, #b8d4e8, #7aa8d4);
+}
+#cco-cal-v8-root .avatar-bubble[data-init="SP"] {
+  --avatar-bg: linear-gradient(180deg, #f0c8c8, #d48484);
+}
+#cco-cal-v8-root .avatar-bubble[data-init="JS"] {
+  --avatar-bg: linear-gradient(180deg, #d4d4d4, #a8a8a8);
+}
+#cco-cal-v8-root .avatar-bubble[data-init="EV"] {
+  --avatar-bg: linear-gradient(180deg, #f4d4f0, #d48ac8);
+}
+#cco-cal-v8-root .avatar-bubble[data-init="SA"] {
+  --avatar-bg: linear-gradient(180deg, #ffe3b8, #e8a04e);
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 16: VIBE-VÄDER (tunn linje över veckan)
+     ═══════════════════════════════════════════════════════════════ */
+
+  .vibe-strip {
+  position: relative;
+  z-index: 1;
+  margin: 4px 4px 8px 52px; /* matchar grid: 48px tids-col + 4px gap */
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 8px 0;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(146, 194, 168, 0.18) 0%,
+    rgba(146, 194, 168, 0.18) 14.28%,
+    rgba(184, 212, 232, 0.16) 14.28%,
+    rgba(184, 212, 232, 0.16) 28.56%,
+    rgba(255, 236, 180, 0.22) 28.56%,
+    rgba(255, 236, 180, 0.22) 42.84%,
+    rgba(255, 200, 150, 0.24) 42.84%,
+    rgba(255, 200, 150, 0.24) 57.12%,
+    rgba(212, 140, 160, 0.26) 57.12%,
+    rgba(212, 140, 160, 0.26) 71.4%,
+    rgba(180, 200, 180, 0.18) 71.4%,
+    rgba(180, 200, 180, 0.18) 85.68%,
+    rgba(200, 180, 160, 0.16) 85.68%,
+    rgba(200, 180, 160, 0.16) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+#cco-cal-v8-root .vibe-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 14px;
+  cursor: help;
+  position: relative;
+  line-height: 1;
+}
+#cco-cal-v8-root .vibe-day .vibe-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .vibe-day:hover {
+  transform: scale(1.18);
+  transition: transform 0.15s ease;
+}
+#cco-cal-v8-root /* Tooltip */
+  .vibe-day .vibe-tip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(43, 37, 31, 0.94);
+  color: white;
+  font-size: 10.5px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+}
+#cco-cal-v8-root .vibe-day:hover .vibe-tip {
+  opacity: 1;
+}
+#cco-cal-v8-root .vibe-day .vibe-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(43, 37, 31, 0.94);
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     KUNDSÖK i top-nav (global Cmd+K-style)
+     ═══════════════════════════════════════════════════════════════ */
+
+  .top-nav {
+  gap: 12px;
+}
+#cco-cal-v8-root .global-search {
+  flex: 1;
+  max-width: 480px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 34px;
+  height: 32px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  margin: 0 8px;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+#cco-cal-v8-root .global-search.is-focused {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 4px 14px rgba(200, 130, 30, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 0 2px var(--calendar-accent-soft);
+}
+#cco-cal-v8-root .global-search svg.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .global-search input {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  font-size: 12.5px;
+  color: var(--cco-color-brand);
+  font-family: inherit;
+  outline: none;
+  padding: 0;
+}
+#cco-cal-v8-root .global-search input::placeholder {
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .global-search .kbd {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--cco-text-tertiary);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 1px 6px;
+  border-radius: 5px;
+  box-shadow: inset 0 -1px 0 rgba(132, 117, 107, 0.18);
+  font-family: SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root /* Search-overlay (full-screen) */
+  .search-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 24, 18, 0.32);
+  backdrop-filter: blur(8px);
+  z-index: 9700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+#cco-cal-v8-root .search-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+#cco-cal-v8-root .search-panel {
+  width: 540px;
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  border-radius: 22px;
+  box-shadow: var(--panel-shell-shadow-strong);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 0.28s cubic-bezier(0.34, 1.32, 0.64, 1);
+}
+#cco-cal-v8-root .search-overlay.is-visible .search-panel {
+  transform: translateY(0) scale(1);
+}
+#cco-cal-v8-root .search-panel-input {
+  position: relative;
+  padding: 14px 18px 12px 44px;
+  border-bottom: 1px solid rgba(132, 117, 107, 0.14);
+}
+#cco-cal-v8-root .search-panel-input svg {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--calendar-accent);
+}
+#cco-cal-v8-root .search-panel-input input {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cco-color-brand);
+  outline: none;
+  font-family: inherit;
+}
+#cco-cal-v8-root .search-panel-input input::placeholder {
+  color: var(--cco-text-tertiary);
+  font-weight: 500;
+}
+#cco-cal-v8-root .search-panel-kicker {
+  padding: 10px 18px 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .search-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 14px;
+}
+#cco-cal-v8-root .search-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+#cco-cal-v8-root .search-result:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+#cco-cal-v8-root .search-result.is-selected {
+  background: linear-gradient(180deg, rgba(255, 247, 234, 0.95), rgba(255, 228, 200, 0.7));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+#cco-cal-v8-root .search-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 2px 6px rgba(56, 40, 28, 0.16);
+  flex-shrink: 0;
+}
+#cco-cal-v8-root .search-result-meta {
+  flex: 1;
+  min-width: 0;
+}
+#cco-cal-v8-root .search-result-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+#cco-cal-v8-root .search-result-sub {
+  font-size: 11px;
+  color: var(--cco-text-secondary);
+  margin-top: 1px;
+}
+#cco-cal-v8-root .search-result-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+#cco-cal-v8-root .search-badge {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root .search-badge--vip {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+}
+#cco-cal-v8-root .search-badge--upcoming {
+  background: var(--cco-status-info-bg);
+  color: var(--cco-status-info);
+}
+#cco-cal-v8-root .search-badge--ready {
+  background: var(--cco-status-success-bg);
+  color: var(--cco-status-success);
+}
+#cco-cal-v8-root .search-badge--risk {
+  background: var(--cco-status-warning-bg);
+  color: var(--cco-status-warning);
+}
+#cco-cal-v8-root .search-result-arrow {
+  color: var(--cco-text-tertiary);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+#cco-cal-v8-root .search-empty {
+  padding: 32px 18px;
+  text-align: center;
+  color: var(--cco-text-tertiary);
+  font-size: 12px;
+}
+#cco-cal-v8-root .search-footer {
+  padding: 8px 14px;
+  border-top: 1px solid rgba(132, 117, 107, 0.12);
+  display: flex;
+  gap: 10px;
+  font-size: 10.5px;
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .search-footer kbd {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: SFMono-Regular, Menlo, monospace;
+  box-shadow: inset 0 -1px 0 rgba(132, 117, 107, 0.18);
+  font-size: 9.5px;
+  margin: 0 2px;
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     STATUS-ROW horisontellt under toolbar (inte ihoptryckt)
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* ───── Toolbar = ALLTID exakt 2 rader ───── */
+  .calendar-toolbar {
+  padding-bottom: 12px;
+  box-shadow: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+}
+#cco-cal-v8-root .calendar-toolbar-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+#cco-cal-v8-root .calendar-toolbar-main h2 {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+#cco-cal-v8-root .calendar-toolbar-actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+#cco-cal-v8-root .calendar-status-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 14px;
+  margin-top: -4px;
+  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+#cco-cal-v8-root .calendar-status-bar::-webkit-scrollbar {
+  display: none;
+}
+#cco-cal-v8-root .calendar-status-bar .status-pill {
+  flex-shrink: 0;
+}
+#cco-cal-v8-root .calendar-status-bar .spacer {
+  flex: 1 0 8px;
+  min-width: 8px;
+}
+#cco-cal-v8-root .calendar-status-bar .week-pill {
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+#cco-cal-v8-root /* ═══════════════════════════════════════════════════════════════
+     INTERAKTION 17: KUNDDOSSIER (höger-kolumn context-byte)
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* När context=customer: dölj booking-intel, #cco-cal-v8-root visa dossier */
+  .intel-shell[data-context="booking"] .intel-customer-view {
+  display: none;
+}
+#cco-cal-v8-root .intel-shell[data-context="customer"] .intel-booking-view {
+  display: none;
+}
+#cco-cal-v8-root .intel-shell {
+  transition: padding 0.25s ease;
+}
+#cco-cal-v8-root .intel-shell[data-context="customer"] {
+  padding: 18px 0 0;
+}
+#cco-cal-v8-root .intel-shell[data-context="customer"]::before {
+  background:
+    radial-gradient(circle at 14% 6%, rgba(255, 255, 255, 0.55), transparent 28%),
+    radial-gradient(circle at 78% 10%, rgba(255, 228, 200, 0.4), transparent 30%);
+}
+#cco-cal-v8-root /* Top: avatar + namn + kontakt + close */
+  .dossier-head {
+  padding: 0 22px 14px;
+  display: flex;
+  gap: 12px;
+  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  align-items: flex-start;
+}
+#cco-cal-v8-root .dossier-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 6px 16px rgba(56, 40, 28, 0.18);
+  flex-shrink: 0;
+}
+#cco-cal-v8-root .dossier-head-body {
+  flex: 1;
+  min-width: 0;
+}
+#cco-cal-v8-root .dossier-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-studio);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+#cco-cal-v8-root .dossier-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+#cco-cal-v8-root .dossier-contact {
+  font-size: 11px;
+  color: var(--cco-text-secondary);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+#cco-cal-v8-root .dossier-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+#cco-cal-v8-root .dossier-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+#cco-cal-v8-root .dossier-tag--vip {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+}
+#cco-cal-v8-root .dossier-tag--lifecycle {
+  background: var(--cco-status-info-bg);
+  color: var(--cco-status-info);
+}
+#cco-cal-v8-root .dossier-tag--engagement {
+  background: var(--cco-status-success-bg);
+  color: var(--cco-status-success);
+}
+#cco-cal-v8-root .dossier-tag--risk {
+  background: var(--cco-status-warning-bg);
+  color: var(--cco-status-warning);
+}
+#cco-cal-v8-root .dossier-close {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--cco-text-tertiary);
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+#cco-cal-v8-root .dossier-close:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root /* Quick-stats row (visits, #cco-cal-v8-root revenue, #cco-cal-v8-root engagement) */
+  .dossier-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 14px 18px 0;
+}
+#cco-cal-v8-root .dossier-stat {
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(247, 241, 236, 0.7));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+#cco-cal-v8-root .dossier-stat-label {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .dossier-stat-value {
+  font-size: 15px;
+  font-weight: 800;
+  margin-top: 2px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .dossier-stat-trend {
+  font-size: 9px;
+  margin-top: 1px;
+  color: var(--cco-status-success);
+  font-weight: 700;
+}
+#cco-cal-v8-root /* Scrollbar wrapper för sektionerna */
+  .dossier-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 18px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(132, 117, 107, 0.34) transparent;
+}
+#cco-cal-v8-root .dossier-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+#cco-cal-v8-root .dossier-scroll::-webkit-scrollbar-thumb {
+  background: rgba(132, 117, 107, 0.34);
+  border-radius: 999px;
+}
+#cco-cal-v8-root /* Dossier-sektion */
+  .dossier-section {
+  margin-bottom: 14px;
+}
+#cco-cal-v8-root .dossier-section summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cco-text-tertiary);
+  padding: 6px 0 8px;
+  user-select: none;
+}
+#cco-cal-v8-root .dossier-section summary::-webkit-details-marker {
+  display: none;
+}
+#cco-cal-v8-root .dossier-section summary::before {
+  content: "▸";
+  color: var(--cco-text-tertiary);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+  display: inline-block;
+}
+#cco-cal-v8-root .dossier-section[open] summary::before {
+  transform: rotate(90deg);
+}
+#cco-cal-v8-root .dossier-section summary .count {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--cco-text-tertiary);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root /* Booking-rad (upcoming + history) */
+  .dossier-booking {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 11px 9px 16px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(247, 241, 236, 0.62));
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: var(--panel-card-shadow);
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+#cco-cal-v8-root .dossier-booking:hover {
+  transform: translateX(2px);
+  box-shadow: var(--panel-card-shadow-hover);
+}
+#cco-cal-v8-root .dossier-booking::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--rail-color, var(--rail-info));
+  box-shadow: 0 0 4px var(--rail-color, var(--rail-info));
+}
+#cco-cal-v8-root .dossier-booking[data-source="contact"] {
+  --rail-color: var(--rail-contact);
+}
+#cco-cal-v8-root .dossier-booking[data-source="info"] {
+  --rail-color: var(--rail-info);
+}
+#cco-cal-v8-root .dossier-booking[data-source="fazli"] {
+  --rail-color: var(--rail-fazli);
+}
+#cco-cal-v8-root .dossier-booking[data-source="egzona"] {
+  --rail-color: var(--rail-egzona);
+}
+#cco-cal-v8-root .db-date {
+  flex-shrink: 0;
+  text-align: center;
+  min-width: 40px;
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .db-date .day {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#cco-cal-v8-root .db-date .num {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--cco-color-brand);
+  font-variant-numeric: tabular-nums;
+}
+#cco-cal-v8-root .db-date .mon {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+#cco-cal-v8-root .db-meta {
+  flex: 1;
+  min-width: 0;
+}
+#cco-cal-v8-root .db-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+}
+#cco-cal-v8-root .db-sub {
+  font-size: 10.5px;
+  color: var(--cco-text-secondary);
+  margin-top: 1px;
+}
+#cco-cal-v8-root .db-status {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+#cco-cal-v8-root .db-status[data-state="ready"] {
+  background: var(--cco-status-success-bg);
+  color: var(--cco-status-success);
+}
+#cco-cal-v8-root .db-status[data-state="warn"] {
+  background: var(--cco-status-warning-bg);
+  color: var(--cco-status-warning);
+}
+#cco-cal-v8-root .db-status[data-state="done"] {
+  background: rgba(132, 117, 107, 0.16);
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .db-status[data-state="noshow"] {
+  background: var(--cco-status-danger-bg);
+  color: var(--cco-status-danger);
+}
+#cco-cal-v8-root /* Filer-grid */
+  .dossier-files {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+#cco-cal-v8-root .dossier-file {
+  aspect-ratio: 1;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(247, 241, 236, 0.66));
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: var(--panel-card-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+  position: relative;
+  overflow: hidden;
+}
+#cco-cal-v8-root .dossier-file:hover {
+  transform: scale(1.05);
+}
+#cco-cal-v8-root .dossier-file-icon {
+  font-size: 22px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+#cco-cal-v8-root .dossier-file-name {
+  font-size: 9px;
+  color: var(--cco-text-secondary);
+  text-align: center;
+  font-weight: 600;
+}
+#cco-cal-v8-root .dossier-file-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--cco-status-success);
+  color: white;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 999px;
+}
+#cco-cal-v8-root /* Anteckningar */
+  .dossier-note {
+  padding: 9px 11px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.62);
+  border-left: 2px solid var(--accent-studio);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  margin-bottom: 5px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+#cco-cal-v8-root .dossier-note-meta {
+  font-size: 9.5px;
+  color: var(--cco-text-tertiary);
+  margin-top: 4px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+#cco-cal-v8-root /* Kommunikation timeline */
+  .dossier-comm {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+#cco-cal-v8-root .dossier-comm-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+#cco-cal-v8-root .dossier-comm-icon[data-type="mail"] {
+  background: var(--cco-status-info-bg);
+  color: var(--cco-status-info);
+}
+#cco-cal-v8-root .dossier-comm-icon[data-type="sms"] {
+  background: var(--cco-status-success-bg);
+  color: var(--cco-status-success);
+}
+#cco-cal-v8-root .dossier-comm-icon[data-type="call"] {
+  background: var(--cco-status-warning-bg);
+  color: var(--cco-status-warning);
+}
+#cco-cal-v8-root .dossier-comm-body {
+  flex: 1;
+  min-width: 0;
+}
+#cco-cal-v8-root .dossier-comm-text {
+  color: var(--cco-color-brand);
+  font-weight: 600;
+}
+#cco-cal-v8-root .dossier-comm-meta {
+  font-size: 9.5px;
+  color: var(--cco-text-tertiary);
+  margin-top: 1px;
+}
+#cco-cal-v8-root /* Ekonomi */
+  .dossier-economy {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+#cco-cal-v8-root .dossier-money {
+  padding: 9px 11px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(247, 241, 236, 0.65));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+#cco-cal-v8-root .dossier-money-label {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cco-text-tertiary);
+}
+#cco-cal-v8-root .dossier-money-value {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+  letter-spacing: -0.02em;
+}
+#cco-cal-v8-root /* AI-insikter */
+  .dossier-insight {
+  position: relative;
+  padding: 10px 12px 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.78));
+  border-left: 3px solid var(--calendar-accent);
+  box-shadow:
+    0 3px 10px var(--calendar-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  line-height: 1.5;
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease;
+}
+#cco-cal-v8-root .dossier-insight:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 16px var(--calendar-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+#cco-cal-v8-root .dossier-insight::before {
+  content: "★ AI";
+  display: block;
+  color: var(--calendar-accent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin-bottom: 3px;
+}
+#cco-cal-v8-root .dossier-insight strong {
+  color: var(--calendar-accent);
+}
+#cco-cal-v8-root /* Sticky actions */
+  .dossier-actions {
+  flex-shrink: 0;
+  padding: 12px 18px 18px;
+  background: linear-gradient(180deg, transparent, rgba(244, 238, 233, 0.96) 30%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+#cco-cal-v8-root .dossier-actions .quick-pill {
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: 11px;
+}
+#cco-cal-v8-root .dossier-actions .full {
+  grid-column: 1 / -1;
+}
+#cco-cal-v8-root /* Breadcrumb i top-nav */
+  .breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  font-size: 11.5px;
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 2px 8px rgba(187, 71, 121, 0.14);
+  margin-left: -4px;
+  animation: bcSlide 0.25s cubic-bezier(0.34, 1.32, 0.64, 1);
+}
+@keyframes bcSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+#cco-cal-v8-root .breadcrumb .back {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--accent-studio);
+  cursor: pointer;
+}
+#cco-cal-v8-root .breadcrumb .who {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+#cco-cal-v8-root /* Booking-highlight när kund är vald (alla bokningar för kunden glödger) */
+  .booking.dossier-highlight {
+  box-shadow:
+    0 0 0 2px var(--accent-studio),
+    0 0 22px rgba(187, 71, 121, 0.45),
+    var(--panel-card-shadow) !important;
+  z-index: 6;
+}
+#cco-cal-v8-root /* Ghost-suggestion bokning från AI-insikt */
+  .ghost-suggestion {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  padding: 5px 7px 5px 12px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(255, 247, 234, 0.95), rgba(255, 228, 200, 0.85));
+  border: 2px dashed var(--calendar-accent);
+  color: var(--calendar-accent);
+  font-size: 10px;
+  font-weight: 700;
+  z-index: 4;
+  animation: ghostFloat 2s ease-in-out infinite;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+@keyframes ghostFloat {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--calendar-accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 18px var(--calendar-accent-glow);
+  }
+}
+#cco-cal-v8-root .ghost-suggestion::before {
+  content: "★ AI · Förslag";
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--calendar-accent);
+  opacity: 0.8;
+}
+
+/* ── Flagg-grindning (ej scopad — styr synlighet) ──────────────────────────
+ * När data-calendar-v8="on": göm legacy-kalendern, visa #cco-cal-v8-root.
+ * Göm även facitens egna top-nav (app-skalet har redan global nav). */
+html[data-calendar-v8="on"]
+  .preview-canvas[data-app-shell-view="calendar"]
+  .preview-workspace
+  > .calendar-shell {
+  display: none !important;
+}
+#cco-cal-v8-root {
+  display: block;
+}
+#cco-cal-v8-root .top-nav {
+  display: none;
+}
+
+/* ── P2-fidelity: facit lämnade dag/resurs halvbyggda (bara morgon↔vecka hade
+ * data-mode-regler). Göm morgon-story i ALLA icke-morgon-lägen och visa
+ * veckogriden, så Dag/Resurs faktiskt byter vy (med riktig data). */
+#cco-cal-v8-root .calendar-content:not([data-mode="morgon"]) .morgon-story {
+  display: none;
+}
+#cco-cal-v8-root .calendar-content[data-mode="dag"] .calendar-week,
+#cco-cal-v8-root .calendar-content[data-mode="resurs"] .calendar-week {
+  display: grid;
+}
+
+/* Dag-läge: visa bara dagens kolumn (true single-day; facit lämnade det som
+ * hela veckan). populateGridsReal sätter .is-today på rätt kolumn. */
+#cco-cal-v8-root .calendar-content[data-mode="dag"] .day-col:not(.is-today) {
+  display: none;
+}
+#cco-cal-v8-root .calendar-content[data-mode="dag"] .day-col.is-today {
+  flex: 1 1 auto;
+}
+
+/* ── iPad liggande (835–1024px): 3-panel → 2-panel ─────────────────────────
+ * Göm vänster arbetslista, behåll kalender + höger dossiér. Större träffytor. */
+@media (min-width: 835px) and (max-width: 1024px) {
+  #cco-cal-v8-root .app-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 14px;
+  }
+  #cco-cal-v8-root .side-shell {
+    display: none;
+  }
+  #cco-cal-v8-root .watch-widget {
+    display: none;
+  }
+  #cco-cal-v8-root .segment-tab,
+  #cco-cal-v8-root .nav-btn {
+    min-height: 40px;
+  }
+}
+
+/* ── Tillgänglighet: tap-targets ≥44×44 på touch (endast grov pekare) ─────── */
+@media (pointer: coarse) {
+  #cco-cal-v8-root .segment-tab,
+  #cco-cal-v8-root .nav-btn,
+  #cco-cal-v8-root .story-cta,
+  #cco-cal-v8-root .quick-pill {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  #cco-cal-v8-root .booking {
+    min-height: 44px;
+  }
+  #cco-cal-v8-root .side-link {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+}

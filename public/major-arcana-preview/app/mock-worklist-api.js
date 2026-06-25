@@ -1,8 +1,8 @@
 /**
  * app/mock-worklist-api.js — fetch-interceptor för demo-mode (utan token).
  *
- * När ARCANA_ADMIN_TOKEN saknas: intercepta CCO-API-anrop och returnera
- * benign 200-responser så att appen INTE går in i auth_required-state.
+ * I lokal/demo-preview utan ARCANA_ADMIN_TOKEN: intercepta CCO-API-anrop och
+ * returnera benign 200-responser så att appen INTE går in i auth_required-state.
  *
  * Mål: eliminera behovet av FIX14 (card-injektor) i runtime-demo-fixture
  * eftersom state.runtime.threads (i __stateInternal) redan har 6 demo-
@@ -12,7 +12,7 @@
  * conversation-detail-endpoint — kvarstår tills vidare.
  *
  * Strategi:
- *  - Bara aktiv när ingen token finns (= demo-mode)
+ *  - Bara aktiv lokalt eller med explicit demo-flagga när ingen token finns
  *  - Returnerar tomma `{rows:[], items:[], summary:{}}` för worklist-endpoints
  *  - Returnerar tomma successobjekt för andra CCO-endpoints
  *  - /api/v1/auth/me returnerar fake-profil
@@ -21,12 +21,42 @@
 (() => {
   'use strict';
 
+  function isExplicitDemoMode() {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      return (
+        window.__ARCANA_ENABLE_MOCK_API === true ||
+        params.get('mockApi') === '1' ||
+        params.get('demo') === '1'
+      );
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function isLocalDemoHost() {
+    try {
+      const protocol = window.location.protocol;
+      const host = window.location.hostname;
+      return (
+        protocol === 'file:' ||
+        host === 'localhost' ||
+        host === '127.0.0.1' ||
+        host === '::1' ||
+        host.endsWith('.local')
+      );
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function isDemoMode() {
+    if (!isExplicitDemoMode() && !isLocalDemoHost()) return false;
     try {
       const token = localStorage.getItem('ARCANA_ADMIN_TOKEN');
       return !token || token === 'DEMO' || token === 'demo';
     } catch (_e) {
-      return true;
+      return isLocalDemoHost() || isExplicitDemoMode();
     }
   }
 

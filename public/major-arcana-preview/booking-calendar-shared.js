@@ -127,7 +127,12 @@
   }
 
   function slotDurationMinutes(slot) {
-    return Math.max(15, slotEndMinutes(slot) - slotStartMinutes(slot));
+    var start = slotStartMinutes(slot);
+    var end = slotEndMinutes(slot);
+    // Midnatt-spännande bokning (t.ex. 23:30→00:30): sluttiden rullar över till
+    // nästa dygn. Utan +1440 blir varaktigheten negativ och klampas till 15 min.
+    if (end <= start) end += 1440;
+    return Math.max(15, end - start);
   }
 
   function eventKey(event) {

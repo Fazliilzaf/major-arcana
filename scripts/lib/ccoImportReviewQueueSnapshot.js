@@ -4,6 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadSummary } = require('../../src/ops/ccoImportReviewReadService');
 
+delete require.cache[require.resolve('../../src/config.js')];
+const { config } = require('../../src/config.js');
+
 function loadReference(root) {
   const refPath = path.join(root, 'config/cco-import-review-queue-reference.json');
   if (!fs.existsSync(refPath)) return null;
@@ -20,6 +23,7 @@ function collectImportReviewQueueStatus({ root }) {
   }
 
   if (live && !live.referenceFallback && live.sources?.length) {
+    const writeEnabled = config.enableImportReviewWrite === true;
     return {
       generatedAt: live.generatedAt,
       total: live.total,
@@ -36,9 +40,11 @@ function collectImportReviewQueueStatus({ root }) {
       })),
       dataSource: live.dataSource,
       liveQueuePath: live.liveQueuePath,
-      operatorNote: live.operatorNote || 'Read-only kö — ingen auto-import · ingen ny kund',
+      operatorNote: live.operatorNote || 'Manuell batch — ingen auto-import · ingen ny kund',
       operatorToolPath: '/cco-import-review.html',
-      writeEnabled: false,
+      writeEnabled,
+      readOnly: !writeEnabled,
+      canaryMaxDecisions: config.importReviewCanaryMax,
       operatorScope: true,
       driveOrphanNote: live.driveOrphanNote,
     };
@@ -61,9 +67,11 @@ function collectImportReviewQueueStatus({ root }) {
     sources,
     dataSource: 'reference_snapshot',
     liveQueuePath: null,
-    operatorNote: 'Read-only kö — ingen auto-import · ingen ny kund',
+    operatorNote: 'Manuell batch — ingen auto-import · ingen ny kund',
     operatorToolPath: '/cco-import-review.html',
-    writeEnabled: false,
+    writeEnabled: config.enableImportReviewWrite === true,
+    readOnly: config.enableImportReviewWrite !== true,
+    canaryMaxDecisions: config.importReviewCanaryMax,
     operatorScope: true,
   };
 }

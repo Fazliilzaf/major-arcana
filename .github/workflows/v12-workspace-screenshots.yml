@@ -1,0 +1,187 @@
+name: v12-workspace-screenshots
+
+# Genererar riktiga PNG-screenshots (390/820/1440) av V12 Customer Workspace-
+# moduler via headless chromium på GitHub-runner (öppen internet). Laddar upp
+# PNG:erna som build-artifact för granskning. Ingen annan kodändring.
+
+on:
+  push:
+    branches:
+      - "claude/v12-workspace-**"
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Journal module screenshots (Block 0)
+        run: npm run shots:v12workspace:journal
+
+      - name: Upload Journal screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-journal-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-journal/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Active Visit module screenshots (Block 2)
+        run: npm run shots:v12workspace:activevisit
+
+      - name: Upload Active Visit screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-active-visit-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-active-visit/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Critical Warnings module screenshots (Block 3)
+        run: npm run shots:v12workspace:warnings
+
+      - name: Upload Critical Warnings screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-warnings-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-warnings/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Bookings module screenshots (Block 4)
+        run: npm run shots:v12workspace:bookings
+
+      - name: Upload Bookings screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-bookings-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-bookings/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Health module screenshots (Block 5)
+        run: npm run shots:v12workspace:health
+
+      - name: Upload Health screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-health-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-health/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Insights module screenshots (Block 6)
+        run: npm run shots:v12workspace:insights
+
+      - name: Upload Insights screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-insights-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-insights/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Current State module screenshots (Block 7)
+        run: npm run shots:v12workspace:currentstate
+
+      - name: Upload Current State screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-current-state-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-current-state/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Journey module screenshots (Block 8)
+        run: npm run shots:v12workspace:journey-steps
+
+      - name: Upload Journey screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-journey-steps-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-journey-steps/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Sticky action bar module screenshots (Block 9)
+        run: npm run shots:v12workspace:sticky
+
+      - name: Upload Sticky action bar screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-sticky-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-sticky/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Documents module screenshots (Block 10)
+        run: npm run shots:v12workspace:documents
+
+      - name: Upload Documents screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-documents-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-documents/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Photos module screenshots (Block 11)
+        run: npm run shots:v12workspace:photos
+
+      - name: Upload Photos screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-photos-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-photos/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Communication module screenshots (Block 12)
+        run: npm run shots:v12workspace:communication
+
+      - name: Upload Communication screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-communication-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-communication/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Generate Economy module screenshots (Block 13)
+        run: npm run shots:v12workspace:economy
+
+      - name: Upload Economy screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-economy-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-economy/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Verify + screenshot deep-link → V12 section (GAP-1)
+        run: npm run shots:v12workspace:deeplink
+
+      - name: Upload Deep-link screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-workspace-deeplink-screenshots
+          path: docs/handover/MOCKUPS/v12-workspace-deeplink/*.png
+          if-no-files-found: error
+          retention-days: 30

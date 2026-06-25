@@ -144,7 +144,7 @@ test('clearConsultationPhotoAttachments keeps non-smoke photos when smokeOnly', 
   assert.equal(cleared.entry.attachments[0].photoId, 'photo-real');
 });
 
-test('deleteEntry tar bort dubblett av hälsodeklaration men behåller sista', async () => {
+test('deleteEntry tar bort osignerad dubblett av hälsodeklaration men behåller sista', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-store-delete-'));
   const store = await createCcoJournalStore({ filePath: path.join(dir, 'journal.json') });
   const actor = { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' };
@@ -153,23 +153,18 @@ test('deleteEntry tar bort dubblett av hälsodeklaration men behåller sista', a
     {
       tenantId: 'hair-tp-clinic',
       patientId: 'patient-1',
+      entryId: 'health-declaration-1',
       journalType: 'health_declaration',
       title: 'Hälsodeklaration 1',
       fields: { personnummer: '19900101-1234' },
     },
     { actor }
   );
-  await store.signEntry({
-    tenantId: 'hair-tp-clinic',
-    patientId: 'patient-1',
-    entryId: first.entryId,
-    actor,
-  });
-
   const second = await store.upsertEntry(
     {
       tenantId: 'hair-tp-clinic',
       patientId: 'patient-1',
+      entryId: 'health-declaration-2',
       journalType: 'health_declaration',
       title: 'Hälsodeklaration 2',
       fields: { personnummer: '19900101-1234' },

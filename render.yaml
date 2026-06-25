@@ -208,3 +208,17 @@ services:
         value: "50"
       - key: ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS
         value: "30"
+      # Photo Review — controlled completion canary (max 25 beslut/batch, ett beslut per bild)
+      - key: ENABLE_CCO_OPERATOR_CANARY
+        value: "true"
+      - key: ENABLE_PHOTO_REVIEW_WRITE
+        value: "true"
+      - key: ENABLE_PHOTO_REVIEW_CANARY_ON_PROD
+        value: "true"
+      - key: PHOTO_REVIEW_CANARY_MAX_DECISIONS
+        value: "25"
+      # Import Review — controlled completion canary (max 25 beslut/batch, stark match only)
+      - key: ENABLE_IMPORT_REVIEW_WRITE
+        value: "true"
+      - key: IMPORT_REVIEW_CANARY_MAX_DECISIONS
+        value: "25"

@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-06-25",
+  "ownerConfirmed": true,
+  "ownerNote": "Nordbro 251203 + Insatt GDPR-underlag är säkraste juridiska källor. Meridiq apiId behålls för koppling; brödtext från Nordbro/Insatt vid konflikt.",
+  "priorityOrder": ["nordbro", "insatt", "meridiq_structure", "internal_draft"],
+  "facitSets": {
+    "nordbro_advokat_97": {
+      "label": "SharePoint 97. Versioner från advokat",
+      "canonical": true,
+      "documents": [
+        {
+          "id": "agreement_hair_tp_dhi_2day_nordbro",
+          "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+          "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+          "version": "251203",
+          "legalReviewStatus": "nordbro_approved",
+          "meridiqApiIds": [170917],
+          "ccoTemplateRef": "agreement_hair_tp_dhi_2day_nordbro",
+          "facitJson": "migration/meridiq/steg7-tp-dhi-agreement-facit.json",
+          "status": "P0_CANONICAL",
+          "source": "sharepoint_nordbro",
+          "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+          "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+          "textHash": "5a88840a2935",
+          "syncedAt": "2026-06-25T18:59:13.931Z",
+          "revisions": [
+            {
+              "version": "251203",
+              "source": "sharepoint_nordbro",
+              "legalReviewStatus": "nordbro_approved",
+              "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+              "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+              "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+              "textHash": "5a88840a2935",
+              "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+              "syncedAt": "2026-06-25T18:58:09.475Z",
+              "replaceReason": "sharepoint_resync_inventory",
+              "archivedAt": "2026-06-25T18:58:09.475Z"
+            }
+          ]
+        },
+        {
+          "id": "agreement_hair_tp_dhi_7day_nordbro",
+          "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 7 dagar1.docx",
+          "version": "251203",
+          "legalReviewStatus": "nordbro_approved",
+          "status": "DEPRECATED_ALTERNATIVE",
+          "replacedBy": "agreement_hair_tp_dhi_2day_nordbro",
+          "source": "sharepoint_nordbro",
+          "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+          "sha256": "811e2b04a9e0973fdb407d212e60cb241ab1ce543a72c80d51bd3b640acb85b4",
+          "textHash": "811e2b04a9e0",
+          "syncedAt": "2026-06-25T18:59:13.931Z",
+          "revisions": [
+            {
+              "version": "251203",
+              "source": "sharepoint_nordbro",
+              "legalReviewStatus": "nordbro_approved",
+              "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 7 dagar1.docx",
+              "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+              "localWord": "251203-behandlingsavtal-dhi-7dagar.docx",
+              "textHash": "811e2b04a9e0",
+              "sha256": "811e2b04a9e0973fdb407d212e60cb241ab1ce543a72c80d51bd3b640acb85b4",
+              "syncedAt": "2026-06-25T18:58:09.475Z",
+              "replaceReason": "sharepoint_resync_graph",
+              "archivedAt": "2026-06-25T18:58:09.475Z"
+            }
+          ]
+        },
+        {
+          "id": "agreement_hair_tp_prp_nordbro",
+          "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+          "version": "251203",
+          "legalReviewStatus": "nordbro_approved",
+          "meridiqApiIds": [170944, 170945],
+          "ccoTemplateRef": "meridiq_consent_behandlingsavtal_prp_hud_170944",
+          "facitJson": "migration/meridiq/prp-behandling-agreement-facit.json",
+          "status": "P1_CANONICAL",
+          "batch": "P1",
+          "source": "sharepoint_nordbro",
+          "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+          "sha256": "2023fc53aba6c8fe8cc25adde53b5785deac0e3fedb9a0c516a08c56a6c0164f",
+          "textHash": "2023fc53aba6",
+          "syncedAt": "2026-06-25T18:59:13.931Z",
+          "revisions": [
+            {
+              "version": "251203",
+              "source": "sharepoint_nordbro",
+              "legalReviewStatus": "nordbro_approved",
+              "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+              "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/97. Versioner från advokat",
+              "localWord": "251203-behandlingsavtal-prp.docx",
+              "textHash": "2023fc53aba6",
+              "sha256": "2023fc53aba6c8fe8cc25adde53b5785deac0e3fedb9a0c516a08c56a6c0164f",
+              "syncedAt": "2026-06-25T18:58:09.475Z",
+              "replaceReason": "sharepoint_resync_graph",
+              "archivedAt": "2026-06-25T18:58:09.475Z"
+            }
+          ]
+        }
+      ]
+    },
+    "insatt_htpc": {
+      "label": "SharePoint INSATT - HTPC",
+      "canonical": false,
+      "supersededBy": "nordbro_advokat_97",
+      "documents": [
+        {
+          "id": "agreement_hair_tp_fue_insatt",
+          "sharepointFile": "TP Avtal.docx",
+          "version": "2025-04-30",
+          "legalReviewStatus": "insatt_approved",
+          "status": "SKIP_OLD",
+          "source": "sharepoint_insatt",
+          "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/INSATT - HTPC",
+          "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+          "textHash": "5a88840a2935",
+          "syncedAt": "2026-06-25T18:59:13.931Z",
+          "revisions": [
+            {
+              "version": "2025-04-30",
+              "source": "sharepoint_insatt",
+              "legalReviewStatus": "insatt_approved",
+              "sharepointFile": "TP Avtal.docx",
+              "sharepointFolder": "General/1. Kunddokument - KVALITETSSÄKRA/INSATT - HTPC",
+              "localWord": "insatt-tp-avtal.docx",
+              "textHash": "5a88840a2935",
+              "sha256": "5a88840a29350afff480c5c4794387ad71e7538b576fcbb3122eb09966c227a7",
+              "syncedAt": "2026-06-25T18:58:09.475Z",
+              "replaceReason": "sharepoint_resync_inventory",
+              "archivedAt": "2026-06-25T18:58:09.475Z"
+            }
+          ]
+        }
+      ]
+    },
+    "insatt_gdpr": {
+      "label": "docs/legal/juridik-gdpr + Insatt nulägesanalys",
+      "role": "compliance_requirements",
+      "notPatientFacingTemplates": true
+    }
+  },
+  "p0Scope": {
+    "batch": "P0",
+    "meridiqBindings": [
+      {
+        "apiId": 170917,
+        "role": "treatment_agreement_tp_dhi",
+        "primarySource": "nordbro",
+        "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+        "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json"
+      },
+      {
+        "apiId": 170955,
+        "role": "cooling_period_consent",
+        "primarySource": "nordbro",
+        "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json#cooling"
+      }
+    ]
+  },
+  "p1Scope": {
+    "batch": "P1",
+    "meridiqBindings": [
+      {
+        "apiId": 170944,
+        "role": "treatment_agreement_prp_skin",
+        "primarySource": "nordbro",
+        "templateRef": "agreement_hair_tp_prp_nordbro",
+        "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json"
+      },
+      {
+        "apiId": 170945,
+        "role": "treatment_agreement_prp_hair",
+        "primarySource": "nordbro",
+        "templateRef": "agreement_hair_tp_prp_nordbro",
+        "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json"
+      }
+    ]
+  },
+  "ownerConfirmation": {
+    "confirmedAt": "2026-06-25T18:59:13.931Z",
+    "confirmedBy": "owner",
+    "rule": "97. Versioner från advokat + Insatt-mapp är facit-set; inga nyare juridiska versioner utanför",
+    "noNewerVersionsOutside": true,
+    "sharepointResyncRun": "2026-06-25T18:59:13.931Z"
+  },
+  "lastSharePointResync": "2026-06-25T18:59:13.931Z"
+}

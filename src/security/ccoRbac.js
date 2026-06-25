@@ -45,6 +45,9 @@ const PERMISSIONS = {
   // Conversations / mail
   'mail.read': ['owner', 'operator', 'konsult'],
   'mail.send': ['owner', 'operator', 'konsult'],
+  // mail.live_send: owner-only grind för faktiskt utskick (queued → sent).
+  // Skrivs aldrig live i denna build — rutten är ändå hårt blockerad.
+  'mail.live_send': ['owner'],
   'mail.delete': ['owner', 'operator'],
   'mail.assign': ['owner', 'operator'],
   'mailbox.admin': ['owner', 'operator'],
@@ -161,6 +164,10 @@ const PERMISSIONS = {
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
 
 /** Map auth/session roles (OWNER/STAFF) → ccoRbac permission roles. */
+// SÄKERHET: aliaset `admin: 'owner'` borttaget — det utfärdas aldrig av auth
+// (roles.js ger OWNER/STAFF/PATIENT) och var en onödig eskalation TILL TOPP-
+// rollen owner om role någonsin sätts från mindre betrodd källa (t.ex.
+// x-cco-role i non-prod). Övriga alias motsvarar roller som faktiskt används.
 const AUTH_ROLE_ALIASES = {
   owner: 'owner',
   staff: 'operator',
@@ -169,7 +176,6 @@ const AUTH_ROLE_ALIASES = {
   personal: 'personal',
   revisor: 'revisor',
   doctor: 'operator',
-  admin: 'owner',
 };
 
 function normalizeRole(role) {

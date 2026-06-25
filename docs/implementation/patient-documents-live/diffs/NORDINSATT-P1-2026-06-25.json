@@ -1,0 +1,83 @@
+{
+  "generatedAt": "2026-06-25T18:59:14.312Z",
+  "batch": "P1",
+  "ownerFacitSet": {
+    "batch": "P1",
+    "meridiqBindings": [
+      {
+        "apiId": 170944,
+        "role": "treatment_agreement_prp_skin",
+        "primarySource": "nordbro",
+        "templateRef": "agreement_hair_tp_prp_nordbro",
+        "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json"
+      },
+      {
+        "apiId": 170945,
+        "role": "treatment_agreement_prp_hair",
+        "primarySource": "nordbro",
+        "templateRef": "agreement_hair_tp_prp_nordbro",
+        "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json"
+      }
+    ]
+  },
+  "nordbroReference": {
+    "mode": "word",
+    "path": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-prp.docx",
+    "note": null,
+    "sharePointMeta": null
+  },
+  "facitSha256": "b1bf50b31717",
+  "nordbroSha256": "344af0e98a20",
+  "textMatch": false,
+  "bindings": [
+    {
+      "meridiqApiId": 170944,
+      "title": "Behandlingsavtal | PRP hud",
+      "brand": "hair_tp",
+      "primarySource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "templateRef": "agreement_hair_tp_prp_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+      "localWord": "251203-behandlingsavtal-prp.docx",
+      "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json",
+      "letterTextSource": "facit_blocks_not_meridiq_export"
+    },
+    {
+      "meridiqApiId": 170945,
+      "title": "Behandlingsavtal | PRP hår",
+      "brand": "hair_tp",
+      "primarySource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "templateRef": "agreement_hair_tp_prp_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+      "localWord": "251203-behandlingsavtal-prp.docx",
+      "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json",
+      "letterTextSource": "facit_blocks_not_meridiq_export",
+      "note": "Samma Nordbro PRP-avtal som 170944 — Meridiq separerar hår/hud apiId"
+    }
+  ],
+  "agreement": {
+    "meridiqApiIds": [170944, 170945],
+    "templateRef": "agreement_hair_tp_prp_nordbro",
+    "status": "E6_OK",
+    "demoBundleOk": true,
+    "wordOk": true,
+    "bundleHits": "9/9",
+    "demoHits": "9/9",
+    "wordHits": "7/9",
+    "missingInDemo": [],
+    "missingInBundle": [],
+    "wordPresent": true,
+    "textMatch": false,
+    "brandFlags": [
+      {
+        "code": "NEEDS_BRAND_REVIEW",
+        "detail": "ångerrätt hänvisar contact@curatiio.com i Nordbro 251203 PRP — Hair TP avtal",
+        "action": "legal_review_with_nordbro"
+      }
+    ]
+  },
+  "overall": "P1_PASS_WITH_DRIFT"
+}

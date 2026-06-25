@@ -1,110 +1,108 @@
 #!/usr/bin/env node
 'use strict';
 
+require('dotenv').config({ quiet: true });
+
 /**
  * import-meridiq-historical-journals.js
  * ======================================
  *
- * P0.7 — Meridiq historisk-bulk-import-SKELETON (DRY-RUN endast).
+ * P0.7 — Meridiq historisk bulk-import via live API.
  *
- * Status: BLOCKED på Meridiq read-only API-access (eller XLSX-export per
- * patient). Detta script är ett stub/skeleton som visar EXAKT hur bulk-
- * importen kommer att fungera när access finns. Det:
- *
- *   1. Itererar över alla Cliento+Meridiq-matchade patienter i
- *      `data/cco-customers.json#tenants.hair_tp.customerState.directory`
- *      där `meridiqMeta.hasJournal === true`.
- *   2. Per patient — anropar `fetchMeridiqJournalsForPatient(meridiqId)`
- *      (en stub som returnerar mock-N entries). När API finns: byts
- *      stub:en mot riktiga HTTP-anrop.
- *   3. För varje historisk entry — POST till `ccoJournalStore.createEntry`
- *      med `journalType: 'historical_import'`, `importMeta.source:
- *      'meridiq'`, `importMeta.meridiqPatientId`, `importMeta.fetchedAt`,
- *      `signedAt: <Meridiq-signeringsdatum>`, `locked: true`.
- *   4. Audit-loggar `journal.historical_import` per patient + summa.
- *
- * Säkerhet (per .cursor/rules/cco-journal-cutover-first.mdc):
- *   - INGA patientnamn/pnr/email i scriptets stdout (counts only).
- *   - INGEN auto-merge — befintliga entries skrivs INTE över; vi appendar.
- *   - DRY-RUN är default — `--commit` kräver `--meridiq-api-token`-flagga
- *     som idag returnerar fel ("API not yet accessible") tills owner
- *     levererar token.
+ * Kräver:
+ *   - ARCANA_MERIDIQ_COOKIE eller ARCANA_MERIDIQ_API_TOKEN i .env
+ *   - meridiqPatientId på meridiqMeta (kör sync-meridiq-client-ids.js först)
  *
  * Användning:
- *
- *   # Dry-run (default) — räknar bara hur många entries som SKULLE skapas
- *   node scripts/import-meridiq-historical-journals.js
- *
- *   # Dry-run med högre mock-N per patient
- *   node scripts/import-meridiq-historical-journals.js --mock-entries-per-patient=4
- *
- *   # Commit-läge (kräver token — kommer att fela tills API finns)
- *   node scripts/import-meridiq-historical-journals.js --commit --meridiq-api-token=XYZ
- *
- *   # Begränsa till N patienter (för smoke-test)
- *   node scripts/import-meridiq-historical-journals.js --limit=50
- *
- * Gap-dokumentation: se `docs/strategy/MERIDIQ-JOURNAL-IMPORT-GAP-2026-05-30.md`.
+ *   npm run migration:preflight-meridiq
+ *   node scripts/migration/sync-meridiq-client-ids.js --commit
+ *   node scripts/import-meridiq-historical-journals.js --limit=5
+ *   node scripts/import-meridiq-historical-journals.js --commit --limit=50
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// ─────────────────────────────────────────────────────────────────────────
-// CLI args
-// ─────────────────────────────────────────────────────────────────────────
+const {
+  resolveMeridiqCredentials,
+  listClientQuestionaries,
+  normalizeMeridiqQuestionaryEntry,
+} = require('./migration/lib/meridiqApi');
+const { createCcoJournalStore } = require('../src/ops/ccoJournalStore');
+
+const ROOT = path.resolve(__dirname, '..');
+const QUESTIONARY_CATALOG = path.join(ROOT, 'migration/meridiq/questionary-catalog.json');
+
+const JOURNAL_TYPES = new Set([
+  'tp_treatment',
+  'prp_treatment',
+  'follow_up',
+  'bleph_treatment',
+  'consultation',
+  'treatment',
+]);
+
+const NON_JOURNAL_TYPES = new Set(['health_declaration', 'fitness_certificate']);
+
 function parseArgs(argv) {
   const args = {
     dryRun: true,
     commit: false,
-    meridiqApiToken: null,
-    mockEntriesPerPatient: 2,
+    mockEntriesPerPatient: 0,
     limit: null,
     tenantId: 'hair_tp',
+    cookieFile: null,
+    meridiqApiToken: null,
   };
   for (const raw of argv.slice(2)) {
     if (raw === '--dry-run') args.dryRun = true;
     else if (raw === '--commit') {
       args.commit = true;
       args.dryRun = false;
-    } else if (raw.startsWith('--meridiq-api-token=')) {
+    } else if (raw.startsWith('--meridiq-api-token='))
       args.meridiqApiToken = raw.split('=')[1] || null;
-    } else if (raw.startsWith('--mock-entries-per-patient=')) {
+    else if (raw.startsWith('--cookie-file=')) args.cookieFile = raw.split('=')[1] || null;
+    else if (raw.startsWith('--mock-entries-per-patient=')) {
       const n = Number(raw.split('=')[1]);
       if (Number.isInteger(n) && n > 0 && n <= 20) args.mockEntriesPerPatient = n;
     } else if (raw.startsWith('--limit=')) {
       const n = Number(raw.split('=')[1]);
       if (Number.isInteger(n) && n > 0) args.limit = n;
-    } else if (raw.startsWith('--tenant=')) {
-      args.tenantId = raw.split('=')[1] || 'hair_tp';
-    }
+    } else if (raw.startsWith('--tenant=')) args.tenantId = raw.split('=')[1] || 'hair_tp';
   }
   return args;
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Data loaders — counts only, no PII in stdout
-// ─────────────────────────────────────────────────────────────────────────
-function loadCustomerDirectory(tenantId) {
-  const filePath = path.join(__dirname, '..', 'data', 'cco-customers.json');
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`data/cco-customers.json saknas: ${filePath}`);
+function loadQuestionaryJournalMap() {
+  if (!fs.existsSync(QUESTIONARY_CATALOG)) return new Map();
+  const catalog = JSON.parse(fs.readFileSync(QUESTIONARY_CATALOG, 'utf8'));
+  const map = new Map();
+  for (const form of catalog.forms || []) {
+    map.set(String(form.apiId), {
+      journalType: form.arcanaJournalType || 'historical_import',
+      title: form.title || '',
+      migrate: form.migrate !== false,
+    });
   }
+  return map;
+}
+
+function loadCustomerDirectory(tenantId) {
+  const filePath = path.join(ROOT, 'data', 'cco-customers.json');
   const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  const tenant = raw && raw.tenants && raw.tenants[tenantId];
-  if (!tenant || !tenant.customerState || !tenant.customerState.directory) {
+  const tenant = raw?.tenants?.[tenantId];
+  if (!tenant?.customerState?.directory) {
     throw new Error(`Tenant ${tenantId} saknar customerState.directory`);
   }
   return tenant.customerState.directory;
 }
 
 function listMeridiqEligiblePatients(directory) {
-  // Eligible = har meridiqMeta.hasJournal=true (alltså 6 268 i hair_tp idag)
   const eligible = [];
   for (const key of Object.keys(directory)) {
     const entry = directory[key];
-    const meta = entry && entry.meridiqMeta;
-    if (meta && meta.hasJournal === true) {
+    const meta = entry?.meridiqMeta;
+    if (meta?.hasJournal === true) {
       eligible.push({
         ccoPatientId: key,
         meridiqRef: meta.meridiqPatientId || meta.id || null,
@@ -115,128 +113,188 @@ function listMeridiqEligiblePatients(directory) {
   return eligible;
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// STUB — Meridiq API (kommer att bytas mot riktig HTTP-klient när access finns)
-// ─────────────────────────────────────────────────────────────────────────
-async function fetchMeridiqJournalsForPatient({ meridiqRef, apiToken, mockN }) {
-  // VID RIKTIG API-ACCESS:
-  //   const res = await fetch(`${MERIDIQ_BASE}/api/v1/patients/${meridiqRef}/journals`, {
-  //     headers: { Authorization: `Bearer ${apiToken}` }
-  //   });
-  //   if (!res.ok) throw new Error(`Meridiq API HTTP ${res.status}`);
-  //   const json = await res.json();
-  //   return json.journals.map(normalizeMeridiqJournal);
-  //
-  // För DRY-RUN: returnera mock-array (ingen patient-data, bara skelett).
-  if (apiToken) {
-    // Commit-läge — vi vägrar tills owner verifierar att API är live.
-    throw new Error(
-      'Meridiq API not yet accessible — token mottagen men endpoint inte verifierad. ' +
-        'Se docs/strategy/MERIDIQ-JOURNAL-IMPORT-GAP-2026-05-30.md innan commit.'
-    );
-  }
-  const out = [];
-  for (let i = 0; i < mockN; i += 1) {
-    out.push({
-      meridiqEntryId: `MOCK-${meridiqRef || 'unknown'}-${i + 1}`,
-      // INGA patient-namn/pnr/email — bara struktur-fält
-      journalType: i === 0 ? 'consultation' : 'treatment',
-      signedAt: null, // okänt utan API
-      schemaId: 'mock-schema',
-      fieldCount: 52, // matchar TP-paritet (P0.4)
-      mock: true,
-    });
-  }
-  return out;
+function isJournalQuestionary(meta, questionaryMap) {
+  if (!meta?.questionaryId) return false;
+  const mapped = questionaryMap.get(String(meta.questionaryId));
+  if (!mapped || mapped.migrate === false) return false;
+  const journalType = mapped.journalType;
+  if (!journalType || NON_JOURNAL_TYPES.has(journalType)) return false;
+  return JOURNAL_TYPES.has(journalType);
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Stub — what we WOULD do with each entry
-// ─────────────────────────────────────────────────────────────────────────
-function mockCreateEntry({ tenantId, ccoPatientId, meridiqEntry }) {
-  // I commit-läge:
-  //   await ccoJournalStore.createEntry({
-  //     tenantId, patientId: ccoPatientId,
-  //     journalType: 'historical_import',
-  //     status: 'signed', locked: true,
-  //     signedAt: meridiqEntry.signedAt,
-  //     importMeta: {
-  //       source: 'meridiq',
-  //       meridiqEntryId: meridiqEntry.meridiqEntryId,
-  //       fetchedAt: new Date().toISOString(),
-  //       originalSchemaId: meridiqEntry.schemaId,
-  //     },
-  //     body: { /* normaliserad journal-text */ },
-  //   });
+function buildImportKey(meridiqClientId, entry) {
+  return `meridiq::${meridiqClientId}::${entry.meridiqEntryId || entry.questionaryId}`;
+}
+
+function buildJournalEntryFromMeridiq({
+  tenantId,
+  ccoPatientId,
+  meridiqClientId,
+  entry,
+  questionaryMap,
+}) {
+  const mapped = questionaryMap.get(String(entry.questionaryId)) || {};
   return {
-    wouldCreate: true,
     tenantId,
-    ccoPatientId,
-    meridiqEntryId: meridiqEntry.meridiqEntryId,
-    journalType: 'historical_import',
+    patientId: ccoPatientId,
+    journalType: mapped.journalType || 'historical_import',
+    title: entry.title || mapped.title || 'Meridiq journal',
+    source: 'meridiq_import',
+    status: 'signed',
     locked: true,
+    signedAt: entry.signedAt || new Date().toISOString(),
+    signedByName: entry.authorName || 'Meridiq-import',
+    sourceQuestionaryId: entry.questionaryId,
+    importMeta: {
+      source: 'meridiq',
+      importKey: buildImportKey(meridiqClientId, entry),
+      meridiqEntryId: entry.meridiqEntryId,
+      meridiqPatientId: meridiqClientId,
+      questionaryId: entry.questionaryId,
+      pdfUrl: entry.pdfUrl || null,
+      fetchedAt: new Date().toISOString(),
+      readOnly: true,
+    },
+    journalTypeMeta: { historical_import: true },
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Main
-// ─────────────────────────────────────────────────────────────────────────
+async function fetchMeridiqJournalsForPatient({ meridiqRef, credentials, mockN, questionaryMap }) {
+  if (!credentials?.ok) {
+    if (mockN > 0) {
+      const out = [];
+      for (let i = 0; i < mockN; i += 1) {
+        out.push({
+          meridiqEntryId: `MOCK-${meridiqRef || 'unknown'}-${i + 1}`,
+          questionaryId: '16411',
+          journalType: 'tp_treatment',
+          signedAt: null,
+          mock: true,
+        });
+      }
+      return out;
+    }
+    throw new Error('Meridiq credentials saknas — kör migration:preflight-meridiq');
+  }
+  if (!meridiqRef) return [];
+
+  const rows = (await listClientQuestionaries(meridiqRef, credentials)).map(
+    normalizeMeridiqQuestionaryEntry
+  );
+  return rows.filter((entry) => isJournalQuestionary(entry, questionaryMap));
+}
+
 async function main() {
   const args = parseArgs(process.argv);
+  const questionaryMap = loadQuestionaryJournalMap();
+  const credentials = resolveMeridiqCredentials({
+    apiToken: args.meridiqApiToken,
+    cookieFile: args.cookieFile,
+  });
+
   console.log('[meridiq-import] start');
   console.log(`[meridiq-import] mode: ${args.dryRun ? 'DRY-RUN' : 'COMMIT'}`);
   console.log(`[meridiq-import] tenant: ${args.tenantId}`);
-  console.log(`[meridiq-import] mock entries/patient: ${args.mockEntriesPerPatient}`);
   if (args.limit) console.log(`[meridiq-import] limit: ${args.limit}`);
 
-  if (args.commit && !args.meridiqApiToken) {
+  if (args.commit && !credentials.ok) {
+    console.error('\n[ERROR] --commit kräver Meridiq API-credentials.');
     console.error(
-      '\n[ERROR] --commit kräver --meridiq-api-token=<token>. ' +
-        'Token finns inte ännu — se docs/strategy/MERIDIQ-JOURNAL-IMPORT-GAP-2026-05-30.md.'
+      'Sätt ARCANA_MERIDIQ_COOKIE i .env eller kör npm run migration:preflight-meridiq'
     );
     process.exit(2);
   }
 
-  // 1) ladda directory
-  const directory = loadCustomerDirectory(args.tenantId);
-  const totalDirectory = Object.keys(directory).length;
-  console.log(`[meridiq-import] directory loaded: ${totalDirectory} keys`);
+  if (credentials.ok) {
+    console.log(`[meridiq-import] auth: ${credentials.authMode}`);
+  } else if (args.mockEntriesPerPatient > 0) {
+    console.log('[meridiq-import] auth: MOCK (ingen cookie/token)');
+  } else {
+    console.log('[meridiq-import] auth: MISSING — endast patients med mockN>0 skulle fungera');
+  }
 
-  // 2) filtrera eligible
+  const directory = loadCustomerDirectory(args.tenantId);
+  console.log(`[meridiq-import] directory loaded: ${Object.keys(directory).length} keys`);
+
   const eligible = listMeridiqEligiblePatients(directory);
-  console.log(`[meridiq-import] eligible (meridiqMeta.hasJournal=true): ${eligible.length}`);
+  const withId = eligible.filter((p) => p.meridiqRef).length;
+  console.log(`[meridiq-import] eligible (hasJournal): ${eligible.length}`);
+  console.log(`[meridiq-import] with meridiqPatientId: ${withId}`);
+  if (withId === 0 && credentials.ok) {
+    console.error(
+      '[meridiq-import] BLOCKER: ingen meridiqPatientId — kör sync-meridiq-client-ids.js --commit först'
+    );
+    process.exit(4);
+  }
 
   const work = args.limit ? eligible.slice(0, args.limit) : eligible;
   console.log(`[meridiq-import] processing: ${work.length} patienter`);
 
-  // 3) iterera
+  let journalStore = null;
+  if (args.commit) {
+    journalStore = await createCcoJournalStore({
+      filePath: path.join(ROOT, 'data', 'cco-journal.json'),
+    });
+  }
+
   let patientsProcessed = 0;
   let entriesPlanned = 0;
+  let entriesCreated = 0;
+  let entriesSkipped = 0;
   let patientsFailed = 0;
+  let patientsSkippedNoId = 0;
   const viaCounts = { email: 0, phone: 0, name: 0, new_from_meridiq: 0, other: 0 };
 
   for (const p of work) {
     if (p.via && viaCounts[p.via] !== undefined) viaCounts[p.via] += 1;
     else viaCounts.other += 1;
 
+    if (!p.meridiqRef && !args.mockEntriesPerPatient) {
+      patientsSkippedNoId += 1;
+      continue;
+    }
+
     try {
       const entries = await fetchMeridiqJournalsForPatient({
         meridiqRef: p.meridiqRef,
-        apiToken: args.dryRun ? null : args.meridiqApiToken,
+        credentials,
         mockN: args.mockEntriesPerPatient,
+        questionaryMap,
       });
-      for (const e of entries) {
-        mockCreateEntry({
+
+      for (const entry of entries) {
+        entriesPlanned += 1;
+        if (!args.commit || !journalStore) continue;
+
+        const payload = buildJournalEntryFromMeridiq({
           tenantId: args.tenantId,
           ccoPatientId: p.ccoPatientId,
-          meridiqEntry: e,
+          meridiqClientId: p.meridiqRef,
+          entry,
+          questionaryMap,
         });
-        entriesPlanned += 1;
+
+        const importKey = payload.importMeta.importKey;
+        const existing = (
+          await journalStore.listEntries({
+            tenantId: args.tenantId,
+            patientId: p.ccoPatientId,
+          })
+        ).find((row) => row.importMeta?.importKey === importKey);
+
+        if (existing) {
+          entriesSkipped += 1;
+          continue;
+        }
+
+        await journalStore.upsertEntry(payload, {
+          actor: { userId: 'meridiq-import', displayName: 'Meridiq-import', role: 'system' },
+        });
+        entriesCreated += 1;
       }
       patientsProcessed += 1;
     } catch (err) {
       patientsFailed += 1;
-      // FÖRSTA felet i commit-läge ska stoppa — i dry-run ignorerar vi.
       if (!args.dryRun) {
         console.error(`[meridiq-import] FATAL: ${err.message}`);
         process.exit(3);
@@ -244,19 +302,18 @@ async function main() {
     }
   }
 
-  // 4) rapport — COUNTS ONLY (ingen patient-data)
   console.log('\n[meridiq-import] === SUMMARY ===');
   console.log(`  patients processed: ${patientsProcessed}`);
   console.log(`  patients failed: ${patientsFailed}`);
-  console.log(`  entries planned (would-create): ${entriesPlanned}`);
+  console.log(`  patients skipped (no meridiq id): ${patientsSkippedNoId}`);
+  console.log(`  entries planned: ${entriesPlanned}`);
+  console.log(`  entries created: ${entriesCreated}`);
+  console.log(`  entries skipped (dup): ${entriesSkipped}`);
   console.log(`  via.email: ${viaCounts.email}`);
   console.log(`  via.phone: ${viaCounts.phone}`);
   console.log(`  via.name: ${viaCounts.name}`);
   console.log(`  via.new_from_meridiq: ${viaCounts.new_from_meridiq}`);
-  console.log(`  via.other: ${viaCounts.other}`);
-  console.log(`  mode: ${args.dryRun ? 'DRY-RUN (inga skrivningar)' : 'COMMIT (skulle ha skrivit)'}`);
-  console.log('\n[meridiq-import] gap: se docs/strategy/MERIDIQ-JOURNAL-IMPORT-GAP-2026-05-30.md');
-  console.log('[meridiq-import] ETA till live: 5–6 dagar efter Meridiq API-access');
+  console.log(`  mode: ${args.dryRun ? 'DRY-RUN' : 'COMMIT'}`);
 }
 
 if (require.main === module) {
@@ -271,5 +328,6 @@ module.exports = {
   loadCustomerDirectory,
   listMeridiqEligiblePatients,
   fetchMeridiqJournalsForPatient,
-  mockCreateEntry,
+  buildJournalEntryFromMeridiq,
+  isJournalQuestionary,
 };

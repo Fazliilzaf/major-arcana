@@ -208,6 +208,17 @@ function buildActiveVisitPayload({
     checkedInAt,
     startedAt,
     completedAt,
+    // Planerad besökslängd (min) ur bokningen → canon-timelinens estimat
+    // (~journal/eftervård/klart). Null när bokningen saknar duration → timelinen
+    // visar stegen utan estimat-tider (ingen fejk).
+    plannedMinutes:
+      Number(
+        visitEncounter?.durationMinutes ||
+          scheduled?.durationMinutes ||
+          scheduled?.duration ||
+          scheduled?.serviceDuration ||
+          0
+      ) || null,
     journalStarted: journalSignals.journalStarted,
     photoCaptureAvailable: true,
     notesAvailable: true,

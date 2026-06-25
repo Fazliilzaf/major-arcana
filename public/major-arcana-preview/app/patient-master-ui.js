@@ -1128,6 +1128,40 @@
     return false;
   }
 
+  /** V11-RAIL Fas 3 · Block 0 — opt-in via ?v11rail=on (cco-v11-rail-flag.js sätter attributet). */
+  function usesV11Rail() {
+    try {
+      return document.documentElement.getAttribute('data-v11-rail') === 'on';
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  /** V12 Customer Workspace · Block 0 — opt-in via ?v12workspace=on (cco-v12-workspace-flag.js). */
+  function usesV12Workspace() {
+    try {
+      return document.documentElement.getAttribute('data-v12-workspace') === 'on';
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  // JOURNEY-SPINE (Fas 5) opt-in. ?v13spine=on slår på (sticky via localStorage),
+  // ?v13spine=off stänger av. Default OFF tills facit-paritet är godkänd.
+  function usesV13Spine() {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const q = String(params.get('v13spine') || '')
+        .trim()
+        .toLowerCase();
+      if (q === 'on') localStorage.setItem('arcana.v13spine.enabled', '1');
+      else if (q === 'off') localStorage.setItem('arcana.v13spine.enabled', '0');
+      return localStorage.getItem('arcana.v13spine.enabled') === '1';
+    } catch (_error) {
+      return false;
+    }
+  }
+
   /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
   function usesBlueprintDesktopLayout() {
     if (usesV10KundkortFacit()) return false;
@@ -1215,14 +1249,24 @@
     const deep = root?.querySelector('[data-v9-dossier-deep]');
     const body = deep?.querySelector('[data-v9-deep-body]');
     if (!deep || !body) return;
-    const slideOver =
-      window.CcoV9CustomersParity?.renderKundkortSlideOverHtml?.(
-        card,
-        journalEntries,
-        dossierBundle,
-        occasionTimeline,
-        driveFiles
-      ) || '<p class="patient-master-muted">Full dossier kunde inte renderas.</p>';
+    const slideOver = usesV12Workspace()
+      ? renderV12WorkspaceDetailShell(
+          card,
+          journalEntries,
+          occasionTimeline,
+          driveFiles,
+          ctx.patient,
+          {
+            tab: normalizeDetailTab(runtime.detailTab),
+          }
+        )
+      : window.CcoV9CustomersParity?.renderKundkortSlideOverHtml?.(
+          card,
+          journalEntries,
+          dossierBundle,
+          occasionTimeline,
+          driveFiles
+        ) || '<p class="patient-master-muted">Full dossier kunde inte renderas.</p>';
     body.innerHTML = slideOver;
     deep.hidden = false;
     deep.removeAttribute('aria-hidden');
@@ -1237,6 +1281,435 @@
     deep.querySelector('[data-v9-deep-close]')?.addEventListener('click', close, { once: true });
   }
 
+  const V12_RAIL_SECTION_MODULES = {
+    kontakt: 'current-state',
+    profil: 'current-state',
+    compliance: 'warnings',
+    health: 'health',
+    halsa: 'health',
+    journal: 'journal',
+    foto: 'photos',
+    photos: 'photos',
+    upcoming: 'bookings',
+    historik: 'bookings',
+    tidslinje: 'bookings',
+    filer: 'documents',
+    avtal: 'documents',
+    ekonomi: 'economy',
+  };
+
+  const V12_RAIL_CLASS_MODULES = [
+    ['current-state', ['.v11-rail__profile', '.v11-rail__identity', '.v11-rail__contact']],
+    ['active-visit', ['.v11-rail__active-visit', '[class*="v11-rail__av-"]']],
+    ['warnings', ['.v11-rail__warnings', '.v11-rail__warning']],
+    ['health', ['.v11-rail__health']],
+    ['journey', ['.v11-rail__journey']],
+    ['journal', ['.v11-rail__journals', '[class*="v11-rail__journal-"]']],
+    ['photos', ['.v11-rail__photos', '[class*="v11-rail__photo-"]']],
+    ['bookings', ['.v11-rail__bookings', '[class*="v11-rail__booking-"]', '.v11-rail__history']],
+    [
+      'documents',
+      [
+        '.v11-rail__offers',
+        '[class*="v11-rail__offer-"]',
+        '.v11-rail__autodocs',
+        '[class*="v11-rail__autodoc-"]',
+        '.v11-rail__files',
+        '[class*="v11-rail__file-"]',
+      ],
+    ],
+    ['communication', ['.v11-rail__comm', '[class*="v11-rail__comm-"]']],
+    ['economy', ['.v11-rail__econ', '[class*="v11-rail__econ-"]', '.v11-rail__stats']],
+    ['insights', ['.v11-rail__smart-info', '.v11-rail__next', '.v11-rail__insights']],
+  ];
+
+  function inferV12ModuleFromRailClick(target) {
+    if (!target || !usesV12Workspace()) return '';
+    if (
+      target.closest(
+        'a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"],[data-v11-active-visit-action],[data-v9-quick],[data-kk-sig],[data-kk-ord48-open-calendar],[data-patient-photo-camera],[data-v11-doc-action]'
+      )
+    ) {
+      return '';
+    }
+    const explicit = target.closest('[data-v12-open-module]');
+    if (explicit?.dataset?.v12OpenModule) return explicit.dataset.v12OpenModule;
+    const sectionLink = target.closest('[data-v9-section-link]');
+    if (sectionLink?.dataset?.v9SectionLink) {
+      const moduleName = V12_RAIL_SECTION_MODULES[sectionLink.dataset.v9SectionLink];
+      if (moduleName) return moduleName;
+    }
+    const kkJump = target.closest('[data-kk-jump]');
+    if (kkJump) {
+      if (target.closest('.v11-rail__health')) return 'health';
+      if (target.closest('.v11-rail__journey')) return 'journey';
+    }
+    for (const [moduleName, selectors] of V12_RAIL_CLASS_MODULES) {
+      if (selectors.some((selector) => target.closest(selector))) return moduleName;
+    }
+    return '';
+  }
+
+  function scrollV12WorkspaceModule(scope, moduleName) {
+    if (!scope || !moduleName) return;
+    const module = scope.querySelector(`[data-v12-module="${moduleName}"]`);
+    if (!module) return;
+    module.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    module.setAttribute('data-v12-focus-pulse', '1');
+    window.setTimeout(() => module.removeAttribute('data-v12-focus-pulse'), 1200);
+  }
+
+  function bindV12WorkspaceOverlayBody(body, ctx) {
+    if (!body) return;
+    // Nuläge "Förbered besök" / "Åtgärder ▾"-meny: scrolla till en V12-modul
+    // via den befintliga scrollV12WorkspaceModule. Presentation/navigation —
+    // ingen ny write-handler. (body återskapas per öppning → ingen dubbelbind.)
+    body.addEventListener('click', (event) => {
+      // CONTENT-CANON: snabb-jump i höger-railen → scrolla till sektionen.
+      const canonJump = event.target.closest('[data-v12-canon-jump]');
+      if (canonJump && body.contains(canonJump)) {
+        event.preventDefault();
+        const secId = canonJump.getAttribute('data-v12-canon-jump');
+        const target = secId && body.querySelector('#' + secId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          target.setAttribute('data-v12-focus-pulse', '1');
+          window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
+        }
+        return;
+      }
+      // JOURNEY-SPINE: expandera/fäll ihop steg-kort (accordion).
+      const spineHead = event.target.closest('[data-spine-step] > .step-head');
+      if (spineHead && body.contains(spineHead)) {
+        const stepEl = spineHead.closest('[data-spine-step]');
+        if (stepEl && stepEl.querySelector('.step-body')) {
+          event.preventDefault();
+          const isOpen = stepEl.getAttribute('data-open') === 'true';
+          stepEl.setAttribute('data-open', isOpen ? 'false' : 'true');
+          spineHead.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        }
+        return;
+      }
+      // Nuläge "Redigera" → öppna edit-dialogen.
+      const editOpen = event.target.closest('[data-v12-edit-open]');
+      if (editOpen && body.contains(editOpen)) {
+        const dlg = body.querySelector('[data-v12-edit-dialog]');
+        if (dlg && typeof dlg.showModal === 'function') {
+          event.preventDefault();
+          try {
+            dlg.showModal();
+          } catch (_e) {
+            /* redan öppen */
+          }
+        }
+        return;
+      }
+      const editCancel = event.target.closest('[data-v12-edit-cancel]');
+      if (editCancel && body.contains(editCancel)) {
+        const dlg = editCancel.closest('dialog');
+        if (dlg) {
+          event.preventDefault();
+          try {
+            dlg.close();
+          } catch (_e) {
+            /* noop */
+          }
+        }
+        return;
+      }
+      // Ekonomi "Synka till Fortnox" → BEFINTLIG POST /cco-fortnox/sync-patient.
+      const fnxBtn = event.target.closest('[data-v12-fortnox-sync]');
+      if (fnxBtn && body.contains(fnxBtn)) {
+        event.preventDefault();
+        const pid = fnxBtn.getAttribute('data-patient-id');
+        if (!pid) return;
+        const statusEl = body.querySelector('[data-v12-fortnox-status]');
+        fnxBtn.disabled = true;
+        if (statusEl) statusEl.textContent = 'Synkar…';
+        apiRequest('/api/v1/cco-fortnox/sync-patient', { method: 'POST', body: { patientId: pid } })
+          .then((res) => {
+            if (statusEl) {
+              statusEl.textContent =
+                'Synkad ✓' + (res && res.customerNumber ? ' · kundnr ' + res.customerNumber : '');
+            }
+          })
+          .catch((err) => {
+            if (statusEl)
+              statusEl.textContent = err && err.message ? err.message : 'Kunde inte synka.';
+          })
+          .finally(() => {
+            fnxBtn.disabled = false;
+          });
+        return;
+      }
+      // Dokument "+ Lägg till PDF" → öppna det dolda file-inputet.
+      const docAdd = event.target.closest('[data-v12-doc-add]');
+      if (docAdd && body.contains(docAdd)) {
+        event.preventDefault();
+        const input = body.querySelector('[data-v12-doc-input]');
+        if (input) input.click();
+        return;
+      }
+      // Fas 4 · Hybrid: jump-rail ankarklick → scrolla till modul i Zon 2.
+      const jump = event.target.closest('[data-v12-jump]');
+      if (jump && body.contains(jump)) {
+        event.preventDefault();
+        const jumpModule = jump.getAttribute('data-v12-jump');
+        body.querySelectorAll('[data-v12-jump].is-active').forEach((el) => {
+          el.classList.remove('is-active');
+        });
+        jump.classList.add('is-active');
+        scrollV12WorkspaceModule(body, jumpModule);
+        return;
+      }
+      // Jump-rail kollaps/expandera.
+      const jrToggle = event.target.closest('[data-v12-jumprail-toggle]');
+      if (jrToggle && body.contains(jrToggle)) {
+        event.preventDefault();
+        const rail = jrToggle.closest('[data-v12-jumprail]');
+        if (rail) {
+          const collapsed = rail.classList.toggle('is-collapsed');
+          jrToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+          jrToggle.setAttribute('title', collapsed ? 'Fäll ut' : 'Fäll ihop');
+        }
+        return;
+      }
+      // "Förbered besök" / Åtgärder-meny → scrolla till V12-modul.
+      const trigger = event.target.closest('[data-v12-scroll-module]');
+      if (!trigger || !body.contains(trigger)) return;
+      const moduleName = trigger.getAttribute('data-v12-scroll-module');
+      if (!moduleName) return;
+      event.preventDefault();
+      const menu = trigger.closest('details[open]');
+      if (menu) menu.removeAttribute('open');
+      scrollV12WorkspaceModule(body, moduleName);
+    });
+    // Redigera-formulär → PUT /cco-patient-master/patient (merge-upsert, ingen
+    // dataförlust). Optimistisk uppdatering av synliga fält + bakgrundsrefresh.
+    body.addEventListener('submit', async (event) => {
+      const form = event.target.closest('[data-v12-edit-form]');
+      if (!form || !body.contains(form)) return;
+      event.preventDefault();
+      const patientId = form.getAttribute('data-patient-id');
+      if (!patientId) return;
+      const dialog = form.closest('dialog');
+      const statusEl = form.querySelector('[data-v12-edit-status]');
+      const saveBtn = form.querySelector('.v12-workspace__edit-save');
+      const data = new FormData(form);
+      const payload = {
+        id: patientId,
+        displayName: String(data.get('displayName') || '').trim(),
+        primaryPhone: String(data.get('primaryPhone') || '').trim(),
+        primaryEmail: String(data.get('primaryEmail') || '').trim(),
+      };
+      if (saveBtn) saveBtn.disabled = true;
+      if (statusEl) statusEl.textContent = 'Sparar…';
+      try {
+        await apiRequest('/api/v1/cco-patient-master/patient', { method: 'PUT', body: payload });
+        if (statusEl) statusEl.textContent = 'Sparat ✓';
+        const nameEl = body.querySelector('.v12-workspace__cs-name');
+        if (nameEl && payload.displayName) nameEl.textContent = payload.displayName;
+        const contactEl = body.querySelector('.v12-workspace__cs-contact');
+        if (contactEl) {
+          const bits = [payload.primaryPhone, payload.primaryEmail].filter(Boolean);
+          if (bits.length) contactEl.textContent = bits.join(' · ');
+        }
+        window.setTimeout(() => {
+          try {
+            dialog && dialog.close();
+          } catch (_e) {
+            /* noop */
+          }
+        }, 650);
+        void loadPatientDetail(patientId);
+      } catch (error) {
+        if (statusEl)
+          statusEl.textContent = error && error.message ? error.message : 'Kunde inte spara.';
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    });
+    // Dokument "+ Lägg till PDF" → multipart-upload → POST /cco-journal-quick/document.
+    // Lokalt, ingen extern integration. Vid klart → ladda om dossiern så filen syns.
+    body.addEventListener('change', (event) => {
+      const input = event.target.closest('[data-v12-doc-input]');
+      if (!input || !body.contains(input)) return;
+      const patientId = input.getAttribute('data-v12-doc-input');
+      const file = input.files && input.files[0];
+      if (!patientId || !file) return;
+      const isPdf = /pdf$/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
+      const btn = body.querySelector('[data-v12-doc-add="' + patientId + '"]');
+      const setBtn = (txt, disabled) => {
+        if (!btn) return;
+        btn.textContent = txt;
+        btn.disabled = !!disabled;
+      };
+      if (!isPdf) {
+        setBtn('Endast PDF', false);
+        input.value = '';
+        window.setTimeout(() => setBtn('+ Lägg till PDF', false), 2000);
+        return;
+      }
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('patientId', patientId);
+      const token = getAdminToken();
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      setBtn('Laddar upp…', true);
+      fetch(new URL('/api/v1/cco-journal-quick/document', window.location.origin), {
+        method: 'POST',
+        headers,
+        credentials: 'same-origin',
+        body: formData,
+      })
+        .then(async (response) => {
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (response.status === 413) throw new Error('Filen är för stor (max 25 MB).');
+            throw new Error(payload.error || `HTTP ${response.status}`);
+          }
+          setBtn('Tillagd ✓', true);
+          window.setTimeout(() => void loadPatientDetail(patientId), 500);
+        })
+        .catch((err) => {
+          setBtn(err && err.message ? err.message : 'Kunde inte ladda upp', false);
+          window.setTimeout(() => setBtn('+ Lägg till PDF', false), 2600);
+        })
+        .finally(() => {
+          input.value = '';
+        });
+    });
+
+    const journeyHandlers = buildV9JourneyHandlers(body, ctx);
+    window.CcoV9CustomersParity?.bindDossierScroll?.(body, journeyHandlers);
+    window.CcoV9CustomersParity?.bindIntelligentJourney?.(body, ctx, journeyHandlers);
+    window.CcoV9CustomersParity?.bindKundkortSlideOver?.(body, journeyHandlers, ctx);
+    bindJournalPhotoOpenLinks(body);
+    bindV9DossierCapabilityHandlers(body);
+    void hydrateJournalPhotoElements(body);
+    void hydratePatientFileImages(body);
+    void hydrateGkMediaElements(body);
+  }
+
+  function openV12WorkspaceFromRail(root, ctx, moduleName) {
+    if (!root || !ctx || !usesV12Workspace()) return;
+    const deep =
+      root.querySelector('[data-v9-dossier-deep]') ||
+      document.querySelector('[data-v9-dossier-deep]');
+    const body = deep?.querySelector('[data-v9-deep-body]');
+    if (!deep || !body) return;
+    const title = deep.querySelector('[data-v9-deep-title]');
+    if (title) title.textContent = 'Kundvy';
+    // Portala overlayn till <body> så den position:fixed-ytan slipper de
+    // nästlade stacking-contexterna i kund-railen (customers-layout/-surface/
+    // -shell + preview-workspace, alla z:1). Annars målas kundlistan ovanpå
+    // trots z-index 12080. Återställs till ursprunglig DOM-plats vid close.
+    if (deep.parentElement && deep.parentElement !== document.body) {
+      deep.__v12OriginalParent = deep.parentElement;
+      deep.__v12OriginalNext = deep.nextSibling;
+      document.body.appendChild(deep);
+    }
+    deep.classList.add('v9-dossier-deep--v12-workspace');
+    // Robusthet (Fas 4 hotfix): rendera ALDRIG en blank helskärms-overlay. Om
+    // shell-renderingen kastar eller returnerar tomt → avbryt öppningen, återställ
+    // portalen och lämna kund-railen synlig (pre-Fas-4-beteende), istället för att
+    // visa en tom cream-yta som täcker hela skärmen.
+    let shellHtml = '';
+    try {
+      shellHtml = renderV12WorkspaceDetailShell(
+        ctx.card,
+        ctx.journalEntries,
+        ctx.occasionTimeline,
+        ctx.driveFiles,
+        ctx.patient,
+        { tab: normalizeDetailTab(runtime.detailTab) }
+      );
+    } catch (_shellError) {
+      shellHtml = '';
+    }
+    if (!shellHtml || shellHtml.indexOf('data-v12-workspace-shell') === -1) {
+      deep.classList.remove('v9-dossier-deep--v12-workspace');
+      if (deep.__v12OriginalParent) {
+        try {
+          deep.__v12OriginalParent.insertBefore(deep, deep.__v12OriginalNext || null);
+        } catch (_restoreError) {
+          /* original-parent borta — oskadligt */
+        }
+        deep.__v12OriginalParent = null;
+        deep.__v12OriginalNext = null;
+      }
+      runtime.v12HybridAutoOpenedFor = null;
+      return;
+    }
+    body.innerHTML = shellHtml;
+    deep.hidden = false;
+    deep.setAttribute('aria-hidden', 'false');
+    bindV12WorkspaceOverlayBody(body, ctx);
+    const close = () => {
+      deep.hidden = true;
+      deep.setAttribute('aria-hidden', 'true');
+      deep.classList.remove('v9-dossier-deep--v12-workspace');
+      body.innerHTML = '';
+      // Återställ overlayn till ursprunglig DOM-plats (portal-restore).
+      if (deep.__v12OriginalParent) {
+        try {
+          deep.__v12OriginalParent.insertBefore(deep, deep.__v12OriginalNext || null);
+        } catch (_e) {
+          /* original-parent borta (rerender) → lämna i body, oskadligt */
+        }
+        deep.__v12OriginalParent = null;
+        deep.__v12OriginalNext = null;
+      }
+    };
+    deep.__v12WorkspaceClose = close;
+    const closeBtn = deep.querySelector('[data-v9-deep-close]');
+    closeBtn?.addEventListener('click', close, { once: true });
+    if (deep.dataset.v12BackdropBound !== '1') {
+      deep.dataset.v12BackdropBound = '1';
+      deep.addEventListener('click', (event) => {
+        if (event.target === deep && typeof deep.__v12WorkspaceClose === 'function') {
+          deep.__v12WorkspaceClose();
+        }
+      });
+    }
+    // Scroll-till-sektion vid öppning. Innehållet (tomma besök-state, foton,
+    // hydrerade bilder) layoutar asynkront och växer EFTER första rendern, så en
+    // enda tidig scroll landar fel (modulen trycks ner när innehållet expanderar).
+    // Därför: scrolla om flera gånger medan höjden sätter sig, tills modulens
+    // position är stabil. 'current-state' (toppen) hoppar vi över — redan i topp.
+    // Scroll-till-sektion vid öppning. Innehåll (foton/hydrering) växer höjden
+    // asynkront EFTER första rendern, så vi scrollar dels direkt (dubbel-rAF)
+    // dels igen när höjden hunnit sätta sig (300/700 ms) så modulen hamnar rätt.
+    const targetModule = moduleName || 'current-state';
+    if (targetModule && targetModule !== 'current-state') {
+      const doScroll = () => scrollV12WorkspaceModule(body, targetModule);
+      window.requestAnimationFrame(() => window.requestAnimationFrame(doScroll));
+      window.setTimeout(doScroll, 300);
+      window.setTimeout(doScroll, 700);
+    }
+  }
+
+  function bindV12WorkspaceRailLauncher(root, ctx) {
+    if (!root || !usesV12Workspace()) return;
+    const railShell = root.querySelector('[data-v11-rail-shell="1"]');
+    if (!railShell || root.querySelector('[data-v12-workspace-shell="1"]')) return;
+    if (railShell.dataset.v12WorkspaceLauncherBound === '1') return;
+    railShell.dataset.v12WorkspaceLauncherBound = '1';
+    railShell.addEventListener(
+      'click',
+      (event) => {
+        const moduleName = inferV12ModuleFromRailClick(event.target);
+        if (!moduleName) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        openV12WorkspaceFromRail(root, ctx, moduleName);
+      },
+      true
+    );
+  }
+
   function renderBlueprintDetailPanels(
     card,
     journalEntries,
@@ -1248,6 +1721,35 @@
     const workspace = els.workspace || document.querySelector('[data-customers-workspace]');
     if (!rail || !window.CcoKundkortBlueprint) return false;
     els.patientRail = rail;
+    if (usesV12Workspace()) {
+      setPatientRailHtml(
+        rail,
+        renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, null, {
+          tab: normalizeDetailTab(runtime.detailTab),
+        })
+      );
+      if (workspace) {
+        workspace.innerHTML = '';
+        workspace.hidden = true;
+        workspace.setAttribute('aria-hidden', 'true');
+        workspace.style.setProperty('display', 'none', 'important');
+      }
+      const v12RailContext = {
+        card,
+        journalEntries,
+        driveFiles,
+        patient: null,
+        occasionTimeline,
+      };
+      bindJournalPhotoOpenLinks(rail);
+      bindV9MockupDossierHandlers(rail, v12RailContext);
+      bindV9DossierCapabilityHandlers(rail);
+      ensureV9DossierDeepClosed();
+      void hydrateJournalPhotoElements(rail);
+      void hydratePatientFileImages(rail);
+      void hydrateGkMediaElements(rail);
+      return true;
+    }
     const referensMasterDetail = usesReferensMasterDetail();
     if (referensMasterDetail) {
       applyReferensMasterDetailLayout();
@@ -5035,7 +5537,15 @@
   }
 
   function bindV9MockupDossierHandlers(root, ctx) {
-    if (!root || !isV9CustomersEnabled()) return;
+    if (!root) return;
+    // #179: railen binds FÖRE V9-grinden så V12-kundytan isoleras och funkar
+    // även när V9-kunder är av. (Kommentaren bevarad från main vid konfliktlösning.)
+    bindV12WorkspaceRailLauncher(root, ctx);
+    // Kundklick → liten V11-dossier-rail FÖRST. Stor kundvy öppnas via
+    // sektionsklick i railen (bindV12WorkspaceRailLauncher → openV12WorkspaceFromRail
+    // med rätt modul → scrollar dit). Ingen auto-öppning (Fas-4-Hybrid borttagen
+    // på begäran — liten rail ska komma upp först).
+    if (!isV9CustomersEnabled()) return;
     bindV9Zone1Handlers(root, ctx);
     const journeyHandlers = buildV9JourneyHandlers(root, ctx);
     const referensKkref = isReferensKundkortRoot(root);
@@ -5224,6 +5734,206 @@
     });
   }
 
+  /**
+   * V11-RAIL Fas 3 · Block 0 — tom rail-shell.
+   * Återanvänder enbart befintliga close-/scroll-hooks (data-v9-dossier-close,
+   * data-v9-dossier-scroll) så panelens öppna/stäng-beteende bevaras; allt
+   * innehåll renderas i ren .v11-rail__*-namespace utan .kkref. Block 0
+   * implementerar ingen A–S/V-sektion → explicit scaffold-empty-state.
+   */
+  function renderV11RailDetailShell(
+    card,
+    journalEntries,
+    occasionTimeline,
+    driveFiles,
+    patient,
+    { tab, lite = false } = {}
+  ) {
+    // Bygg bcard på samma sätt som legacy referens-path (card + dossierBundle.card)
+    // så adaptrarna får samma Pipedrive-dossier-data. Ren data in, ingen UI-koppling.
+    const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    const bcard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card || {};
+    const railCtx = {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries,
+      occasionTimeline,
+      driveFiles,
+      patient,
+      tab,
+      lite,
+    };
+    let inner = '';
+    // Lilla dossier-railen = HÖGERSPALT-v11-komplett (22 sektioner, identisk med
+    // facit). Verbatim-port via CcoV11RailKomplett. Fallback till CcoV11Rail.
+    try {
+      if (window.CcoV11RailKomplett && typeof window.CcoV11RailKomplett.render === 'function') {
+        inner = window.CcoV11RailKomplett.render(railCtx) || '';
+      }
+    } catch (_rkError) {
+      inner = '';
+    }
+    if (!inner || inner.indexOf('data-v11-rk') === -1) {
+      try {
+        if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
+          inner = window.CcoV11Rail.render(railCtx) || '';
+        }
+      } catch (_error) {
+        inner = '';
+      }
+    }
+    const body =
+      inner ||
+      '<div class="v11-rail__empty" role="status">' +
+        '<div class="v11-rail__empty-title">V11 Rail · Block 0</div>' +
+        '<div class="v11-rail__empty-hint">Scaffold aktiv (?v11rail=on). Inga sektioner implementerade ännu.</div>' +
+        '</div>';
+    return `
+      <section class="patient-master-card v11-rail" data-patient-detail data-v11-rail-shell="1">
+        <button type="button" class="dossier-close v11-rail__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v11-rail__scroll" data-v9-dossier-scroll aria-label="Kunddossiér (V11 Rail)">
+          ${body}
+        </div>
+        ${renderV9MockupDossierDeepShell()}
+      </section>`;
+  }
+
+  /**
+   * V12 Customer Workspace · Block 0 — två-zon-shell (canon D3).
+   * Zon 1 = befintliga V11-railen (återanvänd CcoV11Rail.render), Zon 2 = V12
+   * arbetsyta (CcoV12Workspace.render, Journal-modul). Återanvänder enbart
+   * befintliga close-/scroll-/section-link-hooks → inga nya handlers. CSS döljer
+   * Zon 1 på mobil (V12 äger ytan) och visar den bredvid på iPad/webb.
+   */
+  // Fas 4 · Hybrid-canon: jump-rail-moduler (ankarnav). Ordning speglar Zon 2:s
+  // primära modulordning; sticky-snabbåtgärderna saknar egen rail-länk. Varje rad
+  // scrollar till matchande data-v12-module via den befintliga
+  // scrollV12WorkspaceModule-hooken (ingen ny navigerings-infra).
+  const V12_JUMPRAIL_MODULES = [
+    ['current-state', 'Nuläge'],
+    ['active-visit', 'Aktivt besök'],
+    ['warnings', 'Varningar'],
+    ['health', 'Hälsa'],
+    ['journey', 'Kundresa'],
+    ['journal', 'Journal'],
+    ['photos', 'Bilder'],
+    ['bookings', 'Bokningar'],
+    ['documents', 'Dokument'],
+    ['communication', 'Kommunikation'],
+    ['economy', 'Ekonomi'],
+    ['insights', 'Insikter'],
+  ];
+
+  function renderV12JumpRail() {
+    const items = V12_JUMPRAIL_MODULES.map(
+      ([mod, label]) =>
+        '<li><button type="button" class="v12-jumprail__link" data-v12-jump="' +
+        mod +
+        '">' +
+        '<span class="v12-jumprail__dot" aria-hidden="true"></span>' +
+        '<span class="v12-jumprail__label">' +
+        escapeHtml(label) +
+        '</span></button></li>'
+    ).join('');
+    return (
+      '<nav class="v12-jumprail" data-v12-jumprail aria-label="Snabbnavigering (moduler)">' +
+      '<button type="button" class="v12-jumprail__toggle" data-v12-jumprail-toggle aria-expanded="true" title="Fäll ihop">' +
+      '<span class="v12-jumprail__toggle-icon" aria-hidden="true">‹</span>' +
+      '<span class="v12-jumprail__toggle-label">Moduler</span></button>' +
+      '<ul class="v12-jumprail__list">' +
+      items +
+      '</ul></nav>'
+    );
+  }
+
+  function renderV12WorkspaceDetailShell(
+    card,
+    journalEntries,
+    occasionTimeline,
+    driveFiles,
+    patient,
+    { tab, lite = false } = {}
+  ) {
+    const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    const bcard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card || {};
+    const ctx = {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries,
+      occasionTimeline,
+      driveFiles,
+      patient,
+      tab,
+      lite,
+    };
+    // Stora kundvyn = CONTENT-CANON (13 sektioner, identisk med facit
+    // V12-WORKSPACE-CONTENT-CANON). Sektionsklick i lilla railen → scrollar till
+    // rätt sektion (data-v12-module på varje canon-sektion). Defensiv fallback
+    // till 13-modul-stacken om canon-render kastar/är tom (aldrig blank).
+    if (window.CcoV12Canon && typeof window.CcoV12Canon.render === 'function') {
+      let canonInner = '';
+      try {
+        canonInner = window.CcoV12Canon.render(ctx) || '';
+      } catch (_canonError) {
+        canonInner = '';
+      }
+      if (canonInner && canonInner.indexOf('data-v12-canon') !== -1) {
+        return `
+      <section class="patient-master-card v12-workspace v12-workspace--canon" data-patient-detail data-v12-workspace-shell="1">
+        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (CONTENT-CANON)">
+          ${canonInner}
+        </div>
+      </section>`;
+      }
+    }
+    // Fallback: 13-modul-stacken (om canon ej tillgänglig).
+    let railInner = '';
+    try {
+      if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
+        railInner = window.CcoV11Rail.render(ctx) || '';
+      }
+    } catch (_error) {
+      railInner = '';
+    }
+    let wsInner = '';
+    try {
+      if (window.CcoV12Workspace && typeof window.CcoV12Workspace.render === 'function') {
+        wsInner = window.CcoV12Workspace.render(ctx) || '';
+      }
+    } catch (_error) {
+      wsInner = '';
+    }
+    // Fas 4 · Hybrid-canon: Zon 1 är en minimal jump-rail (ankarnav till de
+    // primära modulerna) istället för full V11-rail. Modulerna bor i Zon 2; railen
+    // navigerar bara dit via den befintliga scrollV12WorkspaceModule-hooken.
+    // Full V11-rail (railInner) behålls som data-attribut-fritt fallback om
+    // jump-railen någonsin stängs av. Kollapsbar; dold på mobil (V12 äger ytan).
+    const zone1 = renderV12JumpRail();
+    void railInner;
+    const zone2 =
+      wsInner ||
+      '<div class="v12-workspace__inner"><div class="v12-workspace__empty" role="status">' +
+        '<div class="v12-workspace__empty-title">V12 Workspace</div>' +
+        '<div class="v12-workspace__empty-hint">Inga moduler renderade.</div></div></div>';
+    return `
+      <section class="patient-master-card v12-workspace" data-patient-detail data-v12-workspace-shell="1">
+        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (V12)">
+          <div class="v12-workspace__zone1">${zone1}</div>
+          <div class="v12-workspace__zone2">${zone2}</div>
+        </div>
+      </section>`;
+  }
+
   function renderV9MockupDetailShell(
     card,
     journalEntries,
@@ -5234,6 +5944,23 @@
     { lite = false } = {}
   ) {
     const normalizedTab = normalizeDetailTab(tab);
+    // V11-RAIL Fas 3 · Block 0 — mount/switch. Enda legacy-kontaktpunkten per
+    // canon §5: när ?v11rail=on monteras den nya railen istället för kkref.
+    // Default OFF → legacy-paths nedan körs helt oförändrade.
+    // V12 Customer Workspace · Block 0 — mount/switch (opt-in, default OFF). Tar
+    // precedens när ?v12workspace=on; annars körs V11/legacy oförändrat nedan.
+    if (usesV12Workspace()) {
+      return renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+        tab: normalizedTab,
+        lite,
+      });
+    }
+    if (usesV11Rail()) {
+      return renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+        tab: normalizedTab,
+        lite,
+      });
+    }
     const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
     const v11Cutover = usesV11DossierCutover();
     const v10Facit = usesV10KundkortFacit();
@@ -6462,6 +7189,7 @@
   }
 
   function patchReferensKundkortRail() {
+    if (usesV12Workspace() || usesV11Rail()) return false;
     const rail = els.patientRail || document.querySelector('[data-patient-master-rail]');
     if (!rail || !runtime.detail?.card) return false;
     const kkrefHost = rail.querySelector('.v10-dossier-referens .kkref');
@@ -6575,6 +7303,35 @@
       patientId,
       runtime.detail?.journalEntries
     );
+    // V11-RAIL / V12-WORKSPACE laddnings-skal: när nya railen/workspace är aktiv
+    // måste loading-läget rita V11-skalet (lite). Annars blinkar V10-referenskortet
+    // till i ~0,6 s innan den riktiga V11-renderingen tar över — "hopp mellan
+    // gammalt och nytt läge" i dossiern. Speglar renderDetailShellLite men använder
+    // det cachade list-kortet eftersom runtime.detail ännu pekar på förra kunden.
+    if (isV9CustomersEnabled() && (usesV12Workspace() || usesV11Rail())) {
+      rail.innerHTML = renderV9MockupDetailShell(
+        cached,
+        [],
+        null,
+        [],
+        null,
+        normalizeDetailTab(runtime.detailTab),
+        { lite: true }
+      );
+      bindV9MockupDossierHandlers(rail, {
+        card: cached,
+        journalEntries: [],
+        driveFiles: [],
+        patient: null,
+        occasionTimeline: null,
+      });
+      ensureV9DossierDeepClosed();
+      runtime.detailShellOnly = true;
+      syncV9CustomersLayoutState();
+      syncMobilePatientLayout();
+      window.ArcanaMobileShell?.syncFromApp?.();
+      return;
+    }
     if (
       isV9CustomersEnabled() &&
       usesV10KundkortFacit() &&
@@ -6847,11 +7604,7 @@
   }
 
   async function fetchGkMediaObjectUrl(primaryUrl, fallbackUrl = '') {
-    const urls = [];
-    const primary = normalizeText(primaryUrl);
-    const fallback = normalizeText(fallbackUrl);
-    if (primary && primary !== '#') urls.push(primary);
-    if (fallback && fallback !== '#' && fallback !== primary) urls.push(fallback);
+    const urls = expandGkMediaUrls(primaryUrl, fallbackUrl);
     if (!urls.length) return '';
 
     const token = getAdminToken();
@@ -6879,6 +7632,40 @@
     return '';
   }
 
+  function isCcoProtectedAssetUrl(url) {
+    const raw = normalizeText(url);
+    return (
+      /\/api\/v1\/cco\/assets\/[^/]+\/(?:download|thumbnail)\b/.test(raw) ||
+      /\/api\/v1\/cco-patient-master\/(?:file|file-preview)\b/.test(raw)
+    );
+  }
+
+  function ccoProtectedAssetThumbnailUrl(url) {
+    const raw = normalizeText(url);
+    const match = raw.match(/\/api\/v1\/cco\/assets\/([^/?#]+)\/download\b/);
+    if (!match) return '';
+    return `/api/v1/cco/assets/${match[1]}/thumbnail`;
+  }
+
+  function pushGkMediaUrl(urls, seen, url) {
+    const raw = normalizeText(url);
+    if (!raw || raw === '#' || seen.has(raw)) return;
+    seen.add(raw);
+    urls.push(raw);
+  }
+
+  function expandGkMediaUrls(primaryUrl, fallbackUrl = '') {
+    const urls = [];
+    const seen = new Set();
+    const thumbnail = ccoProtectedAssetThumbnailUrl(primaryUrl);
+    if (thumbnail) pushGkMediaUrl(urls, seen, thumbnail);
+    pushGkMediaUrl(urls, seen, primaryUrl);
+    const fallbackThumbnail = ccoProtectedAssetThumbnailUrl(fallbackUrl);
+    if (fallbackThumbnail) pushGkMediaUrl(urls, seen, fallbackThumbnail);
+    pushGkMediaUrl(urls, seen, fallbackUrl);
+    return urls;
+  }
+
   async function applyGkMediaObjectUrl(node, objectUrl) {
     if (!node || !objectUrl) return false;
     if (node.tagName !== 'IMG') {
@@ -6904,8 +7691,12 @@
     );
     const visibleNodes = Array.from(mediaNodes).filter((node) => {
       const tile = node.closest('.gk-foto');
+      const nativeSrc = node.tagName === 'IMG' ? node.getAttribute('src') || '' : '';
       const hasNativeImageSrc =
-        node.tagName === 'IMG' && node.getAttribute('src') && !node.classList.contains('is-broken');
+        node.tagName === 'IMG' &&
+        nativeSrc &&
+        !isCcoProtectedAssetUrl(nativeSrc) &&
+        !node.classList.contains('is-broken');
       return (
         !hasNativeImageSrc &&
         (!tile || window.getComputedStyle(tile).display !== 'none') &&
@@ -6925,6 +7716,9 @@
           node.getAttribute('data-gk-allow-full-fallback') === '1'
             ? node.getAttribute('data-gk-img-full') || ''
             : '';
+        if (node.tagName === 'IMG' && isCcoProtectedAssetUrl(node.getAttribute('src') || '')) {
+          node.removeAttribute('src');
+        }
         node.dataset.gkLoading = 'true';
         node.classList.add('is-loading');
         const objectUrl = await fetchGkMediaObjectUrl(primary, fallback);
@@ -8840,12 +9634,35 @@
     if (!rail || !runtime.detail?.card) return;
     els.patientRail = rail;
     const { card: rawCard } = runtime.detail;
-    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries);
     const journalEntries = asArray(runtime.detail.journalEntries);
+    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId, journalEntries);
     const occasionTimeline = runtime.detail?.occasionTimeline;
     const driveFiles = runtime.detail?.driveFiles;
 
     if (isV9CustomersEnabled()) {
+      if (usesV12Workspace()) {
+        rail.innerHTML = renderV9MockupDetailShell(
+          card,
+          journalEntries,
+          occasionTimeline,
+          driveFiles,
+          runtime.detail?.patient,
+          normalizeDetailTab(runtime.detailTab),
+          { lite: true }
+        );
+        bindV9MockupDossierHandlers(rail, {
+          card,
+          journalEntries,
+          driveFiles,
+          patient: runtime.detail?.patient,
+          occasionTimeline,
+        });
+        ensureV9DossierDeepClosed();
+        runtime.detailShellOnly = true;
+        syncV9CustomersLayoutState();
+        syncMobilePatientLayout();
+        return;
+      }
       if (usesBlueprintDesktopLayout()) {
         renderBlueprintDetailPanels(card, journalEntries, null, occasionTimeline, driveFiles);
         bindV9MockupDossierHandlers(rail, { card, journalEntries, driveFiles });
@@ -8956,6 +9773,8 @@
       !options.forceFullRender &&
       preserveRailScroll &&
       railHasReferensKundkortShell() &&
+      !usesV12Workspace() &&
+      !usesV11Rail() &&
       usesV10KundkortFacit() &&
       !usesV11DossierCutover()
     ) {
@@ -8986,7 +9805,20 @@
     if (isV9CustomersEnabled()) {
       const tab = normalizeDetailTab(runtime.detailTab);
       const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
-      if (usesBlueprintDesktopLayout()) {
+      if (usesV12Workspace()) {
+        setPatientRailHtml(
+          rail,
+          renderV9MockupDetailShell(
+            card,
+            journalEntries,
+            occasionTimeline,
+            uniqueDriveFiles,
+            patient,
+            tab
+          ),
+          { preserveScroll: preserveRailScroll }
+        );
+      } else if (usesBlueprintDesktopLayout()) {
         renderBlueprintDetailPanels(
           card,
           journalEntries,
@@ -9001,19 +9833,20 @@
         syncV9CustomersLayoutState();
         syncMobilePatientLayout();
         return;
+      } else {
+        setPatientRailHtml(
+          rail,
+          renderV9MockupDetailShell(
+            card,
+            journalEntries,
+            occasionTimeline,
+            uniqueDriveFiles,
+            patient,
+            tab
+          ),
+          { preserveScroll: preserveRailScroll }
+        );
       }
-      setPatientRailHtml(
-        rail,
-        renderV9MockupDetailShell(
-          card,
-          journalEntries,
-          occasionTimeline,
-          uniqueDriveFiles,
-          patient,
-          tab
-        ),
-        { preserveScroll: preserveRailScroll }
-      );
       bindJournalPhotoOpenLinks(els.patientRail);
       bindV9MockupDossierHandlers(rail, {
         card,
@@ -11110,6 +11943,9 @@
 
       const row = event.target.closest('[data-patient-row]');
       if (row && runtime.mode === 'register') {
+        // Fas 4 · Hybrid: genuint kundval re-armar auto-öppning av V12 full-sida
+        // (close + samma rad igen → öppnar på nytt; interna re-renders gör inte det).
+        runtime.v12HybridAutoOpenedFor = null;
         void loadPatientDetail(row.dataset.patientRow);
         return;
       }
@@ -11963,9 +12799,67 @@
     });
   });
 
+  /**
+   * Kalender #17-seam (Alt A) — DATA-ONLY accessor. Återanvänder den befintliga
+   * detalj-/dossier-hämtningen (samma cco-workspace/bootstrap-data som
+   * loadPatientDetailInternal/renderV12WorkspaceDetailShell) men RETURNERAR en
+   * ctx UTAN att rendera eller navigera i kund-vyn — den muterar inte runtime,
+   * monterar inget i kund-shellen och ändrar inte selectedPatientId. Kalendern
+   * (booking-desktop-week.js) bygger sin kondenserade dossier ur denna ctx via
+   * CcoV11RailAdapters. Additiv, ingen befintlig V12-funktion påverkas.
+   *
+   * Fält-formerna speglar exakt renderV12WorkspaceDetailShell:
+   *   { card, bcard, dossierBundle, journalEntries, occasionTimeline,
+   *     driveFiles, patient }
+   *
+   * @param {string} patientId
+   * @returns {Promise<object|null>}
+   */
+  async function loadDossierData(patientId) {
+    const key = normalizeText(patientId);
+    if (!key) return null;
+    // Detaljpayload (card/journalEntries/occasionTimeline/driveFiles/patient).
+    // includeDriveFiles=true så Filer-/Foto-sektioner får riktig data.
+    const payload = await fetchPatientDetailFromApi(key, {
+      includeDriveFiles: true,
+    });
+    const card = payload?.card || null;
+    if (!card) return null;
+    // Dossier-bundle (samma endpoint/cache som loadPatientDocumentBundle) —
+    // best-effort: saknas den faller bcard tillbaka på card (empty-states ändå).
+    let dossierBundle = payload?.dossierBundle || payload?.documentBundle || null;
+    if (!dossierBundle) {
+      try {
+        const body = await apiRequest(
+          `/api/v1/cco-patient-master/patient/dossier-bundle?patientId=${encodeURIComponent(key)}&includeJournal=0`,
+          { cacheKey: `dossier-bundle:${key}`, staleTime: 30_000, gcTime: 120_000 }
+        );
+        dossierBundle = body?.documentBundle || body || null;
+      } catch {
+        dossierBundle = null;
+      }
+    }
+    const bcard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card || {};
+    const occasionTimeline = asArray(payload?.occasionTimeline || dossierBundle?.occasionTimeline);
+    const driveFiles = asArray(payload?.driveFiles || dossierBundle?.driveFiles);
+    return {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries: asArray(payload?.journalEntries),
+      occasionTimeline,
+      driveFiles,
+      patient: payload?.patient || card || null,
+    };
+  }
+
   window.ArcanaPatientMasterUi = {
     onCustomersViewOpen,
     setMode,
+    loadDossierData,
     getRuntime: () => ({ ...runtime }),
     isV9CustomersEnabled,
     isV9DemoEnabled,

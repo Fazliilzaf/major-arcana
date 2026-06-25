@@ -73,6 +73,42 @@
   function normalizeText(v) {
     return typeof v === 'string' ? v.trim() : '';
   }
+  function gkIsProtectedMediaUrl(url) {
+    var raw = normalizeText(url);
+    return (
+      /\/api\/v1\/cco\/assets\/[^/]+\/(?:download|thumbnail)\b/.test(raw) ||
+      /\/api\/v1\/cco-patient-master\/(?:file|file-preview)\b/.test(raw)
+    );
+  }
+  function gkProtectedAssetThumbnailUrl(url) {
+    var raw = normalizeText(url);
+    var match = raw.match(/\/api\/v1\/cco\/assets\/([^/?#]+)\/download\b/);
+    if (!match) return '';
+    return '/api/v1/cco/assets/' + match[1] + '/thumbnail';
+  }
+  function gkNativeMediaSrcAttr(src) {
+    if (!src || gkIsProtectedMediaUrl(src)) return '';
+    return 'src="' + esc(src) + '" ';
+  }
+  function gkPushMediaUrl(list, seen, url) {
+    var raw = normalizeText(url);
+    if (!raw || raw === '#' || seen[raw]) return;
+    seen[raw] = true;
+    list.push(raw);
+  }
+  function gkExpandMediaUrls(primary, fallback, allowFullFallback) {
+    var list = [];
+    var seen = {};
+    var thumb = gkProtectedAssetThumbnailUrl(primary);
+    if (thumb) gkPushMediaUrl(list, seen, thumb);
+    gkPushMediaUrl(list, seen, primary);
+    if (allowFullFallback) {
+      thumb = gkProtectedAssetThumbnailUrl(fallback);
+      if (thumb) gkPushMediaUrl(list, seen, thumb);
+      gkPushMediaUrl(list, seen, fallback);
+    }
+    return list;
+  }
   var A = function (x) {
     return Array.isArray(x) ? x : x ? [x] : [];
   };
@@ -445,7 +481,9 @@
                 '" muted playsinline preload="' +
                 (deferred ? 'none' : 'metadata') +
                 '">' +
-                (deferred ? '' : '<source src="' + esc(fallback) + '">') +
+                (deferred || gkIsProtectedMediaUrl(fallback)
+                  ? ''
+                  : '<source src="' + esc(fallback) + '">') +
                 '</video><span class="gk-video-chip">Film</span>'
               : missingPreview
                 ? '<div class="gk-foto-placeholder"><b>Miniatyr saknas</b><small>Original finns · behöver thumbnail</small></div>'
@@ -456,7 +494,7 @@
                   (deferred ? 'data-gk-deferred-img-full="' : 'data-gk-img-full="') +
                   esc(fallback) +
                   '" ' +
-                  (deferred ? '' : 'src="' + esc(src) + '" ') +
+                  (deferred ? '' : gkNativeMediaSrcAttr(src)) +
                   'alt="' +
                   esc(p.name || p.zone || 'Foto') +
                   '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />';
@@ -1979,7 +2017,7 @@
                       (deferred ? 'data-gk-deferred-img-full="' : 'data-gk-img-full="') +
                       esc(fallback) +
                       '" ' +
-                      (deferred ? '' : 'src="' + esc(src) + '" ') +
+                      (deferred ? '' : gkNativeMediaSrcAttr(src)) +
                       'alt="' +
                       esc(p.name || p.zone || 'Foto') +
                       '" loading="lazy" decoding="async" onerror="this.removeAttribute(&quot;src&quot;);this.closest(&quot;.gk-foto&quot;)?.classList.add(&quot;is-missing&quot;)" />'
@@ -3298,11 +3336,30 @@
       return;
     }
     window.__GK_DRIVE_LOADING[pid] = true;
+    // Staff-auth i prod är en Bearer-token (inte cookie) → anropet MÅSTE bära
+    // Authorization-headern, annars svarar requireAuth 401. Samma token-mönster
+    // som övriga auth-anrop i denna fil (ARCANA_ADMIN_TOKEN).
+    var __gkDriveTok = '';
+    try {
+      __gkDriveTok = (
+        window.localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        window.sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+        ''
+      ).trim();
+    } catch (e) {
+      __gkDriveTok = '';
+    }
     fetch(
       '/api/v1/cco-patient-master/patient/summary?patientId=' +
         encodeURIComponent(pid) +
         '&includeDriveFiles=1',
-      { credentials: 'same-origin' }
+      {
+        credentials: 'same-origin',
+        headers:
+          __gkDriveTok && __gkDriveTok !== '__preview_local__'
+            ? { Authorization: 'Bearer ' + __gkDriveTok }
+            : {},
+      }
     )
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -4268,9 +4325,11 @@
       )
       .filter(function (node) {
         var tile = node.closest && node.closest('.gk-foto');
+        var nativeSrc = node.tagName === 'IMG' ? node.getAttribute('src') || '' : '';
         var hasNativeImageSrc =
           node.tagName === 'IMG' &&
-          node.getAttribute('src') &&
+          nativeSrc &&
+          !gkIsProtectedMediaUrl(nativeSrc) &&
           !node.classList.contains('is-broken');
         return (
           !hasNativeImageSrc &&
@@ -4292,16 +4351,14 @@
       if (node.dataset.gkLoaded === 'true' || node.dataset.gkLoading === 'true') return;
       var primary = node.getAttribute('data-gk-img-src') || '';
       var fallback = node.getAttribute('data-gk-img-full') || '';
-      var urls = [];
-      if (primary && primary !== '#') urls.push(primary);
-      if (
-        fallback &&
-        fallback !== '#' &&
-        fallback !== primary &&
-        node.getAttribute('data-gk-allow-full-fallback') === '1'
-      ) {
-        urls.push(fallback);
+      if (node.tagName === 'IMG' && gkIsProtectedMediaUrl(node.getAttribute('src') || '')) {
+        node.removeAttribute('src');
       }
+      var urls = gkExpandMediaUrls(
+        primary,
+        fallback,
+        node.getAttribute('data-gk-allow-full-fallback') === '1'
+      );
       if (!urls.length) return;
       node.dataset.gkLoading = 'true';
       active += 1;
@@ -4720,12 +4777,12 @@
         (attStatus === 'show'
           ? '✓ Ankommen' + (attTime ? ' ' + esc(attTime) : '') + (att.by ? ' · ' + esc(att.by) : '')
           : attStatus === 'no_show'
-            ? '✕ No-show · kontakta kunden'
+            ? '✕ Utebliven · kontakta kunden'
             : 'Närvaro ej markerad') +
         '</div>' +
         '<div class="kk-attend-btns">' +
-        '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Show</button>' +
-        '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> No-show</button>' +
+        '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Ankommen</button>' +
+        '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> Utebliven</button>' +
         '</div></div>';
     }
 
@@ -6479,7 +6536,9 @@
       if (statusEl) {
         statusEl.className = 'kk-attend-status is-' + status;
         statusEl.textContent =
-          status === 'show' ? '✓ Ankommen ' + tid + ' · reception' : '✕ No-show · kontakta kunden';
+          status === 'show'
+            ? '✓ Ankommen ' + tid + ' · reception'
+            : '✕ Utebliven · kontakta kunden';
       }
       var token = '';
       try {
@@ -6602,6 +6661,10 @@
       var op = e.target.closest && e.target.closest('[data-kk-open-storvy]');
       if (op && typeof window.__kkOpenStorvy === 'function') {
         e.preventDefault();
+        if (document.documentElement.getAttribute('data-v12-workspace') === 'on') {
+          e.stopPropagation();
+          return;
+        }
         window.__kkOpenStorvy(
           op.getAttribute('data-kk-open-storvy') || '',
           op.getAttribute('data-kk-entry') || ''
@@ -7188,6 +7251,7 @@
   // Delad öppnare: ploppar upp gemensamma kortet (STOR VY via iframe), valfligt
   // landat på en sektion (#slug). Används av header-förstoringen OCH sektions-⤢.
   window.__kkOpenStorvy = function (slug, entryId, medForm) {
+    if (document.documentElement.getAttribute('data-v12-workspace') === 'on') return;
     var ov = document.getElementById('kk-storvy');
     if (!ov) {
       ov = document.createElement('div');

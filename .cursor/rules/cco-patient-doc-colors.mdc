@@ -1,0 +1,40 @@
+---
+description: Förbjudna färger i CCO patientdokument — ingen mörk mockup-guld
+globs: public/major-arcana-preview/steg*.html,public/major-arcana-preview/patient-document*.css,scripts/ops/build-steg*.js,docs/implementation/patient-documents-live/**
+alwaysApply: false
+---
+
+# CCO patientdokument — färgpolicy
+
+## Förbjudet i CCO live (patientdokument)
+
+Använd **ALDRIG** dessa färger eller kombinationer:
+
+- `#bd7a18`, `#d89636`, `#a86812`, `#b87318`, `#dba24a`
+- Gradient som slutar i `#bd7a18` (t.ex. `linear-gradient(135deg, #d4a847, #bd7a18)`)
+- **Vit text på mörk guld/brons** för Ja/Nej, valknappar eller formulärtoggles
+
+Dessa kommer från gamla mockups/kundkort — de är **för mörka** för patientdokument.
+
+## Kanonisk källa
+
+- **CSS:** `public/major-arcana-preview/patient-document-shell.css`
+- **Spec:** `docs/implementation/patient-documents-live/DESIGN-SPEC.md`
+
+## Rätt valt tillstånd (Ja/Nej aktiv)
+
+- Ljus sand/peach-bakgrund (`--pd-accent-fill`)
+- Mörk brun text (`--brand` / `#2b251f`)
+- Varm peach-kant (`--pd-accent-border`)
+
+## Primär CTA (Signera & skicka)
+
+- Espresso/brun gradient (`--pd-primary-bg`), **inte** mörk guld
+- Ljus krämtext (`--pd-primary-text`)
+
+## Vid nytt patientdokument
+
+1. Länka eller inkludera `patient-document-shell.css`
+2. Generera inte egna guld-gradienter
+3. **Visa aldrig Meridiq apiId eller "Meridiq …" i patient-synlig text**
+4. Kör `rg '#bd7a18|#d89636|Meridiq' public/major-arcana-preview/steg*.html` — ska vara tomt (utom HTML-kommentarer om källa)

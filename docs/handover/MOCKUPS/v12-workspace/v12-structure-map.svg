@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="1180" viewBox="0 0 960 1180" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3ece2"/>
+      <stop offset="1" stop-color="#e9ddcd"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d79433"/><stop offset="1" stop-color="#b9701a"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="1180" fill="url(#bg)"/>
+
+  <!-- Header -->
+  <text x="40" y="46" font-size="24" font-weight="800" fill="#2c2218">V12 Customer Workspace — hela kundresan</text>
+  <text x="40" y="70" font-size="13" fill="#6b5d4f">V11 Rail expanderad till en riktig arbetsyta — inte en dashboard med lösa flikar. Flöde uppifrån och ned.</text>
+
+  <!-- rows: y start 92, step 80, card h 64 -->
+  <!-- 1 -->
+  <g transform="translate(40,92)">
+    <rect width="880" height="64" rx="12" fill="#fffdf9" stroke="rgba(56,40,28,.12)"/>
+    <rect width="6" height="64" rx="3" fill="#c8821e"/>
+    <circle cx="40" cy="32" r="15" fill="#c8821e"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">1</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Kundens nuläge</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Namn · kund-ID · kontakt · tags (VIP/PRP/risk) · status · snabbknappar (ring/SMS/mejl/boka)</text>
+  </g>
+  <!-- 2 -->
+  <g transform="translate(40,172)">
+    <rect width="880" height="64" rx="12" fill="#fff8ec" stroke="rgba(200,130,30,.3)"/>
+    <rect width="6" height="64" rx="3" fill="url(#gold)"/>
+    <circle cx="40" cy="32" r="15" fill="url(#gold)"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">2</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Aktivt besök <tspan font-size="10.5" font-weight="700" fill="#b9701a">· HERO</tspan></text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Dagens behandling · personal · timeline bokad→incheckad→behandling→journal→eftervård→klar · CTA starta journal · blockerare</text>
+  </g>
+  <!-- 3 -->
+  <g transform="translate(40,252)">
+    <rect width="880" height="64" rx="12" fill="#fdf1f0" stroke="rgba(181,82,74,.4)"/>
+    <rect width="6" height="64" rx="3" fill="#b5524a"/>
+    <circle cx="40" cy="32" r="15" fill="#b5524a"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">3</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Kritiska varningar</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Allergier · medicinska risker · saknat samtycke · juridik/signering · ekonomisk risk — “måste lösas innan behandling”</text>
+  </g>
+  <!-- 4 -->
+  <g transform="translate(40,332)">
+    <rect width="880" height="64" rx="12" fill="#eef6f1" stroke="rgba(60,107,74,.35)"/>
+    <rect width="6" height="64" rx="3" fill="#3c6b4a"/>
+    <circle cx="40" cy="32" r="15" fill="#3c6b4a"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">4</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Hälsa</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Hälsodeklaration · allergier · läkemedel · kontraindikationer · senast uppdaterad · öppna full hälsoprofil</text>
+  </g>
+  <!-- 5 -->
+  <g transform="translate(40,412)">
+    <rect width="880" height="64" rx="12" fill="#eef2f8" stroke="rgba(58,90,140,.32)"/>
+    <rect width="6" height="64" rx="3" fill="#3a5a8c"/>
+    <circle cx="40" cy="32" r="15" fill="#3a5a8c"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">5</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Kundresa / steg</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Var i behandlingsresan · alla steg första kontakt→uppföljning · klart/aktuellt/nästa · koppling dok/journal/foto per steg</text>
+  </g>
+  <!-- 6 -->
+  <g transform="translate(40,492)">
+    <rect width="880" height="64" rx="12" fill="#fff8ec" stroke="rgba(200,130,30,.3)"/>
+    <rect width="6" height="64" rx="3" fill="#c8821e"/>
+    <circle cx="40" cy="32" r="15" fill="#c8821e"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">6</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Journal <tspan font-size="10.5" font-weight="700" fill="#3c6b4a">· BYGGD (#148)</tspan></text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Dagens + tidigare journaler · draft/signerad · behandlingsprotokoll · intern anteckning · signera/skicka/spara</text>
+  </g>
+  <!-- 7 -->
+  <g transform="translate(40,572)">
+    <rect width="880" height="64" rx="12" fill="#f5eef7" stroke="rgba(152,48,95,.3)"/>
+    <rect width="6" height="64" rx="3" fill="#98305f"/>
+    <circle cx="40" cy="32" r="15" fill="#98305f"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">7</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Bilder / före–efter</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Före · efter · översikt · film · datum+behandling per bild · jämförelsevy</text>
+  </g>
+  <!-- 8 -->
+  <g transform="translate(40,652)">
+    <rect width="880" height="64" rx="12" fill="#eef2f8" stroke="rgba(58,90,140,.32)"/>
+    <rect width="6" height="64" rx="3" fill="#3a5a8c"/>
+    <circle cx="40" cy="32" r="15" fill="#3a5a8c"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">8</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Bokningar</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Kommande · tidigare · status (bokad/genomförd/avbokad/no-show) · personal+tjänst · bekräfta tider</text>
+  </g>
+  <!-- 9 -->
+  <g transform="translate(40,732)">
+    <rect width="880" height="64" rx="12" fill="#f1f0ee" stroke="rgba(56,40,28,.18)"/>
+    <rect width="6" height="64" rx="3" fill="#6b5d4f"/>
+    <circle cx="40" cy="32" r="15" fill="#6b5d4f"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">9</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Dokument</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Samtycken · behandlingsplan · eftervård · offerter · auto-genererat · PDF/DOCX/XLSX · signeringsstatus</text>
+  </g>
+  <!-- 10 -->
+  <g transform="translate(40,812)">
+    <rect width="880" height="64" rx="12" fill="#eef6f1" stroke="rgba(60,107,74,.35)"/>
+    <rect width="6" height="64" rx="3" fill="#3c6b4a"/>
+    <circle cx="40" cy="32" r="15" fill="#3c6b4a"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">10</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Kommunikation</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Mejl · SMS · samtalslogg · svarstudio · viktiga kundmeddelanden · senaste kontakt</text>
+  </g>
+  <!-- 11 -->
+  <g transform="translate(40,892)">
+    <rect width="880" height="64" rx="12" fill="#eef6f1" stroke="rgba(60,107,74,.35)"/>
+    <rect width="6" height="64" rx="3" fill="#2f7d4f"/>
+    <circle cx="40" cy="32" r="15" fill="#2f7d4f"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">11</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Ekonomi</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Total intäkt · livstidsvärde · utestående skuld · snitt/besök · offerter · fakturor/betalstatus</text>
+  </g>
+  <!-- 12 -->
+  <g transform="translate(40,972)">
+    <rect width="880" height="64" rx="12" fill="#fff8ec" stroke="rgba(200,130,30,.3)"/>
+    <rect width="6" height="64" rx="3" fill="url(#gold)"/>
+    <circle cx="40" cy="32" r="15" fill="url(#gold)"/><text x="40" y="37" font-size="14" font-weight="800" fill="#fff" text-anchor="middle">12</text>
+    <text x="70" y="27" font-size="15" font-weight="700" fill="#2c2218">Insikter &amp; nästa bästa åtgärd</text>
+    <text x="70" y="48" font-size="11.5" fill="#6b5d4f">Vad personalen bör göra nu · varför · nästa steg · risker/möjligheter · boka uppföljning / skicka samtycke / kontakta</text>
+  </g>
+  <!-- 13 sticky -->
+  <g transform="translate(40,1064)">
+    <rect width="880" height="58" rx="12" fill="#2c2218"/>
+    <circle cx="40" cy="29" r="15" fill="url(#gold)"/><text x="40" y="34" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">13</text>
+    <text x="70" y="25" font-size="14" font-weight="700" fill="#fff">Sticky arbetsbar <tspan font-size="10.5" fill="#e8c07d">· fäst, mobil/iPad/webb</tspan></text>
+    <text x="70" y="44" font-size="11.5" fill="#cdbfaf">Primär åtgärd efter läge (Starta journal / Slutför besök / Skicka eftervård / Boka uppföljning) + sekundär — täcker aldrig innehåll</text>
+  </g>
+</svg>

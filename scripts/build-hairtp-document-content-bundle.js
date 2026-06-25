@@ -9,6 +9,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+const {
+  filterManualSignatureBlocks,
+  stripManualSignatureTail,
+} = require('./ops/patient-document-build-lib');
 const OUT_PATH = path.join(
   ROOT,
   'public/major-arcana-preview/data/hairtp-document-content-bundle.json'
@@ -218,19 +222,21 @@ function buildConsentDoc(registryId, label, consentApiId, options = {}) {
   const ccoTemplateId =
     options.ccoTemplateId || (consentApiId ? CONSENT_CCO_TEMPLATE_BY_API[consentApiId] : null);
   const ccoTemplate = ccoTemplateId ? getCcoTemplate(ccoTemplateIndex, ccoTemplateId) : null;
-  const facitBlocks =
+  const facitBlocksRaw =
     options.facitBlocks ||
     (consentApiId === 170917 ? agreementFacit.blocks : null) ||
     (consentApiId === 170955 ? agreementFacit.cooling.blocks : null) ||
     (PRP_AGREEMENT_API_IDS.has(consentApiId) ? prpAgreementFacit.blocks : null);
+  const facitBlocks = facitBlocksRaw ? filterManualSignatureBlocks(facitBlocksRaw) : null;
   const ccoBody = ccoTemplate?.bodySv || '';
+  const cleanBody = ccoBody ? stripManualSignatureTail(ccoBody) : '';
   const status = contentStatusForConsent(
     consent,
     Array.isArray(facitBlocks) && facitBlocks.length > 0,
-    ccoBody
+    cleanBody
   );
   const blockers = [];
-  if (status === 'PARTIAL' && !facitBlocks && !ccoBody) {
+  if (status === 'PARTIAL' && !facitBlocks && !cleanBody) {
     blockers.push('NEEDS_FACIT: letterText tom i Meridiq-export och cco-templates');
   }
   if (options.versionConflict) blockers.push(options.versionConflict);
@@ -257,8 +263,8 @@ function buildConsentDoc(registryId, label, consentApiId, options = {}) {
       ? { templateId: ccoTemplateId, source: ccoTemplate.source, type: ccoTemplate.type }
       : null,
     content: {
-      letterText: consent?.letterText || ccoBody || '',
-      agreementText: ccoBody || null,
+      letterText: stripManualSignatureTail(consent?.letterText || cleanBody || ''),
+      agreementText: cleanBody || null,
       agreementBlocks: facitBlocks || null,
       bundleAckLabel: consentApiId === 170917 ? agreementFacit.bundleAckLabel : null,
       ackLabel: consentApiId === 170955 ? agreementFacit.cooling.ackLabel || null : null,
