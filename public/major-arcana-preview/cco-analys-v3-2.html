@@ -73,11 +73,9 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 
 /* metric-kort (KPI) */
 .metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
-.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
-.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
-.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
-.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
-.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-tertiary);line-height:1.25;min-height:2.5em}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.4rem;line-height:1.35}
 .metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
 .metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
 
@@ -121,18 +119,19 @@ section{margin-top:1.4rem}
 .metric-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(min-width:601px){.metric-grid{grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))}}
 
-/* trend-chip i metric-kort */
-.m-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
-.m-chip{flex-shrink:0;display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .5rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;background:var(--bg-sunken);color:var(--text-secondary)}
+/* KPI-hierarki: etikett (reserverar 2 rader så värden linjerar i raden) → värde+chip → meta */
+.m-valrow{display:flex;align-items:baseline;gap:.45rem;flex-wrap:wrap;margin-top:.3rem}
+.m-chip{align-self:center;display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .55rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;background:var(--bg-sunken);color:var(--text-secondary);white-space:nowrap}
 .m-chip--up{background:var(--success-bg);color:var(--success)}
 .m-chip--down{background:var(--danger-bg);color:var(--danger)}
 
-/* berättelsekort (story) inuti panel */
-.story-grid{display:grid;gap:var(--gap);grid-template-columns:1fr}
-@media(min-width:601px){.story-grid{grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}}
-.story{padding:.85rem .95rem;border-radius:var(--r-md);background:var(--bg-sunken);border:1px solid rgba(180,165,150,.22)}
-.story .s-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)}
-.story .s-body{font-size:var(--fs-meta);color:var(--text-secondary);margin-top:.3rem}
+/* aktiv lägesbild — rader i panelen (samma kortspråk som Topp-presterare/Mallar nedanför) */
+.story-grid{display:grid;gap:0}
+.story{padding:.75rem 0;border-bottom:1px solid rgba(180,165,150,.2)}
+.story:first-child{padding-top:.15rem}.story:last-child{border-bottom:0;padding-bottom:.15rem}
+.story .s-kicker{display:inline-flex;align-items:center;gap:.4rem;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)}
+.story .s-kicker::before{content:"";width:.45rem;height:.45rem;border-radius:999px;background:var(--info);flex-shrink:0}
+.story .s-body{font-size:var(--fs-meta);color:var(--text-secondary);margin-top:.25rem;line-height:1.45}
 
 /* "Din prestation" — 2 kort */
 .perf-grid{display:grid;gap:var(--gap);grid-template-columns:1fr}
@@ -204,33 +203,33 @@ section{margin-top:1.4rem}
     </div>
     <div class="metric-grid">
       <div class="metric metric--green">
-        <div class="m-top"><span class="m-label">Beredskapspoäng</span><span class="m-chip">Kontrollerad</span></div>
-        <div class="m-val tabnum">0.0</div>
+        <div class="m-label">Beredskapspoäng</div>
+        <div class="m-valrow"><span class="m-val tabnum">0.0</span><span class="m-chip">Kontrollerad</span></div>
         <div class="m-meta">Go/no-go tillåter körning.</div>
       </div>
       <div class="metric metric--blue">
-        <div class="m-top"><span class="m-label">Körning p95</span><span class="m-chip">Stabil</span></div>
-        <div class="m-val tabnum">0 ms</div>
+        <div class="m-label">Körning p95</div>
+        <div class="m-valrow"><span class="m-val tabnum">0 ms</span><span class="m-chip">Stabil</span></div>
         <div class="m-meta">Monitor-latens från valt fönster.</div>
       </div>
       <div class="metric metric--rose">
-        <div class="m-top"><span class="m-label">Öppna incidenter</span><span class="m-chip m-chip--down">2 över SLA</span></div>
-        <div class="m-val tabnum">2</div>
+        <div class="m-label">Öppna incidenter</div>
+        <div class="m-valrow"><span class="m-val tabnum">2</span><span class="m-chip m-chip--down">2 över SLA</span></div>
         <div class="m-meta">Operativt läge nu.</div>
       </div>
       <div class="metric metric--violet">
-        <div class="m-top"><span class="m-label">Mejlinsikter</span><span class="m-chip">Redo</span></div>
-        <div class="m-val">Redo</div>
+        <div class="m-label">Mejlinsikter</div>
+        <div class="m-valrow"><span class="m-val">Redo</span><span class="m-chip">Redo</span></div>
         <div class="m-meta">Mejlinsikter redo för arbetsytan.</div>
       </div>
       <div class="metric metric--gold">
-        <div class="m-top"><span class="m-label">Hög risk öppna</span><span class="m-chip m-chip--down">3 väntar</span></div>
-        <div class="m-val tabnum">3</div>
+        <div class="m-label">Hög risk öppna</div>
+        <div class="m-valrow"><span class="m-val tabnum">3</span><span class="m-chip m-chip--down">3 väntar</span></div>
         <div class="m-meta">Behöver ägarbeslut eller riskuppföljning.</div>
       </div>
       <div class="metric metric--slate">
-        <div class="m-top"><span class="m-label">Synliga trådar</span><span class="m-chip">3 mejlkonton</span></div>
-        <div class="m-val tabnum">47</div>
+        <div class="m-label">Synliga trådar</div>
+        <div class="m-valrow"><span class="m-val tabnum">47</span><span class="m-chip">3 mejlkonton</span></div>
         <div class="m-meta">Ägarurval aktivt.</div>
       </div>
     </div>
@@ -253,20 +252,20 @@ section{margin-top:1.4rem}
     <div class="sec-head"><h2>Teamprestanda</h2></div>
     <div class="metric-grid">
       <div class="metric metric--blue">
-        <div class="m-top"><span class="m-label">Snitt svarstid</span><span class="m-chip m-chip--down">-12%</span></div>
-        <div class="m-val tabnum">2h 14m</div>
+        <div class="m-label">Snitt svarstid</div>
+        <div class="m-valrow"><span class="m-val tabnum">2h 14m</span><span class="m-chip m-chip--down">-12%</span></div>
       </div>
       <div class="metric metric--green">
-        <div class="m-top"><span class="m-label">SLA-efterlevnad</span><span class="m-chip m-chip--up">+3%</span></div>
-        <div class="m-val tabnum">94%</div>
+        <div class="m-label">SLA-efterlevnad</div>
+        <div class="m-valrow"><span class="m-val tabnum">94%</span><span class="m-chip m-chip--up">+3%</span></div>
       </div>
       <div class="metric metric--slate">
-        <div class="m-top"><span class="m-label">Konv per agent</span></div>
-        <div class="m-val tabnum">47</div>
+        <div class="m-label">Konv per agent</div>
+        <div class="m-valrow"><span class="m-val tabnum">47</span></div>
       </div>
       <div class="metric metric--violet">
-        <div class="m-top"><span class="m-label">CSAT-poäng</span><span class="m-chip m-chip--up">+5%</span></div>
-        <div class="m-val tabnum">4.7/5</div>
+        <div class="m-label">CSAT-poäng</div>
+        <div class="m-valrow"><span class="m-val tabnum">4.7/5</span><span class="m-chip m-chip--up">+5%</span></div>
       </div>
     </div>
   </section>
