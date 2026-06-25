@@ -12,11 +12,11 @@
     <script src="./app/cco-booking-v1-flag.js?v=booking-v1-cutover-default-on"></script>
     <!-- Konversationer v2 — feature flag (CUTOVER: default ON, opt-out via ?conversations=off; sätter data-conversations-v2) -->
     <script src="./app/cco-conversations-v2-flag.js?v=conversations-v2-cutover-default-on"></script>
-    <!-- ARCANA bundle URLs (content-hash: b6bf045ddd) -->
+    <!-- ARCANA bundle URLs (content-hash: 5b80eae0f7) -->
     <script>
       window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.b6bf045ddd.min.js',
-        staffCore: './app.bundle.staff-core.6a544b6ae1.min.js',
+        full: './app.bundle.5b80eae0f7.min.js',
+        staffCore: './app.bundle.staff-core.b3dd6dbb1f.min.js',
         staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
       };
     </script>
@@ -11519,12 +11519,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: b6bf045ddd) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 5b80eae0f7) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.b6bf045ddd.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.6a544b6ae1.min.js';
+        var fullSrc = urls.full || './app.bundle.5b80eae0f7.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.b3dd6dbb1f.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.6d4631df1b.min.js';
 
         function injectScript(src, onload) {
