@@ -758,10 +758,6 @@
     }
   }
 
-  function v10Num(s) {
-    var n = parseInt(String(s == null ? '' : s).replace(/[^0-9]/g, ''), 10);
-    return isNaN(n) ? 0 : n;
-  }
   function v10Group(n) {
     // 1247 -> "1 247" (svensk tusentalsavgränsare med hårt mellanslag i facit)
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -771,8 +767,21 @@
   // i offline/oautentiserat läge (404/501) faller vi tyst tillbaka på facit-demo.
   async function populateV10Real(root) {
     try {
+      // Skicka admin-token (samma som apiRequest) — annars 401 i token-gatad
+      // preview och räknarna lämnar aldrig facit-demon (Bugbot #257).
+      var token = '';
+      try {
+        token =
+          (window.localStorage && localStorage.getItem('ARCANA_ADMIN_TOKEN')) ||
+          (window.sessionStorage && sessionStorage.getItem('ARCANA_ADMIN_TOKEN')) ||
+          '';
+      } catch (e) {
+        token = '';
+      }
+      var headers = { accept: 'application/json' };
+      if (token) headers.Authorization = 'Bearer ' + token;
       var res = await fetch('/api/v1/cco/customers/state', {
-        headers: { accept: 'application/json' },
+        headers: headers,
         credentials: 'same-origin',
       });
       if (!res || !res.ok) return;
@@ -780,26 +789,20 @@
         return null;
       });
       if (!payload) return;
-      var overview =
-        (payload.portalRuntime && payload.portalRuntime.ownerOverview) ||
-        payload.ownerOverview ||
-        null;
-      var list =
-        (overview && Array.isArray(overview.customers) && overview.customers) ||
-        (Array.isArray(payload.customers) && payload.customers) ||
-        [];
-      var total = v10Num(overview && overview.customerCount) || list.length;
-      // Uppdatera räknarna när API:t svarat med auktoritativ data — även noll
-      // kunder. Annars ligger facit-demon (1 247) kvar fast live säger 0
-      // (Bugbot #257). Saknas data helt (varken overview eller lista) behåller
-      // vi demon.
-      var hasAuthoritative = !!overview || Array.isArray(payload.customers);
-      if (hasAuthoritative) {
-        var title = root.querySelector('.page-title');
-        if (title) title.textContent = v10Group(total);
-        var allChip = root.querySelector('.filter-chip.active .count');
-        if (allChip) allChip.textContent = v10Group(total);
-      }
+      // Endpointen returnerar customerState.directory (map id→kund) — samma som
+      // applyCustomerPersistedState/loadCustomersRuntime läser (Bugbot #257).
+      var customerState = payload.customerState || payload;
+      var directory =
+        customerState && customerState.directory && typeof customerState.directory === 'object'
+          ? customerState.directory
+          : null;
+      if (!directory) return; // ingen auktoritativ data → behåll facit-demo
+      // Auktoritativ data (även noll kunder) → uppdatera räknarna.
+      var total = Object.keys(directory).length;
+      var title = root.querySelector('.page-title');
+      if (title) title.textContent = v10Group(total);
+      var allChip = root.querySelector('.filter-chip.active .count');
+      if (allChip) allChip.textContent = v10Group(total);
     } catch (e) {
       if (window.console) console.warn('[cco-cust-v10] data:', e && e.message);
     }
