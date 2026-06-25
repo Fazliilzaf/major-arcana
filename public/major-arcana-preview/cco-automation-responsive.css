@@ -1,0 +1,193 @@
+/* ===========================================================================
+ * cco-automation-responsive.css
+ * Scopad responsiv overlay för Automatiserings-ytan (data-shell-view="automation").
+ *
+ * Strategi (vald: "iPad full + mobil monitor"):
+ *   • Webb (>1024px)            — orörd. Inga regler träffar desktop.
+ *   • iPad (769–1024px)         — full layout: korten reflowar till 1–2 kolumner,
+ *                                 subnav blir horisontellt scrollbar, canvas
+ *                                 håller sig inom skärmen, touch-mål ≥44px.
+ *   • Mobil (≤768px)            — "monitor/översikt": allt staplas i en kolumn,
+ *                                 flödescanvasen blir horisontellt scrollbar med
+ *                                 en diskret hint om att redigering sker på större
+ *                                 skärm, touch-mål ≥44px.
+ *
+ * Allt är scopat under .automation-shell så inget läcker till andra ytor.
+ * Filen länkas SIST i index.html → vinner cascade utan !important-krig.
+ * ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+ * 1. Delad bas för iPad + mobil (≤1024px)
+ * ------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  /* Shell är positionerad containing-block för surface-dekoren (::before, 520px).
+   * Klipp på shell-nivå så den dekorativa gradienten inte ger sidan horisontell scroll. */
+  .automation-shell {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .automation-shell .automation-surface {
+    overflow-x: clip;
+    min-width: 0;
+  }
+
+  /* Rubrik + åtgärder får wrappa istället för att tryckas ihop */
+  .automation-shell .automation-head,
+  .automation-shell .automation-head-main {
+    min-width: 0;
+  }
+  .automation-shell .automation-head-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Subnav: horisontell scroll-rad istället för hopträngda piller */
+  .automation-shell .automation-subnav {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 2px;
+  }
+  .automation-shell .automation-subnav::-webkit-scrollbar {
+    display: none;
+  }
+  .automation-shell .automation-subnav-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* Layout (bibliotek/canvas/rail) staplas redan som block i desktop —
+   * vi säkrar bara att inga barn spränger bredden. */
+  .automation-shell .automation-layout,
+  .automation-shell .automation-library,
+  .automation-shell .automation-canvas,
+  .automation-shell .automation-rail {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Kända flerkolumns-rutnät → en kolumn (säkerhetsnät, även om bundlen
+   * skulle ge dem grid). collaboration-grid hanteras redan vid 1180px. */
+  .automation-shell .automation-collaboration-grid,
+  .automation-shell .automation-versions-grid,
+  .automation-shell .automation-version-facts,
+  .automation-shell .automation-template-card-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Flödescanvasen kan vara bredare än skärmen (absolut-positionerade noder).
+   * Tillåt horisontell scroll inuti canvasen istället för att bryta sidan. */
+  .automation-shell .automation-canvas {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. iPad (769–1024px) — full layout, 2-kolumners kort där det får plats
+ * ------------------------------------------------------------------------- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Kort-rutnät som tål två kolumner på iPad-bredd */
+  .automation-shell .automation-version-facts,
+  .automation-shell .automation-template-card-metrics,
+  .automation-shell .automation-collaboration-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Biblioteket som en luftig panel, canvas behåller full bredd under */
+  .automation-shell .automation-library-group {
+    min-width: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Mobil (≤768px) — monitor / översiktsläge
+ * ------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .automation-shell .automation-surface {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  /* Allt i en kolumn */
+  .automation-shell .automation-version-facts,
+  .automation-shell .automation-template-card-metrics,
+  .automation-shell .automation-collaboration-grid,
+  .automation-shell .automation-versions-grid,
+  .automation-shell .automation-analysis-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Diskret hint: flödesredigering sker bäst på större skärm.
+   * Visas överst i byggar-vyn; canvasen blir horisontellt scrollbar nedanför. */
+  .automation-shell .automation-view-builder .automation-layout::before {
+    content: "Översiktsläge — redigera flöden på en större skärm för full kontroll.";
+    display: block;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(170, 151, 136, 0.32);
+    border-radius: 12px;
+    background: rgba(255, 247, 237, 0.72);
+    color: var(--copy-warm-soft, #6b5b4e);
+    font-size: 12px;
+    line-height: 1.45;
+    font-weight: 600;
+  }
+
+  /* Flödescanvas: horisontell scroll, antydd så användaren förstår att den går att panorera */
+  .automation-shell .automation-canvas {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Biblioteks-chips wrappar som en kompakt palett */
+  .automation-shell .automation-library-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .automation-shell .automation-library-label {
+    flex: 1 0 100%;
+    margin: 0;
+  }
+
+  /* Lättare typografi/luft i mobilläget */
+  .automation-shell .automation-title {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. Touch-mål — alla interaktiva element ≥44×44 på touch-enheter
+ * ------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  .automation-shell .automation-subnav-pill,
+  .automation-shell .automation-library-item,
+  .automation-shell .automation-node-action,
+  .automation-shell .automation-suggestion-action,
+  .automation-shell .automation-suggestion-apply,
+  .automation-shell .automation-suggestion-dismiss,
+  .automation-shell .automation-version-action,
+  .automation-shell .automation-autopilot-action,
+  .automation-shell .automation-testing-action,
+  .automation-shell .automation-template-action,
+  .automation-shell .automation-run-button,
+  .automation-shell .automation-save-button,
+  .automation-shell .automation-collaboration-toggle,
+  .automation-shell .automation-autopilot-toggle,
+  .automation-shell .automation-rail-close {
+    min-height: 44px;
+  }
+
+  /* Piller/knappar med ikon+text får inte bli för smala för tummen */
+  .automation-shell .automation-subnav-pill,
+  .automation-shell .automation-library-item {
+    min-width: 44px;
+  }
+}
