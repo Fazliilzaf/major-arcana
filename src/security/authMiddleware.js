@@ -36,7 +36,10 @@ function parseMachineTokens(raw) {
         label,
         userId: normalizeText(entry?.userId || entry?.user_id) || `machine:${label}`,
         email: normalizeText(entry?.email) || `${label}@machine.arcana.local`,
-        allowPaths: allowPaths.length ? allowPaths : ['/api/v1/orchestrator'],
+        // SÄKERHET: en token utan explicit allowPaths får INGEN åtkomst
+        // (fail-closed). Tidigare default gav bred orchestrator-åtkomst till
+        // felkonfigurerade tokens. Deklarera allowPaths explicit per token.
+        allowPaths,
       };
     })
     .filter(Boolean);
@@ -97,14 +100,12 @@ function getAuthToken(req) {
 }
 
 function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host'))
-    .split(':')[0]
-    .toLowerCase();
-  const ip = normalizeText(req.ip || req.socket?.remoteAddress || '').toLowerCase();
-  return (
-    ['localhost', '127.0.0.1', '::1'].includes(host) ||
-    ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip)
-  );
+  // SÄKERHET: avgör lokalitet ENBART från socket-peerns adress, ALDRIG från den
+  // klient-styrda Host-headern (en extern angripare kan skicka `Host: localhost`
+  // och annars få lokal-preview-elevation). req.socket.remoteAddress är den
+  // faktiska TCP-peern; req.ip används som fallback (kan vara XFF bakom proxy).
+  const ip = normalizeText(req.socket?.remoteAddress || req.ip || '').toLowerCase();
+  return ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip);
 }
 
 function isStaffJournalOpenApiPath(req) {
