@@ -373,11 +373,6 @@ document.querySelectorAll('.choices').forEach(group=>{
     b.setAttribute('aria-pressed','true');
   });
 });
-// botnav active-state
-document.querySelectorAll('.nav-i').forEach(n=>n.addEventListener('click',()=>{
-  document.querySelectorAll('.nav-i').forEach(x=>x.classList.remove('is-active'));
-  n.classList.add('is-active');
-}));
 </script>
 <script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
 </body>

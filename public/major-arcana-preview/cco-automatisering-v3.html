@@ -211,8 +211,9 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 .tags{display:flex;flex-wrap:wrap;gap:.3rem;margin:.5rem 0}
 .tg{font-size:var(--fs-kicker);font-weight:800;padding:.1rem .5rem;border-radius:var(--r-pill);background:var(--accent-weak);color:var(--accent)}
 .tplgrid{display:grid;gap:var(--gap);grid-template-columns:1fr;margin-top:.7rem}
-@media(min-width:601px){.tplgrid{grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}}
-.tpl-name{font-size:var(--fs-body);font-weight:800}
+@media(min-width:601px){.tplgrid{grid-template-columns:repeat(auto-fit,minmax(16rem,1fr))}}
+.tplgrid>.card{min-width:0}
+.tpl-name{font-size:var(--fs-body);font-weight:800;overflow-wrap:anywhere}
 .tpl-cat{font-size:var(--fs-kicker);font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-top:.15rem}
 .tpl-meta{display:flex;align-items:center;gap:.6rem;margin-top:.5rem;font-size:var(--fs-meta);color:var(--text-secondary);font-weight:700}
 .tpl-meta .star{color:var(--gold)}
