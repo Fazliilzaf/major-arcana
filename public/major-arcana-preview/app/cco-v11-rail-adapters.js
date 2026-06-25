@@ -282,6 +282,41 @@
     var completedTime = avTime(visit.completedAt || visit.startedAt);
     var journalLabel = visit.journalStarted ? 'Fortsätt journal' : 'Starta journal';
 
+    // 6-stegs besöks-timeline (facit s2): bokad → in → nu → journal → eftervård
+    // → klart. Riktiga tider där de finns (startsAt/checkedInAt/completedAt);
+    // journal/eftervård/klart estimeras ur planerad tid (plannedMinutes) och
+    // märks "~". Saknas estimat-bas visas stegetiketten utan tid. Ingen fejk.
+    function addMin(iso, min) {
+      var ms = Date.parse(String(iso || ''));
+      if (!Number.isFinite(ms)) return '';
+      return new Date(ms + min * 60000).toLocaleTimeString('sv-SE', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+    var planned = Number(visit.plannedMinutes || visit.durationMin || 0);
+    var estBase = visit.checkedInAt || visit.startedAt;
+    function estLabel(min, name) {
+      var t = planned && estBase ? addMin(estBase, min) : '';
+      return (t ? '~' + t + ' ' : '') + name;
+    }
+    var timelineNodes = [];
+    if (state === 'completed_today') {
+      if (startsTime) timelineNodes.push({ state: 'done', t: startsTime + ' bokad' });
+      if (checkedInTime) timelineNodes.push({ state: 'done', t: checkedInTime + ' in' });
+      timelineNodes.push({
+        state: 'done',
+        t: (completedTime ? completedTime + ' ' : '') + 'klart',
+      });
+    } else if (state !== 'scheduled_today') {
+      if (startsTime) timelineNodes.push({ state: 'done', t: startsTime + ' bokad' });
+      if (checkedInTime) timelineNodes.push({ state: 'done', t: checkedInTime + ' in' });
+      timelineNodes.push({ state: 'active', t: 'nu' });
+      timelineNodes.push({ state: 'todo', t: estLabel(planned, 'journal') });
+      timelineNodes.push({ state: 'todo', t: estLabel(planned + 10, 'eftervård') });
+      timelineNodes.push({ state: 'todo', t: estLabel(planned + 15, 'klart') });
+    }
+
     var kicker = {
       scheduled_today: 'Nytt besök · idag',
       checked_in: 'Incheckad',
@@ -325,6 +360,7 @@
       statusLine: statusLine,
       headMeta: headMeta,
       showTimeline: state !== 'scheduled_today',
+      timelineNodes: timelineNodes,
       preflightCompact: state === 'completed_today',
       primary: primary,
       secondary: secondary,

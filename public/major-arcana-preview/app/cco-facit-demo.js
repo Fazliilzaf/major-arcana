@@ -137,7 +137,9 @@
       activeVisit: {
         visible: true,
         state: 'in_progress',
-        checkedInAt: '2026-06-25T14:30:00Z',
+        startsAt: '2026-06-25T14:25:00',
+        checkedInAt: '2026-06-25T14:30:00',
+        plannedMinutes: 45,
         serviceLabel: 'PRP-behandling 2/3',
         practitionerLabel: 'Erik Holm',
         room: 'Rum 2',
