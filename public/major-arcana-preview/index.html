@@ -8,6 +8,8 @@
     <script src="./app/cco-v11-rail-flag.js?v=v11rail-cutover-default-on"></script>
     <!-- V12 Customer Workspace — feature flag (default ON, opt-out via ?v12workspace=off; sätter data-v12-workspace) -->
     <script src="./app/cco-v12-workspace-flag.js?v=v12workspace-cutover-v1"></script>
+    <!-- Kalender v8 — facit-trogen återimplementation (default OFF, opt-in via ?calendar=v8; sätter data-calendar-v8) -->
+    <script src="./app/cco-calendar-v8-flag.js?v=calendar-v8-p0"></script>
     <!-- Konversationer v2 — feature flag (default OFF, opt-in via ?conversations=v2; sätter data-conversations-v2) -->
     <script src="./app/cco-conversations-v2-flag.js?v=conversations-v2-flag-v1"></script>
     <!-- ARCANA bundle URLs (content-hash: 3cb4408b9a) -->
@@ -159,7 +161,10 @@
     <link rel="stylesheet" href="./cco-v11-rail.css?v=v11rail-block0-v1" />
     <link rel="stylesheet" href="./cco-v12-workspace.css?v=v12workspace-scrollfix-v1" />
     <link rel="stylesheet" href="./cco-v12-spine.css?v=v12spine-v1" />
+    <!-- Kalender v8 — facit-trogen kalender-styling (scopad #cco-cal-v8-root; legacy-göm grindad på flaggan) -->
+    <link rel="stylesheet" href="./cco-calendar-v8.css?v=calendar-v8-p0" />
     <script src="./booking-lazy-load.js?v=build-1ccb8f9"></script>
+    <script src="./app/cco-calendar-v8-shell.js?v=calendar-v8-p0" defer></script>
     <script src="./cco-polish.js?v=build-1ccb8f9" defer></script>
     <script src="./cco-mobile-core.js?v=build-1ccb8f9" defer></script>
     <script src="./adaptive-runtime.js?v=build-1ccb8f9" defer></script>
