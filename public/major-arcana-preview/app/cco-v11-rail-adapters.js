@@ -1338,14 +1338,16 @@
     if (msgs.length) {
       msgs.forEach(function (m) {
         if (!m) return;
-        var subject = text(m.subject) || 'Mejl';
-        var dir = text(m.direction) === 'out' ? 'Ut' : 'In';
+        var subject = text(m.subject) || (text(m.type) === 'mail' || !text(m.type) ? 'Mejl' : '');
+        var dirKey = text(m.direction) === 'out' ? 'out' : 'in';
+        var dirLabel = dirKey === 'out' ? 'Ut' : 'In';
         var when = text(m.occurredAt);
         items.push({
           type: text(m.type) || 'mail',
+          dir: dirKey,
           text: subject,
           preview: text(m.preview),
-          meta: dir + (when ? ' · ' + when.slice(0, 10) : ''),
+          meta: dirLabel + (when ? ' · ' + when.slice(0, 10) : ''),
         });
       });
       items = items.slice(0, 8);

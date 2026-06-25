@@ -252,6 +252,7 @@
       var hAllergies = arr(health.allergies);
       var hMeds = (health.medications && health.medications.items) || [];
       var hContra = arr(health.contraindications);
+      var hAnswers = arr(health.answers);
       function hdRow(q, val, pill) {
         return (
           '<div class="hd-row"><span class="hd-q">' +
@@ -264,19 +265,32 @@
         );
       }
       var rows = '';
-      rows += hAllergies.length
-        ? hdRow('Allergier', 'JA · ' + txt(hAllergies[0]), 'danger')
-        : hdRow('Allergier', 'NEJ', 'no');
-      rows += hMeds.length
-        ? hdRow('Pågående mediciner', 'JA · ' + hMeds.length + ' st', 'yes')
-        : hdRow(
-            'Pågående mediciner',
-            health.medications && health.medications.known ? 'JA' : 'NEJ',
-            health.medications && health.medications.known ? 'yes' : 'no'
-          );
-      hContra.forEach(function (c) {
-        rows += hdRow(txt(c.text), 'JA', c.level === 'red' ? 'danger' : 'yes');
-      });
+      if (hAnswers.length) {
+        // Riktiga per-frågesvar (parser answers[]) → en rad per fråga, som facit
+        // (9 rader). pill: red→danger, JA→yes, NEJ→no.
+        rows = hAnswers
+          .map(function (a) {
+            var isYes = /^ja\b/i.test(txt(a.value));
+            var pill = a.risk === 'red' ? 'danger' : isYes ? 'yes' : 'no';
+            return hdRow(txt(a.label), isYes ? 'JA' : 'NEJ', pill);
+          })
+          .join('');
+      } else {
+        // Fallback: aggregat ur allergier/mediciner/flaggor när svar saknas.
+        rows += hAllergies.length
+          ? hdRow('Allergier', 'JA · ' + txt(hAllergies[0]), 'danger')
+          : hdRow('Allergier', 'NEJ', 'no');
+        rows += hMeds.length
+          ? hdRow('Pågående mediciner', 'JA · ' + hMeds.length + ' st', 'yes')
+          : hdRow(
+              'Pågående mediciner',
+              health.medications && health.medications.known ? 'JA' : 'NEJ',
+              health.medications && health.medications.known ? 'yes' : 'no'
+            );
+        hContra.forEach(function (c) {
+          rows += hdRow(txt(c.text), 'JA', c.level === 'red' ? 'danger' : 'yes');
+        });
+      }
       out += secOpen(
         'halsa',
         'sec',
@@ -570,8 +584,14 @@
         cm
           .slice(0, 4)
           .map(function (c) {
-            var dir = /ut|out/i.test(txt(c.direction)) ? 'out' : 'in';
-            var ic = /sms/i.test(txt(c.channel)) ? '📱' : '✉';
+            var dir = /ut|out/i.test(txt(c.dir || c.direction)) ? 'out' : 'in';
+            var ic = /sms/i.test(txt(c.type))
+              ? '📱'
+              : /call|phone|samtal|ring/i.test(txt(c.type))
+                ? '📞'
+                : '✉';
+            var sub = txt(c.text);
+            var pre = txt(c.preview);
             return (
               '<div class="comm-row"><span class="comm-icn ' +
               dir +
@@ -579,9 +599,11 @@
               ic +
               '</span>' +
               '<div class="comm-text">' +
-              esc(txt(c.subject || c.preview || c.text || 'Meddelande')) +
+              (sub ? '<b>' + esc(sub) + '</b>' : '') +
+              (pre ? (sub ? ' — ' : '') + esc(pre) : '') +
+              (!sub && !pre ? 'Meddelande' : '') +
               '<div class="comm-meta">' +
-              esc(txt(c.dateLabel || c.date || '')) +
+              esc(txt(c.meta || c.dateLabel || c.date || '')) +
               '</div></div></div>'
             );
           })
@@ -637,6 +659,7 @@
       '<button class="sticky-btn gold full" data-v9-section-link="upcoming">📅 Boka nästa</button>' +
       '<button class="sticky-btn ghost" data-v11-active-visit-action="notes">+ Anteckning</button>' +
       '<button class="sticky-btn ghost" data-v9-section-link="ekonomi">+ Saldo</button>' +
+      '<button class="sticky-btn green full" data-v11-active-visit-action="complete">✓ Bekräfta incheckning</button>' +
       '</div></div>';
 
     return '<div class="v11-rk" data-v11-rk="1"><div class="v11-rk__shell">' + out + '</div></div>';

@@ -33,7 +33,26 @@
     city: 'Vasagatan 12, Stockholm',
     tags: ['VIP', 'PRP-hår', 'Botox', 'Återkommande', 'Allergi · Penicillin'],
     totalValue: '38 400',
+    lifetimeValue: '~58 000',
     visitsThisYear: 12,
+    // Automation-signaler driver B (smart info), D (kritiska varningar),
+    // G (smart nästa steg) och R (insikter) — alla ur samma signal-källa.
+    automationSignals: [
+      {
+        ruleId: 'customer.missing_operation_day_insurance',
+        status: 'active',
+        risk: 'blocker',
+        what: 'Friskförsäkran saknas inför PRP 2/3 idag',
+        why: 'Krävs före ingrepp — skicka för signering nu.',
+      },
+      {
+        ruleId: 'customer.missing_photo_consent',
+        status: 'active',
+        risk: 'review',
+        what: 'Foto-samtycke ej markerat',
+        why: 'Bekräfta före före/efter-dokumentation.',
+      },
+    ],
     healthDeclaration: {
       signedAt: '2026-06-12',
       allergies: ['Penicillin'],
@@ -92,6 +111,13 @@
         signedAt: '2026-04-11T09:30:00Z',
         author: 'Erik Holm',
       },
+      {
+        journalType: 'note',
+        type: 'note',
+        note: 'Bra svar på behandling 1, ingen smärta. Påbörjar fas 2 enligt plan.',
+        dateLabel: '5 maj 2026',
+        author: 'Erik Holm',
+      },
     ],
     dossierBundle: {
       card: card,
@@ -140,9 +166,72 @@
           preview: 'Din tid är bokad 18 jun 14:30. Välkommen! Kom 10 min innan.',
           occurredAt: '2026-05-17T09:00:00Z',
         },
+        {
+          id: 'm3',
+          type: 'sms',
+          direction: 'out',
+          subject: '',
+          preview: 'Påminnelse: PRP 11:15 imorgon, friskförsäkran krävs.',
+          occurredAt: '2026-05-19T09:00:00Z',
+        },
+      ],
+      offers: [
+        {
+          kind: 'TP',
+          title: 'Offert · TP',
+          dateLabel: '28 maj 2026',
+          amount: '38 400 kr',
+          status: 'accepted',
+          statusLabel: 'Accepterad',
+        },
+        {
+          kind: 'PRP',
+          title: 'Offert · PRP hår',
+          dateLabel: '11 apr 2026',
+          amount: '12 000 kr',
+          status: 'expired',
+          statusLabel: 'Utgången',
+        },
       ],
     },
-    driveFiles: [],
+    driveFiles: [
+      {
+        id: 'f1',
+        name: 'PRP-före-scalp.jpg',
+        fileType: 'image',
+        category: 'photo_before',
+        capturedAt: '2026-03-09',
+      },
+      {
+        id: 'f2',
+        name: 'PRP-efter-scalp.jpg',
+        fileType: 'image',
+        category: 'photo_after',
+        capturedAt: '2026-05-05',
+      },
+      {
+        id: 'f3',
+        name: 'Samtycke.pdf',
+        fileType: 'document',
+        mimeType: 'application/pdf',
+        documentDate: '2026-04-11',
+      },
+      {
+        id: 'f4',
+        name: 'Hälsodeklaration.pdf',
+        fileType: 'document',
+        mimeType: 'application/pdf',
+        documentDate: '2026-06-12',
+      },
+      {
+        id: 'f5',
+        name: 'Bokningsbekräftelse.pdf',
+        fileType: 'document',
+        mimeType: 'application/pdf',
+        sourceSystem: 'auto',
+        documentDate: '2026-05-17',
+      },
+    ],
   };
 
   function esc(s) {
