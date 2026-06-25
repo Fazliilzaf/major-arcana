@@ -293,7 +293,12 @@
   }
 
   function openCanon(sectionModule) {
-    if (!global.CcoV12Canon) return;
+    if (!global.CcoV12Canon) {
+      global.setTimeout(function () {
+        openCanon(sectionModule);
+      }, 400);
+      return;
+    }
     var body = host('Facit-demo · STOR kundvy (CONTENT-CANON) · Anna Karlsson');
     body.innerHTML = global.CcoV12Canon.render(ctx);
     if (sectionModule) {
@@ -321,11 +326,30 @@
     });
   }
 
+  // Direkt-läge: ?facitdemo=1&vy=stor (eller big/canon) öppnar STORA vyn direkt,
+  // annars lilla railen först (klick på sektion → stora vyn).
+  function bigViewWanted() {
+    try {
+      var v = String(
+        new URLSearchParams(global.location.search || '').get('vy') || ''
+      ).toLowerCase();
+      return v === 'stor' || v === 'big' || v === 'canon';
+    } catch (_e) {
+      return false;
+    }
+  }
+  function start() {
+    if (bigViewWanted()) {
+      openCanon(null);
+    } else {
+      openRail();
+    }
+  }
   if (doc.readyState === 'loading') {
     doc.addEventListener('DOMContentLoaded', function () {
-      global.setTimeout(openRail, 600);
+      global.setTimeout(start, 600);
     });
   } else {
-    global.setTimeout(openRail, 600);
+    global.setTimeout(start, 600);
   }
 })(typeof window !== 'undefined' ? window : globalThis);
