@@ -25,13 +25,13 @@
 
 ---
 
-## Statusöversikt (2026-06-04)
+## Statusöversikt (2026-06-25)
 
 | Kategori            |  Antal | U klart | T klart | D klart | L klart | V klart |
 | ------------------- | -----: | ------: | ------: | ------: | ------: | ------: |
-| **A · Kund**        |     15 |       1 |       1 |      14 |      14 |       3 |
-| **B · Personal**    |     11 |       0 |       0 |      11 |      11 |       0 |
-| **C · Auto / info** |     10 |       0 |       0 |      10 |      10 |       0 |
+| **A · Kund**        |     15 |       1 |       1 |      15 |      15 |      15 |
+| **B · Personal**    |     11 |       0 |       0 |      11 |      11 |      11 |
+| **C · Auto / info** |     10 |       0 |       0 |      10 |      10 |      10 |
 | **Totalt**          | **36** |   **1** |   **1** |  **36** |  **36** |  **36** |
 
 **V-kolumn (2026-06-25):** alla 36 typer → `npm run verify:patient-doc-v-column` (shell, registry-id, färger, steg-badge, staff/sign där relevant).
@@ -49,18 +49,18 @@
 |   1 | `haelso_tp_sve`        | Hälsodeklaration · Hair TP Clinic    |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-halsodeklaration-final-demo.html` · diff `diffs/HD-16414-diff-2026-06-04.md`                    |
 |   2 | `health_tp_eng`        | ENG · Health Questionnaire           |         3 | [ ] | [x] | [x] | [x] | [x] | `steg3-health-questionnaire-eng-final-demo.html` · Meridiq 14865 · `diff:patient-doc-hd-eng` PARITY_OK |
 |   3 | `friskfoers_tp`        | Friskförsäkran · TP                  |         8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-friskforsakran-final.html` · Word lokalt MS-LOKAL                                               |
-|   4 | `offert_tp`            | Offert / behandlingsavtal · TP       | 5 / **7** | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-tp-final-demo.html` + `steg7-v6-kundkort-final-demo.html`                                |
-|   5 | `offert_prp_hair`      | Offert · PRP hår                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prp-hair-final-demo.html` + `steg7-offert-prp-hair-final-demo.html`                      |
-|   6 | `offert_prp_skin`      | Offert · PRP hud                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prp-skin-final-demo.html` + `steg7-offert-prp-skin-final-demo.html`                      |
-|   7 | `offert_microneedling` | Offert · Microneedling + PRP         |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-microneedling-final-demo.html` + `steg7-offert-microneedling-final-demo.html`            |
-|   8 | `offert_prf`           | Offert · PRF hud                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prf-final-demo.html` + `steg7-offert-prf-final-demo.html`                                |
-|   9 | `offert_profilo`       | Offert · Profhilo                    |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-profilо-final-demo.html` + `steg7-offert-profilо-final-demo.html`                        |
-|  10 | `samtycke_bokning_2d`  | Samtycke vid bokning inom 2 dagar    |         6 | [ ] | [ ] | [x] | [x] | [ ] | `steg6-betanketid-samtycke-final-demo.html` · VERSION_CONFLICT 2 vs 14 d · 154369                      |
-|  11 | `samtycke_angerratt`   | Begäran + samtycke ångerfrist (14 d) |     6 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg6-betanketid-samtycke-final-demo.html` + steg 7 · 170955                                          |
-|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-prp-hair-info-sve-final-demo.html`                                                              |
-|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-prp-hair-info-eng-final-demo.html`                                                              |
-|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-microneedling-info-sve-final-demo.html`                                                         |
-|  15 | `foto_samtycke`        | Samtycke till foto-publicering       |         9 | [ ] | [ ] | [x] | [x] | [ ] | `steg9-foto-samtycke-final-demo.html` · T väntar ORD-24 (full Nordbro-text)                            |
+|   4 | `offert_tp`            | Offert / behandlingsavtal · TP       | 5 / **7** | [ ] | [ ] | [x] | [x] | [x] | `steg5-offert-tp-final-demo.html` + `steg7-v6-kundkort-final-demo.html`                                |
+|   5 | `offert_prp_hair`      | Offert · PRP hår                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [x] | `steg5-offert-prp-hair-final-demo.html` + `steg7-offert-prp-hair-final-demo.html`                      |
+|   6 | `offert_prp_skin`      | Offert · PRP hud                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [x] | `steg5-offert-prp-skin-final-demo.html` + `steg7-offert-prp-skin-final-demo.html`                      |
+|   7 | `offert_microneedling` | Offert · Microneedling + PRP         |     5 / 7 | [ ] | [ ] | [x] | [x] | [x] | `steg5-offert-microneedling-final-demo.html` + `steg7-offert-microneedling-final-demo.html`            |
+|   8 | `offert_prf`           | Offert · PRF hud                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [x] | `steg5-offert-prf-final-demo.html` + `steg7-offert-prf-final-demo.html`                                |
+|   9 | `offert_profilo`       | Offert · Profhilo                    |     5 / 7 | [ ] | [ ] | [x] | [x] | [x] | `steg5-offert-profilо-final-demo.html` + `steg7-offert-profilо-final-demo.html`                        |
+|  10 | `samtycke_bokning_2d`  | Samtycke vid bokning inom 2 dagar    |         6 | [ ] | [ ] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · VERSION_CONFLICT 2 vs 14 d · 154369                      |
+|  11 | `samtycke_angerratt`   | Begäran + samtycke ångerfrist (14 d) |     6 / 7 | [ ] | [ ] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` + steg 7 · 170955                                          |
+|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-prp-hair-info-sve-final-demo.html`                                                              |
+|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-prp-hair-info-eng-final-demo.html`                                                              |
+|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-microneedling-info-sve-final-demo.html`                                                         |
+|  15 | `foto_samtycke`        | Samtycke till foto-publicering       |         9 | [ ] | [ ] | [x] | [x] | [x] | `steg9-foto-samtycke-final-demo.html` · T väntar ORD-24 (full Nordbro-text)                            |
 
 ---
 
@@ -68,17 +68,17 @@
 
 |   # | registryId              | Dokument                             | UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                         |
 | --: | ----------------------- | ------------------------------------ | ------: | :-: | :-: | :-: | :-: | :-: | ---------------------------------------------------------------------------------- |
-|  16 | `journal_tp`            | Journal · TP Behandling              |       8 | [ ] | [ ] | [x] | [x] | [ ] | `steg8-journal-tp-final-demo.html` · staff-shell utan nav-länkar · 52 fält         |
-|  17 | `journal_tp_post_prp`   | Journal · TP Efterbehandling PRP     |  post-8 | [ ] | [ ] | [x] | [x] | [ ] | `steg8-journal-tp-post-prp-final-demo.html` · 24 fält                              |
-|  18 | `journal_tp_follow_4`   | Journal · TP Uppföljning 4 mån       |  post-8 | [ ] | [ ] | [x] | [x] | [ ] | `steg8-journal-tp-follow-4-final-demo.html` · 8 fält                               |
-|  19 | `journal_tp_follow_6`   | Journal · TP Uppföljning 6 mån       |  post-8 | [ ] | [ ] | [x] | [x] | [ ] | `steg8-journal-tp-follow-6-final-demo.html` · 8 fält                               |
-|  20 | `journal_tp_follow_12`  | Journal · TP Resultat 12 mån         |  post-8 | [ ] | [ ] | [x] | [x] | [ ] | `steg8-journal-tp-follow-12-final-demo.html` · 1 fält (MQ-paritet PARTIAL)         |
-|  21 | `journal_prp_multi`     | Journal · PRP/PRF/Microneedling      |       8 | [ ] | [ ] | [x] | [x] | [ ] | `steg8-journal-prp-multi-final-demo.html` · 12 fält                                |
-|  22 | `behandlingsplan_staff` | Behandlingsplan / offert (personal)  |       5 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-behandlingsplan-staff-final-demo.html` · dynamisk plan · MS Offert HT       |
-|  23 | `konsultationsmall`     | Konsultationsmall · Hair TP          |       4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-konsultationsmall-final-demo.html` · consultation-summary + staff-fält      |
-|  24 | `ordination_tp`         | Ordinationsmall · Hårtransplantation |   5 + 8 | [ ] | [~] | [x] | [x] | [ ] | `steg8-ordination-tp-final-demo.html` · stub + lokalbedövningsfält · T väntar Word |
-|  25 | `anteckningar_kort`     | Anteckningar på patientkort          |   cross | [ ] | n/a | [x] | [x] | [ ] | `staff-anteckningar-kort-final-demo.html` · fritext · badge Patientkort            |
-|  26 | `id_verifiering`        | ID-verifiering                       |   4 + 8 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-id-verifiering-final-demo.html` · process + ID-kontroll facit               |
+|  16 | `journal_tp`            | Journal · TP Behandling              |       8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-journal-tp-final-demo.html` · staff-shell utan nav-länkar · 52 fält         |
+|  17 | `journal_tp_post_prp`   | Journal · TP Efterbehandling PRP     |  post-8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-journal-tp-post-prp-final-demo.html` · 24 fält                              |
+|  18 | `journal_tp_follow_4`   | Journal · TP Uppföljning 4 mån       |  post-8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-journal-tp-follow-4-final-demo.html` · 8 fält                               |
+|  19 | `journal_tp_follow_6`   | Journal · TP Uppföljning 6 mån       |  post-8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-journal-tp-follow-6-final-demo.html` · 8 fält                               |
+|  20 | `journal_tp_follow_12`  | Journal · TP Resultat 12 mån         |  post-8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-journal-tp-follow-12-final-demo.html` · 1 fält (MQ-paritet PARTIAL)         |
+|  21 | `journal_prp_multi`     | Journal · PRP/PRF/Microneedling      |       8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-journal-prp-multi-final-demo.html` · 12 fält                                |
+|  22 | `behandlingsplan_staff` | Behandlingsplan / offert (personal)  |       5 | [ ] | [ ] | [x] | [x] | [x] | `steg5-behandlingsplan-staff-final-demo.html` · dynamisk plan · MS Offert HT       |
+|  23 | `konsultationsmall`     | Konsultationsmall · Hair TP          |       4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-konsultationsmall-final-demo.html` · consultation-summary + staff-fält      |
+|  24 | `ordination_tp`         | Ordinationsmall · Hårtransplantation |   5 + 8 | [ ] | [~] | [x] | [x] | [x] | `steg8-ordination-tp-final-demo.html` · stub + lokalbedövningsfält · T väntar Word |
+|  25 | `anteckningar_kort`     | Anteckningar på patientkort          |   cross | [ ] | n/a | [x] | [x] | [x] | `staff-anteckningar-kort-final-demo.html` · fritext · badge Patientkort            |
+|  26 | `id_verifiering`        | ID-verifiering                       |   4 + 8 | [ ] | [ ] | [x] | [x] | [x] | `steg4-id-verifiering-final-demo.html` · process + ID-kontroll facit               |
 
 ---
 
@@ -86,16 +86,16 @@
 
 |   # | registryId                   | Dokument                             | UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                           |
 | --: | ---------------------------- | ------------------------------------ | ------: | :-: | :-: | :-: | :-: | :-: | -------------------------------------------------------------------- |
-|  27 | `info_offert_tp`             | Offert & behandlingsplan · TP (auto) |       5 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-info-offert-tp-final-demo.html` · mailmall read-only          |
-|  28 | `auto_bokningsbekraftelse`   | Bokningsbekräftelse SMS/e-post       |       2 | [ ] | [ ] | [x] | [x] | [ ] | `steg2-auto-bokningsbekraftelse-final-demo.html` · `98. Mailmallar/` |
-|  29 | `auto_bokningspaminnelse`    | Bokningspåminnelse                   |   cross | [ ] | [ ] | [x] | [x] | [ ] | `auto-bokningspaminnelse-final-demo.html` · Cliento/SMS              |
-|  30 | `auto_avbokningsbekraftelse` | Avbokningsbekräftelse                |   cross | [ ] | [ ] | [x] | [x] | [ ] | `auto-avbokningsbekraftelse-final-demo.html` · Mailmallar            |
-|  31 | `auto_instruktion_formular`  | Instruktion HD/FC till kund          |   3 + 8 | [ ] | [ ] | [x] | [x] | [ ] | `steg3-auto-instruktion-formular-final-demo.html` · Underbilaga 1    |
-|  32 | `auto_betanketid`            | Betänketid enligt lag (e-post)       |       6 | [ ] | [ ] | [x] | [x] | [ ] | `steg6-auto-betanketid-final-demo.html` · process + Nordbro          |
-|  33 | `auto_medical_finance`       | Medical Finance                      |   cross | [ ] | n/a | [x] | [x] | [ ] | `auto-medical-finance-final-demo.html` · extern MF wrapper           |
-|  34 | `auto_integritet`            | Personuppgiftspolicy                 |   cross | [ ] | [ ] | [x] | [x] | [ ] | `auto-integritet-final-demo.html` · legal PUB facit                  |
-|  35 | `fore_efter_bildmall`        | Före/efter-bildmallar                |     8–9 | [ ] | n/a | [x] | [x] | [ ] | `steg8-fore-efter-bildmall-final-demo.html` · foto-taxonomi Op-dag   |
-|  36 | `auto_internt_sms`           | Internt SMS bokning/avbokning        |   cross | [ ] | n/a | [x] | [x] | [ ] | `staff-auto-internt-sms-final-demo.html` · intern operatör-e-post    |
+|  27 | `info_offert_tp`             | Offert & behandlingsplan · TP (auto) |       5 | [ ] | [ ] | [x] | [x] | [x] | `steg5-info-offert-tp-final-demo.html` · mailmall read-only          |
+|  28 | `auto_bokningsbekraftelse`   | Bokningsbekräftelse SMS/e-post       |       2 | [ ] | [ ] | [x] | [x] | [x] | `steg2-auto-bokningsbekraftelse-final-demo.html` · `98. Mailmallar/` |
+|  29 | `auto_bokningspaminnelse`    | Bokningspåminnelse                   |   cross | [ ] | [ ] | [x] | [x] | [x] | `auto-bokningspaminnelse-final-demo.html` · Cliento/SMS              |
+|  30 | `auto_avbokningsbekraftelse` | Avbokningsbekräftelse                |   cross | [ ] | [ ] | [x] | [x] | [x] | `auto-avbokningsbekraftelse-final-demo.html` · Mailmallar            |
+|  31 | `auto_instruktion_formular`  | Instruktion HD/FC till kund          |   3 + 8 | [ ] | [ ] | [x] | [x] | [x] | `steg3-auto-instruktion-formular-final-demo.html` · Underbilaga 1    |
+|  32 | `auto_betanketid`            | Betänketid enligt lag (e-post)       |       6 | [ ] | [ ] | [x] | [x] | [x] | `steg6-auto-betanketid-final-demo.html` · process + Nordbro          |
+|  33 | `auto_medical_finance`       | Medical Finance                      |   cross | [ ] | n/a | [x] | [x] | [x] | `auto-medical-finance-final-demo.html` · extern MF wrapper           |
+|  34 | `auto_integritet`            | Personuppgiftspolicy                 |   cross | [ ] | [ ] | [x] | [x] | [x] | `auto-integritet-final-demo.html` · legal PUB facit                  |
+|  35 | `fore_efter_bildmall`        | Före/efter-bildmallar                |     8–9 | [ ] | n/a | [x] | [x] | [x] | `steg8-fore-efter-bildmall-final-demo.html` · foto-taxonomi Op-dag   |
+|  36 | `auto_internt_sms`           | Internt SMS bokning/avbokning        |   cross | [ ] | n/a | [x] | [x] | [x] | `staff-auto-internt-sms-final-demo.html` · intern operatör-e-post    |
 
 ---
 
