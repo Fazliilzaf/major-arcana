@@ -9573,24 +9573,42 @@
 
   async function refreshAll({ scope = 'all' } = {}) {
     void scope;
-    await loadSessionProfile();
-    await loadTenants();
-    await loadDashboard();
-    await loadOrchestratorMeta();
-    await loadStaffMembers();
-    await loadSessionsPanel();
-    await loadTemplates({ preserveSelection: true });
-    await loadAuditEvents();
-    await loadMailInsights();
-    await loadOverviewMonitorData({ force: true });
+    const failures = [];
+    async function refreshStep(label, fn) {
+      try {
+        await fn();
+      } catch (error) {
+        failures.push(`${label}: ${error?.message || error || 'okänt fel'}`);
+        console.warn(`[admin-refresh] ${label} failed`, error);
+      }
+    }
+
+    await refreshStep('session', loadSessionProfile);
+    await refreshStep('tenants', loadTenants);
+    await refreshStep('dashboard', loadDashboard);
+    await refreshStep('orchestrator', loadOrchestratorMeta);
+    await refreshStep('staff', loadStaffMembers);
+    await refreshStep('sessions', loadSessionsPanel);
+    await refreshStep('templates', () => loadTemplates({ preserveSelection: true }));
+    await refreshStep('audit', loadAuditEvents);
+    await refreshStep('mail-insights', loadMailInsights);
+    await refreshStep('overview-monitor', () => loadOverviewMonitorData({ force: true }));
     if (isOwner()) {
-      await loadStateManifest();
+      await refreshStep('state-manifest', loadStateManifest);
     } else if (els.opsResult) {
       els.opsResult.textContent = 'Endast OWNER.';
       setStatus(els.opsStatus, '');
       if (els.restoreBackupFileInput) els.restoreBackupFileInput.value = '';
     }
     ensureDashboardStreamConnected();
+    if (failures.length) {
+      setStatus(
+        els.loginStatus,
+        `Inloggad. Vissa paneler kunde inte uppdateras (${failures.length}).`,
+        true,
+        { toast: 'none' }
+      );
+    }
   }
 
   function applyAuthContext({ token, membership, memberships }) {
@@ -9663,7 +9681,14 @@
 
       setStatus(els.loginStatus, 'Inloggad.');
       setAuthVisible(true);
-      await refreshAll();
+      await refreshAll().catch((error) => {
+        console.warn('[admin-login] refresh after login failed', error);
+        setStatus(
+          els.loginStatus,
+          `Inloggad, men kunde inte uppdatera alla paneler: ${error?.message || error}`,
+          true
+        );
+      });
       if (redirectToPostLoginTargetIfNeeded()) return;
     } catch (error) {
       setStatus(els.loginStatus, error.message || 'Inloggning misslyckades.', true);
