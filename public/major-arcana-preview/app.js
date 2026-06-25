@@ -39924,8 +39924,97 @@
     };
   }
 
+  // ─── Konversationer v2 (flagga PÅ) ───────────────────────────────────────
+  // Renderar det nya 4-zons-skalet med RIKTIG arbetskö-data. Återanvänder
+  // exakt samma lane-/tråd-/val-maskineri som legacy — ingen egen datakälla.
+  const CONVERSATIONS_V2_LANES = [
+    { id: "all", label: "Alla", icon: "📬", group: "Köfält" },
+    { id: "act-now", label: "Agera nu", icon: "🔥", group: "Köfält" },
+    { id: "sprint", label: "Sprint", icon: "⚡", group: "Köfält" },
+    { id: "later", label: "Senare", icon: "⏳", group: "Köfält" },
+    { id: "admin", label: "Admin", icon: "📋", group: "Köfält" },
+    { id: "review", label: "Granskning", icon: "👀", group: "Köfält" },
+    { id: "unclear", label: "Oklar", icon: "❓", group: "Köfält" },
+    { id: "bookable", label: "Bokningsbar", icon: "📅", group: "Per vård-fas" },
+    { id: "operation", label: "Operation", icon: "🏥", group: "Per vård-fas" },
+    { id: "aftercare", label: "Eftervård", icon: "🌱", group: "Per vård-fas" },
+    { id: "medical", label: "Medicinsk", icon: "⚕", group: "Per vård-fas" },
+    { id: "commercial", label: "Kommersiell", icon: "💰", group: "Per vård-fas" },
+  ];
+
+  function conversationsV2Enabled() {
+    try {
+      var flagged =
+        window.__ARCANA_CONVERSATIONS_V2_ENABLED__ === true ||
+        document.documentElement.getAttribute("data-conversations-v2") === "on";
+      if (!flagged) return false;
+      // Bara över konversations-vyn — aldrig kalender/kunder/övriga shell-vyer.
+      var canvas = document.querySelector(".preview-canvas");
+      var shellView = canvas ? canvas.getAttribute("data-app-shell-view") : null;
+      return !shellView || shellView === "conversations";
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function renderConversationsV2Shell() {
+    const scoped = getQueueScopedRuntimeThreads();
+    const activeLane = normalizePrimaryQueueLaneId(
+      asText(workspaceSourceOfTruth.getActiveLaneId() || state.selection?.laneId || "all") || "all"
+    );
+    const lanes = CONVERSATIONS_V2_LANES.map((lane) => ({
+      ...lane,
+      count: getQueueLaneThreads(lane.id, scoped).length,
+    }));
+    const selected = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread() || null;
+    window.ArcanaConversationsV2.render({
+      lanes,
+      activeLane,
+      laneThreads: getQueueLaneThreads(activeLane, scoped),
+      allThreads: scoped,
+      selected,
+      handlers: {
+        selectThread(threadId) {
+          if (threadId) selectRuntimeThread(threadId, { reloadBootstrap: true });
+        },
+        setLane(laneId) {
+          const normalized = normalizePrimaryQueueLaneId(asText(laneId) || "all");
+          workspaceSourceOfTruth.setActiveLaneId(normalized);
+          renderRuntimeConversationShell();
+        },
+        action(name) {
+          // P0b: skrivande actions (Svarstudio/skicka/bokning) är inerta tills
+          // owner-GO (P2/P3). Visa bara en notis, ingen sido-effekt.
+          try {
+            window.CCOPolish?.showToast?.(
+              "Aktiveras i nästa fas (" + asText(name) + ")",
+              "info"
+            );
+          } catch (_error) {
+            /* tyst */
+          }
+        },
+      },
+    });
+  }
+
   function renderRuntimeConversationShell(options = {}) {
     const scope = normalizeKey(options?.scope) || "all";
+
+    // Flagg-grindad v2-takeover. Default OFF ⇒ hoppas helt över, legacy orörd.
+    if (
+      conversationsV2Enabled() &&
+      window.ArcanaConversationsV2 &&
+      typeof window.ArcanaConversationsV2.render === "function"
+    ) {
+      try {
+        renderConversationsV2Shell();
+        return;
+      } catch (error) {
+        console.warn("[conversations-v2] render misslyckades, faller tillbaka:", error);
+      }
+    }
+
     const renderAll = scope === "all";
     const renderQueue =
       renderAll || scope === "queue" || scope === "queue+focus";
