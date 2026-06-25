@@ -10,6 +10,7 @@ const {
   buildLiveManifest,
   isStaffLiveRegistry,
   listStaffLiveRegistryIds,
+  renderPatientDocDevIndexHtml,
 } = require('../ops/patientDocumentLiveRegistry');
 const {
   resolveSignConfig,
@@ -74,10 +75,27 @@ function registerPatientDocumentLiveManifestRoute(app) {
   app.get('/api/v1/cco/patient-documents/live/manifest', sendPatientDocumentLiveManifest);
 }
 
+function sendPatientDocDevIndex(req, res, getAssetHash) {
+  const shellHash =
+    typeof getAssetHash === 'function'
+      ? getAssetHash('./app/patient-document-shell.js')?.hash || 'e8'
+      : 'e8';
+  const html = renderPatientDocDevIndexHtml({ shellHash });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  res.setHeader('X-Arcana-Patient-Doc-Dev-Index', 'e5');
+  return res.status(200).send(html);
+}
+
 function createPatientDocumentLiveRouter({ previewRoot, transformPreviewHtml, getAssetHash }) {
   const router = express.Router();
 
   router.get('/api/v1/cco/patient-documents/live/manifest', sendPatientDocumentLiveManifest);
+
+  router.get(
+    ['/major-arcana-preview/patient-doc/', '/major-arcana-preview/patient-doc/index.html'],
+    (req, res) => sendPatientDocDevIndex(req, res, getAssetHash)
+  );
 
   router.get('/major-arcana-preview/patient-doc/:registryId', (req, res) => {
     const registryId = String(req.params.registryId || '').trim();
@@ -129,4 +147,5 @@ module.exports = {
   createPatientDocumentLiveRouter,
   registerPatientDocumentLiveManifestRoute,
   sendPatientDocumentLiveManifest,
+  sendPatientDocDevIndex,
 };

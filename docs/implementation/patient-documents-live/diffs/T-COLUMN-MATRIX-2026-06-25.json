@@ -1,10 +1,12 @@
 {
-  "generatedAt": "2026-06-25T14:02:03.070Z",
+  "generatedAt": "2026-06-25T14:36:27.633Z",
   "wordDir": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt",
   "parityOk": 3,
+  "e6Ok": 6,
+  "e6Partial": 2,
   "needsReview": 0,
-  "msOkWordLocal": 5,
-  "mqOrTemplate": 28,
+  "msOkWordLocal": 3,
+  "mqOrTemplate": 22,
   "rows": [
     {
       "registryId": "anteckningar_kort",
@@ -98,8 +100,8 @@
     },
     {
       "registryId": "journal_tp",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "MS_OK_WORD_LOCAL",
+      "note": "Word lokalt — full legal diff ej körd (E6)"
     },
     {
       "registryId": "journal_tp_follow_12",
@@ -133,33 +135,33 @@
     },
     {
       "registryId": "offert_microneedling",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-offert-samtycke"
     },
     {
       "registryId": "offert_prf",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-offert-samtycke"
     },
     {
       "registryId": "offert_profilo",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-offert-samtycke"
     },
     {
       "registryId": "offert_prp_hair",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-offert-samtycke"
     },
     {
       "registryId": "offert_prp_skin",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-offert-samtycke"
     },
     {
       "registryId": "offert_tp",
-      "status": "MS_OK_WORD_LOCAL",
-      "note": "Word lokalt — full legal diff ej körd (E6)"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-offert-samtycke"
     },
     {
       "registryId": "ordination_tp",
@@ -178,13 +180,13 @@
     },
     {
       "registryId": "samtycke_angerratt",
-      "status": "MS_OK_WORD_LOCAL",
-      "note": "Word lokalt — full legal diff ej körd (E6)"
+      "status": "DEMO_BUNDLE_OK",
+      "note": "diff:patient-doc-e6-offert-samtycke"
     },
     {
       "registryId": "samtycke_bokning_2d",
-      "status": "MS_OK_WORD_LOCAL",
-      "note": "Word lokalt — full legal diff ej körd (E6)"
+      "status": "VERSION_CONFLICT_OK",
+      "note": "diff:patient-doc-e6-offert-samtycke"
     }
   ]
 }

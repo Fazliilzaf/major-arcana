@@ -36,6 +36,17 @@ const T_SCRIPTS = [
   },
 ];
 
+const E6_REGISTRY_IDS = [
+  'offert_tp',
+  'offert_prp_hair',
+  'offert_prp_skin',
+  'offert_microneedling',
+  'offert_prf',
+  'offert_profilo',
+  'samtycke_bokning_2d',
+  'samtycke_angerratt',
+];
+
 const OUT_DIR = path.join(ROOT, 'docs/implementation/patient-documents-live/diffs');
 
 function expandHome(p) {
@@ -60,6 +71,16 @@ function runScript(name) {
   return result.status === 0;
 }
 
+function loadLatestE6Report() {
+  if (!fs.existsSync(OUT_DIR)) return null;
+  const files = fs
+    .readdirSync(OUT_DIR)
+    .filter((f) => f.startsWith('E6-OFFERT-SAMTYCKE-') && f.endsWith('.json'))
+    .sort();
+  if (!files.length) return null;
+  return JSON.parse(fs.readFileSync(path.join(OUT_DIR, files.at(-1)), 'utf8'));
+}
+
 function main() {
   const tByRegistry = new Map();
   for (const row of CATALOG.types || []) {
@@ -76,6 +97,27 @@ function main() {
         status: ok ? 'PARITY_OK' : 'NEEDS_REVIEW',
         note: entry.script,
       });
+    }
+  }
+
+  runScript('diff:patient-doc-e6-offert-samtycke');
+  const e6 = loadLatestE6Report();
+  if (e6?.reports) {
+    for (const report of e6.reports) {
+      tByRegistry.set(report.registryId, {
+        registryId: report.registryId,
+        status: report.status,
+        note: 'diff:patient-doc-e6-offert-samtycke',
+      });
+    }
+  } else {
+    for (const id of E6_REGISTRY_IDS) {
+      tByRegistry.set(id, {
+        registryId: id,
+        status: 'NEEDS_REVIEW',
+        note: 'E6 report saknas',
+      });
+      allOk = false;
     }
   }
 
@@ -99,6 +141,10 @@ function main() {
     generatedAt: new Date().toISOString(),
     wordDir: WORD_DIR,
     parityOk: matrix.filter((r) => r.status === 'PARITY_OK').length,
+    e6Ok: matrix.filter((r) => r.status === 'E6_OK').length,
+    e6Partial: matrix.filter((r) =>
+      ['DEMO_BUNDLE_OK', 'VERSION_CONFLICT_OK', 'E6_PARTIAL'].includes(r.status)
+    ).length,
     needsReview: matrix.filter((r) => r.status === 'NEEDS_REVIEW').length,
     msOkWordLocal: matrix.filter((r) => r.status === 'MS_OK_WORD_LOCAL').length,
     mqOrTemplate: matrix.filter((r) => r.status === 'MQ_OR_TEMPLATE_ONLY').length,
@@ -115,6 +161,8 @@ function main() {
 | Status | Antal |
 |--------|------:|
 | PARITY_OK | ${summary.parityOk} |
+| E6_OK | ${summary.e6Ok} |
+| E6_PARTIAL | ${summary.e6Partial} |
 | MS_OK_WORD_LOCAL | ${summary.msOkWordLocal} |
 | MQ_OR_TEMPLATE_ONLY | ${summary.mqOrTemplate} |
 | NEEDS_REVIEW | ${summary.needsReview} |
@@ -131,7 +179,7 @@ Rådata: \`${path.relative(ROOT, jsonPath)}\`
 
   console.log(`\n=== T-kolumn matris ===`);
   console.log(
-    `PARITY_OK: ${summary.parityOk} · MS_OK_WORD_LOCAL: ${summary.msOkWordLocal} · MQ_ONLY: ${summary.mqOrTemplate}`
+    `PARITY_OK: ${summary.parityOk} · E6_OK: ${summary.e6Ok} · E6_PARTIAL: ${summary.e6Partial} · MS_OK_WORD_LOCAL: ${summary.msOkWordLocal} · MQ_ONLY: ${summary.mqOrTemplate}`
   );
   console.log(`→ ${mdPath}\n`);
 

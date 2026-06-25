@@ -1,12 +1,14 @@
 # T-kolumn matris · 2026-06-25
 
-**Genererad:** 2026-06-25T14:02:03.070Z
+**Genererad:** 2026-06-25T14:36:27.633Z
 
 | Status              | Antal |
 | ------------------- | ----: |
 | PARITY_OK           |     3 |
-| MS_OK_WORD_LOCAL    |     5 |
-| MQ_OR_TEMPLATE_ONLY |    28 |
+| E6_OK               |     6 |
+| E6_PARTIAL          |     2 |
+| MS_OK_WORD_LOCAL    |     3 |
+| MQ_OR_TEMPLATE_ONLY |    22 |
 | NEEDS_REVIEW        |     0 |
 
 ## Per registryId
@@ -31,23 +33,23 @@
 | `id_verifiering`             | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `info_offert_tp`             | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `journal_prp_multi`          | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `journal_tp`                 | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
+| `journal_tp`                 | MS_OK_WORD_LOCAL    | Word lokalt — full legal diff ej körd (E6)         |
 | `journal_tp_follow_12`       | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `journal_tp_follow_4`        | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `journal_tp_follow_6`        | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `journal_tp_post_prp`        | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `konsultationsmall`          | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `microneedling_info`         | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `offert_microneedling`       | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `offert_prf`                 | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `offert_profilo`             | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `offert_prp_hair`            | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `offert_prp_skin`            | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `offert_tp`                  | MS_OK_WORD_LOCAL    | Word lokalt — full legal diff ej körd (E6)         |
+| `offert_microneedling`       | E6_OK               | diff:patient-doc-e6-offert-samtycke                |
+| `offert_prf`                 | E6_OK               | diff:patient-doc-e6-offert-samtycke                |
+| `offert_profilo`             | E6_OK               | diff:patient-doc-e6-offert-samtycke                |
+| `offert_prp_hair`            | E6_OK               | diff:patient-doc-e6-offert-samtycke                |
+| `offert_prp_skin`            | E6_OK               | diff:patient-doc-e6-offert-samtycke                |
+| `offert_tp`                  | E6_OK               | diff:patient-doc-e6-offert-samtycke                |
 | `ordination_tp`              | MS_OK_WORD_LOCAL    | Word lokalt — full legal diff ej körd (E6)         |
 | `prp_hair_info_eng`          | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `prp_hair_info_sve`          | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `samtycke_angerratt`         | MS_OK_WORD_LOCAL    | Word lokalt — full legal diff ej körd (E6)         |
-| `samtycke_bokning_2d`        | MS_OK_WORD_LOCAL    | Word lokalt — full legal diff ej körd (E6)         |
+| `samtycke_angerratt`         | DEMO_BUNDLE_OK      | diff:patient-doc-e6-offert-samtycke                |
+| `samtycke_bokning_2d`        | VERSION_CONFLICT_OK | diff:patient-doc-e6-offert-samtycke                |
 
 Rådata: `docs/implementation/patient-documents-live/diffs/T-COLUMN-MATRIX-2026-06-25.json`

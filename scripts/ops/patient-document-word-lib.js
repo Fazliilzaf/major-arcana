@@ -145,6 +145,202 @@ function wordKeywordCoverage(wordText, questions) {
   return { hits, total: questions.length, coverage };
 }
 
+function stripHtml(html) {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractDemoSection(html, registryId) {
+  const marker = `data-registry-id="${registryId}"`;
+  const start = html.indexOf(marker);
+  if (start < 0) return html;
+  const blockStart = html.lastIndexOf('<div class="section-block"', start);
+  if (blockStart < 0) return html.slice(start);
+  const nextBlock = html.indexOf('<div class="section-block"', start + marker.length);
+  return html.slice(blockStart, nextBlock > 0 ? nextBlock : html.length);
+}
+
+function loadBundleEntry(registryId) {
+  const bundle = readJson('public/major-arcana-preview/data/hairtp-document-content-bundle.json');
+  for (const pool of ['customerFilled', 'staffFilled', 'information']) {
+    const items = bundle[pool];
+    if (!items) continue;
+    const list = Array.isArray(items) ? items : Object.values(items);
+    const hit = list.find((d) => d && d.registryId === registryId);
+    if (hit) return hit;
+  }
+  throw new Error(`bundle registryId saknas: ${registryId}`);
+}
+
+function loadMeridiqConsent(apiId) {
+  const catalog = readJson('migration/meridiq/consent-catalog.json');
+  const consent = (catalog.consents || []).find((c) => c.apiId === apiId);
+  if (!consent) throw new Error(`Meridiq consent ${apiId} saknas`);
+  return consent;
+}
+
+function bundleLegalText(entry) {
+  const content = entry.content || {};
+  return (
+    content.agreementText ||
+    content.letterText ||
+    (Array.isArray(content.agreementBlocks)
+      ? content.agreementBlocks.map((b) => stripHtml(b.html || '')).join('\n')
+      : '') ||
+    ''
+  );
+}
+
+function phraseCoverage(text, phrases) {
+  const normalized = normalizeLabel(text);
+  const coverage = (phrases || []).map((phrase) => ({
+    phrase,
+    present: normalized.includes(normalizeLabel(phrase)),
+  }));
+  const hits = coverage.filter((c) => c.present).length;
+  return { hits, total: coverage.length, coverage };
+}
+
+function compareLegalTriad({ wordText = '', bundleText = '', demoText = '', phrases = [] }) {
+  const bundleCov = phraseCoverage(bundleText, phrases);
+  const demoCov = phraseCoverage(demoText, phrases);
+  const wordCov = wordText ? phraseCoverage(wordText, phrases) : null;
+  const minHits = (total) => Math.max(1, Math.floor(total * 0.85));
+  const wordMinHits = (total) => Math.max(1, Math.floor(total * 0.7));
+
+  const demoBundleOk =
+    bundleCov.total > 0 &&
+    demoCov.hits >= minHits(demoCov.total) &&
+    bundleCov.hits >= minHits(bundleCov.total);
+  const wordOk = wordCov
+    ? wordCov.hits >= wordMinHits(wordCov.total) && demoBundleOk
+    : demoBundleOk;
+
+  const missingInDemo = demoCov.coverage.filter((c) => !c.present).map((c) => c.phrase);
+  const missingInBundle = bundleCov.coverage.filter((c) => !c.present).map((c) => c.phrase);
+
+  let status = 'NEEDS_REVIEW';
+  if (demoBundleOk && wordOk) status = 'E6_OK';
+  else if (demoBundleOk) status = 'DEMO_BUNDLE_OK';
+  else if (bundleCov.hits >= minHits(bundleCov.total) && !demoBundleOk) status = 'DEMO_GAP';
+
+  return {
+    status,
+    demoBundleOk,
+    wordOk,
+    bundleHits: `${bundleCov.hits}/${bundleCov.total}`,
+    demoHits: `${demoCov.hits}/${demoCov.total}`,
+    wordHits: wordCov ? `${wordCov.hits}/${wordCov.total}` : 'N/A',
+    missingInDemo,
+    missingInBundle,
+    wordPresent: Boolean(wordText),
+  };
+}
+
+const OFFERT_DOCX_BY_REGISTRY = Object.freeze({
+  offert_tp: 'Offertmall TP SV.docx',
+  offert_prp_hair: 'Offertmall PRP SV.docx',
+  offert_prp_skin: 'Offertmall PRP SV.docx',
+  offert_microneedling: 'Offertmall PRP SV.docx',
+  offert_prf: 'Offertmall PRP SV.docx',
+  offert_profilo: 'Offertmall PRP SV.docx',
+});
+
+const OFFERT_DEMO_BY_REGISTRY = Object.freeze({
+  offert_tp: {
+    phase5: 'steg5-offert-tp-final-demo.html',
+    phase7: 'steg7-v6-kundkort-final-demo.html',
+  },
+  offert_prp_hair: {
+    phase5: 'steg5-offert-prp-hair-final-demo.html',
+    phase7: 'steg7-offert-prp-hair-final-demo.html',
+  },
+  offert_prp_skin: {
+    phase5: 'steg5-offert-prp-skin-final-demo.html',
+    phase7: 'steg7-offert-prp-skin-final-demo.html',
+  },
+  offert_microneedling: {
+    phase5: 'steg5-offert-microneedling-final-demo.html',
+    phase7: 'steg7-offert-microneedling-final-demo.html',
+  },
+  offert_prf: {
+    phase5: 'steg5-offert-prf-final-demo.html',
+    phase7: 'steg7-offert-prf-final-demo.html',
+  },
+  offert_profilo: {
+    phase5: 'steg5-offert-profilo-final-demo.html',
+    phase7: 'steg7-offert-profilo-final-demo.html',
+  },
+});
+
+const AVTAL_ANCHORS = Object.freeze([
+  'Giltighetstid och betänketid',
+  'Betalningsvillkor',
+  'Av- och ombokning',
+  'Ångerrätt',
+  'Distansavtalslagen',
+  'Information & samtycke',
+  'Göteborgs tingsrätt',
+]);
+
+const SAMTYCKE_BOKNING_ANCHORS = Object.freeze([
+  'Samtycke vid bokning',
+  'distansavtalslagen',
+  'ångerrätten därmed upphör',
+  'contact@hairtpclinic.com',
+  '20 %',
+]);
+
+const SAMTYCKE_ANGERRATT_ANCHORS = Object.freeze([
+  'distansavtal och avtal utanför affärslokal',
+  '14 dagar',
+  'ångerfristen',
+  'lämnar mitt samtycke',
+  'Hair TP Clinic AB',
+]);
+
+function expandHome(p) {
+  return String(p || '').replace(/^~/, process.env.HOME);
+}
+
+function walkDocx(dir) {
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const name of fs.readdirSync(dir)) {
+    const p = path.join(dir, name);
+    if (fs.statSync(p).isDirectory()) out.push(...walkDocx(p));
+    else if (name.endsWith('.docx')) out.push(p);
+  }
+  return out;
+}
+
+function resolveOffertDocx(registryId) {
+  const target = OFFERT_DOCX_BY_REGISTRY[registryId];
+  if (!target) return null;
+  const dir = expandHome('~/Code/MA-Archive/offert-word/Offertmallar');
+  const hit = walkDocx(dir).find((p) => path.basename(p) === target);
+  return hit || null;
+}
+
+function resolveAvtalWord(registryId) {
+  if (registryId === 'offert_tp') {
+    return resolveWordFile({
+      localNames: ['251203-behandlingsavtal-dhi-2dagar.docx'],
+      glob: '251203.*2 dagar.*\\.docx$',
+    });
+  }
+  return resolveWordFile({
+    localNames: ['251203-behandlingsavtal-dhi-2dagar.docx', '251010-behandlingsavtal-dhi.docx'],
+    glob: '251203.*\\.docx$',
+  });
+}
+
 module.exports = {
   ROOT,
   WORD_DIR,
@@ -157,4 +353,20 @@ module.exports = {
   loadMeridiqForm,
   compareDemoToMeridiq,
   wordKeywordCoverage,
+  stripHtml,
+  extractDemoSection,
+  loadBundleEntry,
+  loadMeridiqConsent,
+  bundleLegalText,
+  phraseCoverage,
+  compareLegalTriad,
+  OFFERT_DOCX_BY_REGISTRY,
+  OFFERT_DEMO_BY_REGISTRY,
+  AVTAL_ANCHORS,
+  SAMTYCKE_BOKNING_ANCHORS,
+  SAMTYCKE_ANGERRATT_ANCHORS,
+  expandHome,
+  walkDocx,
+  resolveOffertDocx,
+  resolveAvtalWord,
 };

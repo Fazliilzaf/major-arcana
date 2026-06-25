@@ -157,6 +157,62 @@ function buildLiveManifest() {
   });
 }
 
+function renderPatientDocDevIndexHtml(options = {}) {
+  const shellHash = String(options.shellHash || 'e8');
+  const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
+  const labels = new Map((catalog.types || []).map((t) => [t.id, t.name || t.id]));
+  const numbers = new Map((catalog.types || []).map((t) => [t.id, t.number || '']));
+  const manifest = buildLiveManifest().sort((a, b) =>
+    String(numbers.get(a.registryId)).localeCompare(String(numbers.get(b.registryId)), 'sv', {
+      numeric: true,
+    })
+  );
+
+  const rows = manifest
+    .map((row) => {
+      const label = labels.get(row.registryId) || row.registryId;
+      const num = numbers.get(row.registryId);
+      const badge = row.audience === 'staff' ? 'Personal' : 'Patient';
+      const phaseLinks = row.phases
+        ? `<a href="/major-arcana-preview/patient-doc/${encodeURIComponent(row.registryId)}?phase=5">steg 5</a> · <a href="/major-arcana-preview/patient-doc/${encodeURIComponent(row.registryId)}?phase=7">steg 7</a>`
+        : `<a href="${row.livePath}">live</a>`;
+      return `<tr><td>${num}</td><td><code>${row.registryId}</code></td><td>${label}</td><td>${badge}</td><td>${phaseLinks}</td><td><code>${row.htmlFile || '—'}</code></td></tr>`;
+    })
+    .join('\n');
+
+  return `<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CCO patient-doc dev-index · 36 typer</title>
+  <link rel="stylesheet" href="./patient-document-shell.css" />
+  <style>
+    body{font-family:Inter,system-ui,sans-serif;background:#faf6f2;color:#2b251f;padding:24px}
+    .patient-doc-dev-index{max-width:1100px;margin:0 auto}
+    h1{font-size:28px;margin:0 0 8px}
+    p.meta{color:#8a8174;margin:0 0 24px}
+    table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.82);border-radius:16px;overflow:hidden}
+    th,td{padding:12px 14px;border-bottom:1px solid rgba(120,105,90,.16);text-align:left;vertical-align:top;font-size:14px}
+    th{background:rgba(245,232,216,.6);font-weight:650}
+    a{color:#2b251f}
+    code{font-size:12px}
+  </style>
+</head>
+<body class="patient-doc-dev-index">
+  <h1>Patient-doc dev-index (E5)</h1>
+  <p class="meta">${manifest.length} registryId · shell <code>patient-document-shell.js</code> · manifest <a href="/api/v1/cco/patient-documents/live/manifest">JSON</a></p>
+  <table>
+    <thead><tr><th>#</th><th>registryId</th><th>Namn</th><th>Publik</th><th>Länkar</th><th>demo HTML</th></tr></thead>
+    <tbody>
+${rows}
+    </tbody>
+  </table>
+  <script src="./app/patient-document-shell.js?v=${shellHash}"></script>
+</body>
+</html>`;
+}
+
 module.exports = {
   PREVIEW_ROOT,
   OFFERT_SLUG,
@@ -171,4 +227,5 @@ module.exports = {
   isStaffLiveRegistry,
   buildLiveDocumentPath,
   buildLiveManifest,
+  renderPatientDocDevIndexHtml,
 };
