@@ -1,0 +1,193 @@
+{
+  "source": "migration/meridiq/questionary-catalog.json#14865",
+  "sourceNote": "Meridiq archive form ENG | Health Questionnaire (29 questions). isActive=false in Meridiq export.",
+  "registryId": "health_tp_eng",
+  "meridiqApiId": 14865,
+  "questionCount": 29,
+  "ui": {
+    "yes": "Yes",
+    "no": "No",
+    "unknown": "Don't know",
+    "placeholder": "Describe here…",
+    "selectEmpty": "— Select —"
+  },
+  "intro": {
+    "title": "Health questionnaire",
+    "body": "Please answer all questions below before your consultation or treatment. Your answers help us assess whether the treatment is safe and appropriate for you.",
+    "note": "ENG health questionnaire · Hair TP Clinic · archive form 14865"
+  },
+  "questionsSection": {
+    "title": "Health questionnaire · 29 questions",
+    "hint": "Please answer all questions."
+  },
+  "actions": {
+    "primary": "Sign &amp; submit",
+    "ghost": "Save draft"
+  },
+  "questions": [
+    {
+      "id": 408040,
+      "type": "yes_no_textbox",
+      "label": "Do you suffer from any allergies?"
+    },
+    {
+      "id": 408041,
+      "type": "yes_no",
+      "label": "Do you use tobacco?",
+      "tristate": true
+    },
+    {
+      "id": 408042,
+      "type": "yes_no",
+      "label": "Are you pregnant, breastfeeding or trying to conceive?",
+      "tristate": true
+    },
+    {
+      "id": 408043,
+      "type": "yes_no_textbox",
+      "label": "Are you currently receiving any medical treatment?"
+    },
+    {
+      "id": 408044,
+      "type": "yes_no",
+      "label": "Are you currently taking steroids, acetylsalicylic acid (eg Treo or Aspirin) or any anticoagulant (eg Warfarin)?",
+      "tristate": true
+    },
+    {
+      "id": 408045,
+      "type": "yes_no",
+      "label": "Have you recently used any glycolic acid or retinoids (such as isotretinoin or tretinoin)?",
+      "tristate": true
+    },
+    {
+      "id": 408046,
+      "type": "yes_no_textbox",
+      "label": "Do you have an ongoing infection in your body or have you taken antibiotics in the last four weeks?"
+    },
+    {
+      "id": 408047,
+      "type": "yes_no_textbox",
+      "label": "Do you have an ongoing illness that is physical or mental?"
+    },
+    {
+      "id": 408048,
+      "type": "yes_no_textbox",
+      "label": "Have you had problems with anxiety, depression, or other mental disorders?"
+    },
+    {
+      "id": 408049,
+      "type": "yes_no_textbox",
+      "label": "Do you have an autoimmune disease or a disease that has affected the immune system?"
+    },
+    {
+      "id": 408050,
+      "type": "yes_no",
+      "label": "Do you have diabetes?",
+      "tristate": true
+    },
+    {
+      "id": 408051,
+      "type": "yes_no",
+      "label": "Do you have any haemophilia?",
+      "tristate": true
+    },
+    {
+      "id": 408052,
+      "type": "yes_no",
+      "label": "Do you suffer from acute rheumatoid arthritis or recurrent sore throat?",
+      "tristate": true
+    },
+    {
+      "id": 408053,
+      "type": "yes_no",
+      "label": "Do you suffer from amyotrophic sclerosis (ALS) or peripheral neuromuscular disorder (nerve disease)?",
+      "tristate": true
+    },
+    {
+      "id": 408054,
+      "type": "yes_no",
+      "label": "Do you suffer from myasthenia gravis or Eaton-Lambert syndrome (muscle disease)?",
+      "tristate": true
+    },
+    {
+      "id": 408055,
+      "type": "yes_no",
+      "label": "Do you suffer from untreated epilepsy?",
+      "tristate": true
+    },
+    {
+      "id": 408056,
+      "type": "yes_no",
+      "label": "Do you have a tendency to develop large scars (keloids)?",
+      "tristate": true
+    },
+    {
+      "id": 408057,
+      "type": "yes_no",
+      "label": "Have you had any skin cancer before?",
+      "tristate": true
+    },
+    {
+      "id": 408058,
+      "type": "yes_no",
+      "label": "Do you suffer from porphyria (hereditary disease)?",
+      "tristate": true
+    },
+    {
+      "id": 408059,
+      "type": "yes_no",
+      "label": "Do you suffer from abnormal palpitations or other heart disease?",
+      "tristate": true
+    },
+    {
+      "id": 408060,
+      "type": "yes_no",
+      "label": "Have you been to or are you planning a dental visit soon? (2 weeks before / 2 weeks after)",
+      "tristate": true
+    },
+    {
+      "id": 408061,
+      "type": "yes_no_textbox",
+      "label": "Have you previously received any aesthetic treatments (eg laser, peeling, dermabrasion, microneedling, IPL, Chemical Peeling, PRP, etc.)?"
+    },
+    {
+      "id": 408062,
+      "type": "yes_no_textbox",
+      "label": "Have you previously received injectable treatments, thread lift or undergone facial surgery of any kind?"
+    },
+    {
+      "id": 408063,
+      "type": "yes_no_textbox",
+      "label": "Did you experience any side effects related to the treatment?"
+    },
+    {
+      "id": 408064,
+      "type": "yes_no",
+      "label": "Do you have any skin infection or inflammatory skin problems (eg herpes, acne, rosacea, etc.)?",
+      "tristate": true
+    },
+    {
+      "id": 408065,
+      "type": "yes_no",
+      "label": "Do you have tattoos or permanent makeup in the treatment area?",
+      "tristate": true
+    },
+    {
+      "id": 408066,
+      "type": "yes_no",
+      "label": "Do you have tanned skin now?",
+      "tristate": true
+    },
+    {
+      "id": 408067,
+      "type": "yes_no",
+      "label": "Do you have Melasma or Chloasma (pigmentation)?",
+      "tristate": true
+    },
+    {
+      "id": 408068,
+      "type": "textbox",
+      "label": "Other comments about your health"
+    }
+  ]
+}

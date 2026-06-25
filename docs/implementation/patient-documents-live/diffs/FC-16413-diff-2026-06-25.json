@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-06-25T14:02:03.053Z",
+  "meridiqApiId": 16413,
+  "registryId": "friskfoers_tp",
+  "demoMeridiqParity": {
+    "status": "PARITY_OK",
+    "meridiqQuestionCount": 13,
+    "demoQuestionCount": 13,
+    "missingInDemo": [],
+    "extraInDemo": [],
+    "labelMismatch": []
+  },
+  "wordPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/5-friskforsakran-tp-2025.docx",
+  "wordKeywordHits": "2/13",
+  "status": "WORD_REVIEW"
+}

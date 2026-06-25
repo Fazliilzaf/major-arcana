@@ -221,7 +221,23 @@
     return true;
   }
 
+  function openPatientDocumentLive(registryId, options = {}) {
+    const live = global.CcoPatientDocumentLive;
+    if (!live?.open) return false;
+    const id = String(registryId || '').trim();
+    if (!id) return false;
+    const opts = {
+      ...options,
+      patientId: options.patientId || global.currentPatientCard?.patientId,
+    };
+    if (id.startsWith('offert_')) {
+      opts.phase = opts.phase || opts.journeyStep || 7;
+    }
+    return live.open(id, opts);
+  }
+
   function openSteg8Friskforsakran(options = {}) {
+    if (openPatientDocumentLive('friskfoers_tp', options)) return Promise.resolve(true);
     if (global.CcoFriskforsakranDemoOverlay?.mount) {
       return global.CcoFriskforsakranDemoOverlay.mount(options);
     }
@@ -229,6 +245,7 @@
   }
 
   function openSteg9FotoSamtycke(options = {}) {
+    if (openPatientDocumentLive('foto_samtycke', options)) return Promise.resolve(true);
     if (global.CcoFotoSamtyckeDemoOverlay?.mount) {
       return global.CcoFotoSamtyckeDemoOverlay.mount(options);
     }
@@ -238,6 +255,7 @@
   function openStaffJournal(options = {}) {
     const flow = resolveTreatmentFlow(options);
     const registryId = options.registryId || resolveStaffJournalRegistryId(flow);
+    if (openPatientDocumentLive(registryId, options)) return true;
     const patientAction = resolveStaffJournalPatientAction(registryId);
     dispatchCloudStaffAction({
       kind: 'journal',
@@ -284,6 +302,7 @@
 
   async function openStaffDocumentPreviewAsync(registryId) {
     if (!registryId) return false;
+    if (openPatientDocumentLive(registryId)) return true;
     mountAutoDocPreviewScrim(
       registryId,
       '<p class="cco-auto-preview__loading" role="status">Laddar staff-mall…</p>',
@@ -301,6 +320,7 @@
 
   function activateRegistryDocument(registryId, options = {}) {
     if (!registryId) return false;
+    if (openPatientDocumentLive(registryId, options)) return true;
     if (isAutoDocRegistryId(registryId)) {
       void openAutoDocPreviewAsync(registryId);
       return true;
@@ -553,6 +573,7 @@
 
   async function openAutoDocPreviewAsync(registryId) {
     if (!registryId) return false;
+    if (openPatientDocumentLive(registryId)) return true;
     mountAutoDocPreviewScrim(
       registryId,
       '<p class="cco-auto-preview__loading" role="status">Laddar malltext…</p>'
@@ -569,6 +590,9 @@
   }
 
   function openSteg7ForOfferRegistry(registryId, options = {}) {
+    if (openPatientDocumentLive(registryId, { ...options, phase: options.phase || 7 })) {
+      return Promise.resolve(true);
+    }
     const flowEntry = Object.entries(STEG7_OFFER_BY_FLOW).find(([, id]) => id === registryId);
     const flow = flowEntry ? flowEntry[0] : 'tp';
     if (global.CcoAvtalSamtyckeBundle?.mount) {
@@ -666,6 +690,7 @@
     openStaffDocumentPreviewAsync,
     openSteg8Friskforsakran,
     openSteg9FotoSamtycke,
+    openPatientDocumentLive,
     openStaffJournal,
     activateRegistryDocument,
     closeAutoDocPreview,

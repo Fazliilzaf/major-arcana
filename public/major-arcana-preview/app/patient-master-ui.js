@@ -1365,6 +1365,19 @@
     // via den befintliga scrollV12WorkspaceModule. Presentation/navigation —
     // ingen ny write-handler. (body återskapas per öppning → ingen dubbelbind.)
     body.addEventListener('click', (event) => {
+      // CONTENT-CANON: snabb-jump i höger-railen → scrolla till sektionen.
+      const canonJump = event.target.closest('[data-v12-canon-jump]');
+      if (canonJump && body.contains(canonJump)) {
+        event.preventDefault();
+        const secId = canonJump.getAttribute('data-v12-canon-jump');
+        const target = secId && body.querySelector('#' + secId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          target.setAttribute('data-v12-focus-pulse', '1');
+          window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
+        }
+        return;
+      }
       // JOURNEY-SPINE: expandera/fäll ihop steg-kort (accordion).
       const spineHead = event.target.closest('[data-spine-step] > .step-head');
       if (spineHead && body.contains(spineHead)) {
@@ -1660,11 +1673,21 @@
         }
       });
     }
-    window.requestAnimationFrame(() =>
-      window.requestAnimationFrame(() =>
-        scrollV12WorkspaceModule(body, moduleName || 'current-state')
-      )
-    );
+    // Scroll-till-sektion vid öppning. Innehållet (tomma besök-state, foton,
+    // hydrerade bilder) layoutar asynkront och växer EFTER första rendern, så en
+    // enda tidig scroll landar fel (modulen trycks ner när innehållet expanderar).
+    // Därför: scrolla om flera gånger medan höjden sätter sig, tills modulens
+    // position är stabil. 'current-state' (toppen) hoppar vi över — redan i topp.
+    // Scroll-till-sektion vid öppning. Innehåll (foton/hydrering) växer höjden
+    // asynkront EFTER första rendern, så vi scrollar dels direkt (dubbel-rAF)
+    // dels igen när höjden hunnit sätta sig (300/700 ms) så modulen hamnar rätt.
+    const targetModule = moduleName || 'current-state';
+    if (targetModule && targetModule !== 'current-state') {
+      const doScroll = () => scrollV12WorkspaceModule(body, targetModule);
+      window.requestAnimationFrame(() => window.requestAnimationFrame(doScroll));
+      window.setTimeout(doScroll, 300);
+      window.setTimeout(doScroll, 700);
+    }
   }
 
   function bindV12WorkspaceRailLauncher(root, ctx) {
@@ -5505,26 +5528,10 @@
     const journeyHandlers = buildV9JourneyHandlers(root, ctx);
     const referensKkref = isReferensKundkortRoot(root);
     bindV12WorkspaceRailLauncher(root, ctx);
-    // Fas 4 · Hybrid-canon: kundklick → V12 full-sida DIREKT (facit), istället för
-    // att vänta på sektionsklick i railen. Auto-öppnas en gång per ny kund
-    // (patientId-guard) så att close → re-bind inte triggar nytt auto-öppnande.
-    if (usesV12Workspace()) {
-      const autoPid = normalizeText(ctx?.card?.patientId || ctx?.card?.id);
-      if (autoPid && runtime.v12HybridAutoOpenedFor !== autoPid) {
-        runtime.v12HybridAutoOpenedFor = autoPid;
-        window.requestAnimationFrame(() =>
-          window.requestAnimationFrame(() => {
-            try {
-              openV12WorkspaceFromRail(root, ctx, 'current-state');
-            } catch (_autoOpenError) {
-              // Auto-öppning misslyckades → nollställ guarden så kund-railen
-              // förblir användbar och nästa interaktion kan försöka igen.
-              runtime.v12HybridAutoOpenedFor = null;
-            }
-          })
-        );
-      }
-    }
+    // Kundklick → liten V11-dossier-rail FÖRST. Stor kundvy öppnas via
+    // sektionsklick i railen (bindV12WorkspaceRailLauncher → openV12WorkspaceFromRail
+    // med rätt modul → scrollar dit). Ingen auto-öppning (Fas-4-Hybrid borttagen
+    // på begäran — liten rail ska komma upp först).
     if (root.querySelector('[data-kundkort-slide-over]')) {
       window.CcoV9CustomersParity?.bindKundkortSlideOver?.(root, journeyHandlers, ctx);
     } else {
@@ -5732,24 +5739,35 @@
       dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
         ? Object.assign({}, card, dossierBundle.card)
         : card || {};
+    const railCtx = {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries,
+      occasionTimeline,
+      driveFiles,
+      patient,
+      tab,
+      lite,
+    };
     let inner = '';
+    // Lilla dossier-railen = HÖGERSPALT-v11-komplett (22 sektioner, identisk med
+    // facit). Verbatim-port via CcoV11RailKomplett. Fallback till CcoV11Rail.
     try {
-      if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
-        inner =
-          window.CcoV11Rail.render({
-            card,
-            bcard,
-            dossierBundle,
-            journalEntries,
-            occasionTimeline,
-            driveFiles,
-            patient,
-            tab,
-            lite,
-          }) || '';
+      if (window.CcoV11RailKomplett && typeof window.CcoV11RailKomplett.render === 'function') {
+        inner = window.CcoV11RailKomplett.render(railCtx) || '';
       }
-    } catch (_error) {
+    } catch (_rkError) {
       inner = '';
+    }
+    if (!inner || inner.indexOf('data-v11-rk') === -1) {
+      try {
+        if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
+          inner = window.CcoV11Rail.render(railCtx) || '';
+        }
+      } catch (_error) {
+        inner = '';
+      }
     }
     const body =
       inner ||
@@ -5839,26 +5857,28 @@
       tab,
       lite,
     };
-    // JOURNEY-SPINE (Fas 5) · aktiveras via ?v13spine=on. Renderar facit-spine
-    // (CcoV12Spine) istället för 13-modul-stacken. Defensivt: faller tillbaka
-    // till modul-stacken om spine-render kastar eller är tom (aldrig blank).
-    if (usesV13Spine() && window.CcoV12Spine && typeof window.CcoV12Spine.render === 'function') {
-      let spineInner = '';
+    // Stora kundvyn = CONTENT-CANON (13 sektioner, identisk med facit
+    // V12-WORKSPACE-CONTENT-CANON). Sektionsklick i lilla railen → scrollar till
+    // rätt sektion (data-v12-module på varje canon-sektion). Defensiv fallback
+    // till 13-modul-stacken om canon-render kastar/är tom (aldrig blank).
+    if (window.CcoV12Canon && typeof window.CcoV12Canon.render === 'function') {
+      let canonInner = '';
       try {
-        spineInner = window.CcoV12Spine.render(ctx) || '';
-      } catch (_spineError) {
-        spineInner = '';
+        canonInner = window.CcoV12Canon.render(ctx) || '';
+      } catch (_canonError) {
+        canonInner = '';
       }
-      if (spineInner && spineInner.indexOf('data-v12-spine') !== -1) {
+      if (canonInner && canonInner.indexOf('data-v12-canon') !== -1) {
         return `
-      <section class="patient-master-card v12-workspace v12-workspace--spine" data-patient-detail data-v12-workspace-shell="1">
+      <section class="patient-master-card v12-workspace v12-workspace--canon" data-patient-detail data-v12-workspace-shell="1">
         <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
-        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (V13 spine)">
-          ${spineInner}
+        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (CONTENT-CANON)">
+          ${canonInner}
         </div>
       </section>`;
       }
     }
+    // Fallback: 13-modul-stacken (om canon ej tillgänglig).
     let railInner = '';
     try {
       if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {

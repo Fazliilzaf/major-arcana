@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-06-25T14:02:02.662Z",
+  "meridiqApiId": 16414,
+  "registryId": "haelso_tp_sve",
+  "demoMeridiqParity": {
+    "status": "PARITY_OK",
+    "meridiqQuestionCount": 14,
+    "demoQuestionCount": 14,
+    "missingInDemo": [],
+    "extraInDemo": [],
+    "labelMismatch": []
+  },
+  "wordPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/1.-Hälsodeklaration-TP_-PRP_-Microneedling-PRF.docx",
+  "wordKeywordHits": "10/14",
+  "status": "WORD_REVIEW"
+}

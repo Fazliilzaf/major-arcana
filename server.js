@@ -5641,6 +5641,7 @@ let ccoPhotoConsentStore = null;
 
     app.post(
       '/api/v1/cco-photo-consents/:customerId/:photoId',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('customers.photo_consent_set'),
       jsonParser,
@@ -6829,6 +6830,7 @@ try {
   app.post(
     '/api/v1/cco-forms/submit',
     express.json({ limit: '256kb' }),
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.write'),
     async (req, res) => {
@@ -6936,6 +6938,7 @@ try {
   app.post(
     '/api/v1/cco-forms/:entryId/sign',
     express.json({ limit: '8kb' }),
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.write'),
     async (req, res) => {
@@ -6978,6 +6981,7 @@ try {
   // vilka finns signerade i CCO-journalen, vilka saknas.
   app.get(
     '/api/v1/cco-forms/patient/:patientId/missing',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('customers.read'),
     async (req, res) => {
@@ -10229,6 +10233,12 @@ try {
         maxPatients: Number(process.env.PHOTO_REVIEW_PILOT_MAX_PATIENTS) || 5,
       }
     : null;
+  const { registerPatientDocumentLiveManifestRoute } = require('./src/routes/patientDocumentLive');
+  registerPatientDocumentLiveManifestRoute(app);
+  console.log(
+    '[patient-doc-live] monterad: GET /api/v1/cco/patient-documents/live/manifest (före photo-review auth)'
+  );
+
   const { createCcoPhotoReviewRouter } = require('./src/routes/ccoPhotoReview');
   app.use(
     '/api/v1/cco',
@@ -10930,6 +10940,15 @@ function transformPreviewHtml(html) {
   return html;
 }
 
+const { createPatientDocumentLiveRouter } = require('./src/routes/patientDocumentLive');
+app.use(
+  createPatientDocumentLiveRouter({
+    previewRoot: PREVIEW_ROOT,
+    transformPreviewHtml,
+    getAssetHash,
+  })
+);
+
 function servePreviewHtml(req, res, next) {
   try {
     const htmlPath = path.join(PREVIEW_ROOT, 'index.html');
@@ -11027,6 +11046,7 @@ const { createDocsRouter } = require('./src/routes/docs');
 const { createPatientInformationRouter } = require('./src/routes/patientInformation');
 const { createAdminRouter } = require('./src/routes/admin');
 const { createDiagRouter } = require('./src/routes/diag');
+const { createConversationRouter } = require('./src/routes/conversation');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -11138,6 +11158,7 @@ const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
 const { createCcoCustomerCommRouter } = require('./src/routes/ccoCustomerComm');
+const { createCcoCommDraftRouter } = require('./src/routes/ccoCommDraft');
 const { createCcoStaffRouter } = require('./src/routes/ccoStaff');
 const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
 const { createCcoPatientPaymentsRouter } = require('./src/routes/ccoPatientPayments');
@@ -12838,47 +12859,9 @@ process.once('SIGTERM', () => {
     })
   );
 
-  app.get('/conversation/:id', async (req, res) => {
-    try {
-      const conversation = await memoryStore.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ error: 'Hittade ingen konversation.' });
-      }
-      const sourceUrl = typeof req.query.sourceUrl === 'string' ? req.query.sourceUrl : '';
-      const brand = resolveBrand(req, sourceUrl);
-      if (conversation.brand && brand && conversation.brand !== brand) {
-        return res.status(404).json({ error: 'Hittade ingen konversation.' });
-      }
-      if (!conversation.brand && brand) {
-        await memoryStore.ensureConversation(conversation.id, brand);
-      }
-      return res.json({
-        conversationId: conversation.id,
-        summary: conversation.summary || '',
-        messages: conversation.messages || [],
-      });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Något gick fel.' });
-    }
-  });
-
-  app.delete('/conversation/:id', async (req, res) => {
-    try {
-      const conversation = await memoryStore.getConversation(req.params.id);
-      if (!conversation) return res.json({ ok: false });
-      const sourceUrl = typeof req.query.sourceUrl === 'string' ? req.query.sourceUrl : '';
-      const brand = resolveBrand(req, sourceUrl);
-      if (conversation.brand && brand && conversation.brand !== brand) {
-        return res.json({ ok: false });
-      }
-      const ok = await memoryStore.deleteConversation(req.params.id);
-      return res.json({ ok });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Något gick fel.' });
-    }
-  });
+  // ─── KONVERSATION (hämta/radera) ───
+  // Routes flyttade till src/routes/conversation.js (se ORGANISATION.md §4).
+  app.use(createConversationRouter({ memoryStore, resolveBrand }));
 
   app.post(
     '/chat',
@@ -13279,6 +13262,21 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Svarstudio v2 (P2): utkast-CRUD + gateway-styrd AI-generering.
+  // Live-utskick (→ sent) är hårt blockerat (owner-mandat); se router.
+  app.use(
+    '/api/v1',
+    createCcoCommDraftRouter({
+      config,
+      requireAuth: auth.requireAuth,
+      commDraftStore: app.locals?.ccoCommDraftStore || null,
+      executionGateway,
+      openai,
+      auditLog: ccoAuditLog,
+      appLocals: app.locals,
+    })
+  );
+
   app.use(
     '/api/v1',
     createCcoPatientMasterRouter({
@@ -13292,6 +13290,7 @@ process.once('SIGTERM', () => {
       buildPatientDocumentBundle,
       readCache: ccoReadCache,
       resolvePatientAssetStore: resolveSharedPatientAssetStore,
+      mailIngestionStore: ccoMailIngestionStore,
       swishStore: ccoSwishStore,
       commercialStore: ccoCommercialStore,
       fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister || null,

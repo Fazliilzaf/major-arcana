@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-06-25T14:02:02.845Z",
+  "meridiqApiId": 14865,
+  "registryId": "health_tp_eng",
+  "meridiqQuestionCount": 29,
+  "demoQuestionCount": 29,
+  "facitQuestionCount": 29,
+  "missingInDemo": [],
+  "extraInDemo": [],
+  "labelMismatch": [],
+  "status": "PARITY_OK"
+}

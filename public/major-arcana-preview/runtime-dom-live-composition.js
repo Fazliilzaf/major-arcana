@@ -257,7 +257,12 @@
 
     function paintRuntimeShell(scope = "all") {
       try {
-        if (windowObject.matchMedia("(max-width: 768px)").matches) {
+        // Konversationer v2 (mobil) renderar i eget #cco-conv-v2-root och bryr
+        // sig inte om legacy .preview-shell:s hidden-läge — hoppa inte över då.
+        const conversationsV2On =
+          windowObject.__ARCANA_CONVERSATIONS_V2_ENABLED__ === true ||
+          windowObject.document?.documentElement?.getAttribute?.("data-conversations-v2") === "on";
+        if (!conversationsV2On && windowObject.matchMedia("(max-width: 768px)").matches) {
           const previewShellNode = windowObject.document?.querySelector?.(".preview-shell");
           const scopeKey = normalizeKey(scope);
           if (previewShellNode?.hidden === true && scopeKey !== "chrome") {
