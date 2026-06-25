@@ -1681,8 +1681,13 @@
     // v3: tema (app-brett) + densitet (persisteras).
     applyTheme();
     root.dataset.density = v3Density;
-    // Mobil master-detail: utan vald tråd visas alltid inboxen.
-    if (!ctx.selected) mobilePane = 'inbox';
+    // Mobil master-detail: utan vald tråd visas alltid inboxen — och då måste
+    // även kontext-arket stängas, annars ligger det kvar fast över inboxen och
+    // blockerar interaktion på ≤768px (Bugbot #230).
+    if (!ctx.selected) {
+      mobilePane = 'inbox';
+      root.dataset.mobileCtx = 'closed';
+    }
     root.dataset.mobilePane = mobilePane;
     if (!root.dataset.mobileCtx) root.dataset.mobileCtx = 'closed';
     renderToolbar(ctx);
