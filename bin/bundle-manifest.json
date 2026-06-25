@@ -35,6 +35,7 @@
     "app/cco-v11-rail.js",
     "app/cco-v12-workspace-adapters.js",
     "app/cco-v12-workspace.js",
+    "app/cco-v12-spine.js",
     "app/patient-master-ui.js",
     "app/cco-kundkort-referens.js",
     "app/cco-v9-customers-parity.js",

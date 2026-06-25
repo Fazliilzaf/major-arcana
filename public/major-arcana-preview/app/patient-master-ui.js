@@ -1146,6 +1146,22 @@
     }
   }
 
+  // JOURNEY-SPINE (Fas 5) opt-in. ?v13spine=on slår på (sticky via localStorage),
+  // ?v13spine=off stänger av. Default OFF tills facit-paritet är godkänd.
+  function usesV13Spine() {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const q = String(params.get('v13spine') || '')
+        .trim()
+        .toLowerCase();
+      if (q === 'on') localStorage.setItem('arcana.v13spine.enabled', '1');
+      else if (q === 'off') localStorage.setItem('arcana.v13spine.enabled', '0');
+      return localStorage.getItem('arcana.v13spine.enabled') === '1';
+    } catch (_error) {
+      return false;
+    }
+  }
+
   /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
   function usesBlueprintDesktopLayout() {
     if (usesV10KundkortFacit()) return false;
@@ -1349,6 +1365,18 @@
     // via den befintliga scrollV12WorkspaceModule. Presentation/navigation —
     // ingen ny write-handler. (body återskapas per öppning → ingen dubbelbind.)
     body.addEventListener('click', (event) => {
+      // JOURNEY-SPINE: expandera/fäll ihop steg-kort (accordion).
+      const spineHead = event.target.closest('[data-spine-step] > .step-head');
+      if (spineHead && body.contains(spineHead)) {
+        const stepEl = spineHead.closest('[data-spine-step]');
+        if (stepEl && stepEl.querySelector('.step-body')) {
+          event.preventDefault();
+          const isOpen = stepEl.getAttribute('data-open') === 'true';
+          stepEl.setAttribute('data-open', isOpen ? 'false' : 'true');
+          spineHead.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        }
+        return;
+      }
       // Nuläge "Redigera" → öppna edit-dialogen.
       const editOpen = event.target.closest('[data-v12-edit-open]');
       if (editOpen && body.contains(editOpen)) {
@@ -5811,6 +5839,26 @@
       tab,
       lite,
     };
+    // JOURNEY-SPINE (Fas 5) · aktiveras via ?v13spine=on. Renderar facit-spine
+    // (CcoV12Spine) istället för 13-modul-stacken. Defensivt: faller tillbaka
+    // till modul-stacken om spine-render kastar eller är tom (aldrig blank).
+    if (usesV13Spine() && window.CcoV12Spine && typeof window.CcoV12Spine.render === 'function') {
+      let spineInner = '';
+      try {
+        spineInner = window.CcoV12Spine.render(ctx) || '';
+      } catch (_spineError) {
+        spineInner = '';
+      }
+      if (spineInner && spineInner.indexOf('data-v12-spine') !== -1) {
+        return `
+      <section class="patient-master-card v12-workspace v12-workspace--spine" data-patient-detail data-v12-workspace-shell="1">
+        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (V13 spine)">
+          ${spineInner}
+        </div>
+      </section>`;
+      }
+    }
     let railInner = '';
     try {
       if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
