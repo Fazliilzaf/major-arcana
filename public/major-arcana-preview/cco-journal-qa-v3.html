@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Journal Cutover QA · Arcana CCO</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== JOURNAL-QA-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* meta-rad under head */
+.meta-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.5rem 0 .2rem}
+.meta-chip{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border-radius:var(--r-pill);background:rgba(255,255,255,.65);border:1px solid rgba(180,165,150,.3);font-size:var(--fs-kicker);font-weight:700;color:var(--text-tertiary)}
+.meta-chip.fallback{background:var(--warning-bg);color:var(--warning);border-color:rgba(154,100,16,.3)}
+.meta-spacer{flex:1;min-width:.5rem}
+
+/* status-pill (block-status) */
+.status-pill{display:inline-flex;align-items:center;gap:.4rem;padding:.2rem .6rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.status-pill .dot{width:.45rem;height:.45rem;border-radius:999px}
+.status-pill.green{background:var(--success-bg);color:var(--success)}.status-pill.green .dot{background:var(--success)}
+.status-pill.yellow{background:var(--warning-bg);color:var(--warning)}.status-pill.yellow .dot{background:var(--warning)}
+.status-pill.red{background:var(--danger-bg);color:var(--danger)}.status-pill.red .dot{background:var(--danger)}
+
+/* PHASE 2 primär-banner: link-only blocker + 11-metric grid */
+.phase2-banner{display:grid;grid-template-columns:1fr;gap:var(--gap);margin:.6rem 0 var(--gap)}
+.phase2-primary{display:flex;flex-direction:column;gap:.35rem}
+.phase2-primary .label{color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.phase2-primary .value-row{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.phase2-primary .value{font-size:clamp(2.6rem,2rem+3vw,3.4rem);font-weight:800;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.phase2-primary .value.zero{color:var(--success)}.phase2-primary .value.warn{color:var(--warning)}.phase2-primary .value.danger{color:var(--danger)}
+.phase2-primary .of{color:var(--text-tertiary);font-size:var(--fs-meta)}
+.phase2-primary .sub{color:var(--text-secondary);font-size:var(--fs-meta);max-width:52ch}
+.phase2-primary .gate{margin-top:.4rem;align-self:flex-start;display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.phase2-primary .gate.green{background:var(--success-bg);color:var(--success)}
+.phase2-primary .gate.red{background:var(--danger-bg);color:var(--danger)}
+.phase2-primary .gate .dot{width:.45rem;height:.45rem;border-radius:999px;background:currentColor}
+.phase2-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr));gap:var(--gap)}
+@media(min-width:601px){.phase2-banner{grid-template-columns:minmax(0,18rem) 1fr;align-items:center}}
+
+/* stats-rutnät i kort */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:.6rem .9rem}
+.stat{display:flex;flex-direction:column;gap:.1rem;min-width:0}
+.stat-label{color:var(--text-tertiary);font-size:var(--fs-kicker);letter-spacing:.04em;text-transform:uppercase;font-weight:700}
+.stat-value{font-size:1.3rem;font-weight:800;letter-spacing:-.02em;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.stat-value.small{font-size:.95rem}
+.stat-value.muted{color:var(--text-tertiary)}
+.stat-value.success{color:var(--success)}
+.stat-value.warning{color:var(--warning)}
+.stat-value.danger{color:var(--danger)}
+
+/* card-header inuti paneler */
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--gap);margin-bottom:.7rem}
+.card-kicker{color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.card-title{margin:.15rem 0 0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+
+/* huvud-grid för block 1–5 */
+.grid{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+@media(min-width:601px){.grid{grid-template-columns:1fr 1fr}}
+@media(min-width:1025px){.grid--blocks{grid-template-columns:repeat(2,1fr)}}
+.span-all{grid-column:1/-1}
+
+/* DoD-checklista */
+.dod-list{list-style:none;padding:0;margin:.6rem 0 0}
+.dod-list li{display:flex;align-items:flex-start;gap:.6rem;padding:.55rem .25rem;border-top:1px solid rgba(0,0,0,.05);font-size:var(--fs-meta)}
+.dod-list li:first-child{border-top:0}
+.dod-check{width:1.25rem;height:1.25rem;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800}
+.dod-check.ok{background:var(--success-bg);color:var(--success)}
+.dod-check.no{background:var(--danger-bg);color:var(--danger)}
+.dod-text{flex:1;min-width:0}
+.dod-text .label{font-weight:700;color:var(--text-primary)}
+.dod-text .note{color:var(--text-tertiary);font-size:var(--fs-kicker);margin-top:.15rem}
+
+/* blockers-banner */
+.blockers-banner{margin-top:.8rem;padding:.7rem .85rem;border-radius:var(--r-md);background:var(--warning-bg);color:var(--warning);font-size:var(--fs-meta);line-height:1.5}
+.blockers-banner.red{background:var(--danger-bg);color:var(--danger)}
+.blockers-banner.green{background:var(--success-bg);color:var(--success)}
+.blockers-banner strong{font-weight:800}
+.blockers-banner a{color:inherit;font-weight:700;text-decoration:underline}
+
+/* tabeller — wide → overflow-x:auto */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.runs-table{width:100%;border-collapse:collapse;font-size:var(--fs-meta);font-variant-numeric:tabular-nums;min-width:38rem}
+.runs-table th,.runs-table td{text-align:left;padding:.45rem .6rem;border-top:1px solid rgba(0,0,0,.05);white-space:nowrap}
+.runs-table th{color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-top:0}
+.runs-table td.num{text-align:right}
+.runs-empty{padding:1rem 0;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)}
+
+/* review reason-pills */
+.reason-pill{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .6rem;border-radius:var(--r-pill);background:var(--warning-bg);color:var(--warning);font-size:var(--fs-kicker);font-weight:800;margin:.2rem .4rem .2rem 0}
+.reason-empty{color:var(--success);font-size:var(--fs-meta);font-weight:700}
+
+/* footer */
+.foot{padding:1.2rem .25rem 0;color:var(--text-tertiary);font-size:var(--fs-kicker);display:flex;gap:.9rem;flex-wrap:wrap;justify-content:space-between}
+.foot a{color:var(--accent);text-decoration:none;font-weight:700}
+.foot a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i QA-data…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- ===== HEAD ===== -->
+  <div class="head">
+    <div class="head-main">
+      <span class="kicker">Phase 2 · Asset Import</span>
+      <h1 class="h1">Journal Cutover QA-dashboard</h1>
+      <p class="subtitle">Hair TP Clinic · 11 asset-import-metrics + 5 statusblock. Cutover-gate: <code>link_only_files = 0</code>.</p>
+    </div>
+    <button class="btn btn--primary" id="refreshBtn">Uppdatera nu</button>
+  </div>
+
+  <!-- ===== META-RAD ===== -->
+  <div class="meta-row">
+    <span class="meta-chip">Tenant: hair_tp</span>
+    <span class="meta-chip">Genererad: 2026-06-25 09:14</span>
+    <span class="meta-chip fallback">Källa: fallback (audit-rapport 2026-05-30)</span>
+  </div>
+
+  <!-- ===== PILL-FILTER (segment) ===== -->
+  <div class="pillrow" role="group" aria-label="Segment" style="margin:.4rem 0 .2rem">
+    <button class="pill" data-seg="alla" aria-pressed="true">Alla block</button>
+    <button class="pill" data-seg="blockers" aria-pressed="false">Blockers <span class="c" id="segBlockerC">5</span></button>
+    <button class="pill" data-seg="ok" aria-pressed="false">OK <span class="c">2</span></button>
+  </div>
+
+  <!-- ===== PHASE 2 PRIMÄR: link-only blocker + 11 metrics ===== -->
+  <section class="panel phase2-banner" aria-label="Asset import primary metrics">
+    <div class="phase2-primary">
+      <span class="label">🔴 Link-only files · mål 0</span>
+      <div class="value-row">
+        <span class="value zero tabnum" id="linkOnlyValue">0</span>
+        <span class="of" id="linkOnlyOf">av 0 totalt</span>
+      </div>
+      <span class="sub" id="linkOnlySub">Inga assets importerade ännu (kör asset-import-pipelinen).</span>
+      <span class="gate red"><span class="dot"></span>Blockerar cutover</span>
+    </div>
+    <div class="phase2-grid" id="phase2Grid"></div>
+  </section>
+
+  <!-- ===== PHASE 2 DETALJ: import-status + patient-coverage ===== -->
+  <section class="panel" style="margin-bottom:var(--gap)">
+    <div class="card-header">
+      <div>
+        <div class="card-kicker">Phase 2 · Asset Import</div>
+        <h2 class="card-title">📦 Import-status · 👤 Patient-coverage</h2>
+      </div>
+      <span class="status-pill yellow"><span class="dot"></span>Varning</span>
+    </div>
+    <div class="stats" id="phase2DetailStats"></div>
+  </section>
+
+  <!-- ===== RUNS + REVIEW-QUEUE ===== -->
+  <div class="grid" style="margin-bottom:var(--gap)">
+    <section class="panel">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Phase 2 · Senaste runs</div>
+          <h2 class="card-title">🔄 Senaste import-runs</h2>
+        </div>
+      </div>
+      <div id="recentRunsBody"></div>
+    </section>
+
+    <section class="panel">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Phase 2 · Review queue</div>
+          <h2 class="card-title">📋 Review-queue-status</h2>
+        </div>
+      </div>
+      <div id="reviewStatsBody"></div>
+    </section>
+  </div>
+
+  <!-- ===== BLOCK 1–5 ===== -->
+  <main class="grid grid--blocks" id="grid">
+    <section class="panel block-card" data-status="yellow">
+      <div class="card-header">
+        <div><div class="card-kicker">Block 1</div><h2 class="card-title">Importstatus</h2></div>
+        <span class="status-pill yellow"><span class="dot"></span>Varning</span>
+      </div>
+      <div class="stats" id="stats-1"></div>
+    </section>
+
+    <section class="panel block-card" data-status="yellow">
+      <div class="card-header">
+        <div><div class="card-kicker">Block 2</div><h2 class="card-title">Matchningsstatus</h2></div>
+        <span class="status-pill yellow"><span class="dot"></span>Varning</span>
+      </div>
+      <div class="stats" id="stats-2"></div>
+    </section>
+
+    <section class="panel block-card" data-status="yellow">
+      <div class="card-header">
+        <div><div class="card-kicker">Block 3</div><h2 class="card-title">Journalstatus</h2></div>
+        <span class="status-pill yellow"><span class="dot"></span>Varning</span>
+      </div>
+      <div class="stats" id="stats-3"></div>
+    </section>
+
+    <section class="panel block-card" data-status="yellow">
+      <div class="card-header">
+        <div><div class="card-kicker">Block 4</div><h2 class="card-title">Bildstatus</h2></div>
+        <span class="status-pill yellow"><span class="dot"></span>Varning</span>
+      </div>
+      <div class="stats" id="stats-4"></div>
+    </section>
+
+    <section class="panel block-card span-all" data-status="red">
+      <div class="card-header">
+        <div><div class="card-kicker">Block 5</div><h2 class="card-title">Cutover Readiness</h2></div>
+        <span class="status-pill red"><span class="dot"></span>Blocker</span>
+      </div>
+      <div id="readinessSummary"></div>
+      <ul class="dod-list" id="dod-list"></ul>
+      <div class="blockers-banner red" id="blockers-banner"></div>
+    </section>
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="foot">
+    <span>Counts only · 0 PII i denna vy · Cache 60s · auto-refresh 60s</span>
+    <span><a href="#">.cursor/rules/cco-journal-cutover-first.mdc</a></span>
+  </footer>
+
+</div>
+
+<!-- ===== BOTNAV ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+(function(){
+  'use strict';
+
+  // ── Fallback-data (audit-rapport 2026-05-30) ──
+  var B1={cliento:7257,meridiq:6268,driveFolders:0,journalEntries:16,journalPdfs:8,photos:0,consents:43,forms:29};
+  var B2={totalPatients:7257,matchedAll3:0,matchedClientoMeridiq:6253,withClientoOnly:989,withMeridiqOnly:7,withDriveOnly:0,uncertain:15,duplicates:28};
+  var B3={totalEntries:16,signed:8,locked:8,drafts:8,withPdf:8,withoutPdf:8,withMeridiqImport:0,meridiqFieldGap:6268};
+  var B4={total:0,linkedToEncounter:0,unlinked:0,before:0,after:0,cco_camera:0,drive:0,upload:0};
+  var B5={status:'red',okCount:2,totalCriteria:10,nextAction:'Konfigurera Google Drive service-account + skaffa Meridiq read-only API-access',nextActionOwner:'Owner + DevOps',readinessReportPath:'docs/strategy/CUTOVER-READINESS-REPORT-(latest).md',
+    definitionOfDone:[
+      {n:1,text:'Varje patient har master-kort (clientoId + meridiqId + driveFolderId + ccoId)',ok:false,note:'Drive-folder-koppling saknas — väntar på service-account'},
+      {n:2,text:'Cliento ↔ Meridiq ↔ Drive matched (dubbletter i Review Queue eller lösta)',ok:true,note:'28 dubbletter + 15 osäkra i Review Queue (under tröskel)'},
+      {n:3,text:'Historiska journaler kopplade till rätt patient (eller i Review Queue)',ok:false,note:'Meridiq historik-import saknas (~6 268 patient-gap)'},
+      {n:4,text:'Historiska bilder kopplade till rätt patient + encounter',ok:false,note:'Drive-bilder ej importerade — service-account-blocker'},
+      {n:5,text:'Formulär + samtycken kopplade till patient',ok:true,note:'43 consent-mallar + 29 formulär-mallar i registry'},
+      {n:6,text:'Ny CCO-journal fungerar end-to-end (skapa → signera → lås → PDF → audit)',ok:true,note:'8 signed · 8 locked · 8 PDFs (P0.5 verifierat)'},
+      {n:7,text:'Foto-flow fungerar (ta bild → koppla till encounter → bevara original)',ok:false,note:'0 foton i CCO photo-store ännu'},
+      {n:8,text:'Sign/lock/rättelse/PDF/audit verifierat med smoke-test',ok:true,note:'P0.5 + P0.8 commits verifierade'},
+      {n:9,text:'Journal QA-dashboard visar 100% coverage på relevanta segment',ok:false,note:'Drive-coverage 0% — kritiskt segment saknas'},
+      {n:10,text:'Cutover Readiness Report GREEN på alla blockers',ok:false,note:'Väntar på P0.7 (Meridiq API) + Drive service-account'}
+    ]};
+
+  // Phase 2 asset-qa fallback
+  var M={totalFilesDiscovered:0,totalFilesImportedToCco:0,totalFilesVerified:0,totalLinkOnlyFiles:0,totalFilesNeedingReview:0,totalFilesFailedImport:0,
+    totalPatientsWithCompleteHistory:0,totalPatientsWithMissingJournalPdfs:0,totalPatientsWithMissingImages:0,totalOrphanFiles:0,totalDuplicateFiles:0};
+  var REVIEW={total:0,pending:0,resolved:0,byReason:{}};
+  var RUNS=[]; // inga import-runs registrerade ännu
+
+  function fmt(n){if(n===null||n===undefined)return '—';if(typeof n!=='number')return String(n);return n.toLocaleString('sv-SE');}
+  function pct(n,d){if(!d||d<=0)return '0%';return Math.round((n/d)*100)+'%';}
+
+  function renderStats(id,entries){
+    var c=document.getElementById(id);c.innerHTML='';
+    entries.forEach(function(e){
+      var div=document.createElement('div');div.className='stat';
+      var cls=e.tone?' '+e.tone:'';var size=e.size?' '+e.size:'';
+      div.innerHTML='<div class="stat-label">'+e.label+'</div><div class="stat-value'+cls+size+'">'+fmt(e.value)+'</div>';
+      c.appendChild(div);
+    });
+  }
+
+  // BLOCK 1
+  renderStats('stats-1',[
+    {label:'Cliento-kunder',value:B1.cliento,tone:'success'},
+    {label:'Meridiq-matched',value:B1.meridiq,tone:'success'},
+    {label:'Drive-foldrar',value:B1.driveFolders,tone:'warning'},
+    {label:'Journal-entries',value:B1.journalEntries},
+    {label:'Journal-PDFs',value:B1.journalPdfs,tone:'success'},
+    {label:'Bilder',value:B1.photos,tone:'warning'},
+    {label:'Samtycke-mallar',value:B1.consents,tone:'success'},
+    {label:'Formulär-mallar',value:B1.forms,tone:'success'}
+  ]);
+  // BLOCK 2
+  renderStats('stats-2',[
+    {label:'Patienter totalt',value:B2.totalPatients},
+    {label:'Matched (C+M+D)',value:B2.matchedAll3,tone:'warning'},
+    {label:'Cliento + Meridiq',value:B2.matchedClientoMeridiq,tone:'success'},
+    {label:'Bara Cliento',value:B2.withClientoOnly,tone:'warning'},
+    {label:'Bara Meridiq',value:B2.withMeridiqOnly},
+    {label:'Bara Drive',value:B2.withDriveOnly},
+    {label:'Osäkra matches',value:B2.uncertain,tone:'warning'},
+    {label:'Dubblettkandidater',value:B2.duplicates,tone:'warning'}
+  ]);
+  // BLOCK 3
+  renderStats('stats-3',[
+    {label:'Journal-entries',value:B3.totalEntries},
+    {label:'Signerade',value:B3.signed,tone:'success'},
+    {label:'Låsta',value:B3.locked,tone:'success'},
+    {label:'Drafts (osignerade)',value:B3.drafts,tone:'warning'},
+    {label:'Med PDF',value:B3.withPdf,tone:'success'},
+    {label:'PDF saknas',value:B3.withoutPdf,tone:'warning'},
+    {label:'Meridiq-importerade',value:B3.withMeridiqImport,tone:'warning'},
+    {label:'Meridiq-fält gap',value:B3.meridiqFieldGap,tone:'danger'}
+  ]);
+  // BLOCK 4
+  renderStats('stats-4',[
+    {label:'Bilder totalt',value:B4.total,tone:'warning'},
+    {label:'Encounter-länkade',value:B4.linkedToEncounter,tone:'success'},
+    {label:'Olänkade',value:B4.unlinked},
+    {label:'Före (before)',value:B4.before},
+    {label:'Efter (after)',value:B4.after},
+    {label:'Källa: CCO-kamera',value:B4.cco_camera},
+    {label:'Källa: Drive',value:B4.drive},
+    {label:'Källa: Upload',value:B4.upload}
+  ]);
+
+  // BLOCK 5 readiness summary
+  document.getElementById('readinessSummary').innerHTML=
+    '<div class="stats" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:.6rem">'+
+      '<div class="stat"><div class="stat-label">Status</div><div class="stat-value danger">Blocker</div></div>'+
+      '<div class="stat"><div class="stat-label">DoD klara</div><div class="stat-value">'+B5.okCount+' / '+B5.totalCriteria+'</div></div>'+
+      '<div class="stat"><div class="stat-label">Ansvarig</div><div class="stat-value small muted">'+B5.nextActionOwner+'</div></div>'+
+    '</div>';
+  var dodList=document.getElementById('dod-list');
+  B5.definitionOfDone.forEach(function(d){
+    var li=document.createElement('li');
+    li.innerHTML='<span class="dod-check '+(d.ok?'ok':'no')+'">'+(d.ok?'✓':'×')+'</span>'+
+      '<div class="dod-text"><div class="label">#'+d.n+' · '+d.text+'</div><div class="note">'+(d.note||'')+'</div></div>';
+    dodList.appendChild(li);
+  });
+  document.getElementById('blockers-banner').innerHTML=
+    '<strong>Nästa åtgärd:</strong> '+B5.nextAction+' (ansvarig: '+B5.nextActionOwner+') — <a href="#">öppna readiness-rapport</a>';
+
+  // PHASE 2 — 11-metric grid
+  var total=M.totalFilesDiscovered;
+  var items=[
+    {label:'1 · Discovered',value:M.totalFilesDiscovered,tone:''},
+    {label:'2 · Imported',value:M.totalFilesImportedToCco,tone:M.totalFilesImportedToCco>0?'success':'muted'},
+    {label:'3 · Verified',value:M.totalFilesVerified,tone:M.totalFilesVerified>0?'success':'muted'},
+    {label:'4 · Link-only',value:M.totalLinkOnlyFiles,tone:M.totalLinkOnlyFiles===0?'success':'danger'},
+    {label:'5 · Needs review',value:M.totalFilesNeedingReview,tone:M.totalFilesNeedingReview>0?'warning':'muted'},
+    {label:'6 · Failed import',value:M.totalFilesFailedImport,tone:M.totalFilesFailedImport>0?'danger':'muted'},
+    {label:'7 · Patients complete',value:M.totalPatientsWithCompleteHistory,tone:'success'},
+    {label:'8 · Missing journal-PDF',value:M.totalPatientsWithMissingJournalPdfs,tone:M.totalPatientsWithMissingJournalPdfs>0?'warning':'muted'},
+    {label:'9 · Missing images',value:M.totalPatientsWithMissingImages,tone:M.totalPatientsWithMissingImages>0?'warning':'muted'},
+    {label:'10 · Orphan files',value:M.totalOrphanFiles,tone:M.totalOrphanFiles>0?'warning':'muted'},
+    {label:'11 · Duplicates',value:M.totalDuplicateFiles,tone:M.totalDuplicateFiles>0?'warning':'muted'}
+  ];
+  document.getElementById('phase2Grid').innerHTML=items.map(function(it){
+    return '<div class="metric"><div class="m-label">'+it.label+'</div><div class="m-val tabnum '+(it.tone&&it.tone!=='muted'?'':'')+'" style="'+
+      (it.tone==='success'?'color:var(--success)':it.tone==='danger'?'color:var(--danger)':it.tone==='warning'?'color:var(--warning)':it.tone==='muted'?'color:var(--text-tertiary)':'')+'">'+fmt(it.value)+'</div></div>';
+  }).join('');
+
+  // PHASE 2 detail stats
+  renderStats('phase2DetailStats',[
+    {label:'Discovered',value:M.totalFilesDiscovered},
+    {label:'Imported ('+pct(M.totalFilesImportedToCco,total)+')',value:M.totalFilesImportedToCco,tone:'muted'},
+    {label:'Verified ('+pct(M.totalFilesVerified,total)+')',value:M.totalFilesVerified,tone:'muted'},
+    {label:'Failed',value:M.totalFilesFailedImport,tone:'muted'},
+    {label:'Needs review',value:M.totalFilesNeedingReview,tone:'muted'},
+    {label:'Orphan',value:M.totalOrphanFiles,tone:'muted'},
+    {label:'Duplicate',value:M.totalDuplicateFiles,tone:'muted'},
+    {label:'Patienter m. komplett historik',value:M.totalPatientsWithCompleteHistory},
+    {label:'Patienter m. saknad journal-PDF',value:M.totalPatientsWithMissingJournalPdfs,tone:'muted'},
+    {label:'Patienter m. saknade bilder',value:M.totalPatientsWithMissingImages,tone:'muted'}
+  ]);
+
+  // PHASE 2 senaste runs
+  var runsBody=document.getElementById('recentRunsBody');
+  if(!RUNS.length){
+    runsBody.innerHTML='<div class="runs-empty">Inga import-runs registrerade ännu. Kör <code>node scripts/run-asset-import.js --source-system drive --commit</code>.</div>';
+  }else{
+    var rows=RUNS.map(function(r){
+      return '<tr><td>'+r.ts+'</td><td>'+r.src+'</td><td>'+r.mode+'</td><td class="num">'+fmt(r.disc)+'</td><td class="num">'+fmt(r.imp)+'</td><td class="num">'+fmt(r.review)+'</td><td class="num">'+fmt(r.failed)+'</td><td>'+r.status+'</td></tr>';
+    }).join('');
+    runsBody.innerHTML='<div class="table-wrap"><table class="runs-table"><thead><tr><th>Startad</th><th>Källa</th><th>Läge</th><th class="num">Discov.</th><th class="num">Imp.</th><th class="num">Review</th><th class="num">Failed</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+
+  // PHASE 2 review-queue
+  var reasonKeys=Object.keys(REVIEW.byReason);
+  var reasonHtml;
+  if(!reasonKeys.length||REVIEW.pending===0){
+    reasonHtml='<div class="reason-empty">✓ Inga väntande review-items.</div>';
+  }else{
+    reasonHtml=reasonKeys.map(function(k){return '<span class="reason-pill"><span>'+k.replace(/_/g,' ')+'</span><span class="tabnum">'+fmt(REVIEW.byReason[k])+'</span></span>';}).join('');
+  }
+  document.getElementById('reviewStatsBody').innerHTML=
+    '<div class="stats" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:.7rem">'+
+      '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value muted">'+fmt(REVIEW.pending)+'</div></div>'+
+      '<div class="stat"><div class="stat-label">Resolved</div><div class="stat-value success">'+fmt(REVIEW.resolved)+'</div></div>'+
+      '<div class="stat"><div class="stat-label">Total</div><div class="stat-value muted">'+fmt(REVIEW.total)+'</div></div>'+
+    '</div><div>'+reasonHtml+'</div>';
+
+  // Refresh-knapp (demo)
+  document.getElementById('refreshBtn').addEventListener('click',function(){
+    var c=document.querySelectorAll('.meta-chip')[1];
+    if(c)c.textContent='Genererad: '+new Date().toLocaleString('sv-SE');
+  });
+
+  // Segment-filter (wire active + faktisk filtrering på block-status)
+  var grid=document.getElementById('grid');
+  document.querySelectorAll('.pillrow[role=group] .pill').forEach(function(p){
+    p.addEventListener('click',function(){
+      document.querySelectorAll('.pillrow[role=group] .pill').forEach(function(x){x.setAttribute('aria-pressed','false');});
+      p.setAttribute('aria-pressed','true');
+      var seg=p.getAttribute('data-seg');
+      grid.querySelectorAll('.block-card').forEach(function(card){
+        var st=card.getAttribute('data-status');
+        var show=seg==='alla'||(seg==='blockers'&&(st==='red'||st==='yellow'))||(seg==='ok'&&st==='green');
+        card.style.display=show?'':'none';
+      });
+    });
+  });
+})();
+</script>
+<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
+</body>
+</html>
