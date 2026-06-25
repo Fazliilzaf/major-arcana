@@ -51,6 +51,8 @@
   var v3Theme = lsGet(THEME_KEY, 'light') === 'dark' ? 'dark' : 'light';
   var v3Density = lsGet(DENSITY_KEY, 'comfortable') === 'compact' ? 'compact' : 'comfortable';
   var selected = {}; // v3: multi-select set (thread-id → true)
+  var qrDraft = {}; // v3: snabbsvar-utkast per tråd-id (överlever om-rendering)
+  var docKeydownBound = false; // ⌘K-lyssnaren binds på doc — bara EN gång
 
   // Temat är app-brett: sätts på <html> (så v8-kalendern re-temas) + på roten.
   function applyTheme() {
@@ -752,7 +754,9 @@
       messages +
       '</div>' +
       '<div class="v3-quickreply">' +
-      '<textarea data-v3-qr-body placeholder="Snabbsvar — sparas som utkast (skicka kräver owner)…"></textarea>' +
+      '<textarea data-v3-qr-body placeholder="Snabbsvar — sparas som utkast (skicka kräver owner)…">' +
+      esc(qrDraft[text(thread.id)] || '') +
+      '</textarea>' +
       '<div class="v3-quickreply-row">' +
       '<button class="v3-qr-btn v3-qr-btn--primary" type="button" data-v3-qr-save>Spara utkast</button>' +
       '<button class="v3-qr-btn" type="button" data-v3-qr-studio>★ Svarstudio</button>' +
@@ -990,11 +994,14 @@
     var snippet = studioSnippet(thread);
     var ctxRows = signalRows(thread)
       .map(function (r) {
+        // Vissa rader (t.ex. "Källa") bär redan-escapead HTML i ddHtml och
+        // saknar dd — fall tillbaka på den så värdet inte blir tomt.
+        var val = r.ddHtml ? r.ddHtml : esc(r.dd);
         return (
           '<div class="wb-fact-cell"><span class="wb-fact-lbl">' +
           esc(r.dt) +
           '</span><span class="wb-fact-val">' +
-          esc(r.dd) +
+          val +
           '</span></div>'
         );
       })
@@ -1188,34 +1195,45 @@
         cmdkActive = 0;
         renderCmdk();
       }
-    });
-    // ⌘K / Ctrl+K — kommandopalett + tangentbordsnavigering i den.
-    doc.addEventListener('keydown', function (event) {
-      var key = (event.key || '').toLowerCase();
-      if ((event.metaKey || event.ctrlKey) && key === 'k') {
-        if (!conversationsActive()) return;
-        event.preventDefault();
-        if (cmdkOpen) closeCmdk();
-        else openCmdk();
-        return;
-      }
-      if (!cmdkOpen) return;
-      if (key === 'escape') {
-        event.preventDefault();
-        closeCmdk();
-      } else if (key === 'arrowdown') {
-        event.preventDefault();
-        cmdkActive += 1;
-        renderCmdk();
-      } else if (key === 'arrowup') {
-        event.preventDefault();
-        cmdkActive = Math.max(0, cmdkActive - 1);
-        renderCmdk();
-      } else if (key === 'enter') {
-        event.preventDefault();
-        runCmdk(cmdkActive);
+      // Snabbsvar: spegla utkastet till state så det överlever om-rendering
+      // (bakgrundspoll, tema-toggle, lane-byte) — annars tappas det skrivna.
+      if (boundCtx && boundCtx.selected && event.target.matches('[data-v3-qr-body]')) {
+        qrDraft[text(boundCtx.selected.id)] = event.target.value;
       }
     });
+    // ⌘K / Ctrl+K — kommandopalett + tangentbordsnavigering i den. Lyssnaren
+    // sitter på doc (inte root), så den binds via en modul-global flagga och
+    // dubbelbinds aldrig även om roten skulle återskapas.
+    if (!docKeydownBound) {
+      docKeydownBound = true;
+      doc.addEventListener('keydown', function (event) {
+        var key = (event.key || '').toLowerCase();
+        if ((event.metaKey || event.ctrlKey) && key === 'k') {
+          if (!conversationsActive()) return;
+          event.preventDefault();
+          if (cmdkOpen) closeCmdk();
+          else openCmdk();
+          return;
+        }
+        if (!cmdkOpen) return;
+        if (key === 'escape') {
+          event.preventDefault();
+          closeCmdk();
+        } else if (key === 'arrowdown') {
+          event.preventDefault();
+          // Math.max(0, …): vid 0 träffar blir length-1 = -1, klampa upp till 0.
+          cmdkActive = Math.max(0, Math.min(filteredCommands(boundCtx).length - 1, cmdkActive + 1));
+          renderCmdk();
+        } else if (key === 'arrowup') {
+          event.preventDefault();
+          cmdkActive = Math.max(0, cmdkActive - 1);
+          renderCmdk();
+        } else if (key === 'enter') {
+          event.preventDefault();
+          runCmdk(cmdkActive);
+        }
+      });
+    }
     root.addEventListener('click', function (event) {
       // ── Kommandopalett ──
       if (cmdkOpen) {
@@ -1244,6 +1262,7 @@
       if (event.target.closest('[data-v3-qr-save]') && boundCtx && boundCtx.selected) {
         var qrTa = root.querySelector('[data-v3-qr-body]');
         var qrText = qrTa ? qrTa.value : '';
+        var qrId = text(boundCtx.selected.id);
         if (qrText.trim() && typeof boundCtx.handlers.studioSave === 'function') {
           boundCtx.handlers
             .studioSave({
@@ -1254,6 +1273,7 @@
             })
             .then(function () {
               if (qrTa) qrTa.value = '';
+              delete qrDraft[qrId];
               try {
                 global.CCOPolish &&
                   global.CCOPolish.showToast &&
@@ -1327,9 +1347,13 @@
       var segEl = event.target.closest('[data-v3-segment]');
       if (segEl && boundCtx) {
         activeSegment = segEl.getAttribute('data-v3-segment');
+        // Urvalet är vy-skopat: rensa vid filterbyte så bulk-actions aldrig
+        // träffar dolda trådar från en annan vy.
+        selected = {};
         renderToolbar(boundCtx);
         renderTabs(boundCtx);
         renderInbox(boundCtx);
+        renderBulkBar();
         return;
       }
       // Mobil master-detail-navigering.
@@ -1345,14 +1369,17 @@
       }
       var laneEl = event.target.closest('[data-lane]');
       if (laneEl && boundCtx) {
+        selected = {}; // urvalet är lane-skopat — rensa vid lane-byte
         boundCtx.handlers.setLane(laneEl.getAttribute('data-lane'));
         return;
       }
       var tabEl = event.target.closest('[data-tab]');
       if (tabEl && boundCtx) {
         activeTab = tabEl.getAttribute('data-tab');
+        selected = {}; // rensa urvalet vid flik-byte (vy-skopat)
         renderTabs(boundCtx);
         renderInbox(boundCtx);
+        renderBulkBar();
         return;
       }
       // v3: multi-select checkbox (öppnar inte tråden).
@@ -1375,6 +1402,9 @@
           selected = {};
         } else if (typeof boundCtx.handlers.bulkAction === 'function') {
           boundCtx.handlers.bulkAction(bname, ids);
+          // Rensa efter utförd bulk-action — annars räknar bulk-baren kvar
+          // trådar som just åtgärdats/försvann.
+          selected = {};
         } else {
           try {
             global.CCOPolish &&
@@ -1655,6 +1685,11 @@
     }
     var cmds = filteredCommands(boundCtx);
     if (cmdkActive >= cmds.length) cmdkActive = Math.max(0, cmds.length - 1);
+    if (cmdkActive < 0) cmdkActive = 0; // klampa även nedåt (0 träffar)
+    // Bevara caret-positionen — inputen byggs om vid varje tangenttryck, så
+    // att tvinga caret till slutet hoppar vid redigering mitt i söksträngen.
+    var prevInput = root.querySelector('.v3-cmdk-input');
+    var prevCaret = prevInput ? prevInput.selectionStart : null;
     host.innerHTML =
       '<div class="v3-cmdk-backdrop" data-v3-cmdk-backdrop><div class="v3-cmdk" role="dialog" aria-label="Kommandopalett">' +
       '<input class="v3-cmdk-input" data-v3-cmdk-input placeholder="Sök kommando… (lane, vy, tema, tråd)" value="' +
@@ -1684,7 +1719,8 @@
     var input = root.querySelector('.v3-cmdk-input');
     if (input) {
       input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
+      var pos = prevCaret == null ? input.value.length : Math.min(prevCaret, input.value.length);
+      input.setSelectionRange(pos, pos);
     }
   }
   function runCmdk(index) {
