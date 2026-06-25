@@ -28,7 +28,16 @@
   var doc = global.document;
   var ROOT_ID = 'cco-conv-v2-root';
   var activeTab = 'alla'; // alla | olasta | bokning | vip
+  var mobilePane = 'inbox'; // mobil master-detail: 'inbox' | 'thread'
   var root = null;
+
+  function isMobileViewport() {
+    try {
+      return global.matchMedia && global.matchMedia('(max-width: 768px)').matches;
+    } catch (_error) {
+      return false;
+    }
+  }
 
   var MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
   var AVATAR_BGS = [
@@ -360,6 +369,7 @@
       '<aside class="lane-sidebar" data-v2-lanes role="navigation" aria-label="Köfält"></aside>' +
       '<aside class="inbox-shell"><div class="inbox-kicker">Inkorg</div>' +
       '<h2 class="inbox-h2" data-v2-inbox-h2></h2>' +
+      '<div class="lane-chips" data-v2-lane-chips></div>' +
       '<div class="inbox-tabs" data-v2-tabs></div>' +
       '<div class="inbox-list" data-v2-inbox></div></aside>' +
       '<section class="thread-shell" data-v2-thread></section>' +
@@ -409,6 +419,30 @@
         '</span></div>';
     });
     el.innerHTML = html;
+  }
+
+  // Mobil: lane-sidebaren ersätts av en horisontell chip-rad i inboxen.
+  function renderLaneChips(ctx) {
+    var el = root.querySelector('[data-v2-lane-chips]');
+    if (!el) return;
+    el.innerHTML = ctx.lanes
+      .map(function (lane) {
+        var active = lane.id === ctx.activeLane ? ' active' : '';
+        return (
+          '<button class="lane-chip' +
+          active +
+          '" data-lane="' +
+          esc(lane.id) +
+          '" type="button">' +
+          esc(lane.icon) +
+          ' ' +
+          esc(lane.label) +
+          ' <span class="lane-chip-ct">' +
+          esc(lane.count) +
+          '</span></button>'
+        );
+      })
+      .join('');
   }
 
   function visibleThreads(ctx) {
@@ -532,7 +566,9 @@
     var messages = renderMessageStream(thread);
 
     el.innerHTML =
-      '<header class="thread-header"><div class="thread-header-main">' +
+      '<header class="thread-header">' +
+      '<button class="thread-back" type="button" data-v2-back aria-label="Tillbaka till inkorgen">‹ Inkorg</button>' +
+      '<div class="thread-header-main">' +
       '<div class="thread-header-kicker">' +
       (msgCount ? 'Konversation · ' + msgCount + ' meddelanden' : 'Konversation') +
       '</div>' +
@@ -540,6 +576,7 @@
       esc(text(thread.subject) || threadName(thread)) +
       '</h2></div>' +
       '<div class="thread-header-actions">' +
+      '<button class="nav-btn thread-ctx-toggle" type="button" data-v2-ctx-toggle aria-label="Visa kundkontext">ⓘ Kund</button>' +
       '<button class="nav-btn" type="button" data-v2-action="note">✎ Anteckna</button>' +
       '<button class="nav-btn nav-btn--ai" type="button" data-v2-action="studio">★ Svarstudio</button>' +
       '</div></header>' +
@@ -938,6 +975,17 @@
           return; /* låst: owner-blockerat */
         }
       }
+      // Mobil master-detail-navigering.
+      if (event.target.closest('[data-v2-back]')) {
+        mobilePane = 'inbox';
+        if (root.dataset) root.dataset.mobileCtx = 'closed';
+        root.dataset.mobilePane = 'inbox';
+        return;
+      }
+      if (event.target.closest('[data-v2-ctx-toggle]')) {
+        root.dataset.mobileCtx = root.dataset.mobileCtx === 'open' ? 'closed' : 'open';
+        return;
+      }
       var laneEl = event.target.closest('[data-lane]');
       if (laneEl && boundCtx) {
         boundCtx.handlers.setLane(laneEl.getAttribute('data-lane'));
@@ -953,7 +1001,14 @@
       var threadEl = event.target.closest('[data-thread-id]');
       if (threadEl && boundCtx) {
         var id = threadEl.getAttribute('data-thread-id');
-        if (id) boundCtx.handlers.selectThread(id);
+        if (id) {
+          // Mobil: navigera till tråd-panelen (master-detail).
+          if (isMobileViewport()) {
+            mobilePane = 'thread';
+            root.dataset.mobilePane = 'thread';
+          }
+          boundCtx.handlers.selectThread(id);
+        }
         return;
       }
       var actionEl = event.target.closest('[data-v2-action]');
@@ -977,7 +1032,12 @@
     boundCtx = ctx;
     ensureRoot();
     bindEvents();
+    // Mobil master-detail: utan vald tråd visas alltid inboxen.
+    if (!ctx.selected) mobilePane = 'inbox';
+    root.dataset.mobilePane = mobilePane;
+    if (!root.dataset.mobileCtx) root.dataset.mobileCtx = 'closed';
     renderLanes(ctx);
+    renderLaneChips(ctx);
     renderTabs(ctx);
     renderInbox(ctx);
     renderThread(ctx);
