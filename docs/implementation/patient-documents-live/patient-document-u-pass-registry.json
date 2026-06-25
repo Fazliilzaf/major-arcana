@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-25",
+  "scope": "U-pass batch 1 — mailmallar (C27–C30) + patientinfo (A12–A14)",
+  "inventoryRef": "docs/strategy/SHAREPOINT-TEMPLATE-INVENTORY.md",
+  "items": [
+    {
+      "id": "prp_hair_info_sve",
+      "registryIds": ["prp_hair_info_sve"],
+      "label": "PRP hår – patientinfo SWE",
+      "uPassRequired": true,
+      "localGlobs": ["prp.*h[aä]r.*\\.(pdf|docx)$", "tj[aä]nstespec.*prp.*h[aä]r.*\\.(pdf|docx)$"],
+      "sharepoint": [
+        {
+          "name": "Tjänstespecifikation - PRP-hårbehandling 2026.pdf",
+          "relative": "PDF-HTPC",
+          "inventoryKey": "patient_info_prp_hair"
+        },
+        {
+          "name": "NY Tjänstespecifikation - PRP-hårbehandling.docx",
+          "relative": "PRP/PRF/MN",
+          "inventoryKey": "patient_info_prp_hair"
+        }
+      ],
+      "meridiqApiId": 152994,
+      "bundleRegistryId": "prp_hair_info_sve"
+    },
+    {
+      "id": "prp_hair_info_eng",
+      "registryIds": ["prp_hair_info_eng"],
+      "label": "PRP – patientinfo ENG",
+      "uPassRequired": true,
+      "uMode": "meridiq_mq_only",
+      "uNote": "Ingen SharePoint ENG-PDF — Meridiq 152987 + bundle facit (samma modell som health_tp_eng U)",
+      "meridiqApiId": 152987,
+      "bundleRegistryId": "prp_hair_info_eng"
+    },
+    {
+      "id": "microneedling_info",
+      "registryIds": ["microneedling_info"],
+      "label": "Microneedling info SWE/ENG",
+      "uPassRequired": true,
+      "localGlobs": ["^tj[aä]nstespecifikation.*microneedling.*\\.(pdf|docx)$"],
+      "sharepoint": [
+        {
+          "name": "Tjänstespecifikation - Microneedling och PRP-hudbehandling 2026.pdf",
+          "relative": "PDF-HTPC",
+          "inventoryKey": "patient_info_microneedling_prp_hair_tp"
+        }
+      ],
+      "meridiqApiIds": [152998, 152997],
+      "bundleRegistryId": "microneedling_info"
+    },
+    {
+      "id": "mail_info_offert_tp",
+      "registryIds": ["info_offert_tp"],
+      "label": "Offert & behandlingsplan TP (auto mail)",
+      "uPassRequired": true,
+      "localNames": ["behandlingsplan-offert-hartransplantation.docx"],
+      "sharepoint": [
+        {
+          "name": "Behandlingsplan och offert - HÅRTRANSPLANTATION.docx",
+          "relative": "General/1. Kunddokument - KVALITETSSÄKRA/98. Mailmallar/Offert",
+          "inventoryKey": "offer_treatment_plan_hair_tp"
+        }
+      ],
+      "bundleRegistryId": "info_offert_tp",
+      "ccoTemplateId": null
+    },
+    {
+      "id": "mail_bokningsbekraftelse",
+      "registryIds": ["auto_bokningsbekraftelse"],
+      "label": "Bokningsbekräftelse SMS/e-post",
+      "uPassRequired": true,
+      "localGlobs": ["bokningsbekr[aä]ftelse.*\\.docx$", "konsultation.*boknings.*\\.docx$"],
+      "sharepoint": [
+        {
+          "name": "Konsultation – Bokningsbekräftelse.docx",
+          "relative": "98. Mailmallar",
+          "inventoryKey": "booking_confirmation_consultation"
+        },
+        {
+          "name": "Behandling med förskottsbetalning bokningsbekräftelse.docx",
+          "relative": "98. Mailmallar/Behandling bokningsbekräftelse",
+          "inventoryKey": "booking_confirmation_treatment_prepay_hair_tp"
+        },
+        {
+          "name": "Behandling utan förskottsbetalning bokningsbekräftelse.docx",
+          "relative": "98. Mailmallar/Behandling bokningsbekräftelse",
+          "inventoryKey": "booking_confirmation_treatment_no_prepay_hair_tp"
+        }
+      ],
+      "bundleRegistryId": "auto_bokningsbekraftelse",
+      "ccoTemplateId": "booking_confirmation_hair_tp"
+    },
+    {
+      "id": "mail_bokningspaminnelse",
+      "registryIds": ["auto_bokningspaminnelse"],
+      "label": "Bokningspåminnelse",
+      "uPassRequired": true,
+      "uMode": "cco_template",
+      "uNote": "Ingen dedikerad SharePoint Word — CCO template booking_reminder_24h + Cliento/SMS catalog",
+      "bundleRegistryId": "auto_bokningspaminnelse",
+      "ccoTemplateId": "booking_reminder_24h"
+    },
+    {
+      "id": "mail_avbokningsbekraftelse",
+      "registryIds": ["auto_avbokningsbekraftelse"],
+      "label": "Avbokningsbekräftelse",
+      "uPassRequired": true,
+      "uMode": "cco_template",
+      "uNote": "CCO-native cancellation_confirmation — ej separat Mailmallar-Word i inventory",
+      "bundleRegistryId": "auto_avbokningsbekraftelse",
+      "ccoTemplateId": "cancellation_confirmation"
+    }
+  ]
+}

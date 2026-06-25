@@ -48,6 +48,7 @@
     "verify:patient-doc-v-column": "node ./scripts/verify-patient-doc-v-column.js",
     "verify:patient-doc-prod": "node ./scripts/verify-patient-doc-prod.js",
     "verify:patient-doc-e4-word": "node ./scripts/ops/verify-patient-doc-e4-word-inventory.js",
+    "verify:patient-doc-u-mail-patientinfo": "node ./scripts/ops/verify-patient-doc-u-mail-patientinfo.js",
     "download:patient-doc-word-e4": "node ./scripts/ops/download-patient-doc-word-e4.js",
     "verify:patient-doc-e5-dev-index": "node ./scripts/verify-patient-doc-e5-dev-index.js",
     "diff:patient-doc-hd-sve": "node ./scripts/ops/diff-patient-doc-hd-sve-demo.js",

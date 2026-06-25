@@ -1,0 +1,130 @@
+{
+  "generatedAt": "2026-06-25T15:09:38.933Z",
+  "wordDir": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt",
+  "ok": 7,
+  "failed": 0,
+  "checks": [
+    {
+      "registryId": "prp_hair_info_sve",
+      "id": "prp_hair_info_sve",
+      "label": "PRP hår – patientinfo SWE",
+      "ok": true,
+      "status": "MS_OK+FACIT",
+      "hits": [
+        {
+          "kind": "MS_OK",
+          "detail": "PDF-HTPC/Tjänstespecifikation - PRP-hårbehandling 2026.pdf"
+        },
+        {
+          "kind": "MS_OK",
+          "detail": "PRP/PRF/MN/NY Tjänstespecifikation - PRP-hårbehandling.docx"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 152994"
+        }
+      ],
+      "note": null
+    },
+    {
+      "registryId": "prp_hair_info_eng",
+      "id": "prp_hair_info_eng",
+      "label": "PRP – patientinfo ENG",
+      "ok": true,
+      "status": "MQ_FACIT",
+      "hits": [
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 152987"
+        }
+      ],
+      "note": "Ingen SharePoint ENG-PDF — Meridiq 152987 + bundle facit (samma modell som health_tp_eng U)"
+    },
+    {
+      "registryId": "microneedling_info",
+      "id": "microneedling_info",
+      "label": "Microneedling info SWE/ENG",
+      "ok": true,
+      "status": "MS_OK+FACIT",
+      "hits": [
+        {
+          "kind": "MS_OK",
+          "detail": "PDF-HTPC/Tjänstespecifikation - Microneedling och PRP-hudbehandling 2026.pdf"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 152998+152997"
+        }
+      ],
+      "note": null
+    },
+    {
+      "registryId": "info_offert_tp",
+      "id": "mail_info_offert_tp",
+      "label": "Offert & behandlingsplan TP (auto mail)",
+      "ok": true,
+      "status": "MS_OK+FACIT",
+      "hits": [
+        {
+          "kind": "MS_OK",
+          "detail": "General/1. Kunddokument - KVALITETSSÄKRA/98. Mailmallar/Offert/Behandlingsplan och offert - HÅRTRANSPLANTATION.docx"
+        }
+      ],
+      "note": null
+    },
+    {
+      "registryId": "auto_bokningsbekraftelse",
+      "id": "mail_bokningsbekraftelse",
+      "label": "Bokningsbekräftelse SMS/e-post",
+      "ok": true,
+      "status": "MS_OK+FACIT",
+      "hits": [
+        {
+          "kind": "MS_OK",
+          "detail": "98. Mailmallar/Konsultation – Bokningsbekräftelse.docx"
+        },
+        {
+          "kind": "MS_OK",
+          "detail": "98. Mailmallar/Behandling bokningsbekräftelse/Behandling med förskottsbetalning bokningsbekräftelse.docx"
+        },
+        {
+          "kind": "MS_OK",
+          "detail": "98. Mailmallar/Behandling bokningsbekräftelse/Behandling utan förskottsbetalning bokningsbekräftelse.docx"
+        },
+        {
+          "kind": "CCO_TEMPLATE",
+          "detail": "booking_confirmation_hair_tp"
+        }
+      ],
+      "note": null
+    },
+    {
+      "registryId": "auto_bokningspaminnelse",
+      "id": "mail_bokningspaminnelse",
+      "label": "Bokningspåminnelse",
+      "ok": true,
+      "status": "CCO_TEMPLATE",
+      "hits": [
+        {
+          "kind": "CCO_TEMPLATE",
+          "detail": "booking_reminder_24h"
+        }
+      ],
+      "note": "Ingen dedikerad SharePoint Word — CCO template booking_reminder_24h + Cliento/SMS catalog"
+    },
+    {
+      "registryId": "auto_avbokningsbekraftelse",
+      "id": "mail_avbokningsbekraftelse",
+      "label": "Avbokningsbekräftelse",
+      "ok": true,
+      "status": "CCO_TEMPLATE",
+      "hits": [
+        {
+          "kind": "CCO_TEMPLATE",
+          "detail": "cancellation_confirmation"
+        }
+      ],
+      "note": "CCO-native cancellation_confirmation — ej separat Mailmallar-Word i inventory"
+    }
+  ]
+}
