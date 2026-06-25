@@ -4777,12 +4777,12 @@
         (attStatus === 'show'
           ? '✓ Ankommen' + (attTime ? ' ' + esc(attTime) : '') + (att.by ? ' · ' + esc(att.by) : '')
           : attStatus === 'no_show'
-            ? '✕ No-show · kontakta kunden'
+            ? '✕ Utebliven · kontakta kunden'
             : 'Närvaro ej markerad') +
         '</div>' +
         '<div class="kk-attend-btns">' +
-        '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Show</button>' +
-        '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> No-show</button>' +
+        '<button type="button" class="kk-att-btn kk-att-show" data-kk-attend="show"><span class="kk-att-ico">✓</span> Ankommen</button>' +
+        '<button type="button" class="kk-att-btn kk-att-noshow" data-kk-attend="no_show"><span class="kk-att-ico">✕</span> Utebliven</button>' +
         '</div></div>';
     }
 
@@ -6536,7 +6536,9 @@
       if (statusEl) {
         statusEl.className = 'kk-attend-status is-' + status;
         statusEl.textContent =
-          status === 'show' ? '✓ Ankommen ' + tid + ' · reception' : '✕ No-show · kontakta kunden';
+          status === 'show'
+            ? '✓ Ankommen ' + tid + ' · reception'
+            : '✕ Utebliven · kontakta kunden';
       }
       var token = '';
       try {
