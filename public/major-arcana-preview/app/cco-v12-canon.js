@@ -296,32 +296,57 @@
     var hAllergies = arr(health.allergies);
     var hMeds = (health.medications && health.medications.items) || [];
     var hContra = arr(health.contraindications);
+    var hAnswers = arr(health.answers);
     var hdRows = '';
-    hdRows += hAllergies.length
-      ? '<div class="card-row"><span class="what">Allergier</span>' +
-        chip('danger', 'JA · ' + txt(hAllergies[0])) +
-        '</div>'
-      : '<div class="card-row"><span class="what">Allergier</span>' + chip('ok', 'NEJ') + '</div>';
-    hdRows += hMeds.length
-      ? '<div class="card-row"><span class="what">Pågående mediciner</span>' +
-        chip('warn', 'JA · ' + hMeds.length + ' st') +
-        '</div>'
-      : '<div class="card-row"><span class="what">Pågående mediciner</span>' +
-        chip(
-          health.medications && health.medications.known ? 'warn' : 'ok',
-          health.medications && health.medications.known ? 'JA' : 'NEJ'
-        ) +
-        '</div>';
-    hContra.forEach(function (c) {
-      hdRows +=
-        '<div class="card-row"><span class="what">' +
-        esc(txt(c.text)) +
-        '</span>' +
-        chip(c.level === 'red' ? 'danger' : 'warn', 'JA') +
-        '</div>';
-    });
+    if (hAnswers.length) {
+      // Riktiga per-frågesvar (parser answers[]) → en rad per fråga, som facit.
+      hdRows = hAnswers
+        .map(function (a) {
+          var isYes = /^ja\b/i.test(txt(a.value));
+          var tone =
+            a.risk === 'red' ? 'danger' : a.risk === 'amber' ? 'warn' : isYes ? 'warn' : 'ok';
+          var lbl = txt(a.value) || (isYes ? 'JA' : 'NEJ');
+          if (a.detail) lbl += ' · ' + txt(a.detail);
+          return (
+            '<div class="card-row"><span class="what">' +
+            esc(txt(a.label)) +
+            '</span>' +
+            chip(tone, lbl) +
+            '</div>'
+          );
+        })
+        .join('');
+    } else {
+      // Fallback: aggregat ur allergier/mediciner/flaggor när strukturerade svar saknas.
+      hdRows += hAllergies.length
+        ? '<div class="card-row"><span class="what">Allergier</span>' +
+          chip('danger', 'JA · ' + txt(hAllergies[0])) +
+          '</div>'
+        : '<div class="card-row"><span class="what">Allergier</span>' +
+          chip('ok', 'NEJ') +
+          '</div>';
+      hdRows += hMeds.length
+        ? '<div class="card-row"><span class="what">Pågående mediciner</span>' +
+          chip('warn', 'JA · ' + hMeds.length + ' st') +
+          '</div>'
+        : '<div class="card-row"><span class="what">Pågående mediciner</span>' +
+          chip(
+            health.medications && health.medications.known ? 'warn' : 'ok',
+            health.medications && health.medications.known ? 'JA' : 'NEJ'
+          ) +
+          '</div>';
+      hContra.forEach(function (c) {
+        hdRows +=
+          '<div class="card-row"><span class="what">' +
+          esc(txt(c.text)) +
+          '</span>' +
+          chip(c.level === 'red' ? 'danger' : 'warn', 'JA') +
+          '</div>';
+      });
+    }
     var hdCard =
       '<div class="card"><div class="card-l">Hälsodeklaration' +
+      (hAnswers.length ? ' <small>· ' + hAnswers.length + ' frågor</small>' : '') +
       (health.signedAt
         ? '<span class="when">Signerad ' + esc(txt(health.signedAt)) + '</span>'
         : '') +
@@ -922,7 +947,21 @@
     ['s11', 'Ekonomi', '11'],
     ['s12', 'Insikter', '12'],
   ];
-  function rail() {
+  function rail(events) {
+    var evs = arr(events);
+    var rows = evs.length
+      ? evs
+          .map(function (e) {
+            return (
+              '<div class="rail-row"><span class="what">' +
+              esc(txt(e.what)) +
+              '</span><span class="when">' +
+              esc(txt(e.when)) +
+              '</span></div>'
+            );
+          })
+          .join('')
+      : '<div class="rail-row"><span class="what">Kunddossier öppnad</span><span class="when">nu</span></div>';
     return (
       '<aside class="rail">' +
       '<div class="rail-card"><div class="rail-l">Snabb-jump</div><div class="rail-jump">' +
@@ -939,7 +978,7 @@
       }).join('') +
       '</div></div>' +
       '<div class="rail-card"><div class="rail-l">Senaste händelser</div>' +
-      '<div class="rail-row"><span class="what">Kunddossier öppnad</span><span class="when">nu</span></div>' +
+      rows +
       '</div></aside>'
     );
   }
@@ -974,6 +1013,7 @@
     var invoices = call('buildEconomyInvoices', [bundle && bundle.paymentHistory], null);
     var nextStep = call('buildSmartNextStep', [card], null);
     var insights = call('buildInsightsFromSignals', [card], null);
+    var recentEvents = call('buildRecentEvents', [card, bundle, ctx.journalEntries], []);
 
     var main =
       '<div class="v12-canon__main">' +
@@ -1014,7 +1054,7 @@
       '<div class="v12-canon" data-v12-canon="1">' +
       '<div class="v12-canon__grid">' +
       main +
-      rail() +
+      rail(recentEvents) +
       '</div>' +
       sticky(nextStep, card) +
       '</div>'
