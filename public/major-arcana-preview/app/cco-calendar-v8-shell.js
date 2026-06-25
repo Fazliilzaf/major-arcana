@@ -2222,6 +2222,115 @@
     }
   }
 
+  // ── P2: riktig data i Vecko-griden ──────────────────────────────────────
+  var V8_PX_HOUR = 62; // facit: 06:00 = 0px, 62px/timme (top:186 = 09:00).
+  var V8_BASE_HOUR = 6;
+  function v8SlotTop(minOfDay) {
+    return Math.max(0, ((minOfDay - V8_BASE_HOUR * 60) / 60) * V8_PX_HOUR);
+  }
+  function v8MondayOf(iso) {
+    var d = new Date(iso + 'T12:00:00');
+    var wd = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - wd);
+    return d;
+  }
+  function v8IsoOf(d) {
+    return (
+      d.getFullYear() +
+      '-' +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(d.getDate()).padStart(2, '0')
+    );
+  }
+  var V8_DAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+  function v8BookingCard(S, slot) {
+    var booked = slot.kind === 'booked';
+    var startMin = S.slotStartMinutes(slot);
+    var durMin =
+      slot.durationMinutes || (S.slotDurationMinutes && S.slotDurationMinutes(slot)) || 30;
+    var top = v8SlotTop(startMin);
+    var height = Math.max(20, (durMin / 60) * V8_PX_HOUR);
+    var range = S.formatTimeRange(slot) || '';
+    var title = booked
+      ? slot.title || slot.serviceLabel || 'Bokning'
+      : 'Ledig' + (slot.resourceLabel ? ' · ' + slot.resourceLabel : '');
+    var sub = booked ? slot.resourceLabel || '' : slot.serviceLabel || '';
+    return (
+      '<div class="booking" data-source="' +
+      (booked ? 'info' : 'open') +
+      '" data-status="' +
+      (booked ? 'confirmed' : 'open') +
+      '" data-v8-open="' +
+      (booked ? '0' : '1') +
+      '" style="top:' +
+      Math.round(top) +
+      'px;height:' +
+      Math.round(height) +
+      'px">' +
+      '<div class="booking-time">' +
+      v8Esc(range) +
+      '</div><div class="booking-title">' +
+      v8Esc(title) +
+      '</div>' +
+      (sub ? '<div class="booking-sub">' + v8Esc(sub) + '</div>' : '') +
+      '</div>'
+    );
+  }
+  function v8GetDay(sbd, iso) {
+    return (sbd instanceof Map ? sbd.get(iso) : sbd && sbd[iso]) || [];
+  }
+  async function populateGridsReal(root) {
+    try {
+      if (typeof window.__ARCANA_ENSURE_BOOKING_SCRIPTS__ === 'function') {
+        await window.__ARCANA_ENSURE_BOOKING_SCRIPTS__();
+      }
+      var S = window.ArcanaBookingCalendarShared;
+      if (!S || typeof S.fetchCalendarRange !== 'function') return;
+      var today = S.todayIso ? S.todayIso() : new Date().toISOString().slice(0, 10);
+      var monday = v8MondayOf(today);
+      var weekDates = [];
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(monday);
+        d.setDate(d.getDate() + i);
+        weekDates.push(v8IsoOf(d));
+      }
+      var range = await S.fetchCalendarRange(weekDates[0], weekDates[6]);
+      var sbd = range && range.slotsByDate;
+      var weekEl = root.querySelector('#calWeek') || root.querySelector('.calendar-week');
+      if (weekEl) {
+        var cols = weekEl.querySelectorAll('.day-col');
+        for (var c = 0; c < cols.length && c < 7; c++) {
+          var iso = weekDates[c];
+          var dt = new Date(iso + 'T12:00:00');
+          var head = cols[c].querySelector('.day-head');
+          if (head) {
+            var lbl = head.querySelector('.day-label');
+            var dnum = head.querySelector('.day-date');
+            if (lbl) lbl.textContent = V8_DAYS[c];
+            if (dnum) dnum.textContent = String(dt.getDate());
+            cols[c].classList.toggle('is-today', iso === today);
+          }
+          var slotsWrap = cols[c].querySelector('.day-slots');
+          if (slotsWrap) {
+            var daySlots = v8GetDay(sbd, iso)
+              .slice()
+              .sort(function (a, b) {
+                return S.slotStartMinutes(a) - S.slotStartMinutes(b);
+              });
+            slotsWrap.innerHTML = daySlots
+              .map(function (s) {
+                return v8BookingCard(S, s);
+              })
+              .join('');
+          }
+        }
+      }
+    } catch (e) {
+      if (window.console) console.warn('[cco-cal-v8] grid-data:', e && e.message);
+    }
+  }
+
   function mountPoint() {
     return (
       document.querySelector(
@@ -2241,8 +2350,9 @@
     }
     root.innerHTML = MARKUP;
     initV8Interactions();
-    // P1: fyll Morgon-vyn med riktig data från det delade datalagret (async).
+    // P1/P2: fyll vyerna med riktig data från det delade datalagret (async).
     populateMorgonReal(root);
+    populateGridsReal(root);
     return root;
   }
 
