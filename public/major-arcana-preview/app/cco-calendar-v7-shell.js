@@ -684,6 +684,7 @@
       if (wkNum) wkNum.textContent = String(wk);
       setPill('success', sc0(/(confirm|bekräft|bekraft|planer)/i), 'bekräftade');
       setPill('warning', sc0(/(tentat|pending|väntar|vantar)/i), 'tentativa');
+      setPill('conflict', (range && range.conflicts && range.conflicts.length) || 0, 'konflikt');
 
       // TIMELINE — dagens slots (booked = kort m. avatar, available = empty-slot)
       var tl = root.querySelector('#timeline') || root.querySelector('.timeline');

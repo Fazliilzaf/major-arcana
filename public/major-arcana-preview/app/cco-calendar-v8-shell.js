@@ -2430,9 +2430,13 @@
           : '◷';
       }
       var pairs = {
+        // Coherent state: rensa facitens statiska Livscykel/Källa när en slot
+        // klickas så inget stale-värde blandas med den riktiga slot-datan.
+        Livscykel: booked ? '—' : 'Öppen lucka',
         Behandling: d.v8Svc || (booked ? '—' : 'Ledig tid'),
         Tid: d.v8Time || '—',
         Behandlare: d.v8Res || '—',
+        Källa: '—',
         Status: d.v8St || '—',
       };
       intel.querySelectorAll('.intel-grid dt').forEach(function (dt) {
