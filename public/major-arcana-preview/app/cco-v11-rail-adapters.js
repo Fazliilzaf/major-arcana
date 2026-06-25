@@ -1296,10 +1296,16 @@
           name: name,
           href: railFileViewUrl(f),
           badge: badge,
+          // Genomsläpp av status/datum/mime så s9 visar per-dokument status-chip
+          // + knapp (facit: Klar/Vänta sign/Auto/Intern). Riktig data, ingen fejk.
+          mimeType: text(f.mimeType),
+          status: text(f.status || f.documentStatus || f.statusLabel),
+          dateLabel: text(f.documentDate || f.dateLabel || f.capturedLabel),
+          sourceSystem: text(f.sourceSystem),
         };
       })
       .filter(function (it) {
-        return it.href;
+        return it.name;
       })
       .slice(0, 8);
 

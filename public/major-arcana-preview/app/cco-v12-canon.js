@@ -105,7 +105,14 @@
       (meta.length
         ? '<div class="s1-meta">' + meta.map(esc).join(' <span class="sep">·</span> ') + '</div>'
         : '') +
-      (pid ? '<div class="s1-id">Kund-ID: ' + esc(pid.slice(0, 8)) + '</div>' : '') +
+      (pid
+        ? '<div class="s1-id">Kund-ID: ' +
+          esc(pid.slice(0, 8)) +
+          (txt(card.personalNumber || card.ssn || card.personnummer)
+            ? ' · ' + esc(txt(card.personalNumber || card.ssn || card.personnummer))
+            : ' · personnr ej registrerat') +
+          '</div>'
+        : '') +
       (tags ? '<div class="s1-tags">' + tags + '</div>' : '') +
       '<div class="s1-quick">' +
       '<button class="quick-btn">📞 Ring</button><button class="quick-btn">💬 SMS</button>' +
@@ -211,11 +218,17 @@
         ? '<div class="s2-blockers"><div class="s2-blockers-l">Måste lösas innan ingrepp</div>' +
           blockers
             .map(function (b) {
+              // Per-blockerare chip ur status (facit: "Saknas" röd vs "Tas under
+              // besöket" gul). Default röd "Saknas" när ingen status finns.
+              var bt = txt(b.tone || b.level || b.status).toLowerCase();
+              var warn = /warn|amber|tas|under|pågår|pagar/.test(bt);
+              var clabel =
+                txt(b.chipLabel || b.statusLabel) || (warn ? 'Tas under besöket' : 'Saknas');
               return (
                 '<div class="s2-blockers-row"><span>' +
                 esc(txt(b.label || b)) +
                 '</span>' +
-                chip('danger', 'Saknas') +
+                chip(warn ? 'warn' : 'danger', clabel) +
                 '</div>'
               );
             })
@@ -279,10 +292,11 @@
 
   /* ---------- 4 · HÄLSA ---------- */
   function s4(health) {
+    var updated = health && txt(health.updatedAt || health.signedAt);
     var head = secHead(
       '04',
       'Hälsa',
-      null,
+      updated ? 'senast uppdaterad ' + updated : null,
       '<button class="sec-link">Öppna full hälsoprofil →</button>'
     );
     if (!health) {
@@ -628,7 +642,12 @@
             esc(txt(e.author || e.practitioner || '')) +
             '</div></div>' +
             chip(signed ? 'ok' : 'warn', signed ? 'Signerad' : 'Utkast') +
-            '<div class="journal-actions"><button class="j-btn">Öppna</button></div></div>'
+            // Utkast → två knappar (Spara + Fortsätt) som facit; signerad → Öppna.
+            '<div class="journal-actions">' +
+            (signed
+              ? '<button class="j-btn">Öppna</button>'
+              : '<button class="j-btn">Spara</button><button class="j-btn primary">Fortsätt</button>') +
+            '</div></div>'
           );
         })
         .join('') +
@@ -744,7 +763,9 @@
             esc(txt(b.timeLabel || b.time || '') + (b.practitioner ? ' · ' + b.practitioner : '')) +
             '</div></div>' +
             chip(done ? 'ok' : 'info', done ? 'Genomförd' : 'Bokad') +
-            '<button class="j-btn">Visa</button></div>'
+            '<button class="j-btn">' +
+            (done ? 'Visa' : 'Bekräfta') +
+            '</button></div>'
           );
         })
         .join('') +
@@ -792,8 +813,30 @@
             '<div class="doc-meta">' +
             esc(txt(f.dateLabel || f.documentDate || '')) +
             '</div></div>' +
-            chip('ok', 'Klar') +
-            '<button class="j-btn">Öppna</button></div>'
+            // Per-dokument status + knapp ur riktig data (facit: Klar/Vänta sign/
+            // Auto/Intern + Öppna/Skicka/Förhandsgranska). Default Klar/Öppna.
+            (function () {
+              var st = txt(f.status || f.statusLabel).toLowerCase();
+              var tone = /vänt|vant|utkast|pending|sign/.test(st)
+                ? 'warn'
+                : /auto/.test(st)
+                  ? 'info'
+                  : /intern/.test(st)
+                    ? 'neutral'
+                    : 'ok';
+              var clabel = txt(f.statusLabel || f.status) || 'Klar';
+              var send = /vänt|vant|skicka|pending|sign/.test(st);
+              var btn = send ? 'Skicka' : /auto/.test(st) ? 'Förhandsgranska' : 'Öppna';
+              return (
+                chip(tone, clabel) +
+                '<button class="j-btn' +
+                (send ? ' primary' : '') +
+                '">' +
+                esc(btn) +
+                '</button>'
+              );
+            })() +
+            '</div>'
           );
         })
         .join('') +
