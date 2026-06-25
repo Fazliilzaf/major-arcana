@@ -38,6 +38,7 @@
     "app/cco-v12-workspace.js",
     "app/cco-v12-spine.js",
     "app/cco-v12-canon.js",
+    "app/cco-facit-demo.js",
     "app/patient-master-ui.js",
     "app/cco-kundkort-referens.js",
     "app/cco-v9-customers-parity.js",
