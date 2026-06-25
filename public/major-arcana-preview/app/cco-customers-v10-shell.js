@@ -813,10 +813,23 @@
     return document.documentElement.getAttribute('data-customers-v10') === 'on';
   }
   function maybeMount() {
-    if (!flagOn()) return;
-    if (!document.querySelector('.preview-canvas[data-app-shell-view="customers"]')) return;
-    if (window.innerWidth > 834) return; // bara mobil/iPad-stående; desktop = legacy-kundvy
-    if (document.getElementById('cco-cust-v10-root')) return;
+    var root = document.getElementById('cco-cust-v10-root');
+    var active =
+      flagOn() &&
+      !!document.querySelector('.preview-canvas[data-app-shell-view="customers"]') &&
+      window.innerWidth <= 834; // bara mobil/iPad-stående; desktop = legacy-kundvy
+    if (!active) {
+      // Göm (men behåll) den fasta overlayn när vi inte är på kund-vyn på mobil
+      // — annars ligger #cco-cust-v10-root (position:fixed) kvar och blockerar
+      // andra vyer (Kalender/Konversationer) efter att man lämnat Kunder
+      // (Bugbot #257).
+      if (root) root.style.display = 'none';
+      return;
+    }
+    if (root) {
+      root.style.display = '';
+      return;
+    }
     render({});
   }
   function boot() {
