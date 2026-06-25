@@ -121,6 +121,26 @@
           status: 'paid',
         },
       ],
+      communicationMessages: [
+        {
+          id: 'm1',
+          type: 'mail',
+          direction: 'in',
+          subject: 'Re: PRP-bekräftelse',
+          from: 'anna.k@exempel.se',
+          preview: 'Hej! Tack, jag bekräftar tiden den 18:e. Ska jag undvika något innan?',
+          occurredAt: '2026-05-18T14:20:00Z',
+        },
+        {
+          id: 'm2',
+          type: 'mail',
+          direction: 'out',
+          subject: 'Bokningsbekräftelse PRP 3/3',
+          from: 'klinik@hairtpclinic.com',
+          preview: 'Din tid är bokad 18 jun 14:30. Välkommen! Kom 10 min innan.',
+          occurredAt: '2026-05-17T09:00:00Z',
+        },
+      ],
     },
     driveFiles: [],
   };

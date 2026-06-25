@@ -833,7 +833,9 @@
             '</span>' +
             '<div class="comm-body"><div class="who">' +
             esc(txt(c.text || 'Meddelande')) +
-            '</div></div>' +
+            '</div>' +
+            (txt(c.preview) ? '<div class="pre">' + esc(txt(c.preview)) + '</div>' : '') +
+            '</div>' +
             '<div class="comm-meta">' +
             esc(txt(c.meta || '')) +
             '</div></div>'
