@@ -81,7 +81,13 @@
             if (path.indexOf('/staff') === 0 || path.indexOf('/mobil') === 0) view = 'customers';
             else return;
           }
-          if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
+          if (
+            view === 'conversations' ||
+            view === 'inbox' ||
+            view === 'home' ||
+            view === 'queue' ||
+            view === 'calendar'
+          ) {
             return;
           }
           var reveal = function () {
