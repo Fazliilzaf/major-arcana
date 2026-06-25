@@ -8,6 +8,8 @@
     <script src="./app/cco-v11-rail-flag.js?v=v11rail-cutover-default-on"></script>
     <!-- V12 Customer Workspace — feature flag (default ON, opt-out via ?v12workspace=off; sätter data-v12-workspace) -->
     <script src="./app/cco-v12-workspace-flag.js?v=v12workspace-cutover-v1"></script>
+    <!-- Kalender v8 — facit-trogen återimplementation (default OFF, opt-in via ?calendar=v8; sätter data-calendar-v8) -->
+    <script src="./app/cco-calendar-v8-flag.js?v=calendar-v8-p0"></script>
     <!-- Bokning v1 — facit-trogen mobil bokningsvy (CUTOVER: default ON, opt-out via ?booking=off; sätter data-booking-v1) -->
     <script src="./app/cco-booking-v1-flag.js?v=booking-v1-cutover-default-on"></script>
     <!-- Kunder v10 — facit-trogen mobil-kundvy (CUTOVER: default ON, opt-out via ?customers=off; sätter data-customers-v10) -->
@@ -83,7 +85,13 @@
             if (path.indexOf('/staff') === 0 || path.indexOf('/mobil') === 0) view = 'customers';
             else return;
           }
-          if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
+          if (
+            view === 'conversations' ||
+            view === 'inbox' ||
+            view === 'home' ||
+            view === 'queue' ||
+            view === 'calendar'
+          ) {
             return;
           }
           var reveal = function () {
@@ -167,13 +175,20 @@
     <link rel="stylesheet" href="./cco-v11-rk.css?v=v11rk-v1" />
     <!-- Konversationer v2 — skal-styling (scopad #cco-conv-v2-root; legacy-göm grindad på flaggan) -->
     <link rel="stylesheet" href="./app/cco-conversations-v2.css?v=conversations-v2-shell-v1" />
+    <!-- Kalender v8 — facit-trogen desktop-styling (scopad #cco-cal-v8-root) -->
+    <link rel="stylesheet" href="./cco-calendar-v8.css?v=calendar-v8-p0" />
+    <!-- Kalender v7 — facit-trogen MOBIL-styling (scopad #cco-cal-v7-root; ≤1024px) -->
+    <link rel="stylesheet" href="./cco-calendar-v7-mobile.css?v=calendar-v7-p0" />
     <!-- Bokning v1 — facit-trogen MOBIL-styling (scopad #cco-book-v1-root; ≤834px) -->
     <link rel="stylesheet" href="./cco-booking-v1-mobile.css?v=booking-v1-p0" />
-    <script src="./booking-lazy-load.js?v=build-1ccb8f9"></script>
-    <script src="./app/cco-booking-v1-shell.js?v=booking-v1-p0" defer></script>
     <!-- Kunder v10 — facit-trogen MOBIL-styling (scopad #cco-cust-v10-root; ≤834px) -->
     <link rel="stylesheet" href="./cco-customers-v10-mobile.css?v=customers-v10-p0" />
+    <script src="./booking-lazy-load.js?v=build-1ccb8f9"></script>
+    <script src="./app/cco-calendar-v8-shell.js?v=calendar-v8-p0" defer></script>
+    <script src="./app/cco-calendar-v7-shell.js?v=calendar-v7-p0" defer></script>
+    <script src="./app/cco-booking-v1-shell.js?v=booking-v1-p0" defer></script>
     <script src="./app/cco-customers-v10-shell.js?v=customers-v10-p0" defer></script>
+    >>>>>>> origin/main
     <script src="./cco-polish.js?v=build-1ccb8f9" defer></script>
     <script src="./cco-mobile-core.js?v=build-1ccb8f9" defer></script>
     <script src="./adaptive-runtime.js?v=build-1ccb8f9" defer></script>

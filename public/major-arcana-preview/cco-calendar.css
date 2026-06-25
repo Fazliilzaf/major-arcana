@@ -83,6 +83,10 @@
     min-height: 0;
     padding: var(--cco-space-3, 12px) var(--cco-space-4, 16px);
     padding-bottom: max(var(--cco-space-4, 16px), env(safe-area-inset-bottom, 0px));
+    /* Facit-fidelity: tät 13px-bastypografi (facit-mockupen kör 13px-bas;
+     * app-skalet ärver annars 16px → allt blev ~23 % för stort/luftigt). */
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .calendar-shell-surface {
