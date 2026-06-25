@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO Mail-berikning — tvetydig review v3</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== MAIL-REVIEW-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* canary / guardrails-banner (read-only) */
+.canary{margin:.7rem 0 0;padding:.7rem .9rem;border-radius:var(--r-md);border:1px solid rgba(154,100,16,.4);background:var(--warning-bg);font-size:var(--fs-meta);line-height:1.5}
+.canary strong{color:var(--warning)}
+.canary em{font-style:italic;color:var(--text-secondary)}
+
+/* reviewer-rad + export */
+.aux-tools{display:flex;flex-direction:column;gap:.5rem;margin:.7rem 0 .2rem}
+.reviewer-field{display:flex;flex-direction:column;gap:.25rem}
+.reviewer-field label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.reviewer-field input{appearance:none;width:100%;max-width:22rem;height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(180,165,150,.4);background:rgba(255,255,255,.85);box-shadow:var(--sh-sm);padding:0 .8rem;font:inherit;font-size:var(--fs-meta);color:var(--text-primary)}
+.export-row{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center}
+.export-row .hint{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+
+/* metric-rad — mobil: horisontellt scroll; ≥601: grid */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
+@media(max-width:600px){
+  .metrics{grid-auto-flow:column;grid-auto-columns:minmax(8.5rem,1fr);grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:calc(-1*var(--pad-x));padding-inline:var(--pad-x)}
+  .metrics::-webkit-scrollbar{display:none}
+  .metric{scroll-snap-align:start}
+}
+@media(min-width:601px) and (max-width:1024px){.metrics{grid-template-columns:repeat(2,1fr)}}
+
+/* progress (totalt) */
+.progress{margin:.7rem 0 .2rem}
+.progress-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.35rem;margin-bottom:.5rem;align-items:baseline}
+.progress-head strong{font-size:.95rem;font-weight:800}
+.progress-head .sub{font-size:var(--fs-meta);color:var(--text-tertiary)}
+.progress-bar{height:8px;border-radius:999px;background:var(--bg-sunken);overflow:hidden;margin-bottom:.6rem}
+.progress-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#d4568f);border-radius:999px}
+.stat-pills{display:flex;flex-wrap:wrap;gap:.4rem}
+.stat-pill{font-size:var(--fs-meta);font-weight:800;padding:.2rem .6rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:rgba(255,255,255,.7);color:var(--text-secondary)}
+.stat-pill--ok{border-color:rgba(47,111,84,.4);color:var(--success);background:var(--success-bg)}
+.stat-pill--warn{border-color:rgba(154,100,16,.4);color:var(--warning);background:var(--warning-bg)}
+.stat-pill--accent{border-color:rgba(176,53,110,.4);color:var(--accent);background:var(--accent-weak)}
+
+/* nästa-bästa-panel */
+.nextbest{margin:.7rem 0 .2rem}
+.nextbest .panel{border-left:3px solid var(--accent)}
+.nextbest h3{margin:0 0 .3rem;font-size:.95rem;font-weight:800}
+.nextbest p{margin:.15rem 0;font-size:var(--fs-meta);color:var(--text-secondary)}
+.nextbest .det{color:var(--text-tertiary)}
+
+/* mailbox-kort-grid + chips */
+.mailbox-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin:.7rem 0 .2rem}
+@media(max-width:600px){.mailbox-grid{grid-template-columns:repeat(2,1fr)}}
+.mailbox-card{display:flex;flex-direction:column;align-items:flex-start;gap:.2rem;min-height:var(--tap);padding:.7rem .8rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.25);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));box-shadow:var(--sh-sm);cursor:pointer;text-align:left}
+.mailbox-card.is-active{border-color:var(--accent);background:linear-gradient(180deg,#fff6fa,rgba(253,238,244,.86))}
+.mailbox-card .mc-label{font-size:var(--fs-meta);font-weight:800;color:var(--text-primary)}
+.mailbox-card .mc-count{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;line-height:1}
+.mailbox-card .mc-sub{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+.mailbox-chips{display:flex;gap:.4rem;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:.5rem 0 .2rem;padding-bottom:.1rem}
+.mailbox-chips::-webkit-scrollbar{display:none}
+
+/* help-details */
+.help{margin:.7rem 0 .2rem;border-radius:var(--r-lg);border:1px solid rgba(180,165,150,.25);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(247,241,236,.84));box-shadow:var(--sh-sm);overflow:hidden}
+.help summary{cursor:pointer;padding:.8rem 1rem;font-weight:800;font-size:var(--fs-body);list-style:none;min-height:var(--tap);display:flex;align-items:center}
+.help summary::-webkit-details-marker{display:none}
+.help summary::after{content:"+";margin-left:auto;font-size:1.1rem;color:var(--text-tertiary)}
+.help[open] summary::after{content:"–"}
+.help-body{padding:0 1rem 1rem;font-size:var(--fs-meta);line-height:1.55;color:var(--text-secondary)}
+.help-body ul{margin:.4rem 0 .6rem 1.1rem;padding:0}
+.help-body strong{color:var(--text-primary)}
+
+/* TWO-PANE layout: kö + detalj */
+.review-layout{display:grid;grid-template-columns:1fr;gap:var(--gap);margin-top:.4rem}
+
+/* KÖ-panel */
+.queue{min-width:0}
+.queue h2{margin:0 0 .4rem;font-size:.95rem;font-weight:800}
+.queue-steps{margin:0 0 .7rem;padding-left:1.15rem;font-size:var(--fs-meta);line-height:1.5;color:var(--text-tertiary)}
+.queue-meta{font-size:var(--fs-meta);color:var(--text-tertiary);margin:.2rem 0}
+.queue-controls{display:flex;flex-direction:column;gap:.5rem;margin:.5rem 0}
+.queue-controls select{appearance:none;width:100%;min-height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(180,165,150,.4);background:rgba(255,255,255,.85);box-shadow:var(--sh-sm);padding:0 .8rem;font:inherit;font-size:var(--fs-meta);color:var(--text-primary)}
+.filter-approvable{display:flex;align-items:center;gap:.5rem;min-height:var(--tap);font-size:var(--fs-meta);color:var(--text-secondary);font-weight:700}
+.filter-approvable input{width:1.25rem;height:1.25rem;accent-color:var(--accent)}
+.queue-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4rem;max-height:32rem;overflow:auto}
+@media(min-width:601px){.queue-list{max-height:40rem}}
+.queue-item{width:100%;text-align:left;cursor:pointer;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.25);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));box-shadow:var(--sh-sm);padding:.65rem .75rem;display:flex;flex-direction:column;gap:.2rem;color:inherit}
+.queue-item.is-active{border-color:var(--accent);background:linear-gradient(180deg,#fff6fa,rgba(253,238,244,.86))}
+.queue-item.has-approvable{border-left:3px solid var(--success)}
+.queue-item.is-filtered-out{display:none}
+.qi-top{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.qi-mb{font-size:var(--fs-meta);font-weight:800;color:var(--text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis}
+.qi-key{font-size:var(--fs-kicker);color:var(--text-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qi-reason{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+
+/* status/match-taggar */
+.tag{flex-shrink:0;padding:.1rem .45rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;border:1px solid transparent}
+.tag--ok{background:var(--success-bg);color:var(--success);border-color:rgba(47,111,84,.3)}
+.tag--warn{background:var(--warning-bg);color:var(--warning);border-color:rgba(154,100,16,.3)}
+.tag--pending{background:var(--slate-bg);color:var(--slate);border-color:rgba(71,85,105,.3)}
+.tag--rejected{background:var(--danger-bg);color:var(--danger);border-color:rgba(168,56,56,.3)}
+
+/* DETALJ-panel */
+.detail{min-width:0;display:flex;flex-direction:column;gap:.7rem}
+.detail h2{margin:0;font-size:1.05rem;font-weight:800;letter-spacing:-.01em;word-break:break-word}
+.detail-key{font-size:var(--fs-meta);color:var(--text-tertiary);word-break:break-all}
+.why-box,.approve-rule{padding:.75rem .9rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.25)}
+.why-box{background:var(--info-bg);border-color:rgba(47,101,149,.3)}
+.why-box h3{margin:0 0 .3rem;font-size:.9rem;font-weight:800}
+.why-box p{margin:.2rem 0;font-size:var(--fs-meta)}
+.why-box .det{color:var(--text-tertiary)}
+.approve-rule{background:var(--success-bg);border-color:rgba(47,111,84,.35);font-size:var(--fs-meta)}
+.approve-rule strong{color:var(--success)}
+
+/* snabbknappar */
+.quick-actions{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;padding:.65rem .75rem;border-radius:var(--r-md);border:1px dashed rgba(180,165,150,.5)}
+.quick-actions .lbl{font-size:var(--fs-meta);color:var(--text-tertiary);font-weight:700;width:100%}
+
+/* kandidater */
+.cand-head{font-size:.95rem;font-weight:800;margin:.2rem 0}
+.candidate{border:1px solid rgba(180,165,150,.3);border-radius:var(--r-md);padding:.75rem .85rem;background:rgba(255,255,255,.7);display:flex;flex-direction:column;gap:.3rem}
+.candidate.approvable{border-color:rgba(47,111,84,.5);background:var(--success-bg)}
+.candidate.rejected{opacity:.6}
+.cand-label{display:flex;align-items:center;gap:.5rem;cursor:pointer;font-weight:800;flex-wrap:wrap;min-height:1.75rem}
+.cand-label input{width:1.2rem;height:1.2rem;accent-color:var(--accent);flex-shrink:0}
+.cand-blocker{font-size:var(--fs-meta);font-weight:700;margin:.1rem 0}
+.cand-why{font-size:var(--fs-meta);color:var(--text-secondary)}
+.cand-note{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+.field-matrix{display:flex;flex-wrap:wrap;gap:.3rem;margin:.25rem 0}
+.field-chip{font-size:var(--fs-kicker);font-weight:700;padding:.18rem .45rem;border-radius:7px;border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.7);color:var(--text-tertiary)}
+.field-chip.is-match{border-color:rgba(47,111,84,.5);color:var(--success);background:var(--success-bg)}
+.field-chip.is-miss{opacity:.6}
+.field-explain{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+.field-explain strong{color:var(--text-secondary)}
+
+/* reason + owner-accepted */
+.reason-field label{display:block;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:.25rem}
+.reason-field textarea{width:100%;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.4);background:rgba(255,255,255,.85);box-shadow:var(--sh-sm);padding:.55rem .7rem;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);resize:vertical;min-height:3rem}
+.owner-accepted{display:flex;align-items:center;gap:.5rem;min-height:var(--tap);font-size:var(--fs-meta);color:var(--text-secondary);font-weight:700}
+.owner-accepted input{width:1.25rem;height:1.25rem;accent-color:var(--accent)}
+
+/* nav + actions */
+.queue-nav{display:flex;gap:.5rem}
+.queue-nav .btn{flex:1;justify-content:center}
+.shortcuts{font-size:var(--fs-kicker);color:var(--text-tertiary);margin:.1rem 0}
+.actions{display:flex;flex-wrap:wrap;gap:.45rem}
+.approve-hint{font-size:var(--fs-meta);color:var(--warning);font-weight:700}
+
+/* audit-block */
+.audit{padding:.7rem .85rem;border-radius:var(--r-md);border:1px dashed rgba(180,165,150,.5);font-size:var(--fs-meta)}
+.audit h3{margin:0 0 .4rem;font-size:.9rem;font-weight:800}
+.audit-dl{display:grid;grid-template-columns:auto 1fr;gap:.2rem .75rem;margin:0}
+.audit-dl dt{color:var(--text-tertiary);font-weight:700}
+.audit-dl dd{margin:0;word-break:break-word}
+
+/* session-summary + audit */
+.session-summary,.session-audit{margin:.7rem 0 .2rem}
+.session-summary .panel h3,.session-audit .panel h3{margin:0 0 .35rem;font-size:.95rem;font-weight:800}
+.session-summary p{margin:.15rem 0;font-size:var(--fs-meta);color:var(--text-secondary)}
+.session-audit-list{margin:.35rem 0 0;padding-left:1.1rem;font-size:var(--fs-meta);line-height:1.55;color:var(--text-secondary)}
+
+/* audit-toast */
+.audit-toast{margin:.7rem 0 0;padding:.6rem .8rem;border-radius:var(--r-md);border:1px solid rgba(47,111,84,.4);background:var(--success-bg);font-size:var(--fs-meta);color:var(--success);font-weight:700}
+
+/* iPad 601–1024: två-pane */
+@media(min-width:601px){
+  .review-layout{grid-template-columns:minmax(0,300px) minmax(0,1fr);align-items:start}
+  .queue{position:sticky;top:4.5rem}
+}
+/* Desktop ≥1025: kö något bredare */
+@media(min-width:1025px){
+  .review-layout{grid-template-columns:minmax(0,340px) minmax(0,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i tvetydig kö…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- ===== HEAD ===== -->
+  <div class="head">
+    <div class="head-main">
+      <span class="kicker">Mail-berikning · gap-recovery</span>
+      <h1 class="h1">Ambiguous Mail Enrichment Review</h1>
+      <p class="subtitle">493-raderskö · manuellt beslut · minst 3 deterministiska fält för approve · ingen auto-merge</p>
+    </div>
+  </div>
+
+  <!-- ===== CANARY / OPERATÖRSREGLER (read-only) ===== -->
+  <div class="canary">
+    <strong>Operatörsregler (Phase 2):</strong>
+    ingen auto-write · ingen fuzzy merge · ingen customer merge · ingen Graph-fetch från UI ·
+    ingen ny mailimport · approve kräver ≥3 deterministiska fält ·
+    <em>stör inte journaldemo / personal-start</em>
+  </div>
+
+  <!-- ===== REVIEWER + EXPORT ===== -->
+  <div class="aux-tools">
+    <div class="reviewer-field">
+      <label for="reviewer">Reviewer</label>
+      <input id="reviewer" data-reviewer placeholder="owner@..." value="fazli@hairtpclinic.com" />
+    </div>
+    <div class="export-row">
+      <button type="button" class="btn" data-export-status>Ladda ner operativ status (JSON)</button>
+      <button type="button" class="btn" data-export-decisions>Exportera sessionsbeslut (JSON)</button>
+      <span class="hint">För kvälls-readiness — ingen auto-write</span>
+    </div>
+  </div>
+
+  <!-- ===== PROGRESS (totalt) ===== -->
+  <div class="progress">
+    <div class="progress-head">
+      <strong>Progress (totalt)</strong>
+      <span class="sub" id="progressSub">132 hanterade av 493 · 361 kvar i kö</span>
+    </div>
+    <div class="progress-bar" aria-hidden="true"><span id="progressBar" style="width:27%"></span></div>
+    <div class="stat-pills">
+      <span class="stat-pill stat-pill--ok">approved 84</span>
+      <span class="stat-pill stat-pill--warn">unresolved 31</span>
+      <span class="stat-pill">excluded 17</span>
+      <span class="stat-pill stat-pill--accent">remaining 361</span>
+    </div>
+  </div>
+
+  <!-- ===== METRIC-RAD ===== -->
+  <div class="metrics">
+    <div class="metric metric--violet"><div class="m-label">ambiguous total</div><div class="m-val tabnum">493</div><div class="m-meta">tvetydiga gap</div></div>
+    <div class="metric metric--rose"><div class="m-label">pending i kö</div><div class="m-val tabnum">361</div><div class="m-meta">manuellt beslut</div></div>
+    <div class="metric metric--blue"><div class="m-label">technical coverage</div><div class="m-val tabnum">94%</div><div class="m-meta">operational: partial</div></div>
+    <div class="metric metric--gold"><div class="m-label">readyForWork</div><div class="m-val">nej</div><div class="m-meta">ej dagligt verktyg</div></div>
+  </div>
+
+  <!-- ===== NÄSTA BÄSTA ===== -->
+  <div class="nextbest">
+    <div class="panel">
+      <h3>Nästa bästa rad att granska</h3>
+      <p>3 av 5 i vyn har approvable kandidat · rad 2: egzona@hairtpclinic.com</p>
+      <p class="det"><strong>3 deterministiska fält:</strong> mailbox, conversationId, subjectHash (4/3)</p>
+      <p class="det">Deterministisk match: 4/3 fält (mailbox, conversationId, subjectHash, receivedAt).</p>
+      <button type="button" class="btn btn--primary" data-jump-next>Gå till nästa bästa [N]</button>
+    </div>
+  </div>
+
+  <!-- ===== MAILBOX-GRID ===== -->
+  <div class="mailbox-grid" id="mailboxGrid"></div>
+
+  <!-- ===== MAILBOX-CHIPS ===== -->
+  <div class="mailbox-chips pillrow scroll" id="mailboxChips"></div>
+
+  <!-- ===== HELP (operatör) ===== -->
+  <details class="help">
+    <summary>Vad betyder detta? (operatör)</summary>
+    <div class="help-body">
+      <p><strong>Ambiguous</strong> = flera möjliga Graph-trådar matchar samma CCO-gap. Inget väljs automatiskt.</p>
+      <ul>
+        <li><strong>Approve single match</strong> — kräver ≥3 deterministiska fält (t.ex. mailbox, conversationId, subjectHash).</li>
+        <li><strong>Leave unresolved</strong> — stannar i kö tills strategi finns.</li>
+        <li><strong>Exclude</strong> — brus/system (kräver reason).</li>
+        <li><strong>Reject candidate</strong> — fel kandidat, prova nästa.</li>
+      </ul>
+      <p class="det">Ingen auto-write · ingen fuzzy merge · ingen customer merge · ingen Graph-fetch · ingen ny import. Detta påverkar <em>inte</em> journaldemot.</p>
+    </div>
+  </details>
+
+  <!-- ===== TWO-PANE: KÖ + DETALJ ===== -->
+  <div class="review-layout">
+
+    <!-- VÄNSTER: KÖ -->
+    <aside class="queue panel">
+      <h2>Kö</h2>
+      <ol class="queue-steps">
+        <li>Välj mailbox (chip eller lista)</li>
+        <li>Öppna rad → välj kandidat med ≥3 fält</li>
+        <li>Approve / unresolved / exclude / reject</li>
+        <li>Nästa rad — inget skrivs utan explicit beslut</li>
+      </ol>
+      <p class="queue-meta" id="queueMeta">Visar 5 av 361 pending · manuell review · ingen auto-write</p>
+      <p class="queue-meta" id="queuePosition">Rad 1 av 5 i vyn (361 pending totalt)</p>
+      <div class="queue-controls">
+        <select data-mailbox-filter aria-label="Mailbox-filter">
+          <option value="">Alla mailboxar</option>
+          <option value="contact@hairtpclinic.com">contact@hairtpclinic.com (248 pending)</option>
+          <option value="egzona@hairtpclinic.com">egzona@hairtpclinic.com (175 pending)</option>
+          <option value="fazli@hairtpclinic.com">fazli@hairtpclinic.com (67 pending)</option>
+          <option value="marknad@hairtpclinic.com">marknad@hairtpclinic.com (3 pending)</option>
+        </select>
+        <label class="filter-approvable">
+          <input type="checkbox" data-filter-approvable /> Visa endast rader med ≥3 fält
+        </label>
+      </div>
+      <ul class="queue-list" id="queueList"></ul>
+    </aside>
+
+    <!-- HÖGER: DETALJ -->
+    <section class="detail panel" id="detail"></section>
+
+  </div>
+
+  <!-- ===== SESSION SUMMARY ===== -->
+  <div class="session-summary">
+    <div class="panel">
+      <h3>Session summary</h3>
+      <p>approve <strong>3</strong> · unresolved <strong>1</strong> · exclude <strong>1</strong> · reject <strong>2</strong></p>
+      <p class="det">Beslut per operator: fazli@hairtpclinic.com: 7</p>
+      <p class="det">Senaste beslut: <strong>approve_single_match</strong> · egzona@hairtpclinic.com#a91f · fält: mailbox, conversationId, subjectHash</p>
+    </div>
+  </div>
+
+  <!-- ===== SESSION AUDIT ===== -->
+  <div class="session-audit">
+    <div class="panel">
+      <h3>Senaste beslut (session)</h3>
+      <ul class="session-audit-list">
+        <li><strong>approve_single_match</strong> · egzona@hairtpclinic.com#a91f · mailbox, conversationId, subjectHash · fazli@hairtpclinic.com</li>
+        <li><strong>reject_candidate</strong> · contact@hairtpclinic.com#7d2e · subjectHash · fazli@hairtpclinic.com</li>
+        <li><strong>leave_unresolved</strong> · contact@hairtpclinic.com#5b10 · — · fazli@hairtpclinic.com</li>
+        <li><strong>exclude_non_actionable</strong> · marknad@hairtpclinic.com#0c4a · — · fazli@hairtpclinic.com</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== AUDIT TOAST ===== -->
+  <p class="audit-toast" id="auditToast" hidden></p>
+
+</div>
+
+<!-- ===== BOTNAV (verbatim från cco-skickat-v3 — Hem aktiv) ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+'use strict';
+const DEFAULT_FIELDS=['internetMessageId','subjectHash','receivedAt','mailbox','conversationId','fromHash','toHash'];
+const MAILBOX_PRESETS=[
+  {id:'contact@hairtpclinic.com',label:'contact@',count:248},
+  {id:'egzona@hairtpclinic.com',label:'egzona@',count:175},
+  {id:'fazli@hairtpclinic.com',label:'fazli@',count:67},
+  {id:'marknad@hairtpclinic.com',label:'marknad@',count:3},
+];
+const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+// Plausibla demo-rader (tvetydiga gap)
+const QUEUE=[
+  {mailboxId:'contact@hairtpclinic.com',conversationId:'contact@hairtpclinic.com#5b10',conversationKey:'contact@hairtpclinic.com#5b10',
+   ambiguityReason:'Tre Graph-trådar med samma subjectHash men olika conversationId.',matchStrategy:'subjectHash+mailbox',graphMessageIdPresent:true,reviewStatus:'pending',minApproveMatchFields:3,
+   candidates:[
+     {candidateId:'c1',source:'Graph thread #A2',matchedFields:['mailbox','subjectHash','receivedAt'],matchCount:3,approvable:true,rejected:false,receivedAt:'2026-06-18T09:14:00Z'},
+     {candidateId:'c2',source:'Graph thread #A7',matchedFields:['mailbox','subjectHash'],matchCount:2,approvable:false,rejected:false,receivedAt:'2026-06-18T09:41:00Z'},
+   ]},
+  {mailboxId:'egzona@hairtpclinic.com',conversationId:'egzona@hairtpclinic.com#a91f',conversationKey:'egzona@hairtpclinic.com#a91f',
+   ambiguityReason:'Två kandidater med lika score — fromHash skiljer.',matchStrategy:'conversationId+subjectHash',graphMessageIdPresent:true,reviewStatus:'pending',minApproveMatchFields:3,
+   candidates:[
+     {candidateId:'c3',source:'Graph thread #B1',matchedFields:['mailbox','conversationId','subjectHash','receivedAt'],matchCount:4,approvable:true,rejected:false,receivedAt:'2026-06-19T11:02:00Z'},
+     {candidateId:'c4',source:'Graph thread #B4',matchedFields:['mailbox','conversationId'],matchCount:2,approvable:false,rejected:false,receivedAt:'2026-06-19T11:30:00Z'},
+   ]},
+  {mailboxId:'contact@hairtpclinic.com',conversationId:'contact@hairtpclinic.com#7d2e',conversationKey:'contact@hairtpclinic.com#7d2e',
+   ambiguityReason:'Endast subjectHash matchar — för få deterministiska fält.',matchStrategy:'subjectHash',graphMessageIdPresent:false,reviewStatus:'pending',minApproveMatchFields:3,
+   candidates:[
+     {candidateId:'c5',source:'Graph thread #C3',matchedFields:['subjectHash'],matchCount:1,approvable:false,rejected:false,receivedAt:'2026-06-17T16:48:00Z'},
+     {candidateId:'c6',source:'Graph thread #C9',matchedFields:['subjectHash','mailbox'],matchCount:2,approvable:false,rejected:true,receivedAt:'2026-06-17T17:05:00Z'},
+   ]},
+  {mailboxId:'fazli@hairtpclinic.com',conversationId:'fazli@hairtpclinic.com#3e88',conversationKey:'fazli@hairtpclinic.com#3e88',
+   ambiguityReason:'Flera kandidater med lika score — ingen unik deterministisk match.',matchStrategy:'mailbox+toHash',graphMessageIdPresent:true,reviewStatus:'pending',minApproveMatchFields:3,
+   candidates:[
+     {candidateId:'c7',source:'Graph thread #D2',matchedFields:['mailbox','toHash','receivedAt','conversationId'],matchCount:4,approvable:true,rejected:false,receivedAt:'2026-06-20T08:20:00Z'},
+     {candidateId:'c8',source:'Graph thread #D5',matchedFields:['mailbox','toHash'],matchCount:2,approvable:false,rejected:false,receivedAt:'2026-06-20T08:55:00Z'},
+   ]},
+  {mailboxId:'marknad@hairtpclinic.com',conversationId:'marknad@hairtpclinic.com#0c4a',conversationKey:'marknad@hairtpclinic.com#0c4a',
+   ambiguityReason:'System/brus-mail — kandidat saknar kundkoppling.',matchStrategy:'mailbox',graphMessageIdPresent:false,reviewStatus:'pending',minApproveMatchFields:3,
+   candidates:[
+     {candidateId:'c9',source:'Graph thread #E1',matchedFields:['mailbox','subjectHash'],matchCount:2,approvable:false,rejected:false,receivedAt:'2026-06-16T07:11:00Z'},
+   ]},
+];
+
+let currentIndex=0;
+let selectedCandidateId=null;
+let showApprovableOnly=false;
+let activeMailbox='';
+
+const currentItem=()=>QUEUE[currentIndex]||null;
+const itemHasApprovable=item=>(item?.candidates||[]).some(c=>c.approvable&&!c.rejected);
+const bestApprovable=item=>(item?.candidates||[]).filter(c=>c.approvable&&!c.rejected).sort((a,b)=>(b.matchCount||0)-(a.matchCount||0))[0];
+function pickDefaultCandidate(item){
+  if(!item?.candidates?.length)return null;
+  const ap=item.candidates.find(c=>c.approvable&&!c.rejected);
+  if(ap)return ap.candidateId;
+  const f=item.candidates.find(c=>!c.rejected);
+  return f?.candidateId||null;
+}
+function selectedCandidate(){
+  const item=currentItem();
+  if(!item||!selectedCandidateId)return null;
+  return(item.candidates||[]).find(c=>c.candidateId===selectedCandidateId)||null;
+}
+function missingFields(candidate,item){
+  const all=item.deterministicMatchFields||DEFAULT_FIELDS;
+  const matched=new Set(candidate.matchedFields||[]);
+  return all.filter(f=>!matched.has(f));
+}
+function candidateBlockerText(candidate,item,minFields=3){
+  if(candidate.rejected)return 'Avvisad — välj annan kandidat.';
+  if(candidate.approvable)return `Approve tillåten: ${candidate.matchCount??0}/${minFields} deterministiska fält matchar.`;
+  const have=candidate.matchCount??0;
+  const miss=missingFields(candidate,item);
+  const need=Math.max(0,minFields-have);
+  const names=miss.length>0?` Saknade fält: ${miss.slice(0,6).join(', ')}${miss.length>6?'…':''}.`:'';
+  return `Approve inte tillåten: ${have}/${minFields} fält (behöver ${need} till).${names}`;
+}
+function candidateExplainText(candidate,item){
+  const minFields=item.minApproveMatchFields??3;
+  if(candidate.rejected)return 'Kandidat avvisad — välj annan.';
+  if(candidate.approvable)return `Deterministisk match: ${candidate.matchCount}/${minFields} fält (${(candidate.matchedFields||[]).join(', ')}).`;
+  const miss=missingFields(candidate,item);
+  return `Behöver ${minFields-(candidate.matchCount||0)} fler fält. Saknas: ${miss.join(', ')}.`;
+}
+function fieldMatrix(candidate,item){
+  const all=item.deterministicMatchFields||DEFAULT_FIELDS;
+  const matched=new Set(candidate.matchedFields||[]);
+  const missing=all.filter(f=>!matched.has(f));
+  const chips=all.map(f=>{const on=matched.has(f);return `<span class="field-chip ${on?'is-match':'is-miss'}">${on?'✓':'·'} ${esc(f)}</span>`;}).join('');
+  return `<div class="field-matrix">${chips}</div>
+    <p class="field-explain"><strong>Matchar:</strong> ${esc((candidate.matchedFields||[]).join(', ')||'—')} · <strong>Saknas för approve:</strong> ${esc(missing.join(', ')||'—')}</p>`;
+}
+
+function visibleItems(){
+  return QUEUE.map((item,idx)=>({item,idx})).filter(({item})=>{
+    if(activeMailbox&&item.mailboxId!==activeMailbox)return false;
+    if(showApprovableOnly&&!itemHasApprovable(item))return false;
+    return true;
+  });
+}
+
+function renderMailboxGrid(){
+  const el=document.getElementById('mailboxGrid');
+  el.innerHTML=MAILBOX_PRESETS.map(mb=>{
+    const on=activeMailbox===mb.id?' is-active':'';
+    return `<button type="button" class="mailbox-card${on}" data-mailbox-card="${esc(mb.id)}">
+      <span class="mc-label">${esc(mb.label)}</span>
+      <span class="mc-count tabnum">${mb.count}</span>
+      <span class="mc-sub">pending</span>
+    </button>`;
+  }).join('');
+  el.querySelectorAll('[data-mailbox-card]').forEach(btn=>{
+    btn.addEventListener('click',()=>{ setMailbox(btn.getAttribute('data-mailbox-card')||''); });
+  });
+}
+function renderMailboxChips(){
+  const el=document.getElementById('mailboxChips');
+  const chips=MAILBOX_PRESETS.map(mb=>{
+    const on=activeMailbox===mb.id?' is-active':'';
+    return `<button type="button" class="pill${on}" data-mailbox="${esc(mb.id)}">${esc(mb.label)} <span class="c">${mb.count}</span></button>`;
+  });
+  chips.push(`<button type="button" class="pill${activeMailbox===''?' is-active':''}" data-mailbox="">Alla</button>`);
+  el.innerHTML=chips.join('');
+  el.querySelectorAll('[data-mailbox]').forEach(btn=>{
+    btn.addEventListener('click',()=>{ setMailbox(btn.getAttribute('data-mailbox')||''); });
+  });
+}
+function setMailbox(id){
+  activeMailbox=id;
+  const sel=document.querySelector('[data-mailbox-filter]');
+  if(sel)sel.value=id;
+  const vis=visibleItems();
+  currentIndex=vis.length?vis[0].idx:0;
+  selectedCandidateId=pickDefaultCandidate(currentItem());
+  renderAll();
+}
+
+function renderQueueList(){
+  const list=document.getElementById('queueList');
+  const cur=currentItem();
+  const vis=visibleItems();
+  if(!vis.length){ list.innerHTML='<li class="queue-meta" style="padding:.6rem .2rem">Ingen rad i filtrerad kö.</li>'; return; }
+  list.innerHTML=vis.map(({item,idx})=>{
+    const approvable=itemHasApprovable(item);
+    const best=bestApprovable(item);
+    const bestScore=best?.matchCount??(Math.max(0,...(item.candidates||[]).map(c=>c.matchCount||0)));
+    const active=cur?.conversationKey===item.conversationKey?' is-active':'';
+    const ready=approvable?' has-approvable':'';
+    const scoreTag=approvable?`<span class="tag tag--ok">${bestScore}/3 fält</span>`:`<span class="tag tag--warn">blocker ${bestScore}/3</span>`;
+    return `<li><button type="button" class="queue-item${active}${ready}" data-idx="${idx}">
+      <div class="qi-top"><span class="qi-mb">${esc(item.mailboxId||'')}</span>${scoreTag}</div>
+      <div class="qi-key">${esc(item.conversationId||item.conversationKey||'')}</div>
+      <div class="qi-reason">${esc(item.ambiguityReason||'')}</div>
+    </button></li>`;
+  }).join('');
+  list.querySelectorAll('[data-idx]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      currentIndex=Number(btn.getAttribute('data-idx'));
+      selectedCandidateId=pickDefaultCandidate(currentItem());
+      renderQueueList();renderQueuePosition();renderDetail();
+    });
+  });
+}
+function renderQueueMeta(){
+  const vis=visibleItems();
+  const mb=activeMailbox?` · filter ${activeMailbox}`:'';
+  document.getElementById('queueMeta').textContent=`Visar ${vis.length} av 361 pending${mb} · manuell review · ingen auto-write`;
+  renderQueuePosition();
+}
+function renderQueuePosition(){
+  const el=document.getElementById('queuePosition');
+  const vis=visibleItems();
+  if(!vis.length){ el.textContent='Ingen rad i filtrerad kö.'; return; }
+  const pos=vis.findIndex(v=>v.idx===currentIndex);
+  el.textContent=`Rad ${(pos<0?0:pos)+1} av ${vis.length} i vyn (361 pending totalt)`;
+}
+
+function renderDetail(){
+  const el=document.getElementById('detail');
+  const item=currentItem();
+  if(!item){ el.innerHTML='<p class="queue-meta">Ingen rad i kön.</p>'; return; }
+  const minFields=item.minApproveMatchFields??3;
+  const candidates=(item.candidates||[]).map(candidate=>{
+    const blocker=candidateBlockerText(candidate,item,minFields);
+    const miss=missingFields(candidate,item);
+    return `<div class="candidate${candidate.approvable?' approvable':''}${candidate.rejected?' rejected':''}">
+      <label class="cand-label">
+        <input type="radio" name="candidate" value="${esc(candidate.candidateId)}" ${selectedCandidateId===candidate.candidateId?'checked':''} ${candidate.rejected?'disabled':''} />
+        <strong>${esc(candidate.source||'candidate')}</strong>
+        ${candidate.approvable?'<span class="tag tag--ok">approvable</span>':`<span class="tag tag--warn">${candidate.matchCount||0}/${minFields} fält</span>`}
+        ${candidate.rejected?'<span class="tag tag--rejected">avvisad</span>':''}
+      </label>
+      <p class="cand-blocker">${esc(blocker)}</p>
+      <p class="cand-why">${esc(candidateExplainText(candidate,item))}</p>
+      <p class="cand-note">Varför approve ${candidate.approvable?'är':'inte är'} tillåten — deterministiska fält (min ${minFields}, ingen auto-write):</p>
+      <p class="cand-note">Saknade fält: ${esc(miss.join(', ')||'—')}</p>
+      <p class="cand-note">Matchande fält (${candidate.matchCount??0}/${minFields}):</p>
+      ${fieldMatrix(candidate,item)}
+      <p class="cand-note">receivedAt: ${esc(candidate.receivedAt||candidate.sentAt||'—')}</p>
+    </div>`;
+  }).join('');
+  const detFields=(item.deterministicMatchFields||DEFAULT_FIELDS).join(', ');
+  el.innerHTML=`
+    <h2>${esc(item.mailboxId||'')}</h2>
+    <p class="detail-key">${esc(item.conversationKey||'')}</p>
+    <div class="why-box">
+      <h3>Varför är denna ambiguous?</h3>
+      <p>${esc(item.ambiguityReason||'Flera kandidater med lika score — ingen unik deterministisk match.')}</p>
+      <p class="det">strategy: ${esc(item.matchStrategy||'—')} · ${item.candidates?.length??0} kandidater · graphMessageId: ${item.graphMessageIdPresent?'finns':'saknas'} · status: ${esc(item.reviewStatus||'pending')}</p>
+    </div>
+    <div class="approve-rule">
+      <strong>Approve kräver ≥${minFields} deterministiska fält</strong> (${esc(detFields)}). Ingen auto-write · ingen blind enrichment-loop.
+    </div>
+    <div class="quick-actions">
+      <span class="lbl">Snabbknappar (ingen auto-write):</span>
+      <button type="button" class="btn" data-quick="leave_unresolved">Unresolved [U]</button>
+      <button type="button" class="btn btn--danger" data-quick="exclude_non_actionable">Exclude [X]</button>
+      <button type="button" class="btn" data-quick="reject_candidate">Reject kandidat [R]</button>
+    </div>
+    <h3 class="cand-head">Kandidater (${item.candidates?.length||0})</h3>
+    ${candidates}
+    <div class="reason-field">
+      <label for="reason">Reason (krävs för exclude)</label>
+      <textarea id="reason" data-reason rows="2" placeholder="motivering"></textarea>
+    </div>
+    <label class="owner-accepted"><input type="checkbox" data-owner-accepted /> owner_accepted_unresolved</label>
+    <div class="queue-nav">
+      <button type="button" class="btn" data-nav-prev ${currentIndex<=0?'disabled':''}>← Föregående</button>
+      <button type="button" class="btn" data-nav-next ${currentIndex>=QUEUE.length-1?'disabled':''}>Nästa →</button>
+    </div>
+    <p class="shortcuts">↑/↓ eller j/k rad · N nästa bästa · U/X/R snabb unresolved/exclude/reject</p>
+    <div class="actions">
+      <button type="button" class="btn btn--primary" data-action="approve_single_match" data-approve-btn>Approve single match</button>
+      <button type="button" class="btn" data-action="leave_unresolved">Leave unresolved</button>
+      <button type="button" class="btn btn--danger" data-action="exclude_non_actionable">Exclude non-actionable</button>
+      <button type="button" class="btn" data-action="reject_candidate">Reject candidate</button>
+    </div>
+    <p class="approve-hint" data-approve-hint hidden></p>`;
+
+  el.querySelectorAll('input[name="candidate"]').forEach(input=>{
+    input.addEventListener('change',()=>{ selectedCandidateId=input.value; syncApproveState(); });
+  });
+  el.querySelector('[data-nav-prev]')?.addEventListener('click',()=>navigateQueue(-1));
+  el.querySelector('[data-nav-next]')?.addEventListener('click',()=>navigateQueue(1));
+  el.querySelectorAll('[data-quick],[data-action]').forEach(btn=>{
+    btn.addEventListener('click',()=>decide(btn.getAttribute('data-quick')||btn.getAttribute('data-action')));
+  });
+  syncApproveState();
+}
+
+function syncApproveState(){
+  const approveBtn=document.querySelector('[data-approve-btn]');
+  const hint=document.querySelector('[data-approve-hint]');
+  const cand=selectedCandidate();
+  const ok=!!cand?.approvable;
+  if(approveBtn)approveBtn.disabled=!ok;
+  if(hint){
+    if(!selectedCandidateId){ hint.hidden=false; hint.textContent='Välj kandidat innan approve.'; }
+    else if(!ok){
+      hint.hidden=false;
+      const item=currentItem();
+      const miss=item&&cand?missingFields(cand,item):[];
+      hint.textContent=`Approve blockerad: ${cand?.matchCount??0}/3 fält. Saknas: ${miss.join(', ')||'välj kandidat med ≥3 matchande fält'}.`;
+    } else { hint.hidden=true; hint.textContent=''; }
+  }
+}
+
+function navigateQueue(delta){
+  const vis=visibleItems();
+  if(!vis.length)return;
+  let pos=vis.findIndex(v=>v.idx===currentIndex);
+  if(pos<0)pos=0;
+  pos=Math.max(0,Math.min(vis.length-1,pos+delta));
+  currentIndex=vis[pos].idx;
+  selectedCandidateId=pickDefaultCandidate(currentItem());
+  renderQueueList();renderQueuePosition();renderDetail();
+}
+
+function jumpToNextBest(){
+  const vis=visibleItems();
+  const start=vis.findIndex(v=>v.idx===currentIndex);
+  let best=-1,bestScore=-1;
+  vis.forEach(({item,idx},i)=>{
+    if(i<=start)return;
+    if(!itemHasApprovable(item))return;
+    const s=bestApprovable(item)?.matchCount??0;
+    if(s>bestScore){bestScore=s;best=idx;}
+  });
+  if(best<0){
+    vis.forEach(({item,idx})=>{
+      if(!itemHasApprovable(item))return;
+      const s=bestApprovable(item)?.matchCount??0;
+      if(s>bestScore){bestScore=s;best=idx;}
+    });
+  }
+  if(best>=0){
+    currentIndex=best;
+    selectedCandidateId=pickDefaultCandidate(currentItem());
+    renderQueueList();renderQueuePosition();renderDetail();
+  }
+}
+
+function showAuditToast(action){
+  const el=document.getElementById('auditToast');
+  const reviewer=document.querySelector('[data-reviewer]')?.value||'—';
+  const cand=selectedCandidate();
+  const fields=(cand?.matchedFields||[]).join(', ')||'—';
+  const now=new Date().toISOString();
+  el.hidden=false;
+  if(action==='export_json'){ el.textContent='Operativ status exporterad som JSON (lokal fil — ingen server-write).'; }
+  else { el.textContent=`Audit sparat: ${action} · reviewer ${reviewer} · ${now} · fält: ${fields}`; }
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.hidden=true;},8000);
+}
+
+function decide(action){
+  const item=currentItem();
+  if(!item)return;
+  const reviewer=(document.querySelector('[data-reviewer]')?.value||'').trim();
+  if(!reviewer||reviewer.length<2){ alert('Ange reviewer (minst 2 tecken).'); return; }
+  const reason=document.querySelector('[data-reason]')?.value?.trim()||'';
+  if((action==='approve_single_match'||action==='reject_candidate')&&!selectedCandidateId){ alert('Välj en kandidat.'); return; }
+  if(action==='approve_single_match'&&!selectedCandidate()?.approvable){ alert('Approve kräver minst 3 deterministiska fält på vald kandidat.'); return; }
+  if(action==='exclude_non_actionable'&&reason.length<3){ alert('Exclude kräver reason (minst 3 tecken).'); return; }
+  if(!window.confirm(`Bekräfta ${action} för ${item.conversationKey}?`))return;
+  showAuditToast(action);
+}
+
+function renderAll(){
+  renderMailboxGrid();
+  renderMailboxChips();
+  renderQueueList();
+  renderQueueMeta();
+  renderQueuePosition();
+  renderDetail();
+}
+
+// init
+selectedCandidateId=pickDefaultCandidate(currentItem());
+renderAll();
+
+document.querySelector('[data-mailbox-filter]')?.addEventListener('change',e=>setMailbox(e.target.value||''));
+document.querySelector('[data-filter-approvable]')?.addEventListener('change',e=>{
+  showApprovableOnly=e.target.checked===true;
+  const vis=visibleItems();
+  if(vis.length&&!vis.some(v=>v.idx===currentIndex))currentIndex=vis[0].idx;
+  renderQueueList();renderQueueMeta();
+});
+document.querySelector('[data-jump-next]')?.addEventListener('click',jumpToNextBest);
+document.querySelector('[data-export-status]')?.addEventListener('click',()=>showAuditToast('export_json'));
+document.querySelector('[data-export-decisions]')?.addEventListener('click',()=>showAuditToast('export_json'));
+document.addEventListener('keydown',ev=>{
+  if(ev.target.matches('textarea, input, select'))return;
+  if(ev.key==='ArrowDown'||ev.key==='j'){ev.preventDefault();navigateQueue(1);}
+  else if(ev.key==='ArrowUp'||ev.key==='k'){ev.preventDefault();navigateQueue(-1);}
+  else if(ev.key==='n'){ev.preventDefault();jumpToNextBest();}
+  else if(ev.key==='u'){ev.preventDefault();decide('leave_unresolved');}
+  else if(ev.key==='x'){ev.preventDefault();decide('exclude_non_actionable');}
+  else if(ev.key==='r'){ev.preventDefault();decide('reject_candidate');}
+});
+</script>
+<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
+</body>
+</html>

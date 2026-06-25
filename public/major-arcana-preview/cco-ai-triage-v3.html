@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO AI Triage — v3 responsiv</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== AI-TRIAGE-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* hero-statrad — mobil scroll, ≥601 4-up */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
+@media(max-width:600px){
+  .metrics{grid-auto-flow:column;grid-auto-columns:minmax(8.5rem,1fr);grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:calc(-1*var(--pad-x));padding-inline:var(--pad-x)}
+  .metrics::-webkit-scrollbar{display:none}
+  .metric{scroll-snap-align:start}
+}
+
+/* dry-run-banner */
+.dryrun{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.8rem 0;padding:.7rem 1rem;border-radius:var(--r-md);background:linear-gradient(135deg,rgba(252,224,200,.6),rgba(253,238,244,.55));border:1px solid rgba(154,100,16,.3);box-shadow:var(--sh-sm)}
+.dryrun .tagpill{flex-shrink:0;padding:.2rem .6rem;border-radius:var(--r-pill);background:var(--warning);color:#fff;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.dryrun .msg{flex:1;min-width:12rem;font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.4}
+.dryrun code{font-family:SFMono-Regular,Menlo,monospace;font-size:.7rem;background:rgba(120,108,95,.14);padding:.05rem .3rem;border-radius:5px;color:var(--text-primary)}
+
+/* filter-toolbar */
+.toolbar{display:flex;flex-direction:column;gap:.5rem;margin:.7rem 0 .9rem}
+.tb-groups{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center}
+
+/* triage-buckets — mobil 1-kol, iPad 2-kol, desktop 3-kol */
+.buckets{display:grid;grid-template-columns:1fr;gap:var(--gap);margin-top:.4rem}
+@media(min-width:601px){.buckets{grid-template-columns:1fr 1fr}}
+@media(min-width:1025px){.buckets{grid-template-columns:1fr 1fr 1fr;align-items:start}}
+
+.bucket{min-width:0}
+.bucket-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding-bottom:.6rem;margin-bottom:.7rem;border-bottom:1px solid rgba(180,165,150,.3)}
+.bucket-title{display:flex;align-items:center;gap:.45rem;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary)}
+.bucket-title::before{content:"";width:.55rem;height:.55rem;border-radius:999px;flex-shrink:0}
+.bucket-akut .bucket-title::before{background:var(--danger)}
+.bucket-idag .bucket-title::before{background:var(--warning)}
+.bucket-vecka .bucket-title::before{background:var(--info)}
+.bucket-count{flex-shrink:0;font-size:var(--fs-kicker);font-weight:800;padding:.1rem .55rem;border-radius:var(--r-pill);font-variant-numeric:tabular-nums}
+.bucket-akut .bucket-count{background:var(--danger-bg);color:var(--danger)}
+.bucket-idag .bucket-count{background:var(--warning-bg);color:var(--warning)}
+.bucket-vecka .bucket-count{background:var(--info-bg);color:var(--info)}
+.bucket-list{display:flex;flex-direction:column;gap:.55rem;min-width:0}
+.bucket-empty{padding:1.2rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)}
+
+/* mail-kort (card-primitiv + vänster-rail per route) */
+.mail{position:relative;border-left:3px solid transparent;min-width:0}
+.mail.routed-fazli{border-left-color:var(--success)}
+.mail.routed-egzona{border-left-color:var(--accent)}
+.mail.routed-contact{border-left-color:var(--warning)}
+.mail.routed-info{border-left-color:var(--info)}
+.mail-head{display:flex;align-items:baseline;gap:.5rem}
+.mail-from{font-size:var(--fs-meta);font-weight:800;color:var(--text-primary);min-width:0}
+.mail-from .vip{margin-left:.3rem;font-size:.5625rem;font-weight:800;padding:.05rem .4rem;border-radius:var(--r-pill);background:var(--gold-bg);color:var(--gold);letter-spacing:.06em;text-transform:uppercase;vertical-align:middle}
+.mail-time{margin-left:auto;flex-shrink:0;font-size:var(--fs-kicker);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.mail-subj{font-size:var(--fs-meta);font-weight:700;line-height:1.35;margin-top:.25rem;color:var(--text-primary)}
+.mail-snippet{font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.4;margin-top:.2rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* konfidens-indikator */
+.conf{display:flex;align-items:center;gap:.5rem;margin-top:.55rem}
+.conf-bar{flex:1;min-width:3rem;height:.4rem;border-radius:999px;background:rgba(120,108,95,.2);overflow:hidden}
+.conf-bar i{display:block;height:100%;border-radius:999px;background:var(--success)}
+.conf.mid .conf-bar i{background:var(--warning)}
+.conf.low .conf-bar i{background:var(--danger)}
+.conf-num{flex-shrink:0;font-size:var(--fs-kicker);font-weight:800;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+
+.mail-foot{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;margin-top:.55rem}
+.mail-meta{display:flex;gap:.25rem;flex-wrap:wrap;min-width:0}
+.mail-meta span{font-size:var(--fs-kicker);font-weight:700;padding:.1rem .45rem;border-radius:var(--r-pill);background:rgba(120,108,95,.12);color:var(--text-secondary)}
+.mail-meta .routed{background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(244,238,232,.8));color:var(--text-primary);border:1px solid rgba(180,165,150,.3)}
+.mail-sla{flex-shrink:0;display:inline-flex;align-items:center;gap:.3rem;font-size:var(--fs-kicker);font-weight:800;padding:.15rem .5rem;border-radius:var(--r-pill);font-variant-numeric:tabular-nums}
+.mail-sla.danger{background:var(--danger-bg);color:var(--danger)}
+.mail-sla.warn{background:var(--warning-bg);color:var(--warning)}
+.mail-sla.ok{background:var(--success-bg);color:var(--success)}
+
+/* AI-skäl */
+.mail-ai{font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.45;margin-top:.55rem;padding:.55rem .7rem;border-radius:var(--r-sm);background:linear-gradient(180deg,rgba(253,238,244,.55),rgba(252,224,200,.4));border:1px solid rgba(154,100,16,.18)}
+.mail-ai::before{content:"★ ";font-weight:800;color:var(--gold)}
+.mail-ai a{color:var(--accent)}
+
+/* action-knappar i kort */
+.mail-acts{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.6rem}
+.mail-acts .btn{min-height:2.25rem;padding:0 .75rem;font-size:var(--fs-kicker)}
+@media(pointer:coarse){.mail-acts .btn{min-height:var(--tap)}}
+.mail-acts .btn--send{background:var(--gold-bg);border-color:rgba(138,95,30,.3);color:var(--gold)}
+.mail-acts .btn:disabled{opacity:.55;cursor:wait}
+
+/* nedre paneler — regler + SLA */
+.rules{display:grid;grid-template-columns:1fr;gap:var(--gap);margin-top:1.1rem}
+@media(min-width:769px){.rules{grid-template-columns:1fr 1fr;align-items:start}}
+.rule-panel h2 .badge{font-size:var(--fs-kicker);font-weight:800;padding:.1rem .5rem;border-radius:var(--r-pill);background:var(--success-bg);color:var(--success);margin-left:.5rem;vertical-align:middle}
+.rule-table{display:flex;flex-direction:column}
+.rule-row{display:grid;grid-template-columns:1fr auto auto;gap:.6rem;align-items:center;padding:.6rem 0;border-bottom:1px solid rgba(180,165,150,.22)}
+.rule-row:last-child{border-bottom:none}
+.rule-condition{font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.4;min-width:0}
+.rule-condition code{font-family:SFMono-Regular,Menlo,monospace;font-size:.7rem;background:rgba(120,108,95,.12);padding:.05rem .3rem;border-radius:4px;color:var(--text-primary)}
+.rule-arrow{color:var(--text-tertiary);font-weight:800}
+.rule-target{flex-shrink:0;font-size:var(--fs-kicker);font-weight:800;padding:.15rem .5rem;border-radius:var(--r-pill);white-space:nowrap}
+.rule-target.fazli{background:var(--success-bg);color:var(--success)}
+.rule-target.egzona{background:rgba(120,108,95,.14);color:var(--text-primary)}
+.rule-target.contact{background:var(--warning-bg);color:var(--warning)}
+
+/* SLA-grid */
+.sla-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+.sla-cell-lbl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:.2rem}
+.sla-cell-num{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sla-cell-num.good{color:var(--success)}.sla-cell-num.warn{color:var(--warning)}
+.sla-cell-sub{font-size:var(--fs-kicker);color:var(--text-secondary);margin-top:.15rem}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:5.5rem;transform:translate(-50%,1rem);z-index:200;max-width:min(22rem,90vw);padding:.8rem 1.1rem;border-radius:var(--r-md);background:var(--success);color:#fff;font-size:var(--fs-meta);font-weight:700;box-shadow:var(--sh-lg);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;line-height:1.4}
+.toast.dryrun{background:var(--warning)}
+.toast.error{background:var(--danger)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast small{display:block;margin-top:.2rem;font-size:var(--fs-kicker);font-weight:600;opacity:.9}
+@media(min-width:601px){.toast{bottom:1.5rem;left:auto;right:1.5rem;transform:translateY(1rem)}.toast.show{transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i triage…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- ===== HEAD ===== -->
+  <div class="head">
+    <div class="head-main">
+      <span class="kicker">★ AI Triage · 7 mailboxes · uppdaterad nu</span>
+      <h1 class="h1">AI har sorterat dagens 47 mejl åt dig</h1>
+      <p class="subtitle">Modellen läser ämne + första 100 ord, identifierar intent (boka/avboka/fråga/klagomål/pris), kund-LTV och deadline. Routing-reglerna under är dina egna — du kan ändra när som helst.</p>
+    </div>
+  </div>
+
+  <!-- ===== HERO-STATRAD (metric) ===== -->
+  <div class="metrics">
+    <div class="metric metric--rose"><div class="m-label">Akut · &lt; 2h</div><div class="m-val tabnum">3</div><div class="m-meta">svar inom 2h</div></div>
+    <div class="metric metric--gold"><div class="m-label">Idag</div><div class="m-val tabnum">18</div><div class="m-meta">svar innan 18:00</div></div>
+    <div class="metric metric--blue"><div class="m-label">v.22 / info</div><div class="m-val tabnum">22</div><div class="m-meta">info-only</div></div>
+    <div class="metric metric--green"><div class="m-label">Snitt-svarstid</div><div class="m-val tabnum">4 min</div><div class="m-meta">▼ från 11 min</div></div>
+  </div>
+
+  <!-- ===== DRY-RUN-BANNER ===== -->
+  <div class="dryrun" role="status" aria-live="polite">
+    <span class="tagpill">Dry-run</span>
+    <span class="msg">Send-actions körs i dry-run-läge: ingen email skickas till patient, men audit-event registreras. Sätt <code>RESEND_API_KEY</code> + <code>CCO_SEND_DRY_RUN=false</code> i .env för live.</span>
+  </div>
+
+  <!-- ===== FILTER-TOOLBAR ===== -->
+  <div class="toolbar">
+    <div class="tb-groups">
+      <div class="pillrow" role="group" aria-label="Filter">
+        <button class="pill" data-filter="alla" aria-pressed="true">Alla <span class="c" id="cAlla">10</span></button>
+        <button class="pill" data-filter="akut" aria-pressed="false">Akut <span class="c">3</span></button>
+        <button class="pill" data-filter="idag" aria-pressed="false">Idag <span class="c">5</span></button>
+        <button class="pill" data-filter="vecka" aria-pressed="false">v.22 / Info <span class="c">4</span></button>
+        <button class="pill" data-filter="vip" aria-pressed="false">VIP <span class="c">2</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TRIAGE-BUCKETS ===== -->
+  <div class="buckets" id="buckets">
+
+    <!-- AKUT -->
+    <section class="bucket bucket-akut" data-bucket="akut">
+      <div class="bucket-head">
+        <div class="bucket-title">Akut · svar inom 2h</div>
+        <span class="bucket-count" data-count>3</span>
+      </div>
+      <div class="bucket-list">
+
+        <article class="card mail routed-egzona" data-bucket="akut" data-cid="henrik-johansson" data-email="henrik@example.com" data-name="Henrik Johansson">
+          <div class="mail-head"><div class="mail-from">Henrik Johansson <span class="vip">VIP</span></div><div class="mail-time">09:42</div></div>
+          <div class="mail-subj">Måste flytta dagens FUE 15:00 — akut</div>
+          <div class="mail-snippet">Hej, har precis fått besked om att jag måste arbeta resten av dagen. Kan vi flytta till imorgon eller måndag? Beklagar verkligen…</div>
+          <div class="conf"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:94%"></i></span><span class="conf-num">94%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Egzona</span><span>Avbokning &lt; 24h</span><span>3:e ggn</span></div>
+            <div class="mail-sla danger">⏱ 1h 12m kvar</div>
+          </div>
+          <div class="mail-ai">Hög no-show-historik — ring direkt istället för mejl. Föreslå imorgon 13:00 (ledigt slot) eller måndag 09:00.</div>
+          <div class="mail-acts">
+            <button class="btn btn--primary">📞 Ring nu</button>
+            <button class="btn">Föreslå tider</button>
+            <button class="btn">Skapa utkast</button>
+            <button class="btn btn--send send-action" data-send="encounter" data-treatment="FUE-konsultation" data-staff="Egzona">📅 Skicka boknings-bek.</button>
+          </div>
+        </article>
+
+        <article class="card mail routed-fazli" data-bucket="akut">
+          <div class="mail-head"><div class="mail-from">Lars Eriksson</div><div class="mail-time">09:51</div></div>
+          <div class="mail-subj">Komplikation efter FUE — blödning</div>
+          <div class="mail-snippet">Vaknade nu med ovanligt mycket blod på örngottet. Inte panik men vill att ni tittar. Kan jag komma in idag?</div>
+          <div class="conf"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:97%"></i></span><span class="conf-num">97%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Fazli (medicinskt)</span><span>Post-op fråga</span></div>
+            <div class="mail-sla danger">⏱ 38 min kvar</div>
+          </div>
+          <div class="mail-ai">Medicinsk komplikation — Fazli ska svara, inte AI-utkast. Bocka av "läst" och ring inom 30 min.</div>
+          <div class="mail-acts"><button class="btn btn--primary">📞 Ring</button><button class="btn">Bok akut-tid</button></div>
+        </article>
+
+        <article class="card mail routed-contact" data-bucket="akut">
+          <div class="mail-head"><div class="mail-from">Petra Lindström</div><div class="mail-time">10:14</div></div>
+          <div class="mail-subj">SVAR: Kan inte komma 17:30 idag</div>
+          <div class="mail-snippet">Försökte ringa men gick inte fram. Min son blev sjuk, kan inte komma till PRP idag. Måste vi betala något?</div>
+          <div class="conf mid"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:82%"></i></span><span class="conf-num">82%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Contact</span><span>Late-cancel</span></div>
+            <div class="mail-sla warn">⏱ 1h 46m kvar</div>
+          </div>
+          <div class="mail-ai">Late-cancel-policy kickar in (50% avgift). AI-mall finns: "Vi förstår, ingen avgift denna gång". Skicka för signoff.</div>
+          <div class="mail-acts"><button class="btn btn--primary">Skicka AI-utkast</button><button class="btn">Avstå avgift</button></div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- IDAG -->
+    <section class="bucket bucket-idag" data-bucket="idag">
+      <div class="bucket-head">
+        <div class="bucket-title">Idag · svar innan 18:00</div>
+        <span class="bucket-count" data-count>18</span>
+      </div>
+      <div class="bucket-list">
+
+        <article class="card mail routed-info" data-bucket="idag" data-cid="sara-wikander" data-email="sara@example.com" data-name="Sara Wikander">
+          <div class="mail-head"><div class="mail-from">Sara Wikander</div><div class="mail-time">08:22</div></div>
+          <div class="mail-subj">Pris för FUE 3000 graft?</div>
+          <div class="mail-snippet">Hej, jag funderar på FUE och har sett att ni har bra priser. Vad kostar det för cirka 3000 graft? Tar ni Klarna?</div>
+          <div class="conf"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:91%"></i></span><span class="conf-num">91%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Fazli</span><span>Prisförfrågan</span><span>Ny lead</span></div>
+            <div class="mail-sla ok">⏱ 7h 32m</div>
+          </div>
+          <div class="mail-ai">Lead-prio. Skicka pris + bok-länk på 5 min, så ökar konvertering 2,3x enligt vår data.</div>
+          <div class="mail-acts">
+            <button class="btn btn--primary">AI-utkast med pris+länk</button>
+            <button class="btn">Boka konsult</button>
+            <button class="btn btn--send send-action" data-send="form" data-form-kind="health_declaration">📋 Skicka formulär</button>
+            <button class="btn btn--send send-action" data-send="file" data-file-name="prislista-fue.pdf" data-file-mime="application/pdf">📎 Skicka prislista</button>
+          </div>
+        </article>
+
+        <article class="card mail routed-egzona" data-bucket="idag" data-vip>
+          <div class="mail-head"><div class="mail-from">Anna Karlsson <span class="vip">VIP</span></div><div class="mail-time">08:48</div></div>
+          <div class="mail-subj">RE: Bekräftelse PRP imorgon</div>
+          <div class="mail-snippet">Tack, ser fram emot det. En fråga bara — får jag ta värktablett innan, eller försämrar det effekten?</div>
+          <div class="conf"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:88%"></i></span><span class="conf-num">88%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Egzona</span><span>Medicinsk fråga</span></div>
+            <div class="mail-sla ok">⏱ 6h kvar</div>
+          </div>
+          <div class="mail-ai">Standardsvar finns: "Undvik NSAID 48h innan, paracetamol OK". Egzona signerar.</div>
+          <div class="mail-acts"><button class="btn btn--primary">Skicka AI-utkast</button></div>
+        </article>
+
+        <article class="card mail routed-contact" data-bucket="idag">
+          <div class="mail-head"><div class="mail-from">Mikael Berg</div><div class="mail-time">09:03</div></div>
+          <div class="mail-subj">Boka konsultation</div>
+          <div class="mail-snippet">Hej! Skulle vilja boka en konsultation någon gång nästa vecka. Helst tisdag eller torsdag eftermiddag.</div>
+          <div class="conf"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:89%"></i></span><span class="conf-num">89%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Contact</span><span>Bokningsförfrågan</span></div>
+            <div class="mail-sla ok">⏱ 5h 30m</div>
+          </div>
+          <div class="mail-ai">3 slots matchar: tis 14:00, tis 16:30, tor 15:00. <a href="/email-to-booking.html">Öppna Email→Booking</a> för 1-klicks-bok.</div>
+          <div class="mail-acts"><button class="btn btn--primary">→ Email→Booking</button></div>
+        </article>
+
+        <article class="card mail routed-egzona" data-bucket="idag" data-cid="jonas-persson" data-email="jonas@example.com" data-name="Jonas Persson">
+          <div class="mail-head"><div class="mail-from">Jonas Persson</div><div class="mail-time">11:02</div></div>
+          <div class="mail-subj">Foton från 6-månaders uppföljning</div>
+          <div class="mail-snippet">Bifogar foton som ni bad om. Tror det börjar synas resultat nu! Vad tycker ni?</div>
+          <div class="conf mid"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:79%"></i></span><span class="conf-num">79%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Egzona</span><span>3 bilagor</span><span>Uppföljning</span></div>
+            <div class="mail-sla ok">⏱ 4h</div>
+          </div>
+          <div class="mail-ai">Foton uppladdade till Drive automatiskt. AI-utkast: "Snygg utveckling! Vi ses 12 mån."</div>
+          <div class="mail-acts">
+            <button class="btn btn--primary">Spara → kundkort</button>
+            <button class="btn">AI-utkast</button>
+            <button class="btn btn--send send-action" data-send="consent" data-consent-kind="photo_publish">✍ Skicka publiceringssamtycke</button>
+          </div>
+        </article>
+
+        <article class="card mail routed-info" data-bucket="idag">
+          <div class="mail-head"><div class="mail-from">Emma Sjöberg</div><div class="mail-time">11:30</div></div>
+          <div class="mail-subj">Recension på Google + tackmejl</div>
+          <div class="mail-snippet">Lämnade nyss 5⭐ på Google! Ville bara säga tack för fantastiskt jobb och bemötande. Rekommenderar er till alla!</div>
+          <div class="conf"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:93%"></i></span><span class="conf-num">93%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Marknad</span><span>NPS-promoter</span></div>
+            <div class="mail-sla ok">⏱ 3h 30m</div>
+          </div>
+          <div class="mail-ai">Spara som testimonial — kan användas på hemsidan. Auto-tack-mall + remiss-pitch.</div>
+          <div class="mail-acts"><button class="btn btn--primary">Skicka tack + rabattkod</button></div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- v.22 / Info-only -->
+    <section class="bucket bucket-vecka" data-bucket="vecka">
+      <div class="bucket-head">
+        <div class="bucket-title">v.22 / Info-only</div>
+        <span class="bucket-count" data-count>22</span>
+      </div>
+      <div class="bucket-list">
+
+        <article class="card mail" data-bucket="vecka">
+          <div class="mail-head"><div class="mail-from">Newsletter — Hairscience</div><div class="mail-time">08:00</div></div>
+          <div class="mail-subj">Veckans nyhetsbrev · nya studier</div>
+          <div class="mail-snippet">Senaste forskningen inom hårtransplantation: 18-månaders studie visar 89% retention med ny PRP-protokoll…</div>
+          <div class="conf low"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:99%"></i></span><span class="conf-num">99%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span>Newsletter</span><span>Auto-arkivera</span></div>
+            <div class="mail-sla ok">— ingen svar krävs</div>
+          </div>
+          <div class="mail-ai">Newsletter. Markeras som läst om inte öppnad inom 7 dagar.</div>
+        </article>
+
+        <article class="card mail" data-bucket="vecka">
+          <div class="mail-head"><div class="mail-from">Resend.com</div><div class="mail-time">09:15</div></div>
+          <div class="mail-subj">Veckorapport: 1 248 mejl skickade</div>
+          <div class="mail-snippet">Deliverability: 99,2%. Bounces: 4. Spam-rapporter: 0. Open rate: 64%.</div>
+          <div class="conf"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:99%"></i></span><span class="conf-num">99%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span>System</span><span>Rapport</span></div>
+            <div class="mail-sla ok">—</div>
+          </div>
+          <div class="mail-ai">System-rapport. Auto-arkiverat.</div>
+        </article>
+
+        <article class="card mail" data-bucket="vecka">
+          <div class="mail-head"><div class="mail-from">Skattemyndigheten</div><div class="mail-time">10:42</div></div>
+          <div class="mail-subj">Påminnelse · F-skatt v.22</div>
+          <div class="mail-snippet">Detta är en automatisk påminnelse om att F-skatten för v.22 förfaller om 5 dagar…</div>
+          <div class="conf"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:96%"></i></span><span class="conf-num">96%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span>Myndighet</span><span>→ Bokföring</span></div>
+            <div class="mail-sla warn">5 dagar</div>
+          </div>
+          <div class="mail-ai">Forward till bokföring@hairtpclinic.com automatiskt.</div>
+        </article>
+
+        <article class="card mail routed-contact" data-bucket="vecka">
+          <div class="mail-head"><div class="mail-from">Maja Birgersson</div><div class="mail-time">12:18</div></div>
+          <div class="mail-subj">Tack för senaste! Vill boka om 3 mån</div>
+          <div class="mail-snippet">Allt gick bra, känner ingen smärta längre. Ville fråga om jag kan boka uppföljning för augusti redan nu?</div>
+          <div class="conf mid"><span class="sec-kicker">Konfidens</span><span class="conf-bar"><i style="width:84%"></i></span><span class="conf-num">84%</span></div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span class="routed">→ Contact</span><span>Återkommande</span></div>
+            <div class="mail-sla ok">v.22-rest</div>
+          </div>
+          <div class="mail-ai">Inget brådskande, men prioritera VIP-fönster i augusti.</div>
+        </article>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ===== NEDRE PANELER ===== -->
+  <div class="rules">
+
+    <!-- Auto-routing-regler -->
+    <section class="panel rule-panel">
+      <div class="panel-head"><h2>Auto-routing-regler<span class="badge">12 aktiva</span></h2></div>
+      <div class="rule-table">
+        <div class="rule-row">
+          <div class="rule-condition">Avsändare i <code>VIP-lista</code> + ämne innehåller "boka"</div>
+          <span class="rule-arrow">→</span><span class="rule-target egzona">Egzona</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">Ämne innehåller <code>pris|kostnad|finansiering</code></div>
+          <span class="rule-arrow">→</span><span class="rule-target fazli">Fazli</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">Ämne innehåller <code>komplikation|blödning|smärta|infektion</code></div>
+          <span class="rule-arrow">→</span><span class="rule-target fazli">Fazli</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">Avsändare = <code>existerande patient</code> + ämne innehåller "boka om|flytta"</div>
+          <span class="rule-arrow">→</span><span class="rule-target contact">Contact</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">Avsändare innehåller <code>recension|review|⭐|Trustpilot</code></div>
+          <span class="rule-arrow">→</span><span class="rule-target contact">Marknad</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">Ny avsändare + svensk språk-detektion</div>
+          <span class="rule-arrow">→</span><span class="rule-target contact">Contact</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">AI sentiment = <code>negativt</code> + LTV &gt; 20 000</div>
+          <span class="rule-arrow">→</span><span class="rule-target egzona">Egzona</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLA performance -->
+    <section class="panel rule-panel">
+      <div class="panel-head"><h2>SLA · denna vecka</h2></div>
+      <div class="sla-grid">
+        <div class="card">
+          <div class="sla-cell-lbl">Akut &lt; 2h</div>
+          <div class="sla-cell-num good tabnum">100%</div>
+          <div class="sla-cell-sub">12 av 12 mejl ✓</div>
+        </div>
+        <div class="card">
+          <div class="sla-cell-lbl">Idag &lt; 8h</div>
+          <div class="sla-cell-num good tabnum">94%</div>
+          <div class="sla-cell-sub">62 av 66 mejl ✓</div>
+        </div>
+        <div class="card">
+          <div class="sla-cell-lbl">v.22 &lt; 48h</div>
+          <div class="sla-cell-num warn tabnum">88%</div>
+          <div class="sla-cell-sub">96 av 109 mejl ✓</div>
+        </div>
+        <div class="card">
+          <div class="sla-cell-lbl">Snitt-svarstid</div>
+          <div class="sla-cell-num tabnum">4,2 min</div>
+          <div class="sla-cell-sub">▼ från 11 min · oktober</div>
+        </div>
+      </div>
+
+      <div class="panel-head" style="margin-top:1.1rem"><h2>Volym per mailbox · v.22</h2></div>
+      <div class="sla-grid">
+        <div class="card">
+          <div class="sla-cell-lbl">contact@</div>
+          <div class="sla-cell-num tabnum">73</div>
+          <div class="sla-cell-sub">38% av totalvolym</div>
+        </div>
+        <div class="card">
+          <div class="sla-cell-lbl">info@</div>
+          <div class="sla-cell-num tabnum">52</div>
+          <div class="sla-cell-sub">27%</div>
+        </div>
+        <div class="card">
+          <div class="sla-cell-lbl">egzona@</div>
+          <div class="sla-cell-num tabnum">38</div>
+          <div class="sla-cell-sub">20%</div>
+        </div>
+        <div class="card">
+          <div class="sla-cell-lbl">fazli@</div>
+          <div class="sla-cell-num tabnum">28</div>
+          <div class="sla-cell-sub">15%</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ===== BOTNAV ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+// ===== Filter-pillar: aktiv state + filtrera triage-kort =====
+(function(){
+  const pills=[...document.querySelectorAll('.pill[data-filter]')];
+  const buckets=[...document.querySelectorAll('.bucket')];
+  function apply(f){
+    buckets.forEach(b=>{
+      const cards=[...b.querySelectorAll('.mail')];
+      let visible=0;
+      cards.forEach(c=>{
+        const inBucket=c.dataset.bucket;
+        const isVip=c.hasAttribute('data-vip')||c.querySelector('.vip');
+        let show=true;
+        if(f==='vip') show=!!isVip;
+        else if(f!=='alla') show=(inBucket===f);
+        c.style.display=show?'':'none';
+        if(show)visible++;
+      });
+      // dölj hela bucket om inget synligt
+      b.style.display=visible?'':'none';
+      const cnt=b.querySelector('[data-count]');
+      if(cnt&&f!=='alla'&&f!=='vip') {/* behåll riktig totalsiffra */}
+    });
+  }
+  pills.forEach(p=>p.addEventListener('click',()=>{
+    pills.forEach(x=>x.setAttribute('aria-pressed','false'));
+    p.setAttribute('aria-pressed','true');
+    apply(p.dataset.filter);
+  }));
+})();
+
+// ===== Send-actions: dry-run-bekräftelse + toast =====
+(function(){
+  const toast=document.getElementById('toast');
+  let _t;
+  function showToast(msg,kind,sub){
+    toast.className='toast '+(kind||'');
+    toast.innerHTML=msg+(sub?'<small>'+sub+'</small>':'');
+    requestAnimationFrame(()=>toast.classList.add('show'));
+    clearTimeout(_t);_t=setTimeout(()=>toast.classList.remove('show'),4000);
+  }
+  document.body.addEventListener('click',e=>{
+    const btn=e.target.closest('button.send-action');
+    if(!btn)return;
+    const kind=btn.dataset.send;
+    const article=btn.closest('article.mail');
+    const name=article?.dataset.name||'kund';
+    const email=article?.dataset.email||'';
+    if(!email){showToast('⚠ Saknar email på mail-raden (data-email).','error');return;}
+    if(!confirm(`Skicka ${kind} till ${name}?\n\nDry-run aktivt: ingen email skickas, men audit-event registreras.`))return;
+    btn.disabled=true;const orig=btn.textContent;btn.textContent='… skickar';
+    setTimeout(()=>{
+      btn.disabled=false;btn.textContent=orig;
+      const mask=email.replace(/^(.).*(@.*)$/,'$1•••$2');
+      showToast('✓ Dry-run: '+kind+' → '+mask,'dryrun','Audit-event registrerat');
+    },650);
+  });
+})();
+
+// ===== Botnav: aktiv flik =====
+(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();
+</script>
+</body>
+</html>

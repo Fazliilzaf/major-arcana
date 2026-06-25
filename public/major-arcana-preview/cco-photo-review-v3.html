@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO Bildgranskning — v3 responsiv</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== BILDGRANSKNING-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* read-only / write badge + banner */
+.badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.02em;white-space:nowrap}
+.badge--readonly{background:var(--warning-bg);color:var(--warning)}
+.badge--write{background:var(--success-bg);color:var(--success)}
+.banner{margin:.6rem 0 .2rem;padding:.7rem .9rem;border-radius:var(--r-md);background:var(--warning-bg);border:1px solid rgba(154,100,16,.28);color:var(--text-secondary)}
+.banner strong{display:block;color:var(--warning);font-size:var(--fs-meta);margin-bottom:.15rem}
+.banner p{margin:0;font-size:var(--fs-meta)}
+
+/* reviewer-fält */
+.reviewer{display:flex;flex-direction:column;gap:.25rem;margin:.7rem 0 .2rem;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);max-width:22rem}
+.reviewer input{appearance:none;min-height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);padding:0 .8rem;font:inherit;font-size:var(--fs-body);font-weight:600;color:var(--text-primary);text-transform:none;letter-spacing:0}
+
+/* metric-rad — mobil scroll, ≥601 4-up */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
+@media(max-width:600px){
+  .metrics{grid-auto-flow:column;grid-auto-columns:minmax(8.5rem,1fr);grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:calc(-1*var(--pad-x));padding-inline:var(--pad-x)}
+  .metrics::-webkit-scrollbar{display:none}
+  .metric{scroll-snap-align:start}
+}
+
+/* progress */
+.progress{margin:.8rem 0 .2rem}
+.progress-track{height:.55rem;border-radius:999px;background:rgba(180,165,150,.22);overflow:hidden}
+.progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),#d2649a)}
+.progress-label{margin:.4rem 0 0;font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary)}
+.progress-stats{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem}
+.pstat{padding:.1rem .5rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;background:rgba(180,165,150,.16);color:var(--text-secondary)}
+.pstat--ok{background:var(--success-bg);color:var(--success)}
+.pstat--no{background:var(--danger-bg);color:var(--danger)}
+.pstat--re{background:var(--violet-bg);color:var(--violet)}
+
+/* toolbar / filter */
+.toolbar{display:flex;flex-direction:column;gap:.55rem;margin:.9rem 0 .9rem}
+.tb-groups{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center}
+.tb-grp-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary);margin-right:.1rem}
+
+/* layout: patientkö + bildrutnät */
+.review-layout{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+@media(min-width:601px){
+  .review-layout{grid-template-columns:minmax(0,260px) minmax(0,1fr);align-items:start}
+  .patients{position:sticky;top:4.5rem}
+}
+@media(min-width:1025px){
+  .review-layout{grid-template-columns:300px minmax(0,1fr)}
+}
+
+/* patientkö */
+.patients{min-width:0}
+.patient-list{display:flex;flex-direction:column;gap:.35rem;margin-top:.6rem;max-height:60vh;overflow-y:auto;scrollbar-width:thin}
+.patient-btn{width:100%;text-align:left;min-height:var(--tap);padding:.55rem .7rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.24);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.82));cursor:pointer;display:flex;flex-direction:column;gap:.15rem}
+.patient-btn.is-active{border-color:var(--accent);background:linear-gradient(180deg,#fff6fa,rgba(253,238,244,.82))}
+.patient-btn .pid{font-size:var(--fs-meta);font-weight:800;color:var(--text-primary)}
+.patient-btn .pmeta{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+
+/* bildrutnät — auto-fit thumbnails */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr));gap:var(--gap);min-width:0}
+.photo-card{display:flex;flex-direction:column;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md);overflow:hidden}
+.photo-card.is-active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(176,53,110,.25),var(--sh-md)}
+/* thumbnail — neutral platshållare med gradient (inga externa URL) */
+.thumb{position:relative;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#efe6da,#e3d6c6 60%,#d9c9b6);color:var(--text-tertiary)}
+.thumb--before{background:linear-gradient(135deg,#e8edf2,#d6e0ea 60%,#c6d4e2)}
+.thumb--during{background:linear-gradient(135deg,#f1e8d6,#e9dcc0 60%,#ddcaa8)}
+.thumb--after{background:linear-gradient(135deg,#e3eee8,#cfe2d6 60%,#bcd6c6)}
+.thumb svg{width:2.4rem;height:2.4rem;opacity:.55}
+.thumb-missing{font-size:var(--fs-meta);font-weight:700;color:var(--warning);text-align:center;padding:0 .8rem}
+.stage-tag{position:absolute;top:.5rem;left:.5rem;padding:.15rem .55rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;background:rgba(255,255,255,.86);box-shadow:var(--sh-sm)}
+.stage-tag--before{color:var(--info)}.stage-tag--during{color:var(--gold)}.stage-tag--after{color:var(--success)}.stage-tag--follow_up{color:var(--violet)}.stage-tag--unknown{color:var(--text-tertiary)}
+.status-badge{position:absolute;top:.5rem;right:.5rem;padding:.15rem .55rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;box-shadow:var(--sh-sm)}
+.status-badge--vantar{background:var(--warning-bg);color:var(--warning)}
+.status-badge--godkand{background:var(--success-bg);color:var(--success)}
+.status-badge--avvisad{background:var(--danger-bg);color:var(--danger)}
+
+.pc-body{padding:.8rem .9rem;display:flex;flex-direction:column;gap:.4rem;flex:1}
+.pc-top{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.pc-pid{font-size:var(--fs-meta);font-weight:800;color:var(--text-primary)}
+.pc-batch{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-left:auto}
+.pc-dl{display:flex;flex-direction:column;gap:.18rem;margin:0}
+.pc-row{display:flex;gap:.5rem;font-size:var(--fs-meta)}
+.pc-row dt{flex-shrink:0;color:var(--text-tertiary);font-weight:700;min-width:6.5rem}
+.pc-row dd{margin:0;color:var(--text-secondary);min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pc-row dd code{font-size:var(--fs-kicker);background:rgba(180,165,150,.16);padding:.05rem .3rem;border-radius:6px}
+.warn-line{font-size:var(--fs-meta);color:var(--warning);font-weight:700}
+.day1-line{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+.alert-txt{color:var(--danger);font-weight:800}
+.ok-txt{color:var(--success);font-weight:800}
+/* sambands/consent-info */
+.consent{display:flex;align-items:flex-start;gap:.4rem;padding:.45rem .55rem;border-radius:var(--r-sm);background:var(--info-bg);font-size:var(--fs-kicker);color:var(--info);font-weight:700}
+.consent svg{width:.95rem;height:.95rem;flex-shrink:0;margin-top:.05rem}
+.consent--none{background:var(--danger-bg);color:var(--danger)}
+
+/* åtgärdsrad */
+.pc-actions{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:auto;padding-top:.2rem}
+.pc-actions .btn{flex:1;justify-content:center;min-width:5.5rem}
+.btn--approve{background:var(--success-bg);border-color:rgba(47,111,84,.3);color:var(--success)}
+
+/* fokuspanel (höger på desktop, ovanför grid på iPad) — sammanfattning */
+.focus-note{margin-top:var(--gap)}
+.focus-note h3{margin:0 0 .3rem;font-size:.95rem;font-weight:800}
+.focus-note p{margin:.2rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta)}
+.shortcuts{margin-top:.5rem;font-size:var(--fs-kicker);color:var(--text-tertiary)}
+.shortcuts kbd{background:rgba(180,165,150,.2);border-radius:5px;padding:.05rem .35rem;font-weight:800;font-size:.625rem}
+.empty{padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök patient / assetId…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- ===== HEAD ===== -->
+  <div class="head">
+    <div class="head-main">
+      <span class="kicker">Operator</span>
+      <h1 class="h1">Bildgranskning — operator</h1>
+      <p class="subtitle">Ett beslut per bild · ingen massapproval · ingen auto-approve. Migrerade Drive-bilder granskas manuellt tills VISIBLE.</p>
+    </div>
+    <span class="badge badge--readonly" data-write-badge>READ-ONLY — operator beta (inga beslut sparas)</span>
+  </div>
+
+  <!-- ===== READ-ONLY BANNER ===== -->
+  <div class="banner" data-readonly-banner>
+    <strong>Operator mode — read-only</strong>
+    <p>860 pending · 150 kunder · 0 VISIBLE · ingen auto-approve · ingen massapproval · inga godkänn-knappar.</p>
+  </div>
+
+  <!-- ===== REVIEWER (audit) ===== -->
+  <label class="reviewer">Reviewer (audit)
+    <input type="text" placeholder="ditt namn" />
+  </label>
+
+  <!-- ===== METRIC-RAD ===== -->
+  <div class="metrics">
+    <div class="metric metric--gold"><div class="m-label">Pending</div><div class="m-val tabnum">860</div><div class="m-meta">bilder i kö</div></div>
+    <div class="metric metric--slate"><div class="m-label">Kunder</div><div class="m-val tabnum">150</div><div class="m-meta">med pending bilder</div></div>
+    <div class="metric metric--green"><div class="m-label">VISIBLE</div><div class="m-val tabnum">0</div><div class="m-meta">efter granskning</div></div>
+    <div class="metric metric--rose"><div class="m-label">Beslut</div><div class="m-val tabnum">0</div><div class="m-meta">denna session</div></div>
+  </div>
+
+  <!-- ===== PROGRESS ===== -->
+  <div class="progress">
+    <div class="progress-track"><div class="progress-fill" data-progress-bar style="width:0%"></div></div>
+    <p class="progress-label" data-progress-label>0 beslut · 860 kvar · 0 VISIBLE · 150 kunder</p>
+    <div class="progress-stats" data-progress-stats>
+      <span class="pstat pstat--ok">✓ 0</span>
+      <span class="pstat pstat--no">✗ 0</span>
+      <span class="pstat pstat--re">↻ 0</span>
+      <span class="pstat" data-pos>1/8 i filter</span>
+      <span class="pstat">session visade 0</span>
+    </div>
+  </div>
+
+  <!-- ===== TOOLBAR / FILTER ===== -->
+  <div class="toolbar">
+    <div class="tb-groups">
+      <div class="pillrow scroll" role="group" aria-label="Stadium">
+        <span class="tb-grp-label">Stadium</span>
+        <button class="pill" data-filter="stage" data-val="all" aria-pressed="true">Alla stadier</button>
+        <button class="pill" data-filter="stage" data-val="before" aria-pressed="false">Före</button>
+        <button class="pill" data-filter="stage" data-val="during" aria-pressed="false">Under</button>
+        <button class="pill" data-filter="stage" data-val="after" aria-pressed="false">Efter</button>
+        <button class="pill" data-filter="stage" data-val="follow_up" aria-pressed="false">Uppföljning</button>
+        <button class="pill" data-filter="stage" data-val="unknown" aria-pressed="false">Okänd</button>
+      </div>
+    </div>
+    <div class="tb-groups">
+      <div class="pillrow scroll" role="group" aria-label="bodyArea">
+        <span class="tb-grp-label">bodyArea</span>
+        <button class="pill" data-filter="body" data-val="all" aria-pressed="true">Alla bodyArea</button>
+        <button class="pill" data-filter="body" data-val="skalp" aria-pressed="false">skalp</button>
+        <button class="pill" data-filter="body" data-val="donor" aria-pressed="false">donor</button>
+        <button class="pill" data-filter="body" data-val="recipient" aria-pressed="false">recipient</button>
+        <button class="pill" data-filter="body" data-val="hairline" aria-pressed="false">hairline</button>
+        <button class="pill" data-filter="body" data-val="crown" aria-pressed="false">crown</button>
+        <button class="pill" data-filter="body" data-val="front" aria-pressed="false">front</button>
+        <button class="pill" data-filter="body" data-val="sidor" aria-pressed="false">sidor</button>
+        <button class="pill" data-filter="body" data-val="bak" aria-pressed="false">bak</button>
+        <button class="pill" data-filter="body" data-val="annat" aria-pressed="false">annat</button>
+        <button class="pill" data-filter="body" data-val="unknown" aria-pressed="false">okänd</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LAYOUT: PATIENTKÖ + BILDRUTNÄT ===== -->
+  <div class="review-layout">
+
+    <!-- VÄNSTER: patientkö -->
+    <aside class="patients">
+      <div class="panel">
+        <div class="panel-head"><h2 data-patient-count>Patientkö (4)</h2><p>Sorterad efter antal pending bilder.</p></div>
+        <div class="patient-list" data-patient-list></div>
+        <div class="focus-note">
+          <p class="shortcuts"><kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> godkänn · <kbd>R</kbd> avvisa · <kbd>C</kbd> omkategori · <kbd>N</kbd>/<kbd>P</kbd> navigera bild · <kbd>Shift+N</kbd> nästa patient</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- HÖGER: bildrutnät -->
+    <main>
+      <div class="photo-grid" data-photo-grid></div>
+    </main>
+
+  </div>
+</div>
+
+<!-- ===== BOTNAV ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+const STAGE_LABEL={before:'Före',during:'Under',after:'Efter',follow_up:'Uppföljning',unknown:'Okänd'};
+const STATUS_LABEL={vantar:'Väntar',godkand:'Godkänd',avvisad:'Avvisad'};
+// Plausibla demo-bilder (ids/hash som i prod — ingen patientdata)
+const QUEUE=[
+  {assetId:'ast_9f2a31c4d7',patientId:'pat_8821ffae0093',batch:'Drive 2024-11',stage:'before',body:'hairline',suggested:'photo_before',confidence:'hög',uncertainty:'—',storage:true,status:'vantar',consent:'samtycke ok'},
+  {assetId:'ast_71be0c8a92',patientId:'pat_8821ffae0093',batch:'Drive 2024-11',stage:'after',body:'crown',suggested:'photo_after',confidence:'medel',uncertainty:'Stadie efter/uppföljning oklart',storage:true,status:'vantar',consent:'samtycke ok'},
+  {assetId:'ast_2c5d40f1ab',patientId:'pat_4410bc77d215',batch:'Drive 2024-09',stage:'during',body:'donor',suggested:'photo_during',confidence:'hög',uncertainty:'—',storage:true,status:'godkand',consent:'samtycke ok'},
+  {assetId:'ast_e803ad6612',patientId:'pat_4410bc77d215',batch:'Drive 2024-09',stage:'before',body:'recipient',suggested:'photo_before',confidence:'låg',uncertainty:'Suddig — kan vara donor',storage:false,status:'vantar',consent:'samtycke saknas'},
+  {assetId:'ast_55fa19c0de',patientId:'pat_30f9aa11b864',batch:'Drive 2025-01',stage:'after',body:'front',suggested:'photo_after',confidence:'hög',uncertainty:'—',storage:true,status:'avvisad',consent:'samtycke ok'},
+  {assetId:'ast_b1207e4f6a',patientId:'pat_30f9aa11b864',batch:'Drive 2025-01',stage:'follow_up',body:'crown',suggested:'photo_after',confidence:'medel',uncertainty:'Markerad uppföljning i reason',storage:true,status:'vantar',consent:'samtycke ok'},
+  {assetId:'ast_cc6630a8f2',patientId:'pat_30f9aa11b864',batch:'Drive 2025-01',stage:'unknown',body:'unknown',suggested:'photo_before',confidence:'låg',uncertainty:'Okänt stadium · okänd bodyArea',storage:true,status:'vantar',consent:'samtycke ok'},
+  {assetId:'ast_4ad7782b19',patientId:'pat_7752cd903e41',batch:'Drive 2024-12',stage:'before',body:'skalp',suggested:'photo_before',confidence:'hög',uncertainty:'—',storage:true,status:'vantar',consent:'samtycke ok'},
+];
+
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const grid=document.querySelector('[data-photo-grid]');
+const plist=document.querySelector('[data-patient-list]');
+const pcount=document.querySelector('[data-patient-count]');
+const posEl=document.querySelector('[data-pos]');
+
+let fStage='all', fBody='all', activePatient=null, cursor=0;
+
+const THUMB_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 16l-5-5L5 20"/></svg>';
+
+function passFilter(it){
+  if(fStage!=='all' && it.stage!==fStage) return false;
+  if(fBody!=='all' && it.body!==fBody) return false;
+  return true;
+}
+
+function card(it,idx,active){
+  const missing=!it.storage;
+  const thumb = missing
+    ? `<div class="thumb thumb--${it.stage}"><span class="thumb-missing">Saknar preview (storageKey/checksum)</span></div>`
+    : `<div class="thumb thumb--${it.stage}">${THUMB_SVG}</div>`;
+  const consent = it.consent==='samtycke saknas'
+    ? `<div class="consent consent--none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Sambands-/samtyckesinfo saknas</div>`
+    : `<div class="consent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Samtycke kopplat · samband patient/bild ok</div>`;
+  return `<article class="photo-card${active?' is-active':''}" data-idx="${idx}">
+    <div class="thumb-wrap" style="position:relative">${thumb}
+      <span class="stage-tag stage-tag--${it.stage}">${esc(STAGE_LABEL[it.stage]||it.stage)}</span>
+      <span class="status-badge status-badge--${it.status}">${esc(STATUS_LABEL[it.status])}</span>
+    </div>
+    <div class="pc-body">
+      <div class="pc-top">
+        <span class="pc-pid">${esc(it.patientId.slice(-10))}</span>
+        <span class="pc-batch">${esc(it.batch)}</span>
+      </div>
+      <p class="day1-line">Ej klinisk dag 1 — migrerad Drive-bild tills manuellt granskad och VISIBLE.</p>
+      <p class="warn-line">Ej godkänd — visas inte i kundvy förrän granskad.</p>
+      <dl class="pc-dl">
+        <div class="pc-row"><dt>Stadium</dt><dd>${esc(STAGE_LABEL[it.stage]||it.stage)} · bodyArea ${esc(it.body)}</dd></div>
+        <div class="pc-row"><dt>Föreslagen</dt><dd>${esc(it.suggested)} (${esc(it.confidence)})</dd></div>
+        <div class="pc-row"><dt>Osäkerhet</dt><dd>${esc(it.uncertainty)}</dd></div>
+        <div class="pc-row"><dt>assetId</dt><dd><code>${esc(it.assetId)}</code></dd></div>
+        <div class="pc-row"><dt>Storage</dt><dd>${it.storage?'<span class="ok-txt">OK</span>':'<span class="alert-txt">Saknas</span>'}</dd></div>
+      </dl>
+      ${consent}
+      <div class="pc-actions">
+        <button class="btn btn--approve" data-act="approve" ${missing?'disabled':''}>Godkänn</button>
+        <button class="btn btn--danger" data-act="reject">Avvisa</button>
+        <button class="btn" data-act="reassign">Byt kategori</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function render(){
+  const items=QUEUE.filter(passFilter);
+  // patientkö
+  const byP=new Map();
+  for(const it of items){
+    if(!byP.has(it.patientId)) byP.set(it.patientId,{patientId:it.patientId,batch:it.batch,count:0});
+    byP.get(it.patientId).count++;
+  }
+  const pats=[...byP.values()].sort((a,b)=>b.count-a.count);
+  pcount.textContent=`Patientkö (${pats.length})`;
+  plist.innerHTML = pats.length ? pats.map(p=>{
+    const active=activePatient===p.patientId;
+    return `<button class="patient-btn${active?' is-active':''}" data-patient="${esc(p.patientId)}">
+      <span class="pid">${esc(p.patientId.slice(-10))}</span>
+      <span class="pmeta">${p.count} bild · ${esc(p.batch)}</span></button>`;
+  }).join('') : '<p class="empty">Inga patienter i filtret.</p>';
+
+  // bildrutnät
+  const shown = activePatient ? items.filter(it=>it.patientId===activePatient) : items;
+  if(cursor>=shown.length) cursor=Math.max(0,shown.length-1);
+  grid.innerHTML = shown.length
+    ? shown.map((it,i)=>card(it,i,i===cursor)).join('')
+    : '<div class="empty">Inga bilder i aktuellt filter.</div>';
+  posEl.textContent = `${shown.length?cursor+1:0}/${shown.length} i filter`;
+}
+
+// pill-filter — enkel-val per grupp, wire active + faktisk filtrering
+document.querySelectorAll('.pillrow[role=group]').forEach(group=>{
+  group.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>{
+    group.querySelectorAll('.pill').forEach(x=>x.setAttribute('aria-pressed','false'));
+    p.setAttribute('aria-pressed','true');
+    const f=p.dataset.filter, v=p.dataset.val;
+    if(f==='stage') fStage=v; else if(f==='body') fBody=v;
+    activePatient=null; cursor=0; render();
+  }));
+});
+
+// patientval
+plist.addEventListener('click',e=>{
+  const b=e.target.closest('[data-patient]'); if(!b) return;
+  activePatient = activePatient===b.dataset.patient ? null : b.dataset.patient;
+  cursor=0; render();
+});
+
+// kort-åtgärder (demo) + aktiv-markering
+grid.addEventListener('click',e=>{
+  const cardEl=e.target.closest('.photo-card'); if(!cardEl) return;
+  const act=e.target.closest('[data-act]');
+  if(act){
+    const map={approve:'Godkänn',reject:'Avvisa',reassign:'Byt kategori'};
+    act.textContent = map[act.dataset.act] + ' ✓';
+    setTimeout(()=>{act.textContent=map[act.dataset.act];},900);
+    return;
+  }
+  cursor=Number(cardEl.dataset.idx)||0;
+  [...grid.querySelectorAll('.photo-card')].forEach((c,i)=>c.classList.toggle('is-active',i===cursor));
+  posEl.textContent = posEl.textContent.replace(/^\d+/, cursor+1);
+});
+
+render();
+</script>
+<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
+</body>
+</html>
