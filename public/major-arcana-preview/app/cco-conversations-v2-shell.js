@@ -541,7 +541,7 @@
       '</h2></div>' +
       '<div class="thread-header-actions">' +
       '<button class="nav-btn" type="button" data-v2-action="note" data-v2-soon>✎ Anteckna</button>' +
-      '<button class="nav-btn nav-btn--ai" type="button" data-v2-action="studio" data-v2-soon>★ Svarstudio</button>' +
+      '<button class="nav-btn nav-btn--ai" type="button" data-v2-action="studio">★ Svarstudio</button>' +
       '</div></header>' +
       '<div class="thread-status-bar">' +
       pills +
@@ -607,12 +607,337 @@
     return null;
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  // Svarstudio workbench (P2) — wired live mot draft-state-machine + gateway.
+  // Skicka (→ sent) är owner-blockerat i backend OCH låst i UI:t.
+  // ─────────────────────────────────────────────────────────────────────
+  var studio = null;
+  var STUDIO_TONES = [
+    { id: 'professional', label: 'Professionell' },
+    { id: 'warm', label: 'Varm' },
+    { id: 'solution', label: 'Lösningsfokus' },
+    { id: 'decision', label: 'Beslutsstöd' },
+  ];
+  var STUDIO_SIGNATURES = [
+    {
+      id: 'fazli',
+      label: 'Fazli',
+      text: 'Med vänliga hälsningar,\n\nDr. Fazli · Medical Director\nHair TP Clinic',
+    },
+    {
+      id: 'egzona',
+      label: 'Egzona',
+      text: 'Med vänliga hälsningar,\n\nEgzona · Customer Lead\nHair TP Clinic',
+    },
+    { id: 'contact', label: 'Kontakt', text: 'Med vänliga hälsningar,\n\nHair TP Clinic' },
+  ];
+
+  function signatureText(id) {
+    var s = STUDIO_SIGNATURES.filter(function (x) {
+      return x.id === id;
+    })[0];
+    return s ? s.text : '';
+  }
+
+  function studioSnippet(thread) {
+    var msgs = messageList(thread);
+    for (var i = 0; i < msgs.length; i += 1) {
+      if (isIncoming(msgs[i])) return messageBody(msgs[i]);
+    }
+    return text(thread.preview);
+  }
+
+  function openStudio(thread) {
+    if (!thread) return;
+    studio = {
+      thread: thread,
+      draftId: null,
+      tone: 'professional',
+      signature: 'egzona',
+      body: '',
+      busy: false,
+      status: 'draft',
+      error: '',
+      decision: '',
+    };
+    renderStudio();
+  }
+
+  function closeStudio() {
+    studio = null;
+    var host = root.querySelector('[data-v2-studio]');
+    if (host) host.remove();
+  }
+
+  function studioCapture() {
+    if (!studio) return;
+    var ta = root.querySelector('[data-studio-body]');
+    if (ta) studio.body = ta.value;
+  }
+
+  function studioChips(items, activeId, group) {
+    return items
+      .map(function (it) {
+        return (
+          '<button class="wb-chip' +
+          (it.id === activeId ? ' is-active' : '') +
+          '" data-studio-' +
+          group +
+          '="' +
+          it.id +
+          '" type="button">' +
+          esc(it.label) +
+          '</button>'
+        );
+      })
+      .join('');
+  }
+
+  function renderStudio() {
+    if (!studio) return;
+    var thread = studio.thread;
+    var host = root.querySelector('[data-v2-studio]');
+    if (!host) {
+      host = doc.createElement('div');
+      host.setAttribute('data-v2-studio', '');
+      root.appendChild(host);
+    }
+    var snippet = studioSnippet(thread);
+    var ctxRows = signalRows(thread)
+      .map(function (r) {
+        return (
+          '<div class="wb-fact-cell"><span class="wb-fact-lbl">' +
+          esc(r.dt) +
+          '</span><span class="wb-fact-val">' +
+          esc(r.dd) +
+          '</span></div>'
+        );
+      })
+      .join('');
+    var policyNote =
+      studio.decision === 'review_required'
+        ? '⚠ Kräver granskning'
+        : studio.draftId
+          ? '✓ Sparat (' + esc(studio.status) + ')'
+          : 'Ej sparat';
+    host.innerHTML =
+      '<div class="action-modal-backdrop" data-studio-backdrop>' +
+      '<div class="action-modal--workbench" role="dialog" aria-modal="true" aria-label="Svarstudio">' +
+      '<div class="action-modal-head"><h3>Svarstudio · ' +
+      esc(threadName(thread)) +
+      '</h3>' +
+      '<span class="wb-head-chips">' +
+      (text(thread.riskLabel)
+        ? '<span class="wb-head-chip wb-head-chip--risk">' + esc(thread.riskLabel) + '</span>'
+        : '') +
+      '<span class="wb-head-chip wb-head-chip--blocked">⏸ Skicka kräver owner</span></span>' +
+      '<button class="action-modal-close" data-studio-close type="button" aria-label="Stäng">×</button></div>' +
+      '<div class="workbench-grid">' +
+      '<div class="workbench-context">' +
+      '<div class="wb-customer-card"><div class="wb-avatar" style="background:' +
+      esc(avatarBg(thread)) +
+      '">' +
+      esc(initials(thread)) +
+      '</div><div><p class="wb-customer-name">' +
+      esc(threadName(thread)) +
+      '</p><p class="wb-customer-sub">' +
+      esc(sourceLabel(thread)) +
+      '</p></div></div>' +
+      '<div class="wb-fact-grid">' +
+      ctxRows +
+      '</div>' +
+      '</div>' +
+      '<div class="workbench-main">' +
+      '<div class="wb-thread-block"><div class="wb-thread-snippet">' +
+      '<div class="wb-thread-snippet-from">' +
+      esc(threadName(thread)) +
+      '</div>' +
+      esc(snippet || '') +
+      '</div></div>' +
+      '<div class="wb-reply-block">' +
+      '<div class="wb-chip-row-sect"><span class="wb-section-kicker">Ton</span><div class="wb-chips">' +
+      studioChips(STUDIO_TONES, studio.tone, 'tone') +
+      '</div></div>' +
+      '<div class="wb-chip-row-sect"><span class="wb-section-kicker">Signatur</span><div class="wb-chips">' +
+      studioChips(STUDIO_SIGNATURES, studio.signature, 'sig') +
+      '</div></div>' +
+      '<div class="wb-smart-actions"><button class="wb-chip" data-studio-generate type="button"' +
+      (studio.busy ? ' disabled' : '') +
+      '>' +
+      (studio.busy ? '… genererar' : '★ AI-generera utkast') +
+      '</button></div>' +
+      '<div class="wb-field"><span class="wb-field-lbl">Svar</span>' +
+      '<textarea data-studio-body placeholder="Skriv eller generera ett svar…">' +
+      esc(studio.body) +
+      '</textarea>' +
+      '<div class="wb-textmeta"><span data-studio-count>' +
+      studio.body.length +
+      ' tecken</span>' +
+      '<span class="wb-policy-ok">' +
+      policyNote +
+      '</span></div></div>' +
+      (studio.error
+        ? '<div class="wb-route-info" style="color:var(--cco-status-danger)">' +
+          esc(studio.error) +
+          '</div>'
+        : '') +
+      '</div></div>' +
+      '<div class="wb-footer">' +
+      '<button class="wb-primary-cta" data-studio-send type="button" disabled title="Live-utskick kräver owner och är avstängt">📨 Skicka (låst)</button>' +
+      '<span class="wb-send-locked">🔒 Skicka är owner-blockerat</span>' +
+      '<button class="wb-secondary-cta" data-studio-save type="button">Spara utkast</button>' +
+      '<button class="wb-secondary-cta" data-studio-review type="button">Begär godkännande</button>' +
+      '<button class="wb-secondary-cta wb-secondary-cta--approve" data-studio-approve type="button">Godkänn</button>' +
+      '<button class="wb-secondary-cta" data-studio-close type="button">Stäng</button>' +
+      '</div></div></div>';
+  }
+
+  function studioPayload() {
+    var t = studio.thread;
+    return {
+      customerId: text(t.customerId) || text(t.id),
+      tenantId: text(t.tenantId),
+      tone: studio.tone,
+      customerName: threadName(t),
+      threadSnippet: studioSnippet(t),
+      signature: signatureText(studio.signature),
+      subject: text(t.subject),
+    };
+  }
+
+  function studioFail(error) {
+    studio.busy = false;
+    studio.error = (error && error.message) || 'Något gick fel.';
+    renderStudio();
+  }
+
+  async function studioGenerate() {
+    if (!studio || !boundCtx.handlers.studioGenerate) return;
+    studioCapture();
+    studio.busy = true;
+    studio.error = '';
+    renderStudio();
+    try {
+      var res = await boundCtx.handlers.studioGenerate(studioPayload());
+      studio.body = text(res && res.body) || studio.body;
+      studio.draftId = (res && res.draftId) || studio.draftId;
+      studio.status = (res && res.status) || 'draft';
+      studio.decision = (res && res.decision) || '';
+      studio.busy = false;
+      renderStudio();
+    } catch (error) {
+      studioFail(error);
+    }
+  }
+
+  async function studioEnsureSaved() {
+    studioCapture();
+    var res = await boundCtx.handlers.studioSave({
+      draftId: studio.draftId,
+      customerId: text(studio.thread.customerId) || text(studio.thread.id),
+      tenantId: text(studio.thread.tenantId),
+      subject: text(studio.thread.subject),
+      body: studio.body,
+    });
+    var draft = (res && res.draft) || {};
+    if (draft.draftId) studio.draftId = draft.draftId;
+    if (draft.status) studio.status = draft.status;
+    return draft;
+  }
+
+  async function studioSave() {
+    if (!studio || !boundCtx.handlers.studioSave) return;
+    studio.busy = true;
+    studio.error = '';
+    try {
+      await studioEnsureSaved();
+      studio.busy = false;
+      renderStudio();
+    } catch (error) {
+      studioFail(error);
+    }
+  }
+
+  async function studioTransitionTo(target) {
+    if (!studio || !boundCtx.handlers.studioTransition) return;
+    studio.busy = true;
+    studio.error = '';
+    try {
+      await studioEnsureSaved();
+      // approve kräver needs_approval först
+      var chain =
+        target === 'approved' && studio.status === 'draft'
+          ? ['needs_approval', 'approved']
+          : target === 'needs_approval' && studio.status !== 'draft'
+            ? []
+            : [target];
+      for (var i = 0; i < chain.length; i += 1) {
+        var res = await boundCtx.handlers.studioTransition(studio.draftId, chain[i]);
+        if (res && res.draft && res.draft.status) studio.status = res.draft.status;
+      }
+      studio.busy = false;
+      renderStudio();
+    } catch (error) {
+      studioFail(error);
+    }
+  }
+
   var boundCtx = null;
 
   function bindEvents() {
     if (root.__v2Bound) return;
     root.__v2Bound = true;
+    root.addEventListener('input', function (event) {
+      if (studio && event.target.matches('[data-studio-body]')) {
+        studio.body = event.target.value;
+        var count = root.querySelector('[data-studio-count]');
+        if (count) count.textContent = studio.body.length + ' tecken';
+      }
+    });
     root.addEventListener('click', function (event) {
+      // ── Svarstudio workbench-interaktioner ──
+      if (studio) {
+        if (
+          event.target.closest('[data-studio-close]') ||
+          event.target.matches('[data-studio-backdrop]')
+        ) {
+          closeStudio();
+          return;
+        }
+        var toneEl = event.target.closest('[data-studio-tone]');
+        if (toneEl) {
+          studioCapture();
+          studio.tone = toneEl.getAttribute('data-studio-tone');
+          renderStudio();
+          return;
+        }
+        var sigEl = event.target.closest('[data-studio-sig]');
+        if (sigEl) {
+          studioCapture();
+          studio.signature = sigEl.getAttribute('data-studio-sig');
+          renderStudio();
+          return;
+        }
+        if (event.target.closest('[data-studio-generate]')) {
+          void studioGenerate();
+          return;
+        }
+        if (event.target.closest('[data-studio-save]')) {
+          void studioSave();
+          return;
+        }
+        if (event.target.closest('[data-studio-review]')) {
+          void studioTransitionTo('needs_approval');
+          return;
+        }
+        if (event.target.closest('[data-studio-approve]')) {
+          void studioTransitionTo('approved');
+          return;
+        }
+        if (event.target.closest('[data-studio-send]')) {
+          return; /* låst: owner-blockerat */
+        }
+      }
       var laneEl = event.target.closest('[data-lane]');
       if (laneEl && boundCtx) {
         boundCtx.handlers.setLane(laneEl.getAttribute('data-lane'));
@@ -636,7 +961,9 @@
         var name = actionEl.getAttribute('data-v2-action');
         // Kunddossiér är en säker läs-/navigeringsaction (P1) — öppnar V12.
         // Övriga (Svarstudio/skicka/bokning) förblir inerta tills owner-GO.
-        if (name === 'dossier' && typeof boundCtx.handlers.openDossier === 'function') {
+        if (name === 'studio') {
+          openStudio(boundCtx.selected);
+        } else if (name === 'dossier' && typeof boundCtx.handlers.openDossier === 'function') {
           boundCtx.handlers.openDossier(boundCtx.selected);
         } else {
           boundCtx.handlers.action(name, boundCtx.selected);

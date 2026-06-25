@@ -18,7 +18,16 @@
  *       { fields, confidence, metadata: { textLength } }.
  */
 
-const VALID_TONES = Object.freeze(['professional', 'friendly', 'formal', 'empathetic', 'concise']);
+const VALID_TONES = Object.freeze([
+  'professional',
+  'friendly',
+  'formal',
+  'empathetic',
+  'concise',
+  'warm',
+  'solution',
+  'decision',
+]);
 
 // Hälsningsfras + avslutning per ton (svenska, kundkommunikation).
 const TONE_PRESETS = Object.freeze({
@@ -46,6 +55,21 @@ const TONE_PRESETS = Object.freeze({
     greeting: 'Hej',
     closing: 'Mvh',
     opener: 'Tack för ditt meddelande.',
+  },
+  warm: {
+    greeting: 'Hej',
+    closing: 'Med vänliga hälsningar',
+    opener: 'Vad roligt att höra från dig!',
+  },
+  solution: {
+    greeting: 'Hej',
+    closing: 'Med vänliga hälsningar',
+    opener: 'Tack för att du hör av dig — vi hjälper dig vidare.',
+  },
+  decision: {
+    greeting: 'Hej',
+    closing: 'Med vänliga hälsningar',
+    opener: 'Tack för ditt meddelande. Här är vårt förslag på nästa steg.',
   },
 });
 
@@ -130,12 +154,15 @@ function draftReply(input = {}) {
   const tone = requestedTone || DEFAULT_TONE;
   const preset = TONE_PRESETS[tone] || TONE_PRESETS[DEFAULT_TONE];
 
-  const message = normalizeText(safe.message);
+  const message = normalizeText(safe.message || safe.threadSnippet);
   const context = normalizeText(safe.context);
   const customerName = normalizeText(safe.customerName);
   const agentName = normalizeText(safe.agentName);
+  const explicitIntent = normalizeKey(safe.intent);
+  const explicitClosing = normalizeText(safe.closing);
+  const explicitSignature = normalizeText(safe.signature);
 
-  const intent = detectIntent(message);
+  const intent = explicitIntent || detectIntent(message);
 
   const salutation = customerName ? `${preset.greeting} ${customerName},` : `${preset.greeting},`;
 
@@ -144,15 +171,24 @@ function draftReply(input = {}) {
   const body = INTENT_BODY[intent] || INTENT_BODY.general;
   lines.push(body);
 
+  if (explicitClosing) {
+    lines.push(explicitClosing);
+  }
+
   if (context) {
     lines.push(`Gällande "${context}" noterar vi detta och tar med det i vårt svar.`);
   }
 
-  lines.push('', preset.closing, agentName || 'Kundteamet');
+  if (explicitSignature) {
+    lines.push('', explicitSignature);
+  } else {
+    lines.push('', preset.closing, agentName || 'Kundteamet');
+  }
 
   const draft = lines.join('\n');
 
   return {
+    body: draft,
     draft,
     tone,
     metadata: {

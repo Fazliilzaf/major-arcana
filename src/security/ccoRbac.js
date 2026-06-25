@@ -45,6 +45,9 @@ const PERMISSIONS = {
   // Conversations / mail
   'mail.read': ['owner', 'operator', 'konsult'],
   'mail.send': ['owner', 'operator', 'konsult'],
+  // mail.live_send: owner-only grind för faktiskt utskick (queued → sent).
+  // Skrivs aldrig live i denna build — rutten är ändå hårt blockerad.
+  'mail.live_send': ['owner'],
   'mail.delete': ['owner', 'operator'],
   'mail.assign': ['owner', 'operator'],
   'mailbox.admin': ['owner', 'operator'],
