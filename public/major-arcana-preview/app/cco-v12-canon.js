@@ -155,7 +155,12 @@
       '<div class="s2-treatment-sub">' +
       esc(av.statusLine || '') +
       '</div></div>' +
-      (av.practitioner ? '<div class="s2-staff">' + esc(av.practitioner) + '</div>' : '') +
+      (av.practitioner
+        ? '<div class="s2-staff">' +
+          esc(av.practitioner) +
+          (txt(av.room) ? '<span class="room">' + esc(txt(av.room)) + '</span>' : '') +
+          '</div>'
+        : '') +
       '</div>' +
       (av.showTimeline
         ? '<div class="s2-timeline">' +
@@ -260,53 +265,64 @@
         '<div class="card" style="color:var(--ink-mute)">Hälsodeklaration saknas.</div></section>'
       );
     }
-    var answers = arr(health.answers);
-    var meds = arr(
-      health.medications && typeof health.medications === 'string'
-        ? health.medications.split(/[,;\n]+/)
-        : health.medications
-    );
+    // HD-rader ur riktig health-data (allergier + läkemedel + kontraindikations-flaggor).
+    var hAllergies = arr(health.allergies);
+    var hMeds = (health.medications && health.medications.items) || [];
+    var hContra = arr(health.contraindications);
+    var hdRows = '';
+    hdRows += hAllergies.length
+      ? '<div class="card-row"><span class="what">Allergier</span>' +
+        chip('danger', 'JA · ' + txt(hAllergies[0])) +
+        '</div>'
+      : '<div class="card-row"><span class="what">Allergier</span>' + chip('ok', 'NEJ') + '</div>';
+    hdRows += hMeds.length
+      ? '<div class="card-row"><span class="what">Pågående mediciner</span>' +
+        chip('warn', 'JA · ' + hMeds.length + ' st') +
+        '</div>'
+      : '<div class="card-row"><span class="what">Pågående mediciner</span>' +
+        chip(
+          health.medications && health.medications.known ? 'warn' : 'ok',
+          health.medications && health.medications.known ? 'JA' : 'NEJ'
+        ) +
+        '</div>';
+    hContra.forEach(function (c) {
+      hdRows +=
+        '<div class="card-row"><span class="what">' +
+        esc(txt(c.text)) +
+        '</span>' +
+        chip(c.level === 'red' ? 'danger' : 'warn', 'JA') +
+        '</div>';
+    });
     var hdCard =
       '<div class="card"><div class="card-l">Hälsodeklaration' +
-      (answers.length ? ' · ' + answers.length + ' frågor' : '') +
       (health.signedAt
         ? '<span class="when">Signerad ' + esc(txt(health.signedAt)) + '</span>'
         : '') +
       '</div>' +
-      (answers.length
-        ? answers
-            .map(function (a) {
-              var tone = /ja|allerg/i.test(txt(a.value))
-                ? /allerg|penicillin/i.test(txt(a.value))
-                  ? 'danger'
-                  : 'warn'
-                : 'ok';
-              return (
-                '<div class="card-row"><span class="what">' +
-                esc(txt(a.label || a.q)) +
-                '</span>' +
-                chip(tone, txt(a.value)) +
-                '</div>'
-              );
-            })
-            .join('')
-        : '<div class="card-row"><span class="what">Inga registrerade svar</span></div>') +
+      (hdRows || '<div class="card-row"><span class="what">Inga registrerade svar</span></div>') +
       '</div>';
     var medCard =
       '<div class="card"><div class="card-l">Läkemedel + kontraindikationer</div>' +
-      (meds.length && txt(meds[0])
-        ? meds
+      (hMeds.length
+        ? hMeds
             .map(function (m) {
               return txt(m)
                 ? '<div class="card-row"><span class="what">' +
                     esc(txt(m)) +
                     '</span>' +
-                    chip('neutral', 'Läkemedel') +
+                    chip('neutral', 'Daglig') +
                     '</div>'
                 : '';
             })
             .join('')
         : '<div class="card-row"><span class="what">Pågående läkemedel ej registrerade</span></div>') +
+      (hAllergies.length
+        ? '<div class="card-row"><span class="what">' +
+          esc(txt(hAllergies[0])) +
+          ' · kontra</span>' +
+          chip('danger', 'Aktiv flagga') +
+          '</div>'
+        : '') +
       '</div>';
     return (
       '<section class="sec" id="s4">' +
