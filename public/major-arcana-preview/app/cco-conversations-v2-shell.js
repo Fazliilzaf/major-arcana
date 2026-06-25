@@ -1683,4 +1683,35 @@
     render: render,
     _findThreadById: findThreadById,
   };
+
+  function flagEnabled() {
+    try {
+      return (
+        global.__ARCANA_CONVERSATIONS_V2_ENABLED__ === true ||
+        doc.documentElement.getAttribute('data-conversations-v2') === 'on'
+      );
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function requestRuntimeRender() {
+    if (!flagEnabled()) return;
+    try {
+      if (typeof global.__scheduleRuntimeConversationShell === 'function') {
+        global.__scheduleRuntimeConversationShell('all');
+      }
+    } catch (_error) {
+      /* best-effort bootstrap */
+    }
+  }
+
+  [0, 120, 900].forEach(function (delay) {
+    global.setTimeout(requestRuntimeRender, delay);
+  });
+  if (doc && doc.readyState === 'loading') {
+    doc.addEventListener('DOMContentLoaded', requestRuntimeRender, { once: true });
+  } else {
+    requestRuntimeRender();
+  }
 })(typeof window !== 'undefined' ? window : globalThis);
