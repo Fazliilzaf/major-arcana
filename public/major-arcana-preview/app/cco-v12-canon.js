@@ -735,9 +735,9 @@
       items
         .slice(0, 6)
         .map(function (c) {
-          var k = /sms/i.test(txt(c.channel))
+          var k = /sms/i.test(txt(c.type))
             ? 'sms'
-            : /call|samtal|ring/i.test(txt(c.channel))
+            : /call|samtal|ring|phone/i.test(txt(c.type))
               ? 'call'
               : 'mail';
           var ic = k === 'sms' ? '💬' : k === 'call' ? '📞' : '✉️';
@@ -748,14 +748,10 @@
             ic +
             '</span>' +
             '<div class="comm-body"><div class="who">' +
-            esc(txt(c.subject || c.title || c.who || 'Meddelande')) +
-            '</div>' +
-            (c.preview || c.text
-              ? '<div class="pre">' + esc(txt(c.preview || c.text)) + '</div>'
-              : '') +
-            '</div>' +
+            esc(txt(c.text || 'Meddelande')) +
+            '</div></div>' +
             '<div class="comm-meta">' +
-            esc(txt(c.dateLabel || c.date || '')) +
+            esc(txt(c.meta || '')) +
             '</div></div>'
           );
         })
@@ -767,29 +763,26 @@
   /* ---------- 11 · EKONOMI ---------- */
   function s11(econ, invoices) {
     var head = secHead('11', 'Ekonomi', null, '<button class="sec-link">→ Fortnox</button>');
-    var cells = [
-      ['Total intäkt', txt((econ && (econ.totalValue || econ.total)) || '—')],
-      ['Livstidsvärde', txt((econ && econ.lifetimeValue) || '—')],
-      ['Snitt per besök', txt((econ && econ.avgPerVisit) || '—')],
-      ['Utestående', txt((econ && (econ.outstanding || econ.debt)) || '0 kr')],
-    ];
+    var cells = arr(econ && econ.items);
     var inv = arr(invoices && invoices.items ? invoices.items : invoices);
     return (
       '<section class="sec" id="s11">' +
       head +
-      '<div class="eko-stats">' +
-      cells
-        .map(function (c) {
-          return (
-            '<div class="eko-cell"><div class="l">' +
-            esc(c[0]) +
-            '</div><div class="v">' +
-            esc(c[1]) +
-            '</div></div>'
-          );
-        })
-        .join('') +
-      '</div>' +
+      (cells.length
+        ? '<div class="eko-stats">' +
+          cells
+            .map(function (c) {
+              return (
+                '<div class="eko-cell"><div class="l">' +
+                esc(txt(c.label)) +
+                '</div><div class="v">' +
+                esc(txt(c.value)) +
+                '</div></div>'
+              );
+            })
+            .join('') +
+          '</div>'
+        : '') +
       (inv.length
         ? '<div class="doc-grid">' +
           inv
