@@ -476,27 +476,27 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
     <div class="panel-head" style="margin-top:.7rem"><h2>Spara ändringar och återställ vid behov</h2></div>
     <div class="grid2">
       <div class="panel">
-        <div class="ver is-sel">
+        <div class="ver is-sel" data-ver="v3.0">
           <div class="ver-top"><span class="ver-num">v3.0</span><span class="ver-cur">Aktuell</span><span class="ver-meta">2026-03-15 · av Sara L.</span></div>
           <ul class="ver-pts"><li>Lade till AI-förslagssteg</li><li>Ändrade SLA från 24h till 12h</li><li>Uppdaterade e-postmall</li></ul>
           <div class="ver-acts"><button class="btn">Återställ</button><button class="btn">Jämför</button><button class="btn">Visa skillnad</button></div>
         </div>
-        <div class="ver">
+        <div class="ver" data-ver="v2.1">
           <div class="ver-top"><span class="ver-num">v2.1</span><span class="ver-meta">2026-02-20 · av Egzona K.</span></div>
           <ul class="ver-pts"><li>Fixade timeout för betalningswebhook</li><li>Förbättrad felhantering</li></ul>
           <div class="ver-acts"><button class="btn">Återställ</button><button class="btn">Jämför</button><button class="btn">Visa skillnad</button></div>
         </div>
-        <div class="ver">
+        <div class="ver" data-ver="v2.0">
           <div class="ver-top"><span class="ver-num">v2.0</span><span class="ver-meta">2026-01-10 · av Johan B.</span></div>
           <ul class="ver-pts"><li>Omstrukturerade villkorslogik</li><li>Optimerad prestanda</li></ul>
           <div class="ver-acts"><button class="btn">Återställ</button><button class="btn">Jämför</button><button class="btn">Visa skillnad</button></div>
         </div>
       </div>
       <aside class="panel">
-        <div class="panel-head"><h2>v3.0 · versionsdetaljer</h2></div>
-        <div class="relsec"><div class="rs-k">Återställningstid</div><div class="rs-b">Cirka 30 sekunder. Pågående körningar slutförs på föregående version innan bytet aktiveras.</div></div>
-        <div class="relsec"><div class="rs-k">Påverkade delar</div><div class="rs-b">AI-förslagssteget, SLA-tröskeln (24h → 12h) samt välkomstmallen. Trigger och seniortilldelning är oförändrade.</div></div>
-        <div class="relsec"><div class="rs-k">Bevaka efter release</div><div class="rs-b">Följ framgångsfrekvensen i Analys de första 48 timmarna och bekräfta att kortare SLA inte ökar eskaleringar.</div></div>
+        <div class="panel-head"><h2 data-vd="title">v3.0 · versionsdetaljer</h2></div>
+        <div class="relsec"><div class="rs-k">Återställningstid</div><div class="rs-b" data-vd="rollback">Cirka 30 sekunder. Pågående körningar slutförs på föregående version innan bytet aktiveras.</div></div>
+        <div class="relsec"><div class="rs-k">Påverkade delar</div><div class="rs-b" data-vd="parts">AI-förslagssteget, SLA-tröskeln (24h → 12h) samt välkomstmallen. Trigger och seniortilldelning är oförändrade.</div></div>
+        <div class="relsec"><div class="rs-k">Bevaka efter release</div><div class="rs-b" data-vd="watch">Följ framgångsfrekvensen i Analys de första 48 timmarna och bekräfta att kortare SLA inte ökar eskaleringar.</div></div>
       </aside>
     </div>
   </section>
@@ -568,10 +568,25 @@ pills.forEach(p=>p.addEventListener('click',()=>{
   views[p.dataset.view].classList.add('is-active');
   window.scrollTo(0,0);
 }));
-// versions-kort markering
+// versions-kort markering + uppdaterad detaljpanel
+const VER_DETAIL={
+  'v3.0':{rollback:'Cirka 30 sekunder. Pågående körningar slutförs på föregående version innan bytet aktiveras.',
+    parts:'AI-förslagssteget, SLA-tröskeln (24h → 12h) samt välkomstmallen. Trigger och seniortilldelning är oförändrade.',
+    watch:'Följ framgångsfrekvensen i Analys de första 48 timmarna och bekräfta att kortare SLA inte ökar eskaleringar.'},
+  'v2.1':{rollback:'Cirka 25 sekunder. Betalningswebhookens köer töms innan återställningen aktiveras.',
+    parts:'Timeout-hanteringen för betalningswebhooken och felhanteringen. Ingen kundkommunikation påverkas.',
+    watch:'Bevaka betalningsflödets felfrekvens första dygnet efter release.'},
+  'v2.0':{rollback:'Cirka 40 sekunder. Den större strukturändringen kräver omindexering av villkorsgrenarna.',
+    parts:'Villkorslogiken omstrukturerades och prestandan optimerades — påverkar grenval i hela flödet.',
+    watch:'Kontrollera att samtliga grenar (JA/NEJ) utvärderas korrekt efter omstruktureringen.'}
+};
+const vd={title:document.querySelector('[data-vd="title"]'),rollback:document.querySelector('[data-vd="rollback"]'),parts:document.querySelector('[data-vd="parts"]'),watch:document.querySelector('[data-vd="watch"]')};
 document.querySelectorAll('#view-versioner .ver').forEach(v=>v.addEventListener('click',()=>{
   document.querySelectorAll('#view-versioner .ver').forEach(x=>x.classList.remove('is-sel'));
   v.classList.add('is-sel');
+  const id=v.dataset.ver, d=VER_DETAIL[id]; if(!d) return;
+  vd.title.textContent=id+' · versionsdetaljer';
+  vd.rollback.textContent=d.rollback; vd.parts.textContent=d.parts; vd.watch.textContent=d.watch;
 }));
 </script>
 <script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>

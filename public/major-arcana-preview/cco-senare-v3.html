@@ -200,11 +200,11 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
     </div>
     <div class="head"><div class="kicker">↺ Konversationer · Senare</div><h2 class="h1">Senare <small>6 snoozade · nästa 09:00</small></h2></div>
     <div class="lanes" role="group" aria-label="Filter på återupptag">
-      <button class="lane" aria-pressed="true">Alla <span class="c">6</span></button>
-      <button class="lane" aria-pressed="false">Idag <span class="c">2</span></button>
-      <button class="lane" aria-pressed="false">Imorgon <span class="c">2</span></button>
-      <button class="lane" aria-pressed="false">Denna vecka <span class="c">2</span></button>
-      <button class="lane" aria-pressed="false">★ VIP <span class="c">2</span></button>
+      <button class="lane" data-lane="alla" aria-pressed="true">Alla <span class="c">6</span></button>
+      <button class="lane" data-lane="idag" aria-pressed="false">Idag <span class="c">2</span></button>
+      <button class="lane" data-lane="imorgon" aria-pressed="false">Imorgon <span class="c">2</span></button>
+      <button class="lane" data-lane="vecka" aria-pressed="false">Denna vecka <span class="c">2</span></button>
+      <button class="lane" data-lane="vip" aria-pressed="false">★ VIP <span class="c">2</span></button>
     </div>
     <div class="inbox" id="inbox"></div>
   </main>
@@ -271,7 +271,14 @@ function threadCard(t){
     <div class="t-wake">${CLOCK}${esc(t.wake)}</div>
     ${t.tags.length?`<div class="t-tags">${t.tags.map(g=>`<span class="tag tag--${g[0]}">${esc(g[1])}</span>`).join('')}</div>`:''}</div></article>`;
 }
-function renderInbox(){ inbox.innerHTML=THREADS.map(threadCard).join(''); }
+let curLane='alla';
+function laneOf(t){ const w=t.wake.toLowerCase(); if(w.includes('idag'))return 'idag'; if(w.includes('imorgon'))return 'imorgon'; return 'vecka'; }
+function matchLane(t){ if(curLane==='alla')return true; if(curLane==='vip')return !!t.vip; return laneOf(t)===curLane; }
+function renderInbox(){
+  const list=THREADS.filter(matchLane);
+  inbox.innerHTML = list.length ? list.map(threadCard).join('')
+    : '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga snoozade konversationer i den här vyn.</div>';
+}
 
 function openThread(id){
   const t=THREADS.find(x=>x.id===id); if(!t) return; openId=id;
@@ -305,7 +312,7 @@ inbox.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target
 document.getElementById('tvBack').addEventListener('click',()=>{app.dataset.pane='list';});
 document.getElementById('ctxOpen').addEventListener('click',()=>{app.dataset.pane='ctx';});
 document.getElementById('ctxBack').addEventListener('click',()=>{app.dataset.pane='thread';});
-document.querySelectorAll('.lane').forEach(l=>l.addEventListener('click',()=>{document.querySelectorAll('.lane').forEach(x=>x.setAttribute('aria-pressed','false'));l.setAttribute('aria-pressed','true');}));
+document.querySelectorAll('.lane').forEach(l=>l.addEventListener('click',()=>{document.querySelectorAll('.lane').forEach(x=>x.setAttribute('aria-pressed','false'));l.setAttribute('aria-pressed','true');curLane=l.dataset.lane||'alla';renderInbox();}));
 
 renderInbox();
 if(matchMedia('(min-width:601px)').matches) openThread(1);   // sida-vid-sida visar första

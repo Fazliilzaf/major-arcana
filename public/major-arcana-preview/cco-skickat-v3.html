@@ -164,6 +164,16 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 .tag{padding:.1rem .45rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
 .tag--vip{background:#fdeef4;color:var(--accent)}.tag--follow{background:var(--warning-bg);color:var(--warning)}
 .tag--auto{background:var(--violet-bg);color:var(--violet)}.tag--done{background:var(--success-bg);color:var(--success)}
+/* Vy: Lista — kompaktare rader utan förhandsvisning */
+.sent-list.is-list .sent-card{padding:.55rem .75rem}
+.sent-list.is-list .sc-prev{display:none}
+.sent-list.is-list .sc-title{margin-top:.1rem}
+.sent-list.is-list .sc-tags{margin-top:.25rem}
+/* Densitet: Kompakt — tätare, en rad förhandsvisning, dolda taggar */
+.sent-list.is-compact{gap:.3rem}
+.sent-list.is-compact .sent-card{padding:.5rem .65rem}
+.sent-list.is-compact .sc-prev{-webkit-line-clamp:1}
+.sent-list.is-compact .sc-tags{display:none}
 
 /* side panel */
 .side{display:flex;flex-direction:column;gap:var(--gap);min-width:0}
@@ -300,7 +310,14 @@ function card(s){
     </div>
   </article>`;
 }
-list.innerHTML=SENT.map(card).join('');
+let curFilter='alla';
+function passFilter(s){ if(curFilter==='vip')return s.tags.some(t=>t[0]==='vip'); if(curFilter==='follow')return s.tags.some(t=>t[0]==='follow'); return true; }
+function renderList(){
+  const items=SENT.filter(passFilter);
+  list.innerHTML = items.length ? items.map(card).join('')
+    : '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga skickade meddelanden i den här vyn.</div>';
+  syncSelection();
+}
 
 const bulkCount=document.getElementById('bulkCount');
 const boxes=()=>[...list.querySelectorAll('input[type=checkbox]')];
@@ -323,13 +340,19 @@ document.getElementById('markAll').addEventListener('click',()=>{
   syncSelection();
 });
 
-// pill-grupper: enkel-val per grupp
+// pill-grupper: enkel-val per grupp + faktisk effekt på listan
 document.querySelectorAll('.pillrow[role=group]').forEach(group=>{
   group.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>{
     group.querySelectorAll('.pill').forEach(x=>x.setAttribute('aria-pressed','false'));
     p.setAttribute('aria-pressed','true');
+    const label=p.textContent.trim();
+    if(p.hasAttribute('data-view')) list.classList.toggle('is-list', label==='Lista');
+    else if(p.hasAttribute('data-density')) list.classList.toggle('is-compact', label==='Kompakt');
+    else { curFilter = label==='VIP'?'vip' : label==='Behöver uppföljning'?'follow' : 'alla'; renderList(); }
   }));
 });
+
+renderList();
 </script>
 <script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
 </body>
