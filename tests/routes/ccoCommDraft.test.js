@@ -30,11 +30,12 @@ async function createFixture() {
         ccoCommDraftStorePath: path.join(tempDir, 'cco-comm-draft.json'),
         buildVersion: 'test',
       },
-      // Injicerad auth: roll styrs av x-role-header (RBAC läser req.auth.role).
+      // Injicerad auth: roll/användare/tenant styrs av headers så enskilda
+      // anrop kan agera olika aktörer/tenants (RBAC läser req.auth.role).
       requireAuth: (req, _res, next) => {
         req.auth = {
-          tenantId: 'hairtpclinic',
-          userId: 'u1',
+          tenantId: req.headers['x-tenant'] || 'hairtpclinic',
+          userId: req.headers['x-user'] || 'u1',
           role: req.headers['x-role'] || 'operator',
         };
         next();
@@ -48,10 +49,13 @@ async function createFixture() {
   return { app, tempDir };
 }
 
-function call(baseUrl, method, route, { role = 'operator', body } = {}) {
+function call(baseUrl, method, route, { role = 'operator', user, tenant, body } = {}) {
+  const headers = { 'content-type': 'application/json', 'x-role': role };
+  if (user) headers['x-user'] = user;
+  if (tenant) headers['x-tenant'] = tenant;
   return fetch(`${baseUrl}${route}`, {
     method,
-    headers: { 'content-type': 'application/json', 'x-role': role },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   }).then(async (res) => ({ status: res.status, json: await res.json().catch(() => null) }));
 }
@@ -104,6 +108,7 @@ test('utkast: skapa → patch → needs_approval → approved → queued', async
   await withServer(app, async (baseUrl) => {
     const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
       role: 'operator',
+      user: 'author-1',
       body: { customerId: 'cust-3', subject: 'Svar', body: 'Hej!' },
     });
     assert.equal(created.status, 201);
@@ -111,14 +116,23 @@ test('utkast: skapa → patch → needs_approval → approved → queued', async
 
     const patched = await call(baseUrl, 'PATCH', `/cco-comm/drafts/${id}`, {
       role: 'operator',
+      user: 'author-1',
       body: { body: 'Hej Anna, tack för ditt meddelande.' },
     });
     assert.equal(patched.status, 200);
     assert.match(patched.json.draft.body, /tack för ditt/);
 
-    for (const status of ['needs_approval', 'approved', 'queued']) {
+    // needs_approval av författaren, men approved av EN ANNAN aktör
+    // (segregation of duties), sedan queued.
+    const transitions = [
+      { status: 'needs_approval', user: 'author-1' },
+      { status: 'approved', user: 'approver-2' },
+      { status: 'queued', user: 'approver-2' },
+    ];
+    for (const { status, user } of transitions) {
       const t = await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
         role: 'operator',
+        user,
         body: { status },
       });
       assert.equal(t.status, 200);
@@ -132,12 +146,19 @@ test('LIVE-utskick (→ sent) är hårt blockerat — owner-mandat', async () =>
   await withServer(app, async (baseUrl) => {
     const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
       role: 'operator',
+      user: 'author-1',
       body: { customerId: 'c', body: 'x' },
     });
     const id = created.json.draft.draftId;
-    for (const status of ['needs_approval', 'approved', 'queued']) {
+    const chain = [
+      { status: 'needs_approval', user: 'author-1' },
+      { status: 'approved', user: 'approver-2' },
+      { status: 'queued', user: 'approver-2' },
+    ];
+    for (const { status, user } of chain) {
       await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
         role: 'operator',
+        user,
         body: { status },
       });
     }
@@ -158,6 +179,157 @@ test('LIVE-utskick (→ sent) är hårt blockerat — owner-mandat', async () =>
     // utkastet får ALDRIG nå sent
     const after = await call(baseUrl, 'GET', `/cco-comm/drafts/${id}`, { role: 'operator' });
     assert.equal(after.json.draft.status, 'queued');
+  });
+});
+
+// ── Härdning (#258) ────────────────────────────────────────────────────────
+
+test('#258 segregation of duties: författare kan inte godkänna eget utkast', async () => {
+  const { app } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
+      role: 'operator',
+      user: 'author-x',
+      body: { customerId: 'c-sod', body: 'utkast' },
+    });
+    const id = created.json.draft.draftId;
+    await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+      role: 'operator',
+      user: 'author-x',
+      body: { status: 'needs_approval' },
+    });
+    // Samma operator försöker godkänna sitt eget → 403
+    const selfApprove = await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+      role: 'operator',
+      user: 'author-x',
+      body: { status: 'approved' },
+    });
+    assert.equal(selfApprove.status, 403);
+    assert.match(selfApprove.json.error, /segregation of duties|approve own/i);
+    // Annan operator får godkänna → 200
+    const otherApprove = await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+      role: 'operator',
+      user: 'reviewer-y',
+      body: { status: 'approved' },
+    });
+    assert.equal(otherApprove.status, 200);
+    assert.equal(otherApprove.json.draft.status, 'approved');
+    assert.equal(otherApprove.json.draft.approvedBy, 'reviewer-y');
+  });
+});
+
+test('#258 owner får godkänna eget utkast (mail.live_send-undantag)', async () => {
+  const { app } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
+      role: 'owner',
+      user: 'owner-o',
+      body: { customerId: 'c-owner', body: 'utkast' },
+    });
+    const id = created.json.draft.draftId;
+    await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+      role: 'owner',
+      user: 'owner-o',
+      body: { status: 'needs_approval' },
+    });
+    const approve = await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+      role: 'owner',
+      user: 'owner-o',
+      body: { status: 'approved' },
+    });
+    assert.equal(approve.status, 200);
+    assert.equal(approve.json.draft.status, 'approved');
+  });
+});
+
+test('#258 tenant-isolering: annan tenant kan inte läsa/ändra/transitionera draft', async () => {
+  const { app } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    // Skapa som tenant A
+    const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
+      role: 'operator',
+      user: 'a-user',
+      tenant: 'tenant-a',
+      body: { customerId: 'c-iso', body: 'hemligt för A' },
+    });
+    assert.equal(created.status, 201);
+    const id = created.json.draft.draftId;
+
+    // Tenant B: GET → 404
+    const getB = await call(baseUrl, 'GET', `/cco-comm/drafts/${id}`, {
+      role: 'operator',
+      user: 'b-user',
+      tenant: 'tenant-b',
+    });
+    assert.equal(getB.status, 404);
+
+    // Tenant B: PATCH → 404
+    const patchB = await call(baseUrl, 'PATCH', `/cco-comm/drafts/${id}`, {
+      role: 'operator',
+      user: 'b-user',
+      tenant: 'tenant-b',
+      body: { body: 'kapad' },
+    });
+    assert.equal(patchB.status, 404);
+
+    // Tenant B: transition → 404
+    const transB = await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+      role: 'operator',
+      user: 'b-user',
+      tenant: 'tenant-b',
+      body: { status: 'needs_approval' },
+    });
+    assert.equal(transB.status, 404);
+
+    // Tenant A: GET → 200 (oförändrad)
+    const getA = await call(baseUrl, 'GET', `/cco-comm/drafts/${id}`, {
+      role: 'operator',
+      user: 'a-user',
+      tenant: 'tenant-a',
+    });
+    assert.equal(getA.status, 200);
+    assert.match(getA.json.draft.body, /hemligt för A/);
+  });
+});
+
+test('#258 race: samtidiga transition-anrop på samma draft ger exakt en vinnare', async () => {
+  const { app } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
+      role: 'operator',
+      user: 'author-r',
+      body: { customerId: 'c-race', body: 'x' },
+    });
+    const id = created.json.draft.draftId;
+    await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+      role: 'operator',
+      user: 'author-r',
+      body: { status: 'needs_approval' },
+    });
+    // Två samtidiga approve från samma (distinkta) godkännare. Med per-draft-lås
+    // ska exakt EN lyckas (needs_approval→approved); den andra ser approved och
+    // får 409 (approved→approved är ingen tillåten övergång).
+    const [r1, r2] = await Promise.all([
+      call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+        role: 'operator',
+        user: 'rev-r',
+        body: { status: 'approved' },
+      }),
+      call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+        role: 'operator',
+        user: 'rev-r',
+        body: { status: 'approved' },
+      }),
+    ]);
+    const statuses = [r1.status, r2.status].sort();
+    assert.deepEqual(statuses, [200, 409]);
+    // statusHistory ska ha exakt en approved-post (ingen dubbelskrivning)
+    const after = await call(baseUrl, 'GET', `/cco-comm/drafts/${id}`, {
+      role: 'operator',
+      user: 'a-user',
+    });
+    const approvedEntries = after.json.draft.statusHistory.filter((h) => h.to === 'approved');
+    assert.equal(approvedEntries.length, 1);
   });
 });
 

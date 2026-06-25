@@ -263,7 +263,7 @@ function createCcoCommDraftRouter({
             channel: req.body?.channel,
             mergeFields: req.body?.mergeFields,
           },
-          { actor: actorOf(req) }
+          { actor: actorOf(req), tenantId: text(req.auth?.tenantId) || null }
         );
         return res.json({ draft });
       } catch (error) {
@@ -300,9 +300,14 @@ function createCcoCommDraftRouter({
 
       try {
         const store = await ensureStore();
+        const role = req.cco?.role || req.auth?.role;
         const draft = await store.transitionStatus(text(req.params.draftId), newStatus, {
           actor: actorOf(req),
           reason,
+          tenantId: text(req.auth?.tenantId) || null,
+          // Owner (mail.live_send) får godkänna eget utkast; övriga roller inte
+          // (segregation of duties — författare ≠ godkännare).
+          allowSelfApprove: roleHasPermission(role, 'mail.live_send'),
         });
         return res.json({ draft });
       } catch (error) {
@@ -319,7 +324,9 @@ function createCcoCommDraftRouter({
     requirePermission('mail.read'),
     async (req, res) => {
       const store = await ensureStore();
-      const draft = store.getDraft(text(req.params.draftId));
+      const draft = store.getDraft(text(req.params.draftId), {
+        tenantId: text(req.auth?.tenantId) || null,
+      });
       if (!draft) return res.status(404).json({ error: 'draft not found' });
       return res.json({ draft });
     }
