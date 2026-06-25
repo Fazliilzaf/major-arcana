@@ -332,7 +332,6 @@ const config = {
     process.env.ARCANA_GRAPH_BASE_URL,
     'https://graph.microsoft.com/v1.0'
   ),
-  getAcceptWebhookSecret: asNonEmptyString(process.env.GETACCEPT_WEBHOOK_SECRET, ''),
   ccoConversationStateStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_CONVERSATION_STATE_STORE_PATH,
     stateRoot,
