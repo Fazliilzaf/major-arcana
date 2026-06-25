@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO Automatisering — v3 responsiv</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== AUTOMATISERING-specifik layout ===== */
+.head-actions{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.editor-pill{display:inline-flex;align-items:center;gap:.35rem;min-height:1.8rem;padding:.1rem .6rem;border-radius:var(--r-pill);background:var(--violet-bg);color:var(--violet);font-size:var(--fs-kicker);font-weight:800;margin-top:.35rem}
+.trustnote{margin:.5rem 0 0;font-size:var(--fs-kicker);color:var(--text-tertiary);display:flex;align-items:center;gap:.35rem}
+.trustnote svg{width:.9rem;height:.9rem;flex-shrink:0;color:var(--success)}
+.subnav{position:sticky;top:calc(var(--tap) + .55rem);z-index:40;padding:.55rem 0;margin:0;background:linear-gradient(180deg,rgba(250,246,242,.96),rgba(250,246,242,.7))}
+
+/* views */
+.view{display:none}.view.is-active{display:block}
+
+/* BYGGARE 3-kol */
+.builder{display:grid;gap:var(--gap);grid-template-columns:1fr;margin-top:.7rem}
+@media(min-width:601px){.builder{grid-template-columns:1fr minmax(15rem,18rem)}}
+@media(min-width:1025px){.builder{grid-template-columns:15rem minmax(0,1fr) 18rem}}
+.b-library{order:1}.b-flow{order:2}.b-rail{order:3}
+@media(min-width:601px){.b-library{order:0;grid-column:1 / -1}.b-flow{order:0}.b-rail{order:0}}
+@media(min-width:1025px){.b-library{grid-column:auto}}
+
+/* bibliotek */
+.lib-group{margin-bottom:.7rem}
+.lib-group .sec-kicker{display:block;margin-bottom:.35rem}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem}
+@media(max-width:600px){.b-library .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:.2rem}.b-library .chips::-webkit-scrollbar{display:none}}
+.chip{flex-shrink:0;display:inline-flex;align-items:center;gap:.35rem;min-height:2.25rem;padding:0 .7rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(244,238,232,.82));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:grab}
+.chip .dot{width:.5rem;height:.5rem;border-radius:50%;flex-shrink:0}
+@media(pointer:coarse){.chip{min-height:var(--tap)}}
+
+/* flöde */
+.flow-toolbar{display:flex;align-items:center;gap:.35rem;margin-bottom:.7rem;flex-wrap:wrap}
+.tool-btn{min-width:var(--tap);min-height:var(--tap);padding:0 .7rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-weight:800;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.zoom-val{font-size:var(--fs-meta);font-weight:800;color:var(--text-secondary);min-width:3.2rem;text-align:center}
+.flow{display:flex;flex-direction:column;align-items:center}
+.node{width:100%;max-width:30rem;padding:.8rem .9rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md);border-left:4px solid var(--slate)}
+.node--trigger{border-left-color:var(--gold)}.node--action{border-left-color:var(--info)}
+.node--wait{border-left-color:var(--violet)}.node--cond{border-left-color:var(--success)}
+.node-type{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.node--trigger .node-type{color:var(--gold)}.node--action .node-type{color:var(--info)}
+.node--wait .node-type{color:var(--violet)}.node--cond .node-type{color:var(--success)}
+.node-title{font-size:var(--fs-body);font-weight:800;margin:.15rem 0 .35rem}
+.node-kv{font-size:var(--fs-meta);color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:.15rem .5rem}
+.node-kv code{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;background:var(--bg-sunken);padding:.05rem .3rem;border-radius:6px;color:var(--text-primary)}
+.connector{width:2px;height:1.4rem;background:rgba(120,108,95,.4)}
+.branch{display:grid;gap:var(--gap);width:100%;max-width:34rem;grid-template-columns:1fr}
+@media(min-width:601px){.branch{grid-template-columns:1fr 1fr}}
+.branch-col{display:flex;flex-direction:column;align-items:center}
+.branch-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.08em;padding:.15rem .6rem;border-radius:var(--r-pill);margin-bottom:.25rem}
+.branch-label--yes{background:var(--success-bg);color:var(--success)}
+.branch-label--no{background:var(--warning-bg);color:var(--warning)}
+
+/* smart-rail */
+.sg-card{margin-bottom:.6rem}
+.sg-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:var(--fs-kicker);font-weight:800;padding:.1rem .5rem;border-radius:var(--r-pill);margin-bottom:.35rem}
+.sg-badge--ap{background:var(--accent-weak);color:var(--accent)}
+.sg-badge--low{background:var(--success-bg);color:var(--success)}
+.sg-badge--soft{background:var(--info-bg);color:var(--info)}
+.sg-badge--new{background:var(--violet-bg);color:var(--violet)}
+.sg-badge--high{background:var(--gold-bg);color:var(--gold)}
+.sg-title{font-size:var(--fs-meta);font-weight:800}
+.sg-body{font-size:var(--fs-meta);color:var(--text-secondary);margin:.3rem 0 .5rem}
+.sg-acts{display:flex;gap:.4rem;flex-wrap:wrap}
+
+/* generella grid */
+.grid2{display:grid;gap:var(--gap);grid-template-columns:1fr;margin-top:.7rem}
+@media(min-width:1025px){.grid2{grid-template-columns:minmax(0,1fr) 20rem}}
+@media(min-width:601px) and (max-width:1024px){.grid2{grid-template-columns:1fr 1fr}}
+.metrics{display:grid;gap:var(--gap);grid-template-columns:repeat(2,1fr);margin-top:.7rem}
+@media(min-width:601px){.metrics{grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))}}
+.stack{display:flex;flex-direction:column;gap:var(--gap)}
+
+/* agenda cards */
+.agenda{padding:.8rem;border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.22);border-left:3px solid var(--accent);margin-bottom:.5rem}
+.agenda .a-k{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.agenda .a-b{font-size:var(--fs-meta);color:var(--text-secondary);margin-top:.2rem}
+
+/* tabell */
+.steptable{width:100%;border-collapse:collapse;font-size:var(--fs-meta)}
+.steptable th,.steptable td{text-align:left;padding:.5rem .4rem;border-bottom:1px solid rgba(180,165,150,.22)}
+.steptable th{font-size:var(--fs-kicker);text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary)}
+.steptable td:last-child,.steptable th:last-child{text-align:right;font-weight:800}
+.bar{display:inline-block;width:100%;max-width:4rem;height:.4rem;border-radius:999px;background:var(--bg-sunken);overflow:hidden;vertical-align:middle;margin-right:.4rem}
+.bar i{display:block;height:100%;background:var(--success);border-radius:999px}
+
+/* mini cards / alert */
+.alert{border-left:3px solid var(--danger)}
+.alert .sg-badge{background:var(--danger-bg);color:var(--danger)}
+.mini{padding:.7rem .8rem;border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.22);margin-bottom:.5rem}
+.mini .mi-l{font-size:var(--fs-kicker);font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary)}
+.mini .mi-v{font-size:1.1rem;font-weight:800;margin-top:.1rem}
+.mini .mi-s{font-size:var(--fs-kicker);color:var(--success);font-weight:800;margin-top:.1rem}
+
+/* mallar */
+.hero{border-left:3px solid var(--accent);margin-top:.7rem}
+.tags{display:flex;flex-wrap:wrap;gap:.3rem;margin:.5rem 0}
+.tg{font-size:var(--fs-kicker);font-weight:800;padding:.1rem .5rem;border-radius:var(--r-pill);background:var(--accent-weak);color:var(--accent)}
+.tplgrid{display:grid;gap:var(--gap);grid-template-columns:1fr;margin-top:.7rem}
+@media(min-width:601px){.tplgrid{grid-template-columns:repeat(auto-fit,minmax(16rem,1fr))}}
+.tplgrid>.card{min-width:0}
+.tpl-name{font-size:var(--fs-body);font-weight:800;overflow-wrap:anywhere}
+.tpl-cat{font-size:var(--fs-kicker);font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-top:.15rem}
+.tpl-meta{display:flex;align-items:center;gap:.6rem;margin-top:.5rem;font-size:var(--fs-meta);color:var(--text-secondary);font-weight:700}
+.tpl-meta .star{color:var(--gold)}
+
+/* testing log */
+.logrow{display:flex;gap:.6rem;padding:.55rem .4rem;border-bottom:1px solid rgba(180,165,150,.2)}
+.logdot{width:.6rem;height:.6rem;border-radius:50%;flex-shrink:0;margin-top:.3rem;background:var(--success)}
+.logdot--wait{background:var(--violet)}
+.log-time{font-size:var(--fs-kicker);font-weight:800;color:var(--text-tertiary);flex-shrink:0;width:4.2rem;font-variant-numeric:tabular-nums}
+.log-main{min-width:0}.log-t{font-size:var(--fs-meta);font-weight:700}
+.log-d{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.1rem}
+.checklist{list-style:none;margin:.3rem 0 0;padding:0}
+.checklist li{display:flex;align-items:flex-start;gap:.45rem;font-size:var(--fs-meta);color:var(--text-secondary);padding:.3rem 0}
+.checklist svg{width:1rem;height:1rem;flex-shrink:0;color:var(--success);margin-top:.1rem}
+.kvrow{display:flex;justify-content:space-between;gap:.5rem;font-size:var(--fs-meta);padding:.25rem 0}
+.kvrow .k{color:var(--text-tertiary)}.kvrow .v{font-weight:700;text-align:right}
+
+/* versioner */
+.ver{padding:.85rem;border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.22);margin-bottom:.6rem;cursor:pointer}
+.ver.is-sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.ver-top{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.ver-num{font-size:var(--fs-body);font-weight:800}
+.ver-cur{font-size:var(--fs-kicker);font-weight:800;padding:.05rem .45rem;border-radius:var(--r-pill);background:var(--success-bg);color:var(--success)}
+.ver-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-left:auto}
+.ver-pts{list-style:none;margin:.5rem 0;padding:0}
+.ver-pts li{font-size:var(--fs-meta);color:var(--text-secondary);padding:.15rem 0 .15rem 1rem;position:relative}
+.ver-pts li::before{content:"–";position:absolute;left:.2rem;color:var(--text-tertiary)}
+.ver-acts{display:flex;gap:.35rem;flex-wrap:wrap}
+.relsec{margin-bottom:.8rem}
+.relsec .rs-k{font-size:var(--fs-kicker);font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary)}
+.relsec .rs-b{font-size:var(--fs-meta);color:var(--text-secondary);margin-top:.2rem}
+
+/* autopilot */
+.prop{margin-bottom:.6rem}
+.prop-tags{display:flex;flex-wrap:wrap;gap:.3rem;margin:.4rem 0}
+.prop-tags .pt{font-size:var(--fs-kicker);font-weight:800;padding:.1rem .5rem;border-radius:var(--r-pill);background:var(--bg-sunken);color:var(--text-secondary)}
+.rule-block{margin-bottom:.6rem}
+.rule-block .rb-k{font-size:var(--fs-kicker);font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.rule-block.allow .rb-k{color:var(--success)}.rule-block.needs .rb-k{color:var(--warning)}.rule-block.stops .rb-k{color:var(--danger)}
+.rule-block ul{list-style:none;margin:.3rem 0 0;padding:0}
+.rule-block li{font-size:var(--fs-meta);color:var(--text-secondary);padding:.15rem 0 .15rem 1rem;position:relative}
+.rule-block li::before{content:"•";position:absolute;left:.25rem;color:var(--text-tertiary)}
+.opt{display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.5rem 0;border-bottom:1px solid rgba(180,165,150,.2)}
+.opt-main{min-width:0}.opt-t{font-size:var(--fs-meta);font-weight:700}
+.opt-d{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.1rem}
+.opt-v{font-size:var(--fs-meta);font-weight:800;color:var(--success);flex-shrink:0}
+.footmetrics{display:flex;gap:1rem;justify-content:space-around;margin-top:.8rem;text-align:center}
+.footmetrics .fm-v{font-size:1.1rem;font-weight:800}
+.footmetrics .fm-l{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+</style>
+</head>
+<body>
+<div class="aux">
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök arbetsflöde…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <header class="head">
+    <div class="head-main">
+      <div class="kicker">Automatisering</div>
+      <h1 class="h1">VIP-onboardingsekvens</h1>
+      <span class="editor-pill"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>3 redigerare</span>
+      <p class="trustnote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Aktiv sparning, test och versioner verifieras separat från arbetsytan.</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn">Samarbete</button>
+      <button class="btn">Testkör</button>
+      <button class="btn btn--primary">Spara</button>
+    </div>
+  </header>
+
+  <nav class="subnav"><div class="pillrow scroll" id="subnav" role="tablist" aria-label="Vyer">
+    <button class="pill is-active" role="tab" aria-selected="true" data-view="byggare">Byggare</button>
+    <button class="pill" role="tab" aria-selected="false" data-view="analys">Analys</button>
+    <button class="pill" role="tab" aria-selected="false" data-view="mallar">Mallar</button>
+    <button class="pill" role="tab" aria-selected="false" data-view="testing">Testing</button>
+    <button class="pill" role="tab" aria-selected="false" data-view="versioner">Versioner</button>
+    <button class="pill" role="tab" aria-selected="false" data-view="autopilot">Autopilot</button>
+  </div></nav>
+
+  <!-- ===== VIEW 1: BYGGARE ===== -->
+  <section class="view is-active" id="view-byggare">
+    <div class="builder">
+      <!-- LEFT: bibliotek -->
+      <aside class="b-library panel">
+        <div class="panel-head"><h2>Komponentbibliotek</h2><p>Dra till canvas</p></div>
+        <div class="lib-group"><span class="sec-kicker">Utlösare</span><div class="chips">
+          <span class="chip"><span class="dot" style="background:var(--gold)"></span>E-post mottagen</span>
+          <span class="chip"><span class="dot" style="background:var(--gold)"></span>Schema</span>
+          <span class="chip"><span class="dot" style="background:var(--gold)"></span>Webhook</span>
+        </div></div>
+        <div class="lib-group"><span class="sec-kicker">Åtgärder</span><div class="chips">
+          <span class="chip"><span class="dot" style="background:var(--info)"></span>Skicka e-post</span>
+          <span class="chip"><span class="dot" style="background:var(--info)"></span>Tilldela</span>
+          <span class="chip"><span class="dot" style="background:var(--info)"></span>Tagga</span>
+          <span class="chip"><span class="dot" style="background:var(--info)"></span>Uppdatera DB</span>
+        </div></div>
+        <div class="lib-group"><span class="sec-kicker">Logik</span><div class="chips">
+          <span class="chip"><span class="dot" style="background:var(--success)"></span>Om/Annars</span>
+          <span class="chip"><span class="dot" style="background:var(--violet)"></span>Vänta</span>
+          <span class="chip"><span class="dot" style="background:var(--success)"></span>Loop</span>
+          <span class="chip"><span class="dot" style="background:var(--success)"></span>Sammanfoga</span>
+        </div></div>
+        <div class="lib-group"><span class="sec-kicker">Avancerat</span><div class="chips">
+          <span class="chip"><span class="dot" style="background:var(--slate)"></span>Beräkna</span>
+          <span class="chip"><span class="dot" style="background:var(--slate)"></span>AI-analys</span>
+          <span class="chip"><span class="dot" style="background:var(--slate)"></span>HTTP-förfrågan</span>
+        </div></div>
+      </aside>
+
+      <!-- CENTER: flöde -->
+      <main class="b-flow panel">
+        <div class="flow-toolbar">
+          <button class="tool-btn" aria-label="Zooma ut">−</button>
+          <span class="zoom-val">100%</span>
+          <button class="tool-btn" aria-label="Zooma in">+</button>
+          <button class="tool-btn" aria-label="Lägg till steg" style="margin-left:auto">+ Steg</button>
+        </div>
+        <div class="flow">
+          <div class="node node--trigger"><div class="node-type">Trigger</div><div class="node-title">Ny VIP-kund</div>
+            <div class="node-kv"><span>Händelse: <code>customer.created</code></span><span>Filter: <code>isVIP = true</code></span></div></div>
+          <div class="connector"></div>
+          <div class="node node--action"><div class="node-type">Åtgärd</div><div class="node-title">Skicka välkomstmejl</div>
+            <div class="node-kv"><span>Mall: <code>vip-welcome</code></span><span>Till: <code>{{customer.email}}</code></span></div></div>
+          <div class="connector"></div>
+          <div class="node node--action"><div class="node-type">Åtgärd</div><div class="node-title">Tilldela senior</div>
+            <div class="node-kv"><span>Tilldela till: <code>senior-specialist</code></span></div></div>
+          <div class="connector"></div>
+          <div class="node node--wait"><div class="node-type">Vänta</div><div class="node-title">Vänta 3 dagar</div>
+            <div class="node-kv"><span>Varaktighet: <code>3d</code></span></div></div>
+          <div class="connector"></div>
+          <div class="node node--cond"><div class="node-type">Villkor</div><div class="node-title">Kontrollera engagemang</div>
+            <div class="node-kv"><span>Villkor: <code>email.opened = true</code></span></div></div>
+          <div class="connector"></div>
+          <div class="branch">
+            <div class="branch-col"><span class="branch-label branch-label--yes">JA</span>
+              <div class="node node--action"><div class="node-type">Åtgärd</div><div class="node-title">Skicka produktguide</div></div></div>
+            <div class="branch-col"><span class="branch-label branch-label--no">NEJ</span>
+              <div class="node node--action"><div class="node-type">Åtgärd</div><div class="node-title">Uppföljningspåminnelse</div></div></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT: smarta optimeringar -->
+      <aside class="b-rail">
+        <div class="panel-head"><h2>Smarta optimeringar</h2></div>
+        <div class="card sg-card"><span class="sg-badge sg-badge--ap">★ Autopilot</span>
+          <div class="sg-body" style="margin:0">Analyserar kontinuerligt arbetsflödesprestanda.</div></div>
+        <div class="card sg-card"><span class="sg-badge sg-badge--low">Låg risk</span>
+          <div class="sg-title">Slå samman dubbla åtgärder</div>
+          <div class="sg-body">Steg 3 och 7 skickar båda e-post till samma kund. Kombinera dem.</div>
+          <div class="sg-acts"><button class="btn btn--primary">Tillämpa</button><button class="btn">Avfärda</button></div></div>
+        <div class="card sg-card"><span class="sg-badge sg-badge--soft">Mjuk påverkan</span>
+          <div class="sg-title">Minska väntetid</div></div>
+        <div class="card sg-card"><span class="sg-badge sg-badge--new">Ny åtgärd</span>
+          <div class="sg-title">Lägg till felhantering</div></div>
+        <div class="card sg-card"><span class="sg-badge sg-badge--high">Hög påverkan</span>
+          <div class="sg-title">Använd mall: VIP-uppföljning</div></div>
+        <div class="card sg-card"><span class="sg-badge sg-badge--ap">★ Lär från dig</span>
+          <div class="sg-body" style="margin:0">AI har observerat 847 körningar av detta.</div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== VIEW 2: ANALYS ===== -->
+  <section class="view" id="view-analys">
+    <div class="panel-head" style="margin-top:.7rem"><h2>Prestandainsikter för "VIP-onboardingsekvens"</h2></div>
+    <div class="metrics">
+      <div class="metric metric--blue"><div class="m-label">Totala körningar</div><div class="m-val tabnum">847</div></div>
+      <div class="metric metric--green"><div class="m-label">Framgångsfrekvens</div><div class="m-val tabnum">94.3%</div></div>
+      <div class="metric metric--violet"><div class="m-label">Snittvaraktighet</div><div class="m-val tabnum">12.3 min</div></div>
+      <div class="metric metric--gold"><div class="m-label">Tid sparad</div><div class="m-val tabnum">23.4 tim</div></div>
+    </div>
+    <div class="grid2">
+      <div class="stack">
+        <div class="panel">
+          <div class="panel-head"><h2>Prioriterad optimeringsagenda</h2></div>
+          <div class="agenda"><div class="a-k">Bromsar mest</div><div class="a-b">Steg 3 "Vänta 3 dagar" skapar största ledtidsförlusten just nu.</div></div>
+          <div class="agenda"><div class="a-k">Bästa hävstång</div><div class="a-b">Snabbast vinst fås genom att öppna reservsteget efter 48h inaktivitet.</div></div>
+          <div class="agenda"><div class="a-k">Nästa kontroll</div><div class="a-b">Verifiera att senior-tilldelning sker inom 5 minuter även under hög belastning.</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Stegprestanda</h2></div>
+          <table class="steptable"><thead><tr><th>#</th><th>Steg</th><th>Framgång</th></tr></thead><tbody>
+            <tr><td>1</td><td>Skicka välkomst-e-post</td><td><span class="bar"><i style="width:99%"></i></span>99.2%</td></tr>
+            <tr><td>2</td><td>Tilldela till senior</td><td><span class="bar"><i style="width:100%"></i></span>100%</td></tr>
+            <tr><td>3</td><td>Vänta 3 dagar</td><td><span class="bar"><i style="width:100%"></i></span>100%</td></tr>
+            <tr><td>4</td><td>Kontrollera engagemang</td><td><span class="bar"><i style="width:94%"></i></span>94.3%</td></tr>
+            <tr><td>5</td><td>Skicka uppföljning</td><td><span class="bar"><i style="width:98%"></i></span>97.8%</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <aside class="stack">
+        <div class="card alert sg-card"><span class="sg-badge">Flaskhals upptäckt</span>
+          <div class="sg-body">Steg 3 "Vänta 3 dagar" håller tillbaka genomflödet.</div>
+          <div class="sg-acts"><button class="btn btn--primary">Optimera detta steg</button><button class="btn">Lär dig mer</button></div></div>
+        <div class="card"><span class="sg-badge sg-badge--low">Låg risk</span>
+          <div class="sg-title">Effekt om du optimerar nu</div>
+          <div class="m-val tabnum" style="color:var(--success)">+8.2%</div></div>
+        <div class="mini"><div class="mi-l">Konverteringsgrad</div><div class="mi-v tabnum">87.2%</div><div class="mi-s">+8.2% vs baslinje</div></div>
+        <div class="mini"><div class="mi-l">Intäktspåverkan</div><div class="mi-v tabnum">124 000 kr</div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== VIEW 3: MALLAR ===== -->
+  <section class="view" id="view-mallar">
+    <div class="panel-head" style="margin-top:.7rem"><h2>Färdiga arbetsflöden från communityn</h2></div>
+    <div class="card hero">
+      <span class="sg-badge sg-badge--ap">★ Veckans rekommendation</span>
+      <div class="tpl-name">SLA-väktare</div>
+      <div class="tags"><span class="tg">SLA-vakt</span><span class="tg">Fallback påminnelse</span><span class="tg">Eskaleringsregel</span></div>
+      <div class="sg-acts"><button class="btn btn--primary">Använd rekommendation</button><button class="btn">Förhandsvisa</button></div>
+    </div>
+    <div class="tplgrid">
+      <div class="card"><div class="tpl-name">Churn-förebyggande sekvens</div><div class="tpl-cat">Retention</div><div class="tpl-meta"><span class="star">★ 4.9</span><span>1 247 användningar</span></div></div>
+      <div class="card"><div class="tpl-name">Merförsäljningsautomatisering</div><div class="tpl-cat">Revenue</div><div class="tpl-meta"><span class="star">★ 4.7</span><span>892 användningar</span></div></div>
+      <div class="card"><div class="tpl-name">SLA-väktare</div><div class="tpl-cat">Operations</div><div class="tpl-meta"><span class="star">★ 4.8</span><span>1 056 användningar</span></div></div>
+      <div class="card"><div class="tpl-name">Helg-autosvar</div><div class="tpl-cat">Support</div><div class="tpl-meta"><span class="star">★ 4.9</span><span>2 145 användningar</span></div></div>
+      <div class="card"><div class="tpl-name">Betalningspåminnelsesekvens</div><div class="tpl-cat">Finance</div><div class="tpl-meta"><span class="star">★ 4.7</span><span>678 användningar</span></div></div>
+      <div class="card"><div class="tpl-name">VIP-snabbspår</div><div class="tpl-cat">VIP</div><div class="tpl-meta"><span class="star">★ 4.8</span><span>534 användningar</span></div></div>
+    </div>
+  </section>
+
+  <!-- ===== VIEW 4: TESTING ===== -->
+  <section class="view" id="view-testing">
+    <div class="panel-head" style="margin-top:.7rem"><h2>Testkörning med simulerad data</h2></div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="panel-head"><h2>Körningslogg</h2></div>
+        <div class="logrow"><span class="logdot"></span><span class="log-time tabnum">10:00:00</span><div class="log-main"><div class="log-t">Arbetsflöde startat</div></div></div>
+        <div class="logrow"><span class="logdot"></span><span class="log-time tabnum">10:00:01</span><div class="log-main"><div class="log-t">Trigger: Ny VIP-kund</div><div class="log-d">Kund: Emma Andersson</div></div></div>
+        <div class="logrow"><span class="logdot"></span><span class="log-time tabnum">10:00:02</span><div class="log-main"><div class="log-t">Skicka välkomst-e-post</div><div class="log-d">E-post-ID: email_123</div></div></div>
+        <div class="logrow"><span class="logdot"></span><span class="log-time tabnum">10:00:03</span><div class="log-main"><div class="log-t">Tilldela till senior</div><div class="log-d">Tilldelad till: Sara L.</div></div></div>
+        <div class="logrow"><span class="logdot logdot--wait"></span><span class="log-time tabnum">10:00:04</span><div class="log-main"><div class="log-t">Vänta 3 dagar</div><div class="log-d">Återupptas: 2026-03-30 10:00</div></div></div>
+      </div>
+      <aside class="stack">
+        <div class="card">
+          <div class="sg-title" style="margin-bottom:.4rem">Testkonfiguration</div>
+          <div class="kvrow"><span class="k">Kund</span><span class="v">Emma Andersson</span></div>
+          <div class="kvrow"><span class="k">Trigger</span><span class="v">customer.create</span></div>
+          <div class="kvrow"><span class="k">Tid</span><span class="v tabnum">2026-03-27 10:00</span></div>
+          <div class="sg-acts" style="margin-top:.5rem"><button class="btn btn--primary">Kör test</button><button class="btn">Hoppa över väntan</button></div>
+        </div>
+        <div class="card">
+          <span class="sg-badge sg-badge--low">Validering godkänd</span>
+          <ul class="checklist">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Inga oändliga loopar upptäckta</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Alla obligatoriska fält finns</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>SLA-begränsningar respekteras</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Felhantering konfigurerad</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== VIEW 5: VERSIONER ===== -->
+  <section class="view" id="view-versioner">
+    <div class="panel-head" style="margin-top:.7rem"><h2>Spara ändringar och återställ vid behov</h2></div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="ver is-sel" data-ver="v3.0">
+          <div class="ver-top"><span class="ver-num">v3.0</span><span class="ver-cur">Aktuell</span><span class="ver-meta">2026-03-15 · av Sara L.</span></div>
+          <ul class="ver-pts"><li>Lade till AI-förslagssteg</li><li>Ändrade SLA från 24h till 12h</li><li>Uppdaterade e-postmall</li></ul>
+          <div class="ver-acts"><button class="btn">Återställ</button><button class="btn">Jämför</button><button class="btn">Visa skillnad</button></div>
+        </div>
+        <div class="ver" data-ver="v2.1">
+          <div class="ver-top"><span class="ver-num">v2.1</span><span class="ver-meta">2026-02-20 · av Egzona K.</span></div>
+          <ul class="ver-pts"><li>Fixade timeout för betalningswebhook</li><li>Förbättrad felhantering</li></ul>
+          <div class="ver-acts"><button class="btn">Återställ</button><button class="btn">Jämför</button><button class="btn">Visa skillnad</button></div>
+        </div>
+        <div class="ver" data-ver="v2.0">
+          <div class="ver-top"><span class="ver-num">v2.0</span><span class="ver-meta">2026-01-10 · av Johan B.</span></div>
+          <ul class="ver-pts"><li>Omstrukturerade villkorslogik</li><li>Optimerad prestanda</li></ul>
+          <div class="ver-acts"><button class="btn">Återställ</button><button class="btn">Jämför</button><button class="btn">Visa skillnad</button></div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="panel-head"><h2 data-vd="title">v3.0 · versionsdetaljer</h2></div>
+        <div class="relsec"><div class="rs-k">Återställningstid</div><div class="rs-b" data-vd="rollback">Cirka 30 sekunder. Pågående körningar slutförs på föregående version innan bytet aktiveras.</div></div>
+        <div class="relsec"><div class="rs-k">Påverkade delar</div><div class="rs-b" data-vd="parts">AI-förslagssteget, SLA-tröskeln (24h → 12h) samt välkomstmallen. Trigger och seniortilldelning är oförändrade.</div></div>
+        <div class="relsec"><div class="rs-k">Bevaka efter release</div><div class="rs-b" data-vd="watch">Följ framgångsfrekvensen i Analys de första 48 timmarna och bekräfta att kortare SLA inte ökar eskaleringar.</div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== VIEW 6: AUTOPILOT ===== -->
+  <section class="view" id="view-autopilot">
+    <div class="panel-head" style="margin-top:.7rem"><h2>Intelligent självoptimering</h2></div>
+    <div class="metrics">
+      <div class="metric metric--blue"><div class="m-label">Väntar på beslut</div><div class="m-val tabnum">3</div></div>
+      <div class="metric metric--rose"><div class="m-label">Auto-fix denna vecka</div><div class="m-val tabnum">7</div></div>
+      <div class="metric metric--green"><div class="m-label">Tidsvinst</div><div class="m-val tabnum">23.4h</div></div>
+      <div class="metric metric--gold"><div class="m-label">Skyddsnivå</div><div class="m-val">Hög</div></div>
+    </div>
+    <div class="grid2">
+      <div class="stack">
+        <span class="sec-kicker">Väntar på godkännande (3)</span>
+        <div class="card prop"><span class="sg-badge sg-badge--high">Hög påverkan</span>
+          <div class="sg-title">Slå samman dublettsteg</div>
+          <div class="prop-tags"><span class="pt">Sparar 26% väntetid</span><span class="pt">Ingen regress</span><span class="pt">97% säkerhet</span></div>
+          <div class="sg-acts"><button class="btn btn--primary">Godkänn</button><button class="btn">Avfärda</button></div></div>
+        <div class="card prop"><span class="sg-badge sg-badge--soft">Mellanprioritet</span>
+          <div class="sg-title">Minska SLA på "Prisfrågor"</div>
+          <div class="sg-body">Ändra SLA från 4h till 2h.</div>
+          <div class="sg-acts"><button class="btn btn--primary">Godkänn</button><button class="btn">Avfärda</button></div></div>
+        <div class="card prop"><span class="sg-badge sg-badge--new">Ny åtgärd</span>
+          <div class="sg-title">Lägg till felhantering</div>
+          <div class="sg-acts"><button class="btn btn--primary">Godkänn</button><button class="btn">Avfärda</button></div></div>
+      </div>
+      <aside class="stack">
+        <div class="card"><span class="sg-badge sg-badge--ap">★ Autopilot aktiv</span>
+          <div class="sg-body" style="margin:0">Analyserar kontinuerligt och föreslår förbättringar i bakgrunden.</div></div>
+        <div class="card">
+          <div class="sg-title" style="margin-bottom:.5rem">Styrregler</div>
+          <div class="rule-block allow"><div class="rb-k">Autopilot får</div><ul><li>föreslå stegsammanslagning</li><li>timeout-justeringar</li><li>felhantering</li></ul></div>
+          <div class="rule-block needs"><div class="rb-k">Kräver godkännande</div><ul><li>kundtext</li><li>SLA</li><li>betalningslogik</li></ul></div>
+          <div class="rule-block stops"><div class="rb-k">Stoppar automatiskt</div><ul><li>om konvertering faller, fel ökar, eller hastighet försämras</li></ul></div>
+        </div>
+        <div class="card">
+          <div class="sg-title" style="margin-bottom:.3rem">Senaste optimeringar</div>
+          <div class="opt"><div class="opt-main"><div class="opt-t">Minskade "Bokningsflöde" från 7 → 5 steg</div><div class="opt-d">Idag</div></div><span class="opt-v">+6%</span></div>
+          <div class="opt"><div class="opt-main"><div class="opt-t">Ökade "Merförsäljningssekvens" konvertering</div><div class="opt-d">Idag</div></div><span class="opt-v">+18%</span></div>
+          <div class="opt"><div class="opt-main"><div class="opt-t">Auto-fixade 3 timeout-problem</div><div class="opt-d">Igår</div></div><span class="opt-v">100% stabil</span></div>
+          <div class="footmetrics">
+            <div><div class="fm-v tabnum">47</div><div class="fm-l">Optimeringar</div></div>
+            <div><div class="fm-v tabnum">23.4h</div><div class="fm-l">Tid sparad</div></div>
+            <div><div class="fm-v tabnum">+18%</div><div class="fm-l">Prestanda</div></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+const pills=document.querySelectorAll('#subnav .pill');
+const views={byggare:document.getElementById('view-byggare'),analys:document.getElementById('view-analys'),mallar:document.getElementById('view-mallar'),testing:document.getElementById('view-testing'),versioner:document.getElementById('view-versioner'),autopilot:document.getElementById('view-autopilot')};
+pills.forEach(p=>p.addEventListener('click',()=>{
+  pills.forEach(x=>{x.classList.remove('is-active');x.setAttribute('aria-selected','false');});
+  p.classList.add('is-active');p.setAttribute('aria-selected','true');
+  Object.values(views).forEach(v=>v.classList.remove('is-active'));
+  views[p.dataset.view].classList.add('is-active');
+  window.scrollTo(0,0);
+}));
+// versions-kort markering + uppdaterad detaljpanel
+const VER_DETAIL={
+  'v3.0':{rollback:'Cirka 30 sekunder. Pågående körningar slutförs på föregående version innan bytet aktiveras.',
+    parts:'AI-förslagssteget, SLA-tröskeln (24h → 12h) samt välkomstmallen. Trigger och seniortilldelning är oförändrade.',
+    watch:'Följ framgångsfrekvensen i Analys de första 48 timmarna och bekräfta att kortare SLA inte ökar eskaleringar.'},
+  'v2.1':{rollback:'Cirka 25 sekunder. Betalningswebhookens köer töms innan återställningen aktiveras.',
+    parts:'Timeout-hanteringen för betalningswebhooken och felhanteringen. Ingen kundkommunikation påverkas.',
+    watch:'Bevaka betalningsflödets felfrekvens första dygnet efter release.'},
+  'v2.0':{rollback:'Cirka 40 sekunder. Den större strukturändringen kräver omindexering av villkorsgrenarna.',
+    parts:'Villkorslogiken omstrukturerades och prestandan optimerades — påverkar grenval i hela flödet.',
+    watch:'Kontrollera att samtliga grenar (JA/NEJ) utvärderas korrekt efter omstruktureringen.'}
+};
+const vd={title:document.querySelector('[data-vd="title"]'),rollback:document.querySelector('[data-vd="rollback"]'),parts:document.querySelector('[data-vd="parts"]'),watch:document.querySelector('[data-vd="watch"]')};
+document.querySelectorAll('#view-versioner .ver').forEach(v=>v.addEventListener('click',()=>{
+  document.querySelectorAll('#view-versioner .ver').forEach(x=>x.classList.remove('is-sel'));
+  v.classList.add('is-sel');
+  const id=v.dataset.ver, d=VER_DETAIL[id]; if(!d) return;
+  vd.title.textContent=id+' · versionsdetaljer';
+  vd.rollback.textContent=d.rollback; vd.parts.textContent=d.parts; vd.watch.textContent=d.watch;
+}));
+</script>
+<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
+</body>
+</html>
