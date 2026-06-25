@@ -226,9 +226,10 @@
 /* ---------------------------------------------------------------------------
  * Showcase — power-feature-piller (om de inte redan ärver aux-filter-pill)
  * ------------------------------------------------------------------------- */
-.aux-shell[data-shell-view="showcase"] .showcase-feature-pill {
+.aux-shell[data-shell-view="showcase"] .showcase-feature {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 7px 13px;
   border-radius: 999px;
   border: 1px solid var(--aux-pill-border);
@@ -237,4 +238,16 @@
   color: #5a5048;
   font-size: 11px;
   font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.aux-shell[data-shell-view="showcase"] .showcase-feature:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(90, 67, 48, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+.aux-shell[data-shell-view="showcase"] .showcase-feature.is-active,
+.aux-shell[data-shell-view="showcase"] .showcase-feature[aria-pressed="true"] {
+  border-color: rgba(214, 198, 184, 0.86);
+  background: var(--aux-pill-bg-active);
+  color: var(--aux-accent);
 }
