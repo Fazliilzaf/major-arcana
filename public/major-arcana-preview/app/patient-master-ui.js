@@ -1660,11 +1660,21 @@
         }
       });
     }
-    window.requestAnimationFrame(() =>
-      window.requestAnimationFrame(() =>
-        scrollV12WorkspaceModule(body, moduleName || 'current-state')
-      )
-    );
+    // Scroll-till-sektion vid öppning. Innehållet (tomma besök-state, foton,
+    // hydrerade bilder) layoutar asynkront och växer EFTER första rendern, så en
+    // enda tidig scroll landar fel (modulen trycks ner när innehållet expanderar).
+    // Därför: scrolla om flera gånger medan höjden sätter sig, tills modulens
+    // position är stabil. 'current-state' (toppen) hoppar vi över — redan i topp.
+    // Scroll-till-sektion vid öppning. Innehåll (foton/hydrering) växer höjden
+    // asynkront EFTER första rendern, så vi scrollar dels direkt (dubbel-rAF)
+    // dels igen när höjden hunnit sätta sig (300/700 ms) så modulen hamnar rätt.
+    const targetModule = moduleName || 'current-state';
+    if (targetModule && targetModule !== 'current-state') {
+      const doScroll = () => scrollV12WorkspaceModule(body, targetModule);
+      window.requestAnimationFrame(() => window.requestAnimationFrame(doScroll));
+      window.setTimeout(doScroll, 300);
+      window.setTimeout(doScroll, 700);
+    }
   }
 
   function bindV12WorkspaceRailLauncher(root, ctx) {
