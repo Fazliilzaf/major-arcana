@@ -1,19 +1,19 @@
 # Sektion D — Owner-workshop · registry-mapping
 
-**Genererad:** 2026-06-25T15:41:47.200Z
+**Genererad:** 2026-06-25T15:52:37.582Z
 **Scope:** Meridiq-samtycken utanför 36-katalogen · [`BOOKOFF-CHECKLIST.md`](./BOOKOFF-CHECKLIST.md) sektion D
 **Blockerar Hair TP cutover:** **NEJ** — alla 6 grupper är `hairTpCutoverBlocking: false`
 
 ## TL;DR för owner
 
-| #   | Grupp                                       | Rekommendation                                   | Owner-beslut              |
-| --- | ------------------------------------------- | ------------------------------------------------ | ------------------------- |
-| 1   | Hyalase SWE                                 | NEW_REGISTRY → `hyalase_info`                    | **PENDING** _(rekomm: B)_ |
-| 2   | Botulinumtoxin SWE/ENG                      | PROMOTE_BUNDLE_ID → `botulinum_info`             | **PENDING** _(rekomm: B)_ |
-| 3   | Fillers SWE (+ ENG)                         | NEW_REGISTRY_CURATII → `fillers_info`            | **PENDING** _(rekomm: B)_ |
-| 4   | Kemisk peeling / IPL / Plasma Pen           | DEFER_OR_GROUP → `esthetic_consent_library`      | **PENDING** _(rekomm: A)_ |
-| 5   | Ortopedisk PRP/PRF (+ HA)                   | NEW_REGISTRY_CURATII → `ortoped_prp_info`        | **PENDING** _(rekomm: B)_ |
-| 6   | Behandlingsavtal Botox / Fillers / Ögonlock | NEW_REGISTRY_CURATII → `offert_curatiio_estetik` | **PENDING** _(rekomm: C)_ |
+| #   | Grupp                                       | Rekommendation                                   | Owner-beslut       |
+| --- | ------------------------------------------- | ------------------------------------------------ | ------------------ |
+| 1   | Hyalase SWE                                 | NEW_REGISTRY → `hyalase_info`                    | **APPROVED** **B** |
+| 2   | Botulinumtoxin SWE/ENG                      | PROMOTE_BUNDLE_ID → `botulinum_info`             | **APPROVED** **B** |
+| 3   | Fillers SWE (+ ENG)                         | NEW_REGISTRY_CURATII → `fillers_info`            | **APPROVED** **B** |
+| 4   | Kemisk peeling / IPL / Plasma Pen           | DEFER_OR_GROUP → `esthetic_consent_library`      | **APPROVED** **A** |
+| 5   | Ortopedisk PRP/PRF (+ HA)                   | NEW_REGISTRY_CURATII → `ortoped_prp_info`        | **APPROVED** **B** |
+| 6   | Behandlingsavtal Botox / Fillers / Ögonlock | NEW_REGISTRY_CURATII → `offert_curatiio_estetik` | **APPROVED** **C** |
 
 ## Hair TP cutover — vad kan vänta?
 
@@ -41,7 +41,7 @@ Följande krävs **inte** för Hair TP steg 3–9 cutover (36/36 D·L·V klart):
   - B — Behåll bundle-only tills Curatiio/estetik-cutover
   - C — Mappa till befintlig `microneedling_info` (ej rekommenderat — annat scope)
 - **Rekommenderat val (pre-workshop):** **B** — Hyalase erbjuds sällan som separat Hair TP-spår — bundle räcker tills estetik-cutover.
-- **Owner-beslut:** `PENDING` _(fyll i efter workshop)_
+- **Owner-beslut:** `APPROVED` · val **B** · 2026-06-25 · CCO-live: NEJ · gate: `post_hair_tp_optional`
 
 ### Botulinumtoxin SWE/ENG
 
@@ -56,7 +56,7 @@ Följande krävs **inte** för Hair TP steg 3–9 cutover (36/36 D·L·V klart):
   - B — Bundle-only tills Curatiio-cutover med separat brand-filter
   - C — Ny Curatiio-specifik registryId (brand-isolation)
 - **Rekommenderat val (pre-workshop):** **B** — Behåll `botulinum_info` i bundle v7 — promote till katalog först vid aktiv Hair TP-estetik eller Curatiio brand-gate.
-- **Owner-beslut:** `PENDING` _(fyll i efter workshop)_
+- **Owner-beslut:** `APPROVED` · val **B** · 2026-06-25 · CCO-live: NEJ · gate: `post_hair_tp_optional`
 
 ### Fillers SWE (+ ENG)
 
@@ -70,7 +70,7 @@ Följande krävs **inte** för Hair TP steg 3–9 cutover (36/36 D·L·V klart):
   - B — Endast Meridiq-modal tills legal review klar
   - C — Ej erbjud — arkivera consent i CCO
 - **Rekommenderat val (pre-workshop):** **B** — Curatiio-only — avtal 170950 saknar letterText; Meridiq-modal tills Nordbro-PDF importerad.
-- **Owner-beslut:** `PENDING` _(fyll i efter workshop)_
+- **Owner-beslut:** `APPROVED` · val **B** · 2026-06-25 · CCO-live: NEJ · gate: `curatiio_only_after_legal`
 
 ### Kemisk peeling / IPL / Plasma Pen
 
@@ -84,7 +84,7 @@ Följande krävs **inte** för Hair TP steg 3–9 cutover (36/36 D·L·V klart):
   - B — Per behandling: `peeling_info`, `ipl_info`, `plasma_pen_info`
   - C — En samlad `esthetic_consent_library` med under-typer
 - **Rekommenderat val (pre-workshop):** **A** — Peeling/IPL/Plasma Pen ej aktivt erbjudande på Hair TP idag — DEFER, behåll Meridiq-arkiv.
-- **Owner-beslut:** `PENDING` _(fyll i efter workshop)_
+- **Owner-beslut:** `APPROVED` · val **A** · 2026-06-25 · CCO-live: NEJ · gate: `defer_meridiq_archive`
 
 ### Ortopedisk PRP/PRF (+ HA)
 
@@ -98,7 +98,7 @@ Följande krävs **inte** för Hair TP steg 3–9 cutover (36/36 D·L·V klart):
   - B — Paus tills Nordbro-PDF importerad (19/39 consents saknar letterText)
   - C — Behåll endast Meridiq read-only
 - **Rekommenderat val (pre-workshop):** **B** — Ortopediska avtal + info saknar letterText — paus tills Nordbro/Insatt-PDF (19/39 tomma).
-- **Owner-beslut:** `PENDING` _(fyll i efter workshop)_
+- **Owner-beslut:** `APPROVED` · val **B** · 2026-06-25 · CCO-live: NEJ · gate: `curatiio_only_after_nordbro_pdf`
 
 ### Behandlingsavtal Botox / Fillers / Ögonlock
 
@@ -112,7 +112,7 @@ Följande krävs **inte** för Hair TP steg 3–9 cutover (36/36 D·L·V klart):
   - B — En `offert_curatiio_estetik` med behandlingsväljare
   - C — Legal review först — ingen registry förrän PDF facit finns
 - **Rekommenderat val (pre-workshop):** **C** — Legal review först — separata avtal per behandling när PDF-facit finns (Botox/Fillers/Ögonlock).
-- **Owner-beslut:** `PENDING` _(fyll i efter workshop)_
+- **Owner-beslut:** `APPROVED` · val **C** · 2026-06-25 · CCO-live: NEJ · gate: `curatiio_only_after_legal`
 
 ---
 
@@ -121,6 +121,7 @@ Följande krävs **inte** för Hair TP steg 3–9 cutover (36/36 D·L·V klart):
 - JSON: `patient-document-d-section-registry.json`
 - Agenda: `docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md`
 - Sign-off: `docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md`
+- Owner-beslut: `docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md`
 - Verify: `npm run verify:patient-doc-d-section-registry`
 - Rådata: `diffs/D-SECTION-REGISTRY-MAPPING-2026-06-25.json`
 

@@ -1,7 +1,7 @@
 {
   "version": 2,
   "updatedAt": "2026-06-25",
-  "scope": "U-pass batch 1 (mail C27–C30 + patientinfo A12–A14) + batch 2 (journal B17–B21, staff B23/B25/B26, auto C32/C34/C35/C36)",
+  "scope": "U-pass batch 1 (mail C27–C30 + patientinfo A12–A14) + batch 2 (journal B17–B21, staff B23/B25/B26, auto/info C32/C34/C35/C36) + 2 medvetna undantag (A2 ENG HD, C33 MF)",
   "inventoryRef": "docs/strategy/SHAREPOINT-TEMPLATE-INVENTORY.md",
   "items": [
     {
@@ -273,7 +273,16 @@
       "registryIds": ["health_tp_eng"],
       "label": "ENG HD — medvetet MQ-only",
       "uPassRequired": false,
-      "uNote": "Ej U-pass batch 2 — Meridiq 14865 + bundle facit räcker (samma som prp_hair_info_eng)"
+      "uNote": "Ej U-pass — Meridiq 14865 + bundle facit (samma som prp_hair_info_eng) · se U-EXCEPTIONS-2026-06-25.md"
+    },
+    {
+      "id": "auto_medical_finance_external",
+      "batch": "excluded",
+      "registryIds": ["auto_medical_finance"],
+      "label": "Medical Finance — extern wrapper",
+      "uPassRequired": false,
+      "uMode": "external_wrapper",
+      "uNote": "Ingen Word/MQ — extern MF · se U-EXCEPTIONS-2026-06-25.md"
     }
   ]
 }

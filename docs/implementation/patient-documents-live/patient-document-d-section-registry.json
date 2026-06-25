@@ -1,18 +1,20 @@
 {
   "version": 1,
   "updatedAt": "2026-06-25",
-  "generatedAt": "2026-06-25T15:41:47.200Z",
+  "generatedAt": "2026-06-25T15:52:37.582Z",
   "script": "build:patient-doc-d-section-registry",
   "scope": "BOOKOFF sektion D — utökade Meridiq-samtycken",
   "nonBlockingForHairTpCutover": true,
-  "workshopStatus": "AGENDA_READY",
+  "workshopStatus": "SIGNED_OFF",
   "workshopAgenda": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md",
   "workshopRecord": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md",
+  "ownerDecisionDoc": "docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md",
   "recommendedOptionsDocumented": 6,
+  "approvedOwnerDecisions": 6,
   "consentCatalogCount": 39,
   "catalog36Count": 36,
   "workshopGroupCount": 6,
-  "pendingOwnerDecisions": 6,
+  "pendingOwnerDecisions": 0,
   "hairTpBlockingGroups": 0,
   "groupsWithLetterText": 3,
   "groupsNeedingLegalReview": 3,
@@ -56,7 +58,11 @@
         "B — Behåll bundle-only tills Curatiio/estetik-cutover",
         "C — Mappa till befintlig `microneedling_info` (ej rekommenderat — annat scope)"
       ],
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "post_hair_tp_optional",
       "recommendedOption": "B",
       "recommendedRationale": "Hyalase erbjuds sällan som separat Hair TP-spår — bundle räcker tills estetik-cutover.",
       "consents": [
@@ -96,7 +102,11 @@
         "B — Bundle-only tills Curatiio-cutover med separat brand-filter",
         "C — Ny Curatiio-specifik registryId (brand-isolation)"
       ],
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "post_hair_tp_optional",
       "recommendedOption": "B",
       "recommendedRationale": "Behåll `botulinum_info` i bundle v7 — promote till katalog först vid aktiv Hair TP-estetik eller Curatiio brand-gate.",
       "consents": [
@@ -146,7 +156,11 @@
         "B — Endast Meridiq-modal tills legal review klar",
         "C — Ej erbjud — arkivera consent i CCO"
       ],
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "curatiio_only_after_legal",
       "recommendedOption": "B",
       "recommendedRationale": "Curatiio-only — avtal 170950 saknar letterText; Meridiq-modal tills Nordbro-PDF importerad.",
       "consents": [
@@ -203,7 +217,11 @@
         "B — Per behandling: `peeling_info`, `ipl_info`, `plasma_pen_info`",
         "C — En samlad `esthetic_consent_library` med under-typer"
       ],
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "A",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "defer_meridiq_archive",
       "recommendedOption": "A",
       "recommendedRationale": "Peeling/IPL/Plasma Pen ej aktivt erbjudande på Hair TP idag — DEFER, behåll Meridiq-arkiv.",
       "consents": [
@@ -289,7 +307,11 @@
         "B — Paus tills Nordbro-PDF importerad (19/39 consents saknar letterText)",
         "C — Behåll endast Meridiq read-only"
       ],
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "curatiio_only_after_nordbro_pdf",
       "recommendedOption": "B",
       "recommendedRationale": "Ortopediska avtal + info saknar letterText — paus tills Nordbro/Insatt-PDF (19/39 tomma).",
       "consents": [
@@ -365,7 +387,11 @@
         "B — En `offert_curatiio_estetik` med behandlingsväljare",
         "C — Legal review först — ingen registry förrän PDF facit finns"
       ],
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "C",
+      "ownerSignedAt": "2026-06-25",
+      "ccoLiveRequired": false,
+      "implementationGate": "curatiio_only_after_legal",
       "recommendedOption": "C",
       "recommendedRationale": "Legal review först — separata avtal per behandling när PDF-facit finns (Botox/Fillers/Ögonlock).",
       "consents": [

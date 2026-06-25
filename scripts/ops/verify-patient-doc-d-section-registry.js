@@ -59,6 +59,18 @@ function main() {
     if (group.ownerDecision !== 'PENDING' && group.ownerDecision !== 'APPROVED') {
       warnings.push(`${group.id}: okänd ownerDecision ${group.ownerDecision}`);
     }
+    if (group.ownerDecision === 'APPROVED' && !group.ownerSelectedOption) {
+      errors.push(`${group.id}: APPROVED saknar ownerSelectedOption`);
+    }
+  }
+
+  if (registry.workshopStatus === 'SIGNED_OFF' && registry.pendingOwnerDecisions > 0) {
+    errors.push('SIGNED_OFF men pendingOwnerDecisions > 0');
+  }
+  if (registry.approvedOwnerDecisions !== 6 && registry.workshopStatus === 'SIGNED_OFF') {
+    errors.push(
+      `SIGNED_OFF kräver approvedOwnerDecisions=6, fick ${registry.approvedOwnerDecisions}`
+    );
   }
 
   if ((registry.groups || []).length !== 6) {
@@ -81,6 +93,8 @@ function main() {
       recommendedAction: g.recommended?.action,
       proposedRegistryId: g.recommended?.proposedRegistryId,
       ownerDecision: g.ownerDecision,
+      ownerSelectedOption: g.ownerSelectedOption,
+      ccoLiveRequired: g.ccoLiveRequired,
       hairTpCutoverBlocking: g.hairTpCutoverBlocking,
     })),
   };

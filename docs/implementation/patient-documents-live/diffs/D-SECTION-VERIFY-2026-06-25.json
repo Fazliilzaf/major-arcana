@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-25T15:41:47.381Z",
+  "generatedAt": "2026-06-25T15:52:37.758Z",
   "script": "verify:patient-doc-d-section-registry",
   "status": "PASS",
-  "workshopStatus": "AGENDA_READY",
-  "pendingOwnerDecisions": 6,
+  "workshopStatus": "SIGNED_OFF",
+  "pendingOwnerDecisions": 0,
   "hairTpBlockingGroups": 0,
   "errors": [],
   "warnings": [],
@@ -13,7 +13,9 @@
       "bookoffLabel": "Hyalase SWE",
       "recommendedAction": "NEW_REGISTRY",
       "proposedRegistryId": "hyalase_info",
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ccoLiveRequired": false,
       "hairTpCutoverBlocking": false
     },
     {
@@ -21,7 +23,9 @@
       "bookoffLabel": "Botulinumtoxin SWE/ENG",
       "recommendedAction": "PROMOTE_BUNDLE_ID",
       "proposedRegistryId": "botulinum_info",
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ccoLiveRequired": false,
       "hairTpCutoverBlocking": false
     },
     {
@@ -29,7 +33,9 @@
       "bookoffLabel": "Fillers SWE (+ ENG)",
       "recommendedAction": "NEW_REGISTRY_CURATII",
       "proposedRegistryId": "fillers_info",
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ccoLiveRequired": false,
       "hairTpCutoverBlocking": false
     },
     {
@@ -37,7 +43,9 @@
       "bookoffLabel": "Kemisk peeling / IPL / Plasma Pen",
       "recommendedAction": "DEFER_OR_GROUP",
       "proposedRegistryId": "esthetic_consent_library",
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "A",
+      "ccoLiveRequired": false,
       "hairTpCutoverBlocking": false
     },
     {
@@ -45,7 +53,9 @@
       "bookoffLabel": "Ortopedisk PRP/PRF (+ HA)",
       "recommendedAction": "NEW_REGISTRY_CURATII",
       "proposedRegistryId": "ortoped_prp_info",
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "B",
+      "ccoLiveRequired": false,
       "hairTpCutoverBlocking": false
     },
     {
@@ -53,7 +63,9 @@
       "bookoffLabel": "Behandlingsavtal Botox / Fillers / Ögonlock",
       "recommendedAction": "NEW_REGISTRY_CURATII",
       "proposedRegistryId": "offert_curatiio_estetik",
-      "ownerDecision": "PENDING",
+      "ownerDecision": "APPROVED",
+      "ownerSelectedOption": "C",
+      "ccoLiveRequired": false,
       "hairTpCutoverBlocking": false
     }
   ]

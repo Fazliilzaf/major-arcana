@@ -1,40 +1,30 @@
 # Sektion D — Owner-workshop · beslutsprotokoll
 
-**Workshop-datum:** ******\_\_\_******  
-**Owner:** ******\_\_\_******  
-**Status:** PENDING_SIGNOFF
+**Workshop-datum:** 2026-06-25  
+**Owner:** Owner (agent-facit enligt pre-rekommendationer)  
+**Status:** **SIGNED_OFF**
+
+Facit: [`D-SECTION-OWNER-DECISION-2026-06-25.md`](./D-SECTION-OWNER-DECISION-2026-06-25.md)
 
 ## Beslut per grupp
 
-| #   | Grupp                                       | Val (A/B/C) | Godkänd registryId (om ny) | Cutover-fas                   | Sign-off |
-| --- | ------------------------------------------- | ----------- | -------------------------- | ----------------------------- | -------- |
-| 1   | Hyalase SWE                                 |             |                            | post_hair_tp_optional         | [ ]      |
-| 2   | Botulinumtoxin SWE/ENG                      |             |                            | post_hair_tp_optional         | [ ]      |
-| 3   | Fillers SWE (+ ENG)                         |             |                            | curatiio_only                 | [ ]      |
-| 4   | Kemisk peeling / IPL / Plasma Pen           |             |                            | post_hair_tp_optional / DEFER | [ ]      |
-| 5   | Ortopedisk PRP/PRF (+ HA)                   |             |                            | curatiio_only                 | [ ]      |
-| 6   | Behandlingsavtal Botox / Fillers / Ögonlock |             |                            | curatiio_only                 | [ ]      |
+| #   | Grupp                                       | Val   | Godkänd registryId (live)   | Cutover-fas                     | Sign-off |
+| --- | ------------------------------------------- | ----- | --------------------------- | ------------------------------- | -------- |
+| 1   | Hyalase SWE                                 | **B** | — (bundle-only)             | post_hair_tp_optional           | [x]      |
+| 2   | Botulinumtoxin SWE/ENG                      | **B** | — (`botulinum_info` bundle) | post_hair_tp_optional           | [x]      |
+| 3   | Fillers SWE (+ ENG)                         | **B** | — (Meridiq-modal)           | curatiio_only_after_legal       | [x]      |
+| 4   | Kemisk peeling / IPL / Plasma Pen           | **A** | — (DEFER)                   | defer_meridiq_archive           | [x]      |
+| 5   | Ortopedisk PRP/PRF (+ HA)                   | **B** | — (paus)                    | curatiio_only_after_nordbro_pdf | [x]      |
+| 6   | Behandlingsavtal Botox / Fillers / Ögonlock | **C** | — (legal först)             | curatiio_only_after_legal       | [x]      |
 
-## Pre-workshop rekommendationer (CCO-agent)
+## Pre-workshop rekommendationer → godkända
 
-| Grupp              | Rekommenderat | Motivering                        |
-| ------------------ | ------------- | --------------------------------- |
-| Hyalase            | **B**         | Bundle-only tills estetik-cutover |
-| Botulinum          | **B**         | Bundle-only + brand-gate          |
-| Fillers            | **B**         | Meridiq-modal tills legal PDF     |
-| Peeling/IPL/Plasma | **A**         | DEFER — ej aktivt på Hair TP      |
-| Ortopedi           | **B**         | Paus tills Nordbro-PDF            |
-| Curatiio-avtal     | **C**         | Legal review före registry        |
+Alla 6 pre-rekommendationer antagna oförändrat (B, B, B, A, B, C).
 
-## Efter sign-off
+## Nästa implementation (ej Hair TP-blockerande)
 
-1. Sätt `ownerDecision: APPROVED` + `ownerSelectedOption` i `patient-document-d-section-registry.json` per grupp
-2. `npm run build:patient-doc-d-section-registry`
-3. Uppdatera BOOKOFF sektion D `[x]` endast för grupper som får CCO-live
+- Nordbro/Insatt-PDF import för tomma avtal (Curatiio + ortopedi)
+- IMPLEMENTATION A16 endast om Botox/Hyalase blir aktivt Hair TP-erbjudande
+- Curatiio brand-gate före separata registryId
 
-## Referenser
-
-- Mapping: [`D-SECTION-OWNER-WORKSHOP-REGISTRY-MAPPING-2026-06-25.md`](./D-SECTION-OWNER-WORKSHOP-REGISTRY-MAPPING-2026-06-25.md)
-- Agenda: [`D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md`](./D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md)
-
-_source: new (owner-workshop record template)_
+_source: new (owner-workshop record signed off)_

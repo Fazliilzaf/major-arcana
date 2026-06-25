@@ -29,14 +29,14 @@
 
 | Kategori            |  Antal | U klart | T klart | D klart | L klart | V klart |
 | ------------------- | -----: | ------: | ------: | ------: | ------: | ------: |
-| **A · Kund**        |     15 |      14 |      15 |      15 |      15 |      15 |
-| **B · Personal**    |     11 |       9 |      10 |      11 |      11 |      11 |
-| **C · Auto / info** |     10 |       9 |       7 |      10 |      10 |      10 |
-| **Totalt**          | **36** |  **34** |  **32** |  **36** |  **36** |  **36** |
+| **A · Kund**        |     15 |      15 |      15 |      15 |      15 |      15 |
+| **B · Personal**    |     11 |      11 |      10 |      11 |      11 |      11 |
+| **C · Auto / info** |     10 |      10 |       7 |      10 |      10 |      10 |
+| **Totalt**          | **36** |  **36** |  **32** |  **36** |  **36** |  **36** |
 
-**T-kolumn (2026-06-25):** `npm run diff:patient-doc-t-column` · E6 batch 1–3 · journal B16–B21 · **T-pass batch 4** `npm run diff:patient-doc-t-batch4` **12/12 T_FACIT_OK + 4 T_NA = 36/36** · kvar MQ_ONLY: **0**
+**T-kolumn (2026-06-25):** `npm run diff:patient-doc-t-column` · **36/36** (32 T_FACIT + 4 n/a)
 
-**U-kolumn (2026-06-25):** E4 `npm run verify:patient-doc-e4-word` **4/4** · U-pass batch 1+2 `npm run verify:patient-doc-u-pass` **19/19** (7+12) · **34/36 U `[x]`** · kvar: `health_tp_eng` (MQ-only medvetet) · `auto_medical_finance` (extern MF)
+**U-kolumn (2026-06-25):** U-pass **19/19 verify** + **2 medvetna undantag** = **36/36** · [`U-EXCEPTIONS-2026-06-25.md`](./U-EXCEPTIONS-2026-06-25.md) · `health_tp_eng` (MQ) · `auto_medical_finance` (extern MF)
 
 **V-kolumn (2026-06-25):** alla 36 typer → `npm run verify:patient-doc-v-column` (shell, registry-id, färger, steg-badge, staff/sign där relevant).
 
@@ -51,7 +51,7 @@
 |   # | registryId             | Dokument                             |   UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                                                                                      |
 | --: | ---------------------- | ------------------------------------ | --------: | :-: | :-: | :-: | :-: | :-: | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |   1 | `haelso_tp_sve`        | Hälsodeklaration · Hair TP Clinic    |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-halsodeklaration-final-demo.html` · diff `diffs/HD-16414-diff-2026-06-04.md`                                                                             |
-|   2 | `health_tp_eng`        | ENG · Health Questionnaire           |         3 | [ ] | [x] | [x] | [x] | [x] | `steg3-health-questionnaire-eng-final-demo.html` · Meridiq 14865 · `diff:patient-doc-hd-eng` PARITY_OK · U = MQ-only                                            |
+|   2 | `health_tp_eng`        | ENG · Health Questionnaire           |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-health-questionnaire-eng-final-demo.html` · U: MQ_FACIT undantag · T: PARITY_OK 14865                                                                    |
 |   3 | `friskfoers_tp`        | Friskförsäkran · TP                  |         8 | [x] | [x] | [x] | [x] | [x] | `steg8-friskforsakran-final.html` · `diff:patient-doc-friskforsakran` PARITY_OK · Word WORD_REVIEW                                                              |
 |   4 | `offert_tp`            | Offert / behandlingsavtal · TP       | 5 / **7** | [x] | [x] | [x] | [x] | [x] | `steg5-offert-tp-final-demo.html` + `steg7-v6-kundkort-final-demo.html` · E6_OK                                                                                 |
 |   5 | `offert_prp_hair`      | Offert · PRP hår                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prp-hair-final-demo.html` + `steg7-offert-prp-hair-final-demo.html` · E6_OK                                                                       |
@@ -96,7 +96,7 @@
 |  30 | `auto_avbokningsbekraftelse` | Avbokningsbekräftelse                |   cross | [x] | [x] | [x] | [x] | [x] | `auto-avbokningsbekraftelse-final-demo.html` · T: cancellation_confirmation · batch4        |
 |  31 | `auto_instruktion_formular`  | Instruktion HD/FC till kund          |   3 + 8 | [x] | [x] | [x] | [x] | [x] | `steg3-auto-instruktion-formular-final-demo.html` · E6_OK · Word=DPA underbilaga (ej HD/FC) |
 |  32 | `auto_betanketid`            | Betänketid enligt lag (e-post)       |       6 | [x] | [x] | [x] | [x] | [x] | `steg6-auto-betanketid-final-demo.html` · T: Nordbro excerpt · batch4                       |
-|  33 | `auto_medical_finance`       | Medical Finance                      |   cross | [ ] | n/a | [x] | [x] | [x] | `auto-medical-finance-final-demo.html` · extern MF wrapper — U ej Word/MQ                   |
+|  33 | `auto_medical_finance`       | Medical Finance                      |   cross | [x] | n/a | [x] | [x] | [x] | `auto-medical-finance-final-demo.html` · U: EXTERNAL_WRAPPER undantag · extern MF           |
 |  34 | `auto_integritet`            | Personuppgiftspolicy                 |   cross | [x] | [x] | [x] | [x] | [x] | `auto-integritet-final-demo.html` · T: legal repo PUB · batch4                              |
 |  35 | `fore_efter_bildmall`        | Före/efter-bildmallar                |     8–9 | [x] | n/a | [x] | [x] | [x] | `steg8-fore-efter-bildmall-final-demo.html` · U CCO_NATIVE · foto-taxonomi Op-dag           |
 |  36 | `auto_internt_sms`           | Internt SMS bokning/avbokning        |   cross | [x] | n/a | [x] | [x] | [x] | `staff-auto-internt-sms-final-demo.html` · U CCO_NATIVE · intern operatör-e-post            |
@@ -105,18 +105,18 @@
 
 ## D · Utökade samtycken (Meridiq catalog — **ej** i 36-katalogen)
 
-**Status (2026-06-25):** Owner-workshop **agenda klar** — [`D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md`](./D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md) · sign-off: [`D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md`](./D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md) · `npm run build:patient-doc-d-section-registry` · **6/6 pre-rekommendationer dokumenterade** · **blockerar INTE Hair TP cutover**
+**Status (2026-06-25):** Owner-workshop **SIGNED_OFF** — [`D-SECTION-OWNER-DECISION-2026-06-25.md`](./D-SECTION-OWNER-DECISION-2026-06-25.md) · **6/6 APPROVED** (B,B,B,A,B,C) · **CCO-live: NEJ** för alla · **blockerar INTE Hair TP cutover**
 
-Dessa finns i `consent-catalog.json` / bundle v7 men **saknar egen rad** i kundkort-katalogen. Lägg till i registry vid cutover eller mappa till befintlig offert-rad.
+| Consent (intern titel)                      | Brand    | Beslut (val) | CCO-live | Workshop |
+| ------------------------------------------- | -------- | ------------ | -------- | -------- |
+| Hyalase SWE                                 | Hair TP  | **B** bundle | Nej      | [x]      |
+| Botulinumtoxin SWE/ENG                      | Hair TP  | **B** bundle | Nej      | [x]      |
+| Fillers SWE                                 | Curatiio | **B** MQ     | Nej      | [x]      |
+| Kemisk peeling / IPL / Plasma Pen           | Hair TP  | **A** DEFER  | Nej      | [x]      |
+| Ortopedisk PRP/PRF (+ HA)                   | Curatiio | **B** paus   | Nej      | [x]      |
+| Behandlingsavtal Botox / Fillers / Ögonlock | Curatiio | **C** legal  | Nej      | [x]      |
 
-| Consent (intern titel)                      | Brand    | Koppla till               |  U  |  T  |  D  |  L  |  V  | Workshop                     |
-| ------------------------------------------- | -------- | ------------------------- | :-: | :-: | :-: | :-: | :-: | ---------------------------- |
-| Hyalase SWE                                 | Hair TP  | `hyalase_info`?           | [ ] | [ ] | [ ] | [ ] | [ ] | **PENDING** → NEW_REGISTRY   |
-| Botulinumtoxin SWE/ENG                      | Hair TP  | `botulinum_info` promote? | [ ] | [ ] | [ ] | [ ] | [ ] | **PENDING** → PROMOTE_BUNDLE |
-| Fillers SWE                                 | Curatiio | Curatiio                  | [ ] | [ ] | [ ] | [ ] | [ ] | **PENDING** → CURATII_ONLY   |
-| Kemisk peeling / IPL / Plasma Pen           | Hair TP  | DEFER / grupp             | [ ] | [ ] | [ ] | [ ] | [ ] | **PENDING** → DEFER_OR_GROUP |
-| Ortopedisk PRP/PRF (+ HA)                   | Curatiio | Curatiio                  | [ ] | [ ] | [ ] | [ ] | [ ] | **PENDING** → legal review   |
-| Behandlingsavtal Botox / Fillers / Ögonlock | Curatiio | separata flöden           | [ ] | [ ] | [ ] | [ ] | [ ] | **PENDING** → legal review   |
+_U/T/D/L/V för sektion D fortfarande `[ ]` — korrekt tills implementation-gate öppnas._
 
 ---
 

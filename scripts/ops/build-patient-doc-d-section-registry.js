@@ -53,7 +53,11 @@ const WORKSHOP_GROUPS = [
       'B — Behåll bundle-only tills Curatiio/estetik-cutover',
       'C — Mappa till befintlig `microneedling_info` (ej rekommenderat — annat scope)',
     ],
-    ownerDecision: 'PENDING',
+    ownerDecision: 'APPROVED',
+    ownerSelectedOption: 'B',
+    ownerSignedAt: '2026-06-25',
+    ccoLiveRequired: false,
+    implementationGate: 'post_hair_tp_optional',
     recommendedOption: 'B',
     recommendedRationale:
       'Hyalase erbjuds sällan som separat Hair TP-spår — bundle räcker tills estetik-cutover.',
@@ -81,7 +85,11 @@ const WORKSHOP_GROUPS = [
       'B — Bundle-only tills Curatiio-cutover med separat brand-filter',
       'C — Ny Curatiio-specifik registryId (brand-isolation)',
     ],
-    ownerDecision: 'PENDING',
+    ownerDecision: 'APPROVED',
+    ownerSelectedOption: 'B',
+    ownerSignedAt: '2026-06-25',
+    ccoLiveRequired: false,
+    implementationGate: 'post_hair_tp_optional',
     recommendedOption: 'B',
     recommendedRationale:
       'Behåll `botulinum_info` i bundle v7 — promote till katalog först vid aktiv Hair TP-estetik eller Curatiio brand-gate.',
@@ -110,7 +118,11 @@ const WORKSHOP_GROUPS = [
       'B — Endast Meridiq-modal tills legal review klar',
       'C — Ej erbjud — arkivera consent i CCO',
     ],
-    ownerDecision: 'PENDING',
+    ownerDecision: 'APPROVED',
+    ownerSelectedOption: 'B',
+    ownerSignedAt: '2026-06-25',
+    ccoLiveRequired: false,
+    implementationGate: 'curatiio_only_after_legal',
     recommendedOption: 'B',
     recommendedRationale:
       'Curatiio-only — avtal 170950 saknar letterText; Meridiq-modal tills Nordbro-PDF importerad.',
@@ -137,7 +149,11 @@ const WORKSHOP_GROUPS = [
       'B — Per behandling: `peeling_info`, `ipl_info`, `plasma_pen_info`',
       'C — En samlad `esthetic_consent_library` med under-typer',
     ],
-    ownerDecision: 'PENDING',
+    ownerDecision: 'APPROVED',
+    ownerSelectedOption: 'A',
+    ownerSignedAt: '2026-06-25',
+    ccoLiveRequired: false,
+    implementationGate: 'defer_meridiq_archive',
     recommendedOption: 'A',
     recommendedRationale:
       'Peeling/IPL/Plasma Pen ej aktivt erbjudande på Hair TP idag — DEFER, behåll Meridiq-arkiv.',
@@ -165,7 +181,11 @@ const WORKSHOP_GROUPS = [
       'B — Paus tills Nordbro-PDF importerad (19/39 consents saknar letterText)',
       'C — Behåll endast Meridiq read-only',
     ],
-    ownerDecision: 'PENDING',
+    ownerDecision: 'APPROVED',
+    ownerSelectedOption: 'B',
+    ownerSignedAt: '2026-06-25',
+    ccoLiveRequired: false,
+    implementationGate: 'curatiio_only_after_nordbro_pdf',
     recommendedOption: 'B',
     recommendedRationale:
       'Ortopediska avtal + info saknar letterText — paus tills Nordbro/Insatt-PDF (19/39 tomma).',
@@ -193,7 +213,11 @@ const WORKSHOP_GROUPS = [
       'B — En `offert_curatiio_estetik` med behandlingsväljare',
       'C — Legal review först — ingen registry förrän PDF facit finns',
     ],
-    ownerDecision: 'PENDING',
+    ownerDecision: 'APPROVED',
+    ownerSelectedOption: 'C',
+    ownerSignedAt: '2026-06-25',
+    ccoLiveRequired: false,
+    implementationGate: 'curatiio_only_after_legal',
     recommendedOption: 'C',
     recommendedRationale:
       'Legal review först — separata avtal per behandling när PDF-facit finns (Botox/Fillers/Ögonlock).',
@@ -204,6 +228,8 @@ const WORKSHOP_AGENDA_REL =
   'docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md';
 const WORKSHOP_RECORD_REL =
   'docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md';
+const OWNER_DECISION_REL =
+  'docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md';
 
 /** Consents already wired to 36-katalogen (referens — ej sektion D). */
 const IN_36_CONSENT_MAP = {
@@ -332,9 +358,14 @@ function buildMarkdown(summary, groups) {
   ];
 
   groups.forEach((g, i) => {
-    const rec = g.recommendedOption ? ` _(rekomm: ${g.recommendedOption})_` : '';
+    const sel =
+      g.ownerDecision === 'APPROVED' && g.ownerSelectedOption
+        ? ` **${g.ownerSelectedOption}**`
+        : g.recommendedOption
+          ? ` _(rekomm: ${g.recommendedOption})_`
+          : '';
     lines.push(
-      `| ${i + 1} | ${g.bookoffLabel} | ${g.recommended.action} → \`${g.recommended.proposedRegistryId || '—'}\` | **${g.ownerDecision}**${rec} |`
+      `| ${i + 1} | ${g.bookoffLabel} | ${g.recommended.action} → \`${g.recommended.proposedRegistryId || '—'}\` | **${g.ownerDecision}**${sel} |`
     );
   });
 
@@ -375,7 +406,13 @@ function buildMarkdown(summary, groups) {
         `- **Rekommenderat val (pre-workshop):** **${g.recommendedOption}** — ${g.recommendedRationale}`
       );
     }
-    lines.push(`- **Owner-beslut:** \`${g.ownerDecision}\` _(fyll i efter workshop)_`);
+    if (g.ownerDecision === 'APPROVED') {
+      lines.push(
+        `- **Owner-beslut:** \`APPROVED\` · val **${g.ownerSelectedOption}** · ${g.ownerSignedAt} · CCO-live: ${g.ccoLiveRequired ? 'JA' : 'NEJ'} · gate: \`${g.implementationGate}\``
+      );
+    } else {
+      lines.push(`- **Owner-beslut:** \`${g.ownerDecision}\` _(fyll i efter workshop)_`);
+    }
     lines.push('');
   }
 
@@ -387,6 +424,7 @@ function buildMarkdown(summary, groups) {
     `- JSON: \`patient-document-d-section-registry.json\``,
     `- Agenda: \`${WORKSHOP_AGENDA_REL}\``,
     `- Sign-off: \`${WORKSHOP_RECORD_REL}\``,
+    `- Owner-beslut: \`${OWNER_DECISION_REL}\``,
     `- Verify: \`npm run verify:patient-doc-d-section-registry\``,
     `- Rådata: \`diffs/D-SECTION-REGISTRY-MAPPING-2026-06-25.json\``,
     '',
@@ -416,10 +454,14 @@ function main() {
     script: 'build:patient-doc-d-section-registry',
     scope: 'BOOKOFF sektion D — utökade Meridiq-samtycken',
     nonBlockingForHairTpCutover: true,
-    workshopStatus: 'AGENDA_READY',
+    workshopStatus: groups.every((g) => g.ownerDecision === 'APPROVED')
+      ? 'SIGNED_OFF'
+      : 'AGENDA_READY',
     workshopAgenda: WORKSHOP_AGENDA_REL,
     workshopRecord: WORKSHOP_RECORD_REL,
+    ownerDecisionDoc: OWNER_DECISION_REL,
     recommendedOptionsDocumented: groups.filter((g) => g.recommendedOption).length,
+    approvedOwnerDecisions: groups.filter((g) => g.ownerDecision === 'APPROVED').length,
     consentCatalogCount: consentCatalog.count,
     catalog36Count: catalog36.types.length,
     workshopGroupCount: groups.length,
