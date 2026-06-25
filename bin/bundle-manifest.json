@@ -33,6 +33,7 @@
     "app/journal-photo-client.js",
     "app/cco-v11-rail-adapters.js",
     "app/cco-v11-rail.js",
+    "app/cco-v11-rk.js",
     "app/cco-v12-workspace-adapters.js",
     "app/cco-v12-workspace.js",
     "app/cco-v12-spine.js",

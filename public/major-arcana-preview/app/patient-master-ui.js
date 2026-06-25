@@ -5739,24 +5739,35 @@
       dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
         ? Object.assign({}, card, dossierBundle.card)
         : card || {};
+    const railCtx = {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries,
+      occasionTimeline,
+      driveFiles,
+      patient,
+      tab,
+      lite,
+    };
     let inner = '';
+    // Lilla dossier-railen = HÖGERSPALT-v11-komplett (22 sektioner, identisk med
+    // facit). Verbatim-port via CcoV11RailKomplett. Fallback till CcoV11Rail.
     try {
-      if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
-        inner =
-          window.CcoV11Rail.render({
-            card,
-            bcard,
-            dossierBundle,
-            journalEntries,
-            occasionTimeline,
-            driveFiles,
-            patient,
-            tab,
-            lite,
-          }) || '';
+      if (window.CcoV11RailKomplett && typeof window.CcoV11RailKomplett.render === 'function') {
+        inner = window.CcoV11RailKomplett.render(railCtx) || '';
       }
-    } catch (_error) {
+    } catch (_rkError) {
       inner = '';
+    }
+    if (!inner || inner.indexOf('data-v11-rk') === -1) {
+      try {
+        if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
+          inner = window.CcoV11Rail.render(railCtx) || '';
+        }
+      } catch (_error) {
+        inner = '';
+      }
     }
     const body =
       inner ||
