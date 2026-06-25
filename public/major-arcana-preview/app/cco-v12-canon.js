@@ -956,12 +956,13 @@
   /* ---------- 9 · DOKUMENT ---------- */
   function s9(files) {
     var items = arr(files && files.items ? files.items : files);
-    var head = secHead(
-      '09',
-      'Dokument',
-      items.length ? items.length + ' totalt' : null,
-      '<button class="sec-link">+ Lägg till</button>'
-    );
+    var pending = items.filter(function (f) {
+      return /vänt|vant|utkast|pending|sign/i.test(txt(f && (f.status || f.statusLabel)));
+    }).length;
+    var sub = items.length
+      ? items.length + ' totalt' + (pending ? ' · ' + pending + ' signering väntar' : '')
+      : null;
+    var head = secHead('09', 'Dokument', sub, '<button class="sec-link">+ Lägg till</button>');
     if (!items.length)
       return (
         '<section class="sec" id="s9">' +
@@ -1026,10 +1027,12 @@
   /* ---------- 10 · KOMMUNIKATION ---------- */
   function s10(comm) {
     var items = arr(comm && comm.items ? comm.items : comm);
+    // "senaste kontakt: <datum>" ur första (nyaste) meddelandets meta.
+    var lastDate = items.length ? txt(items[0].meta).split('·').pop().trim() : '';
     var head = secHead(
       '10',
       'Kommunikation',
-      null,
+      lastDate ? 'senaste kontakt: ' + lastDate : null,
       '<button class="sec-link">+ Svara</button><button class="sec-link">Svarstudio →</button>'
     );
     if (!items.length)
