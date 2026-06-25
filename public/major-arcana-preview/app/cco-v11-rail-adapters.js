@@ -453,6 +453,26 @@
       : [];
     var medications = { items: medItems, known: !!medRaw };
 
+    // Per-frågesvar ur hälsodeklarationens RIKTIGA answers[] (parser →
+    // {key,label,value,detail,risk}). Endast riktig data; tom lista om parsern
+    // inte gav strukturerade svar. Ingen fejk.
+    var answers = toArray(hd && hd.answers)
+      .map(function (a) {
+        if (!a) return null;
+        var label = text(a.label || a.question);
+        if (!label) return null;
+        var val = text(a.value || a.answer);
+        var risk = text(a.risk || a.level).toLowerCase();
+        return {
+          key: text(a.key),
+          label: label,
+          value: val,
+          detail: text(a.detail),
+          risk: risk === 'red' || risk === 'amber' ? risk : '',
+        };
+      })
+      .filter(Boolean);
+
     return {
       status: status,
       signedAt: hd ? text(hd.signedAt) : '',
@@ -460,7 +480,65 @@
       allergies: allergies,
       contraindications: contraindications,
       medications: medications,
+      answers: answers,
     };
+  }
+
+  // "Senaste händelser"-feed ur RIKTIGA tidsstämplade fakta i bundlen
+  // (incheckning/avslut, journal-signering, HD-signering, betalning). Ingen
+  // audit-logg finns — events HÄRLEDS ur befintliga fält. Ingen fejk: saknas
+  // tidsstämpel utelämnas raden. Sorteras nyast först, max 4.
+  function evWhen(iso) {
+    var raw = text(iso);
+    if (!raw) return '';
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) return '';
+    var now = new Date();
+    return d.toDateString() === now.toDateString() ? avTime(raw) : photoDateLabel(raw);
+  }
+  function buildRecentEvents(bcard, dossierBundle, journalEntries) {
+    bcard = bcard || {};
+    var bundle = dossierBundle || {};
+    var out = [];
+    function push(iso, what) {
+      var ms = Date.parse(text(iso));
+      if (!Number.isFinite(ms)) return;
+      var when = evWhen(iso);
+      if (!when) return;
+      out.push({ what: what, when: when, sort: ms });
+    }
+    var av = bundle.activeVisit || {};
+    push(av.completedAt, 'Besök avslutat');
+    push(av.checkedInAt, 'Check-in registrerad');
+    toArray(journalEntries).forEach(function (e) {
+      if (e) push(e.signedAt, 'Journal signerad');
+    });
+    push(bcard.healthDeclaration && bcard.healthDeclaration.signedAt, 'Hälsodeklaration signerad');
+    toArray(bundle.paymentHistory).forEach(function (p) {
+      if (!p) return;
+      var ref = text(p.ref);
+      push(
+        p.dateIso,
+        (text(p.method) === 'swish' ? 'Swish-betalning' : 'Faktura') +
+          (ref ? ' ' + ref : '') +
+          ' registrerad'
+      );
+    });
+    out.sort(function (a, b) {
+      return b.sort - a.sort;
+    });
+    var seen = {};
+    return out
+      .filter(function (e) {
+        var k = e.what + '|' + e.when;
+        if (seen[k]) return false;
+        seen[k] = 1;
+        return true;
+      })
+      .slice(0, 4)
+      .map(function (e) {
+        return { what: e.what, when: e.when };
+      });
   }
 
   // F · Customer Journey — bevarad stepJumpSlug/stepMedFormSlug-mappning
@@ -1499,6 +1577,7 @@
     buildEconomyFromCard: buildEconomyFromCard,
     buildEconomyInvoices: buildEconomyInvoices,
     buildInsightsFromSignals: buildInsightsFromSignals,
+    buildRecentEvents: buildRecentEvents,
     // Block 21+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);
