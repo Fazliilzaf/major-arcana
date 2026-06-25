@@ -40077,6 +40077,13 @@
         return;
       } catch (error) {
         console.warn("[conversations-v2] render misslyckades, faller tillbaka:", error);
+        // Ta bort en ev. halv-monterad v2-rot innan legacy ritas — annars
+        // ligger ett delvis renderat v2-skal kvar ovanpå legacy-vyn.
+        try {
+          document.getElementById("cco-conv-v2-root")?.remove();
+        } catch (_removeError) {
+          /* ignore */
+        }
       }
     }
 

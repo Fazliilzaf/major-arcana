@@ -154,3 +154,25 @@ test('v2-skalet: om-rendering är idempotent (ingen dubbel-mount)', () => {
   const roots = document.querySelectorAll('#cco-conv-v2-root');
   assert.equal(roots.length, 1, 'får bara finnas ett #cco-conv-v2-root efter om-rendering');
 });
+
+// Regression (bug-hunt): snabbsvar-utkastet ska överleva en om-rendering
+// (bakgrundspoll/tema-toggle skrev tidigare över det skrivna).
+test('v2-skalet: quick-reply-utkast överlever om-rendering', () => {
+  const { window, document, api } = loadShell();
+  api.render(makeCtx());
+
+  const ta = document.querySelector('[data-v3-qr-body]');
+  assert.ok(ta, 'quick-reply-textarea ska finnas när en tråd är vald');
+  ta.value = 'Hej, vi har en tid på torsdag.';
+  ta.dispatchEvent(new window.Event('input', { bubbles: true }));
+
+  // Om-rendering med samma ctx (motsvarar en bakgrundsrefresh).
+  api.render(makeCtx());
+
+  const ta2 = document.querySelector('[data-v3-qr-body]');
+  assert.equal(
+    ta2.value,
+    'Hej, vi har en tid på torsdag.',
+    'utkastet ska bevaras över om-rendering'
+  );
+});
