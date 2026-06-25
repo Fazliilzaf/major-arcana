@@ -8,16 +8,15 @@
 
 ## Nordbro-referens
 
-- Mode: **sharepoint_import_fallback**
-- Path: `data/cco-templates.json#meridiq_consent_behandlingsavtal_prp_hud_170944`
-- Notering: Word saknas lokalt — jämför mot SharePoint-import (sharepoint_import_step3)
+- Mode: **word**
+- Path: `/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-prp.docx`
 
 ## Resultat
 
-| Del               | Status                        | Text match | Ankare facit | Anteckning                      |
-| ----------------- | ----------------------------- | ---------- | ------------ | ------------------------------- |
-| PRP 170944/170945 | **E6_OK**                     | **JA**     | 9/9          | `agreement_hair_tp_prp_nordbro` |
-| **Overall**       | **P1_PASS_WITH_BRAND_REVIEW** |            |              |                                 |
+| Del               | Status                 | Text match | Ankare facit | Anteckning                      |
+| ----------------- | ---------------------- | ---------- | ------------ | ------------------------------- |
+| PRP 170944/170945 | **E6_OK**              | **NEJ**    | 9/9          | `agreement_hair_tp_prp_nordbro` |
+| **Overall**       | **P1_PASS_WITH_DRIFT** |            |              |                                 |
 
 ## Brand review
 

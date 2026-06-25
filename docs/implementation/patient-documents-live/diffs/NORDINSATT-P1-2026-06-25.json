@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-25T18:29:31.452Z",
+  "generatedAt": "2026-06-25T18:59:14.312Z",
   "batch": "P1",
   "ownerFacitSet": {
     "batch": "P1",
@@ -21,20 +21,14 @@
     ]
   },
   "nordbroReference": {
-    "mode": "sharepoint_import_fallback",
-    "path": "data/cco-templates.json#meridiq_consent_behandlingsavtal_prp_hud_170944",
-    "note": "Word saknas lokalt — jämför mot SharePoint-import (sharepoint_import_step3)",
-    "sharePointMeta": {
-      "driveId": "b!J9ysU7x080-442YSpY3ck-umNLLDGMRNtOxNUKIJiFmCSMH3wxTSTYHwSsJ7Gy2C",
-      "itemId": "01OVMUU4WSHDH4GRVUF5E3D6H3I4BASEI4",
-      "webUrl": "https://hairtpclinic1.sharepoint.com/sites/Ledning/Shared Documents/General/1. Kunddokument - KVALITETSSAKRA/97. Versioner fran advokat/251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
-      "name": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
-      "lastModifiedDateTime": "2025-12-10T13:38:33.000Z"
-    }
+    "mode": "word",
+    "path": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-prp.docx",
+    "note": null,
+    "sharePointMeta": null
   },
-  "facitSha256": "4c248acfbecb",
-  "nordbroSha256": "4c248acfbecb",
-  "textMatch": true,
+  "facitSha256": "b1bf50b31717",
+  "nordbroSha256": "344af0e98a20",
+  "textMatch": false,
   "bindings": [
     {
       "meridiqApiId": 170944,
@@ -72,11 +66,11 @@
     "wordOk": true,
     "bundleHits": "9/9",
     "demoHits": "9/9",
-    "wordHits": "9/9",
+    "wordHits": "7/9",
     "missingInDemo": [],
     "missingInBundle": [],
     "wordPresent": true,
-    "textMatch": true,
+    "textMatch": false,
     "brandFlags": [
       {
         "code": "NEEDS_BRAND_REVIEW",
@@ -85,5 +79,5 @@
       }
     ]
   },
-  "overall": "P1_PASS_WITH_BRAND_REVIEW"
+  "overall": "P1_PASS_WITH_DRIFT"
 }

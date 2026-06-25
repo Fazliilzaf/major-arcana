@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "note": "Hair TP avtal utanför 97/Insatt som INTE är juridisk facit — superseded av Nordbro 251203 eller internt arbetsutkast.",
+  "supersededAvtalOutsideFacit": [
+    {
+      "sharepointFile": "Behandlingsavtal - Hårtransplantationer.docx",
+      "folder": "2. Hair TP Clinic 2026/Hårtransplantation/Behandlingsavtal",
+      "lastModified": "2026-02-13",
+      "reason": "INTERN_2026_ARBETSKOPIA",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro",
+      "legalReviewStatus": "superseded_by_nordbro_251203"
+    },
+    {
+      "sharepointFile": "Behandlingsavtal - FUE Nuvarande.docx",
+      "folder": "99. Kundresan - mallar, blanketter och broschyrer/3. Avtal",
+      "lastModified": "2025-02-19",
+      "reason": "SKIP_OLD",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro"
+    },
+    {
+      "sharepointFile": "Avtal - Hårtransplantation med DHI-metoden 2.0.docx",
+      "folder": "99. Kundresan - mallar, blanketter och broschyrer/3. Avtal",
+      "lastModified": "2025-02-19",
+      "reason": "SKIP_OLD",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro"
+    },
+    {
+      "sharepointFile": "3. FUE Avtal.pdf",
+      "folder": "99. Kundresan - mallar, blanketter och broschyrer",
+      "lastModified": "2024-12-10",
+      "reason": "SKIP_OLD",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro"
+    },
+    {
+      "sharepointFile": "TP Avtal.docx",
+      "folder": "INSATT - HTPC",
+      "lastModified": "2025-04-30",
+      "reason": "INSATT_SKIP_OLD",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro",
+      "legalReviewStatus": "insatt_approved"
+    },
+    {
+      "sharepointFile": "251030_KLARSPRÅK Patientinformation & Tjänstespecifikation – Hårtransplantation med DHI-tekniken, med kommentarer.docx",
+      "folder": "97. Versioner från advokat",
+      "lastModified": "2026-02-09",
+      "reason": "NORDBRO_LEGACY_251030",
+      "supersededBy": "agreement_hair_tp_dhi_2day_nordbro"
+    }
+  ],
+  "allowedIn97FolderNonAvtal": [
+    {
+      "sharepointFilePattern": "BOKNINGSVILLKOR",
+      "reason": "BOOKING_TERMS_NOT_TREATMENT_AVTAL",
+      "note": "Bokningsvillkor i 97-mappen — ej behandlingsavtal-facit"
+    }
+  ]
+}
