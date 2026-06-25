@@ -11,6 +11,8 @@ function readProjectFile(relativePath) {
 
 test('CFO segment modules are imported from src/cfo', () => {
   const modules = {
+    cfoBillingDraftService: require('../../src/cfo/cfoBillingDraftService'),
+    cfoBillingDraftStore: require('../../src/cfo/cfoBillingDraftStore'),
     cfoExpenseExporter: require('../../src/cfo/cfoExpenseExporter'),
     cfoExpenseRuleStore: require('../../src/cfo/cfoExpenseRuleStore'),
     cfoExpenseStore: require('../../src/cfo/cfoExpenseStore'),
@@ -31,12 +33,17 @@ test('CFO segment modules are imported from src/cfo', () => {
     cfoRecurringExpenseStore: require('../../src/cfo/cfoRecurringExpenseStore'),
   };
 
+  assert.equal(typeof modules.cfoBillingDraftService.createCfoBillingDraftService, 'function');
+  assert.equal(typeof modules.cfoBillingDraftStore.createCfoBillingDraftStore, 'function');
   assert.equal(typeof modules.cfoExpenseExporter.buildExpenseExportPackage, 'function');
   assert.equal(typeof modules.cfoExpenseRuleStore.createCfoExpenseRuleStore, 'function');
   assert.equal(typeof modules.cfoExpenseStore.createCfoExpenseStore, 'function');
   assert.equal(typeof modules.cfoExpenseVatRules.calculateVatBreakdown, 'function');
   assert.equal(typeof modules.cfoFinanceDashboardBuilder.buildFinanceDashboard, 'function');
-  assert.equal(typeof modules.cfoFinanceMonthlyCloseStore.createCfoFinanceMonthlyCloseStore, 'function');
+  assert.equal(
+    typeof modules.cfoFinanceMonthlyCloseStore.createCfoFinanceMonthlyCloseStore,
+    'function'
+  );
   assert.equal(typeof modules.cfoFinanceReportEngine.generateReport, 'function');
   assert.equal(typeof modules.cfoFinanceReportPackager.buildReportPackage, 'function');
   assert.equal(typeof modules.cfoFinanceReviewPackager.buildReviewPackage, 'function');
@@ -99,10 +106,10 @@ test('finance routes, storage keys, and Fortnox env/config names stay unchanged'
   }
 
   for (const route of [
-    "/cco-fortnox/status",
-    "/cco-fortnox/connect",
-    "/cco-fortnox/oauth/callback",
-    "/cco-fortnox/sync-patient",
+    '/cco-fortnox/status',
+    '/cco-fortnox/connect',
+    '/cco-fortnox/oauth/callback',
+    '/cco-fortnox/sync-patient',
   ]) {
     assert.match(ccoFortnoxRoute, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
@@ -125,7 +132,10 @@ test('finance routes, storage keys, and Fortnox env/config names stay unchanged'
   assert.match(config, /FORTNOX_CLIENT_SECRET/);
 
   assert.match(receiptStore, /`receipts\/\$\{ym\}\/\$\{sha\.slice\(0, 8\)\}-\$\{id\}\.\$\{ext\}`/);
-  assert.match(expenseStore, /`expenses\/\$\{ym\}\/\$\{sha\.slice\(0, 8\)\}-\$\{e\.id\}\.\$\{ext\}`/);
+  assert.match(
+    expenseStore,
+    /`expenses\/\$\{ym\}\/\$\{sha\.slice\(0, 8\)\}-\$\{e\.id\}\.\$\{ext\}`/
+  );
   assert.match(expenseExporter, /`exports\/expenses\/\$\{ym\}\/\$\{realBatchId\}\.csv`/);
   assert.match(expenseExporter, /`exports\/expenses\/\$\{ym\}\/\$\{realBatchId\}\.json`/);
   assert.match(reviewPackager, /`exports\/reviews\/\$\{ym\}\/\$\{batchId\}-manifest\.json`/);
