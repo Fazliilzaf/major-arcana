@@ -1002,46 +1002,97 @@
       items
         .slice(0, 8)
         .map(function (f) {
-          var ic = /pdf/i.test(txt(f.mimeType || f.name))
+          var rawName = txt(f.name || f.title || f.fileName || 'Dokument');
+          var lname = rawName.toLowerCase();
+          var cat = txt(f.category).toLowerCase();
+          var ic = /pdf/i.test(txt(f.mimeType) + ' ' + rawName)
             ? 'pdf'
-            : /xls/i.test(txt(f.name))
+            : /xls/i.test(rawName)
               ? 'xlsx'
               : 'docx';
+          // Vänligt namn: facit visar korta kategori-namn ("Avtal + samtycke"),
+          // inte råa filnamn (getaccept-5kk3vb…pdf). Härleds ur kategori/filnamn.
+          // Tål mojibake (å/ä/ö → "??"/"-") i filnamn: matcha luckor mellan h…sodekl.
+          var name = /h.{0,4}[il]sodekl|halsodekl|hd[-_ ]/.test(lname)
+            ? 'Hälsodeklaration'
+            : /frisk/.test(lname)
+              ? 'Friskförsäkran'
+              : cat === 'agreement' || /avtal/.test(lname)
+                ? 'Avtal + samtycke'
+                : cat === 'consent' || /samtycke/.test(lname)
+                  ? 'Samtycke'
+                  : cat === 'journal' || /journal/.test(lname)
+                    ? 'Journal'
+                    : cat === 'offer' || cat === 'quote' || /offert/.test(lname)
+                      ? 'Offert'
+                      : cat === 'form' || /formul[aä]r/.test(lname)
+                        ? 'Formulär'
+                        : rawName
+                            .replace(/\.[a-z0-9]+$/i, '')
+                            .replace(/[-_]+/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim() || 'Dokument';
+          // Vänlig källa i meta-raden (facit: "12 maj · GetAccept · arkiverad").
+          var src = txt(f.sourceSystem).toLowerCase();
+          var srcLabel = /getaccept/.test(src)
+            ? 'GetAccept'
+            : /m365|h[aä]lso/.test(src)
+              ? 'Hälsomejl'
+              : /journal_sign|cco/.test(src)
+                ? 'Signerad i CCO'
+                : /drive/.test(src)
+                  ? 'Drive'
+                  : '';
+          var meta = [txt(f.dateLabel || f.documentDate), srcLabel].filter(Boolean).join(' · ');
+          // Vänlig status-chip — mappa rå status (t.ex. VISIBLE_ON_PATIENT_CARD)
+          // till facit-etiketter (Klar/Vänta sign/Auto/Intern/Signerat).
+          var st = txt(f.status || f.statusLabel).toLowerCase();
+          var tone = /v[aä]nt|utkast|pending|await/.test(st)
+            ? 'warn'
+            : /auto/.test(st)
+              ? 'info'
+              : /intern|internal/.test(st)
+                ? 'neutral'
+                : 'ok';
+          var clabel = /v[aä]nt|utkast|pending|await/.test(st)
+            ? 'Vänta sign'
+            : /auto/.test(st)
+              ? 'Auto'
+              : /intern|internal/.test(st)
+                ? 'Intern'
+                : /signer|signed/.test(st)
+                  ? 'Signerat'
+                  : /accept/.test(st)
+                    ? 'Accepterad'
+                    : 'Klar';
+          var send = tone === 'warn';
+          var btn = send ? 'Skicka' : tone === 'info' ? 'Förhandsgranska' : 'Öppna';
+          var href = txt(f.href);
+          var openable = !send && href;
           return (
             '<div class="doc-row"><span class="doc-ic ' +
             ic +
             '">' +
             ic.toUpperCase() +
             '</span>' +
-            '<div><div class="doc-name">' +
-            esc(txt(f.name || f.title || 'Dokument')) +
+            '<div><div class="doc-name" title="' +
+            esc(rawName) +
+            '">' +
+            esc(name) +
             '</div>' +
             '<div class="doc-meta">' +
-            esc(txt(f.dateLabel || f.documentDate || '')) +
+            esc(meta) +
             '</div></div>' +
-            // Per-dokument status + knapp ur riktig data (facit: Klar/Vänta sign/
-            // Auto/Intern + Öppna/Skicka/Förhandsgranska). Default Klar/Öppna.
-            (function () {
-              var st = txt(f.status || f.statusLabel).toLowerCase();
-              var tone = /vänt|vant|utkast|pending|sign/.test(st)
-                ? 'warn'
-                : /auto/.test(st)
-                  ? 'info'
-                  : /intern/.test(st)
-                    ? 'neutral'
-                    : 'ok';
-              var clabel = txt(f.statusLabel || f.status) || 'Klar';
-              var send = /vänt|vant|skicka|pending|sign/.test(st);
-              var btn = send ? 'Skicka' : /auto/.test(st) ? 'Förhandsgranska' : 'Öppna';
-              return (
-                chip(tone, clabel) +
-                '<button class="j-btn' +
-                (send ? ' primary' : '') +
-                '">' +
-                esc(btn) +
-                '</button>'
-              );
-            })() +
+            chip(tone, clabel) +
+            '<button class="j-btn' +
+            (send ? ' primary' : '') +
+            '"' +
+            (openable
+              ? ' data-doc-open="' + esc(href) + '" data-doc-name="' + esc(name) + '"'
+              : '') +
+            '>' +
+            esc(btn) +
+            '</button>' +
             '</div>'
           );
         })

@@ -1338,6 +1338,9 @@
           status: text(f.status || f.documentStatus || f.statusLabel),
           dateLabel: text(f.documentDate || f.dateLabel || f.capturedLabel),
           sourceSystem: text(f.sourceSystem),
+          // s9 härleder vänligt dokumentnamn ur kategorin (facit visar korta
+          // kategori-namn — "Avtal + samtycke" — inte råa filnamn).
+          category: text(f.category),
         };
       })
       .filter(function (it) {
