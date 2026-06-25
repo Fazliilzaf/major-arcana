@@ -2326,6 +2326,54 @@
           }
         }
       }
+
+      // VÄNSTERPANEL (side-shell) — riktiga räknare ur veckans data.
+      var bookedOn = function (iso) {
+        return v8GetDay(sbd, iso).filter(function (s) {
+          return s && s.kind === 'booked';
+        });
+      };
+      var tomorrow = v8IsoOf(new Date(new Date(today + 'T12:00:00').getTime() + 86400000));
+      var weekBooked = weekDates.reduce(function (acc, iso) {
+        return acc.concat(bookedOn(iso));
+      }, []);
+      var statusCount = function (re) {
+        return weekBooked.filter(function (s) {
+          return re.test(String(s.status || ''));
+        }).length;
+      };
+      var resSet = {};
+      weekDates.forEach(function (iso) {
+        v8GetDay(sbd, iso).forEach(function (s) {
+          if (s && (s.resourceId || s.resourceLabel)) resSet[s.resourceId || s.resourceLabel] = 1;
+        });
+      });
+      var resources = Object.keys(resSet);
+      var setLink = function (labelRe, n) {
+        var links = root.querySelectorAll('.side-shell .side-link');
+        for (var li = 0; li < links.length; li++) {
+          if (labelRe.test(links[li].textContent || '')) {
+            var cnt = links[li].querySelector('.count');
+            if (cnt) cnt.textContent = String(n);
+            return;
+          }
+        }
+      };
+      setLink(/dagens mottagning/i, bookedOn(today).length);
+      setLink(/imorgon/i, bookedOn(tomorrow).length);
+      setLink(/veckan/i, weekBooked.length);
+      setLink(/resurser/i, resources.length);
+      setLink(/bekräftade/i, statusCount(/(confirm|bekräft|bekraft|planer)/i));
+      setLink(/tentativa/i, statusCount(/(tentat|pending|väntar|vantar|obekräft)/i));
+      setLink(/konflikt/i, (range && range.conflicts && range.conflicts.length) || 0);
+      setLink(
+        /återbesök|aterbesok/i,
+        weekBooked.filter(function (s) {
+          return /(återbesök|aterbesok|uppföljn|recall|prp)/i.test(
+            String(s.serviceLabel || s.title || '')
+          );
+        }).length
+      );
     } catch (e) {
       if (window.console) console.warn('[cco-cal-v8] grid-data:', e && e.message);
     }
