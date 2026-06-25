@@ -4189,3 +4189,23 @@ html[data-calendar-v8="on"]
     min-height: 40px;
   }
 }
+
+/* ── Tillgänglighet: tap-targets ≥44×44 på touch (endast grov pekare) ─────── */
+@media (pointer: coarse) {
+  #cco-cal-v8-root .segment-tab,
+  #cco-cal-v8-root .nav-btn,
+  #cco-cal-v8-root .story-cta,
+  #cco-cal-v8-root .quick-pill {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  #cco-cal-v8-root .booking {
+    min-height: 44px;
+  }
+  #cco-cal-v8-root .side-link {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+}

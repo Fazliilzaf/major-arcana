@@ -1577,3 +1577,36 @@
     all: unset;
   }
 }
+
+/* ── Tillgänglighet: tap-targets ≥44×44 på touch (WCAG 2.5.5 / Apple HIG) ───
+ * Aktiveras bara på grov pekare → desktop-densitet med precis pekare orörd. */
+@media (pointer: coarse) {
+  #cco-cal-v7-root .segment-tab {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  #cco-cal-v7-root .dayswipe-day {
+    min-width: 44px;
+    min-height: 56px;
+  }
+  #cco-cal-v7-root .nav-item {
+    min-width: 48px;
+    min-height: 48px;
+  }
+  #cco-cal-v7-root .nav-fab {
+    min-width: 56px;
+    min-height: 56px;
+  }
+  #cco-cal-v7-root .booking {
+    min-height: 44px;
+  }
+  #cco-cal-v7-root .search-box {
+    min-height: 44px;
+  }
+  #cco-cal-v7-root .status-pill {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
