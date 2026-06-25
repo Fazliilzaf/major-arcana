@@ -11046,6 +11046,7 @@ const { createDocsRouter } = require('./src/routes/docs');
 const { createPatientInformationRouter } = require('./src/routes/patientInformation');
 const { createAdminRouter } = require('./src/routes/admin');
 const { createDiagRouter } = require('./src/routes/diag');
+const { createConversationRouter } = require('./src/routes/conversation');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -12858,47 +12859,9 @@ process.once('SIGTERM', () => {
     })
   );
 
-  app.get('/conversation/:id', async (req, res) => {
-    try {
-      const conversation = await memoryStore.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ error: 'Hittade ingen konversation.' });
-      }
-      const sourceUrl = typeof req.query.sourceUrl === 'string' ? req.query.sourceUrl : '';
-      const brand = resolveBrand(req, sourceUrl);
-      if (conversation.brand && brand && conversation.brand !== brand) {
-        return res.status(404).json({ error: 'Hittade ingen konversation.' });
-      }
-      if (!conversation.brand && brand) {
-        await memoryStore.ensureConversation(conversation.id, brand);
-      }
-      return res.json({
-        conversationId: conversation.id,
-        summary: conversation.summary || '',
-        messages: conversation.messages || [],
-      });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Något gick fel.' });
-    }
-  });
-
-  app.delete('/conversation/:id', async (req, res) => {
-    try {
-      const conversation = await memoryStore.getConversation(req.params.id);
-      if (!conversation) return res.json({ ok: false });
-      const sourceUrl = typeof req.query.sourceUrl === 'string' ? req.query.sourceUrl : '';
-      const brand = resolveBrand(req, sourceUrl);
-      if (conversation.brand && brand && conversation.brand !== brand) {
-        return res.json({ ok: false });
-      }
-      const ok = await memoryStore.deleteConversation(req.params.id);
-      return res.json({ ok });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Något gick fel.' });
-    }
-  });
+  // ─── KONVERSATION (hämta/radera) ───
+  // Routes flyttade till src/routes/conversation.js (se ORGANISATION.md §4).
+  app.use(createConversationRouter({ memoryStore, resolveBrand }));
 
   app.post(
     '/chat',
