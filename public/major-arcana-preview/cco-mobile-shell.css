@@ -3202,11 +3202,16 @@
       color: var(--cco-text-secondary, #5d544a);
     }
 
-    /* Kallstart kundvy — skippa layout/paint av tung inbox tills användaren byter flik */
+    /* Kallstart kundvy — skippa layout/paint av tung inbox tills användaren byter flik.
+       OBS: defer:a bara INAKTIVA sektioner ([hidden]). Tidigare träffade regeln även
+       den AKTIVA aux-sektionen (automation/analytics/settings/…), vilket gav blank
+       sida på mobil när man navigerade dit via "Mer"-arket (setAppView sätter
+       defer=on för alla icke-conversation-vyer). [hidden]-sektioner är redan
+       display:none på mobil → ingen paint-kostnad, men den aktiva sektionen målas nu. */
     html[data-cco-mobile-defer-inbox="on"] .preview-workspace > #workspace-queue,
     html[data-cco-mobile-defer-inbox="on"]
       .preview-workspace
-      > section[data-shell-view]:not([data-shell-view="customers"]) {
+      > section[data-shell-view][hidden]:not([data-shell-view="customers"]) {
       content-visibility: hidden;
       contain-intrinsic-size: auto 640px;
     }
