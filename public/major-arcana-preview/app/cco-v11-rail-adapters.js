@@ -1349,6 +1349,69 @@
   }
 
   /**
+   * Per-steg asset-räknare (📄 dok / 📷 foton / 📓 journal) HÄRLEDDA ur RIKTIG
+   * metadata: dokumentets eget namn avgör vilket kundrese-steg det hör till,
+   * foton → konsultations-steget, journaler → konsultation/behandling. Ingen
+   * fejk — kopplingen kommer från filens/journalens egen identitet.
+   *
+   * @returns {Object} { [stegId]: {docs?, photos?, journals?} }
+   */
+  function buildStepAssets(journey, driveFiles, journalEntries) {
+    var steps = toArray(journey && journey.steps);
+    if (!steps.length) return {};
+    var out = {};
+    function bump(id, key) {
+      if (id == null) return;
+      out[id] = out[id] || {};
+      out[id][key] = (out[id][key] || 0) + 1;
+    }
+    function findStep(includeRe, excludeRe) {
+      for (var i = 0; i < steps.length; i++) {
+        var L = text(steps[i].label).toLowerCase();
+        if (includeRe.test(L) && (!excludeRe || !excludeRe.test(L))) {
+          return steps[i].id != null ? steps[i].id : i + 1;
+        }
+      }
+      return null;
+    }
+    var consultId = findStep(/konsultation/, /bokning|bekr[äa]ft/);
+    // Dokument → steg via filnamn (filens egen identitet).
+    toArray(driveFiles)
+      .filter(function (f) {
+        return f && !isRailMediaFile(f);
+      })
+      .forEach(function (f) {
+        var n = text(f.originalFileName || f.fileName || f.relativePath || f.name).toLowerCase();
+        var id = /h[äa]lsodek|riskbed/.test(n)
+          ? findStep(/h[äa]lsodek/)
+          : /offert|behandlingsplan/.test(n)
+            ? findStep(/offert|behandlingsplan/)
+            : /foto.*samtycke|samtycke.*foto/.test(n)
+              ? findStep(/foto/)
+              : /avtal|samtycke/.test(n)
+                ? findStep(/avtal|samtycke/)
+                : /friskf[öo]rs/.test(n)
+                  ? findStep(/friskf[öo]rs/)
+                  : /bokningsbekr|bekr[äa]ftelse/.test(n)
+                    ? findStep(/bokningsbekr|bekr[äa]ftelse/)
+                    : null;
+        bump(id, 'docs');
+      });
+    // Foton → konsultations-steget.
+    var photoCount = toArray(driveFiles).filter(isRailMediaFile).length;
+    if (photoCount && consultId != null) {
+      out[consultId] = out[consultId] || {};
+      out[consultId].photos = photoCount;
+    }
+    // Journaler → konsultation/behandling via titel.
+    toArray(journalEntries).forEach(function (e) {
+      var t = text(e && (e.title || e.journalType)).toLowerCase();
+      if (/prp|behandl|konsult/.test(t)) bump(consultId, 'journals');
+    });
+    return out;
+  }
+
+  /**
    * O · Notes (KEEP) — V11-presentation av kundens anteckningar/noteringar
    * ovanpå befintlig dossier-logik (canon KEEP). Self-contained: speglar parity
    * buildSlideOverNotes (importantNote + allergier + recentEvents note/anteck)
@@ -1693,6 +1756,7 @@
     buildAutoDocsFromPayload: buildAutoDocsFromPayload,
     buildPhotosFromDriveFiles: buildPhotosFromDriveFiles,
     buildFilesFromDriveFiles: buildFilesFromDriveFiles,
+    buildStepAssets: buildStepAssets,
     buildNotesFromState: buildNotesFromState,
     buildCommunicationFromState: buildCommunicationFromState,
     buildEconomyFromCard: buildEconomyFromCard,

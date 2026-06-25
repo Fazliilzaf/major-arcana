@@ -1483,6 +1483,10 @@
     var nextStep = call('buildSmartNextStep', [card], null);
     var insights = call('buildInsightsFromSignals', [card], null);
     var recentEvents = call('buildRecentEvents', [card, bundle, ctx.journalEntries], []);
+    // Per-steg asset-räknare: ctx.stepAssets (demo äger sin data) vinner; annars
+    // härled ur RIKTIGA driveFiles/journalEntries (filnamn → steg). Ingen fejk.
+    var stepAssets =
+      ctx.stepAssets || call('buildStepAssets', [journey, ctx.driveFiles, ctx.journalEntries], {});
 
     var main =
       '<div class="v12-canon__main">' +
@@ -1491,7 +1495,7 @@
       s2(av) +
       s3(warnings) +
       s4(health) +
-      s5(journey, av, nextStep, photos, health, ctx.stepAssets) +
+      s5(journey, av, nextStep, photos, health, stepAssets) +
       s6(ctx.journalEntries) +
       s7(photos) +
       s8(bundle) +
