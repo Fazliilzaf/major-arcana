@@ -1221,7 +1221,8 @@
           closeCmdk();
         } else if (key === 'arrowdown') {
           event.preventDefault();
-          cmdkActive = Math.min(filteredCommands(boundCtx).length - 1, cmdkActive + 1);
+          // Math.max(0, …): vid 0 träffar blir length-1 = -1, klampa upp till 0.
+          cmdkActive = Math.max(0, Math.min(filteredCommands(boundCtx).length - 1, cmdkActive + 1));
           renderCmdk();
         } else if (key === 'arrowup') {
           event.preventDefault();
@@ -1684,6 +1685,7 @@
     }
     var cmds = filteredCommands(boundCtx);
     if (cmdkActive >= cmds.length) cmdkActive = Math.max(0, cmds.length - 1);
+    if (cmdkActive < 0) cmdkActive = 0; // klampa även nedåt (0 träffar)
     // Bevara caret-positionen — inputen byggs om vid varje tangenttryck, så
     // att tvinga caret till slutet hoppar vid redigering mitt i söksträngen.
     var prevInput = root.querySelector('.v3-cmdk-input');
