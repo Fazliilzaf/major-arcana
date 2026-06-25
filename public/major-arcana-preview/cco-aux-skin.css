@@ -68,10 +68,11 @@
   color: var(--aux-accent);
 }
 
-/* Grupp-etiketter i biblioteket → kicker-stil */
-.automation-shell .automation-library-label,
-.analytics-shell .analytics-section-head,
-.analytics-shell .analytics-panel-head {
+/* Grupp-etiketter i biblioteket → kicker-stil.
+   OBS: bara dedikerade etikett-noder (<p>/<span>), ALDRIG sektions-wrappers som
+   .analytics-section-head/.analytics-panel-head — de innehåller h2/h3-titlar +
+   hjälptext som annars ärver 10px-uppercase och kollapsar till kickers. */
+.automation-shell .automation-library-label {
   color: var(--aux-kicker);
   font-size: 10px;
   font-weight: 800;
