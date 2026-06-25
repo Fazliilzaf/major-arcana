@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Step 3 — Health questionnaire | Hair TP Clinic</title>
-    <!-- source: migration/meridiq/steg3-health-declaration-eng-facit.json (translation of 16414) -->
+    <!-- source: migration/meridiq/steg3-health-declaration-eng-facit.json (archive 14865) -->
     <!-- design: public/major-arcana-preview/patient-document-shell.css -->
     <style>
       /**
@@ -351,6 +351,68 @@
       .doc-list .doc-text {
         margin: 0;
       }
+
+      /* E8 — signering/audit feedback (patient-document-shell.js) */
+      .pd-sign-banner {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #7a4014;
+        background: rgba(180, 120, 40, 0.1);
+        border: 1px solid rgba(180, 120, 40, 0.22);
+      }
+      .pd-sign-status {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: var(--card-shadow);
+      }
+      .pd-sign-status[data-tone='success'] {
+        border-color: rgba(56, 120, 80, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(244, 252, 247, 0.98) 0%,
+          rgba(232, 245, 236, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='error'] {
+        border-color: rgba(160, 60, 50, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 246, 244, 0.98) 0%,
+          rgba(252, 235, 232, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='loading'] {
+        border-color: rgba(215, 130, 90, 0.28);
+      }
+      .pd-sign-status__msg {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--brand);
+      }
+      .pd-sign-status__meta {
+        margin: 8px 0 0;
+        font-size: 11px;
+        color: var(--t3);
+      }
+      .pd-sign-status__meta code {
+        font-size: 10px;
+        word-break: break-all;
+      }
+      .pd-sign-status__pdf {
+        margin: 10px 0 0;
+      }
+      .pd-sign-status__pdf a {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--pd-accent-strong);
+      }
     </style>
   </head>
   <body>
@@ -493,64 +555,28 @@
 
       <div class="page-content" data-registry-id="health_tp_eng">
         <div class="section-block">
-          <div class="section-title">Before your consultation</div>
+          <div class="section-title">Health questionnaire</div>
           <p class="doc-text">
-            To provide safe and accurate advice before your consultation, we ask you to answer a few
-            questions about your health. This information helps us assess what is suitable for you.
+            Please answer all questions below before your consultation or treatment. Your answers
+            help us assess whether the treatment is safe and appropriate for you.
           </p>
           <p class="doc-text source-note">
-            Used for consultations for PRP (hair &amp; skin), Microneedling PRF and hair
-            transplants.
+            ENG health questionnaire · Hair TP Clinic · archive form 14865
           </p>
         </div>
 
         <div class="section-block">
-          <div class="section-title">Personal details</div>
-          <div class="field">
-            <label for="fn">First name</label
-            ><input id="fn" type="text" autocomplete="given-name" />
-          </div>
-          <div class="field">
-            <label for="en">Last name</label
-            ><input id="en" type="text" autocomplete="family-name" />
-          </div>
-          <div class="field">
-            <label for="pnr">Personal identity number</label
-            ><input id="pnr" type="text" inputmode="numeric" placeholder="YYYYMMDD-XXXX" />
-          </div>
-          <div class="field">
-            <label for="adr">Address</label
-            ><input id="adr" type="text" autocomplete="street-address" />
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="postnr">Postal code</label><input id="postnr" type="text" />
-            </div>
-            <div class="field"><label for="ort">City</label><input id="ort" type="text" /></div>
-          </div>
-          <div class="field">
-            <label for="epost">Email address</label
-            ><input id="epost" type="email" autocomplete="email" />
-          </div>
-          <div class="field">
-            <label for="tel">Phone number</label><input id="tel" type="tel" autocomplete="tel" />
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-title">Health questionnaire · 14 questions</div>
+          <div class="section-title">Health questionnaire · 29 questions</div>
           <p class="doc-text">Please answer all questions.</p>
         </div>
 
-        <div class="section-block question-block" data-meridiq-id="450976">
-          <p class="doc-text question-label">
-            <strong>Do you use tobacco or nicotine products (e.g. cigarettes, snus, vape)?</strong>
-          </p>
-          <div class="yes-no-group" data-field="450976">
+        <div class="section-block question-block" data-meridiq-id="408040">
+          <p class="doc-text question-label"><strong>Do you suffer from any allergies?</strong></p>
+          <div class="yes-no-group" data-field="408040">
             <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
             <button type="button" class="yes-no-btn" data-value="no">No</button>
           </div>
-          <div class="sub-field" data-followup="450976" hidden>
+          <div class="sub-field" data-followup="408040" hidden>
             <textarea
               rows="3"
               placeholder="Describe here…"
@@ -558,49 +584,14 @@
             ></textarea>
           </div>
         </div>
-        <div class="section-block question-block" data-meridiq-id="450977">
-          <p class="doc-text question-label"><strong>Are you pregnant or breastfeeding?</strong></p>
-          <div class="yes-no-group" data-field="450977">
-            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
-            <button type="button" class="yes-no-btn" data-value="no">No</button>
-          </div>
-          <div class="sub-field" data-followup="450977" hidden>
-            <textarea
-              rows="3"
-              placeholder="Describe here…"
-              aria-label="Additional details"
-            ></textarea>
-          </div>
-        </div>
-        <div class="section-block question-block" data-meridiq-id="450978">
-          <p class="doc-text question-label">
-            <strong
-              >Do you have or have you previously had heart or cardiovascular disease (e.g. heart
-              attack, angina, arrhythmia)? If yes, specify what.</strong
-            >
-          </p>
-          <div class="yes-no-group" data-field="450978">
-            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
-            <button type="button" class="yes-no-btn" data-value="no">No</button>
-          </div>
-          <div class="sub-field" data-followup="450978" hidden>
-            <textarea
-              rows="3"
-              placeholder="Describe here…"
-              aria-label="Additional details"
-            ></textarea>
-          </div>
-        </div>
-        <div class="section-block question-block" data-meridiq-id="450979">
-          <p class="doc-text question-label">
-            <strong>Have you been diagnosed with high blood pressure (hypertension)?</strong>
-          </p>
-          <div class="yes-no-group tristate" data-field="450979">
+        <div class="section-block question-block" data-meridiq-id="408041">
+          <p class="doc-text question-label"><strong>Do you use tobacco?</strong></p>
+          <div class="yes-no-group tristate" data-field="408041">
             <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
             <button type="button" class="yes-no-btn" data-value="no">No</button>
             <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
           </div>
-          <div class="sub-field" data-followup="450979" hidden>
+          <div class="sub-field" data-followup="408041" hidden>
             <textarea
               rows="3"
               placeholder="Describe here…"
@@ -608,18 +599,52 @@
             ></textarea>
           </div>
         </div>
-        <div class="section-block question-block" data-meridiq-id="450980">
+        <div class="section-block question-block" data-meridiq-id="408042">
+          <p class="doc-text question-label">
+            <strong>Are you pregnant, breastfeeding or trying to conceive?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408042">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408042" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408043">
+          <p class="doc-text question-label">
+            <strong>Are you currently receiving any medical treatment?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408043">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+          </div>
+          <div class="sub-field" data-followup="408043" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408044">
           <p class="doc-text question-label">
             <strong
-              >Do you have any other condition we should know about (e.g. diabetes, coagulation
-              disorder, immunological disease)? If yes, specify what.</strong
+              >Are you currently taking steroids, acetylsalicylic acid (eg Treo or Aspirin) or any
+              anticoagulant (eg Warfarin)?</strong
             >
           </p>
-          <div class="yes-no-group" data-field="450980">
+          <div class="yes-no-group tristate" data-field="408044">
             <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
             <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
           </div>
-          <div class="sub-field" data-followup="450980" hidden>
+          <div class="sub-field" data-followup="408044" hidden>
             <textarea
               rows="3"
               placeholder="Describe here…"
@@ -627,34 +652,19 @@
             ></textarea>
           </div>
         </div>
-        <div class="section-block question-block" data-meridiq-id="450981">
-          <p class="doc-text question-label">
-            <strong>Do you have any blood-borne disease? If yes, please specify below:</strong>
-          </p>
-          <div class="yes-no-group" data-field="450981">
-            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
-            <button type="button" class="yes-no-btn" data-value="no">No</button>
-          </div>
-          <div class="sub-field" data-followup="450981" hidden>
-            <textarea
-              rows="3"
-              placeholder="Describe here…"
-              aria-label="Additional details"
-            ></textarea>
-          </div>
-        </div>
-        <div class="section-block question-block" data-meridiq-id="450982">
+        <div class="section-block question-block" data-meridiq-id="408045">
           <p class="doc-text question-label">
             <strong
-              >Is there anything else we should know about your health? If yes, please
-              describe.</strong
+              >Have you recently used any glycolic acid or retinoids (such as isotretinoin or
+              tretinoin)?</strong
             >
           </p>
-          <div class="yes-no-group" data-field="450982">
+          <div class="yes-no-group tristate" data-field="408045">
             <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
             <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
           </div>
-          <div class="sub-field" data-followup="450982" hidden>
+          <div class="sub-field" data-followup="408045" hidden>
             <textarea
               rows="3"
               placeholder="Describe here…"
@@ -662,18 +672,18 @@
             ></textarea>
           </div>
         </div>
-        <div class="section-block question-block" data-meridiq-id="450983">
+        <div class="section-block question-block" data-meridiq-id="408046">
           <p class="doc-text question-label">
             <strong
-              >Do you take any medications (regularly or as needed)? If yes, please specify the
-              medication name, strength (mg/ml) and dosage below.</strong
+              >Do you have an ongoing infection in your body or have you taken antibiotics in the
+              last four weeks?</strong
             >
           </p>
-          <div class="yes-no-group" data-field="450983">
+          <div class="yes-no-group" data-field="408046">
             <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
             <button type="button" class="yes-no-btn" data-value="no">No</button>
           </div>
-          <div class="sub-field" data-followup="450983" hidden>
+          <div class="sub-field" data-followup="408046" hidden>
             <textarea
               rows="3"
               placeholder="Describe here…"
@@ -681,18 +691,33 @@
             ></textarea>
           </div>
         </div>
-        <div class="section-block question-block" data-meridiq-id="450984">
+        <div class="section-block question-block" data-meridiq-id="408047">
+          <p class="doc-text question-label">
+            <strong>Do you have an ongoing illness that is physical or mental?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408047">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+          </div>
+          <div class="sub-field" data-followup="408047" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408048">
           <p class="doc-text question-label">
             <strong
-              >Do you take blood-thinning medication? If yes, please specify the medication name,
-              strength (mg/ml) and dosage below.</strong
+              >Have you had problems with anxiety, depression, or other mental disorders?</strong
             >
           </p>
-          <div class="yes-no-group" data-field="450984">
+          <div class="yes-no-group" data-field="408048">
             <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
             <button type="button" class="yes-no-btn" data-value="no">No</button>
           </div>
-          <div class="sub-field" data-followup="450984" hidden>
+          <div class="sub-field" data-followup="408048" hidden>
             <textarea
               rows="3"
               placeholder="Describe here…"
@@ -700,17 +725,18 @@
             ></textarea>
           </div>
         </div>
-        <div class="section-block question-block" data-meridiq-id="450985">
+        <div class="section-block question-block" data-meridiq-id="408049">
           <p class="doc-text question-label">
             <strong
-              >Do you take Omega 3, fish oil or other supplements that affect bleeding?</strong
+              >Do you have an autoimmune disease or a disease that has affected the immune
+              system?</strong
             >
           </p>
-          <div class="yes-no-group" data-field="450985">
+          <div class="yes-no-group" data-field="408049">
             <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
             <button type="button" class="yes-no-btn" data-value="no">No</button>
           </div>
-          <div class="sub-field" data-followup="450985" hidden>
+          <div class="sub-field" data-followup="408049" hidden>
             <textarea
               rows="3"
               placeholder="Describe here…"
@@ -718,18 +744,66 @@
             ></textarea>
           </div>
         </div>
-        <div class="section-block question-block" data-meridiq-id="451846">
+        <div class="section-block question-block" data-meridiq-id="408050">
+          <p class="doc-text question-label"><strong>Do you have diabetes?</strong></p>
+          <div class="yes-no-group tristate" data-field="408050">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408050" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408051">
+          <p class="doc-text question-label"><strong>Do you have any haemophilia?</strong></p>
+          <div class="yes-no-group tristate" data-field="408051">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408051" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408052">
+          <p class="doc-text question-label">
+            <strong>Do you suffer from acute rheumatoid arthritis or recurrent sore throat?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408052">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408052" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408053">
           <p class="doc-text question-label">
             <strong
-              >Are you allergic or hypersensitive to any medication (including local anaesthetic or
-              antibiotics)? If yes, specify which and any reaction.</strong
+              >Do you suffer from amyotrophic sclerosis (ALS) or peripheral neuromuscular disorder
+              (nerve disease)?</strong
             >
           </p>
-          <div class="yes-no-group" data-field="451846">
+          <div class="yes-no-group tristate" data-field="408053">
             <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
             <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
           </div>
-          <div class="sub-field" data-followup="451846" hidden>
+          <div class="sub-field" data-followup="408053" hidden>
             <textarea
               rows="3"
               placeholder="Describe here…"
@@ -737,63 +811,259 @@
             ></textarea>
           </div>
         </div>
-        <div class="section-block question-block" data-meridiq-id="451847">
-          <p class="doc-text question-label"><strong>Enter your height (cm):</strong></p>
+        <div class="section-block question-block" data-meridiq-id="408054">
+          <p class="doc-text question-label">
+            <strong
+              >Do you suffer from myasthenia gravis or Eaton-Lambert syndrome (muscle
+              disease)?</strong
+            >
+          </p>
+          <div class="yes-no-group tristate" data-field="408054">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408054" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408055">
+          <p class="doc-text question-label">
+            <strong>Do you suffer from untreated epilepsy?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408055">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408055" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408056">
+          <p class="doc-text question-label">
+            <strong>Do you have a tendency to develop large scars (keloids)?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408056">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408056" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408057">
+          <p class="doc-text question-label">
+            <strong>Have you had any skin cancer before?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408057">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408057" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408058">
+          <p class="doc-text question-label">
+            <strong>Do you suffer from porphyria (hereditary disease)?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408058">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408058" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408059">
+          <p class="doc-text question-label">
+            <strong>Do you suffer from abnormal palpitations or other heart disease?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408059">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408059" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408060">
+          <p class="doc-text question-label">
+            <strong
+              >Have you been to or are you planning a dental visit soon? (2 weeks before / 2 weeks
+              after)</strong
+            >
+          </p>
+          <div class="yes-no-group tristate" data-field="408060">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408060" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408061">
+          <p class="doc-text question-label">
+            <strong
+              >Have you previously received any aesthetic treatments (eg laser, peeling,
+              dermabrasion, microneedling, IPL, Chemical Peeling, PRP, etc.)?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408061">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+          </div>
+          <div class="sub-field" data-followup="408061" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408062">
+          <p class="doc-text question-label">
+            <strong
+              >Have you previously received injectable treatments, thread lift or undergone facial
+              surgery of any kind?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408062">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+          </div>
+          <div class="sub-field" data-followup="408062" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408063">
+          <p class="doc-text question-label">
+            <strong>Did you experience any side effects related to the treatment?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408063">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+          </div>
+          <div class="sub-field" data-followup="408063" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408064">
+          <p class="doc-text question-label">
+            <strong
+              >Do you have any skin infection or inflammatory skin problems (eg herpes, acne,
+              rosacea, etc.)?</strong
+            >
+          </p>
+          <div class="yes-no-group tristate" data-field="408064">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408064" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408065">
+          <p class="doc-text question-label">
+            <strong>Do you have tattoos or permanent makeup in the treatment area?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408065">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408065" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408066">
+          <p class="doc-text question-label"><strong>Do you have tanned skin now?</strong></p>
+          <div class="yes-no-group tristate" data-field="408066">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408066" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408067">
+          <p class="doc-text question-label">
+            <strong>Do you have Melasma or Chloasma (pigmentation)?</strong>
+          </p>
+          <div class="yes-no-group tristate" data-field="408067">
+            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
+            <button type="button" class="yes-no-btn" data-value="no">No</button>
+            <button type="button" class="yes-no-btn" data-value="unknown">Don't know</button>
+          </div>
+          <div class="sub-field" data-followup="408067" hidden>
+            <textarea
+              rows="3"
+              placeholder="Describe here…"
+              aria-label="Additional details"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408068">
+          <p class="doc-text question-label"><strong>Other comments about your health</strong></p>
           <div class="field">
-            <input type="text" data-field="451847" aria-label="Enter your height (cm):" />
+            <input type="text" data-field="408068" aria-label="Other comments about your health" />
           </div>
-        </div>
-        <div class="section-block question-block" data-meridiq-id="451848">
-          <p class="doc-text question-label"><strong>Enter your weight (kg):</strong></p>
-          <div class="field">
-            <input type="text" data-field="451848" aria-label="Enter your weight (kg):" />
-          </div>
-        </div>
-        <div class="section-block question-block" data-meridiq-id="451849">
-          <p class="doc-text question-label">
-            <strong
-              >Would you like us to focus on anything in particular during the consultation (e.g.
-              hair, skin, or both)? If yes, please describe briefly.</strong
-            >
-          </p>
-          <div class="yes-no-group" data-field="451849">
-            <button type="button" class="yes-no-btn" data-value="yes">Yes</button>
-            <button type="button" class="yes-no-btn" data-value="no">No</button>
-          </div>
-          <div class="sub-field" data-followup="451849" hidden>
-            <textarea
-              rows="3"
-              placeholder="Describe here…"
-              aria-label="Additional details"
-            ></textarea>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-title">Other</div>
-          <div class="field">
-            <label for="kontakt">How did you hear about Hair TP Clinic?</label>
-            <input id="kontakt" type="text" />
-          </div>
-          <div class="field">
-            <label for="datum">Date</label>
-            <input id="datum" type="date" />
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-title">Personal data &amp; communications</div>
-          <label class="consent-item">
-            <input type="checkbox" id="gdpr-lagring" />
-            <span
-              >I consent to my information being stored in Hair TP Clinic's systems in accordance
-              with the Patient Data Act and GDPR.</span
-            >
-          </label>
-          <label class="consent-item">
-            <input type="checkbox" id="gdpr-mail" />
-            <span>I consent to receiving email communications from Hair TP Clinic.</span>
-          </label>
         </div>
 
         <div class="section-block">

@@ -43,6 +43,8 @@
     "verify:journey-doc-placement": "node ./scripts/verify-journey-doc-placement.js",
     "verify:patient-doc-live-routes": "node ./scripts/verify-patient-doc-live-routes.js",
     "verify:patient-doc-sign-e8": "node ./scripts/verify-patient-doc-sign-e8.js",
+    "verify:patient-doc-staff-e9": "node ./scripts/verify-patient-doc-staff-e9.js",
+    "verify:patient-doc-eng1": "node ./scripts/verify-patient-doc-eng1.js",
     "verify:cloud-document-wiring-prod": "node ./scripts/verify-cloud-document-wiring-prod.js",
     "verify:ord47-prod-sticks": "node ./scripts/verify-ord47-prod-sticks.js",
     "verify:ord48-prod-sticks": "node ./scripts/verify-ord48-prod-sticks.js",

@@ -1,8 +1,9 @@
 {
-  "source": "English translation of Meridiq questionary 16414 (Hälsodeklaration | Hair TP Clinic). Not Meridiq 14865 archive form.",
-  "sourceSve": "migration/meridiq/questionary-catalog.json#16414",
+  "source": "migration/meridiq/questionary-catalog.json#14865",
+  "sourceNote": "Meridiq archive form ENG | Health Questionnaire (29 questions). isActive=false in Meridiq export.",
   "registryId": "health_tp_eng",
-  "questionCount": 14,
+  "meridiqApiId": 14865,
+  "questionCount": 29,
   "ui": {
     "yes": "Yes",
     "no": "No",
@@ -11,34 +12,13 @@
     "selectEmpty": "— Select —"
   },
   "intro": {
-    "title": "Before your consultation",
-    "body": "To provide safe and accurate advice before your consultation, we ask you to answer a few questions about your health. This information helps us assess what is suitable for you.",
-    "note": "Used for consultations for PRP (hair & skin), Microneedling PRF and hair transplants."
-  },
-  "personalData": {
-    "title": "Personal details",
-    "firstName": "First name",
-    "lastName": "Last name",
-    "personnummer": "Personal identity number",
-    "address": "Address",
-    "postalCode": "Postal code",
-    "city": "City",
-    "email": "Email address",
-    "phone": "Phone number"
+    "title": "Health questionnaire",
+    "body": "Please answer all questions below before your consultation or treatment. Your answers help us assess whether the treatment is safe and appropriate for you.",
+    "note": "ENG health questionnaire · Hair TP Clinic · archive form 14865"
   },
   "questionsSection": {
-    "title": "Health questionnaire · 14 questions",
+    "title": "Health questionnaire · 29 questions",
     "hint": "Please answer all questions."
-  },
-  "other": {
-    "title": "Other",
-    "contact": "How did you hear about Hair TP Clinic?",
-    "date": "Date"
-  },
-  "gdpr": {
-    "title": "Personal data & communications",
-    "storage": "I consent to my information being stored in Hair TP Clinic's systems in accordance with the Patient Data Act and GDPR.",
-    "email": "I consent to receiving email communications from Hair TP Clinic."
   },
   "actions": {
     "primary": "Sign &amp; submit",
@@ -46,75 +26,168 @@
   },
   "questions": [
     {
-      "id": 450976,
-      "type": "yes_no",
-      "label": "Do you use tobacco or nicotine products (e.g. cigarettes, snus, vape)?"
-    },
-    {
-      "id": 450977,
-      "type": "yes_no",
-      "label": "Are you pregnant or breastfeeding?"
-    },
-    {
-      "id": 450978,
+      "id": 408040,
       "type": "yes_no_textbox",
-      "label": "Do you have or have you previously had heart or cardiovascular disease (e.g. heart attack, angina, arrhythmia)? If yes, specify what."
+      "label": "Do you suffer from any allergies?"
     },
     {
-      "id": 450979,
+      "id": 408041,
       "type": "yes_no",
-      "label": "Have you been diagnosed with high blood pressure (hypertension)?",
+      "label": "Do you use tobacco?",
       "tristate": true
     },
     {
-      "id": 450980,
-      "type": "yes_no_textbox",
-      "label": "Do you have any other condition we should know about (e.g. diabetes, coagulation disorder, immunological disease)? If yes, specify what."
-    },
-    {
-      "id": 450981,
-      "type": "yes_no_textbox",
-      "label": "Do you have any blood-borne disease? If yes, please specify below:"
-    },
-    {
-      "id": 450982,
-      "type": "yes_no_textbox",
-      "label": "Is there anything else we should know about your health? If yes, please describe."
-    },
-    {
-      "id": 450983,
-      "type": "yes_no_textbox",
-      "label": "Do you take any medications (regularly or as needed)? If yes, please specify the medication name, strength (mg/ml) and dosage below."
-    },
-    {
-      "id": 450984,
-      "type": "yes_no_textbox",
-      "label": "Do you take blood-thinning medication? If yes, please specify the medication name, strength (mg/ml) and dosage below."
-    },
-    {
-      "id": 450985,
+      "id": 408042,
       "type": "yes_no",
-      "label": "Do you take Omega 3, fish oil or other supplements that affect bleeding?"
+      "label": "Are you pregnant, breastfeeding or trying to conceive?",
+      "tristate": true
     },
     {
-      "id": 451846,
+      "id": 408043,
       "type": "yes_no_textbox",
-      "label": "Are you allergic or hypersensitive to any medication (including local anaesthetic or antibiotics)? If yes, specify which and any reaction."
+      "label": "Are you currently receiving any medical treatment?"
     },
     {
-      "id": 451847,
-      "type": "input",
-      "label": "Enter your height (cm):"
+      "id": 408044,
+      "type": "yes_no",
+      "label": "Are you currently taking steroids, acetylsalicylic acid (eg Treo or Aspirin) or any anticoagulant (eg Warfarin)?",
+      "tristate": true
     },
     {
-      "id": 451848,
-      "type": "input",
-      "label": "Enter your weight (kg):"
+      "id": 408045,
+      "type": "yes_no",
+      "label": "Have you recently used any glycolic acid or retinoids (such as isotretinoin or tretinoin)?",
+      "tristate": true
     },
     {
-      "id": 451849,
+      "id": 408046,
       "type": "yes_no_textbox",
-      "label": "Would you like us to focus on anything in particular during the consultation (e.g. hair, skin, or both)? If yes, please describe briefly."
+      "label": "Do you have an ongoing infection in your body or have you taken antibiotics in the last four weeks?"
+    },
+    {
+      "id": 408047,
+      "type": "yes_no_textbox",
+      "label": "Do you have an ongoing illness that is physical or mental?"
+    },
+    {
+      "id": 408048,
+      "type": "yes_no_textbox",
+      "label": "Have you had problems with anxiety, depression, or other mental disorders?"
+    },
+    {
+      "id": 408049,
+      "type": "yes_no_textbox",
+      "label": "Do you have an autoimmune disease or a disease that has affected the immune system?"
+    },
+    {
+      "id": 408050,
+      "type": "yes_no",
+      "label": "Do you have diabetes?",
+      "tristate": true
+    },
+    {
+      "id": 408051,
+      "type": "yes_no",
+      "label": "Do you have any haemophilia?",
+      "tristate": true
+    },
+    {
+      "id": 408052,
+      "type": "yes_no",
+      "label": "Do you suffer from acute rheumatoid arthritis or recurrent sore throat?",
+      "tristate": true
+    },
+    {
+      "id": 408053,
+      "type": "yes_no",
+      "label": "Do you suffer from amyotrophic sclerosis (ALS) or peripheral neuromuscular disorder (nerve disease)?",
+      "tristate": true
+    },
+    {
+      "id": 408054,
+      "type": "yes_no",
+      "label": "Do you suffer from myasthenia gravis or Eaton-Lambert syndrome (muscle disease)?",
+      "tristate": true
+    },
+    {
+      "id": 408055,
+      "type": "yes_no",
+      "label": "Do you suffer from untreated epilepsy?",
+      "tristate": true
+    },
+    {
+      "id": 408056,
+      "type": "yes_no",
+      "label": "Do you have a tendency to develop large scars (keloids)?",
+      "tristate": true
+    },
+    {
+      "id": 408057,
+      "type": "yes_no",
+      "label": "Have you had any skin cancer before?",
+      "tristate": true
+    },
+    {
+      "id": 408058,
+      "type": "yes_no",
+      "label": "Do you suffer from porphyria (hereditary disease)?",
+      "tristate": true
+    },
+    {
+      "id": 408059,
+      "type": "yes_no",
+      "label": "Do you suffer from abnormal palpitations or other heart disease?",
+      "tristate": true
+    },
+    {
+      "id": 408060,
+      "type": "yes_no",
+      "label": "Have you been to or are you planning a dental visit soon? (2 weeks before / 2 weeks after)",
+      "tristate": true
+    },
+    {
+      "id": 408061,
+      "type": "yes_no_textbox",
+      "label": "Have you previously received any aesthetic treatments (eg laser, peeling, dermabrasion, microneedling, IPL, Chemical Peeling, PRP, etc.)?"
+    },
+    {
+      "id": 408062,
+      "type": "yes_no_textbox",
+      "label": "Have you previously received injectable treatments, thread lift or undergone facial surgery of any kind?"
+    },
+    {
+      "id": 408063,
+      "type": "yes_no_textbox",
+      "label": "Did you experience any side effects related to the treatment?"
+    },
+    {
+      "id": 408064,
+      "type": "yes_no",
+      "label": "Do you have any skin infection or inflammatory skin problems (eg herpes, acne, rosacea, etc.)?",
+      "tristate": true
+    },
+    {
+      "id": 408065,
+      "type": "yes_no",
+      "label": "Do you have tattoos or permanent makeup in the treatment area?",
+      "tristate": true
+    },
+    {
+      "id": 408066,
+      "type": "yes_no",
+      "label": "Do you have tanned skin now?",
+      "tristate": true
+    },
+    {
+      "id": 408067,
+      "type": "yes_no",
+      "label": "Do you have Melasma or Chloasma (pigmentation)?",
+      "tristate": true
+    },
+    {
+      "id": 408068,
+      "type": "textbox",
+      "label": "Other comments about your health"
     }
   ]
 }

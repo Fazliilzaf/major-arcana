@@ -7,6 +7,8 @@ const {
   liveDocumentExists,
   resolveLiveDocumentRelativePath,
   buildLiveManifest,
+  listStaffLiveRegistryIds,
+  isStaffLiveRegistry,
   OFFERT_SLUG,
 } = require('../../src/ops/patientDocumentLiveRegistry');
 
@@ -40,4 +42,15 @@ test('buildLiveManifest marks all documents existing', () => {
   assert.equal(manifest.length, 36);
   const missing = manifest.filter((row) => !row.exists);
   assert.deepEqual(missing, []);
+});
+
+test('staff live registry covers B16–B24 (9 types)', () => {
+  const ids = listStaffLiveRegistryIds();
+  assert.equal(ids.length, 9);
+  assert.ok(isStaffLiveRegistry('journal_tp'));
+  assert.ok(isStaffLiveRegistry('ordination_tp'));
+  assert.equal(isStaffLiveRegistry('haelso_tp_sve'), false);
+  const manifest = buildLiveManifest();
+  const staffRows = manifest.filter((row) => row.audience === 'staff');
+  assert.equal(staffRows.length, 9);
 });

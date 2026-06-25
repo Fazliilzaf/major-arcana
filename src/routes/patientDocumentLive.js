@@ -8,6 +8,8 @@ const {
   resolveLiveDocumentAbsolutePath,
   resolveLiveDocumentRelativePath,
   buildLiveManifest,
+  isStaffLiveRegistry,
+  listStaffLiveRegistryIds,
 } = require('../ops/patientDocumentLiveRegistry');
 const {
   resolveSignConfig,
@@ -15,13 +17,17 @@ const {
   isE8SignRegistry,
 } = require('../ops/patientDocumentSignRegistry');
 
-function injectLiveBootScript(html, { registryId, phase, patientId, signConfig }) {
+function injectLiveBootScript(html, { registryId, phase, patientId, signConfig, staffAudience }) {
   const payload = JSON.stringify({
     registryId,
     phase: OFFERT_SLUG[registryId] ? normalizePhase(phase) : null,
     patientId: String(patientId || '').trim() || null,
+    audience: staffAudience ? 'staff' : 'patient',
   });
   const parts = [`<script>window.__ARCANA_PATIENT_DOC_LIVE__=${payload};</script>`];
+  if (staffAudience) {
+    parts.push('<script>window.__ARCANA_PATIENT_DOC_STAFF__=true;</script>');
+  }
   if (signConfig) {
     parts.push(
       `<script>window.__ARCANA_PATIENT_DOC_SIGN__=${JSON.stringify(signConfig)};</script>`
@@ -56,6 +62,10 @@ function sendPatientDocumentLiveManifest(_req, res) {
       e8Count: buildSignManifest().length,
       documents: buildSignManifest(),
     },
+    staff: {
+      e9Count: listStaffLiveRegistryIds().length,
+      registryIds: listStaffLiveRegistryIds(),
+    },
   });
 }
 
@@ -88,7 +98,8 @@ function createPatientDocumentLiveRouter({ previewRoot, transformPreviewHtml, ge
     const signConfig = isE8SignRegistry(registryId)
       ? resolveSignConfig(registryId, { phase })
       : null;
-    html = injectLiveBootScript(html, { registryId, phase, patientId, signConfig });
+    const staffAudience = isStaffLiveRegistry(registryId);
+    html = injectLiveBootScript(html, { registryId, phase, patientId, signConfig, staffAudience });
     if (signConfig) {
       html = injectPatientDocShellScript(html, getAssetHash);
     }
@@ -102,6 +113,10 @@ function createPatientDocumentLiveRouter({ previewRoot, transformPreviewHtml, ge
     );
     if (signConfig?.handler) {
       res.setHeader('X-Arcana-Patient-Doc-Sign-Handler', signConfig.handler);
+    }
+    if (staffAudience) {
+      res.setHeader('X-Arcana-Patient-Doc-Audience', 'staff');
+      res.setHeader('X-Arcana-Patient-Doc-Staff-Badge', 'Personal');
     }
     return res.status(200).send(html);
   });

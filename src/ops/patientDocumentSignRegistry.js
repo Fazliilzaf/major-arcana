@@ -60,10 +60,6 @@ const SIGN_CONFIG_BY_REGISTRY = Object.freeze({
     formType: 'health_declaration',
     formVariant: 'eng',
     title: 'Health Questionnaire',
-    extraFields: [
-      { selector: '#gdpr-lagring', key: 'samtyckeDatalagring', type: 'checkbox' },
-      { selector: '#gdpr-mail', key: 'samtyckeMailutskick', type: 'checkbox' },
-    ],
   },
   friskfoers_tp: {
     ...BASE_FORM,

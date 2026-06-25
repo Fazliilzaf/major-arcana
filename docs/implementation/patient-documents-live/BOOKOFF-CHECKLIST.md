@@ -42,23 +42,23 @@
 
 ## A · Kund fyller i (15)
 
-|   # | registryId             | Dokument                             |   UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                  |
-| --: | ---------------------- | ------------------------------------ | --------: | :-: | :-: | :-: | :-: | :-: | ------------------------------------------------------------------------------------------- |
-|   1 | `haelso_tp_sve`        | Hälsodeklaration · Hair TP Clinic    |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-halsodeklaration-final-demo.html` · diff `diffs/HD-16414-diff-2026-06-04.md`         |
-|   2 | `health_tp_eng`        | ENG · Health Questionnaire           |         3 | [ ] | [~] | [x] | [x] | [ ] | `steg3-health-questionnaire-eng-final-demo.html` · översatt från 16414 (ej Meridiq 14865)   |
-|   3 | `friskfoers_tp`        | Friskförsäkran · TP                  |         8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-friskforsakran-final.html` · Word lokalt MS-LOKAL                                    |
-|   4 | `offert_tp`            | Offert / behandlingsavtal · TP       | 5 / **7** | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-tp-final-demo.html` + `steg7-v6-kundkort-final-demo.html`                     |
-|   5 | `offert_prp_hair`      | Offert · PRP hår                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prp-hair-final-demo.html` + `steg7-offert-prp-hair-final-demo.html`           |
-|   6 | `offert_prp_skin`      | Offert · PRP hud                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prp-skin-final-demo.html` + `steg7-offert-prp-skin-final-demo.html`           |
-|   7 | `offert_microneedling` | Offert · Microneedling + PRP         |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-microneedling-final-demo.html` + `steg7-offert-microneedling-final-demo.html` |
-|   8 | `offert_prf`           | Offert · PRF hud                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prf-final-demo.html` + `steg7-offert-prf-final-demo.html`                     |
-|   9 | `offert_profilo`       | Offert · Profhilo                    |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-profilо-final-demo.html` + `steg7-offert-profilо-final-demo.html`             |
-|  10 | `samtycke_bokning_2d`  | Samtycke vid bokning inom 2 dagar    |         6 | [ ] | [ ] | [x] | [x] | [ ] | `steg6-betanketid-samtycke-final-demo.html` · VERSION_CONFLICT 2 vs 14 d · 154369           |
-|  11 | `samtycke_angerratt`   | Begäran + samtycke ångerfrist (14 d) |     6 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg6-betanketid-samtycke-final-demo.html` + steg 7 · 170955                               |
-|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-prp-hair-info-sve-final-demo.html`                                                   |
-|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-prp-hair-info-eng-final-demo.html`                                                   |
-|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-microneedling-info-sve-final-demo.html`                                              |
-|  15 | `foto_samtycke`        | Samtycke till foto-publicering       |         9 | [ ] | [ ] | [x] | [x] | [ ] | `steg9-foto-samtycke-final-demo.html` · T väntar ORD-24 (full Nordbro-text)                 |
+|   # | registryId             | Dokument                             |   UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                                   |
+| --: | ---------------------- | ------------------------------------ | --------: | :-: | :-: | :-: | :-: | :-: | ------------------------------------------------------------------------------------------------------------ |
+|   1 | `haelso_tp_sve`        | Hälsodeklaration · Hair TP Clinic    |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-halsodeklaration-final-demo.html` · diff `diffs/HD-16414-diff-2026-06-04.md`                          |
+|   2 | `health_tp_eng`        | ENG · Health Questionnaire           |         3 | [ ] | [~] | [x] | [x] | [ ] | `steg3-health-questionnaire-eng-final-demo.html` · **Meridiq 14865** (29 frågor) · `verify:patient-doc-eng1` |
+|   3 | `friskfoers_tp`        | Friskförsäkran · TP                  |         8 | [ ] | [ ] | [x] | [x] | [x] | `steg8-friskforsakran-final.html` · Word lokalt MS-LOKAL                                                     |
+|   4 | `offert_tp`            | Offert / behandlingsavtal · TP       | 5 / **7** | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-tp-final-demo.html` + `steg7-v6-kundkort-final-demo.html`                                      |
+|   5 | `offert_prp_hair`      | Offert · PRP hår                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prp-hair-final-demo.html` + `steg7-offert-prp-hair-final-demo.html`                            |
+|   6 | `offert_prp_skin`      | Offert · PRP hud                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prp-skin-final-demo.html` + `steg7-offert-prp-skin-final-demo.html`                            |
+|   7 | `offert_microneedling` | Offert · Microneedling + PRP         |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-microneedling-final-demo.html` + `steg7-offert-microneedling-final-demo.html`                  |
+|   8 | `offert_prf`           | Offert · PRF hud                     |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-prf-final-demo.html` + `steg7-offert-prf-final-demo.html`                                      |
+|   9 | `offert_profilo`       | Offert · Profhilo                    |     5 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg5-offert-profilо-final-demo.html` + `steg7-offert-profilо-final-demo.html`                              |
+|  10 | `samtycke_bokning_2d`  | Samtycke vid bokning inom 2 dagar    |         6 | [ ] | [ ] | [x] | [x] | [ ] | `steg6-betanketid-samtycke-final-demo.html` · VERSION_CONFLICT 2 vs 14 d · 154369                            |
+|  11 | `samtycke_angerratt`   | Begäran + samtycke ångerfrist (14 d) |     6 / 7 | [ ] | [ ] | [x] | [x] | [ ] | `steg6-betanketid-samtycke-final-demo.html` + steg 7 · 170955                                                |
+|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-prp-hair-info-sve-final-demo.html`                                                                    |
+|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-prp-hair-info-eng-final-demo.html`                                                                    |
+|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [ ] | [ ] | [x] | [x] | [ ] | `steg4-microneedling-info-sve-final-demo.html`                                                               |
+|  15 | `foto_samtycke`        | Samtycke till foto-publicering       |         9 | [ ] | [ ] | [x] | [x] | [ ] | `steg9-foto-samtycke-final-demo.html` · T väntar ORD-24 (full Nordbro-text)                                  |
 
 ---
 
@@ -127,7 +127,7 @@ Dessa finns i `consent-catalog.json` / bundle v7 men **saknar egen rad** i kundk
 
 - [x] **E7** Ersätt modal-only patient flow med full-page shell
 - [x] **E8** Signering + audit + PDF för alla **signera**-typer (A1–A11, A15) — `patientDocumentSignRegistry.js` + `patient-document-shell.js` + `npm run verify:patient-doc-sign-e8`
-- [ ] **E9** Staff-shell variant (badge “Personal”) för B16–B24
+- [x] **E9** Staff-shell variant (badge “Personal”) för B16–B24 — `STAFF_LIVE_REGISTRY_IDS` + live headers + `npm run verify:patient-doc-staff-e9`
 - [ ] **E10** Prod-verify suite för alla steg 2–9
 
 ---
@@ -153,6 +153,8 @@ npm run build:auto-info-demos            # C27–C34 only
 npm run build:staff-cross-demos          # C35–C36 only
 npm run verify:patient-doc-live-routes     # L-kolumn · 36 routes + manifest
 npm run verify:patient-doc-sign-e8         # E8 · sign boot + shell på A1–A11, A15
+npm run verify:patient-doc-staff-e9        # E9 · staff badge Personal B16–B24
+npm run verify:patient-doc-eng1            # ENG-1 · health_tp_eng Meridiq 14865 (29 frågor)
 npm run sync:patient-documents-live-folder
 rg -i 'Meridiq|#bd7a18' public/major-arcana-preview/steg*.html  # ska vara tomt (synlig text)
 ```

@@ -16,6 +16,19 @@ const OFFERT_SLUG = Object.freeze({
   offert_profilo: 'profilo',
 });
 
+/** E9 — staff-fyllda dokument (BOOKOFF B16–B24). */
+const STAFF_LIVE_REGISTRY_IDS = Object.freeze([
+  'journal_tp',
+  'journal_tp_post_prp',
+  'journal_tp_follow_4',
+  'journal_tp_follow_6',
+  'journal_tp_follow_12',
+  'journal_prp_multi',
+  'behandlingsplan_staff',
+  'konsultationsmall',
+  'ordination_tp',
+]);
+
 /** @type {Record<string, string>} */
 const STATIC_HTML_BY_REGISTRY = Object.freeze({
   haelso_tp_sve: 'steg3-halsodeklaration-final-demo.html',
@@ -95,6 +108,14 @@ function listLiveRegistryIds() {
   return (catalog.types || []).map((t) => t.id).filter(Boolean);
 }
 
+function isStaffLiveRegistry(registryId) {
+  return STAFF_LIVE_REGISTRY_IDS.includes(String(registryId || '').trim());
+}
+
+function listStaffLiveRegistryIds() {
+  return [...STAFF_LIVE_REGISTRY_IDS];
+}
+
 function buildLiveDocumentPath(registryId, options = {}) {
   const id = String(registryId || '').trim();
   if (!id) return '';
@@ -123,6 +144,7 @@ function buildLiveManifest() {
       livePath: buildLiveDocumentPath(registryId, { phase: 7 }),
       htmlFile: resolveLiveDocumentRelativePath(registryId, { phase: 7 }),
       exists,
+      audience: isStaffLiveRegistry(registryId) ? 'staff' : 'patient',
       ...(OFFERT_SLUG[registryId]
         ? {
             phases: {
@@ -138,12 +160,15 @@ function buildLiveManifest() {
 module.exports = {
   PREVIEW_ROOT,
   OFFERT_SLUG,
+  STAFF_LIVE_REGISTRY_IDS,
   STATIC_HTML_BY_REGISTRY,
   normalizePhase,
   resolveLiveDocumentRelativePath,
   resolveLiveDocumentAbsolutePath,
   liveDocumentExists,
   listLiveRegistryIds,
+  listStaffLiveRegistryIds,
+  isStaffLiveRegistry,
   buildLiveDocumentPath,
   buildLiveManifest,
 };
