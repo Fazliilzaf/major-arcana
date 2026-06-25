@@ -112,6 +112,14 @@
       "glob": "ordination.*\\.docx$"
     },
     {
+      "id": "foto_samtycke",
+      "registryIds": ["foto_samtycke"],
+      "label": "Samtycke till foto-publicering (steg 9 scope)",
+      "e4Required": false,
+      "tNote": "Ingen Word lokalt — scope-facit ORD-24-FOTO-SAMTYCKE-FACIT + journey. Nordbro publish-mall separat.",
+      "uNote": "U = journey + bundle scope + facit-doc (ej SharePoint Word)"
+    },
+    {
       "id": "behandlingsplan_mail",
       "registryIds": ["behandlingsplan_staff", "info_offert_tp"],
       "label": "Behandlingsplan och offert HT",

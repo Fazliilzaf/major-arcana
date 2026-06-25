@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-25T15:00:54.564Z",
+  "generatedAt": "2026-06-25T15:06:48.748Z",
   "wordDir": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt",
   "parityOk": 3,
-  "e6Ok": 10,
+  "e6Ok": 11,
   "e6Partial": 0,
   "needsReview": 0,
   "msOkWordLocal": 1,
-  "mqOrTemplate": 22,
+  "mqOrTemplate": 21,
   "rows": [
     {
       "registryId": "anteckningar_kort",
@@ -65,8 +65,8 @@
     },
     {
       "registryId": "foto_samtycke",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-batch3"
     },
     {
       "registryId": "friskfoers_tp",

@@ -1565,7 +1565,8 @@
       "sources": [
         "cco-templates#consent_photo_internal",
         "cco-templates#consent_photo_publish",
-        "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md"
+        "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+        "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md"
       ],
       "meridiq": {
         "consentApiId": null

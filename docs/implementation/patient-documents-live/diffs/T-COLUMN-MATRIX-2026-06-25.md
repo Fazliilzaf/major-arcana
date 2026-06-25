@@ -1,14 +1,14 @@
 # T-kolumn matris · 2026-06-25
 
-**Genererad:** 2026-06-25T15:00:54.564Z
+**Genererad:** 2026-06-25T15:06:48.748Z
 
 | Status              | Antal |
 | ------------------- | ----: |
 | PARITY_OK           |     3 |
-| E6_OK               |    10 |
+| E6_OK               |    11 |
 | E6_PARTIAL          |     0 |
 | MS_OK_WORD_LOCAL    |     1 |
-| MQ_OR_TEMPLATE_ONLY |    22 |
+| MQ_OR_TEMPLATE_ONLY |    21 |
 | NEEDS_REVIEW        |     0 |
 
 ## Per registryId
@@ -26,7 +26,7 @@
 | `auto_medical_finance`       | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `behandlingsplan_staff`      | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `fore_efter_bildmall`        | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `foto_samtycke`              | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
+| `foto_samtycke`              | E6_OK               | diff:patient-doc-e6-batch3                         |
 | `friskfoers_tp`              | PARITY_OK           | diff:patient-doc-friskforsakran                    |
 | `haelso_tp_sve`              | PARITY_OK           | diff:patient-doc-hd-sve                            |
 | `health_tp_eng`              | PARITY_OK           | diff:patient-doc-hd-eng                            |

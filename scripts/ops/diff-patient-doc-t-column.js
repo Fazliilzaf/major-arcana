@@ -47,9 +47,10 @@ const E6_REGISTRY_IDS = [
   'samtycke_angerratt',
   'ordination_tp',
   'auto_instruktion_formular',
+  'foto_samtycke',
 ];
 
-const E6_REPORT_PREFIXES = ['E6-OFFERT-SAMTYCKE-', 'E6-BATCH2-'];
+const E6_REPORT_PREFIXES = ['E6-OFFERT-SAMTYCKE-', 'E6-BATCH2-', 'E6-BATCH3-'];
 
 const OUT_DIR = path.join(ROOT, 'docs/implementation/patient-documents-live/diffs');
 
@@ -111,16 +112,21 @@ function main() {
 
   runScript('diff:patient-doc-e6-offert-samtycke');
   runScript('diff:patient-doc-e6-batch2');
+  runScript('diff:patient-doc-e6-batch3');
   const e6Reports = loadLatestE6Reports();
   if (e6Reports.length) {
     for (const report of e6Reports) {
+      const batchNote =
+        report.registryId === 'foto_samtycke'
+          ? 'diff:patient-doc-e6-batch3'
+          : report.registryId === 'ordination_tp' ||
+              report.registryId === 'auto_instruktion_formular'
+            ? 'diff:patient-doc-e6-batch2'
+            : 'diff:patient-doc-e6-offert-samtycke';
       tByRegistry.set(report.registryId, {
         registryId: report.registryId,
         status: report.status,
-        note:
-          report.registryId === 'ordination_tp' || report.registryId === 'auto_instruktion_formular'
-            ? 'diff:patient-doc-e6-batch2'
-            : 'diff:patient-doc-e6-offert-samtycke',
+        note: batchNote,
       });
     }
   } else {

@@ -190,6 +190,12 @@ function bundleLegalText(entry) {
   const nested = [];
   if (content.health_declaration?.text) nested.push(content.health_declaration.text);
   if (content.fitness_certificate?.text) nested.push(content.fitness_certificate.text);
+  if (content.internalText) nested.push(content.internalText);
+  if (content.publishText) nested.push(content.publishText);
+  if (content.scope?.summary) nested.push(content.scope.summary);
+  if (Array.isArray(content.scope?.bullets)) nested.push(...content.scope.bullets);
+  if (content.ackLabel) nested.push(content.ackLabel);
+  if (content.subtitle) nested.push(content.subtitle);
   return (
     content.agreementText ||
     content.letterText ||
@@ -324,6 +330,27 @@ const AUTO_INSTRUKTION_ANCHORS = Object.freeze([
   'hairtpclinic.com/friskforsakran',
 ]);
 
+const FOTO_SAMTYCKE_ANCHORS = Object.freeze([
+  'hårlinje och krona',
+  'aldrig ansikte',
+  'patientjournalen',
+  'marknadsföring',
+  'Hair TP Clinic',
+  'före/efter-bilder',
+]);
+
+const FOTO_FACIT_REL =
+  'docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md';
+
+function loadFotoScopeFacitText() {
+  const journeyPath = path.join(ROOT, 'docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md');
+  const facitPath = path.join(ROOT, FOTO_FACIT_REL);
+  const parts = [];
+  if (fs.existsSync(journeyPath)) parts.push(fs.readFileSync(journeyPath, 'utf8'));
+  if (fs.existsSync(facitPath)) parts.push(fs.readFileSync(facitPath, 'utf8'));
+  return parts.join('\n');
+}
+
 function isDpaUnderbilagaWord(text) {
   return /personuppgiftsbitr/i.test(String(text || ''));
 }
@@ -425,6 +452,9 @@ module.exports = {
   ORDINATION_STUB_ANCHORS,
   ORDINATION_CLINICAL_ANCHORS,
   AUTO_INSTRUKTION_ANCHORS,
+  FOTO_SAMTYCKE_ANCHORS,
+  FOTO_FACIT_REL,
+  loadFotoScopeFacitText,
   isDpaUnderbilagaWord,
   compareDemoBundleOnly,
   compareWordDemoClinical,

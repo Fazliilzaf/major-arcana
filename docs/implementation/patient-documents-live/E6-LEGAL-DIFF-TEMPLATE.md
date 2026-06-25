@@ -35,7 +35,7 @@
 ## Nästa batch (ej i scope)
 
 - HD/FC Word legal (T redan PARITY_OK via MQ)
-- foto ORD-24
+- Journal T B16–B21 (MQ-fältparitet)
 
 ---
 
@@ -54,3 +54,16 @@
 ## A10 owner-beslut (2026-06-25)
 
 Se [`A10-OWNER-DECISION-2026-06-25.md`](./A10-OWNER-DECISION-2026-06-25.md). Samtycke A10 följer Meridiq **14 dagar**; `registryId` `_2d` behålls. E6 använder Meridiq-text som word-facit för samtycken.
+
+---
+
+## Batch 3 — foto / ORD-24 facit (2026-06-25)
+
+**Scope:** `foto_samtycke` (A15)  
+**Kör:** `npm run diff:patient-doc-e6-batch3`
+
+| registryId      | Triad                   | Facit-källa                                                                              | Anteckning                                                                                       |
+| --------------- | ----------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `foto_samtycke` | demo ↔ bundle ↔ journey | [`ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md`](./ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md) | Scope steg 9 — **ej** full Nordbro publish-body. ORD-24 **backend** fortfarande separat PENDING. |
+
+**Rapporter:** `diffs/E6-BATCH3-YYYY-MM-DD.{json,md}`

@@ -29,12 +29,12 @@
 
 | Kategori            |  Antal | U klart | T klart | D klart | L klart | V klart |
 | ------------------- | -----: | ------: | ------: | ------: | ------: | ------: |
-| **A · Kund**        |     15 |      10 |       9 |      15 |      15 |      15 |
-| **B · Personal**    |     11 |       2 |       0 |      11 |      11 |      11 |
-| **C · Auto / info** |     10 |       1 |       0 |      10 |      10 |      10 |
-| **Totalt**          | **36** |  **13** |   **9** |  **36** |  **36** |  **36** |
+| **A · Kund**        |     15 |      11 |      12 |      15 |      15 |      15 |
+| **B · Personal**    |     11 |       2 |       1 |      11 |      11 |      11 |
+| **C · Auto / info** |     10 |       1 |       1 |      10 |      10 |      10 |
+| **Totalt**          | **36** |  **14** |  **14** |  **36** |  **36** |  **36** |
 
-**T-kolumn (2026-06-25):** `npm run diff:patient-doc-t-column` · E6 batch 1: `npm run diff:patient-doc-e6-offert-samtycke` · E6 batch 2: `npm run diff:patient-doc-e6-batch2` · PARITY_OK A1–A3 · E6_OK A4–A11 · B24 · C31
+**T-kolumn (2026-06-25):** `npm run diff:patient-doc-t-column` · E6 batch 1–3 · PARITY_OK A1–A3 · E6_OK A4–A11 · A15 · B24 · C31
 
 **U-kolumn (2026-06-25):** E4 verify `npm run verify:patient-doc-e4-word` — **4/4** (HD, FC, TP-journal, offert 14 docx) lokalt i `01-word-original-lokalt/`.
 
@@ -48,23 +48,23 @@
 
 ## A · Kund fyller i (15)
 
-|   # | registryId             | Dokument                             |   UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                                                                       |
-| --: | ---------------------- | ------------------------------------ | --------: | :-: | :-: | :-: | :-: | :-: | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-|   1 | `haelso_tp_sve`        | Hälsodeklaration · Hair TP Clinic    |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-halsodeklaration-final-demo.html` · diff `diffs/HD-16414-diff-2026-06-04.md`                                                              |
-|   2 | `health_tp_eng`        | ENG · Health Questionnaire           |         3 | [ ] | [x] | [x] | [x] | [x] | `steg3-health-questionnaire-eng-final-demo.html` · Meridiq 14865 · `diff:patient-doc-hd-eng` PARITY_OK · U = MQ-only                             |
-|   3 | `friskfoers_tp`        | Friskförsäkran · TP                  |         8 | [x] | [x] | [x] | [x] | [x] | `steg8-friskforsakran-final.html` · `diff:patient-doc-friskforsakran` PARITY_OK · Word WORD_REVIEW                                               |
-|   4 | `offert_tp`            | Offert / behandlingsavtal · TP       | 5 / **7** | [x] | [x] | [x] | [x] | [x] | `steg5-offert-tp-final-demo.html` + `steg7-v6-kundkort-final-demo.html` · E6_OK                                                                  |
-|   5 | `offert_prp_hair`      | Offert · PRP hår                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prp-hair-final-demo.html` + `steg7-offert-prp-hair-final-demo.html` · E6_OK                                                        |
-|   6 | `offert_prp_skin`      | Offert · PRP hud                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prp-skin-final-demo.html` + `steg7-offert-prp-skin-final-demo.html` · E6_OK                                                        |
-|   7 | `offert_microneedling` | Offert · Microneedling + PRP         |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-microneedling-final-demo.html` + `steg7-offert-microneedling-final-demo.html` · E6_OK                                              |
-|   8 | `offert_prf`           | Offert · PRF hud                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prf-final-demo.html` + `steg7-offert-prf-final-demo.html` · E6_OK                                                                  |
-|   9 | `offert_profilo`       | Offert · Profhilo                    |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-profilo-final-demo.html` + `steg7-offert-profilo-final-demo.html` · E6_OK                                                          |
-|  10 | `samtycke_bokning_2d`  | Samtycke vid bokning inom 14 dagar   |         6 | [x] | [x] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · E6_OK · owner [`A10-OWNER-DECISION-2026-06-25.md`](./A10-OWNER-DECISION-2026-06-25.md) · MQ 154369 |
-|  11 | `samtycke_angerratt`   | Begäran + samtycke ångerfrist (14 d) |     6 / 7 | [x] | [x] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · E6_OK · 170955                                                                                     |
-|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-prp-hair-info-sve-final-demo.html`                                                                                                        |
-|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-prp-hair-info-eng-final-demo.html`                                                                                                        |
-|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-microneedling-info-sve-final-demo.html`                                                                                                   |
-|  15 | `foto_samtycke`        | Samtycke till foto-publicering       |         9 | [ ] | [ ] | [x] | [x] | [x] | `steg9-foto-samtycke-final-demo.html` · T väntar ORD-24 (full Nordbro-text)                                                                      |
+|   # | registryId             | Dokument                             |   UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                                                                                      |
+| --: | ---------------------- | ------------------------------------ | --------: | :-: | :-: | :-: | :-: | :-: | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   1 | `haelso_tp_sve`        | Hälsodeklaration · Hair TP Clinic    |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-halsodeklaration-final-demo.html` · diff `diffs/HD-16414-diff-2026-06-04.md`                                                                             |
+|   2 | `health_tp_eng`        | ENG · Health Questionnaire           |         3 | [ ] | [x] | [x] | [x] | [x] | `steg3-health-questionnaire-eng-final-demo.html` · Meridiq 14865 · `diff:patient-doc-hd-eng` PARITY_OK · U = MQ-only                                            |
+|   3 | `friskfoers_tp`        | Friskförsäkran · TP                  |         8 | [x] | [x] | [x] | [x] | [x] | `steg8-friskforsakran-final.html` · `diff:patient-doc-friskforsakran` PARITY_OK · Word WORD_REVIEW                                                              |
+|   4 | `offert_tp`            | Offert / behandlingsavtal · TP       | 5 / **7** | [x] | [x] | [x] | [x] | [x] | `steg5-offert-tp-final-demo.html` + `steg7-v6-kundkort-final-demo.html` · E6_OK                                                                                 |
+|   5 | `offert_prp_hair`      | Offert · PRP hår                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prp-hair-final-demo.html` + `steg7-offert-prp-hair-final-demo.html` · E6_OK                                                                       |
+|   6 | `offert_prp_skin`      | Offert · PRP hud                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prp-skin-final-demo.html` + `steg7-offert-prp-skin-final-demo.html` · E6_OK                                                                       |
+|   7 | `offert_microneedling` | Offert · Microneedling + PRP         |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-microneedling-final-demo.html` + `steg7-offert-microneedling-final-demo.html` · E6_OK                                                             |
+|   8 | `offert_prf`           | Offert · PRF hud                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prf-final-demo.html` + `steg7-offert-prf-final-demo.html` · E6_OK                                                                                 |
+|   9 | `offert_profilo`       | Offert · Profhilo                    |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-profilo-final-demo.html` + `steg7-offert-profilo-final-demo.html` · E6_OK                                                                         |
+|  10 | `samtycke_bokning_2d`  | Samtycke vid bokning inom 14 dagar   |         6 | [x] | [x] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · E6_OK · owner [`A10-OWNER-DECISION-2026-06-25.md`](./A10-OWNER-DECISION-2026-06-25.md) · MQ 154369                |
+|  11 | `samtycke_angerratt`   | Begäran + samtycke ångerfrist (14 d) |     6 / 7 | [x] | [x] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · E6_OK · 170955                                                                                                    |
+|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-prp-hair-info-sve-final-demo.html`                                                                                                                       |
+|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-prp-hair-info-eng-final-demo.html`                                                                                                                       |
+|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [ ] | [ ] | [x] | [x] | [x] | `steg4-microneedling-info-sve-final-demo.html`                                                                                                                  |
+|  15 | `foto_samtycke`        | Samtycke till foto-publicering       |         9 | [x] | [x] | [x] | [x] | [x] | `steg9-foto-samtycke-final-demo.html` · E6_OK · [`ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md`](./ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md) · scope hårlinje/krona |
 
 ---
 
@@ -127,7 +127,7 @@ Dessa finns i `consent-catalog.json` / bundle v7 men **saknar egen rad** i kundk
 - [x] **E3** iCloud `CCO-patientdokument-live/` synkad (`npm run sync:patient-documents-live-folder`)
 - [x] **E4** Word-underlag **4/4** — HD ✅ FC ✅ TP-journal ✅ offert 14 docx ✅ · `npm run verify:patient-doc-e4-word` · SharePoint-sökväg: `…/Hårtransplantation/6. TP  Journal – Behandling FÖRSLAG.docx` (dubbelt mellanslag i filnamn)
 - [x] **E5** Dev-index `/major-arcana-preview/patient-doc/` — 36 länkar + `patient-document-shell.js` · `npm run verify:patient-doc-e5-dev-index`
-- [~] **E6** Legal diff-mall — [`E6-LEGAL-DIFF-TEMPLATE.md`](./E6-LEGAL-DIFF-TEMPLATE.md) · batch 1 offert+samtycke ✅ · batch 2 ordination+auto ✅ · foto ORD-24 kvar
+- [x] **E6** Legal diff-mall — [`E6-LEGAL-DIFF-TEMPLATE.md`](./E6-LEGAL-DIFF-TEMPLATE.md) · batch 1–3 ✅ (offert, samtycken, ordination, auto, foto)
 
 ### CCO live (efter D-kolumnen)
 
@@ -166,6 +166,8 @@ npm run verify:patient-doc-prod            # E10 · all patient-doc prod verifie
 npm run verify:patient-doc-e5-dev-index       # E5 · dev-index 36 länkar
 npm run verify:patient-doc-e4-word         # E4 · Word-underlag lokalt (HD/FC/offert/tp-journal)
 npm run diff:patient-doc-e6-offert-samtycke # E6/T · legal triad offert + samtycken
+npm run diff:patient-doc-e6-batch2          # E6/T · ordination + auto-instruktion
+npm run diff:patient-doc-e6-batch3          # E6/T · foto_samtycke scope (ORD-24 facit)
 npm run diff:patient-doc-hd-sve            # T-kolumn · HD 16414 demo↔Meridiq
 npm run diff:patient-doc-friskforsakran    # T-kolumn · FC 16413 demo↔Meridiq
 npm run diff:patient-doc-hd-eng            # T-kolumn · 14865 label parity report
