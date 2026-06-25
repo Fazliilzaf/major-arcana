@@ -2331,6 +2331,54 @@
     }
   }
 
+  // Facitens setMode hårdkodar titlarna ("Tor 28 maj" etc). Skriv om dem till
+  // riktiga datum och re-applicera efter varje vy-byte (efter facit-JS:t).
+  function fixV8Titles(root) {
+    try {
+      var title = root.querySelector('#calTitle');
+      if (!title) return;
+      var now = new Date();
+      var todayIso = v8IsoOf(now);
+      var monday = v8MondayOf(todayIso);
+      var sunday = new Date(monday);
+      sunday.setDate(sunday.getDate() + 6);
+      var mShort = function (d) {
+        return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+      };
+      var isoWeek = function (d) {
+        var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        var dn = (t.getUTCDay() + 6) % 7;
+        t.setUTCDate(t.getUTCDate() - dn + 3);
+        var firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+        return (
+          1 + Math.round(((t - firstThu) / 86400000 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7)
+        );
+      };
+      var titles = {
+        morgon: now.getHours() < 11 ? 'God morgon' : now.getHours() < 18 ? 'God dag' : 'God kväll',
+        vecka:
+          mShort(monday) +
+          ' – ' +
+          sunday.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' }),
+        dag: now.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'long' }),
+        resurs: 'Resurser · vecka ' + isoWeek(now),
+      };
+      var content = root.querySelector('.calendar-content');
+      var apply = function () {
+        var mode = content ? content.dataset.mode || 'morgon' : 'morgon';
+        if (titles[mode]) title.textContent = titles[mode];
+      };
+      apply();
+      root.querySelectorAll('.segment-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          setTimeout(apply, 0); // efter facitens setMode
+        });
+      });
+    } catch (e) {
+      /* tyst */
+    }
+  }
+
   function mountPoint() {
     return (
       document.querySelector(
@@ -2353,6 +2401,7 @@
     // P1/P2: fyll vyerna med riktig data från det delade datalagret (async).
     populateMorgonReal(root);
     populateGridsReal(root);
+    fixV8Titles(root);
     return root;
   }
 

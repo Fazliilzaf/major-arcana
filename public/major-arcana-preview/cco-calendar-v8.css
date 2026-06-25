@@ -4150,3 +4150,23 @@ html[data-calendar-v8="on"]
 #cco-cal-v8-root .top-nav {
   display: none;
 }
+
+/* ── P2-fidelity: facit lämnade dag/resurs halvbyggda (bara morgon↔vecka hade
+ * data-mode-regler). Göm morgon-story i ALLA icke-morgon-lägen och visa
+ * veckogriden, så Dag/Resurs faktiskt byter vy (med riktig data). */
+#cco-cal-v8-root .calendar-content:not([data-mode="morgon"]) .morgon-story {
+  display: none;
+}
+#cco-cal-v8-root .calendar-content[data-mode="dag"] .calendar-week,
+#cco-cal-v8-root .calendar-content[data-mode="resurs"] .calendar-week {
+  display: grid;
+}
+
+/* Dag-läge: visa bara dagens kolumn (true single-day; facit lämnade det som
+ * hela veckan). populateGridsReal sätter .is-today på rätt kolumn. */
+#cco-cal-v8-root .calendar-content[data-mode="dag"] .day-col:not(.is-today) {
+  display: none;
+}
+#cco-cal-v8-root .calendar-content[data-mode="dag"] .day-col.is-today {
+  flex: 1 1 auto;
+}
