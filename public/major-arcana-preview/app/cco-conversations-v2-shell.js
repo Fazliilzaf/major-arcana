@@ -64,14 +64,17 @@
     );
   }
 
-  function initials(thread) {
-    var explicit = text(thread.customerInitials);
-    if (explicit) return explicit.slice(0, 2).toUpperCase();
-    var name = threadName(thread);
-    var parts = name.split(/\s+/).filter(Boolean);
+  function initialsFromName(name) {
+    var parts = text(name).split(/\s+/).filter(Boolean);
     if (!parts.length) return '–';
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  function initials(thread) {
+    var explicit = text(thread.customerInitials);
+    if (explicit) return explicit.slice(0, 2).toUpperCase();
+    return initialsFromName(threadName(thread));
   }
 
   function avatarBg(thread) {
@@ -104,11 +107,20 @@
     return text(thread.mailboxBadge) || text(thread.mailboxId) || sourceKey(thread) + '@';
   }
 
-  function parseTs(thread) {
-    var raw = thread.ts || thread.lastMessageAt || thread.updatedAt || thread.receivedAt;
+  function parseDate(raw) {
     if (!raw) return null;
     var date = raw instanceof Date ? raw : new Date(raw);
     return isNaN(date.getTime()) ? null : date;
+  }
+
+  function parseTs(thread) {
+    return parseDate(thread.ts || thread.lastMessageAt || thread.updatedAt || thread.receivedAt);
+  }
+
+  function hhmm(date) {
+    return (
+      String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0')
+    );
   }
 
   function whenLabel(thread) {
@@ -120,9 +132,7 @@
       date.getMonth() === now.getMonth() &&
       date.getDate() === now.getDate();
     if (sameDay) {
-      return (
-        String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0')
-      );
+      return hhmm(date);
     }
     var yest = new Date(now);
     yest.setDate(now.getDate() - 1);
@@ -161,6 +171,182 @@
     if (isVip(thread)) tags.push({ kind: 'vip', label: 'VIP' });
     if (isBooking(thread)) tags.push({ kind: 'booking', label: 'Bokning' });
     return tags;
+  }
+
+  // ── Meddelandeström (hydrerad av selectRuntimeThread → thread.messages) ──
+  var WEEKDAYS = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
+  var STAFF_BG = 'linear-gradient(180deg,#c5d8a8,#92b86e)';
+
+  function messageList(thread) {
+    if (Array.isArray(thread.messages)) return thread.messages;
+    if (thread.threadDocument && Array.isArray(thread.threadDocument.messages)) {
+      return thread.threadDocument.messages;
+    }
+    return [];
+  }
+
+  function isIncoming(message) {
+    var role = text(message.role).toLowerCase();
+    if (role === 'customer') return true;
+    if (role === 'staff' || role === 'provider_notice') return false;
+    return text(message.direction).toLowerCase() === 'inbound';
+  }
+
+  function messageBody(message) {
+    return (
+      text(message.conversationBody) ||
+      text(message.body) ||
+      text(message.preview) ||
+      text(message.bodyPreview)
+    );
+  }
+
+  function messageDate(message) {
+    return parseDate(message.recordedAt || message.sentAt || message.ts);
+  }
+
+  function messageWhen(message) {
+    if (text(message.time)) return text(message.time);
+    var date = messageDate(message);
+    return date ? hhmm(date) : '';
+  }
+
+  function dayKey(date) {
+    return date ? date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate() : '';
+  }
+
+  function dayLabel(date) {
+    if (!date) return '';
+    var now = new Date();
+    if (dayKey(date) === dayKey(now)) return 'Idag';
+    var yest = new Date(now);
+    yest.setDate(now.getDate() - 1);
+    if (dayKey(date) === dayKey(yest)) return 'Igår';
+    return WEEKDAYS[date.getDay()] + ' ' + date.getDate() + ' ' + MONTHS[date.getMonth()];
+  }
+
+  // ── Kontext-signaler (befintliga intel-fält på tråden) ──
+  function signalRows(thread) {
+    var msgs = messageList(thread);
+    var rows = [];
+    if (msgs.length) rows.push({ dt: 'Tråden', dd: msgs.length + ' meddelanden' });
+    rows.push({ dt: 'Källa', dd: sourceLabel(thread) });
+    pushIf(rows, 'Status', thread.statusLabel);
+    pushIf(rows, 'Livscykel', thread.lifecycleLabel);
+    pushIf(rows, 'Väntar på', thread.waitingLabel);
+    pushIf(rows, 'Uppföljning', thread.followUpLabel, 'var(--cco-status-warning)');
+    pushIf(rows, 'Risk', thread.riskLabel, 'var(--cco-status-danger)');
+    pushIf(rows, 'Ägare', thread.ownerLabel || thread.displayOwnerLabel);
+    pushIf(rows, 'Engagemang', thread.engagementLabel);
+    pushIf(rows, 'Senast', thread.lastActivityLabel || whenLabel(thread));
+    return rows;
+  }
+
+  function pushIf(rows, dt, value, color) {
+    var v = text(value);
+    if (v) rows.push({ dt: dt, dd: v, color: color });
+  }
+
+  function statusPills(thread) {
+    var pills =
+      '<span class="status-pill status-pill--source"><span class="dot"></span>' +
+      esc(sourceLabel(thread)) +
+      '</span>';
+    if (text(thread.riskLabel)) {
+      pills +=
+        '<span class="status-pill status-pill--warning"><span class="dot"></span>' +
+        esc(text(thread.riskLabel)) +
+        '</span>';
+    }
+    var waiting = text(thread.waitingLabel) || text(thread.followUpLabel);
+    if (waiting) {
+      pills +=
+        '<span class="status-pill status-pill--warning"><span class="dot"></span>' +
+        esc(waiting) +
+        '</span>';
+    } else if (text(thread.statusLabel)) {
+      pills +=
+        '<span class="status-pill status-pill--info"><span class="dot"></span>' +
+        esc(text(thread.statusLabel)) +
+        '</span>';
+    } else if (isUnread(thread)) {
+      pills +=
+        '<span class="status-pill status-pill--warning"><span class="dot"></span>Kräver åtgärd</span>';
+    }
+    if (isVip(thread)) {
+      pills +=
+        '<span class="status-pill" style="color:var(--accent-studio);' +
+        'background:linear-gradient(180deg,var(--rose-pill-top),var(--rose-pill-bottom));' +
+        'border-color:rgba(187,71,121,0.32)">' +
+        '<span class="dot" style="background:var(--accent-studio)"></span>VIP</span>';
+    }
+    return pills;
+  }
+
+  function renderMessageStream(thread) {
+    var msgs = messageList(thread);
+    if (!msgs.length) {
+      // Pre-hydrering: visa ärligt det vi har (senaste preview); hydreringen
+      // triggas av selectRuntimeThread och målar om strömmen när den landat.
+      var preview = text(thread.preview);
+      if (!preview) {
+        return '<div class="thread-empty">Laddar konversationen…</div>';
+      }
+      return (
+        '<div class="msg is-incoming"><div class="msg-av" style="background:' +
+        esc(avatarBg(thread)) +
+        '">' +
+        esc(initials(thread)) +
+        '</div><div><div class="msg-bubble">' +
+        esc(preview) +
+        '</div><div class="msg-meta">' +
+        esc(threadName(thread)) +
+        (whenLabel(thread) ? ' · ' + esc(whenLabel(thread)) : '') +
+        '</div></div></div>'
+      );
+    }
+    // thread.messages är DESC (nyast först) → vänd till ASC för chatt-flöde.
+    var asc = msgs.slice().reverse();
+    var lastDay = null;
+    var html = '';
+    asc.forEach(function (message) {
+      var date = messageDate(message);
+      var key = dayKey(date);
+      if (key && key !== lastDay) {
+        html += '<div class="msg-day">' + esc(dayLabel(date)) + '</div>';
+        lastDay = key;
+      }
+      var incoming = isIncoming(message);
+      var author = text(message.author) || (incoming ? threadName(thread) : 'Klinik');
+      var av = incoming
+        ? '<div class="msg-av" style="background:' +
+          esc(avatarBg(thread)) +
+          '">' +
+          esc(initials(thread)) +
+          '</div>'
+        : '<div class="msg-av" style="background:' +
+          STAFF_BG +
+          '">' +
+          esc(initialsFromName(author)) +
+          '</div>';
+      var read =
+        !incoming && message.isRead === true
+          ? '<span style="color:var(--cco-status-success)">✓ läst</span> · '
+          : '';
+      html +=
+        '<div class="msg ' +
+        (incoming ? 'is-incoming' : 'is-outgoing') +
+        '">' +
+        av +
+        '<div><div class="msg-bubble">' +
+        esc(messageBody(message)) +
+        '</div><div class="msg-meta">' +
+        read +
+        esc(author) +
+        (messageWhen(message) ? ' · ' + esc(messageWhen(message)) : '') +
+        '</div></div></div>';
+    });
+    return html;
   }
 
   function ensureRoot() {
@@ -341,42 +527,15 @@
         '<div class="thread-empty">Välj en konversation i inkorgen för att läsa tråden.</div>';
       return;
     }
-    var pills = '';
-    pills +=
-      '<span class="status-pill status-pill--source"><span class="dot"></span>' +
-      esc(sourceLabel(thread)) +
-      '</span>';
-    if (text(thread.subject)) {
-      pills +=
-        '<span class="status-pill status-pill--info"><span class="dot"></span>' +
-        esc(text(thread.subject)) +
-        '</span>';
-    }
-    if (isUnread(thread)) {
-      pills +=
-        '<span class="status-pill status-pill--warning"><span class="dot"></span>Kräver åtgärd</span>';
-    }
-    // P0b: trådhydrering (full meddelandeström) kommer i P1 — visa det vi
-    // faktiskt har (senaste preview) som en ärlig representation, ingen mock.
-    var preview = text(thread.preview);
-    var messages = preview
-      ? '<div class="msg is-incoming"><div class="msg-av" style="background:' +
-        esc(avatarBg(thread)) +
-        '">' +
-        esc(initials(thread)) +
-        '</div><div>' +
-        '<div class="msg-bubble">' +
-        esc(preview) +
-        '</div>' +
-        '<div class="msg-meta">' +
-        esc(threadName(thread)) +
-        (whenLabel(thread) ? ' · ' + esc(whenLabel(thread)) : '') +
-        '</div></div></div>'
-      : '<div class="thread-empty">Meddelandeströmmen hydreras i nästa fas (P1).</div>';
+    var msgCount = messageList(thread).length;
+    var pills = statusPills(thread);
+    var messages = renderMessageStream(thread);
 
     el.innerHTML =
       '<header class="thread-header"><div class="thread-header-main">' +
-      '<div class="thread-header-kicker">Konversation</div>' +
+      '<div class="thread-header-kicker">' +
+      (msgCount ? 'Konversation · ' + msgCount + ' meddelanden' : 'Konversation') +
+      '</div>' +
       '<h2>' +
       esc(text(thread.subject) || threadName(thread)) +
       '</h2></div>' +
@@ -409,16 +568,12 @@
         '<div class="ctx-meta" style="padding-top:8px">Ingen konversation vald.</div>';
       return;
     }
-    var rows = '';
-    rows += '<dt>Källa</dt><dd>' + esc(sourceLabel(thread)) + '</dd>';
-    if (text(thread.subject)) rows += '<dt>Ämne</dt><dd>' + esc(text(thread.subject)) + '</dd>';
-    if (whenLabel(thread)) rows += '<dt>Senast</dt><dd>' + esc(whenLabel(thread)) + '</dd>';
-    rows +=
-      '<dt>Status</dt><dd' +
-      (isUnread(thread) ? ' style="color:var(--cco-status-warning);font-weight:700"' : '') +
-      '>' +
-      (isUnread(thread) ? 'Kräver åtgärd' : 'Inläst') +
-      '</dd>';
+    var rows = signalRows(thread)
+      .map(function (row) {
+        var style = row.color ? ' style="color:' + row.color + ';font-weight:700"' : '';
+        return '<dt>' + esc(row.dt) + '</dt><dd' + style + '>' + esc(row.dd) + '</dd>';
+      })
+      .join('');
 
     el.innerHTML =
       '<div><div class="ctx-kicker">Kundkontext</div>' +
@@ -438,7 +593,7 @@
       rows +
       '</dl>' +
       '<div class="ctx-actions">' +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier" data-v2-soon>👤 Kunddossiér</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier">👤 Kunddossiér</button>' +
       '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking" data-v2-soon>📅 Bokning</button>' +
       '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled" data-v2-soon>✓ Klar</button>' +
       '</div>';
@@ -479,7 +634,13 @@
       var actionEl = event.target.closest('[data-v2-action]');
       if (actionEl && boundCtx) {
         var name = actionEl.getAttribute('data-v2-action');
-        boundCtx.handlers.action(name, boundCtx.selected);
+        // Kunddossiér är en säker läs-/navigeringsaction (P1) — öppnar V12.
+        // Övriga (Svarstudio/skicka/bokning) förblir inerta tills owner-GO.
+        if (name === 'dossier' && typeof boundCtx.handlers.openDossier === 'function') {
+          boundCtx.handlers.openDossier(boundCtx.selected);
+        } else {
+          boundCtx.handlers.action(name, boundCtx.selected);
+        }
       }
     });
   }
