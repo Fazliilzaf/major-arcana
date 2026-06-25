@@ -1365,6 +1365,19 @@
     // via den befintliga scrollV12WorkspaceModule. Presentation/navigation —
     // ingen ny write-handler. (body återskapas per öppning → ingen dubbelbind.)
     body.addEventListener('click', (event) => {
+      // CONTENT-CANON: snabb-jump i höger-railen → scrolla till sektionen.
+      const canonJump = event.target.closest('[data-v12-canon-jump]');
+      if (canonJump && body.contains(canonJump)) {
+        event.preventDefault();
+        const secId = canonJump.getAttribute('data-v12-canon-jump');
+        const target = secId && body.querySelector('#' + secId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          target.setAttribute('data-v12-focus-pulse', '1');
+          window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
+        }
+        return;
+      }
       // JOURNEY-SPINE: expandera/fäll ihop steg-kort (accordion).
       const spineHead = event.target.closest('[data-spine-step] > .step-head');
       if (spineHead && body.contains(spineHead)) {
@@ -5833,10 +5846,28 @@
       tab,
       lite,
     };
-    // Stora kundvyn = full 13-modul-arbetsyta (all kundinfo). Öppnas via
-    // sektionsklick i lilla railen → scrollar till rätt modul. (JOURNEY-SPINE
-    // som stor-vy borttagen på begäran — den var journey-fokuserad och saknade
-    // full data; CcoV12Spine finns kvar som komponent men driver inte stora vyn.)
+    // Stora kundvyn = CONTENT-CANON (13 sektioner, identisk med facit
+    // V12-WORKSPACE-CONTENT-CANON). Sektionsklick i lilla railen → scrollar till
+    // rätt sektion (data-v12-module på varje canon-sektion). Defensiv fallback
+    // till 13-modul-stacken om canon-render kastar/är tom (aldrig blank).
+    if (window.CcoV12Canon && typeof window.CcoV12Canon.render === 'function') {
+      let canonInner = '';
+      try {
+        canonInner = window.CcoV12Canon.render(ctx) || '';
+      } catch (_canonError) {
+        canonInner = '';
+      }
+      if (canonInner && canonInner.indexOf('data-v12-canon') !== -1) {
+        return `
+      <section class="patient-master-card v12-workspace v12-workspace--canon" data-patient-detail data-v12-workspace-shell="1">
+        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (CONTENT-CANON)">
+          ${canonInner}
+        </div>
+      </section>`;
+      }
+    }
+    // Fallback: 13-modul-stacken (om canon ej tillgänglig).
     let railInner = '';
     try {
       if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {

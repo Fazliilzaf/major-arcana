@@ -1,0 +1,839 @@
+/**
+ * V12 Customer Workspace · CONTENT-CANON render
+ *
+ * Verbatim-trogen port av facit V12-WORKSPACE-CONTENT-CANON-2026-06-21.html:
+ * 13 sektioner i fast ordning (id #s1–#s12) + minimal jump-rail + sticky-bar.
+ * Återanvänder BEFINTLIGA V11-adaptrar (CcoV11RailAdapters) som datakälla.
+ * CSS i cco-v12-canon.css ger 100% visuell identitet. Aktiveras via ?v12canon=on.
+ *
+ *   window.CcoV12Canon.render(ctx) -> HTML-sträng
+ */
+(function (global) {
+  'use strict';
+
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function txt(v) {
+    return typeof v === 'string' ? v.trim() : v == null ? '' : String(v);
+  }
+  function arr(v) {
+    return Array.isArray(v) ? v : [];
+  }
+  function initials(name) {
+    var p = txt(name).split(/\s+/).filter(Boolean);
+    if (!p.length) return '?';
+    return (p[0][0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+  }
+  function call(fn, args, fb) {
+    try {
+      var a = global.CcoV11RailAdapters || {};
+      if (typeof a[fn] === 'function') return a[fn].apply(a, args);
+    } catch (_e) {
+      /* defensivt */
+    }
+    return fb;
+  }
+  function secHead(num, title, small, actions) {
+    return (
+      '<div class="sec-h"><span class="sec-num">' +
+      esc(num) +
+      '</span><span class="sec-title">' +
+      esc(title) +
+      (small ? ' <small>· ' + esc(small) + '</small>' : '') +
+      '</span>' +
+      (actions ? '<div class="sec-actions">' + actions + '</div>' : '') +
+      '</div>'
+    );
+  }
+  function empty(text) {
+    return (
+      '<div class="card" style="text-align:center;color:var(--ink-mute)">' + esc(text) + '</div>'
+    );
+  }
+  var CHIP = { ok: 'ok', warn: 'warn', danger: 'danger', info: 'info', neutral: 'neutral' };
+  function chip(tone, label) {
+    return '<span class="chip ' + (CHIP[tone] || 'neutral') + '">' + esc(label) + '</span>';
+  }
+
+  /* ---------- 1 · NULÄGE ---------- */
+  function s1(card, journey) {
+    var name = txt(card.displayName || card.fullName || card.name) || 'Kund';
+    var meta = [
+      card.age ? card.age + ' år' : '',
+      card.primaryPhone || card.phone,
+      card.primaryEmail || card.email,
+      card.city,
+    ]
+      .map(txt)
+      .filter(Boolean);
+    var cur = journey && journey.cur,
+      tot = journey && journey.total;
+    var status = cur && tot ? 'Steg ' + cur + ' av ' + tot : 'Kundöversikt';
+    var tags = arr(card.tags)
+      .slice(0, 6)
+      .map(function (t) {
+        var l = txt(typeof t === 'string' ? t : t && (t.label || t.name));
+        if (!l) return '';
+        var tone = /allerg|risk/i.test(l)
+          ? 'danger'
+          : /saknas|vänta/i.test(l)
+            ? 'warning'
+            : /vip/i.test(l)
+              ? 'vip'
+              : /återkom|aterkom/i.test(l)
+                ? 'success'
+                : 'info';
+        return '<span class="tag ' + tone + '">' + esc(l) + '</span>';
+      })
+      .join('');
+    var pid = txt(card.patientId || card.id);
+    return (
+      '<section class="sec" id="s1"><div class="s1-hero">' +
+      '<div class="avatar-xl">' +
+      esc(initials(name)) +
+      '</div>' +
+      '<div class="s1-body">' +
+      '<div class="s1-status">' +
+      esc(status) +
+      '</div>' +
+      '<h1 class="s1-name">' +
+      esc(name) +
+      '</h1>' +
+      (meta.length
+        ? '<div class="s1-meta">' + meta.map(esc).join(' <span class="sep">·</span> ') + '</div>'
+        : '') +
+      (pid ? '<div class="s1-id">Kund-ID: ' + esc(pid.slice(0, 8)) + '</div>' : '') +
+      (tags ? '<div class="s1-tags">' + tags + '</div>' : '') +
+      '<div class="s1-quick">' +
+      '<button class="quick-btn">📞 Ring</button><button class="quick-btn">💬 SMS</button>' +
+      '<button class="quick-btn">✉️ Mejl</button><button class="quick-btn">📅 Ny bokning</button>' +
+      '<button class="quick-btn" data-v12-edit-open>✏️ Redigera</button>' +
+      '</div></div>' +
+      '<div class="s1-actions"><button class="btn-primary">⚡ Förbered besök</button>' +
+      '<button class="btn-edit">Åtgärder ▾</button></div>' +
+      '</div></section>'
+    );
+  }
+
+  /* ---------- 2 · AKTIVT BESÖK ---------- */
+  function avTime(v) {
+    var m = txt(v).match(/\d{2}:\d{2}/);
+    return m ? m[0] : '';
+  }
+  function s2(av) {
+    var head = secHead('02', 'Aktivt besök', av && av.headMeta ? txt(av.headMeta) : null);
+    if (!av) {
+      return (
+        '<section class="sec" id="s2">' +
+        head +
+        '<div class="card" style="text-align:center;color:var(--ink-mute)">Inget aktivt besök idag — visas vid incheckning.</div></section>'
+      );
+    }
+    var ci = avTime(av.checkedInAt),
+      co = avTime(av.completedAt);
+    var nodes = [
+      { c: 'done', t: ci || 'Incheckad' },
+      { c: 'active', t: 'Nu' },
+      { c: 'todo', t: co || 'Klart' },
+    ];
+    var blockers = arr(av.blockers);
+    return (
+      '<section class="sec" id="s2">' +
+      head +
+      '<div class="s2">' +
+      '<div class="s2-head"><span class="left"><span class="pulse"></span>' +
+      esc(av.kicker || 'PÅGÅR') +
+      '</span>' +
+      (av.headMeta ? '<span class="time">' + esc(av.headMeta) + '</span>' : '') +
+      '</div>' +
+      '<div class="s2-row"><div><div class="s2-treatment">' +
+      esc(av.title || 'Besök') +
+      '</div>' +
+      '<div class="s2-treatment-sub">' +
+      esc(av.statusLine || '') +
+      '</div></div>' +
+      (av.practitioner ? '<div class="s2-staff">' + esc(av.practitioner) + '</div>' : '') +
+      '</div>' +
+      (av.showTimeline
+        ? '<div class="s2-timeline">' +
+          nodes
+            .map(function (n, i) {
+              return (
+                '<div class="tnode ' +
+                n.c +
+                '"><span class="dot"></span><span class="t">' +
+                esc(n.t) +
+                '</span></div>' +
+                (i < nodes.length - 1
+                  ? '<div class="tline' + (i >= 1 ? ' todo' : '') + '"></div>'
+                  : '')
+              );
+            })
+            .join('') +
+          '</div>'
+        : '') +
+      (blockers.length
+        ? '<div class="s2-blockers"><div class="s2-blockers-l">Måste lösas innan ingrepp</div>' +
+          blockers
+            .map(function (b) {
+              return (
+                '<div class="s2-blockers-row"><span>' +
+                esc(txt(b.label || b)) +
+                '</span>' +
+                chip('danger', 'Saknas') +
+                '</div>'
+              );
+            })
+            .join('') +
+          '</div>'
+        : '') +
+      '<div class="s2-actions">' +
+      '<button class="av-btn hero" data-v11-active-visit-action="' +
+      esc((av.primary && av.primary.action) || 'journal') +
+      '">' +
+      esc((av.primary && av.primary.label) || 'Starta journal') +
+      '</button>' +
+      '<button class="av-btn sec" data-v11-active-visit-action="photo">📷 Foto</button>' +
+      '<button class="av-btn sec" data-v11-active-visit-action="notes">✏️ Anteckning</button>' +
+      (av.secondary
+        ? '<button class="av-btn tert" data-v11-active-visit-action="' +
+          esc(av.secondary.action) +
+          '">' +
+          esc(av.secondary.label) +
+          '</button>'
+        : '') +
+      '</div></div></section>'
+    );
+  }
+
+  /* ---------- 3 · VARNINGAR ---------- */
+  function s3(warnings) {
+    var items = arr(warnings && warnings.items ? warnings.items : warnings);
+    var head = secHead('03', 'Kritiska varningar', 'måste lösas innan behandling');
+    if (!items.length) {
+      return (
+        '<section class="sec" id="s3">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Inga kritiska varningar.</div></section>'
+      );
+    }
+    return (
+      '<section class="sec" id="s3">' +
+      head +
+      items
+        .map(function (w) {
+          var amber =
+            txt(w.tone || w.severity).toLowerCase() === 'amber' ||
+            /medel|måttlig/i.test(txt(w.severity));
+          return (
+            '<div class="warn-row' +
+            (amber ? ' warn-amber' : '') +
+            '"><span class="warn-icn">!</span>' +
+            '<div class="warn-body"><div class="what">' +
+            esc(txt(w.title || w.what || w.label)) +
+            '</div>' +
+            (w.text || w.why ? '<div class="why">' + esc(txt(w.text || w.why)) + '</div>' : '') +
+            '</div>' +
+            '<button class="warn-action">Visa</button></div>'
+          );
+        })
+        .join('') +
+      '</section>'
+    );
+  }
+
+  /* ---------- 4 · HÄLSA ---------- */
+  function s4(health) {
+    var head = secHead(
+      '04',
+      'Hälsa',
+      null,
+      '<button class="sec-link">Öppna full hälsoprofil →</button>'
+    );
+    if (!health) {
+      return (
+        '<section class="sec" id="s4">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Hälsodeklaration saknas.</div></section>'
+      );
+    }
+    var answers = arr(health.answers);
+    var meds = arr(
+      health.medications && typeof health.medications === 'string'
+        ? health.medications.split(/[,;\n]+/)
+        : health.medications
+    );
+    var hdCard =
+      '<div class="card"><div class="card-l">Hälsodeklaration' +
+      (answers.length ? ' · ' + answers.length + ' frågor' : '') +
+      (health.signedAt
+        ? '<span class="when">Signerad ' + esc(txt(health.signedAt)) + '</span>'
+        : '') +
+      '</div>' +
+      (answers.length
+        ? answers
+            .map(function (a) {
+              var tone = /ja|allerg/i.test(txt(a.value))
+                ? /allerg|penicillin/i.test(txt(a.value))
+                  ? 'danger'
+                  : 'warn'
+                : 'ok';
+              return (
+                '<div class="card-row"><span class="what">' +
+                esc(txt(a.label || a.q)) +
+                '</span>' +
+                chip(tone, txt(a.value)) +
+                '</div>'
+              );
+            })
+            .join('')
+        : '<div class="card-row"><span class="what">Inga registrerade svar</span></div>') +
+      '</div>';
+    var medCard =
+      '<div class="card"><div class="card-l">Läkemedel + kontraindikationer</div>' +
+      (meds.length && txt(meds[0])
+        ? meds
+            .map(function (m) {
+              return txt(m)
+                ? '<div class="card-row"><span class="what">' +
+                    esc(txt(m)) +
+                    '</span>' +
+                    chip('neutral', 'Läkemedel') +
+                    '</div>'
+                : '';
+            })
+            .join('')
+        : '<div class="card-row"><span class="what">Pågående läkemedel ej registrerade</span></div>') +
+      '</div>';
+    return (
+      '<section class="sec" id="s4">' +
+      head +
+      '<div class="s4-grid">' +
+      hdCard +
+      medCard +
+      '</div></section>'
+    );
+  }
+
+  /* ---------- 5 · KUNDRESA ---------- */
+  function s5(journey) {
+    var head = secHead(
+      '05',
+      'Kundresa',
+      journey && journey.cur ? 'steg ' + journey.cur + ' av ' + journey.total : null
+    );
+    var steps = arr(journey && journey.steps);
+    if (!steps.length)
+      return (
+        '<section class="sec" id="s5">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Kundresan har inte startat.</div></section>'
+      );
+    var done = steps.filter(function (s) {
+      return s.state === 'done';
+    }).length;
+    var active = steps.filter(function (s) {
+      return s.state === 'active';
+    }).length;
+    var pct = journey.pct || Math.round((done / steps.length) * 100);
+    return (
+      '<section class="sec" id="s5">' +
+      head +
+      '<div class="s5-progress"><span>' +
+      done +
+      ' klara · ' +
+      active +
+      ' pågår · ' +
+      (steps.length - done - active) +
+      ' kommande</span>' +
+      '<span class="bar"><i style="width:' +
+      esc(pct) +
+      '%"></i></span><span>' +
+      esc(pct) +
+      '%</span></div>' +
+      steps
+        .map(function (s, i) {
+          var cls =
+            s.state === 'done'
+              ? 'step--done'
+              : s.state === 'active'
+                ? 'step--active'
+                : s.state === 'blocked'
+                  ? 'step--blocked'
+                  : 'step--future';
+          var badge =
+            s.state === 'done'
+              ? '✓'
+              : s.state === 'blocked'
+                ? '!'
+                : esc(s.id != null ? s.id : i + 1);
+          var meta =
+            s.state === 'done'
+              ? 'Klart'
+              : s.state === 'active'
+                ? 'Pågår'
+                : s.state === 'blocked'
+                  ? 'Blockerare'
+                  : 'Kommande';
+          return (
+            '<div class="step ' +
+            cls +
+            '"><span class="step-badge">' +
+            badge +
+            '</span>' +
+            '<div><div class="step-text">' +
+            esc(txt(s.label)) +
+            '</div>' +
+            (s.note ? '<div class="step-sub">' + esc(txt(s.note)) + '</div>' : '') +
+            '</div>' +
+            '<div class="step-links"></div><span class="step-meta">' +
+            esc(meta) +
+            '</span></div>'
+          );
+        })
+        .join('') +
+      '</section>'
+    );
+  }
+
+  /* ---------- 6 · JOURNAL ---------- */
+  function s6(entries) {
+    var list = arr(entries);
+    var head = secHead(
+      '06',
+      'Journal',
+      list.length ? list.length + ' anteckningar' : null,
+      '<button class="sec-link">+ Ny anteckning</button>'
+    );
+    if (!list.length)
+      return (
+        '<section class="sec" id="s6">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Inga journalanteckningar ännu.</div></section>'
+      );
+    return (
+      '<section class="sec" id="s6">' +
+      head +
+      list
+        .slice(0, 8)
+        .map(function (e) {
+          var signed = /signed|signerad|locked/i.test(txt(e.status));
+          var today = /utkast|draft/i.test(txt(e.status));
+          var d = txt(e.dateLabel || e.date || e.signedAt).slice(0, 10);
+          return (
+            '<div class="journal-row' +
+            (today ? ' today' : '') +
+            '">' +
+            '<div class="journal-date"><span class="d">' +
+            esc(d || '—') +
+            '</span></div>' +
+            '<div><div class="journal-title">' +
+            esc(txt(e.title || e.journalType || 'Journal')) +
+            '</div>' +
+            '<div class="journal-meta">' +
+            esc(txt(e.author || e.practitioner || '')) +
+            '</div></div>' +
+            chip(signed ? 'ok' : 'warn', signed ? 'Signerad' : 'Utkast') +
+            '<div class="journal-actions"><button class="j-btn">Öppna</button></div></div>'
+          );
+        })
+        .join('') +
+      '</section>'
+    );
+  }
+
+  /* ---------- 7 · BILDER ---------- */
+  function s7(photos) {
+    var items = arr(photos && photos.items ? photos.items : photos);
+    var head = secHead(
+      '07',
+      'Bilder',
+      items.length ? items.length + ' bilder' : null,
+      '<button class="sec-link">📷 Ta bild</button><button class="sec-link">Jämför →</button>'
+    );
+    if (!items.length)
+      return (
+        '<section class="sec" id="s7">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Inga bilder uppladdade ännu.</div></section>'
+      );
+    var tiles = items
+      .slice(0, 12)
+      .map(function (p) {
+        var bg = p.thumbnailUrl || p.viewUrl || p.url;
+        var lbl = txt(p.dateLabel || p.photoDateLabel || p.capturedAt || '').slice(0, 12);
+        return (
+          '<div class="photo-tile over"' +
+          (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+          '>' +
+          (lbl ? '<span class="lbl">' + esc(lbl) + '</span>' : '') +
+          '</div>'
+        );
+      })
+      .join('');
+    var gap = items.some(function (p) {
+      return p.gap || p.viewGap;
+    });
+    return (
+      '<section class="sec" id="s7">' +
+      head +
+      '<div class="photo-grid">' +
+      tiles +
+      '</div>' +
+      (gap
+        ? '<div class="photo-gap"><span>⚠ Krona-vy saknas för fullständig dokumentation</span><button class="warn-action">Begär foto</button></div>'
+        : '') +
+      '</section>'
+    );
+  }
+
+  /* ---------- 8 · BOKNINGAR ---------- */
+  function s8(bundle) {
+    var up = arr(bundle && bundle.upcomingBookings);
+    var hist = arr(bundle && bundle.historyBookings);
+    var head = secHead(
+      '08',
+      'Bokningar',
+      up.length + ' kommande · ' + hist.length + ' historik',
+      '<button class="sec-link">+ Boka</button>'
+    );
+    var rows = up.concat(hist).slice(0, 8);
+    if (!rows.length)
+      return (
+        '<section class="sec" id="s8">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Inga bokningar registrerade.</div></section>'
+      );
+    return (
+      '<section class="sec" id="s8">' +
+      head +
+      rows
+        .map(function (b, i) {
+          var done = i >= up.length;
+          return (
+            '<div class="booking-row"><div class="b-date"><span class="d">' +
+            esc(txt(b.dayLabel || b.day || '—')) +
+            '</span></div>' +
+            '<div><div class="b-title">' +
+            esc(txt(b.title || b.serviceLabel || 'Bokning')) +
+            '</div>' +
+            '<div class="b-meta">' +
+            esc(txt(b.timeLabel || b.time || '') + (b.practitioner ? ' · ' + b.practitioner : '')) +
+            '</div></div>' +
+            chip(done ? 'ok' : 'info', done ? 'Genomförd' : 'Bokad') +
+            '<button class="j-btn">Visa</button></div>'
+          );
+        })
+        .join('') +
+      '</section>'
+    );
+  }
+
+  /* ---------- 9 · DOKUMENT ---------- */
+  function s9(files) {
+    var items = arr(files && files.items ? files.items : files);
+    var head = secHead(
+      '09',
+      'Dokument',
+      items.length ? items.length + ' totalt' : null,
+      '<button class="sec-link">+ Lägg till</button>'
+    );
+    if (!items.length)
+      return (
+        '<section class="sec" id="s9">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Inga dokument registrerade.</div></section>'
+      );
+    return (
+      '<section class="sec" id="s9">' +
+      head +
+      '<div class="doc-grid">' +
+      items
+        .slice(0, 8)
+        .map(function (f) {
+          var ic = /pdf/i.test(txt(f.mimeType || f.name))
+            ? 'pdf'
+            : /xls/i.test(txt(f.name))
+              ? 'xlsx'
+              : 'docx';
+          return (
+            '<div class="doc-row"><span class="doc-ic ' +
+            ic +
+            '">' +
+            ic.toUpperCase() +
+            '</span>' +
+            '<div><div class="doc-name">' +
+            esc(txt(f.name || f.title || 'Dokument')) +
+            '</div>' +
+            '<div class="doc-meta">' +
+            esc(txt(f.dateLabel || f.documentDate || '')) +
+            '</div></div>' +
+            chip('ok', 'Klar') +
+            '<button class="j-btn">Öppna</button></div>'
+          );
+        })
+        .join('') +
+      '</div></section>'
+    );
+  }
+
+  /* ---------- 10 · KOMMUNIKATION ---------- */
+  function s10(comm) {
+    var items = arr(comm && comm.items ? comm.items : comm);
+    var head = secHead(
+      '10',
+      'Kommunikation',
+      null,
+      '<button class="sec-link">+ Svara</button><button class="sec-link">Svarstudio →</button>'
+    );
+    if (!items.length)
+      return (
+        '<section class="sec" id="s10">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Ingen kommunikation registrerad.</div></section>'
+      );
+    return (
+      '<section class="sec" id="s10">' +
+      head +
+      items
+        .slice(0, 6)
+        .map(function (c) {
+          var k = /sms/i.test(txt(c.channel))
+            ? 'sms'
+            : /call|samtal|ring/i.test(txt(c.channel))
+              ? 'call'
+              : 'mail';
+          var ic = k === 'sms' ? '💬' : k === 'call' ? '📞' : '✉️';
+          return (
+            '<div class="comm-row"><span class="comm-ic ' +
+            k +
+            '">' +
+            ic +
+            '</span>' +
+            '<div class="comm-body"><div class="who">' +
+            esc(txt(c.subject || c.title || c.who || 'Meddelande')) +
+            '</div>' +
+            (c.preview || c.text
+              ? '<div class="pre">' + esc(txt(c.preview || c.text)) + '</div>'
+              : '') +
+            '</div>' +
+            '<div class="comm-meta">' +
+            esc(txt(c.dateLabel || c.date || '')) +
+            '</div></div>'
+          );
+        })
+        .join('') +
+      '</section>'
+    );
+  }
+
+  /* ---------- 11 · EKONOMI ---------- */
+  function s11(econ, invoices) {
+    var head = secHead('11', 'Ekonomi', null, '<button class="sec-link">→ Fortnox</button>');
+    var cells = [
+      ['Total intäkt', txt((econ && (econ.totalValue || econ.total)) || '—')],
+      ['Livstidsvärde', txt((econ && econ.lifetimeValue) || '—')],
+      ['Snitt per besök', txt((econ && econ.avgPerVisit) || '—')],
+      ['Utestående', txt((econ && (econ.outstanding || econ.debt)) || '0 kr')],
+    ];
+    var inv = arr(invoices && invoices.items ? invoices.items : invoices);
+    return (
+      '<section class="sec" id="s11">' +
+      head +
+      '<div class="eko-stats">' +
+      cells
+        .map(function (c) {
+          return (
+            '<div class="eko-cell"><div class="l">' +
+            esc(c[0]) +
+            '</div><div class="v">' +
+            esc(c[1]) +
+            '</div></div>'
+          );
+        })
+        .join('') +
+      '</div>' +
+      (inv.length
+        ? '<div class="doc-grid">' +
+          inv
+            .slice(0, 6)
+            .map(function (r) {
+              var tone = /betald|paid/i.test(txt(r.status))
+                ? 'ok'
+                : /makul|fail/i.test(txt(r.status))
+                  ? 'danger'
+                  : 'neutral';
+              return (
+                '<div class="doc-row"><span class="doc-ic pdf">PDF</span>' +
+                '<div><div class="doc-name">' +
+                esc(txt(r.title || 'Faktura')) +
+                '</div>' +
+                '<div class="doc-meta">' +
+                esc(txt((r.amount || '') + (r.date ? ' · ' + r.date : ''))) +
+                '</div></div>' +
+                chip(tone, txt(r.statusLabel || r.status || '—')) +
+                '<button class="j-btn">Visa</button></div>'
+              );
+            })
+            .join('') +
+          '</div>'
+        : '') +
+      '</section>'
+    );
+  }
+
+  /* ---------- 12 · INSIKTER ---------- */
+  function s12(nextStep, insights) {
+    var head = secHead('12', 'Insikter och nästa bästa åtgärd');
+    var blocks = '';
+    if (nextStep && nextStep.what) {
+      blocks +=
+        '<div class="insight-card"><div class="insight-l">⚡ Gör nu</div>' +
+        '<div class="insight-what">' +
+        esc(txt(nextStep.what)) +
+        '</div>' +
+        (nextStep.why ? '<div class="insight-why">' + esc(txt(nextStep.why)) + '</div>' : '') +
+        '<div class="insight-actions"><button class="warn-action amber" data-kk-sig="' +
+        esc(nextStep.ruleId) +
+        '">' +
+        esc(nextStep.ctaLabel || 'Åtgärda') +
+        '</button><button class="warn-action">Granska först</button></div></div>';
+    }
+    var opp = arr(insights && insights.items ? insights.items : insights).filter(function (i) {
+      return i && i.tone !== 'blocker' && i.tone !== 'review';
+    });
+    if (opp.length) {
+      var o = opp[0];
+      blocks +=
+        '<div class="insight-card green"><div class="insight-l">💡 Möjlighet</div>' +
+        '<div class="insight-what">' +
+        esc(txt(o.title)) +
+        '</div>' +
+        (o.text ? '<div class="insight-why">' + esc(txt(o.text)) + '</div>' : '') +
+        '<div class="insight-actions"><button class="warn-action greenbtn">Boka</button><button class="warn-action">Påminn senare</button></div></div>';
+    }
+    if (!blocks)
+      blocks =
+        '<div class="card" style="color:var(--ink-mute)">Inga aktiva insikter just nu.</div>';
+    return '<section class="sec" id="s12">' + head + blocks + '</section>';
+  }
+
+  /* ---------- RAIL + STICKY ---------- */
+  var JUMP = [
+    ['s1', 'Nuläge', '01'],
+    ['s2', 'Aktivt besök', '02'],
+    ['s3', 'Varningar', '03'],
+    ['s4', 'Hälsa', '04'],
+    ['s5', 'Kundresa', '05'],
+    ['s6', 'Journal', '06'],
+    ['s7', 'Bilder', '07'],
+    ['s8', 'Bokningar', '08'],
+    ['s9', 'Dokument', '09'],
+    ['s10', 'Kommunikation', '10'],
+    ['s11', 'Ekonomi', '11'],
+    ['s12', 'Insikter', '12'],
+  ];
+  function rail() {
+    return (
+      '<aside class="rail">' +
+      '<div class="rail-card"><div class="rail-l">Snabb-jump</div><div class="rail-jump">' +
+      JUMP.map(function (j) {
+        return (
+          '<a data-v12-canon-jump="' +
+          j[0] +
+          '"><span>' +
+          esc(j[1]) +
+          '</span><span class="num">' +
+          j[2] +
+          '</span></a>'
+        );
+      }).join('') +
+      '</div></div>' +
+      '<div class="rail-card"><div class="rail-l">Senaste händelser</div>' +
+      '<div class="rail-row"><span class="what">Kunddossier öppnad</span><span class="when">nu</span></div>' +
+      '</div></aside>'
+    );
+  }
+  function sticky(nextStep, card) {
+    var name = txt(card.displayName || card.name);
+    var msg = nextStep && nextStep.what ? '⚡ ' + txt(nextStep.what) : 'Förbered nästa steg';
+    return (
+      '<div class="v12-canon__sticky"><div class="v12-canon__sticky-inner">' +
+      '<div class="sticky-context">' +
+      esc(name) +
+      '<b>' +
+      esc(msg) +
+      '</b></div>' +
+      '<button class="sticky-btn sec" data-v11-active-visit-action="photo">📷 Foto</button>' +
+      '<button class="sticky-btn primary" data-v11-active-visit-action="journal">📝 Starta journal</button>' +
+      '</div></div>'
+    );
+  }
+
+  function render(ctx) {
+    ctx = ctx || {};
+    var card = ctx.bcard || ctx.card || {};
+    var bundle = ctx.dossierBundle || null;
+    var journey = call('buildJourneyFromState', [card, ctx.journalEntries, bundle], null);
+    var av = call('buildActiveVisitFromBundle', [bundle], null);
+    var warnings = call('buildCriticalWarnings', [card, ctx.journalEntries, bundle], null);
+    var health = call('buildHealthPreview', [card, bundle], null);
+    var photos = call('buildPhotosFromDriveFiles', [ctx.driveFiles], null);
+    var files = call('buildFilesFromDriveFiles', [ctx.driveFiles], null);
+    var comm = call('buildCommunicationFromState', [card, ctx.occasionTimeline, bundle], null);
+    var econ = call('buildEconomyFromCard', [card], null);
+    var invoices = call('buildEconomyInvoices', [bundle && bundle.paymentHistory], null);
+    var nextStep = call('buildSmartNextStep', [card], null);
+    var insights = call('buildInsightsFromSignals', [card], null);
+
+    var main =
+      '<div class="v12-canon__main">' +
+      s1(card, journey) +
+      s2(av) +
+      s3(warnings) +
+      s4(health) +
+      s5(journey) +
+      s6(ctx.journalEntries) +
+      s7(photos) +
+      s8(bundle) +
+      s9(files) +
+      s10(comm) +
+      s11(econ, invoices) +
+      s12(nextStep, insights) +
+      '</div>';
+    // Lägg data-v12-module på varje sektion så befintlig scrollV12WorkspaceModule
+    // + jump-rail-launcher (inferV12ModuleFromRailClick) landar rätt vid sektionsklick.
+    var SEC_MODULE = {
+      s1: 'current-state',
+      s2: 'active-visit',
+      s3: 'warnings',
+      s4: 'health',
+      s5: 'journey',
+      s6: 'journal',
+      s7: 'photos',
+      s8: 'bookings',
+      s9: 'documents',
+      s10: 'communication',
+      s11: 'economy',
+      s12: 'insights',
+    };
+    main = main.replace(/<section class="sec" id="(s\d+)"/g, function (m, id) {
+      return SEC_MODULE[id] ? m + ' data-v12-module="' + SEC_MODULE[id] + '"' : m;
+    });
+
+    return (
+      '<div class="v12-canon" data-v12-canon="1">' +
+      '<div class="v12-canon__grid">' +
+      main +
+      rail() +
+      '</div>' +
+      sticky(nextStep, card) +
+      '</div>'
+    );
+  }
+
+  global.CcoV12Canon = { render: render };
+})(typeof window !== 'undefined' ? window : globalThis);
