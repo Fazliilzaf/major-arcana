@@ -334,8 +334,73 @@
     );
   }
 
-  /* ---------- 5 · KUNDRESA ---------- */
-  function s5(journey) {
+  /* ---------- 5 · KUNDRESA (JOURNEY-SPINE sammanförd i canon) ---------- */
+  var JUMP_LABEL = {
+    'kk-card-halsa': 'Hälsa',
+    'kk-card-behandling': 'Behandling',
+    'kk-card-juridik': 'Avtal',
+    'kk-card-operation': 'Operation',
+    'kk-card-foto': 'Foto',
+    'kk-card-bokning': 'Bokning',
+    'kk-card-uppfoljning': 'Uppföljning',
+  };
+  var JUMP_SECTION = {
+    'kk-card-halsa': 'health',
+    'kk-card-foto': 'photos',
+    'kk-card-bokning': 'bookings',
+    'kk-card-juridik': 'documents',
+    'kk-card-uppfoljning': 'bookings',
+    'kk-card-behandling': 'documents',
+  };
+  function miniActiveVisit(av) {
+    if (!av) return '';
+    var ci = avTime(av.checkedInAt);
+    return (
+      '<div class="s2" style="margin:0 0 4px">' +
+      '<div class="s2-head"><span class="left"><span class="pulse"></span>' +
+      esc(av.kicker || 'PÅGÅR') +
+      '</span>' +
+      (av.headMeta ? '<span class="time">' + esc(av.headMeta) + '</span>' : '') +
+      '</div>' +
+      '<div class="s2-row"><div><div class="s2-treatment">' +
+      esc(av.title || 'Besök') +
+      '</div>' +
+      '<div class="s2-treatment-sub">' +
+      esc(av.statusLine || '') +
+      '</div></div>' +
+      (av.practitioner
+        ? '<div class="s2-staff">' +
+          esc(av.practitioner) +
+          (txt(av.room) ? '<span class="room">' + esc(txt(av.room)) + '</span>' : '') +
+          '</div>'
+        : '') +
+      '</div>' +
+      (av.showTimeline
+        ? '<div class="s2-timeline"><div class="tnode done"><span class="dot"></span><span class="t">' +
+          esc(ci || 'in') +
+          '</span></div>' +
+          '<div class="tline"></div><div class="tnode active"><span class="dot"></span><span class="t">nu</span></div>' +
+          '<div class="tline todo"></div><div class="tnode todo"><span class="dot"></span><span class="t">klart</span></div></div>'
+        : '') +
+      (arr(av.blockers).length
+        ? '<div class="s2-blockers"><div class="s2-blockers-l">Måste lösas innan ingrepp</div>' +
+          arr(av.blockers)
+            .map(function (b) {
+              return (
+                '<div class="s2-blockers-row"><span>' +
+                esc(txt(b.label || b)) +
+                '</span>' +
+                chip('danger', 'Saknas') +
+                '</div>'
+              );
+            })
+            .join('') +
+          '</div>'
+        : '') +
+      '</div>'
+    );
+  }
+  function s5(journey, av, smart) {
     var head = secHead(
       '05',
       'Kundresa',
@@ -364,8 +429,7 @@
       active +
       ' pågår · ' +
       (steps.length - done - active) +
-      ' kommande</span>' +
-      '<span class="bar"><i style="width:' +
+      ' kommande</span><span class="bar"><i style="width:' +
       esc(pct) +
       '%"></i></span><span>' +
       esc(pct) +
@@ -394,10 +458,57 @@
                 : s.state === 'blocked'
                   ? 'Blockerare'
                   : 'Kommande';
+          // jump-länk (per-steg → relevant canon-sektion)
+          var jl = '';
+          if (s.jump && JUMP_LABEL[s.jump]) {
+            jl =
+              '<div class="step-links"><button type="button" class="step-link" data-v12-jump="' +
+              esc(JUMP_SECTION[s.jump] || 'current-state') +
+              '">Öppna ' +
+              esc(JUMP_LABEL[s.jump]) +
+              ' →</button></div>';
+          } else {
+            jl = '<div class="step-links"></div>';
+          }
+          // body (aktivt steg → aktivt besök + smart; blockerat → gate)
+          var body = '';
+          if (s.state === 'active') {
+            var smartHtml =
+              smart && smart.what
+                ? '<div class="spine-smart"><div><b>' +
+                  esc(txt(smart.what)) +
+                  '</b>' +
+                  (smart.why
+                    ? '<div style="font-size:11px;color:var(--ink-soft);margin-top:2px">' +
+                      esc(txt(smart.why)) +
+                      '</div>'
+                    : '') +
+                  '</div><button type="button" class="warn-action" data-kk-sig="' +
+                  esc(smart.ruleId) +
+                  '">' +
+                  esc(smart.ctaLabel || 'Åtgärda') +
+                  '</button></div>'
+                : '';
+            body = miniActiveVisit(av) + smartHtml;
+          } else if (s.state === 'blocked') {
+            body =
+              '<div class="gate-list"><div class="gate-list-l">Krävs för att låsa upp</div>' +
+              '<div class="gate-row"><span class="what">Föregående steg slutfört</span>' +
+              chip('danger', 'Saknas') +
+              '</div></div>';
+          }
+          var hasBody = !!body;
+          var open = s.state === 'active';
           return (
-            '<div class="step ' +
+            '<article class="step ' +
             cls +
-            '"><span class="step-badge">' +
+            '"' +
+            (hasBody ? ' data-spine-step="' + i + '" data-open="' + open + '"' : '') +
+            '>' +
+            '<button type="button" class="step-head"' +
+            (hasBody ? ' aria-expanded="' + open + '"' : '') +
+            '>' +
+            '<span class="step-badge">' +
             badge +
             '</span>' +
             '<div><div class="step-text">' +
@@ -405,9 +516,16 @@
             '</div>' +
             (s.note ? '<div class="step-sub">' + esc(txt(s.note)) + '</div>' : '') +
             '</div>' +
-            '<div class="step-links"></div><span class="step-meta">' +
+            jl +
+            '<span class="step-meta">' +
             esc(meta) +
-            '</span></div>'
+            (hasBody ? ' <span class="step-toggle" aria-hidden="true">▾</span>' : '') +
+            '</span>' +
+            '</button>' +
+            (hasBody
+              ? '<div class="step-body"><div class="step-body-inner">' + body + '</div></div>'
+              : '') +
+            '</article>'
           );
         })
         .join('') +
@@ -811,7 +929,7 @@
       s2(av) +
       s3(warnings) +
       s4(health) +
-      s5(journey) +
+      s5(journey, av, nextStep) +
       s6(ctx.journalEntries) +
       s7(photos) +
       s8(bundle) +
