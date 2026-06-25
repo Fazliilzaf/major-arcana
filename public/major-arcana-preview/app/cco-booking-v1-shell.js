@@ -337,6 +337,7 @@
         });
       }
       ST.render = renderBookingList; // shell anropar denna efter att riktig data satts
+      ST.toast = toast; // exponera så shell kan binda om AI-strippen mot riktig data
       renderBookingList();
       document.querySelectorAll('.filter-chip').forEach((c) => {
         c.addEventListener('click', () => {
@@ -392,7 +393,7 @@
 
       <div class="ds-section-title">Tid &amp; resurs</div>
       <div class="ds-booking" data-source="${b.resource === 'Fazli' ? 'fazli' : b.resource === 'Egzona' ? 'egzona' : 'contact'}">
-        <div class="ds-date"><div class="day">TIS</div><div class="num">26</div><div class="mon">MAJ</div></div>
+        <div class="ds-date"><div class="day">${bEsc((ST.dateParts && ST.dateParts.day) || 'TIS')}</div><div class="num">${bEsc((ST.dateParts && ST.dateParts.num) || '26')}</div><div class="mon">${bEsc((ST.dateParts && ST.dateParts.mon) || 'MAJ')}</div></div>
         <div class="ds-booking-meta"><div class="ds-booking-title">${b.service}</div><div class="ds-booking-sub">${b.time} · ${b.dur} · ${b.resource}</div></div>
         <span class="ds-booking-state" data-state="${b.state === 'confirmed' ? 'ready' : b.state === 'conflict' ? 'conflict' : 'warn'}">${b.state === 'confirmed' ? '✓ Redo' : b.state === 'conflict' ? '!! Konflikt' : '⚠ Tentativ'}</span>
       </div>
@@ -526,7 +527,8 @@
         .sort(function (a, b) {
           return S.slotStartMinutes(a) - S.slotStartMinutes(b);
         });
-      if (!visible.length) return; // ingen riktig data → behåll facit-demo
+      // Obs: tom dag = riktig tom data, INTE facit-demo (Bugbot #264). Vi
+      // fortsätter och renderar ett tomt läge istället för att lämna demo kvar.
 
       // Konflikter beräknas ur delade datalagret (samma resurs + överlappande
       // tid); fetchCalendarRange exponerar dem inte själv (Bugbot #264).
@@ -545,12 +547,36 @@
         }
       };
 
+      // Riktigt datum för dossier-arket (idag) — ersätter facitens TIS/26/MAJ.
+      var nowD = new Date(today + 'T12:00:00');
+      var up3 = function (d) {
+        return String(d || '')
+          .replace('.', '')
+          .slice(0, 3)
+          .toUpperCase();
+      };
+
       // Byt demo → riktig data och re-rendera via facitens exponerade render.
       var ST = window.__ARCANA_BOOKING_V1__ || (window.__ARCANA_BOOKING_V1__ = {});
+      ST.dateParts = {
+        day: up3(nowD.toLocaleDateString('sv-SE', { weekday: 'short' })),
+        num: String(nowD.getDate()),
+        mon: up3(nowD.toLocaleDateString('sv-SE', { month: 'short' })),
+      };
       ST.list = visible.map(function (s, i) {
         return slotToBooking(S, s, i, inConflict(s));
       });
       if (typeof ST.render === 'function') ST.render();
+      // Tomt läge: visa riktig tom-state istället för demo-kort.
+      if (!visible.length) {
+        var emptyList = root.querySelector('#bookingList');
+        if (emptyList) {
+          emptyList.innerHTML =
+            '<div class="customer-card" data-empty style="text-align:center;cursor:default">' +
+            '<div class="cc-name" style="opacity:.7">Inga bokningar idag</div>' +
+            '<div class="cc-sub">Skapa en ny tid med + nedan</div></div>';
+        }
+      }
 
       // Header-räknare ur riktig data.
       var bookedCount = visible.filter(function (s) {
@@ -577,7 +603,6 @@
         );
       }).length;
 
-      var nowD = new Date(today + 'T12:00:00');
       var title = root.querySelector('.page-title');
       if (title) title.textContent = bookedCount + ' bokning' + (bookedCount === 1 ? '' : 'ar');
       var sub = root.querySelector('.page-subtitle');
@@ -615,6 +640,88 @@
         else if (/tentativ/.test(txt)) cnt.textContent = String(tentativeCount);
         else if (/konflikt/.test(txt)) cnt.textContent = String(conflictCount);
       });
+
+      // AI-aggregat-strippen ur RIKTIG data — annars ligger facitens statiska
+      // Erik/Sofie-konflikt kvar bredvid riktiga bokningar (Bugbot #264).
+      var aggStrip = root.querySelector('.agg-strip');
+      if (aggStrip) {
+        var aggCards = [];
+        if (conflictCount > 0) {
+          aggCards.push({
+            kind: 'risk',
+            kicker: '★ Konflikt',
+            body:
+              '<strong>' +
+              conflictCount +
+              ' dubbelbokning' +
+              (conflictCount === 1 ? '' : 'ar') +
+              '</strong> idag — samma resurs överlappar i tid',
+            cta: '→ Lös konflikt',
+          });
+        }
+        if (openCount > 0) {
+          aggCards.push({
+            kind: 'action',
+            kicker: '★ Lediga luckor',
+            body:
+              '<strong>' +
+              openCount +
+              ' ledig' +
+              (openCount === 1 ? ' lucka' : 'a luckor') +
+              '</strong> idag — matcha mot väntelistan',
+            cta: '→ Fyll luckor',
+          });
+        }
+        if (tentativeCount > 0) {
+          aggCards.push({
+            kind: 'opp',
+            kicker: '★ Tentativa',
+            body:
+              '<strong>' +
+              tentativeCount +
+              ' tentativ' +
+              (tentativeCount === 1 ? ' bokning' : 'a bokningar') +
+              '</strong> väntar bekräftelse — påminn kunderna',
+            cta: '→ Skicka påminnelser',
+          });
+        }
+        aggCards.push({
+          kind: 'trend',
+          kicker: '★ Dagens beläggning',
+          body:
+            '<strong>' +
+            bookedCount +
+            ' bokning' +
+            (bookedCount === 1 ? '' : 'ar') +
+            '</strong> · ' +
+            confirmedCount +
+            ' bekräftade · ' +
+            openCount +
+            ' luckor kvar',
+          cta: '→ Se vecka',
+        });
+        aggStrip.innerHTML = aggCards
+          .map(function (c) {
+            return (
+              '<div class="agg-card" data-kind="' +
+              bEsc(c.kind) +
+              '"><div class="agg-card-kicker">' +
+              bEsc(c.kicker) +
+              '</div><div class="agg-card-body">' +
+              c.body +
+              '</div><span class="agg-card-cta">' +
+              bEsc(c.cta) +
+              '</span></div>'
+            );
+          })
+          .join('');
+        var aggToast = (window.__ARCANA_BOOKING_V1__ && window.__ARCANA_BOOKING_V1__.toast) || null;
+        aggStrip.querySelectorAll('.agg-card').forEach(function (card) {
+          card.addEventListener('click', function () {
+            if (aggToast) aggToast('✓ AI-åtgärd startad — väntar på godkännande');
+          });
+        });
+      }
     } catch (e) {
       if (window.console) console.warn('[cco-book-v1] data:', e && e.message);
     }
