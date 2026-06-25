@@ -119,6 +119,114 @@ function compareDemoToMeridiq(demoHtml, form) {
   };
 }
 
+function loadJournalSchema(schemaId) {
+  const catalog = readJson('migration/meridiq/journal-schema-catalog.json');
+  const schema = catalog.schemas.find((s) => s.schemaId === schemaId);
+  if (!schema) throw new Error(`Journal schema saknas: ${schemaId}`);
+  return schema;
+}
+
+function flattenJournalSchemaFields(schema) {
+  const fields = [];
+  for (const section of schema.sections || []) {
+    for (const field of section.fields || []) {
+      fields.push(field);
+    }
+  }
+  return fields;
+}
+
+function extractJournalDemoFields(html) {
+  const fields = [];
+  const openRe =
+    /class="journal-field"[\s\S]*?data-field-key="([^"]+)"[\s\S]*?data-meridiq-id="(\d+)"[^>]*>/g;
+  const matches = [...String(html || '').matchAll(openRe)];
+  for (let i = 0; i < matches.length; i += 1) {
+    const m = matches[i];
+    const bodyStart = m.index + m[0].length;
+    const bodyEnd = i + 1 < matches.length ? matches[i + 1].index : html.length;
+    const body = html.slice(bodyStart, bodyEnd);
+    const strongMatch = body.match(/<strong[^>]*>([\s\S]*?)<\/strong\s*>/);
+    const labelMatch = body.match(/<label[\s\S]*?>([\s\S]*?)<\/label\s*>/);
+    const raw = (strongMatch || labelMatch)?.[1] || '';
+    fields.push({
+      key: m[1],
+      id: Number(m[2]),
+      label: stripHtml(raw),
+    });
+  }
+  return fields;
+}
+
+function compareJournalDemoToSchema(demoHtml, schema, form) {
+  const schemaFields = flattenJournalSchemaFields(schema);
+  const demoFields = extractJournalDemoFields(demoHtml);
+  const demoById = new Map(demoFields.map((d) => [d.id, d]));
+  const schemaIds = new Set(schemaFields.map((f) => f.meridiqQuestionId));
+
+  const missingInDemo = [];
+  const labelMismatch = [];
+  const excludedMeridiqIds = [];
+
+  if (form) {
+    for (const q of form.questions) {
+      if (!schemaIds.has(q.id)) {
+        excludedMeridiqIds.push({
+          id: q.id,
+          label: q.label,
+          reason: 'inactive_or_section_header',
+        });
+      }
+    }
+  }
+
+  for (const field of schemaFields) {
+    const id = field.meridiqQuestionId;
+    if (!demoHtml.includes(`data-meridiq-id="${id}"`)) {
+      missingInDemo.push({ key: field.key, id });
+    }
+    const demo = demoById.get(id);
+    if (demo && normalizeLabel(demo.label) !== normalizeLabel(field.label)) {
+      labelMismatch.push({
+        id,
+        key: field.key,
+        schema: field.label,
+        demo: demo.label,
+      });
+    }
+  }
+
+  const extraInDemo = demoFields
+    .filter((d) => !schemaIds.has(d.id))
+    .map((d) => ({ id: d.id, key: d.key }));
+
+  const status =
+    missingInDemo.length === 0 &&
+    extraInDemo.length === 0 &&
+    labelMismatch.length === 0 &&
+    demoFields.length === schemaFields.length
+      ? 'PARITY_OK'
+      : 'NEEDS_REVIEW';
+
+  return {
+    status,
+    schemaId: schema.schemaId,
+    schemaFieldCount: schemaFields.length,
+    demoFieldCount: demoFields.length,
+    meridiqQuestionCount: form?.questions?.length ?? null,
+    excludedMeridiqCount: excludedMeridiqIds.length,
+    excludedMeridiqIds,
+    missingInDemo,
+    extraInDemo,
+    labelMismatch,
+    canonicalSource: 'migration/meridiq/journal-schema-catalog.json',
+    reconciliationRef:
+      schema.schemaId === 'tp_treatment:hair_tp'
+        ? 'docs/strategy/TP-JOURNAL-PARITY-RECONCILIATION-2026-05-30.md'
+        : null,
+  };
+}
+
 function keywordPresent(text, keywords) {
   const n = normalizeLabel(text);
   return keywords.every((k) => n.includes(normalizeLabel(k)));
@@ -436,6 +544,10 @@ module.exports = {
   demoHasQuestionId,
   loadMeridiqForm,
   compareDemoToMeridiq,
+  loadJournalSchema,
+  flattenJournalSchemaFields,
+  extractJournalDemoFields,
+  compareJournalDemoToSchema,
   wordKeywordCoverage,
   stripHtml,
   extractDemoSection,

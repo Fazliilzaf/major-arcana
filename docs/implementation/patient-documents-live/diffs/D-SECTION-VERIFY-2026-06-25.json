@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-06-25T15:18:04.813Z",
+  "script": "verify:patient-doc-d-section-registry",
+  "status": "PASS",
+  "workshopStatus": "READY_FOR_OWNER",
+  "pendingOwnerDecisions": 6,
+  "hairTpBlockingGroups": 0,
+  "errors": [],
+  "warnings": [],
+  "groupSummary": [
+    {
+      "id": "d_hyalase_swe",
+      "bookoffLabel": "Hyalase SWE",
+      "recommendedAction": "NEW_REGISTRY",
+      "proposedRegistryId": "hyalase_info",
+      "ownerDecision": "PENDING",
+      "hairTpCutoverBlocking": false
+    },
+    {
+      "id": "d_botulinum_swe_eng",
+      "bookoffLabel": "Botulinumtoxin SWE/ENG",
+      "recommendedAction": "PROMOTE_BUNDLE_ID",
+      "proposedRegistryId": "botulinum_info",
+      "ownerDecision": "PENDING",
+      "hairTpCutoverBlocking": false
+    },
+    {
+      "id": "d_fillers_swe",
+      "bookoffLabel": "Fillers SWE (+ ENG)",
+      "recommendedAction": "NEW_REGISTRY_CURATII",
+      "proposedRegistryId": "fillers_info",
+      "ownerDecision": "PENDING",
+      "hairTpCutoverBlocking": false
+    },
+    {
+      "id": "d_peeling_ipl_plasma",
+      "bookoffLabel": "Kemisk peeling / IPL / Plasma Pen",
+      "recommendedAction": "DEFER_OR_GROUP",
+      "proposedRegistryId": "esthetic_consent_library",
+      "ownerDecision": "PENDING",
+      "hairTpCutoverBlocking": false
+    },
+    {
+      "id": "d_ortoped_prp_prf",
+      "bookoffLabel": "Ortopedisk PRP/PRF (+ HA)",
+      "recommendedAction": "NEW_REGISTRY_CURATII",
+      "proposedRegistryId": "ortoped_prp_info",
+      "ownerDecision": "PENDING",
+      "hairTpCutoverBlocking": false
+    },
+    {
+      "id": "d_curatiio_avtal_botox_fillers_bleph",
+      "bookoffLabel": "Behandlingsavtal Botox / Fillers / Ögonlock",
+      "recommendedAction": "NEW_REGISTRY_CURATII",
+      "proposedRegistryId": "offert_curatiio_estetik",
+      "ownerDecision": "PENDING",
+      "hairTpCutoverBlocking": false
+    }
+  ]
+}

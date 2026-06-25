@@ -1,14 +1,14 @@
 # T-kolumn matris · 2026-06-25
 
-**Genererad:** 2026-06-25T15:06:48.748Z
+**Genererad:** 2026-06-25T15:14:40.637Z
 
 | Status              | Antal |
 | ------------------- | ----: |
-| PARITY_OK           |     3 |
+| PARITY_OK           |     9 |
 | E6_OK               |    11 |
 | E6_PARTIAL          |     0 |
-| MS_OK_WORD_LOCAL    |     1 |
-| MQ_OR_TEMPLATE_ONLY |    21 |
+| MS_OK_WORD_LOCAL    |     0 |
+| MQ_OR_TEMPLATE_ONLY |    16 |
 | NEEDS_REVIEW        |     0 |
 
 ## Per registryId
@@ -32,12 +32,12 @@
 | `health_tp_eng`              | PARITY_OK           | diff:patient-doc-hd-eng                            |
 | `id_verifiering`             | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `info_offert_tp`             | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `journal_prp_multi`          | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `journal_tp`                 | MS_OK_WORD_LOCAL    | Word lokalt — full legal diff ej körd (E6)         |
-| `journal_tp_follow_12`       | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `journal_tp_follow_4`        | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `journal_tp_follow_6`        | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
-| `journal_tp_post_prp`        | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
+| `journal_prp_multi`          | PARITY_OK           | diff:patient-doc-journal-t-column                  |
+| `journal_tp`                 | PARITY_OK           | diff:patient-doc-journal-t-column                  |
+| `journal_tp_follow_12`       | PARITY_OK           | diff:patient-doc-journal-t-column                  |
+| `journal_tp_follow_4`        | PARITY_OK           | diff:patient-doc-journal-t-column                  |
+| `journal_tp_follow_6`        | PARITY_OK           | diff:patient-doc-journal-t-column                  |
+| `journal_tp_post_prp`        | PARITY_OK           | diff:patient-doc-journal-t-column                  |
 | `konsultationsmall`          | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `microneedling_info`         | MQ_OR_TEMPLATE_ONLY | Ingen Word/T-diff i scope — Meridiq eller malltext |
 | `offert_microneedling`       | E6_OK               | diff:patient-doc-e6-offert-samtycke                |

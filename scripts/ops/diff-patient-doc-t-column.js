@@ -51,6 +51,14 @@ const E6_REGISTRY_IDS = [
 ];
 
 const E6_REPORT_PREFIXES = ['E6-OFFERT-SAMTYCKE-', 'E6-BATCH2-', 'E6-BATCH3-'];
+const JOURNAL_T_REGISTRY_IDS = [
+  'journal_tp',
+  'journal_tp_post_prp',
+  'journal_tp_follow_4',
+  'journal_tp_follow_6',
+  'journal_tp_follow_12',
+  'journal_prp_multi',
+];
 
 const OUT_DIR = path.join(ROOT, 'docs/implementation/patient-documents-live/diffs');
 
@@ -91,6 +99,17 @@ function loadLatestE6Reports() {
   return reports;
 }
 
+function loadLatestJournalTReports() {
+  if (!fs.existsSync(OUT_DIR)) return [];
+  const files = fs
+    .readdirSync(OUT_DIR)
+    .filter((f) => f.startsWith('JOURNAL-T-COLUMN-') && f.endsWith('.json'))
+    .sort();
+  if (!files.length) return [];
+  const data = JSON.parse(fs.readFileSync(path.join(OUT_DIR, files.at(-1)), 'utf8'));
+  return data.reports || [];
+}
+
 function main() {
   const tByRegistry = new Map();
   for (const row of CATALOG.types || []) {
@@ -113,6 +132,7 @@ function main() {
   runScript('diff:patient-doc-e6-offert-samtycke');
   runScript('diff:patient-doc-e6-batch2');
   runScript('diff:patient-doc-e6-batch3');
+  runScript('diff:patient-doc-journal-t-column');
   const e6Reports = loadLatestE6Reports();
   if (e6Reports.length) {
     for (const report of e6Reports) {
@@ -135,6 +155,27 @@ function main() {
         registryId: id,
         status: 'NEEDS_REVIEW',
         note: 'E6 report saknas',
+      });
+      allOk = false;
+    }
+  }
+
+  const journalReports = loadLatestJournalTReports();
+  if (journalReports.length) {
+    for (const report of journalReports) {
+      tByRegistry.set(report.registryId, {
+        registryId: report.registryId,
+        status: report.status,
+        note: 'diff:patient-doc-journal-t-column',
+      });
+      if (report.status !== 'PARITY_OK') allOk = false;
+    }
+  } else {
+    for (const id of JOURNAL_T_REGISTRY_IDS) {
+      tByRegistry.set(id, {
+        registryId: id,
+        status: 'NEEDS_REVIEW',
+        note: 'Journal T report saknas',
       });
       allOk = false;
     }

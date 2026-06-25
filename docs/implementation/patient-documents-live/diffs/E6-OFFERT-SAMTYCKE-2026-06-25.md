@@ -1,6 +1,6 @@
 # E6 legal diff · offert + samtycken · 2026-06-25
 
-**Genererad:** 2026-06-25T15:06:48.295Z
+**Genererad:** 2026-06-25T15:14:40.013Z
 
 | Status         | Antal |
 | -------------- | ----: |

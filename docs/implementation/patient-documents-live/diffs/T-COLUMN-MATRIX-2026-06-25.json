@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-25T15:06:48.748Z",
+  "generatedAt": "2026-06-25T15:14:40.637Z",
   "wordDir": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt",
-  "parityOk": 3,
+  "parityOk": 9,
   "e6Ok": 11,
   "e6Partial": 0,
   "needsReview": 0,
-  "msOkWordLocal": 1,
-  "mqOrTemplate": 21,
+  "msOkWordLocal": 0,
+  "mqOrTemplate": 16,
   "rows": [
     {
       "registryId": "anteckningar_kort",
@@ -95,33 +95,33 @@
     },
     {
       "registryId": "journal_prp_multi",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-journal-t-column"
     },
     {
       "registryId": "journal_tp",
-      "status": "MS_OK_WORD_LOCAL",
-      "note": "Word lokalt — full legal diff ej körd (E6)"
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-journal-t-column"
     },
     {
       "registryId": "journal_tp_follow_12",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-journal-t-column"
     },
     {
       "registryId": "journal_tp_follow_4",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-journal-t-column"
     },
     {
       "registryId": "journal_tp_follow_6",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-journal-t-column"
     },
     {
       "registryId": "journal_tp_post_prp",
-      "status": "MQ_OR_TEMPLATE_ONLY",
-      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-journal-t-column"
     },
     {
       "registryId": "konsultationsmall",
