@@ -594,9 +594,11 @@
     var h2 = root.querySelector('[data-v2-inbox-h2]');
     if (!el) return;
     // Flik-räknarna måste räknas på samma mängd som listan filtrerar
-    // (visibleThreads → ctx.laneThreads), annars matchar inte badgen listan i
-    // aktiv lane (Bugbot: inbox tab counts wrong scope).
-    var lane = ctx.laneThreads || [];
+    // (visibleThreads = laneThreads.filter(segmentMatch) → sedan flik-filter),
+    // inkl. det aktiva v3-segmentet (Mina/SLA/Obesvarade) — annars matchar inte
+    // badgarna och rubriken den filtrerade listan (Bugbot: tab badges ignore
+    // segment filter).
+    var lane = (ctx.laneThreads || []).filter(segmentMatch);
     var counts = {
       alla: lane.length,
       olasta: lane.filter(isUnread).length,
