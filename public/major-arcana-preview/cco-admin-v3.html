@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO Admin — v3 responsiv</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== ADMIN-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* header-rad: tenant-byte + globala admin-knappar */
+.admin-bar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.4rem 0 .2rem}
+.admin-bar .tb-spacer{flex:1;min-width:.5rem}
+.tenant-sel{min-height:2.5rem;padding:0 .75rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);max-width:11rem}
+@media(pointer:coarse){.tenant-sel{min-height:var(--tap)}}
+
+/* KPI-rad */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
+@media(min-width:1025px){.metrics{grid-template-columns:repeat(6,1fr)}}
+@media(min-width:601px) and (max-width:1024px){.metrics{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){
+  .metrics{grid-auto-flow:column;grid-auto-columns:minmax(8.5rem,1fr);grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:calc(-1*var(--pad-x));padding-inline:var(--pad-x)}
+  .metrics::-webkit-scrollbar{display:none}
+  .metric{scroll-snap-align:start}
+}
+
+/* sektionsväljare (section-nav) — pillrow.scroll, byter sektion */
+.sectionnav{margin:.7rem 0 .4rem}
+
+/* sektioner */
+.section{display:none}
+.section.is-active{display:block}
+.sec-grid{display:grid;grid-template-columns:1fr;gap:var(--gap);margin-top:.6rem}
+@media(min-width:601px){.sec-grid.cols-2{grid-template-columns:1fr 1fr}}
+.panel + .panel{margin-top:var(--gap)}
+.panel-acts{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.7rem}
+
+/* tabell i overflow-x:auto */
+.table-wrap{overflow-x:auto;margin-top:.6rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.24);-webkit-overflow-scrolling:touch}
+table.tbl{width:100%;border-collapse:collapse;font-size:var(--fs-meta);min-width:34rem}
+table.tbl th,table.tbl td{text-align:left;padding:.55rem .7rem;white-space:nowrap}
+table.tbl thead th{background:var(--bg-sunken);color:var(--text-secondary);font-weight:800;font-size:var(--fs-kicker);letter-spacing:.04em;text-transform:uppercase;position:sticky;top:0}
+table.tbl tbody tr{border-top:1px solid rgba(180,165,150,.2)}
+table.tbl tbody tr:nth-child(even){background:rgba(247,241,236,.5)}
+.cell-strong{font-weight:800;color:var(--text-primary)}
+
+/* status-chips */
+.chip{display:inline-flex;align-items:center;gap:.3rem;padding:.1rem .5rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;white-space:nowrap}
+.chip--ok{background:var(--success-bg);color:var(--success)}
+.chip--warn{background:var(--warning-bg);color:var(--warning)}
+.chip--bad{background:var(--danger-bg);color:var(--danger)}
+.chip--info{background:var(--info-bg);color:var(--info)}
+.chip--violet{background:var(--violet-bg);color:var(--violet)}
+.chip--gold{background:var(--gold-bg);color:var(--gold)}
+.chip--slate{background:var(--slate-bg);color:var(--slate)}
+
+/* fält / formstycken i inställningar */
+.field{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.7rem}
+.field label{font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary)}
+.field code{font-size:var(--fs-kicker);color:var(--text-tertiary);font-weight:600}
+.field input,.field select,.field textarea{appearance:none;min-height:2.5rem;padding:.5rem .7rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.4);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);color:var(--text-primary)}
+.field textarea{min-height:4.5rem;resize:vertical}
+@media(pointer:coarse){.field input,.field select{min-height:var(--tap)}}
+
+/* feature-flag / toggle-rad */
+.flag{display:flex;align-items:center;gap:.7rem;padding:.55rem 0;box-shadow:inset 0 -1px 0 rgba(180,165,150,.22)}
+.flag:last-child{box-shadow:none}
+.flag-main{flex:1;min-width:0}
+.flag-main b{font-size:var(--fs-meta);font-weight:800}
+.flag-main p{margin:.1rem 0 0;font-size:var(--fs-kicker);color:var(--text-tertiary)}
+
+/* agent-brief block */
+.brief{font-size:var(--fs-meta);color:var(--text-secondary)}
+.brief h3{font-size:.85rem;font-weight:800;margin:.9rem 0 .35rem;color:var(--text-primary)}
+.brief h3:first-child{margin-top:0}
+.brief ul{margin:.2rem 0;padding-left:1.1rem}
+.brief li{margin:.2rem 0}
+.kv{display:flex;justify-content:space-between;gap:.6rem;padding:.35rem 0;box-shadow:inset 0 -1px 0 rgba(180,165,150,.2);font-size:var(--fs-meta)}
+.kv:last-child{box-shadow:none}.kv b{font-weight:800}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i admin…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- ===== HEAD ===== -->
+  <div class="head">
+    <div class="head-main">
+      <span class="kicker">Major Arcana · Admin</span>
+      <h1 class="h1">Major Arcana</h1>
+      <p class="subtitle">Administration av kliniken: mallar, granskningar, revision, team, drift och agent-copiloter.</p>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN-BAR: tenant + globala knappar (Kompakt vy / Byt klinik / Uppdatera / Logga ut) ===== -->
+  <div class="admin-bar">
+    <select class="tenant-sel" aria-label="Klinik">
+      <option>Hair TP Clinic</option>
+      <option>Arcana Skin Stockholm</option>
+      <option>Nordic Hair Göteborg</option>
+    </select>
+    <button class="btn">Byt klinik</button>
+    <span class="tb-spacer"></span>
+    <button class="btn">Kompakt vy</button>
+    <button class="btn">Uppdatera</button>
+    <button class="btn btn--danger">Logga ut</button>
+  </div>
+
+  <!-- ===== SECTION-NAV (verbatim svenska flikar från admin.html) ===== -->
+  <nav class="pillrow scroll sectionnav" id="sectionNav" aria-label="Adminsektioner">
+    <button class="pill is-active" data-target="overviewSection" aria-pressed="true">Översikt</button>
+    <button class="pill" data-target="templatesSection" aria-pressed="false">Mallar</button>
+    <button class="pill" data-target="reviewsSection" aria-pressed="false">Granskningar</button>
+    <button class="pill" data-target="incidentsSection" aria-pressed="false">Incidenter</button>
+    <button class="pill" data-target="auditSection" aria-pressed="false">Revision</button>
+    <button class="pill" data-target="teamSection" aria-pressed="false">Team</button>
+    <button class="pill" data-target="settingsSection" aria-pressed="false">Inställningar</button>
+    <button class="pill" data-target="opsSection" aria-pressed="false">Drift</button>
+    <button class="pill" data-target="cooSection" aria-pressed="false">COO</button>
+    <button class="pill" data-target="caoSection" aria-pressed="false">CAO</button>
+    <button class="pill" data-target="cfoSection" aria-pressed="false">CFO</button>
+    <button class="pill" data-target="cmoSection" aria-pressed="false">CMO</button>
+    <button class="pill" data-target="ccoSection" aria-pressed="false">CCO</button>
+    <button class="pill" data-target="cmSection" aria-pressed="false">CM</button>
+  </nav>
+
+  <!-- ============ ÖVERSIKT ============ -->
+  <section class="section is-active" id="overviewSection" aria-label="Översikt">
+    <div class="metrics">
+      <div class="metric metric--rose"><div class="m-label">Mallar</div><div class="m-val tabnum">42</div><div class="m-meta">aktiva i biblioteket</div></div>
+      <div class="metric metric--violet"><div class="m-label">Aktiva versioner</div><div class="m-val tabnum">37</div><div class="m-meta">publicerade</div></div>
+      <div class="metric metric--blue"><div class="m-label">Riskutvärderingar</div><div class="m-val tabnum">128</div><div class="m-meta">Öppna review-kön för L3-utkast</div></div>
+      <div class="metric metric--gold"><div class="m-label">Hög/Kritisk öppna</div><div class="m-val tabnum">5</div><div class="m-meta">Prioritera incidents med SLA</div></div>
+      <div class="metric metric--green"><div class="m-label">Ägaråtgärdstäckning</div><div class="m-val tabnum">91%</div><div class="m-meta">Riskhistorik senaste 30 dgr</div></div>
+      <div class="metric metric--slate"><div class="m-label">SLA-indikator</div><div class="m-val">OK</div><div class="m-meta">Inga öppna incidenter över SLA</div></div>
+    </div>
+
+    <div class="sec-grid cols-2">
+      <div class="panel">
+        <div class="panel-head"><span class="sec-kicker">Översiktsinsikter</span><h2>Arcana Daily Brief</h2><p>COO-genererad daglig sammanfattning av kö, risk och drift.</p></div>
+        <div class="brief">
+          <h3>Executive Summary</h3>
+          <p>5 öppna incidenter, varav 1 över SLA. Mallbiblioteket stabilt. Granskningskön minskar (-12% mot igår).</p>
+          <h3>Prioriterat idag</h3>
+          <ul>
+            <li>Eskalera incident INC-2041 (PII-läcka i utkast) — över SLA.</li>
+            <li>Aktivera 3 väntande mallversioner efter quality gate.</li>
+            <li>Granska 8 L3-utkast i review-kön.</li>
+          </ul>
+        </div>
+        <div class="panel-acts">
+          <button class="btn btn--primary">Kör COO Daily Brief</button>
+          <button class="btn">Öppna review-kö</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="sec-kicker">Snabbåtgärder</span><h2>Status &amp; signaler</h2></div>
+        <div class="kv"><span>Driftstatus</span><span class="chip chip--ok">Operativ</span></div>
+        <div class="kv"><span>Scheduler-jobb</span><span class="chip chip--ok">14 OK · 0 fel</span></div>
+        <div class="kv"><span>Beredskap (Go/No-Go)</span><span class="chip chip--warn">Go med villkor</span></div>
+        <div class="kv"><span>Senaste backup</span><span>Idag 04:10</span></div>
+        <div class="kv"><span>Mailinsikter</span><span class="chip chip--info">3 nya mallfrön</span></div>
+        <div class="panel-acts">
+          <button class="btn">Uppdatera monitor</button>
+          <button class="btn">Skapa backup</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MALLAR ============ -->
+  <section class="section" id="templatesSection" aria-label="Mallar">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">Mallflöde</span><h2>Mallar</h2><p>Skapa, versionera, utvärdera och aktivera utgående mallar.</p></div>
+      <div class="panel-acts">
+        <button class="btn btn--primary">Skapa mall</button>
+        <button class="btn">Applicera på valda</button>
+        <button class="btn">Rensa val</button>
+        <div class="pillrow" role="group" aria-label="Vy" style="margin-left:auto">
+          <button class="pill" aria-pressed="true">Tabell</button>
+          <button class="pill" aria-pressed="false">Kort</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>Namn</th><th>Kategori</th><th>Status</th><th>Aktiv</th><th>Risk</th><th>Uppdaterad</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td class="cell-strong">Bokningsbekräftelse</td><td>Bokning</td><td><span class="chip chip--ok">Publicerad</span></td><td>v7</td><td><span class="chip chip--ok">Låg</span></td><td>Idag 09:12</td><td><button class="btn">Öppna</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td class="cell-strong">Offert hårtransplantation</td><td>Offert</td><td><span class="chip chip--warn">Utkast</span></td><td>—</td><td><span class="chip chip--warn">Medel</span></td><td>Igår 16:40</td><td><button class="btn">Öppna</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td class="cell-strong">Eftervård DHI</td><td>Eftervård</td><td><span class="chip chip--ok">Publicerad</span></td><td>v3</td><td><span class="chip chip--ok">Låg</span></td><td>Tis 11:05</td><td><button class="btn">Öppna</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td class="cell-strong">Föreslå ny tid</td><td>Ombokning</td><td><span class="chip chip--info">Arkiverad</span></td><td>—</td><td><span class="chip chip--ok">Låg</span></td><td>2 jun</td><td><button class="btn">Öppna</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec-grid cols-2">
+      <div class="panel">
+        <div class="panel-head"><h2>Versioner</h2></div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>v#</th><th>Tillstånd</th><th>Risk</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>v7</td><td><span class="chip chip--ok">Aktiv</span></td><td><span class="chip chip--ok">Låg</span></td><td><button class="btn">Visa diff</button></td></tr>
+              <tr><td>v6</td><td><span class="chip chip--slate">Arkiverad</span></td><td><span class="chip chip--ok">Låg</span></td><td><button class="btn">Rollback</button></td></tr>
+              <tr><td>v5</td><td><span class="chip chip--slate">Arkiverad</span></td><td><span class="chip chip--warn">Medel</span></td><td><button class="btn">Rollback</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Versionsredigerare</h2></div>
+        <div class="field"><label>Variabler</label><input value="{kundnamn}, {tid}, {klinik}, {behandling}" readonly></div>
+        <div class="field"><label>Validering</label><input value="Disclaimer OK · Signatur saknas" readonly></div>
+        <div class="panel-acts">
+          <button class="btn">Generera utkast (AI)</button>
+          <button class="btn">Spara draft</button>
+          <button class="btn">Utvärdera</button>
+          <button class="btn btn--primary">Aktivera</button>
+          <button class="btn">Arkivera</button>
+          <button class="btn">Klona</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GRANSKNINGAR ============ -->
+  <section class="section" id="reviewsSection" aria-label="Granskningar">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">Granskningar &amp; incidenter</span><h2>Granskningar (L3)</h2><p>Riskutvärderade utkast som väntar på beslut.</p></div>
+      <div class="panel-acts">
+        <button class="btn">Applicera filter</button>
+        <button class="btn">Endast pending</button>
+        <button class="btn">Hög/Kritisk</button>
+        <button class="btn">Rensa filter</button>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>Utvärdering</th><th>Mall</th><th>Kategori</th><th>Tid</th><th>Risk</th><th>Beslut</th><th>Ägare</th><th>AI/Regel</th><th>Policy</th><th>Orsak</th><th>Åtgärd</th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td class="cell-strong">EV-7741</td><td>Offert hårtransplantation</td><td>Offert</td><td>09:41</td><td><span class="chip chip--warn">Medel</span></td><td><span class="chip chip--warn">Pending</span></td><td>Fazli</td><td>AI</td><td>price-claim</td><td>Pris utan giltighet</td><td><button class="btn">Granska</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td class="cell-strong">EV-7738</td><td>Bokningsbekräftelse</td><td>Bokning</td><td>09:12</td><td><span class="chip chip--ok">Låg</span></td><td><span class="chip chip--ok">Godkänd</span></td><td>Anna</td><td>Regel</td><td>—</td><td>—</td><td><button class="btn">Granska</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td class="cell-strong">EV-7733</td><td>Eftervård DHI</td><td>Eftervård</td><td>08:50</td><td><span class="chip chip--warn">Medel</span></td><td><span class="chip chip--warn">Pending</span></td><td>Johan</td><td>AI</td><td>medical-advice</td><td>Medicinskt råd</td><td><button class="btn">Granska</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INCIDENTER ============ -->
+  <section class="section" id="incidentsSection" aria-label="Incidenter">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">Granskningar &amp; incidenter</span><h2>Incidenter (L4-L5)</h2><p>Eskalerade händelser med SLA-spårning.</p></div>
+      <div class="panel-acts">
+        <button class="btn">Applicera på valda</button>
+        <button class="btn btn--danger">Eskalera</button>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>SLA</th><th>Utvärdering</th><th>Mall</th><th>Kategori</th><th>Tid</th><th>Risk</th><th>Beslut</th><th>Ägare</th><th>Orsak</th><th>Åtgärd</th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td><span class="chip chip--bad">Över SLA</span></td><td class="cell-strong">INC-2041</td><td>Offert hårtransplantation</td><td>Offert</td><td>07:20</td><td><span class="chip chip--bad">Kritisk</span></td><td><span class="chip chip--warn">Öppen</span></td><td>Fazli</td><td>PII-läcka i utkast</td><td><button class="btn btn--danger">Eskalera</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td><span class="chip chip--warn">2h kvar</span></td><td class="cell-strong">INC-2038</td><td>Marknadsutskick juni</td><td>Marknad</td><td>06:55</td><td><span class="chip chip--bad">Hög</span></td><td><span class="chip chip--warn">Öppen</span></td><td>Karl</td><td>Otillåtet påstående</td><td><button class="btn">Åtgärda</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="Välj"></td><td><span class="chip chip--ok">Inom SLA</span></td><td class="cell-strong">INC-2034</td><td>Eftervård DHI</td><td>Eftervård</td><td>Igår</td><td><span class="chip chip--warn">Hög</span></td><td><span class="chip chip--ok">Stängd</span></td><td>Sofie</td><td>Felaktig dosering</td><td><button class="btn">Visa</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REVISION ============ -->
+  <section class="section" id="auditSection" aria-label="Revision">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">Revision</span><h2>Revisionslogg</h2><p>Spårbar logg över åtgärder, aktörer och utfall.</p></div>
+      <div class="sec-grid cols-2">
+        <div class="field"><label>Sök (korrelation/id/mall/användare)</label><input placeholder="t.ex. EV-7741"></div>
+        <div class="field"><label>Åtgärd</label><select><option>Alla</option><option>template.activate</option><option>risk.escalate</option><option>auth.login</option></select></div>
+        <div class="field"><label>Måltyp</label><select><option>Alla</option><option>template</option><option>incident</option><option>session</option></select></div>
+        <div class="field"><label>Utfall</label><select><option>Alla</option><option>success</option><option>denied</option></select></div>
+        <div class="field"><label>Risknivå</label><select><option>Alla</option><option>Låg</option><option>Medel</option><option>Hög</option><option>Kritisk</option></select></div>
+        <div class="field"><label>Senaste dagar</label><input type="number" value="7"></div>
+      </div>
+      <div class="panel-acts">
+        <button class="btn btn--primary">Applicera filter</button>
+        <button class="btn">Rensa filter</button>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Tidpunkt</th><th>Aktör</th><th>Åtgärd</th><th>Måltyp</th><th>Mål</th><th>Utfall</th><th>Risknivå</th></tr></thead>
+          <tbody>
+            <tr><td>10:42</td><td>fazli@…</td><td>risk.escalate</td><td>incident</td><td>INC-2041</td><td><span class="chip chip--ok">success</span></td><td><span class="chip chip--bad">Kritisk</span></td></tr>
+            <tr><td>09:15</td><td>anna@…</td><td>template.activate</td><td>template</td><td>Bokningsbekräftelse v7</td><td><span class="chip chip--ok">success</span></td><td><span class="chip chip--ok">Låg</span></td></tr>
+            <tr><td>08:03</td><td>johan@…</td><td>auth.login</td><td>session</td><td>web · Stockholm</td><td><span class="chip chip--bad">denied</span></td><td><span class="chip chip--warn">Medel</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TEAM ============ -->
+  <section class="section" id="teamSection" aria-label="Team">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">Team</span><h2>Teamhantering</h2><p>Bjud in medarbetare och hantera roller, status och sessioner.</p></div>
+      <div class="sec-grid cols-2">
+        <div class="card">
+          <h3 style="margin:0 0 .5rem;font-size:.9rem">Bjud in / skapa medarbetare</h3>
+          <div class="field"><label>E-post</label><input placeholder="namn@klinik.se"></div>
+          <div class="field"><label>Roll</label><select><option>Admin</option><option>CCO</option><option>Medarbetare</option><option>Läkare</option></select></div>
+          <div class="panel-acts">
+            <button class="btn">Generera lösenord</button>
+            <button class="btn">Kopiera inbjudningstext</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 .5rem;font-size:.9rem">Min profil &amp; säkerhet</h3>
+          <div class="field"><label>Inloggad som</label><input value="fazli@hairtpclinic.com" readonly></div>
+          <div class="flag"><div class="flag-main"><b>Tvåfaktor (MFA)</b><p>Kräv MFA vid inloggning</p></div><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+          <div class="panel-acts">
+            <button class="btn">Byt mitt lösenord</button>
+            <button class="btn">Uppdatera profil</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-acts">
+        <button class="btn">Uppdatera lista</button>
+        <button class="btn">Aktivera filtrerade</button>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>E-post</th><th>Roll</th><th>Status</th><th>Senast ändrad</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="cell-strong">fazli@hairtpclinic.com</td><td>Admin</td><td><span class="chip chip--ok">Aktiv</span></td><td>Idag</td><td><button class="btn">Hantera</button></td></tr>
+            <tr><td class="cell-strong">anna@hairtpclinic.com</td><td>CCO</td><td><span class="chip chip--ok">Aktiv</span></td><td>Igår</td><td><button class="btn">Hantera</button></td></tr>
+            <tr><td class="cell-strong">johan@hairtpclinic.com</td><td>Medarbetare</td><td><span class="chip chip--warn">Inbjuden</span></td><td>2 jun</td><td><button class="btn">Hantera</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Aktiva sessioner</h2></div>
+      <div class="panel-acts"><button class="btn">Uppdatera sessioner</button>
+        <div class="flag" style="box-shadow:none;padding:0;margin-left:auto"><div class="flag-main"><b>Visa återkallade</b></div><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Session</th><th>Användare</th><th>Roll</th><th>Senast aktiv</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>sess_91a…</td><td>fazli@…</td><td>Admin</td><td>nu</td><td><span class="chip chip--ok">Aktiv</span></td><td><button class="btn btn--danger">Återkalla</button></td></tr>
+            <tr><td>sess_44c…</td><td>anna@…</td><td>CCO</td><td>3 min</td><td><span class="chip chip--ok">Aktiv</span></td><td><button class="btn btn--danger">Återkalla</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INSTÄLLNINGAR ============ -->
+  <section class="section" id="settingsSection" aria-label="Inställningar">
+    <div class="sec-grid cols-2">
+      <div class="panel">
+        <div class="panel-head"><span class="sec-kicker">Inställningar</span><h2>Klinikinställningar</h2><p>Identitet, ton och varumärke för utgående kommunikation.</p></div>
+        <div class="field"><label>Assistentnamn <code>assistantName</code></label><input value="Arcana"></div>
+        <div class="field"><label>Tonstil <code>toneStyle</code></label><select><option>Varm &amp; professionell</option><option>Saklig</option><option>Personlig</option></select></div>
+        <div class="field"><label>Varumärkesprofil <code>brandProfile</code></label><input value="Hair TP Clinic"></div>
+        <div class="field"><label>Primär färg <code>brandPrimaryColor</code></label><input value="#b0356e"></div>
+        <div class="field"><label>Accentfärg <code>brandAccentColor</code></label><input value="#8a5f1e"></div>
+        <div class="panel-acts"><button class="btn btn--primary">Spara inställningar</button></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Funktioner &amp; flaggor</h2><p>Aktivera funktioner per klinik.</p></div>
+        <div class="flag"><div class="flag-main"><b>Publik hemsida</b><p><code>publicSite</code> aktiverad</p></div><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+        <div class="flag"><div class="flag-main"><b>AI-utkast</b><p>Generera utkast med AI</p></div><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+        <div class="flag"><div class="flag-main"><b>Automationer</b><p>VIP-snabbspår &amp; kampanjflöden</p></div><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+        <div class="flag"><div class="flag-main"><b>Riskmodifierare</b><p><code>riskModifier</code> strikt läge</p></div><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+        <div class="flag"><div class="flag-main"><b>Marketing connectors</b><p>Läsläge (read-only)</p></div><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Publik hemsida (<code>publicSite</code>)</h2></div>
+      <div class="sec-grid cols-2">
+        <div class="field"><label>Kliniknamn <code>publicSite.clinicName</code></label><input value="Hair TP Clinic"></div>
+        <div class="field"><label>Stad <code>publicSite.city</code></label><input value="Stockholm"></div>
+        <div class="field"><label>Hero rubrik <code>publicSite.heroTitle</code></label><input value="Naturligt hår, tryggt utfört"></div>
+        <div class="field"><label>Telefon <code>publicSite.contactPhone</code></label><input value="+46 8 123 45 67"></div>
+      </div>
+      <div class="panel-acts"><button class="btn btn--primary">Spara &amp; publicera</button><button class="btn">Förhandsvisa</button></div>
+    </div>
+  </section>
+
+  <!-- ============ DRIFT ============ -->
+  <section class="section" id="opsSection" aria-label="Drift">
+    <div class="sec-grid cols-2">
+      <div class="panel">
+        <div class="panel-head"><span class="sec-kicker">Drift</span><h2>Arcana-orkestrering</h2><p>Kör orkestrering över agenter och köer.</p></div>
+        <div class="flag"><div class="flag-main"><b>Exekveringsläge</b><p>Kör skarpt (annars torrkörning)</p></div><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+        <div class="panel-acts"><button class="btn btn--primary">Kör orkestrering</button></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Driftstatus</h2></div>
+        <div class="kv"><span>Monitor</span><span class="chip chip--ok">Operativ</span></div>
+        <div class="kv"><span>Scheduler-jobb</span><span class="chip chip--ok">14 OK · 0 fel</span></div>
+        <div class="kv"><span>Beredskapshistorik</span><span class="chip chip--ok">Go</span></div>
+        <div class="kv"><span>No-Go-orsaker</span><span>Inga</span></div>
+        <div class="panel-acts"><button class="btn">Uppdatera monitor</button><button class="btn">Kör scheduler-suite</button></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Driftbackup</h2><p>State manifest, säkerhetskopior och rensning.</p></div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Backup</th><th>Typ</th><th>Skapad</th><th>Storlek</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="cell-strong">bk_2026-06-25</td><td>Full</td><td>Idag 04:10</td><td>318 MB</td><td><span class="chip chip--ok">OK</span></td><td><button class="btn">Återställ</button></td></tr>
+            <tr><td class="cell-strong">bk_2026-06-24</td><td>Full</td><td>Igår 04:10</td><td>312 MB</td><td><span class="chip chip--ok">OK</span></td><td><button class="btn">Återställ</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel-acts">
+        <button class="btn">Läs state manifest</button>
+        <button class="btn btn--primary">Skapa backup</button>
+        <button class="btn">Lista säkerhetskopior</button>
+        <button class="btn">Förhandsvisa rensning</button>
+        <button class="btn btn--danger">Kör rensning</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COO ============ -->
+  <section class="section" id="cooSection" aria-label="COO">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">COO</span><h2>COO — Daglig Driftöversikt</h2></div>
+      <div class="panel-acts"><button class="btn btn--primary">Kör COO Daily Brief</button></div>
+      <div class="brief">
+        <h3>Executive Summary</h3>
+        <p>Driften stabil. Granskningskön minskar. En kritisk incident kräver eskalering idag.</p>
+        <h3>Taskplan</h3>
+        <ul><li>Eskalera INC-2041 (PII).</li><li>Aktivera 3 mallversioner efter quality gate.</li><li>Granska 8 L3-utkast.</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CAO ============ -->
+  <section class="section" id="caoSection" aria-label="CAO">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">CAO</span><h2>Arcana Admin Operator (CAO)</h2></div>
+      <div class="panel-acts"><button class="btn btn--primary">Kör Arcana Admin Operator</button></div>
+      <div class="brief">
+        <h3>Executive Summary</h3>
+        <p>Mallbibliotek &amp; quality gate i grönt. Go/No-Go: Go med villkor.</p>
+        <h3>Mallbibliotek &amp; quality gate</h3>
+        <div class="kv"><span>Quality gate</span><span class="chip chip--ok">Pass</span></div>
+        <div class="kv"><span>Disclaimer-resultat</span><span class="chip chip--ok">OK</span></div>
+        <div class="kv"><span>Variabelförslag</span><span class="chip chip--info">2 nya</span></div>
+        <h3>Go/No-Go brief (CAO)</h3>
+        <p>Go med villkor: stäng INC-2041 innan publicering av offertmall.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CFO ============ -->
+  <section class="section" id="cfoSection" aria-label="CFO">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">CFO</span><h2>CFO — Kostnadsrådgivare</h2></div>
+      <div class="panel-acts"><button class="btn btn--primary">Kör CFO Cost Advisor</button></div>
+      <div class="brief">
+        <h3>Executive Summary</h3>
+        <p>AI-kostnad inom budget (78% av tak). Inga avvikande toppar denna vecka.</p>
+        <h3>Kostnadsvarningar</h3>
+        <div class="kv"><span>Token-förbrukning</span><span class="chip chip--ok">Normal</span></div>
+        <div class="kv"><span>Lagring</span><span class="chip chip--warn">82% av kvot</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CMO ============ -->
+  <section class="section" id="cmoSection" aria-label="CMO">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">CMO</span><h2>Arcana Marketing Copilot</h2></div>
+      <nav class="pillrow scroll" id="cmoTabs" aria-label="CMO-flikar" style="margin:.3rem 0 .6rem">
+        <button class="pill is-active" data-cmo="strategi" aria-pressed="true">Strategi</button>
+        <button class="pill" data-cmo="content" aria-pressed="false">Content</button>
+        <button class="pill" data-cmo="kampanjer" aria-pressed="false">Kampanjer</button>
+        <button class="pill" data-cmo="compliance" aria-pressed="false">Compliance</button>
+        <button class="pill" data-cmo="kalender" aria-pressed="false">Kalender</button>
+        <button class="pill" data-cmo="analys" aria-pressed="false">Analys</button>
+        <button class="pill" data-cmo="connectors" aria-pressed="false">Connectors</button>
+      </nav>
+      <div class="panel-acts"><button class="btn btn--primary">Kör Marketing Copilot</button><button class="btn">Strategi-insights (v2)</button></div>
+      <div class="brief" data-cmo-panel="strategi">
+        <h3>Executive Summary</h3>
+        <p>Fokus på VIP-retention och eftervårdsinnehåll. SEO-möjlighet kring "DHI Stockholm".</p>
+        <h3>Strategi-insights (v2)</h3>
+        <ul><li>Öka andel videoinnehåll i kanalen.</li><li>Återaktivera vilande VIP-segment via e-post.</li></ul>
+      </div>
+      <div class="brief" data-cmo-panel="content" hidden><h3>Content-kalender</h3><p>4 inlägg planerade denna vecka. 1 saknar compliance-godkännande.</p></div>
+      <div class="brief" data-cmo-panel="kampanjer" hidden><h3>Kampanjförslag</h3><p>Juni-VIP-kampanj i workspace väntar på godkännande.</p></div>
+      <div class="brief" data-cmo-panel="compliance" hidden><h3>Compliance-gate</h3><div class="kv"><span>Orkestrerings-gates</span><span class="chip chip--ok">Pass</span></div></div>
+      <div class="brief" data-cmo-panel="kalender" hidden><h3>Publiceringsschema (förslag)</h3><p>Mån, ons, fre kl. 10:00. UTM-pack genererat.</p></div>
+      <div class="brief" data-cmo-panel="analys" hidden><h3>CMO Analys (read-only)</h3><p>CTR +0,8 pp mot förra månaden.</p></div>
+      <div class="brief" data-cmo-panel="connectors" hidden><h3>Marketing connectors (read-only)</h3><div class="kv"><span>Meta Ads</span><span class="chip chip--ok">Ansluten</span></div><div class="kv"><span>Google Ads</span><span class="chip chip--warn">Behörighet utgår</span></div></div>
+    </div>
+  </section>
+
+  <!-- ============ CCO ============ -->
+  <section class="section" id="ccoSection" aria-label="CCO">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">CCO</span><h2>CCO Workspace</h2><p>Klientkommunikationens arbetsyta — kö, mallar och uppföljning.</p></div>
+      <div class="metrics" style="margin-bottom:.6rem">
+        <div class="metric metric--rose"><div class="m-label">Skickade idag</div><div class="m-val tabnum">13</div></div>
+        <div class="metric metric--blue"><div class="m-label">VIP svar</div><div class="m-val tabnum">11</div></div>
+        <div class="metric metric--green"><div class="m-label">Mallandel</div><div class="m-val tabnum">78%</div></div>
+      </div>
+      <div class="panel-acts"><button class="btn btn--primary">Öppna inkorg</button><button class="btn">Skickat</button></div>
+    </div>
+  </section>
+
+  <!-- ============ CM ============ -->
+  <section class="section" id="cmSection" aria-label="CM">
+    <div class="panel">
+      <div class="panel-head"><span class="sec-kicker">CM</span><h2>Community Manager (CM)</h2><p>Omdömen och community-signaler.</p></div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Källa</th><th>Omdöme</th><th>Betyg</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="cell-strong">Google</td><td>"Fantastiskt bemötande"</td><td>★★★★★</td><td><span class="chip chip--ok">Besvarad</span></td><td><button class="btn">Visa</button></td></tr>
+            <tr><td class="cell-strong">Trustpilot</td><td>"Lång väntetid"</td><td>★★★☆☆</td><td><span class="chip chip--warn">Väntar svar</span></td><td><button class="btn">Svara</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===== BOTNAV (verbatim från cco-skickat-v3 — Hem aktiv) ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+// ===== Section-nav: byter aktiv sektion =====
+(function(){
+  var nav=document.getElementById('sectionNav');
+  var sections=[].slice.call(document.querySelectorAll('.section'));
+  nav.addEventListener('click',function(e){
+    var b=e.target.closest('.pill[data-target]');if(!b)return;
+    nav.querySelectorAll('.pill').forEach(function(p){p.classList.remove('is-active');p.setAttribute('aria-pressed','false');});
+    b.classList.add('is-active');b.setAttribute('aria-pressed','true');
+    var t=b.getAttribute('data-target');
+    sections.forEach(function(s){s.classList.toggle('is-active',s.id===t);});
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+})();
+// ===== CMO sub-tabs =====
+(function(){
+  var tabs=document.getElementById('cmoTabs');if(!tabs)return;
+  var panels=[].slice.call(document.querySelectorAll('[data-cmo-panel]'));
+  tabs.addEventListener('click',function(e){
+    var b=e.target.closest('.pill[data-cmo]');if(!b)return;
+    tabs.querySelectorAll('.pill').forEach(function(p){p.classList.remove('is-active');p.setAttribute('aria-pressed','false');});
+    b.classList.add('is-active');b.setAttribute('aria-pressed','true');
+    var t=b.getAttribute('data-cmo');
+    panels.forEach(function(p){p.hidden=p.getAttribute('data-cmo-panel')!==t;});
+  });
+})();
+// ===== generiska enkel-val pill-grupper (Vy: Tabell/Kort) =====
+document.querySelectorAll('.pillrow[role=group]').forEach(function(group){
+  group.querySelectorAll('.pill').forEach(function(p){p.addEventListener('click',function(){
+    group.querySelectorAll('.pill').forEach(function(x){x.setAttribute('aria-pressed','false');});
+    p.setAttribute('aria-pressed','true');
+  });});
+});
+// ===== botnav =====
+(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();
+</script>
+</body>
+</html>
