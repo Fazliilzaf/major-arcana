@@ -557,8 +557,11 @@
             '"' +
             (hasBody ? ' data-spine-step="' + i + '" data-open="' + open + '"' : '') +
             '>' +
-            '<button type="button" class="step-head"' +
-            (hasBody ? ' aria-expanded="' + open + '"' : '') +
+            // OBS: step-head är en <div role=button>, INTE <button> — den innehåller
+            // jump-länkens <button> och nästlade buttons är ogiltig HTML (parsern
+            // auto-stänger och kollapsar stegen till 1). Klick hanteras av delegaten.
+            '<div class="step-head"' +
+            (hasBody ? ' role="button" tabindex="0" aria-expanded="' + open + '"' : '') +
             '>' +
             '<span class="step-badge">' +
             badge +
@@ -573,7 +576,7 @@
             esc(meta) +
             (hasBody ? ' <span class="step-toggle" aria-hidden="true">▾</span>' : '') +
             '</span>' +
-            '</button>' +
+            '</div>' +
             (hasBody
               ? '<div class="step-body"><div class="step-body-inner">' + body + '</div></div>'
               : '') +
