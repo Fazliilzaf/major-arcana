@@ -153,13 +153,28 @@
   .upload-card input{display:none}
   .upload-card-hint{font-size:11px;font-weight:500;color:#6e1f44;opacity:.8;margin-top:4px}
 
-  @media (max-width:680px){
+  /* iPad-stående / surfplatta — låt KPI-rutnätet andas men behåll desktop-layout */
+  @media (min-width:681px) and (max-width:1024px){
+    .kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  }
+  @media (max-width:768px){
     body{padding:12px;font-size:12.5px}
     h1{font-size:20px}
     .kpis{grid-template-columns:1fr 1fr}
+    /* Sektionsrubrik: låt antal + actions wrappa till egen rad istället för att
+       tryckas ut över skärmkanten (var orsaken till horisontell sid-scroll). */
+    .section h2{flex-wrap:wrap}
+    .section-actions{margin-left:0;flex-wrap:wrap}
+    /* Kvitto-rad (redan hanterad) */
     .receipt{grid-template-columns:1fr auto;gap:8px}
     .receipt-thumb{display:none}
     .receipt-amount{grid-column:2}
+    /* Övriga rad-rutnät med fasta kolumner → flex-wrap (ordnings-oberoende):
+       namnet tar egen rad, resten (meta/stats/actions/badges) wrappar under. */
+    .rule-row,.vendor-row,.rec-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+    .rule-name,.vendor-name,.rec-name{flex:1 1 100%}
+    /* Touch: gör primära knappar bekvämare för tummen */
+    .btn{min-height:38px;display:inline-flex;align-items:center}
   }
 </style></head><body>
 <div class="wrap">

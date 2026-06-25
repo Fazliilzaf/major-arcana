@@ -56,6 +56,14 @@
   .exp-list{margin-top:14px;border-top:1px dashed rgba(132,117,107,.3);padding-top:12px}
   .exp-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;background:rgba(248,241,232,.5);margin-bottom:4px;font-size:12px}
   .exp-name{font-weight:700;color:var(--ink)}
+  /* Mobil (≤768px): fasta rad-rutnät → flex-wrap så batch-/expense-rader inte
+     kläms ihop när data finns. Filter/KPI-rutnät är redan auto-fit. */
+  @media (max-width:768px){
+    body{padding:12px}
+    .batch-row,.exp-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+    .batch-info{flex:1 1 auto;min-width:0}
+    .exp-name{flex:1 1 100%}
+  }
   .exp-meta{font-size:10px;color:var(--muted);margin-top:1px}
   .exp-amount{font-weight:800;font-variant-numeric:tabular-nums}
   .exp-receipt{font-size:10px}
