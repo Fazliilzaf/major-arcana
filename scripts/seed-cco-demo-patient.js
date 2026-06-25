@@ -21,7 +21,7 @@
  */
 
 const { createCcoPatientMasterStore } = require('../src/ops/ccoPatientMasterStore');
-const config = require('../src/config');
+const { config } = require('../src/config');
 
 const TENANT = process.env.SEED_TENANT_ID || 'demo-clinic';
 const STORE = process.env.PATIENT_STORE_PATH || config.ccoPatientMasterStorePath;
