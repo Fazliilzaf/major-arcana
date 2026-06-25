@@ -544,6 +544,37 @@
           } else {
             jl = '<div class="step-links"></div>';
           }
+          // Visit-card med besöksfoton — fästs på KONSULTATIONS-steget oavsett
+          // state, så ett kommande steg med media blir expanderbart (ABDIRAHMAN
+          // steg 4 "Konsultation · Förberett" med 6 bilder).
+          var pItems = arr(photos && photos.items ? photos.items : photos);
+          var isConsult =
+            /konsult/i.test(txt(s.label)) && !/bokning|bekräft|bekraft/i.test(txt(s.label));
+          var visitCard =
+            pItems.length && isConsult
+              ? '<div class="visit-card"><div class="visit-head"><div class="visit-date"><span class="d">' +
+                esc(txt(pItems[0].dateLabel || pItems[0].capturedAt).slice(0, 12) || 'Besök') +
+                '</span> · konsultations-besök</div><div class="visit-meta">' +
+                pItems.length +
+                ' bilder · 0 anteckningar · 0 dokument</div></div><div class="photo-grid">' +
+                pItems
+                  .slice(0, 6)
+                  .map(function (p, i) {
+                    var bg = p.thumbnailUrl || p.viewUrl || p.url;
+                    var lbl = txt(p.dateLabel || p.capturedAt).slice(0, 10) || 'Översikt';
+                    return (
+                      '<div class="photo-tile p' +
+                      ((i % 6) + 1) +
+                      '"' +
+                      (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+                      '><span class="lbl">' +
+                      esc(lbl) +
+                      '</span></div>'
+                    );
+                  })
+                  .join('') +
+                '</div><div class="photo-actions"><button class="smart-btn">Välj i Foto</button><button class="smart-btn">Ta/rita bild</button><button class="smart-btn primary">Slutför konsultation</button></div></div>'
+              : '';
           // body (aktivt steg → aktivt besök + smart; blockerat → gate)
           var body = '';
           if (s.state === 'active') {
@@ -606,32 +637,7 @@
               reqCard || unlockCard
                 ? '<div class="step-body-grid">' + reqCard + unlockCard + '</div>'
                 : '';
-            var pItems = arr(photos && photos.items ? photos.items : photos);
-            var visitCard = pItems.length
-              ? '<div class="visit-card"><div class="visit-head"><div class="visit-date"><span class="d">' +
-                esc(txt(pItems[0].dateLabel || pItems[0].capturedAt).slice(0, 12) || 'Besök') +
-                '</span> · besök</div><div class="visit-meta">' +
-                pItems.length +
-                ' bilder</div></div><div class="photo-grid">' +
-                pItems
-                  .slice(0, 6)
-                  .map(function (p, i) {
-                    var bg = p.thumbnailUrl || p.viewUrl || p.url;
-                    var lbl = txt(p.dateLabel || p.capturedAt).slice(0, 10);
-                    return (
-                      '<div class="photo-tile p' +
-                      ((i % 6) + 1) +
-                      '"' +
-                      (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
-                      '>' +
-                      (lbl ? '<span class="lbl">' + esc(lbl) + '</span>' : '') +
-                      '</div>'
-                    );
-                  })
-                  .join('') +
-                '</div><div class="photo-actions"><button class="smart-btn">Välj i Foto</button><button class="smart-btn">Ta/rita bild</button><button class="smart-btn primary">Slutför konsultation</button></div></div>'
-              : '';
-            body = miniActiveVisit(av) + smartHtml + gridCards + visitCard;
+            body = miniActiveVisit(av) + smartHtml + gridCards;
           } else if (s.state === 'blocked') {
             body =
               '<div class="gate-list"><div class="gate-list-l">Krävs för att låsa upp</div>' +
@@ -639,8 +645,11 @@
               chip('danger', 'Saknas') +
               '</div></div>';
           }
+          // Konsultations-steg med besöksfoton → visit-card (gör steget
+          // expanderbart oavsett state, som facit steg 4).
+          if (visitCard) body += visitCard;
           var hasBody = !!body;
-          var open = s.state === 'active';
+          var open = s.state === 'active' || (!!visitCard && s.state !== 'done');
           return (
             '<article class="step ' +
             cls +
