@@ -16,6 +16,7 @@ const {
   wrapDocument,
   writePatientDocument,
   escapeHtml,
+  filterManualSignatureBlocks,
 } = require('./patient-document-build-lib');
 
 const OUT = path.join(ROOT, 'public/major-arcana-preview/steg7-v6-kundkort-final-demo.html');
@@ -34,7 +35,9 @@ function renderAckCheckbox(label, id) {
 
 function buildHtml(facit) {
   const logo = extractLogoSvg();
-  const agreementHtml = facit.blocks.map(renderFacitBlock).join('\n        ');
+  const agreementHtml = filterManualSignatureBlocks(facit.blocks)
+    .map(renderFacitBlock)
+    .join('\n        ');
   const coolingTitle = facit.cooling.blocks.find((b) => b.kind === 'title');
   const coolingBody = facit.cooling.blocks
     .filter((b) => b.kind !== 'title')

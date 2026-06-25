@@ -44,7 +44,22 @@
     return html;
   }
 
+  function isManualSignatureBlock(block) {
+    const html = String(block?.html || '');
+    const plain = html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return (
+      /Ort och datum/i.test(plain) ||
+      /Namnförtydligande/i.test(plain) ||
+      /Namnteckning/i.test(plain) ||
+      /^_{3,}/.test(plain)
+    );
+  }
+
   function blockToHtml(block, context) {
+    if (isManualSignatureBlock(block)) return '';
     const inner = interpolateFacitHtml(block.html, context);
     switch (block.kind) {
       case 'title':

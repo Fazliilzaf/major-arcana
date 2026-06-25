@@ -217,6 +217,10 @@
       "isActive": true,
       "version": "2",
       "letterText": "",
+      "legalSource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+      "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json",
       "publishBeforeAfterPhotos": true
     },
     {
@@ -253,6 +257,10 @@
       "isActive": true,
       "version": "1",
       "letterText": "",
+      "legalSource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateRef": "agreement_hair_tp_prp_nordbro",
+      "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json",
       "publishBeforeAfterPhotos": true
     },
     {
@@ -262,6 +270,10 @@
       "isActive": true,
       "version": "1",
       "letterText": "",
+      "legalSource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateRef": "agreement_hair_tp_prp_nordbro",
+      "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json",
       "publishBeforeAfterPhotos": true
     },
     {
@@ -352,6 +364,9 @@
       "isActive": true,
       "version": "1",
       "letterText": "",
+      "legalSource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json#cooling",
       "publishBeforeAfterPhotos": true
     }
   ]

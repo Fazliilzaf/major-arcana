@@ -338,6 +338,81 @@
       .agreement-scroll {
         max-height: none;
       }
+      .info-scroll {
+        max-height: none;
+      }
+      .doc-list {
+        margin: 12px 0 16px;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .doc-list .doc-text {
+        margin: 0;
+      }
+
+      /* E8 — signering/audit feedback (patient-document-shell.js) */
+      .pd-sign-banner {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #7a4014;
+        background: rgba(180, 120, 40, 0.1);
+        border: 1px solid rgba(180, 120, 40, 0.22);
+      }
+      .pd-sign-status {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: var(--card-shadow);
+      }
+      .pd-sign-status[data-tone='success'] {
+        border-color: rgba(56, 120, 80, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(244, 252, 247, 0.98) 0%,
+          rgba(232, 245, 236, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='error'] {
+        border-color: rgba(160, 60, 50, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 246, 244, 0.98) 0%,
+          rgba(252, 235, 232, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='loading'] {
+        border-color: rgba(215, 130, 90, 0.28);
+      }
+      .pd-sign-status__msg {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--brand);
+      }
+      .pd-sign-status__meta {
+        margin: 8px 0 0;
+        font-size: 11px;
+        color: var(--t3);
+      }
+      .pd-sign-status__meta code {
+        font-size: 10px;
+        word-break: break-all;
+      }
+      .pd-sign-status__pdf {
+        margin: 10px 0 0;
+      }
+      .pd-sign-status__pdf a {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--pd-accent-strong);
+      }
     </style>
   </head>
   <body>

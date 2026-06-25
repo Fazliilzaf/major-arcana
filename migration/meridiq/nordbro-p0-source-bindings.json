@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-06-25",
+  "source": "config/nordbro-insatt-facit-set.json",
+  "legalPriority": "Nordbro/Insatt > Meridiq letterText (vid konflikt)",
+  "bindings": [
+    {
+      "meridiqApiId": 170917,
+      "title": "Behandlingsavtal | TP",
+      "brand": "hair_tp",
+      "primarySource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+      "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+      "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json",
+      "letterTextSource": "facit_blocks_not_meridiq_export"
+    },
+    {
+      "meridiqApiId": 170955,
+      "title": "Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)",
+      "brand": "hair_tp",
+      "primarySource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json#cooling",
+      "letterTextSource": "facit_cooling_blocks_not_meridiq_export"
+    }
+  ]
+}

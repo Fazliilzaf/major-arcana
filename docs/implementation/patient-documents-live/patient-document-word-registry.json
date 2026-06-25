@@ -75,6 +75,21 @@
       "tNote": "Nordbro 251203 + zip-mallar — legal diff per avtalstyp (E6)"
     },
     {
+      "id": "avtal_prp",
+      "registryIds": ["offert_prp_hair", "offert_prp_skin"],
+      "label": "Nordbro behandlingsavtal PRP 251203",
+      "e4Required": false,
+      "localNames": ["251203-behandlingsavtal-prp.docx"],
+      "glob": "251203.*PRP.*\\.docx$",
+      "sharepoint": {
+        "name": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+        "relative": "General/1. Kunddokument - KVALITETSSAKRA/97. Versioner fran advokat"
+      },
+      "meridiqApiIds": [170944, 170945],
+      "tDiffScript": "diff:nordbro-p1",
+      "tNote": "MS SharePoint 97 — samma avtal för PRP hår + hud"
+    },
+    {
       "id": "avtal_dhi_2d",
       "registryIds": ["offert_tp", "samtycke_bokning_2d"],
       "label": "Nordbro behandlingsavtal 2 dagar",

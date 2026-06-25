@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-06-25",
+  "source": "config/nordbro-insatt-facit-set.json",
+  "legalPriority": "Nordbro/Insatt > Meridiq letterText (vid konflikt)",
+  "bindings": [
+    {
+      "meridiqApiId": 170944,
+      "title": "Behandlingsavtal | PRP hud",
+      "brand": "hair_tp",
+      "primarySource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "templateRef": "agreement_hair_tp_prp_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+      "localWord": "251203-behandlingsavtal-prp.docx",
+      "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json",
+      "letterTextSource": "facit_blocks_not_meridiq_export"
+    },
+    {
+      "meridiqApiId": 170945,
+      "title": "Behandlingsavtal | PRP hår",
+      "brand": "hair_tp",
+      "primarySource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "templateRef": "agreement_hair_tp_prp_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+      "localWord": "251203-behandlingsavtal-prp.docx",
+      "facitRef": "migration/meridiq/prp-behandling-agreement-facit.json",
+      "letterTextSource": "facit_blocks_not_meridiq_export",
+      "note": "Samma Nordbro PRP-avtal som 170944 — Meridiq separerar hår/hud apiId"
+    }
+  ]
+}

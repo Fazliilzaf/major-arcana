@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-06-25T18:22:59.276Z",
+  "batch": "P0",
+  "ownerFacitSet": {
+    "batch": "P0",
+    "meridiqBindings": [
+      {
+        "apiId": 170917,
+        "role": "treatment_agreement_tp_dhi",
+        "primarySource": "nordbro",
+        "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+        "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json"
+      },
+      {
+        "apiId": 170955,
+        "role": "cooling_period_consent",
+        "primarySource": "nordbro",
+        "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json#cooling"
+      }
+    ]
+  },
+  "wordPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/251203-behandlingsavtal-dhi-2dagar.docx",
+  "wordSha256": "49af2359d538",
+  "facitSha256": "e903dd58be49",
+  "bindings": [
+    {
+      "meridiqApiId": 170917,
+      "title": "Behandlingsavtal | TP",
+      "brand": "hair_tp",
+      "primarySource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+      "sharepointFile": "251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+      "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+      "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json",
+      "letterTextSource": "facit_blocks_not_meridiq_export"
+    },
+    {
+      "meridiqApiId": 170955,
+      "title": "Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)",
+      "brand": "hair_tp",
+      "primarySource": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "facitRef": "migration/meridiq/steg7-tp-dhi-agreement-facit.json#cooling",
+      "letterTextSource": "facit_cooling_blocks_not_meridiq_export"
+    }
+  ],
+  "agreement": {
+    "meridiqApiId": 170917,
+    "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+    "status": "E6_OK",
+    "demoBundleOk": true,
+    "wordOk": true,
+    "bundleHits": "7/7",
+    "demoHits": "7/7",
+    "wordHits": "6/7",
+    "missingInDemo": [],
+    "missingInBundle": [],
+    "wordPresent": true,
+    "wordAnchorHits": "6/7",
+    "facitAnchorHits": "7/7",
+    "knownDrifts": []
+  },
+  "cooling": {
+    "meridiqApiId": 170955,
+    "status": "DEMO_BUNDLE_OK",
+    "demoBundleOk": true,
+    "wordOk": false,
+    "bundleHits": "5/5",
+    "demoHits": "5/5",
+    "wordHits": "2/5",
+    "missingInDemo": [],
+    "missingInBundle": [],
+    "wordPresent": true,
+    "validationMode": "facit_bundled_consent",
+    "note": "170955 är separat Meridiq-post i bundle; Nordbro-avtal refererar ångerrätt — facit blocks valideras internt (5/5)"
+  },
+  "overall": "P0_PASS"
+}

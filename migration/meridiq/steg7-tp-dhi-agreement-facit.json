@@ -1,5 +1,16 @@
 {
-  "source": "migration/meridiq/consent-catalog.json — apiId 170917 (Meridiq G4 facit; letterText tom i API-export)",
+  "schemaVersion": "1.0.0",
+  "source": "sharepoint_nordbro:251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar1.docx",
+  "legalSource": {
+    "primary": "nordbro",
+    "legalReviewStatus": "nordbro_approved",
+    "templateVersion": "251203",
+    "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+    "localWord": "251203-behandlingsavtal-dhi-2dagar.docx",
+    "meridiqApiId": 170917,
+    "bindingRef": "migration/meridiq/nordbro-p0-source-bindings.json",
+    "facitSetRef": "config/nordbro-insatt-facit-set.json"
+  },
   "consentApiId": 170917,
   "blocks": [
     {
@@ -62,11 +73,11 @@
     { "kind": "heading", "html": "Resultat" },
     {
       "kind": "text",
-      "html": "Kunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnås bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat."
+      "html": "Kunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnå bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat."
     },
     {
       "kind": "text",
-      "html": "Kunden är införstådd med att hårsäckarnas emotsedda överlevnad (95%) förutsätter att Kunden genomgår hela Behandlingen inklusive fyra (4) PRP-behandling, inte använder tobak eller nikotinprodukter före eller efter behandlingen och följer samtliga förberedelse- och eftervårdsinstruktioner. Resultatet utvärderas tillsammans med kliniken. För det fall att en tillfredsställande överlevnadsnivå för hårsäckarna inte uppnås genom behandlingen planeras eventuell korrigering efter medicinsk bedömning och överenskommelse med Kunden."
+      "html": "Kunden är införstådd med att hårsäckarnas emotsedda överlevnad (95%) förutsätter att Kunden genomgår hela Behandlingen inklusive fyra (4) PRP-behandlingar, inte använder tobak eller nikotinprodukter före eller efter behandlingen och följer samtliga förberedelse- och eftervårdsinstruktioner. Resultatet utvärderas tillsammans med kliniken. För det fall att en tillfredsställande överlevnadsnivå för hårsäckarna inte uppnås genom behandlingen planeras eventuell korrigering efter medicinsk bedömning och överenskommelse med Kunden."
     },
     { "kind": "heading", "html": "Ansvar" },
     {
@@ -85,7 +96,7 @@
     { "kind": "heading", "html": "Avtalsbrott och force majeure" },
     {
       "kind": "text",
-      "html": "Om Tjänstutövaren fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänsteutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande ska detta utgöra befrielsegrund som medför rätt för Tjänsteutövaren att säga upp Avtalet med omedelbar verkan."
+      "html": "Om Tjänsteutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänsteutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande ska detta utgöra befrielsegrund som medför rätt för Tjänsteutövaren att säga upp Avtalet med omedelbar verkan."
     },
     {
       "kind": "text",
@@ -106,7 +117,14 @@
   ],
   "cooling": {
     "consentApiId": 170955,
-    "source": "owner facit 2026-06 — Meridiq apiId 170955 (letterText tom i export)",
+    "source": "sharepoint_nordbro:251203 (bundlat ångerfristsamtycke — samma avtalspaket)",
+    "legalSource": {
+      "primary": "nordbro",
+      "legalReviewStatus": "nordbro_approved",
+      "templateVersion": "251203",
+      "meridiqApiId": 170955,
+      "bindingRef": "migration/meridiq/nordbro-p0-source-bindings.json#170955"
+    },
     "blocks": [
       {
         "kind": "title",

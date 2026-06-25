@@ -556,6 +556,12 @@ function resolveAvtalWord(registryId) {
       glob: '251203.*2 dagar.*\\.docx$',
     });
   }
+  if (registryId === 'offert_prp_hair' || registryId === 'offert_prp_skin') {
+    return resolveWordFile({
+      localNames: ['251203-behandlingsavtal-prp.docx'],
+      glob: '251203.*PRP.*\\.docx$',
+    });
+  }
   return resolveWordFile({
     localNames: ['251203-behandlingsavtal-dhi-2dagar.docx', '251010-behandlingsavtal-dhi.docx'],
     glob: '251203.*\\.docx$',

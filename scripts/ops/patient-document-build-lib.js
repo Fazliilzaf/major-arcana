@@ -128,6 +128,7 @@ function renderMeridiqQuestion(q, ui = {}) {
 }
 
 function renderFacitBlock(block) {
+  if (isManualSignatureBlock(block)) return '';
   const html = block.html || '';
   if (block.kind === 'title') {
     return `<h2 class="doc-agreement-title">${html}</h2>`;
@@ -260,6 +261,46 @@ const OFFERT_ACK_LABEL =
 const DEFAULT_BUNDLE_ACK =
   'Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling innan ångerfristen löpt ut.';
 
+function isManualSignatureBlock(block) {
+  const html = String(block?.html || '');
+  const plain = html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return (
+    /Ort och datum/i.test(plain) ||
+    /Namnförtydligande/i.test(plain) ||
+    /Namnteckning/i.test(plain) ||
+    /^_{3,}/.test(plain)
+  );
+}
+
+function filterManualSignatureBlocks(blocks) {
+  return (blocks || []).filter((block) => !isManualSignatureBlock(block));
+}
+
+function stripManualSignatureTail(text) {
+  const lines = String(text || '').split('\n');
+  while (lines.length) {
+    const line = lines[lines.length - 1].trim();
+    if (!line) {
+      lines.pop();
+      continue;
+    }
+    if (
+      /^_{3,}/.test(line) ||
+      /Ort och datum/i.test(line) ||
+      /Namnförtydligande/i.test(line) ||
+      /Namnteckning/i.test(line)
+    ) {
+      lines.pop();
+      continue;
+    }
+    break;
+  }
+  return lines.join('\n').trimEnd();
+}
+
 function substituteDemoMergeFields(html) {
   return String(html || '')
     .replace(/\{\{patientName\}\}/g, 'Anna Demo')
@@ -281,6 +322,7 @@ function agreementPlainTextToBlocks(text) {
   for (let i = 1; i < lines.length; i += 1) {
     const line = lines[i];
     if (/^_{3,}/.test(line)) break;
+    if (/Ort och datum|Namnförtydligande|Namnteckning/i.test(line)) break;
     if (AGREEMENT_HEADINGS.has(line)) {
       blocks.push({ kind: 'heading', html: line });
     } else {
@@ -406,6 +448,9 @@ module.exports = {
   OFFERT_ACK_LABEL,
   DEFAULT_BUNDLE_ACK,
   substituteDemoMergeFields,
+  isManualSignatureBlock,
+  filterManualSignatureBlocks,
+  stripManualSignatureTail,
   agreementPlainTextToBlocks,
   extractOffertSectionBlocks,
   renderAgreementBlock,

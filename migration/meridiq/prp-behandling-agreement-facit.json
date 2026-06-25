@@ -1,5 +1,16 @@
 {
-  "source": "owner facit 2026-06 — Behandlingsavtal (PRP-behandling); Meridiq apiId 170945/170944 letterText tom",
+  "schemaVersion": "1.0.0",
+  "source": "sharepoint_nordbro:251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx",
+  "legalSource": {
+    "primary": "nordbro",
+    "legalReviewStatus": "nordbro_approved",
+    "templateVersion": "251203",
+    "templateRef": "agreement_hair_tp_prp_nordbro",
+    "localWord": "251203-behandlingsavtal-prp.docx",
+    "meridiqApiIds": [170944, 170945],
+    "bindingRef": "migration/meridiq/nordbro-p1-source-bindings.json",
+    "facitSetRef": "config/nordbro-insatt-facit-set.json"
+  },
   "consentApiIds": [170945, 170944],
   "blocks": [
     { "kind": "title", "html": "Behandlingsavtal (PRP-behandling)" },
@@ -92,9 +103,6 @@
     {
       "kind": "text",
       "html": "För det fall utförd behandling omfattas av Tjänsteutövarens patientförsäkring enligt patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till Patientskadenämnden. Avseende frågor som inte kräver medicinsk sakkunskap har Kunden även möjlighet att hänskjuta tvist till prövning genom anmälan till Allmänna reklamationsnämnden (ARN). Tvist med anledning av avtalet ska slutligen avgöras av allmän domstol med Göteborgs tingsrätt som första instans."
-    },
-    { "kind": "text", "html": "_____________________<br/>Ort och datum" },
-    { "kind": "text", "html": "_____________________<br/>Namnförtydligande" },
-    { "kind": "text", "html": "______________________<br/>Namnteckning" }
+    }
   ]
 }

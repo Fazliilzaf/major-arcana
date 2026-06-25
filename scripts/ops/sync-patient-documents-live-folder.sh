@@ -79,6 +79,8 @@ link "$ARCHIVE/MA-Archive/sharepoint/originals/5. Friskförsäkran TP 2025.docx"
   "$WORK/01-word-original-lokalt/5-friskforsakran-tp-2025.docx"
 link "$ARCHIVE/Juridik-GDPR/251203_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden), 2 dagar.docx" \
   "$WORK/01-word-original-lokalt/251203-behandlingsavtal-dhi-2dagar.docx"
+link "$ARCHIVE/Juridik-GDPR/251203_Behandlingsavtal Hair TP Clinic gbg AB (PRP-behandling).docx" \
+  "$WORK/01-word-original-lokalt/251203-behandlingsavtal-prp.docx"
 link "$ARCHIVE/Juridik-GDPR/251010_Behandlingsavtal Hair TP Clinic gbg AB (DHI-metoden).docx" \
   "$WORK/01-word-original-lokalt/251010-behandlingsavtal-dhi.docx"
 link "$ARCHIVE/Juridik-GDPR/Underbilaga 1 - Instruktion.docx" \
@@ -117,6 +119,7 @@ EOF
 link "$ROOT_DIR/migration/meridiq/questionary-catalog.json" "$WORK/03-meridiq-facit/questionary-catalog.json"
 link "$ROOT_DIR/migration/meridiq/consent-catalog.json" "$WORK/03-meridiq-facit/consent-catalog.json"
 link "$ROOT_DIR/migration/meridiq/steg7-tp-dhi-agreement-facit.json" "$WORK/03-meridiq-facit/steg7-tp-dhi-agreement-facit.json"
+link "$ROOT_DIR/migration/meridiq/prp-behandling-agreement-facit.json" "$WORK/03-meridiq-facit/prp-behandling-agreement-facit.json"
 
 # CCO live kod/data
 link "$ROOT_DIR/public/major-arcana-preview/data/hairtp-document-content-bundle.json" \

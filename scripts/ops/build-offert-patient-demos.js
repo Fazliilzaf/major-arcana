@@ -17,6 +17,7 @@ const {
   renderAgreementBlock,
   loadBundleCustomerEntry,
   agreementPlainTextToBlocks,
+  filterManualSignatureBlocks,
   OFFERT_ACK_LABEL,
   DEFAULT_BUNDLE_ACK,
   wrapDocument,
@@ -88,14 +89,16 @@ function loadCooling() {
 function resolveAgreementBlocks(entry, facitFile) {
   const content = entry.content || {};
   if (Array.isArray(content.agreementBlocks) && content.agreementBlocks.length) {
-    return content.agreementBlocks;
+    return filterManualSignatureBlocks(content.agreementBlocks);
   }
   if (facitFile) {
     const facit = JSON.parse(fs.readFileSync(path.join(MERIDIQ, facitFile), 'utf8'));
-    if (Array.isArray(facit.blocks) && facit.blocks.length) return facit.blocks;
+    if (Array.isArray(facit.blocks) && facit.blocks.length) {
+      return filterManualSignatureBlocks(facit.blocks);
+    }
   }
   const text = content.agreementText || content.letterText || '';
-  return agreementPlainTextToBlocks(text);
+  return filterManualSignatureBlocks(agreementPlainTextToBlocks(text));
 }
 
 function renderDemoPriceRows(slug) {
