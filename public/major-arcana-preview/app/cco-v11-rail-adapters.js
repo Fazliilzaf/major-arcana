@@ -1326,9 +1326,36 @@
    *
    * @returns {{items:Array, count:number}}
    */
-  function buildCommunicationFromState(card, occasionTimeline) {
+  function buildCommunicationFromState(card, occasionTimeline, dossierBundle) {
     card = card || {};
     var items = [];
+
+    // FÖRSTA KÄLLAN: riktiga matchade mejl ur dossier-bundlens
+    // communicationMessages (backend mailIngestionStore.listPatientMessages →
+    // subject + snippet/preview + riktning). Har meddelande-PREVIEW, till
+    // skillnad från occasionTimeline (fil-metadata utan kropp).
+    var msgs = toArray(dossierBundle && dossierBundle.communicationMessages);
+    if (msgs.length) {
+      msgs.forEach(function (m) {
+        if (!m) return;
+        var subject = text(m.subject) || 'Mejl';
+        var dir = text(m.direction) === 'out' ? 'Ut' : 'In';
+        var when = text(m.occurredAt);
+        items.push({
+          type: text(m.type) || 'mail',
+          text: subject,
+          preview: text(m.preview),
+          meta: dir + (when ? ' · ' + when.slice(0, 10) : ''),
+        });
+      });
+      items = items.slice(0, 8);
+      return {
+        items: items,
+        count: items.length,
+        patientId: text(card.patientId || card.id || card.customerId),
+      };
+    }
+
     toArray(occasionTimeline).forEach(function (ev) {
       if (!ev) return;
       var kind = String(ev.kind || ev.type || ev.category || '').toLowerCase();

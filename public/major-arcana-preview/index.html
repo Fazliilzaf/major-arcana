@@ -10,8 +10,14 @@
     <script src="./app/cco-v12-workspace-flag.js?v=v12workspace-cutover-v1"></script>
     <!-- Konversationer v2 — feature flag (CUTOVER: default ON, opt-out via ?conversations=off; sätter data-conversations-v2) -->
     <script src="./app/cco-conversations-v2-flag.js?v=conversations-v2-cutover-default-on"></script>
-    <!-- ARCANA bundle URLs (content-hash: 0684878f3f) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.0684878f3f.min.js","staffCore":"./app.bundle.staff-core.e2b76f1776.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
+    <!-- ARCANA bundle URLs (content-hash: 8e7f8a3bfa) -->
+    <script>
+      window.__ARCANA_BUNDLE_URLS__ = {
+        full: './app.bundle.8e7f8a3bfa.min.js',
+        staffCore: './app.bundle.staff-core.7f0e9fdc3b.min.js',
+        staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
+      };
+    </script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -3678,8 +3684,11 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"></script>
-<div data-patient-identity-rail hidden>
+                  <script
+                    async
+                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+                  ></script>
+                  <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
                         <h2>Kundidentitetshantering</h2>
@@ -11505,12 +11514,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 0684878f3f) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 8e7f8a3bfa) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.0684878f3f.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.e2b76f1776.min.js';
+        var fullSrc = urls.full || './app.bundle.8e7f8a3bfa.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.7f0e9fdc3b.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.6d4631df1b.min.js';
 
         function injectScript(src, onload) {

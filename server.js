@@ -13327,6 +13327,7 @@ process.once('SIGTERM', () => {
       buildPatientDocumentBundle,
       readCache: ccoReadCache,
       resolvePatientAssetStore: resolveSharedPatientAssetStore,
+      mailIngestionStore: ccoMailIngestionStore,
       swishStore: ccoSwishStore,
       commercialStore: ccoCommercialStore,
       fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister || null,
