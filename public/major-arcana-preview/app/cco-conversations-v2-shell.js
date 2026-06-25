@@ -51,6 +51,16 @@
   var v3Theme = lsGet(THEME_KEY, 'light') === 'dark' ? 'dark' : 'light';
   var v3Density = lsGet(DENSITY_KEY, 'comfortable') === 'compact' ? 'compact' : 'comfortable';
   var selected = {}; // v3: multi-select set (thread-id → true)
+
+  // Temat är app-brett: sätts på <html> (så v8-kalendern re-temas) + på roten.
+  function applyTheme() {
+    try {
+      doc.documentElement.setAttribute('data-theme', v3Theme);
+    } catch (_error) {
+      /* ignore */
+    }
+    if (root) root.dataset.theme = v3Theme;
+  }
   var activeCtxTab = 'oversikt'; // v3: oversikt | historik | ekonomi
   var cmdkOpen = false;
   var cmdkQuery = '';
@@ -1284,7 +1294,7 @@
       if (event.target.closest('[data-v3-theme]')) {
         v3Theme = v3Theme === 'dark' ? 'light' : 'dark';
         lsSet(THEME_KEY, v3Theme);
-        root.dataset.theme = v3Theme;
+        applyTheme();
         if (boundCtx) renderToolbar(boundCtx);
         return;
       }
@@ -1542,7 +1552,7 @@
       run: function () {
         v3Theme = v3Theme === 'dark' ? 'light' : 'dark';
         lsSet(THEME_KEY, v3Theme);
-        root.dataset.theme = v3Theme;
+        applyTheme();
         renderToolbar(ctx);
       },
     });
@@ -1651,8 +1661,8 @@
     boundCtx = ctx;
     ensureRoot();
     bindEvents();
-    // v3: tema + densitet på roten (persisteras).
-    root.dataset.theme = v3Theme;
+    // v3: tema (app-brett) + densitet (persisteras).
+    applyTheme();
     root.dataset.density = v3Density;
     // Mobil master-detail: utan vald tråd visas alltid inboxen.
     if (!ctx.selected) mobilePane = 'inbox';
