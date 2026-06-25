@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-06-25T15:14:40.415Z",
+  "e6Ok": 1,
+  "needsReview": 0,
+  "reports": [
+    {
+      "registryId": "foto_samtycke",
+      "kind": "foto_samtycke",
+      "demoHtml": "steg9-foto-samtycke-final-demo.html",
+      "facitDoc": "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md",
+      "blockers": [],
+      "notes": [
+        "SCOPE_FACIT: steg 9 hårlinje/krona — ej full Nordbro publish-mall",
+        "ORD-24 backend (document instances) fortfarande PENDING — separat spår",
+        "Nordbro consent_photo_* body = placeholder i bundle (OK för scope)"
+      ],
+      "status": "E6_OK",
+      "demoBundleOk": true,
+      "wordOk": true,
+      "bundleHits": "6/6",
+      "demoHits": "6/6",
+      "wordHits": "6/6",
+      "missingInDemo": [],
+      "missingInBundle": [],
+      "wordPresent": true
+    }
+  ]
+}

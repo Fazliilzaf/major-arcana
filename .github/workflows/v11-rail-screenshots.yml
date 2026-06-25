@@ -93,6 +93,9 @@ jobs:
       - name: Generate Block 20 screenshots (… + R Insights LATER)
         run: npm run shots:v11rail:block20
 
+      - name: Generate FULL rail screenshots (SLUTPASS — alla sektioner)
+        run: npm run shots:v11rail:full
+
       - name: Upload Block 1 screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -250,5 +253,13 @@ jobs:
         with:
           name: v11-rail-block20-R-insights-screenshots
           path: docs/handover/MOCKUPS/v11-rail-block20-R-insights/*.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload FULL rail screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-rail-full-screenshots
+          path: docs/handover/MOCKUPS/v11-rail-full/*.png
           if-no-files-found: error
           retention-days: 30

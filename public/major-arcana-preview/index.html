@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <script src="./app/cco-v9-flag.js?v=build-1ccb8f9"></script>
     <!-- V11-RAIL Fas 3 · Block 0 — opt-in feature flag (sätter data-v11-rail före render) -->
-    <script src="./app/cco-v11-rail-flag.js?v=v11rail-block0-v1"></script>
-    <!-- ARCANA bundle URLs (content-hash: bbf6a97a67) -->
-    <script>
-      window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.bbf6a97a67.min.js',
-        staffCore: './app.bundle.staff-core.0b422f5f4b.min.js',
-        staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
-      };
-    </script>
+    <script src="./app/cco-v11-rail-flag.js?v=v11rail-cutover-default-on"></script>
+    <!-- V12 Customer Workspace — feature flag (default ON, opt-out via ?v12workspace=off; sätter data-v12-workspace) -->
+    <script src="./app/cco-v12-workspace-flag.js?v=v12workspace-cutover-v1"></script>
+    <!-- Bokning v1 — facit-trogen mobil bokningsvy (CUTOVER: default ON, opt-out via ?booking=off; sätter data-booking-v1) -->
+    <script src="./app/cco-booking-v1-flag.js?v=booking-v1-cutover-default-on"></script>
+    <!-- Konversationer v2 — feature flag (CUTOVER: default ON, opt-out via ?conversations=off; sätter data-conversations-v2) -->
+    <script src="./app/cco-conversations-v2-flag.js?v=conversations-v2-cutover-default-on"></script>
+    <!-- ARCANA bundle URLs (content-hash: 3ef2d3bb63) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.3ef2d3bb63.min.js","staffCore":"./app.bundle.staff-core.5d09930c44.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -41,8 +41,16 @@
     </script>
 
     <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
-    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-bundle-split-a" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=fix-rail-jump-v1" />
+    <link
+      rel="preload"
+      as="script"
+      href="./app/mobile-deeplink-boot.js?v=v12-real-customer-surface-v1"
+    />
+    <link
+      rel="preload"
+      as="script"
+      href="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+    />
     <script>
       (function deferInboxUntilNeeded() {
         try {
@@ -96,7 +104,7 @@
         }
       })();
     </script>
-    <script src="./app/mobile-deeplink-boot.js?v=build-bundle-split-a"></script>
+    <script src="./app/mobile-deeplink-boot.js?v=v12-real-customer-surface-v1"></script>
     <title>Operatörsvy · Arcana</title>
     <meta name="theme-color" content="#fbf7f1" />
     <meta name="description" content="HairTP Clinic CCO — Major Arcana Preview" />
@@ -145,7 +153,22 @@
     <link rel="stylesheet" href="./cco-v10-skin.css?v=v10tl-skin-36" />
     <link rel="stylesheet" href="./cco-v11-polish.css?v=ord25g-v1" />
     <link rel="stylesheet" href="./cco-v11-rail.css?v=v11rail-polish-1" />
+    <link rel="stylesheet" href="./cco-v12-workspace.css?v=v12-dossier-launch-flow-v1" />
+    <link rel="stylesheet" href="./cco-v12-spine.css?v=v12spine-v1" />
+    <link rel="stylesheet" href="./cco-v12-canon.css?v=v12canon-v1" />
+    <link rel="stylesheet" href="./cco-v11-rk.css?v=v11rk-v1" />
+    <!-- Konversationer v2 — skal-styling (scopad #cco-conv-v2-root; legacy-göm grindad på flaggan) -->
+    <link rel="stylesheet" href="./app/cco-conversations-v2.css?v=conversations-v2-shell-v1" />
+    <!-- Bokning v1 — facit-trogen MOBIL-styling (scopad #cco-book-v1-root; ≤834px) -->
+    <link rel="stylesheet" href="./cco-booking-v1-mobile.css?v=booking-v1-p0" />
+    <!-- Automatisering — scopad responsiv overlay (iPad full + mobil monitor; ≤1024px) -->
+    <link rel="stylesheet" href="./cco-automation-responsive.css?v=automation-responsive-p0" />
+    <!-- Analys/Insikter — scopad responsiv overlay (iPad full + mobil 1-kol; ≤1024px) -->
+    <link rel="stylesheet" href="./cco-analytics-responsive.css?v=analytics-responsive-p0" />
+    <!-- Inställningar — scopad responsiv overlay (settings-shell; ≤1024px) -->
+    <link rel="stylesheet" href="./cco-settings-responsive.css?v=settings-responsive-p0" />
     <script src="./booking-lazy-load.js?v=build-1ccb8f9"></script>
+    <script src="./app/cco-booking-v1-shell.js?v=booking-v1-p0" defer></script>
     <script src="./cco-polish.js?v=build-1ccb8f9" defer></script>
     <script src="./cco-mobile-core.js?v=build-1ccb8f9" defer></script>
     <script src="./adaptive-runtime.js?v=build-1ccb8f9" defer></script>
@@ -3614,7 +3637,10 @@
                   <script defer src="/cco-scalp-analysis.js"></script>
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script src="./app/journal-photo-client.js?v=kkx-photo-uat2"></script>
-                  <script async src="./app/patient-master-ui.js?v=fix-rail-jump-v1"></script>
+                  <script
+                    async
+                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+                  ></script>
                   <script
                     defer
                     src="./app/cco-v9-interactions.js?v=build-cmdk-server-search"
@@ -3627,13 +3653,14 @@
                     defer
                     src="./app/cco-meridiq-content.js?v=hairtp-cloud-fas456-v9"
                   ></script>
+                  <script defer src="./app/patient-document-live.js?v=patient-doc-live-v1"></script>
                   <script
                     defer
                     src="./app/cco-hairtp-document-cloud.js?v=hairtp-cloud-fas456-v9"
                   ></script>
                   <script
                     defer
-                    src="./app/cco-avtal-samtycke-bundle.js?v=hairtp-cloud-fas456-v9"
+                    src="./app/cco-avtal-samtycke-bundle.js?v=remove-legal-review-gate-v1"
                   ></script>
                   <script
                     defer
@@ -3662,8 +3689,8 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=fix-rail-jump-v1"></script>
-                  <div data-patient-identity-rail hidden>
+                  <script async src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"></script>
+<div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
                         <h2>Kundidentitetshantering</h2>
@@ -11489,12 +11516,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: bbf6a97a67) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 3ef2d3bb63) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.bbf6a97a67.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.0b422f5f4b.min.js';
+        var fullSrc = urls.full || './app.bundle.3ef2d3bb63.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.5d09930c44.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.6d4631df1b.min.js';
 
         function injectScript(src, onload) {

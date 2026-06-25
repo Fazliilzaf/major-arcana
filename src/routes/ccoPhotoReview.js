@@ -176,6 +176,7 @@ function actorFromReq(req) {
 
 function createCcoPhotoReviewRouter({
   resolveStores,
+  requireCcoAuthenticated,
   attachRole,
   requirePermission,
   auditLog,
@@ -183,11 +184,22 @@ function createCcoPhotoReviewRouter({
   pilotConfig = null,
   onMutation = null,
 }) {
+  if (typeof requireCcoAuthenticated !== 'function') {
+    throw new Error('requireCcoAuthenticated krävs för ccoPhotoReviewRouter');
+  }
+  if (typeof attachRole !== 'function') {
+    throw new Error('attachRole krävs för ccoPhotoReviewRouter');
+  }
+  if (typeof requirePermission !== 'function') {
+    throw new Error('requirePermission krävs för ccoPhotoReviewRouter');
+  }
   const router = express.Router();
   const batchLabels = loadBatchLabelByPatient();
   const enrichedPilotConfig = pilotConfig
     ? { ...pilotConfig, projectRoot: pilotConfig.projectRoot || PHOTO_REVIEW_REPO_ROOT }
     : null;
+
+  router.use(requireCcoAuthenticated);
 
   router.get(
     '/photo-review/summary',

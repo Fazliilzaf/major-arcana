@@ -301,36 +301,54 @@
     });
   }
 
+  function v8MobileStatus(slot) {
+    const st = String(slot?.status || slot?.caseStatus || "").toLowerCase();
+    if (st.includes("cancel") || st.includes("avbok")) return "cancelled";
+    if (st.includes("follow") || st.includes("återbes") || st.includes("aterbes"))
+      return "followup";
+    if (st.includes("confirm") || st.includes("bekräft") || st.includes("bekraft"))
+      return "confirmed";
+    return slot?.kind === "available" ? "open" : "tentative";
+  }
+
+  // v8 mobil-listkort: samma visuella språk som desktop (rail + status), men
+  // statiskt i en vertikal lista. Behåller data-cal-event-hooken.
+  function v8MobileCard(slot) {
+    const shared = window.ArcanaBookingCalendarShared;
+    const time = shared?.formatTimeRange
+      ? shared.formatTimeRange(slot)
+      : formatTimeLabel(slot.startAt || slot.startsAt || slot.start || slot.time || slot.label);
+    const title = shared?.eventTitle
+      ? shared.eventTitle(slot)
+      : slot.customerName || slot.title || slot.serviceLabel || slot.service || "Bokning";
+    const sub = shared?.eventMeta
+      ? shared.eventMeta(slot)
+      : slot.resourceLabel || slot.resource || "";
+    const source =
+      String(slot?.source || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "") || "info";
+    const status = v8MobileStatus(slot);
+    const payload = escapeAttr(
+      JSON.stringify(shared?.eventKey ? { ...slot, eventKey: shared.eventKey(slot) } : slot)
+    );
+    return `<li class="cco-mobile-calendar-item">
+      <button type="button" class="cco-v8-booking-card" data-cal-event="${payload}" data-source="${escapeAttr(source)}" data-status="${status}">
+        <span class="booking-time">${escapeHtml(time || "—")}</span>
+        <span class="booking-title">${escapeHtml(title)}</span>
+        ${sub ? `<span class="booking-sub">${escapeHtml(sub)}</span>` : ""}
+      </button>
+    </li>`;
+  }
+
   function renderSlotRows(slots, isoDate) {
     if (!listEl) return;
-    const shared = window.ArcanaBookingCalendarShared;
     if (!slots.length) {
       listEl.innerHTML = `<li class="cco-mobile-calendar-empty">Inga tider ${isoDate === todayIso() ? "idag" : "denna dag"}. Tryck Ny bokning för att lägga in en tid.</li>`;
       return;
     }
 
-    listEl.innerHTML = slots
-      .map((slot) => {
-        if (shared?.renderEventCard) {
-          return `<li class="cco-mobile-calendar-item">${shared.renderEventCard(slot, { compact: true })}</li>`;
-        }
-        const time = formatTimeLabel(
-          slot.startAt || slot.startsAt || slot.start || slot.time || slot.label
-        );
-        const title =
-          slot.customerName || slot.title || slot.serviceLabel || slot.service || "Bokning";
-        const meta = slot.resourceLabel || slot.resource || slot.status || "";
-        return `<li class="cco-mobile-calendar-item">
-          <button type="button" class="cco-mobile-calendar-item-button" data-calendar-slot="${escapeAttr(JSON.stringify(slot))}">
-            <span class="cco-mobile-calendar-time">${escapeHtml(time || "—")}</span>
-            <span class="cco-mobile-calendar-copy">
-              <strong>${escapeHtml(title)}</strong>
-              ${meta ? `<span>${escapeHtml(meta)}</span>` : ""}
-            </span>
-          </button>
-        </li>`;
-      })
-      .join("");
+    listEl.innerHTML = slots.map((slot) => v8MobileCard(slot)).join("");
 
     listEl.querySelectorAll("[data-cal-event], [data-calendar-slot]").forEach((button) => {
       button.addEventListener("click", () => {

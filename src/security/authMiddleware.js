@@ -36,7 +36,10 @@ function parseMachineTokens(raw) {
         label,
         userId: normalizeText(entry?.userId || entry?.user_id) || `machine:${label}`,
         email: normalizeText(entry?.email) || `${label}@machine.arcana.local`,
-        allowPaths: allowPaths.length ? allowPaths : ['/api/v1/orchestrator'],
+        // SÄKERHET: en token utan explicit allowPaths får INGEN åtkomst
+        // (fail-closed). Tidigare default gav bred orchestrator-åtkomst till
+        // felkonfigurerade tokens. Deklarera allowPaths explicit per token.
+        allowPaths,
       };
     })
     .filter(Boolean);
@@ -97,14 +100,12 @@ function getAuthToken(req) {
 }
 
 function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host'))
-    .split(':')[0]
-    .toLowerCase();
-  const ip = normalizeText(req.ip || req.socket?.remoteAddress || '').toLowerCase();
-  return (
-    ['localhost', '127.0.0.1', '::1'].includes(host) ||
-    ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip)
-  );
+  // SÄKERHET: avgör lokalitet ENBART från socket-peerns adress, ALDRIG från den
+  // klient-styrda Host-headern (en extern angripare kan skicka `Host: localhost`
+  // och annars få lokal-preview-elevation). req.socket.remoteAddress är den
+  // faktiska TCP-peern; req.ip används som fallback (kan vara XFF bakom proxy).
+  const ip = normalizeText(req.socket?.remoteAddress || req.ip || '').toLowerCase();
+  return ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip);
 }
 
 function isStaffJournalOpenApiPath(req) {
@@ -112,10 +113,16 @@ function isStaffJournalOpenApiPath(req) {
   const openPrefixes = [
     '/api/v1/cco-patient-master',
     '/api/v1/cco-journal',
+    '/api/v1/cco-journal-quick',
+    '/api/v1/cco-forms',
+    '/api/v1/cco-photo-consents',
     '/api/v1/cco-commercial',
     '/api/v1/cco-treatment-agreement',
     '/cco-patient-master',
     '/cco-journal',
+    '/cco-journal-quick',
+    '/cco-forms',
+    '/cco-photo-consents',
     '/cco-commercial',
     '/cco-treatment-agreement',
   ];
@@ -203,12 +210,19 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
   async function requireAuth(req, res, next) {
     try {
       const token = getAuthToken(req);
-      const staffOpenAccess = shouldUseStaffJournalOpenAccess(req, config);
-      if (staffOpenAccess || (token === '__preview_local__' && isLocalPreviewRequest(req))) {
+      // SÄKERHET: all preview/open-access-elevation (oautentiserad OWNER) är
+      // HÅRT gatead till non-production. I produktion kan ingen av byggfas-
+      // genvägarna ge åtkomst — oavsett ARCANA_STAFF_JOURNAL_OPEN_ACCESS.
+      const previewAllowed = !(config.isProduction ?? process.env.NODE_ENV === 'production');
+      const staffOpenAccess = previewAllowed && shouldUseStaffJournalOpenAccess(req, config);
+      if (
+        staffOpenAccess ||
+        (previewAllowed && token === '__preview_local__' && isLocalPreviewRequest(req))
+      ) {
         applyPreviewAuthToRequest(req, localPreviewAuthContext);
         return next();
       }
-      if (token === '__preview_local__' && config.staffJournalOpenAccess) {
+      if (previewAllowed && token === '__preview_local__' && config.staffJournalOpenAccess) {
         applyPreviewAuthToRequest(req, localPreviewAuthContext);
         return next();
       }
@@ -264,7 +278,10 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
         }
       }
 
-      if (isLocalPreviewRequest(req) || staffOpenAccess) {
+      // Efter misslyckad token-verifiering: fall ALDRIG tillbaka till preview-
+      // OWNER i produktion (en ogiltig token måste ge 401). staffOpenAccess är
+      // redan non-production-gatead ovan.
+      if ((previewAllowed && isLocalPreviewRequest(req)) || staffOpenAccess) {
         applyPreviewAuthToRequest(req, localPreviewAuthContext);
         return next();
       }

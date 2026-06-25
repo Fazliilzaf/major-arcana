@@ -1,0 +1,189 @@
+# Avprickningslista — 36 dokumenttyper (patientdokument live)
+
+**Skapad:** 2026-06-04  
+**Facit:** [`KUNDKORT-DOKUMENT-PLACERING-FACIT.md`](../../strategy/KUNDKORT-DOKUMENT-PLACERING-FACIT.md) · `src/ops/hairtp-document-types.catalog.json`  
+**Design:** [`DESIGN-SPEC.md`](./DESIGN-SPEC.md) · `public/major-arcana-preview/patient-document-shell.css`
+
+---
+
+## Så här använder du listan
+
+1. **En rad = en dokumenttyp** (`registryId`). Bocka av kolumn för kolumn — hoppa inte över **U** eller **T** bara för att CCO redan har modal/bundle.
+2. **Meridiq-ID får aldrig synas** i patient-synlig HTML (endast intern facit i kod).
+3. **Word/SharePoint** = ordalydelse-facit. **Meridiq** (intern) = fältstruktur. **final-demo** = helsida med Hair TP-logga + _X av 9_.
+4. När **D** är klar: fil i `public/major-arcana-preview/steg*-*.html` eller `patient-doc/{registryId}.html`.
+
+### Kolumner
+
+| Kol   | Betydelse                                                                                                                                     |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **U** | Underlag — Word/PDF lokalt (`01-word-original-lokalt/`) eller MS-OK i [SharePoint-inventory](../../strategy/SHAREPOINT-TEMPLATE-INVENTORY.md) |
+| **T** | Textfacit — Word ↔ intern MQ diff godkänd (inga `VERSION_CONFLICT` utan owner)                                                                |
+| **D** | **D**emo HTML — final-demo shell, korrekt steg-badge, inga förbjudna färger                                                                   |
+| **L** | **L**ive CCO — full-page route, signering/audit/PDF (ej enbart modal)                                                                         |
+| **V** | **V**erify — `npm run verify:*` eller Playwright @ 390px                                                                                      |
+
+---
+
+## Statusöversikt (2026-06-25)
+
+| Kategori            |  Antal | U klart | T klart | D klart | L klart | V klart |
+| ------------------- | -----: | ------: | ------: | ------: | ------: | ------: |
+| **A · Kund**        |     15 |      15 |      15 |      15 |      15 |      15 |
+| **B · Personal**    |     11 |      11 |      10 |      11 |      11 |      11 |
+| **C · Auto / info** |     10 |      10 |       7 |      10 |      10 |      10 |
+| **Totalt**          | **36** |  **36** |  **32** |  **36** |  **36** |  **36** |
+
+**T-kolumn (2026-06-25):** `npm run diff:patient-doc-t-column` · **36/36** (32 T_FACIT + 4 n/a)
+
+**U-kolumn (2026-06-25):** U-pass **19/19 verify** + **2 medvetna undantag** = **36/36** · [`U-EXCEPTIONS-2026-06-25.md`](./U-EXCEPTIONS-2026-06-25.md) · `health_tp_eng` (MQ) · `auto_medical_finance` (extern MF)
+
+**V-kolumn (2026-06-25):** alla 36 typer → `npm run verify:patient-doc-v-column` (shell, registry-id, färger, steg-badge, staff/sign där relevant).
+
+**L-kolumn (2026-06-25):** alla 36 typer → `/major-arcana-preview/patient-doc/{registryId}` (offert: `?phase=5|7`). Kundkort öppnar full-page via `CcoPatientDocumentLive`. **E8 (2026-06-04):** signering/audit/PDF kopplat via `patient-document-shell.js` för A1–A11 + A15.
+
+**Klara final-demo idag:** #1–2 HD, #3 FC, #4–9 offerter, #10–11 samtycken, #12–15 patientinfo/foto, **#16–26 staff komplett**, **#27–36 auto/info/cross komplett — D 36/36**.
+
+---
+
+## A · Kund fyller i (15)
+
+|   # | registryId             | Dokument                             |   UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                                                                                      |
+| --: | ---------------------- | ------------------------------------ | --------: | :-: | :-: | :-: | :-: | :-: | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   1 | `haelso_tp_sve`        | Hälsodeklaration · Hair TP Clinic    |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-halsodeklaration-final-demo.html` · diff `diffs/HD-16414-diff-2026-06-04.md`                                                                             |
+|   2 | `health_tp_eng`        | ENG · Health Questionnaire           |         3 | [x] | [x] | [x] | [x] | [x] | `steg3-health-questionnaire-eng-final-demo.html` · U: MQ_FACIT undantag · T: PARITY_OK 14865                                                                    |
+|   3 | `friskfoers_tp`        | Friskförsäkran · TP                  |         8 | [x] | [x] | [x] | [x] | [x] | `steg8-friskforsakran-final.html` · `diff:patient-doc-friskforsakran` PARITY_OK · Word WORD_REVIEW                                                              |
+|   4 | `offert_tp`            | Offert / behandlingsavtal · TP       | 5 / **7** | [x] | [x] | [x] | [x] | [x] | `steg5-offert-tp-final-demo.html` + `steg7-v6-kundkort-final-demo.html` · E6_OK                                                                                 |
+|   5 | `offert_prp_hair`      | Offert · PRP hår                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prp-hair-final-demo.html` + `steg7-offert-prp-hair-final-demo.html` · E6_OK                                                                       |
+|   6 | `offert_prp_skin`      | Offert · PRP hud                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prp-skin-final-demo.html` + `steg7-offert-prp-skin-final-demo.html` · E6_OK                                                                       |
+|   7 | `offert_microneedling` | Offert · Microneedling + PRP         |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-microneedling-final-demo.html` + `steg7-offert-microneedling-final-demo.html` · E6_OK                                                             |
+|   8 | `offert_prf`           | Offert · PRF hud                     |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-prf-final-demo.html` + `steg7-offert-prf-final-demo.html` · E6_OK                                                                                 |
+|   9 | `offert_profilo`       | Offert · Profhilo                    |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-profilo-final-demo.html` + `steg7-offert-profilo-final-demo.html` · E6_OK                                                                         |
+|  10 | `samtycke_bokning_2d`  | Samtycke vid bokning inom 14 dagar   |         6 | [x] | [x] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · E6_OK · owner [`A10-OWNER-DECISION-2026-06-25.md`](./A10-OWNER-DECISION-2026-06-25.md) · MQ 154369                |
+|  11 | `samtycke_angerratt`   | Begäran + samtycke ångerfrist (14 d) |     6 / 7 | [x] | [x] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · E6_OK · 170955                                                                                                    |
+|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [x] | [x] | [x] | [x] | [x] | `steg4-prp-hair-info-sve-final-demo.html` · T: demo↔MQ 152994 · `diff:patient-doc-t-batch4`                                                                     |
+|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [x] | [x] | [x] | [x] | [x] | `steg4-prp-hair-info-eng-final-demo.html` · T: demo↔MQ 152987 · U-pass MQ-only                                                                                  |
+|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [x] | [x] | [x] | [x] | [x] | `steg4-microneedling-info-sve-final-demo.html` · T: demo↔MQ 152998 · U-pass                                                                                     |
+|  15 | `foto_samtycke`        | Samtycke till foto-publicering       |         9 | [x] | [x] | [x] | [x] | [x] | `steg9-foto-samtycke-final-demo.html` · E6_OK · [`ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md`](./ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md) · scope hårlinje/krona |
+
+---
+
+## B · Personal fyller i (11)
+
+|   # | registryId              | Dokument                             | UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                              |
+| --: | ----------------------- | ------------------------------------ | ------: | :-: | :-: | :-: | :-: | :-: | --------------------------------------------------------------------------------------- |
+|  16 | `journal_tp`            | Journal · TP Behandling              |       8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-tp-final-demo.html` · 52 canonical fält · T: schema↔demo · Word MS-LOKAL |
+|  17 | `journal_tp_post_prp`   | Journal · TP Efterbehandling PRP     |  post-8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-tp-post-prp-final-demo.html` · U MQ_SCHEMA · T: schema↔demo              |
+|  18 | `journal_tp_follow_4`   | Journal · TP Uppföljning 4 mån       |  post-8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-tp-follow-4-final-demo.html` · U MQ_SCHEMA · T: schema↔demo              |
+|  19 | `journal_tp_follow_6`   | Journal · TP Uppföljning 6 mån       |  post-8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-tp-follow-6-final-demo.html` · U MQ_SCHEMA · T: schema↔demo              |
+|  20 | `journal_tp_follow_12`  | Journal · TP Resultat 12 mån         |  post-8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-tp-follow-12-final-demo.html` · U MQ_SCHEMA · T: schema↔demo             |
+|  21 | `journal_prp_multi`     | Journal · PRP/PRF/Microneedling      |       8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-prp-multi-final-demo.html` · U MQ_SCHEMA · T: schema↔demo                |
+|  22 | `behandlingsplan_staff` | Behandlingsplan / offert (personal)  |       5 | [x] | [x] | [x] | [x] | [x] | `steg5-behandlingsplan-staff-final-demo.html` · T: dynamisk by design · batch4          |
+|  23 | `konsultationsmall`     | Konsultationsmall · Hair TP          |       4 | [x] | [x] | [x] | [x] | [x] | `steg4-konsultationsmall-final-demo.html` · T: bundle+journal-template · batch4         |
+|  24 | `ordination_tp`         | Ordinationsmall · Hårtransplantation |   5 + 8 | [x] | [x] | [x] | [x] | [x] | `steg8-ordination-tp-final-demo.html` · E6_OK · Word Carbocain/Xylocain-drift noterad   |
+|  25 | `anteckningar_kort`     | Anteckningar på patientkort          |   cross | [x] | n/a | [x] | [x] | [x] | `staff-anteckningar-kort-final-demo.html` · U CCO_NATIVE · fritext · badge Patientkort  |
+|  26 | `id_verifiering`        | ID-verifiering                       |   4 + 8 | [x] | [x] | [x] | [x] | [x] | `steg4-id-verifiering-final-demo.html` · T: process-facit · batch4                      |
+
+---
+
+## C · Auto / informationsdokument (10)
+
+|   # | registryId                   | Dokument                             | UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                  |
+| --: | ---------------------------- | ------------------------------------ | ------: | :-: | :-: | :-: | :-: | :-: | ------------------------------------------------------------------------------------------- |
+|  27 | `info_offert_tp`             | Offert & behandlingsplan · TP (auto) |       5 | [x] | [x] | [x] | [x] | [x] | `steg5-info-offert-tp-final-demo.html` · T: emailSample · batch4                            |
+|  28 | `auto_bokningsbekraftelse`   | Bokningsbekräftelse SMS/e-post       |       2 | [x] | [x] | [x] | [x] | [x] | `steg2-auto-bokningsbekraftelse-final-demo.html` · T: CCO template · batch4                 |
+|  29 | `auto_bokningspaminnelse`    | Bokningspåminnelse                   |   cross | [x] | [x] | [x] | [x] | [x] | `auto-bokningspaminnelse-final-demo.html` · T: booking_reminder_24h · batch4                |
+|  30 | `auto_avbokningsbekraftelse` | Avbokningsbekräftelse                |   cross | [x] | [x] | [x] | [x] | [x] | `auto-avbokningsbekraftelse-final-demo.html` · T: cancellation_confirmation · batch4        |
+|  31 | `auto_instruktion_formular`  | Instruktion HD/FC till kund          |   3 + 8 | [x] | [x] | [x] | [x] | [x] | `steg3-auto-instruktion-formular-final-demo.html` · E6_OK · Word=DPA underbilaga (ej HD/FC) |
+|  32 | `auto_betanketid`            | Betänketid enligt lag (e-post)       |       6 | [x] | [x] | [x] | [x] | [x] | `steg6-auto-betanketid-final-demo.html` · T: Nordbro excerpt · batch4                       |
+|  33 | `auto_medical_finance`       | Medical Finance                      |   cross | [x] | n/a | [x] | [x] | [x] | `auto-medical-finance-final-demo.html` · U: EXTERNAL_WRAPPER undantag · extern MF           |
+|  34 | `auto_integritet`            | Personuppgiftspolicy                 |   cross | [x] | [x] | [x] | [x] | [x] | `auto-integritet-final-demo.html` · T: legal repo PUB · batch4                              |
+|  35 | `fore_efter_bildmall`        | Före/efter-bildmallar                |     8–9 | [x] | n/a | [x] | [x] | [x] | `steg8-fore-efter-bildmall-final-demo.html` · U CCO_NATIVE · foto-taxonomi Op-dag           |
+|  36 | `auto_internt_sms`           | Internt SMS bokning/avbokning        |   cross | [x] | n/a | [x] | [x] | [x] | `staff-auto-internt-sms-final-demo.html` · U CCO_NATIVE · intern operatör-e-post            |
+
+---
+
+## D · Utökade samtycken (Meridiq catalog — **ej** i 36-katalogen)
+
+**Status (2026-06-25):** Owner-workshop **SIGNED_OFF** — [`D-SECTION-OWNER-DECISION-2026-06-25.md`](./D-SECTION-OWNER-DECISION-2026-06-25.md) · **6/6 APPROVED** (B,B,B,A,B,C) · **CCO-live: NEJ** för alla · **blockerar INTE Hair TP cutover**
+
+| Consent (intern titel)                      | Brand    | Beslut (val) | CCO-live | Workshop |
+| ------------------------------------------- | -------- | ------------ | -------- | -------- |
+| Hyalase SWE                                 | Hair TP  | **B** bundle | Nej      | [x]      |
+| Botulinumtoxin SWE/ENG                      | Hair TP  | **B** bundle | Nej      | [x]      |
+| Fillers SWE                                 | Curatiio | **B** MQ     | Nej      | [x]      |
+| Kemisk peeling / IPL / Plasma Pen           | Hair TP  | **A** DEFER  | Nej      | [x]      |
+| Ortopedisk PRP/PRF (+ HA)                   | Curatiio | **B** paus   | Nej      | [x]      |
+| Behandlingsavtal Botox / Fillers / Ögonlock | Curatiio | **C** legal  | Nej      | [x]      |
+
+_U/T/D/L/V för sektion D fortfarande `[ ]` — korrekt tills implementation-gate öppnas._
+
+---
+
+## E · Gemensamma milstolpar (bockas en gång)
+
+### Underlag & shell
+
+- [x] **E1** `patient-document-shell.css` — färger + layout (ingen mörk guld)
+- [x] **E2** Build-scripts steg 3 / 7 / 8 + `npm run build:patient-doc-demos`
+- [x] **E3** iCloud `CCO-patientdokument-live/` synkad (`npm run sync:patient-documents-live-folder`)
+- [x] **E4** Word-underlag **4/4** — HD ✅ FC ✅ TP-journal ✅ offert 14 docx ✅ · `npm run verify:patient-doc-e4-word` · SharePoint-sökväg: `…/Hårtransplantation/6. TP  Journal – Behandling FÖRSLAG.docx` (dubbelt mellanslag i filnamn)
+- [x] **E5** Dev-index `/major-arcana-preview/patient-doc/` — 36 länkar + `patient-document-shell.js` · `npm run verify:patient-doc-e5-dev-index`
+- [x] **E6** Legal diff-mall — [`E6-LEGAL-DIFF-TEMPLATE.md`](./E6-LEGAL-DIFF-TEMPLATE.md) · batch 1–3 ✅ (offert, samtycken, ordination, auto, foto)
+
+### CCO live (efter D-kolumnen)
+
+- [x] **E7** Ersätt modal-only patient flow med full-page shell
+- [x] **E8** Signering + audit + PDF för alla **signera**-typer (A1–A11, A15) — `patientDocumentSignRegistry.js` + `patient-document-shell.js` + `npm run verify:patient-doc-sign-e8`
+- [x] **E9** Staff-shell variant (badge “Personal”) för B16–B24 — `STAFF_LIVE_REGISTRY_IDS` + live headers + `npm run verify:patient-doc-staff-e9`
+- [x] **E10** Prod-verify suite för alla steg 2–9 — `npm run verify:patient-doc-prod` (routes + V + E8 + E9 + ENG-1)
+
+---
+
+## F · Rekommenderad ordning (boka av)
+
+1. **A10–A11** — samtycken steg 6 (2-dagar + ångerfrist) — blockerar avtal
+2. **A4–A9** — offertvarianter steg 5 (visning) + steg 7 (signering)
+3. **A12–A15** — patientinfo read-only steg 3–4 + foto steg 9 ✅
+4. **A2** — ENG HD (steg 3) ✅ · T väntar legal review av översättning
+5. **B16–B26** — staff personal-demos ✅ komplett
+6. **B22–B24** — plan, konsultation, ordination ✅
+7. **C27–C34** — mail/info previews ✅
+8. **C35–C36** — cross referens ✅
+
+---
+
+## G · Snabbkommandon
+
+```bash
+npm run build:patient-doc-demos          # steg 3 + 7 + 8 + staff + auto/info
+npm run build:auto-info-demos            # C27–C34 only
+npm run build:staff-cross-demos          # C35–C36 only
+npm run verify:patient-doc-live-routes     # L-kolumn · 36 routes + manifest
+npm run verify:patient-doc-sign-e8         # E8 · sign boot + shell på A1–A11, A15
+npm run verify:patient-doc-staff-e9        # E9 · staff badge Personal B16–B24
+npm run verify:patient-doc-eng1            # ENG-1 · health_tp_eng Meridiq 14865 (29 frågor)
+npm run verify:patient-doc-v-column        # V-kolumn · 36 extended checks
+npm run verify:patient-doc-prod            # E10 · all patient-doc prod verifies
+npm run verify:patient-doc-e5-dev-index       # E5 · dev-index 36 länkar
+npm run verify:patient-doc-e4-word         # E4 · Word-underlag lokalt (HD/FC/offert/tp-journal)
+npm run verify:patient-doc-u-mail-patientinfo # U-pass · alias batch 1+2
+npm run verify:patient-doc-u-pass               # U-pass · batch 1 (7) + batch 2 (12) = 19 verify-rader
+npm run diff:patient-doc-e6-offert-samtycke # E6/T · legal triad offert + samtycken
+npm run diff:patient-doc-e6-batch2          # E6/T · ordination + auto-instruktion
+npm run diff:patient-doc-e6-batch3          # E6/T · foto_samtycke scope (ORD-24 facit)
+npm run diff:patient-doc-hd-sve            # T-kolumn · HD 16414 demo↔Meridiq
+npm run diff:patient-doc-friskforsakran    # T-kolumn · FC 16413 demo↔Meridiq
+npm run diff:patient-doc-hd-eng            # T-kolumn · 14865 label parity report
+npm run diff:patient-doc-journal-t-column  # T-kolumn · journal B16–B21 schema↔demo
+npm run diff:patient-doc-t-batch4          # T-pass batch 4 · 16 MQ-only typer
+npm run verify:patient-doc-t-pass          # alias batch 4
+npm run build:patient-doc-d-section-registry   # Sektion D · owner-workshop mapping JSON+MD
+npm run verify:patient-doc-d-section-registry  # Sektion D · verify mapping facit
+npm run diff:patient-doc-t-column          # T-kolumn · matris alla 36 registryId
+npm run download:patient-doc-word-e4       # E4 · Graph-nedladdning saknade Word
+npm run sync:patient-documents-live-folder
+rg -i 'Meridiq|#bd7a18' public/major-arcana-preview/steg*.html  # ska vara tomt (synlig text)
+```
+
+**Källor:** [IMPLEMENTATION-CHECKLIST.md](./IMPLEMENTATION-CHECKLIST.md) (detaljer per MS/MQ/CCO) · [README.md](./README.md)

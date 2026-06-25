@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-06-25T08:10:09.262Z",
+  "document": "Hälsodeklaration | Hair TP Clinic",
+  "meridiqApiId": 16414,
+  "sharepointFile": "1. Hälsodeklaration TP, PRP, Microneedling PRF.docx",
+  "sources": {
+    "wordDocx": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/1.-Hälsodeklaration-TP_-PRP_-Microneedling-PRF.docx",
+    "wordBytes": 93213,
+    "wordTextLength": 2523,
+    "wordMarkdownProxy": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Hairtpclinic webb/docs/sources/halsodeklaration-konsultation.md",
+    "meridiqCatalog": "migration/meridiq/questionary-catalog.json",
+    "ccoSchema": "public/major-arcana-preview/app/journal-clinical-schemas.js#health_declaration:hair_tp",
+    "finalDemo": "public/major-arcana-preview/steg3-halsodeklaration-final-demo.html"
+  },
+  "summary": {
+    "meridiqQuestionCount": 14,
+    "ccoFieldCount": 14,
+    "ccoMeridiqParity": "14/14",
+    "wordMeridiqKeywordHits": "10/14",
+    "finalDemoStatus": "PARTIAL — fel formulärmodell (checkbox-lista vs Meridiq)",
+    "legalReviewRequired": true
+  },
+  "ccoVsMeridiq": {
+    "match": 14,
+    "total": 14,
+    "missingInCco": [],
+    "extraInCco": []
+  },
+  "wordCoverage": [
+    {
+      "id": 450976,
+      "type": "yes_no",
+      "label": "Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?",
+      "normalized": "använder du tobak- eller nikotinprodukter tex cigaretter snus vape",
+      "inWord": true
+    },
+    {
+      "id": 450977,
+      "type": "yes_no",
+      "label": "Är du gravid eller ammar?",
+      "normalized": "är du gravid eller ammar",
+      "inWord": true
+    },
+    {
+      "id": 450978,
+      "type": "yes_no_textbox",
+      "label": "Har du nu eller tidigare haft hjärt- eller kärlsjukdom (t.ex. hjärtinfarkt, kärlkramp, rytmrubbning)? Om ja, ange vad.",
+      "normalized": "har du nu eller tidigare haft hjärt- eller kärlsjukdom tex hjärtinfarkt kärlkramp rytmrubbning om ja ange vad",
+      "inWord": true
+    },
+    {
+      "id": 450979,
+      "type": "yes_no",
+      "label": "Har du diagnostiserat högt blodtryck (hypertoni)?",
+      "normalized": "har du diagnostiserat högt blodtryck hypertoni",
+      "inWord": true
+    },
+    {
+      "id": 450980,
+      "type": "yes_no_textbox",
+      "label": "Har du någon annan sjukdom som vi bör känna till (t.ex. diabetes, koagulationsrubbning, immunologisk sjukdom)? Om ja, ange vad.",
+      "normalized": "har du någon annan sjukdom som vi bör känna till tex diabetes koagulationsrubbning immunologisk sjukdom om ja ange vad",
+      "inWord": true
+    },
+    {
+      "id": 450981,
+      "type": "yes_no_textbox",
+      "label": "Har du någon blodöverförbar sjukdom? Om ja, vänligen ange nedan:",
+      "normalized": "har du någon blodöverförbar sjukdom om ja vänligen ange nedan",
+      "inWord": false
+    },
+    {
+      "id": 450982,
+      "type": "yes_no_textbox",
+      "label": "Finns det något annat vi bör känna till om din hälsa? Om ja, beskriv",
+      "normalized": "finns det något annat vi bör känna till om din hälsa om ja beskriv",
+      "inWord": true
+    },
+    {
+      "id": 450983,
+      "type": "yes_no_textbox",
+      "label": "Tar du några läkemedel (regelbundet eller vid behov)? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering nedan.",
+      "normalized": "tar du några läkemedel regelbundet eller vid behov om ja vänligen ange läkemedlets namn styrka mg/ml och dosering nedan",
+      "inWord": true
+    },
+    {
+      "id": 450984,
+      "type": "yes_no_textbox",
+      "label": "Tar du blodförtunnande läkemedel? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering nedan.",
+      "normalized": "tar du blodförtunnande läkemedel om ja vänligen ange läkemedlets namn styrka mg/ml och dosering nedan",
+      "inWord": false
+    },
+    {
+      "id": 450985,
+      "type": "yes_no",
+      "label": "Tar du Omega 3, fiskolja eller andra kosttillskott som påverkar blödning?",
+      "normalized": "tar du omega 3 fiskolja eller andra kosttillskott som påverkar blödning",
+      "inWord": true
+    },
+    {
+      "id": 451846,
+      "type": "yes_no_textbox",
+      "label": "Är du allergisk eller överkänslig mot något läkemedel (inklusive lokalbedövning eller antibiotika)? Om ja, ange vilket/vilka och eventuell reaktion",
+      "normalized": "är du allergisk eller överkänslig mot något läkemedel inklusive lokalbedövning eller antibiotika om ja ange vilket/vilka och eventuell reaktion",
+      "inWord": false
+    },
+    {
+      "id": 451847,
+      "type": "input",
+      "label": "Ange din längd (cm):",
+      "normalized": "ange din längd cm",
+      "inWord": true
+    },
+    {
+      "id": 451848,
+      "type": "input",
+      "label": "Ange din vikt (kg):",
+      "normalized": "ange din vikt kg",
+      "inWord": false
+    },
+    {
+      "id": 451849,
+      "type": "yes_no_textbox",
+      "label": "Önskar du att vi fokuserar på något särskilt under konsultationen (t.ex hår, hud eller båda)? Om ja, Beskriv gärna kort",
+      "normalized": "önskar du att vi fokuserar på något särskilt under konsultationen tex hår hud eller båda om ja beskriv gärna kort",
+      "inWord": true
+    }
+  ],
+  "wordProxyNotes": [
+    "Förnamn, Efternamn, Personnummer",
+    "Adress, Postnummer, Postort",
+    "E-postadress, Telefonnummer",
+    "Längd, Vikt",
+    "Röker du? (Tobak/nikotin/cigaretter/snus/vape) — Ja/Nej",
+    "Hjärt- och kärlsjukdom? — Ja/Nej + vad",
+    "Högt blodtryck? — Ja/Nej/Vet ej",
+    "Blodsmitta / blodöverförbar sjukdom? — Ja/Nej + vilken",
+    "Övriga sjukdomar? — Ja/Nej + vilka",
+    "Läkemedel? — Ja/Nej + namn, styrka, dos",
+    "Allergisk mot läkemedel? — Ja/Nej + vilka",
+    "Särskilda önskemål? (hår, hud eller båda)",
+    "Hur kom du i kontakt med Hair TP Clinic?",
+    "Datum",
+    "Godkännande av personuppgiftshantering",
+    "Använder du blodförtunnande läkemedel?",
+    "Tar du Omega 3, fiskolja eller andra kosttillskott som påverkar blödning?",
+    "Använder du rullstol eller annat hjälpmedel för förflyttning?",
+    "Är du gravid eller ammar?",
+    "Finns det något annat vi bör känna till om din hälsa?",
+    "**/boka/-sidan:** kommunicera att hälsodeklaration skickas till patienten i samband med konsultationsbokning",
+    "**GDPR:** \"Jag godkänner att mina uppgifter sparas i Hair TP Clinics system\" — länka till integritetspolicy"
+  ],
+  "steg3DemoIssues": [
+    "Demo använder SJUKDOMS-CHECKLISTA (hypertoni, diabetes, HIV…) — inte samma struktur som Meridiq 16414 (Ja/Nej per fråga)",
+    "Demo har 10 checkbox-sjukdomar; Meridiq har 14 frågor",
+    "Ungefärlig label-match demo↔Meridiq: 1/14"
+  ],
+  "blockers": [
+    "NEEDS_REVIEW: Word-text matchar <80% Meridiq-frågor (keyword-scan)",
+    "BLOCKER: final-demo steg3 får inte användas som textfacit — bygg om från Meridiq+Word"
+  ]
+}

@@ -1,0 +1,456 @@
+{
+  "generatedAt": "2026-06-25T15:24:20.794Z",
+  "scope": "U-pass batch 1 (mail C27–C30 + patientinfo A12–A14) + batch 2 (journal B17–B21, staff B23/B25/B26, auto C32/C34/C35/C36)",
+  "wordDir": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt",
+  "ok": 19,
+  "failed": 0,
+  "batch1": 7,
+  "batch2": 12,
+  "checks": [
+    {
+      "registryId": "prp_hair_info_sve",
+      "id": "prp_hair_info_sve",
+      "label": "PRP hår – patientinfo SWE",
+      "batch": "1",
+      "ok": true,
+      "status": "MS_OK+FACIT",
+      "hits": [
+        {
+          "kind": "MS_OK",
+          "detail": "PDF-HTPC/Tjänstespecifikation - PRP-hårbehandling 2026.pdf"
+        },
+        {
+          "kind": "MS_OK",
+          "detail": "PRP/PRF/MN/NY Tjänstespecifikation - PRP-hårbehandling.docx"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 152994"
+        }
+      ],
+      "note": null
+    },
+    {
+      "registryId": "prp_hair_info_eng",
+      "id": "prp_hair_info_eng",
+      "label": "PRP – patientinfo ENG",
+      "batch": "1",
+      "ok": true,
+      "status": "MQ_FACIT",
+      "hits": [
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 152987"
+        }
+      ],
+      "note": "Ingen SharePoint ENG-PDF — Meridiq 152987 + bundle facit (samma modell som health_tp_eng U)"
+    },
+    {
+      "registryId": "microneedling_info",
+      "id": "microneedling_info",
+      "label": "Microneedling info SWE/ENG",
+      "batch": "1",
+      "ok": true,
+      "status": "MS_OK+FACIT",
+      "hits": [
+        {
+          "kind": "MS_OK",
+          "detail": "PDF-HTPC/Tjänstespecifikation - Microneedling och PRP-hudbehandling 2026.pdf"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 152998+152997"
+        }
+      ],
+      "note": null
+    },
+    {
+      "registryId": "info_offert_tp",
+      "id": "mail_info_offert_tp",
+      "label": "Offert & behandlingsplan TP (auto mail)",
+      "batch": "1",
+      "ok": true,
+      "status": "MS_OK+FACIT",
+      "hits": [
+        {
+          "kind": "MS_OK",
+          "detail": "General/1. Kunddokument - KVALITETSSÄKRA/98. Mailmallar/Offert/Behandlingsplan och offert - HÅRTRANSPLANTATION.docx"
+        }
+      ],
+      "note": null
+    },
+    {
+      "registryId": "auto_bokningsbekraftelse",
+      "id": "mail_bokningsbekraftelse",
+      "label": "Bokningsbekräftelse SMS/e-post",
+      "batch": "1",
+      "ok": true,
+      "status": "MS_OK+FACIT",
+      "hits": [
+        {
+          "kind": "MS_OK",
+          "detail": "98. Mailmallar/Konsultation – Bokningsbekräftelse.docx"
+        },
+        {
+          "kind": "MS_OK",
+          "detail": "98. Mailmallar/Behandling bokningsbekräftelse/Behandling med förskottsbetalning bokningsbekräftelse.docx"
+        },
+        {
+          "kind": "MS_OK",
+          "detail": "98. Mailmallar/Behandling bokningsbekräftelse/Behandling utan förskottsbetalning bokningsbekräftelse.docx"
+        },
+        {
+          "kind": "CCO_TEMPLATE",
+          "detail": "booking_confirmation_hair_tp"
+        }
+      ],
+      "note": null
+    },
+    {
+      "registryId": "auto_bokningspaminnelse",
+      "id": "mail_bokningspaminnelse",
+      "label": "Bokningspåminnelse",
+      "batch": "1",
+      "ok": true,
+      "status": "CCO_TEMPLATE",
+      "hits": [
+        {
+          "kind": "CCO_TEMPLATE",
+          "detail": "booking_reminder_24h"
+        }
+      ],
+      "note": "Ingen dedikerad SharePoint Word — CCO template booking_reminder_24h + Cliento/SMS catalog"
+    },
+    {
+      "registryId": "auto_avbokningsbekraftelse",
+      "id": "mail_avbokningsbekraftelse",
+      "label": "Avbokningsbekräftelse",
+      "batch": "1",
+      "ok": true,
+      "status": "CCO_TEMPLATE",
+      "hits": [
+        {
+          "kind": "CCO_TEMPLATE",
+          "detail": "cancellation_confirmation"
+        }
+      ],
+      "note": "CCO-native cancellation_confirmation — ej separat Mailmallar-Word i inventory"
+    },
+    {
+      "registryId": "journal_tp_post_prp",
+      "id": "journal_tp_post_prp",
+      "label": "Journal · TP Efterbehandling PRP",
+      "batch": "2",
+      "ok": true,
+      "status": "MQ_SCHEMA_FACIT",
+      "hits": [
+        {
+          "kind": "SCHEMA",
+          "detail": "prp_treatment:tp_post_op (24 fält)"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 16412 (24 frågor)"
+        },
+        {
+          "kind": "BUNDLE",
+          "detail": "bundle FULL"
+        },
+        {
+          "kind": "BUNDLE_MQ",
+          "detail": "bundle↔MQ"
+        }
+      ],
+      "note": "Meridiq-driven — ingen Word-journalmall (MS-SAKNAS enligt inventory)"
+    },
+    {
+      "registryId": "journal_tp_follow_4",
+      "id": "journal_tp_follow_4",
+      "label": "Journal · TP Uppföljning 4 mån",
+      "batch": "2",
+      "ok": true,
+      "status": "MQ_SCHEMA_FACIT",
+      "hits": [
+        {
+          "kind": "SCHEMA",
+          "detail": "follow_up:4_manader (8 fält)"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 16407 (8 frågor)"
+        },
+        {
+          "kind": "BUNDLE",
+          "detail": "bundle FULL"
+        },
+        {
+          "kind": "BUNDLE_MQ",
+          "detail": "bundle↔MQ"
+        }
+      ],
+      "note": "Meridiq-driven journal — ingen Word/PDF underlag krävs"
+    },
+    {
+      "registryId": "journal_tp_follow_6",
+      "id": "journal_tp_follow_6",
+      "label": "Journal · TP Uppföljning 6 mån",
+      "batch": "2",
+      "ok": true,
+      "status": "MQ_SCHEMA_FACIT",
+      "hits": [
+        {
+          "kind": "SCHEMA",
+          "detail": "follow_up:6_manader (8 fält)"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 16409 (8 frågor)"
+        },
+        {
+          "kind": "BUNDLE",
+          "detail": "bundle FULL"
+        },
+        {
+          "kind": "BUNDLE_MQ",
+          "detail": "bundle↔MQ"
+        }
+      ],
+      "note": "Meridiq-driven journal — ingen Word/PDF underlag krävs"
+    },
+    {
+      "registryId": "journal_tp_follow_12",
+      "id": "journal_tp_follow_12",
+      "label": "Journal · TP Resultat 12 mån",
+      "batch": "2",
+      "ok": true,
+      "status": "MQ_SCHEMA_FACIT",
+      "hits": [
+        {
+          "kind": "SCHEMA",
+          "detail": "follow_up:12_manader (1 fält)"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 16390 (1 frågor)"
+        },
+        {
+          "kind": "BUNDLE",
+          "detail": "bundle FULL"
+        },
+        {
+          "kind": "BUNDLE_MQ",
+          "detail": "bundle↔MQ"
+        }
+      ],
+      "note": "Meridiq-driven journal — ingen Word/PDF underlag krävs"
+    },
+    {
+      "registryId": "journal_prp_multi",
+      "id": "journal_prp_multi",
+      "label": "Journal · PRP/PRF/Microneedling",
+      "batch": "2",
+      "ok": true,
+      "status": "MQ_SCHEMA_FACIT",
+      "hits": [
+        {
+          "kind": "SCHEMA",
+          "detail": "prp_treatment:prp_skin (12 fält)"
+        },
+        {
+          "kind": "MQ",
+          "detail": "Meridiq 14988 (12 frågor)"
+        },
+        {
+          "kind": "BUNDLE",
+          "detail": "bundle FULL"
+        },
+        {
+          "kind": "BUNDLE_MQ",
+          "detail": "bundle↔MQ"
+        }
+      ],
+      "note": "Meridiq-driven journal — ingen Word/PDF underlag krävs"
+    },
+    {
+      "registryId": "konsultationsmall",
+      "id": "konsultationsmall",
+      "label": "Konsultationsmall · Hair TP",
+      "batch": "2",
+      "ok": true,
+      "status": "BUNDLE_FACIT",
+      "hits": [
+        {
+          "kind": "BUNDLE",
+          "detail": "contentStatus FULL"
+        },
+        {
+          "kind": "REPO",
+          "detail": "migration/journal-text-templates.json"
+        },
+        {
+          "kind": "REPO",
+          "detail": "public/major-arcana-preview/app/patient-master-ui.js"
+        },
+        {
+          "kind": "JOURNAL_TEMPLATE",
+          "detail": "consultation-summary"
+        }
+      ],
+      "note": "Ingen dedikerad Word-mall — bundle + journal-text-templates + Nordbro patient_info_consultation stub"
+    },
+    {
+      "registryId": "anteckningar_kort",
+      "id": "anteckningar_kort",
+      "label": "Anteckningar på patientkort",
+      "batch": "2",
+      "ok": true,
+      "status": "CCO_NATIVE",
+      "hits": [
+        {
+          "kind": "BUNDLE",
+          "detail": "contentStatus FULL"
+        },
+        {
+          "kind": "REPO",
+          "detail": "src/ops/hairtp-document-types.catalog.json"
+        },
+        {
+          "kind": "NATIVE",
+          "detail": "CCO-native (ingen Word-mall)"
+        }
+      ],
+      "note": "Fritext i patientkort — by design, ingen Word/PDF"
+    },
+    {
+      "registryId": "id_verifiering",
+      "id": "id_verifiering",
+      "label": "ID-verifiering",
+      "batch": "2",
+      "ok": true,
+      "status": "PROCESS_FACIT",
+      "hits": [
+        {
+          "kind": "BUNDLE",
+          "detail": "contentStatus FULL"
+        },
+        {
+          "kind": "REPO",
+          "detail": "src/ops/patientIdentityVerification.js"
+        },
+        {
+          "kind": "REPO",
+          "detail": "src/routes/patientIdentity.js"
+        },
+        {
+          "kind": "PROCESS",
+          "detail": "5 ID-metoder"
+        }
+      ],
+      "note": "Process-facit (BankID/kundportal/manuell) — ej formulär-Word"
+    },
+    {
+      "registryId": "auto_betanketid",
+      "id": "auto_betanketid",
+      "label": "Betänketid enligt lag (e-post)",
+      "batch": "2",
+      "ok": true,
+      "status": "BUNDLE_FACIT",
+      "hits": [
+        {
+          "kind": "BUNDLE",
+          "detail": "contentStatus FULL"
+        },
+        {
+          "kind": "REPO",
+          "detail": "migration/meridiq/steg7-tp-dhi-agreement-facit.json"
+        },
+        {
+          "kind": "REPO",
+          "detail": "src/templates/offerEmail.js"
+        },
+        {
+          "kind": "BUNDLE_FIELDS",
+          "detail": "agreementCoolingExcerpt+emailSample"
+        }
+      ],
+      "note": "Nordbro ångerfrist-text + offerEmail — ingen separat Mailmallar-Word"
+    },
+    {
+      "registryId": "auto_integritet",
+      "id": "auto_integritet",
+      "label": "Personuppgiftspolicy",
+      "batch": "2",
+      "ok": true,
+      "status": "LEGAL_REPO_FACIT",
+      "hits": [
+        {
+          "kind": "LEGAL_REPO",
+          "detail": "docs/legal/personuppgiftspolicy-pub-maj-arcana.md"
+        },
+        {
+          "kind": "MS_OK",
+          "detail": "GDPR/Information om personuppgiftsbehandling - HTPC.docx"
+        },
+        {
+          "kind": "BUNDLE",
+          "detail": "PUB markdown i bundle"
+        }
+      ],
+      "note": "PUB i docs/legal + SharePoint GDPR-mapp (lokal Word valfri)"
+    },
+    {
+      "registryId": "fore_efter_bildmall",
+      "id": "fore_efter_bildmall",
+      "label": "Före/efter-bildmallar",
+      "batch": "2",
+      "ok": true,
+      "status": "CCO_NATIVE",
+      "hits": [
+        {
+          "kind": "BUNDLE",
+          "detail": "contentStatus FULL"
+        },
+        {
+          "kind": "REPO",
+          "detail": "src/ops/ccoAssetNaming/photoReviewNaming.js"
+        },
+        {
+          "kind": "NATIVE",
+          "detail": "CCO-native (ingen Word-mall)"
+        },
+        {
+          "kind": "TAXONOMY",
+          "detail": "4 foto-steg"
+        }
+      ],
+      "note": "Foto-taxonomi Op-dag — ingen binär bildmall i repo"
+    },
+    {
+      "registryId": "auto_internt_sms",
+      "id": "auto_internt_sms",
+      "label": "Internt SMS/e-post bokning",
+      "batch": "2",
+      "ok": true,
+      "status": "CCO_NATIVE",
+      "hits": [
+        {
+          "kind": "BUNDLE",
+          "detail": "contentStatus FULL"
+        },
+        {
+          "kind": "REPO",
+          "detail": "src/templates/bookingReservationEmail.js"
+        },
+        {
+          "kind": "REPO",
+          "detail": "docs/strategy/CLIENTO-INVENTORY.md"
+        },
+        {
+          "kind": "SAMPLE",
+          "detail": "operatorEmailSample"
+        }
+      ],
+      "note": "Intern operatör-notis — ej patient-SMS Word"
+    }
+  ]
+}

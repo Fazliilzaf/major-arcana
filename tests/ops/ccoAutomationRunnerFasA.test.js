@@ -49,11 +49,12 @@ describe('ORD-5 Fas A automation signals', () => {
       treatmentPlanStatus: 'accepted',
       todayVisit: false,
       hasJournalPhoto: false,
-      photoConsent: { signed: false },
+      photoConsent: { signed: true },
       missingHealthDeclaration: false,
       missingForm: false,
       missingJournal: false,
       missingAgreement: false,
+      identityVerified: true,
     };
     readout.readyForTreatment = computeReadyForTreatment(readout, {
       bookable: true,

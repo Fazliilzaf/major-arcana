@@ -65,7 +65,9 @@ async function seedFolder(store, { mailboxId, folderType, messages = [] }) {
       folderName: folderType,
       wellKnownName: folderType,
       totalItemCount: messages.length,
-      unreadItemCount: messages.filter((item) => item.folderType === 'inbox' && item.isRead === false).length,
+      unreadItemCount: messages.filter(
+        (item) => item.folderType === 'inbox' && item.isRead === false
+      ).length,
       messageCollectionCount: messages.length,
     },
     messages,
@@ -410,7 +412,8 @@ test('runtime worklist shadow reports aggregate and conversation-level diffs aga
       );
 
       assert.equal(
-        byConversationKey.get('kons@hairtpclinic.com:conv-unread-diff')?.diffs?.unread?.classification,
+        byConversationKey.get('kons@hairtpclinic.com:conv-unread-diff')?.diffs?.unread
+          ?.classification,
         'truth_shift'
       );
       assert.equal(
@@ -438,7 +441,9 @@ test('runtime worklist shadow reports aggregate and conversation-level diffs aga
 });
 
 test('worklist truth, consumer and shadow carry backfilled customer identity from established customer-state', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-worklist-identity-backfill-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-worklist-identity-backfill-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -533,39 +538,39 @@ test('worklist truth, consumer and shadow carry backfilled customer identity fro
     await seedFolder(ccoMailboxTruthStore, {
       mailboxId: 'kons@hairtpclinic.com',
       folderType: 'inbox',
-        messages: [
-          inboxMessage({
-            conversationId: 'conv-strong',
-            graphMessageId: 'msg-strong',
-            subject: 'Strong customer',
-            preview: 'Säker kundidentitet ska backfyllas.',
-            receivedAt: '2026-04-02T08:00:00.000Z',
-            isRead: false,
-            mailboxId: 'kons@hairtpclinic.com',
-            from: {
-              address: 'strong@example.com',
-              name: 'Strong Customer',
-            },
-          }),
-        ],
-      });
+      messages: [
+        inboxMessage({
+          conversationId: 'conv-strong',
+          graphMessageId: 'msg-strong',
+          subject: 'Strong customer',
+          preview: 'Säker kundidentitet ska backfyllas.',
+          receivedAt: '2026-04-02T08:00:00.000Z',
+          isRead: false,
+          mailboxId: 'kons@hairtpclinic.com',
+          from: {
+            address: 'strong@example.com',
+            name: 'Strong Customer',
+          },
+        }),
+      ],
+    });
     await seedFolder(ccoMailboxTruthStore, {
       mailboxId: 'contact@hairtpclinic.com',
       folderType: 'inbox',
       messages: [
-          inboxMessage({
-            mailboxId: 'contact@hairtpclinic.com',
-            conversationId: 'conv-weak',
-            graphMessageId: 'msg-weak',
-            subject: 'Weak customer',
-            preview: 'Svag identitet ska lämnas tom.',
-            receivedAt: '2026-04-02T09:00:00.000Z',
-            isRead: false,
-            from: {
-              address: 'weak@example.com',
-              name: 'Weak Customer',
-            },
-          }),
+        inboxMessage({
+          mailboxId: 'contact@hairtpclinic.com',
+          conversationId: 'conv-weak',
+          graphMessageId: 'msg-weak',
+          subject: 'Weak customer',
+          preview: 'Svag identitet ska lämnas tom.',
+          receivedAt: '2026-04-02T09:00:00.000Z',
+          isRead: false,
+          from: {
+            address: 'weak@example.com',
+            name: 'Weak Customer',
+          },
+        }),
         inboxMessage({
           mailboxId: 'contact@hairtpclinic.com',
           conversationId: 'conv-null',
@@ -679,8 +684,14 @@ test('worklist truth, consumer and shadow carry backfilled customer identity fro
         consumerPayload.rows.map((row) => [row.conversation?.conversationId, row])
       );
 
-      assert.equal(truthRows.get('conv-strong')?.customerIdentity?.canonicalCustomerId, 'cust-strong-1');
-      assert.equal(consumerRows.get('conv-strong')?.customerIdentity?.canonicalCustomerId, 'cust-strong-1');
+      assert.equal(
+        truthRows.get('conv-strong')?.customerIdentity?.canonicalCustomerId,
+        'cust-strong-1'
+      );
+      assert.equal(
+        consumerRows.get('conv-strong')?.customerIdentity?.canonicalCustomerId,
+        'cust-strong-1'
+      );
       assert.equal(truthRows.get('conv-weak')?.customerIdentity, null);
       assert.equal(consumerRows.get('conv-weak')?.customerIdentity, null);
       assert.equal(truthRows.get('conv-null')?.customerIdentity, null);
@@ -1105,19 +1116,11 @@ test('runtime worklist truth route exposes scoped mailbox-truth rows while keepi
         all: 1,
       });
 
-      const byConversationKey = new Map(
-        payload.rows.map((item) => [item.conversationKey, item])
-      );
+      const byConversationKey = new Map(payload.rows.map((item) => [item.conversationKey, item]));
 
       assert.equal(byConversationKey.size, 2);
-      assert.equal(
-        byConversationKey.has('kons@hairtpclinic.com:conv-draft-review-model'),
-        false
-      );
-      assert.equal(
-        byConversationKey.has('kons@hairtpclinic.com:conv-deleted-only-model'),
-        false
-      );
+      assert.equal(byConversationKey.has('kons@hairtpclinic.com:conv-draft-review-model'), false);
+      assert.equal(byConversationKey.has('kons@hairtpclinic.com:conv-deleted-only-model'), false);
 
       const unreadRow = byConversationKey.get('kons@hairtpclinic.com:conv-unread-model');
       assert.equal(unreadRow.hasUnreadInbound, true);
@@ -1130,11 +1133,20 @@ test('runtime worklist truth route exposes scoped mailbox-truth rows while keepi
       assert.equal(needsReplyRow.needsReply, true);
       assert.equal(needsReplyRow.lane, 'all');
 
-      assert.equal(payload.shadowGuardrail.latestAnalysisEntry.generatedAt, '2026-04-02T09:00:00.000Z');
+      assert.equal(
+        payload.shadowGuardrail.latestAnalysisEntry.generatedAt,
+        '2026-04-02T09:00:00.000Z'
+      );
       assert.equal(payload.shadowGuardrail.acceptanceGate.canConsiderCutover, true);
-      assert.equal(payload.shadowGuardrail.metadata.shadowSource, 'mailbox truth worklist read-model');
+      assert.equal(
+        payload.shadowGuardrail.metadata.shadowSource,
+        'mailbox truth worklist read-model'
+      );
       assert.equal(payload.shadowGuardrail.metadata.parityScope?.draftOnlyReview, 'out_of_scope');
-      assert.equal(payload.shadowGuardrail.aggregate.classificationCounts.out_of_scope_draft_review, 1);
+      assert.equal(
+        payload.shadowGuardrail.aggregate.classificationCounts.out_of_scope_draft_review,
+        1
+      );
       assert.equal(payload.shadowGuardrail.aggregate.classificationCounts.mapping_gap || 0, 0);
     });
   } finally {
@@ -1143,7 +1155,9 @@ test('runtime worklist truth route exposes scoped mailbox-truth rows while keepi
 });
 
 test('runtime worklist consumer skips a newer empty legacy analysis entry and keeps the latest usable baseline', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-worklist-consumer-baseline-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-worklist-consumer-baseline-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -1291,7 +1305,7 @@ test('runtime worklist consumer skips a newer empty legacy analysis entry and ke
       assert.equal(payload.shadowGuardrail.latestObservedAnalysisEntry.id, emptyEntry.id);
       assert.equal(
         payload.shadowGuardrail.legacyBaselineSelection.strategy,
-        'latest_non_empty_scope_match'
+        'best_enriched_scope_match'
       );
       assert.equal(
         payload.shadowGuardrail.legacyBaselineSelection.selectedEntryId,
@@ -1418,7 +1432,9 @@ test('runtime worklist consumer route exposes limited truth-driven rows while ke
       assert.equal(payload.readiness.canConsiderCutover, false);
 
       assert.deepEqual(payload.parityBaseline.comparableMailboxIds, ['kons@hairtpclinic.com']);
-      assert.deepEqual(payload.parityBaseline.notComparableMailboxIds, ['marknad@hairtpclinic.com']);
+      assert.deepEqual(payload.parityBaseline.notComparableMailboxIds, [
+        'marknad@hairtpclinic.com',
+      ]);
 
       const parityByMailbox = new Map(
         payload.parityBaseline.mailboxAssessment.map((item) => [item.mailboxId, item])
@@ -1447,7 +1463,10 @@ test('runtime worklist consumer route exposes limited truth-driven rows while ke
       assert.equal(marknadRow.state.needsReply, true);
 
       assert.equal(payload.shadowGuardrail.acceptanceGate.canConsiderCutover, true);
-      assert.equal(payload.shadowGuardrail.metadata.shadowSource, 'mailbox truth worklist read-model');
+      assert.equal(
+        payload.shadowGuardrail.metadata.shadowSource,
+        'mailbox truth worklist read-model'
+      );
       const guardrailByMailbox = new Map(
         payload.shadowGuardrail.mailboxAssessment.map((item) => [item.mailboxId, item])
       );
@@ -1560,13 +1579,12 @@ test('runtime worklist consumer readout exposes an internal preview surface with
       const html = await response.text();
 
       assert.equal(html.includes('CCO worklist consumer preview'), true);
-      assert.equal(
-        html.includes('Detta är inte primär operativ arbetskö'),
-        true
-      );
+      assert.equal(html.includes('Detta är inte primär operativ arbetskö'), true);
       assert.equal(html.includes('Legacy-worklisten fortsätter vara styrande.'), true);
       assert.equal(
-        html.includes('/api/v1/cco/runtime/worklist/consumer?mailboxIds=kons%40hairtpclinic.com%2Cmarknad%40hairtpclinic.com&amp;limit=20'),
+        html.includes(
+          '/api/v1/cco/runtime/worklist/consumer?mailboxIds=kons%40hairtpclinic.com%2Cmarknad%40hairtpclinic.com&amp;limit=20'
+        ),
         true
       );
       assert.equal(html.includes('Comparable mailboxar: kons@hairtpclinic.com'), true);

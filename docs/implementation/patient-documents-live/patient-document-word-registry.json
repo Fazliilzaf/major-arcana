@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-25",
+  "wordDirNote": "Lokal iCloud — committas ALDRIG till GitHub. CCO_PATIENT_DOCS_WORD_DIR override.",
+  "e4Blockers": [],
+  "items": [
+    {
+      "id": "hd_tp_sve",
+      "registryIds": ["haelso_tp_sve"],
+      "label": "Hälsodeklaration TP/PRP/MN/PRF",
+      "e4Required": true,
+      "localNames": [
+        "1.-Hälsodeklaration-TP_-PRP_-Microneedling-PRF.docx",
+        "1. Hälsodeklaration TP, PRP, Microneedling PRF.docx"
+      ],
+      "glob": "h[aä]lsodeklaration.*\\.docx$",
+      "sharepoint": {
+        "name": "1. Hälsodeklaration TP, PRP, Microneedling PRF.docx",
+        "relative": "General/1. Kunddokument - KVALITETSSÄKRA/2. Hair TP Clinic 2026/Hårtransplantation"
+      },
+      "meridiqApiId": 16414,
+      "demoHtml": "public/major-arcana-preview/steg3-halsodeklaration-final-demo.html",
+      "tDiffScript": "diff:patient-doc-hd-sve"
+    },
+    {
+      "id": "fc_tp",
+      "registryIds": ["friskfoers_tp"],
+      "label": "Friskförsäkran TP 2025",
+      "e4Required": true,
+      "localNames": ["5-friskforsakran-tp-2025.docx", "5. Friskförsäkran TP 2025.docx"],
+      "glob": "friskf[oö]rs[aä]kran.*\\.docx$",
+      "sharepoint": {
+        "name": "5. Friskförsäkran TP 2025.docx",
+        "relative": "General/1. Kunddokument - KVALITETSSÄKRA/2. Hair TP Clinic 2026/Hårtransplantation"
+      },
+      "meridiqApiId": 16413,
+      "demoHtml": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "tDiffScript": "diff:patient-doc-friskforsakran"
+    },
+    {
+      "id": "tp_journal",
+      "registryIds": ["journal_tp"],
+      "label": "TP Journal — Behandling FÖRSLAG",
+      "e4Required": true,
+      "localNames": [
+        "6-tp-journal-behandling-forslag.docx",
+        "6. TP Journal – Behandling FÖRSLAG.docx",
+        "6. TP  Journal – Behandling FÖRSLAG.docx",
+        "6.-TP-Journal-_-Behandling-FÖRSLAG.docx"
+      ],
+      "glob": "tp\\s+journal.*\\.docx$",
+      "sharepoint": {
+        "name": "6. TP  Journal – Behandling FÖRSLAG.docx",
+        "relative": "General/1. Kunddokument - KVALITETSSÄKRA/2. Hair TP Clinic 2026/Hårtransplantation"
+      },
+      "meridiqApiId": 16411,
+      "tNote": "Staff journal — T = MQ-fältparitet i journal-tp-form.js (ej Word 1:1)"
+    },
+    {
+      "id": "offert_zip",
+      "registryIds": [
+        "offert_tp",
+        "offert_prp_hair",
+        "offert_prp_skin",
+        "offert_microneedling",
+        "offert_prf",
+        "offert_profilo",
+        "behandlingsplan_staff"
+      ],
+      "label": "Offertmallar.zip (14 docx)",
+      "e4Required": true,
+      "localDir": "~/Code/MA-Archive/offert-word/Offertmallar",
+      "localZipHint": "_ARKIV-iCloud-Major-Arcana-2.0/MA-Archive/journal-zips/Offertmallar-20260521T215140Z-3-001.zip",
+      "syncScript": "scripts/sync-offert-archive.sh",
+      "tNote": "Nordbro 251203 + zip-mallar — legal diff per avtalstyp (E6)"
+    },
+    {
+      "id": "avtal_dhi_2d",
+      "registryIds": ["offert_tp", "samtycke_bokning_2d"],
+      "label": "Nordbro behandlingsavtal 2 dagar",
+      "e4Required": false,
+      "localNames": ["251203-behandlingsavtal-dhi-2dagar.docx"],
+      "glob": "251203.*2 dagar.*\\.docx$",
+      "tNote": "MS-LOKAL Juridik-GDPR — T väntar legal Word↔MQ steg7"
+    },
+    {
+      "id": "avtal_dhi",
+      "registryIds": ["offert_tp", "samtycke_angerratt"],
+      "label": "Nordbro behandlingsavtal standard",
+      "e4Required": false,
+      "localNames": ["251010-behandlingsavtal-dhi.docx", "251203-behandlingsavtal-dhi-2dagar.docx"],
+      "tNote": "MS-LOKAL Juridik-GDPR"
+    },
+    {
+      "id": "underbilaga_instruktion",
+      "registryIds": ["auto_instruktion_formular"],
+      "label": "Underbilaga 1 — Instruktion",
+      "e4Required": false,
+      "localNames": ["underbilaga-1-instruktion.docx"],
+      "sharepoint": {
+        "name": "Underbilaga 1 - Instruktion.docx",
+        "relative": "General/Juridik-GDPR"
+      },
+      "tNote": "Lokal fil = Personuppgiftsbiträdesavtal (GDPR). HD/FC-kundinstruktion = demo↔bundle (ccoPatientOutreach), ej denna Word."
+    },
+    {
+      "id": "ordination_tp",
+      "registryIds": ["ordination_tp"],
+      "label": "Ordination lokalbedövning TP",
+      "e4Required": false,
+      "localNames": ["ordination-lokalbedovning-tp.docx"],
+      "glob": "ordination.*\\.docx$"
+    },
+    {
+      "id": "foto_samtycke",
+      "registryIds": ["foto_samtycke"],
+      "label": "Samtycke till foto-publicering (steg 9 scope)",
+      "e4Required": false,
+      "tNote": "Ingen Word lokalt — scope-facit ORD-24-FOTO-SAMTYCKE-FACIT + journey. Nordbro publish-mall separat.",
+      "uNote": "U = journey + bundle scope + facit-doc (ej SharePoint Word)"
+    },
+    {
+      "id": "behandlingsplan_mail",
+      "registryIds": ["behandlingsplan_staff", "info_offert_tp"],
+      "label": "Behandlingsplan och offert HT",
+      "e4Required": false,
+      "localNames": ["behandlingsplan-offert-hartransplantation.docx"],
+      "sharepoint": {
+        "name": "Behandlingsplan och offert - HÅRTRANSPLANTATION.docx",
+        "relative": "General/1. Kunddokument - KVALITETSSÄKRA/98. Mailmallar/Offert"
+      }
+    },
+    {
+      "id": "hd_eng",
+      "registryIds": ["health_tp_eng"],
+      "label": "ENG Health Questionnaire (Meridiq 14865)",
+      "e4Required": false,
+      "meridiqApiId": 14865,
+      "demoHtml": "public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html",
+      "tDiffScript": "diff:patient-doc-hd-eng",
+      "tNote": "Ingen SharePoint Word — MQ 14865 facit"
+    }
+  ]
+}

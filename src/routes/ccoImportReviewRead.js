@@ -6,11 +6,29 @@ const { loadSummary, listQueue } = require('../ops/ccoImportReviewReadService');
 const { applyImportReviewDecision } = require('../ops/ccoImportReviewWriteService');
 const { getTrackSummary, loadState } = require('../ops/ccoOperatorCanary');
 
-function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog = null } = {}) {
+function createCcoImportReviewReadRouter({
+  projectRoot,
+  config = null,
+  auditLog = null,
+  requireCcoAuthenticated,
+  attachRole,
+  requirePermission,
+} = {}) {
+  if (typeof requireCcoAuthenticated !== 'function') {
+    throw new Error('requireCcoAuthenticated krävs för ccoImportReviewReadRouter');
+  }
+  if (typeof attachRole !== 'function') {
+    throw new Error('attachRole krävs för ccoImportReviewReadRouter');
+  }
+  if (typeof requirePermission !== 'function') {
+    throw new Error('requirePermission krävs för ccoImportReviewReadRouter');
+  }
   const router = express.Router();
   const root = projectRoot || path.join(__dirname, '../..');
   const dataDir = path.join(root, 'data');
   const writeEnabled = config?.enableImportReviewWrite === true;
+
+  router.use(requireCcoAuthenticated, attachRole, requirePermission('asset.review'));
 
   router.get('/cco/import-review/summary', (req, res) => {
     try {

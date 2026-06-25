@@ -67,7 +67,9 @@ async function readJson(filePath, fallback) {
 }
 
 async function writeJsonAtomic(filePath, data) {
-  const tmp = filePath + '.tmp.' + process.pid;
+  // Unik tmp-fil per skrivning: två samtidiga sparningar i samma process delade
+  // annars `.tmp.<pid>` och kunde korrumpera varandra (rename-race).
+  const tmp = filePath + '.tmp.' + process.pid + '.' + crypto.randomUUID();
   await fsp.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8');
   await fsp.rename(tmp, filePath);
 }
@@ -145,6 +147,29 @@ async function createCcoCommDraftStore({ filePath, auditLog = null } = {}) {
     await writeJsonAtomic(filePath, state);
   }
 
+  // Per-draft async-mutex: serialiserar read-modify-write (updateDraft/
+  // transitionStatus) så att två samtidiga requests på SAMMA draft inte båda
+  // läser samma för-state, muterar och skriver (last-writer-wins + dubbel
+  // statusHistory). Synkront avsnitt mellan await-punkterna är atomärt i Node,
+  // så check+set av låset är trygg.
+  const draftLocks = new Map();
+  async function withDraftLock(draftId, fn) {
+    while (draftLocks.has(draftId)) {
+      await draftLocks.get(draftId);
+    }
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    draftLocks.set(draftId, gate);
+    try {
+      return await fn();
+    } finally {
+      draftLocks.delete(draftId);
+      release();
+    }
+  }
+
   async function createDraft(input = {}, { actor = {} } = {}) {
     if (!input.tenantId) throw new Error('tenantId krävs.');
     if (!input.customerId) throw new Error('customerId krävs.');
@@ -162,90 +187,117 @@ async function createCcoCommDraftStore({ filePath, auditLog = null } = {}) {
     return { ...draft };
   }
 
-  async function updateDraft(draftId, patch = {}, { actor = {} } = {}) {
+  // Tenant-scoping: en draft slås upp på draftId, men om anroparens tenant är
+  // känd MÅSTE den matcha draftens tenantId — annars 404 (inte 403, för att
+  // inte läcka existens av andra tenants drafts). scopeTenant=null ⇒ ingen
+  // scoping (single-tenant/legacy-anrop), bakåtkompatibelt.
+  function resolveScoped(draftId, scopeTenant) {
     const ex = state.drafts[draftId];
-    if (!ex) {
+    if (!ex || (scopeTenant && ex.tenantId && ex.tenantId !== scopeTenant)) {
       const e = new Error('draft not found');
       e.statusCode = 404;
       throw e;
     }
-    if (['sent', 'cancelled'].includes(ex.status)) {
-      const e = new Error('draft is ' + ex.status + ', cannot edit');
-      e.statusCode = 409;
-      throw e;
-    }
-    // Tillåt patch av subject/body/mergeFields/channel/templateId
-    const next = normalizeDraft(
-      {
-        ...ex,
-        subject: patch.subject ?? ex.subject,
-        body: patch.body ?? ex.body,
-        mergeFields: patch.mergeFields ?? ex.mergeFields,
-        channel: patch.channel ?? ex.channel,
-        templateId: patch.templateId ?? ex.templateId,
-        templateVersion: patch.templateVersion ?? ex.templateVersion,
-        recipientMasked: patch.recipientMasked ?? ex.recipientMasked,
-        recipientHash: patch.recipientHash ?? ex.recipientHash,
-      },
-      ex
-    );
-    next.status = ex.status; // status changes via transitionStatus only
-    state.drafts[draftId] = next;
-    await save();
-    logAudit(auditLog, 'communication.draft.edited', next, actor, 'ok', {
-      changedFields: Object.keys(patch),
-    });
-    return { ...next };
+    return ex;
   }
 
-  async function transitionStatus(draftId, newStatus, { actor = {}, reason = null } = {}) {
-    const ex = state.drafts[draftId];
-    if (!ex) {
-      const e = new Error('draft not found');
-      e.statusCode = 404;
-      throw e;
-    }
-    const allowed = STATUS_TRANSITIONS[ex.status] || [];
-    if (!allowed.includes(newStatus)) {
-      const e = new Error('invalid transition ' + ex.status + ' -> ' + newStatus);
-      e.statusCode = 409;
-      throw e;
-    }
-    const prev = ex.status;
-    ex.status = newStatus;
-    ex.updatedAt = nowIso();
-    ex.statusHistory.push({
-      ts: ex.updatedAt,
-      from: prev,
-      to: newStatus,
-      actor: actor.userId || null,
-      reason,
+  async function updateDraft(draftId, patch = {}, { actor = {}, tenantId = null } = {}) {
+    return withDraftLock(draftId, async () => {
+      const ex = resolveScoped(draftId, tenantId);
+      if (['sent', 'cancelled'].includes(ex.status)) {
+        const e = new Error('draft is ' + ex.status + ', cannot edit');
+        e.statusCode = 409;
+        throw e;
+      }
+      // Tillåt patch av subject/body/mergeFields/channel/templateId
+      const next = normalizeDraft(
+        {
+          ...ex,
+          subject: patch.subject ?? ex.subject,
+          body: patch.body ?? ex.body,
+          mergeFields: patch.mergeFields ?? ex.mergeFields,
+          channel: patch.channel ?? ex.channel,
+          templateId: patch.templateId ?? ex.templateId,
+          templateVersion: patch.templateVersion ?? ex.templateVersion,
+          recipientMasked: patch.recipientMasked ?? ex.recipientMasked,
+          recipientHash: patch.recipientHash ?? ex.recipientHash,
+        },
+        ex
+      );
+      next.status = ex.status; // status changes via transitionStatus only
+      state.drafts[draftId] = next;
+      await save();
+      logAudit(auditLog, 'communication.draft.edited', next, actor, 'ok', {
+        changedFields: Object.keys(patch),
+      });
+      return { ...next };
     });
-    if (ex.statusHistory.length > 50) ex.statusHistory = ex.statusHistory.slice(-50);
-    if (newStatus === 'approved') {
-      ex.approvedBy = actor.userId || actor.displayName || null;
-      ex.approvedAt = ex.updatedAt;
-    } else if (newStatus === 'queued') {
-      ex.queuedAt = ex.updatedAt;
-    } else if (newStatus === 'sent') {
-      ex.sentAt = ex.updatedAt;
-    } else if (newStatus === 'failed') {
-      ex.failureReason = reason || null;
-    } else if (newStatus === 'cancelled') {
-      ex.cancelledReason = reason || null;
-    }
-    await save();
-    logAudit(auditLog, 'communication.draft.status_changed', ex, actor, 'ok', {
-      from: prev,
-      to: newStatus,
-      reason,
-    });
-    return { ...ex };
   }
 
-  function getDraft(draftId) {
+  async function transitionStatus(
+    draftId,
+    newStatus,
+    { actor = {}, reason = null, tenantId = null, allowSelfApprove = false } = {}
+  ) {
+    return withDraftLock(draftId, async () => {
+      const ex = resolveScoped(draftId, tenantId);
+      const allowed = STATUS_TRANSITIONS[ex.status] || [];
+      if (!allowed.includes(newStatus)) {
+        const e = new Error('invalid transition ' + ex.status + ' -> ' + newStatus);
+        e.statusCode = 409;
+        throw e;
+      }
+      // Segregation of duties: en draft-författare får inte godkänna sitt eget
+      // utkast (→ approved) om hen inte är owner (allowSelfApprove). approved är
+      // grinden som spelar roll när live-utskick aktiveras.
+      if (
+        newStatus === 'approved' &&
+        !allowSelfApprove &&
+        ex.createdBy &&
+        actor.userId &&
+        ex.createdBy === actor.userId
+      ) {
+        const e = new Error('author cannot approve own draft (segregation of duties)');
+        e.statusCode = 403;
+        throw e;
+      }
+      const prev = ex.status;
+      ex.status = newStatus;
+      ex.updatedAt = nowIso();
+      ex.statusHistory.push({
+        ts: ex.updatedAt,
+        from: prev,
+        to: newStatus,
+        actor: actor.userId || null,
+        reason,
+      });
+      if (ex.statusHistory.length > 50) ex.statusHistory = ex.statusHistory.slice(-50);
+      if (newStatus === 'approved') {
+        ex.approvedBy = actor.userId || actor.displayName || null;
+        ex.approvedAt = ex.updatedAt;
+      } else if (newStatus === 'queued') {
+        ex.queuedAt = ex.updatedAt;
+      } else if (newStatus === 'sent') {
+        ex.sentAt = ex.updatedAt;
+      } else if (newStatus === 'failed') {
+        ex.failureReason = reason || null;
+      } else if (newStatus === 'cancelled') {
+        ex.cancelledReason = reason || null;
+      }
+      await save();
+      logAudit(auditLog, 'communication.draft.status_changed', ex, actor, 'ok', {
+        from: prev,
+        to: newStatus,
+        reason,
+      });
+      return { ...ex };
+    });
+  }
+
+  function getDraft(draftId, { tenantId = null } = {}) {
     const d = state.drafts[draftId];
-    return d ? { ...d } : null;
+    if (!d || (tenantId && d.tenantId && d.tenantId !== tenantId)) return null;
+    return { ...d };
   }
 
   function listForCustomer(customerId, { status = null, limit = 100 } = {}) {

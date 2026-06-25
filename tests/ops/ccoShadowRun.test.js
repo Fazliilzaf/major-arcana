@@ -187,6 +187,7 @@ test('summarizeShadowReview filters by intent when provided', () => {
     outcomes: [],
     mailboxIds: ['clinic@demo.se'],
     intent: 'booking',
+    lookbackDays: 60,
   });
   assert.equal(review.totals.recommendationCount, 1);
   assert.equal(review.comparisons[0].conversationId, 'c-book');
@@ -223,6 +224,7 @@ test('summarizeShadowReview normalizes cco.reply.sent to reply_sent', () => {
     ],
     outcomes: [],
     mailboxIds: ['clinic@demo.se'],
+    lookbackDays: 60,
   });
   assert.equal(review.comparisons[0].operatorActionType, 'reply_sent');
 });

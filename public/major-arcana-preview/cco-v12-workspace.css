@@ -1,0 +1,2231 @@
+/* V12 Customer Workspace — Block 0 · Journal-modul.
+ *
+ * Rent .v12-workspace__*-namespace (canon §5). Inga legacy-override-klasser.
+ * Laddas additivt; syns bara när ?v12workspace=on (default OFF).
+ * Responsivt per canon D3:
+ *   - mobil (<768): V12 (Zon 2) ersätter ytan; Zon 1-rail döljs.
+ *   - iPad/webb (>=768): Zon 1-rail bredvid Zon 2-arbetsyta.
+ */
+
+.v12-workspace {
+  --v12-amber: #c8821e;
+  --v12-ink: #2c2218;
+  --v12-muted: #6b5d4f;
+  --v12-cream-neutral: rgba(252, 250, 246, 0.92);
+  --v12-card-border: rgba(56, 40, 28, 0.1);
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* V12 öppnas från lilla V11-railens sektioner som stor kundvy-overlay.
+   Detta ersätter inte första kundklicket: första klicket visar fortfarande railen. */
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 12080 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  padding: clamp(18px, 3vw, 44px) !important;
+  border-radius: 0 !important;
+  background: rgba(41, 36, 31, 0.58) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace[hidden] {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+  width: min(1240px, 96vw);
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 0;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__close {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: #2c2218;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(1240px, 96vw);
+  max-height: calc(100dvh - clamp(36px, 6vw, 88px) - 42px);
+  margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 !important;
+  border-radius: 28px;
+  background: #f5eee5;
+  box-shadow: 0 28px 90px rgba(34, 26, 19, 0.32);
+  position: relative;
+  z-index: 1;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace {
+  min-height: 100%;
+  max-height: none;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  position: relative !important;
+  transform: none !important;
+}
+
+html[data-v12-workspace="on"]
+  .v9-dossier-deep--v12-workspace
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: none;
+}
+
+html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace__close {
+  display: none !important;
+}
+
+html[data-v12-workspace="on"] [data-v12-focus-pulse="1"] {
+  outline: 3px solid rgba(216, 145, 32, 0.45);
+  outline-offset: 4px;
+  transition: outline-color 0.2s ease;
+}
+
+@media (max-width: 767px) {
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace {
+    padding: 0 !important;
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__head {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(41, 36, 31, 0.64);
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v9-dossier-deep__body {
+    width: 100%;
+    max-height: calc(100dvh - 44px);
+    border-radius: 0;
+  }
+}
+
+/*
+ * Scroll-ownership för V12-skalet. Första kundklicket visar lilla V11-rail;
+ * V12 renderas först i overlayn efter sektionsklick, men skalet behöver fortsatt
+ * viewport-bunden intern scroll när det ligger i en höjdbegränsad container.
+ */
+.v12-workspace[data-v12-workspace-shell="1"] .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Mobil-shell: V12 äger hela ytan → lite mer scroll-höjd (mindre topp-chrome). */
+html[data-cco-mobile-shell="on"]
+  .v12-workspace[data-v12-workspace-shell="1"]
+  .v12-workspace__zones[data-v9-dossier-scroll] {
+  max-height: calc(100dvh - 4rem);
+}
+
+.v12-workspace *,
+.v12-workspace *::before,
+.v12-workspace *::after {
+  box-sizing: border-box;
+}
+
+/* ===== Två-zon-shell ===== */
+.v12-workspace__zones {
+  display: block;
+}
+
+/* Zon 1 (V11-rail) döljs på mobil — V12 äger ytan */
+.v12-workspace__zone1 {
+  display: none;
+}
+
+.v12-workspace__zone2 {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.v12-workspace__zone-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+  margin-bottom: 10px;
+}
+
+/* ===== Journal-modul ===== */
+.v12-workspace__inner {
+  display: block;
+  padding: 16px;
+}
+
+.v12-workspace__module {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.v12-workspace__module-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.v12-workspace__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v12-amber);
+}
+
+.v12-workspace__count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__primary {
+  margin-left: auto;
+  min-height: 34px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--v12-amber);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.v12-workspace__primary:hover {
+  filter: brightness(1.04);
+}
+
+/* Journal-lista — full djupvy */
+.v12-workspace__journal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.v12-workspace__journal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--v12-card-border);
+  border-left: 3px solid rgba(56, 40, 28, 0.2);
+  background: var(--v12-cream-neutral);
+  cursor: pointer;
+}
+
+.v12-workspace__journal-card[data-journal-state="signed"] {
+  border-left-color: var(--v12-amber);
+}
+
+.v12-workspace__journal-card:hover {
+  border-color: var(--v12-amber);
+}
+
+.v12-workspace__journal-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v12-workspace__journal-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--v12-ink);
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__journal-badge {
+  margin-left: auto;
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--v12-muted);
+  background: rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__journal-badge[data-state="signed"] {
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__journal-body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--v12-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__journal-meta {
+  font-size: 11px;
+  color: var(--v12-muted);
+}
+
+/* Empty-state */
+.v12-workspace__empty {
+  padding: 24px 20px;
+  border-radius: 12px;
+  border: 1px dashed var(--v12-card-border);
+  text-align: center;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__empty-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__empty-hint {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* ===== Aktivt besök-modul (hero, sektion 2) ===== */
+.v12-workspace__av {
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 248, 236, 0.97) 0%, rgba(252, 240, 222, 0.9) 100%);
+  border: 1px solid rgba(200, 130, 30, 0.22);
+  box-shadow: 0 3px 12px rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__av-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v12-workspace__av-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.v12-workspace__av-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v12-amber);
+}
+
+.v12-workspace__av-dot--scheduled_today {
+  background: #6b5d4f;
+}
+.v12-workspace__av-dot--in_progress {
+  background: #c8821e;
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+.v12-workspace__av-dot--completed_today {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-time {
+  font-size: 11.5px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__av-context {
+  margin-top: 8px;
+}
+
+.v12-workspace__av-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__av-status-line {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--v12-muted);
+}
+
+/* Timeline */
+.v12-workspace__av-timeline {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.v12-workspace__av-node {
+  position: relative;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--v12-muted);
+  text-align: center;
+}
+
+/* Facit-parity: connector-linje mellan noderna (grön klart → amber aktiv → grå kvar). */
+.v12-workspace__av-node:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 50%;
+  width: calc(100% + 6px);
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(56, 40, 28, 0.2);
+  z-index: 0;
+}
+
+.v12-workspace__av-node.is-done::before {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-node.is-active::before {
+  background: linear-gradient(90deg, #2f7d4f, var(--v12-amber));
+}
+
+.v12-workspace__av-node .v12-workspace__av-dot {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  background: rgba(56, 40, 28, 0.2);
+}
+
+.v12-workspace__av-node.is-active .v12-workspace__av-dot {
+  background: var(--v12-amber);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.18);
+}
+.v12-workspace__av-node.is-done .v12-workspace__av-dot {
+  background: #2f7d4f;
+}
+
+.v12-workspace__av-node-label {
+  line-height: 1.2;
+}
+
+/* Preflight / blockerare */
+.v12-workspace__av-preflight {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--v12-card-border);
+}
+
+.v12-workspace__av-preflight.is-compact {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.v12-workspace__av-preflight-kicker {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+  margin-bottom: 6px;
+}
+
+.v12-workspace__av-preflight-ok {
+  margin: 0;
+  font-size: 12px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__av-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v12-workspace__av-blocker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v12-workspace__av-blocker-badge {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: #b5524a;
+}
+
+.v12-workspace__av-blocker-label {
+  font-size: 12px;
+  color: var(--v12-ink);
+  overflow-wrap: anywhere;
+}
+
+/* CTA-knappar */
+.v12-workspace__av-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.v12-workspace__av-primary {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-amber);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.v12-workspace__av-secondary {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__av-primary:hover,
+.v12-workspace__av-secondary:hover {
+  filter: brightness(1.03);
+}
+
+.v12-workspace__av-secondary.is-disabled,
+.v12-workspace__av-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Kritiska varningar-modul (sektion 3) ===== */
+.v12-workspace__warn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__warn-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fdf1f0;
+  border: 1px solid rgba(181, 82, 74, 0.4);
+  border-left: 3px solid #b5524a;
+}
+
+.v12-workspace__warn-badge {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
+  background: #b5524a;
+}
+
+.v12-workspace__warn-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v12-workspace__warn-what {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__warn-legal {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.16);
+}
+
+.v12-workspace__warn-why {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v12-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ===== Bokningar-modul (sektion 8) ===== */
+.v12-workspace__subhead {
+  margin-top: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__booking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__booking-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--v12-card-border);
+  background: var(--v12-cream-neutral);
+  cursor: pointer;
+}
+
+.v12-workspace__booking-row:hover {
+  border-color: var(--v12-amber);
+}
+
+.v12-workspace__booking-row--history {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__booking-when {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-width: 64px;
+}
+
+.v12-workspace__booking-date {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__booking-time {
+  font-size: 10.5px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__booking-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.v12-workspace__booking-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v12-ink);
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__booking-sub {
+  font-size: 11px;
+  color: var(--v12-muted);
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__booking-staff {
+  flex: none;
+}
+
+.v12-workspace__booking-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #bb4779 0%, #98305f 100%);
+}
+
+.v12-workspace__booking-status {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__booking-status[data-state="ready"] {
+  color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.14);
+}
+
+.v12-workspace__booking-done {
+  flex: none;
+  color: #2f7d4f;
+  font-weight: 800;
+}
+
+.v12-workspace__booking-actions {
+  margin-top: 2px;
+}
+
+.v12-workspace__booking-actions .v12-workspace__primary {
+  margin-left: 0;
+  width: 100%;
+}
+
+/* ===== Kundens nuläge-modul (sektion 1) ===== */
+.v12-workspace__cs-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.v12-workspace__cs-avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--v12-amber);
+}
+
+.v12-workspace__cs-id-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.v12-workspace__cs-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  line-height: 1.2;
+}
+
+.v12-workspace__cs-contact {
+  font-size: 12.5px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__cs-addr {
+  font-size: 12px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__cs-status {
+  flex: none;
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--v12-muted);
+  background: rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__cs-status[data-tone="ready"] {
+  color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.14);
+}
+
+.v12-workspace__cs-status[data-tone="blocked"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.16);
+}
+
+.v12-workspace__cs-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__cs-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--v12-ink);
+  background: rgba(56, 40, 28, 0.08);
+  border: 1px solid var(--v12-card-border);
+}
+
+.v12-workspace__cs-pill[data-tone="vip"] {
+  color: #8a5a00;
+  background: rgba(200, 130, 30, 0.16);
+  border-color: rgba(200, 130, 30, 0.3);
+}
+
+.v12-workspace__cs-pill[data-tone="treatment"] {
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.1);
+}
+
+.v12-workspace__cs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v12-workspace__cs-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.v12-workspace__cs-action:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+/* Facit-parity: hero-CTA "Förbered besök" + "Åtgärder ▾"-meny */
+.v12-workspace__cs-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.v12-workspace__cs-prepare {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 9px;
+  border: 1px solid var(--v12-amber);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.v12-workspace__cs-prepare:hover {
+  filter: brightness(1.04);
+}
+
+.v12-workspace__cs-menu {
+  position: relative;
+}
+
+.v12-workspace__cs-menu-trigger {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__cs-menu-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.v12-workspace__cs-menu[open] .v12-workspace__cs-menu-trigger {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__cs-menu-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--v12-card-border);
+  background: #fffdfa;
+  box-shadow: 0 14px 38px rgba(34, 26, 19, 0.18);
+}
+
+.v12-workspace__cs-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.v12-workspace__cs-menu-item:hover {
+  background: rgba(200, 130, 30, 0.1);
+  color: var(--v12-amber);
+}
+
+/* Redigera-dialog */
+.v12-workspace__edit-dialog {
+  width: min(420px, 92vw);
+  padding: 0;
+  border: 1px solid var(--v12-card-border);
+  border-radius: 16px;
+  background: #fffdfa;
+  color: var(--v12-ink);
+  box-shadow: 0 28px 90px rgba(34, 26, 19, 0.34);
+}
+
+.v12-workspace__edit-dialog::backdrop {
+  background: rgba(41, 36, 31, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.v12-workspace__edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.v12-workspace__edit-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__edit-field input {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--v12-card-border);
+  background: #fff;
+  color: var(--v12-ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.v12-workspace__edit-field input:focus {
+  outline: none;
+  border-color: var(--v12-amber);
+  box-shadow: 0 0 0 3px rgba(200, 130, 30, 0.16);
+}
+
+.v12-workspace__edit-status {
+  min-height: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v12-amber);
+}
+
+.v12-workspace__edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.v12-workspace__edit-cancel {
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__edit-save {
+  min-height: 38px;
+  padding: 8px 18px;
+  border-radius: 9px;
+  border: 1px solid var(--v12-amber);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.v12-workspace__edit-save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Ekonomi: Synka till Fortnox */
+.v12-workspace__econ-fortnox {
+  margin-left: auto;
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__econ-fortnox:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__econ-fortnox:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.v12-workspace__econ-fortnox-status {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--v12-amber);
+  text-align: right;
+}
+
+.v12-workspace__econ-fortnox-status:empty {
+  display: none;
+}
+
+.v12-workspace__doc-add {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.v12-workspace__doc-add-btn {
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__doc-add-btn:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__doc-add-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.v12-workspace__cs-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__cs-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.v12-workspace__cs-stat {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__cs-stat-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__cs-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.v12-workspace__cs-stat-sub {
+  font-size: 11px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__cs-stat[data-skuld-state="debt"] .v12-workspace__cs-stat-value {
+  color: #8a2820;
+}
+
+.v12-workspace__cs-stat[data-skuld-state="clear"] .v12-workspace__cs-stat-value {
+  color: #2f7d4f;
+}
+
+/* ===== Kundresa / steg-modul (sektion 5) ===== */
+.v12-workspace__journey-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(56, 40, 28, 0.1);
+  overflow: hidden;
+}
+
+.v12-workspace__journey-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--v12-amber);
+}
+
+.v12-workspace__journey-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v12-workspace__journey-step {
+  display: block;
+}
+
+.v12-workspace__journey-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--v12-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.v12-workspace__journey-row--static {
+  cursor: default;
+}
+
+.v12-workspace__journey-row:not(.v12-workspace__journey-row--static):hover {
+  border-color: var(--v12-amber);
+}
+
+.v12-workspace__journey-mk {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--v12-muted);
+  background: rgba(56, 40, 28, 0.1);
+}
+
+.v12-workspace__journey-step[data-state="done"] .v12-workspace__journey-mk {
+  color: #fff;
+  background: #2f7d4f;
+}
+
+.v12-workspace__journey-step[data-state="active"] .v12-workspace__journey-mk {
+  color: #fff;
+  background: var(--v12-amber);
+}
+
+.v12-workspace__journey-step[data-state="active"] .v12-workspace__journey-row {
+  border-color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.08);
+}
+
+.v12-workspace__journey-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v12-workspace__journey-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.3;
+}
+
+.v12-workspace__journey-note {
+  font-size: 11.5px;
+  color: var(--v12-muted);
+  line-height: 1.35;
+}
+
+/* Facit-parity: per-steg-länk till relaterad sektion (dok/foto/journal). */
+.v12-workspace__journey-link {
+  flex: none;
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.12);
+}
+
+.v12-workspace__journey-row:hover .v12-workspace__journey-link {
+  background: rgba(200, 130, 30, 0.18);
+}
+
+/* ===== Hälsa-modul (sektion 4) ===== */
+.v12-workspace__health-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v12-workspace__health-status {
+  flex: none;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--v12-muted);
+  background: rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__health-status[data-status="signed"] {
+  color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.14);
+}
+
+.v12-workspace__health-status[data-status="missing"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.16);
+}
+
+.v12-workspace__health-meta {
+  font-size: 11.5px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__health-open {
+  margin-left: auto;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__health-open:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__health-allergies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__health-allergy {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.12);
+  border: 1px solid rgba(181, 82, 74, 0.28);
+}
+
+.v12-workspace__health-muted {
+  font-size: 12px;
+  color: var(--v12-muted);
+  opacity: 0.85;
+}
+
+/* Kontraindikationer — riskflaggor ur hälsodeklarationen (röd/amber per level) */
+.v12-workspace__health-contra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__health-flag {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.v12-workspace__health-flag[data-level="red"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.12);
+  border-color: rgba(181, 82, 74, 0.28);
+}
+
+.v12-workspace__health-flag[data-level="amber"] {
+  color: #7a4f12;
+  background: rgba(200, 130, 30, 0.12);
+  border-color: rgba(200, 130, 30, 0.28);
+}
+
+/* Läkemedel — pågående läkemedel ur hälsodeklarationen */
+.v12-workspace__health-meds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.v12-workspace__health-med {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--v12-ink);
+  background: rgba(56, 40, 28, 0.06);
+  border: 1px solid var(--v12-card-border);
+}
+
+/* ===== Insikter & nästa åtgärd-modul (sektion 12) ===== */
+.v12-workspace__next {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--v12-card-border);
+  background: var(--v12-cream-neutral);
+}
+
+.v12-workspace__next[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.38);
+  background: rgba(181, 82, 74, 0.08);
+}
+
+.v12-workspace__next-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.v12-workspace__next-tone {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.14);
+}
+
+.v12-workspace__next-tone[data-tone="blocker"] {
+  color: #8a2820;
+  background: rgba(181, 82, 74, 0.16);
+}
+
+.v12-workspace__next-what {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.35;
+}
+
+.v12-workspace__next-why {
+  font-size: 12.5px;
+  color: var(--v12-muted);
+  line-height: 1.4;
+}
+
+.v12-workspace__next-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.v12-workspace__next-secondary {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__next-secondary:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__insights-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__insight[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.3);
+}
+
+.v12-workspace__insight-icon {
+  flex: none;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--v12-amber);
+}
+
+.v12-workspace__insight[data-tone="blocker"] .v12-workspace__insight-icon {
+  color: #8a2820;
+}
+
+.v12-workspace__insight-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v12-workspace__insight-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.35;
+}
+
+.v12-workspace__insight-text {
+  font-size: 12px;
+  color: var(--v12-muted);
+  line-height: 1.4;
+}
+
+/* Facit-parity: insikter grupperade i amber "Gör nu" vs grön "Möjlighet". */
+.v12-workspace__insight-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.v12-workspace__insight-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v12-workspace__insight-group .v12-workspace__insights-list {
+  margin-top: 0;
+}
+
+.v12-workspace__insight-group-label {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.v12-workspace__insight-group-label[data-tone="amber"] {
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v12-workspace__insight-group-label[data-tone="green"] {
+  color: #2c6b3d;
+  background: rgba(74, 130, 104, 0.16);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight {
+  border-color: rgba(200, 130, 30, 0.3);
+  background: rgba(200, 130, 30, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="gor-nu"] .v12-workspace__insight[data-tone="blocker"] {
+  border-color: rgba(181, 82, 74, 0.3);
+  background: rgba(181, 82, 74, 0.06);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight {
+  border-color: rgba(74, 130, 104, 0.32);
+  background: rgba(74, 130, 104, 0.08);
+}
+
+.v12-workspace__insight-group[data-group="mojlighet"] .v12-workspace__insight-icon {
+  color: #2f7d4f;
+}
+
+/* ===== Bilder / före–efter-modul (sektion 7) ===== */
+.v12-workspace__photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.v12-workspace__photo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__photo-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(56, 40, 28, 0.06);
+}
+
+.v12-workspace__photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.v12-workspace__photo-fallback {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__photo.is-missing .v12-workspace__photo-fallback {
+  display: flex;
+}
+
+.v12-workspace__photo.is-missing .v12-workspace__photo-img {
+  display: none;
+}
+
+.v12-workspace__photo-fallback-icon {
+  font-size: 24px;
+}
+
+.v12-workspace__photo-fallback-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.v12-workspace__photo-name {
+  font-size: 11.5px;
+  color: var(--v12-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Facit-parity: "Ta bild" i Bilder-headern (återanvänder kamera-handler) */
+.v12-workspace__photos-camera {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__photos-camera:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+/* Facit-parity: datum-badge på fototile (ur capturedAt) */
+.v12-workspace__photo-date {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 2;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(41, 36, 31, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+/* Facit-parity: före/efter-jämför-rad + gap-notis */
+.v12-workspace__photo-compare {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__photo-compare-label b {
+  font-weight: 800;
+}
+
+.v12-workspace__photo-compare-cta {
+  margin-left: auto;
+  flex: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--v12-amber);
+  background: linear-gradient(180deg, #e89a2e 0%, #c8821e 100%);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.v12-workspace__photo-gap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(200, 130, 30, 0.12);
+  color: var(--v12-amber);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__photos-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ===== Ekonomi-modul (sektion 11) ===== */
+.v12-workspace__econ-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.v12-workspace__econ-cell {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__econ-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__econ-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__econ-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Fakturarader/betalningar ur RIKTIG paymentHistory (frontend-wiring 2026-06-23).
+   Matchar befintligt econ/doc-mönster — ingen ny design. */
+.v12-workspace__econ-invoices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.v12-workspace__econ-invoice {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__econ-invoice-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__econ-invoice-date {
+  font-size: 10px;
+  color: var(--v12-muted);
+  margin-top: 1px;
+}
+
+.v12-workspace__econ-invoice-amount {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--v12-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.v12-workspace__econ-invoice-status {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__econ-invoice-status[data-status="paid"] {
+  color: #4a8268;
+}
+
+.v12-workspace__econ-invoice-status[data-status="pending"],
+.v12-workspace__econ-invoice-status[data-status="overdue"],
+.v12-workspace__econ-invoice-status[data-status="partially_paid"] {
+  color: #c8821e;
+}
+
+.v12-workspace__econ-invoice-status[data-status="cancelled"],
+.v12-workspace__econ-invoice-status[data-status="failed"] {
+  color: #b94a4a;
+}
+
+/* ===== Kommunikation-modul (sektion 10) ===== */
+.v12-workspace__comm-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v12-workspace__comm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.v12-workspace__comm-icon {
+  flex: none;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--v12-amber);
+}
+
+.v12-workspace__comm-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.v12-workspace__comm-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.3;
+}
+
+.v12-workspace__comm-meta {
+  font-size: 11.5px;
+  color: var(--v12-muted);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v12-workspace__comm-actions {
+  display: flex;
+}
+
+.v12-workspace__comm-actions .v12-workspace__primary {
+  width: 100%;
+}
+
+/* ===== Dokument-modul (sektion 9) ===== */
+/* Facit-parity: dokument som 2-kolumners kort-rutnät (1-kol mobil → 2-kol ≥768px),
+   grupperingen offerter/auto/filer behålls. Ren layout — samma data-v11-doc-*-rader. */
+.v12-workspace__doc-list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .v12-workspace__doc-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.v12-workspace__doc-item {
+  display: block;
+}
+
+.v12-workspace__doc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--v12-card-border);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--v12-ink);
+  font: inherit;
+  text-decoration: none;
+}
+
+.v12-workspace__doc-row[role="button"],
+.v12-workspace__doc-file {
+  cursor: pointer;
+}
+
+.v12-workspace__doc-row[role="button"]:hover,
+.v12-workspace__doc-file:hover {
+  border-color: var(--v12-amber);
+}
+
+.v12-workspace__doc-icon {
+  flex: none;
+  font-size: 15px;
+}
+
+.v12-workspace__doc-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.v12-workspace__doc-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v12-ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v12-workspace__doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__doc-amount {
+  font-weight: 700;
+  color: var(--v12-ink);
+}
+
+.v12-workspace__doc-status {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--v12-muted);
+  background: rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__doc-status[data-state="signed"] {
+  color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.14);
+}
+
+.v12-workspace__doc-status[data-state="pending"] {
+  color: #8a5a00;
+  background: rgba(200, 130, 30, 0.16);
+}
+
+.v12-workspace__doc-badge {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--v12-amber);
+  background: rgba(200, 130, 30, 0.12);
+}
+
+/* ===== Sticky arbetsbar-modul (sektion 13) ===== */
+.v12-workspace__sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--v12-card-border);
+  background: var(--v12-cream-neutral);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 -4px 16px rgba(56, 40, 28, 0.08);
+}
+
+.v12-workspace__sticky-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v12-workspace__sticky-primary {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.v12-workspace__sticky-secondary {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 40, 28, 0.16);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--v12-ink);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v12-workspace__sticky-secondary:hover {
+  border-color: var(--v12-amber);
+  color: var(--v12-amber);
+}
+
+.v12-workspace__sticky-primary.is-disabled,
+.v12-workspace__sticky-secondary.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.v12-workspace__sticky-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--v12-muted);
+}
+
+/* Stor skärm: arbetsbaren behöver inte klistras — flödar statiskt i kolumnen. */
+@media (min-width: 1280px) {
+  .v12-workspace__sticky {
+    position: static;
+    box-shadow: none;
+  }
+}
+
+/* ===== iPad/webb: Zon 1 jump-rail bredvid Zon 2 (Fas 4 · Hybrid) ===== */
+@media (min-width: 768px) {
+  .v12-workspace__zones {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .v12-workspace__zone1 {
+    display: block;
+    flex: 0 0 320px;
+    max-width: 320px;
+    min-width: 0;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+  }
+  .v12-workspace__zone1:has(.v12-jumprail.is-collapsed) {
+    flex-basis: 56px;
+    max-width: 56px;
+  }
+  .v12-workspace__zone2 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  .v12-workspace__inner {
+    padding: 20px 24px;
+  }
+}
+
+/* ===== Fas 4 · Hybrid jump-rail (Zon 1 minimal ankarnav) ===== */
+.v12-jumprail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--v12-card-border);
+  background: var(--v12-cream-neutral);
+}
+
+.v12-jumprail__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--v12-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.v12-jumprail__toggle:hover {
+  color: var(--v12-amber);
+}
+
+.v12-jumprail__toggle-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.v12-jumprail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.v12-jumprail__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--v12-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.v12-jumprail__link:hover {
+  background: rgba(200, 130, 30, 0.1);
+  color: var(--v12-amber);
+}
+
+.v12-jumprail__link.is-active {
+  background: rgba(200, 130, 30, 0.16);
+  color: var(--v12-amber);
+  font-weight: 700;
+}
+
+.v12-jumprail__dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(56, 40, 28, 0.28);
+}
+
+.v12-jumprail__link:hover .v12-jumprail__dot,
+.v12-jumprail__link.is-active .v12-jumprail__dot {
+  background: var(--v12-amber);
+}
+
+/* Kollapsad: bara prickar (ikon-läge) */
+.v12-jumprail.is-collapsed .v12-jumprail__label,
+.v12-jumprail.is-collapsed .v12-jumprail__toggle-label {
+  display: none;
+}
+
+.v12-jumprail.is-collapsed .v12-jumprail__link {
+  justify-content: center;
+  padding: 8px 4px;
+}
+
+/* Mobil: V12 äger ytan → jump-rail döljs (zone1 redan display:none <768) */

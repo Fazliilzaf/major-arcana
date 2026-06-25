@@ -432,3 +432,149 @@ test('staff journal open access accepts mounted router paths without token', asy
   assert.equal(req.auth.authMode, 'preview_local');
   assert.equal(req.auth.tenantId, 'hair-tp-clinic');
 });
+
+// Regression (säkerhets-hunt): i produktion får open-access/preview ALDRIG
+// ge oautentiserad OWNER — oavsett staffJournalOpenAccess-flaggan.
+test('production: staff journal open access is HARD-disabled (no token → 401)', async () => {
+  const authStore = {
+    async getSessionContextByToken() {
+      return null;
+    },
+    async touchSession() {
+      throw new Error('touchSession should not be called');
+    },
+  };
+  const middleware = createAuthMiddleware({
+    authStore,
+    config: {
+      defaultTenantId: 'hair-tp-clinic',
+      staffJournalOpenAccess: true,
+      isProduction: true,
+    },
+  });
+
+  const req = createReq({
+    host: 'arcana.hairtpclinic.se',
+    ip: '203.0.113.10',
+    path: '/cco-patient-master/patients',
+    originalUrl: '/api/v1/cco-patient-master/patients?limit=1',
+  });
+  const res = createRes();
+  let nextCalled = false;
+  await middleware.requireAuth(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, false);
+  assert.equal(res.statusCode, 401);
+  assert.equal(req.auth, undefined);
+});
+
+test('production: invalid token on open path does not fall back to preview OWNER (401)', async () => {
+  const authStore = {
+    async getSessionContextByToken() {
+      return null; // token verifieras → ogiltig
+    },
+    async touchSession() {
+      throw new Error('touchSession should not be called');
+    },
+  };
+  const middleware = createAuthMiddleware({
+    authStore,
+    config: {
+      defaultTenantId: 'hair-tp-clinic',
+      staffJournalOpenAccess: true,
+      isProduction: true,
+    },
+  });
+
+  const req = createReq({
+    authorization: 'Bearer totally-invalid-token-value-1234567890',
+    host: 'localhost:3000',
+    ip: '127.0.0.1',
+    path: '/cco-journal/entry',
+    originalUrl: '/api/v1/cco-journal/entry',
+  });
+  const res = createRes();
+  let nextCalled = false;
+  await middleware.requireAuth(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, false);
+  assert.equal(res.statusCode, 401);
+});
+
+// Regression (#3): spoofad Host-header får ALDRIG ge lokal-preview. Lokalitet
+// avgörs enbart från socket-peerns adress.
+test('spoofed Host: localhost from a public IP does not get local preview', async () => {
+  const authStore = {
+    async getSessionContextByToken() {
+      return null;
+    },
+    async touchSession() {
+      throw new Error('touchSession should not be called');
+    },
+  };
+  const middleware = createAuthMiddleware({
+    authStore,
+    config: { defaultTenantId: 'hair-tp-clinic' },
+  });
+
+  const req = createReq({
+    host: 'localhost:3000', // spoofad Host-header
+    ip: '203.0.113.10', // verklig (publik) socket-peer
+    path: '/some-protected-path',
+    originalUrl: '/api/v1/some-protected-path',
+  });
+  const res = createRes();
+  let nextCalled = false;
+  await middleware.requireAuth(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, false);
+  assert.equal(res.statusCode, 401);
+  assert.equal(req.auth, undefined);
+});
+
+// Regression (#6): en machine-token UTAN explicit allowPaths får ingen åtkomst
+// (fail-closed) — inte den tidigare breda orchestrator-defaulten.
+test('machine token without allowPaths is denied even on /api/v1/orchestrator', async () => {
+  let sessionLookupCalled = false;
+  const authStore = {
+    async getSessionContextByToken() {
+      sessionLookupCalled = true;
+      return null; // ingen session → 401
+    },
+    async touchSession() {
+      throw new Error('touchSession should not be called');
+    },
+  };
+  const token = 'mach_noallowpaths_123456789012345678';
+  const middleware = createAuthMiddleware({
+    authStore,
+    config: {
+      defaultTenantId: 'hair-tp-clinic',
+      machineTokensJson: JSON.stringify([{ token, tenantId: 'hair-tp-clinic', role: 'STAFF' }]),
+    },
+  });
+
+  const req = createReq({
+    authorization: `Bearer ${token}`,
+    host: 'arcana.hairtpclinic.se',
+    ip: '203.0.113.10',
+    path: '/orchestrator/admin-run',
+    originalUrl: '/api/v1/orchestrator/admin-run',
+  });
+  const res = createRes();
+  let nextCalled = false;
+  await middleware.requireAuth(req, res, () => {
+    nextCalled = true;
+  });
+
+  // Machine-token matchar inte (tom allowPaths) → faller till session-lookup → 401.
+  assert.equal(nextCalled, false);
+  assert.equal(res.statusCode, 401);
+  assert.equal(sessionLookupCalled, true);
+});

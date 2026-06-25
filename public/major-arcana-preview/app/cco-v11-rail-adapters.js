@@ -282,6 +282,41 @@
     var completedTime = avTime(visit.completedAt || visit.startedAt);
     var journalLabel = visit.journalStarted ? 'Fortsätt journal' : 'Starta journal';
 
+    // 6-stegs besöks-timeline (facit s2): bokad → in → nu → journal → eftervård
+    // → klart. Riktiga tider där de finns (startsAt/checkedInAt/completedAt);
+    // journal/eftervård/klart estimeras ur planerad tid (plannedMinutes) och
+    // märks "~". Saknas estimat-bas visas stegetiketten utan tid. Ingen fejk.
+    function addMin(iso, min) {
+      var ms = Date.parse(String(iso || ''));
+      if (!Number.isFinite(ms)) return '';
+      return new Date(ms + min * 60000).toLocaleTimeString('sv-SE', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+    var planned = Number(visit.plannedMinutes || visit.durationMin || 0);
+    var estBase = visit.checkedInAt || visit.startedAt;
+    function estLabel(min, name) {
+      var t = planned && estBase ? addMin(estBase, min) : '';
+      return (t ? '~' + t + ' ' : '') + name;
+    }
+    var timelineNodes = [];
+    if (state === 'completed_today') {
+      if (startsTime) timelineNodes.push({ state: 'done', t: startsTime + ' bokad' });
+      if (checkedInTime) timelineNodes.push({ state: 'done', t: checkedInTime + ' in' });
+      timelineNodes.push({
+        state: 'done',
+        t: (completedTime ? completedTime + ' ' : '') + 'klart',
+      });
+    } else if (state !== 'scheduled_today') {
+      if (startsTime) timelineNodes.push({ state: 'done', t: startsTime + ' bokad' });
+      if (checkedInTime) timelineNodes.push({ state: 'done', t: checkedInTime + ' in' });
+      timelineNodes.push({ state: 'active', t: 'nu' });
+      timelineNodes.push({ state: 'todo', t: estLabel(planned, 'journal') });
+      timelineNodes.push({ state: 'todo', t: estLabel(planned + 10, 'eftervård') });
+      timelineNodes.push({ state: 'todo', t: estLabel(planned + 15, 'klart') });
+    }
+
     var kicker = {
       scheduled_today: 'Nytt besök · idag',
       checked_in: 'Incheckad',
@@ -325,12 +360,15 @@
       statusLine: statusLine,
       headMeta: headMeta,
       showTimeline: state !== 'scheduled_today',
+      timelineNodes: timelineNodes,
       preflightCompact: state === 'completed_today',
       primary: primary,
       secondary: secondary,
+      journalStarted: visit.journalStarted === true,
       journalDetail: text(visit.serviceLabel),
       title: text(visit.serviceLabel) || 'Besök idag',
       practitioner: text(visit.practitionerLabel),
+      room: text(visit.room || visit.roomLabel || visit.roomName),
       checkedInAt: text(visit.checkedInAt),
       startedAt: text(visit.startedAt),
       completedAt: text(visit.completedAt),
@@ -368,13 +406,42 @@
    * @returns {Array<{ruleId:string, what:string, why:string, legal:boolean}>}
    */
   function buildCriticalWarnings(card, journalEntries, dossierBundle) {
+    card = card || {};
     var kkx = global.CcoKundkortKkx;
     var signals =
       kkx && typeof kkx.resolvePanelSignals === 'function'
-        ? toArray(kkx.resolvePanelSignals(card || {}, journalEntries, dossierBundle, {}))
-        : toArray(card && card.automationSignals);
+        ? toArray(kkx.resolvePanelSignals(card, journalEntries, dossierBundle, {}))
+        : toArray(card.automationSignals);
 
     var out = [];
+    var seen = {};
+    function add(w) {
+      var k = String(w.what || '')
+        .toLowerCase()
+        .trim();
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      out.push(w);
+    }
+
+    // 1) Allergier = röd kritisk varning (facit: "Penicillin-allergi"). Riktig data.
+    var hd = card.healthDeclaration || {};
+    var allergies = (
+      toArray(card.allergies).length ? toArray(card.allergies) : toArray(hd.allergies)
+    )
+      .map(text)
+      .filter(Boolean);
+    allergies.forEach(function (a) {
+      add({
+        ruleId: 'allergy',
+        what: a + '-allergi',
+        why: 'Hög risk · verifiera behandlings-/läkemedelsprotokoll',
+        tone: 'red',
+        legal: false,
+      });
+    });
+
+    // 2) Kritiska automation-signaler (blocker/legal) = röd.
     signals.forEach(function (s) {
       if (!s || s.status !== 'active') return;
       var risk = String(s.risk || '');
@@ -382,13 +449,34 @@
       var isCritical = risk ? /blocker|legal/i.test(risk) : !!key;
       if (!isCritical) return;
       var def = key ? CRITICAL_BY_RULE[key] : null;
-      out.push({
+      add({
         ruleId: text(s.ruleId),
         what: text(s.what) || (def && def.what) || 'Kritisk varning',
         why: text(s.why),
+        tone: 'red',
         legal: /legal/i.test(risk) || !!(def && def.legal),
       });
     });
+
+    // 3) Kontraindikations-flaggor ur hälsodeklarationen = amber/röd efter level
+    //    (facit: "Blödarsjukdom registrerad" amber). Riktig data, ingen fejk.
+    toArray(hd.flags).forEach(function (f) {
+      if (!f) return;
+      var label = text(f.text || f.flagText || f.label);
+      if (!label) return;
+      var tone = String(f.level || '').toLowerCase() === 'red' ? 'red' : 'amber';
+      add({
+        ruleId: text(f.key) || 'flag',
+        what: label + ' registrerad',
+        why:
+          tone === 'red'
+            ? 'Hög risk · kräver åtgärd före ingrepp'
+            : 'Måttlig risk · verifiera inför ingrepp',
+        tone: tone,
+        legal: false,
+      });
+    });
+
     return out;
   }
 
@@ -424,12 +512,119 @@
       : toArray(hd && hd.allergies);
     allergies = allergies.map(text).filter(Boolean);
 
+    // Kontraindikationer = hälsodeklarationens RIKTIGA riskflaggor
+    // (parser RISK_RULES → {level:'red'|'amber', text}). Endast riktig data;
+    // tom lista om inga flaggor. Ingen fejk.
+    var contraindications = toArray(hd && hd.flags)
+      .map(function (f) {
+        if (!f) return null;
+        var label = text(f.text || f.flagText || f.label);
+        if (!label) return null;
+        var lvl = text(f.level).toLowerCase();
+        return { text: label, level: lvl === 'red' || lvl === 'amber' ? lvl : 'amber' };
+      })
+      .filter(Boolean);
+
+    // Läkemedel ur hälsodeklarationens RIKTIGA "(detalj)"-fält (parser →
+    // hd.medications). Splittas på komma/semikolon/radbrytning (dos-text
+    // behålls med läkemedlet). Tomt → okänd-state. Ingen fejk.
+    var medRaw = text(hd && hd.medications);
+    var medItems = medRaw
+      ? medRaw
+          .split(/[,;\n]+/)
+          .map(text)
+          .filter(function (s) {
+            return s && s.length > 1;
+          })
+      : [];
+    var medications = { items: medItems, known: !!medRaw };
+
+    // Per-frågesvar ur hälsodeklarationens RIKTIGA answers[] (parser →
+    // {key,label,value,detail,risk}). Endast riktig data; tom lista om parsern
+    // inte gav strukturerade svar. Ingen fejk.
+    var answers = toArray(hd && hd.answers)
+      .map(function (a) {
+        if (!a) return null;
+        var label = text(a.label || a.question);
+        if (!label) return null;
+        var val = text(a.value || a.answer);
+        var risk = text(a.risk || a.level).toLowerCase();
+        return {
+          key: text(a.key),
+          label: label,
+          value: val,
+          detail: text(a.detail),
+          risk: risk === 'red' || risk === 'amber' ? risk : '',
+        };
+      })
+      .filter(Boolean);
+
     return {
       status: status,
       signedAt: hd ? text(hd.signedAt) : '',
       source: source,
       allergies: allergies,
+      contraindications: contraindications,
+      medications: medications,
+      answers: answers,
     };
+  }
+
+  // "Senaste händelser"-feed ur RIKTIGA tidsstämplade fakta i bundlen
+  // (incheckning/avslut, journal-signering, HD-signering, betalning). Ingen
+  // audit-logg finns — events HÄRLEDS ur befintliga fält. Ingen fejk: saknas
+  // tidsstämpel utelämnas raden. Sorteras nyast först, max 4.
+  function evWhen(iso) {
+    var raw = text(iso);
+    if (!raw) return '';
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) return '';
+    var now = new Date();
+    return d.toDateString() === now.toDateString() ? avTime(raw) : photoDateLabel(raw);
+  }
+  function buildRecentEvents(bcard, dossierBundle, journalEntries) {
+    bcard = bcard || {};
+    var bundle = dossierBundle || {};
+    var out = [];
+    function push(iso, what) {
+      var ms = Date.parse(text(iso));
+      if (!Number.isFinite(ms)) return;
+      var when = evWhen(iso);
+      if (!when) return;
+      out.push({ what: what, when: when, sort: ms });
+    }
+    var av = bundle.activeVisit || {};
+    push(av.completedAt, 'Besök avslutat');
+    push(av.checkedInAt, 'Check-in registrerad');
+    toArray(journalEntries).forEach(function (e) {
+      if (e) push(e.signedAt, 'Journal signerad');
+    });
+    push(bcard.healthDeclaration && bcard.healthDeclaration.signedAt, 'Hälsodeklaration signerad');
+    toArray(bundle.paymentHistory).forEach(function (p) {
+      if (!p) return;
+      var ref = text(p.ref);
+      push(
+        p.dateIso,
+        (text(p.method) === 'swish' ? 'Swish-betalning' : 'Faktura') +
+          (ref ? ' ' + ref : '') +
+          ' registrerad'
+      );
+    });
+    out.sort(function (a, b) {
+      return b.sort - a.sort;
+    });
+    var seen = {};
+    return out
+      .filter(function (e) {
+        var k = e.what + '|' + e.when;
+        if (seen[k]) return false;
+        seen[k] = 1;
+        return true;
+      })
+      .slice(0, 4)
+      .map(function (e) {
+        return { what: e.what, when: e.when };
+      });
   }
 
   // F · Customer Journey — bevarad stepJumpSlug/stepMedFormSlug-mappning
@@ -997,25 +1192,109 @@
    *
    * @returns {{items:Array, count:number}}
    */
+  function photoDateLabel(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+  }
+
+  // Foto-fas ur RIKTIG asset-kategori (VALID_CATEGORIES: photo_before/_during/
+  // _after, exponerad via assetToPatientFile.category). Ingen ny datamodell.
+  function photoPhase(category) {
+    var c = String(category || '').toLowerCase();
+    if (/before/.test(c)) return 'before';
+    if (/after/.test(c)) return 'after';
+    if (/during/.test(c)) return 'during';
+    return '';
+  }
+
+  // Foto-VY ur RIKTIG asset-angle (fritext, exponerad via assetToPatientFile.angle).
+  function photoView(angle) {
+    var a = String(angle || '').toLowerCase();
+    if (/krona|crown|vertex|hj[äa]ss/.test(a)) return 'crown';
+    if (/h[åa]rlinj|hairline|front|panna/.test(a)) return 'hairline';
+    return a ? 'other' : '';
+  }
+
   function buildPhotosFromDriveFiles(driveFiles) {
     var media = toArray(driveFiles).filter(isRailMediaFile);
-    var items = media
+    var all = media
       .map(function (f) {
         var name = text(f.originalFileName || f.fileName || f.relativePath || f.name) || 'Foto';
         var nameLc = name.toLowerCase();
+        // Datum ur RIKTIG fil-metadata (capturedAt/captureDate; fallback occasion).
+        var capturedAt =
+          text(f.capturedAt) ||
+          text(f.captureDate) ||
+          (f.occasionContext && text(f.occasionContext.date)) ||
+          text(f.modifiedTime) ||
+          '';
+        var phase = photoPhase(f.category);
         return {
           id: text(f.id),
           name: name,
           href: railFileViewUrl(f),
           isImage: f.fileType === 'image' || IMG_EXT.test(nameLc),
+          capturedAt: capturedAt,
+          dateLabel: photoDateLabel(capturedAt),
+          phase: phase,
+          view: photoView(f.angle),
         };
       })
       .filter(function (it) {
         return it.href;
-      })
-      .slice(0, 9);
+      });
+    // Nyast först (foton med datum sorteras före datumlösa).
+    all.sort(function (a, b) {
+      return (Date.parse(b.capturedAt || '') || 0) - (Date.parse(a.capturedAt || '') || 0);
+    });
 
-    return { items: items, count: items.length };
+    // Före/efter-par + gap ur RIKTIG fas-kategori (senaste före ↔ senaste efter).
+    function latestOfPhase(p) {
+      for (var i = 0; i < all.length; i++) {
+        if (all[i].phase === p) return all[i];
+      }
+      return null;
+    }
+    var before = latestOfPhase('before');
+    var after = latestOfPhase('after');
+    var compare = before && after ? { before: before, after: after } : null;
+    var gap = '';
+    if (all.length) {
+      if (!before && !after) gap = 'Före/efter saknar fas-märkning';
+      else if (before && !after) gap = 'Efter-bild saknas för fullständig dokumentation';
+      else if (after && !before) gap = 'Före-bild saknas för fullständig dokumentation';
+    }
+
+    // Vy-gap (krona/hårlinje) — ENDAST om vy-taggning faktiskt används för
+    // kunden (minst en bild har angle) men en nyckelvy saknas. Annars ingen
+    // notis (vi kan inte bedöma utan taggar — ingen brus, ingen fejk).
+    var taggedViews = all
+      .map(function (it) {
+        return it.view;
+      })
+      .filter(Boolean);
+    var viewGap = '';
+    if (taggedViews.length) {
+      var missing = [];
+      if (taggedViews.indexOf('crown') < 0) missing.push('Krona-vy');
+      if (taggedViews.indexOf('hairline') < 0) missing.push('Hårlinje-vy');
+      if (missing.length) viewGap = missing.join(' & ') + ' saknas för fullständig dokumentation';
+    }
+
+    var items = all.slice(0, 9);
+    var dated = items.filter(function (it) {
+      return it.dateLabel;
+    }).length;
+    return {
+      items: items,
+      count: items.length,
+      dated: dated,
+      compare: compare,
+      gap: gap,
+      viewGap: viewGap,
+    };
   }
 
   function fileExtLabel(name) {
@@ -1053,10 +1332,16 @@
           name: name,
           href: railFileViewUrl(f),
           badge: badge,
+          // Genomsläpp av status/datum/mime så s9 visar per-dokument status-chip
+          // + knapp (facit: Klar/Vänta sign/Auto/Intern). Riktig data, ingen fejk.
+          mimeType: text(f.mimeType),
+          status: text(f.status || f.documentStatus || f.statusLabel),
+          dateLabel: text(f.documentDate || f.dateLabel || f.capturedLabel),
+          sourceSystem: text(f.sourceSystem),
         };
       })
       .filter(function (it) {
-        return it.href;
+        return it.name;
       })
       .slice(0, 8);
 
@@ -1133,9 +1418,38 @@
    *
    * @returns {{items:Array, count:number}}
    */
-  function buildCommunicationFromState(card, occasionTimeline) {
+  function buildCommunicationFromState(card, occasionTimeline, dossierBundle) {
     card = card || {};
     var items = [];
+
+    // FÖRSTA KÄLLAN: riktiga matchade mejl ur dossier-bundlens
+    // communicationMessages (backend mailIngestionStore.listPatientMessages →
+    // subject + snippet/preview + riktning). Har meddelande-PREVIEW, till
+    // skillnad från occasionTimeline (fil-metadata utan kropp).
+    var msgs = toArray(dossierBundle && dossierBundle.communicationMessages);
+    if (msgs.length) {
+      msgs.forEach(function (m) {
+        if (!m) return;
+        var subject = text(m.subject) || (text(m.type) === 'mail' || !text(m.type) ? 'Mejl' : '');
+        var dirKey = text(m.direction) === 'out' ? 'out' : 'in';
+        var dirLabel = dirKey === 'out' ? 'Ut' : 'In';
+        var when = text(m.occurredAt);
+        items.push({
+          type: text(m.type) || 'mail',
+          dir: dirKey,
+          text: subject,
+          preview: text(m.preview),
+          meta: dirLabel + (when ? ' · ' + when.slice(0, 10) : ''),
+        });
+      });
+      items = items.slice(0, 8);
+      return {
+        items: items,
+        count: items.length,
+        patientId: text(card.patientId || card.id || card.customerId),
+      };
+    }
+
     toArray(occasionTimeline).forEach(function (ev) {
       if (!ev) return;
       var kind = String(ev.kind || ev.type || ev.category || '').toLowerCase();
@@ -1258,6 +1572,70 @@
     return { items: items, count: hasData ? items.length : 0 };
   }
 
+  /** Betalstatus-token → svensk etikett (display-only). Tokens speglar
+   *  backend (src/ops/ccoPatientPaymentHistory.js): paid/pending/overdue/
+   *  cancelled/partially_paid/failed. Okänd status → "Okänd" (ingen fejk). */
+  function econInvoiceStatusLabel(status) {
+    switch (text(status).toLowerCase()) {
+      case 'paid':
+        return 'Betald';
+      case 'pending':
+        return 'Väntar';
+      case 'overdue':
+        return 'Förfallen';
+      case 'cancelled':
+        return 'Makulerad';
+      case 'partially_paid':
+        return 'Delbetald';
+      case 'failed':
+        return 'Misslyckad';
+      default:
+        return text(status) || 'Okänd';
+    }
+  }
+
+  /** ISO → "12 maj 2026" (återanvänder BOOKING_MONTHS). '—' om ogiltig. */
+  function econFormatHistoryDate(iso) {
+    var raw = text(iso);
+    if (!raw) return '—';
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) return '—';
+    return d.getDate() + ' ' + BOOKING_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  /**
+   * Q · Economy fakturor/betalningar (frontend-wiring 2026-06-23) — läser
+   * dossier-bundlens RIKTIGA paymentHistory (Fortnox-fakturor + Swish) och
+   * mappar till display-rader. Display-only — ingen handler, ingen write.
+   * Tom/saknad lista → count:0 (renderaren visar dämpad not, ingen fejk).
+   *
+   * paymentHistory item-form (src/ops/ccoPatientPaymentHistory.js):
+   *   { id, dateIso, method:'invoice'|'swish', amountLabel, status, ref, source }
+   *
+   * @returns {{rows:Array<{id,date,title,amount,status,statusLabel}>, count:number}}
+   */
+  function buildEconomyInvoices(paymentHistory) {
+    var list = toArray(paymentHistory);
+    if (!list.length) return { rows: [], count: 0 };
+    var rows = list
+      .map(function (p) {
+        if (!p) return null;
+        var method = text(p.method);
+        var ref = text(p.ref);
+        var title = (method === 'swish' ? 'Swish' : 'Faktura') + (ref ? ' ' + ref : '');
+        return {
+          id: text(p.id),
+          date: econFormatHistoryDate(p.dateIso),
+          title: title,
+          amount: text(p.amountLabel) || '—',
+          status: text(p.status) || 'unknown',
+          statusLabel: econInvoiceStatusLabel(p.status),
+        };
+      })
+      .filter(Boolean);
+    return { rows: rows, count: rows.length };
+  }
+
   /**
    * R · Insights (KEEP/LATER) — V11-presentation av operativa insikter byggda på
    * kundens RIKTIGA automation-signaler via logik-lagret CcoKunderSmartNextStep
@@ -1318,7 +1696,9 @@
     buildNotesFromState: buildNotesFromState,
     buildCommunicationFromState: buildCommunicationFromState,
     buildEconomyFromCard: buildEconomyFromCard,
+    buildEconomyInvoices: buildEconomyInvoices,
     buildInsightsFromSignals: buildInsightsFromSignals,
+    buildRecentEvents: buildRecentEvents,
     // Block 21+ section adapters registreras här.
   };
 })(typeof window !== 'undefined' ? window : global);

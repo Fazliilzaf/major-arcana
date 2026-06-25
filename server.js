@@ -105,38 +105,13 @@ let ccoAuditLog = null;
 try {
   const { createCcoAuditLog } = require('./src/security/ccoAuditLog');
   const { requireAnyRole, attachRole } = require('./src/security/ccoRbac');
+  const { createCcoAuditRouter } = require('./src/routes/ccoAudit');
   ccoAuditLog = createCcoAuditLog({
     filePath: path.join(__dirname, 'data', 'cco-audit.jsonl'),
   });
 
-  // GET /api/v1/cco-audit — bara owner+revisor
-  app.get('/api/v1/cco-audit', attachRole, requireAnyRole(['owner', 'revisor']), (req, res) => {
-    const items = ccoAuditLog.query({
-      limit: Number(req.query.limit) || 100,
-      since: req.query.since || null,
-      action: req.query.action || null,
-      role: req.query.role || null,
-      targetId: req.query.targetId || null,
-    });
-    res.json({ count: items.length, items, stats: ccoAuditLog.stats() });
-  });
-
-  // POST /api/v1/cco-audit — interna systemet kan logga
-  const express = require('express');
-  app.post('/api/v1/cco-audit', attachRole, express.json({ limit: '8kb' }), (req, res) => {
-    const entry = ccoAuditLog.append({
-      ...req.body,
-      actor: {
-        role: req.cco?.role || 'system',
-        ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
-          .toString()
-          .split(',')[0]
-          .trim(),
-        ...(req.body?.actor || {}),
-      },
-    });
-    res.json({ ok: true, traceId: entry.traceId });
-  });
+  // Routes flyttade till src/routes/ccoAudit.js (se ORGANISATION.md §4).
+  app.use('/api/v1', createCcoAuditRouter({ ccoAuditLog, attachRole, requireAnyRole }));
 
   // Expose to other handlers via app.locals
   app.locals.ccoAuditLog = ccoAuditLog;
@@ -4705,6 +4680,7 @@ let ccoBookingCaseStore = null;
   try {
     const { createCcoVendorRegisterStore } = require('./src/ops/ccoVendorRegisterStore');
     const { attachRole, requireAnyRole } = require('./src/security/ccoRbac');
+    const { createCcoVendorsRouter } = require('./src/routes/ccoVendors');
     const express = require('express');
     const jsonParser = express.json({ limit: '64kb' });
 
@@ -4713,132 +4689,8 @@ let ccoBookingCaseStore = null;
       auditLog: ccoAuditLog,
     });
     app.locals.ccoVendorRegisterStore = store;
-    const RBAC = ['owner', 'dpo', 'revisor'];
-
-    app.get('/api/v1/cco-vendors', attachRole, requireAnyRole(RBAC), (req, res) => {
-      res.json({
-        vendors: store.listAll(),
-        needsReview: store.listNeedsReview(),
-        legacyExit: store.listLegacyExit(),
-      });
-    });
-    app.get('/api/v1/cco-vendors/export', attachRole, requireAnyRole(RBAC), (req, res) => {
-      res.json(store.exportRegister());
-    });
-    app.get('/api/v1/cco-vendors/:id', attachRole, requireAnyRole(RBAC), (req, res) => {
-      const v = store.getById(req.params.id);
-      if (!v) return res.status(404).json({ error: 'not found' });
-      res.json(v);
-    });
-    app.post(
-      '/api/v1/cco-vendors',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.createVendor(req.body, { userId: req.role?.userId, role: req.role?.role })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.patch(
-      '/api/v1/cco-vendors/:id',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.updateVendor(req.params.id, req.body, {
-              userId: req.role?.userId,
-              role: req.role?.role,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.post(
-      '/api/v1/cco-vendors/:id/dpa-reviewed',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.markDpaReviewed({
-              vendorId: req.params.id,
-              actor: { userId: req.role?.userId, role: req.role?.role },
-              ...req.body,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.post(
-      '/api/v1/cco-vendors/:id/underbilaga1-completed',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.markUnderbilaga1Completed({
-              vendorId: req.params.id,
-              actor: { userId: req.role?.userId, role: req.role?.role },
-              ...req.body,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.post(
-      '/api/v1/cco-vendors/:id/subprocessor',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.addSubprocessor({
-              vendorId: req.params.id,
-              actor: { userId: req.role?.userId, role: req.role?.role },
-              subprocessor: req.body,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
-    app.post(
-      '/api/v1/cco-vendors/:id/legacy-exit',
-      attachRole,
-      requireAnyRole(RBAC),
-      jsonParser,
-      async (req, res) => {
-        try {
-          res.json(
-            await store.markLegacyExit({
-              vendorId: req.params.id,
-              actor: { userId: req.role?.userId, role: req.role?.role },
-              ...req.body,
-            })
-          );
-        } catch (e) {
-          res.status(400).json({ error: e.message });
-        }
-      }
-    );
+    // Routes flyttade till src/routes/ccoVendors.js (se ORGANISATION.md §4).
+    app.use('/api/v1', createCcoVendorsRouter({ store, attachRole, requireAnyRole, jsonParser }));
     console.log('[cco-vendors] monterad: GET/POST /api/v1/cco-vendors + /export');
   } catch (err) {
     console.warn('[cco-vendors] kunde inte montera:', err.message);
@@ -5789,6 +5641,7 @@ let ccoPhotoConsentStore = null;
 
     app.post(
       '/api/v1/cco-photo-consents/:customerId/:photoId',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('customers.photo_consent_set'),
       jsonParser,
@@ -6977,6 +6830,7 @@ try {
   app.post(
     '/api/v1/cco-forms/submit',
     express.json({ limit: '256kb' }),
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.write'),
     async (req, res) => {
@@ -7084,6 +6938,7 @@ try {
   app.post(
     '/api/v1/cco-forms/:entryId/sign',
     express.json({ limit: '8kb' }),
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.write'),
     async (req, res) => {
@@ -7126,6 +6981,7 @@ try {
   // vilka finns signerade i CCO-journalen, vilka saknas.
   app.get(
     '/api/v1/cco-forms/patient/:patientId/missing',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('customers.read'),
     async (req, res) => {
@@ -9052,8 +8908,106 @@ try {
     }
   );
 
+  // POST /api/v1/cco-journal-quick/document — manuell PDF-uppladdning till patient-dossiern
+  // Driver "+ Lägg till"-flödet i Dokument-modulen (V12). Helt lokalt: PDF → secureStorage
+  // (SHA-256 + dedup) → addAsset(category form/consent/agreement/other, status VISIBLE).
+  // Ingen extern integration — SharePoint/Drive-sync är ett separat, cred-gatat spår.
+  const multerDoc = require('multer');
+  const MAX_DOC_BYTES = 25 * 1024 * 1024;
+  const docUpload = multerDoc({
+    storage: multerDoc.memoryStorage(),
+    limits: { fileSize: MAX_DOC_BYTES, files: 1 },
+    fileFilter: (_req, file, cb) => {
+      const okMime = String(file.mimetype || '').toLowerCase() === 'application/pdf';
+      const okExt = /\.pdf$/i.test(file.originalname || '');
+      if (!okMime && !okExt) {
+        cb(Object.assign(new Error('Endast PDF stöds.'), { statusCode: 415 }));
+        return;
+      }
+      cb(null, true);
+    },
+  });
+
+  app.post(
+    '/api/v1/cco-journal-quick/document',
+    attachRole,
+    requirePermission('journal.write'),
+    docUpload.single('document'),
+    async (req, res) => {
+      const t = (v) => (typeof v === 'string' ? v.trim() : '');
+      try {
+        if (!req.file) return res.status(400).json({ error: 'document (PDF) krävs' });
+        const patientId = t(req.body?.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
+
+        const secureStorage = await resolveSharedSecureStorage();
+        const assetStore = await resolveSharedPatientAssetStore();
+        if (!secureStorage || !assetStore)
+          return res.status(503).json({ error: 'asset stores not ready' });
+
+        const allowedCategories = ['form', 'consent', 'agreement', 'other'];
+        const rawCategory = t(req.body?.category).toLowerCase();
+        const category = allowedCategories.includes(rawCategory) ? rawCategory : 'form';
+        const displayName = t(req.body?.displayName) || null;
+        const docDateRaw = t(req.body?.documentDate).slice(0, 10);
+        const documentDate = /^\d{4}-\d{2}-\d{2}$/.test(docDateRaw) ? docDateRaw : null;
+
+        const ym = new Date().toISOString().slice(0, 7);
+        const safeSuffix = `${Date.now()}`;
+        const storageKey = `patient-documents/${ym}/${patientId}/upload-${safeSuffix}.pdf`;
+        const put = await secureStorage.putObject({
+          key: storageKey,
+          body: req.file.buffer,
+          contentType: 'application/pdf',
+          metadata: { patientId, originalFileName: req.file.originalname || 'dokument.pdf' },
+        });
+
+        const actor = {
+          userId: req.headers['x-cco-user'] || 'demo-user',
+          role: req.cco?.role || 'staff',
+        };
+        const asset = await assetStore.addAsset(
+          {
+            patientId,
+            category,
+            sourceSystem: 'upload',
+            storageProvider: 'local',
+            storageKey: put.storageKey,
+            checksum: put.checksum,
+            fileSize: put.size,
+            mimeType: 'application/pdf',
+            originalFileName: req.file.originalname || 'dokument.pdf',
+            displayName,
+            documentDate,
+            status: 'VISIBLE_ON_PATIENT_CARD',
+            importedBy: actor.userId,
+          },
+          { actor }
+        );
+
+        auditA(
+          'patient.document.upload',
+          req.cco?.role,
+          { kind: 'patient_asset', id: asset.id },
+          { patientId, category, fileSize: put.size, deduped: !!put.deduped }
+        );
+        res.json({
+          ok: true,
+          asset: {
+            id: asset.id,
+            category: asset.category,
+            status: asset.status,
+            fileName: asset.displayName || asset.originalFileName,
+          },
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
+
   console.log(
-    '[cco-journal-quick] monterad: PUT /entry, POST /sign+/correction+/unlock, GET /entries+/stats+/pdf (RBAC: journal.read_any/write + unlock=owner)'
+    '[cco-journal-quick] monterad: PUT /entry, POST /sign+/correction+/unlock+/document, GET /entries+/stats+/pdf (RBAC: journal.read_any/write + unlock=owner)'
   );
 } catch (err) {
   console.warn('[cco-journal-quick] kunde inte montera:', err.message);
@@ -10279,6 +10233,12 @@ try {
         maxPatients: Number(process.env.PHOTO_REVIEW_PILOT_MAX_PATIENTS) || 5,
       }
     : null;
+  const { registerPatientDocumentLiveManifestRoute } = require('./src/routes/patientDocumentLive');
+  registerPatientDocumentLiveManifestRoute(app);
+  console.log(
+    '[patient-doc-live] monterad: GET /api/v1/cco/patient-documents/live/manifest (före photo-review auth)'
+  );
+
   const { createCcoPhotoReviewRouter } = require('./src/routes/ccoPhotoReview');
   app.use(
     '/api/v1/cco',
@@ -10572,47 +10532,12 @@ try {
 
 // ── CCO Feedback endpoint (från stage-badge "Rapportera"-knapp) ──
 try {
+  const { createCcoFeedbackRouter } = require('./src/routes/ccoFeedback');
   const feedbackDir = path.join(__dirname, 'data');
   const feedbackFile = path.join(feedbackDir, 'cco-feedback.jsonl');
   if (!fs.existsSync(feedbackDir)) fs.mkdirSync(feedbackDir, { recursive: true });
-  // Egen body-parser för att inte kollidera med ev. global express.json() limit
-  const express = require('express');
-  app.post('/api/v1/cco-feedback', express.json({ limit: '50kb' }), (req, res) => {
-    try {
-      const entry = req.body && typeof req.body === 'object' ? req.body : null;
-      if (!entry || !entry.text) {
-        return res.status(400).json({ error: 'text required' });
-      }
-      entry.receivedAt = new Date().toISOString();
-      entry.ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
-        .toString()
-        .split(',')[0]
-        .trim();
-      fs.appendFileSync(feedbackFile, JSON.stringify(entry) + '\n');
-      res.json({ ok: true });
-    } catch (err) {
-      res.status(400).json({ error: 'invalid json: ' + err.message });
-    }
-  });
-  app.get('/api/v1/cco-feedback', requireCcoAuthenticated, (req, res) => {
-    try {
-      const raw = fs.existsSync(feedbackFile) ? fs.readFileSync(feedbackFile, 'utf8') : '';
-      const items = raw
-        .split('\n')
-        .filter(Boolean)
-        .map((l) => {
-          try {
-            return JSON.parse(l);
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean);
-      res.json({ count: items.length, items: items.slice(-200) });
-    } catch (err) {
-      res.json({ count: 0, items: [] });
-    }
-  });
+  // Routes flyttade till src/routes/ccoFeedback.js (se ORGANISATION.md §4).
+  app.use('/api/v1', createCcoFeedbackRouter({ feedbackFile, requireCcoAuthenticated }));
   console.log('[cco-feedback] monterad: POST/GET /api/v1/cco-feedback');
 } catch (err) {
   console.warn('[cco-feedback] kunde inte montera:', err.message);
@@ -10921,7 +10846,7 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.get('/admin.html', (_req, res) => sendAdminHtml(res));
+// /admin.html flyttad till src/routes/admin.js (se ORGANISATION.md §4).
 
 // ════════════════════════════════════════════════════════════════════
 // Fas 27E (2026-05-18): server-side asset pipeline för major-arcana-preview
@@ -11015,6 +10940,15 @@ function transformPreviewHtml(html) {
   return html;
 }
 
+const { createPatientDocumentLiveRouter } = require('./src/routes/patientDocumentLive');
+app.use(
+  createPatientDocumentLiveRouter({
+    previewRoot: PREVIEW_ROOT,
+    transformPreviewHtml,
+    getAssetHash,
+  })
+);
+
 function servePreviewHtml(req, res, next) {
   try {
     const htmlPath = path.join(PREVIEW_ROOT, 'index.html');
@@ -11105,6 +11039,14 @@ const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
+const { createCalendarRouter } = require('./src/routes/calendar');
+const { createExecutiveRouter } = require('./src/routes/executive');
+const { createOnboardingRouter } = require('./src/routes/onboarding');
+const { createDocsRouter } = require('./src/routes/docs');
+const { createPatientInformationRouter } = require('./src/routes/patientInformation');
+const { createAdminRouter } = require('./src/routes/admin');
+const { createDiagRouter } = require('./src/routes/diag');
+const { createConversationRouter } = require('./src/routes/conversation');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
@@ -11212,10 +11154,12 @@ const { createCcoBookingEngineRouter } = require('./src/routes/ccoBookingEngine'
 const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoFortnoxRouter } = require('./src/routes/ccoFortnox');
 const { createCcoSwishRouter } = require('./src/routes/ccoSwish');
+const { createCcoPaymentsRouter } = require('./src/routes/ccoPayments');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
 const { createCcoCustomerCommRouter } = require('./src/routes/ccoCustomerComm');
+const { createCcoCommDraftRouter } = require('./src/routes/ccoCommDraft');
 const { createCcoStaffRouter } = require('./src/routes/ccoStaff');
 const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
 const { createCcoPatientPaymentsRouter } = require('./src/routes/ccoPatientPayments');
@@ -11444,142 +11388,25 @@ app.get('/patient', (_req, res) => {
   res.sendFile('patient-hub.html', { root: __dirname + '/public' });
 });
 
-app.get('/patientinformation/hartransplantation-dhi-prp', (_req, res) => {
-  res.sendFile('patientinformation-hartransplantation-dhi-prp.html', {
-    root: __dirname + '/public',
-  });
-});
-
-app.get('/patientinformation/hartransplantation-dhi-prp-minimal', (_req, res) => {
-  res.sendFile('patientinformation-hartransplantation-dhi-prp-minimal.html', {
-    root: __dirname + '/public',
-  });
-});
-
-app.get('/patientinformation/hartransplantation-dhi-prp-minimal.pdf', (req, res) =>
-  sendStaticPagePdf(req, res, {
-    pagePath: '/patientinformation/hartransplantation-dhi-prp-minimal',
-    fileName: 'Patientinformation-Hartransplantation-DHI-och-PRP-Hair-TP-Clinic-Minimal.pdf',
-    media: 'screen',
-    viewport: { width: 1100, height: 1600 },
-    bodyClass: 'pdf-server-export',
-    pdfOptions: {
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: false,
-      margin: {
-        top: '10mm',
-        right: '10mm',
-        bottom: '12mm',
-        left: '10mm',
-      },
-    },
+// ─── PATIENTINFORMATION (statiska sidor + PDF) ───
+// Routes flyttade till src/routes/patientInformation.js (se ORGANISATION.md §4).
+// sendStaticPagePdf bor kvar i server.js och injiceras.
+app.use(
+  createPatientInformationRouter({
+    publicRoot: __dirname + '/public',
+    sendStaticPagePdf,
   })
 );
 
-app.get('/patientinformation/hartransplantation-dhi-prp.pdf', (req, res) =>
-  sendStaticPagePdf(req, res, {
-    pagePath: '/patientinformation/hartransplantation-dhi-prp?export=pdf',
-    fileName: 'Patientinformation-Hartransplantation-DHI-och-PRP-Hair-TP-Clinic.pdf',
-    media: 'screen',
-    viewport: { width: 430, height: 932 },
-    pageOptions: { deviceScaleFactor: 2 },
-    bodyClass: 'pdf-server-export',
-    rasterizePage: true,
-  })
-);
+// ─── ADMIN-SHELL + ALIAS-REDIRECTS ───
+// Routes flyttade till src/routes/admin.js (se ORGANISATION.md §4).
+// sendAdminHtml bor kvar i server.js och injiceras.
+app.use(createAdminRouter({ sendAdminHtml }));
 
-app.get('/patientinformation/ogonlocksplastik-curatiio.pdf', (req, res) =>
-  sendStaticPagePdf(req, res, {
-    pagePath: '/patientinformation-ogonlocksplastik-curatiio.html?v=20260309b',
-    fileName: 'Patientinformation-Ogonlocksplastik-Curatiio.pdf',
-    media: 'screen',
-    viewport: { width: 430, height: 932 },
-    pageOptions: { deviceScaleFactor: 2 },
-    bodyClass: 'pdf-server-export',
-    rasterizePage: true,
-  })
-);
-
-app.get('/admin', (req, res) => {
-  sendAdminHtml(res);
-});
-
-app.get('/admin/cmo/connectors', (_req, res) => {
-  res.redirect(302, '/admin#cmo-connectors');
-});
-
-app.get('/admin/cmo', (_req, res) => {
-  res.redirect(302, '/admin#cmo');
-});
-
-app.get('/cco', (req, res) => {
-  const query = String(req.url || '').includes('?')
-    ? String(req.url).slice(String(req.url).indexOf('?'))
-    : '';
-  res.redirect(302, `/admin${query}#cco`);
-});
-
-app.get('/unanswered', (req, res) => {
-  sendAdminHtml(res);
-});
-
-app.get(['/ccp', '/admin/cco'], (req, res) => {
-  const query = String(req.url || '').includes('?')
-    ? String(req.url).slice(String(req.url).indexOf('?'))
-    : '';
-  res.redirect(302, `/admin${query}#cco`);
-});
-
-app.get('/admin/unanswered', (req, res) => {
-  res.redirect(302, '/unanswered');
-});
-
-// FIX2: publik diag-endpoint — visar vilka ARCANA_*-env är satta + bootstrap-status
-app.get('/api/v1/_diag/env', (req, res) => {
-  const flags = [
-    'ARCANA_STATE_ROOT',
-    'ARCANA_BOOTSTRAP_MAILBOX_BACKFILL',
-    'ARCANA_BOOTSTRAP_TENANT_ID',
-    'ARCANA_BOOTSTRAP_PREFERRED_MAILBOX',
-    'ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS',
-    'ARCANA_BOOTSTRAP_DELAY_MS',
-    'ARCANA_GRAPH_READ_ENABLED',
-    'ARCANA_GRAPH_SEND_ENABLED',
-    'ARCANA_DEFAULT_TENANT',
-  ];
-  const env = {};
-  for (const k of flags) {
-    const v = process.env[k];
-    env[k] = v === undefined ? null : v.length > 80 ? v.slice(0, 30) + '...' : v;
-  }
-  return res.json({
-    ok: true,
-    env,
-    resolved: {
-      stateRoot: config.stateRoot,
-      aiProvider: config.aiProvider,
-      staffJournalOpenAccess: Boolean(config.staffJournalOpenAccess),
-      renderDefaultsApplied: Array.isArray(config.renderRuntimeDefaults?.applied)
-        ? config.renderRuntimeDefaults.applied
-        : [],
-    },
-    cwd: process.cwd(),
-    nodeVersion: process.version,
-  });
-});
-
-// Commit-sha endpoint — så vi kan verifiera vilken version som är deployad
-app.get('/api/v1/_diag/version', (req, res) => {
-  return res.json({
-    ok: true,
-    commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || 'unknown',
-    branch: process.env.RENDER_GIT_BRANCH || 'unknown',
-    deployedAt: process.env.RENDER_DEPLOY_AT || null,
-    serverStartedAt: runtimeState.startedAt,
-    fixes: ['FIX3', 'FIX4', 'FIX5', 'FIX6', 'FIX7', 'FIX8'],
-  });
-});
+// ─── DIAGNOSTIK (_diag) ───
+// Routes flyttade till src/routes/diag.js (se ORGANISATION.md §4).
+// config + runtimeState injiceras.
+app.use('/api/v1', createDiagRouter({ config, runtimeState }));
 
 app.get('/healthz', (req, res) => {
   return res.json({
@@ -11642,43 +11469,13 @@ app.get('/api/v1/health/journal-photos', requireCcoAuthenticated, async (_req, r
   }
 });
 
-app.get('/api/v1/executive/feed', (req, res) => {
-  const entries = executiveDecisionFeed.list({
-    severity: req.query?.severity || undefined,
-    requiredOwnerAction: req.query?.ownerAction === 'true' ? true : undefined,
-    limit: Math.min(50, Math.max(1, Number(req.query?.limit) || 20)),
-  });
-  const summary = executiveDecisionFeed.getSummary();
-  return res.json({ ok: true, entries, summary });
-});
-
-app.get('/api/v1/executive/feed/summary', (req, res) => {
-  return res.json({ ok: true, ...executiveDecisionFeed.getSummary() });
-});
-
-app.post('/api/v1/executive/feed/:entryId/resolve', (req, res) => {
-  const result = executiveDecisionFeed.resolve({
-    entryId: req.params?.entryId,
-    resolvedBy: req.body?.resolvedBy || 'owner',
-    resolution: req.body?.resolution || 'acknowledged',
-  });
-  if (!result) return res.status(404).json({ error: 'Entry hittades inte.' });
-  return res.json({ ok: true, entry: result });
-});
-
-app.get('/api/v1/executive/agents/status', (req, res) => {
-  const feedSummary = executiveDecisionFeed.getSummary();
-  const agents = ['COO', 'CAO', 'CFO', 'CMO', 'CCO', 'Patient'].map((name) => ({
-    name,
-    lastRun: feedSummary.lastEntryByAgent?.[name] || null,
-    pendingActions: feedSummary.byAgent?.[name] || 0,
-    status: feedSummary.byAgent?.[name] > 0 ? 'action_required' : 'idle',
-  }));
-  return res.json({ ok: true, agents, feedSummary });
-});
+// ─── EXECUTIVE DECISION FEED ───
+// Routes flyttade till src/routes/executive.js (se ORGANISATION.md §4).
+// Monteras top-level (bevarar registreringsordning före rate-limit i startup).
+// getFeed-getter krävs eftersom executiveDecisionFeed omtilldelas async ovan.
+app.use('/api/v1', createExecutiveRouter({ getFeed: () => executiveDecisionFeed }));
 
 const { computeQaDashboard } = require('./src/ops/qaDashboard');
-const { buildDayView, buildWeekView } = require('./src/ops/clinicCalendarView');
 const {
   runBackup,
   listBackups,
@@ -11692,41 +11489,11 @@ const {
   runCheck: runUptimeCheck,
 } = require('./src/ops/uptimeMonitor');
 const { createOnboardingStore } = require('./src/ops/staffOnboarding');
-const {
-  getDocContent,
-  getDocsForSection,
-  getAllSections,
-  getDocumentLibrary,
-  isAllowedDocPath,
-} = require('./src/ops/contextualDocs');
 
-app.get('/api/v1/docs/sections', (req, res) => {
-  return res.json({ ok: true, sections: getAllSections() });
-});
-
-// Complete document library — every doc in the repo, grouped by segment.
-app.get('/api/v1/docs/library', async (req, res) => {
-  try {
-    const library = await getDocumentLibrary();
-    return res.json({ ok: true, ...library });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error?.message || 'library_failed' });
-  }
-});
-
-app.get('/api/v1/docs/section/:sectionId', (req, res) => {
-  const docs = getDocsForSection(req.params.sectionId);
-  if (!docs.length) return res.status(404).json({ ok: false, error: 'section_not_found' });
-  return res.json({ ok: true, sectionId: req.params.sectionId, documents: docs });
-});
-
-app.get('/api/v1/docs/content', async (req, res) => {
-  const docPath = (req.query?.path || '').trim();
-  if (!isAllowedDocPath(docPath)) return res.status(400).json({ ok: false, error: 'invalid_path' });
-  const result = await getDocContent(docPath);
-  if (!result.ok) return res.status(404).json(result);
-  return res.json(result);
-});
+// ─── DOCS / KNOWLEDGE LIBRARY ───
+// Routes flyttade till src/routes/docs.js (se ORGANISATION.md §4).
+// Monteras top-level (bevarar registreringsordning före rate-limit i startup).
+app.use('/api/v1', createDocsRouter());
 
 // Knowledge layer (Fas 1) — ett enat index som admin OCH agenter läser från.
 const {
@@ -11807,45 +11574,17 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
   return res.json({ ok: true, ...dashboard });
 });
 
-app.get('/api/v1/calendar/day', (req, res) => {
-  const view = buildDayView({
-    date: req.query?.date,
-    bookingEngineStore: null,
-    encounterStore: null,
-    tenantId: req.query?.tenantId || '',
-  });
-  return res.json({ ok: true, ...view });
-});
+// ─── CALENDAR/iCAL ───
+// Calendar + iCal-routes flyttade till src/routes/calendar.js (se ORGANISATION.md §4).
+// Monteras här (top-level) för att bevara registreringsordning före rate-limit-
+// middleware i startup — calendar-GET var oratelimitad i originalet.
+app.use('/api/v1', createCalendarRouter());
 
-app.get('/api/v1/calendar/week', (req, res) => {
-  const view = buildWeekView({
-    startDate: req.query?.startDate,
-    bookingEngineStore: null,
-    encounterStore: null,
-    tenantId: req.query?.tenantId || '',
-  });
-  return res.json({ ok: true, ...view });
-});
-
-// ─── iCAL EXPORT ───
-const { buildIcalFeed, getBookingsForResource } = require('./src/ops/icalExport');
 const {
   createRecurringSeries,
   getSeriesProgress,
   SERIES_TEMPLATES,
 } = require('./src/ops/recurringBookings');
-
-app.get('/api/v1/calendar/ical/:resourceId.ics', (req, res) => {
-  const resourceId = req.params.resourceId || 'all';
-  const bookings = getBookingsForResource(null, resourceId, {
-    days: Number(req.query?.days) || 30,
-  });
-  const resourceLabel = resourceId === 'all' ? 'Alla behandlare' : resourceId;
-  const ical = buildIcalFeed({ resourceLabel, bookings });
-  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="${resourceId}-schema.ics"`);
-  return res.send(ical);
-});
 
 // ─── RECURRING BOOKINGS ───
 app.get('/api/v1/booking/series/templates', requireCcoAuthenticated, (req, res) => {
@@ -11889,25 +11628,10 @@ const onboardingStorePath = './data/cco-onboarding.json';
 const onboardingStore = createOnboardingStore({ filePath: onboardingStorePath });
 onboardingStore.load().catch((err) => console.warn('[onboarding] Load failed:', err?.message));
 
-app.get('/api/v1/onboarding/:userId', (req, res) => {
-  const status = onboardingStore.getStatus(req.params.userId);
-  return res.json({ ok: true, ...status });
-});
-app.post('/api/v1/onboarding/:userId/step/:stepId', async (req, res) => {
-  const result = await onboardingStore.completeStep(
-    req.params.userId,
-    req.params.stepId,
-    req.body?.verification
-  );
-  return res.json(result);
-});
-app.post('/api/v1/onboarding/:userId/reset', async (req, res) => {
-  const result = await onboardingStore.resetProgress(req.params.userId);
-  return res.json(result);
-});
-app.get('/api/v1/onboarding/admin/incomplete', (req, res) => {
-  return res.json({ ok: true, users: onboardingStore.listIncomplete() });
-});
+// ─── STAFF ONBOARDING ───
+// Routes flyttade till src/routes/onboarding.js (se ORGANISATION.md §4).
+// Monteras top-level (bevarar registreringsordning före rate-limit i startup).
+app.use('/api/v1', createOnboardingRouter({ onboardingStore }));
 
 // Start uptime monitoring
 startMonitoring();
@@ -13136,47 +12860,9 @@ process.once('SIGTERM', () => {
     })
   );
 
-  app.get('/conversation/:id', async (req, res) => {
-    try {
-      const conversation = await memoryStore.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ error: 'Hittade ingen konversation.' });
-      }
-      const sourceUrl = typeof req.query.sourceUrl === 'string' ? req.query.sourceUrl : '';
-      const brand = resolveBrand(req, sourceUrl);
-      if (conversation.brand && brand && conversation.brand !== brand) {
-        return res.status(404).json({ error: 'Hittade ingen konversation.' });
-      }
-      if (!conversation.brand && brand) {
-        await memoryStore.ensureConversation(conversation.id, brand);
-      }
-      return res.json({
-        conversationId: conversation.id,
-        summary: conversation.summary || '',
-        messages: conversation.messages || [],
-      });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Något gick fel.' });
-    }
-  });
-
-  app.delete('/conversation/:id', async (req, res) => {
-    try {
-      const conversation = await memoryStore.getConversation(req.params.id);
-      if (!conversation) return res.json({ ok: false });
-      const sourceUrl = typeof req.query.sourceUrl === 'string' ? req.query.sourceUrl : '';
-      const brand = resolveBrand(req, sourceUrl);
-      if (conversation.brand && brand && conversation.brand !== brand) {
-        return res.json({ ok: false });
-      }
-      const ok = await memoryStore.deleteConversation(req.params.id);
-      return res.json({ ok });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Något gick fel.' });
-    }
-  });
+  // ─── KONVERSATION (hämta/radera) ───
+  // Routes flyttade till src/routes/conversation.js (se ORGANISATION.md §4).
+  app.use(createConversationRouter({ memoryStore, resolveBrand }));
 
   app.post(
     '/chat',
@@ -13535,6 +13221,17 @@ process.once('SIGTERM', () => {
 
   app.use(
     '/api/v1',
+    createCcoPaymentsRouter({
+      swishStore: ccoSwishStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
     createCcoSettingsRouter({
       settingsStore: ccoSettingsStore,
       bookingEngineStore: ccoBookingEngineStore,
@@ -13577,6 +13274,21 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Svarstudio v2 (P2): utkast-CRUD + gateway-styrd AI-generering.
+  // Live-utskick (→ sent) är hårt blockerat (owner-mandat); se router.
+  app.use(
+    '/api/v1',
+    createCcoCommDraftRouter({
+      config,
+      requireAuth: auth.requireAuth,
+      commDraftStore: app.locals?.ccoCommDraftStore || null,
+      executionGateway,
+      openai,
+      auditLog: ccoAuditLog,
+      appLocals: app.locals,
+    })
+  );
+
   app.use(
     '/api/v1',
     createCcoPatientMasterRouter({
@@ -13588,8 +13300,12 @@ process.once('SIGTERM', () => {
       patientSystemStore: ccoPatientSystemStore,
       documentInstanceStore: ccoDocumentInstanceStore,
       buildPatientDocumentBundle,
+      commercialStore: ccoCommercialStore,
+      swishStore: ccoSwishStore,
+      fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister || null,
       readCache: ccoReadCache,
       resolvePatientAssetStore: resolveSharedPatientAssetStore,
+      mailIngestionStore: ccoMailIngestionStore,
       swishStore: ccoSwishStore,
       commercialStore: ccoCommercialStore,
       fortnoxInvoiceLister: app.locals.ccoFortnoxInvoiceLister || null,
