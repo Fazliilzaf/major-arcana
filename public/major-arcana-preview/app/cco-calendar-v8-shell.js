@@ -2028,6 +2028,200 @@
     }
   }
 
+  // ── P1: riktig data i Morgon-vyn via det DELADE datalagret ───────────────
+  // Återanvänder ArcanaBookingCalendarShared (samma enda källa som legacy) —
+  // ingen egen datakälla. Heuristiken speglar legacy-kalenderns dokumenterade
+  // morgon-standup (boknings-räkning, lediga luckor, transparent schema-säkerhet).
+  function v8Esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function v8SetKicker(card, text) {
+    if (!card) return;
+    var k = card.querySelector('.story-card-kicker');
+    if (!k) return;
+    var icon = k.querySelector('.icon');
+    k.innerHTML = (icon ? icon.outerHTML : '') + ' ' + v8Esc(text);
+  }
+  async function populateMorgonReal(root) {
+    try {
+      if (typeof window.__ARCANA_ENSURE_BOOKING_SCRIPTS__ === 'function') {
+        await window.__ARCANA_ENSURE_BOOKING_SCRIPTS__();
+      }
+      var S = window.ArcanaBookingCalendarShared;
+      if (!S || typeof S.fetchCalendarRange !== 'function') return;
+      var today = S.todayIso ? S.todayIso() : new Date().toISOString().slice(0, 10);
+      var endD = new Date(today + 'T12:00:00');
+      endD.setDate(endD.getDate() + 13);
+      var range = await S.fetchCalendarRange(today, endD.toISOString().slice(0, 10));
+      var sbd = range && range.slotsByDate;
+      var daySlots = (sbd instanceof Map ? sbd.get(today) : sbd && sbd[today]) || [];
+      var booked = daySlots.filter(function (s) {
+        return s && s.kind === 'booked';
+      });
+      var available = daySlots.filter(function (s) {
+        return s && s.kind === 'available';
+      });
+      booked.sort(function (a, b) {
+        return S.slotStartMinutes(a) - S.slotStartMinutes(b);
+      });
+      var t = function (slot, idx) {
+        var r = (S.formatTimeRange(slot) || '').split('–');
+        return (r[idx] || '').trim();
+      };
+      var first = booked[0] ? t(booked[0], 0) : null;
+      var last = booked.length ? booked[booked.length - 1] : null;
+
+      // Hälsning — riktig veckodag/tid, neutralt namn (inget påhittat).
+      var now = new Date();
+      var hh = now.getHours();
+      var greet = hh < 11 ? 'God morgon' : hh < 18 ? 'God dag' : 'God kväll';
+      var clock = String(hh).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      var dayWord = new Date(today + 'T12:00:00').toLocaleDateString('sv-SE', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      });
+      var h1 = root.querySelector('.greet-text h1');
+      if (h1) h1.innerHTML = v8Esc(greet) + '<span>.</span>';
+      var gp = root.querySelector('.greet-text p');
+      if (gp) gp.innerHTML = v8Esc(dayWord) + ' · klockan är <strong>' + v8Esc(clock) + '</strong>';
+
+      // IDAG
+      var idag = root.querySelector('[data-kind="idag"]');
+      if (idag) {
+        var num = idag.querySelector('.num');
+        if (num) num.textContent = String(booked.length);
+        var sub = idag.querySelector('.story-card-sub');
+        if (sub) {
+          sub.textContent = booked.length
+            ? 'Första kl ' +
+              first +
+              ' · sista kl ' +
+              t(last, 0) +
+              ' · ' +
+              available.length +
+              ' lediga tider'
+            : available.length + ' lediga tider · inga bokningar denna dag ännu';
+        }
+        // day-spark: bokningar per timme 8–19
+        var spark = idag.querySelector('.day-spark');
+        if (spark) {
+          var buckets = [];
+          for (var hI = 0; hI < 12; hI++) buckets.push(0);
+          booked.forEach(function (s) {
+            var m = S.slotStartMinutes(s);
+            var hr = Math.floor(m / 60) - 7;
+            if (hr >= 0 && hr < 12) buckets[hr] += 1;
+          });
+          var mx = Math.max(1, Math.max.apply(null, buckets));
+          spark.innerHTML = buckets
+            .map(function (n) {
+              var pct = Math.round((n / mx) * 100);
+              return (
+                '<div class="day-spark-bar"' +
+                (n ? '' : ' data-h="0"') +
+                ' style="height:' +
+                pct +
+                '%"></div>'
+              );
+            })
+            .join('');
+        }
+      }
+
+      // RISKER — ärligt: bokningar med obekräftad/tentativ status.
+      var risks = booked
+        .filter(function (s) {
+          return /(tentat|pending|obekräft|obekraft|väntar|vantar)/i.test(String(s.status || ''));
+        })
+        .map(function (s) {
+          return {
+            who: s.title || s.serviceLabel || 'Bokning',
+            what: 'väntar bekräftelse',
+            when: t(s, 0),
+            sev: 'med',
+          };
+        });
+      var riskCard = root.querySelector('[data-kind="risker"]');
+      if (riskCard) {
+        v8SetKicker(riskCard, risks.length + ' risker');
+        var rlist = riskCard.querySelector('.story-list');
+        if (rlist) {
+          rlist.innerHTML = risks.length
+            ? risks
+                .map(function (r) {
+                  return (
+                    '<div class="story-item" data-severity="' +
+                    r.sev +
+                    '"><span class="badge">!</span>' +
+                    '<span><span class="who">' +
+                    v8Esc(r.who) +
+                    '</span> <span class="what">' +
+                    v8Esc(r.what) +
+                    '</span></span>' +
+                    '<span class="when">' +
+                    v8Esc(r.when) +
+                    '</span></div>'
+                  );
+                })
+                .join('')
+            : '<div class="story-empty">Inga risker idag — allt ser bra ut.</div>';
+        }
+      }
+
+      // MÖJLIGHETER — riktiga lediga luckor.
+      var oppCard = root.querySelector('[data-kind="mojligheter"]');
+      if (oppCard) {
+        v8SetKicker(oppCard, available.length + ' möjligheter');
+        var olist = oppCard.querySelector('.story-list');
+        if (olist) {
+          olist.innerHTML = available.length
+            ? available
+                .slice(0, 4)
+                .map(function (s) {
+                  var res = s.resourceLabel || s.resource || '';
+                  return (
+                    '<div class="story-item" data-severity="ok"><span class="badge">★</span>' +
+                    '<span><span class="who">Ledig tid</span> <span class="what">' +
+                    (res ? '— ' + v8Esc(res) : '— boka in en kund') +
+                    '</span></span>' +
+                    '<span class="when">' +
+                    v8Esc(t(s, 0)) +
+                    '</span></div>'
+                  );
+                })
+                .join('')
+            : '<div class="story-empty">Inga lediga luckor kvar idag.</div>';
+        }
+      }
+
+      // PROGNOS — transparent heuristik på riktig data (ej AI).
+      var conf = Math.max(30, Math.min(99, 100 - risks.length * 9));
+      var prog = root.querySelector('[data-kind="klart"]');
+      if (prog) {
+        var ph = prog.querySelector('.story-card-headline');
+        if (ph)
+          ph.textContent = booked.length ? 'Klar ' + (t(last, 1) || '—') : 'Ingen dag att planera';
+        var ps = prog.querySelector('.story-card-sub');
+        if (ps) {
+          ps.textContent = booked.length
+            ? (risks.length ? risks.length + ' öppna punkter. ' : 'Allt hanterat. ') +
+              conf +
+              '% schema-säkerhet (heuristik på din dag).'
+            : 'Lägg in bokningar för att se en prognos.';
+        }
+        var fill = prog.querySelector('.ready-meter-fill');
+        if (fill) fill.style.width = (booked.length ? conf : 0) + '%';
+        var lbls = prog.querySelectorAll('.ready-meter-labels span');
+        if (lbls && lbls[1]) lbls[1].textContent = booked.length ? conf + '%' : '—';
+      }
+    } catch (e) {
+      if (window.console) console.warn('[cco-cal-v8] morgon-data:', e && e.message);
+    }
+  }
+
   function mountPoint() {
     return (
       document.querySelector(
@@ -2046,8 +2240,9 @@
       host.appendChild(root);
     }
     root.innerHTML = MARKUP;
-    // FAS P1+: parametrisera sektioner från ctx här (riktig data).
     initV8Interactions();
+    // P1: fyll Morgon-vyn med riktig data från det delade datalagret (async).
+    populateMorgonReal(root);
     return root;
   }
 
