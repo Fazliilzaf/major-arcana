@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Journal Safety Helper — v3 responsiv</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== JOURNAL SAFETY HELPER-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* centrerad läsbredd för stepper-flödet */
+.safety{max-width:54rem;margin-inline:auto;display:flex;flex-direction:column;gap:var(--gap)}
+@media(min-width:1025px){.safety{max-width:50rem}}
+
+/* hero-panel */
+.hero{position:relative;overflow:hidden;border-left:4px solid var(--gold)}
+.hero .sec-kicker{color:var(--gold)}
+.hero h1{margin:.3rem 0 .35rem;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.hero p{margin:0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:54ch}
+
+/* progress-metric-rad */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap)}
+.progbar{margin-top:.5rem;height:.5rem;border-radius:999px;background:rgba(120,108,95,.2);overflow:hidden}
+.progbar span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--success),#3f8a68);transition:width .3s}
+
+/* checkpoint-kort (stepper-steg) */
+.cp{display:grid;grid-template-columns:var(--tap) 1fr;gap:.85rem;align-items:start;padding:.95rem 1rem;border-radius:var(--r-lg);
+  background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);
+  border-left:4px solid var(--gold);box-shadow:var(--sh-md);cursor:pointer;text-align:left;width:100%;transition:border-color .15s,background .15s}
+.cp:hover{background:linear-gradient(180deg,#fff6fa,rgba(253,238,244,.7))}
+.cp.is-done{border-left-color:var(--success);background:linear-gradient(180deg,rgba(47,111,84,.1),rgba(47,111,84,.04))}
+.cp.is-stop{border-left-color:var(--danger);background:linear-gradient(180deg,var(--danger-bg),rgba(168,56,56,.04))}
+.cp.is-stop.is-done{border-left-color:var(--success);background:linear-gradient(180deg,rgba(47,111,84,.1),rgba(47,111,84,.04))}
+.cp-box{width:var(--tap);height:var(--tap);border:2px solid rgba(120,108,95,.5);border-radius:9px;background:rgba(255,255,255,.7);
+  display:grid;place-items:center;color:#fff;flex-shrink:0}
+.cp-box svg{width:1.2rem;height:1.2rem;opacity:0;transition:opacity .15s}
+.cp.is-done .cp-box{background:var(--success);border-color:var(--success)}
+.cp.is-done .cp-box svg{opacity:1}
+.cp-body{min-width:0}
+.cp-title{margin:.2rem 0 0;font-size:var(--fs-body);font-weight:800;color:var(--text-primary);letter-spacing:-.01em}
+.cp.is-stop .cp-title{color:var(--danger)}
+.cp.is-stop.is-done .cp-title{color:var(--text-primary)}
+.cp-detail{margin:.35rem 0 0;font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.5}
+.cp-detail strong{color:var(--text-primary);font-weight:800}
+.cp-detail code{background:rgba(120,108,95,.16);padding:.05rem .35rem;border-radius:6px;font-size:.95em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* resultat-panel */
+.result{text-align:center;border:1px solid rgba(180,165,150,.25)}
+.result.is-go{border-color:var(--success);background:linear-gradient(180deg,rgba(47,111,84,.14),rgba(47,111,84,.04))}
+.result-icon{font-size:2rem;line-height:1}
+.result-title{font-size:1.05rem;font-weight:800;margin:.3rem 0 .2rem}
+.result.is-go .result-title{color:var(--success)}
+.result-sub{font-size:var(--fs-meta);color:var(--text-secondary);max-width:46ch;margin-inline:auto}
+.result .btn{margin-top:.7rem}
+
+/* eskalera-varning */
+.escalate{border-left:4px solid var(--danger);background:linear-gradient(180deg,var(--danger-bg),rgba(168,56,56,.05));font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.5}
+.escalate strong{color:var(--danger);font-weight:800}
+
+/* footer */
+.foot{text-align:center;font-size:var(--fs-kicker);color:var(--text-tertiary)}
+.foot a{color:var(--accent);text-decoration:none;font-weight:800}
+
+@media(max-width:600px){
+  .metrics{grid-template-columns:1fr 1fr;gap:.5rem}
+  .metrics .metric--rose{grid-column:1 / -1}
+}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i guiden…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <div class="safety">
+
+    <!-- ===== HEAD ===== -->
+    <div class="head">
+      <div class="head-main">
+        <span class="kicker">Journal Safety Helper</span>
+        <h1 class="h1">Stega igenom 6 frågor — innan du gör något permanent</h1>
+        <p class="subtitle">In-app · ha öppen i sido-flik · 6 checkpoints</p>
+      </div>
+    </div>
+
+    <!-- ===== HERO ===== -->
+    <div class="panel hero">
+      <span class="sec-kicker">Säkerhetshjälp · innan signering eller rättelse</span>
+      <h1>Stega igenom 6 frågor — innan du gör något permanent</h1>
+      <p>Bocka av varje fråga. Sista frågan om review-material är en STOPPA-regel. När alla 6 är gröna är det säkert att fortsätta.</p>
+    </div>
+
+    <!-- ===== PROGRESS-METRIC ===== -->
+    <div class="metrics">
+      <div class="metric metric--green"><div class="m-label">Bekräftade</div><div class="m-val tabnum"><span id="mDone">0</span> / 6</div><div class="m-meta">checkpoints klara</div></div>
+      <div class="metric metric--gold"><div class="m-label">Kvar</div><div class="m-val tabnum" id="mLeft">6</div><div class="m-meta">att bocka av</div></div>
+      <div class="metric metric--rose"><div class="m-label">Framsteg</div><div class="m-val tabnum" id="mPct">0%</div><div class="progbar"><span id="mBar"></span></div></div>
+    </div>
+
+    <!-- ===== CHECKPOINTS (stepper) ===== -->
+    <div id="cpList">
+
+      <!-- 1 -->
+      <button type="button" class="cp" data-cp>
+        <span class="cp-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <span class="cp-body">
+          <span class="cp-title">1 · Är rätt patient verifierad?</span>
+          <span class="cp-detail">Kundkortets header visar <strong>rätt namn, telefon och Cliento-id</strong>. Patienten framför mig är den jag tror att den är.</span>
+        </span>
+      </button>
+
+      <!-- 2 -->
+      <button type="button" class="cp" data-cp>
+        <span class="cp-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <span class="cp-body">
+          <span class="cp-title">2 · Är journaltexten för rätt besök?</span>
+          <span class="cp-detail">Anteckningen handlar om <strong>dagens konsultation</strong> — inte ett gammalt besök, inte en planerad framtida session. Datum, observation och plan är aktuella.</span>
+        </span>
+      </button>
+
+      <!-- 3 — STOPPA-REGEL -->
+      <button type="button" class="cp is-stop" data-cp>
+        <span class="cp-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <span class="cp-body">
+          <span class="cp-title">3 · Har du använt review-material som klinisk sanning? → STOPPA</span>
+          <span class="cp-detail">Importerat material med badges <code>needs review</code> / <code>pending</code> är <strong>inte</strong> klinisk sanning. Om du baserat diagnos eller dosering på oferifierat material — <strong>STOPPA</strong>. Skriv om journalen baserat på patientens muntliga uppgifter istället.</span>
+        </span>
+      </button>
+
+      <!-- 4 -->
+      <button type="button" class="cp" data-cp>
+        <span class="cp-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <span class="cp-body">
+          <span class="cp-title">4 · Är detta en rättelse? Skapa då ny post</span>
+          <span class="cp-detail">Om du upptäcker fel i en <strong>signerad post</strong> — ändra inte originalet. Klicka <strong>"Skapa rättelse"</strong>. Skriv det korrigerade i sin helhet i den nya posten. Originalet låses kvar.</span>
+        </span>
+      </button>
+
+      <!-- 5 -->
+      <button type="button" class="cp" data-cp>
+        <span class="cp-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <span class="cp-body">
+          <span class="cp-title">5 · Signera först när allt är kontrollerat</span>
+          <span class="cp-detail">Texten är <strong>komplett, läst igenom, inga personnummer i fritext om inte krävs</strong>, ingen extern AI använd. När jag är säker — klickar jag Signera. Aldrig snabb-signering.</span>
+        </span>
+      </button>
+
+      <!-- 6 -->
+      <button type="button" class="cp" data-cp>
+        <span class="cp-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <span class="cp-body">
+          <span class="cp-title">6 · Vid osäkerhet: eskalera</span>
+          <span class="cp-detail"><strong>Osäker på något?</strong> Säg "en sekund så dubbelkollar jag". Eskalera till admin/ops för identitet/dubbletter, Fazli för tekniska fel. Det är aldrig fel att fråga.</span>
+        </span>
+      </button>
+
+    </div>
+
+    <!-- ===== RESULTAT ===== -->
+    <div class="panel result" id="result">
+      <div class="result-icon" id="resultIcon">⏳</div>
+      <div class="result-title" id="resultTitle">Bocka av 6 punkter</div>
+      <div class="result-sub" id="resultSub">Stega igenom varje fråga. När alla är gröna är det säkert att fortsätta.</div>
+      <button class="btn btn--primary" id="resetBtn" style="display:none" type="button">↻ Återställ för nästa</button>
+    </div>
+
+    <!-- ===== ESKALERA ===== -->
+    <div class="card escalate">
+      <strong>🛑 STOPPA om du behövde säga "nej" på fråga 3.</strong> Skriv om journalen från patientens muntliga uppgifter. Eskalera till Fazli om du är osäker på vad som är klinisk sanning.
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="foot">
+      Hair TP Clinic · Journal Safety Helper · 4 juni 2026 — komplett guide:
+      <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> · FAQ:
+      <a href="/cco-journalpilot-faq.html">/cco-journalpilot-faq.html</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== BOTNAV ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+const cps=[...document.querySelectorAll('.cp')];
+const total=cps.length;
+const result=document.getElementById('result');
+const resultIcon=document.getElementById('resultIcon');
+const resultTitle=document.getElementById('resultTitle');
+const resultSub=document.getElementById('resultSub');
+const resetBtn=document.getElementById('resetBtn');
+const mDone=document.getElementById('mDone');
+const mLeft=document.getElementById('mLeft');
+const mPct=document.getElementById('mPct');
+const mBar=document.getElementById('mBar');
+
+function update(){
+  const done=document.querySelectorAll('.cp.is-done').length;
+  const pct=Math.round(done/total*100);
+  mDone.textContent=done;
+  mLeft.textContent=total-done;
+  mPct.textContent=pct+'%';
+  mBar.style.width=pct+'%';
+  if(done===total){
+    result.classList.add('is-go');
+    resultIcon.textContent='✅';
+    resultTitle.textContent='Säkert att fortsätta';
+    resultSub.textContent='Alla 6 punkter bekräftade. Gå tillbaka till journalvyn. Återställ sidan för nästa patient.';
+    resetBtn.style.display='inline-flex';
+  }else{
+    result.classList.remove('is-go');
+    resultIcon.textContent='⏳';
+    resultTitle.textContent='Bocka av '+(total-done)+' till';
+    resultSub.textContent='Stega igenom varje fråga. När alla är gröna är det säkert att fortsätta.';
+    resetBtn.style.display='none';
+  }
+}
+cps.forEach(c=>{
+  c.setAttribute('aria-pressed','false');
+  c.addEventListener('click',()=>{
+    const on=c.classList.toggle('is-done');
+    c.setAttribute('aria-pressed',on?'true':'false');
+    update();
+  });
+});
+resetBtn.addEventListener('click',()=>{
+  cps.forEach(c=>{c.classList.remove('is-done');c.setAttribute('aria-pressed','false');});
+  update();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+update();
+</script>
+<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
+</body>
+</html>

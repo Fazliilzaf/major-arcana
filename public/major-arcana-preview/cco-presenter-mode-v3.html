@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Presenter Mode · CCO Personalmöte 4 juni 2026 · Hair TP Clinic</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== PRESENTER-MODE-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* timer-rad i head */
+.head-timer{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.timer{font-variant-numeric:tabular-nums;font-size:clamp(1.5rem,1.2rem+1.6vw,2rem);font-weight:800;letter-spacing:-.02em;min-width:6.5rem;text-align:center;padding:.25rem .8rem;border-radius:var(--r-md);background:var(--bg-surface);border:1.5px solid var(--accent);color:var(--text-primary);box-shadow:var(--sh-sm)}
+.timer.warn{border-color:var(--warning);background:var(--warning-bg);color:var(--warning)}
+.timer.over{border-color:var(--danger);background:var(--danger-bg);color:var(--danger)}
+
+/* fas-markörer (metric som tidsskeden) */
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
+@media(max-width:600px){
+  .phases{grid-auto-flow:column;grid-auto-columns:minmax(10rem,1fr);grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:calc(-1*var(--pad-x));padding-inline:var(--pad-x)}
+  .phases::-webkit-scrollbar{display:none}
+  .phase{scroll-snap-align:start}
+}
+.phase{scroll-snap-align:start;transition:border-color .2s,background .2s,box-shadow .2s}
+.phase.is-active{border-color:var(--accent);background:linear-gradient(180deg,#fff6fa,rgba(253,238,244,.86));box-shadow:var(--sh-md)}
+.phase.is-done{opacity:.7}
+.phase.is-done .m-val{color:var(--success)}
+.phase .m-meta{margin-top:.3rem}
+
+/* snabblänkar (quick-bar) */
+.quickbar{display:flex;flex-wrap:wrap;gap:.4rem;margin:.7rem 0 .2rem}
+.quickbar .btn{text-decoration:none}
+.quickbar .btn--backup{background:var(--warning-bg);border-color:rgba(154,100,16,.3);color:var(--warning)}
+
+/* framsteg */
+.progress-shell{display:flex;align-items:center;gap:var(--gap);margin:.8rem 0 .2rem}
+.progress-bar{flex:1;min-width:0;height:.6rem;border-radius:var(--r-pill);background:rgba(120,108,95,.18);overflow:hidden;box-shadow:inset 0 1px 2px rgba(56,40,28,.12)}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#8a2456);transition:width .3s}
+.progress-text{font-size:var(--fs-meta);font-weight:800;color:var(--text-secondary);min-width:6rem;text-align:right;flex-shrink:0}
+
+/* två-kolumn: stegrad (vänster) + talarmanus-panel (höger) */
+.presenter-layout{display:grid;grid-template-columns:1fr;gap:var(--gap);margin-top:.6rem}
+
+/* steg-lista */
+.steps{display:flex;flex-direction:column;gap:.5rem;min-width:0}
+.step{position:relative;display:grid;grid-template-columns:2.75rem 1fr 2.75rem;gap:.7rem;align-items:start;padding:.8rem .9rem;border-radius:var(--r-md);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.24);box-shadow:var(--sh-sm);cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
+.step.is-active{border-color:var(--accent);background:linear-gradient(180deg,#fff6fa,rgba(253,238,244,.86));box-shadow:var(--sh-md)}
+.step.is-current{outline:2px solid var(--accent);outline-offset:1px}
+.step.is-done{opacity:.78}
+.step-num{flex-shrink:0;width:2.4rem;height:2.4rem;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:1rem;display:grid;place-items:center;box-shadow:var(--sh-sm)}
+.step.is-done .step-num{background:var(--success)}
+.step-body{min-width:0}
+.step-tag{display:inline-block;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.1rem .5rem;border-radius:var(--r-pill);background:var(--accent-weak);color:var(--accent);margin-bottom:.3rem}
+.step-title{font-size:var(--fs-meta);font-weight:800;color:var(--text-primary);margin:0;line-height:1.35}
+.step-say{font-size:var(--fs-meta);color:var(--text-secondary);margin-top:.25rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* träffyta-check (44px) */
+.step-check{position:relative;flex-shrink:0;width:2.75rem;height:2.75rem;display:inline-flex;align-items:center;justify-content:center}
+.step-check input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.step-check .box{width:1.7rem;height:1.7rem;border-radius:8px;border:2px solid rgba(120,108,95,.5);background:rgba(255,255,255,.7);display:inline-flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
+.step-check .box svg{width:1rem;height:1rem;color:#fff;opacity:0;transition:opacity .15s}
+.step-check input:checked + .box{background:var(--success);border-color:var(--success)}
+.step-check input:checked + .box svg{opacity:1}
+.step-check input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+
+/* talarmanus-panel (höger) — visar valt stegs noter */
+.side{display:flex;flex-direction:column;gap:var(--gap);min-width:0}
+.notes-rows{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+.note-row{display:grid;grid-template-columns:5rem 1fr;gap:.6rem;align-items:start}
+.note-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:.25rem .35rem;border-radius:var(--r-sm);line-height:1.3;height:fit-content}
+.note-label--say{background:var(--success-bg);color:var(--success)}
+.note-label--click{background:var(--info-bg);color:var(--info)}
+.note-label--fail{background:var(--danger-bg);color:var(--danger)}
+.note-label--backup{background:var(--gold-bg);color:var(--gold)}
+.note-content{font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.5;min-width:0;overflow-wrap:anywhere}
+.note-content a{color:var(--info);text-decoration:none;border-bottom:1px dotted var(--info);overflow-wrap:anywhere}
+.note-content a:hover{color:var(--accent);border-color:var(--accent)}
+.note-content code{background:var(--bg-sunken);padding:.05rem .35rem;border-radius:5px;font-size:.7rem;font-family:"SF Mono",Menlo,monospace}
+.note-content em{color:var(--text-primary);font-style:italic}
+.note-nav{display:flex;gap:.4rem;margin-top:.6rem}
+.note-nav .btn{flex:1;justify-content:center}
+
+/* tips-kort */
+.tips ul{margin:.4rem 0 0;padding-left:1.1rem;font-size:var(--fs-meta);color:var(--text-secondary)}
+.tips li{margin-bottom:.3rem}
+.tips li strong{color:var(--text-primary)}
+
+/* iPad 601–1024: två-kolumn (steg ~1.5fr + panel ~300px) */
+@media(min-width:601px){
+  .presenter-layout{grid-template-columns:minmax(0,1.5fr) minmax(0,300px);align-items:start}
+  .side{position:sticky;top:4.6rem}
+}
+/* Desktop ≥1025: panel något bredare */
+@media(min-width:1025px){
+  .presenter-layout{grid-template-columns:minmax(0,1.6fr) 340px}
+}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök steg…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- ===== HEAD ===== -->
+  <div class="head">
+    <div class="head-main">
+      <span class="kicker">Presenter Mode</span>
+      <h1 class="h1">Presenter Mode · Personalmöte 4 juni 2026</h1>
+      <p class="subtitle">Hair TP Clinic · kontrollerad journalpilot · för Fazli</p>
+    </div>
+    <div class="head-timer">
+      <div class="timer" id="timer">15:00</div>
+      <button class="btn btn--primary" id="btnStart">Start</button>
+      <button class="btn" id="btnPause">Paus</button>
+      <button class="btn" id="btnReset">Reset</button>
+    </div>
+  </div>
+
+  <!-- ===== FAS-MARKÖRER (metric) ===== -->
+  <div class="phases" id="phases">
+    <div class="metric metric--rose phase" data-phase="0">
+      <div class="m-label">Fas 1</div>
+      <div class="m-val tabnum">0–2 min</div>
+      <div class="m-meta">Intro · sätta scen</div>
+    </div>
+    <div class="metric metric--rose phase" data-phase="1">
+      <div class="m-label">Fas 2</div>
+      <div class="m-val tabnum">2–7 min</div>
+      <div class="m-meta">Kundkort · identitet</div>
+    </div>
+    <div class="metric metric--rose phase" data-phase="2">
+      <div class="m-label">Fas 3</div>
+      <div class="m-val tabnum">7–12 min</div>
+      <div class="m-meta">Journal · signera · rättelse</div>
+    </div>
+    <div class="metric metric--rose phase" data-phase="3">
+      <div class="m-label">Fas 4</div>
+      <div class="m-val tabnum">12–15 min</div>
+      <div class="m-meta">Regler · frågor</div>
+    </div>
+  </div>
+
+  <!-- ===== SNABBLÄNKAR (quick-bar) ===== -->
+  <div class="quickbar">
+    <a class="btn btn--primary" href="/cco-demo.html" target="_blank" rel="noopener">▶ Välkommen till CCO</a>
+    <a class="btn" href="/cco-demo.html" target="_blank" rel="noopener">Personalstart (legacy)</a>
+    <a class="btn" href="/major-arcana-preview/?view=customers&v9=on" target="_blank" rel="noopener">Kundlista</a>
+    <a class="btn" href="/cco-customer-detail.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 1 (A)</a>
+    <a class="btn" href="/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 2 (B)</a>
+    <a class="btn" href="/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 3 (C)</a>
+    <a class="btn" href="/journal-pilot-guide.html" target="_blank" rel="noopener">📖 Personalguide</a>
+    <a class="btn" href="/journal-pilot-print-pack.html" target="_blank" rel="noopener">🖨 Print pack</a>
+    <a class="btn btn--backup" href="https://major-arcana-frankfurt.onrender.com/cco-demo.html" target="_blank" rel="noopener">🆘 Backup-URL</a>
+  </div>
+
+  <!-- ===== FRAMSTEG ===== -->
+  <div class="progress-shell">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">0 / 14 steg</div>
+  </div>
+
+  <!-- ===== TVÅ-KOLUMN: STEG + TALARMANUS ===== -->
+  <div class="presenter-layout">
+
+    <!-- VÄNSTER: stegrad -->
+    <div class="steps" id="steps"></div>
+
+    <!-- HÖGER: talarmanus-panel + tips -->
+    <aside class="side">
+      <div class="panel" id="notesPanel">
+        <div class="panel-head">
+          <span class="sec-kicker" id="notesPhase">Intro</span>
+          <h2 id="notesTitle">Öppna Välkommen till CCO</h2>
+          <p id="notesMeta">Steg 1 av 14</p>
+        </div>
+        <div class="notes-rows" id="notesRows"></div>
+        <div class="note-nav">
+          <button class="btn" id="prevStep">← Föregående</button>
+          <button class="btn btn--primary" id="nextStep">Nästa →</button>
+        </div>
+      </div>
+
+      <div class="panel tips">
+        <div class="panel-head"><h2>🧭 Sista koll innan du startar mötet</h2></div>
+        <ul>
+          <li>Stäng alla flikar utom de fyra du behöver (personalstart, personalguide, admin, backup)</li>
+          <li>Mute notifications (mac: Do Not Disturb / win: Focus Assist)</li>
+          <li>Klicka <strong>Start</strong> på timern när du börjar prata</li>
+          <li>Pricka av varje steg (cirkeln till höger) när du gör det — håller dig på spår</li>
+          <li>Om något failar: läs raden "Om det failar" — den finns för varje steg</li>
+        </ul>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- ===== BOTNAV ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+const STEPS = [
+  {
+    phase: 0,
+    title: 'Öppna Välkommen till CCO',
+    say: '"Det här är CCO — vårt nya kundkort och arbetsnav. Idag börjar vi i Kunder."',
+    click: "Öppna fliken <a href='/cco-demo.html' target='_blank' rel='noopener'>/cco-demo.html</a>",
+    fail: 'Om sidan inte laddar: refresh (Cmd+R). Om kvarstår: backup-URL.',
+    backup: 'https://major-arcana-frankfurt.onrender.com/cco-demo.html',
+  },
+  {
+    phase: 0,
+    title: 'Peka på hero + regler-banner',
+    say: '"Allt klickbart här är verifierat. Pausade spår är tydligt markerade."',
+    click: 'Scrolla över hero-texten + den lila banner-rutan högst upp.',
+    fail: 'Ingen funktion — bara visning. Inget kan gå fel här.',
+    backup: '',
+  },
+  {
+    phase: 1,
+    title: 'Öppna kundlistan',
+    say: '"Vi börjar i kundlistan. Här söker ni patient på namn, telefon eller Cliento-id."',
+    click: "Klicka <strong>\"Öppna kundkort\"</strong> i sektion A (eller fliken <a href='/major-arcana-preview/?view=customers&v9=on' target='_blank' rel='noopener'>/major-arcana-preview/?view=customers</a>).",
+    fail: '404? Använd backup-URL eller hoppa till pilotkund-länk direkt.',
+    backup: '/major-arcana-preview/?view=customers',
+  },
+  {
+    phase: 1,
+    title: 'Öppna pilotkund 1 (A)',
+    say: '"Den här är en verifierad testpatient. Säker att jobba i live utan att påverka riktiga journaler."',
+    click: 'Från Välkommen eller Kunder → öppna <strong>pilotkund 1</strong>',
+    fail: 'Sidan tom? Vänta 5 sek, refresh. Om kvarstår: pilotkund 2 istället.',
+    backup: '/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator',
+  },
+  {
+    phase: 1,
+    title: 'Peka på header (identitetskontroll)',
+    say: '"Före varje signering: verifiera namn, telefon och Cliento-id. Tre saker som måste matcha."',
+    click: 'Peka på namn/telefon/id i kortets header.',
+    fail: 'Ingen funktion — bara visning.',
+    backup: '',
+  },
+  {
+    phase: 2,
+    title: 'Öppna journal-fliken',
+    say: '"Här är journalen. Befintliga poster syns i listan."',
+    click: 'Klicka <strong>Journal-fliken</strong> på kundkortet.',
+    fail: 'Tom lista? Det är ok — vi skapar en ny nu.',
+    backup: '',
+  },
+  {
+    phase: 2,
+    title: 'Skapa ny anteckning',
+    say: '"Vi gör en ny anteckning live. Välj mall, skriv något kort."',
+    click: 'Klicka <strong>"Ny anteckning"</strong> → välj mall <em>Konsultation</em> → skriv: "Dag-1 pilot, test." → <strong>Spara</strong>',
+    fail: 'Spara hänger? Stäng modalen → öppna pilotkund 2 istället, testa där.',
+    backup: '/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator',
+  },
+  {
+    phase: 2,
+    title: 'Visa draft (innan signering)',
+    say: '"Det här är en draft. Kan ändras fritt. Inte signerad ännu."',
+    click: 'Peka på status-badgen "draft" på posten.',
+    fail: 'Ingen funktion — bara visning.',
+    backup: '',
+  },
+  {
+    phase: 2,
+    title: 'Signera posten',
+    say: '"Nu signerar vi. Detta låser posten — den kan inte ändras direkt — bara via rättelse."',
+    click: 'Klicka <strong>"Signera"</strong> → bekräfta dialog.',
+    fail: 'Knapp gråad ut? Refresh sidan, prova igen. Om kvarstår: hoppa till rättelsen på pilotkund 3 där den redan finns.',
+    backup: '/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator',
+  },
+  {
+    phase: 2,
+    title: 'Skapa rättelse',
+    say: '"Behöver vi rätta? Vi skapar en NY post som länkas till originalet. Journalkraven kräver att originalet ALDRIG ändras."',
+    click: 'Klicka <strong>"Skapa rättelse"</strong> → skriv "Rättelse: kompletterande info." → <strong>Spara</strong> → <strong>Signera</strong>',
+    fail: 'Om create-correction failar: peka på pilotkund 3 — där finns redan signerad rättelse.',
+    backup: '/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator',
+  },
+  {
+    phase: 2,
+    title: 'Öppna timeline-fliken',
+    say: '"Båda posterna syns kronologiskt. Original och rättelse länkade tydligt. Inget förlorat, allt spårbart."',
+    click: 'Klicka <strong>Timeline-fliken</strong>.',
+    fail: 'Tom timeline? Refresh. Om kvarstår: peka på pilotkund 3 där det redan finns.',
+    backup: '/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator',
+  },
+  {
+    phase: 3,
+    title: 'Visa historik + review-badges',
+    say: '"Här ligger importerad historik från Drive, halso@, GetAccept. Markerade som <em>Behöver granskning</em> är inte verifierade än."',
+    click: 'Klicka <strong>Historik-fliken</strong> → peka på badges: <code>imported</code>, <code>needs review</code>, <code>drive</code>, <code>getaccept</code>, <code>halso</code>.',
+    fail: 'Tom historik? Pröva en annan pilotkund.',
+    backup: '',
+  },
+  {
+    phase: 3,
+    title: 'Säg de 5 dag-1-reglerna',
+    say: 'Läs upp högt:<br>1. Verifiera identitet före signering<br>2. Skapa inte ny kund vid osäker match<br>3. Review-material är inte klinisk sanning<br>4. Migrerade bilder används inte kliniskt före Photo Review<br>5. Ingen extern AI på journaltext',
+    click: 'Gå tillbaka till personalstart → scrolla till sektion D "Viktiga regler dag 1".',
+    fail: 'Visa /journal-pilot-guide.html (har samma regler).',
+    backup: '/journal-pilot-guide.html',
+  },
+  {
+    phase: 3,
+    title: 'Avsluta + öppna för frågor',
+    say: '"Det här är vårt nya nav. Vi börjar kontrollerat. Mail, Photo Review, Fortnox-sync, Aisia kommer separat. Personalguide ligger på /journal-pilot-guide.html — ha den öppen i en sido-flik medan ni jobbar. Frågor?"',
+    click: 'Öppna /journal-pilot-guide.html i sido-flik och visa snabbt strukturen.',
+    fail: 'Inga vanliga fel.',
+    backup: '/journal-pilot-guide.html',
+  },
+];
+
+const PHASE_NAMES = ['Intro', 'Kundkort', 'Journal', 'Avslut'];
+const stepsContainer = document.getElementById('steps');
+const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+let currentIdx = 0;
+
+// --- BYGG STEG-LISTA ---
+STEPS.forEach((s, i) => {
+  const div = document.createElement('div');
+  div.className = 'step';
+  div.dataset.phase = s.phase;
+  div.dataset.idx = i;
+  div.innerHTML = `
+    <div class="step-num">${i + 1}</div>
+    <div class="step-body">
+      <span class="step-tag">${PHASE_NAMES[s.phase]}</span>
+      <p class="step-title">${s.title}</p>
+      <div class="step-say">${s.say}</div>
+    </div>
+    <label class="step-check" onclick="event.stopPropagation()">
+      <input type="checkbox" aria-label="Pricka av steg ${i + 1}">
+      <span class="box">${CHECK}</span>
+    </label>`;
+  div.addEventListener('click', () => selectStep(i));
+  stepsContainer.appendChild(div);
+});
+
+// --- TALARMANUS-PANEL ---
+const notesPhase = document.getElementById('notesPhase');
+const notesTitle = document.getElementById('notesTitle');
+const notesMeta = document.getElementById('notesMeta');
+const notesRows = document.getElementById('notesRows');
+
+function renderNotes(i) {
+  const s = STEPS[i];
+  notesPhase.textContent = PHASE_NAMES[s.phase];
+  notesTitle.textContent = s.title;
+  notesMeta.textContent = 'Steg ' + (i + 1) + ' av ' + STEPS.length;
+  let rows = '';
+  rows += `<div class="note-row"><div class="note-label note-label--say">Säg</div><div class="note-content">${s.say}</div></div>`;
+  rows += `<div class="note-row"><div class="note-label note-label--click">Klicka</div><div class="note-content">${s.click}</div></div>`;
+  rows += `<div class="note-row"><div class="note-label note-label--fail">Om fail</div><div class="note-content">${s.fail}</div></div>`;
+  if (s.backup) {
+    rows += `<div class="note-row"><div class="note-label note-label--backup">Backup</div><div class="note-content"><a href="${s.backup}" target="_blank" rel="noopener">${s.backup}</a></div></div>`;
+  }
+  notesRows.innerHTML = rows;
+}
+
+// --- VÄLJ STEG (interaktivt: visa dess noter) ---
+function selectStep(i) {
+  currentIdx = i;
+  document.querySelectorAll('.step').forEach((s) => {
+    s.classList.toggle('is-current', parseInt(s.dataset.idx) === i);
+  });
+  renderNotes(i);
+  syncPhases();
+}
+
+document.getElementById('prevStep').addEventListener('click', () => {
+  if (currentIdx > 0) selectStep(currentIdx - 1);
+});
+document.getElementById('nextStep').addEventListener('click', () => {
+  if (currentIdx < STEPS.length - 1) selectStep(currentIdx + 1);
+});
+
+// --- FRAMSTEG + AKTIVT STEG (första oavprickade) ---
+const fill = document.getElementById('progressFill');
+const txt = document.getElementById('progressText');
+
+function updateProgress() {
+  const done = document.querySelectorAll('.step.is-done').length;
+  const pct = Math.round((done / STEPS.length) * 100);
+  fill.style.width = pct + '%';
+  txt.textContent = done + ' / ' + STEPS.length + ' steg';
+}
+
+function updateActive() {
+  document.querySelectorAll('.step').forEach((s) => s.classList.remove('is-active'));
+  const next = Array.from(document.querySelectorAll('.step')).find(
+    (s) => !s.classList.contains('is-done')
+  );
+  if (next) next.classList.add('is-active');
+  syncPhases();
+}
+
+function syncPhases() {
+  const active = document.querySelector('.step.is-active');
+  document.querySelectorAll('.phase').forEach((p) => p.classList.remove('is-active', 'is-done'));
+  if (active) {
+    const ph = parseInt(active.dataset.phase);
+    document.querySelector(`.phase[data-phase="${ph}"]`)?.classList.add('is-active');
+    for (let p = 0; p < ph; p++) {
+      document.querySelector(`.phase[data-phase="${p}"]`)?.classList.add('is-done');
+    }
+  } else {
+    document.querySelectorAll('.phase').forEach((p) => p.classList.add('is-done'));
+  }
+}
+
+stepsContainer.addEventListener('change', (e) => {
+  if (e.target.matches('input[type=checkbox]')) {
+    const step = e.target.closest('.step');
+    step.classList.toggle('is-done', e.target.checked);
+    updateProgress();
+    updateActive();
+  }
+});
+
+// --- TIMER (15 min nedräkning) ---
+const timerEl = document.getElementById('timer');
+let secondsLeft = 15 * 60;
+let interval = null;
+function format(s) {
+  const sign = s < 0 ? '-' : '';
+  const a = Math.abs(s);
+  const m = Math.floor(a / 60);
+  const sec = a % 60;
+  return sign + m + ':' + String(sec).padStart(2, '0');
+}
+function render() {
+  timerEl.textContent = format(secondsLeft);
+  timerEl.classList.remove('warn', 'over');
+  if (secondsLeft < 0) timerEl.classList.add('over');
+  else if (secondsLeft <= 180) timerEl.classList.add('warn');
+}
+document.getElementById('btnStart').addEventListener('click', () => {
+  if (interval) return;
+  interval = setInterval(() => {
+    secondsLeft--;
+    render();
+  }, 1000);
+});
+document.getElementById('btnPause').addEventListener('click', () => {
+  clearInterval(interval);
+  interval = null;
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  clearInterval(interval);
+  interval = null;
+  secondsLeft = 15 * 60;
+  render();
+});
+
+// --- INIT ---
+render();
+updateProgress();
+updateActive();
+selectStep(0);
+</script>
+<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
+</body>
+</html>

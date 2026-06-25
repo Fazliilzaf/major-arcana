@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO Ops Workbench — v3 responsiv</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;text-decoration:none}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+.btn--disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== OPS-WORKBENCH-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* statusbanner-rad */
+.banner{margin:.6rem 0;padding:.8rem 1rem;border-radius:var(--r-md);font-size:var(--fs-meta);line-height:1.5;border:1px solid rgba(180,165,150,.3);background:rgba(255,255,255,.7)}
+.banner--rules{border-color:rgba(154,100,16,.4);background:var(--warning-bg);color:var(--text-primary)}
+.banner--ok{border-color:rgba(47,111,84,.4);background:var(--success-bg)}
+.banner strong{color:var(--text-primary)}
+
+/* status-pill (GO/WARNING/STOP/PASS/FAIL) */
+.spill{display:inline-flex;align-items:center;min-height:1.6rem;padding:.1rem .6rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.03em;border:1px solid currentColor;white-space:nowrap}
+.spill--pass{color:var(--success);background:var(--success-bg)}
+.spill--warn{color:var(--warning);background:var(--warning-bg)}
+.spill--fail{color:var(--danger);background:var(--danger-bg)}
+.spill--info{color:var(--info);background:var(--info-bg)}
+.spill--violet{color:var(--violet);background:var(--violet-bg)}
+
+/* sektionshuvud inuti panel */
+.sec-head{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:.5rem}
+.sec-head h2{margin:0;font-size:1rem;font-weight:800;letter-spacing:-.01em;flex:1;min-width:10rem}
+.muted{color:var(--text-tertiary);font-size:var(--fs-meta);margin:.35rem 0}
+.muted code{background:var(--bg-sunken);padding:.05rem .35rem;border-radius:6px;font-size:.95em;word-break:break-word}
+
+/* callout / alert inom sektion */
+.callout{margin:.5rem 0;padding:.6rem .8rem;border-radius:var(--r-md);font-size:var(--fs-meta);line-height:1.5;border:1px solid rgba(154,100,16,.35);background:var(--warning-bg)}
+.callout--danger{border-color:rgba(168,56,56,.4);background:var(--danger-bg)}
+.callout--ok{border-color:rgba(47,111,84,.4);background:var(--success-bg)}
+
+/* metric-grid (KPI-rad) */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(7.5rem,1fr));gap:var(--gap);margin:.6rem 0}
+.mgrid .m-val{font-size:clamp(1.1rem,.95rem+.8vw,1.45rem)}
+
+/* listor */
+.olist{margin:.4rem 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.35rem}
+.olist li{font-size:var(--fs-meta);color:var(--text-secondary);padding-left:1.1rem;position:relative;line-height:1.5}
+.olist li::before{content:"";position:absolute;left:.2rem;top:.55rem;width:.35rem;height:.35rem;border-radius:50%;background:var(--accent)}
+.olist code{background:var(--bg-sunken);padding:.05rem .3rem;border-radius:6px;word-break:break-word}
+
+/* nästa-steg-lista med prio-pill */
+.steps{margin:.4rem 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.45rem}
+.steps li{display:flex;gap:.5rem;align-items:flex-start;font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.5}
+.steps .spill{flex-shrink:0;margin-top:.05rem}
+
+/* dl-grid */
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem;margin:.4rem 0 0;font-size:var(--fs-meta)}
+.dl dt{color:var(--text-tertiary);font-weight:700}
+.dl dd{margin:0;color:var(--text-primary)}
+
+/* guardrails — streckad ram */
+.guardrails{margin:.5rem 0 0;padding:.55rem .7rem;border-radius:var(--r-md);border:1px dashed rgba(180,165,150,.6);font-size:var(--fs-meta);color:var(--text-tertiary);line-height:1.5}
+
+/* actions-rad */
+.acts{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.7rem}
+
+/* mailbox-lista (overflow-skydd) */
+.kv-list{margin:.4rem 0 0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.35rem}
+.kv-list li{font-size:var(--fs-meta);color:var(--text-secondary);background:var(--bg-sunken);border-radius:var(--r-sm);padding:.4rem .55rem}
+.kv-list b{color:var(--text-primary)}
+
+/* migrationskort-grid */
+.mig-grid{display:grid;grid-template-columns:1fr;gap:var(--gap);margin-top:.7rem}
+.mig-card{padding:.9rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.mig-card__head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.3rem}
+.mig-card__id{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.mig-card h3{margin:.1rem 0 .4rem;font-size:.95rem;font-weight:800;line-height:1.3}
+
+/* command-center-kort */
+.cmd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));gap:var(--gap);margin-top:.7rem}
+.cmd-card{padding:.85rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm);display:flex;flex-direction:column;gap:.35rem}
+.cmd-card h3{margin:0;font-size:.95rem;font-weight:800}
+.cmd-card .btn{margin-top:auto;justify-content:center}
+
+/* identitets-grid */
+.id-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));gap:.45rem;margin:.5rem 0}
+.id-item{font-size:var(--fs-meta);padding:.5rem .6rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.3);background:rgba(255,255,255,.6);display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;justify-content:space-between}
+.id-item.is-ok{border-color:rgba(47,111,84,.4)}
+.id-item.is-miss{opacity:.7}
+.id-item .btn{min-height:2.1rem;padding:0 .7rem}
+
+/* eskaleringslista */
+.esc-list{margin:.45rem 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.4rem}
+.esc-list li{padding:.6rem .7rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.3);background:rgba(255,255,255,.6);font-size:var(--fs-meta);line-height:1.5}
+.esc-list li.is-critical{border-color:rgba(168,56,56,.45);background:var(--danger-bg)}
+.esc-list strong{color:var(--text-primary)}
+
+/* CTA-grid (journalpilot) */
+.cta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));gap:.5rem;margin:.6rem 0 .4rem}
+.cta{min-height:var(--tap);display:flex;align-items:center;justify-content:center;text-align:center;padding:.5rem .7rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.7);font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);text-decoration:none;line-height:1.3}
+.cta--primary{border-color:var(--success);background:var(--success-bg);color:var(--success)}
+.cta--warn{border-color:var(--warning);background:var(--warning-bg);color:var(--warning)}
+.cta--disabled{opacity:.55;pointer-events:none}
+
+/* länk-grid */
+.links-grid{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem}
+
+/* tabell i overflow-container */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.25);margin-top:.6rem}
+.table-wrap::-webkit-scrollbar{height:7px}
+table.ops-table{border-collapse:collapse;width:100%;min-width:34rem;font-size:var(--fs-meta)}
+.ops-table th,.ops-table td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid rgba(180,165,150,.22);white-space:nowrap}
+.ops-table th{font-size:var(--fs-kicker);text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);background:var(--bg-sunken)}
+.ops-table tr:last-child td{border-bottom:0}
+
+/* huvud-grid: 1-kol mobil, iPad/desktop 2-kol med "wide" som spänner */
+.ops-grid{display:grid;grid-template-columns:1fr;gap:var(--gap);margin-top:.4rem}
+.ops-grid .wide{grid-column:1/-1}
+@media(min-width:768px){
+  .ops-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+}
+@media(min-width:1025px){
+  .ops-grid{gap:1rem}
+}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i ops workbench…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- ===== HEAD ===== -->
+  <div class="head">
+    <div class="head-main">
+      <span class="kicker">Operations · read-only</span>
+      <h1 class="h1">CCO Ops Workbench</h1>
+      <p class="subtitle">Read-only · blocker-köer · ersätter inte Välkommen till CCO · stör inte journaldemo</p>
+    </div>
+  </div>
+
+  <!-- ===== REGEL-BANNER ===== -->
+  <div class="banner banner--rules">
+    <strong>Regler:</strong> inga writes · inga importer · inga auto-approve · inga Drive-länkar ·
+    inga nya kunder · ingen extern AI på journaltext · inga patientdata i UI.
+    Snapshot: 2026-06-04 07:42
+  </div>
+
+  <!-- ===== FILTER-PILLS (sektionsfilter) ===== -->
+  <div class="pillrow scroll" role="group" aria-label="Sektionsfilter" id="secFilter" style="margin:.6rem 0 .2rem">
+    <button class="pill" data-filter="all" aria-pressed="true">Alla</button>
+    <button class="pill" data-filter="blocker" aria-pressed="false">Blockers</button>
+    <button class="pill" data-filter="journal" aria-pressed="false">Journal</button>
+    <button class="pill" data-filter="operator" aria-pressed="false">Operatör</button>
+    <button class="pill" data-filter="status" aria-pressed="false">Status</button>
+  </div>
+
+  <!-- ===== HUVUD-GRID ===== -->
+  <div class="ops-grid">
+
+    <!-- ===== MIGRATION HUB · SPÅR A–D ===== -->
+    <section class="panel wide" data-cat="blocker">
+      <div class="sec-head">
+        <h2>Migration Hub · Spår A–D</h2>
+        <span class="spill spill--fail">EJ LEVERERAT (0/4)</span>
+      </div>
+      <p class="muted">Migrering av journaler, bilder och osäkra matchningar · genererad 2026-06-04 07:42</p>
+      <p class="callout callout--danger">Kö-siffror är backlog — inte leverans.</p>
+      <p class="muted">Rekommenderad ordning: A → B → C → D · status <strong>EJ KLART</strong> tills cutover-kriteriet är uppfyllt.</p>
+      <div class="mig-grid">
+
+        <article class="mig-card" id="track-A">
+          <div class="mig-card__head"><span class="mig-card__id">Spår A</span><span class="spill spill--fail">EJ KLART</span></div>
+          <h3>Coupling-fil &amp; Drive-master</h3>
+          <div class="mgrid">
+            <div class="metric metric--slate"><div class="m-label">predicted (coupling-fil)</div><div class="m-val tabnum">1 214</div></div>
+            <div class="metric metric--slate"><div class="m-label">driveFolderId master</div><div class="m-val tabnum">948/1 412</div></div>
+            <div class="metric metric--slate"><div class="m-label">SA-verifierade</div><div class="m-val tabnum">311</div></div>
+          </div>
+          <p class="muted">Underlag: skript + dry-run · cutover <strong>nej</strong></p>
+          <ul class="olist"><li><code>npm run migration:coupling-build</code></li><li><code>npm run migration:drive-master:dry-run</code></li></ul>
+          <div class="acts"><a class="btn" href="#track-A">Öppna Spår A</a></div>
+        </article>
+
+        <article class="mig-card" id="track-B">
+          <div class="mig-card__head"><span class="mig-card__id">Spår B</span><span class="spill spill--fail">EJ KLART</span></div>
+          <h3>Journal &amp; Meridiq-import</h3>
+          <div class="mgrid">
+            <div class="metric metric--slate"><div class="m-label">eligible journal</div><div class="m-val tabnum">532</div></div>
+            <div class="metric metric--slate"><div class="m-label">meridiqPatientId</div><div class="m-val tabnum">418</div></div>
+            <div class="metric metric--slate"><div class="m-label">importerade poster</div><div class="m-val tabnum">0</div></div>
+          </div>
+          <p class="muted">Underlag: skript + dry-run · cutover <strong>nej</strong></p>
+          <ul class="olist"><li><code>npm run migration:journal-eligible</code></li><li><code>npm run migration:meridiq:dry-run</code></li></ul>
+          <div class="acts"><a class="btn" href="#track-B">Öppna Spår B</a></div>
+        </article>
+
+        <article class="mig-card" id="track-C">
+          <div class="mig-card__head"><span class="mig-card__id">Spår C</span><span class="spill spill--fail">EJ KLART</span></div>
+          <h3>Photo Review-migrering</h3>
+          <div class="mgrid">
+            <div class="metric metric--gold"><div class="m-label">bilder i kö</div><div class="m-val tabnum">2 184</div></div>
+            <div class="metric metric--gold"><div class="m-label">patienter</div><div class="m-val tabnum">276</div></div>
+            <div class="metric metric--gold"><div class="m-label">VISIBLE</div><div class="m-val tabnum">0</div></div>
+          </div>
+          <p class="muted">Write/canary: <strong>AV</strong> · underlag finns · cutover <strong>nej</strong></p>
+          <div class="callout">BLOCKER_C · Owner måste godkänna write-canary innan approve per bild.</div>
+          <div class="acts"><a class="btn" href="/photo-review.html">Öppna Photo Review</a></div>
+        </article>
+
+        <article class="mig-card" id="track-D">
+          <div class="mig-card__head"><span class="mig-card__id">Spår D</span><span class="spill spill--fail">EJ KLART</span></div>
+          <h3>Osäkra matchningar (import queue)</h3>
+          <div class="mgrid">
+            <div class="metric metric--gold"><div class="m-label">osäkra totalt</div><div class="m-val tabnum">1 497</div></div>
+            <div class="metric metric--gold"><div class="m-label">halso@</div><div class="m-val tabnum">311</div></div>
+            <div class="metric metric--gold"><div class="m-label">resolved</div><div class="m-val tabnum">0</div></div>
+          </div>
+          <p class="muted">Write/canary: <strong>AV</strong> · underlag finns · cutover <strong>nej</strong></p>
+          <div class="callout">BLOCKER_D · Manuell review krävs — ingen auto-import.</div>
+          <div class="acts"><a class="btn" href="/cco-import-review.html">Öppna Import Review</a></div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ===== CANARIES ===== -->
+    <section class="panel wide" data-cat="operator">
+      <div class="sec-head"><h2>Controlled Completion Canaries (Cycle 16)</h2></div>
+      <p class="muted">Max 25 beslut/spår · ett beslut i taget · audit · 0 massapproval · 0 AI-auto</p>
+      <div class="mgrid">
+        <div class="metric metric--rose"><div class="m-label">Photo</div><div class="m-val tabnum">0/25</div></div>
+        <div class="metric metric--rose"><div class="m-label">Import</div><div class="m-val tabnum">0/25</div></div>
+        <div class="metric metric--rose"><div class="m-label">Mail</div><div class="m-val tabnum">0/25</div></div>
+      </div>
+      <h3 style="margin:.7rem 0 .2rem;font-size:.9rem">Photo Review canary</h3>
+      <ul class="olist">
+        <li>write AV · approved 0 · rejected 0 · reassigned 0</li>
+        <li>pending 2 184 · checksum OK JA · Drive-länkar 0</li>
+        <li>storageKey oförändrad JA · fel kund 0</li>
+      </ul>
+      <h3 style="margin:.7rem 0 .2rem;font-size:.9rem">Import Review canary</h3>
+      <ul class="olist">
+        <li>write AV · approved 0 · rejected 0 · unresolved 1 497</li>
+        <li>queue 1 497 · needs_owner 311 · mismatch 0 · nya kunder 0</li>
+      </ul>
+      <h3 style="margin:.7rem 0 .2rem;font-size:.9rem">Mail Review canary</h3>
+      <ul class="olist">
+        <li>write AV · approved 0 · excluded 0 · rejected 0</li>
+        <li>remaining 493 · unresolved 493</li>
+      </ul>
+      <h3 style="margin:.7rem 0 .2rem;font-size:.9rem">Nästa rekommenderade arbete</h3>
+      <ul class="olist">
+        <li>Owner-godkänd write-canary för Photo Review (max 25 beslut)</li>
+        <li>Manuell triage av halso@-matchningar i Import Review</li>
+      </ul>
+      <p class="muted"><code>npm run cco:operator-canary-report</code> · <code>npm run cco:daily-readiness</code> · <code>/cco-operator-canary-status.json</code></p>
+    </section>
+
+    <!-- ===== COMMAND CENTER · VAD SKA GÖRAS NU? ===== -->
+    <section class="panel wide" data-cat="status">
+      <div class="sec-head"><h2>Vad ska göras nu?</h2></div>
+      <p class="muted">Arbetscentral efter personalmötet · rekommenderad action: <strong>GO</strong></p>
+      <div class="callout"><strong>Top blockers</strong></div>
+      <ul class="olist">
+        <li>Spår C/D väntar Owner-godkänd write-canary före cutover</li>
+        <li>1 497 osäkra kundmatchningar i Import Review — manuell triage</li>
+        <li>Fortnox-integration blockerad — intern demo för Chief of Finance</li>
+      </ul>
+      <div class="cmd-grid">
+        <article class="cmd-card"><h3>Journalpilot</h3><span class="spill spill--pass">GO</span><p class="muted">Personal kan journalföra: JA</p><a class="btn btn--primary" href="/cco-demo.html">Välkommen till CCO</a></article>
+        <article class="cmd-card"><h3>Photo Review</h3><span class="spill spill--info">READY</span><p class="muted">2 184 bilder · write AV</p><a class="btn" href="/photo-review.html">Öppna Photo Review</a></article>
+        <article class="cmd-card"><h3>Mail Review</h3><span class="spill spill--warn">QUEUE</span><p class="muted">493 ambiguous kvar</p><a class="btn" href="/ambiguous-mail-enrichment-review.html">Öppna Mail Review</a></article>
+        <article class="cmd-card"><h3>Import Review</h3><span class="spill spill--warn">WAITING_MANUAL_REVIEW</span><p class="muted">1 497 osäkra matchningar</p><a class="btn" href="/cco-import-review.html">Öppna Import Review</a></article>
+        <article class="cmd-card"><h3>Drive / historik</h3><span class="spill spill--pass">SAFE_MATCH</span><p class="muted">halso@ · GetAccept · ej ny riskimport</p><a class="btn" href="#drive">Scrolla Drive</a></article>
+        <article class="cmd-card"><h3>Chief of Finance</h3><span class="spill spill--info">INTERN</span><p class="muted">Fortnox blockerad — intern demo</p><a class="btn" href="/finance.html">Finance</a></article>
+      </div>
+    </section>
+
+    <!-- ===== JOURNALPILOT OPERATIONS ===== -->
+    <section class="panel wide" data-cat="journal">
+      <div class="sec-head">
+        <h2>Journalpilot Operations</h2>
+        <span class="spill spill--pass">GO</span>
+        <span class="spill spill--info">PÅGÅENDE PASS</span>
+        <span class="spill spill--pass">GO</span>
+      </div>
+      <p class="callout callout--ok"><strong>GO:</strong> Journalwrites grönt · routes friska · personal kan fortsätta journalföra.</p>
+      <p class="muted">Senaste journalaktivitet: 2026-06-04 07:31</p>
+      <div class="mgrid">
+        <div class="metric metric--green"><div class="m-label">Kan fortsätta</div><div class="m-val">JA</div></div>
+        <div class="metric metric--green"><div class="m-label">Pilot 1</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">Pilot 2</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">Pilot 3</div><div class="m-val">OK</div></div>
+        <div class="metric metric--blue"><div class="m-label">Feed/timeline</div><div class="m-val">PASS</div></div>
+      </div>
+      <div class="mgrid">
+        <div class="metric metric--slate"><div class="m-label">Journaler 24h</div><div class="m-val tabnum">42</div></div>
+        <div class="metric metric--slate"><div class="m-label">Signerade 24h</div><div class="m-val tabnum">38</div></div>
+        <div class="metric metric--slate"><div class="m-label">Rättelser 24h</div><div class="m-val tabnum">3</div></div>
+        <div class="metric metric--slate"><div class="m-label">Journal errors 24h</div><div class="m-val tabnum">0</div></div>
+        <div class="metric metric--slate"><div class="m-label">Route 5xx</div><div class="m-val tabnum">0</div></div>
+      </div>
+      <p class="muted">Senaste lyckade write: 2026-06-04 07:31 · senaste fail: —</p>
+      <ul class="olist">
+        <li>journal-write: 200 <span class="spill spill--pass">PASS</span></li>
+        <li>journal-feed: 200 <span class="spill spill--pass">PASS</span></li>
+        <li>journal-timeline: 200 <span class="spill spill--pass">PASS</span></li>
+      </ul>
+      <div class="cta-grid">
+        <a class="cta cta--primary" href="/cco-demo.html">Fortsätt journalföra</a>
+        <span class="cta cta--disabled" title="Read-only — pausa via Fazli/command center">Pausa journalföring</span>
+        <a class="cta cta--warn" href="/personal-demo.html">Eskalera till Fazli</a>
+        <a class="cta" href="/journal-pilot-guide.html">Öppna journalguide</a>
+        <a class="cta" href="/major-arcana-preview/?view=customers&amp;v9=on">Öppna kundkort</a>
+      </div>
+      <p class="muted">CTA är read-only vägledning — ingen server-write för paus/start.</p>
+      <div class="links-grid">
+        <a class="btn" href="/cco-personal-start.html">Personal-start</a>
+        <a class="btn" href="/major-arcana-preview/?view=customers&amp;v9=on">Kundkort</a>
+        <a class="btn" href="/journal-pilot-guide.html">Journal guide</a>
+        <a class="btn" href="/cco-staff-training-mode.html">Staff training</a>
+        <a class="btn" href="/cco-journalpilot-faq.html">FAQ</a>
+        <a class="btn" href="/cco-journalpilot-go-live.html">Go-live support</a>
+        <a class="btn" href="/journal-pilot-signoff-sheet.html">Sign-off sheet</a>
+        <a class="btn" href="/cco-pre-signering-check.html">Pre-sign check</a>
+      </div>
+    </section>
+
+    <!-- ===== ESKALERINGSKÖ ===== -->
+    <section class="panel" data-cat="blocker">
+      <div class="sec-head"><h2>Eskaleringskö</h2><span class="spill spill--warn">2 registrerade</span></div>
+      <p class="muted">Read-only — från audit/routes, inga mock-rader</p>
+      <ul class="esc-list">
+        <li class="is-critical"><strong>Photo write-canary väntar godkännande</strong><span class="muted"> · operatör · Fazli</span><br><span class="muted">Owner måste godkänna canary innan approve per bild.</span></li>
+        <li><strong>Import queue halso@ behöver källa</strong><span class="muted"> · import · CCO-team</span><br><span class="muted">311 rader saknar säker källkoppling — manuell triage.</span></li>
+      </ul>
+    </section>
+
+    <!-- ===== 1a · IDENTITETSSÄKERHET ===== -->
+    <section class="panel" data-cat="journal">
+      <div class="sec-head"><h2>1a · Identitetssäkerhet</h2><span class="spill spill--pass">PASS</span></div>
+      <p class="muted">Stöd före signering — read-only sidor</p>
+      <div class="id-grid">
+        <div class="id-item is-ok">Identitet i flöde: finns <a class="btn" href="/cco-demo.html">Öppna</a></div>
+        <div class="id-item is-ok">Pre-sign check: finns <a class="btn" href="/cco-pre-signering-check.html">Öppna</a></div>
+        <div class="id-item is-ok">Review-material warning: finns <a class="btn" href="/cco-review-material-warning.html">Öppna</a></div>
+        <div class="id-item is-ok">Staff checklist: finns <a class="btn" href="/cco-staff-day1-checklist.html">Öppna</a></div>
+        <div class="id-item is-ok">Sign-off sheet: finns <a class="btn" href="/journal-pilot-signoff-sheet.html">Öppna</a></div>
+        <div class="id-item is-ok">Staff training: finns <a class="btn" href="/cco-staff-training-mode.html">Öppna</a></div>
+        <div class="id-item is-ok">FAQ: finns <a class="btn" href="/cco-journalpilot-faq.html">Öppna</a></div>
+        <div class="id-item is-ok">Go-live: finns <a class="btn" href="/cco-journalpilot-go-live.html">Öppna</a></div>
+      </div>
+    </section>
+
+    <!-- ===== 0 · 4 JUNI COMMAND STATUS ===== -->
+    <section class="panel" data-cat="status">
+      <div class="sec-head"><h2>0 · 4 juni Command Status</h2><span class="spill spill--pass">PASS</span><span class="spill spill--pass">GO</span></div>
+      <p class="muted">Morgon-check · 2026-06-04 07:00 · read-only</p>
+      <div class="mgrid">
+        <div class="metric metric--green"><div class="m-label">presentation gate</div><div class="m-val">PASS</div></div>
+        <div class="metric metric--green"><div class="m-label">demo links</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">journal E2E</div><div class="m-val">PASS</div></div>
+        <div class="metric metric--green"><div class="m-label">pilot 1</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">pilot 2</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">pilot 3</div><div class="m-val">OK</div></div>
+      </div>
+      <p class="callout callout--ok"><strong>GO:</strong> Heligt demo-flöde grönt enligt senaste morning check.</p>
+      <div class="acts">
+        <a class="btn" href="/cco-demo.html">Välkommen till CCO</a>
+        <a class="btn" href="/personal-demo.html">Presenter mode</a>
+        <a class="btn" href="/journal-pilot-guide.html">Print pack</a>
+        <a class="btn" href="/journal-pilot-guide.html">Journal guide</a>
+        <a class="btn" href="/major-arcana-preview/?view=customers&amp;v9=on">Kundkort</a>
+      </div>
+      <p class="muted">Prod: <a href="#">https://app.hairtpclinic.com</a> · Backup: <a href="#">https://backup.hairtpclinic.com</a></p>
+    </section>
+
+    <!-- ===== 1 · JOURNALPILOT LIVE ===== -->
+    <section class="panel" data-cat="journal">
+      <div class="sec-head"><h2>1 · Journalpilot live</h2><span class="spill spill--pass">PASS</span><span class="spill spill--pass">JA</span></div>
+      <p class="muted">Day-1 operations · read-only · ingen journaltext · 2026-06-04 07:31</p>
+      <div class="mgrid">
+        <div class="metric metric--slate"><div class="m-label">aktivitet 24h</div><div class="m-val tabnum">42</div></div>
+        <div class="metric metric--slate"><div class="m-label">signerade 24h</div><div class="m-val tabnum">38</div></div>
+        <div class="metric metric--slate"><div class="m-label">rättelser 24h</div><div class="m-val tabnum">3</div></div>
+        <div class="metric metric--slate"><div class="m-label">errors 24h</div><div class="m-val tabnum">0</div></div>
+        <div class="metric metric--slate"><div class="m-label">blocked locked-edit</div><div class="m-val tabnum">1</div></div>
+        <div class="metric metric--slate"><div class="m-label">route 5xx</div><div class="m-val tabnum">0</div></div>
+      </div>
+      <p class="muted">Senaste lyckade write: 2026-06-04 07:31 · senaste fail: — · audit events: 214</p>
+      <ul class="olist">
+        <li>journal-write: 200 <span class="spill spill--pass">PASS</span></li>
+        <li>journal-feed: 200 <span class="spill spill--pass">PASS</span></li>
+        <li>Pilot 1 — PASS · feed OK · timeline OK · forms OK</li>
+        <li>Pilot 2 — PASS · feed OK · timeline OK · forms OK</li>
+        <li>Pilot 3 — PASS · feed OK · timeline OK · forms OK</li>
+      </ul>
+      <div class="acts">
+        <a class="btn" href="/cco-demo.html">Välkommen till CCO</a>
+        <a class="btn" href="/major-arcana-preview/?view=customers&amp;v9=on">Kundkort</a>
+        <a class="btn" href="/journal-pilot-guide.html">Journal guide</a>
+        <a class="btn" href="/personal-demo.html">Presenter mode</a>
+      </div>
+    </section>
+
+    <!-- ===== 1b · JOURNALPILOT (gate) ===== -->
+    <section class="panel" data-cat="journal">
+      <div class="sec-head"><h2>1b · Journalpilot (gate)</h2><span class="spill spill--pass">PASS</span></div>
+      <div class="mgrid">
+        <div class="metric metric--green"><div class="m-label">presentation-gate</div><div class="m-val">PASS</div></div>
+        <div class="metric metric--green"><div class="m-label">journal mounts</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">demo links</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">E2E journal</div><div class="m-val">PASS</div></div>
+        <div class="metric metric--green"><div class="m-label">pilot 1</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">pilot 2</div><div class="m-val">OK</div></div>
+        <div class="metric metric--green"><div class="m-label">pilot 3</div><div class="m-val">OK</div></div>
+      </div>
+      <p class="muted">Senast kontrollerad: 2026-06-04 07:00</p>
+      <ul class="olist">
+        <li>Pilot 1 — feed OK · timeline OK</li>
+        <li>Pilot 2 — feed OK · timeline OK</li>
+        <li>Pilot 3 — feed OK · timeline OK</li>
+      </ul>
+      <div class="acts">
+        <a class="btn" href="/cco-demo.html">Välkommen till CCO</a>
+        <a class="btn" href="/major-arcana-preview/?view=customers&amp;v9=on">Kundkort</a>
+      </div>
+    </section>
+
+    <!-- ===== 2 · PHOTO REVIEW OPERATOR ===== -->
+    <section class="panel" data-cat="operator">
+      <div class="sec-head"><h2>2 · Photo Review operator</h2><span class="spill spill--warn">READ-ONLY</span></div>
+      <p class="callout"><strong>Dag 1:</strong> migrerade före/efter-bilder är <strong>inte kliniska</strong> före Photo Review. <strong>0 VISIBLE</strong> tills manuellt granskat. Ingen auto-approve · ingen massapproval.</p>
+      <p class="muted">Nästa arbete: starta owner-godkänd write-canary, max 25 beslut.</p>
+      <p class="muted"><strong>Write AV</strong> — inga approve-knappar · ingen autoapprove · ingen massapproval</p>
+      <div class="mgrid">
+        <div class="metric metric--gold"><div class="m-label">pending bilder</div><div class="m-val tabnum">2 184</div></div>
+        <div class="metric metric--gold"><div class="m-label">antal kunder</div><div class="m-val tabnum">276</div></div>
+        <div class="metric metric--gold"><div class="m-label">VISIBLE på kundkort</div><div class="m-val tabnum">0</div></div>
+        <div class="metric metric--slate"><div class="m-label">operator mode</div><div class="m-val">READY</div></div>
+      </div>
+      <div class="acts"><a class="btn" href="/photo-review.html">Öppna Photo Review</a></div>
+    </section>
+
+    <!-- ===== 3 · MAIL REVIEW OPERATOR ===== -->
+    <section class="panel" data-cat="operator">
+      <div class="sec-head"><h2>3 · Mail review operator</h2><span class="spill spill--warn">QUEUE</span></div>
+      <p class="muted">Operatörsverktyg — inte dagligt mailverktyg ännu</p>
+      <div class="mgrid">
+        <div class="metric metric--gold"><div class="m-label">ambiguous kvar</div><div class="m-val tabnum">493</div></div>
+        <div class="metric metric--green"><div class="m-label">approved</div><div class="m-val tabnum">0</div></div>
+        <div class="metric metric--slate"><div class="m-label">unresolved</div><div class="m-val tabnum">493</div></div>
+        <div class="metric metric--slate"><div class="m-label">excluded</div><div class="m-val tabnum">28</div></div>
+      </div>
+      <ul class="kv-list">
+        <li><b>contact@</b>: 248 pending</li>
+        <li><b>egzona@</b>: 175 pending</li>
+        <li><b>fazli@</b>: 67 pending</li>
+        <li><b>marknad@</b>: 3 pending</li>
+      </ul>
+      <p class="muted">Mailbox-källa: reference_snapshot · total ambiguous 493</p>
+      <div class="guardrails">Ingen auto-write · ingen fuzzy merge · ingen customer merge · ingen Graph-fetch · ingen ny mailimport</div>
+      <div class="acts"><a class="btn" href="/ambiguous-mail-enrichment-review.html">Öppna mail review</a></div>
+    </section>
+
+    <!-- ===== 4 · IMPORT REVIEW QUEUE ===== -->
+    <section class="panel" data-cat="operator">
+      <div class="sec-head"><h2>4 · Import review queue</h2><span class="spill spill--warn">WAITING_MANUAL_REVIEW</span></div>
+      <p class="muted"><strong>Manuell review krävs</strong> · ingen auto-import · ingen ny kund</p>
+      <div class="mgrid"><div class="metric metric--gold"><div class="m-label">osäkra kundmatchningar (totalt)</div><div class="m-val tabnum">1 497</div></div></div>
+      <div class="table-wrap">
+        <table class="ops-table">
+          <thead><tr><th>Källa</th><th>I kö</th><th>Not</th></tr></thead>
+          <tbody>
+            <tr><td>halso@</td><td class="tabnum">311</td><td>behöver källkoppling</td></tr>
+            <tr><td>GetAccept</td><td class="tabnum">186</td><td>signerade dokument</td></tr>
+            <tr><td>Drive journaler</td><td class="tabnum">642</td><td>SAFE_MATCH-kandidat</td></tr>
+            <tr><td>Drive bilder</td><td class="tabnum">358</td><td>NEEDS_REVIEW</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Ingen auto-import utan explicit GO · Väntar manuell review — ingen auto-import</p>
+      <p class="muted">Källa: snapshot</p>
+      <div class="acts"><a class="btn" href="/cco-import-review.html">Öppna Import Review</a></div>
+    </section>
+
+    <!-- ===== 5 · DRIVE / HISTORIK ===== -->
+    <section class="panel" id="drive" data-cat="status">
+      <div class="sec-head"><h2>5 · Drive / historik</h2></div>
+      <dl class="dl">
+        <dt>halso@</dt><dd>IMPORTED_SAFE_MATCH</dd>
+        <dt>GetAccept</dt><dd>IMPORTED</dd>
+        <dt>Drive journaler</dt><dd>IMPORTED_SAFE_MATCH</dd>
+        <dt>Drive dokument</dt><dd>IMPORTED_PARTIAL</dd>
+        <dt>Drive bilder</dt><dd>NEEDS_REVIEW</dd>
+        <dt>Review queue</dt><dd>1 497</dd>
+      </dl>
+      <p class="muted">Read-only status: halso@ IMPORTED_SAFE_MATCH · GetAccept IMPORTED · Drive journaler IMPORTED_SAFE_MATCH · Drive dokument IMPORTED_PARTIAL · Drive bilder NEEDS_REVIEW. Ingen ny riskimport utan explicit GO.</p>
+    </section>
+
+    <!-- ===== 6 · ENCOUNTER / METADATA REVIEW ===== -->
+    <section class="panel" data-cat="operator">
+      <div class="sec-head"><h2>6 · Encounter / metadata review</h2><span class="spill spill--warn">PAUSED</span></div>
+      <p class="muted">Separat operatörssida — ej journal-P0.</p>
+      <div class="acts"><a class="btn" href="/encounter-mapping-review.html">Öppna encounter review</a></div>
+    </section>
+
+    <!-- ===== 7 · CHIEF OF FINANCE ===== -->
+    <section class="panel" data-cat="status">
+      <div class="sec-head"><h2>7 · Chief of Finance</h2><span class="spill spill--info">INTERN</span></div>
+      <div class="mgrid">
+        <div class="metric metric--blue"><div class="m-label">finance.html</div><div class="m-val">OK</div></div>
+        <div class="metric metric--blue"><div class="m-label">finance-review.html</div><div class="m-val">OK</div></div>
+        <div class="metric metric--blue"><div class="m-label">finance-reports.html</div><div class="m-val">OK</div></div>
+      </div>
+      <dl class="dl">
+        <dt>Fortnox</dt><dd>BLOCKED_INTEGRATION</dd>
+        <dt>Auth-test</dt><dd>PENDING</dd>
+      </dl>
+      <div class="acts">
+        <a class="btn" href="/finance.html">Finance</a>
+        <a class="btn" href="/finance-review.html">Revisorportal</a>
+        <a class="btn" href="/finance-reports.html">Rapporter</a>
+      </div>
+    </section>
+
+    <!-- ===== 8 · DAGLIG READINESS ===== -->
+    <section class="panel" data-cat="status">
+      <div class="sec-head"><h2>8 · Daglig readiness</h2></div>
+      <p class="muted">Senast genererad: 2026-06-04 07:42</p>
+      <dl class="dl">
+        <dt>Journalpilot</dt><dd>PASS</dd>
+        <dt>Journal live</dt><dd>PASS · JA</dd>
+        <dt>Photo operator</dt><dd>READY · pending 2 184</dd>
+        <dt>Mail operator</dt><dd>QUEUE</dd>
+        <dt>Import queue</dt><dd>1 497</dd>
+      </dl>
+      <h3 style="margin:.7rem 0 .2rem;font-size:.9rem">Personal kan</h3>
+      <ul class="olist">
+        <li>Journalföra patienter och signera journaler</li>
+        <li>Öppna kundkort och journalguide</li>
+        <li>Använda Välkommen till CCO i demo-flödet</li>
+      </ul>
+      <h3 style="margin:.7rem 0 .2rem;font-size:.9rem">Personal ska inte</h3>
+      <ul class="olist">
+        <li>Approve:a bilder eller importer (write AV)</li>
+        <li>Köra ny riskimport eller massapproval</li>
+        <li>Använda extern AI på journaltext</li>
+      </ul>
+      <p class="muted">Full rapport: <code>npm run cco:daily-readiness</code> · <code>docs/strategy/CCO-DAILY-READINESS-2026-06-04.md</code></p>
+    </section>
+
+    <!-- ===== 10 · DETALJERAD NÄSTA-STEG-LISTA ===== -->
+    <section class="panel wide" data-cat="blocker">
+      <div class="sec-head"><h2>10 · Detaljerad nästa-steg-lista</h2></div>
+      <ul class="olist">
+        <li>Spår C/D väntar Owner-godkänd write-canary före cutover</li>
+        <li>1 497 osäkra kundmatchningar i Import Review</li>
+      </ul>
+      <ul class="steps">
+        <li><span class="spill spill--pass">GO</span> Morning command: GO</li>
+        <li><span class="spill spill--pass">GO</span> Journaldemo grönt — fortsätt journalföring om live monitor JA</li>
+        <li><span class="spill spill--warn">P1</span> Photo Review: beta i kö (2 184 bilder) — write AV</li>
+        <li><span class="spill spill--warn">P1</span> Mail review: 493 ambiguous kvar — nästa bästa rad</li>
+        <li><span class="spill spill--warn">P2</span> Import queue: 1 497 osäkra matchningar — manuell, ingen auto-import</li>
+        <li><span class="spill spill--info">—</span> Ej: auto-approve · massapproval · ny riskimport · Aisia · Drive-länkar i UI</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <p class="muted" style="margin-top:1.25rem">
+    Presentation: <a class="btn" href="/cco-demo.html">Välkommen till CCO</a>
+    · legacy <a class="btn" href="/cco-personal-start.html">personal-start</a> redirectar
+    · denna vy är endast för ops efter mötet.
+  </p>
+</div>
+
+<!-- ===== BOTNAV ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+// sektionsfilter — sätter aktiv pill + filtrerar synliga sektioner
+(function(){
+  var bar=document.getElementById('secFilter');
+  if(!bar)return;
+  var secs=[].slice.call(document.querySelectorAll('.ops-grid [data-cat]'));
+  bar.addEventListener('click',function(e){
+    var p=e.target.closest('.pill');if(!p)return;
+    bar.querySelectorAll('.pill').forEach(function(x){x.setAttribute('aria-pressed','false');});
+    p.setAttribute('aria-pressed','true');
+    var f=p.getAttribute('data-filter');
+    secs.forEach(function(s){s.style.display=(f==='all'||s.getAttribute('data-cat')===f)?'':'none';});
+  });
+})();
+</script>
+<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
+</body>
+</html>
