@@ -33,8 +33,14 @@
     city: 'Vasagatan 12, Stockholm',
     tags: ['VIP', 'PRP-hår', 'Botox', 'Återkommande', 'Allergi · Penicillin'],
     totalValue: '38 400',
-    lifetimeValue: '~58 000',
     visitsThisYear: 12,
+    // Ekonomi-fält som buildEconomyFromCard/buildEconomyFields faktiskt läser:
+    // ltv (lifetimeValue) → Total intäkt + Snitt/besök (ltv/visitCount),
+    // lifetimeValueLabel → Livstidsvärde, outstandingBalance → Utestående.
+    lifetimeValue: 38400,
+    lifetimeValueLabel: '~58 000',
+    visitCount: 3,
+    outstandingBalance: '0 kr',
     // Automation-signaler driver B (smart info), D (kritiska varningar),
     // G (smart nästa steg) och R (insikter) — alla ur samma signal-källa.
     automationSignals: [
@@ -51,6 +57,13 @@
         risk: 'review',
         what: 'Foto-samtycke ej markerat',
         why: 'Bekräfta före före/efter-dokumentation.',
+      },
+      {
+        ruleId: 'customer.ready_for_treatment',
+        status: 'active',
+        risk: 'opportunity',
+        what: 'Boka uppföljning · 6 mån resultatbild',
+        why: 'Stark respons på behandling 1 — föreslå uppföljning och resultatfoto.',
       },
     ],
     healthDeclaration: {
