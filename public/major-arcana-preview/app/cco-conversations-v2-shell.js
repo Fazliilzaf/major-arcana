@@ -50,6 +50,32 @@
   }
   var v3Theme = lsGet(THEME_KEY, 'light') === 'dark' ? 'dark' : 'light';
   var v3Density = lsGet(DENSITY_KEY, 'comfortable') === 'compact' ? 'compact' : 'comfortable';
+  var selected = {}; // v3: multi-select set (thread-id → true)
+
+  function selectedIds() {
+    return Object.keys(selected).filter(function (k) {
+      return selected[k];
+    });
+  }
+  function selectedCount() {
+    return selectedIds().length;
+  }
+
+  // v3: SLA-status från riktiga signaler (eller härledd).
+  function slaOf(thread) {
+    var raw = text(thread.slaStatus).toLowerCase();
+    if (raw === 'overdue' || raw === 'breach' || raw === 'förfallen') {
+      return { tone: 'overdue', label: 'SLA' };
+    }
+    if (raw === 'soon' || raw === 'risk' || raw === 'warning')
+      return { tone: 'soon', label: 'SLA' };
+    if (raw === 'ok' || raw === 'green') return null;
+    // Härledning: kräver-åtgärd + saknad/uppföljning → soon; bara åtgärd → ingen.
+    var pending =
+      text(thread.followUpLabel) || text(thread.missingLabel) || text(thread.waitingLabel);
+    if (pending && isUnread(thread)) return { tone: 'soon', label: 'SLA' };
+    return null;
+  }
 
   function isMobileViewport() {
     try {
@@ -444,6 +470,7 @@
       '<h2 class="inbox-h2" data-v2-inbox-h2></h2>' +
       '<div class="lane-chips" data-v2-lane-chips></div>' +
       '<div class="inbox-tabs" data-v2-tabs></div>' +
+      '<div class="v3-bulkbar" data-v3-bulkbar></div>' +
       '<div class="inbox-list" data-v2-inbox></div></aside>' +
       '<section class="thread-shell" data-v2-thread></section>' +
       '<aside class="ctx-shell" data-v2-ctx></aside>' +
@@ -577,16 +604,29 @@
         var id = text(thread.id);
         var active = id && id === selectedId ? ' active' : '';
         var unread = isUnread(thread) ? ' thread-unread' : '';
+        var isSel = selected[id] ? ' is-selected' : '';
         var tags = tagsFor(thread);
+        var sla = slaOf(thread);
         return (
           '<div class="thread' +
           active +
           unread +
+          isSel +
           '" data-source="' +
           esc(sourceKey(thread)) +
           '" data-thread-id="' +
           esc(id) +
           '" role="button" tabindex="0">' +
+          '<span class="thread-select" data-thread-select="' +
+          esc(id) +
+          '" role="checkbox" aria-checked="' +
+          (selected[id] ? 'true' : 'false') +
+          '" title="Markera">' +
+          (selected[id] ? '✓' : '') +
+          '</span>' +
+          (sla
+            ? '<span class="thread-sla thread-sla--' + sla.tone + '">' + esc(sla.label) + '</span>'
+            : '') +
           '<div class="thread-av" style="background:' +
           esc(avatarBg(thread)) +
           '">' +
@@ -1109,6 +1149,42 @@
         renderInbox(boundCtx);
         return;
       }
+      // v3: multi-select checkbox (öppnar inte tråden).
+      var selEl = event.target.closest('[data-thread-select]');
+      if (selEl && boundCtx) {
+        event.stopPropagation();
+        var sid = selEl.getAttribute('data-thread-select');
+        if (selected[sid]) delete selected[sid];
+        else selected[sid] = true;
+        renderInbox(boundCtx);
+        renderBulkBar();
+        return;
+      }
+      // v3: bulk-actions.
+      var bulkEl = event.target.closest('[data-v3-bulk]');
+      if (bulkEl && boundCtx) {
+        var bname = bulkEl.getAttribute('data-v3-bulk');
+        var ids = selectedIds();
+        if (bname === 'clear') {
+          selected = {};
+        } else if (typeof boundCtx.handlers.bulkAction === 'function') {
+          boundCtx.handlers.bulkAction(bname, ids);
+        } else {
+          try {
+            global.CCOPolish &&
+              global.CCOPolish.showToast &&
+              global.CCOPolish.showToast(
+                bname + ' · ' + ids.length + ' valda (aktiveras snart)',
+                'info'
+              );
+          } catch (_error) {
+            /* tyst */
+          }
+        }
+        renderInbox(boundCtx);
+        renderBulkBar();
+        return;
+      }
       var threadEl = event.target.closest('[data-thread-id]');
       if (threadEl && boundCtx) {
         var id = threadEl.getAttribute('data-thread-id');
@@ -1224,6 +1300,38 @@
       '</button>';
   }
 
+  var V3_BULK_ACTIONS = [
+    { id: 'assign', label: 'Tilldela' },
+    { id: 'snooze', label: 'Snooza' },
+    { id: 'handled', label: 'Markera klar' },
+    { id: 'triage', label: '★ AI-triage' },
+  ];
+  function renderBulkBar() {
+    var el = root.querySelector('[data-v3-bulkbar]');
+    if (!el) return;
+    var n = selectedCount();
+    root.dataset.selectMode = n > 0 ? 'on' : 'off';
+    if (!n) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML =
+      '<span class="count">' +
+      n +
+      ' valda</span>' +
+      V3_BULK_ACTIONS.map(function (a) {
+        return (
+          '<button class="v3-bulk-action" type="button" data-v3-bulk="' +
+          a.id +
+          '">' +
+          esc(a.label) +
+          '</button>'
+        );
+      }).join('') +
+      '<span class="spacer"></span>' +
+      '<button class="v3-bulk-action v3-bulk-action--clear" type="button" data-v3-bulk="clear">Avmarkera</button>';
+  }
+
   function render(ctx) {
     if (!doc) return;
     boundCtx = ctx;
@@ -1241,6 +1349,7 @@
     renderLaneChips(ctx);
     renderTabs(ctx);
     renderInbox(ctx);
+    renderBulkBar();
     renderThread(ctx);
     renderCtx(ctx);
   }

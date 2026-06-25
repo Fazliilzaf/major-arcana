@@ -1669,3 +1669,152 @@ html[data-conversations-v2="on"]
     overflow-x: auto;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * v3-2 — multi-select + bulk-bar + SLA-indikator + enhetlig Pill-primitiv.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Enhetlig pill-primitiv (tone via klass) */
+#cco-conv-v2-root .v3-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font:
+    800 8.5px Inter,
+    sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+#cco-conv-v2-root .v3-pill--success {
+  background: var(--cco-status-success-bg);
+  color: var(--cco-status-success);
+}
+#cco-conv-v2-root .v3-pill--warning {
+  background: var(--cco-status-warning-bg);
+  color: var(--cco-status-warning);
+}
+#cco-conv-v2-root .v3-pill--danger {
+  background: var(--cco-status-danger-bg);
+  color: var(--cco-status-danger);
+}
+#cco-conv-v2-root .v3-pill--info {
+  background: var(--cco-status-info-bg);
+  color: var(--cco-status-info);
+}
+#cco-conv-v2-root .v3-pill--neutral {
+  background: var(--v3-chip-bg);
+  color: var(--cco-text-secondary);
+}
+
+/* Multi-select checkbox på trådkort */
+#cco-conv-v2-root .thread-select {
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1.5px solid var(--v3-hairline);
+  background: var(--cco-bg-surface);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #fff;
+  z-index: 2;
+}
+#cco-conv-v2-root .thread:hover .thread-select,
+#cco-conv-v2-root[data-select-mode="on"] .thread-select {
+  opacity: 1;
+}
+#cco-conv-v2-root[data-select-mode="on"] .thread,
+#cco-conv-v2-root .thread:hover {
+  padding-left: 22px;
+}
+#cco-conv-v2-root .thread.is-selected .thread-select {
+  opacity: 1;
+  background: var(--accent-studio);
+  border-color: var(--accent-studio);
+}
+#cco-conv-v2-root .thread.is-selected {
+  background: rgba(178, 62, 114, 0.1);
+}
+
+/* SLA-indikator på kort */
+#cco-conv-v2-root .thread-sla {
+  position: absolute;
+  right: 8px;
+  bottom: 9px;
+  font:
+    800 7.5px Inter,
+    sans-serif;
+  padding: 1px 5px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#cco-conv-v2-root .thread-sla--overdue {
+  background: var(--cco-status-danger-bg);
+  color: var(--cco-status-danger);
+}
+#cco-conv-v2-root .thread-sla--soon {
+  background: var(--cco-status-warning-bg);
+  color: var(--cco-status-warning);
+}
+#cco-conv-v2-root .thread-sla--ok {
+  background: var(--cco-status-success-bg);
+  color: var(--cco-status-success);
+}
+
+/* Bulk action bar */
+#cco-conv-v2-root .v3-bulkbar {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  margin-bottom: 9px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  box-shadow: var(--panel-card-shadow);
+}
+#cco-conv-v2-root[data-select-mode="on"] .v3-bulkbar {
+  display: flex;
+}
+#cco-conv-v2-root .v3-bulkbar .count {
+  font:
+    800 11.5px Inter,
+    sans-serif;
+  color: var(--accent-studio);
+  white-space: nowrap;
+}
+#cco-conv-v2-root .v3-bulkbar .spacer {
+  flex: 1;
+}
+#cco-conv-v2-root .v3-bulk-action {
+  appearance: none;
+  border: 1px solid rgba(187, 71, 121, 0.28);
+  cursor: pointer;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--cco-bg-surface);
+  font:
+    700 10.5px Inter,
+    sans-serif;
+  color: var(--cco-color-brand);
+}
+#cco-conv-v2-root .v3-bulk-action:hover {
+  border-color: var(--accent-studio);
+}
+#cco-conv-v2-root .v3-bulk-action--clear {
+  color: var(--cco-text-tertiary);
+  border-color: transparent;
+  background: transparent;
+}
