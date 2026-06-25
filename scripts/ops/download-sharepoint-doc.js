@@ -36,6 +36,8 @@ function parseArgs(argv) {
       out.relative = argv[++i];
     } else if (argv[i] === '--out' && argv[i + 1]) {
       out.outDir = argv[++i];
+    } else if (argv[i] === '--dest' && argv[i + 1]) {
+      out.destName = argv[++i];
     }
   }
   return out;
@@ -130,7 +132,8 @@ async function main() {
     console.log(`✓ Hittad via sök: ${item.name} (${item.id})`);
   }
 
-  const safeName = args.name.replace(/[^\wåäöÅÄÖ\s.-]+/gi, '_').replace(/\s+/g, '-');
+  const safeName =
+    args.destName || args.name.replace(/[^\wåäöÅÄÖ\s.-]+/gi, '_').replace(/\s+/g, '-');
   const destPath = path.join(outDir, safeName);
   const bytes = await downloadContent(token, item.id, destPath);
   console.log(`✓ Nedladdad ${bytes} bytes → ${destPath}`);

@@ -87,8 +87,10 @@ link "$ARCHIVE/MA-Archive/sharepoint/originals/Bilaga-1-patientinformation-DHI.d
   "$WORK/01-word-original-lokalt/bilaga-1-patientinformation-dhi.docx"
 link "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Downloads/Kvalitetsledningssystem/Ordination för lokalbedövning vid hårtransplantation.docx" \
   "$WORK/01-word-original-lokalt/ordination-lokalbedovning-tp.docx"
-
-# SharePoint index (repo docs — ingen patientdata)
+link "$HOME/Code/MA-Archive/offert-word/Offertmallar" \
+  "$WORK/01-word-original-lokalt/offertmallar-14docx"
+link "$ROOT_DIR/docs/implementation/patient-documents-live/patient-document-word-registry.json" \
+  "$WORK/02-sharepoint-index/patient-document-word-registry.json"
 link "$ROOT_DIR/docs/strategy/SHAREPOINT-TEMPLATE-INVENTORY.md" \
   "$WORK/02-sharepoint-index/SHAREPOINT-TEMPLATE-INVENTORY.md"
 link "$ROOT_DIR/docs/migration/sharepoint-manifest.json" \

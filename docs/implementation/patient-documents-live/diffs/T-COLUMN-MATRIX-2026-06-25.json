@@ -1,0 +1,190 @@
+{
+  "generatedAt": "2026-06-25T14:02:03.070Z",
+  "wordDir": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt",
+  "parityOk": 3,
+  "needsReview": 0,
+  "msOkWordLocal": 5,
+  "mqOrTemplate": 28,
+  "rows": [
+    {
+      "registryId": "anteckningar_kort",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "auto_avbokningsbekraftelse",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "auto_betanketid",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "auto_bokningsbekraftelse",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "auto_bokningspaminnelse",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "auto_instruktion_formular",
+      "status": "MS_OK_WORD_LOCAL",
+      "note": "Word lokalt — full legal diff ej körd (E6)"
+    },
+    {
+      "registryId": "auto_integritet",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "auto_internt_sms",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "auto_medical_finance",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "behandlingsplan_staff",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "fore_efter_bildmall",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "foto_samtycke",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "friskfoers_tp",
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-friskforsakran"
+    },
+    {
+      "registryId": "haelso_tp_sve",
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-hd-sve"
+    },
+    {
+      "registryId": "health_tp_eng",
+      "status": "PARITY_OK",
+      "note": "diff:patient-doc-hd-eng"
+    },
+    {
+      "registryId": "id_verifiering",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "info_offert_tp",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "journal_prp_multi",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "journal_tp",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "journal_tp_follow_12",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "journal_tp_follow_4",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "journal_tp_follow_6",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "journal_tp_post_prp",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "konsultationsmall",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "microneedling_info",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "offert_microneedling",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "offert_prf",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "offert_profilo",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "offert_prp_hair",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "offert_prp_skin",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "offert_tp",
+      "status": "MS_OK_WORD_LOCAL",
+      "note": "Word lokalt — full legal diff ej körd (E6)"
+    },
+    {
+      "registryId": "ordination_tp",
+      "status": "MS_OK_WORD_LOCAL",
+      "note": "Word lokalt — full legal diff ej körd (E6)"
+    },
+    {
+      "registryId": "prp_hair_info_eng",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "prp_hair_info_sve",
+      "status": "MQ_OR_TEMPLATE_ONLY",
+      "note": "Ingen Word/T-diff i scope — Meridiq eller malltext"
+    },
+    {
+      "registryId": "samtycke_angerratt",
+      "status": "MS_OK_WORD_LOCAL",
+      "note": "Word lokalt — full legal diff ej körd (E6)"
+    },
+    {
+      "registryId": "samtycke_bokning_2d",
+      "status": "MS_OK_WORD_LOCAL",
+      "note": "Word lokalt — full legal diff ej körd (E6)"
+    }
+  ]
+}
