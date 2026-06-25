@@ -395,7 +395,12 @@
             t.classList.add('active');
           })
         );
-        document.querySelectorAll('.ds-actions .ds-cta').forEach((cta) =>
+        document.querySelectorAll('.ds-actions .ds-cta').forEach((cta) => {
+          // Kamera-knappen har en egen document-listener (data-camera-open) som
+          // öppnar kameran. Den generiska "stäng + success-toast"-handlern fick
+          // INTE också köras på den — annars stängdes arket och en falsk
+          // klar-toast visades innan något foto tagits (Bugbot #257).
+          if (cta.hasAttribute('data-camera-open')) return;
           cta.addEventListener('click', () => {
             closeDossier();
             toast(
@@ -406,8 +411,8 @@
                   .replace(/^✉ /, '')
                   .replace(/^✓ /, '')
             );
-          })
-        );
+          });
+        });
       }
 
       function closeDossier() {
@@ -772,7 +777,12 @@
         (Array.isArray(payload.customers) && payload.customers) ||
         [];
       var total = v10Num(overview && overview.customerCount) || list.length;
-      if (total > 0) {
+      // Uppdatera räknarna när API:t svarat med auktoritativ data — även noll
+      // kunder. Annars ligger facit-demon (1 247) kvar fast live säger 0
+      // (Bugbot #257). Saknas data helt (varken overview eller lista) behåller
+      // vi demon.
+      var hasAuthoritative = !!overview || Array.isArray(payload.customers);
+      if (hasAuthoritative) {
         var title = root.querySelector('.page-title');
         if (title) title.textContent = v10Group(total);
         var allChip = root.querySelector('.filter-chip.active .count');

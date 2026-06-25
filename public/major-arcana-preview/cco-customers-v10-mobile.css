@@ -1586,11 +1586,13 @@
     display: none !important;
   }
 }
-/* På mobil: göm legacy-kundvyn när v10-flaggan är på, så ingen dubbel-render. */
+/* På mobil: göm legacy-kundvyn när v10-flaggan är på, så ingen dubbel-render.
+ * Grindas på :has(> #cco-cust-v10-root) så legacy INTE göms innan skalet hunnit
+ * monteras — annars blir vyn tom i glappet före mount (Bugbot #257). */
 @media (max-width: 834px) {
   html[data-customers-v10="on"]
     .preview-canvas[data-app-shell-view="customers"]
-    .preview-workspace
+    .preview-workspace:has(> #cco-cust-v10-root)
     > *:not(#cco-cust-v10-root) {
     display: none !important;
   }
