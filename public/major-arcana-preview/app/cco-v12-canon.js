@@ -702,12 +702,15 @@
   /* ---------- 6 · JOURNAL ---------- */
   function s6(entries) {
     var list = arr(entries);
-    var head = secHead(
-      '06',
-      'Journal',
-      list.length ? list.length + ' anteckningar' : null,
-      '<button class="sec-link">+ Ny anteckning</button>'
-    );
+    var dagens = list.filter(function (e) {
+      return /utkast|draft/i.test(txt(e && e.status));
+    }).length;
+    var sub = list.length
+      ? dagens
+        ? dagens + ' dagens · ' + (list.length - dagens) + ' tidigare'
+        : list.length + ' anteckningar'
+      : null;
+    var head = secHead('06', 'Journal', sub, '<button class="sec-link">+ Ny anteckning</button>');
     if (!list.length)
       return (
         '<section class="sec" id="s6">' +
@@ -771,13 +774,28 @@
       .slice(0, 12)
       .map(function (p) {
         var bg = p.thumbnailUrl || p.viewUrl || p.url;
-        var lbl = txt(p.dateLabel || p.photoDateLabel || p.capturedAt || '').slice(0, 12);
+        // Fas-märkt ruta (facit: FÖRE/EFTER/ÖVER/FILM) ur adapterns phase/isImage.
+        var ph = txt(p.phase);
+        var isVideo = p.isImage === false;
+        var cls = isVideo ? 'film' : ph === 'before' ? 'fore' : ph === 'after' ? 'efter' : 'over';
+        var prefix = isVideo
+          ? 'FILM'
+          : ph === 'before'
+            ? 'FÖRE'
+            : ph === 'after'
+              ? 'EFTER'
+              : 'ÖVER';
+        var date = txt(p.dateLabel || p.photoDateLabel || p.capturedAt || '').slice(0, 12);
+        var lbl = (prefix + (date ? ' ' + date : '')).trim();
         return (
-          '<div class="photo-tile over"' +
+          '<div class="photo-tile ' +
+          cls +
+          '"' +
           (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
           '>' +
-          (lbl ? '<span class="lbl">' + esc(lbl) + '</span>' : '') +
-          '</div>'
+          '<span class="lbl">' +
+          esc(lbl) +
+          '</span></div>'
         );
       })
       .join('');
@@ -1174,13 +1192,17 @@
       '</div></aside>'
     );
   }
-  function sticky(nextStep, card) {
+  function sticky(nextStep, card, av) {
     var name = txt(card.displayName || card.name);
+    // Kontext-detalj (facit: "· PRP 2/3 pågår · Rum 2") ur aktivt besök.
+    var ctxParts = [name];
+    if (av && txt(av.title)) ctxParts.push(txt(av.title) + ' pågår');
+    if (av && txt(av.room)) ctxParts.push(txt(av.room));
     var msg = nextStep && nextStep.what ? '⚡ ' + txt(nextStep.what) : 'Förbered nästa steg';
     return (
       '<div class="v12-canon__sticky"><div class="v12-canon__sticky-inner">' +
       '<div class="sticky-context">' +
-      esc(name) +
+      esc(ctxParts.join(' · ')) +
       '<b>' +
       esc(msg) +
       '</b></div>' +
@@ -1343,7 +1365,7 @@
       main +
       rail(recentEvents, nextStep, bundle) +
       '</div>' +
-      sticky(nextStep, card) +
+      sticky(nextStep, card, av) +
       '</div>'
     );
   }
