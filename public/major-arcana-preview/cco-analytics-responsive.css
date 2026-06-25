@@ -1,0 +1,124 @@
+/* ===========================================================================
+ * cco-analytics-responsive.css
+ * Scopad responsiv overlay för Analys/Insikter-ytan (data-shell-view="analytics").
+ *
+ * Strategi (samma upplägg som Automatisering):
+ *   • Webb (>1024px)    — orörd.
+ *   • iPad (769–1024px) — full layout: metrik-/live-rutnät ≤2 kolumner,
+ *                         period-piller scrollbara, touch-mål ≥44px.
+ *   • Mobil (≤768px)    — allt staplas i en kolumn, touch-mål ≥44px.
+ *
+ * Allt scopat under .analytics-shell. Länkad sist i index.html → vinner cascade.
+ *
+ * Befintligt i styles.css: .analytics-metric-row-live/.analytics-live-list
+ * kollapsar redan till 2-kol @≤1120px och 1-kol @≤760px. Denna fil täpper
+ * resten: dekor-overflow (sid-scroll på mobil), iPad-gapet, övriga rutnät,
+ * period-scroll och touch-mål.
+ * ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+ * 1. Delad bas för iPad + mobil (≤1024px)
+ * ------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  /* .analytics-surface::before är en 560px dekor-gradient (position:absolute)
+   * vars containing-block är .analytics-shell (position:relative). Klipp på
+   * shell-nivå så den inte ger sidan horisontell scroll på smala skärmar. */
+  .analytics-shell {
+    min-width: 0;
+    overflow-x: clip;
+  }
+  .analytics-shell .analytics-surface {
+    overflow-x: clip;
+    min-width: 0;
+  }
+
+  /* Rubrik + period-rad får andas */
+  .analytics-shell .analytics-title-group,
+  .analytics-shell .analytics-section-head,
+  .analytics-shell .analytics-panel-head {
+    min-width: 0;
+  }
+
+  /* Period-piller: horisontell scroll-rad istället för hopträngning */
+  .analytics-shell .analytics-period {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+  }
+  .analytics-shell .analytics-period::-webkit-scrollbar {
+    display: none;
+  }
+  .analytics-shell .analytics-period-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* Säkra att inga kort/paneler spränger bredden */
+  .analytics-shell .analytics-section,
+  .analytics-shell .analytics-panel,
+  .analytics-shell .analytics-metric-card,
+  .analytics-shell .analytics-live-card,
+  .analytics-shell .analytics-self-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. iPad (769–1024px) — full layout, ≤2-kolumners rutnät
+ * ------------------------------------------------------------------------- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .analytics-shell .analytics-metric-row,
+  .analytics-shell .analytics-metric-row-live,
+  .analytics-shell .analytics-live-list,
+  .analytics-shell .analytics-self-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Mobil (≤768px) — en kolumn
+ * ------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .analytics-shell .analytics-surface {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .analytics-shell .analytics-metric-row,
+  .analytics-shell .analytics-metric-row-live,
+  .analytics-shell .analytics-live-list,
+  .analytics-shell .analytics-self-metrics,
+  .analytics-shell .analytics-template-list {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Leaderboard-/mall-rader: låt långa etiketter brytas istället för att spilla */
+  .analytics-shell .analytics-leaderboard-row,
+  .analytics-shell .analytics-template-row {
+    min-width: 0;
+  }
+
+  .analytics-shell .analytics-title {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. Touch-mål ≥44×44 på touch-enheter
+ * ------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  .analytics-shell .analytics-period-pill,
+  .analytics-shell .analytics-template-row,
+  .analytics-shell .analytics-leaderboard-row,
+  .analytics-shell .analytics-coaching-action {
+    min-height: 44px;
+  }
+  .analytics-shell .analytics-period-pill {
+    min-width: 44px;
+  }
+}

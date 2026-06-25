@@ -1,0 +1,95 @@
+/* ===========================================================================
+ * cco-settings-responsive.css
+ * Scopad responsiv overlay för Inställningar (data-shell-view="settings").
+ *
+ * Settings använder den delade .aux-shell/.aux-surface — DÄRFÖR är ALLT här
+ * scopat med [data-shell-view="settings"] så inget läcker till andra aux-vyer
+ * (later/sent/integrations/macros).
+ *
+ * Strategi (samma som Automatisering/Analys):
+ *   • Webb (>1024px)    — orörd.
+ *   • iPad (769–1024px) — full layout (befintliga regler kollapsar redan
+ *                         .settings-layout m.fl. till 1 kol @≤1180); vi täpper
+ *                         dekor-overflow + touch-mål.
+ *   • Mobil (≤768px)    — formulär i en kolumn, fält full bredd, touch-mål.
+ *
+ * Länkad sist i index.html → vinner cascade utan !important-krig.
+ * ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+ * 1. Delad bas för iPad + mobil (≤1024px)
+ * ------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  /* .aux-surface::before är en 520px dekor-gradient (position:absolute) vars
+   * containing-block är .aux-shell (position:relative). Klipp på shell-nivå
+   * så den inte ger sidan horisontell scroll. */
+  .aux-shell[data-shell-view="settings"] {
+    min-width: 0;
+    overflow-x: clip;
+  }
+  .aux-shell[data-shell-view="settings"] .aux-surface,
+  .aux-shell[data-shell-view="settings"] .settings-surface {
+    overflow-x: clip;
+    min-width: 0;
+  }
+
+  /* Paneler/rader får inte spränga bredden */
+  .aux-shell[data-shell-view="settings"] .settings-panel,
+  .aux-shell[data-shell-view="settings"] .settings-panel-wide,
+  .aux-shell[data-shell-view="settings"] .settings-toggle-row,
+  .aux-shell[data-shell-view="settings"] .settings-summary-card,
+  .aux-shell[data-shell-view="settings"] .settings-choice-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Inmatningsfält (nummer/JSON) full bredd istället för fast bredd */
+  .aux-shell[data-shell-view="settings"] .settings-number-input,
+  .aux-shell[data-shell-view="settings"] .settings-json-input {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. Mobil (≤768px) — formulär i en kolumn
+ * ------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  /* Toggle-rad: etikett + switch wrappar snyggt om det blir trångt */
+  .aux-shell[data-shell-view="settings"] .settings-toggle-row {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  .aux-shell[data-shell-view="settings"] .settings-toggle-copy {
+    flex: 1 1 60%;
+    min-width: 0;
+  }
+
+  /* Genvägs-/kortkommando-rader och choice-block staplas */
+  .aux-shell[data-shell-view="settings"] .settings-shortcut-row {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  /* JSON-textarea blir lägre men full bredd på liten skärm */
+  .aux-shell[data-shell-view="settings"] .settings-json-input {
+    width: 100%;
+  }
+
+  .aux-shell[data-shell-view="settings"] .settings-title {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Touch-mål ≥44×44 på touch-enheter
+ * ------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  .aux-shell[data-shell-view="settings"] .settings-action,
+  .aux-shell[data-shell-view="settings"] .settings-choice-card,
+  .aux-shell[data-shell-view="settings"] .settings-switch,
+  .aux-shell[data-shell-view="settings"] .settings-number-input {
+    min-height: 44px;
+  }
+}
