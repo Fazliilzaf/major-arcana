@@ -532,18 +532,25 @@
                 : s.state === 'blocked'
                   ? 'Blockerare'
                   : 'Kommande';
-          // jump-länk (per-steg → relevant canon-sektion)
-          var jl = '';
+          // jump-länk (per-steg → relevant canon-sektion) + asset-räknar-badge
+          // där vi har en ÄKTA koppling (konsultations-steget → foton). Ingen
+          // fejk: badge visas bara när data faktiskt hör till steget.
+          var jlBtns = '';
           if (s.jump && JUMP_LABEL[s.jump]) {
-            jl =
-              '<div class="step-links"><button type="button" class="step-link" data-v12-jump="' +
+            jlBtns +=
+              '<button type="button" class="step-link" data-v12-jump="' +
               esc(JUMP_SECTION[s.jump] || 'current-state') +
               '">Öppna ' +
               esc(JUMP_LABEL[s.jump]) +
-              ' →</button></div>';
-          } else {
-            jl = '<div class="step-links"></div>';
+              ' →</button>';
           }
+          var stepConsult =
+            /konsult/i.test(txt(s.label)) && !/bokning|bekräft|bekraft/i.test(txt(s.label));
+          var stepPhotos = arr(photos && photos.items ? photos.items : photos).length;
+          if (stepConsult && stepPhotos) {
+            jlBtns += '<span class="step-link">📷 ' + stepPhotos + ' foton</span>';
+          }
+          var jl = '<div class="step-links">' + jlBtns + '</div>';
           // Visit-card med besöksfoton — fästs på KONSULTATIONS-steget oavsett
           // state, så ett kommande steg med media blir expanderbart (ABDIRAHMAN
           // steg 4 "Konsultation · Förberett" med 6 bilder).
