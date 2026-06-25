@@ -64,6 +64,14 @@ function toCaseInput(context, body = {}) {
     coolingOffEndsAt: normalizeText(body.coolingOffEndsAt),
     esignToken: normalizeText(body.esignToken),
     esignStatus: normalizeText(body.esignStatus),
+    esignProvider: normalizeText(body.esignProvider),
+    getAcceptDocumentId: normalizeText(body.getAcceptDocumentId),
+    getAcceptSignUrl: normalizeText(body.getAcceptSignUrl),
+    getAcceptStatus: normalizeText(body.getAcceptStatus),
+    getAcceptSentAt: normalizeText(body.getAcceptSentAt),
+    getAcceptViewedAt: normalizeText(body.getAcceptViewedAt),
+    getAcceptSignedAt: normalizeText(body.getAcceptSignedAt),
+    getAcceptCompletedAt: normalizeText(body.getAcceptCompletedAt),
     planSnapshot:
       body.planSnapshot && typeof body.planSnapshot === 'object' ? body.planSnapshot : undefined,
   };
@@ -92,6 +100,7 @@ function createCcoCommercialRouter({
   treatmentAgreementStore = null,
   bookingEngineStore = null,
   graphSendConnector = null,
+  getAcceptConnector = null,
   authStore,
   config,
   requireAuth,
@@ -169,6 +178,32 @@ function createCcoCommercialRouter({
     } catch {
       return null;
     }
+  }
+
+  function splitName(fullName = '') {
+    const parts = normalizeText(fullName).split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) return { firstName: parts[0] || '', lastName: '' };
+    return { firstName: parts.slice(0, -1).join(' '), lastName: parts.at(-1) || '' };
+  }
+
+  function resolveOfferRecipient(commercialCase = {}, body = {}) {
+    const email =
+      normalizeText(body.recipientEmail) ||
+      normalizeText(body.patientEmail) ||
+      normalizeText(commercialCase.customerId);
+    const name =
+      normalizeText(body.recipientName) ||
+      normalizeText(body.customerName) ||
+      normalizeText(commercialCase.customerName);
+    return {
+      email,
+      name,
+      ...splitName(name),
+    };
+  }
+
+  function isGetAcceptReady() {
+    return Boolean(getAcceptConnector?.enabled && getAcceptConnector?.available);
   }
 
   function verifyGetAcceptWebhookSignature(req) {
@@ -663,6 +698,7 @@ function createCcoCommercialRouter({
           coolingOffEndsAt: addDaysIso(sentAt, template.coolingOffDays),
           esignToken: existing.esignToken || buildEsignToken(),
           esignStatus: 'sent',
+          esignProvider: isGetAcceptReady() ? 'getaccept' : 'internal',
           events: [
             ...(Array.isArray(existing.events) ? existing.events : []),
             {
@@ -674,10 +710,72 @@ function createCcoCommercialRouter({
           ],
         });
         const origin = `${req.protocol}://${req.get('host')}`;
+        const internalSignUrl = `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(commercialCase.esignToken)}`;
+        if (isGetAcceptReady()) {
+          let pdfPayload = await offerDocumentStore?.readPdf?.({
+            tenantId: actor.tenantId,
+            documentId: commercialCase.offerDocumentId,
+          });
+          if (!pdfPayload?.buffer) {
+            const htmlPayload = await offerDocumentStore?.readHtml?.({
+              tenantId: actor.tenantId,
+              documentId: commercialCase.offerDocumentId,
+            });
+            if (!htmlPayload?.html) {
+              return res.status(404).json({ error: 'Offertdokumentet saknas på disk.' });
+            }
+            const pdfBuffer = await renderHtmlToPdfBuffer(htmlPayload.html);
+            pdfPayload = offerDocumentStore?.savePdf
+              ? await offerDocumentStore.savePdf({
+                  tenantId: actor.tenantId,
+                  documentId: commercialCase.offerDocumentId,
+                  buffer: pdfBuffer,
+                })
+              : { buffer: pdfBuffer };
+          }
+          const recipient = resolveOfferRecipient(commercialCase, body);
+          const getAcceptResult = await getAcceptConnector.sendOfferDocument({
+            documentId: commercialCase.offerDocumentId,
+            fileName: `offert-${commercialCase.offerDocumentId.slice(0, 8)}.pdf`,
+            pdfBuffer: pdfPayload.buffer,
+            recipient,
+            signUrl: internalSignUrl,
+            metadata: {
+              title: template.label,
+              commercialCaseId: commercialCase.commercialCaseId,
+              patientId,
+              esignToken: commercialCase.esignToken,
+            },
+          });
+          const updated = await commercialStore.upsertCase({
+            ...commercialCase,
+            getAcceptDocumentId: getAcceptResult.documentId,
+            getAcceptSignUrl: getAcceptResult.signUrl,
+            getAcceptStatus: getAcceptResult.status || 'sent',
+            getAcceptSentAt: sentAt,
+            events: [
+              ...(Array.isArray(commercialCase.events) ? commercialCase.events : []),
+              {
+                type: 'getaccept_document_sent',
+                label: 'Offert skickad via GetAccept',
+                detail: getAcceptResult.documentId || commercialCase.offerDocumentId,
+                actorUserId: actor.userId,
+                createdAt: sentAt,
+              },
+            ],
+          });
+          return res.json({
+            commercialCase: updated,
+            commercialReadout: buildCommercialCaseReadout(updated),
+            offerSignUrl: getAcceptResult.signUrl || internalSignUrl,
+            provider: 'getaccept',
+          });
+        }
         return res.json({
           commercialCase,
           commercialReadout: buildCommercialCaseReadout(commercialCase),
-          offerSignUrl: `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(commercialCase.esignToken)}`,
+          offerSignUrl: internalSignUrl,
+          provider: 'internal',
         });
       })
   );
@@ -776,22 +874,56 @@ function createCcoCommercialRouter({
       }
       const body = req.body && typeof req.body === 'object' ? req.body : {};
       const eventType = normalizeText(body.event || body.eventType || body.type).toLowerCase();
-      if (!/view|open/.test(eventType)) {
+      const isViewEvent = /view|open/.test(eventType);
+      const isCompleteEvent = /sign|complete|finish|approve/.test(eventType);
+      if (!isViewEvent && !isCompleteEvent) {
         return res.json({ ok: true, ignored: true });
       }
       const token = normalizeText(body.token || body.esignToken || body.documentToken);
-      const documentId = normalizeText(body.documentId || body.offerDocumentId);
+      const documentId = normalizeText(
+        body.documentId || body.document_id || body.offerDocumentId || body.id
+      );
       let match = null;
       if (token && commercialStore.findCaseByEsignToken) {
         match = await commercialStore.findCaseByEsignToken(token);
       }
       if (!match && documentId && commercialStore.listCases) {
         match =
-          (await commercialStore.listCases()).find((item) => item.offerDocumentId === documentId) ||
-          null;
+          (await commercialStore.listCases()).find(
+            (item) => item.offerDocumentId === documentId || item.getAcceptDocumentId === documentId
+          ) || null;
       }
       if (match) {
-        await recordCustomerQuoteOpen(match, 'getaccept_document_viewed');
+        if (isViewEvent) {
+          await recordCustomerQuoteOpen(match, 'getaccept_document_viewed');
+          await commercialStore.upsertCase({
+            ...match,
+            getAcceptViewedAt: new Date().toISOString(),
+            getAcceptStatus: normalizeText(body.status) || match.getAcceptStatus || 'viewed',
+          });
+        } else {
+          const completedAt = new Date().toISOString();
+          await commercialStore.upsertCase({
+            ...match,
+            quoteStatus: 'accepted',
+            commercialStatus: 'ready',
+            quoteAcceptedAt: match.quoteAcceptedAt || completedAt,
+            esignStatus: 'accepted',
+            getAcceptStatus: normalizeText(body.status) || 'completed',
+            getAcceptSignedAt: match.getAcceptSignedAt || completedAt,
+            getAcceptCompletedAt: completedAt,
+            events: [
+              ...(Array.isArray(match.events) ? match.events : []),
+              {
+                type: 'getaccept_document_completed',
+                label: 'GetAccept-dokument signerat',
+                detail: documentId || token || 'getaccept',
+                actorUserId: 'getaccept_webhook',
+                createdAt: completedAt,
+              },
+            ],
+          });
+        }
       }
       return res.json({ ok: true, recorded: Boolean(match) });
     } catch (error) {
