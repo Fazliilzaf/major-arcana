@@ -159,25 +159,18 @@
       var room = txt(av.room || av.roomLabel || av.practitionerRoom);
       // av-preflight (3-kortsruta som facit): härled ok-kort ur hälsa + warn-kort ur blockers.
       var pre = [];
-      if (health && health.signedAt) {
+      if (health && (health.status === 'signed' || health.signedAt)) {
         pre.push(
-          '<div class="av-pre ok"><div class="pre-icn">✓</div><div class="pre-title">Hälsodekl.</div><div class="pre-meta">Signerad ' +
-            esc(txt(health.signedAt)) +
+          '<div class="av-pre ok"><div class="pre-icn">✓</div><div class="pre-title">Hälsodekl.</div><div class="pre-meta">' +
+            (health.signedAt ? 'Signerad ' + esc(txt(health.signedAt)) : 'Signerad') +
             '</div></div>'
         );
       }
-      var allergi = arr(health && health.answers).filter(function (a) {
-        return /allerg/i.test(txt(a.label || a.q));
-      })[0];
-      if (allergi) {
-        var danger = /ja|penicillin/i.test(txt(allergi.value));
+      var allergies = arr(health && health.allergies);
+      if (allergies.length) {
         pre.push(
-          '<div class="av-pre ' +
-            (danger ? 'warn' : 'ok') +
-            '"><div class="pre-icn">' +
-            (danger ? '!' : '✓') +
-            '</div><div class="pre-title">Allergier</div><div class="pre-meta">' +
-            esc(txt(allergi.value) || 'Granskat') +
+          '<div class="av-pre ok"><div class="pre-icn">✓</div><div class="pre-title">Allergier</div><div class="pre-meta">' +
+            esc(txt(allergies[0]) + ' · granskat') +
             '</div></div>'
         );
       }
@@ -254,35 +247,42 @@
         '</div>';
     }
 
-    /* E · HÄLSODEKLARATION */
+    /* E · HÄLSODEKLARATION — rader ur riktig health-data (allergier/läkemedel/flaggor) */
     if (health) {
-      var answers = arr(health.answers);
+      var hAllergies = arr(health.allergies);
+      var hMeds = (health.medications && health.medications.items) || [];
+      var hContra = arr(health.contraindications);
+      function hdRow(q, val, pill) {
+        return (
+          '<div class="hd-row"><span class="hd-q">' +
+          esc(q) +
+          '</span><span class="pill ' +
+          pill +
+          '">' +
+          esc(val) +
+          '</span></div>'
+        );
+      }
+      var rows = '';
+      rows += hAllergies.length
+        ? hdRow('Allergier', 'JA · ' + txt(hAllergies[0]), 'danger')
+        : hdRow('Allergier', 'NEJ', 'no');
+      rows += hMeds.length
+        ? hdRow('Pågående mediciner', 'JA · ' + hMeds.length + ' st', 'yes')
+        : hdRow(
+            'Pågående mediciner',
+            health.medications && health.medications.known ? 'JA' : 'NEJ',
+            health.medications && health.medications.known ? 'yes' : 'no'
+          );
+      hContra.forEach(function (c) {
+        rows += hdRow(txt(c.text), 'JA', c.level === 'red' ? 'danger' : 'yes');
+      });
       out += secOpen(
         'halsa',
         'sec',
         label('Hälsodeklaration', health.signedAt ? 'Signerad ' + txt(health.signedAt) : '') +
           '<div class="hd-rows">' +
-          (answers.length
-            ? answers
-                .map(function (a) {
-                  var v = txt(a.value);
-                  var p = /ja|allerg/i.test(v)
-                    ? /allerg|penicillin/i.test(v)
-                      ? 'danger'
-                      : 'yes'
-                    : 'no';
-                  return (
-                    '<div class="hd-row"><span class="hd-q">' +
-                    esc(txt(a.label || a.q)) +
-                    '</span><span class="pill ' +
-                    p +
-                    '">' +
-                    esc(v || '—') +
-                    '</span></div>'
-                  );
-                })
-                .join('')
-            : '<div class="hd-row"><span class="hd-q">Inga registrerade svar</span></div>') +
+          (rows || '<div class="hd-row"><span class="hd-q">Inga registrerade svar</span></div>') +
           '</div><div class="hd-foot"><a>Visa historik</a><a>Redigera svar</a><a>Kopiera länk</a></div>'
       );
     }
