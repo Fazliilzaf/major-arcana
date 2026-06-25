@@ -158,6 +158,7 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
   .z-thread:not(.has-thread)::after{content:"Välj en snoozad konversation";display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary)}
   .tv-back{display:none}
   .botnav{display:none}
+  .inbox{padding-bottom:1.5rem}
   .z-ctx{width:min(22rem,80vw);left:auto}
 }
 /* Desktop ≥1025: rail | lista | tråd | ctx (4-zon master-detail) */
@@ -327,7 +328,11 @@ function reconcileOpen(){
 document.querySelectorAll('.lane').forEach(l=>l.addEventListener('click',()=>{document.querySelectorAll('.lane').forEach(x=>x.setAttribute('aria-pressed','false'));l.setAttribute('aria-pressed','true');curLane=l.dataset.lane||'alla';renderInbox();reconcileOpen();}));
 
 renderInbox();
-if(matchMedia('(min-width:601px)').matches) openThread(1);   // sida-vid-sida visar första
+// sida-vid-sida (≥601): visa första synliga tråden — även om sidan först laddats i mobil bredd och sedan vidgats
+const sideMq=matchMedia('(min-width:601px)');
+function ensureSideOpen(){ if(sideMq.matches && openId==null){ const first=THREADS.filter(matchLane)[0]; if(first) openThread(first.id); } }
+ensureSideOpen();
+sideMq.addEventListener('change',ensureSideOpen);
 </script>
 <script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
 </body>
