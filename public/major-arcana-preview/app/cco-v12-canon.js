@@ -908,6 +908,9 @@
       '<div class="photo-grid">' +
       tiles +
       '</div>' +
+      (items.length > 12
+        ? '<div class="empty-state">+ ' + (items.length - 12) + ' fler bilder</div>'
+        : '') +
       bar +
       (gap
         ? '<div class="photo-gap"><span>⚠ Krona-vy saknas för fullständig dokumentation</span><button class="warn-action">Begär foto</button></div>'
@@ -966,6 +969,11 @@
           );
         })
         .join('') +
+      (up.length + hist.length > rows.length
+        ? '<div class="empty-state">+ ' +
+          (up.length + hist.length - rows.length) +
+          ' fler bokningar</div>'
+        : '') +
       cta +
       '</section>'
     );
@@ -1342,40 +1350,85 @@
     );
   }
 
-  /* ---------- FOTO-DOKUMENTATION (ABDIRAHMAN) — tvärsnitt alla besök ---------- */
+  /* ---------- FOTO-DOKUMENTATION (ABDIRAHMAN) — tvärsnitt alla besök ----------
+     Grupperas PER BESÖK (datum) så vyn skalar för kunder med många besök utan
+     omdesign: ett märkt foto-band per besök, nyast först. Ingen fejk — grupp =
+     bildernas egna capturedAt/dateLabel. */
   function fotoDok(photos) {
     var items = arr(photos && photos.items ? photos.items : photos);
     if (!items.length) return '';
-    var tiles = items
-      .slice(0, 6)
-      .map(function (p, i) {
-        var lbl = txt(p.dateLabel || p.photoDateLabel || p.capturedAt).slice(0, 12);
-        var bg = p.thumbnailUrl || p.viewUrl || p.url;
+    // Gruppera per besök (datum). Bevarar inkommande ordning (nyast först).
+    var groups = {};
+    var order = [];
+    items.forEach(function (p) {
+      var key = txt(p.dateLabel || p.photoDateLabel || p.capturedAt).slice(0, 12) || 'Okänt datum';
+      if (!groups[key]) {
+        groups[key] = [];
+        order.push(key);
+      }
+      groups[key].push(p);
+    });
+    var pi = 0;
+    var groupsHtml = order
+      .map(function (key) {
+        var g = groups[key];
+        var tiles = g
+          .slice(0, 12)
+          .map(function (p) {
+            var bg = p.thumbnailUrl || p.viewUrl || p.url;
+            pi += 1;
+            var ph = txt(p.phase);
+            var prefix =
+              ph === 'before'
+                ? 'FÖRE'
+                : ph === 'after'
+                  ? 'EFTER'
+                  : p.isImage === false
+                    ? 'FILM'
+                    : 'ÖVER';
+            return (
+              '<div class="photo-tile p' +
+              ((pi % 6) + 1) +
+              '"' +
+              (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+              '><span class="lbl">' +
+              esc(prefix) +
+              '</span></div>'
+            );
+          })
+          .join('');
+        var more =
+          g.length > 12
+            ? '<div class="empty-state">+ ' + (g.length - 12) + ' fler bilder</div>'
+            : '';
         return (
-          '<div class="photo-tile p' +
-          ((i % 6) + 1) +
-          '"' +
-          (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
-          '>' +
-          (lbl ? '<span class="lbl">' + esc(lbl) + '</span>' : '') +
-          '</div>'
+          '<div class="subcard-l" style="margin-top:12px">' +
+          esc(key) +
+          ' · ' +
+          g.length +
+          ' bilder</div><div class="foto-strip">' +
+          tiles +
+          '</div>' +
+          more
         );
       })
       .join('');
-    var first = items[0],
-      last = items[items.length - 1];
-    var fl = txt(first.dateLabel || first.capturedAt).slice(0, 12);
-    var ll = txt(last.dateLabel || last.capturedAt).slice(0, 12);
+    var fl = txt(items[0].dateLabel || items[0].capturedAt).slice(0, 12);
+    var ll = txt(items[items.length - 1].dateLabel || items[items.length - 1].capturedAt).slice(
+      0,
+      12
+    );
     var gap = items.some(function (p) {
       return p.gap || p.viewGap;
     });
     return (
       '<section class="section"><div class="section-head"><span class="section-title">Foto-dokumentation · alla besök</span><span class="section-meta">' +
       items.length +
-      ' bilder · nyast först</span></div>' +
-      '<div class="foto-strip">' +
-      tiles +
-      '</div>' +
+      ' bilder · ' +
+      order.length +
+      (order.length === 1 ? ' besök' : ' besök') +
+      ' · nyast först</span></div>' +
+      groupsHtml +
       (items.length >= 2
         ? '<div class="before-after-bar"><div class="lbl">Före/efter-par föreslaget: <b>' +
           esc(fl || 'Före') +
@@ -1417,6 +1470,9 @@
           );
         })
         .join('') +
+      (hist.length > 8
+        ? '<div class="empty-state">+ ' + (hist.length - 8) + ' fler tidigare besök</div>'
+        : '') +
       '</div></section>'
     );
   }
