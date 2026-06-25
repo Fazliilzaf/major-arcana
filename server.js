@@ -5641,6 +5641,7 @@ let ccoPhotoConsentStore = null;
 
     app.post(
       '/api/v1/cco-photo-consents/:customerId/:photoId',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('customers.photo_consent_set'),
       jsonParser,
@@ -6829,6 +6830,7 @@ try {
   app.post(
     '/api/v1/cco-forms/submit',
     express.json({ limit: '256kb' }),
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.write'),
     async (req, res) => {
@@ -6936,6 +6938,7 @@ try {
   app.post(
     '/api/v1/cco-forms/:entryId/sign',
     express.json({ limit: '8kb' }),
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.write'),
     async (req, res) => {
@@ -6978,6 +6981,7 @@ try {
   // vilka finns signerade i CCO-journalen, vilka saknas.
   app.get(
     '/api/v1/cco-forms/patient/:patientId/missing',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('customers.read'),
     async (req, res) => {
@@ -10929,6 +10933,15 @@ function transformPreviewHtml(html) {
   }
   return html;
 }
+
+const { createPatientDocumentLiveRouter } = require('./src/routes/patientDocumentLive');
+app.use(
+  createPatientDocumentLiveRouter({
+    previewRoot: PREVIEW_ROOT,
+    transformPreviewHtml,
+    getAssetHash,
+  })
+);
 
 function servePreviewHtml(req, res, next) {
   try {
