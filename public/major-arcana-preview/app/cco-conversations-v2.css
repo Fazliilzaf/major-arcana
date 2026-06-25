@@ -1369,6 +1369,77 @@ html[data-conversations-v2="on"]
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * iPad (769–1024px) — dedikerad 2-panels-layout. Tidigare föll detta spann i
+ * ett kasst mellanläge (≤900 → enkolumn med inbox+tråd staplade; ≤1200 → 3-zon
+ * med trång lane-rail). Nu: inbox + tråd sida vid sida (som en mejl-app),
+ * lanes via chips, och kontext-railen som höger-slide-over via ⓘ Kund-knappen
+ * (samma data-mobile-ctx-mekanism som mobilen). Placerad EFTER ≤900/≤1200/≤768
+ * så den vinner i sitt spann. Ren CSS — ingen JS-ändring.
+ * ───────────────────────────────────────────────────────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  #cco-conv-v2-root .app-grid {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    gap: 12px;
+  }
+  /* lanes via horisontella chips istället för sidebar */
+  #cco-conv-v2-root .lane-sidebar {
+    display: none;
+  }
+  #cco-conv-v2-root .lane-chips {
+    display: flex;
+  }
+  /* båda panelerna alltid synliga (ingen master-detail i detta spann) */
+  #cco-conv-v2-root .inbox-shell,
+  #cco-conv-v2-root .thread-shell {
+    display: flex;
+  }
+  /* inbox alltid synlig → ingen "tillbaka"-knapp; men ⓘ Kund öppnar kontext */
+  #cco-conv-v2-root .thread-back {
+    display: none;
+  }
+  #cco-conv-v2-root .thread-ctx-toggle {
+    display: inline-flex;
+  }
+  /* kontext-rail som höger-slide-over (off-canvas tills ⓘ Kund öppnar) */
+  #cco-conv-v2-root .ctx-shell {
+    display: none;
+  }
+  #cco-conv-v2-root[data-mobile-ctx="open"] .ctx-shell {
+    display: flex;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(380px, 80vw);
+    max-height: 100vh;
+    margin: 0;
+    border-radius: 22px 0 0 22px;
+    box-shadow: -24px 0 60px rgba(56, 40, 28, 0.22);
+    z-index: 9000;
+    overflow-y: auto;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Tap-targets ≥44×44 på touch (iPad/mobil) — WCAG 2.5.5 / Apple HIG. */
+@media (pointer: coarse) {
+  #cco-conv-v2-root .inbox-tab,
+  #cco-conv-v2-root .lane-chip,
+  #cco-conv-v2-root .lane-row,
+  #cco-conv-v2-root .v3-segment,
+  #cco-conv-v2-root .nav-btn,
+  #cco-conv-v2-root .action-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  #cco-conv-v2-root .thread-item {
+    min-height: 44px;
+  }
+}
+
 /* Dölj kvarvarande legacy mobil-vy-switch under flaggan (konversations-vyn) */
 html[data-conversations-v2="on"]
   .preview-canvas[data-app-shell-view="conversations"]
