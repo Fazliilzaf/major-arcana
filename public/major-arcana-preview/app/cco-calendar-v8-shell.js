@@ -2528,7 +2528,16 @@
   function maybeMount() {
     if (!flagOn()) return;
     if (!document.querySelector('.preview-canvas[data-app-shell-view="calendar"]')) return;
-    if (!document.getElementById('cco-cal-v8-root')) render({});
+    // Brytpunkt: ≤1024px → mobil-v7, annars desktop-v8. (CSS grindar synlighet;
+    // här monterar vi rätt skal så data wiras bara där det visas.)
+    var mobile = window.innerWidth <= 1024;
+    if (mobile) {
+      if (window.ArcanaCalendarV7 && !document.getElementById('cco-cal-v7-root')) {
+        window.ArcanaCalendarV7.render({});
+      }
+    } else if (!document.getElementById('cco-cal-v8-root')) {
+      render({});
+    }
   }
   function boot() {
     maybeMount();
@@ -2542,6 +2551,15 @@
     } catch (e) {
       /* ignore */
     }
+    // Vid resize över brytpunkten: montera motsvarande skal (behåll det andra i DOM).
+    var lastMobile = window.innerWidth <= 1024;
+    window.addEventListener('resize', function () {
+      var m = window.innerWidth <= 1024;
+      if (m !== lastMobile) {
+        lastMobile = m;
+        maybeMount();
+      }
+    });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
