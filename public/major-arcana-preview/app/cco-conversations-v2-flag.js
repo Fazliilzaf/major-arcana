@@ -36,13 +36,20 @@
   }
 
   var query = readQuery('conversations');
+  // Explicit URL-intent för DENNA laddning. Görs auktoritativ nedan så att
+  // kill-switchen (?conversations=off) gäller även om localStorage-skrivningen
+  // misslyckas (private mode/kvot/blockerad) — annars skulle en saknad nyckel
+  // räknas som default ON och tysta ned opt-out:en (Bugbot #232).
+  var forced = null;
   if (query === 'v2') {
+    forced = true;
     try {
       localStorage.setItem(KEY, '1');
     } catch (_error) {
       /* private mode */
     }
   } else if (query === 'off') {
+    forced = false;
     try {
       localStorage.setItem(KEY, '0');
     } catch (_error) {
@@ -51,11 +58,16 @@
   }
 
   // CUTOVER — default ON (opt-out): bara explicit '0' (kill-switch) stänger av.
+  // URL-intenten vinner över storage för aktuell laddning (överlever storage-fel).
   var enabled = true;
-  try {
-    enabled = localStorage.getItem(KEY) !== '0';
-  } catch (_error) {
-    enabled = true;
+  if (forced !== null) {
+    enabled = forced;
+  } else {
+    try {
+      enabled = localStorage.getItem(KEY) !== '0';
+    } catch (_error) {
+      enabled = true;
+    }
   }
 
   document.documentElement.setAttribute('data-conversations-v2', enabled ? 'on' : 'off');
