@@ -39936,6 +39936,7 @@
     { id: "review", label: "Granskning", icon: "👀", group: "Köfält" },
     { id: "unclear", label: "Oklar", icon: "❓", group: "Köfält" },
     { id: "bookable", label: "Bokningsbar", icon: "📅", group: "Per vård-fas" },
+    { id: "consultation", label: "Konsultation", icon: "🩺", group: "Per vård-fas" },
     { id: "operation", label: "Operation", icon: "🏥", group: "Per vård-fas" },
     { id: "aftercare", label: "Eftervård", icon: "🌱", group: "Per vård-fas" },
     { id: "medical", label: "Medicinsk", icon: "⚕", group: "Per vård-fas" },
@@ -40063,6 +40064,10 @@
       typeof window.ArcanaConversationsV2.render === "function"
     ) {
       try {
+        // Reconcile selektionen precis som legacy renderQueue gör nedan — v2
+        // returnerar före det blocket, så utan detta blir valet oreconcilat vid
+        // lane-/kö-byten (Bugbot: V2 skips selection reconcile).
+        ensureRuntimeSelection();
         renderConversationsV2Shell();
         return;
       } catch (error) {

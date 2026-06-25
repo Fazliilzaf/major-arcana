@@ -584,15 +584,18 @@
     var el = root.querySelector('[data-v2-tabs]');
     var h2 = root.querySelector('[data-v2-inbox-h2]');
     if (!el) return;
-    var all = ctx.allThreads || [];
+    // Flik-räknarna måste räknas på samma mängd som listan filtrerar
+    // (visibleThreads → ctx.laneThreads), annars matchar inte badgen listan i
+    // aktiv lane (Bugbot: inbox tab counts wrong scope).
+    var lane = ctx.laneThreads || [];
     var counts = {
-      alla: (ctx.laneThreads || []).length,
-      olasta: all.filter(isUnread).length,
-      bokning: all.filter(isBooking).length,
-      vip: all.filter(isVip).length,
+      alla: lane.length,
+      olasta: lane.filter(isUnread).length,
+      bokning: lane.filter(isBooking).length,
+      vip: lane.filter(isVip).length,
     };
     if (h2) {
-      h2.textContent = counts.olasta + ' olästa · ' + all.length + ' totalt';
+      h2.textContent = counts.olasta + ' olästa · ' + lane.length + ' totalt';
     }
     var tabs = [
       { id: 'alla', label: 'Alla', count: counts.alla },
