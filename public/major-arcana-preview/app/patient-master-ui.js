@@ -1388,6 +1388,37 @@
     document.body.appendChild(overlay);
   }
 
+  // Alla dokument-/PDF-länkar (oavsett var i kundvyn) ska INTE länkas till ny
+  // flik — de ska komma upp i dokument-rutan (openV12DocViewer). En global
+  // capture-fångare ersätter <a target="_blank"> mot fil-endpoints med modalen.
+  let v12DocLinkInterceptorBound = false;
+  function ensureV12DocLinkInterceptor() {
+    if (v12DocLinkInterceptorBound) return;
+    v12DocLinkInterceptorBound = true;
+    document.addEventListener(
+      'click',
+      (event) => {
+        const a = event.target.closest && event.target.closest('a[href]');
+        if (!a || a.closest('.v12-doc-viewer-overlay')) return;
+        const href = a.getAttribute('href') || '';
+        const isFile =
+          /\/api\/v1\/cco\/assets\/[^/]+\/download/.test(href) ||
+          /\/api\/v1\/cco-patient-master\/file\b/.test(href) ||
+          /\.pdf(\?|#|$)/i.test(href);
+        if (!isFile) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const inlineUrl = /[?&]inline=1/.test(href)
+          ? href
+          : href + (href.includes('?') ? '&' : '?') + 'inline=1';
+        const name = (a.getAttribute('title') || a.textContent || 'Dokument').trim();
+        openV12DocViewer(inlineUrl, name);
+      },
+      true
+    );
+  }
+  ensureV12DocLinkInterceptor();
+
   function bindV12WorkspaceOverlayBody(body, ctx) {
     if (!body) return;
     // Nuläge "Förbered besök" / "Åtgärder ▾"-meny: scrolla till en V12-modul

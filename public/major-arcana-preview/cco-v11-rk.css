@@ -970,6 +970,15 @@
 .v11-rk .file-row + .file-row {
   box-shadow: inset 0 1px 0 var(--hair);
 }
+/* Klickbar fil-rad (öppnas i dokument-rutan) — ingen blå länk-stil. */
+.v11-rk a.file-row {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.v11-rk a.file-row:hover .file-name {
+  text-decoration: underline;
+}
 .v11-rk .file-icn {
   width: 22px;
   height: 22px;
