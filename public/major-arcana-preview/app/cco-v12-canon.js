@@ -644,6 +644,18 @@
               '<div class="gate-row"><span class="what">Föregående steg slutfört</span>' +
               chip('danger', 'Saknas') +
               '</div></div>';
+          } else {
+            // Klar/kommande steg är OCKSÅ expanderbara (facit visar toggle på
+            // alla steg). Minimal body ur stegets egen data — ingen fejk.
+            var doneState = s.state === 'done';
+            body =
+              '<div class="subcard"><div class="subcard-l">' +
+              (doneState ? 'Slutfört' : 'Kommande steg') +
+              '</div><div class="subcard-row"><span class="what">' +
+              esc(txt(s.note || s.label)) +
+              '</span>' +
+              chip(doneState ? 'ok' : 'info', doneState ? 'Klart' : txt(meta) || 'Kommande') +
+              '</div></div>';
           }
           // Konsultations-steg med besöksfoton → visit-card (gör steget
           // expanderbart oavsett state, som facit steg 4).
