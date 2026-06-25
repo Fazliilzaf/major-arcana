@@ -12,14 +12,8 @@
     <script src="./app/cco-booking-v1-flag.js?v=booking-v1-cutover-default-on"></script>
     <!-- Konversationer v2 — feature flag (CUTOVER: default ON, opt-out via ?conversations=off; sätter data-conversations-v2) -->
     <script src="./app/cco-conversations-v2-flag.js?v=conversations-v2-cutover-default-on"></script>
-    <!-- ARCANA bundle URLs (content-hash: 2bde796a24) -->
-    <script>
-      window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.2bde796a24.min.js',
-        staffCore: './app.bundle.staff-core.a6ec2fe1ab.min.js',
-        staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
-      };
-    </script>
+    <!-- ARCANA bundle URLs (content-hash: cd74c016cf) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.cd74c016cf.min.js","staffCore":"./app.bundle.staff-core.d212364c7d.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -159,7 +153,7 @@
     <link rel="stylesheet" href="./cco-v10-skin.css?v=v10tl-skin-36" />
     <link rel="stylesheet" href="./cco-v11-polish.css?v=ord25g-v1" />
     <link rel="stylesheet" href="./cco-v11-rail.css?v=v11rail-block0-v1" />
-    <link rel="stylesheet" href="./cco-v12-workspace.css?v=v12workspace-scrollfix-v1" />
+    <link rel="stylesheet" href="./cco-v12-workspace.css?v=v12-dossier-launch-flow-v1" />
     <link rel="stylesheet" href="./cco-v12-spine.css?v=v12spine-v1" />
     <link rel="stylesheet" href="./cco-v12-canon.css?v=v12canon-v1" />
     <link rel="stylesheet" href="./cco-v11-rk.css?v=v11rk-v1" />
@@ -3695,11 +3689,8 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script
-                    async
-                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
-                  ></script>
-                  <div data-patient-identity-rail hidden>
+                  <script async src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"></script>
+<div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
                         <h2>Kundidentitetshantering</h2>
@@ -11525,12 +11516,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 2bde796a24) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: cd74c016cf) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.2bde796a24.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.a6ec2fe1ab.min.js';
+        var fullSrc = urls.full || './app.bundle.cd74c016cf.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.d212364c7d.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.6d4631df1b.min.js';
 
         function injectScript(src, onload) {
