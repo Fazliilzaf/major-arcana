@@ -3281,27 +3281,11 @@
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * v3 — dark-mode för kalendern. Scopad till kalender-vyn (läcker ej till andra
- * vyer). Kalenderns --cco-cal-* deriverar från de delade --cco-*/
---panel-*- * tokensen,
-så
-  att
-  sätta
-  dem
-  här
-  re-temar
-  hela
-  kalendern.
-  Aktiveras
-  app-brett
-  *
-  via
-  html[data-theme="dark"]
-  (sätts av konversations-v3-temaväxlaren).
-  *
-  ═══════════════════════════════════════════════════════════════════════════
-  */
-  html[data-theme="dark"]
-  .preview-canvas[data-app-shell-view="calendar"] {
+ * vyer). Kalenderns --cco-cal-* och --panel-*-tokens deriverar från de delade
+ * tokensen, så att sätta dem här re-temar hela kalendern. Aktiveras app-brett
+ * via html[data-theme="dark"] (sätts av konversations-v3-temaväxlaren).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+html[data-theme="dark"] .preview-canvas[data-app-shell-view="calendar"] {
   --cco-bg-page: #1a1714;
   --cco-bg-surface: #241f1b;
   --cco-bg-surface-sunken: #1f1a16;

@@ -1427,7 +1427,9 @@
     list.forEach(function (t) {
       if (/hög|high|klagomål|komplikation/i.test(text(t.riskLabel))) high += 1;
       if (text(t.followUpLabel) || text(t.missingLabel) || text(t.waitingLabel)) followup += 1;
-      if (!text(t.ownerLabel) && !text(t.ownerKey)) unassigned += 1;
+      // oägd = saknar konkret ägare (även ownerKey 'unassigned'/'oägd'), så att
+      // räknaren stämmer med "Mina"-logiken ovan.
+      if (!isAssigned(t)) unassigned += 1;
     });
     return { high: high, followup: followup, unassigned: unassigned };
   }
@@ -1439,14 +1441,31 @@
     { id: 'sla', label: 'SLA-risk' },
     { id: 'mina', label: 'Mina' },
   ];
+  // v3: ägar-/tilldelningslogik (delas av "Mina"-segmentet och toolbar-badges).
+  function ownerKeyOf(thread) {
+    return text(thread.ownerKey || thread.ownerLabel).toLowerCase();
+  }
+  function isAssigned(thread) {
+    var k = ownerKeyOf(thread);
+    return Boolean(k) && k !== 'unassigned' && k !== 'oägd' && k !== 'all';
+  }
+  // "Mina" = den signerade operatörens kö. När en specifik ägare är vald
+  // (operatorKey ≠ all) matchas bara den ägarens trådar; annars faller vi
+  // tillbaka på tilldelade trådar (aldrig oägda) — fixar att kollegors och
+  // oägda rader tidigare räknades som "mina" (Bugbot #235, High).
+  function isMine(thread) {
+    var op = text(boundCtx && boundCtx.operatorKey).toLowerCase();
+    if (op && op !== 'all') return ownerKeyOf(thread) === op;
+    return isAssigned(thread);
+  }
+
   function segmentMatch(thread) {
     if (activeSegment === 'obesvarade') return isUnread(thread);
-    if (activeSegment === 'sla') {
-      return Boolean(
-        text(thread.followUpLabel) || text(thread.missingLabel) || text(thread.waitingLabel)
-      );
-    }
-    if (activeSegment === 'mina') return Boolean(text(thread.ownerLabel) || text(thread.ownerKey));
+    // SLA-risk: använd den kanoniska slaOf() som även väger in thread.slaStatus
+    // (breach/overdue/warning/risk), inte bara follow-up/missing/waiting-etiketter
+    // (Bugbot #235, Medium).
+    if (activeSegment === 'sla') return Boolean(slaOf(thread));
+    if (activeSegment === 'mina') return isMine(thread);
     return true;
   }
 

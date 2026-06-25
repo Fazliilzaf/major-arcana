@@ -39974,6 +39974,11 @@
       laneThreads: getQueueLaneThreads(activeLane, scoped),
       allThreads: scoped,
       selected,
+      // v3: vald ägare (operatörens kö) — driver "Mina"-segmentet så att bara
+      // den signerade operatörens trådar matchar, inte oägda/kollegors (Bugbot).
+      operatorKey: normalizeKey(
+        workspaceSourceOfTruth.getSelectedOwnerKey?.() || state.selection?.ownerKey || "all"
+      ),
       handlers: {
         selectThread(threadId) {
           if (threadId) selectRuntimeThread(threadId, { reloadBootstrap: true });
