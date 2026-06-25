@@ -209,12 +209,19 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
   async function requireAuth(req, res, next) {
     try {
       const token = getAuthToken(req);
-      const staffOpenAccess = shouldUseStaffJournalOpenAccess(req, config);
-      if (staffOpenAccess || (token === '__preview_local__' && isLocalPreviewRequest(req))) {
+      // SÄKERHET: all preview/open-access-elevation (oautentiserad OWNER) är
+      // HÅRT gatead till non-production. I produktion kan ingen av byggfas-
+      // genvägarna ge åtkomst — oavsett ARCANA_STAFF_JOURNAL_OPEN_ACCESS.
+      const previewAllowed = !(config.isProduction ?? process.env.NODE_ENV === 'production');
+      const staffOpenAccess = previewAllowed && shouldUseStaffJournalOpenAccess(req, config);
+      if (
+        staffOpenAccess ||
+        (previewAllowed && token === '__preview_local__' && isLocalPreviewRequest(req))
+      ) {
         applyPreviewAuthToRequest(req, localPreviewAuthContext);
         return next();
       }
-      if (token === '__preview_local__' && config.staffJournalOpenAccess) {
+      if (previewAllowed && token === '__preview_local__' && config.staffJournalOpenAccess) {
         applyPreviewAuthToRequest(req, localPreviewAuthContext);
         return next();
       }
@@ -270,7 +277,10 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
         }
       }
 
-      if (isLocalPreviewRequest(req) || staffOpenAccess) {
+      // Efter misslyckad token-verifiering: fall ALDRIG tillbaka till preview-
+      // OWNER i produktion (en ogiltig token måste ge 401). staffOpenAccess är
+      // redan non-production-gatead ovan.
+      if ((previewAllowed && isLocalPreviewRequest(req)) || staffOpenAccess) {
         applyPreviewAuthToRequest(req, localPreviewAuthContext);
         return next();
       }
