@@ -259,10 +259,19 @@
   var STAFF_BG = 'linear-gradient(180deg,#c5d8a8,#92b86e)';
 
   function messageList(thread) {
-    if (Array.isArray(thread.messages)) return thread.messages;
-    if (thread.threadDocument && Array.isArray(thread.threadDocument.messages)) {
+    // Föredra FULL hydrerad historik framför preview-listan: thread.messages
+    // fylls av buildPreviewMessages som hårt-cappar till 8, medan hela historiken
+    // ligger på thread.threadDocument.messages efter hydrering. Returneras
+    // thread.messages först skulle strömmen/räknaren aldrig visa fler än 8
+    // (Bugbot: stream capped at eight messages).
+    if (
+      thread.threadDocument &&
+      Array.isArray(thread.threadDocument.messages) &&
+      thread.threadDocument.messages.length
+    ) {
       return thread.threadDocument.messages;
     }
+    if (Array.isArray(thread.messages)) return thread.messages;
     return [];
   }
 
