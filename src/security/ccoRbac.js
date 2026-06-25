@@ -164,6 +164,10 @@ const PERMISSIONS = {
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
 
 /** Map auth/session roles (OWNER/STAFF) → ccoRbac permission roles. */
+// SÄKERHET: aliaset `admin: 'owner'` borttaget — det utfärdas aldrig av auth
+// (roles.js ger OWNER/STAFF/PATIENT) och var en onödig eskalation TILL TOPP-
+// rollen owner om role någonsin sätts från mindre betrodd källa (t.ex.
+// x-cco-role i non-prod). Övriga alias motsvarar roller som faktiskt används.
 const AUTH_ROLE_ALIASES = {
   owner: 'owner',
   staff: 'operator',
@@ -172,7 +176,6 @@ const AUTH_ROLE_ALIASES = {
   personal: 'personal',
   revisor: 'revisor',
   doctor: 'operator',
-  admin: 'owner',
 };
 
 function normalizeRole(role) {
