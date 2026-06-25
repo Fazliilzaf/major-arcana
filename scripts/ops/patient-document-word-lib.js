@@ -187,12 +187,17 @@ function loadMeridiqConsent(apiId) {
 
 function bundleLegalText(entry) {
   const content = entry.content || {};
+  const nested = [];
+  if (content.health_declaration?.text) nested.push(content.health_declaration.text);
+  if (content.fitness_certificate?.text) nested.push(content.fitness_certificate.text);
   return (
     content.agreementText ||
     content.letterText ||
+    content.text ||
     (Array.isArray(content.agreementBlocks)
       ? content.agreementBlocks.map((b) => stripHtml(b.html || '')).join('\n')
       : '') ||
+    nested.join('\n') ||
     ''
   );
 }
@@ -305,6 +310,58 @@ const SAMTYCKE_ANGERRATT_ANCHORS = Object.freeze([
   'Hair TP Clinic AB',
 ]);
 
+const ORDINATION_STUB_ANCHORS = Object.freeze([
+  'Ordination enligt behandlingsplan',
+  'Patient informerad',
+]);
+
+const ORDINATION_CLINICAL_ANCHORS = Object.freeze(['lokalbedövning', 'Marcain', 'adrenalin']);
+
+const AUTO_INSTRUKTION_ANCHORS = Object.freeze([
+  'hälsodeklaration',
+  'friskförsäkran',
+  'hairtpclinic.com/screen',
+  'hairtpclinic.com/friskforsakran',
+]);
+
+function isDpaUnderbilagaWord(text) {
+  return /personuppgiftsbitr/i.test(String(text || ''));
+}
+
+function compareDemoBundleOnly({ bundleText = '', demoText = '', phrases = [] }) {
+  const triad = compareLegalTriad({ wordText: '', bundleText, demoText, phrases });
+  return { ...triad, wordPresent: false, wordHits: 'N/A', wordOk: triad.demoBundleOk };
+}
+
+function compareWordDemoClinical({ wordText = '', demoText = '', phrases = [] }) {
+  const demoCov = phraseCoverage(demoText, phrases);
+  const wordCov = phraseCoverage(wordText, phrases);
+  const minHits = (total) => Math.max(1, Math.floor(total * 0.7));
+  const ok =
+    wordCov.total > 0 &&
+    demoCov.total > 0 &&
+    wordCov.hits >= minHits(wordCov.total) &&
+    demoCov.hits >= minHits(demoCov.total);
+  return {
+    ok,
+    demoHits: `${demoCov.hits}/${demoCov.total}`,
+    wordHits: `${wordCov.hits}/${wordCov.total}`,
+    missingInDemo: demoCov.coverage.filter((c) => !c.present).map((c) => c.phrase),
+    missingInWord: wordCov.coverage.filter((c) => !c.present).map((c) => c.phrase),
+  };
+}
+
+function resolveOrdinationWord() {
+  return resolveWordFile({
+    localNames: ['ordination-lokalbedovning-tp.docx'],
+    glob: 'ordination.*\\.docx$',
+  });
+}
+
+function resolveUnderbilagaWord() {
+  return resolveWordFile({ localNames: ['underbilaga-1-instruktion.docx'] });
+}
+
 function expandHome(p) {
   return String(p || '').replace(/^~/, process.env.HOME);
 }
@@ -365,6 +422,14 @@ module.exports = {
   AVTAL_ANCHORS,
   SAMTYCKE_BOKNING_ANCHORS,
   SAMTYCKE_ANGERRATT_ANCHORS,
+  ORDINATION_STUB_ANCHORS,
+  ORDINATION_CLINICAL_ANCHORS,
+  AUTO_INSTRUKTION_ANCHORS,
+  isDpaUnderbilagaWord,
+  compareDemoBundleOnly,
+  compareWordDemoClinical,
+  resolveOrdinationWord,
+  resolveUnderbilagaWord,
   expandHome,
   walkDocx,
   resolveOffertDocx,

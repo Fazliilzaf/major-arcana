@@ -65,14 +65,16 @@ function diffSamtycke(registryId, anchors) {
   const sectionHtml = extractDemoSection(demoHtml, registryId);
   const bundleText = bundleLegalText(entry);
   const avtalPath = resolveAvtalWord('offert_tp');
-  const wordText = avtalPath ? extractDocxText(avtalPath) : '';
+  const consent = entry.meridiq?.apiId ? loadMeridiqConsent(entry.meridiq.apiId) : null;
+  const meridiqText = consent?.agreementText || consent?.letterText || entry.meridiq?.title || '';
+  const avtalText = avtalPath ? extractDocxText(avtalPath) : '';
+  const wordText = [meridiqText, avtalText].filter(Boolean).join('\n');
   const triad = compareLegalTriad({
     wordText,
     bundleText,
     demoText: stripHtml(sectionHtml),
     phrases: anchors,
   });
-  const consent = entry.meridiq?.apiId ? loadMeridiqConsent(entry.meridiq.apiId) : null;
   let status = triad.status;
   if ((entry.blockers || []).some((b) => /VERSION_CONFLICT/i.test(b))) {
     status = triad.demoBundleOk ? 'VERSION_CONFLICT_OK' : 'VERSION_CONFLICT';

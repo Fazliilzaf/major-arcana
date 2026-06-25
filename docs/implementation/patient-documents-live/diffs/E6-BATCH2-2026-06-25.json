@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-06-25T15:00:54.547Z",
+  "e6Ok": 2,
+  "e6Partial": 0,
+  "demoBundleOk": 2,
+  "needsReview": 0,
+  "reports": [
+    {
+      "registryId": "ordination_tp",
+      "kind": "ordination",
+      "demoHtml": "steg8-ordination-tp-final-demo.html",
+      "wordPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/ordination-lokalbedovning-tp.docx",
+      "blockers": [
+        "CCO journal-stub — full Word-mall: SharePoint NY Ordination – Lokalbedövning vid hår-.docx"
+      ],
+      "stubTriad": {
+        "status": "E6_OK",
+        "demoBundleOk": true,
+        "wordOk": true,
+        "bundleHits": "2/2",
+        "demoHits": "2/2",
+        "wordHits": "N/A",
+        "missingInDemo": [],
+        "missingInBundle": [],
+        "wordPresent": false
+      },
+      "clinicalWordDemo": {
+        "ok": true,
+        "demoHits": "3/3",
+        "wordHits": "3/3",
+        "missingInDemo": [],
+        "missingInWord": []
+      },
+      "drift": [
+        "WORD_DEMO_DRIFT: Word=Xylocain, demo=Carbocain (klinikuppdatering ej synkad i Word)"
+      ],
+      "status": "E6_OK",
+      "bundleHits": "2/2",
+      "demoHits": "2/2",
+      "wordHits": "3/3"
+    },
+    {
+      "registryId": "auto_instruktion_formular",
+      "kind": "auto_instruktion",
+      "demoHtml": "steg3-auto-instruktion-formular-final-demo.html",
+      "wordPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt/underbilaga-1-instruktion.docx",
+      "wordWrongScope": true,
+      "blockers": [],
+      "notes": [
+        "WORD_WRONG_SCOPE: underbilaga-1-instruktion.docx = Personuppgiftsbiträdesavtal (Juridik-GDPR), ej HD/FC-kundinstruktion"
+      ],
+      "status": "E6_OK",
+      "demoBundleOk": true,
+      "wordOk": true,
+      "bundleHits": "4/4",
+      "demoHits": "4/4",
+      "wordHits": "N/A",
+      "missingInDemo": [],
+      "missingInBundle": [],
+      "wordPresent": false
+    }
+  ]
+}

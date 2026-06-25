@@ -1306,16 +1306,15 @@
     },
     {
       "registryId": "samtycke_bokning_2d",
-      "label": "Samtycke vid bokning inom 2 dagar",
+      "label": "Samtycke vid bokning inom 14 dagar",
       "filler": "patient",
       "contentStatus": "FULL",
-      "blockers": [
-        "VERSION_CONFLICT: registry=2 dagar, Meridiq-titel=14 dagar (apiId 154369)"
-      ],
+      "blockers": [],
       "sources": [
         "migration/meridiq/consent-catalog.json#154369",
         "cco-templates#meridiq_consent_samtycke_vid_bokning_inom_14_dagar_154369",
-        "src/ops/hairtp-document-types.catalog.json"
+        "src/ops/hairtp-document-types.catalog.json",
+        "docs/implementation/patient-documents-live/A10-OWNER-DECISION-2026-06-25.md"
       ],
       "meridiq": {
         "apiId": 154369,

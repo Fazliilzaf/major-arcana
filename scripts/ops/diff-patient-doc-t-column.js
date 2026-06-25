@@ -45,7 +45,11 @@ const E6_REGISTRY_IDS = [
   'offert_profilo',
   'samtycke_bokning_2d',
   'samtycke_angerratt',
+  'ordination_tp',
+  'auto_instruktion_formular',
 ];
+
+const E6_REPORT_PREFIXES = ['E6-OFFERT-SAMTYCKE-', 'E6-BATCH2-'];
 
 const OUT_DIR = path.join(ROOT, 'docs/implementation/patient-documents-live/diffs');
 
@@ -71,14 +75,19 @@ function runScript(name) {
   return result.status === 0;
 }
 
-function loadLatestE6Report() {
-  if (!fs.existsSync(OUT_DIR)) return null;
-  const files = fs
-    .readdirSync(OUT_DIR)
-    .filter((f) => f.startsWith('E6-OFFERT-SAMTYCKE-') && f.endsWith('.json'))
-    .sort();
-  if (!files.length) return null;
-  return JSON.parse(fs.readFileSync(path.join(OUT_DIR, files.at(-1)), 'utf8'));
+function loadLatestE6Reports() {
+  if (!fs.existsSync(OUT_DIR)) return [];
+  const reports = [];
+  for (const prefix of E6_REPORT_PREFIXES) {
+    const files = fs
+      .readdirSync(OUT_DIR)
+      .filter((f) => f.startsWith(prefix) && f.endsWith('.json'))
+      .sort();
+    if (!files.length) continue;
+    const data = JSON.parse(fs.readFileSync(path.join(OUT_DIR, files.at(-1)), 'utf8'));
+    if (data.reports) reports.push(...data.reports);
+  }
+  return reports;
 }
 
 function main() {
@@ -101,13 +110,17 @@ function main() {
   }
 
   runScript('diff:patient-doc-e6-offert-samtycke');
-  const e6 = loadLatestE6Report();
-  if (e6?.reports) {
-    for (const report of e6.reports) {
+  runScript('diff:patient-doc-e6-batch2');
+  const e6Reports = loadLatestE6Reports();
+  if (e6Reports.length) {
+    for (const report of e6Reports) {
       tByRegistry.set(report.registryId, {
         registryId: report.registryId,
         status: report.status,
-        note: 'diff:patient-doc-e6-offert-samtycke',
+        note:
+          report.registryId === 'ordination_tp' || report.registryId === 'auto_instruktion_formular'
+            ? 'diff:patient-doc-e6-batch2'
+            : 'diff:patient-doc-e6-offert-samtycke',
       });
     }
   } else {

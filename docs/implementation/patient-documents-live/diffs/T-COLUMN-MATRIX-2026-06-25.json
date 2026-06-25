@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-06-25T14:36:27.633Z",
+  "generatedAt": "2026-06-25T15:00:54.564Z",
   "wordDir": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/CCO-patientdokument-live/01-word-original-lokalt",
   "parityOk": 3,
-  "e6Ok": 6,
-  "e6Partial": 2,
+  "e6Ok": 10,
+  "e6Partial": 0,
   "needsReview": 0,
-  "msOkWordLocal": 3,
+  "msOkWordLocal": 1,
   "mqOrTemplate": 22,
   "rows": [
     {
@@ -35,8 +35,8 @@
     },
     {
       "registryId": "auto_instruktion_formular",
-      "status": "MS_OK_WORD_LOCAL",
-      "note": "Word lokalt — full legal diff ej körd (E6)"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-batch2"
     },
     {
       "registryId": "auto_integritet",
@@ -165,8 +165,8 @@
     },
     {
       "registryId": "ordination_tp",
-      "status": "MS_OK_WORD_LOCAL",
-      "note": "Word lokalt — full legal diff ej körd (E6)"
+      "status": "E6_OK",
+      "note": "diff:patient-doc-e6-batch2"
     },
     {
       "registryId": "prp_hair_info_eng",
@@ -180,12 +180,12 @@
     },
     {
       "registryId": "samtycke_angerratt",
-      "status": "DEMO_BUNDLE_OK",
+      "status": "E6_OK",
       "note": "diff:patient-doc-e6-offert-samtycke"
     },
     {
       "registryId": "samtycke_bokning_2d",
-      "status": "VERSION_CONFLICT_OK",
+      "status": "E6_OK",
       "note": "diff:patient-doc-e6-offert-samtycke"
     }
   ]

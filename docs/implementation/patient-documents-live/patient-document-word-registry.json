@@ -100,7 +100,8 @@
       "sharepoint": {
         "name": "Underbilaga 1 - Instruktion.docx",
         "relative": "General/Juridik-GDPR"
-      }
+      },
+      "tNote": "Lokal fil = Personuppgiftsbiträdesavtal (GDPR). HD/FC-kundinstruktion = demo↔bundle (ccoPatientOutreach), ej denna Word."
     },
     {
       "id": "ordination_tp",

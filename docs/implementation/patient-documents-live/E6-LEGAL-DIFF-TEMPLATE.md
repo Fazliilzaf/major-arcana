@@ -35,4 +35,22 @@
 ## Nästa batch (ej i scope)
 
 - HD/FC Word legal (T redan PARITY_OK via MQ)
-- ordination, underbilaga, foto ORD-24
+- foto ORD-24
+
+---
+
+## Batch 2 (2026-06-25)
+
+**Scope:** `ordination_tp` (B24) + `auto_instruktion_formular` (C31)  
+**Kör:** `npm run diff:patient-doc-e6-batch2`
+
+| registryId                  | Triad                                | Word-källa                                 | Anteckning                                                                      |
+| --------------------------- | ------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `ordination_tp`             | stub demo↔bundle + klinisk Word↔demo | `ordination-lokalbedovning-tp.docx`        | Carbocain (demo) vs Xylocain (Word) — drift noterad, E6_OK på gemensamma ankare |
+| `auto_instruktion_formular` | demo↔bundle                          | Underbilaga 1 lokalt = **DPA** (fel scope) | HD/FC-instruktion = `ccoPatientOutreach` / bundle                               |
+
+**Rapporter:** `diffs/E6-BATCH2-YYYY-MM-DD.{json,md}`
+
+## A10 owner-beslut (2026-06-25)
+
+Se [`A10-OWNER-DECISION-2026-06-25.md`](./A10-OWNER-DECISION-2026-06-25.md). Samtycke A10 följer Meridiq **14 dagar**; `registryId` `_2d` behålls. E6 använder Meridiq-text som word-facit för samtycken.
