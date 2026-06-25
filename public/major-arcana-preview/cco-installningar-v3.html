@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO Inställningar — v3 responsiv</title>
+<style>
+/* CCO INSTÄLLNINGAR v3 — responsiv inställnings-arbetsyta. WCAG-härdad palett (text ≥4.5:1).
+   Mobil: sub-nav som scroll-tabs + staplade paneler. Desktop: 2-zon (nav-rail | paneler). rem/clamp. Touch ≥44px. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--danger:#a83838;--info:#2f6595;
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.6rem,.5rem+.6vw,1rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.app{display:grid;grid-template-columns:1fr;grid-template-areas:"main";min-height:100vh;max-width:1280px;margin-inline:auto}
+.z-nav{grid-area:nav}.z-main{grid-area:main;min-width:0;display:flex;flex-direction:column}
+
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.topbar h1{flex:1;min-width:0;font-size:var(--fs-h1);margin:0;font-weight:800;letter-spacing:-.02em}
+.cta-save{min-height:var(--tap);padding:0 1rem;border:0;border-radius:var(--r-md);background:var(--accent);color:#fff;font-weight:800;font-size:var(--fs-meta);cursor:pointer}
+
+.head{padding:.4rem var(--pad-x) .2rem}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.2rem}
+.subtitle{font-size:var(--fs-meta);color:var(--text-secondary);font-weight:600}
+
+/* sub-nav (mobil: scroll-tabs) */
+.subnav{display:flex;gap:.4rem;overflow-x:auto;scrollbar-width:none;padding:.6rem var(--pad-x) .5rem}
+.subnav::-webkit-scrollbar{display:none}
+.subnav button{flex-shrink:0;min-height:2.25rem;padding:0 .9rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.subnav button[aria-pressed="true"]{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:.5rem var(--pad-x) 5rem}
+.panel{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.22);box-shadow:var(--sh-md);margin-bottom:var(--gap)}
+.panel-head{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:.2rem}
+.panel-sub{font-size:var(--fs-meta);color:var(--text-secondary);margin-bottom:.8rem}
+
+/* toggle-rader */
+.toggle-row{display:flex;align-items:center;gap:.8rem;padding:.7rem 0;box-shadow:inset 0 -1px 0 rgba(180,165,150,.18)}
+.toggle-row:last-child{box-shadow:none}
+.toggle-copy{flex:1;min-width:0}
+.toggle-copy strong{display:block;font-size:var(--fs-meta);font-weight:700}
+.toggle-copy span{display:block;font-size:var(--fs-kicker);color:var(--text-secondary);margin-top:.1rem}
+/* Switch: 44px hög träffyta (touch), visuell track/knopp ritas som pseudo-element */
+.switch{flex-shrink:0;width:3rem;height:var(--tap);min-height:var(--tap);border:0;background:transparent;padding:0;position:relative;cursor:pointer}
+.switch::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3rem;height:1.7rem;border-radius:999px;border:1px solid rgba(180,165,150,.4);background:rgba(180,165,150,.25);transition:background .2s,border-color .2s}
+.switch::after{content:"";position:absolute;left:.25rem;top:50%;transform:translateY(-50%);width:1.2rem;height:1.2rem;border-radius:999px;background:#fff;box-shadow:var(--sh-sm);transition:left .2s}
+.switch[aria-checked="true"]::before{background:var(--accent);border-color:var(--accent)}
+.switch[aria-checked="true"]::after{left:1.55rem}
+
+/* val-kort (tema/densitet) */
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr));gap:.5rem;margin-top:.4rem}
+.choice{padding:.7rem .8rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(247,241,236,.8));cursor:pointer;text-align:left}
+.choice[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-weak)}
+.choice strong{display:block;font-size:var(--fs-meta);font-weight:800}
+.choice span{display:block;font-size:var(--fs-kicker);color:var(--text-secondary);margin-top:.15rem}
+
+/* fält */
+.field{margin-top:.7rem}
+.field label{display:block;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:.3rem}
+.field input,.field select{width:100%;min-height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:#fff;padding:0 .8rem;font:inherit;font-size:var(--fs-meta);color:var(--text-primary)}
+.field .hint{font-size:var(--fs-kicker);color:var(--text-secondary);margin-top:.3rem}
+.field.error input{border-color:var(--danger);background:#fdecec}
+.field.error .hint{color:var(--danger)}
+
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+
+@media (pointer:coarse){.subnav button{min-height:var(--tap)}}
+
+/* iPad: 2-kol paneler */
+@media (min-width:601px){
+  .scroll{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gap);align-content:start}
+  .panel{margin-bottom:0}
+}
+/* Desktop ≥1025: vänster nav-rail | paneler (sub-nav göms) */
+@media (min-width:1025px){
+  .app{grid-template-columns:15rem minmax(0,1fr);grid-template-areas:"nav main";height:100vh}
+  .z-nav{display:flex;flex-direction:column;gap:.3rem;padding:1rem .8rem;background:var(--bg-rail);box-shadow:inset -1px 0 0 rgba(180,165,150,.25);overflow-y:auto}
+  .z-main{height:100vh;overflow:hidden}.scroll{padding-bottom:2rem}
+  .subnav{display:none}.botnav{display:none}
+  .nav-brand{font-weight:800;letter-spacing:.08em;color:var(--accent);padding:.2rem .6rem .6rem}
+  .nav-sec{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary);margin:.8rem .6rem .3rem}
+  .nav-item{min-height:var(--tap);display:flex;align-items:center;gap:.5rem;padding:0 .7rem;border-radius:var(--r-md);cursor:pointer;color:var(--text-secondary);font-weight:700;font-size:var(--fs-meta);border:0;background:transparent;text-align:left}
+  .nav-item[aria-pressed="true"]{background:var(--accent-weak);color:var(--accent)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- desktop nav-rail -->
+  <aside class="z-nav">
+    <div class="nav-brand">CCO</div>
+    <div class="nav-sec">Inställningar</div>
+    <button class="nav-item" aria-pressed="true">Utseende</button>
+    <button class="nav-item" aria-pressed="false">Aviseringar</button>
+    <button class="nav-item" aria-pressed="false">Arbetsregler</button>
+    <button class="nav-item" aria-pressed="false">Team & roller</button>
+    <button class="nav-item" aria-pressed="false">Integrationer</button>
+    <button class="nav-item" aria-pressed="false">Avancerat</button>
+  </aside>
+
+  <main class="z-main">
+    <div class="topbar"><span class="brand">CCO</span><h1>Inställningar</h1><button class="cta-save">Spara</button></div>
+    <div class="head"><div class="kicker">Anpassa CCO</div><div class="subtitle">Utseende, aviseringar och arbetsregler — i samma nya shell.</div></div>
+
+    <!-- mobil/iPad sub-nav -->
+    <div class="subnav" role="group" aria-label="Sektioner">
+      <button aria-pressed="true">Utseende</button>
+      <button aria-pressed="false">Aviseringar</button>
+      <button aria-pressed="false">Arbetsregler</button>
+      <button aria-pressed="false">Team</button>
+      <button aria-pressed="false">Integrationer</button>
+    </div>
+
+    <div class="scroll">
+      <section class="panel">
+        <div class="panel-head">Utseende · Tema</div>
+        <div class="panel-sub">Välj tema och täthet utan att ändra skalets grundstruktur.</div>
+        <div class="choices" role="group" aria-label="Tema">
+          <button class="choice" aria-pressed="true"><strong>Ljust</strong><span>Hög kontrast, varm neutral</span></button>
+          <button class="choice" aria-pressed="false"><strong>Mörkt</strong><span>Tonad kvällsvy</span></button>
+          <button class="choice" aria-pressed="false"><strong>Auto</strong><span>Växlar efter systemläge</span></button>
+        </div>
+        <div class="panel-head" style="margin-top:1rem">Täthet</div>
+        <div class="choices" role="group" aria-label="Täthet">
+          <button class="choice" aria-pressed="true"><strong>Kompakt</strong><span>Mer info, mindre plats</span></button>
+          <button class="choice" aria-pressed="false"><strong>Bekväm</strong><span>Balanserad arbetsyta</span></button>
+          <button class="choice" aria-pressed="false"><strong>Rymlig</strong><span>Mer andrum</span></button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">Aviseringar</div>
+        <div class="panel-sub">Styr vad som larmar och hur.</div>
+        <div class="toggle-row"><div class="toggle-copy"><strong>SLA-varningar</strong><span>Pinga vid risk att missa svarsfönster</span></div><button class="switch" role="switch" aria-checked="true" aria-label="SLA-varningar"></button></div>
+        <div class="toggle-row"><div class="toggle-copy"><strong>Nya VIP-mejl</strong><span>Direktnotis för VIP-kunder</span></div><button class="switch" role="switch" aria-checked="true" aria-label="VIP-mejl"></button></div>
+        <div class="toggle-row"><div class="toggle-copy"><strong>AI-utkast klara</strong><span>När Svarstudio har ett förslag</span></div><button class="switch" role="switch" aria-checked="false" aria-label="AI-utkast"></button></div>
+        <div class="toggle-row"><div class="toggle-copy"><strong>Daglig sammanfattning</strong><span>Morgon-brief 07:30</span></div><button class="switch" role="switch" aria-checked="true" aria-label="Daglig"></button></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">Arbetsregler</div>
+        <div class="panel-sub">Standarder för team och bokning.</div>
+        <div class="field"><label>Svarsmål (SLA)</label><select><option>2 timmar</option><option>4 timmar</option><option>Samma dag</option></select></div>
+        <div class="field"><label>Standard-resurs</label><select><option>Egzona</option><option>Dr. Arya</option><option>Clara</option></select></div>
+        <div class="field"><label>Depositionsgräns (kr)</label><input type="text" value="500" inputmode="numeric"><div class="hint">Begärs vid bokning för risk-kunder.</div></div>
+        <div class="field error"><label>Webhook-URL</label><input type="text" value="htps://"><div class="hint">⚠ Ogiltig URL — måste börja med https://</div></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">Team & roller</div>
+        <div class="panel-sub">Vem får göra vad.</div>
+        <div class="toggle-row"><div class="toggle-copy"><strong>Skicka skarpa mejl</strong><span>Endast owner/finance</span></div><button class="switch" role="switch" aria-checked="false" aria-label="Skarpa mejl"></button></div>
+        <div class="toggle-row"><div class="toggle-copy"><strong>Delade vyer</strong><span>Hela teamet ser samma köer</span></div><button class="switch" role="switch" aria-checked="true" aria-label="Delade vyer"></button></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<nav class="botnav">
+  <button class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16v14H4z"/><path d="M4 7l8 6 8-6"/></svg>Inkorg</button>
+  <button class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Kalender</button>
+  <button class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>Kunder</button>
+  <button class="nav-i is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7.7 1.6 1.6 0 0 0-1.6 1.3H12a2 2 0 0 1-4 0 1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1A2 2 0 1 1 2.3 17l.1-.1a1.6 1.6 0 0 0-.7-2.7A1.6 1.6 0 0 0 .4 12.6V12a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1 1.6 1.6 0 0 0 .3-1.8l-.1-.1A2 2 0 1 1 10.9 8l.1.1a1.6 1.6 0 0 0 1.8.3H13a1.6 1.6 0 0 0 1-1.5V6a2 2 0 0 1 4 0 1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1A2 2 0 1 1 23.6 10l-.1.1a1.6 1.6 0 0 0-.3 1.8V12a1.6 1.6 0 0 0 1.3 1.6"/></svg>Inställn.</button>
+</nav>
+
+<script>
+document.querySelectorAll('.switch').forEach(s=>s.addEventListener('click',()=>s.setAttribute('aria-checked',s.getAttribute('aria-checked')==='true'?'false':'true')));
+document.querySelectorAll('.choices').forEach(g=>g.addEventListener('click',e=>{const c=e.target.closest('.choice');if(!c)return;g.querySelectorAll('.choice').forEach(x=>x.setAttribute('aria-pressed','false'));c.setAttribute('aria-pressed','true');}));
+function bindNav(sel){document.querySelectorAll(sel).forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll(sel).forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');}));}
+bindNav('.subnav button'); bindNav('.nav-item');
+</script>
+</body>
+</html>
