@@ -112,10 +112,16 @@ function isStaffJournalOpenApiPath(req) {
   const openPrefixes = [
     '/api/v1/cco-patient-master',
     '/api/v1/cco-journal',
+    '/api/v1/cco-journal-quick',
+    '/api/v1/cco-forms',
+    '/api/v1/cco-photo-consents',
     '/api/v1/cco-commercial',
     '/api/v1/cco-treatment-agreement',
     '/cco-patient-master',
     '/cco-journal',
+    '/cco-journal-quick',
+    '/cco-forms',
+    '/cco-photo-consents',
     '/cco-commercial',
     '/cco-treatment-agreement',
   ];

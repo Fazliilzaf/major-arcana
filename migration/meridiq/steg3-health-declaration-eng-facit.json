@@ -1,0 +1,120 @@
+{
+  "source": "English translation of Meridiq questionary 16414 (Hälsodeklaration | Hair TP Clinic). Not Meridiq 14865 archive form.",
+  "sourceSve": "migration/meridiq/questionary-catalog.json#16414",
+  "registryId": "health_tp_eng",
+  "questionCount": 14,
+  "ui": {
+    "yes": "Yes",
+    "no": "No",
+    "unknown": "Don't know",
+    "placeholder": "Describe here…",
+    "selectEmpty": "— Select —"
+  },
+  "intro": {
+    "title": "Before your consultation",
+    "body": "To provide safe and accurate advice before your consultation, we ask you to answer a few questions about your health. This information helps us assess what is suitable for you.",
+    "note": "Used for consultations for PRP (hair & skin), Microneedling PRF and hair transplants."
+  },
+  "personalData": {
+    "title": "Personal details",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "personnummer": "Personal identity number",
+    "address": "Address",
+    "postalCode": "Postal code",
+    "city": "City",
+    "email": "Email address",
+    "phone": "Phone number"
+  },
+  "questionsSection": {
+    "title": "Health questionnaire · 14 questions",
+    "hint": "Please answer all questions."
+  },
+  "other": {
+    "title": "Other",
+    "contact": "How did you hear about Hair TP Clinic?",
+    "date": "Date"
+  },
+  "gdpr": {
+    "title": "Personal data & communications",
+    "storage": "I consent to my information being stored in Hair TP Clinic's systems in accordance with the Patient Data Act and GDPR.",
+    "email": "I consent to receiving email communications from Hair TP Clinic."
+  },
+  "actions": {
+    "primary": "Sign &amp; submit",
+    "ghost": "Save draft"
+  },
+  "questions": [
+    {
+      "id": 450976,
+      "type": "yes_no",
+      "label": "Do you use tobacco or nicotine products (e.g. cigarettes, snus, vape)?"
+    },
+    {
+      "id": 450977,
+      "type": "yes_no",
+      "label": "Are you pregnant or breastfeeding?"
+    },
+    {
+      "id": 450978,
+      "type": "yes_no_textbox",
+      "label": "Do you have or have you previously had heart or cardiovascular disease (e.g. heart attack, angina, arrhythmia)? If yes, specify what."
+    },
+    {
+      "id": 450979,
+      "type": "yes_no",
+      "label": "Have you been diagnosed with high blood pressure (hypertension)?",
+      "tristate": true
+    },
+    {
+      "id": 450980,
+      "type": "yes_no_textbox",
+      "label": "Do you have any other condition we should know about (e.g. diabetes, coagulation disorder, immunological disease)? If yes, specify what."
+    },
+    {
+      "id": 450981,
+      "type": "yes_no_textbox",
+      "label": "Do you have any blood-borne disease? If yes, please specify below:"
+    },
+    {
+      "id": 450982,
+      "type": "yes_no_textbox",
+      "label": "Is there anything else we should know about your health? If yes, please describe."
+    },
+    {
+      "id": 450983,
+      "type": "yes_no_textbox",
+      "label": "Do you take any medications (regularly or as needed)? If yes, please specify the medication name, strength (mg/ml) and dosage below."
+    },
+    {
+      "id": 450984,
+      "type": "yes_no_textbox",
+      "label": "Do you take blood-thinning medication? If yes, please specify the medication name, strength (mg/ml) and dosage below."
+    },
+    {
+      "id": 450985,
+      "type": "yes_no",
+      "label": "Do you take Omega 3, fish oil or other supplements that affect bleeding?"
+    },
+    {
+      "id": 451846,
+      "type": "yes_no_textbox",
+      "label": "Are you allergic or hypersensitive to any medication (including local anaesthetic or antibiotics)? If yes, specify which and any reaction."
+    },
+    {
+      "id": 451847,
+      "type": "input",
+      "label": "Enter your height (cm):"
+    },
+    {
+      "id": 451848,
+      "type": "input",
+      "label": "Enter your weight (kg):"
+    },
+    {
+      "id": 451849,
+      "type": "yes_no_textbox",
+      "label": "Would you like us to focus on anything in particular during the consultation (e.g. hair, skin, or both)? If yes, please describe briefly."
+    }
+  ]
+}
