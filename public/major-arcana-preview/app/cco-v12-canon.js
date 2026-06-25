@@ -168,11 +168,17 @@
     }
     var ci = avTime(av.checkedInAt),
       co = avTime(av.completedAt);
-    var nodes = [
-      { c: 'done', t: ci || 'Incheckad' },
-      { c: 'active', t: 'Nu' },
-      { c: 'todo', t: co || 'Klart' },
-    ];
+    // Föredra adapterns 6-stegs timelineNodes (bokad→in→nu→journal→eftervård→
+    // klart); fallback till 3-nods (in/nu/klart) om de saknas.
+    var nodes = arr(av.timelineNodes).length
+      ? av.timelineNodes.map(function (n) {
+          return { c: txt(n.state || n.c), t: txt(n.t) };
+        })
+      : [
+          { c: 'done', t: ci || 'Incheckad' },
+          { c: 'active', t: 'Nu' },
+          { c: 'todo', t: co || 'Klart' },
+        ];
     var blockers = arr(av.blockers);
     return (
       '<section class="sec" id="s2">' +
@@ -207,7 +213,9 @@
                 esc(n.t) +
                 '</span></div>' +
                 (i < nodes.length - 1
-                  ? '<div class="tline' + (i >= 1 ? ' todo' : '') + '"></div>'
+                  ? '<div class="tline' +
+                    (nodes[i + 1] && nodes[i + 1].c === 'todo' ? ' todo' : '') +
+                    '"></div>'
                   : '')
               );
             })
