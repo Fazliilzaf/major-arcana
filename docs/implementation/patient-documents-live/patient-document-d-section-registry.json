@@ -1,11 +1,14 @@
 {
   "version": 1,
   "updatedAt": "2026-06-25",
-  "generatedAt": "2026-06-25T15:18:04.628Z",
+  "generatedAt": "2026-06-25T15:41:47.200Z",
   "script": "build:patient-doc-d-section-registry",
   "scope": "BOOKOFF sektion D — utökade Meridiq-samtycken",
   "nonBlockingForHairTpCutover": true,
-  "workshopStatus": "READY_FOR_OWNER",
+  "workshopStatus": "AGENDA_READY",
+  "workshopAgenda": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md",
+  "workshopRecord": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md",
+  "recommendedOptionsDocumented": 6,
   "consentCatalogCount": 39,
   "catalog36Count": 36,
   "workshopGroupCount": 6,
@@ -54,6 +57,8 @@
         "C — Mappa till befintlig `microneedling_info` (ej rekommenderat — annat scope)"
       ],
       "ownerDecision": "PENDING",
+      "recommendedOption": "B",
+      "recommendedRationale": "Hyalase erbjuds sällan som separat Hair TP-spår — bundle räcker tills estetik-cutover.",
       "consents": [
         {
           "apiId": 152991,
@@ -92,6 +97,8 @@
         "C — Ny Curatiio-specifik registryId (brand-isolation)"
       ],
       "ownerDecision": "PENDING",
+      "recommendedOption": "B",
+      "recommendedRationale": "Behåll `botulinum_info` i bundle v7 — promote till katalog först vid aktiv Hair TP-estetik eller Curatiio brand-gate.",
       "consents": [
         {
           "apiId": 152988,
@@ -140,6 +147,8 @@
         "C — Ej erbjud — arkivera consent i CCO"
       ],
       "ownerDecision": "PENDING",
+      "recommendedOption": "B",
+      "recommendedRationale": "Curatiio-only — avtal 170950 saknar letterText; Meridiq-modal tills Nordbro-PDF importerad.",
       "consents": [
         {
           "apiId": 152990,
@@ -195,6 +204,8 @@
         "C — En samlad `esthetic_consent_library` med under-typer"
       ],
       "ownerDecision": "PENDING",
+      "recommendedOption": "A",
+      "recommendedRationale": "Peeling/IPL/Plasma Pen ej aktivt erbjudande på Hair TP idag — DEFER, behåll Meridiq-arkiv.",
       "consents": [
         {
           "apiId": 152992,
@@ -279,6 +290,8 @@
         "C — Behåll endast Meridiq read-only"
       ],
       "ownerDecision": "PENDING",
+      "recommendedOption": "B",
+      "recommendedRationale": "Ortopediska avtal + info saknar letterText — paus tills Nordbro/Insatt-PDF (19/39 tomma).",
       "consents": [
         {
           "apiId": 153039,
@@ -353,6 +366,8 @@
         "C — Legal review först — ingen registry förrän PDF facit finns"
       ],
       "ownerDecision": "PENDING",
+      "recommendedOption": "C",
+      "recommendedRationale": "Legal review först — separata avtal per behandling när PDF-facit finns (Botox/Fillers/Ögonlock).",
       "consents": [
         {
           "apiId": 170949,

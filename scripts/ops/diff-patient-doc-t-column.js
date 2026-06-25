@@ -110,6 +110,17 @@ function loadLatestJournalTReports() {
   return data.reports || [];
 }
 
+function loadLatestTBatch4Reports() {
+  if (!fs.existsSync(OUT_DIR)) return [];
+  const files = fs
+    .readdirSync(OUT_DIR)
+    .filter((f) => f.startsWith('T-BATCH4-') && f.endsWith('.json'))
+    .sort();
+  if (!files.length) return [];
+  const data = JSON.parse(fs.readFileSync(path.join(OUT_DIR, files.at(-1)), 'utf8'));
+  return data.reports || [];
+}
+
 function main() {
   const tByRegistry = new Map();
   for (const row of CATALOG.types || []) {
@@ -133,6 +144,7 @@ function main() {
   runScript('diff:patient-doc-e6-batch2');
   runScript('diff:patient-doc-e6-batch3');
   runScript('diff:patient-doc-journal-t-column');
+  runScript('diff:patient-doc-t-batch4');
   const e6Reports = loadLatestE6Reports();
   if (e6Reports.length) {
     for (const report of e6Reports) {
@@ -181,6 +193,18 @@ function main() {
     }
   }
 
+  const tBatch4Reports = loadLatestTBatch4Reports();
+  if (tBatch4Reports.length) {
+    for (const report of tBatch4Reports) {
+      tByRegistry.set(report.registryId, {
+        registryId: report.registryId,
+        status: report.status,
+        note: 'diff:patient-doc-t-batch4',
+      });
+      if (report.status === 'NEEDS_REVIEW') allOk = false;
+    }
+  }
+
   for (const row of tByRegistry.values()) {
     if (row.status !== 'PENDING') continue;
     if (wordPresentForRegistry(row.registryId)) {
@@ -207,6 +231,8 @@ function main() {
     ).length,
     needsReview: matrix.filter((r) => r.status === 'NEEDS_REVIEW').length,
     msOkWordLocal: matrix.filter((r) => r.status === 'MS_OK_WORD_LOCAL').length,
+    tFacitOk: matrix.filter((r) => r.status === 'T_FACIT_OK').length,
+    tNotApplicable: matrix.filter((r) => r.status === 'T_NOT_APPLICABLE').length,
     mqOrTemplate: matrix.filter((r) => r.status === 'MQ_OR_TEMPLATE_ONLY').length,
     rows: matrix,
   };
@@ -223,6 +249,8 @@ function main() {
 | PARITY_OK | ${summary.parityOk} |
 | E6_OK | ${summary.e6Ok} |
 | E6_PARTIAL | ${summary.e6Partial} |
+| T_FACIT_OK | ${summary.tFacitOk} |
+| T_NOT_APPLICABLE | ${summary.tNotApplicable} |
 | MS_OK_WORD_LOCAL | ${summary.msOkWordLocal} |
 | MQ_OR_TEMPLATE_ONLY | ${summary.mqOrTemplate} |
 | NEEDS_REVIEW | ${summary.needsReview} |
@@ -239,7 +267,7 @@ Rådata: \`${path.relative(ROOT, jsonPath)}\`
 
   console.log(`\n=== T-kolumn matris ===`);
   console.log(
-    `PARITY_OK: ${summary.parityOk} · E6_OK: ${summary.e6Ok} · E6_PARTIAL: ${summary.e6Partial} · MS_OK_WORD_LOCAL: ${summary.msOkWordLocal} · MQ_ONLY: ${summary.mqOrTemplate}`
+    `PARITY_OK: ${summary.parityOk} · E6_OK: ${summary.e6Ok} · T_FACIT_OK: ${summary.tFacitOk} · T_NA: ${summary.tNotApplicable} · MQ_ONLY: ${summary.mqOrTemplate}`
   );
   console.log(`→ ${mdPath}\n`);
 

@@ -29,12 +29,12 @@
 
 | Kategori            |  Antal | U klart | T klart | D klart | L klart | V klart |
 | ------------------- | -----: | ------: | ------: | ------: | ------: | ------: |
-| **A · Kund**        |     15 |      14 |      12 |      15 |      15 |      15 |
-| **B · Personal**    |     11 |       9 |       7 |      11 |      11 |      11 |
-| **C · Auto / info** |     10 |       9 |       1 |      10 |      10 |      10 |
-| **Totalt**          | **36** |  **34** |  **20** |  **36** |  **36** |  **36** |
+| **A · Kund**        |     15 |      14 |      15 |      15 |      15 |      15 |
+| **B · Personal**    |     11 |       9 |      10 |      11 |      11 |      11 |
+| **C · Auto / info** |     10 |       9 |       7 |      10 |      10 |      10 |
+| **Totalt**          | **36** |  **34** |  **32** |  **36** |  **36** |  **36** |
 
-**T-kolumn (2026-06-25):** `npm run diff:patient-doc-t-column` · E6 batch 1–3 · PARITY_OK A1–A3 · E6_OK A4–A11 · A15 · **B16–B21 journal schema** · B24 · C31
+**T-kolumn (2026-06-25):** `npm run diff:patient-doc-t-column` · E6 batch 1–3 · journal B16–B21 · **T-pass batch 4** `npm run diff:patient-doc-t-batch4` **12/12 T_FACIT_OK + 4 T_NA = 36/36** · kvar MQ_ONLY: **0**
 
 **U-kolumn (2026-06-25):** E4 `npm run verify:patient-doc-e4-word` **4/4** · U-pass batch 1+2 `npm run verify:patient-doc-u-pass` **19/19** (7+12) · **34/36 U `[x]`** · kvar: `health_tp_eng` (MQ-only medvetet) · `auto_medical_finance` (extern MF)
 
@@ -61,9 +61,9 @@
 |   9 | `offert_profilo`       | Offert · Profhilo                    |     5 / 7 | [x] | [x] | [x] | [x] | [x] | `steg5-offert-profilo-final-demo.html` + `steg7-offert-profilo-final-demo.html` · E6_OK                                                                         |
 |  10 | `samtycke_bokning_2d`  | Samtycke vid bokning inom 14 dagar   |         6 | [x] | [x] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · E6_OK · owner [`A10-OWNER-DECISION-2026-06-25.md`](./A10-OWNER-DECISION-2026-06-25.md) · MQ 154369                |
 |  11 | `samtycke_angerratt`   | Begäran + samtycke ångerfrist (14 d) |     6 / 7 | [x] | [x] | [x] | [x] | [x] | `steg6-betanketid-samtycke-final-demo.html` · E6_OK · 170955                                                                                                    |
-|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [x] | [ ] | [x] | [x] | [x] | `steg4-prp-hair-info-sve-final-demo.html` · U MS-OK PDF + MQ 152994 · `verify:patient-doc-u-mail-patientinfo`                                                   |
-|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [x] | [ ] | [x] | [x] | [x] | `steg4-prp-hair-info-eng-final-demo.html` · U MQ 152987 facit (ingen ENG-PDF) · U-pass                                                                          |
-|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [x] | [ ] | [x] | [x] | [x] | `steg4-microneedling-info-sve-final-demo.html` · U MS-OK PDF + MQ 152998/152997 · U-pass                                                                        |
+|  12 | `prp_hair_info_sve`    | PRP hår – patientinfo SWE            |       3–4 | [x] | [x] | [x] | [x] | [x] | `steg4-prp-hair-info-sve-final-demo.html` · T: demo↔MQ 152994 · `diff:patient-doc-t-batch4`                                                                     |
+|  13 | `prp_hair_info_eng`    | PRP hår – patientinfo ENG            |       3–4 | [x] | [x] | [x] | [x] | [x] | `steg4-prp-hair-info-eng-final-demo.html` · T: demo↔MQ 152987 · U-pass MQ-only                                                                                  |
+|  14 | `microneedling_info`   | Microneedling info                   |       3–4 | [x] | [x] | [x] | [x] | [x] | `steg4-microneedling-info-sve-final-demo.html` · T: demo↔MQ 152998 · U-pass                                                                                     |
 |  15 | `foto_samtycke`        | Samtycke till foto-publicering       |         9 | [x] | [x] | [x] | [x] | [x] | `steg9-foto-samtycke-final-demo.html` · E6_OK · [`ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md`](./ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md) · scope hårlinje/krona |
 
 ---
@@ -78,34 +78,34 @@
 |  19 | `journal_tp_follow_6`   | Journal · TP Uppföljning 6 mån       |  post-8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-tp-follow-6-final-demo.html` · U MQ_SCHEMA · T: schema↔demo              |
 |  20 | `journal_tp_follow_12`  | Journal · TP Resultat 12 mån         |  post-8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-tp-follow-12-final-demo.html` · U MQ_SCHEMA · T: schema↔demo             |
 |  21 | `journal_prp_multi`     | Journal · PRP/PRF/Microneedling      |       8 | [x] | [x] | [x] | [x] | [x] | `steg8-journal-prp-multi-final-demo.html` · U MQ_SCHEMA · T: schema↔demo                |
-|  22 | `behandlingsplan_staff` | Behandlingsplan / offert (personal)  |       5 | [x] | [ ] | [x] | [x] | [x] | `steg5-behandlingsplan-staff-final-demo.html` · dynamisk plan · offertmallar-14docx     |
-|  23 | `konsultationsmall`     | Konsultationsmall · Hair TP          |       4 | [x] | [ ] | [x] | [x] | [x] | `steg4-konsultationsmall-final-demo.html` · U BUNDLE_FACIT · journal-text-templates     |
+|  22 | `behandlingsplan_staff` | Behandlingsplan / offert (personal)  |       5 | [x] | [x] | [x] | [x] | [x] | `steg5-behandlingsplan-staff-final-demo.html` · T: dynamisk by design · batch4          |
+|  23 | `konsultationsmall`     | Konsultationsmall · Hair TP          |       4 | [x] | [x] | [x] | [x] | [x] | `steg4-konsultationsmall-final-demo.html` · T: bundle+journal-template · batch4         |
 |  24 | `ordination_tp`         | Ordinationsmall · Hårtransplantation |   5 + 8 | [x] | [x] | [x] | [x] | [x] | `steg8-ordination-tp-final-demo.html` · E6_OK · Word Carbocain/Xylocain-drift noterad   |
 |  25 | `anteckningar_kort`     | Anteckningar på patientkort          |   cross | [x] | n/a | [x] | [x] | [x] | `staff-anteckningar-kort-final-demo.html` · U CCO_NATIVE · fritext · badge Patientkort  |
-|  26 | `id_verifiering`        | ID-verifiering                       |   4 + 8 | [x] | [ ] | [x] | [x] | [x] | `steg4-id-verifiering-final-demo.html` · U PROCESS_FACIT · BankID/kundportal            |
+|  26 | `id_verifiering`        | ID-verifiering                       |   4 + 8 | [x] | [x] | [x] | [x] | [x] | `steg4-id-verifiering-final-demo.html` · T: process-facit · batch4                      |
 
 ---
 
 ## C · Auto / informationsdokument (10)
 
-|   # | registryId                   | Dokument                             | UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                        |
-| --: | ---------------------------- | ------------------------------------ | ------: | :-: | :-: | :-: | :-: | :-: | ------------------------------------------------------------------------------------------------- |
-|  27 | `info_offert_tp`             | Offert & behandlingsplan · TP (auto) |       5 | [x] | [ ] | [x] | [x] | [x] | `steg5-info-offert-tp-final-demo.html` · U MS-OK Mailmallar/Offert HT · U-pass                    |
-|  28 | `auto_bokningsbekraftelse`   | Bokningsbekräftelse SMS/e-post       |       2 | [x] | [ ] | [x] | [x] | [x] | `steg2-auto-bokningsbekraftelse-final-demo.html` · U MS-OK 98. Mailmallar + CCO template · U-pass |
-|  29 | `auto_bokningspaminnelse`    | Bokningspåminnelse                   |   cross | [x] | [ ] | [x] | [x] | [x] | `auto-bokningspaminnelse-final-demo.html` · U CCO booking_reminder_24h · U-pass                   |
-|  30 | `auto_avbokningsbekraftelse` | Avbokningsbekräftelse                |   cross | [x] | [ ] | [x] | [x] | [x] | `auto-avbokningsbekraftelse-final-demo.html` · U CCO cancellation_confirmation · U-pass           |
-|  31 | `auto_instruktion_formular`  | Instruktion HD/FC till kund          |   3 + 8 | [x] | [x] | [x] | [x] | [x] | `steg3-auto-instruktion-formular-final-demo.html` · E6_OK · Word=DPA underbilaga (ej HD/FC)       |
-|  32 | `auto_betanketid`            | Betänketid enligt lag (e-post)       |       6 | [x] | [ ] | [x] | [x] | [x] | `steg6-auto-betanketid-final-demo.html` · U BUNDLE_FACIT · Nordbro + offerEmail                   |
-|  33 | `auto_medical_finance`       | Medical Finance                      |   cross | [ ] | n/a | [x] | [x] | [x] | `auto-medical-finance-final-demo.html` · extern MF wrapper — U ej Word/MQ                         |
-|  34 | `auto_integritet`            | Personuppgiftspolicy                 |   cross | [x] | [ ] | [x] | [x] | [x] | `auto-integritet-final-demo.html` · U LEGAL_REPO · docs/legal PUB + SharePoint GDPR               |
-|  35 | `fore_efter_bildmall`        | Före/efter-bildmallar                |     8–9 | [x] | n/a | [x] | [x] | [x] | `steg8-fore-efter-bildmall-final-demo.html` · U CCO_NATIVE · foto-taxonomi Op-dag                 |
-|  36 | `auto_internt_sms`           | Internt SMS bokning/avbokning        |   cross | [x] | n/a | [x] | [x] | [x] | `staff-auto-internt-sms-final-demo.html` · U CCO_NATIVE · intern operatör-e-post                  |
+|   # | registryId                   | Dokument                             | UX-steg |  U  |  T  |  D  |  L  |  V  | Anteckning                                                                                  |
+| --: | ---------------------------- | ------------------------------------ | ------: | :-: | :-: | :-: | :-: | :-: | ------------------------------------------------------------------------------------------- |
+|  27 | `info_offert_tp`             | Offert & behandlingsplan · TP (auto) |       5 | [x] | [x] | [x] | [x] | [x] | `steg5-info-offert-tp-final-demo.html` · T: emailSample · batch4                            |
+|  28 | `auto_bokningsbekraftelse`   | Bokningsbekräftelse SMS/e-post       |       2 | [x] | [x] | [x] | [x] | [x] | `steg2-auto-bokningsbekraftelse-final-demo.html` · T: CCO template · batch4                 |
+|  29 | `auto_bokningspaminnelse`    | Bokningspåminnelse                   |   cross | [x] | [x] | [x] | [x] | [x] | `auto-bokningspaminnelse-final-demo.html` · T: booking_reminder_24h · batch4                |
+|  30 | `auto_avbokningsbekraftelse` | Avbokningsbekräftelse                |   cross | [x] | [x] | [x] | [x] | [x] | `auto-avbokningsbekraftelse-final-demo.html` · T: cancellation_confirmation · batch4        |
+|  31 | `auto_instruktion_formular`  | Instruktion HD/FC till kund          |   3 + 8 | [x] | [x] | [x] | [x] | [x] | `steg3-auto-instruktion-formular-final-demo.html` · E6_OK · Word=DPA underbilaga (ej HD/FC) |
+|  32 | `auto_betanketid`            | Betänketid enligt lag (e-post)       |       6 | [x] | [x] | [x] | [x] | [x] | `steg6-auto-betanketid-final-demo.html` · T: Nordbro excerpt · batch4                       |
+|  33 | `auto_medical_finance`       | Medical Finance                      |   cross | [ ] | n/a | [x] | [x] | [x] | `auto-medical-finance-final-demo.html` · extern MF wrapper — U ej Word/MQ                   |
+|  34 | `auto_integritet`            | Personuppgiftspolicy                 |   cross | [x] | [x] | [x] | [x] | [x] | `auto-integritet-final-demo.html` · T: legal repo PUB · batch4                              |
+|  35 | `fore_efter_bildmall`        | Före/efter-bildmallar                |     8–9 | [x] | n/a | [x] | [x] | [x] | `steg8-fore-efter-bildmall-final-demo.html` · U CCO_NATIVE · foto-taxonomi Op-dag           |
+|  36 | `auto_internt_sms`           | Internt SMS bokning/avbokning        |   cross | [x] | n/a | [x] | [x] | [x] | `staff-auto-internt-sms-final-demo.html` · U CCO_NATIVE · intern operatör-e-post            |
 
 ---
 
 ## D · Utökade samtycken (Meridiq catalog — **ej** i 36-katalogen)
 
-**Status (2026-06-25):** Owner-workshop registry-mapping **klar för beslut** — [`D-SECTION-OWNER-WORKSHOP-REGISTRY-MAPPING-2026-06-25.md`](./D-SECTION-OWNER-WORKSHOP-REGISTRY-MAPPING-2026-06-25.md) · `npm run build:patient-doc-d-section-registry` · `npm run verify:patient-doc-d-section-registry` · **blockerar INTE Hair TP cutover** (0/6 grupper `hairTpCutoverBlocking`)
+**Status (2026-06-25):** Owner-workshop **agenda klar** — [`D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md`](./D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md) · sign-off: [`D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md`](./D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md) · `npm run build:patient-doc-d-section-registry` · **6/6 pre-rekommendationer dokumenterade** · **blockerar INTE Hair TP cutover**
 
 Dessa finns i `consent-catalog.json` / bundle v7 men **saknar egen rad** i kundkort-katalogen. Lägg till i registry vid cutover eller mappa till befintlig offert-rad.
 
@@ -176,6 +176,8 @@ npm run diff:patient-doc-hd-sve            # T-kolumn · HD 16414 demo↔Meridiq
 npm run diff:patient-doc-friskforsakran    # T-kolumn · FC 16413 demo↔Meridiq
 npm run diff:patient-doc-hd-eng            # T-kolumn · 14865 label parity report
 npm run diff:patient-doc-journal-t-column  # T-kolumn · journal B16–B21 schema↔demo
+npm run diff:patient-doc-t-batch4          # T-pass batch 4 · 16 MQ-only typer
+npm run verify:patient-doc-t-pass          # alias batch 4
 npm run build:patient-doc-d-section-registry   # Sektion D · owner-workshop mapping JSON+MD
 npm run verify:patient-doc-d-section-registry  # Sektion D · verify mapping facit
 npm run diff:patient-doc-t-column          # T-kolumn · matris alla 36 registryId

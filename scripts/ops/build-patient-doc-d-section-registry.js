@@ -54,6 +54,9 @@ const WORKSHOP_GROUPS = [
       'C — Mappa till befintlig `microneedling_info` (ej rekommenderat — annat scope)',
     ],
     ownerDecision: 'PENDING',
+    recommendedOption: 'B',
+    recommendedRationale:
+      'Hyalase erbjuds sällan som separat Hair TP-spår — bundle räcker tills estetik-cutover.',
   },
   {
     id: 'd_botulinum_swe_eng',
@@ -79,6 +82,9 @@ const WORKSHOP_GROUPS = [
       'C — Ny Curatiio-specifik registryId (brand-isolation)',
     ],
     ownerDecision: 'PENDING',
+    recommendedOption: 'B',
+    recommendedRationale:
+      'Behåll `botulinum_info` i bundle v7 — promote till katalog först vid aktiv Hair TP-estetik eller Curatiio brand-gate.',
   },
   {
     id: 'd_fillers_swe',
@@ -105,6 +111,9 @@ const WORKSHOP_GROUPS = [
       'C — Ej erbjud — arkivera consent i CCO',
     ],
     ownerDecision: 'PENDING',
+    recommendedOption: 'B',
+    recommendedRationale:
+      'Curatiio-only — avtal 170950 saknar letterText; Meridiq-modal tills Nordbro-PDF importerad.',
   },
   {
     id: 'd_peeling_ipl_plasma',
@@ -129,6 +138,9 @@ const WORKSHOP_GROUPS = [
       'C — En samlad `esthetic_consent_library` med under-typer',
     ],
     ownerDecision: 'PENDING',
+    recommendedOption: 'A',
+    recommendedRationale:
+      'Peeling/IPL/Plasma Pen ej aktivt erbjudande på Hair TP idag — DEFER, behåll Meridiq-arkiv.',
   },
   {
     id: 'd_ortoped_prp_prf',
@@ -154,6 +166,9 @@ const WORKSHOP_GROUPS = [
       'C — Behåll endast Meridiq read-only',
     ],
     ownerDecision: 'PENDING',
+    recommendedOption: 'B',
+    recommendedRationale:
+      'Ortopediska avtal + info saknar letterText — paus tills Nordbro/Insatt-PDF (19/39 tomma).',
   },
   {
     id: 'd_curatiio_avtal_botox_fillers_bleph',
@@ -179,8 +194,16 @@ const WORKSHOP_GROUPS = [
       'C — Legal review först — ingen registry förrän PDF facit finns',
     ],
     ownerDecision: 'PENDING',
+    recommendedOption: 'C',
+    recommendedRationale:
+      'Legal review först — separata avtal per behandling när PDF-facit finns (Botox/Fillers/Ögonlock).',
   },
 ];
+
+const WORKSHOP_AGENDA_REL =
+  'docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-AGENDA-2026-06-25.md';
+const WORKSHOP_RECORD_REL =
+  'docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-RECORD-2026-06-25.md';
 
 /** Consents already wired to 36-katalogen (referens — ej sektion D). */
 const IN_36_CONSENT_MAP = {
@@ -309,8 +332,9 @@ function buildMarkdown(summary, groups) {
   ];
 
   groups.forEach((g, i) => {
+    const rec = g.recommendedOption ? ` _(rekomm: ${g.recommendedOption})_` : '';
     lines.push(
-      `| ${i + 1} | ${g.bookoffLabel} | ${g.recommended.action} → \`${g.recommended.proposedRegistryId || '—'}\` | **${g.ownerDecision}** |`
+      `| ${i + 1} | ${g.bookoffLabel} | ${g.recommended.action} → \`${g.recommended.proposedRegistryId || '—'}\` | **${g.ownerDecision}**${rec} |`
     );
   });
 
@@ -346,6 +370,11 @@ function buildMarkdown(summary, groups) {
     lines.push(`- **Fråga:** ${g.ownerQuestion}`);
     lines.push('- **Alternativ:**');
     for (const opt of g.ownerOptions) lines.push(`  - ${opt}`);
+    if (g.recommendedOption) {
+      lines.push(
+        `- **Rekommenderat val (pre-workshop):** **${g.recommendedOption}** — ${g.recommendedRationale}`
+      );
+    }
     lines.push(`- **Owner-beslut:** \`${g.ownerDecision}\` _(fyll i efter workshop)_`);
     lines.push('');
   }
@@ -356,6 +385,8 @@ function buildMarkdown(summary, groups) {
     '## Maskinläsbar facit',
     '',
     `- JSON: \`patient-document-d-section-registry.json\``,
+    `- Agenda: \`${WORKSHOP_AGENDA_REL}\``,
+    `- Sign-off: \`${WORKSHOP_RECORD_REL}\``,
     `- Verify: \`npm run verify:patient-doc-d-section-registry\``,
     `- Rådata: \`diffs/D-SECTION-REGISTRY-MAPPING-2026-06-25.json\``,
     '',
@@ -385,7 +416,10 @@ function main() {
     script: 'build:patient-doc-d-section-registry',
     scope: 'BOOKOFF sektion D — utökade Meridiq-samtycken',
     nonBlockingForHairTpCutover: true,
-    workshopStatus: 'READY_FOR_OWNER',
+    workshopStatus: 'AGENDA_READY',
+    workshopAgenda: WORKSHOP_AGENDA_REL,
+    workshopRecord: WORKSHOP_RECORD_REL,
+    recommendedOptionsDocumented: groups.filter((g) => g.recommendedOption).length,
     consentCatalogCount: consentCatalog.count,
     catalog36Count: catalog36.types.length,
     workshopGroupCount: groups.length,

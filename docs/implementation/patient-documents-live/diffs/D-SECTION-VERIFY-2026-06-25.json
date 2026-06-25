@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-25T15:18:04.813Z",
+  "generatedAt": "2026-06-25T15:41:47.381Z",
   "script": "verify:patient-doc-d-section-registry",
   "status": "PASS",
-  "workshopStatus": "READY_FOR_OWNER",
+  "workshopStatus": "AGENDA_READY",
   "pendingOwnerDecisions": 6,
   "hairTpBlockingGroups": 0,
   "errors": [],

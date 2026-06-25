@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-25",
+  "scope": "T-pass batch 4 — 16 kvarvarande MQ_OR_TEMPLATE_ONLY typer (demo↔bundle↔facit, ej Word-E6)",
+  "items": [
+    {
+      "id": "prp_hair_info_sve",
+      "registryIds": ["prp_hair_info_sve"],
+      "label": "PRP hår – patientinfo SWE",
+      "tPassRequired": true,
+      "tMode": "meridiq_letter",
+      "demoHtml": "steg4-prp-hair-info-sve-final-demo.html",
+      "bundleRegistryId": "prp_hair_info_sve",
+      "meridiqApiId": 152994,
+      "bundleTextKey": "letterText",
+      "phrases": ["Platelet Rich Plasma", "blodprov", "kollagen", "eftervård"]
+    },
+    {
+      "id": "prp_hair_info_eng",
+      "registryIds": ["prp_hair_info_eng"],
+      "label": "PRP hår – patientinfo ENG",
+      "tPassRequired": true,
+      "tMode": "meridiq_letter",
+      "demoHtml": "steg4-prp-hair-info-eng-final-demo.html",
+      "bundleRegistryId": "prp_hair_info_eng",
+      "meridiqApiId": 152987,
+      "bundleTextKey": "letterText",
+      "phrases": ["About PRP", "Platelet Rich Plasma", "Contraindications", "Safety Information"]
+    },
+    {
+      "id": "microneedling_info",
+      "registryIds": ["microneedling_info"],
+      "label": "Microneedling info SWE",
+      "tPassRequired": true,
+      "tMode": "meridiq_letter",
+      "demoHtml": "steg4-microneedling-info-sve-final-demo.html",
+      "bundleRegistryId": "microneedling_info",
+      "meridiqApiId": 152998,
+      "bundleTextKey": "letterTextSwe",
+      "phrases": ["Microneedling Therapy", "kontraindikationer", "48 timmar", "Milier"]
+    },
+    {
+      "id": "info_offert_tp",
+      "registryIds": ["info_offert_tp"],
+      "label": "Offert & behandlingsplan TP (auto mail)",
+      "tPassRequired": true,
+      "tMode": "bundle_email",
+      "demoHtml": "steg5-info-offert-tp-final-demo.html",
+      "bundleRegistryId": "info_offert_tp",
+      "phrases": ["personliga offert", "betänketid", "contact@hairtpclinic.com", "Hair TP Clinic"]
+    },
+    {
+      "id": "auto_bokningsbekraftelse",
+      "registryIds": ["auto_bokningsbekraftelse"],
+      "label": "Bokningsbekräftelse",
+      "tPassRequired": true,
+      "tMode": "cco_template",
+      "demoHtml": "steg2-auto-bokningsbekraftelse-final-demo.html",
+      "bundleRegistryId": "auto_bokningsbekraftelse",
+      "ccoTemplateId": "booking_confirmation_hair_tp",
+      "phrases": [
+        "behandlingstid är bokad",
+        "Medical Finance",
+        "Av- eller ombokning",
+        "contact@hairtpclinic.com"
+      ]
+    },
+    {
+      "id": "auto_bokningspaminnelse",
+      "registryIds": ["auto_bokningspaminnelse"],
+      "label": "Bokningspåminnelse",
+      "tPassRequired": true,
+      "tMode": "cco_template",
+      "demoHtml": "auto-bokningspaminnelse-final-demo.html",
+      "bundleRegistryId": "auto_bokningspaminnelse",
+      "ccoTemplateId": "booking_reminder_24h",
+      "phrases": ["Påminnelse från Hair TP Clinic", "schemalagd", "Din tid för"]
+    },
+    {
+      "id": "auto_avbokningsbekraftelse",
+      "registryIds": ["auto_avbokningsbekraftelse"],
+      "label": "Avbokningsbekräftelse",
+      "tPassRequired": true,
+      "tMode": "cco_template",
+      "demoHtml": "auto-avbokningsbekraftelse-final-demo.html",
+      "bundleRegistryId": "auto_avbokningsbekraftelse",
+      "ccoTemplateId": "cancellation_confirmation",
+      "phrases": ["avbokad", "{{originalDate}}", "Boka ny tid"]
+    },
+    {
+      "id": "auto_betanketid",
+      "registryIds": ["auto_betanketid"],
+      "label": "Betänketid enligt lag (e-post)",
+      "tPassRequired": true,
+      "tMode": "bundle_cooling",
+      "demoHtml": "steg6-auto-betanketid-final-demo.html",
+      "bundleRegistryId": "auto_betanketid",
+      "phrases": ["två dagars betänketid", "14 dagar", "distansavtal", "Jag lämnar mitt samtycke"]
+    },
+    {
+      "id": "auto_integritet",
+      "registryIds": ["auto_integritet"],
+      "label": "Personuppgiftspolicy",
+      "tPassRequired": true,
+      "tMode": "legal_repo",
+      "demoHtml": "auto-integritet-final-demo.html",
+      "bundleRegistryId": "auto_integritet",
+      "legalRepoPath": "docs/legal/personuppgiftspolicy-pub-maj-arcana.md",
+      "phrases": [
+        "Personuppgiftsansvarig",
+        "Integritetsskyddsmyndigheten",
+        "10 år",
+        "contact@hairtpclinic.com"
+      ]
+    },
+    {
+      "id": "konsultationsmall",
+      "registryIds": ["konsultationsmall"],
+      "label": "Konsultationsmall",
+      "tPassRequired": true,
+      "tMode": "bundle_journal",
+      "demoHtml": "steg4-konsultationsmall-final-demo.html",
+      "bundleRegistryId": "konsultationsmall",
+      "journalTemplateId": "consultation-summary",
+      "phrases": [
+        "konsultation",
+        "Behandlingsalternativ",
+        "konsultationsanteckning",
+        "Konsultation genomförd"
+      ]
+    },
+    {
+      "id": "id_verifiering",
+      "registryIds": ["id_verifiering"],
+      "label": "ID-verifiering",
+      "tPassRequired": true,
+      "tMode": "process_facit",
+      "demoHtml": "steg4-id-verifiering-final-demo.html",
+      "bundleRegistryId": "id_verifiering",
+      "phrases": ["BankID", "kundportal", "verified", "Personnummer"]
+    },
+    {
+      "id": "behandlingsplan_staff",
+      "registryIds": ["behandlingsplan_staff"],
+      "label": "Behandlingsplan (personal)",
+      "tPassRequired": true,
+      "tMode": "dynamic_staff",
+      "demoHtml": "steg5-behandlingsplan-staff-final-demo.html",
+      "bundleRegistryId": "behandlingsplan_staff",
+      "phrases": ["dynamisk", "genereras", "offert"]
+    },
+    {
+      "id": "anteckningar_kort",
+      "registryIds": ["anteckningar_kort"],
+      "label": "Anteckningar patientkort",
+      "tPassRequired": false,
+      "tMode": "not_applicable",
+      "tNote": "Fritext — T n/a enligt BOOKOFF"
+    },
+    {
+      "id": "auto_internt_sms",
+      "registryIds": ["auto_internt_sms"],
+      "label": "Internt SMS/e-post",
+      "tPassRequired": false,
+      "tMode": "not_applicable",
+      "tNote": "Intern operatör-notis — T n/a"
+    },
+    {
+      "id": "fore_efter_bildmall",
+      "registryIds": ["fore_efter_bildmall"],
+      "label": "Före/efter-bildmallar",
+      "tPassRequired": false,
+      "tMode": "not_applicable",
+      "tNote": "Foto-taxonomi — T n/a"
+    },
+    {
+      "id": "auto_medical_finance",
+      "registryIds": ["auto_medical_finance"],
+      "label": "Medical Finance",
+      "tPassRequired": false,
+      "tMode": "not_applicable",
+      "tNote": "Extern MF wrapper — T n/a"
+    }
+  ]
+}

@@ -463,9 +463,38 @@ function isDpaUnderbilagaWord(text) {
   return /personuppgiftsbitr/i.test(String(text || ''));
 }
 
+function normalizeCompactText(s) {
+  return normalizeLabel(String(s || '').replace(/\\'/g, "'"));
+}
+
+function textPrefixMatch(a, b, minLen = 80) {
+  const na = normalizeCompactText(a);
+  const nb = normalizeCompactText(b);
+  if (!na || !nb) return false;
+  const slice = Math.min(minLen, na.length, nb.length);
+  return na.slice(0, slice) === nb.slice(0, slice);
+}
+
+function compareMeridiqLetterTriad({
+  demoText = '',
+  bundleText = '',
+  meridiqText = '',
+  phrases = [],
+}) {
+  const bundleMqOk =
+    textPrefixMatch(bundleText, meridiqText) ||
+    normalizeCompactText(bundleText) === normalizeCompactText(meridiqText);
+  const triad = compareLegalTriad({ wordText: meridiqText, bundleText, demoText, phrases });
+  let status = triad.status;
+  if (bundleMqOk && triad.demoBundleOk) status = 'T_FACIT_OK';
+  else if (triad.demoBundleOk && !bundleMqOk) status = 'BUNDLE_MQ_GAP';
+  return { ...triad, bundleMqOk, status };
+}
+
 function compareDemoBundleOnly({ bundleText = '', demoText = '', phrases = [] }) {
   const triad = compareLegalTriad({ wordText: '', bundleText, demoText, phrases });
-  return { ...triad, wordPresent: false, wordHits: 'N/A', wordOk: triad.demoBundleOk };
+  const status = triad.demoBundleOk ? 'T_FACIT_OK' : triad.status;
+  return { ...triad, status, wordPresent: false, wordHits: 'N/A', wordOk: triad.demoBundleOk };
 }
 
 function compareWordDemoClinical({ wordText = '', demoText = '', phrases = [] }) {
@@ -556,6 +585,9 @@ module.exports = {
   bundleLegalText,
   phraseCoverage,
   compareLegalTriad,
+  normalizeCompactText,
+  textPrefixMatch,
+  compareMeridiqLetterTriad,
   OFFERT_DOCX_BY_REGISTRY,
   OFFERT_DEMO_BY_REGISTRY,
   AVTAL_ANCHORS,

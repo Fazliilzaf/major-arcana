@@ -58,6 +58,8 @@
     "diff:patient-doc-e6-batch2": "node ./scripts/ops/diff-patient-doc-e6-batch2.js",
     "diff:patient-doc-e6-batch3": "node ./scripts/ops/diff-patient-doc-e6-batch3.js",
     "diff:patient-doc-journal-t-column": "node ./scripts/ops/diff-patient-doc-journal-t-column.js",
+    "diff:patient-doc-t-batch4": "node ./scripts/ops/diff-patient-doc-t-batch4.js",
+    "verify:patient-doc-t-pass": "node ./scripts/ops/diff-patient-doc-t-batch4.js",
     "build:patient-doc-d-section-registry": "node ./scripts/ops/build-patient-doc-d-section-registry.js",
     "verify:patient-doc-d-section-registry": "node ./scripts/ops/verify-patient-doc-d-section-registry.js",
     "diff:patient-doc-t-column": "node ./scripts/ops/diff-patient-doc-t-column.js",
