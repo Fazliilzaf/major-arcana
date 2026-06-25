@@ -474,7 +474,7 @@
       '</div>'
     );
   }
-  function s5(journey, av, smart) {
+  function s5(journey, av, smart, photos) {
     var head = secHead(
       '05',
       'Kundresa',
@@ -563,7 +563,75 @@
                   esc(smart.ctaLabel || 'Åtgärda') +
                   '</button></div>'
                 : '';
-            body = miniActiveVisit(av) + smartHtml;
+            // Subkort (ABDIRAHMAN): "Vad krävs" ur blockerare + "När detta är klart"
+            // ur kommande steg. Visit-card med foton inbäddat i steget.
+            var reqs = arr(av && av.blockers);
+            var futures = arr(journey && journey.steps)
+              .filter(function (st) {
+                return st && st.state !== 'done' && st.state !== 'active';
+              })
+              .slice(0, 3);
+            var reqCard = reqs.length
+              ? '<div class="subcard"><div class="subcard-l">Vad krävs</div>' +
+                reqs
+                  .map(function (b) {
+                    var w = /warn|amber|tas|under/.test(txt(b.tone || b.status || b.level));
+                    return (
+                      '<div class="subcard-row"><span class="what">' +
+                      esc(txt(b.label || b)) +
+                      '</span>' +
+                      chip(w ? 'warn' : 'danger', txt(b.chipLabel || b.statusLabel) || 'Saknas') +
+                      '</div>'
+                    );
+                  })
+                  .join('') +
+                '</div>'
+              : '';
+            var unlockCard = futures.length
+              ? '<div class="subcard"><div class="subcard-l">När detta är klart</div>' +
+                futures
+                  .map(function (st) {
+                    return (
+                      '<div class="subcard-row"><span class="what">' +
+                      esc(txt(st.label)) +
+                      '</span>' +
+                      chip('info', 'Låses upp') +
+                      '</div>'
+                    );
+                  })
+                  .join('') +
+                '</div>'
+              : '';
+            var gridCards =
+              reqCard || unlockCard
+                ? '<div class="step-body-grid">' + reqCard + unlockCard + '</div>'
+                : '';
+            var pItems = arr(photos && photos.items ? photos.items : photos);
+            var visitCard = pItems.length
+              ? '<div class="visit-card"><div class="visit-head"><div class="visit-date"><span class="d">' +
+                esc(txt(pItems[0].dateLabel || pItems[0].capturedAt).slice(0, 12) || 'Besök') +
+                '</span> · besök</div><div class="visit-meta">' +
+                pItems.length +
+                ' bilder</div></div><div class="photo-grid">' +
+                pItems
+                  .slice(0, 6)
+                  .map(function (p, i) {
+                    var bg = p.thumbnailUrl || p.viewUrl || p.url;
+                    var lbl = txt(p.dateLabel || p.capturedAt).slice(0, 10);
+                    return (
+                      '<div class="photo-tile p' +
+                      ((i % 6) + 1) +
+                      '"' +
+                      (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+                      '>' +
+                      (lbl ? '<span class="lbl">' + esc(lbl) + '</span>' : '') +
+                      '</div>'
+                    );
+                  })
+                  .join('') +
+                '</div><div class="photo-actions"><button class="smart-btn">Välj i Foto</button><button class="smart-btn">Ta/rita bild</button><button class="smart-btn primary">Slutför konsultation</button></div></div>'
+              : '';
+            body = miniActiveVisit(av) + smartHtml + gridCards + visitCard;
           } else if (s.state === 'blocked') {
             body =
               '<div class="gate-list"><div class="gate-list-l">Krävs för att låsa upp</div>' +
@@ -1003,7 +1071,7 @@
     ['s11', 'Ekonomi', '11'],
     ['s12', 'Insikter', '12'],
   ];
-  function rail(events) {
+  function rail(events, nextStep, bundle) {
     var evs = arr(events);
     var rows = evs.length
       ? evs
@@ -1018,8 +1086,53 @@
           })
           .join('')
       : '<div class="rail-row"><span class="what">Kunddossier öppnad</span><span class="when">nu</span></div>';
+    // Rail-hero-action (ABDIRAHMAN) — smart nästa steg högst upp i railen.
+    var heroAction =
+      nextStep && nextStep.what
+        ? '<div class="rail-hero-action"><div class="lbl">Smart nästa steg · nu</div>' +
+          '<div class="title">' +
+          esc(txt(nextStep.what)) +
+          '</div>' +
+          (nextStep.why ? '<div class="sub">' + esc(txt(nextStep.why)) + '</div>' : '') +
+          '<div class="ctas"><button class="cta secondary">Granska</button>' +
+          '<button class="cta primary" data-kk-sig="' +
+          esc(txt(nextStep.ruleId)) +
+          '">' +
+          esc(txt(nextStep.ctaLabel) || 'Skicka') +
+          '</button></div></div>'
+        : '';
+    // Kommande bokningar (ABDIRAHMAN) — med badge + tom-läge.
+    var up = arr(bundle && bundle.upcomingBookings);
+    var bookCard =
+      '<div class="rail-card"><div class="rail-l"><span>Kommande bokningar</span><span class="badge">' +
+      up.length +
+      '</span></div>' +
+      (up.length
+        ? up
+            .slice(0, 3)
+            .map(function (b) {
+              return (
+                '<div class="subcard-row"><span class="what">' +
+                esc(txt(b.title || b.serviceLabel || 'Bokning')) +
+                '</span><span class="when">' +
+                esc(txt(b.dayLabel || b.dateLabel || b.timeLabel || '')) +
+                '</span></div>'
+              );
+            })
+            .join('')
+        : '<div class="empty-state">Inga kommande bokningar — kontakta kunden för återbesök så hen inte tappas.</div>') +
+      '</div>';
+    // Snabb-åtgärder (ABDIRAHMAN).
+    var quickCard =
+      '<div class="rail-card"><div class="rail-l">Snabb-åtgärder</div><div class="quick-actions">' +
+      '<button class="quick-btn dark full" data-v11-active-visit-action="photo">📷 Ta bild · spara i journal</button>' +
+      '<button class="quick-btn" data-v11-active-visit-action="notes">✏️ Anteckna</button>' +
+      '<button class="quick-btn">💬 Svarstudio</button>' +
+      '<button class="quick-btn full" data-v12-canon-jump="s8">📅 Boka återbesök</button>' +
+      '</div></div>';
     return (
       '<aside class="rail">' +
+      heroAction +
       '<div class="rail-card"><div class="rail-l">Snabb-jump</div><div class="rail-jump">' +
       JUMP.map(function (j) {
         return (
@@ -1033,6 +1146,8 @@
         );
       }).join('') +
       '</div></div>' +
+      bookCard +
+      quickCard +
       '<div class="rail-card"><div class="rail-l">Senaste händelser</div>' +
       rows +
       '</div></aside>'
@@ -1051,6 +1166,99 @@
       '<button class="sticky-btn sec" data-v11-active-visit-action="photo">📷 Foto</button>' +
       '<button class="sticky-btn primary" data-v11-active-visit-action="journal">📝 Starta journal</button>' +
       '</div></div>'
+    );
+  }
+
+  /* ---------- STATS-rad (ABDIRAHMAN) — nyckeltal under hero ---------- */
+  function statCell(cls, l, v, subCls, sub) {
+    return (
+      '<div class="stat' +
+      (cls ? ' ' + cls : '') +
+      '"><div class="l">' +
+      esc(l) +
+      '</div><div class="v">' +
+      esc(v) +
+      '</div>' +
+      (sub ? '<div class="sub ' + subCls + '">' + esc(sub) + '</div>' : '') +
+      '</div>'
+    );
+  }
+  function stats(card, econ, bundle) {
+    var up = arr(bundle && bundle.upcomingBookings);
+    var hist = arr(bundle && bundle.historyBookings);
+    var visits =
+      card.visitsThisYear != null
+        ? String(card.visitsThisYear)
+        : hist.length
+          ? String(hist.length)
+          : '—';
+    var value =
+      txt(card.totalValue) ||
+      txt(econ && econ.items && econ.items[0] && econ.items[0].value) ||
+      '—';
+    var debt = card.outstandingBalance != null ? txt(card.outstandingBalance) : '0';
+    var nb = up[0];
+    return (
+      '<div class="stats">' +
+      statCell('hero', 'Besök · i år', visits, 'mute', '') +
+      statCell('', 'Värde totalt', value, 'mute', '') +
+      statCell('', 'Skuld', debt, 'mute', 'kronor') +
+      statCell(
+        '',
+        'Nästa besök',
+        nb ? txt(nb.dayLabel || nb.day || nb.dateLabel || '—') : '—',
+        nb ? 'mute' : 'warn',
+        nb ? txt(nb.title || nb.serviceLabel || 'Bokad') : 'Inga bokningar'
+      ) +
+      '</div>'
+    );
+  }
+
+  /* ---------- FOTO-DOKUMENTATION (ABDIRAHMAN) — tvärsnitt alla besök ---------- */
+  function fotoDok(photos) {
+    var items = arr(photos && photos.items ? photos.items : photos);
+    if (!items.length) return '';
+    var tiles = items
+      .slice(0, 6)
+      .map(function (p, i) {
+        var lbl = txt(p.dateLabel || p.photoDateLabel || p.capturedAt).slice(0, 12);
+        var bg = p.thumbnailUrl || p.viewUrl || p.url;
+        return (
+          '<div class="photo-tile p' +
+          ((i % 6) + 1) +
+          '"' +
+          (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+          '>' +
+          (lbl ? '<span class="lbl">' + esc(lbl) + '</span>' : '') +
+          '</div>'
+        );
+      })
+      .join('');
+    var first = items[0],
+      last = items[items.length - 1];
+    var fl = txt(first.dateLabel || first.capturedAt).slice(0, 12);
+    var ll = txt(last.dateLabel || last.capturedAt).slice(0, 12);
+    var gap = items.some(function (p) {
+      return p.gap || p.viewGap;
+    });
+    return (
+      '<section class="section"><div class="section-head"><span class="section-title">Foto-dokumentation · alla besök</span><span class="section-meta">' +
+      items.length +
+      ' bilder · nyast först</span></div>' +
+      '<div class="foto-strip">' +
+      tiles +
+      '</div>' +
+      (items.length >= 2
+        ? '<div class="before-after-bar"><div class="lbl">Före/efter-par föreslaget: <b>' +
+          esc(fl || 'Före') +
+          '</b> <span class="sep">↔</span> <b>' +
+          esc(ll || 'Efter') +
+          '</b></div><button class="smart-btn primary">Jämför</button></div>'
+        : '') +
+      (gap
+        ? '<div class="gap-notice"><span>⚠ Hårlinje &amp; Krona-vy saknas för fullständig dokumentation</span><button class="smart-btn">Begär foto</button></div>'
+        : '') +
+      '</section>'
     );
   }
 
@@ -1074,10 +1282,11 @@
     var main =
       '<div class="v12-canon__main">' +
       s1(card, journey) +
+      stats(card, econ, bundle) +
       s2(av) +
       s3(warnings) +
       s4(health) +
-      s5(journey, av, nextStep) +
+      s5(journey, av, nextStep, photos) +
       s6(ctx.journalEntries) +
       s7(photos) +
       s8(bundle) +
@@ -1085,6 +1294,7 @@
       s10(comm) +
       s11(econ, invoices) +
       s12(nextStep, insights) +
+      fotoDok(photos) +
       '</div>';
     // Lägg data-v12-module på varje sektion så befintlig scrollV12WorkspaceModule
     // + jump-rail-launcher (inferV12ModuleFromRailClick) landar rätt vid sektionsklick.
@@ -1110,7 +1320,7 @@
       '<div class="v12-canon" data-v12-canon="1">' +
       '<div class="v12-canon__grid">' +
       main +
-      rail(recentEvents) +
+      rail(recentEvents, nextStep, bundle) +
       '</div>' +
       sticky(nextStep, card) +
       '</div>'
