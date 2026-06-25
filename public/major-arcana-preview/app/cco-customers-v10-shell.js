@@ -722,25 +722,37 @@
         }, 400);
       }
 
-      document.getElementById('camClose').addEventListener('click', closeCamera);
+      // Exponera så att shell-bootens maybeMount kan stänga kameran (släppa
+      // getUserMedia-strömmen) när vyn lämnas (Bugbot #257 Medium).
+      window.__ARCANA_V10_CLOSE_CAMERA__ = closeCamera;
 
-      document.addEventListener('click', (ev) => {
-        const btn = ev.target.closest('[data-camera-open]');
-        if (!btn) return;
-        ev.preventDefault();
-        openCamera(
-          btn.dataset.name || 'Kund',
-          btn.dataset.init || '?',
-          btn.dataset.bg || 'linear-gradient(180deg,#d4d4d4,#a8a8a8)'
-        );
-      });
-      document.addEventListener('keydown', (ev) => {
-        if (
-          ev.key === 'Escape' &&
-          document.getElementById('camOverlay').classList.contains('is-visible')
-        )
-          closeCamera();
-      });
+      // Dokument-nivå-lyssnarna (kamera-öppna + Escape) får bindas EN gång —
+      // varje render() kör initV10Interactions och staplade annars nya
+      // lyssnare → kameran öppnades/Escape hanterades flera gånger (Bugbot
+      // #257 Low). camOverlay är en singleton så första closuren räcker.
+      if (!window.__ARCANA_V10_CAM_DOC_BOUND__) {
+        window.__ARCANA_V10_CAM_DOC_BOUND__ = true;
+        const camCloseBtn = document.getElementById('camClose');
+        if (camCloseBtn) camCloseBtn.addEventListener('click', closeCamera);
+        document.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('[data-camera-open]');
+          if (!btn) return;
+          ev.preventDefault();
+          openCamera(
+            btn.dataset.name || 'Kund',
+            btn.dataset.init || '?',
+            btn.dataset.bg || 'linear-gradient(180deg,#d4d4d4,#a8a8a8)'
+          );
+        });
+        document.addEventListener('keydown', (ev) => {
+          if (
+            ev.key === 'Escape' &&
+            document.getElementById('camOverlay') &&
+            document.getElementById('camOverlay').classList.contains('is-visible')
+          )
+            closeCamera();
+        });
+      }
     } catch (e) {
       if (window.console) console.warn('[cco-cust-v10] interaktion:', e && e.message);
     }
@@ -834,6 +846,19 @@
       // andra vyer (Kalender/Konversationer) efter att man lämnat Kunder
       // (Bugbot #257).
       if (root) root.style.display = 'none';
+      // Stäng ev. öppen kamera + släpp getUserMedia-strömmen när vyn lämnas
+      // (Bugbot #257 Medium) — annars fortsätter kameran i bakgrunden.
+      try {
+        if (
+          document.getElementById('camOverlay') &&
+          document.getElementById('camOverlay').classList.contains('is-visible') &&
+          typeof window.__ARCANA_V10_CLOSE_CAMERA__ === 'function'
+        ) {
+          window.__ARCANA_V10_CLOSE_CAMERA__();
+        }
+      } catch (e) {
+        /* tyst */
+      }
       return;
     }
     if (root) {
