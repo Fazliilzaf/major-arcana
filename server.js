@@ -11081,6 +11081,7 @@ const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
 const { createTenantKnowledgeStore } = require('./src/knowledge/tenantKnowledgeStore');
 const { createMicrosoftGraphReadConnector } = require('./src/infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGraphSendConnector');
+const { createRuntimeGetAcceptConnector } = require('./src/infra/getAcceptConnector');
 const { createScheduler } = require('./src/ops/scheduler');
 const { createAlertNotifier } = require('./src/ops/alertNotifier');
 const { runStartupDiskGuard } = require('./src/ops/startupDiskGuard');
@@ -13354,6 +13355,7 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       offerDocumentStore: ccoOfferDocumentStore,
       patientSystemStore: ccoPatientSystemStore,
+      getAcceptConnector: createRuntimeGetAcceptConnector(process.env),
       authStore,
       config,
       requireAuth: auth.requireAuth,

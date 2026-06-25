@@ -22,7 +22,7 @@ async function withServer(app, run) {
   }
 }
 
-async function createFixture() {
+async function createFixture(overrides = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-route-'));
   const commercialStore = await createCcoCommercialStore({
     filePath: path.join(tempDir, 'commercial.json'),
@@ -36,7 +36,7 @@ async function createFixture() {
     '/api/v1',
     createCcoCommercialRouter({
       commercialStore,
-      offerDocumentStore: {
+      offerDocumentStore: overrides.offerDocumentStore || {
         async readHtml() {
           return { html: '<html><body>Offert</body></html>' };
         },
@@ -58,6 +58,9 @@ async function createFixture() {
       },
       requireAuth: (_req, _res, next) => next(),
       requireRole: () => (_req, _res, next) => next(),
+      getAcceptConnector: overrides.getAcceptConnector || null,
+      renderHtmlToPdfBuffer:
+        overrides.renderHtmlToPdfBuffer || (async () => Buffer.from('%PDF-1.4\n%test')),
     })
   );
   return { app, commercialStore, tempDir };
@@ -146,6 +149,149 @@ test('ORD-42: personal-vy räknas inte men kundens signeringssida registrerar of
       const afterCustomerPayload = await afterCustomer.json();
       assert.equal(afterCustomerPayload.commercialCase.quoteOpenCount, 1);
       assert.equal(afterCustomerPayload.commercialCase.quoteOpens[0].source, 'offer_sign_page');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('offer-send-for-sign faller tillbaka till intern signering när GetAccept inte är redo', async () => {
+  const fixture = await createFixture({
+    getAcceptConnector: {
+      enabled: true,
+      available: false,
+      async sendOfferDocument() {
+        throw new Error('ska inte anropas');
+      },
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      await fetch(
+        `${baseUrl}/cco-commercial/case?workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-1&customerName=Anna`,
+        {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            quoteStatus: 'draft',
+            offerDocumentId: 'doc-1',
+            offerTemplateKey: 'hair_transplant',
+          }),
+        }
+      );
+
+      const sendResponse = await fetch(`${baseUrl}/cco-commercial/offer-send-for-sign`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ patientId: 'patient-1', recipientEmail: 'anna@example.com' }),
+      });
+      assert.equal(sendResponse.status, 200);
+      const payload = await sendResponse.json();
+      assert.equal(payload.provider, 'internal');
+      assert.match(payload.offerSignUrl, /offer-sign-page/);
+      assert.equal(payload.commercialCase.esignProvider, 'internal');
+      assert.equal(payload.commercialCase.getAcceptDocumentId, '');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('offer-send-for-sign skickar via GetAccept när connectorn är redo', async () => {
+  let sentPayload = null;
+  const fixture = await createFixture({
+    offerDocumentStore: {
+      async readPdf() {
+        return { buffer: Buffer.from('%PDF-1.4\n%offer') };
+      },
+    },
+    getAcceptConnector: {
+      enabled: true,
+      available: true,
+      async sendOfferDocument(payload) {
+        sentPayload = payload;
+        return {
+          documentId: 'ga-doc-1',
+          signUrl: 'https://app.getaccept.com/sign/ga-doc-1',
+          status: 'sent',
+        };
+      },
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      await fetch(
+        `${baseUrl}/cco-commercial/case?workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-1&customerName=Anna Andersson`,
+        {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            quoteStatus: 'draft',
+            offerDocumentId: 'doc-1',
+            offerTemplateKey: 'hair_transplant',
+          }),
+        }
+      );
+
+      const sendResponse = await fetch(`${baseUrl}/cco-commercial/offer-send-for-sign`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ patientId: 'patient-1', recipientEmail: 'anna@example.com' }),
+      });
+      assert.equal(sendResponse.status, 200);
+      const payload = await sendResponse.json();
+      assert.equal(payload.provider, 'getaccept');
+      assert.equal(payload.offerSignUrl, 'https://app.getaccept.com/sign/ga-doc-1');
+      assert.equal(payload.commercialCase.esignProvider, 'getaccept');
+      assert.equal(payload.commercialCase.getAcceptDocumentId, 'ga-doc-1');
+      assert.equal(payload.commercialCase.getAcceptStatus, 'sent');
+      assert.equal(sentPayload.recipient.email, 'anna@example.com');
+      assert.equal(sentPayload.documentId, 'doc-1');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('GetAccept signed/completed webhook markerar offert accepterad', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      await fetch(
+        `${baseUrl}/cco-commercial/case?workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-1&customerName=Anna`,
+        {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            quoteStatus: 'sent',
+            commercialStatus: 'quote_sent',
+            offerDocumentId: 'doc-1',
+            getAcceptDocumentId: 'ga-doc-1',
+            esignStatus: 'sent',
+          }),
+        }
+      );
+
+      const webhookResponse = await fetch(`${baseUrl}/cco-commercial/getaccept/webhook`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          event: 'document.completed',
+          documentId: 'ga-doc-1',
+          status: 'completed',
+        }),
+      });
+      assert.equal(webhookResponse.status, 200);
+      const webhookPayload = await webhookResponse.json();
+      assert.equal(webhookPayload.recorded, true);
+
+      const after = await fetch(`${baseUrl}/cco-commercial/patient-case?patientId=patient-1`);
+      const payload = await after.json();
+      assert.equal(payload.commercialCase.quoteStatus, 'accepted');
+      assert.equal(payload.commercialCase.commercialStatus, 'ready');
+      assert.equal(payload.commercialCase.esignStatus, 'accepted');
+      assert.equal(payload.commercialCase.getAcceptStatus, 'completed');
+      assert.ok(payload.commercialCase.getAcceptCompletedAt);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
