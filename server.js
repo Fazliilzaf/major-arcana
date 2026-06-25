@@ -10233,6 +10233,12 @@ try {
         maxPatients: Number(process.env.PHOTO_REVIEW_PILOT_MAX_PATIENTS) || 5,
       }
     : null;
+  const { registerPatientDocumentLiveManifestRoute } = require('./src/routes/patientDocumentLive');
+  registerPatientDocumentLiveManifestRoute(app);
+  console.log(
+    '[patient-doc-live] monterad: GET /api/v1/cco/patient-documents/live/manifest (före photo-review auth)'
+  );
+
   const { createCcoPhotoReviewRouter } = require('./src/routes/ccoPhotoReview');
   app.use(
     '/api/v1/cco',

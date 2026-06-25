@@ -47,20 +47,27 @@ function injectPatientDocShellScript(html, getAssetHash) {
   return html;
 }
 
+function sendPatientDocumentLiveManifest(_req, res) {
+  res.json({
+    ok: true,
+    count: buildLiveManifest().length,
+    documents: buildLiveManifest(),
+    sign: {
+      e8Count: buildSignManifest().length,
+      documents: buildSignManifest(),
+    },
+  });
+}
+
+/** Public metadata — must mount before /api/v1/cco photo-review global auth. */
+function registerPatientDocumentLiveManifestRoute(app) {
+  app.get('/api/v1/cco/patient-documents/live/manifest', sendPatientDocumentLiveManifest);
+}
+
 function createPatientDocumentLiveRouter({ previewRoot, transformPreviewHtml, getAssetHash }) {
   const router = express.Router();
 
-  router.get('/api/v1/cco/patient-documents/live/manifest', (_req, res) => {
-    res.json({
-      ok: true,
-      count: buildLiveManifest().length,
-      documents: buildLiveManifest(),
-      sign: {
-        e8Count: buildSignManifest().length,
-        documents: buildSignManifest(),
-      },
-    });
-  });
+  router.get('/api/v1/cco/patient-documents/live/manifest', sendPatientDocumentLiveManifest);
 
   router.get('/major-arcana-preview/patient-doc/:registryId', (req, res) => {
     const registryId = String(req.params.registryId || '').trim();
@@ -103,4 +110,8 @@ function createPatientDocumentLiveRouter({ previewRoot, transformPreviewHtml, ge
   return router;
 }
 
-module.exports = { createPatientDocumentLiveRouter };
+module.exports = {
+  createPatientDocumentLiveRouter,
+  registerPatientDocumentLiveManifestRoute,
+  sendPatientDocumentLiveManifest,
+};
