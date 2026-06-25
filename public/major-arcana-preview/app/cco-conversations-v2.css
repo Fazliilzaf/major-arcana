@@ -31,6 +31,34 @@ html[data-conversations-v2="on"]
   display: none;
 }
 
+/* ── Note-overlay-undantag (Bugbot #229) ──
+ * v2:s action("note") (Anteckna / Smart anteckning) delegerar till den legacy
+ * note-overlayn som bor i .preview-workspace — men regeln ovan döljer hela
+ * workspace med display:none, så overlayn blir osynlig. När en note-yta är
+ * öppen återställer vi workspace till display:block, men döljer alla ANDRA
+ * direkta workspace-barn så att legacy-inkorgen inte lyser igenom note-ytans
+ * halvtransparenta backdrop. #note-mode-shell (väljaren) + #note-shell
+ * (editorn) är direkta barn till .preview-workspace och sköter sin egen
+ * öppen/stängd-synlighet. */
+html[data-conversations-v2="on"]
+  .preview-canvas[data-app-shell-view="conversations"]
+  .preview-workspace:has(> #note-mode-shell[data-open]),
+html[data-conversations-v2="on"]
+  .preview-canvas[data-app-shell-view="conversations"]
+  .preview-workspace:has(> #note-shell[aria-hidden="false"]) {
+  display: block !important;
+}
+html[data-conversations-v2="on"]
+  .preview-canvas[data-app-shell-view="conversations"]
+  .preview-workspace:has(> #note-mode-shell[data-open])
+  > *:not(#note-mode-shell):not(#note-shell),
+html[data-conversations-v2="on"]
+  .preview-canvas[data-app-shell-view="conversations"]
+  .preview-workspace:has(> #note-shell[aria-hidden="false"])
+  > *:not(#note-mode-shell):not(#note-shell) {
+  display: none !important;
+}
+
 /* ── Scopade designtokens (läcker ej utanför roten) ── */
 #cco-conv-v2-root {
   --cco-bg-page: #faf6f2;

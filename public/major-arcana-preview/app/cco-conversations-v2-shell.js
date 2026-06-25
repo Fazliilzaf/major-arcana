@@ -259,10 +259,19 @@
   var STAFF_BG = 'linear-gradient(180deg,#c5d8a8,#92b86e)';
 
   function messageList(thread) {
-    if (Array.isArray(thread.messages)) return thread.messages;
-    if (thread.threadDocument && Array.isArray(thread.threadDocument.messages)) {
+    // Föredra FULL hydrerad historik framför preview-listan: thread.messages
+    // fylls av buildPreviewMessages som hårt-cappar till 8, medan hela historiken
+    // ligger på thread.threadDocument.messages efter hydrering. Returneras
+    // thread.messages först skulle strömmen/räknaren aldrig visa fler än 8
+    // (Bugbot: stream capped at eight messages).
+    if (
+      thread.threadDocument &&
+      Array.isArray(thread.threadDocument.messages) &&
+      thread.threadDocument.messages.length
+    ) {
       return thread.threadDocument.messages;
     }
+    if (Array.isArray(thread.messages)) return thread.messages;
     return [];
   }
 
@@ -584,15 +593,18 @@
     var el = root.querySelector('[data-v2-tabs]');
     var h2 = root.querySelector('[data-v2-inbox-h2]');
     if (!el) return;
-    var all = ctx.allThreads || [];
+    // Flik-räknarna måste räknas på samma mängd som listan filtrerar
+    // (visibleThreads → ctx.laneThreads), annars matchar inte badgen listan i
+    // aktiv lane (Bugbot: inbox tab counts wrong scope).
+    var lane = ctx.laneThreads || [];
     var counts = {
-      alla: (ctx.laneThreads || []).length,
-      olasta: all.filter(isUnread).length,
-      bokning: all.filter(isBooking).length,
-      vip: all.filter(isVip).length,
+      alla: lane.length,
+      olasta: lane.filter(isUnread).length,
+      bokning: lane.filter(isBooking).length,
+      vip: lane.filter(isVip).length,
     };
     if (h2) {
-      h2.textContent = counts.olasta + ' olästa · ' + all.length + ' totalt';
+      h2.textContent = counts.olasta + ' olästa · ' + lane.length + ' totalt';
     }
     var tabs = [
       { id: 'alla', label: 'Alla', count: counts.alla },
@@ -1056,7 +1068,9 @@
       '<div class="wb-footer">' +
       '<button class="wb-primary-cta" data-studio-send type="button" disabled title="Live-utskick kräver owner och är avstängt">📨 Skicka (låst)</button>' +
       '<span class="wb-send-locked">🔒 Skicka är owner-blockerat</span>' +
-      '<button class="wb-secondary-cta" data-studio-save type="button">Spara utkast</button>' +
+      '<button class="wb-secondary-cta" data-studio-save type="button"' +
+      (studio.busy ? ' disabled' : '') +
+      '>Spara utkast</button>' +
       '<button class="wb-secondary-cta" data-studio-review type="button">Begär godkännande</button>' +
       '<button class="wb-secondary-cta wb-secondary-cta--approve" data-studio-approve type="button">Godkänn</button>' +
       '<button class="wb-secondary-cta" data-studio-close type="button">Stäng</button>' +
@@ -1084,6 +1098,7 @@
 
   async function studioGenerate() {
     if (!studio || !boundCtx.handlers.studioGenerate) return;
+    if (studio.busy) return; // bail om redan upptagen → ingen dubbel-POST
     studioCapture();
     studio.busy = true;
     studio.error = '';
@@ -1118,6 +1133,7 @@
 
   async function studioSave() {
     if (!studio || !boundCtx.handlers.studioSave) return;
+    if (studio.busy) return; // bail om redan upptagen → ingen dubbel-POST/dubbla utkast
     studio.busy = true;
     studio.error = '';
     try {
@@ -1131,6 +1147,7 @@
 
   async function studioTransitionTo(target) {
     if (!studio || !boundCtx.handlers.studioTransition) return;
+    if (studio.busy) return; // bail om redan upptagen → ingen dubbel-POST
     studio.busy = true;
     studio.error = '';
     try {
@@ -1410,7 +1427,9 @@
     list.forEach(function (t) {
       if (/hög|high|klagomål|komplikation/i.test(text(t.riskLabel))) high += 1;
       if (text(t.followUpLabel) || text(t.missingLabel) || text(t.waitingLabel)) followup += 1;
-      if (!text(t.ownerLabel) && !text(t.ownerKey)) unassigned += 1;
+      // oägd = saknar konkret ägare (även ownerKey 'unassigned'/'oägd'), så att
+      // räknaren stämmer med "Mina"-logiken ovan.
+      if (!isAssigned(t)) unassigned += 1;
     });
     return { high: high, followup: followup, unassigned: unassigned };
   }
@@ -1422,14 +1441,31 @@
     { id: 'sla', label: 'SLA-risk' },
     { id: 'mina', label: 'Mina' },
   ];
+  // v3: ägar-/tilldelningslogik (delas av "Mina"-segmentet och toolbar-badges).
+  function ownerKeyOf(thread) {
+    return text(thread.ownerKey || thread.ownerLabel).toLowerCase();
+  }
+  function isAssigned(thread) {
+    var k = ownerKeyOf(thread);
+    return Boolean(k) && k !== 'unassigned' && k !== 'oägd' && k !== 'all';
+  }
+  // "Mina" = den signerade operatörens kö. När en specifik ägare är vald
+  // (operatorKey ≠ all) matchas bara den ägarens trådar; annars faller vi
+  // tillbaka på tilldelade trådar (aldrig oägda) — fixar att kollegors och
+  // oägda rader tidigare räknades som "mina" (Bugbot #235, High).
+  function isMine(thread) {
+    var op = text(boundCtx && boundCtx.operatorKey).toLowerCase();
+    if (op && op !== 'all') return ownerKeyOf(thread) === op;
+    return isAssigned(thread);
+  }
+
   function segmentMatch(thread) {
     if (activeSegment === 'obesvarade') return isUnread(thread);
-    if (activeSegment === 'sla') {
-      return Boolean(
-        text(thread.followUpLabel) || text(thread.missingLabel) || text(thread.waitingLabel)
-      );
-    }
-    if (activeSegment === 'mina') return Boolean(text(thread.ownerLabel) || text(thread.ownerKey));
+    // SLA-risk: använd den kanoniska slaOf() som även väger in thread.slaStatus
+    // (breach/overdue/warning/risk), inte bara follow-up/missing/waiting-etiketter
+    // (Bugbot #235, Medium).
+    if (activeSegment === 'sla') return Boolean(slaOf(thread));
+    if (activeSegment === 'mina') return isMine(thread);
     return true;
   }
 
@@ -1664,8 +1700,13 @@
     // v3: tema (app-brett) + densitet (persisteras).
     applyTheme();
     root.dataset.density = v3Density;
-    // Mobil master-detail: utan vald tråd visas alltid inboxen.
-    if (!ctx.selected) mobilePane = 'inbox';
+    // Mobil master-detail: utan vald tråd visas alltid inboxen — och då måste
+    // även kontext-arket stängas, annars ligger det kvar fast över inboxen och
+    // blockerar interaktion på ≤768px (Bugbot #230).
+    if (!ctx.selected) {
+      mobilePane = 'inbox';
+      root.dataset.mobileCtx = 'closed';
+    }
     root.dataset.mobilePane = mobilePane;
     if (!root.dataset.mobileCtx) root.dataset.mobileCtx = 'closed';
     renderToolbar(ctx);
