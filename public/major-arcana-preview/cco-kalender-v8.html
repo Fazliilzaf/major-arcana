@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO Kalender — v8 responsiv arbetsyta</title>
+<style>
+/* =========================================================================
+   CCO KALENDER v8 — Responsiv arbetsyta (mobil dag · iPad · desktop vecka)
+   WCAG-härdad varm palett (all text ≥4.5:1). Tidsmatte: 07–19, hour-h/60 px/min.
+   Layout: dag-tidslinje (mobil) → vecko-rutnät 7 kol + rail + detalj (desktop).
+   Enheter: rem/clamp (typ+space), CSS Grid (zoner+vecka), flex. Touch ≥44px.
+   ========================================================================= */
+:root {
+  /* Ytor */
+  --bg-page:#faf6f2; --bg-surface:#fff; --bg-sunken:#f3ece3; --bg-rail:#fbf7f2;
+  /* Text ≥4.5:1 på --bg-page */
+  --text-primary:#221c15; --text-secondary:#574d40; --text-tertiary:#6d6354; --on-accent:#fff;
+  /* Accent / kalender (härdad: text-accent ≥4.5:1, #c8821e endast fyllning) */
+  --accent:#b0356e; --accent-weak:#fdeef4;
+  --cal:#9a6410; --cal-fill:#c8821e; --cal-soft:rgba(154,100,16,.14); --cal-glow:rgba(200,130,30,.30);
+  /* Status (text ≥4.5:1) */
+  --success:#2f6f54; --success-bg:rgba(47,111,84,.16);
+  --warning:#9a6410; --warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;  --danger-bg:rgba(168,56,56,.14);
+  --info:#2f6595;    --info-bg:rgba(47,101,149,.14);
+  --conflict:#b3354f;
+  /* Resurs/källa-rails (mörkade för 3:1 mot ytor) */
+  --rail-fazli:#6b31c9; --rail-egzona:#8a5f1e; --rail-contact:#1f7e8e; --rail-info:#6d6354;
+  /* Form/fel */
+  --error-text:#962b2b; --error-border:#d8526b; --error-bg:#fdecec;
+  /* Elevation / radius */
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);
+  --sh-md:0 3px 10px rgba(56,40,28,.08), inset 0 1px 0 rgba(255,255,255,.86);
+  --sh-lg:0 10px 26px rgba(56,40,28,.14), inset 0 1px 0 rgba(255,255,255,.92);
+  --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:24px; --r-pill:999px;
+  /* Fluid type */
+  --fs-kicker:.6875rem; --fs-meta:.75rem; --fs-body:.875rem;
+  --fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.9rem);
+  /* Tids-rutnät: timhöjd fluid; hours 7..19 */
+  --hour-h:clamp(3rem, 2.4rem + 1.2vw, 4.5rem);     /* 48–72px */
+  --grid-start:7; --grid-end:19;                     /* 12 timmar */
+  --tap:2.75rem;
+  --gap:clamp(.5rem,.4rem+.5vw,.85rem);
+  --pad-x:clamp(.875rem,.5rem+1.6vw,1.4rem);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;-webkit-text-size-adjust:100%;overflow-x:clip}
+html,body{margin:0;padding:0;max-width:100%}
+body{
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(255,225,200,.40), transparent 38%),
+    radial-gradient(ellipse at 88% 4%, rgba(255,210,225,.30), transparent 42%),
+    var(--bg-page);
+  color:var(--text-primary);
+  font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;
+  font-size:var(--fs-body); line-height:1.45; min-height:100vh; overflow-x:hidden;
+}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* ===== APP-SKELETT — trippelzon ===== */
+.app{display:grid; grid-template-columns:1fr; grid-template-areas:"main"; min-height:100vh; max-width:1500px; margin-inline:auto}
+.z-rail{grid-area:rail; display:none}
+.z-main{grid-area:main; min-width:0; display:flex; flex-direction:column}
+.z-detail{grid-area:detail; min-width:0}
+
+/* ===== TOP-BAR ===== */
+.topbar{position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:var(--gap);
+  padding:.5rem var(--pad-x); padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent); backdrop-filter:blur(18px)}
+.brand{flex-shrink:0; font-weight:800; letter-spacing:.08em; padding:.4rem .7rem; border-radius:var(--r-pill);
+  background:linear-gradient(180deg,#fdeef4,#f6cfdc); color:var(--accent); box-shadow:inset 0 1px 0 rgba(255,255,255,.95)}
+.topbar h1{font-size:var(--fs-h1); margin:0; font-weight:800; letter-spacing:-.02em; flex:1; min-width:0}
+.topbar .sub{font-size:var(--fs-meta); color:var(--text-secondary); font-weight:600; white-space:nowrap}
+.icon-btn{flex-shrink:0; width:var(--tap); height:var(--tap); border-radius:var(--r-md); background:rgba(255,255,255,.7);
+  border:1px solid rgba(180,165,150,.35); box-shadow:var(--sh-sm); display:inline-flex; align-items:center; justify-content:center; color:var(--text-primary); cursor:pointer}
+.icon-btn svg{width:1.1rem; height:1.1rem}
+
+/* ===== HEAD: kicker + status ===== */
+.head{padding:.6rem var(--pad-x) .2rem}
+.kicker{display:inline-flex; align-items:center; gap:.4rem; color:var(--text-tertiary); font-size:var(--fs-kicker); font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:.25rem}
+.kicker .mark{width:1.15rem; height:1.15rem; border-radius:6px; background:var(--cal-soft); color:var(--cal); display:inline-flex; align-items:center; justify-content:center}
+.kicker .mark svg{width:.7rem; height:.7rem}
+.status-row{display:flex; gap:.4rem; margin-top:.5rem; overflow-x:auto; scrollbar-width:none; padding-bottom:.25rem}
+.status-row::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0; display:inline-flex; align-items:center; gap:.35rem; white-space:nowrap; padding:.35rem .65rem; border-radius:var(--r-pill);
+  border:1px solid rgba(180,165,150,.3); background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(244,238,232,.86));
+  font-size:var(--fs-meta); font-weight:700; box-shadow:var(--sh-sm); color:var(--text-secondary)}
+.pill .dot{width:.4rem; height:.4rem; border-radius:999px}
+.pill--success{color:var(--success)} .pill--success .dot{background:var(--success)}
+.pill--warning{color:var(--warning)} .pill--warning .dot{background:var(--warning)}
+.pill--info{color:var(--info)} .pill--info .dot{background:var(--info)}
+.pill--conflict{color:var(--conflict)} .pill--conflict .dot{background:var(--conflict)}
+.pill--week{background:linear-gradient(180deg,#fff3e0,#ffe6bf); color:var(--cal); border-color:rgba(154,100,16,.3)}
+
+/* ===== VY-VÄXLARE (segment) ===== */
+.cmd{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; padding:.6rem var(--pad-x) .3rem}
+.seg{display:inline-flex; padding:.2rem; gap:.15rem; border-radius:var(--r-md); background:rgba(255,255,255,.6); box-shadow:inset 0 1px 2px rgba(56,40,28,.06)}
+.seg button{min-height:2.25rem; padding:0 .8rem; border:0; cursor:pointer; border-radius:var(--r-sm); background:transparent; color:var(--text-secondary); font-size:var(--fs-meta); font-weight:700}
+.seg button[aria-pressed="true"]{background:linear-gradient(180deg,#fff,#f4eee8); color:var(--text-primary); box-shadow:var(--sh-sm)}
+.cmd-spacer{flex:1}
+.daynav{display:inline-flex; gap:.25rem}
+.daynav button{min-width:2.25rem; min-height:2.25rem; border-radius:var(--r-sm); border:1px solid rgba(180,165,150,.3); background:rgba(255,255,255,.7); cursor:pointer; color:var(--text-primary); font-weight:800}
+
+/* ===== DAYSWIPE (vecko-strip, mobil/iPad) ===== */
+.dayswipe{display:flex; gap:.4rem; overflow-x:auto; scrollbar-width:none; padding:.5rem var(--pad-x) .5rem}
+.dayswipe::-webkit-scrollbar{display:none}
+.dayswipe-day{flex:0 0 auto; min-width:3rem; min-height:var(--tap); cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:.05rem;
+  padding:.4rem .5rem; border-radius:var(--r-md); border:1px solid rgba(180,165,150,.25); background:rgba(255,255,255,.6)}
+.dayswipe-day.is-active{background:linear-gradient(180deg,#fff3e0,#ffe6bf); border-color:rgba(154,100,16,.35); box-shadow:var(--sh-sm)}
+.dayswipe-vibe{font-size:.9rem; line-height:1}
+.dayswipe-label{font-size:var(--fs-kicker); font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-tertiary)}
+.dayswipe-date{font-size:1rem; font-weight:800; color:var(--text-primary)}
+.dayswipe-count{font-size:.625rem; font-weight:800; color:var(--cal)}
+.dayswipe-day.is-empty .dayswipe-count{color:var(--text-tertiary); opacity:.6}
+
+/* ===== STANDUP (morgon-brief) ===== */
+.standup{margin:.5rem var(--pad-x); padding:1rem; border-radius:var(--r-xl);
+  background:linear-gradient(180deg,rgba(255,247,235,.95),rgba(255,238,214,.85)); border:1px solid rgba(154,100,16,.22); box-shadow:var(--sh-md)}
+.standup h2{margin:0; font-size:1.05rem; font-weight:800}
+.standup h2 span{color:var(--cal)}
+.standup p{margin:.15rem 0 .75rem; font-size:var(--fs-meta); color:var(--text-secondary)}
+.standup-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:.5rem}
+.standup-stat{padding:.6rem .7rem; border-radius:var(--r-md); background:rgba(255,255,255,.7); border:1px solid rgba(180,165,150,.25)}
+.standup-stat .k{font-size:var(--fs-kicker); font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--text-tertiary)}
+.standup-stat .v{font-size:var(--fs-body); font-weight:800; margin-top:.1rem}
+.standup-quick{display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.75rem}
+.qpill{min-height:var(--tap); padding:0 .8rem; border-radius:var(--r-pill); border:1px solid rgba(180,165,150,.3); background:rgba(255,255,255,.8); font-size:var(--fs-meta); font-weight:700; cursor:pointer; color:var(--text-secondary)}
+.qpill--ai{background:linear-gradient(180deg,#fff3e0,#ffe6bf); color:var(--cal); border-color:rgba(154,100,16,.3)}
+
+/* ===== TIDS-RUTNÄT (dag + vecka delar mekanik) ===== */
+.gridwrap{flex:1; min-height:0; overflow:auto; padding:0 var(--pad-x) 6rem}
+.timegrid{
+  position:relative; display:grid;
+  grid-template-columns:2.5rem 1fr;           /* gutter + 1 dag (mobil) */
+  --rows: calc(var(--grid-end) - var(--grid-start));
+}
+.timegrid[data-cols="7"]{grid-template-columns:2.5rem repeat(7,1fr)}
+/* tim-rader (bakgrundslinjer + etiketter) */
+.hours{grid-column:1/-1; display:grid; position:relative}
+.hour{height:var(--hour-h); position:relative}
+.hour::after{content:""; position:absolute; left:2.5rem; right:0; top:0; height:1px; background:rgba(132,117,107,.1)}
+.hour .hl{position:absolute; left:0; top:-.45rem; width:2.2rem; text-align:right; font-size:var(--fs-kicker); font-weight:700; color:var(--text-tertiary)}
+/* dag-kolumner (events-lager ovanpå timrutnätet) */
+.cols{position:absolute; left:2.5rem; right:0; top:0; bottom:0; display:grid; grid-auto-flow:column; grid-auto-columns:1fr; pointer-events:none}
+.daycol{position:relative; border-left:1px solid rgba(132,117,107,.08)}
+.daycol-head{display:none}
+.timegrid[data-cols="7"] .daycol-head{display:flex; flex-direction:column; align-items:center; gap:.05rem; position:sticky; top:0; z-index:6;
+  padding:.35rem 0; background:rgba(250,246,242,.96); backdrop-filter:blur(8px); box-shadow:inset 0 -1px 0 rgba(180,165,150,.25); pointer-events:auto}
+.timegrid[data-cols="7"] .daycol-head.is-today{color:var(--cal)}
+.daycol-head .dl{font-size:var(--fs-kicker); font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--text-tertiary)}
+.daycol-head .dn{font-size:var(--fs-body); font-weight:800}
+
+/* boknings-block */
+.booking{position:absolute; left:.2rem; right:.2rem; pointer-events:auto; cursor:pointer; overflow:hidden;
+  padding:.4rem .5rem .4rem 2.1rem; border-radius:var(--r-md);
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));
+  border:1px solid rgba(180,165,150,.3); box-shadow:var(--sh-md); z-index:2; transition:transform .12s ease, box-shadow .12s ease}
+.booking:hover{box-shadow:var(--sh-lg); z-index:4}
+.booking:active{transform:scale(.99)}
+.booking .av{position:absolute; left:.45rem; top:.45rem; width:1.5rem; height:1.5rem; border-radius:999px; display:inline-flex; align-items:center; justify-content:center;
+  font-size:.625rem; font-weight:800; color:#fff; box-shadow:0 0 0 2px #fff, 0 0 0 3px var(--rail,var(--rail-info))}
+.booking[data-source="contact"]{--rail:var(--rail-contact)} .booking[data-source="info"]{--rail:var(--rail-info)}
+.booking[data-source="fazli"]{--rail:var(--rail-fazli)} .booking[data-source="egzona"]{--rail:var(--rail-egzona)}
+.booking::after{content:""; position:absolute; top:.45rem; right:.45rem; width:.45rem; height:.45rem; border-radius:999px; background:var(--st,var(--success)); box-shadow:0 0 0 2px #fff}
+.booking[data-status="confirmed"]{--st:var(--success); background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(235,246,240,.84))}
+.booking[data-status="tentative"]{--st:var(--warning); background:linear-gradient(180deg,rgba(255,253,247,.96),rgba(255,243,221,.84)); border-color:rgba(154,100,16,.3)}
+.booking[data-status="followup"]{--st:var(--info); background:linear-gradient(180deg,rgba(248,252,255,.96),rgba(228,240,250,.84))}
+.booking[data-status="cancelled"]{opacity:.5}
+.booking.conflict{box-shadow:0 0 0 2px var(--conflict), var(--sh-md)}
+.b-time{font-size:var(--fs-kicker); font-weight:700; color:var(--text-tertiary)}
+.b-title{font-size:var(--fs-meta); font-weight:800; color:var(--text-primary); line-height:1.2; margin-top:.1rem}
+.b-sub{font-size:var(--fs-kicker); color:var(--text-secondary); margin-top:.05rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.timegrid[data-cols="7"] .booking{padding:.3rem .35rem .3rem .4rem}
+.timegrid[data-cols="7"] .booking .av{display:none}
+.timegrid[data-cols="7"] .b-sub{display:none}
+
+/* NU-linje */
+.nowline{position:absolute; left:2.3rem; right:0; height:2px; background:linear-gradient(90deg,var(--cal-fill),#e8a04e); box-shadow:0 0 10px var(--cal-glow); border-radius:999px; z-index:5; pointer-events:none}
+.nowline::before{content:""; position:absolute; left:-.3rem; top:-.25rem; width:.6rem; height:.6rem; border-radius:999px; background:var(--cal-fill); box-shadow:0 0 8px var(--cal-glow)}
+
+/* lunch */
+.lunch{position:absolute; left:.2rem; right:.2rem; border-radius:var(--r-sm); z-index:1; display:flex; align-items:center; padding:0 .6rem; font-size:var(--fs-kicker); font-weight:700; color:var(--text-tertiary);
+  background:repeating-linear-gradient(135deg,rgba(132,117,107,.08),rgba(132,117,107,.08) 4px,transparent 4px,transparent 9px),rgba(245,239,230,.7); border:1px dashed rgba(132,117,107,.22)}
+
+/* ===== AGENDA (Lista-vy) ===== */
+.agenda{padding:.5rem var(--pad-x) 6rem; display:flex; flex-direction:column; gap:.5rem}
+.agenda-item{display:flex; gap:.7rem; align-items:center; padding:.7rem .8rem; border-radius:var(--r-md); background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86)); border:1px solid rgba(180,165,150,.25); box-shadow:var(--sh-sm); cursor:pointer; position:relative}
+.agenda-item::before{content:""; position:absolute; left:.4rem; top:.7rem; bottom:.7rem; width:3px; border-radius:2px; background:var(--rail,var(--rail-info))}
+.agenda-item[data-source="contact"]{--rail:var(--rail-contact)} .agenda-item[data-source="fazli"]{--rail:var(--rail-fazli)} .agenda-item[data-source="egzona"]{--rail:var(--rail-egzona)} .agenda-item[data-source="info"]{--rail:var(--rail-info)}
+.agenda-time{flex-shrink:0; width:3.2rem; padding-left:.6rem; font-size:var(--fs-meta); font-weight:800; color:var(--text-primary)}
+.agenda-body{flex:1; min-width:0}
+.agenda-title{font-size:var(--fs-meta); font-weight:800}
+.agenda-sub{font-size:var(--fs-kicker); color:var(--text-secondary)}
+
+/* ===== FAB + bottom-nav ===== */
+.botnav{position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:center; justify-content:space-around; gap:.25rem;
+  padding:.5rem .75rem calc(.5rem + var(--safe-bottom)); background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%); backdrop-filter:blur(20px)}
+.nav-i{flex:1; min-height:var(--tap); border:0; background:transparent; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:.1rem; color:var(--text-tertiary); font-size:var(--fs-kicker); font-weight:700; letter-spacing:.04em; text-transform:uppercase}
+.nav-i svg{width:1.35rem; height:1.35rem}
+.nav-i.is-active{color:var(--accent)}
+.nav-fab{width:3.4rem; height:3.4rem; min-width:3.4rem; border-radius:999px; border:0; cursor:pointer; margin:-1.3rem .25rem 0; display:inline-flex; align-items:center; justify-content:center; color:#fff; background:linear-gradient(180deg,#c98a3f,#9a6410); box-shadow:0 8px 22px rgba(154,100,16,.32), 0 0 0 4px rgba(250,246,242,.92)}
+.nav-fab svg{width:1.45rem; height:1.45rem}
+
+/* ===== DETALJ-SHEET / DRAWER / PANEL ===== */
+.backdrop{position:fixed; inset:0; background:rgba(30,24,18,.42); backdrop-filter:blur(4px); opacity:0; pointer-events:none; z-index:200; transition:opacity .25s}
+.backdrop.show{opacity:1; pointer-events:auto}
+.sheet{position:fixed; left:0; right:0; bottom:0; height:auto; max-height:88vh; z-index:210; display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(244,238,233,.93)); backdrop-filter:blur(20px); border-radius:var(--r-xl) var(--r-xl) 0 0;
+  box-shadow:0 -24px 60px rgba(56,40,28,.22); transform:translateY(101%); transition:transform .42s cubic-bezier(.34,1.3,.64,1)}
+.sheet.show{transform:translateY(0)}
+.sheet-handle{width:2.5rem; height:.25rem; border-radius:999px; background:rgba(132,117,107,.4); margin:.5rem auto .25rem; flex-shrink:0}
+.sheet-body{padding:.5rem var(--pad-x) 1.2rem; overflow-y:auto}
+.sheet-head{display:flex; gap:.75rem; align-items:flex-start}
+.sheet-av{flex-shrink:0; width:3rem; height:3rem; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:800; box-shadow:0 0 0 2px #fff,0 0 0 3px var(--rail,var(--rail-info))}
+.sheet-name{font-size:1.05rem; font-weight:800}
+.sheet-meta{font-size:var(--fs-meta); color:var(--text-secondary); margin-top:.1rem}
+.sheet-close{flex-shrink:0; width:var(--tap); height:var(--tap); border-radius:999px; border:0; cursor:pointer; background:rgba(255,255,255,.6); color:var(--text-tertiary); font-size:1.2rem}
+.sheet-sec{font-size:var(--fs-kicker); font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--text-tertiary); margin:.9rem 0 .4rem}
+.sheet-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:.4rem}
+.sheet-cell{padding:.55rem .65rem; border-radius:var(--r-md); background:rgba(255,255,255,.75); border:1px solid rgba(180,165,150,.25)}
+.sheet-cell .k{font-size:var(--fs-kicker); font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary)}
+.sheet-cell .v{font-size:var(--fs-meta); font-weight:700; margin-top:.1rem}
+.sheet-ai{padding:.7rem .8rem; border-radius:var(--r-md); background:linear-gradient(180deg,#fff3e0,rgba(255,228,200,.7)); border-left:3px solid var(--cal); font-size:var(--fs-meta); margin-top:.6rem; color:var(--text-secondary)}
+.sheet-ai b{color:var(--cal)}
+.sheet-cta{display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-top:.8rem}
+.cta{min-height:var(--tap); border:0; cursor:pointer; border-radius:var(--r-md); font-size:var(--fs-meta); font-weight:800; display:inline-flex; align-items:center; justify-content:center; gap:.3rem}
+.cta.primary{background:var(--accent); color:#fff}
+.cta.ghost{background:rgba(255,255,255,.7); color:var(--text-primary); border:1px solid rgba(180,165,150,.3)}
+.empty-detail{display:none}
+
+/* mini-månad (rail) */
+.mini{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-top:.4rem}
+.mini .d{aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:var(--fs-kicker); font-weight:700; color:var(--text-secondary); border-radius:7px; cursor:pointer}
+.mini .d.dim{color:var(--text-tertiary); opacity:.45}
+.mini .d.today{background:var(--cal); color:#fff}
+.mini .d.has::after{content:""; width:3px; height:3px; border-radius:9px; background:var(--cal); position:absolute; margin-top:1.1rem}
+.mini-head{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-top:.6rem}
+.mini-head span{text-align:center; font-size:.6rem; font-weight:800; color:var(--text-tertiary); text-transform:uppercase}
+
+/* ===== TOUCH-MÅL ≥44 på touch (mobil+iPad) ===== */
+@media (pointer:coarse){
+  .seg button,.daynav button,.qpill{min-height:var(--tap)}
+}
+
+/* ========================= RESPONSIV REFLOW ========================= */
+/* iPad 601–1024 : dag-tidslinje + höger-rail (mini-månad/agenda), drawer-detalj */
+@media (min-width:601px){
+  .status-row{flex-wrap:wrap; overflow:visible}
+  .standup-grid{grid-template-columns:repeat(4,1fr)}
+  .sheet{left:auto; right:0; top:0; bottom:0; height:100vh; max-height:none; width:min(26rem,80vw);
+    border-radius:var(--r-xl) 0 0 var(--r-xl); transform:translateX(101%); box-shadow:-24px 0 60px rgba(56,40,28,.22)}
+  .sheet.show{transform:translateX(0)}
+  .sheet-handle{display:none}
+}
+
+/* Desktop ≥1025 : vänster-rail | vecko-rutnät | höger-detalj */
+@media (min-width:1025px){
+  .app{grid-template-columns:16rem minmax(0,1fr) 25rem; grid-template-areas:"rail main detail"; height:100vh}
+  .z-rail{display:flex; flex-direction:column; gap:.3rem; padding:1rem .8rem; background:var(--bg-rail); box-shadow:inset -1px 0 0 rgba(180,165,150,.25); overflow-y:auto}
+  .z-main{height:100vh; overflow:hidden}
+  .z-detail{height:100vh; overflow:hidden; background:var(--bg-rail); box-shadow:inset 1px 0 0 rgba(180,165,150,.25); display:flex; flex-direction:column}
+  .botnav{display:none}
+  .dayswipe{display:none}                  /* veckans header sitter i rutnätet */
+  .backdrop{display:none}
+  .sheet{position:static; transform:none!important; height:100%; width:auto; max-height:none; border-radius:0; box-shadow:none; background:transparent}
+  .sheet:not(.show){display:none}
+  .z-detail:not(.has-booking) .empty-detail{display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:2rem; text-align:center; color:var(--text-tertiary); gap:.5rem}
+  .rail-brand{font-weight:800; letter-spacing:.08em; color:var(--accent); padding:.2rem .6rem .6rem}
+  .rail-sec{font-size:var(--fs-kicker); font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--text-tertiary); margin:.8rem .6rem .3rem}
+  .rail-nav{min-height:var(--tap); display:flex; align-items:center; gap:.6rem; padding:0 .7rem; border-radius:var(--r-md); cursor:pointer; color:var(--text-secondary); font-weight:700; font-size:var(--fs-meta); border:0; background:transparent; text-align:left}
+  .rail-nav.is-active{background:var(--cal-soft); color:var(--cal)}
+  .rail-nav svg{width:1.1rem; height:1.1rem; flex-shrink:0}
+  .res{display:flex; align-items:center; gap:.5rem; padding:.35rem .6rem; font-size:var(--fs-meta); font-weight:700; color:var(--text-secondary)}
+  .res .swatch{width:.8rem; height:.8rem; border-radius:4px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app" data-view="day">
+
+  <!-- ===== RAIL (desktop) ===== -->
+  <aside class="z-rail">
+    <div class="rail-brand">CCO</div>
+    <div class="rail-sec">Arbetsyta</div>
+    <button class="rail-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16v14H4z"/><path d="M4 7l8 6 8-6"/></svg>Inkorg</button>
+    <button class="rail-nav is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Kalender</button>
+    <button class="rail-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>Kunder</button>
+    <div class="rail-sec">Maj 2025</div>
+    <div class="mini-head"><span>M</span><span>T</span><span>O</span><span>T</span><span>F</span><span>L</span><span>S</span></div>
+    <div class="mini" id="mini"></div>
+    <div class="rail-sec">Resurser</div>
+    <div class="res"><span class="swatch" style="background:var(--rail-egzona)"></span>Egzona</div>
+    <div class="res"><span class="swatch" style="background:var(--rail-fazli)"></span>Dr. Arya</div>
+    <div class="res"><span class="swatch" style="background:var(--rail-contact)"></span>Clara</div>
+    <div class="rail-sec">Status</div>
+    <div class="res"><span class="swatch" style="background:var(--success)"></span>Bekräftad</div>
+    <div class="res"><span class="swatch" style="background:var(--warning)"></span>Tentativ</div>
+    <div class="res"><span class="swatch" style="background:var(--conflict)"></span>Konflikt</div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <main class="z-main">
+    <div class="topbar">
+      <span class="brand">CCO</span>
+      <h1 id="periodTitle">Tor 28 maj</h1>
+      <span class="sub" id="periodSub">v.22 · 🔆</span>
+      <button class="icon-btn" id="voiceBtn" aria-label="Röst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+    </div>
+
+    <div class="head">
+      <div class="kicker"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></span>Kalender</div>
+      <div class="status-row">
+        <span class="pill pill--week">Vecka <b class="tabnum">22</b></span>
+        <span class="pill pill--success"><span class="dot"></span>8 bekräftade</span>
+        <span class="pill pill--warning"><span class="dot"></span>2 tentativa</span>
+        <span class="pill pill--conflict"><span class="dot"></span>1 konflikt</span>
+        <span class="pill pill--info"><span class="dot"></span>3 återbesök</span>
+      </div>
+    </div>
+
+    <div class="cmd">
+      <div class="seg" role="group" aria-label="Vy">
+        <button data-view="day" aria-pressed="true">Dag</button>
+        <button data-view="week" aria-pressed="false">Vecka</button>
+        <button data-view="agenda" aria-pressed="false">Lista</button>
+      </div>
+      <div class="cmd-spacer"></div>
+      <div class="daynav"><button id="prev" aria-label="Föregående">‹</button><button id="today">Idag</button><button id="next" aria-label="Nästa">›</button></div>
+    </div>
+
+    <div class="dayswipe" id="dayswipe"></div>
+
+    <div class="gridwrap" id="gridwrap">
+      <div class="timegrid" id="timegrid" data-cols="1">
+        <div class="hours" id="hours"></div>
+        <div class="cols" id="cols"></div>
+      </div>
+      <div class="agenda" id="agenda" hidden></div>
+    </div>
+  </main>
+
+  <!-- ===== DETALJ ===== -->
+  <section class="z-detail" id="detailZone">
+    <div class="empty-detail">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
+      <div style="font-weight:700">Välj en bokning</div><div style="font-size:var(--fs-meta)">Detaljerna visas här</div>
+    </div>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Boknings-detalj">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body" id="sheetBody"></div>
+    </div>
+  </section>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+
+<nav class="botnav">
+  <button class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16v14H4z"/><path d="M4 7l8 6 8-6"/></svg>Inkorg</button>
+  <button class="nav-i is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Kalender</button>
+  <button class="nav-fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+  <button class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>Kunder</button>
+  <button class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>Mer</button>
+</nav>
+
+<script>
+const DAYS=['Mån','Tis','Ons','Tor','Fre','Lör','Sön'];
+const DATES=[25,26,27,28,29,30,31];
+const VIBES=['☀️','🌤️','⛅','🔆','🌧️','🌫️','🌙'];
+const GRID_START=7, GRID_END=19;
+const T=(h,m)=>h*60+(m||0);
+// Bokningar för veckan (day 0=Mån..6=Sön)
+const BOOKINGS=[
+  {day:0, s:T(8,0),  e:T(8,45),  init:'AK', cust:'Anna Karlsson', treat:'PRP för hår', source:'contact', status:'confirmed', res:'Egzona', ai:'Friskförsäkran saknas inför besöket'},
+  {day:0, s:T(10,0), e:T(11,0),  init:'MB', cust:'Marcus Berg', treat:'Konsultation', source:'info', status:'confirmed', res:'Clara'},
+  {day:0, s:T(13,0), e:T(14,30), init:'EJ', cust:'Eva Johansson', treat:'Microneedling', source:'egzona', status:'tentative', res:'Egzona'},
+  {day:1, s:T(9,0),  e:T(9,30),  init:'SA', cust:'Sofie Andersson', treat:'Återbesök', source:'info', status:'followup', res:'Clara'},
+  {day:1, s:T(11,0), e:T(13,0),  init:'KL', cust:'Karl Lindberg', treat:'DHI ögonbryn', source:'fazli', status:'confirmed', res:'Dr. Arya'},
+  {day:1, s:T(15,0), e:T(15,45), init:'EK', cust:'Eva Karlsson', treat:'Konsultation', source:'egzona', status:'tentative', res:'Egzona', ai:'No-show ×3 — begär deposition'},
+  {day:2, s:T(8,30), e:T(9,30),  init:'AL', cust:'Anna Larsson', treat:'PRP 4/6', source:'fazli', status:'confirmed', res:'Egzona'},
+  {day:2, s:T(12,0), e:T(13,0),  init:'EN', cust:'Erik Nordström', treat:'PRP 5/6', source:'contact', status:'confirmed', res:'Egzona'},
+  {day:3, s:T(8,0),  e:T(8,45),  init:'AK', cust:'Anna Karlsson', treat:'PRP för hår', source:'contact', status:'confirmed', res:'Egzona', ai:'Friskförsäkran saknas inför imorgon'},
+  {day:3, s:T(9,0),  e:T(13,0),  init:'KL', cust:'Karl Lindberg', treat:'DHI ögonbryn', source:'fazli', status:'confirmed', res:'Dr. Arya'},
+  {day:3, s:T(14,30),e:T(15,15), init:'EK', cust:'Eva Karlsson', treat:'Konsultation', source:'egzona', status:'tentative', res:'Egzona'},
+  {day:3, s:T(14,30),e:T(15,30), init:'SP', cust:'Sara Pålsson', treat:'Uppföljning', source:'info', status:'followup', res:'Clara'},
+  {day:3, s:T(16,0), e:T(16,30), init:'JS', cust:'Johan Svensson', treat:'Återbesök', source:'info', status:'followup', res:'Clara'},
+  {day:4, s:T(9,0),  e:T(10,0),  init:'MB', cust:'Marcus Berg', treat:'PRP-paus', source:'info', status:'confirmed', res:'Egzona'},
+  {day:4, s:T(10,30),e:T(12,0),  init:'EN', cust:'Erik Nordström', treat:'DHI konsultation', source:'fazli', status:'tentative', res:'Dr. Arya'},
+  {day:4, s:T(13,0), e:T(13,45), init:'SA', cust:'Sofie Andersson', treat:'Microneedling', source:'contact', status:'confirmed', res:'Egzona'},
+];
+const LUNCH={s:T(12,0), e:T(13,0)};   // visas i dag-vyn
+
+const app=document.getElementById('app');
+const timegrid=document.getElementById('timegrid');
+const hoursEl=document.getElementById('hours');
+const colsEl=document.getElementById('cols');
+const agendaEl=document.getElementById('agenda');
+const sheet=document.getElementById('sheet'); const sheetBody=document.getElementById('sheetBody');
+const detailZone=document.getElementById('detailZone'); const backdrop=document.getElementById('backdrop');
+let view='day', activeDay=3;
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const fmt=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const minToTop=m=>`calc(${(m-GRID_START*60)/60} * var(--hour-h))`;
+const durToH =d=>`calc(${d/60} * var(--hour-h))`;
+
+function buildHours(){
+  let h='';
+  for(let hr=GRID_START; hr<GRID_END; hr++){
+    h+=`<div class="hour"><span class="hl tabnum">${hr}</span></div>`;
+  }
+  hoursEl.innerHTML=h;
+}
+// Konfliktdetektering inom samma dag+resurs
+function markConflicts(items){
+  items.forEach(a=>a.conflict=items.some(b=>b!==a && b.day===a.day && b.res===a.res && a.s<b.e && b.s<a.e));
+}
+markConflicts(BOOKINGS);
+
+function bookingHtml(b){
+  return `<div class="booking conflict-${b.conflict}" data-id="${b.day}-${b.s}" data-source="${b.source}" data-status="${b.status}"
+      style="top:${minToTop(b.s)}; height:${durToH(b.e-b.s)}" tabindex="0" role="button" aria-label="${esc(b.cust)} ${fmt(b.s)}">
+      <span class="av">${esc(b.init)}</span>
+      <div class="b-time tabnum">${fmt(b.s)}–${fmt(b.e)}</div>
+      <div class="b-title">${esc(b.treat)}</div>
+      <div class="b-sub">${esc(b.cust)} · ${esc(b.res)}</div>
+    </div>`.replace('conflict-true','conflict').replace('conflict-false','');
+}
+
+function renderGrid(){
+  buildHours();
+  const cols = view==='week' ? 7 : 1;
+  timegrid.dataset.cols=cols;
+  let html='';
+  for(let d=0; d<cols; d++){
+    const dayIdx = cols===7 ? d : activeDay;
+    const items = BOOKINGS.filter(b=>b.day===dayIdx);
+    let inner = `<div class="daycol-head${dayIdx===3?' is-today':''}"><span class="dl">${DAYS[dayIdx]}</span><span class="dn">${DATES[dayIdx]}</span></div>`;
+    if(cols===1){
+      inner += `<div class="lunch" style="top:${minToTop(LUNCH.s)};height:${durToH(LUNCH.e-LUNCH.s)}">🍽 Lunch</div>`;
+      inner += `<div class="nowline" style="top:${minToTop(T(13,12))}"></div>`;
+    }
+    inner += items.map(bookingHtml).join('');
+    html += `<div class="daycol" data-day="${dayIdx}">${inner}</div>`;
+  }
+  colsEl.innerHTML=html;
+  // höjd så hela rutnätet får plats
+  timegrid.style.minHeight = `calc(${GRID_END-GRID_START} * var(--hour-h) + 1rem)`;
+}
+
+function renderAgenda(){
+  const items=[...BOOKINGS].filter(b=>view==='agenda'? b.day===activeDay : true).sort((a,b)=>a.s-b.s);
+  agendaEl.innerHTML = items.map(b=>`
+    <div class="agenda-item" data-id="${b.day}-${b.s}" data-source="${b.source}" role="button" tabindex="0">
+      <div class="agenda-time tabnum">${fmt(b.s)}</div>
+      <div class="agenda-body"><div class="agenda-title">${esc(b.treat)}</div><div class="agenda-sub">${esc(b.cust)} · ${esc(b.res)} · ${esc(b.status)}</div></div>
+    </div>`).join('') || `<div style="text-align:center;color:var(--text-tertiary);padding:2rem;font-style:italic">Inga bokningar.</div>`;
+}
+
+function renderDayswipe(){
+  const ds=document.getElementById('dayswipe');
+  ds.innerHTML = DAYS.map((d,i)=>{
+    const n=BOOKINGS.filter(b=>b.day===i).length;
+    return `<button class="dayswipe-day${i===activeDay?' is-active':''}${n===0?' is-empty':''}" data-day="${i}">
+      <span class="dayswipe-vibe">${VIBES[i]}</span><span class="dayswipe-label">${d}</span>
+      <span class="dayswipe-date">${DATES[i]}</span><span class="dayswipe-count">${n}</span></button>`;
+  }).join('');
+}
+
+function renderMini(){
+  const mini=document.getElementById('mini'); if(!mini) return;
+  let h=''; const offset=3; // 1 maj = torsdag-ish demo
+  for(let i=0;i<35;i++){ const date=i-offset+1; const inMonth=date>=1&&date<=31;
+    const isWeekday = (date>=25&&date<=29);
+    h+=`<div class="d${inMonth?'':' dim'}${date===28?' today':''}${isWeekday?' has':''}" style="position:relative">${inMonth?date:''}</div>`; }
+  mini.innerHTML=h;
+}
+
+function openBooking(id){
+  const b=BOOKINGS.find(x=>`${x.day}-${x.s}`===id); if(!b) return;
+  sheetBody.innerHTML=`<div class="sheet-head">
+      <span class="sheet-av" data-rail style="--rail:var(--rail-${b.source}); background:linear-gradient(180deg,#d8c1f0,#b48ad6)">${esc(b.init)}</span>
+      <div style="flex:1;min-width:0"><div class="sheet-name">${esc(b.cust)}</div><div class="sheet-meta tabnum">${fmt(b.s)}–${fmt(b.e)} · ${esc(b.res)}</div></div>
+      <button class="sheet-close" id="sClose" aria-label="Stäng">✕</button>
+    </div>
+    <div class="sheet-sec">Behandling</div>
+    <div class="sheet-grid">
+      <div class="sheet-cell"><div class="k">Typ</div><div class="v">${esc(b.treat)}</div></div>
+      <div class="sheet-cell"><div class="k">Status</div><div class="v">${esc(b.status)}</div></div>
+      <div class="sheet-cell"><div class="k">Resurs</div><div class="v">${esc(b.res)}</div></div>
+      <div class="sheet-cell"><div class="k">Källa</div><div class="v">${esc(b.source)}</div></div>
+    </div>
+    ${b.ai?`<div class="sheet-ai"><b>★ AI</b> ${esc(b.ai)}</div>`:''}
+    <div class="sheet-cta"><button class="cta primary">Bekräfta</button><button class="cta ghost">Öppna kund</button></div>`;
+  detailZone.classList.add('has-booking'); sheet.classList.add('show');
+  if(!matchMedia('(min-width:1025px)').matches) backdrop.classList.add('show');
+  sheetBody.querySelector('#sClose').addEventListener('click', closeBooking);
+}
+function closeBooking(){ sheet.classList.remove('show'); backdrop.classList.remove('show'); detailZone.classList.remove('has-booking'); }
+
+function setView(v){
+  view=v;
+  document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.view===v?'true':'false'));
+  app.dataset.view=v;
+  const showAgenda = v==='agenda';
+  timegrid.hidden=showAgenda; agendaEl.hidden=!showAgenda;
+  if(showAgenda) renderAgenda(); else renderGrid();
+  document.getElementById('periodTitle').textContent = v==='week'? 'Vecka 22' : `${DAYS[activeDay]} ${DATES[activeDay]} maj`;
+}
+
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+document.getElementById('gridwrap').addEventListener('click',e=>{
+  const bk=e.target.closest('.booking,.agenda-item'); if(bk) openBooking(bk.dataset.id);
+});
+document.getElementById('gridwrap').addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.dataset.id){e.preventDefault(); openBooking(e.target.dataset.id);} });
+document.getElementById('dayswipe').addEventListener('click',e=>{const d=e.target.closest('.dayswipe-day'); if(!d)return; activeDay=+d.dataset.day; renderDayswipe(); if(view!=='week') setView(view);});
+document.getElementById('next').addEventListener('click',()=>{activeDay=Math.min(6,activeDay+1); renderDayswipe(); setView(view);});
+document.getElementById('prev').addEventListener('click',()=>{activeDay=Math.max(0,activeDay-1); renderDayswipe(); setView(view);});
+document.getElementById('today').addEventListener('click',()=>{activeDay=3; renderDayswipe(); setView(view);});
+backdrop.addEventListener('click', closeBooking);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeBooking(); });
+
+// Init — desktop startar i vecka, mobil i dag
+renderDayswipe(); renderMini();
+setView(matchMedia('(min-width:1025px)').matches ? 'week' : 'day');
+</script>
+</body>
+</html>
