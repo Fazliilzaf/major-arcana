@@ -40030,13 +40030,21 @@
           );
         },
         action(name) {
-          // P0b: skrivande actions (Svarstudio/skicka/bokning) är inerta tills
-          // owner-GO (P2/P3). Visa bara en notis, ingen sido-effekt.
+          // P3: Smart anteckning + Bokningsyta + Kalender wirade mot befintliga
+          // ytor (note-overlay resp. v8-kalendern). Skrivande tråd-actions
+          // (t.ex. "Klar"/handled) förblir inerta tills de wiras separat.
+          const key = asText(name);
           try {
-            window.CCOPolish?.showToast?.(
-              "Aktiveras i nästa fas (" + asText(name) + ")",
-              "info"
-            );
+            if (key === "note") {
+              runtimeActionEngine?.openRuntimeNote?.()?.catch?.(() => {});
+              return;
+            }
+            if (key === "booking" || key === "calendar") {
+              // Återanvänder v8-kalendern (egen shell-vy ⇒ v2-skalet döljs rent).
+              setAppView("calendar");
+              return;
+            }
+            window.CCOPolish?.showToast?.("Aktiveras snart (" + key + ")", "info");
           } catch (_error) {
             /* tyst */
           }
