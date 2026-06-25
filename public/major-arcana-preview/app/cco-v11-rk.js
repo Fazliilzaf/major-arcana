@@ -87,13 +87,23 @@
       })
       .join('');
     var cur = journey && journey.cur;
+    // Kicker = [tier] · Aktiv steg N (facit: "VIP · Aktiv steg 8")
+    var tierTag = arr(card.tags)
+      .map(function (t) {
+        return txt(typeof t === 'string' ? t : t && (t.label || t.name));
+      })
+      .filter(function (l) {
+        return /vip/i.test(l);
+      })[0];
+    var tier = tierTag ? txt(tierTag).toUpperCase() : '';
+    var kickerText = cur ? (tier ? tier + ' · ' : '') + 'Aktiv steg ' + cur : tier || 'Kund';
     out +=
       '<div class="dhead" data-v9-section-link="profil"><div class="avatar">' +
       esc(initials(name)) +
       '</div>' +
       '<div class="head-body">' +
       '<div class="kicker">' +
-      esc(cur ? 'Aktiv steg ' + cur : 'Kund') +
+      esc(kickerText) +
       '</div>' +
       '<div class="name">' +
       esc(name) +
@@ -146,6 +156,43 @@
     /* V · AKTIVT BESÖK */
     if (av) {
       var ci = (txt(av.checkedInAt).match(/\d{2}:\d{2}/) || [''])[0];
+      var room = txt(av.room || av.roomLabel || av.practitionerRoom);
+      // av-preflight (3-kortsruta som facit): härled ok-kort ur hälsa + warn-kort ur blockers.
+      var pre = [];
+      if (health && health.signedAt) {
+        pre.push(
+          '<div class="av-pre ok"><div class="pre-icn">✓</div><div class="pre-title">Hälsodekl.</div><div class="pre-meta">Signerad ' +
+            esc(txt(health.signedAt)) +
+            '</div></div>'
+        );
+      }
+      var allergi = arr(health && health.answers).filter(function (a) {
+        return /allerg/i.test(txt(a.label || a.q));
+      })[0];
+      if (allergi) {
+        var danger = /ja|penicillin/i.test(txt(allergi.value));
+        pre.push(
+          '<div class="av-pre ' +
+            (danger ? 'warn' : 'ok') +
+            '"><div class="pre-icn">' +
+            (danger ? '!' : '✓') +
+            '</div><div class="pre-title">Allergier</div><div class="pre-meta">' +
+            esc(txt(allergi.value) || 'Granskat') +
+            '</div></div>'
+        );
+      }
+      arr(av.blockers).forEach(function (b) {
+        var lbl = txt(b && (b.label || b.title) ? b.label || b.title : b);
+        if (!lbl) return;
+        pre.push(
+          '<div class="av-pre warn"><div class="pre-icn">!</div><div class="pre-title">' +
+            esc(lbl) +
+            '</div><div class="pre-meta">Krävs idag</div><div class="pre-cta">Öppna →</div></div>'
+        );
+      });
+      var preHtml = pre.length
+        ? '<div class="av-preflight">' + pre.slice(0, 3).join('') + '</div>'
+        : '';
       out +=
         '<div class="active-visit"><div class="av-kicker"><div class="left"><span class="pulse"></span>' +
         esc(av.kicker || 'Aktivt besök · pågår') +
@@ -158,8 +205,14 @@
         '<div class="av-sub">' +
         esc(av.statusLine || '') +
         '</div></div>' +
-        (av.practitioner ? '<div class="av-staff">' + esc(av.practitioner) + '</div>' : '') +
+        (av.practitioner
+          ? '<div class="av-staff">' +
+            esc(av.practitioner) +
+            (room ? '<br><span class="room">' + esc(room) + '</span>' : '') +
+            '</div>'
+          : '') +
         '</div>' +
+        preHtml +
         (av.showTimeline
           ? '<div class="av-timeline"><div class="av-tnode done"><span class="dot"></span><span class="t">' +
             esc(ci || 'in') +
@@ -173,7 +226,13 @@
         esc((av.primary && av.primary.label) || 'Starta journal') +
         '</button>' +
         '<button class="av-btn sec" data-v11-active-visit-action="photo">📷</button>' +
-        '<button class="av-btn sec" data-v11-active-visit-action="notes">✏</button></div></div>';
+        '<button class="av-btn sec" data-v11-active-visit-action="notes">✏</button>' +
+        (av.secondary
+          ? '<button class="av-btn tert" data-v11-active-visit-action="' +
+            esc(av.secondary.action) +
+            '">✓</button>'
+          : '') +
+        '</div></div>';
     }
 
     /* D · KRITISKA VARNINGAR */
@@ -224,7 +283,7 @@
                 })
                 .join('')
             : '<div class="hd-row"><span class="hd-q">Inga registrerade svar</span></div>') +
-          '</div><div class="hd-foot"><a>Visa historik</a><a>Redigera svar</a></div>'
+          '</div><div class="hd-foot"><a>Visa historik</a><a>Redigera svar</a><a>Kopiera länk</a></div>'
       );
     }
 
@@ -369,6 +428,70 @@
       );
     }
 
+    /* K · OFFERTOR */
+    var offers = arr(
+      (bundle && (bundle.offers || (bundle.commercialCase && bundle.commercialCase.offers))) || []
+    );
+    out += secOpen(
+      'avtal',
+      'sec',
+      label('Offertor') +
+        (offers.length
+          ? offers
+              .slice(0, 4)
+              .map(function (o) {
+                var st = /accept/i.test(txt(o.status)) ? 'green' : 'warn';
+                return (
+                  '<div class="q-row"><div class="q-left"><span class="q-pill ' +
+                  (st === 'green' ? 'green' : 'gold') +
+                  '">' +
+                  esc(
+                    txt(o.kind || 'TP')
+                      .slice(0, 3)
+                      .toUpperCase()
+                  ) +
+                  '</span><div class="q-info"><div class="q-title">' +
+                  esc(txt(o.title || 'Offert')) +
+                  '</div><div class="q-meta">' +
+                  esc(txt(o.dateLabel || o.date || '')) +
+                  '</div></div></div>' +
+                  '<div><span class="q-amount">' +
+                  esc(txt(o.amount || '')) +
+                  '</span><br><span class="q-status ' +
+                  st +
+                  '">' +
+                  esc(txt(o.statusLabel || o.status || '')) +
+                  '</span></div></div>'
+                );
+              })
+              .join('')
+          : '<div class="next-row"><div class="what" style="color:var(--ink-mute)">Inga offerter ännu</div></div>')
+    );
+
+    /* L · AUTO-DOKUMENT */
+    var autodocs = arr(files && files.items ? files.items : files).filter(function (f) {
+      return /auto|bekräft|bekraft|mall|påminn|paminn/i.test(
+        txt(f.name || f.category || f.sourceSystem)
+      );
+    });
+    if (autodocs.length) {
+      out += secOpen(
+        'filer',
+        'sec',
+        label('Auto-dokument') +
+          autodocs
+            .slice(0, 4)
+            .map(function (f) {
+              return (
+                '<div class="j-row"><span class="j-mark done">✓</span><span class="j-name">' +
+                esc(txt(f.name || 'Dokument')) +
+                '</span><span class="j-status">Levererad</span></div>'
+              );
+            })
+            .join('')
+      );
+    }
+
     /* M · FOTON */
     var ph = arr(photos && photos.items ? photos.items : photos);
     if (ph.length) {
@@ -415,6 +538,29 @@
       );
     }
 
+    /* O · ANTECKNINGAR */
+    var notes = arr(ctx.journalEntries).filter(function (e) {
+      return /antecknin|note/i.test(txt(e.journalType || e.type)) || txt(e.note);
+    });
+    if (notes.length) {
+      out +=
+        '<div class="sec">' +
+        label('Anteckningar') +
+        notes
+          .slice(0, 3)
+          .map(function (e) {
+            return (
+              '<div class="note-row">' +
+              esc(txt(e.note || e.body || e.text || e.title)) +
+              '<div class="when">' +
+              esc(txt(e.dateLabel || e.date || '') + (e.author ? ' · ' + e.author : '')) +
+              '</div></div>'
+            );
+          })
+          .join('') +
+        '</div>';
+    }
+
     /* P · KOMMUNIKATION */
     var cm = arr(comm && comm.items ? comm.items : comm);
     if (cm.length) {
@@ -458,7 +604,8 @@
           '</div></div>' +
           '<div class="eko-cell"><div class="lbl">Skuld</div><div class="val">' +
           esc(debt) +
-          '</div></div></div>'
+          '</div></div></div>' +
+          '<div class="eko-graph">📈 Mini-graf · grön trend</div>'
       );
     }
 
