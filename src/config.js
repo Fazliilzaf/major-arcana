@@ -885,17 +885,6 @@ const config = {
   // Tom lista = alla jobb tillatna (bakatkompatibelt). Anvands for kontrollerat pa-slag vid lackjakt.
   schedulerJobsAllowlist: asStringArray(process.env.ARCANA_SCHEDULER_JOBS),
   graphReadEnabled: asBool(process.env.ARCANA_GRAPH_READ_ENABLED, false),
-  // GetAccept e-sign (utgående). Cred-gatat som Graph: inert utan API-token.
-  // getAcceptWebhookSecret användes redan av webhooken men SAKNADE config-slot
-  // (latent bugg — signaturverifieringen kunde aldrig lyckas). Nu inläst.
-  getAcceptEnabled: asBool(process.env.GETACCEPT_ENABLED, false),
-  getAcceptApiToken: (process.env.GETACCEPT_API_TOKEN || '').trim(),
-  getAcceptApiBaseUrl: (
-    process.env.GETACCEPT_API_BASE_URL || 'https://api.getaccept.com/v1'
-  ).trim(),
-  getAcceptWebhookSecret: (process.env.GETACCEPT_WEBHOOK_SECRET || '').trim(),
-  getAcceptSenderEmail: (process.env.GETACCEPT_SENDER_EMAIL || '').trim(),
-  getAcceptTimeoutMs: asInt(process.env.GETACCEPT_TIMEOUT_MS, 15000),
   schedulerReportWindowDays: asInt(process.env.ARCANA_SCHEDULER_REPORT_WINDOW_DAYS, 14),
   schedulerCcoWeeklyBriefIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_CCO_WEEKLY_BRIEF_INTERVAL_HOURS,
