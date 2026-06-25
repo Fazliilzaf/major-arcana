@@ -310,21 +310,21 @@
 
       function cardHtml(b) {
         return `
-    <div class="customer-card" data-id="${b.id}"${b.openSlot ? ' data-open-slot' : ''}>
+    <div class="customer-card" data-id="${bEsc(b.id)}"${b.openSlot ? ' data-open-slot' : ''}>
       <div class="cc-top">
-        <span class="cc-avatar" style="${b.bg ? 'background:' + b.bg : ''}">${b.init}</span>
+        <span class="cc-avatar" style="${b.bg ? 'background:' + bEsc(b.bg) : ''}">${bEsc(b.init)}</span>
         <div class="cc-meta">
-          <div class="cc-name">${b.customer}</div>
-          <div class="cc-sub">${b.service} · ${b.resource}</div>
+          <div class="cc-name">${bEsc(b.customer)}</div>
+          <div class="cc-sub">${bEsc(b.service)} · ${bEsc(b.resource)}</div>
         </div>
-        <span class="cc-status" data-state="${b.state}"><span class="dot"></span>${b.stateLabel}</span>
+        <span class="cc-status" data-state="${bEsc(b.state)}"><span class="dot"></span>${bEsc(b.stateLabel)}</span>
       </div>
-      ${b.tags.length ? `<div class="cc-tags">${b.tags.map((t) => `<span class="cc-tag cc-tag--${t.kind}">${t.label}</span>`).join('')}</div>` : ''}
+      ${b.tags.length ? `<div class="cc-tags">${b.tags.map((t) => `<span class="cc-tag cc-tag--${bEsc(t.kind)}">${bEsc(t.label)}</span>`).join('')}</div>` : ''}
       <div class="cc-stats">
-        <div class="cc-stat"><div class="cc-stat-label">Tid</div><div class="cc-stat-value">${b.time}</div><div class="cc-stat-trend">${b.dur}</div></div>
-        <div class="cc-stat"><div class="cc-stat-label">Resurs</div><div class="cc-stat-value">${b.resource}</div><div class="cc-stat-trend">${b.service}</div></div>
+        <div class="cc-stat"><div class="cc-stat-label">Tid</div><div class="cc-stat-value">${bEsc(b.time)}</div><div class="cc-stat-trend">${bEsc(b.dur)}</div></div>
+        <div class="cc-stat"><div class="cc-stat-label">Resurs</div><div class="cc-stat-value">${bEsc(b.resource)}</div><div class="cc-stat-trend">${bEsc(b.service)}</div></div>
       </div>
-      <div class="cc-ai">${b.ai}</div>
+      <div class="cc-ai">${bEsc(b.ai)}</div>
     </div>
   `;
       }
@@ -363,20 +363,20 @@
           String(endMin % 60).padStart(2, '0');
         content.innerHTML = `
     <div class="ds-head">
-      <div class="ds-avatar" style="${b.bg ? 'background:' + b.bg : 'background:rgba(200,130,30,.14);color:var(--calendar-accent)'}">${b.init}</div>
+      <div class="ds-avatar" style="${b.bg ? 'background:' + bEsc(b.bg) : 'background:rgba(200,130,30,.14);color:var(--calendar-accent)'}">${bEsc(b.init)}</div>
       <div class="ds-head-body">
         <div class="ds-kicker">★ Bokning</div>
-        <div class="ds-name">${b.customer}</div>
-        <div class="ds-contact">${b.service} · ${b.resource}</div>
-        <div class="ds-tags">${b.tags.map((t) => `<span class="ds-tag ds-tag--${t.kind}">${t.label}</span>`).join('')}</div>
+        <div class="ds-name">${bEsc(b.customer)}</div>
+        <div class="ds-contact">${bEsc(b.service)} · ${bEsc(b.resource)}</div>
+        <div class="ds-tags">${b.tags.map((t) => `<span class="ds-tag ds-tag--${bEsc(t.kind)}">${bEsc(t.label)}</span>`).join('')}</div>
       </div>
       <button class="ds-close" id="dsClose">×</button>
     </div>
 
     <div class="ds-stats">
-      <div class="ds-stat"><div class="ds-stat-label">Tid</div><div class="ds-stat-value">${b.time}</div><div class="ds-stat-trend">→ ${endStr}</div></div>
-      <div class="ds-stat"><div class="ds-stat-label">Längd</div><div class="ds-stat-value">${b.dur}</div><div class="ds-stat-trend">${b.resource}</div></div>
-      <div class="ds-stat"><div class="ds-stat-label">Status</div><div class="ds-stat-value">${b.stateLabel}</div><div class="ds-stat-trend">${b.state === 'confirmed' ? 'Klar' : b.state === 'conflict' ? 'Åtgärd krävs' : 'Väntar'}</div></div>
+      <div class="ds-stat"><div class="ds-stat-label">Tid</div><div class="ds-stat-value">${bEsc(b.time)}</div><div class="ds-stat-trend">→ ${bEsc(endStr)}</div></div>
+      <div class="ds-stat"><div class="ds-stat-label">Längd</div><div class="ds-stat-value">${bEsc(b.dur)}</div><div class="ds-stat-trend">${bEsc(b.resource)}</div></div>
+      <div class="ds-stat"><div class="ds-stat-label">Status</div><div class="ds-stat-value">${bEsc(b.stateLabel)}</div><div class="ds-stat-trend">${b.state === 'confirmed' ? 'Klar' : b.state === 'conflict' ? 'Åtgärd krävs' : 'Väntar'}</div></div>
     </div>
 
     <div class="ds-tabs">
@@ -451,7 +451,7 @@
   }
 
   // Bygg facit-formade boknings-objekt ur RIKTIGA slots (booked + available).
-  function slotToBooking(S, slot, idx) {
+  function slotToBooking(S, slot, idx, conflict) {
     var booked = slot.kind === 'booked';
     var name = booked
       ? slot.title || slot.customer || slot.customerName || 'Bokning'
@@ -467,12 +467,14 @@
     if (!booked) {
       state = 'new';
       stateLabel = 'Ledig';
+    } else if (conflict || /(conflict|konflikt|krock|double)/.test(status)) {
+      // Konflikt = överlapp beräknat ur delade datalagret (findConflictKeys),
+      // inte bara om status-strängen råkar nämna "konflikt".
+      state = 'conflict';
+      stateLabel = 'Konflikt';
     } else if (/(tentat|pending|väntar|vantar|hold)/.test(status)) {
       state = 'tentative';
       stateLabel = 'Tentativ';
-    } else if (/(conflict|konflikt|krock|double)/.test(status)) {
-      state = 'conflict';
-      stateLabel = 'Konflikt';
     } else {
       state = 'confirmed';
       stateLabel = 'Bekräftad';
@@ -526,10 +528,27 @@
         });
       if (!visible.length) return; // ingen riktig data → behåll facit-demo
 
+      // Konflikter beräknas ur delade datalagret (samma resurs + överlappande
+      // tid); fetchCalendarRange exponerar dem inte själv (Bugbot #264).
+      var conflictKeys = null;
+      try {
+        if (typeof S.findConflictKeys === 'function') conflictKeys = S.findConflictKeys(visible);
+      } catch (e) {
+        conflictKeys = null;
+      }
+      var inConflict = function (s) {
+        if (!conflictKeys || typeof S.eventKey !== 'function') return false;
+        try {
+          return conflictKeys.has(S.eventKey(s));
+        } catch (e) {
+          return false;
+        }
+      };
+
       // Byt demo → riktig data och re-rendera via facitens exponerade render.
       var ST = window.__ARCANA_BOOKING_V1__ || (window.__ARCANA_BOOKING_V1__ = {});
       ST.list = visible.map(function (s, i) {
-        return slotToBooking(S, s, i);
+        return slotToBooking(S, s, i, inConflict(s));
       });
       if (typeof ST.render === 'function') ST.render();
 
@@ -540,19 +559,23 @@
       var openCount = visible.filter(function (s) {
         return s.kind === 'available';
       }).length;
-      var confirmedCount = visible.filter(function (s) {
-        return (
-          s.kind === 'booked' &&
-          !/(tentat|pending|väntar|vantar|conflict|konflikt)/i.test(String(s.status || ''))
-        );
+      var conflictCount = visible.filter(function (s) {
+        return s.kind === 'booked' && inConflict(s);
       }).length;
       var tentativeCount = visible.filter(function (s) {
         return (
-          s.kind === 'booked' && /(tentat|pending|väntar|vantar)/i.test(String(s.status || ''))
+          s.kind === 'booked' &&
+          !inConflict(s) &&
+          /(tentat|pending|väntar|vantar)/i.test(String(s.status || ''))
         );
       }).length;
-      var conflictCount =
-        (range.conflicts && (range.conflicts.length || range.conflicts.size)) || 0;
+      var confirmedCount = visible.filter(function (s) {
+        return (
+          s.kind === 'booked' &&
+          !inConflict(s) &&
+          !/(tentat|pending|väntar|vantar|conflict|konflikt)/i.test(String(s.status || ''))
+        );
+      }).length;
 
       var nowD = new Date(today + 'T12:00:00');
       var title = root.querySelector('.page-title');
@@ -629,10 +652,22 @@
     return document.documentElement.getAttribute('data-booking-v1') === 'on';
   }
   function maybeMount() {
-    if (!flagOn()) return;
-    if (!document.querySelector('.preview-canvas[data-app-shell-view="calendar"]')) return;
-    if (window.innerWidth > 834) return;
-    if (document.getElementById('cco-book-v1-root')) return;
+    var root = document.getElementById('cco-book-v1-root');
+    var active =
+      flagOn() &&
+      !!document.querySelector('.preview-canvas[data-app-shell-view="calendar"]') &&
+      window.innerWidth <= 834;
+    if (!active) {
+      // Göm (men behåll) den fasta overlayn när vi inte är på kalender-vyn på
+      // mobil — annars ligger #cco-book-v1-root (position:fixed) kvar och
+      // blockerar andra vyer efter att man lämnat kalendern (Bugbot #264).
+      if (root) root.style.display = 'none';
+      return;
+    }
+    if (root) {
+      root.style.display = '';
+      return;
+    }
     render({});
   }
   function boot() {
