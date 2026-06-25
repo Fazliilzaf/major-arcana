@@ -1193,12 +1193,16 @@
           booking.dataset.expiry = 'near';
           booking.style.top = relY + 'px';
           booking.style.height = heightPx + 'px';
+          // SÄKERHET: data kommer från den dragna mejl-trådens dataset — escapa
+          // alla fält så ett avsändarnamn som "<img onerror=…>" inte körs när
+          // inboxen wiras mot riktig e-post.
+          const initEsc = v8Esc(data.init);
           booking.innerHTML = `
       <div class="booking-time">${fmt(startH, startM)} – ${fmt(endH, endM)}</div>
-      <div class="booking-title">${data.treatment}</div>
-      <div class="booking-sub">${data.customer}</div>
+      <div class="booking-title">${v8Esc(data.treatment)}</div>
+      <div class="booking-sub">${v8Esc(data.customer)}</div>
       <span class="booking-ai-badge">★ Från mejl</span>
-      <span class="avatar-bubble" data-init="${data.init}">${data.init}</span>
+      <span class="avatar-bubble" data-init="${initEsc}">${initEsc}</span>
     `;
           slots.appendChild(booking);
           booking.addEventListener('mousedown', bookingMouseDown);
