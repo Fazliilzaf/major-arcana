@@ -1,5 +1,5 @@
 /**
- * ccoReceiptStore — Sprint CF.2 (MVP 1)
+ * cfoReceiptStore — Sprint CF.2 (MVP 1)
  *
  * Kvitto-store för Chief of Finance.
  * Receipts hamnar ALDRIG i repo — bara secure storage + JSON-metadata i data/cco/.
@@ -72,7 +72,7 @@ const VALID_CATEGORIES = Object.freeze([
 function nowIso() { return new Date().toISOString(); }
 function newId() { return 'rcpt_' + crypto.randomBytes(8).toString('hex'); }
 
-async function createCcoReceiptStore({ filePath, auditLog = null, secureStorage = null } = {}) {
+async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage = null } = {}) {
   if (!filePath) throw new Error('filePath krävs');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
@@ -83,7 +83,7 @@ async function createCcoReceiptStore({ filePath, auditLog = null, secureStorage 
       if (!Array.isArray(data.receipts)) data.receipts = [];
     }
   } catch (err) {
-    console.warn('[ccoReceiptStore] kunde inte läsa:', err.message);
+    console.warn('[cfoReceiptStore] kunde inte läsa:', err.message);
   }
 
   async function persist() {
@@ -238,7 +238,7 @@ async function createCcoReceiptStore({ filePath, auditLog = null, secureStorage 
 }
 
 module.exports = {
-  createCcoReceiptStore,
+  createCfoReceiptStore,
   VALID_STATUSES,
   VALID_SOURCE_SYSTEMS,
   VALID_CATEGORIES,

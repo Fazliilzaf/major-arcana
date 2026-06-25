@@ -1,5 +1,5 @@
 /**
- * ccoFinanceVendorStore — Sprint CF.5 (MVP 4)
+ * cfoFinanceVendorStore — Sprint CF.5 (MVP 4)
  *
  * Leverantörsregister för CCO Finance. Sköter ekonomi-leverantörer
  * (vendors) som är distinkt från `ccoVendorRegister` (som är PUB-avtal /
@@ -114,7 +114,7 @@ function matchVendor(supplierString, vendor) {
   return best;
 }
 
-async function createCcoFinanceVendorStore({ filePath, auditLog = null } = {}) {
+async function createCfoFinanceVendorStore({ filePath, auditLog = null } = {}) {
   if (!filePath) throw new Error('filePath krävs');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
@@ -136,7 +136,7 @@ async function createCcoFinanceVendorStore({ filePath, auditLog = null } = {}) {
       }
     }
   } catch (err) {
-    console.warn('[ccoFinanceVendorStore] kunde inte läsa:', err.message);
+    console.warn('[cfoFinanceVendorStore] kunde inte läsa:', err.message);
   }
 
   async function persist() {
@@ -391,7 +391,7 @@ async function createCcoFinanceVendorStore({ filePath, auditLog = null } = {}) {
 }
 
 module.exports = {
-  createCcoFinanceVendorStore,
+  createCfoFinanceVendorStore,
   matchVendor,
   VALID_SOURCES,
   VALID_RISK_FLAGS,

@@ -6,7 +6,7 @@ const {
   extractCustomerNumber,
   linkPatientFortnoxCustomer,
   syncPatientToFortnox,
-} = require('../../src/ops/ccoFortnoxPatientSync');
+} = require('../../src/cfo/cfoFortnoxPatientSync');
 
 test('buildFortnoxCustomerPayload maps patient demographics', () => {
   const payload = buildFortnoxCustomerPayload({

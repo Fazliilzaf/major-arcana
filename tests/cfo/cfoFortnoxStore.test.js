@@ -4,16 +4,16 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createCcoFortnoxStore } = require('../../src/ops/ccoFortnoxStore');
+const { createCfoFortnoxStore } = require('../../src/cfo/cfoFortnoxStore');
 
-test('createCcoFortnoxStore rejects empty filePath', async () => {
-  await assert.rejects(() => createCcoFortnoxStore({ filePath: '' }), /filePath/i);
+test('createCfoFortnoxStore rejects empty filePath', async () => {
+  await assert.rejects(() => createCfoFortnoxStore({ filePath: '' }), /filePath/i);
 });
 
 test('fortnox store saves connection and exposes public status', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-fortnox-'));
   const filePath = path.join(dir, 'fortnox.json');
-  const store = await createCcoFortnoxStore({ filePath });
+  const store = await createCfoFortnoxStore({ filePath });
 
   const initial = await store.getPublicStatus({ tenantId: 'tenant-a' });
   assert.equal(initial.connected, false);
@@ -43,7 +43,7 @@ test('fortnox store saves connection and exposes public status', async () => {
 test('fortnox store oauth state is single-use', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-fortnox-oauth-'));
   const filePath = path.join(dir, 'fortnox.json');
-  const store = await createCcoFortnoxStore({ filePath });
+  const store = await createCfoFortnoxStore({ filePath });
 
   const state = await store.createOAuthState({
     tenantId: 'tenant-a',

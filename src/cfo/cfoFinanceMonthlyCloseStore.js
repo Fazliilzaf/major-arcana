@@ -1,5 +1,5 @@
 /**
- * ccoFinanceMonthlyCloseStore — Sprint CF.9 (MVP 8)
+ * cfoFinanceMonthlyCloseStore — Sprint CF.9 (MVP 8)
  *
  * Månadsstängning per period (YYYY-MM). Period-state-machine + checklist.
  *
@@ -97,7 +97,7 @@ function emptyChecklist() {
   };
 }
 
-async function createCcoFinanceMonthlyCloseStore({
+async function createCfoFinanceMonthlyCloseStore({
   filePath = path.join(process.cwd(), 'data', 'cco', 'finance-monthly-close.json'),
   auditLog = null,
 } = {}) {
@@ -111,7 +111,7 @@ async function createCcoFinanceMonthlyCloseStore({
         data = parsed;
       }
     } catch (err) {
-      if (err.code !== 'ENOENT') console.warn('[ccoFinanceMonthlyCloseStore] load:', err.message);
+      if (err.code !== 'ENOENT') console.warn('[cfoFinanceMonthlyCloseStore] load:', err.message);
     }
   }
 
@@ -120,7 +120,7 @@ async function createCcoFinanceMonthlyCloseStore({
       await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
       await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
     } catch (err) {
-      console.warn('[ccoFinanceMonthlyCloseStore] persist:', err.message);
+      console.warn('[cfoFinanceMonthlyCloseStore] persist:', err.message);
       throw err;
     }
   }
@@ -436,7 +436,7 @@ async function createCcoFinanceMonthlyCloseStore({
 }
 
 module.exports = {
-  createCcoFinanceMonthlyCloseStore,
+  createCfoFinanceMonthlyCloseStore,
   VALID_STATUSES,
   TRANSITIONS,
   SCHEMA_VERSION,

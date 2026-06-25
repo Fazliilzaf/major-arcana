@@ -1,5 +1,5 @@
 /**
- * ccoFinanceReportEngine — Sprint CF.9 (MVP 8)
+ * cfoFinanceReportEngine — Sprint CF.9 (MVP 8)
  *
  * Pure-function rapportmotor för 12 rapporttyper. Inga side-effects, inga
  * I/O. Tar emot en data-bundle + period och returnerar ett rapport-objekt.

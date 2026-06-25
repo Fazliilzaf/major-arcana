@@ -7,11 +7,11 @@ const {
   buildFortnoxAuthUrl,
   createFortnoxClient,
   exchangeAuthorizationCode,
-} = require('../infra/fortnoxClient');
+} = require('../cfo/cfoFortnoxClient');
 const {
   linkPatientFortnoxCustomer,
   syncPatientToFortnox,
-} = require('../ops/ccoFortnoxPatientSync');
+} = require('../cfo/cfoFortnoxPatientSync');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
