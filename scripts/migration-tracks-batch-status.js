@@ -67,6 +67,26 @@ function countCustomerMigrationStats(tenantId = 'hair_tp') {
   };
 }
 
+function loadMasterCardDriveCoupling() {
+  const coupling = readJson('data/cco-master-card-drive-coupling.json');
+  if (!coupling) return null;
+  const results = coupling.results || {};
+  let withPredicted = 0;
+  let verified = 0;
+  for (const key of Object.keys(results)) {
+    const row = results[key] || {};
+    if (row.predictedFolderId) withPredicted += 1;
+    if (row.status === 'verified') verified += 1;
+  }
+  return {
+    totalPatients: coupling.totalPatients || Object.keys(results).length,
+    withPredicted,
+    verified,
+    stats: coupling.stats || null,
+    generatedAt: coupling.generatedAt || null,
+  };
+}
+
 function countMeridiqJournalImports() {
   const journal = readJson('data/cco-journal.json');
   const entries = journal?.entries || journal?.items || [];
@@ -161,25 +181,38 @@ function trackBlocker({ code, ownerAction, infraNote }) {
   return { code, ownerAction, infraNote: infraNote || null };
 }
 
-function buildTrackA({ drive, customerStats, saOk }) {
+function buildTrackA({ drive, customerStats, coupling, saOk }) {
   const withDrive = customerStats.withDrive;
+  const withPredicted = coupling?.withPredicted ?? drive?.predicted ?? 0;
+  const verified = coupling?.verified ?? 0;
   const total = customerStats.totalPatients;
-  const predicted = drive?.predicted ?? null;
-  const done = withDrive > 0 && withDrive >= (predicted || total);
+  const predicted = drive?.predicted ?? withPredicted;
+  const done = withDrive > 0 && verified > 0 && withDrive >= Math.min(predicted, total);
 
   let blocker = null;
   if (!done) {
-    if (!saOk) {
+    if (!saOk && verified === 0) {
       blocker = trackBlocker({
         code: 'ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON',
-        ownerAction: 'Owner levererar SA → scanGoogleDriveApi → backfill --commit',
-        infraNote: 'Dry-run/proxy finns (6268/7257 predicted) — ingen prod-koppling',
+        ownerAction:
+          'SA för verify + fil-crawl → scanGoogleDriveApi (proxy-koppling finns redan lokalt)',
+        infraNote:
+          withPredicted > 0
+            ? `${withPredicted}/${total} predicted i cco-master-card-drive-coupling.json · 0 verified · master driveFolderId=${withDrive}`
+            : 'Kör backfill-master-card-drive-coupling.js (utan --dry-run)',
       });
-    } else if (withDrive === 0) {
+    } else if (withPredicted > 0 && withDrive === 0) {
       blocker = trackBlocker({
-        code: 'DRIVE_NOT_COMMITTED',
-        ownerAction: 'Kör scanGoogleDriveApi → backfill-master-card-drive-coupling.js --commit',
-        infraNote: 'SA konfigurerad — inget master driveFolderId committat än',
+        code: 'DRIVE_NOT_ON_MASTER_CARD',
+        ownerAction:
+          'Promote predictedFolderId → driveFolderId på master-kort ELLER kör asset-import med coupling-fil',
+        infraNote: `${withPredicted} predicted i coupling-fil · ${withDrive}/${total} driveFolderId på cco-customers`,
+      });
+    } else if (verified === 0) {
+      blocker = trackBlocker({
+        code: 'DRIVE_NOT_VERIFIED',
+        ownerAction: 'Kör scanGoogleDriveApi → verifiera mappar mot SA',
+        infraNote: `predicted ${withPredicted} · verified ${verified}`,
       });
     }
   }
@@ -193,14 +226,18 @@ function buildTrackA({ drive, customerStats, saOk }) {
     status: done ? 'DONE' : 'NOT_DELIVERED',
     metrics: {
       predicted,
+      withPredictedCoupling: withPredicted,
+      verifiedCoupling: verified,
       totalPatients: total,
       withDriveFolderId: withDrive,
       predictedPct: drive?.predictedPct ?? null,
+      couplingGeneratedAt: coupling?.generatedAt ?? null,
     },
     blocker,
     scripts: [
+      'node scripts/backfill-master-card-drive-coupling.js',
       'npm run migration:scan-drive-api',
-      'node scripts/backfill-master-card-drive-coupling.js --commit',
+      'node scripts/backfill-drive-file-ids.js --apply',
     ],
     operatorTool: null,
   };
@@ -359,6 +396,7 @@ function buildPayload() {
   const photo = runJson('node scripts/photo-review-batch-status.js');
   const importReview = collectImportReviewQueueStatus({ root: ROOT });
   const customerStats = countCustomerMigrationStats();
+  const coupling = loadMasterCardDriveCoupling();
   const meridiqImported = countMeridiqJournalImports();
   const photoCanary = loadCanaryTrack('photo');
   const importCanary = loadCanaryTrack('import');
@@ -366,7 +404,7 @@ function buildPayload() {
   const meridiqAuthOk = meridiqAuthConfigured() && !meridiq?.authMissing;
 
   const tracks = [
-    buildTrackA({ drive, customerStats, saOk }),
+    buildTrackA({ drive, customerStats, coupling, saOk }),
     buildTrackB({ meridiq, customerStats, meridiqAuthOk, meridiqImported }),
     buildTrackC({ photo, photoCanary }),
     buildTrackD({ importReview, importCanary }),

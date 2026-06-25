@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-25T19:28:49.978Z",
+  "generatedAt": "2026-06-25T19:40:26.133Z",
   "delivery": "NOT_DELIVERED",
   "tracksDelivered": 0,
   "tracksTotal": 4,
@@ -16,18 +16,22 @@
       "status": "NOT_DELIVERED",
       "metrics": {
         "predicted": 6268,
+        "withPredictedCoupling": 6268,
+        "verifiedCoupling": 0,
         "totalPatients": 7257,
         "withDriveFolderId": 0,
-        "predictedPct": 86.4
+        "predictedPct": 86.4,
+        "couplingGeneratedAt": "2026-06-25T16:18:01.358Z"
       },
       "blocker": {
-        "code": "DRIVE_NOT_COMMITTED",
-        "ownerAction": "Kör scanGoogleDriveApi → backfill-master-card-drive-coupling.js --commit",
-        "infraNote": "SA konfigurerad — inget master driveFolderId committat än"
+        "code": "DRIVE_NOT_ON_MASTER_CARD",
+        "ownerAction": "Promote predictedFolderId → driveFolderId på master-kort ELLER kör asset-import med coupling-fil",
+        "infraNote": "6268 predicted i coupling-fil · 0/7257 driveFolderId på cco-customers"
       },
       "scripts": [
+        "node scripts/backfill-master-card-drive-coupling.js",
         "npm run migration:scan-drive-api",
-        "node scripts/backfill-master-card-drive-coupling.js --commit"
+        "node scripts/backfill-drive-file-ids.js --apply"
       ],
       "operatorTool": null
     },

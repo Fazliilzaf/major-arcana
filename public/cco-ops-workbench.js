@@ -143,9 +143,9 @@
     const rows = [];
     if (track.id === 'A') {
       rows.push(
-        metric(m.predicted ?? '—', 'predicted (dry-run)'),
-        metric(m.totalPatients ?? '—', 'patienter totalt'),
-        metric(m.withDriveFolderId ?? 0, 'med driveFolderId')
+        metric(m.withPredictedCoupling ?? m.predicted ?? '—', 'predicted (coupling-fil)'),
+        metric(`${m.withDriveFolderId ?? 0}/${m.totalPatients ?? '—'}`, 'driveFolderId master'),
+        metric(m.verifiedCoupling ?? 0, 'SA-verifierade')
       );
     } else if (track.id === 'B') {
       rows.push(
