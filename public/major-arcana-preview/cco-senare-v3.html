@@ -312,7 +312,14 @@ inbox.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target
 document.getElementById('tvBack').addEventListener('click',()=>{app.dataset.pane='list';});
 document.getElementById('ctxOpen').addEventListener('click',()=>{app.dataset.pane='ctx';});
 document.getElementById('ctxBack').addEventListener('click',()=>{app.dataset.pane='thread';});
-document.querySelectorAll('.lane').forEach(l=>l.addEventListener('click',()=>{document.querySelectorAll('.lane').forEach(x=>x.setAttribute('aria-pressed','false'));l.setAttribute('aria-pressed','true');curLane=l.dataset.lane||'alla';renderInbox();}));
+function reconcileOpen(){
+  const visible=THREADS.filter(matchLane);
+  if(openId!=null && !visible.some(t=>t.id===openId)){
+    if(matchMedia('(min-width:601px)').matches && visible.length){ openThread(visible[0].id); }
+    else { openId=null; threadZone.classList.remove('has-thread'); app.dataset.pane='list'; renderInbox(); }
+  }
+}
+document.querySelectorAll('.lane').forEach(l=>l.addEventListener('click',()=>{document.querySelectorAll('.lane').forEach(x=>x.setAttribute('aria-pressed','false'));l.setAttribute('aria-pressed','true');curLane=l.dataset.lane||'alla';renderInbox();reconcileOpen();}));
 
 renderInbox();
 if(matchMedia('(min-width:601px)').matches) openThread(1);   // sida-vid-sida visar första
