@@ -420,7 +420,9 @@
         const t = document.createElement('div');
         t.className = 'ai-toast';
         t.textContent = msg;
-        document.body.appendChild(t);
+        // Montera under v10-roten — .ai-toast är scopad till #cco-cust-v10-root,
+        // så body-montering tappar positionering/animation (Bugbot #257).
+        (document.getElementById('cco-cust-v10-root') || document.body).appendChild(t);
         requestAnimationFrame(() => t.classList.add('is-visible'));
         setTimeout(() => {
           t.classList.remove('is-visible');
@@ -455,7 +457,8 @@
     </div>
     <div class="cam-toolbar" id="camToolbar"></div>
   `;
-        document.body.appendChild(ov);
+        // Samma skäl som toasten: kamera-overlayn är scopad till v10-roten.
+        (document.getElementById('cco-cust-v10-root') || document.body).appendChild(ov);
       })();
 
       let camState = { stream: null, customer: null, tool: 'pen', color: '#d8526b', strokes: [] };
@@ -472,7 +475,19 @@
         startCamera();
       }
 
+      // Återställer kamera-scenens canvas-wrap om den saknas (t.ex. efter att
+      // ett fel ersatt #camStage med ett felmeddelande) — annars kraschar
+      // startCamera på saknade #camVideo/#camPhoto/#camAnnot (Bugbot #257).
+      function ensureCamStage() {
+        const stage = document.getElementById('camStage');
+        if (!stage) return;
+        if (!document.getElementById('camVideo')) {
+          stage.innerHTML = `<div class="cam-canvas-wrap" id="camCanvasWrap"><span class="cam-badge">REC · LIVE</span><span class="cam-meta-stamp" id="camStamp"></span><video class="cam-video" id="camVideo" autoplay playsinline muted></video><canvas class="cam-photo" id="camPhoto" hidden></canvas><canvas class="cam-annot" id="camAnnot" hidden></canvas></div>`;
+        }
+      }
+
       function startCamera() {
+        ensureCamStage();
         const video = document.getElementById('camVideo');
         const photo = document.getElementById('camPhoto');
         const annot = document.getElementById('camAnnot');
@@ -579,15 +594,30 @@
         } else if (mode === 'loading') {
           tb.innerHTML = `<div class="cam-loading"><div class="cam-loading-spinner"></div>Startar kameran…</div>`;
         } else if (mode === 'error') {
+          // Inline onclick refererade startCamera/closeCamera som bara finns i
+          // shell-closuren (inte på window) → kastade i runtime. Binder via
+          // addEventListener istället; startCamera återställer scenen själv
+          // (ensureCamStage), Bugbot #257.
           tb.innerHTML = `
       <div class="cam-save-row">
-        <button class="cam-save cam-save--retake" onclick="document.getElementById('camStage').innerHTML='';startCamera();">Försök igen</button>
-        <button class="cam-save cam-save--delete" onclick="closeCamera()">Stäng</button>
+        <button class="cam-save cam-save--retake" id="camRetry">Försök igen</button>
+        <button class="cam-save cam-save--delete" id="camErrClose">Stäng</button>
       </div>`;
+          document.getElementById('camRetry').addEventListener('click', startCamera);
+          document.getElementById('camErrClose').addEventListener('click', closeCamera);
         }
       }
 
       function setupAnnotation() {
+        // Varje capture körde setupAnnotation och staplade nya pointer-lyssnare
+        // på samma #camAnnot (retake→capture igen → strokes ritades flera gånger
+        // per rörelse). Ersätt noden med en klon först → släpper gamla lyssnare.
+        // Säkert: canvasen är nyss omdimensionerad och tom (strokes=[]) här.
+        const prev = document.getElementById('camAnnot');
+        if (prev && prev.parentNode) {
+          const fresh = prev.cloneNode(false);
+          prev.parentNode.replaceChild(fresh, prev);
+        }
         const annot = document.getElementById('camAnnot');
         let drawing = false,
           currentStroke = null;
