@@ -1352,6 +1352,7 @@
         renderToolbar(boundCtx);
         renderTabs(boundCtx);
         renderInbox(boundCtx);
+        renderBulkBar();
         return;
       }
       // Mobil master-detail-navigering.
@@ -1377,6 +1378,7 @@
         selected = {}; // rensa urvalet vid flik-byte (vy-skopat)
         renderTabs(boundCtx);
         renderInbox(boundCtx);
+        renderBulkBar();
         return;
       }
       // v3: multi-select checkbox (öppnar inte tråden).
