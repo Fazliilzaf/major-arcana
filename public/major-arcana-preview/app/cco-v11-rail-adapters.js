@@ -370,13 +370,42 @@
    * @returns {Array<{ruleId:string, what:string, why:string, legal:boolean}>}
    */
   function buildCriticalWarnings(card, journalEntries, dossierBundle) {
+    card = card || {};
     var kkx = global.CcoKundkortKkx;
     var signals =
       kkx && typeof kkx.resolvePanelSignals === 'function'
-        ? toArray(kkx.resolvePanelSignals(card || {}, journalEntries, dossierBundle, {}))
-        : toArray(card && card.automationSignals);
+        ? toArray(kkx.resolvePanelSignals(card, journalEntries, dossierBundle, {}))
+        : toArray(card.automationSignals);
 
     var out = [];
+    var seen = {};
+    function add(w) {
+      var k = String(w.what || '')
+        .toLowerCase()
+        .trim();
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      out.push(w);
+    }
+
+    // 1) Allergier = röd kritisk varning (facit: "Penicillin-allergi"). Riktig data.
+    var hd = card.healthDeclaration || {};
+    var allergies = (
+      toArray(card.allergies).length ? toArray(card.allergies) : toArray(hd.allergies)
+    )
+      .map(text)
+      .filter(Boolean);
+    allergies.forEach(function (a) {
+      add({
+        ruleId: 'allergy',
+        what: a + '-allergi',
+        why: 'Hög risk · verifiera behandlings-/läkemedelsprotokoll',
+        tone: 'red',
+        legal: false,
+      });
+    });
+
+    // 2) Kritiska automation-signaler (blocker/legal) = röd.
     signals.forEach(function (s) {
       if (!s || s.status !== 'active') return;
       var risk = String(s.risk || '');
@@ -384,13 +413,34 @@
       var isCritical = risk ? /blocker|legal/i.test(risk) : !!key;
       if (!isCritical) return;
       var def = key ? CRITICAL_BY_RULE[key] : null;
-      out.push({
+      add({
         ruleId: text(s.ruleId),
         what: text(s.what) || (def && def.what) || 'Kritisk varning',
         why: text(s.why),
+        tone: 'red',
         legal: /legal/i.test(risk) || !!(def && def.legal),
       });
     });
+
+    // 3) Kontraindikations-flaggor ur hälsodeklarationen = amber/röd efter level
+    //    (facit: "Blödarsjukdom registrerad" amber). Riktig data, ingen fejk.
+    toArray(hd.flags).forEach(function (f) {
+      if (!f) return;
+      var label = text(f.text || f.flagText || f.label);
+      if (!label) return;
+      var tone = String(f.level || '').toLowerCase() === 'red' ? 'red' : 'amber';
+      add({
+        ruleId: text(f.key) || 'flag',
+        what: label + ' registrerad',
+        why:
+          tone === 'red'
+            ? 'Hög risk · kräver åtgärd före ingrepp'
+            : 'Måttlig risk · verifiera inför ingrepp',
+        tone: tone,
+        legal: false,
+      });
+    });
+
     return out;
   }
 
