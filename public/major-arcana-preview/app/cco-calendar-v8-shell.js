@@ -2263,6 +2263,16 @@
       (booked ? 'confirmed' : 'open') +
       '" data-v8-open="' +
       (booked ? '0' : '1') +
+      '" data-v8-title="' +
+      v8Esc(title) +
+      '" data-v8-time="' +
+      v8Esc(range) +
+      '" data-v8-res="' +
+      v8Esc(slot.resourceLabel || '') +
+      '" data-v8-svc="' +
+      v8Esc(slot.serviceLabel || '') +
+      '" data-v8-st="' +
+      v8Esc(booked ? slot.status || 'Bekräftad' : 'Ledig tid') +
       '" style="top:' +
       Math.round(top) +
       'px;height:' +
@@ -2374,8 +2384,64 @@
           );
         }).length
       );
+
+      // Klick på en slot → fyll höger Operatörsstöd-dossiér ur slotens riktiga
+      // data (resurs/tid/tjänst/status). Delegerad, en gång per mount.
+      if (!root.__v8DossierBound) {
+        root.__v8DossierBound = true;
+        root.addEventListener('click', function (ev) {
+          var card = ev.target && ev.target.closest ? ev.target.closest('.booking') : null;
+          if (card) populateDossierFromCard(root, card);
+        });
+      }
     } catch (e) {
       if (window.console) console.warn('[cco-cal-v8] grid-data:', e && e.message);
+    }
+  }
+
+  // Fyll intel-shell (Operatörsstöd) ur ett klickat slot-korts riktiga data.
+  function populateDossierFromCard(root, card) {
+    try {
+      var d = card.dataset || {};
+      var booked = d.v8Open !== '1';
+      var name = booked ? d.v8Title || 'Bokning' : 'Ledig tid';
+      var intel = root.querySelector('.intel-shell');
+      if (!intel) return;
+      var setText = function (sel, val) {
+        var el = intel.querySelector(sel);
+        if (el) el.textContent = val;
+      };
+      setText('.intel-name', name);
+      setText(
+        '.intel-meta',
+        (booked ? 'Bokning' : 'Öppen lucka') + (d.v8Res ? ' · ' + d.v8Res : '')
+      );
+      var av = intel.querySelector('.intel-avatar');
+      if (av) {
+        av.textContent = booked
+          ? name
+              .split(/\s+/)
+              .map(function (w) {
+                return w[0] || '';
+              })
+              .join('')
+              .slice(0, 2)
+              .toUpperCase()
+          : '◷';
+      }
+      var pairs = {
+        Behandling: d.v8Svc || (booked ? '—' : 'Ledig tid'),
+        Tid: d.v8Time || '—',
+        Behandlare: d.v8Res || '—',
+        Status: d.v8St || '—',
+      };
+      intel.querySelectorAll('.intel-grid dt').forEach(function (dt) {
+        var key = (dt.textContent || '').trim();
+        var dd = dt.nextElementSibling;
+        if (dd && pairs[key] != null && pairs[key] !== '') dd.textContent = pairs[key];
+      });
+    } catch (e) {
+      /* tyst */
     }
   }
 
