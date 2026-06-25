@@ -4170,3 +4170,22 @@ html[data-calendar-v8="on"]
 #cco-cal-v8-root .calendar-content[data-mode="dag"] .day-col.is-today {
   flex: 1 1 auto;
 }
+
+/* ── iPad liggande (835–1024px): 3-panel → 2-panel ─────────────────────────
+ * Göm vänster arbetslista, behåll kalender + höger dossiér. Större träffytor. */
+@media (min-width: 835px) and (max-width: 1024px) {
+  #cco-cal-v8-root .app-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 14px;
+  }
+  #cco-cal-v8-root .side-shell {
+    display: none;
+  }
+  #cco-cal-v8-root .watch-widget {
+    display: none;
+  }
+  #cco-cal-v8-root .segment-tab,
+  #cco-cal-v8-root .nav-btn {
+    min-height: 40px;
+  }
+}

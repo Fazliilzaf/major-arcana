@@ -1560,17 +1560,18 @@
   font-weight: 600 !important;
 }
 
-/* ── Brytpunkts-grindning: v7-mobil ≤1024px, v8-desktop >1024px ───────────── */
-@media (min-width: 1025px) {
+/* ── Brytpunkts-grindning ──────────────────────────────────────────────────
+ * ≤834px (mobil + iPad stående) → v7-mobil
+ * ≥835px (iPad liggande + desktop) → v8 (2-panel 835–1024, 3-panel >1024) */
+@media (min-width: 835px) {
   #cco-cal-v7-root {
     display: none !important;
   }
 }
-@media (max-width: 1024px) {
+@media (max-width: 834px) {
   #cco-cal-v8-root {
     display: none !important;
   }
-  /* göm äldre legacy-kalender + facitens egen telefon-ram om de råkar finnas */
   #cco-cal-v7-root .phone-frame,
   #cco-cal-v7-root .mockup-label {
     all: unset;

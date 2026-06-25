@@ -2530,7 +2530,7 @@
     if (!document.querySelector('.preview-canvas[data-app-shell-view="calendar"]')) return;
     // Brytpunkt: ≤1024px → mobil-v7, annars desktop-v8. (CSS grindar synlighet;
     // här monterar vi rätt skal så data wiras bara där det visas.)
-    var mobile = window.innerWidth <= 1024;
+    var mobile = window.innerWidth <= 834;
     if (mobile) {
       if (window.ArcanaCalendarV7 && !document.getElementById('cco-cal-v7-root')) {
         window.ArcanaCalendarV7.render({});
@@ -2552,9 +2552,9 @@
       /* ignore */
     }
     // Vid resize över brytpunkten: montera motsvarande skal (behåll det andra i DOM).
-    var lastMobile = window.innerWidth <= 1024;
+    var lastMobile = window.innerWidth <= 834;
     window.addEventListener('resize', function () {
-      var m = window.innerWidth <= 1024;
+      var m = window.innerWidth <= 834;
       if (m !== lastMobile) {
         lastMobile = m;
         maybeMount();
