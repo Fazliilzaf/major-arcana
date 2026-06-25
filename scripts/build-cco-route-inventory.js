@@ -144,7 +144,15 @@ const ROUTE_META = {
     status: 'LIVE_TOOL',
     mainNav: false,
     presentation: false,
-    risks: ['write AV prod'],
+    risks: ['canary max 25/batch när ENABLE_PHOTO_REVIEW_* på'],
+  },
+  '/cco-photo-review.html': {
+    title: 'Photo Review (alias)',
+    purpose: 'Redirect till /photo-review.html',
+    status: 'LIVE_TOOL',
+    mainNav: false,
+    presentation: false,
+    risks: [],
   },
   '/ambiguous-mail-enrichment-review.html': {
     title: 'Mail ambiguous review',
@@ -155,12 +163,12 @@ const ROUTE_META = {
     risks: ['ej dag-1-verktyg'],
   },
   '/cco-import-review.html': {
-    title: 'Import review',
-    purpose: 'Osäkra kundmatchningar',
+    title: 'Import Review',
+    purpose: 'Osäkra kundmatchningar halso@ + GetAccept',
     status: 'LIVE_TOOL',
     mainNav: false,
     presentation: false,
-    risks: ['read-only'],
+    risks: ['canary max 25/batch när ENABLE_IMPORT_REVIEW_WRITE på'],
   },
   '/ai-triage.html': {
     title: 'AI triage',

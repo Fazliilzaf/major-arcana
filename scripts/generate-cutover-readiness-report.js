@@ -26,6 +26,7 @@
  *   node scripts/generate-cutover-readiness-report.js
  *   node scripts/generate-cutover-readiness-report.js --date=2026-05-30
  *   node scripts/generate-cutover-readiness-report.js --stdout    (dont write file)
+ *   node scripts/generate-cutover-readiness-report.js --data-root=/path/to/cco-prod --label=prod-snapshot
  *
  * Exit-codes:
  *   0 = rapporten genererad (oavsett readiness-status)
@@ -41,11 +42,19 @@ const ROOT = path.resolve(__dirname, '..');
 // CLI
 // ─────────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const args = { date: null, stdout: false, tenantId: 'hair_tp' };
+  const args = {
+    date: null,
+    stdout: false,
+    tenantId: 'hair_tp',
+    dataRoot: path.join(ROOT, 'data'),
+    label: 'repo',
+  };
   for (const raw of argv.slice(2)) {
     if (raw === '--stdout') args.stdout = true;
     else if (raw.startsWith('--date=')) args.date = raw.split('=')[1];
     else if (raw.startsWith('--tenant=')) args.tenantId = raw.split('=')[1];
+    else if (raw.startsWith('--data-root=')) args.dataRoot = path.resolve(raw.split('=')[1]);
+    else if (raw.startsWith('--label=')) args.label = raw.split('=')[1];
   }
   if (!args.date) {
     const d = new Date();
@@ -57,8 +66,10 @@ function parseArgs(argv) {
 // ─────────────────────────────────────────────────────────────────────────
 // Källor — counts only, ingen PII
 // ─────────────────────────────────────────────────────────────────────────
-function readJson(rel) {
-  const fp = path.join(ROOT, rel);
+function readJson(rel, dataRoot = path.join(ROOT, 'data')) {
+  const fp = rel.startsWith('data/')
+    ? path.join(dataRoot, rel.slice('data/'.length))
+    : path.join(dataRoot, rel);
   if (!fs.existsSync(fp)) return null;
   try {
     return JSON.parse(fs.readFileSync(fp, 'utf8'));
@@ -68,8 +79,10 @@ function readJson(rel) {
   }
 }
 
-function readJsonl(rel) {
-  const fp = path.join(ROOT, rel);
+function readJsonl(rel, dataRoot = path.join(ROOT, 'data')) {
+  const fp = rel.startsWith('data/')
+    ? path.join(dataRoot, rel.slice('data/'.length))
+    : path.join(dataRoot, rel);
   if (!fs.existsSync(fp)) return [];
   const raw = fs.readFileSync(fp, 'utf8');
   const out = [];
@@ -132,12 +145,11 @@ function countJournalEntries(journal) {
   if (Array.isArray(journal?.entries)) entries.push(...journal.entries);
   if (journal?.entriesByTenant && typeof journal.entriesByTenant === 'object') {
     for (const tenantArr of Object.values(journal.entriesByTenant)) {
-      const arr =
-        Array.isArray(tenantArr?.entries)
-          ? tenantArr.entries
-          : Array.isArray(tenantArr)
-            ? tenantArr
-            : [];
+      const arr = Array.isArray(tenantArr?.entries)
+        ? tenantArr.entries
+        : Array.isArray(tenantArr)
+          ? tenantArr
+          : [];
       entries.push(...arr);
     }
   }
@@ -214,10 +226,41 @@ function countAudit(events) {
   return { total: events.length, byAction };
 }
 
-function countPhotos() {
-  // ccoPhotoStore-fil; om finns räknar vi från den
-  const ps = readJson('data/cco-photo-store.json');
-  if (!ps || !Array.isArray(ps.photos)) return { total: 0, byType: {}, bySource: {}, linkedToEncounter: 0 };
+function countPhotos(dataRoot = path.join(ROOT, 'data')) {
+  return countPatientAssetPhotos(dataRoot);
+}
+
+function countPatientAssetPhotos(dataRoot = path.join(ROOT, 'data')) {
+  const raw = readJson('data/cco-patient-assets.json', dataRoot);
+  const items = raw?.items || raw?.assets || {};
+  const list = Array.isArray(items) ? items : Object.values(items);
+  const photoCats = new Set(['photo_before', 'photo_during', 'photo_after']);
+  let linked = 0;
+  const byType = {};
+  const bySource = {};
+  let total = 0;
+  for (const a of list) {
+    if (!a || typeof a !== 'object') continue;
+    if (!photoCats.has(a.category) && !String(a.mimeType || '').startsWith('image/')) continue;
+    total += 1;
+    byType[a.category || 'unknown'] = (byType[a.category || 'unknown'] || 0) + 1;
+    bySource[a.sourceSystem || 'unknown'] = (bySource[a.sourceSystem || 'unknown'] || 0) + 1;
+    if (a.encounterId) linked += 1;
+  }
+  return {
+    total,
+    byType,
+    bySource,
+    linkedToEncounter: linked,
+    source: total > 0 ? 'cco-patient-assets' : 'none',
+  };
+}
+
+function countLivePhotoFlow(dataRoot = path.join(ROOT, 'data')) {
+  const ps = readJson('data/cco-photo-store.json', dataRoot);
+  if (!ps || !Array.isArray(ps.photos)) {
+    return { total: 0, byType: {}, bySource: {}, linkedToEncounter: 0, source: 'cco-photo-store' };
+  }
   let linked = 0;
   const byType = {};
   const bySource = {};
@@ -226,14 +269,51 @@ function countPhotos() {
     bySource[p.source] = (bySource[p.source] || 0) + 1;
     if (p.encounterId) linked += 1;
   }
-  return { total: ps.photos.length, byType, bySource, linkedToEncounter: linked };
+  return {
+    total: ps.photos.length,
+    byType,
+    bySource,
+    linkedToEncounter: linked,
+    source: 'cco-photo-store',
+  };
+}
+
+function countPatientAssets(dataRoot = path.join(ROOT, 'data')) {
+  const raw = readJson('data/cco-patient-assets.json', dataRoot);
+  const items = raw?.items || raw?.assets || {};
+  const list = Array.isArray(items) ? items : Object.values(items);
+  const photoCats = new Set(['photo_before', 'photo_during', 'photo_after']);
+  let linked = 0;
+  const byType = {};
+  const bySource = {};
+  let total = 0;
+  for (const a of list) {
+    if (!a || typeof a !== 'object') continue;
+    if (!photoCats.has(a.category) && !String(a.mimeType || '').startsWith('image/')) continue;
+    total += 1;
+    byType[a.category || 'unknown'] = (byType[a.category || 'unknown'] || 0) + 1;
+    bySource[a.sourceSystem || 'unknown'] = (bySource[a.sourceSystem || 'unknown'] || 0) + 1;
+    if (a.encounterId) linked += 1;
+  }
+  return {
+    total,
+    byType,
+    bySource,
+    linkedToEncounter: linked,
+    source: total > 0 ? 'cco-patient-assets' : 'none',
+    assetTotal: list.length,
+    linkOnlyBlocker: list.filter((a) => a?.status === 'LINK_ONLY_BLOCKER').length,
+    linkOnly: list.filter((a) => a?.status === 'LINK_ONLY_BLOCKER').length,
+    needsReview: list.filter((a) => a?.status === 'NEEDS_REVIEW').length,
+    visibleOnCard: list.filter((a) => a?.status === 'VISIBLE_ON_PATIENT_CARD').length,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // 10 cutover-kriterier — per .cursor/rules/cco-journal-cutover-first.mdc
 // ─────────────────────────────────────────────────────────────────────────
 function evaluateCriteria(stats) {
-  const { customers, journal, templates, photos } = stats;
+  const { customers, journal, templates, photos, livePhotos } = stats;
   const dod = [];
 
   // #1 — Master-kort per patient (clientoId + meridiqId + driveFolderId + ccoId)
@@ -360,15 +440,22 @@ function evaluateCriteria(stats) {
         : 'Sign/lock/PDF-flödet inte ännu verifierat. Kör smoke-test cco-journal-quick.',
   });
 
-  // #7 — Foto-flow
+  // #7 — Foto-flow (live cco-photo-store — inte migrerade patient_assets)
+  const lp = livePhotos || { total: 0, byType: {}, bySource: {} };
   let c7 = 'red';
-  if (photos.total > 0) c7 = 'green';
+  if (lp.total > 0) c7 = 'green';
   dod.push({
     n: 7,
     text: 'Foto-flow fungerar (ta bild → koppla till encounter → bevara original)',
     status: c7,
-    counts: { totalPhotos: photos.total, byType: photos.byType, bySource: photos.bySource },
-    blocker: c7 === 'green' ? null : 'ccoPhotoStore tom — UI finns men ingen photo registrerad.',
+    counts: {
+      totalPhotos: lp.total,
+      byType: lp.byType,
+      bySource: lp.bySource,
+      dataSource: lp.source || 'cco-photo-store',
+    },
+    blocker:
+      c7 === 'green' ? null : 'ccoPhotoStore tom — UI finns men ingen live photo registrerad.',
   });
 
   // #8 — Sign/lock/rättelse/PDF/audit verifierat
@@ -383,16 +470,14 @@ function evaluateCriteria(stats) {
       withPdf: journal.withPdf,
       corrected: journal.corrected,
     },
-    blocker:
-      c8 === 'green'
-        ? null
-        : 'Kör tests/ops/ccoJournalStore.* smoke-test före cutover.',
+    blocker: c8 === 'green' ? null : 'Kör tests/ops/ccoJournalStore.* smoke-test före cutover.',
   });
 
   // #9 — QA-dashboard visar 100% coverage
   // GREEN endast om #1+#3+#4 alla är GREEN.
   let c9 = 'red';
-  if (dod[0].status === 'green' && dod[2].status === 'green' && dod[3].status === 'green') c9 = 'green';
+  if (dod[0].status === 'green' && dod[2].status === 'green' && dod[3].status === 'green')
+    c9 = 'green';
   else if (dod[0].status === 'yellow' || dod[2].status === 'yellow') c9 = 'yellow';
   dod.push({
     n: 9,
@@ -420,10 +505,7 @@ function evaluateCriteria(stats) {
     text: 'Cutover Readiness Report GREEN på alla blockers',
     status: c10,
     counts: { greenCriteria: greenCount, totalCriteria: 9 },
-    blocker:
-      c10 === 'green'
-        ? null
-        : `${9 - greenCount} av 9 underliggande kriterier inte GREEN.`,
+    blocker: c10 === 'green' ? null : `${9 - greenCount} av 9 underliggande kriterier inte GREEN.`,
   });
 
   return dod;
@@ -448,15 +530,31 @@ function statusEmoji(s) {
 // ─────────────────────────────────────────────────────────────────────────
 // Markdown-rendering
 // ─────────────────────────────────────────────────────────────────────────
-function renderMarkdown({ date, tenantId, stats, dod, overall, audit }) {
+function renderMarkdown({
+  date,
+  tenantId,
+  stats,
+  dod,
+  overall,
+  audit,
+  dataLabel = 'repo',
+  dataRoot = null,
+}) {
   const lines = [];
   lines.push(`# Cutover Readiness Report — ${date}`);
   lines.push('');
   lines.push(
-    `*Auto-genererad: ${new Date().toISOString()} · Tenant: \`${tenantId}\` · P0.10 · scripts/generate-cutover-readiness-report.js*`
+    `*Auto-genererad: ${new Date().toISOString()} · Tenant: \`${tenantId}\` · data=${dataLabel} · P0.10 · scripts/generate-cutover-readiness-report.js*`
   );
-  lines.push(`*Styrande regel: \`.cursor/rules/cco-journal-cutover-first.mdc#Definition of Done\`*`);
-  lines.push(`*Compliance: 0 patientnamn, 0 personnummer, 0 emails, 0 telefonnummer — counts only.*`);
+  if (dataRoot) {
+    lines.push(`*Data-root: \`${dataRoot}\`*`);
+  }
+  lines.push(
+    `*Styrande regel: \`.cursor/rules/cco-journal-cutover-first.mdc#Definition of Done\`*`
+  );
+  lines.push(
+    `*Compliance: 0 patientnamn, 0 personnummer, 0 emails, 0 telefonnummer — counts only.*`
+  );
   lines.push('');
 
   // Headline
@@ -479,16 +577,22 @@ function renderMarkdown({ date, tenantId, stats, dod, overall, audit }) {
       Math.round((stats.customers.withMeridiq / Math.max(1, stats.customers.total)) * 1000) / 10
     } %)`
   );
-  lines.push(`- Leads utan vårdjournal (\`noMeridiqJournal\`): **${stats.customers.noMeridiqJournal}**`);
+  lines.push(
+    `- Leads utan vårdjournal (\`noMeridiqJournal\`): **${stats.customers.noMeridiqJournal}**`
+  );
   lines.push(`- Dubblettkandidater: **${stats.customers.duplicateCandidate}**`);
-  lines.push(`- Drive-folder-IDs på master-kort: **${stats.customers.withDrive}** (väntar på service-account)`);
+  lines.push(
+    `- Drive-folder-IDs på master-kort: **${stats.customers.withDrive}** (väntar på service-account)`
+  );
   lines.push(
     `- Journal-entries i CCO: **${stats.journal.total}** (signed: ${stats.journal.signed}, locked: ${stats.journal.locked}, withPDF: ${stats.journal.withPdf})`
   );
   lines.push(
     `- Templates: ${stats.templates.total} (consents: ${stats.templates.consents}, formulär: ${stats.templates.forms})`
   );
-  lines.push(`- Foto-store: **${stats.photos.total}** bilder (encounter-länkade: ${stats.photos.linkedToEncounter})`);
+  lines.push(
+    `- Foto-store: **${stats.photos.total}** bilder (encounter-länkade: ${stats.photos.linkedToEncounter})`
+  );
   lines.push(
     `- Audit-events totalt: ${audit.total} (senaste 5 actions: ${Object.entries(audit.byAction)
       .sort((a, b) => b[1] - a[1])
@@ -540,7 +644,9 @@ function renderMarkdown({ date, tenantId, stats, dod, overall, audit }) {
   lines.push('');
   lines.push('- [x] Alla kunder finns i CCO (Fas 1 klar)');
   lines.push('- [ ] Bokningskritiska data överförda');
-  lines.push(`- [${dod[1].status === 'green' ? 'x' : ' '}] Dubbletter hanterade (${stats.customers.duplicateCandidate} kandidater)`);
+  lines.push(
+    `- [${dod[1].status === 'green' ? 'x' : ' '}] Dubbletter hanterade (${stats.customers.duplicateCandidate} kandidater)`
+  );
   lines.push('- [ ] CCO-bokning fungerar (Fas 3)');
   lines.push('- [ ] Personalen hittar kundkort + historik');
   lines.push('- [ ] Inga nya bokningar behöver skapas i Cliento');
@@ -550,15 +656,22 @@ function renderMarkdown({ date, tenantId, stats, dod, overall, audit }) {
   lines.push('');
   lines.push('- [x] Journalmallar finns i CCO');
   lines.push(
-    `- [${dod[2].status === 'green' ? 'x' : ' '}] Historiska journaler/formulär/PDF/samtycken kopplade (gap: ${
-      Math.max(0, stats.customers.withMeridiqHasJournal - stats.journal.uniquePatients)
-    })`
+    `- [${dod[2].status === 'green' ? 'x' : ' '}] Historiska journaler/formulär/PDF/samtycken kopplade (gap: ${Math.max(
+      0,
+      stats.customers.withMeridiqHasJournal - stats.journal.uniquePatients
+    )})`
   );
-  lines.push(`- [${dod[5].status === 'green' ? 'x' : ' '}] Ny journalföring sker i CCO (entries: ${stats.journal.total})`);
+  lines.push(
+    `- [${dod[5].status === 'green' ? 'x' : ' '}] Ny journalföring sker i CCO (entries: ${stats.journal.total})`
+  );
   lines.push(`- [${dod[7].status === 'green' ? 'x' : ' '}] Signering/låsning/rättelse fungerar`);
-  lines.push(`- [${dod[7].status === 'green' ? 'x' : ' '}] PDF-arkivering fungerar (PDFs: ${stats.journal.withPdf})`);
+  lines.push(
+    `- [${dod[7].status === 'green' ? 'x' : ' '}] PDF-arkivering fungerar (PDFs: ${stats.journal.withPdf})`
+  );
   lines.push(`- [x] Audit/loggning fungerar (${audit.total} events)`);
-  lines.push(`- [${dod[8].status === 'green' ? 'x' : ' '}] QA visar att inga patientjournaler saknas`);
+  lines.push(
+    `- [${dod[8].status === 'green' ? 'x' : ' '}] QA visar att inga patientjournaler saknas`
+  );
   lines.push('');
 
   // ETA
@@ -607,7 +720,9 @@ function renderMarkdown({ date, tenantId, stats, dod, overall, audit }) {
   // OWNER-SKÄRPNING #4: PCRE-format för cross-tool-kompatibilitet
   // ([0-9] funkar i både JS, ripgrep --pcre2 och POSIX BRE/ERE)
   lines.push('- [x] Inga personnummer — regex `[0-9]{6}[-[:space:]]?[0-9]{4}` (PCRE) → 0 träffar');
-  lines.push('- [x] Inga emails — regex `[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}` (PCRE) → 0 träffar');
+  lines.push(
+    '- [x] Inga emails — regex `[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}` (PCRE) → 0 träffar'
+  );
   lines.push('- [x] Inga telefonnummer — regex `\\+46[0-9]{8,}` (PCRE) → 0 träffar');
   lines.push('- [x] Endast counts/percentages/struktur-IDs');
   lines.push('');
@@ -649,31 +764,60 @@ function complianceCheck(md) {
 // ─────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────
+function loadCutoverStats({ dataRoot, tenantId }) {
+  const customersRaw = readJson('data/cco-customers.json', dataRoot);
+  const journalRaw = readJson('data/cco-journal.json', dataRoot);
+  const templatesRaw = readJson('data/cco-templates.json', dataRoot);
+  const auditRaw = readJsonl('data/cco-audit.jsonl', dataRoot);
+  if (!customersRaw || !journalRaw || !templatesRaw) {
+    return {
+      ok: false,
+      missing: ['customers', 'journal', 'templates'].filter((k) => {
+        if (k === 'customers') return !customersRaw;
+        if (k === 'journal') return !journalRaw;
+        return !templatesRaw;
+      }),
+    };
+  }
+  return {
+    ok: true,
+    stats: {
+      customers: countCustomers(customersRaw, tenantId),
+      journal: countJournalEntries(journalRaw),
+      templates: countTemplates(templatesRaw),
+      photos: countPhotos(dataRoot),
+      livePhotos: countLivePhotoFlow(dataRoot),
+    },
+    audit: countAudit(auditRaw),
+  };
+}
+
 function main() {
   const args = parseArgs(process.argv);
-  console.log(`[readiness] generating report for ${args.date} (tenant=${args.tenantId})`);
+  console.log(
+    `[readiness] generating report for ${args.date} (tenant=${args.tenantId}, label=${args.label})`
+  );
 
-  const customersRaw = readJson('data/cco-customers.json');
-  const journalRaw = readJson('data/cco-journal.json');
-  const templatesRaw = readJson('data/cco-templates.json');
-  const auditRaw = readJsonl('data/cco-audit.jsonl');
-
-  if (!customersRaw || !journalRaw || !templatesRaw) {
-    console.error('[readiness] data-källor saknas — avbryter');
+  const loaded = loadCutoverStats({ dataRoot: args.dataRoot, tenantId: args.tenantId });
+  if (!loaded.ok) {
+    console.error(`[readiness] data-källor saknas (${loaded.missing.join(', ')}) — avbryter`);
     process.exit(1);
   }
 
-  const stats = {
-    customers: countCustomers(customersRaw, args.tenantId),
-    journal: countJournalEntries(journalRaw),
-    templates: countTemplates(templatesRaw),
-    photos: countPhotos(),
-  };
-  const audit = countAudit(auditRaw);
+  const { stats, audit } = loaded;
   const dod = evaluateCriteria(stats);
   const overall = overallStatus(dod);
 
-  const md = renderMarkdown({ date: args.date, tenantId: args.tenantId, stats, dod, overall, audit });
+  const md = renderMarkdown({
+    date: args.date,
+    tenantId: args.tenantId,
+    stats,
+    dod,
+    overall,
+    audit,
+    dataLabel: args.label,
+    dataRoot: args.dataRoot,
+  });
 
   const violations = complianceCheck(md);
   if (violations.length > 0) {
@@ -685,7 +829,13 @@ function main() {
   if (args.stdout) {
     process.stdout.write(md + '\n');
   } else {
-    const outPath = path.join(ROOT, 'docs', 'strategy', `CUTOVER-READINESS-REPORT-${args.date}.md`);
+    const suffix = args.label === 'repo' ? '' : `-${args.label}`;
+    const outPath = path.join(
+      ROOT,
+      'docs',
+      'strategy',
+      `CUTOVER-READINESS-REPORT-${args.date}${suffix}.md`
+    );
     fs.writeFileSync(outPath, md, 'utf8');
     console.log(`[readiness] wrote ${path.relative(ROOT, outPath)}`);
   }
@@ -708,13 +858,19 @@ if (require.main === module) {
 
 module.exports = {
   parseArgs,
+  loadCutoverStats,
   countCustomers,
   countJournalEntries,
   countTemplates,
   countAudit,
   countPhotos,
+  countPatientAssetPhotos,
+  countLivePhotoFlow,
+  countPatientAssets,
   evaluateCriteria,
   overallStatus,
   renderMarkdown,
   complianceCheck,
+  readJson,
+  readJsonl,
 };

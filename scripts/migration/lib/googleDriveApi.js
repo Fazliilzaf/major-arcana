@@ -57,7 +57,9 @@ async function getAccessToken(serviceAccount) {
   });
   const payload = await response.json();
   if (!response.ok || !payload.access_token) {
-    throw new Error(payload.error_description || payload.error || 'Kunde inte hämta Drive access token.');
+    throw new Error(
+      payload.error_description || payload.error || 'Kunde inte hämta Drive access token.'
+    );
   }
   return payload.access_token;
 }
@@ -155,7 +157,7 @@ async function listAllDriveFiles({
 
   async function ensureFreshToken() {
     if (!serviceAccount) return token;
-    if (Date.now() - tokenFetchedAt < 50 * 60 * 1000) return token;
+    if (Date.now() - tokenFetchedAt < 45 * 60 * 1000) return token;
     token = await getAccessToken(serviceAccount);
     tokenFetchedAt = Date.now();
     return token;
@@ -185,7 +187,9 @@ async function listAllDriveFiles({
         tokenFetchedAt = Date.now();
       }
       for (const item of page.files || []) {
-        const relativePath = folder.relativePath ? `${folder.relativePath}/${item.name}` : item.name;
+        const relativePath = folder.relativePath
+          ? `${folder.relativePath}/${item.name}`
+          : item.name;
         if (item.mimeType === 'application/vnd.google-apps.folder') {
           if (maxFolders <= 0 || folderCount < maxFolders) {
             folders.push({ id: item.id, relativePath });
@@ -218,7 +222,9 @@ async function openDriveFileReadStream({ accessToken, driveFileId }) {
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const err = new Error(payload.error?.message || `Drive files.get misslyckades (${response.status}).`);
+    const err = new Error(
+      payload.error?.message || `Drive files.get misslyckades (${response.status}).`
+    );
     err.status = response.status;
     throw err;
   }

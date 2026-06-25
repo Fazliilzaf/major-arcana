@@ -89,6 +89,7 @@ async function collectPhotoReviewOperatorStatus({ base, role = 'owner' }) {
     overall,
     operatorMode: 'READY',
     operatorToolPath: '/photo-review.html',
+    operatorToolAlias: '/cco-photo-review.html',
     writeEnabled,
     readOnly: !writeEnabled,
     phase: s.phase || (writeEnabled ? 'fas2' : 'fas1_readonly'),

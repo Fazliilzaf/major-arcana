@@ -20,3 +20,20 @@ test('enablePhotoReviewWrite allowed on staging hostname', () => {
   const { config } = require('../../src/config.js');
   assert.equal(config.enablePhotoReviewWrite, true);
 });
+
+test('enableImportReviewWrite requires operator canary master flag', () => {
+  process.env.ENABLE_CCO_OPERATOR_CANARY = 'false';
+  process.env.ENABLE_IMPORT_REVIEW_WRITE = 'true';
+  delete require.cache[require.resolve('../../src/config.js')];
+  const { config } = require('../../src/config.js');
+  assert.equal(config.enableImportReviewWrite, false);
+});
+
+test('enableImportReviewWrite on when canary master + import flag', () => {
+  process.env.ENABLE_CCO_OPERATOR_CANARY = 'true';
+  process.env.ENABLE_IMPORT_REVIEW_WRITE = 'true';
+  delete require.cache[require.resolve('../../src/config.js')];
+  const { config } = require('../../src/config.js');
+  assert.equal(config.enableImportReviewWrite, true);
+  assert.equal(config.importReviewCanaryMax, 25);
+});

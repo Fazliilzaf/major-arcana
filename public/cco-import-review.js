@@ -26,10 +26,18 @@
       .replace(/"/g, '&quot;');
   }
 
-  async function api(path) {
+  async function api(path, opts = {}) {
+    const reviewer = getReviewer();
     const res = await fetch(`${API}${path}`, {
       credentials: 'same-origin',
-      headers: { Accept: 'application/json', 'x-cco-role': 'operator' },
+      method: opts.method || 'GET',
+      headers: {
+        Accept: 'application/json',
+        'x-cco-role': 'operator',
+        ...(reviewer ? { 'x-cco-user': reviewer } : {}),
+        ...(opts.headers || {}),
+      },
+      body: opts.body,
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || res.statusText);
@@ -45,7 +53,7 @@
     root.innerHTML = `
       <header>
         <h1>Import Review Queue</h1>
-        <p class="cir-muted">1497 osäkra kundmatchningar (halso@ + GetAccept) · read-only · ingen auto-import · ingen ny kund</p>
+        <p class="cir-muted" data-subtitle>Laddar kö…</p>
       </header>
       <div class="cir-banner" data-mode-banner>
         <strong>Laddar läge…</strong>
@@ -130,6 +138,7 @@
 
   function renderSummary() {
     const el = document.querySelector('[data-summary]');
+    const subtitle = document.querySelector('[data-subtitle]');
     if (!el || !summary) return;
     const sources = (summary.sources || [])
       .map(
@@ -137,10 +146,14 @@
           `<div class="cir-metric"><strong>${escapeHtml(s.queueCount)}</strong><span>${escapeHtml(s.label)} · pending ${escapeHtml(s.status?.pending ?? '—')}</span></div>`
       )
       .join('');
+    const writeLabel = writeEnabled ? 'PÅ (canary)' : 'AV';
     el.innerHTML = `
       <div class="cir-metric"><strong>${escapeHtml(summary.total)}</strong><span>osäkra kundmatchningar (operator-scope)</span></div>
       ${sources}
-      <div class="cir-metric"><strong>AV</strong><span>write · ${escapeHtml(summary.statusLabel || summary.status)}</span></div>`;
+      <div class="cir-metric"><strong>${writeLabel}</strong><span>write · ${escapeHtml(summary.statusLabel || summary.status)}</span></div>`;
+    if (subtitle) {
+      subtitle.textContent = `${summary.total} osäkra kundmatchningar (halso@ + GetAccept) · ${writeEnabled ? 'canary write PÅ' : 'read-only'} · manuell batch · ingen auto-import · ingen ny kund`;
+    }
   }
 
   function renderQueueList() {
