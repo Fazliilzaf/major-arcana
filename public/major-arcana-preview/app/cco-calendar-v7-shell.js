@@ -419,7 +419,10 @@
           day.classList.add('is-active');
           const label = day.querySelector('.dayswipe-label').textContent;
           const date = day.querySelector('.dayswipe-date').textContent;
-          document.querySelector('.page-title').textContent = `${label} ${date} maj`;
+          // Månaden hårdkodades till "maj"; läs nu rätt månad som populateV7Real
+          // satt på dagen (data-month) ur riktigt datum (Bugbot #245).
+          const month = day.dataset.month || '';
+          document.querySelector('.page-title').textContent = `${label} ${date} ${month}`.trim();
         });
       });
 
@@ -431,9 +434,20 @@
       const sheetBody = document.getElementById('sheetBody');
       const sheetSticky = document.getElementById('sheetSticky');
 
-      document
-        .querySelectorAll('.booking')
-        .forEach((b) => b.addEventListener('click', () => openSheet(b)));
+      // Delegering på det persistenta timeline-elementet (populateV7Real byter
+      // bara dess barn, inte elementet självt) → tap-handlers överlever
+      // datarefresh för både .booking och .empty-slot (Bugbot #245).
+      timeline.addEventListener('click', (ev) => {
+        const booking = ev.target.closest('.booking');
+        if (booking && timeline.contains(booking)) {
+          openSheet(booking);
+          return;
+        }
+        const empty = ev.target.closest('.empty-slot');
+        if (empty && timeline.contains(empty)) {
+          toast('✓ Förslag skickat till Svarstudio som utkast', 'success');
+        }
+      });
 
       function openSheet(booking) {
         const d = booking.dataset;
@@ -586,14 +600,8 @@
         }, 2400);
       }
 
-      /* Predictive empty slot click */
-      document
-        .querySelectorAll('.empty-slot')
-        .forEach((s) =>
-          s.addEventListener('click', () =>
-            toast('✓ Förslag skickat till Svarstudio som utkast', 'success')
-          )
-        );
+      /* Predictive empty slot click hanteras nu via timeline-delegering ovan
+         (överlever populateV7Real:s DOM-byte) — Bugbot #245. */
 
       /* Standup quick-actions */
       document.querySelectorAll('.standup-quick .quick-pill').forEach((b) => {
@@ -643,6 +651,11 @@
         if (lab) lab.textContent = V7_DAYS[c];
         if (dat) dat.textContent = String(dd.getDate());
         if (cnt) cnt.textContent = String(bookedOn(week[c]).length);
+        // riktig månad per dag → dayswipe-titeln slipper hårdkodad "maj"
+        cells[c].dataset.month = dd
+          .toLocaleDateString('sv-SE', { month: 'short' })
+          .replace('.', '');
+        cells[c].dataset.iso = week[c];
         cells[c].classList.toggle('is-active', week[c] === today);
       }
 
@@ -720,19 +733,40 @@
               );
             }
             var name = s.title || s.customer || 'Bokning';
+            // data-* som openSheet läser (init/customer/treatment/time/resource)
+            // måste finnas på de RIKTIGA korten, annars visar bottom-sheet
+            // odefinierat (Bugbot #245).
+            var bStatus = /(tentat|pending|väntar|vantar)/i.test(String(s.status || ''))
+              ? 'tentative'
+              : 'confirmed';
+            var bInit = v7Initials(name);
+            var bService = s.serviceLabel || name;
+            var bResource = s.resourceLabel || '';
             return (
-              '<div class="booking" data-source="info" data-status="confirmed" style="top:' +
+              '<div class="booking" data-source="info" data-status="' +
+              bStatus +
+              '" data-init="' +
+              v7Esc(bInit) +
+              '" data-customer="' +
+              v7Esc(name) +
+              '" data-treatment="' +
+              v7Esc(bService) +
+              '" data-time="' +
+              v7Esc(range2) +
+              '" data-resource="' +
+              v7Esc(bResource) +
+              '" style="top:' +
               top +
               'px;height:' +
               h +
               'px"><span class="avatar">' +
-              v7Esc(v7Initials(name)) +
+              v7Esc(bInit) +
               '</span><div class="booking-time">' +
               v7Esc(range2) +
               '</div><div class="booking-title">' +
-              v7Esc(s.serviceLabel || name) +
+              v7Esc(bService) +
               '</div><div class="booking-sub">' +
-              v7Esc(s.resourceLabel || '') +
+              v7Esc(bResource) +
               '</div></div>'
             );
           })

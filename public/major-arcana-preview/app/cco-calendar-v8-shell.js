@@ -2099,7 +2099,7 @@
             ? 'Första kl ' +
               first +
               ' · sista kl ' +
-              t(last, 0) +
+              t(last, 1) +
               ' · ' +
               available.length +
               ' lediga tider'
@@ -2320,6 +2320,9 @@
             if (lbl) lbl.textContent = V8_DAYS[c];
             if (dnum) dnum.textContent = String(dt.getDate());
             cols[c].classList.toggle('is-today', iso === today);
+            // Facit hårdkodar class="day-col today" på en kolumn; flytta även
+            // 'today' till rätt dag annars pekar .day-col.today fel (Bugbot #245).
+            cols[c].classList.toggle('today', iso === today);
           }
           var slotsWrap = cols[c].querySelector('.day-slots');
           if (slotsWrap) {
@@ -2536,8 +2539,14 @@
     // här monterar vi rätt skal så data wiras bara där det visas.)
     var mobile = window.innerWidth <= 834;
     if (mobile) {
-      if (window.ArcanaCalendarV7 && !document.getElementById('cco-cal-v7-root')) {
-        window.ArcanaCalendarV7.render({});
+      if (!document.getElementById('cco-cal-v7-root')) {
+        if (window.ArcanaCalendarV7) {
+          window.ArcanaCalendarV7.render({});
+        } else {
+          // v7-skalet (deferred) kan ladda EFTER detta skal — försök igen strax
+          // så första mobil-monteringen inte missas (Bugbot #245).
+          setTimeout(maybeMount, 0);
+        }
       }
     } else if (!document.getElementById('cco-cal-v8-root')) {
       render({});
@@ -2565,9 +2574,12 @@
       }
     });
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
+  // Vänta till DOMContentLoaded (fyrar EFTER alla deferred-skript, inkl.
+  // cco-calendar-v7-shell.js) så att första maybeMount inte kör före v7 hunnit
+  // definiera window.ArcanaCalendarV7 (Bugbot #245).
+  if (document.readyState === 'complete') {
     boot();
+  } else {
+    document.addEventListener('DOMContentLoaded', boot);
   }
 })();
