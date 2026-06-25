@@ -452,6 +452,19 @@
   }
 
   // Bygg facit-formade boknings-objekt ur RIKTIGA slots (booked + available).
+  // Klassificera på RÅ workflow-status (caseStatus), inte den formaterade
+  // etiketten slot.status ("Erbjuden" m.fl.) — annars räknas offered/slots_ready
+  // som bekräftade istället för tentativa (Bugbot #264 High).
+  function bRawStatus(slot) {
+    return String((slot && (slot.caseStatus || slot.status)) || '').toLowerCase();
+  }
+  // Tentativa råstatusar (väntar åtgärd/bekräftelse) ur boknings-motorns vokabulär.
+  var B_TENTATIVE_RE =
+    /(needs_triage|slots_ready|offered|waiting_customer|tentat|pending|hold|await|propos)/;
+  function bIsTentative(slot) {
+    return slot && slot.kind === 'booked' && B_TENTATIVE_RE.test(bRawStatus(slot));
+  }
+
   function slotToBooking(S, slot, idx, conflict) {
     var booked = slot.kind === 'booked';
     var name = booked
@@ -463,17 +476,17 @@
       time = r.split(/[–-]/)[0].trim() || r;
     } catch (e) {}
     var dur = (slot.durationMinutes || 30) + ' min';
-    var status = String(slot.status || '').toLowerCase();
+    var rawStatus = bRawStatus(slot);
     var state, stateLabel;
     if (!booked) {
       state = 'new';
       stateLabel = 'Ledig';
-    } else if (conflict || /(conflict|konflikt|krock|double)/.test(status)) {
+    } else if (conflict || /(conflict|konflikt|krock|double)/.test(rawStatus)) {
       // Konflikt = överlapp beräknat ur delade datalagret (findConflictKeys),
       // inte bara om status-strängen råkar nämna "konflikt".
       state = 'conflict';
       stateLabel = 'Konflikt';
-    } else if (/(tentat|pending|väntar|vantar|hold)/.test(status)) {
+    } else if (bIsTentative(slot)) {
       state = 'tentative';
       stateLabel = 'Tentativ';
     } else {
@@ -589,18 +602,10 @@
         return s.kind === 'booked' && inConflict(s);
       }).length;
       var tentativeCount = visible.filter(function (s) {
-        return (
-          s.kind === 'booked' &&
-          !inConflict(s) &&
-          /(tentat|pending|väntar|vantar)/i.test(String(s.status || ''))
-        );
+        return s.kind === 'booked' && !inConflict(s) && bIsTentative(s);
       }).length;
       var confirmedCount = visible.filter(function (s) {
-        return (
-          s.kind === 'booked' &&
-          !inConflict(s) &&
-          !/(tentat|pending|väntar|vantar|conflict|konflikt)/i.test(String(s.status || ''))
-        );
+        return s.kind === 'booked' && !inConflict(s) && !bIsTentative(s);
       }).length;
 
       var title = root.querySelector('.page-title');
@@ -772,7 +777,11 @@
       return;
     }
     if (root) {
+      // Återvisa overlayn OCH hämta om datan — annars fryses den första
+      // hämtningen och nya/ändrade bokningar syns inte vid retur till
+      // kalendern på mobil (Bugbot #264).
       root.style.display = '';
+      populateBookingReal(root);
       return;
     }
     render({});
