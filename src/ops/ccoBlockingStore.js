@@ -90,11 +90,11 @@ function createCcoBlockingStore({
     } catch {
       grantedPhotos = [];
     }
-    let idStatus = { state: 'none' };
+    let idStatus = { status: 'none' };
     try {
-      idStatus = (await idVerificationStore.getStatus?.(cid)) || { state: 'none' };
+      idStatus = (await idVerificationStore.getStatus?.(cid)) || { status: 'none' };
     } catch {
-      idStatus = { state: 'none' };
+      idStatus = { status: 'none' };
     }
 
     // ── Steg 3.4: wrong_brand_flow ──
@@ -166,13 +166,13 @@ function createCcoBlockingStore({
 
       // ── ID-verifiering ──
       const idReq = treatmentCfg.requiredDocuments?.idVerification;
-      if (idReq?.required && normalizeKey(idStatus?.state) !== 'verified') {
+      if (idReq?.required && normalizeKey(idStatus?.status) !== 'verified') {
         issues.push(
           mkIssue(
             'missing_id_verification',
             idReq.blocking === false ? SEVERITY.WARNING : SEVERITY.BLOCKING,
             `ID-verifiering saknas för ${plannedTreatment}.`,
-            { treatmentKey: plannedTreatment, idState: normalizeKey(idStatus?.state) || 'none' }
+            { treatmentKey: plannedTreatment, idState: normalizeKey(idStatus?.status) || 'none' }
           )
         );
       }

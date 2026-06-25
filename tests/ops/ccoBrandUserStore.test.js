@@ -228,3 +228,31 @@ test('cron scheduler: runJob default + start/stop + tick drives markCronRan', as
   const r2 = await sched2.runJob(job);
   assert.equal(r2.dispatched, 7);
 });
+
+// Regression (Bugbot #5): tick() ska respektera jobbets schedule + lastRanAt,
+// inte köra varje aktiverat jobb varje intervall.
+test('cron tick kör bara jobb som är due (schedule + lastRanAt)', async () => {
+  const ran = [];
+  const now = new Date();
+  const justNow = now.toISOString();
+  const longAgo = new Date(now.getTime() - 7200000).toISOString(); // 2h sedan
+  const notificationStore = {
+    listCronJobs: () => [
+      { id: 'due-null', name: 'a', schedule: 'hourly', enabled: true, lastRanAt: null },
+      { id: 'due-old', name: 'b', schedule: 'hourly', enabled: true, lastRanAt: longAgo },
+      { id: 'not-due', name: 'c', schedule: 'hourly', enabled: true, lastRanAt: justNow },
+      { id: 'disabled', name: 'd', schedule: 'hourly', enabled: false, lastRanAt: null },
+    ],
+    markCronRan: async () => {},
+  };
+  const scheduler = createCronScheduler({
+    notificationStore,
+    runJob: async (job) => {
+      ran.push(job.id);
+      return { dispatched: 1 };
+    },
+  });
+  await scheduler.tick();
+  ran.sort();
+  assert.deepEqual(ran, ['due-null', 'due-old'], 'bara due (ej nyligen körda/avstängda) ska köras');
+});

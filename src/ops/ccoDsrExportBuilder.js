@@ -43,14 +43,33 @@ function asArray(value) {
  * Försök hämta en kunds samlade poster från en store oavsett exakt API.
  * Provar i tur och ordning ett antal vanliga metodnamn med customerId.
  */
+function idMatchesCustomer(item, customerId) {
+  // GDPR-säkerhet: släpp bara igenom poster som hör till subjektet. Poster helt
+  // utan kund-id-fält behålls (kan inte avgöras), men en post med ett kund-id som
+  // INTE matchar filtreras bort — så ett ofiltrerat store-svar aldrig läcker andra
+  // kunders data i en DSR-export.
+  const want = String(customerId || '')
+    .trim()
+    .toLowerCase();
+  const candidates = [item?.customerId, item?.custId, item?.customer, item?.patientId];
+  const present = candidates.filter((v) => v != null && v !== '');
+  if (!present.length) return true;
+  return present.some((v) => String(v).trim().toLowerCase() === want);
+}
+
 async function collectForCustomer(store, customerId, methodNames) {
   if (!store) return [];
   for (const name of methodNames) {
     const fn = store[name];
     if (typeof fn !== 'function') continue;
     try {
+      // Vissa stores tar positionell id (listForCustomer(id)), andra ett options-
+      // objekt (listGranted({ customerId })). Oavsett vilket filtrerar vi resultatet
+      // till subjektets egna poster nedan — så ett ofiltrerat svar aldrig läcker.
       const result = await fn.call(store, customerId);
-      const arr = asArray(result).filter((x) => x != null);
+      const arr = asArray(result)
+        .filter((x) => x != null)
+        .filter((x) => idMatchesCustomer(x, customerId));
       if (arr.length) return arr;
       // En tom array är ett giltigt svar — behåll den men fortsätt inte sondera.
       if (Array.isArray(result)) return arr;

@@ -539,6 +539,42 @@ async function createCcoNotificationStore({ filePath, auditLog = null } = {}) {
  * ingen verifierad extern dispatch-pipeline i routen). En custom runJob
  * kan injiceras via options för riktig dispatch.
  */
+// Tolka ett cron-jobbs free-text-schema till ett intervall i ms (eller null = okänt).
+function parseScheduleMs(schedule) {
+  const s = normalizeText(schedule).toLowerCase();
+  if (!s) return null;
+  const keywords = {
+    minutely: 60000,
+    hourly: 3600000,
+    daily: 86400000,
+    weekly: 604800000,
+    monthly: 2592000000,
+  };
+  if (keywords[s]) return keywords[s];
+  let m = s.match(/^every\s+(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/);
+  if (m) {
+    const n = Number(m[1]);
+    const unit = m[2][0];
+    const per = unit === 'h' ? 3600000 : unit === 'd' ? 86400000 : 60000;
+    return n * per;
+  }
+  if (/^\d+$/.test(s)) return Number(s) * 60000; // bara siffror => minuter
+  m = s.match(/^\*\/(\d+)\s+\*\s+\*\s+\*\s+\*$/); // cron "*/N * * * *"
+  if (m) return Number(m[1]) * 60000;
+  if (/^\d+\s+\d+\s+\*\s+\*\s+\*$/.test(s)) return 86400000; // cron "M H * * *" => dagligen
+  return null;
+}
+
+// Är jobbet "due" nu, givet dess schema och senaste körning?
+function isJobDue(job, nowMs) {
+  const intervalMs = parseScheduleMs(job?.schedule);
+  if (intervalMs == null) return true; // okänt schema => kör konservativt
+  if (!job?.lastRanAt) return true;
+  const last = Date.parse(job.lastRanAt);
+  if (Number.isNaN(last)) return true;
+  return nowMs - last >= intervalMs;
+}
+
 function createCronScheduler({
   notificationStore = null,
   telemetryStore = null,
@@ -558,7 +594,11 @@ function createCronScheduler({
 
   async function tick() {
     if (!notificationStore || typeof notificationStore.listCronJobs !== 'function') return;
-    const jobs = notificationStore.listCronJobs().filter((j) => j.enabled);
+    const nowMs = Date.now();
+    const jobs = notificationStore
+      .listCronJobs()
+      .filter((j) => j.enabled)
+      .filter((j) => isJobDue(j, nowMs));
     for (const job of jobs) {
       try {
         const result = await runJob(job);
