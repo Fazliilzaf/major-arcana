@@ -123,6 +123,33 @@
     var m = txt(v).match(/\d{2}:\d{2}/);
     return m ? m[0] : '';
   }
+  // Dela en datumetikett i {mon, day} så journal-/boknings-datumceller matchar
+  // facit ("Maj" + "05"). Stödjer "21 jun", "5 maj" och ISO "2026-06-21".
+  var SWE_MON = [
+    'jan',
+    'feb',
+    'mar',
+    'apr',
+    'maj',
+    'jun',
+    'jul',
+    'aug',
+    'sep',
+    'okt',
+    'nov',
+    'dec',
+  ];
+  function cap(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+  }
+  function monDay(label, fallbackDay) {
+    var s = txt(label);
+    var m = s.match(/^(\d{1,2})\s+([a-zåäö]{3,})/i);
+    if (m) return { mon: cap(m[2].slice(0, 3).toLowerCase()), day: m[1] };
+    var iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return { mon: cap(SWE_MON[parseInt(iso[2], 10) - 1] || ''), day: String(+iso[3]) };
+    return { mon: '', day: txt(fallbackDay) || s };
+  }
   function s2(av) {
     var head = secHead('02', 'Aktivt besök', av && av.headMeta ? txt(av.headMeta) : null);
     if (!av) {
@@ -556,13 +583,15 @@
         .map(function (e) {
           var signed = /signed|signerad|locked/i.test(txt(e.status));
           var today = /utkast|draft/i.test(txt(e.status));
-          var d = txt(e.dateLabel || e.date || e.signedAt).slice(0, 10);
+          var md = monDay(e.dateLabel || e.date || e.signedAt);
           return (
             '<div class="journal-row' +
             (today ? ' today' : '') +
             '">' +
-            '<div class="journal-date"><span class="d">' +
-            esc(d || '—') +
+            '<div class="journal-date">' +
+            esc(today ? 'Idag' : md.mon) +
+            '<span class="d">' +
+            esc(md.day || '—') +
             '</span></div>' +
             '<div><div class="journal-title">' +
             esc(txt(e.title || e.journalType || 'Journal')) +
@@ -611,12 +640,31 @@
     var gap = items.some(function (p) {
       return p.gap || p.viewGap;
     });
+    // Före/efter-par-förslag (facit .photo-bar) när minst två bilder finns.
+    var firstLbl = txt(items[0].dateLabel || items[0].photoDateLabel || items[0].capturedAt).slice(
+      0,
+      12
+    );
+    var lastLbl = txt(
+      items[items.length - 1].dateLabel ||
+        items[items.length - 1].photoDateLabel ||
+        items[items.length - 1].capturedAt
+    ).slice(0, 12);
+    var bar =
+      items.length >= 2
+        ? '<div class="photo-bar"><div class="lbl">Före/efter-par föreslaget: <b>' +
+          esc(firstLbl || 'Före') +
+          '</b> <span class="sep">↔</span> <b>' +
+          esc(lastLbl || 'Efter') +
+          '</b></div><button class="warn-action">Jämför</button></div>'
+        : '';
     return (
       '<section class="sec" id="s7">' +
       head +
       '<div class="photo-grid">' +
       tiles +
       '</div>' +
+      bar +
       (gap
         ? '<div class="photo-gap"><span>⚠ Krona-vy saknas för fullständig dokumentation</span><button class="warn-action">Begär foto</button></div>'
         : '') +
@@ -641,15 +689,25 @@
         head +
         '<div class="card" style="color:var(--ink-mute)">Inga bokningar registrerade.</div></section>'
       );
+    var cta =
+      up.length > 0
+        ? '<div class="section-cta"><span class="lbl">' +
+          up.length +
+          (up.length === 1 ? ' kommande tid' : ' kommande tider') +
+          ' väntar på bekräftelse från kund</span><button class="warn-action">Bekräfta alla</button></div>'
+        : '';
     return (
       '<section class="sec" id="s8">' +
       head +
       rows
         .map(function (b, i) {
           var done = i >= up.length;
+          var md = monDay(b.dateLabel || b.monthLabel || b.month, b.dayLabel || b.day);
           return (
-            '<div class="booking-row"><div class="b-date"><span class="d">' +
-            esc(txt(b.dayLabel || b.day || '—')) +
+            '<div class="booking-row"><div class="b-date">' +
+            esc(md.mon) +
+            '<span class="d">' +
+            esc(md.day || '—') +
             '</span></div>' +
             '<div><div class="b-title">' +
             esc(txt(b.title || b.serviceLabel || 'Bokning')) +
@@ -662,6 +720,7 @@
           );
         })
         .join('') +
+      cta +
       '</section>'
     );
   }
