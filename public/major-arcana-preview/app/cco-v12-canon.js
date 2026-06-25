@@ -474,7 +474,7 @@
       '</div>'
     );
   }
-  function s5(journey, av, smart, photos, health) {
+  function s5(journey, av, smart, photos, health, stepAssets) {
     var head = secHead(
       '05',
       'Kundresa',
@@ -544,11 +544,22 @@
               esc(JUMP_LABEL[s.jump]) +
               ' →</button>';
           }
-          var stepConsult =
-            /konsult/i.test(txt(s.label)) && !/bokning|bekräft|bekraft/i.test(txt(s.label));
-          var stepPhotos = arr(photos && photos.items ? photos.items : photos).length;
-          if (stepConsult && stepPhotos) {
-            jlBtns += '<span class="step-link">📷 ' + stepPhotos + ' foton</span>';
+          // Per-steg asset-räknare ur stepAssets[stegets id] (📄 dok / 📷 foton /
+          // 📓 journal). Endast när datan explicit hör till steget — ingen fejk.
+          var a = (stepAssets && (stepAssets[s.id] || stepAssets[i + 1])) || null;
+          if (a) {
+            if (a.docs) jlBtns += '<span class="step-link">📄 ' + a.docs + ' dok</span>';
+            if (a.photos) jlBtns += '<span class="step-link">📷 ' + a.photos + ' foton</span>';
+            if (a.journals)
+              jlBtns += '<span class="step-link">📓 ' + a.journals + ' journal</span>';
+          } else {
+            // Fallback: konsultations-steget får foto-räknare ur photos (äkta koppling).
+            var stepConsult =
+              /konsult/i.test(txt(s.label)) && !/bokning|bekräft|bekraft/i.test(txt(s.label));
+            var stepPhotos = arr(photos && photos.items ? photos.items : photos).length;
+            if (stepConsult && stepPhotos) {
+              jlBtns += '<span class="step-link">📷 ' + stepPhotos + ' foton</span>';
+            }
           }
           var jl = '<div class="step-links">' + jlBtns + '</div>';
           // Visit-card med besöksfoton — fästs på KONSULTATIONS-steget oavsett
@@ -1480,7 +1491,7 @@
       s2(av) +
       s3(warnings) +
       s4(health) +
-      s5(journey, av, nextStep, photos, health) +
+      s5(journey, av, nextStep, photos, health, ctx.stepAssets) +
       s6(ctx.journalEntries) +
       s7(photos) +
       s8(bundle) +

@@ -261,6 +261,14 @@
         status: 'Intern',
       },
     ],
+    // Per-steg asset-räknare (demo-data vi äger) → badges i kundresan som facit:
+    // steg 1/2 bokning 1 dok, steg 3 HD 2 dok, steg 4 konsultation 4 foton + 1 journal.
+    stepAssets: {
+      1: { docs: 1 },
+      2: { docs: 1 },
+      3: { docs: 2 },
+      4: { photos: 4, journals: 1 },
+    },
   };
 
   function esc(s) {
