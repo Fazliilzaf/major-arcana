@@ -29,7 +29,79 @@
   var ROOT_ID = 'cco-conv-v2-root';
   var activeTab = 'alla'; // alla | olasta | bokning | vip
   var mobilePane = 'inbox'; // mobil master-detail: 'inbox' | 'thread'
+  var activeSegment = 'alla'; // v3: alla | obesvarade | sla | mina
   var root = null;
+
+  var THEME_KEY = 'arcana.conversationsV2.theme';
+  var DENSITY_KEY = 'arcana.conversationsV2.density';
+  function lsGet(key, fallback) {
+    try {
+      return global.localStorage.getItem(key) || fallback;
+    } catch (_error) {
+      return fallback;
+    }
+  }
+  function lsSet(key, value) {
+    try {
+      global.localStorage.setItem(key, value);
+    } catch (_error) {
+      /* private mode */
+    }
+  }
+  var v3Theme = lsGet(THEME_KEY, 'light') === 'dark' ? 'dark' : 'light';
+  var v3Density = lsGet(DENSITY_KEY, 'comfortable') === 'compact' ? 'compact' : 'comfortable';
+  var selected = {}; // v3: multi-select set (thread-id → true)
+
+  // Temat är app-brett: sätts på <html> (så v8-kalendern re-temas) + på roten.
+  function applyTheme() {
+    try {
+      doc.documentElement.setAttribute('data-theme', v3Theme);
+    } catch (_error) {
+      /* ignore */
+    }
+    if (root) root.dataset.theme = v3Theme;
+  }
+  var activeCtxTab = 'oversikt'; // v3: oversikt | historik | ekonomi
+  var cmdkOpen = false;
+  var cmdkQuery = '';
+  var cmdkActive = 0;
+
+  function selectedIds() {
+    return Object.keys(selected).filter(function (k) {
+      return selected[k];
+    });
+  }
+  function selectedCount() {
+    return selectedIds().length;
+  }
+
+  // ⌘K ska bara kapas när v2-konversationsvyn faktiskt är aktiv.
+  function conversationsActive() {
+    try {
+      if (!root || !doc.body.contains(root)) return false;
+      var canvas = doc.querySelector('.preview-canvas');
+      var sv = canvas ? canvas.getAttribute('data-app-shell-view') : null;
+      return !sv || sv === 'conversations';
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  // v3: SLA-status från riktiga signaler (eller härledd).
+  function slaOf(thread) {
+    var raw = text(thread.slaStatus).toLowerCase();
+    if (raw === 'overdue' || raw === 'breach' || raw === 'förfallen') {
+      return { tone: 'overdue', label: 'SLA' };
+    }
+    if (raw === 'soon' || raw === 'risk' || raw === 'warning')
+      return { tone: 'soon', label: 'SLA' };
+    if (raw === 'ok' || raw === 'green') return null;
+    // Härledning: kräver-åtgärd + saknad/uppföljning → soon; bara åtgärd → ingen.
+    var pending =
+      text(thread.followUpLabel) || text(thread.missingLabel) || text(thread.waitingLabel);
+    if (pending && isUnread(thread)) return { tone: 'soon', label: 'SLA' };
+    return null;
+  }
 
   function isMobileViewport() {
     try {
@@ -238,22 +310,56 @@
   function signalRows(thread) {
     var msgs = messageList(thread);
     var rows = [];
-    if (msgs.length) rows.push({ dt: 'Tråden', dd: msgs.length + ' meddelanden' });
-    rows.push({ dt: 'Källa', dd: sourceLabel(thread) });
-    pushIf(rows, 'Status', thread.statusLabel);
-    pushIf(rows, 'Livscykel', thread.lifecycleLabel);
-    pushIf(rows, 'Väntar på', thread.waitingLabel);
-    pushIf(rows, 'Uppföljning', thread.followUpLabel, 'var(--cco-status-warning)');
-    pushIf(rows, 'Risk', thread.riskLabel, 'var(--cco-status-danger)');
-    pushIf(rows, 'Ägare', thread.ownerLabel || thread.displayOwnerLabel);
-    pushIf(rows, 'Engagemang', thread.engagementLabel);
-    pushIf(rows, 'Senast', thread.lastActivityLabel || whenLabel(thread));
+    pushIf(
+      rows,
+      'Tråden',
+      text(thread.threadSummaryLabel) || (msgs.length ? msgs.length + ' meddelanden' : '')
+    );
+    rows.push({ dt: 'Källa', ddHtml: '<span class="ctx-dot"></span>' + esc(sourceLabel(thread)) });
+    pushIf(
+      rows,
+      'Bokning',
+      thread.bookingLabel || thread.waitingLabel,
+      'var(--cco-status-warning)'
+    );
+    pushIf(
+      rows,
+      'Saknas',
+      thread.missingLabel || thread.followUpLabel,
+      'var(--cco-status-warning)'
+    );
+    pushIf(
+      rows,
+      'Senast',
+      thread.lastTreatmentLabel || thread.lastActivityLabel || whenLabel(thread)
+    );
+    pushIf(rows, 'Intäkt', thread.revenueLabel);
+    // Graciös fallback om de rikare fälten saknas (produktion utan enrichment).
+    if (rows.length <= 3) {
+      pushIf(rows, 'Status', thread.statusLabel);
+      pushIf(rows, 'Risk', thread.riskLabel, 'var(--cco-status-danger)');
+      pushIf(rows, 'Ägare', thread.ownerLabel || thread.displayOwnerLabel);
+    }
     return rows;
   }
 
   function pushIf(rows, dt, value, color) {
     var v = text(value);
     if (v) rows.push({ dt: dt, dd: v, color: color });
+  }
+
+  // Ctx-meta: "VIP · PRP-kur 4/6 · 92% engagement" (faller tillbaka på källa).
+  function ctxMetaLine(thread) {
+    var parts = [thread.riskLabel, thread.lifecycleLabel, thread.engagementLabel]
+      .map(text)
+      .filter(Boolean);
+    return parts.length ? parts.join(' · ') : sourceLabel(thread);
+  }
+
+  function ctxAiBox(thread) {
+    var body = text(thread.aiRecommendation);
+    if (!body) return '';
+    return '<div class="ctx-ai-box"><div class="ctx-ai-kicker">★ AI</div>' + esc(body) + '</div>';
   }
 
   function statusPills(thread) {
@@ -355,7 +461,25 @@
         (messageWhen(message) ? ' · ' + esc(messageWhen(message)) : '') +
         '</div></div></div>';
     });
-    return html;
+    return html + aiSuggestBlock(thread);
+  }
+
+  // AI · Föreslaget svar — renderas i strömmen när tråden har ett AI-förslag.
+  function aiSuggestBlock(thread) {
+    var body = text(thread.aiSuggestion);
+    if (!body) return '';
+    return (
+      '<div class="ai-suggest"><div class="ai-suggest-kicker">★ AI · Föreslaget svar</div>' +
+      '<div class="ai-suggest-body">' +
+      esc(body) +
+      '</div>' +
+      '<div class="ai-suggest-actions">' +
+      '<button class="quick-pill quick-pill--ai" type="button" data-v2-action="studio">★ Visa förslag</button>' +
+      '<button class="quick-pill" type="button" data-v2-action="studio">↻ Generera om</button>' +
+      '<button class="quick-pill quick-pill--success" type="button" data-v2-action="studio">✓ Skicka direkt</button>' +
+      '<button class="quick-pill" type="button" data-v2-action="studio">✎ Redigera först</button>' +
+      '</div></div>'
+    );
   }
 
   function ensureRoot() {
@@ -365,16 +489,19 @@
     root = doc.createElement('div');
     root.id = ROOT_ID;
     root.innerHTML =
+      '<div class="v3-toolbar" data-v3-toolbar></div>' +
       '<div class="app-grid">' +
       '<aside class="lane-sidebar" data-v2-lanes role="navigation" aria-label="Köfält"></aside>' +
       '<aside class="inbox-shell"><div class="inbox-kicker">Inkorg</div>' +
       '<h2 class="inbox-h2" data-v2-inbox-h2></h2>' +
       '<div class="lane-chips" data-v2-lane-chips></div>' +
       '<div class="inbox-tabs" data-v2-tabs></div>' +
+      '<div class="v3-bulkbar" data-v3-bulkbar></div>' +
       '<div class="inbox-list" data-v2-inbox></div></aside>' +
       '<section class="thread-shell" data-v2-thread></section>' +
       '<aside class="ctx-shell" data-v2-ctx></aside>' +
-      '</div>';
+      '</div>' +
+      '<div data-v3-cmdk></div>';
     var workspace = doc.querySelector('.preview-workspace');
     if (workspace && workspace.parentNode) {
       workspace.parentNode.insertBefore(root, workspace.nextSibling);
@@ -446,7 +573,7 @@
   }
 
   function visibleThreads(ctx) {
-    var list = (ctx.laneThreads || []).slice();
+    var list = (ctx.laneThreads || []).slice().filter(segmentMatch);
     if (activeTab === 'olasta') return list.filter(isUnread);
     if (activeTab === 'bokning') return list.filter(isBooking);
     if (activeTab === 'vip') return list.filter(isVip);
@@ -495,6 +622,10 @@
     if (!el) return;
     var list = visibleThreads(ctx);
     if (!list.length) {
+      if (ctx.loading) {
+        el.innerHTML = new Array(6).fill('<div class="v3-skel v3-skel-row"></div>').join('');
+        return;
+      }
       el.innerHTML = '<div class="inbox-empty">Inga konversationer i denna vy.</div>';
       return;
     }
@@ -504,16 +635,29 @@
         var id = text(thread.id);
         var active = id && id === selectedId ? ' active' : '';
         var unread = isUnread(thread) ? ' thread-unread' : '';
+        var isSel = selected[id] ? ' is-selected' : '';
         var tags = tagsFor(thread);
+        var sla = slaOf(thread);
         return (
           '<div class="thread' +
           active +
           unread +
+          isSel +
           '" data-source="' +
           esc(sourceKey(thread)) +
           '" data-thread-id="' +
           esc(id) +
           '" role="button" tabindex="0">' +
+          '<span class="thread-select" data-thread-select="' +
+          esc(id) +
+          '" role="checkbox" aria-checked="' +
+          (selected[id] ? 'true' : 'false') +
+          '" title="Markera">' +
+          (selected[id] ? '✓' : '') +
+          '</span>' +
+          (sla
+            ? '<span class="thread-sla thread-sla--' + sla.tone + '">' + esc(sla.label) + '</span>'
+            : '') +
           '<div class="thread-av" style="background:' +
           esc(avatarBg(thread)) +
           '">' +
@@ -570,10 +714,17 @@
       '<button class="thread-back" type="button" data-v2-back aria-label="Tillbaka till inkorgen">‹ Inkorg</button>' +
       '<div class="thread-header-main">' +
       '<div class="thread-header-kicker">' +
+      '<span class="thread-header-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">' +
+      '<path d="M4 4h16v16H4z" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M4 4l8 8 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
       (msgCount ? 'Konversation · ' + msgCount + ' meddelanden' : 'Konversation') +
       '</div>' +
       '<h2>' +
-      esc(text(thread.subject) || threadName(thread)) +
+      esc(
+        text(thread.subject)
+          ? text(thread.subject) + ' · ' + threadName(thread)
+          : threadName(thread)
+      ) +
       '</h2></div>' +
       '<div class="thread-header-actions">' +
       '<button class="nav-btn thread-ctx-toggle" type="button" data-v2-ctx-toggle aria-label="Visa kundkontext">ⓘ Kund</button>' +
@@ -586,12 +737,86 @@
       '<div class="messages">' +
       messages +
       '</div>' +
+      '<div class="v3-quickreply">' +
+      '<textarea data-v3-qr-body placeholder="Snabbsvar — sparas som utkast (skicka kräver owner)…"></textarea>' +
+      '<div class="v3-quickreply-row">' +
+      '<button class="v3-qr-btn v3-qr-btn--primary" type="button" data-v3-qr-save>Spara utkast</button>' +
+      '<button class="v3-qr-btn" type="button" data-v3-qr-studio>★ Svarstudio</button>' +
+      '<span class="v3-qr-spacer"></span>' +
+      '<span class="v3-qr-hint">⌘K för kommandon</span>' +
+      '</div></div>' +
       '<div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">' +
       '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio" data-v2-soon><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
       '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
       '<button class="action-btn action-btn--note" type="button" data-v2-action="note"><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
       '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"><span class="action-ico">📆</span><span>Kalender</span></button>' +
       '</div>';
+  }
+
+  function ctxTabBody(thread) {
+    if (activeCtxTab === 'historik') {
+      var msgs = messageList(thread);
+      var lines = [];
+      if (msgs.length) lines.push(msgs.length + ' meddelanden i tråden');
+      if (text(thread.lastTreatmentLabel))
+        lines.push('Senaste: ' + text(thread.lastTreatmentLabel));
+      if (text(thread.lifecycleLabel)) lines.push('Livscykel: ' + text(thread.lifecycleLabel));
+      if (text(thread.lastActivityLabel))
+        lines.push('Aktivitet: ' + text(thread.lastActivityLabel));
+      return (
+        '<div class="wb-section" style="padding-top:6px">' +
+        (lines.length
+          ? lines
+              .map(function (l) {
+                return '<p class="wb-section-sub">' + esc(l) + '</p>';
+              })
+              .join('')
+          : '<p class="wb-section-sub">Ingen historik tillgänglig.</p>') +
+        '</div>'
+      );
+    }
+    if (activeCtxTab === 'ekonomi') {
+      var rows = [];
+      if (text(thread.revenueLabel)) rows.push(['Intäkt', text(thread.revenueLabel)]);
+      if (text(thread.bookingLabel)) rows.push(['Bokning', text(thread.bookingLabel)]);
+      if (text(thread.lastTreatmentLabel)) rows.push(['Senaste', text(thread.lastTreatmentLabel)]);
+      return (
+        '<dl class="ctx-grid" style="padding-top:6px">' +
+        (rows.length
+          ? rows
+              .map(function (r) {
+                return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>';
+              })
+              .join('')
+          : '<dd style="grid-column:1/-1;color:var(--cco-text-tertiary)">Ingen ekonomidata.</dd>') +
+        '</dl>'
+      );
+    }
+    // oversikt (default)
+    var gridRows = signalRows(thread)
+      .map(function (row) {
+        var style = row.color ? ' style="color:' + row.color + ';font-weight:700"' : '';
+        var dd = row.ddHtml ? row.ddHtml : esc(row.dd);
+        return '<dt>' + esc(row.dt) + '</dt><dd' + style + '>' + dd + '</dd>';
+      })
+      .join('');
+    var aiAction = text(thread.missingLabel) || text(thread.followUpLabel);
+    return (
+      '<dl class="ctx-grid" style="padding-top:6px">' +
+      gridRows +
+      '</dl>' +
+      ctxAiBox(thread) +
+      '<div class="ctx-actions">' +
+      (aiAction
+        ? '<button class="quick-pill quick-pill--ai quick-pill--full" type="button" data-v2-action="studio">★ AI ' +
+          esc(aiAction) +
+          '</button>'
+        : '') +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking">📅 Öppna bokning</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier">👤 Kunddossiér</button>' +
+      '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled" data-v2-soon>✓ Markera klar</button>' +
+      '</div>'
+    );
   }
 
   function renderCtx(ctx) {
@@ -605,12 +830,27 @@
         '<div class="ctx-meta" style="padding-top:8px">Ingen konversation vald.</div>';
       return;
     }
-    var rows = signalRows(thread)
-      .map(function (row) {
-        var style = row.color ? ' style="color:' + row.color + ';font-weight:700"' : '';
-        return '<dt>' + esc(row.dt) + '</dt><dd' + style + '>' + esc(row.dd) + '</dd>';
-      })
-      .join('');
+    var ctxTabs = [
+      { id: 'oversikt', label: 'Översikt' },
+      { id: 'historik', label: 'Historik' },
+      { id: 'ekonomi', label: 'Ekonomi' },
+    ];
+    var tabsHtml =
+      '<div class="ctx-tabs">' +
+      ctxTabs
+        .map(function (t) {
+          return (
+            '<button class="ctx-tab' +
+            (t.id === activeCtxTab ? ' active' : '') +
+            '" data-ctx-tab="' +
+            t.id +
+            '" type="button">' +
+            esc(t.label) +
+            '</button>'
+          );
+        })
+        .join('') +
+      '</div>';
 
     el.innerHTML =
       '<div><div class="ctx-kicker">Kundkontext</div>' +
@@ -624,16 +864,10 @@
       esc(threadName(thread)) +
       '</div>' +
       '<div class="ctx-meta">' +
-      esc(sourceLabel(thread)) +
+      esc(ctxMetaLine(thread)) +
       '</div></div></div>' +
-      '<dl class="ctx-grid">' +
-      rows +
-      '</dl>' +
-      '<div class="ctx-actions">' +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier">👤 Kunddossiér</button>' +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking">📅 Bokning</button>' +
-      '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled" data-v2-soon>✓ Klar</button>' +
-      '</div>';
+      tabsHtml +
+      ctxTabBody(thread);
   }
 
   function findThreadById(ctx, id) {
@@ -930,8 +1164,89 @@
         var count = root.querySelector('[data-studio-count]');
         if (count) count.textContent = studio.body.length + ' tecken';
       }
+      if (cmdkOpen && event.target.matches('[data-v3-cmdk-input]')) {
+        cmdkQuery = event.target.value;
+        cmdkActive = 0;
+        renderCmdk();
+      }
+    });
+    // ⌘K / Ctrl+K — kommandopalett + tangentbordsnavigering i den.
+    doc.addEventListener('keydown', function (event) {
+      var key = (event.key || '').toLowerCase();
+      if ((event.metaKey || event.ctrlKey) && key === 'k') {
+        if (!conversationsActive()) return;
+        event.preventDefault();
+        if (cmdkOpen) closeCmdk();
+        else openCmdk();
+        return;
+      }
+      if (!cmdkOpen) return;
+      if (key === 'escape') {
+        event.preventDefault();
+        closeCmdk();
+      } else if (key === 'arrowdown') {
+        event.preventDefault();
+        cmdkActive += 1;
+        renderCmdk();
+      } else if (key === 'arrowup') {
+        event.preventDefault();
+        cmdkActive = Math.max(0, cmdkActive - 1);
+        renderCmdk();
+      } else if (key === 'enter') {
+        event.preventDefault();
+        runCmdk(cmdkActive);
+      }
     });
     root.addEventListener('click', function (event) {
+      // ── Kommandopalett ──
+      if (cmdkOpen) {
+        if (event.target.matches('[data-v3-cmdk-backdrop]')) {
+          closeCmdk();
+          return;
+        }
+        var cmdItem = event.target.closest('[data-v3-cmdk-i]');
+        if (cmdItem) {
+          runCmdk(Number(cmdItem.getAttribute('data-v3-cmdk-i')));
+          return;
+        }
+      }
+      // ── Ctx-flikar ──
+      var ctxTabEl = event.target.closest('[data-ctx-tab]');
+      if (ctxTabEl && boundCtx) {
+        activeCtxTab = ctxTabEl.getAttribute('data-ctx-tab');
+        renderCtx(boundCtx);
+        return;
+      }
+      // ── Inline quick-reply ──
+      if (event.target.closest('[data-v3-qr-studio]') && boundCtx) {
+        openStudio(boundCtx.selected);
+        return;
+      }
+      if (event.target.closest('[data-v3-qr-save]') && boundCtx && boundCtx.selected) {
+        var qrTa = root.querySelector('[data-v3-qr-body]');
+        var qrText = qrTa ? qrTa.value : '';
+        if (qrText.trim() && typeof boundCtx.handlers.studioSave === 'function') {
+          boundCtx.handlers
+            .studioSave({
+              customerId: text(boundCtx.selected.customerId) || text(boundCtx.selected.id),
+              tenantId: text(boundCtx.selected.tenantId),
+              subject: text(boundCtx.selected.subject),
+              body: qrText,
+            })
+            .then(function () {
+              if (qrTa) qrTa.value = '';
+              try {
+                global.CCOPolish &&
+                  global.CCOPolish.showToast &&
+                  global.CCOPolish.showToast('Utkast sparat', 'success');
+              } catch (_error) {
+                /* tyst */
+              }
+            })
+            .catch(function () {});
+        }
+        return;
+      }
       // ── Svarstudio workbench-interaktioner ──
       if (studio) {
         if (
@@ -975,6 +1290,29 @@
           return; /* låst: owner-blockerat */
         }
       }
+      // v3 operatörs-toolbar.
+      if (event.target.closest('[data-v3-theme]')) {
+        v3Theme = v3Theme === 'dark' ? 'light' : 'dark';
+        lsSet(THEME_KEY, v3Theme);
+        applyTheme();
+        if (boundCtx) renderToolbar(boundCtx);
+        return;
+      }
+      if (event.target.closest('[data-v3-density]')) {
+        v3Density = v3Density === 'compact' ? 'comfortable' : 'compact';
+        lsSet(DENSITY_KEY, v3Density);
+        root.dataset.density = v3Density;
+        if (boundCtx) renderToolbar(boundCtx);
+        return;
+      }
+      var segEl = event.target.closest('[data-v3-segment]');
+      if (segEl && boundCtx) {
+        activeSegment = segEl.getAttribute('data-v3-segment');
+        renderToolbar(boundCtx);
+        renderTabs(boundCtx);
+        renderInbox(boundCtx);
+        return;
+      }
       // Mobil master-detail-navigering.
       if (event.target.closest('[data-v2-back]')) {
         mobilePane = 'inbox';
@@ -996,6 +1334,42 @@
         activeTab = tabEl.getAttribute('data-tab');
         renderTabs(boundCtx);
         renderInbox(boundCtx);
+        return;
+      }
+      // v3: multi-select checkbox (öppnar inte tråden).
+      var selEl = event.target.closest('[data-thread-select]');
+      if (selEl && boundCtx) {
+        event.stopPropagation();
+        var sid = selEl.getAttribute('data-thread-select');
+        if (selected[sid]) delete selected[sid];
+        else selected[sid] = true;
+        renderInbox(boundCtx);
+        renderBulkBar();
+        return;
+      }
+      // v3: bulk-actions.
+      var bulkEl = event.target.closest('[data-v3-bulk]');
+      if (bulkEl && boundCtx) {
+        var bname = bulkEl.getAttribute('data-v3-bulk');
+        var ids = selectedIds();
+        if (bname === 'clear') {
+          selected = {};
+        } else if (typeof boundCtx.handlers.bulkAction === 'function') {
+          boundCtx.handlers.bulkAction(bname, ids);
+        } else {
+          try {
+            global.CCOPolish &&
+              global.CCOPolish.showToast &&
+              global.CCOPolish.showToast(
+                bname + ' · ' + ids.length + ' valda (aktiveras snart)',
+                'info'
+              );
+          } catch (_error) {
+            /* tyst */
+          }
+        }
+        renderInbox(boundCtx);
+        renderBulkBar();
         return;
       }
       var threadEl = event.target.closest('[data-thread-id]');
@@ -1027,21 +1401,282 @@
     });
   }
 
+  // v3: räkna risk-signaler för toolbar-badges.
+  function riskCounts(threads) {
+    var list = threads || [];
+    var high = 0;
+    var followup = 0;
+    var unassigned = 0;
+    list.forEach(function (t) {
+      if (/hög|high|klagomål|komplikation/i.test(text(t.riskLabel))) high += 1;
+      if (text(t.followUpLabel) || text(t.missingLabel) || text(t.waitingLabel)) followup += 1;
+      if (!text(t.ownerLabel) && !text(t.ownerKey)) unassigned += 1;
+    });
+    return { high: high, followup: followup, unassigned: unassigned };
+  }
+
+  // v3: segment filtrerar inboxen (kombineras med flikar).
+  var V3_SEGMENTS = [
+    { id: 'alla', label: 'Alla' },
+    { id: 'obesvarade', label: 'Obesvarade' },
+    { id: 'sla', label: 'SLA-risk' },
+    { id: 'mina', label: 'Mina' },
+  ];
+  function segmentMatch(thread) {
+    if (activeSegment === 'obesvarade') return isUnread(thread);
+    if (activeSegment === 'sla') {
+      return Boolean(
+        text(thread.followUpLabel) || text(thread.missingLabel) || text(thread.waitingLabel)
+      );
+    }
+    if (activeSegment === 'mina') return Boolean(text(thread.ownerLabel) || text(thread.ownerKey));
+    return true;
+  }
+
+  function renderToolbar(ctx) {
+    var el = root.querySelector('[data-v3-toolbar]');
+    if (!el) return;
+    var all = ctx.allThreads || [];
+    var risk = riskCounts(all);
+    var segs = V3_SEGMENTS.map(function (s) {
+      var count =
+        s.id === 'alla'
+          ? all.length
+          : all.filter(function (t) {
+              var prev = activeSegment;
+              activeSegment = s.id;
+              var m = segmentMatch(t);
+              activeSegment = prev;
+              return m;
+            }).length;
+      return (
+        '<button class="v3-segment' +
+        (s.id === activeSegment ? ' active' : '') +
+        '" data-v3-segment="' +
+        s.id +
+        '" type="button">' +
+        esc(s.label) +
+        '<span class="ct">' +
+        count +
+        '</span></button>'
+      );
+    }).join('');
+    el.innerHTML =
+      '<div class="v3-segments" role="tablist">' +
+      segs +
+      '</div>' +
+      '<div class="v3-spacer"></div>' +
+      (risk.high
+        ? '<span class="v3-risk v3-risk--high" title="Högrisk">⚠ ' + risk.high + ' högrisk</span>'
+        : '') +
+      (risk.followup
+        ? '<span class="v3-risk v3-risk--followup" title="Behöver uppföljning">⏱ ' +
+          risk.followup +
+          ' followup</span>'
+        : '') +
+      (risk.unassigned
+        ? '<span class="v3-risk v3-risk--unassigned" title="Ej tilldelat">○ ' +
+          risk.unassigned +
+          ' ej tilldelat</span>'
+        : '') +
+      '<button class="v3-iconbtn" data-v3-density type="button" title="Densitet (kompakt/bekväm)" aria-label="Densitet">' +
+      (v3Density === 'compact' ? '▤' : '▦') +
+      '</button>' +
+      '<button class="v3-iconbtn" data-v3-theme type="button" title="Ljust/mörkt tema" aria-label="Tema">' +
+      (v3Theme === 'dark' ? '☀' : '☾') +
+      '</button>';
+  }
+
+  var V3_BULK_ACTIONS = [
+    { id: 'assign', label: 'Tilldela' },
+    { id: 'snooze', label: 'Snooza' },
+    { id: 'handled', label: 'Markera klar' },
+    { id: 'triage', label: '★ AI-triage' },
+  ];
+  function renderBulkBar() {
+    var el = root.querySelector('[data-v3-bulkbar]');
+    if (!el) return;
+    var n = selectedCount();
+    root.dataset.selectMode = n > 0 ? 'on' : 'off';
+    if (!n) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML =
+      '<span class="count">' +
+      n +
+      ' valda</span>' +
+      V3_BULK_ACTIONS.map(function (a) {
+        return (
+          '<button class="v3-bulk-action" type="button" data-v3-bulk="' +
+          a.id +
+          '">' +
+          esc(a.label) +
+          '</button>'
+        );
+      }).join('') +
+      '<span class="spacer"></span>' +
+      '<button class="v3-bulk-action v3-bulk-action--clear" type="button" data-v3-bulk="clear">Avmarkera</button>';
+  }
+
+  // ── Kommandopalett (⌘K) ──
+  function buildCommands(ctx) {
+    var cmds = [];
+    (ctx.lanes || []).forEach(function (lane) {
+      cmds.push({
+        ico: lane.icon || '▸',
+        label: 'Gå till ' + lane.label,
+        grp: 'Lane',
+        run: function () {
+          ctx.handlers.setLane(lane.id);
+        },
+      });
+    });
+    V3_SEGMENTS.forEach(function (s) {
+      cmds.push({
+        ico: '◎',
+        label: 'Visa ' + s.label,
+        grp: 'Vy',
+        run: function () {
+          activeSegment = s.id;
+          renderToolbar(ctx);
+          renderTabs(ctx);
+          renderInbox(ctx);
+        },
+      });
+    });
+    cmds.push({
+      ico: v3Theme === 'dark' ? '☀' : '☾',
+      label: v3Theme === 'dark' ? 'Byt till ljust tema' : 'Byt till mörkt tema',
+      grp: 'Tema',
+      run: function () {
+        v3Theme = v3Theme === 'dark' ? 'light' : 'dark';
+        lsSet(THEME_KEY, v3Theme);
+        applyTheme();
+        renderToolbar(ctx);
+      },
+    });
+    cmds.push({
+      ico: '▤',
+      label: v3Density === 'compact' ? 'Bekväm densitet' : 'Kompakt densitet',
+      grp: 'Vy',
+      run: function () {
+        v3Density = v3Density === 'compact' ? 'comfortable' : 'compact';
+        lsSet(DENSITY_KEY, v3Density);
+        root.dataset.density = v3Density;
+        renderToolbar(ctx);
+      },
+    });
+    if (ctx.selected) {
+      cmds.push({
+        ico: '★',
+        label: 'Öppna Svarstudio',
+        grp: 'Tråd',
+        run: function () {
+          openStudio(ctx.selected);
+        },
+      });
+      cmds.push({
+        ico: '👤',
+        label: 'Öppna Kunddossiér',
+        grp: 'Tråd',
+        run: function () {
+          if (ctx.handlers.openDossier) ctx.handlers.openDossier(ctx.selected);
+        },
+      });
+    }
+    return cmds;
+  }
+  function filteredCommands(ctx) {
+    var q = cmdkQuery.trim().toLowerCase();
+    var all = buildCommands(ctx);
+    if (!q) return all;
+    return all.filter(function (c) {
+      return c.label.toLowerCase().indexOf(q) >= 0 || c.grp.toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  function openCmdk() {
+    cmdkOpen = true;
+    cmdkQuery = '';
+    cmdkActive = 0;
+    renderCmdk();
+    var input = root.querySelector('.v3-cmdk-input');
+    if (input) input.focus();
+  }
+  function closeCmdk() {
+    cmdkOpen = false;
+    var host = root.querySelector('[data-v3-cmdk]');
+    if (host) host.innerHTML = '';
+  }
+  function renderCmdk() {
+    var host = root.querySelector('[data-v3-cmdk]');
+    if (!host) return;
+    if (!cmdkOpen) {
+      host.innerHTML = '';
+      return;
+    }
+    var cmds = filteredCommands(boundCtx);
+    if (cmdkActive >= cmds.length) cmdkActive = Math.max(0, cmds.length - 1);
+    host.innerHTML =
+      '<div class="v3-cmdk-backdrop" data-v3-cmdk-backdrop><div class="v3-cmdk" role="dialog" aria-label="Kommandopalett">' +
+      '<input class="v3-cmdk-input" data-v3-cmdk-input placeholder="Sök kommando… (lane, vy, tema, tråd)" value="' +
+      esc(cmdkQuery) +
+      '" />' +
+      '<div class="v3-cmdk-list">' +
+      (cmds.length
+        ? cmds
+            .map(function (c, i) {
+              return (
+                '<div class="v3-cmdk-item' +
+                (i === cmdkActive ? ' active' : '') +
+                '" data-v3-cmdk-i="' +
+                i +
+                '"><span class="v3-cmdk-ico">' +
+                esc(c.ico) +
+                '</span><span>' +
+                esc(c.label) +
+                '</span><span class="grp">' +
+                esc(c.grp) +
+                '</span></div>'
+              );
+            })
+            .join('')
+        : '<div class="v3-cmdk-empty">Inga kommandon matchar.</div>') +
+      '</div></div></div>';
+    var input = root.querySelector('.v3-cmdk-input');
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+  function runCmdk(index) {
+    var cmds = filteredCommands(boundCtx);
+    var c = cmds[index];
+    closeCmdk();
+    if (c && typeof c.run === 'function') c.run();
+  }
+
   function render(ctx) {
     if (!doc) return;
     boundCtx = ctx;
     ensureRoot();
     bindEvents();
+    // v3: tema (app-brett) + densitet (persisteras).
+    applyTheme();
+    root.dataset.density = v3Density;
     // Mobil master-detail: utan vald tråd visas alltid inboxen.
     if (!ctx.selected) mobilePane = 'inbox';
     root.dataset.mobilePane = mobilePane;
     if (!root.dataset.mobileCtx) root.dataset.mobileCtx = 'closed';
+    renderToolbar(ctx);
     renderLanes(ctx);
     renderLaneChips(ctx);
     renderTabs(ctx);
     renderInbox(ctx);
+    renderBulkBar();
     renderThread(ctx);
     renderCtx(ctx);
+    if (cmdkOpen) renderCmdk();
   }
 
   global.ArcanaConversationsV2 = {

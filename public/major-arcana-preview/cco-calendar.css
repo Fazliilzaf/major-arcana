@@ -3278,3 +3278,66 @@
     justify-content: center;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * v3 — dark-mode för kalendern. Scopad till kalender-vyn (läcker ej till andra
+ * vyer). Kalenderns --cco-cal-* deriverar från de delade --cco-*/
+--panel-*- * tokensen,
+så
+  att
+  sätta
+  dem
+  här
+  re-temar
+  hela
+  kalendern.
+  Aktiveras
+  app-brett
+  *
+  via
+  html[data-theme="dark"]
+  (sätts av konversations-v3-temaväxlaren).
+  *
+  ═══════════════════════════════════════════════════════════════════════════
+  */
+  html[data-theme="dark"]
+  .preview-canvas[data-app-shell-view="calendar"] {
+  --cco-bg-page: #1a1714;
+  --cco-bg-surface: #241f1b;
+  --cco-bg-surface-sunken: #1f1a16;
+  --cco-color-brand: #f3ece2;
+  --cco-text-secondary: #c9bdab;
+  --cco-text-tertiary: #9c9080;
+  --cco-status-success: #6fc79b;
+  --cco-status-success-bg: rgba(47, 107, 79, 0.24);
+  --cco-status-warning: #e0a44e;
+  --cco-status-warning-bg: rgba(154, 101, 22, 0.26);
+  --cco-status-danger: #e08583;
+  --cco-status-danger-bg: rgba(162, 58, 56, 0.28);
+  --cco-status-info: #79b0e0;
+  --cco-status-info-bg: rgba(44, 94, 134, 0.28);
+  --panel-shell-top: rgba(40, 34, 29, 0.96);
+  --panel-shell-bottom: rgba(32, 27, 23, 0.92);
+  --panel-card-top: rgba(48, 41, 35, 0.96);
+  --panel-card-bottom: rgba(40, 34, 29, 0.92);
+  --panel-card-shadow: 0 3px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --panel-card-shadow-hover:
+    0 8px 22px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --rose-pill-top: rgba(122, 46, 80, 0.55);
+  --rose-pill-bottom: rgba(101, 38, 66, 0.5);
+  --accent-studio: #e07aac;
+  /* Kalender-specifika tokens (deriverar normalt, men sätts explicit för djup) */
+  --cco-cal-canvas: #1a1714;
+  --cco-cal-panel: #241f1b;
+  --cco-cal-card: #2a2420;
+  --cco-cal-espresso: #f3ece2;
+  --cco-cal-espresso-soft: #c9bdab;
+  --cco-cal-border: rgba(255, 255, 255, 0.09);
+  --cco-cal-border-strong: rgba(255, 255, 255, 0.16);
+  --cco-cal-accent: #e07aac;
+  --cco-cal-accent-soft: rgba(224, 122, 172, 0.42);
+}
+html[data-theme="dark"] .preview-canvas[data-app-shell-view="calendar"] {
+  background: var(--cco-cal-canvas);
+  color: var(--cco-cal-espresso);
+}
