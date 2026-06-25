@@ -85,7 +85,10 @@ function storageKeyFor(documentId, fileName) {
   const y = now.getUTCFullYear();
   const m = String(now.getUTCMonth() + 1).padStart(2, '0');
   const hash = crypto.createHash('sha256').update(documentId).digest('hex').slice(0, 12);
-  const ext = path.extname(fileName) || '.pdf';
+  // GetAccepts payload.file kan vara en S3-presigned-URL med querystring
+  // (…pdf%22&x-amz-checksum-mode=…&x-id=GetObject) → path.extname() drog då med
+  // skräp i nyckeln. downloadPdf() har redan validerat %PDF, så tvinga .pdf.
+  const ext = '.pdf';
   const id = crypto.randomUUID();
   return `${y}/${m}/${hash}/${id}${ext}`;
 }
