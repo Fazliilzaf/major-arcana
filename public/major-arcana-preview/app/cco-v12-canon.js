@@ -474,7 +474,7 @@
       '</div>'
     );
   }
-  function s5(journey, av, smart, photos) {
+  function s5(journey, av, smart, photos, health) {
     var head = secHead(
       '05',
       'Kundresa',
@@ -633,9 +633,42 @@
                   .join('') +
                 '</div>'
               : '';
+            // "Risker att uppmärksamma" (JOURNEY-SPINE) ur health — allergier (Hög)
+            // + kontraindikationer (red→Hög / amber→Måttlig).
+            var hAllerg = arr(health && health.allergies);
+            var hContra = arr(health && health.contraindications);
+            var riskRows =
+              hAllerg
+                .map(function (a) {
+                  return (
+                    '<div class="subcard-row"><span class="what">' +
+                    esc(txt(a)) +
+                    '-allergi</span>' +
+                    chip('danger', 'Hög') +
+                    '</div>'
+                  );
+                })
+                .join('') +
+              hContra
+                .map(function (c) {
+                  var red = c.level === 'red';
+                  return (
+                    '<div class="subcard-row"><span class="what">' +
+                    esc(txt(c.text)) +
+                    '</span>' +
+                    chip(red ? 'danger' : 'warn', red ? 'Hög' : 'Måttlig') +
+                    '</div>'
+                  );
+                })
+                .join('');
+            var riskCard = riskRows
+              ? '<div class="subcard"><div class="subcard-l">Risker att uppmärksamma</div>' +
+                riskRows +
+                '</div>'
+              : '';
             var gridCards =
-              reqCard || unlockCard
-                ? '<div class="step-body-grid">' + reqCard + unlockCard + '</div>'
+              reqCard || unlockCard || riskCard
+                ? '<div class="step-body-grid">' + reqCard + unlockCard + riskCard + '</div>'
                 : '';
             body = miniActiveVisit(av) + smartHtml + gridCards;
           } else if (s.state === 'blocked') {
@@ -648,14 +681,45 @@
             // Klar/kommande steg är OCKSÅ expanderbara (facit visar toggle på
             // alla steg). Minimal body ur stegets egen data — ingen fejk.
             var doneState = s.state === 'done';
-            body =
-              '<div class="subcard"><div class="subcard-l">' +
-              (doneState ? 'Slutfört' : 'Kommande steg') +
-              '</div><div class="subcard-row"><span class="what">' +
-              esc(txt(s.note || s.label)) +
-              '</span>' +
-              chip(doneState ? 'ok' : 'info', doneState ? 'Klart' : txt(meta) || 'Kommande') +
-              '</div></div>';
+            var hAns2 = arr(health && health.answers);
+            if (doneState && /h[äa]lsodek/i.test(txt(s.label)) && hAns2.length) {
+              // Klart HD-steg → rikt innehåll: dokumenterade svar (JOURNEY-SPINE).
+              body =
+                '<div class="step-body-grid"><div class="subcard"><div class="subcard-l">Dokumenterade svar</div>' +
+                hAns2
+                  .slice(0, 6)
+                  .map(function (a) {
+                    var isYes = /^ja\b/i.test(txt(a.value));
+                    var tone =
+                      a.risk === 'red'
+                        ? 'danger'
+                        : a.risk === 'amber'
+                          ? 'warn'
+                          : isYes
+                            ? 'warn'
+                            : 'ok';
+                    var lbl = txt(a.value) || (isYes ? 'JA' : 'NEJ');
+                    if (a.detail) lbl += ' · ' + txt(a.detail);
+                    return (
+                      '<div class="subcard-row"><span class="what">' +
+                      esc(txt(a.label)) +
+                      '</span>' +
+                      chip(tone, lbl) +
+                      '</div>'
+                    );
+                  })
+                  .join('') +
+                '</div></div>';
+            } else {
+              body =
+                '<div class="subcard"><div class="subcard-l">' +
+                (doneState ? 'Slutfört' : 'Kommande steg') +
+                '</div><div class="subcard-row"><span class="what">' +
+                esc(txt(s.note || s.label)) +
+                '</span>' +
+                chip(doneState ? 'ok' : 'info', doneState ? 'Klart' : txt(meta) || 'Kommande') +
+                '</div></div>';
+            }
           }
           // Konsultations-steg med besöksfoton → visit-card (gör steget
           // expanderbart oavsett state, som facit steg 4).
@@ -1305,6 +1369,83 @@
     );
   }
 
+  /* ---------- HISTORIK (JOURNEY-SPINE) — tidigare resor ---------- */
+  function histSection(bundle) {
+    var hist = arr(bundle && bundle.historyBookings);
+    if (!hist.length) return '';
+    return (
+      '<section class="section"><div class="section-head"><span class="section-title">Historik · tidigare resor</span><span class="section-meta">' +
+      hist.length +
+      ' tidigare besök · klicka för full historia</span></div>' +
+      '<div class="subcard" style="background:transparent;border:none;box-shadow:none;padding:0">' +
+      hist
+        .slice(0, 8)
+        .map(function (b) {
+          var d = txt(b.dateLabel || b.dayLabel || b.day);
+          var meta = [txt(b.timeLabel || b.duration), txt(b.practitioner), txt(b.statusLabel)]
+            .filter(Boolean)
+            .join(' · ');
+          return (
+            '<div class="subcard-row"><span class="what"><b>' +
+            esc(txt(b.title || b.serviceLabel || 'Besök')) +
+            '</b>' +
+            (d ? ' · ' + esc(d) : '') +
+            '</span><span class="when">' +
+            esc(meta) +
+            '</span></div>'
+          );
+        })
+        .join('') +
+      '</div></section>'
+    );
+  }
+
+  /* ---------- UPPFÖLJNING (JOURNEY-SPINE) — efter avslutad resa ---------- */
+  function uppfoljning(insights) {
+    // Recall-schema = standard klinisk kadens (ej fabricerad patientdata).
+    var recall = [
+      ['3 mån efterkontroll', '~ +3 mån'],
+      ['6 mån resultatbild', '~ +6 mån'],
+      ['12 mån utvärdering', '~ +12 mån'],
+    ];
+    var opps = arr(insights && insights.items ? insights.items : insights)
+      .filter(function (i) {
+        return i && i.tone !== 'blocker' && i.tone !== 'review';
+      })
+      .slice(0, 3);
+    var retentionRows = opps.length
+      ? opps
+          .map(function (o) {
+            return (
+              '<div class="subcard-row"><span class="what">' +
+              esc(txt(o.title || o.what)) +
+              '</span>' +
+              chip('info', 'Möjlighet') +
+              '</div>'
+            );
+          })
+          .join('')
+      : '<div class="subcard-row"><span class="what">Inga retention-signaler ännu</span></div>';
+    return (
+      '<section class="section"><div class="section-head"><span class="section-title">Uppföljning · efter avslutad resa</span><span class="section-meta">recall-plan</span></div>' +
+      '<div class="step-body-grid"><div class="subcard"><div class="subcard-l">Recall-schema</div>' +
+      recall
+        .map(function (r) {
+          return (
+            '<div class="subcard-row"><span class="what">' +
+            esc(r[0]) +
+            '</span><span class="when">' +
+            esc(r[1]) +
+            '</span></div>'
+          );
+        })
+        .join('') +
+      '</div><div class="subcard"><div class="subcard-l">Retention-signaler</div>' +
+      retentionRows +
+      '</div></div></section>'
+    );
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var card = ctx.bcard || ctx.card || {};
@@ -1329,7 +1470,7 @@
       s2(av) +
       s3(warnings) +
       s4(health) +
-      s5(journey, av, nextStep, photos) +
+      s5(journey, av, nextStep, photos, health) +
       s6(ctx.journalEntries) +
       s7(photos) +
       s8(bundle) +
@@ -1338,6 +1479,8 @@
       s11(econ, invoices) +
       s12(nextStep, insights) +
       fotoDok(photos) +
+      uppfoljning(insights) +
+      histSection(bundle) +
       '</div>';
     // Lägg data-v12-module på varje sektion så befintlig scrollV12WorkspaceModule
     // + jump-rail-launcher (inferV12ModuleFromRailClick) landar rätt vid sektionsklick.
