@@ -518,14 +518,6 @@ function normalizeCommercialCase(input = {}, existing = {}) {
     coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
     esignToken: normalizeText(safe.esignToken || previous.esignToken),
     esignStatus: normalizeText(safe.esignStatus || previous.esignStatus) || 'draft',
-    esignProvider: normalizeText(safe.esignProvider || previous.esignProvider),
-    getAcceptDocumentId: normalizeText(safe.getAcceptDocumentId || previous.getAcceptDocumentId),
-    getAcceptSignUrl: normalizeText(safe.getAcceptSignUrl || previous.getAcceptSignUrl),
-    getAcceptStatus: normalizeText(safe.getAcceptStatus || previous.getAcceptStatus),
-    getAcceptSentAt: normalizeText(safe.getAcceptSentAt || previous.getAcceptSentAt),
-    getAcceptViewedAt: normalizeText(safe.getAcceptViewedAt || previous.getAcceptViewedAt),
-    getAcceptSignedAt: normalizeText(safe.getAcceptSignedAt || previous.getAcceptSignedAt),
-    getAcceptCompletedAt: normalizeText(safe.getAcceptCompletedAt || previous.getAcceptCompletedAt),
     planSnapshot:
       safe.planSnapshot && typeof safe.planSnapshot === 'object'
         ? safe.planSnapshot
