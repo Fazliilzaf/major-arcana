@@ -1,6 +1,6 @@
 # Journal Cutover — Aktuell statusrapport
 
-_Genererad: 2026-06-25T16:15:19.340Z · Datum-tag: 2026-06-25_
+_Genererad: 2026-06-25T19:28:49.042Z · Datum-tag: 2026-06-25_
 _Jämförelsebas: `docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md`_
 _Compliance: counts only — ingen patientdata._
 
@@ -32,7 +32,7 @@ _Compliance: counts only — ingen patientdata._
 | Signerade                    | 8        | 24        | +16                |
 | Med PDF                      | 0        | 22        | +22                |
 | Templates                    | 82       | 97        | +15                |
-| Audit-events                 | 115      | 218118    | import-/asset-logg |
+| Audit-events                 | 115      | 218123    | import-/asset-logg |
 | Foto-assets (patient_assets) | 0        | 22243     | se nedan           |
 | Dubblettkandidater           | 28       | 28        | =                  |
 
@@ -164,24 +164,40 @@ _Snapshot: 2026-05-31 · root: `/Users/fazlikrasniqi/Library/Mobile Documents/co
 | D · L · V          | 36/36                    | full-page `/patient-doc/{registryId}`                             |
 | Sektion D workshop | SIGNED_OFF               | 6/6 APPROVED                                                      |
 
-## Spår A–D — kickoff (automatisk dry-run)
+## Spår A–D — cutover-leverans
+
+**NOT_DELIVERED (0/4)** — Inget spår A–D cutover-klart. Underlag: skript + dry-run + operator-UI. Owner-blockers och manuell drift återstår.
+
+| Spår              | Cutover | Status        | Blocker               | Nyckeltal                |
+| ----------------- | ------- | ------------- | --------------------- | ------------------------ |
+| A · Drive         | ❌      | NOT_DELIVERED | DRIVE_NOT_COMMITTED   | 0/7257 driveFolderId     |
+| B · Meridiq       | ❌      | NOT_DELIVERED | ARCANA_MERIDIQ_COOKIE | 0 id · 0 import          |
+| C · Photo Review  | ❌      | NOT_DELIVERED | CANARY_OFF            | 860 pending · 1 VISIBLE  |
+| D · Import review | ❌      | NOT_DELIVERED | CANARY_OFF            | 1497 osäkra · 0 resolved |
+
+> Detta är nuläge/underlag — inte leverans. Kö-siffror ≠ pågående cutover.
+
+Public JSON: `public/cco-migration-tracks-status.json` · UI: `/cco-ops-workbench.html#migration-hub`
+
+## Spår A–D — underlag (dry-run / operator-UI)
 
 ### A · Drive service-account + master folder-ID
 
-- Service-account env: **SAKNAS** (ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON)
+- Service-account env: **KONFIGURERAD** (ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON)
 - Dry-run coupling: **6268/7257** predicted (86.4%) — proxy via meridiqMeta tills SA + crawl
 - Nästa: owner levererar SA → `scripts/migration/scanGoogleDriveApi.js` → `backfill-master-card-drive-coupling.js` (commit)
 
 ### B · Meridiq bulk journal-import
 
-- Dry-run: **6268** eligible → **12536** entries planned (mock×2/patient)
+- Dry-run: **6268** eligible → **0** entries planned (mock×2/patient)
 - Blocker: Meridiq read-only API-token (`--meridiq-api-token`) — se `MERIDIQ-JOURNAL-IMPORT-GAP-2026-05-30.md`
 - Script: `node scripts/import-meridiq-historical-journals.js --dry-run`
 
 ### C · Photo Review (migrerade bilder)
 
 - Pending foton: **860** · patienter: **150** · write: **AV**
-- Operator: `/cco-photo-review.html` · batch canaries max 25/beslut
+- Canary: **0/25** beslut · kvar **25**
+- Operator: `/photo-review.html` (alias `/cco-photo-review.html`) · max 25/batch
 - Status: `node scripts/photo-review-batch-status.js`
 
 ### D · Import review queue
@@ -189,7 +205,9 @@ _Snapshot: 2026-05-31 · root: `/Users/fazlikrasniqi/Library/Mobile Documents/co
 - Totalt: **1497** · status: `WAITING_MANUAL_REVIEW`
   - halso@: **1366** pending
   - GetAccept: **131** pending
-- Operator: `/cco-import-review.html` (read-only, ingen auto-merge)
+- Write: **AV** · manuell batch max **25**/beslut
+- Operator: `/cco-import-review.html` · ingen auto-merge · ingen ny kund
+- Status: `npm run import-review:batch-status`
 
 ## Rekommenderad ordning
 

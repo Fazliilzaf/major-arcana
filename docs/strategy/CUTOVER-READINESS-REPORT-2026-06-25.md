@@ -1,6 +1,6 @@
 # Cutover Readiness Report — 2026-06-25
 
-_Auto-genererad: 2026-06-25T16:15:20.272Z · Tenant: `hair_tp` · data=repo · P0.10 · scripts/generate-cutover-readiness-report.js_
+_Auto-genererad: 2026-06-25T19:28:49.890Z · Tenant: `hair_tp` · data=repo · P0.10 · scripts/generate-cutover-readiness-report.js_
 _Data-root: `/Users/fazlikrasniqi/Code/major-arcana/data`_
 _Styrande regel: `.cursor/rules/cco-journal-cutover-first.mdc#Definition of Done`_
 _Compliance: 0 patientnamn, 0 personnummer, 0 emails, 0 telefonnummer — counts only._
@@ -21,7 +21,7 @@ _Compliance: 0 patientnamn, 0 personnummer, 0 emails, 0 telefonnummer — counts
 - Journal-entries i CCO: **34** (signed: 24, locked: 24, withPDF: 22)
 - Templates: 97 (consents: 45, formulär: 29)
 - Foto-store: **22243** bilder (encounter-länkade: 1)
-- Audit-events totalt: 218118 (senaste 5 actions: asset.status_changed:105524, import.review_enqueued:33149, asset.imported:28962, drive_history_imported:23338, asset.linked_to_patient:7016)
+- Audit-events totalt: 218123 (senaste 5 actions: asset.status_changed:105524, import.review_enqueued:33149, asset.imported:28962, drive_history_imported:23338, asset.linked_to_patient:7016)
 
 ## Per kriterium (Definition of Done, 10 punkter)
 
@@ -156,7 +156,7 @@ _Compliance: 0 patientnamn, 0 personnummer, 0 emails, 0 telefonnummer — counts
 - [x] Ny journalföring sker i CCO (entries: 34)
 - [x] Signering/låsning/rättelse fungerar
 - [x] PDF-arkivering fungerar (PDFs: 22)
-- [x] Audit/loggning fungerar (218118 events)
+- [x] Audit/loggning fungerar (218123 events)
 - [ ] QA visar att inga patientjournaler saknas
 
 ### Estimerad tid till GREEN
@@ -186,4 +186,4 @@ _Compliance: 0 patientnamn, 0 personnummer, 0 emails, 0 telefonnummer — counts
 - [x] Inga telefonnummer — regex `\+46[0-9]{8,}` (PCRE) → 0 träffar
 - [x] Endast counts/percentages/struktur-IDs
 
-_Senast genererad: 2026-06-25T16:15:20.273Z · auto-rapport · Status: RED_
+_Senast genererad: 2026-06-25T19:28:49.890Z · auto-rapport · Status: RED_

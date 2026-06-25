@@ -803,6 +803,14 @@ async function main() {
     publishPhotoReviewOperatorStatus(photoOperator, REPO);
     publishMailReviewOperatorStatus(mailOperator, REPO);
     if (operatorCanary) publishOperatorCanaryStatus(operatorCanary, REPO);
+    try {
+      execSync('node scripts/migration-tracks-batch-status.js --write', {
+        cwd: REPO,
+        stdio: ['ignore', 'pipe', 'inherit'],
+      });
+    } catch (err) {
+      console.warn('[daily-readiness] migration-tracks publish misslyckades:', err.message);
+    }
   }
 
   const journalPilotOk =

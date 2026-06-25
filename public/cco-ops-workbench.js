@@ -93,6 +93,154 @@
     return `<span class="cow-pill ${cls}">${escapeHtml(status || '—')}</span>`;
   }
 
+  function trackStatusPill(status) {
+    const s = String(status || '').toUpperCase();
+    let cls = 'cow-pill--fail';
+    if (s === 'DONE') cls = 'cow-pill--pass';
+    if (s === 'NOT_DELIVERED') cls = 'cow-pill--fail';
+    return `<span class="cow-pill ${cls}">${escapeHtml(s === 'NOT_DELIVERED' ? 'EJ KLART' : status || '—')}</span>`;
+  }
+
+  function mergeMigrationTracks(base, photoOp, importQ) {
+    if (!base?.tracks?.length) return null;
+    const tracks = base.tracks.map((t) => ({ ...t, metrics: { ...(t.metrics || {}) } }));
+    const c = tracks.find((t) => t.id === 'C');
+    const d = tracks.find((t) => t.id === 'D');
+    if (c && photoOp) {
+      if (photoOp.pendingPhotos != null) c.metrics.pendingPhotos = photoOp.pendingPhotos;
+      if (photoOp.patientsWithPendingPhotos != null) {
+        c.metrics.patientsWithPending = photoOp.patientsWithPendingPhotos;
+      }
+      if (photoOp.photosVisibleCount != null) c.metrics.photosVisible = photoOp.photosVisibleCount;
+      if (photoOp.writeEnabled != null) {
+        c.writeEnabled = photoOp.writeEnabled;
+        c.readOnly = !photoOp.writeEnabled;
+      }
+    }
+    if (d && importQ) {
+      if (importQ.total != null) d.metrics.total = importQ.total;
+      const halso = importQ.sources?.find((s) => s.id === 'halso');
+      const ga = importQ.sources?.find((s) => s.id === 'getaccept');
+      if (halso?.queueCount != null) d.metrics.halsoPending = halso.queueCount;
+      if (ga?.queueCount != null) d.metrics.getacceptPending = ga.queueCount;
+      if (importQ.writeEnabled != null) {
+        d.writeEnabled = importQ.writeEnabled;
+        d.readOnly = !importQ.writeEnabled;
+      }
+    }
+    const delivered = tracks.filter((t) => t.cutoverDelivered || t.status === 'DONE').length;
+    return {
+      ...base,
+      tracks,
+      tracksDelivered: delivered,
+      overall: delivered === tracks.length ? 'ALL_DELIVERED' : 'NOT_DELIVERED',
+      delivery: delivered === tracks.length ? 'DELIVERED' : 'NOT_DELIVERED',
+    };
+  }
+
+  function renderTrackMetrics(track) {
+    const m = track.metrics || {};
+    const rows = [];
+    if (track.id === 'A') {
+      rows.push(
+        metric(m.predicted ?? '—', 'predicted (dry-run)'),
+        metric(m.totalPatients ?? '—', 'patienter totalt'),
+        metric(m.withDriveFolderId ?? 0, 'med driveFolderId')
+      );
+    } else if (track.id === 'B') {
+      rows.push(
+        metric(m.eligible ?? '—', 'eligible journal'),
+        metric(m.withMeridiqPatientId ?? 0, 'meridiqPatientId'),
+        metric(m.meridiqEntriesImported ?? 0, 'importerade poster')
+      );
+    } else if (track.id === 'C') {
+      rows.push(
+        metric(m.pendingPhotos ?? '—', 'bilder i kö'),
+        metric(m.patientsWithPending ?? '—', 'patienter'),
+        metric(m.photosVisible ?? 0, 'VISIBLE')
+      );
+    } else if (track.id === 'D') {
+      rows.push(
+        metric(m.total ?? '—', 'osäkra totalt'),
+        metric(m.halsoPending ?? '—', 'halso@'),
+        metric(m.resolved ?? 0, 'resolved')
+      );
+    }
+    return `<div class="cow-metrics cow-metrics--track">${rows.join('')}</div>`;
+  }
+
+  function renderMigrationHub(migrationTracks, photoOp, importQ) {
+    const data = mergeMigrationTracks(migrationTracks, photoOp, importQ);
+    if (!data?.tracks?.length) {
+      return `
+        <section class="cow-section cow-section--migration" id="migration-hub">
+          <h2>Migration Hub · Spår A–D</h2>
+          <p class="cow-unavailable">Status saknas — kör <code>npm run migration-tracks:publish</code></p>
+        </section>`;
+    }
+
+    const delivered = data.tracksDelivered ?? 0;
+    const total = data.tracksTotal ?? 4;
+    const overallLabel =
+      data.overall === 'ALL_DELIVERED'
+        ? `LEVERERAT (${total}/${total})`
+        : `EJ LEVERERAT (${delivered}/${total})`;
+
+    const cards = data.tracks
+      .map((track) => {
+        const blocker = track.blocker;
+        const writeLine =
+          track.id === 'C' || track.id === 'D'
+            ? `<p class="cow-muted">Write/canary: <strong>${track.writeEnabled ? 'PÅ' : 'AV'}</strong> · underlag finns · cutover <strong>nej</strong></p>`
+            : track.infraReady
+              ? `<p class="cow-muted">Underlag: skript + dry-run · cutover <strong>nej</strong></p>`
+              : '';
+        const blockerHtml = blocker
+          ? `<div class="cow-blockers cow-blockers--track">
+              <strong>${escapeHtml(blocker.code)}</strong>
+              <p class="cow-muted">${escapeHtml(blocker.ownerAction)}</p>
+              ${blocker.infraNote ? `<p class="cow-muted cow-muted--small">${escapeHtml(blocker.infraNote)}</p>` : ''}
+            </div>`
+          : '';
+        const scripts = (track.scripts || [])
+          .map((s) => `<li><code>${escapeHtml(s)}</code></li>`)
+          .join('');
+        const actions = [];
+        if (track.operatorTool) {
+          actions.push(linkBtn(track.operatorTool, `Öppna ${track.label}`, true));
+        }
+        if (track.operatorToolAlias && track.operatorToolAlias !== track.operatorTool) {
+          actions.push(linkBtn(track.operatorToolAlias, 'Alias-route', true));
+        }
+        return `
+          <article class="cow-migration-card" id="track-${escapeHtml(track.id)}">
+            <div class="cow-migration-card__head">
+              <span class="cow-migration-card__id">Spår ${escapeHtml(track.id)}</span>
+              ${trackStatusPill(track.status)}
+            </div>
+            <h3>${escapeHtml(track.title)}</h3>
+            ${renderTrackMetrics(track)}
+            ${writeLine}
+            ${blockerHtml}
+            ${scripts ? `<ul class="cow-list cow-list--scripts">${scripts}</ul>` : ''}
+            ${actions.length ? `<div class="cow-actions">${actions.join('')}</div>` : ''}
+          </article>`;
+      })
+      .join('');
+
+    return `
+      <section class="cow-section cow-section--migration" id="migration-hub">
+        <div class="cow-section-head">
+          <h2>Migration Hub · Spår A–D</h2>
+          ${pill(overallLabel)}
+        </div>
+        <p class="cow-muted">${escapeHtml(data.summary || '')} · genererad ${escapeHtml(data.generatedAt || '—')}</p>
+        <p class="cow-callout cow-callout--migration">${escapeHtml(data.infraNote || 'Kö-siffror är backlog — inte leverans.')}</p>
+        <p class="cow-muted">Rekommenderad ordning: ${(data.recommendedOrder || ['A', 'B', 'C', 'D']).join(' → ')} · status <strong>EJ KLART</strong> tills cutover-kriteriet är uppfyllt.</p>
+        <div class="cow-migration-grid">${cards}</div>
+      </section>`;
+  }
+
   function renderJournalPilotCtas(shift, links) {
     const ops = shift?.journalPilotOpsStatus || 'STOP';
     const personalJa = shift?.personalCanContinueJournaling === 'JA';
@@ -766,6 +914,7 @@
       mailOpRes,
       importQRes,
       canaryRes,
+      migrationTracksRes,
       livePhoto,
       photoStatus,
       encStatus,
@@ -790,6 +939,7 @@
       fetchJson('/cco-mail-review-operator-status.json'),
       fetchJson('/cco-import-review-queue-status.json'),
       fetchJson('/cco-operator-canary-status.json'),
+      fetchJson('/cco-migration-tracks-status.json'),
       loadPhotoSummary(),
       probePage('/photo-review.html'),
       probePage('/encounter-mapping-review.html'),
@@ -815,6 +965,7 @@
     const mailOp = mailOpRes.ok ? mailOpRes.json : ops?.mailReviewOperator;
     const importQ = importQRes.ok ? importQRes.json : ops?.importReviewQueue;
     const operatorCanary = canaryRes.ok ? canaryRes.json : ops?.operatorCanary || null;
+    const migrationTracks = migrationTracksRes.ok ? migrationTracksRes.json : null;
     const day1 = day1Res.ok ? day1Res.json : ops?.day1 || null;
     const journalShift = shiftRes.ok
       ? shiftRes.json
@@ -859,6 +1010,7 @@
         Snapshot: ${escapeHtml(ops.generatedAt || '—')}
       </div>
       <div class="cow-grid">
+        ${renderMigrationHub(migrationTracks, photoOp, importQ)}
         ${renderCanarySection(operatorCanary)}
         ${renderCommandCenter(ops, morning, journalLive, journalShift, photoOp, mailOp, importQ)}
         ${renderJournalPilotOpsPanel(journalShift, morning, journalLive, day1 || ops)}

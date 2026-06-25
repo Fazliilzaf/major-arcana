@@ -26,6 +26,7 @@ const {
   complianceCheck,
 } = require('./generate-cutover-readiness-report');
 const { collectImportReviewQueueStatus } = require('./lib/ccoImportReviewQueueSnapshot');
+const { buildPayload: buildMigrationTracksPayload } = require('./migration-tracks-batch-status');
 
 function parseArgs(argv) {
   const args = { date: null, stdout: false };
@@ -113,8 +114,9 @@ function renderTrackKickoff() {
       return m ? Number(m[1]) : null;
     };
     meridiqDryRun = {
-      eligible: pick(/eligible \(meridiqMeta\.hasJournal=true\): (\d+)/),
-      entriesPlanned: pick(/entries planned \(would-create\): (\d+)/),
+      eligible: pick(/eligible \(hasJournal\): (\d+)/),
+      withMeridiqPatientId: pick(/with meridiqPatientId: (\d+)/),
+      entriesPlanned: pick(/entries planned: (\d+)/),
     };
   } catch {
     meridiqDryRun = null;
@@ -123,7 +125,7 @@ function renderTrackKickoff() {
   return { saConfigured, photo, importReview, driveDryRun, meridiqDryRun };
 }
 
-function renderMarkdown({ date, repo, prodAssets, tracks, dod, overall }) {
+function renderMarkdown({ date, repo, prodAssets, tracks, migrationTracks, dod, overall }) {
   const may = {
     customers: 7257,
     meridiq: 6268,
@@ -257,7 +259,37 @@ function renderMarkdown({ date, repo, prodAssets, tracks, dod, overall }) {
   lines.push('| Sektion D workshop | SIGNED_OFF | 6/6 APPROVED |');
   lines.push('');
 
-  lines.push('## Spår A–D — kickoff (automatisk dry-run)');
+  lines.push('## Spår A–D — cutover-leverans');
+  lines.push('');
+  if (migrationTracks) {
+    lines.push(
+      `**${migrationTracks.overall} (${migrationTracks.tracksDelivered}/${migrationTracks.tracksTotal})** — ${migrationTracks.summary}`
+    );
+    lines.push('');
+    lines.push('| Spår | Cutover | Status | Blocker | Nyckeltal |');
+    lines.push('|------|---------|--------|---------|-----------|');
+    for (const t of migrationTracks.tracks || []) {
+      const m = t.metrics || {};
+      let key = '—';
+      if (t.id === 'A') key = `${m.withDriveFolderId ?? 0}/${m.totalPatients ?? '—'} driveFolderId`;
+      if (t.id === 'B')
+        key = `${m.withMeridiqPatientId ?? 0} id · ${m.meridiqEntriesImported ?? 0} import`;
+      if (t.id === 'C') key = `${m.pendingPhotos ?? '—'} pending · ${m.photosVisible ?? 0} VISIBLE`;
+      if (t.id === 'D') key = `${m.total ?? '—'} osäkra · ${m.resolved ?? 0} resolved`;
+      lines.push(
+        `| ${t.id} · ${t.label} | ${t.cutoverDelivered ? '✅' : '❌'} | ${t.status} | ${t.blocker?.code || '—'} | ${key} |`
+      );
+    }
+    lines.push('');
+    lines.push(`> ${migrationTracks.infraNote}`);
+    lines.push('');
+    lines.push(
+      'Public JSON: `public/cco-migration-tracks-status.json` · UI: `/cco-ops-workbench.html#migration-hub`'
+    );
+    lines.push('');
+  }
+
+  lines.push('## Spår A–D — underlag (dry-run / operator-UI)');
   lines.push('');
 
   lines.push('### A · Drive service-account + master folder-ID');
@@ -373,8 +405,17 @@ function main() {
   const dod = evaluateCriteria(repo.stats);
   const overall = overallStatus(dod);
   const tracks = renderTrackKickoff();
+  const migrationTracks = buildMigrationTracksPayload();
 
-  const md = renderMarkdown({ date: args.date, repo, prodAssets, tracks, dod, overall });
+  const md = renderMarkdown({
+    date: args.date,
+    repo,
+    prodAssets,
+    tracks,
+    migrationTracks,
+    dod,
+    overall,
+  });
   const violations = complianceCheck(md);
   if (violations.length > 0) {
     console.error('[status] COMPLIANCE VIOLATIONS — refuse to write');
@@ -385,6 +426,13 @@ function main() {
     cwd: ROOT,
     stdio: 'inherit',
   });
+
+  if (!args.stdout) {
+    execSync('node scripts/migration-tracks-batch-status.js --write', {
+      cwd: ROOT,
+      stdio: ['ignore', 'pipe', 'inherit'],
+    });
+  }
 
   if (args.stdout) {
     process.stdout.write(md + '\n');
