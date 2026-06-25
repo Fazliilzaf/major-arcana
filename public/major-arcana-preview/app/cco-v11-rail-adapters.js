@@ -332,6 +332,7 @@
       journalDetail: text(visit.serviceLabel),
       title: text(visit.serviceLabel) || 'Besök idag',
       practitioner: text(visit.practitionerLabel),
+      room: text(visit.room || visit.roomLabel || visit.roomName),
       checkedInAt: text(visit.checkedInAt),
       startedAt: text(visit.startedAt),
       completedAt: text(visit.completedAt),
