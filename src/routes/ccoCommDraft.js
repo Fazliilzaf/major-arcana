@@ -124,7 +124,11 @@ function createCcoCommDraftRouter({
         /* faller tillbaka till deterministisk komposition */
       }
     }
-    return draftReply({ tone, customerName, signature, intent: 'reply' }).body;
+    // Skicka med kundens meddelande (threadSnippet → message) så intent-
+    // heuristiken körs och svaret inte blir generiskt i fallback/offline/CI
+    // (Bugbot: fallback omits thread snippet).
+    return draftReply({ message: threadSnippet, tone, customerName, signature, intent: 'reply' })
+      .body;
   }
 
   // ── POST /cco-comm/drafts/generate-reply — gateway-styrd AI-generering ──

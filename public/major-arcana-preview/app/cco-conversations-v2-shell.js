@@ -1068,7 +1068,9 @@
       '<div class="wb-footer">' +
       '<button class="wb-primary-cta" data-studio-send type="button" disabled title="Live-utskick kräver owner och är avstängt">📨 Skicka (låst)</button>' +
       '<span class="wb-send-locked">🔒 Skicka är owner-blockerat</span>' +
-      '<button class="wb-secondary-cta" data-studio-save type="button">Spara utkast</button>' +
+      '<button class="wb-secondary-cta" data-studio-save type="button"' +
+      (studio.busy ? ' disabled' : '') +
+      '>Spara utkast</button>' +
       '<button class="wb-secondary-cta" data-studio-review type="button">Begär godkännande</button>' +
       '<button class="wb-secondary-cta wb-secondary-cta--approve" data-studio-approve type="button">Godkänn</button>' +
       '<button class="wb-secondary-cta" data-studio-close type="button">Stäng</button>' +
@@ -1096,6 +1098,7 @@
 
   async function studioGenerate() {
     if (!studio || !boundCtx.handlers.studioGenerate) return;
+    if (studio.busy) return; // bail om redan upptagen → ingen dubbel-POST
     studioCapture();
     studio.busy = true;
     studio.error = '';
@@ -1130,6 +1133,7 @@
 
   async function studioSave() {
     if (!studio || !boundCtx.handlers.studioSave) return;
+    if (studio.busy) return; // bail om redan upptagen → ingen dubbel-POST/dubbla utkast
     studio.busy = true;
     studio.error = '';
     try {
@@ -1143,6 +1147,7 @@
 
   async function studioTransitionTo(target) {
     if (!studio || !boundCtx.handlers.studioTransition) return;
+    if (studio.busy) return; // bail om redan upptagen → ingen dubbel-POST
     studio.busy = true;
     studio.error = '';
     try {
