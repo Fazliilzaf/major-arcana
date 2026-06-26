@@ -542,11 +542,21 @@
           fl
             .slice(0, 5)
             .map(function (f) {
-              return (
-                '<div class="file-row"><span class="file-icn">📄</span><span class="file-name">' +
-                esc(txt(f.name || f.title || 'Fil')) +
-                '</span></div>'
-              );
+              var nm = esc(txt(f.name || f.title || 'Fil'));
+              var href = txt(f.href);
+              // Klickbar fil → öppnas i dokument-rutan (global fångare i
+              // patient-master-ui), aldrig som länk/ny flik.
+              return href
+                ? '<a class="file-row" href="' +
+                    esc(href) +
+                    '" title="' +
+                    nm +
+                    '"><span class="file-icn">📄</span><span class="file-name">' +
+                    nm +
+                    '</span></a>'
+                : '<div class="file-row"><span class="file-icn">📄</span><span class="file-name">' +
+                    nm +
+                    '</span></div>';
             })
             .join('')
       );

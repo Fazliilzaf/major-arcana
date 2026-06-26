@@ -1359,6 +1359,66 @@
     window.setTimeout(() => module.removeAttribute('data-v12-focus-pulse'), 1200);
   }
 
+  // CONTENT-CANON s9: visa ett dokument (PDF) i en modal-ruta ovanpå kundvyn.
+  // Ingen länk/ny flik — iframe:n hämtar binären via den interna file-endpointen.
+  function openV12DocViewer(url, name) {
+    document.querySelector('.v12-doc-viewer-overlay')?.remove();
+    const safeName = escapeHtml(name || 'Dokument');
+    const overlay = document.createElement('div');
+    overlay.className = 'v12-doc-viewer-overlay';
+    overlay.innerHTML = `
+      <div class="v12-doc-viewer-card" role="dialog" aria-modal="true" aria-label="${safeName}">
+        <div class="v12-doc-viewer-head">
+          <span class="v12-doc-viewer-title">${safeName}</span>
+          <button class="v12-doc-viewer-close" data-doc-viewer-close aria-label="Stäng">✕</button>
+        </div>
+        <iframe class="v12-doc-viewer-frame" src="${escapeHtml(url)}" title="${safeName}"></iframe>
+      </div>`;
+    const close = () => {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+    };
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+    }
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay || event.target.closest('[data-doc-viewer-close]')) close();
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+  }
+
+  // Alla dokument-/PDF-länkar (oavsett var i kundvyn) ska INTE länkas till ny
+  // flik — de ska komma upp i dokument-rutan (openV12DocViewer). En global
+  // capture-fångare ersätter <a target="_blank"> mot fil-endpoints med modalen.
+  let v12DocLinkInterceptorBound = false;
+  function ensureV12DocLinkInterceptor() {
+    if (v12DocLinkInterceptorBound) return;
+    v12DocLinkInterceptorBound = true;
+    document.addEventListener(
+      'click',
+      (event) => {
+        const a = event.target.closest && event.target.closest('a[href]');
+        if (!a || a.closest('.v12-doc-viewer-overlay')) return;
+        const href = a.getAttribute('href') || '';
+        const isFile =
+          /\/api\/v1\/cco\/assets\/[^/]+\/download/.test(href) ||
+          /\/api\/v1\/cco-patient-master\/file\b/.test(href) ||
+          /\.pdf(\?|#|$)/i.test(href);
+        if (!isFile) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const inlineUrl = /[?&]inline=1/.test(href)
+          ? href
+          : href + (href.includes('?') ? '&' : '?') + 'inline=1';
+        const name = (a.getAttribute('title') || a.textContent || 'Dokument').trim();
+        openV12DocViewer(inlineUrl, name);
+      },
+      true
+    );
+  }
+  ensureV12DocLinkInterceptor();
+
   function bindV12WorkspaceOverlayBody(body, ctx) {
     if (!body) return;
     // Nuläge "Förbered besök" / "Åtgärder ▾"-meny: scrolla till en V12-modul
@@ -1376,6 +1436,16 @@
           target.setAttribute('data-v12-focus-pulse', '1');
           window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
         }
+        return;
+      }
+      // CONTENT-CANON s9: "Öppna" dokument → visa PDF i modal-ruta (ingen länk,
+      // ingen ny flik — dokumentet dyker upp i en ruta ovanpå kundvyn).
+      const docOpen = event.target.closest('[data-doc-open]');
+      if (docOpen && body.contains(docOpen)) {
+        event.preventDefault();
+        const docUrl = docOpen.getAttribute('data-doc-open');
+        const docName = docOpen.getAttribute('data-doc-name') || 'Dokument';
+        if (docUrl) openV12DocViewer(docUrl, docName);
         return;
       }
       // JOURNEY-SPINE: expandera/fäll ihop steg-kort (accordion).
