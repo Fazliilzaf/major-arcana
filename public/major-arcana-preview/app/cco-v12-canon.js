@@ -119,7 +119,7 @@
       '<button class="quick-btn">✉️ Mejl</button><button class="quick-btn">📅 Ny bokning</button>' +
       '<button class="quick-btn" data-v12-edit-open>✏️ Redigera</button>' +
       '</div></div>' +
-      '<div class="s1-actions"><button class="btn-primary">⚡ Förbered besök</button>' +
+      '<div class="s1-actions"><button class="btn-primary" data-v12-visit-prep>⚡ Förbered besök</button>' +
       '<button class="btn-edit">Åtgärder ▾</button></div>' +
       '</div></section>'
     );
