@@ -1388,6 +1388,63 @@
     document.body.appendChild(overlay);
   }
 
+  // CONTENT-CANON s1: "⚡ Förbered besök" — porterad från gamla kundkortet.
+  // Read-only sammanfattning inför besöket, aggregerad live ur den renderade
+  // kundvyn (ingen backend-skrivning). Speglar exakt det som visas i kortet.
+  function openV12VisitPrep(body, ctx) {
+    const all = (body && body.innerText) || '';
+    const pick = (re, fallback) => {
+      const m = all.match(re);
+      return m && m[1] ? m[1].replace(/\s+/g, ' ').trim() : fallback;
+    };
+    const name =
+      (ctx && ctx.card && (ctx.card.displayName || ctx.card.name)) ||
+      pick(/STEG\s*\d+\s*AV\s*\d+\s*\n?\s*([^\n]+)/i, '') ||
+      'Kund';
+    const allergier = pick(/Allergier\s*\n?\s*(JA|NEJ|Ja|Nej)/i, '—');
+    const mediciner = pick(/[Pp]ågående mediciner\s*\n?\s*(JA|NEJ|Ja|Nej)/i, '—');
+    const rows = [
+      ['Medicinskt läge', `Allergier: ${allergier} · Mediciner: ${mediciner}`],
+      ['Kundresa', pick(/Kundresa\s*·?\s*steg\s*(\d+\s*av\s*\d+)/i, '—')],
+      ['Kommande bokningar', pick(/Bokningar\s*·\s*(\d+)\s*kommande/i, '0')],
+      ['Foton', pick(/Bilder\s*·\s*(\d+)\s*bilder/i, '0')],
+      ['Dokument', pick(/Dokument\s*·\s*(\d+)\s*totalt/i, '0')],
+      ['Ekonomi', pick(/TOTAL INTÄKT\s*\n?\s*([\d\s]+kr)/i, '—')],
+    ];
+    document.querySelector('.v12-prep-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'v12-prep-overlay';
+    overlay.innerHTML = `
+      <div class="v12-prep-card" role="dialog" aria-modal="true" aria-label="Förbered besök">
+        <div class="v12-prep-head">
+          <div><b>⚡ Förbered besök</b><span>${escapeHtml(name)} · allt inför besöket, live ur kortet</span></div>
+          <button type="button" class="v12-prep-close" data-prep-close aria-label="Stäng">✕</button>
+        </div>
+        <div class="v12-prep-rows">
+          ${rows
+            .map(
+              (r) =>
+                `<div class="v12-prep-row"><span class="v12-prep-k">${escapeHtml(
+                  r[0]
+                )}</span><span class="v12-prep-v">${escapeHtml(String(r[1]))}</span></div>`
+            )
+            .join('')}
+        </div>
+      </div>`;
+    const close = () => {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+    };
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+    }
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.closest('[data-prep-close]')) close();
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+  }
+
   // CONTENT-CANON s7/s5: "Rita på bild" — porterad från gamla kundkortet. Öppna
   // ett foto, rita markeringar (originalet rörs ej), spara som NY markerad bild
   // (→ Foto-sektionen) och valfritt starta behandlingsplan/offert-utkast.
@@ -1666,6 +1723,13 @@
           target.setAttribute('data-v12-focus-pulse', '1');
           window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
         }
+        return;
+      }
+      // CONTENT-CANON s1: "⚡ Förbered besök" → read-only sammanfattning.
+      const visitPrep = event.target.closest('[data-v12-visit-prep]');
+      if (visitPrep && body.contains(visitPrep)) {
+        event.preventDefault();
+        openV12VisitPrep(body, ctx);
         return;
       }
       // CONTENT-CANON s7/s5: "Rita på bild" → öppna foto-editorn.
