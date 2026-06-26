@@ -151,7 +151,7 @@ async function runVsMain(only) {
     if (mainSurfaces.length === 0 && branchFiles.length === 0) {
       console.error('Inga ytor matchade — kontrollera --only-filtret.');
       exitCode = 1;
-      return;
+      return exitCode;
     }
 
     console.log(`== Visual diff (branch vs main) — ${toCompare.length} ytor × ${VIEWPORTS.length} breakpoints ==`);
