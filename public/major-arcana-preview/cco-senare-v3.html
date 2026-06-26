@@ -1272,8 +1272,8 @@
     </nav>
 
     <script>
-      /* ===== DEMO-LÄGE (standard PÅ): inga nätverksanrop, simulerade svar ===== */
-      const DEMO = true;
+      /* ===== DEMO-LÄGE (standard AV): reply_later/handled/reopen mot /cco/runtime ===== */
+      const DEMO = false;
       async function apiFetch(url, opts) {
         if (DEMO) return { ok: true, json: async () => ({}) };
         return fetch(url, opts);

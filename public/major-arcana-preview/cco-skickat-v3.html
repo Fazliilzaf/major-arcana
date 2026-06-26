@@ -1258,8 +1258,8 @@
     </nav>
 
     <script>
-      /* ===== DEMO-LÄGE (standard PÅ): inga nätverksanrop, simulerade svar ===== */
-      const DEMO = true;
+      /* ===== DEMO-LÄGE (standard AV): nätverksanrop mot /cco-comm/drafts ===== */
+      const DEMO = false;
 
       /* Status-etikett + CSS-klass */
       const DSTAT_LABEL = {
@@ -1400,25 +1400,36 @@
           renderList(SENT);
           return;
         }
-        const params =
-          curStatus !== 'alla' ? `?status=${curStatus}` : '?status=queued,approved,needs_approval';
-        const res = await fetch(`/cco-comm/drafts${params}`);
-        const { drafts = [] } = await res.json().catch(() => ({}));
-        /* mappa draft-objekt till SENT-format (minimal mapping) */
-        const mapped = drafts.map((d) => ({
-          id: d.draftId || d.id,
-          name: d.customerId || 'Okänd kund',
-          box: 'kons',
-          boxLabel: 'Kons',
-          status: d.status || 'draft',
-          title: d.subject || '(utan ämne)',
-          prev: d.body?.slice(0, 80) || '',
-          time: d.createdAt
-            ? new Date(d.createdAt).toLocaleString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-            : '',
-          tags: [],
-        }));
-        renderList(mapped);
+        try {
+          const params =
+            curStatus !== 'alla'
+              ? `?status=${curStatus}`
+              : '?status=queued,approved,needs_approval';
+          const res = await fetch(`/cco-comm/drafts${params}`);
+          if (!res.ok) throw new Error(res.status);
+          const { drafts = [] } = await res.json().catch(() => ({}));
+          /* mappa draft-objekt till SENT-format (minimal mapping) */
+          const mapped = drafts.map((d) => ({
+            id: d.draftId || d.id,
+            name: d.customerId || 'Okänd kund',
+            box: 'kons',
+            boxLabel: 'Kons',
+            status: d.status || 'draft',
+            title: d.subject || '(utan ämne)',
+            prev: d.body?.slice(0, 80) || '',
+            time: d.createdAt
+              ? new Date(d.createdAt).toLocaleString('sv-SE', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '',
+            tags: [],
+          }));
+          renderList(mapped.length ? mapped : SENT);
+        } catch {
+          /* server ej nåbar (t.ex. file://-kontext) — visa exempeldata */
+          renderList(SENT);
+        }
       }
 
       function renderList(items) {
