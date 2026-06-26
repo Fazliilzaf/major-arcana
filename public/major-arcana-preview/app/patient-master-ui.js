@@ -1388,6 +1388,236 @@
     document.body.appendChild(overlay);
   }
 
+  // CONTENT-CANON s7/s5: "Rita på bild" — porterad från gamla kundkortet. Öppna
+  // ett foto, rita markeringar (originalet rörs ej), spara som NY markerad bild
+  // (→ Foto-sektionen) och valfritt starta behandlingsplan/offert-utkast.
+  // Backend (redan live): POST /api/v1/cco-photo-annotations + /cco-treatment-plans.
+  function openV12PhotoEditor(opts) {
+    const o = opts || {};
+    const patientId = o.patientId || '';
+    const sourceAssetId = o.assetId || '';
+    const src = o.src || '';
+    const name = o.name || 'Bild';
+    const zone = o.zone || '';
+    const docDate = o.docDate || '';
+    const captureDate = o.captureDate || docDate || '';
+    if (!src) return;
+    document.querySelector('.v12-photo-editor-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'v12-photo-editor-overlay';
+    overlay.innerHTML = `
+      <div class="v12-photo-editor-card" role="dialog" aria-modal="true" aria-label="Rita på bild">
+        <div class="v12-photo-editor-head">
+          <div>
+            <b>Rita på bild</b>
+            <span>${escapeHtml(zone || 'Foto')}${docDate ? ' · ' + escapeHtml(docDate) : ''}</span>
+          </div>
+          <div class="v12-photo-editor-tools">
+            <button type="button" class="v12-pe-btn is-active" data-pe-color="#d45b4f">Röd</button>
+            <button type="button" class="v12-pe-btn" data-pe-color="#e0b64a">Gul</button>
+            <button type="button" class="v12-pe-btn" data-pe-clear>Rensa</button>
+            <button type="button" class="v12-pe-btn" data-pe-close aria-label="Stäng">✕</button>
+          </div>
+        </div>
+        <div class="v12-photo-editor-canvas-wrap"><canvas></canvas></div>
+        <div class="v12-photo-editor-foot">
+          <span class="v12-pe-note">Rita med mus/trackpad. Originalbilden ändras inte.</span>
+          <button type="button" class="v12-pe-btn is-active" data-pe-plan>Vald till behandlingsplan/offert</button>
+          <button type="button" class="v12-pe-btn v12-pe-save" data-pe-save>Spara markerad bild</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const canvas = overlay.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    let color = '#d45b4f';
+    let drawing = false;
+    let strokes = [];
+    let current = null;
+    const image = new Image();
+    image.onload = () => {
+      const maxW = Math.min(1040, Math.max(360, window.innerWidth - 80));
+      const maxH = Math.min(720, Math.max(320, window.innerHeight - 240));
+      const scale = Math.min(maxW / image.naturalWidth, maxH / image.naturalHeight, 1);
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    };
+    image.onerror = () => {
+      const note = overlay.querySelector('.v12-pe-note');
+      if (note) note.textContent = 'Kunde inte öppna bilden för redigering.';
+    };
+    // Bilden ligger bakom auth (Bearer) — en <img>-request skickar inte token.
+    // Hämta via auth-fetch → blob-URL (samma origin → canvas blir ej tainted,
+    // så toDataURL fungerar vid spara). Fallback till direkt src för blob:/data:.
+    (async () => {
+      if (/^blob:|^data:/.test(src)) {
+        image.src = src;
+        return;
+      }
+      let objUrl = '';
+      try {
+        if (sourceAssetId) objUrl = await fetchPatientFileObjectUrl(sourceAssetId);
+      } catch (_e) {
+        /* fallback nedan */
+      }
+      image.src = objUrl || src;
+    })();
+    function point(ev) {
+      const r = canvas.getBoundingClientRect();
+      const t = ev.touches && ev.touches[0] ? ev.touches[0] : ev;
+      return {
+        x: (t.clientX - r.left) * (canvas.width / r.width),
+        y: (t.clientY - r.top) * (canvas.height / r.height),
+      };
+    }
+    function start(ev) {
+      ev.preventDefault();
+      drawing = true;
+      current = { color, points: [point(ev)] };
+      strokes.push(current);
+    }
+    function move(ev) {
+      if (!drawing || !current) return;
+      ev.preventDefault();
+      const p = point(ev);
+      const last = current.points[current.points.length - 1] || p;
+      current.points.push(p);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = current.color;
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+    function stop() {
+      drawing = false;
+      current = null;
+    }
+    function redrawBase() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      strokes.forEach((s) => {
+        if (!s.points || s.points.length < 2) return;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = s.color || color;
+        ctx.beginPath();
+        ctx.moveTo(s.points[0].x, s.points[0].y);
+        s.points.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.stroke();
+      });
+    }
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', stop);
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchend', stop);
+    overlay.addEventListener('click', async (event) => {
+      if (event.target === overlay || event.target.closest('[data-pe-close]')) {
+        overlay.remove();
+        return;
+      }
+      const colorBtn = event.target.closest('[data-pe-color]');
+      if (colorBtn) {
+        color = colorBtn.getAttribute('data-pe-color') || color;
+        overlay.querySelectorAll('[data-pe-color]').forEach((b) => b.classList.remove('is-active'));
+        colorBtn.classList.add('is-active');
+        return;
+      }
+      if (event.target.closest('[data-pe-clear]')) {
+        strokes = [];
+        redrawBase();
+        return;
+      }
+      const planBtn = event.target.closest('[data-pe-plan]');
+      if (planBtn) {
+        planBtn.classList.toggle('is-active');
+        planBtn.textContent = planBtn.classList.contains('is-active')
+          ? 'Vald till behandlingsplan/offert'
+          : 'Välj till behandlingsplan/offert';
+        return;
+      }
+      const saveBtn = event.target.closest('[data-pe-save]');
+      if (!saveBtn) return;
+      const note = overlay.querySelector('.v12-pe-note');
+      if (!strokes.length) {
+        if (note) note.textContent = 'Rita minst en markering innan du sparar.';
+        return;
+      }
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Sparar…';
+      const wantPlan = !!overlay.querySelector('[data-pe-plan].is-active');
+      const selectedFor = wantPlan ? ['photo', 'treatment_plan', 'offer'] : ['photo'];
+      try {
+        const saved = await apiRequest('/api/v1/cco-photo-annotations', {
+          method: 'POST',
+          body: {
+            customerId: patientId,
+            patientId,
+            sourceAssetId,
+            documentDate: docDate,
+            captureDate,
+            imageName: name,
+            zone,
+            selectedFor,
+            drawingData: { strokes },
+            previewDataUrl: canvas.toDataURL('image/png'),
+            note: 'Markerad bild skapad i kundvyn',
+          },
+        });
+        if (wantPlan) {
+          const asset = saved && saved.asset ? saved.asset : null;
+          const annotation = saved && saved.annotation ? saved.annotation : null;
+          await apiRequest('/api/v1/cco-treatment-plans', {
+            method: 'POST',
+            body: {
+              customerId: patientId,
+              patientId,
+              title: 'Behandlingsplan från markerad bild',
+              annotationId: annotation ? annotation.id : null,
+              assetId: asset ? asset.id : sourceAssetId,
+              selectedImages: [
+                {
+                  id: (asset && asset.id) || sourceAssetId,
+                  assetId: (asset && asset.id) || sourceAssetId,
+                  annotationId: annotation ? annotation.id : null,
+                  url: (annotation && annotation.previewUrl) || '',
+                  date: docDate,
+                  zone,
+                  label: name,
+                  selectedFor,
+                },
+              ],
+              providerComment: 'Skapad från markerad bild i kundvyn.',
+              offerIntent: {
+                status: 'ready_for_offer_draft',
+                source: 'photo_annotation',
+                reason: 'Markerad bild vald till behandlingsplan/offert',
+              },
+            },
+          }).catch(() => {});
+        }
+        saveBtn.textContent = 'Sparad ✓';
+        if (note)
+          note.textContent = wantPlan
+            ? 'Sparad i Foto + offert/behandlingsplan-utkast startat.'
+            : 'Sparad som ny markerad bild i Foto.';
+        document.dispatchEvent(
+          new CustomEvent('v12-photo-annotation-saved', { detail: { patientId } })
+        );
+        window.setTimeout(() => overlay.remove(), 1100);
+      } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Spara markerad bild';
+        if (note) note.textContent = 'Kunde inte spara — försök igen.';
+      }
+    });
+  }
+
   // Alla dokument-/PDF-länkar (oavsett var i kundvyn) ska INTE länkas till ny
   // flik — de ska komma upp i dokument-rutan (openV12DocViewer). En global
   // capture-fångare ersätter <a target="_blank"> mot fil-endpoints med modalen.
@@ -1436,6 +1666,26 @@
           target.setAttribute('data-v12-focus-pulse', '1');
           window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
         }
+        return;
+      }
+      // CONTENT-CANON s7/s5: "Rita på bild" → öppna foto-editorn.
+      const photoEdit = event.target.closest('[data-v12-photo-edit]');
+      if (photoEdit && body.contains(photoEdit)) {
+        event.preventDefault();
+        event.stopPropagation();
+        openV12PhotoEditor({
+          patientId:
+            photoEdit.getAttribute('data-patient-id') ||
+            (ctx && ctx.patient && ctx.patient.id) ||
+            (ctx && ctx.card && ctx.card.id) ||
+            '',
+          assetId: photoEdit.getAttribute('data-asset-id') || '',
+          src: photoEdit.getAttribute('data-photo-src') || '',
+          name: photoEdit.getAttribute('data-photo-name') || 'Bild',
+          zone: photoEdit.getAttribute('data-photo-zone') || '',
+          docDate: photoEdit.getAttribute('data-photo-date') || '',
+          captureDate: photoEdit.getAttribute('data-photo-capture') || '',
+        });
         return;
       }
       // CONTENT-CANON s9: "Öppna" dokument → visa PDF i modal-ruta (ingen länk,
