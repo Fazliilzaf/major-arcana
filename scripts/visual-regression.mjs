@@ -145,8 +145,9 @@ async function runVsMain(only) {
     // Surfaces removed on the branch but still in main.
     const deletedSurfaces = mainSurfaces.filter((f) => !branchSet.has(f));
 
-    // Guard: nothing to compare at all means a mistyped --only or empty preview dir.
-    if (toCompare.length === 0 && deletedSurfaces.length === 0) {
+    // Guard: no surfaces at all on either side = mistyped --only or empty preview dir.
+    // new-only branches (toCompare=0, deletedSurfaces=0, newSurfaces>0) are valid — don't reject.
+    if (mainSurfaces.length === 0 && branchFiles.length === 0) {
       console.error('Inga ytor matchade — kontrollera --only-filtret.');
       process.exit(1);
     }
@@ -214,73 +215,76 @@ async function runCaptureCompare(capture, compare, only) {
   }
   mkdirSync(BASE_DIR, { recursive: true });
 
-  const browser = await chromium.launch({ headless: true, ...(CHROME && { executablePath: CHROME }) });
-  const context = await browser.newContext({ locale: 'sv-SE', deviceScaleFactor: 1 });
-  const page = await context.newPage();
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true, ...(CHROME && { executablePath: CHROME }) });
+    const context = await browser.newContext({ locale: 'sv-SE', deviceScaleFactor: 1 });
+    const page = await context.newPage();
 
-  const mode = capture ? 'CAPTURE' : 'COMPARE';
-  console.log(`== Visuell regression (${mode}) — ${files.length} ytor × ${VIEWPORTS.length} breakpoints ==\n`);
+    const mode = capture ? 'CAPTURE' : 'COMPARE';
+    console.log(`== Visuell regression (${mode}) — ${files.length} ytor × ${VIEWPORTS.length} breakpoints ==\n`);
 
-  let failures = 0;
-  let captured = 0;
-  const failed = [];
+    let failures = 0;
+    let captured = 0;
+    const failed = [];
 
-  if (compare) {
-    if (existsSync(DIFF_DIR)) rmSync(DIFF_DIR, { recursive: true, force: true });
-    mkdirSync(DIFF_DIR, { recursive: true });
-  }
+    if (compare) {
+      if (existsSync(DIFF_DIR)) rmSync(DIFF_DIR, { recursive: true, force: true });
+      mkdirSync(DIFF_DIR, { recursive: true });
+    }
 
-  for (const file of files) {
-    for (const vp of VIEWPORTS) {
-      const key = keyFor(file, vp);
-      const basePath = join(BASE_DIR, key);
-      const cur = await shoot(page, PREVIEW, file, vp);
+    for (const file of files) {
+      for (const vp of VIEWPORTS) {
+        const key = keyFor(file, vp);
+        const basePath = join(BASE_DIR, key);
+        const cur = await shoot(page, PREVIEW, file, vp);
 
-      if (capture) {
-        writeFileSync(basePath, PNG.sync.write(cur, { deflateLevel: DEFLATE }));
-        captured++;
-        continue;
-      }
+        if (capture) {
+          writeFileSync(basePath, PNG.sync.write(cur, { deflateLevel: DEFLATE }));
+          captured++;
+          continue;
+        }
 
-      if (!existsSync(basePath)) {
-        console.log(`MISSING  ${key}  — ingen baseline (kör --capture)`);
-        failures++;
-        failed.push(`${key} (saknar baseline)`);
-        continue;
-      }
-      const base = PNG.sync.read(readFileSync(basePath));
-      const r = pixelDiff(base, cur);
-      if (r.dimMismatch) {
-        console.log(`DIM      ${key}  base=${r.base} cur=${r.cur}`);
-        failures++;
-        failed.push(`${key} (dimension ${r.base}→${r.cur})`);
-        writeFileSync(join(DIFF_DIR, key), PNG.sync.write(cur, { deflateLevel: DEFLATE }));
-        continue;
-      }
-      const pct = (r.ratio * 100).toFixed(3);
-      if (r.ratio > MISMATCH_RATIO) {
-        console.log(`DRIFT    ${key}  ${pct}% (${r.changed}/${r.total})`);
-        failures++;
-        failed.push(`${key} (${pct}%)`);
-        writeFileSync(join(DIFF_DIR, key), PNG.sync.write(r.diffPng, { deflateLevel: DEFLATE }));
-      } else {
-        console.log(`OK       ${key}  ${pct}%`);
+        if (!existsSync(basePath)) {
+          console.log(`MISSING  ${key}  — ingen baseline (kör --capture)`);
+          failures++;
+          failed.push(`${key} (saknar baseline)`);
+          continue;
+        }
+        const base = PNG.sync.read(readFileSync(basePath));
+        const r = pixelDiff(base, cur);
+        if (r.dimMismatch) {
+          console.log(`DIM      ${key}  base=${r.base} cur=${r.cur}`);
+          failures++;
+          failed.push(`${key} (dimension ${r.base}→${r.cur})`);
+          writeFileSync(join(DIFF_DIR, key), PNG.sync.write(cur, { deflateLevel: DEFLATE }));
+          continue;
+        }
+        const pct = (r.ratio * 100).toFixed(3);
+        if (r.ratio > MISMATCH_RATIO) {
+          console.log(`DRIFT    ${key}  ${pct}% (${r.changed}/${r.total})`);
+          failures++;
+          failed.push(`${key} (${pct}%)`);
+          writeFileSync(join(DIFF_DIR, key), PNG.sync.write(r.diffPng, { deflateLevel: DEFLATE }));
+        } else {
+          console.log(`OK       ${key}  ${pct}%`);
+        }
       }
     }
-  }
 
-  await browser.close();
-
-  if (capture) {
-    console.log(`\n${captured} baselines skrivna → ${BASE_DIR}`);
-    return;
-  }
-  console.log(`\n${files.length * VIEWPORTS.length - failures}/${files.length * VIEWPORTS.length} OK`);
-  if (failures) {
-    console.log(`\n${failures} ytor med drift:`);
-    failed.forEach((f) => console.log('  - ' + f));
-    console.log(`\nDiff-bilder: ${DIFF_DIR}`);
-    process.exit(1);
+    if (capture) {
+      console.log(`\n${captured} baselines skrivna → ${BASE_DIR}`);
+      return;
+    }
+    console.log(`\n${files.length * VIEWPORTS.length - failures}/${files.length * VIEWPORTS.length} OK`);
+    if (failures) {
+      console.log(`\n${failures} ytor med drift:`);
+      failed.forEach((f) => console.log('  - ' + f));
+      console.log(`\nDiff-bilder: ${DIFF_DIR}`);
+      process.exit(1);
+    }
+  } finally {
+    if (browser) await browser.close().catch(() => {});
   }
 }
 
