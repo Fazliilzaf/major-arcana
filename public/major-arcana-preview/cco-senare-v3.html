@@ -1,339 +1,1717 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>CCO Senare — v3 responsiv</title>
-<style>
-/* CCO SENARE v3 — snoozade konversationer. SAMMA skal som Konversationer (rail→lista→tråd→kontext),
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>CCO Senare — v3 responsiv</title>
+    <style>
+      /* CCO SENARE v3 — snoozade konversationer. SAMMA skal som Konversationer (rail→lista→tråd→kontext),
    bara filtrerat på snoozade trådar — ärver hela strukturen, hör ihop med resten av appen.
    WCAG-härdad varm palett (text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px. */
-:root{
-  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
-  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
-  --accent:#b0356e;--accent-weak:#fdeef4;
-  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
-  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
-  --rail-fazli:#6b31c9;--rail-egzona:#8a5f1e;--rail-contact:#1f7e8e;--rail-info:#6d6354;--rail-marknad:#a3344e;
-  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
-  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
-  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);
-  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.35rem);--safe-bottom:env(safe-area-inset-bottom,0px);
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
-body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
-  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
-button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-.tabnum{font-variant-numeric:tabular-nums}
+      :root {
+        --bg-page: #faf6f2;
+        --bg-surface: #fff;
+        --bg-sunken: #f3ece3;
+        --bg-rail: #fbf7f2;
+        --text-primary: #221c15;
+        --text-secondary: #574d40;
+        --text-tertiary: #6d6354;
+        --accent: #b0356e;
+        --accent-weak: #fdeef4;
+        --success: #2f6f54;
+        --success-bg: rgba(47, 111, 84, 0.16);
+        --warning: #9a6410;
+        --warning-bg: rgba(154, 100, 16, 0.16);
+        --danger: #a83838;
+        --danger-bg: rgba(168, 56, 56, 0.14);
+        --info: #2f6595;
+        --info-bg: rgba(47, 101, 149, 0.14);
+        --rail-fazli: #6b31c9;
+        --rail-egzona: #8a5f1e;
+        --rail-contact: #1f7e8e;
+        --rail-info: #6d6354;
+        --rail-marknad: #a3344e;
+        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
+        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --sh-lg: 0 10px 26px rgba(56, 40, 28, 0.14);
+        --r-sm: 10px;
+        --r-md: 14px;
+        --r-lg: 18px;
+        --r-xl: 24px;
+        --r-pill: 999px;
+        --fs-kicker: 0.6875rem;
+        --fs-meta: 0.75rem;
+        --fs-body: 0.875rem;
+        --fs-h1: clamp(1.25rem, 1.05rem+1.4vw, 1.85rem);
+        --tap: 2.75rem;
+        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
+        --pad-x: clamp(0.875rem, 0.5rem+1.6vw, 1.35rem);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        font-size: 100%;
+        overflow-x: clip;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
+          var(--bg-page);
+        color: var(--text-primary);
+        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-size: var(--fs-body);
+        line-height: 1.45;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      button {
+        font-family: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      .tabnum {
+        font-variant-numeric: tabular-nums;
+      }
 
-.app{display:grid;grid-template-columns:1fr;grid-template-areas:"main";min-height:100vh;max-width:1500px;margin-inline:auto}
-.z-rail{grid-area:rail;display:none}.z-list{grid-area:list;min-width:0;display:flex;flex-direction:column}
-.z-thread{grid-area:thread;min-width:0;display:flex;flex-direction:column}.z-ctx{grid-area:ctx;min-width:0}
+      .app {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-areas: 'main';
+        min-height: 100vh;
+        max-width: 1500px;
+        margin-inline: auto;
+      }
+      .z-rail {
+        grid-area: rail;
+        display: none;
+      }
+      .z-list {
+        grid-area: list;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .z-thread {
+        grid-area: thread;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .z-ctx {
+        grid-area: ctx;
+        min-width: 0;
+      }
 
-/* topbar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
-  background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
-.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
-.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
-.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
-.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
-.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
-.icon-btn svg{width:1.1rem;height:1.1rem}
+      /* topbar */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: var(--gap);
+        padding: 0.5rem var(--pad-x);
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+        background: linear-gradient(
+          180deg,
+          rgba(250, 246, 242, 0.97),
+          rgba(250, 246, 242, 0.82) 80%,
+          transparent
+        );
+        backdrop-filter: blur(18px);
+      }
+      .brand {
+        flex-shrink: 0;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 0.4rem 0.7rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+      }
+      .search {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        padding: 0 0.75rem 0 2.1rem;
+      }
+      .search svg {
+        position: absolute;
+        left: 0.7rem;
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-tertiary);
+      }
+      .search input {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        width: 100%;
+        height: 100%;
+        font: inherit;
+        font-size: var(--fs-meta);
+        color: var(--text-primary);
+        outline: none;
+      }
+      .icon-btn {
+        flex-shrink: 0;
+        width: var(--tap);
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        cursor: pointer;
+      }
+      .icon-btn svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
 
-.head{padding:.6rem var(--pad-x) .2rem}
-.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.2rem}
-.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
-.h1 small{font-size:var(--fs-meta);color:var(--text-secondary);font-weight:600;margin-left:.4rem}
+      .head {
+        padding: 0.6rem var(--pad-x) 0.2rem;
+      }
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 0.2rem;
+      }
+      .h1 {
+        margin: 0;
+        font-size: var(--fs-h1);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .h1 small {
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-left: 0.4rem;
+      }
 
-/* lane tabs */
-.lanes{display:flex;gap:.4rem;overflow-x:auto;scrollbar-width:none;padding:.6rem var(--pad-x) .5rem}
-.lanes::-webkit-scrollbar{display:none}
-.lane{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .8rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
-.lane[aria-pressed="true"]{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
-.lane .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+      /* lane tabs */
+      .lanes {
+        display: flex;
+        gap: 0.4rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 0.6rem var(--pad-x) 0.5rem;
+      }
+      .lanes::-webkit-scrollbar {
+        display: none;
+      }
+      .lane {
+        flex-shrink: 0;
+        min-height: 2.25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0 0.8rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.3);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-secondary);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .lane[aria-pressed='true'] {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .lane .c {
+        background: rgba(180, 165, 150, 0.18);
+        padding: 0.05rem 0.4rem;
+        border-radius: var(--r-pill);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
 
-/* thread list */
-.inbox{flex:1;min-height:0;overflow-y:auto;padding:0 var(--pad-x) 6rem;display:flex;flex-direction:column;gap:.4rem}
-.thread{position:relative;display:flex;gap:.65rem;padding:.7rem .8rem .7rem 1rem;border-radius:var(--r-md);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.22);box-shadow:var(--sh-sm);cursor:pointer}
-.thread::before{content:"";position:absolute;left:.35rem;top:.7rem;bottom:.7rem;width:3px;border-radius:2px;background:var(--rail,var(--rail-info))}
-.thread[data-source="contact"]{--rail:var(--rail-contact)}.thread[data-source="fazli"]{--rail:var(--rail-fazli)}.thread[data-source="egzona"]{--rail:var(--rail-egzona)}.thread[data-source="info"]{--rail:var(--rail-info)}.thread[data-source="marknad"]{--rail:var(--rail-marknad)}
-.thread.is-open{border-color:var(--accent)}
-.thread.unread .t-name{font-weight:800}
-.thread.unread::after{content:"";position:absolute;right:.7rem;top:.8rem;width:.5rem;height:.5rem;border-radius:999px;background:var(--accent)}
-.t-av{flex-shrink:0;width:2.4rem;height:2.4rem;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.8rem;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--rail,var(--rail-info))}
-.t-body{flex:1;min-width:0}
-.t-top{display:flex;align-items:baseline;gap:.5rem}
-.t-name{font-size:var(--fs-meta);color:var(--text-primary);font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.t-time{font-size:var(--fs-kicker);color:var(--text-tertiary);flex-shrink:0}
-.t-sub{font-size:var(--fs-meta);color:var(--text-secondary);font-weight:600;margin-top:.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.t-prev{font-size:var(--fs-meta);color:var(--text-tertiary);margin-top:.15rem;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-.t-tags{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.35rem}
-.tag{padding:.1rem .45rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
-.tag--sla{background:var(--danger-bg);color:var(--danger)}.tag--vip{background:#fdeef4;color:var(--accent)}.tag--book{background:var(--info-bg);color:var(--info)}.tag--ai{background:var(--warning-bg);color:var(--warning)}
-.tag--snooze{background:var(--info-bg);color:var(--info)}.tag--due{background:var(--success-bg);color:var(--success)}
-/* återupptag-rad: tydlig hierarki — när tråden vaknar igen */
-.t-wake{display:flex;align-items:center;gap:.35rem;margin-top:.35rem;font-size:var(--fs-kicker);font-weight:800;color:var(--info)}
-.t-wake svg{width:.85rem;height:.85rem;flex-shrink:0}
-.thread.is-due .t-wake{color:var(--success)}
-.thread.is-due{border-color:var(--success)}
-.thread.is-due::after{content:"";position:absolute;right:.7rem;top:.8rem;width:.5rem;height:.5rem;border-radius:999px;background:var(--success)}
+      /* thread list */
+      .inbox {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0 var(--pad-x) 6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .thread {
+        position: relative;
+        display: flex;
+        gap: 0.65rem;
+        padding: 0.7rem 0.8rem 0.7rem 1rem;
+        border-radius: var(--r-md);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(180, 165, 150, 0.22);
+        box-shadow: var(--sh-sm);
+        cursor: pointer;
+      }
+      .thread::before {
+        content: '';
+        position: absolute;
+        left: 0.35rem;
+        top: 0.7rem;
+        bottom: 0.7rem;
+        width: 3px;
+        border-radius: 2px;
+        background: var(--rail, var(--rail-info));
+      }
+      .thread[data-source='contact'] {
+        --rail: var(--rail-contact);
+      }
+      .thread[data-source='fazli'] {
+        --rail: var(--rail-fazli);
+      }
+      .thread[data-source='egzona'] {
+        --rail: var(--rail-egzona);
+      }
+      .thread[data-source='info'] {
+        --rail: var(--rail-info);
+      }
+      .thread[data-source='marknad'] {
+        --rail: var(--rail-marknad);
+      }
+      .thread.is-open {
+        border-color: var(--accent);
+      }
+      .thread.unread .t-name {
+        font-weight: 800;
+      }
+      .thread.unread::after {
+        content: '';
+        position: absolute;
+        right: 0.7rem;
+        top: 0.8rem;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+      .t-av {
+        flex-shrink: 0;
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.8rem;
+        box-shadow:
+          0 0 0 2px #fff,
+          0 0 0 3px var(--rail, var(--rail-info));
+      }
+      .t-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .t-top {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+      }
+      .t-name {
+        font-size: var(--fs-meta);
+        color: var(--text-primary);
+        font-weight: 700;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .t-time {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        flex-shrink: 0;
+      }
+      .t-sub {
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-top: 0.05rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .t-prev {
+        font-size: var(--fs-meta);
+        color: var(--text-tertiary);
+        margin-top: 0.15rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .t-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-top: 0.35rem;
+      }
+      .tag {
+        padding: 0.1rem 0.45rem;
+        border-radius: var(--r-pill);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      .tag--sla {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+      .tag--vip {
+        background: #fdeef4;
+        color: var(--accent);
+      }
+      .tag--book {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .tag--ai {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+      .tag--snooze {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .tag--due {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      /* återupptag-rad: tydlig hierarki — när tråden vaknar igen */
+      .t-wake {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-top: 0.35rem;
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        color: var(--info);
+      }
+      .t-wake svg {
+        width: 0.85rem;
+        height: 0.85rem;
+        flex-shrink: 0;
+      }
+      .thread.is-due .t-wake {
+        color: var(--success);
+      }
+      .thread.is-due {
+        border-color: var(--success);
+      }
+      .thread.is-due::after {
+        content: '';
+        position: absolute;
+        right: 0.7rem;
+        top: 0.8rem;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: var(--success);
+      }
 
-/* thread view */
-.thread-view{flex:1;min-height:0;display:flex;flex-direction:column}
-.tv-head{display:flex;gap:.7rem;align-items:center;padding:.6rem var(--pad-x);box-shadow:inset 0 -1px 0 rgba(180,165,150,.3)}
-.tv-back{display:inline-flex;width:var(--tap);height:var(--tap);align-items:center;justify-content:center;border:0;background:transparent;cursor:pointer;color:var(--text-primary);font-size:1.3rem}
-.tv-name{font-weight:800}.tv-meta{font-size:var(--fs-kicker);color:var(--text-secondary)}
-.tv-stream{flex:1;min-height:0;overflow-y:auto;padding:1rem var(--pad-x);display:flex;flex-direction:column;gap:.6rem}
-.msg{max-width:78%;padding:.6rem .8rem;border-radius:var(--r-lg);font-size:var(--fs-meta);line-height:1.45;box-shadow:var(--sh-sm)}
-.msg.in{align-self:flex-start;background:var(--bg-surface);border:1px solid rgba(180,165,150,.2);border-bottom-left-radius:6px}
-.msg.out{align-self:flex-end;background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:#5e1b3c;border-bottom-right-radius:6px}
-.msg .m-time{display:block;font-size:.625rem;color:var(--text-tertiary);margin-top:.3rem}
-.tv-reply{display:flex;gap:.5rem;align-items:center;padding:.6rem var(--pad-x) calc(.6rem + var(--safe-bottom));box-shadow:inset 0 1px 0 rgba(180,165,150,.3)}
-.tv-reply input{flex:1;min-height:var(--tap);border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.8);padding:0 1rem;font:inherit;font-size:var(--fs-meta);outline:none}
-.tv-send{min-width:var(--tap);min-height:var(--tap);border-radius:999px;border:0;cursor:pointer;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center}
-.tv-ai{align-self:flex-start;display:inline-flex;align-items:center;gap:.3rem;min-height:2rem;padding:0 .7rem;border-radius:var(--r-pill);background:var(--warning-bg);color:var(--warning);font-size:var(--fs-kicker);font-weight:800;border:0;cursor:pointer;margin-bottom:.2rem}
-/* snooze-banner i tråden — tydlig topp-hierarki: när & varför + actions */
-.tv-snooze{padding:.7rem .8rem;border-radius:var(--r-md);background:var(--info-bg);border-left:3px solid var(--info);display:flex;flex-direction:column;gap:.5rem;margin-bottom:.4rem}
-.tv-snooze.is-due{background:var(--success-bg);border-left-color:var(--success)}
-.tv-snooze .sn-top{display:flex;align-items:center;gap:.4rem;font-weight:800;font-size:var(--fs-meta);color:var(--info)}
-.tv-snooze.is-due .sn-top{color:var(--success)}
-.tv-snooze .sn-top svg{width:1rem;height:1rem;flex-shrink:0}
-.tv-snooze .sn-reason{font-size:var(--fs-meta);color:var(--text-secondary)}
-.tv-snooze .sn-acts{display:flex;gap:.4rem;flex-wrap:wrap}
-.sn-btn{min-height:2.25rem;padding:0 .8rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.3rem}
-.sn-btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
-@media(pointer:coarse){.sn-btn{min-height:var(--tap)}}
+      /* thread view */
+      .thread-view {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .tv-head {
+        display: flex;
+        gap: 0.7rem;
+        align-items: center;
+        padding: 0.6rem var(--pad-x);
+        box-shadow: inset 0 -1px 0 rgba(180, 165, 150, 0.3);
+      }
+      .tv-back {
+        display: inline-flex;
+        width: var(--tap);
+        height: var(--tap);
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        color: var(--text-primary);
+        font-size: 1.3rem;
+      }
+      .tv-name {
+        font-weight: 800;
+      }
+      .tv-meta {
+        font-size: var(--fs-kicker);
+        color: var(--text-secondary);
+      }
+      .tv-stream {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 1rem var(--pad-x);
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+      .msg {
+        max-width: 78%;
+        padding: 0.6rem 0.8rem;
+        border-radius: var(--r-lg);
+        font-size: var(--fs-meta);
+        line-height: 1.45;
+        box-shadow: var(--sh-sm);
+      }
+      .msg.in {
+        align-self: flex-start;
+        background: var(--bg-surface);
+        border: 1px solid rgba(180, 165, 150, 0.2);
+        border-bottom-left-radius: 6px;
+      }
+      .msg.out {
+        align-self: flex-end;
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: #5e1b3c;
+        border-bottom-right-radius: 6px;
+      }
+      .msg .m-time {
+        display: block;
+        font-size: 0.625rem;
+        color: var(--text-tertiary);
+        margin-top: 0.3rem;
+      }
+      .tv-reply {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        padding: 0.6rem var(--pad-x) calc(0.6rem + var(--safe-bottom));
+        box-shadow: inset 0 1px 0 rgba(180, 165, 150, 0.3);
+      }
+      .tv-reply input {
+        flex: 1;
+        min-height: var(--tap);
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        background: rgba(255, 255, 255, 0.8);
+        padding: 0 1rem;
+        font: inherit;
+        font-size: var(--fs-meta);
+        outline: none;
+      }
+      .tv-send {
+        min-width: var(--tap);
+        min-height: var(--tap);
+        border-radius: 999px;
+        border: 0;
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tv-ai {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        min-height: 2rem;
+        padding: 0 0.7rem;
+        border-radius: var(--r-pill);
+        background: var(--warning-bg);
+        color: var(--warning);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        border: 0;
+        cursor: pointer;
+        margin-bottom: 0.2rem;
+      }
+      /* snooze-banner i tråden — tydlig topp-hierarki: när & varför + actions */
+      .tv-snooze {
+        padding: 0.7rem 0.8rem;
+        border-radius: var(--r-md);
+        background: var(--info-bg);
+        border-left: 3px solid var(--info);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 0.4rem;
+      }
+      .tv-snooze.is-due {
+        background: var(--success-bg);
+        border-left-color: var(--success);
+      }
+      .tv-snooze .sn-top {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-weight: 800;
+        font-size: var(--fs-meta);
+        color: var(--info);
+      }
+      .tv-snooze.is-due .sn-top {
+        color: var(--success);
+      }
+      .tv-snooze .sn-top svg {
+        width: 1rem;
+        height: 1rem;
+        flex-shrink: 0;
+      }
+      .tv-snooze .sn-reason {
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+      }
+      .tv-snooze .sn-acts {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+      }
+      .sn-btn {
+        min-height: 2.25rem;
+        padding: 0 0.8rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        background: rgba(255, 255, 255, 0.85);
+        font: inherit;
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .sn-btn--primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      @media (pointer: coarse) {
+        .sn-btn {
+          min-height: var(--tap);
+        }
+      }
 
-/* context */
-.ctx{padding:1rem var(--pad-x)}
-.ctx-card{padding:.8rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md);margin-bottom:.6rem}
-.ctx-sec{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary);margin:.4rem 0 .4rem}
-.ctx-row{display:flex;justify-content:space-between;gap:.5rem;font-size:var(--fs-meta);padding:.2rem 0}
-.ctx-row .k{color:var(--text-tertiary)}.ctx-row .v{font-weight:700}
-.ctx-ai{padding:.7rem .8rem;border-radius:var(--r-md);background:linear-gradient(180deg,#fff3e0,rgba(255,228,200,.7));border-left:3px solid var(--warning);font-size:var(--fs-meta);color:var(--text-secondary)}
-.ctx-ai b{color:var(--warning)}
+      /* context */
+      .ctx {
+        padding: 1rem var(--pad-x);
+      }
+      .ctx-card {
+        padding: 0.8rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 241, 236, 0.84));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+        margin-bottom: 0.6rem;
+      }
+      .ctx-sec {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin: 0.4rem 0 0.4rem;
+      }
+      .ctx-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: var(--fs-meta);
+        padding: 0.2rem 0;
+      }
+      .ctx-row .k {
+        color: var(--text-tertiary);
+      }
+      .ctx-row .v {
+        font-weight: 700;
+      }
+      .ctx-ai {
+        padding: 0.7rem 0.8rem;
+        border-radius: var(--r-md);
+        background: linear-gradient(180deg, #fff3e0, rgba(255, 228, 200, 0.7));
+        border-left: 3px solid var(--warning);
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+      }
+      .ctx-ai b {
+        color: var(--warning);
+      }
 
-/* botnav + sheet states */
-.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
-.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
-.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
-/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
-.nav-i{gap:.2rem;transition:color .2s;position:relative}
-.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
-.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
-.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
-.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.nav-i .ic-dot{fill:currentColor}
-@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
-.nav-i:active .ic{transform:scale(.84)}
-.nav-i.is-active{color:var(--ic,var(--accent))}
-.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
-.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
-.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
-.nav-i.is-active .ic-line{stroke:#fff}
-.nav-i.is-active .ic-dot{fill:#fff}
-.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
-@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
-@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
-@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+      /* botnav + sheet states */
+      .botnav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem calc(0.5rem + var(--safe-bottom));
+        background: linear-gradient(180deg, rgba(250, 246, 242, 0), rgba(250, 246, 242, 0.94) 30%);
+        backdrop-filter: blur(20px);
+      }
+      .nav-i {
+        flex: 1;
+        min-height: var(--tap);
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.1rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .nav-i svg {
+        width: 1.35rem;
+        height: 1.35rem;
+      }
+      .nav-i.is-active {
+        color: var(--accent);
+      }
+      /* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+      .nav-i {
+        gap: 0.2rem;
+        transition: color 0.2s;
+        position: relative;
+      }
+      .nav-i .ic-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.1rem;
+        height: 1.9rem;
+        border-radius: var(--r-pill);
+        transition:
+          background 0.25s,
+          box-shadow 0.25s,
+          transform 0.25s;
+      }
+      .nav-i .ic {
+        width: 1.5rem;
+        height: 1.5rem;
+        transition: transform 0.2s;
+      }
+      .nav-i .ic-fill {
+        fill: currentColor;
+        opacity: 0.24;
+        transition:
+          fill 0.2s,
+          opacity 0.2s;
+      }
+      .nav-i .ic-line {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .nav-i .ic-dot {
+        fill: currentColor;
+      }
+      @media (hover: hover) {
+        .nav-i:not(.is-active):hover .ic {
+          transform: translateY(-2px) rotate(-6deg);
+        }
+        .nav-i:not(.is-active):hover .ic-wrap {
+          background: rgba(176, 53, 110, 0.08);
+        }
+      }
+      .nav-i:active .ic {
+        transform: scale(0.84);
+      }
+      .nav-i.is-active {
+        color: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-wrap {
+        background: var(--ic-bg, var(--accent-weak));
+        box-shadow: 0 7px 16px -6px var(--ic, var(--accent));
+        animation: navfloat 2.8s ease-in-out infinite;
+      }
+      .nav-i.is-active .ic {
+        animation: navpop 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .nav-i.is-active .ic-fill {
+        opacity: 1;
+        fill: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-line {
+        stroke: #fff;
+      }
+      .nav-i.is-active .ic-dot {
+        fill: #fff;
+      }
+      .nav-badge {
+        position: absolute;
+        top: -0.15rem;
+        right: 0.4rem;
+        min-width: 1rem;
+        height: 1rem;
+        padding: 0 0.25rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 0.5625rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px var(--bg-page);
+      }
+      @keyframes navpop {
+        0% {
+          transform: scale(0.55);
+        }
+        55% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes navfloat {
+        0%,
+        100% {
+          transform: translateY(-3px);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .nav-i .ic,
+        .nav-i .ic-wrap {
+          animation: none !important;
+        }
+      }
 
-/* MOBIL: thread + ctx är overlay-paneler */
-.z-thread,.z-ctx{position:fixed;inset:0;z-index:120;background:var(--bg-page);transform:translateX(100%);transition:transform .3s cubic-bezier(.34,1.2,.64,1)}
-.app[data-pane="thread"] .z-thread{transform:translateX(0)}
-.app[data-pane="ctx"] .z-thread{transform:translateX(0)}
-.z-ctx{z-index:130;background:linear-gradient(180deg,rgba(250,246,242,.98),rgba(244,238,233,.95));overflow-y:auto}
-.app[data-pane="ctx"] .z-ctx{transform:translateX(0)}
-.ctx-back{position:sticky;top:0;display:flex;align-items:center;gap:.5rem;padding:.6rem var(--pad-x);background:rgba(250,246,242,.9);backdrop-filter:blur(10px)}
-.ctx-back button{width:var(--tap);height:var(--tap);border:0;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--text-primary)}
+      /* MOBIL: thread + ctx är overlay-paneler */
+      .z-thread,
+      .z-ctx {
+        position: fixed;
+        inset: 0;
+        z-index: 120;
+        background: var(--bg-page);
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+      }
+      .app[data-pane='thread'] .z-thread {
+        transform: translateX(0);
+      }
+      .app[data-pane='ctx'] .z-thread {
+        transform: translateX(0);
+      }
+      .z-ctx {
+        z-index: 130;
+        background: linear-gradient(180deg, rgba(250, 246, 242, 0.98), rgba(244, 238, 233, 0.95));
+        overflow-y: auto;
+      }
+      .app[data-pane='ctx'] .z-ctx {
+        transform: translateX(0);
+      }
+      .ctx-back {
+        position: sticky;
+        top: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem var(--pad-x);
+        background: rgba(250, 246, 242, 0.9);
+        backdrop-filter: blur(10px);
+      }
+      .ctx-back button {
+        width: var(--tap);
+        height: var(--tap);
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        font-size: 1.3rem;
+        color: var(--text-primary);
+      }
 
-@media (pointer:coarse){.lane,.tv-ai{min-height:var(--tap)}}
+      @media (pointer: coarse) {
+        .lane,
+        .tv-ai {
+          min-height: var(--tap);
+        }
+      }
 
-/* iPad 601–1024: lista + tråd sida-vid-sida (2-zon), ctx som drawer */
-@media (min-width:601px){
-  .app{grid-template-columns:minmax(280px,340px) 1fr;grid-template-areas:"list thread";height:100vh}
-  .z-list{height:100vh;box-shadow:inset -1px 0 0 rgba(180,165,150,.25)}
-  .z-thread{position:relative;inset:auto;transform:none!important;height:100vh}
-  .z-thread:not(.has-thread) .thread-view{display:none}
-  .z-thread:not(.has-thread)::after{content:"Välj en snoozad konversation";display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary)}
-  .tv-back{display:none}
-  .botnav{display:none}
-  .inbox{padding-bottom:1.5rem}
-  .z-ctx{width:min(22rem,80vw);left:auto}
-}
-/* Desktop ≥1025: rail | lista | tråd | ctx (4-zon master-detail) */
-@media (min-width:1025px){
-  .app{grid-template-columns:13rem minmax(300px,360px) minmax(0,1fr) 20rem;grid-template-areas:"rail list thread ctx"}
-  .z-rail{display:flex;flex-direction:column;gap:.3rem;padding:1rem .8rem;background:var(--bg-rail);box-shadow:inset -1px 0 0 rgba(180,165,150,.25)}
-  .z-ctx{position:static;transform:none!important;width:auto;background:var(--bg-rail);box-shadow:inset 1px 0 0 rgba(180,165,150,.25);height:100vh;overflow-y:auto}
-  .ctx-back{display:none}
-  .rail-brand{font-weight:800;letter-spacing:.08em;color:var(--accent);padding:.2rem .6rem .6rem}
-  .rail-sec{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary);margin:.8rem .6rem .3rem}
-  .rail-nav{min-height:var(--tap);display:flex;align-items:center;gap:.5rem;padding:0 .7rem;border-radius:var(--r-md);cursor:pointer;color:var(--text-secondary);font-weight:700;font-size:var(--fs-meta);border:0;background:transparent;text-align:left}
-  .rail-nav.is-active{background:var(--accent-weak);color:var(--accent)}
-  .rail-nav .c{margin-left:auto;font-size:var(--fs-kicker);color:var(--text-tertiary)}
-}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-</style>
-</head>
-<body>
-<div class="app" id="app" data-pane="list">
-  <aside class="z-rail">
-    <div class="rail-brand">CCO</div>
-    <div class="rail-sec">Brevlådor</div>
-    <button class="rail-nav is-active">Alla <span class="c">14</span></button>
-    <button class="rail-nav">Kontakt <span class="c">5</span></button>
-    <button class="rail-nav">Marknad <span class="c">3</span></button>
-    <button class="rail-nav">Egzona <span class="c">2</span></button>
-    <button class="rail-nav">Fazli <span class="c">4</span></button>
-    <div class="rail-sec">Vyer</div>
-    <button class="rail-nav is-active">↺ Senare <span class="c">6</span></button>
-    <button class="rail-nav">★ SLA-risk <span class="c">2</span></button>
-    <button class="rail-nav">Skickat <span class="c">8</span></button>
-    <button class="rail-nav">Mina <span class="c">6</span></button>
-  </aside>
+      /* iPad 601–1024: lista + tråd sida-vid-sida (2-zon), ctx som drawer */
+      @media (min-width: 601px) {
+        .app {
+          grid-template-columns: minmax(280px, 340px) 1fr;
+          grid-template-areas: 'list thread';
+          height: 100vh;
+        }
+        .z-list {
+          height: 100vh;
+          box-shadow: inset -1px 0 0 rgba(180, 165, 150, 0.25);
+        }
+        .z-thread {
+          position: relative;
+          inset: auto;
+          transform: none !important;
+          height: 100vh;
+        }
+        .z-thread:not(.has-thread) .thread-view {
+          display: none;
+        }
+        .z-thread:not(.has-thread)::after {
+          content: 'Välj en snoozad konversation';
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          color: var(--text-tertiary);
+        }
+        .tv-back {
+          display: none;
+        }
+        .botnav {
+          display: none;
+        }
+        .inbox {
+          padding-bottom: 1.5rem;
+        }
+        .z-ctx {
+          width: min(22rem, 80vw);
+          left: auto;
+        }
+      }
+      /* Desktop ≥1025: rail | lista | tråd | ctx (4-zon master-detail) */
+      @media (min-width: 1025px) {
+        .app {
+          grid-template-columns: 13rem minmax(300px, 360px) minmax(0, 1fr) 20rem;
+          grid-template-areas: 'rail list thread ctx';
+        }
+        .z-rail {
+          display: flex;
+          flex-direction: column;
+          gap: 0.3rem;
+          padding: 1rem 0.8rem;
+          background: var(--bg-rail);
+          box-shadow: inset -1px 0 0 rgba(180, 165, 150, 0.25);
+        }
+        .z-ctx {
+          position: static;
+          transform: none !important;
+          width: auto;
+          background: var(--bg-rail);
+          box-shadow: inset 1px 0 0 rgba(180, 165, 150, 0.25);
+          height: 100vh;
+          overflow-y: auto;
+        }
+        .ctx-back {
+          display: none;
+        }
+        .rail-brand {
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          color: var(--accent);
+          padding: 0.2rem 0.6rem 0.6rem;
+        }
+        .rail-sec {
+          font-size: var(--fs-kicker);
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--text-tertiary);
+          margin: 0.8rem 0.6rem 0.3rem;
+        }
+        .rail-nav {
+          min-height: var(--tap);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0 0.7rem;
+          border-radius: var(--r-md);
+          cursor: pointer;
+          color: var(--text-secondary);
+          font-weight: 700;
+          font-size: var(--fs-meta);
+          border: 0;
+          background: transparent;
+          text-align: left;
+        }
+        .rail-nav.is-active {
+          background: var(--accent-weak);
+          color: var(--accent);
+        }
+        .rail-nav .c {
+          margin-left: auto;
+          font-size: var(--fs-kicker);
+          color: var(--text-tertiary);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
 
-  <!-- LISTA -->
-  <main class="z-list">
-    <div class="topbar"><span class="brand">CCO</span>
-      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök konversation…"></label>
-      <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+      /* action notice */
+      .sn-notice {
+        padding: 0.6rem 0.9rem;
+        border-radius: var(--r-md);
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        margin-bottom: 0.4rem;
+        animation: fadein 0.2s;
+      }
+      .sn-notice--ok {
+        background: var(--success-bg);
+        color: var(--success);
+        border: 1px solid rgba(47, 111, 84, 0.25);
+      }
+      .sn-notice--err {
+        background: var(--danger-bg);
+        color: var(--danger);
+        border: 1px solid rgba(168, 56, 56, 0.25);
+      }
+      /* snooze-picker (inlined i banner) */
+      .sn-pick {
+        margin-top: 0.6rem;
+        padding: 0.7rem 0.8rem;
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(180, 165, 150, 0.3);
+        box-shadow: var(--sh-sm);
+      }
+      .sn-pick fieldset {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .sn-pick legend {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin-bottom: 0.5rem;
+      }
+      .sn-opt {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        cursor: pointer;
+        padding: 0.35rem 0.7rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.3);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 238, 232, 0.8));
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-secondary);
+      }
+      .sn-opt input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+      }
+      .sn-opt:has(input:checked) {
+        background: var(--info-bg);
+        border-color: rgba(47, 101, 149, 0.3);
+        color: var(--info);
+      }
+      .sn-pick-acts {
+        display: flex;
+        gap: 0.4rem;
+        margin-top: 0.6rem;
+        flex-wrap: wrap;
+      }
+      @keyframes fadein {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app" id="app" data-pane="list">
+      <aside class="z-rail">
+        <div class="rail-brand">CCO</div>
+        <div class="rail-sec">Brevlådor</div>
+        <button class="rail-nav is-active">Alla <span class="c">14</span></button>
+        <button class="rail-nav">Kontakt <span class="c">5</span></button>
+        <button class="rail-nav">Marknad <span class="c">3</span></button>
+        <button class="rail-nav">Egzona <span class="c">2</span></button>
+        <button class="rail-nav">Fazli <span class="c">4</span></button>
+        <div class="rail-sec">Vyer</div>
+        <button class="rail-nav is-active">↺ Senare <span class="c">6</span></button>
+        <button class="rail-nav">★ SLA-risk <span class="c">2</span></button>
+        <button class="rail-nav">Skickat <span class="c">8</span></button>
+        <button class="rail-nav">Mina <span class="c">6</span></button>
+      </aside>
+
+      <!-- LISTA -->
+      <main class="z-list">
+        <div class="topbar">
+          <span class="brand">CCO</span>
+          <label class="search"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
+            ><input placeholder="Sök konversation…"
+          /></label>
+          <button class="icon-btn" aria-label="Filtrera">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            >
+              <path d="M3 5h18M6 12h12M10 19h4" />
+            </svg>
+          </button>
+        </div>
+        <div class="head">
+          <div class="kicker">↺ Konversationer · Senare</div>
+          <h2 class="h1">Senare <small>6 snoozade · nästa 09:00</small></h2>
+        </div>
+        <div class="lanes" role="group" aria-label="Filter på återupptag">
+          <button class="lane" data-lane="alla" aria-pressed="true">
+            Alla <span class="c">6</span>
+          </button>
+          <button class="lane" data-lane="idag" aria-pressed="false">
+            Idag <span class="c">2</span>
+          </button>
+          <button class="lane" data-lane="imorgon" aria-pressed="false">
+            Imorgon <span class="c">2</span>
+          </button>
+          <button class="lane" data-lane="vecka" aria-pressed="false">
+            Denna vecka <span class="c">2</span>
+          </button>
+          <button class="lane" data-lane="vip" aria-pressed="false">
+            ★ VIP <span class="c">2</span>
+          </button>
+        </div>
+        <div class="inbox" id="inbox"></div>
+      </main>
+
+      <!-- TRÅD -->
+      <section class="z-thread" id="threadZone">
+        <div class="thread-view">
+          <div class="tv-head">
+            <button class="tv-back" id="tvBack" aria-label="Tillbaka">‹</button>
+            <div style="flex: 1; min-width: 0">
+              <div class="tv-name" id="tvName">—</div>
+              <div class="tv-meta" id="tvMeta"></div>
+            </div>
+            <button class="icon-btn" id="ctxOpen" aria-label="Kontext">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M20 21a8 8 0 0 0-16 0" />
+              </svg>
+            </button>
+          </div>
+          <div class="tv-stream" id="tvStream"></div>
+          <div class="tv-reply">
+            <input placeholder="Skriv ett svar…" aria-label="Svar" />
+            <button class="tv-send" aria-label="Skicka">
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- KONTEXT -->
+      <aside class="z-ctx" id="ctxZone">
+        <div class="ctx-back">
+          <button id="ctxBack" aria-label="Tillbaka">‹</button><strong>Kontext</strong>
+        </div>
+        <div class="ctx" id="ctxBody"></div>
+      </aside>
     </div>
-    <div class="head"><div class="kicker">↺ Konversationer · Senare</div><h2 class="h1">Senare <small>6 snoozade · nästa 09:00</small></h2></div>
-    <div class="lanes" role="group" aria-label="Filter på återupptag">
-      <button class="lane" data-lane="alla" aria-pressed="true">Alla <span class="c">6</span></button>
-      <button class="lane" data-lane="idag" aria-pressed="false">Idag <span class="c">2</span></button>
-      <button class="lane" data-lane="imorgon" aria-pressed="false">Imorgon <span class="c">2</span></button>
-      <button class="lane" data-lane="vecka" aria-pressed="false">Denna vecka <span class="c">2</span></button>
-      <button class="lane" data-lane="vip" aria-pressed="false">★ VIP <span class="c">2</span></button>
-    </div>
-    <div class="inbox" id="inbox"></div>
-  </main>
 
-  <!-- TRÅD -->
-  <section class="z-thread" id="threadZone">
-    <div class="thread-view">
-      <div class="tv-head">
-        <button class="tv-back" id="tvBack" aria-label="Tillbaka">‹</button>
-        <div style="flex:1;min-width:0"><div class="tv-name" id="tvName">—</div><div class="tv-meta" id="tvMeta"></div></div>
-        <button class="icon-btn" id="ctxOpen" aria-label="Kontext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></button>
-      </div>
-      <div class="tv-stream" id="tvStream"></div>
-      <div class="tv-reply">
-        <input placeholder="Skriv ett svar…" aria-label="Svar">
-        <button class="tv-send" aria-label="Skicka"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
-      </div>
-    </div>
-  </section>
+    <nav class="botnav" aria-label="Huvudnavigering">
+      <button
+        class="nav-i is-active"
+        aria-current="page"
+        style="--ic: var(--accent); --ic-bg: var(--accent-bg)"
+      >
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"
+            />
+            <path
+              class="ic-line"
+              d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"
+            /></svg></span
+        >Hem
+      </button>
+      <button class="nav-i" style="--ic: #2f6595; --ic-bg: rgba(47, 101, 149, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4" /></svg
+          ><span class="nav-badge">3</span></span
+        >Boka
+      </button>
+      <button class="nav-i" style="--ic: #6b31c9; --ic-bg: rgba(107, 49, 201, 0.12)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4" />
+            <circle class="ic-dot" cx="8" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="12" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="16" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="8" cy="17" r="1" />
+            <circle class="ic-dot" cx="12" cy="17" r="1" /></svg></span
+        >Kalender
+      </button>
+      <button class="nav-i" style="--ic: #2f6f54; --ic-bg: rgba(47, 111, 84, 0.16)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"
+            /></svg></span
+        >Kund
+      </button>
+      <button class="nav-i" style="--ic: #8a5f1e; --ic-bg: rgba(138, 95, 30, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"
+            />
+            <path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4" /></svg></span
+        >Journal
+      </button>
+    </nav>
 
-  <!-- KONTEXT -->
-  <aside class="z-ctx" id="ctxZone">
-    <div class="ctx-back"><button id="ctxBack" aria-label="Tillbaka">‹</button><strong>Kontext</strong></div>
-    <div class="ctx" id="ctxBody"></div>
-  </aside>
-</div>
+    <script>
+      /* ===== DEMO-LÄGE (standard PÅ): inga nätverksanrop, simulerade svar ===== */
+      const DEMO = true;
+      async function apiFetch(url, opts) {
+        if (DEMO) return { ok: true, json: async () => ({}) };
+        return fetch(url, opts);
+      }
 
-<nav class="botnav" aria-label="Huvudnavigering">
-  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
-  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
-  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
-  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
-  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
-</nav>
+      const THREADS = [
+        {
+          id: 1,
+          key: 'conv_sn_001',
+          name: 'Anna Karlsson',
+          init: 'AK',
+          source: 'contact',
+          sub: 'PRP-bekräftelse · väntar på friskförsäkran',
+          snoozed: 'Idag 08:14',
+          wake: 'Återupptas 09:00 idag',
+          due: true,
+          vip: true,
+          tags: [
+            ['due', 'Klar att svara'],
+            ['vip', 'VIP'],
+          ],
+          msgs: [
+            [
+              'in',
+              'Hej! Jag vill bekräfta min tid imorgon kl 08:00. Behöver jag fylla i något innan?',
+              'i tis',
+            ],
+            [
+              'out',
+              'Hej Anna! Ja, en kort friskförsäkran — jag skickar länken nu. Snoozar tills den kommit in.',
+              'i tis',
+            ],
+          ],
+          ctx: { LTV: '38 400 kr', Besök: '12', Status: 'VIP', Nästa: 'PRP 4/6' },
+          reason: 'Snoozad i väntan på ifylld friskförsäkran.',
+          ai: 'Friskförsäkran inkom 08:14 — klar att bekräfta tiden.',
+        },
+        {
+          id: 2,
+          key: 'conv_sn_002',
+          name: 'Marcus Berg',
+          init: 'MB',
+          source: 'info',
+          sub: 'PRP återbesök — föreslå tid',
+          snoozed: 'Igår 16:30',
+          wake: 'Återupptas 13:00 idag',
+          due: true,
+          vip: false,
+          tags: [
+            ['due', 'Klar att svara'],
+            ['book', 'PRP 3/6'],
+          ],
+          msgs: [['in', 'Dags att boka 4:e PRP. Förslag tisdag?', 'igår']],
+          ctx: { LTV: '18 600 kr', Besök: '7', Status: 'Aktiv' },
+          reason: 'Snoozad tills kalendern öppnade tisdagsluckan.',
+          ai: 'Tis 09:00 ledig — föreslå den nu.',
+        },
+        {
+          id: 3,
+          key: 'conv_sn_003',
+          name: 'Karl Lindberg',
+          init: 'KL',
+          source: 'fazli',
+          sub: 'DHI ögonbryn — eftervårdsfrågor',
+          snoozed: 'Mån 10:00',
+          wake: 'Återupptas imorgon 08:00',
+          due: false,
+          vip: false,
+          tags: [['snooze', '↺ Imorgon 08:00']],
+          msgs: [
+            ['in', 'Tack för svar! En sista fråga om eftervård…', 'mån'],
+            [
+              'out',
+              'Inga problem — du undviker träning 48h och solljus en vecka. Hör av mig inför återbesöket.',
+              'mån',
+            ],
+          ],
+          ctx: { LTV: '14 200 kr', Besök: '3', Status: 'Aktiv', Nästa: 'DHI ons' },
+          reason: 'Snoozad till dagen före återbesöket.',
+          ai: 'Skicka eftervårds-påminnelse imorgon.',
+        },
+        {
+          id: 4,
+          key: 'conv_sn_004',
+          name: 'Sofie Andersson',
+          init: 'SA',
+          source: 'contact',
+          sub: 'Vill boka microneedling',
+          snoozed: 'Mån 14:30',
+          wake: 'Återupptas imorgon 11:00',
+          due: false,
+          vip: false,
+          tags: [
+            ['snooze', '↺ Imorgon 11:00'],
+            ['ai', '★ Match 92%'],
+          ],
+          msgs: [
+            ['in', 'Hej! Har länge funderat på microneedling — finns det tid denna vecka?', 'mån'],
+            [
+              'out',
+              'Hej Sofie! Jag återkommer med ett par tider — snoozar tills schemat för veckan är spikat.',
+              'mån',
+            ],
+          ],
+          ctx: { LTV: '0 kr', Besök: '0', Status: 'Ny' },
+          reason: 'Snoozad tills veckans schema var klart.',
+          ai: 'Maria-luckan 14:30 matchar — erbjud vid återupptag.',
+        },
+        {
+          id: 5,
+          key: 'conv_sn_005',
+          name: 'Eva Karlsson',
+          init: 'EK',
+          source: 'egzona',
+          sub: 'Ombokning efter avbokning',
+          snoozed: 'Sön 09:20',
+          wake: 'Återupptas tors 10:00',
+          due: false,
+          vip: false,
+          tags: [
+            ['snooze', '↺ Tors 10:00'],
+            ['sla', 'Risk'],
+          ],
+          msgs: [
+            ['in', 'Hej, jag måste tyvärr avboka.', 'sön'],
+            [
+              'out',
+              'Tack för att du hör av dig, Eva — jag återkommer med nya tider. Snoozar till torsdag.',
+              'sön',
+            ],
+          ],
+          ctx: { LTV: '4 800 kr', Besök: '6', Status: 'Risk', 'No-show': '3' },
+          reason: 'Snoozad till torsdag för ombokningsförslag.',
+          ai: 'No-show ×3 — begär 50% deposition vid ombokning.',
+        },
+        {
+          id: 6,
+          key: 'conv_sn_006',
+          name: 'Linda Persson',
+          init: 'LP',
+          source: 'fazli',
+          sub: 'Offert hårtransplantation',
+          snoozed: '24 maj',
+          wake: 'Återupptas fre 09:00',
+          due: false,
+          vip: true,
+          tags: [
+            ['snooze', '↺ Fre 09:00'],
+            ['vip', 'VIP'],
+          ],
+          msgs: [
+            ['in', 'Tack för offerten — jag funderar och hör av mig.', '24 maj'],
+            [
+              'out',
+              'Helt okej, Linda! Jag snoozar och följer upp på fredag om du inte hört av dig innan.',
+              '24 maj',
+            ],
+          ],
+          ctx: { LTV: '52 000 kr', Besök: '2', Status: 'VIP' },
+          reason: 'Snoozad som mjuk uppföljning på offert.',
+          ai: 'Hög LTV — följ upp personligt på fredag.',
+        },
+      ];
 
-<script>
-const THREADS=[
-  {id:1,name:'Anna Karlsson',init:'AK',source:'contact',sub:'PRP-bekräftelse · väntar på friskförsäkran',snoozed:'Idag 08:14',wake:'Återupptas 09:00 idag',due:true,vip:true,tags:[['due','Klar att svara'],['vip','VIP']],
-    msgs:[['in','Hej! Jag vill bekräfta min tid imorgon kl 08:00. Behöver jag fylla i något innan?','i tis'],['out','Hej Anna! Ja, en kort friskförsäkran — jag skickar länken nu. Snoozar tills den kommit in.','i tis']],
-    ctx:{LTV:'38 400 kr',Besök:'12',Status:'VIP',Nästa:'PRP 4/6'},reason:'Snoozad i väntan på ifylld friskförsäkran.',ai:'Friskförsäkran inkom 08:14 — klar att bekräfta tiden.'},
-  {id:2,name:'Marcus Berg',init:'MB',source:'info',sub:'PRP återbesök — föreslå tid',snoozed:'Igår 16:30',wake:'Återupptas 13:00 idag',due:true,vip:false,tags:[['due','Klar att svara'],['book','PRP 3/6']],
-    msgs:[['in','Dags att boka 4:e PRP. Förslag tisdag?','igår']],ctx:{LTV:'18 600 kr',Besök:'7',Status:'Aktiv'},reason:'Snoozad tills kalendern öppnade tisdagsluckan.',ai:'Tis 09:00 ledig — föreslå den nu.'},
-  {id:3,name:'Karl Lindberg',init:'KL',source:'fazli',sub:'DHI ögonbryn — eftervårdsfrågor',snoozed:'Mån 10:00',wake:'Återupptas imorgon 08:00',due:false,vip:false,tags:[['snooze','↺ Imorgon 08:00']],
-    msgs:[['in','Tack för svar! En sista fråga om eftervård…','mån'],['out','Inga problem — du undviker träning 48h och solljus en vecka. Hör av mig inför återbesöket.','mån']],ctx:{LTV:'14 200 kr',Besök:'3',Status:'Aktiv',Nästa:'DHI ons'},reason:'Snoozad till dagen före återbesöket.',ai:'Skicka eftervårds-påminnelse imorgon.'},
-  {id:4,name:'Sofie Andersson',init:'SA',source:'contact',sub:'Vill boka microneedling',snoozed:'Mån 14:30',wake:'Återupptas imorgon 11:00',due:false,vip:false,tags:[['snooze','↺ Imorgon 11:00'],['ai','★ Match 92%']],
-    msgs:[['in','Hej! Har länge funderat på microneedling — finns det tid denna vecka?','mån'],['out','Hej Sofie! Jag återkommer med ett par tider — snoozar tills schemat för veckan är spikat.','mån']],ctx:{LTV:'0 kr',Besök:'0',Status:'Ny'},reason:'Snoozad tills veckans schema var klart.',ai:'Maria-luckan 14:30 matchar — erbjud vid återupptag.'},
-  {id:5,name:'Eva Karlsson',init:'EK',source:'egzona',sub:'Ombokning efter avbokning',snoozed:'Sön 09:20',wake:'Återupptas tors 10:00',due:false,vip:false,tags:[['snooze','↺ Tors 10:00'],['sla','Risk']],
-    msgs:[['in','Hej, jag måste tyvärr avboka.','sön'],['out','Tack för att du hör av dig, Eva — jag återkommer med nya tider. Snoozar till torsdag.','sön']],ctx:{LTV:'4 800 kr',Besök:'6',Status:'Risk','No-show':'3'},reason:'Snoozad till torsdag för ombokningsförslag.',ai:'No-show ×3 — begär 50% deposition vid ombokning.'},
-  {id:6,name:'Linda Persson',init:'LP',source:'fazli',sub:'Offert hårtransplantation',snoozed:'24 maj',wake:'Återupptas fre 09:00',due:false,vip:true,tags:[['snooze','↺ Fre 09:00'],['vip','VIP']],
-    msgs:[['in','Tack för offerten — jag funderar och hör av mig.','24 maj'],['out','Helt okej, Linda! Jag snoozar och följer upp på fredag om du inte hört av dig innan.','24 maj']],ctx:{LTV:'52 000 kr',Besök:'2',Status:'VIP'},reason:'Snoozad som mjuk uppföljning på offert.',ai:'Hög LTV — följ upp personligt på fredag.'},
-];
-const app=document.getElementById('app'), inbox=document.getElementById('inbox');
-const threadZone=document.getElementById('threadZone'), ctxZone=document.getElementById('ctxZone');
-const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-let openId=null;
+      const app = document.getElementById('app'),
+        inbox = document.getElementById('inbox');
+      const threadZone = document.getElementById('threadZone'),
+        ctxZone = document.getElementById('ctxZone');
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"]/g,
+          (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[m]
+        );
+      let openId = null;
 
-const CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
-function threadCard(t){
-  return `<article class="thread ${t.due?'is-due':''} ${openId===t.id?'is-open':''}" data-id="${t.id}" data-source="${t.source}" tabindex="0" role="button">
+      /* ===== NOTICE (flash-meddelanden i tråd-vyn) ===== */
+      let noticeTimer = null;
+      function flashNotice(msg, ok = true) {
+        let n = document.getElementById('snNotice');
+        if (!n) {
+          n = document.createElement('div');
+          n.id = 'snNotice';
+          n.className = 'sn-notice';
+          document.getElementById('tvStream').prepend(n);
+        }
+        n.textContent = msg;
+        n.className = 'sn-notice ' + (ok ? 'sn-notice--ok' : 'sn-notice--err');
+        n.style.display = 'block';
+        clearTimeout(noticeTimer);
+        noticeTimer = setTimeout(() => {
+          if (n) n.style.display = 'none';
+        }, 3500);
+      }
+
+      /* ===== ACTIONS mot backend (reply_later/handled/reopen) ===== */
+      async function doAction(threadId, action, followUpDueAt) {
+        const t = THREADS.find((x) => x.id === threadId);
+        if (!t) return false;
+        const body = { action };
+        if (followUpDueAt) body.followUpDueAt = followUpDueAt;
+        const res = await apiFetch(`/cco/runtime/conversation/${t.key}/action`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          flashNotice('Kunde inte utföra åtgärden — försök igen.', false);
+          return false;
+        }
+        return true;
+      }
+
+      function clearThread() {
+        openId = null;
+        threadZone.classList.remove('has-thread');
+        app.dataset.pane = 'list';
+        document.getElementById('tvName').textContent = '—';
+        document.getElementById('tvMeta').textContent = '';
+        document.getElementById('tvStream').innerHTML = '';
+        document.getElementById('ctxBody').innerHTML = '';
+      }
+      function removeThread(id) {
+        const idx = THREADS.findIndex((x) => x.id === id);
+        if (idx !== -1) THREADS.splice(idx, 1);
+        clearThread();
+        renderInbox();
+        ensureSideOpen();
+      }
+      function updateWake(id, label) {
+        const t = THREADS.find((x) => x.id === id);
+        if (!t) return;
+        t.wake = label;
+        t.due = false;
+        t.tags = t.tags.filter((g) => g[0] !== 'due');
+        const si = t.tags.findIndex((g) => g[0] === 'snooze');
+        if (si !== -1) t.tags[si] = ['snooze', `↺ ${label}`];
+        else t.tags.push(['snooze', `↺ ${label}`]);
+        renderInbox();
+        openThread(id);
+      }
+
+      /* ===== SNOOZE-PICKER ===== */
+      const SNOOZE_OPTS = [
+        { v: '1h', label: 'Om 1 timme', ms: 3600000 },
+        { v: '4h', label: 'Om 4 timmar', ms: 14400000 },
+        { v: '24h', label: 'Imorgon 09:00', ms: 86400000 },
+        { v: '48h', label: 'Om 48 timmar', ms: 172800000 },
+        { v: '1w', label: 'Om 1 vecka', ms: 604800000 },
+      ];
+      function snoozePickerHTML() {
+        return `<div class="sn-pick" id="snoozePicker">
+    <fieldset><legend>Välj ny snooze-tid</legend>
+      ${SNOOZE_OPTS.map((o, i) => `<label class="sn-opt"><input type="radio" name="snoozeOpt" value="${o.v}"${i === 2 ? ' checked' : ''}>${esc(o.label)}</label>`).join('')}
+    </fieldset>
+    <div class="sn-pick-acts">
+      <button class="sn-btn sn-btn--primary" id="snoozeConfirm">Bekräfta</button>
+      <button class="sn-btn" id="snoozeCancel">Avbryt</button>
+    </div></div>`;
+      }
+
+      const CLOCK =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+
+      function threadCard(t) {
+        return `<article class="thread ${t.due ? 'is-due' : ''} ${openId === t.id ? 'is-open' : ''}" data-id="${t.id}" data-source="${t.source}" tabindex="0" role="button">
     <span class="t-av">${esc(t.init)}</span>
     <div class="t-body"><div class="t-top"><span class="t-name">${esc(t.name)}</span><span class="t-time">snoozad ${esc(t.snoozed)}</span></div>
     <div class="t-sub">${esc(t.sub)}</div>
-    <div class="t-prev">${esc(t.msgs[t.msgs.length-1][1])}</div>
+    <div class="t-prev">${esc(t.msgs[t.msgs.length - 1][1])}</div>
     <div class="t-wake">${CLOCK}${esc(t.wake)}</div>
-    ${t.tags.length?`<div class="t-tags">${t.tags.map(g=>`<span class="tag tag--${g[0]}">${esc(g[1])}</span>`).join('')}</div>`:''}</div></article>`;
-}
-let curLane='alla';
-function laneOf(t){ const w=t.wake.toLowerCase(); if(w.includes('idag'))return 'idag'; if(w.includes('imorgon'))return 'imorgon'; return 'vecka'; }
-function matchLane(t){ if(curLane==='alla')return true; if(curLane==='vip')return !!t.vip; return laneOf(t)===curLane; }
-function renderInbox(){
-  const list=THREADS.filter(matchLane);
-  inbox.innerHTML = list.length ? list.map(threadCard).join('')
-    : '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga snoozade konversationer i den här vyn.</div>';
-}
+    ${t.tags.length ? `<div class="t-tags">${t.tags.map((g) => `<span class="tag tag--${g[0]}">${esc(g[1])}</span>`).join('')}</div>` : ''}</div></article>`;
+      }
+      let curLane = 'alla';
+      function laneOf(t) {
+        const w = t.wake.toLowerCase();
+        if (w.includes('idag')) return 'idag';
+        if (w.includes('imorgon')) return 'imorgon';
+        return 'vecka';
+      }
+      function matchLane(t) {
+        if (curLane === 'alla') return true;
+        if (curLane === 'vip') return !!t.vip;
+        return laneOf(t) === curLane;
+      }
+      function renderInbox() {
+        const list = THREADS.filter(matchLane);
+        inbox.innerHTML = list.length
+          ? list.map(threadCard).join('')
+          : '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga snoozade konversationer i den här vyn.</div>';
+      }
 
-function openThread(id){
-  const t=THREADS.find(x=>x.id===id); if(!t) return; openId=id;
-  document.getElementById('tvName').textContent=t.name;
-  document.getElementById('tvMeta').textContent=t.wake;
-  const banner=`<div class="tv-snooze ${t.due?'is-due':''}">
+      function openThread(id) {
+        const t = THREADS.find((x) => x.id === id);
+        if (!t) return;
+        openId = id;
+        document.getElementById('tvName').textContent = t.name;
+        document.getElementById('tvMeta').textContent = t.wake;
+        const banner = `<div class="tv-snooze ${t.due ? 'is-due' : ''}" id="snoozeBanner" data-thread="${t.id}">
       <div class="sn-top">${CLOCK}${esc(t.wake)}</div>
       <div class="sn-reason">${esc(t.reason)}</div>
       <div class="sn-acts">
-        <button class="sn-btn sn-btn--primary">${CLOCK}Återuppta nu</button>
-        <button class="sn-btn">Snooza om</button>
-        <button class="sn-btn">Klar</button>
+        <button class="sn-btn sn-btn--primary" data-act="reopen">${CLOCK}Återuppta nu</button>
+        <button class="sn-btn" data-act="snooze">↺ Snooza om</button>
+        <button class="sn-btn" data-act="handled">✓ Klar</button>
       </div></div>`;
-  document.getElementById('tvStream').innerHTML = banner +
-    `<button class="tv-ai">★ AI-förslag på svar</button>` +
-    t.msgs.map(m=>`<div class="msg ${m[0]}">${esc(m[1])}<span class="m-time">${esc(m[2])}</span></div>`).join('');
-  const c=t.ctx;
-  document.getElementById('ctxBody').innerHTML=`
+        document.getElementById('tvStream').innerHTML =
+          banner +
+          `<button class="tv-ai">★ AI-förslag på svar</button>` +
+          t.msgs
+            .map(
+              (m) =>
+                `<div class="msg ${m[0]}">${esc(m[1])}<span class="m-time">${esc(m[2])}</span></div>`
+            )
+            .join('');
+        const c = t.ctx;
+        document.getElementById('ctxBody').innerHTML = `
     <div class="ctx-card"><div class="ctx-sec">Återupptag</div>
-      <div class="ctx-row"><span class="k">Vaknar</span><span class="v">${esc(t.wake.replace('Återupptas ',''))}</span></div>
+      <div class="ctx-row"><span class="k">Vaknar</span><span class="v">${esc(t.wake.replace('Återupptas ', ''))}</span></div>
       <div class="ctx-row"><span class="k">Snoozad</span><span class="v">${esc(t.snoozed)}</span></div></div>
     <div class="ctx-card"><div class="ctx-sec">Kund</div>
-      ${Object.entries(c).map(([k,v])=>`<div class="ctx-row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('')}</div>
+      ${Object.entries(c)
+        .map(
+          ([k, v]) =>
+            `<div class="ctx-row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`
+        )
+        .join('')}</div>
     <div class="ctx-sec">AI-signal</div><div class="ctx-ai"><b>★ AI</b> ${esc(t.ai)}</div>`;
-  threadZone.classList.add('has-thread');
-  app.dataset.pane='thread';
-  renderInbox();
-}
-inbox.addEventListener('click',e=>{const c=e.target.closest('.thread');if(c)openThread(+c.dataset.id);});
-inbox.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.dataset.id){e.preventDefault();openThread(+e.target.dataset.id);}});
-document.getElementById('tvBack').addEventListener('click',()=>{app.dataset.pane='list';});
-document.getElementById('ctxOpen').addEventListener('click',()=>{app.dataset.pane='ctx';});
-document.getElementById('ctxBack').addEventListener('click',()=>{app.dataset.pane='thread';});
-function reconcileOpen(){
-  const visible=THREADS.filter(matchLane);
-  if(openId!=null && !visible.some(t=>t.id===openId)){
-    if(matchMedia('(min-width:601px)').matches && visible.length){ openThread(visible[0].id); }
-    else {
-      openId=null; threadZone.classList.remove('has-thread'); app.dataset.pane='list';
-      document.getElementById('tvName').textContent='—'; document.getElementById('tvMeta').textContent='';
-      document.getElementById('tvStream').innerHTML=''; document.getElementById('ctxBody').innerHTML='';
-      renderInbox();
-    }
-  }
-}
-document.querySelectorAll('.lane').forEach(l=>l.addEventListener('click',()=>{document.querySelectorAll('.lane').forEach(x=>x.setAttribute('aria-pressed','false'));l.setAttribute('aria-pressed','true');curLane=l.dataset.lane||'alla';renderInbox();reconcileOpen();}));
+        threadZone.classList.add('has-thread');
+        app.dataset.pane = 'thread';
+        renderInbox();
+      }
 
-renderInbox();
-// sida-vid-sida (≥601): visa första synliga tråden — även om sidan först laddats i mobil bredd och sedan vidgats
-const sideMq=matchMedia('(min-width:601px)');
-function ensureSideOpen(){ if(sideMq.matches && openId==null){ const first=THREADS.filter(matchLane)[0]; if(first) openThread(first.id); } }
-ensureSideOpen();
-sideMq.addEventListener('change',ensureSideOpen);
-</script>
-<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
-</body>
+      /* ===== En persistent event-lyssnare för banner-knappar (reopen/handled/snooze) ===== */
+      let _bannerBusy = false;
+      document.getElementById('tvStream').addEventListener('click', async function (e) {
+        const btn = e.target.closest('[data-act]');
+        const banner = document.getElementById('snoozeBanner');
+        if (!btn || !banner || _bannerBusy) return;
+        const tid = +banner.dataset.thread;
+        const act = btn.dataset.act;
+
+        if (act === 'reopen' || act === 'handled') {
+          _bannerBusy = true;
+          btn.disabled = true;
+          const ok = await doAction(tid, act);
+          _bannerBusy = false;
+          if (ok) {
+            const msg =
+              act === 'reopen' ? 'Konversation återupptagen i inkorgen.' : 'Markerad som klar.';
+            removeThread(tid);
+            flashNotice(msg);
+          } else btn.disabled = false;
+        } else if (act === 'snooze') {
+          if (document.getElementById('snoozePicker')) return;
+          banner.insertAdjacentHTML('beforeend', snoozePickerHTML());
+          document.getElementById('snoozeCancel').onclick = () => {
+            document.getElementById('snoozePicker')?.remove();
+          };
+          document.getElementById('snoozeConfirm').onclick = async () => {
+            const sel = banner.querySelector('input[name=snoozeOpt]:checked');
+            if (!sel) return;
+            const opt = SNOOZE_OPTS.find((o) => o.v === sel.value);
+            const iso = new Date(Date.now() + opt.ms).toISOString();
+            _bannerBusy = true;
+            document.getElementById('snoozeConfirm').disabled = true;
+            const ok = await doAction(tid, 'reply_later', iso);
+            _bannerBusy = false;
+            if (ok) {
+              updateWake(tid, opt.label);
+              flashNotice(`Snoozad: ${opt.label}.`);
+            } else {
+              document.getElementById('snoozeConfirm').disabled = false;
+            }
+          };
+        }
+      });
+
+      inbox.addEventListener('click', (e) => {
+        const c = e.target.closest('.thread');
+        if (c) openThread(+c.dataset.id);
+      });
+      inbox.addEventListener('keydown', (e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset.id) {
+          e.preventDefault();
+          openThread(+e.target.dataset.id);
+        }
+      });
+      document.getElementById('tvBack').addEventListener('click', () => {
+        app.dataset.pane = 'list';
+      });
+      document.getElementById('ctxOpen').addEventListener('click', () => {
+        app.dataset.pane = 'ctx';
+      });
+      document.getElementById('ctxBack').addEventListener('click', () => {
+        app.dataset.pane = 'thread';
+      });
+      function reconcileOpen() {
+        const visible = THREADS.filter(matchLane);
+        if (openId != null && !visible.some((t) => t.id === openId)) {
+          if (matchMedia('(min-width:601px)').matches && visible.length) {
+            openThread(visible[0].id);
+          } else {
+            clearThread();
+            renderInbox();
+          }
+        }
+      }
+      document.querySelectorAll('.lane').forEach((l) =>
+        l.addEventListener('click', () => {
+          document
+            .querySelectorAll('.lane')
+            .forEach((x) => x.setAttribute('aria-pressed', 'false'));
+          l.setAttribute('aria-pressed', 'true');
+          curLane = l.dataset.lane || 'alla';
+          renderInbox();
+          reconcileOpen();
+        })
+      );
+
+      renderInbox();
+      const sideMq = matchMedia('(min-width:601px)');
+      function ensureSideOpen() {
+        if (sideMq.matches && openId == null) {
+          const first = THREADS.filter(matchLane)[0];
+          if (first) openThread(first.id);
+        }
+      }
+      ensureSideOpen();
+      sideMq.addEventListener('change', ensureSideOpen);
+    </script>
+    <script>
+      (function () {
+        var nav = document.querySelector('.botnav');
+        if (!nav) return;
+        nav.addEventListener('click', function (e) {
+          var b = e.target.closest('.nav-i');
+          if (!b) return;
+          nav.querySelectorAll('.nav-i').forEach(function (x) {
+            x.classList.remove('is-active');
+            x.removeAttribute('aria-current');
+          });
+          void b.offsetWidth;
+          b.classList.add('is-active');
+          b.setAttribute('aria-current', 'page');
+        });
+      })();
+    </script>
+  </body>
 </html>
