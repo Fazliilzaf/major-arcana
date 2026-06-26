@@ -617,7 +617,7 @@ const TONES={
   solution_focus:t=>t.replace(sig(),'')+`\n\nNästa steg: svara på det här mejlet så bokar jag in dig direkt.${sig()}`,
   decision_support:t=>t.replace(sig(),'')+`\n\nFör att hjälpa dig besluta: alternativ A bokar tiden nu, alternativ B håller den öppen 24 h. Säg bara vilket.${sig()}`
 };
-function refineShorter(t){const lines=t.split('\n').filter(l=>l.trim());const body=lines.slice(0,Math.max(2,Math.ceil(lines.length/2)));return body.join('\n')+sig();}
+function refineShorter(t){const lines=t.replace(sig(),'').split('\n').filter(l=>l.trim());const body=lines.slice(0,Math.max(2,Math.ceil(lines.length/2)));return body.join('\n')+sig();}
 function refineSharper(t){return t.replace(sig(),'').replace(/gärna|kanske|eventuellt|möjligen/gi,'').replace(/\n{3,}/g,'\n\n').trim()+'\n\nÅtgärd krävs: bekräfta inom 24 h.'+sig();}
 const GIFT='\n\nPS: Som tack för ditt förtroende ingår en kostnadsfri eftervårdskontroll efter din behandling.';
 
@@ -653,6 +653,8 @@ function loadThread(t){
   $('toolNote').classList.remove('is-used');
   // nollställ Smart anteckning-state så en kunds utkast aldrig läcker till nästa tråd
   N.mode=null; N.text=''; N.tags=[]; N.buffers={}; N.templateKey=null; N.priority='medium'; N.visibility='team'; N.destinationKey='kundprofil';
+  // stäng ev. öppna note-/läges-overlays så stale DOM från förra tråden aldrig sparas mot den nya
+  $('noteScrim').classList.remove('is-open'); $('modeScrim').classList.remove('is-open');
   // kundkort
   $('kkAv').textContent=t.init; $('kkAv').style.background=t.avatarBg; $('kkName').textContent=t.customerName; $('kkMood').textContent=t.mood;
   $('kkEmail').textContent=t.customerEmail; $('kkPhone').textContent=t.customerPhone;
@@ -713,9 +715,9 @@ async function generateReply(track){
 async function createDraft(){
   const payload={customerId:S.thread.customerId,channel:'email',subject:S.thread.intent,
     body:$('editor').value,journeyStep:S.activeTrackKey,aiGenerated:!!S.lastToolKey};
-  if(DEMO){ S.draftId='draft_'+Date.now(); S.draftStatus='draft'; return {draft:{id:S.draftId,status:'draft'}}; }
+  if(DEMO){ S.draftId='draft_'+Date.now(); S.draftStatus='draft'; return {ok:true,draft:{id:S.draftId,status:'draft'}}; }
   const r=await apiFetch('/cco-comm/drafts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  const d=await r.json(); S.draftId=d.draft?.id; S.draftStatus=d.draft?.status; return d;
+  const d=await r.json().catch(()=>({})); S.draftId=d.draft?.id; S.draftStatus=d.draft?.status; return {ok:r.ok,...d};
 }
 // POST /cco-comm/drafts/:id/transition
 async function transitionDraft(status,reason){
@@ -785,7 +787,8 @@ function flashNotice(id,cls,msg){const n=$(id);n.className='notice '+cls+' is-sh
 $('actSaveDraft').addEventListener('click',async()=>{
   const p=runPolicy($('editor').value);
   if(p.level==='block'){flashNotice('sendNotice','notice--block','Kan inte spara: '+p.msg);return;}
-  await createDraft();
+  const res=await createDraft();
+  if(!res.ok){flashNotice('sendNotice','notice--block','Kunde inte spara utkastet — försök igen.');return;}
   flashNotice('sendNotice','notice--ok',`Utkast sparat (status: ${S.draftStatus}).`);
 });
 // SKICKA SVAR → går mot needs_approval/queued, ALDRIG faktiskt skick. Live-send = 403.
@@ -793,7 +796,7 @@ $('actSend').addEventListener('click',async()=>{
   if(S.sending)return; S.sending=true;
   const p=runPolicy($('editor').value);
   if(p.level==='block'){S.sending=false;flashNotice('sendNotice','notice--block','Spärrat: '+p.msg);return;}
-  if(!S.draftId){ await createDraft(); }
+  if(!S.draftId){ const res=await createDraft(); if(!res.ok){S.sending=false;flashNotice('sendNotice','notice--block','Kunde inte skapa utkast — försök igen.');return;} }
   await transitionDraft('needs_approval','Skickat till godkännande från Svarstudio');
   // Försök mot 'sent' → ALLTID 403 (owner-mandat). Visa blockerat.
   flashNotice('sendNotice','notice--block',
@@ -849,9 +852,11 @@ const NOTE_TEMPLATES={
 
 function openNoteFlow(){
   markTool('note');
-  // rekommenderad destination från Svarstudio activeTrackKey
+  // återöppning: bevara vald destination och synka shell-DOM (dest/visibility/taggar/fält)
+  // i stället för att bara visa scrim med stale innehåll
+  if(N.mode){ openNoteShell(); return; }
+  // första öppning: sätt rekommenderad destination från Svarstudio activeTrackKey
   N.destinationKey=TRACK_TO_DEST[S.activeTrackKey]||'kundprofil';
-  if(N.mode){ openScrim('noteScrim'); return; }
   openScrim('modeScrim');
 }
 $('modeClose').addEventListener('click',()=>closeScrim('modeScrim'));
