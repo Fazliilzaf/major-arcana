@@ -15,6 +15,9 @@
   --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
   --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
   --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --rail-fazli:#6b31c9;--rail-egzona:#8a5f1e;--rail-contact:#1f7e8e;--rail-info:#6d6354;
+  /* CCO-facit (Kunder v11 .seg/.ds-tab): vald = vit→krämig lyft, ej rosa fyllning */
+  --press:linear-gradient(180deg,#fff,#f4eee8);
   --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
   --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
   --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
@@ -35,7 +38,7 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 /* topbar (samma som Konversationer/Senare) */
 .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
   margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
-.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#f2ece3,#e4dac9);color:var(--text-secondary)}
 .search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
 .search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
 .search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
@@ -53,7 +56,7 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 .pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
 .pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
 .pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
-.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill[aria-pressed="true"],.pill.is-active{background:var(--press);color:var(--accent);border-color:rgba(176,53,110,.28);box-shadow:var(--sh-sm);font-weight:800}
 .pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
 @media(pointer:coarse){.pill{min-height:var(--tap)}}
 
@@ -116,9 +119,10 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 
 /* Konversationer-backdrop (lätt trådkontext) */
 .thread-list{display:flex;flex-direction:column;gap:.5rem;margin-top:.6rem}
-.thread-row{display:flex;gap:.7rem;align-items:flex-start;padding:.8rem .9rem;border-radius:var(--r-md);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.24);box-shadow:var(--sh-sm);cursor:pointer}
-.thread-row.is-active{border-color:var(--accent);background:linear-gradient(180deg,#fff6fa,rgba(253,238,244,.86))}
-.tr-av{flex-shrink:0;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);font-weight:800;display:flex;align-items:center;justify-content:center}
+.thread-row{position:relative;display:flex;gap:.7rem;align-items:flex-start;padding:.85rem .95rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.22);box-shadow:var(--sh-md);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.thread-row:hover{box-shadow:var(--sh-lg);border-color:rgba(176,53,110,.25)}
+.thread-row.is-active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(176,53,110,.25),var(--sh-md)}
+.tr-av{flex-shrink:0;width:2.6rem;height:2.6rem;border-radius:50%;color:#fff;font-weight:800;font-size:.85rem;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 10px rgba(56,40,28,.18)}
 .tr-body{flex:1;min-width:0}
 .tr-top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
 .tr-name{font-weight:800;font-size:var(--fs-meta)}
@@ -150,22 +154,24 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 @media(min-width:1025px){.ctx-col{border-bottom:0;border-right:1px solid rgba(180,165,150,.24);overflow-y:auto;max-height:calc(min(96vh,860px) - 3.4rem)}}
 .ctx-col.is-collapsed .ctx-collapsible{display:none}
 .kundkort{display:flex;gap:.7rem;align-items:center}
-.kk-av{flex-shrink:0;width:3rem;height:3rem;border-radius:50%;background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);font-weight:800;font-size:1.05rem;display:flex;align-items:center;justify-content:center}
+.kk-av{flex-shrink:0;width:3rem;height:3rem;border-radius:50%;color:#fff;font-weight:800;font-size:1rem;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 16px rgba(56,40,28,.18)}
 .kk-name{font-weight:800;font-size:.95rem}
 .kk-mood{font-size:var(--fs-kicker);font-weight:800;color:var(--success)}
 .kk-line{font-size:var(--fs-meta);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ctx-block{padding:.6rem .7rem;border-radius:var(--r-md);background:rgba(255,255,255,.6);border:1px solid rgba(180,165,150,.24)}
+.ctx-block{padding:.55rem .7rem;border-radius:var(--r-md);background:rgba(255,255,255,.46)}
 .ctx-block .lbl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)}
 .ctx-block .val{font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);margin-top:.2rem}
+.ctx-do{background:linear-gradient(180deg,#fff3e0,rgba(255,228,200,.7));border-left:3px solid var(--warning)}
+.ctx-do .lbl{color:var(--warning)!important}
 .locked{display:inline-flex;align-items:center;gap:.3rem}
 .locked svg{width:.8rem;height:.8rem}
 .statusgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
-.sg-cell{padding:.45rem .55rem;border-radius:var(--r-sm);background:rgba(255,255,255,.6);border:1px solid rgba(180,165,150,.22)}
+.sg-cell{padding:.4rem .55rem;border-radius:var(--r-sm);background:rgba(255,255,255,.42)}
 .sg-cell .k{font-size:.625rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
 .sg-cell .v{font-size:var(--fs-meta);font-weight:800;margin-top:.1rem}
 .ctx-tabs{display:flex;gap:.3rem;flex-wrap:wrap}
 .ctx-tab{min-height:2rem;padding:0 .65rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:rgba(255,255,255,.7);font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer}
-.ctx-tab.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.3)}
+.ctx-tab.is-active{background:var(--press);color:var(--accent);border-color:rgba(176,53,110,.26);box-shadow:var(--sh-sm)}
 @media(pointer:coarse){.ctx-tab{min-height:var(--tap)}}
 .ctx-tabpanel{font-size:var(--fs-meta);color:var(--text-secondary);padding:.6rem .7rem;border-radius:var(--r-md);background:var(--accent-weak);border:1px solid rgba(176,53,110,.18)}
 
@@ -219,13 +225,13 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 @media(min-width:1025px){.note-col{border-bottom:0;border-right:1px solid rgba(180,165,150,.24);overflow-y:auto;max-height:calc(min(96vh,860px) - 3.4rem)}.note-col:last-child{border-right:0}}
 .dest-list{display:flex;flex-direction:column;gap:.35rem}
 .dest{text-align:left;padding:.55rem .65rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.28);background:rgba(255,255,255,.7);cursor:pointer;min-height:var(--tap)}
-.dest.is-active{border-color:var(--accent);background:var(--accent-weak)}
+.dest.is-active{border-color:rgba(176,53,110,.4);background:var(--press);box-shadow:var(--sh-sm)}
 .dest.is-rec{box-shadow:0 0 0 1px rgba(176,53,110,.3)}
 .dest .d-title{font-weight:800;font-size:var(--fs-meta);display:flex;align-items:center;gap:.3rem}
 .dest .d-sub{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.1rem}
 .rec-tag{font-size:.5625rem;font-weight:800;letter-spacing:.04em;padding:.05rem .35rem;border-radius:var(--r-pill);background:var(--accent);color:#fff}
 .livepre{padding:.6rem .7rem;border-radius:var(--r-md);background:var(--info-bg);border:1px solid rgba(47,101,149,.22);font-size:var(--fs-meta);color:var(--info)}
-.datacard{padding:.5rem .6rem;border-radius:var(--r-sm);background:rgba(255,255,255,.6);border:1px solid rgba(180,165,150,.22)}
+.datacard{padding:.5rem .6rem;border-radius:var(--r-sm);background:rgba(255,255,255,.42)}
 .datacard .k{font-size:.625rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
 .datacard .v{font-size:var(--fs-meta);font-weight:700;margin-top:.1rem}
 .linked-list{display:flex;flex-direction:column;gap:.3rem}
@@ -233,8 +239,8 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 .linked::before{content:"›";color:var(--accent);font-weight:800}
 .notefield{width:100%;min-height:8rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.9);padding:.7rem .8rem;font:inherit;font-size:var(--fs-body);line-height:1.5;resize:vertical}
 .tags{display:flex;gap:.3rem;flex-wrap:wrap;align-items:center}
-.tagchip{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:var(--r-pill);background:var(--accent-weak);color:var(--accent);font-size:var(--fs-meta);font-weight:800}
-.tagchip button{border:0;background:transparent;color:var(--accent);cursor:pointer;font-weight:900;line-height:1;padding:0;font-size:.9rem}
+.tagchip{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:var(--r-pill);background:var(--bg-sunken);color:var(--text-secondary);font-size:var(--fs-meta);font-weight:800}
+.tagchip button{border:0;background:transparent;color:var(--text-tertiary);cursor:pointer;font-weight:900;line-height:1;padding:0;font-size:.9rem}
 .tag-add{display:flex;gap:.3rem;align-items:center;margin-top:.3rem}
 .tag-add input{flex:1;min-height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);padding:0 .6rem;font:inherit;font-size:var(--fs-meta)}
 .tag-add button{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(176,53,110,.35);background:var(--accent);color:#fff;font-size:1.2rem;font-weight:800;cursor:pointer}
@@ -311,7 +317,7 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
             <div class="lbl locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Källa låst</div>
             <div class="val" id="kkMailbox">Egzona · kons@hairtp.se</div>
           </div>
-          <div class="ctx-block" style="background:var(--accent-weak);border-color:rgba(176,53,110,.22)">
+          <div class="ctx-block ctx-do">
             <div class="lbl" style="color:var(--accent)">Gör detta nu</div>
             <div class="val" id="kkNext">Svara nu — bekräfta bokningstid</div>
             <button class="studio-cta" style="margin-top:.5rem">Svara nu</button>
@@ -559,19 +565,19 @@ const $=id=>document.getElementById(id);
 
 /* ---- Aktiv tråd / Svarstudio-state (kopplat till selected thread) ---- */
 const THREADS=[
-  {id:'conv_8841',customerId:'cust_anna',customerName:'Anna Karlsson',init:'AK',
+  {id:'conv_8841',customerId:'cust_anna',customerName:'Anna Karlsson',init:'AK',avatarBg:'linear-gradient(180deg,#c79ae6,#9a63c9)',
    customerEmail:'anna.karlsson@mail.se',customerPhone:'+46 70 123 45 67',
    mailboxId:'egzona',mailboxAddress:'kons@hairtp.se',mailboxLabel:'Egzona · kons@hairtp.se',
    intent:'Boka konsultation',sub:'Vill boka fredag 09:00',time:'2 min',
    tags:['booking','vip','bookable'],lastMsg:'"Hej! Tack för tiderna. Fredag förmiddag passar bäst för mig — går det att boka 09:00? Och hur lång tid ska jag räkna med på plats?"',
    why:'Kunden väntar svar på föreslagen tid; SLA löper ut om 38 min.',mood:'● Positiv ton'},
-  {id:'conv_8842',customerId:'cust_marcus',customerName:'Marcus Lund',init:'ML',
+  {id:'conv_8842',customerId:'cust_marcus',customerName:'Marcus Lund',init:'ML',avatarBg:'linear-gradient(180deg,#7aa8d4,#5286b8)',
    customerEmail:'marcus.lund@mail.se',customerPhone:'+46 73 987 65 43',
    mailboxId:'fazli',mailboxAddress:'info@hairtp.se',mailboxLabel:'Fazli · info@hairtp.se',
    intent:'Pris hårtransplantation',sub:'Frågar om pris och betalning',time:'14 min',
    tags:['pricing','vip'],lastMsg:'"Vad kostar en DHI-behandling och kan jag dela upp betalningen? Vill gärna veta innan jag bokar."',
    why:'Pris/trygghet-fråga; högt kundvärde, ej bokad ännu.',mood:'● Neutral ton'},
-  {id:'conv_8843',customerId:'cust_sofie',customerName:'Sofie Bergström',init:'SB',
+  {id:'conv_8843',customerId:'cust_sofie',customerName:'Sofie Bergström',init:'SB',avatarBg:'linear-gradient(180deg,#e08ad0,#c25aa8)',
    customerEmail:'sofie.b@mail.se',customerPhone:'+46 70 555 22 11',
    mailboxId:'egzona',mailboxAddress:'kons@hairtp.se',mailboxLabel:'Egzona · kons@hairtp.se',
    intent:'Medicinsk fråga eftervård',sub:'Allergi-fråga inför behandling',time:'1 tim',
@@ -646,7 +652,7 @@ function loadThread(t){
   S.usedToolKeys=new Set(); S.draftId=null; S.draftStatus=null;
   $('toolNote').classList.remove('is-used');
   // kundkort
-  $('kkAv').textContent=t.init; $('kkName').textContent=t.customerName; $('kkMood').textContent=t.mood;
+  $('kkAv').textContent=t.init; $('kkAv').style.background=t.avatarBg; $('kkName').textContent=t.customerName; $('kkMood').textContent=t.mood;
   $('kkEmail').textContent=t.customerEmail; $('kkPhone').textContent=t.customerPhone;
   $('kkMailbox').textContent=t.mailboxLabel; $('kkWhy').textContent=t.why;
   $('custMsg').textContent=t.lastMsg.replace(/^"|"$/g,'');
@@ -956,7 +962,7 @@ $('noteSave').addEventListener('click',saveNote);
 function renderThreads(){
   $('threadList').innerHTML=THREADS.map((t,i)=>`
     <article class="thread-row ${i===0?'is-active':''}" data-tid="${t.id}">
-      <div class="tr-av">${esc(t.init)}</div>
+      <div class="tr-av" style="background:${t.avatarBg}">${esc(t.init)}</div>
       <div class="tr-body">
         <div class="tr-top"><span class="tr-name">${esc(t.customerName)}</span>
           <span class="statuspill sp--intent" style="font-size:.625rem">${esc(t.intent)}</span>
