@@ -1126,3 +1126,41 @@ test('cco workspace bootstrap scope=light skippar Patient360, portal och afterca
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+// #14 (Svarstudio/Smart anteckning acceptansgate): medicinsk/intern/betalning
+// får ALDRIG bli kundsynlig (all_operators) — validate-visibility måste blockera.
+test('cco workspace note-visibility: medicinsk/intern/betalning kan inte bli all_operators (kundsynlig)', async () => {
+  const fixture = await createRouterFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const url = `${baseUrl}/cco-workspace/notes/validate-visibility`;
+      const post = (body) =>
+        fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+      // Blockerade: känsliga destinationer får inte exponeras till alla operatörer.
+      for (const destinationKey of ['medicinsk', 'intern', 'betalning']) {
+        const res = await post({ destinationKey, visibility: 'all_operators' });
+        assert.equal(res.status, 400, `${destinationKey} + all_operators ska blockeras`);
+        const payload = await res.json();
+        assert.ok(
+          !(payload.allowed || payload.metadata?.allowed || []).includes('all_operators'),
+          `${destinationKey} får inte tillåta all_operators`
+        );
+      }
+
+      // Tillåtna: medicinsk=team/internal OK, kundprofil=all_operators OK.
+      const okTeam = await post({ destinationKey: 'medicinsk', visibility: 'team' });
+      assert.equal(okTeam.status, 200);
+      const okInternal = await post({ destinationKey: 'medicinsk', visibility: 'internal' });
+      assert.equal(okInternal.status, 200);
+      const okAll = await post({ destinationKey: 'kundprofil', visibility: 'all_operators' });
+      assert.equal(okAll.status, 200);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});

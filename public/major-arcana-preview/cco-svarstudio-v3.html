@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CCO Svarstudio + Smart anteckning — v3</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --rail-fazli:#6b31c9;--rail-egzona:#8a5f1e;--rail-contact:#1f7e8e;--rail-info:#6d6354;
+  /* CCO-facit (Kunder v11 .seg/.ds-tab): vald = vit→krämig lyft, ej rosa fyllning */
+  --press:linear-gradient(180deg,#fff,#f4eee8);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#f2ece3,#e4dac9);color:var(--text-secondary)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:var(--press);color:var(--accent);border-color:rgba(176,53,110,.28);box-shadow:var(--sh-sm);font-weight:800}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== SVARSTUDIO + SMART ANTECKNING — prototyp-specifik styling ===== */
+
+/* Konversationer-backdrop (lätt trådkontext) */
+.thread-list{display:flex;flex-direction:column;gap:.5rem;margin-top:.6rem}
+.thread-row{position:relative;display:flex;gap:.7rem;align-items:flex-start;padding:.85rem .95rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.22);box-shadow:var(--sh-md);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.thread-row:hover{box-shadow:var(--sh-lg);border-color:rgba(176,53,110,.25)}
+.thread-row.is-active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(176,53,110,.25),var(--sh-md)}
+.tr-av{flex-shrink:0;width:2.6rem;height:2.6rem;border-radius:50%;color:#fff;font-weight:800;font-size:.85rem;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 10px rgba(56,40,28,.18)}
+.tr-body{flex:1;min-width:0}
+.tr-top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.tr-name{font-weight:800;font-size:var(--fs-meta)}
+.tr-time{margin-left:auto;color:var(--text-tertiary);font-size:var(--fs-kicker)}
+.tr-sub{font-size:var(--fs-meta);color:var(--text-secondary);margin-top:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-studio{margin-top:.5rem}
+.studio-cta{min-height:2.25rem;padding:0 .8rem;border-radius:var(--r-pill);border:1px solid rgba(176,53,110,.32);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);font-size:var(--fs-meta);font-weight:800;cursor:pointer}
+@media(pointer:coarse){.studio-cta{min-height:var(--tap)}}
+
+/* ===== OVERLAY-SCRIM (delas av Svarstudio + Smart anteckning) ===== */
+.scrim{position:fixed;inset:0;z-index:100;background:rgba(40,28,20,.46);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:clamp(.5rem,2vw,2rem);overflow-y:auto;overscroll-behavior:contain}
+.scrim.is-open{display:flex}
+.overlay{width:100%;max-width:var(--maxw);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(247,241,236,.95));border:1px solid rgba(180,165,150,.3);border-radius:var(--r-xl);box-shadow:var(--sh-lg);display:flex;flex-direction:column;min-height:min(96vh,860px)}
+.ov-bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.7rem .9rem;border-bottom:1px solid rgba(180,165,150,.28);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.9));border-radius:var(--r-xl) var(--r-xl) 0 0}
+.ov-title{font-weight:800;font-size:1rem;letter-spacing:-.01em;display:inline-flex;align-items:center;gap:.4rem}
+.ov-bar .spacer{flex:1;min-width:.3rem}
+.statuspill{flex-shrink:0;display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .55rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.02em}
+.sp--intent{background:var(--info-bg);color:var(--info)}
+.sp--prio{background:var(--warning-bg);color:var(--warning)}
+.sp--vip{background:var(--accent-weak);color:var(--accent)}
+.sp--ai{background:var(--violet-bg);color:var(--violet)}
+
+/* ===== SVARSTUDIO 2-kolumn ===== */
+.studio-grid{flex:1;display:grid;grid-template-columns:1fr;gap:0;min-height:0}
+@media(min-width:1025px){.studio-grid{grid-template-columns:minmax(0,320px) minmax(0,1fr)}}
+
+/* vänster kontext */
+.ctx-col{padding:1rem;border-bottom:1px solid rgba(180,165,150,.24);display:flex;flex-direction:column;gap:.7rem;min-width:0}
+@media(min-width:1025px){.ctx-col{border-bottom:0;border-right:1px solid rgba(180,165,150,.24);overflow-y:auto;max-height:calc(min(96vh,860px) - 3.4rem)}}
+.ctx-col.is-collapsed .ctx-collapsible{display:none}
+.kundkort{display:flex;gap:.7rem;align-items:center}
+.kk-av{flex-shrink:0;width:3rem;height:3rem;border-radius:50%;color:#fff;font-weight:800;font-size:1rem;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 16px rgba(56,40,28,.18)}
+.kk-name{font-weight:800;font-size:.95rem}
+.kk-mood{font-size:var(--fs-kicker);font-weight:800;color:var(--success)}
+.kk-line{font-size:var(--fs-meta);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctx-block{padding:.55rem .7rem;border-radius:var(--r-md);background:rgba(255,255,255,.46)}
+.ctx-block .lbl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)}
+.ctx-block .val{font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);margin-top:.2rem}
+.ctx-do{background:linear-gradient(180deg,#fff3e0,rgba(255,228,200,.7));border-left:3px solid var(--warning)}
+.ctx-do .lbl{color:var(--warning)!important}
+.locked{display:inline-flex;align-items:center;gap:.3rem}
+.locked svg{width:.8rem;height:.8rem}
+.statusgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.sg-cell{padding:.4rem .55rem;border-radius:var(--r-sm);background:rgba(255,255,255,.42)}
+.sg-cell .k{font-size:.625rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.sg-cell .v{font-size:var(--fs-meta);font-weight:800;margin-top:.1rem}
+.ctx-tabs{display:flex;gap:.3rem;flex-wrap:wrap}
+.ctx-tab{min-height:2rem;padding:0 .65rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:rgba(255,255,255,.7);font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer}
+.ctx-tab.is-active{background:var(--press);color:var(--accent);border-color:rgba(176,53,110,.26);box-shadow:var(--sh-sm)}
+@media(pointer:coarse){.ctx-tab{min-height:var(--tap)}}
+.ctx-tabpanel{font-size:var(--fs-meta);color:var(--text-secondary);padding:.6rem .7rem;border-radius:var(--r-md);background:var(--accent-weak);border:1px solid rgba(176,53,110,.18)}
+
+/* huvudyta */
+.main-col{padding:1rem;display:flex;flex-direction:column;gap:.7rem;min-width:0}
+@media(min-width:1025px){.main-col{overflow-y:auto;max-height:calc(min(96vh,860px) - 3.4rem)}}
+.cust-msg{padding:.7rem .8rem;border-radius:var(--r-md);background:var(--bg-sunken);border:1px solid rgba(180,165,150,.24)}
+.cust-msg .lbl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)}
+.cust-msg p{margin:.3rem 0 0;font-size:var(--fs-meta);color:var(--text-primary)}
+.field-row{display:flex;gap:.5rem;flex-wrap:wrap}
+.field{flex:1;min-width:9rem}
+.field label{display:block;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:.2rem}
+.field input,.field select{width:100%;min-height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);padding:0 .7rem;font:inherit;font-size:var(--fs-meta);color:var(--text-primary)}
+.editor{width:100%;min-height:9rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.9);padding:.7rem .8rem;font:inherit;font-size:var(--fs-body);line-height:1.5;color:var(--text-primary);resize:vertical}
+.editor:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.meta-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:var(--fs-meta)}
+.wordcount{color:var(--text-tertiary);font-weight:700}
+.policy{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .6rem;border-radius:var(--r-pill);font-size:var(--fs-meta);font-weight:800}
+.policy--ok{background:var(--success-bg);color:var(--success)}
+.policy--warn{background:var(--warning-bg);color:var(--warning)}
+.policy--block{background:var(--danger-bg);color:var(--danger)}
+.policy--review{background:var(--violet-bg);color:var(--violet)}
+.summaryline{font-size:var(--fs-meta);color:var(--text-secondary);padding:.5rem .7rem;border-radius:var(--r-md);background:rgba(255,255,255,.55);border:1px dashed rgba(180,165,150,.4)}
+.group-lbl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:.3rem;display:block}
+.toolbar-row{display:flex;gap:.4rem;flex-wrap:wrap;padding:.6rem 0;box-shadow:inset 0 1px 0 rgba(180,165,150,.3),inset 0 -1px 0 rgba(180,165,150,.3)}
+.tool-btn{min-height:var(--tap);padding:0 .8rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem}
+.tool-btn.tool-note{border-color:rgba(176,53,110,.4);background:var(--accent-weak);color:var(--accent)}
+.tool-btn.is-used{box-shadow:0 0 0 2px rgba(47,111,84,.3)}
+.tool-btn svg{width:1rem;height:1rem}
+.actions{display:flex;gap:.4rem;flex-wrap:wrap;padding-top:.5rem}
+.notice{display:none;padding:.6rem .8rem;border-radius:var(--r-md);font-size:var(--fs-meta);font-weight:700;border:1px solid transparent}
+.notice.is-show{display:block}
+.notice--block{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+.notice--ok{background:var(--success-bg);border-color:rgba(47,111,84,.3);color:var(--success)}
+
+/* ===== SMART ANTECKNING — lägesväljare ===== */
+.modepick{padding:1rem;display:flex;flex-direction:column;gap:.8rem}
+.ctx-now{padding:.7rem .8rem;border-radius:var(--r-md);background:var(--accent-weak);border:1px solid rgba(176,53,110,.2);font-size:var(--fs-meta)}
+.ctx-now .lbl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:.2rem}
+.mode-grid{display:grid;grid-template-columns:1fr;gap:.5rem}
+@media(min-width:601px){.mode-grid{grid-template-columns:1fr 1fr}}
+.mode-card{text-align:left;padding:.85rem .9rem;border-radius:var(--r-lg);border:1px solid rgba(180,165,150,.3);background:rgba(255,255,255,.85);cursor:pointer;display:flex;flex-direction:column;gap:.25rem;min-height:var(--tap)}
+.mode-card:hover{border-color:var(--accent)}
+.mode-card .mc-title{font-weight:800;font-size:var(--fs-body)}
+.mode-card .mc-sub{font-size:var(--fs-meta);color:var(--text-secondary)}
+
+/* ===== SMART ANTECKNING — 3-kolumns shell ===== */
+.note-grid{flex:1;display:grid;grid-template-columns:1fr;gap:0;min-height:0}
+@media(min-width:1025px){.note-grid{grid-template-columns:minmax(0,260px) minmax(0,260px) minmax(0,1fr)}}
+.note-col{padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0;border-bottom:1px solid rgba(180,165,150,.24)}
+@media(min-width:1025px){.note-col{border-bottom:0;border-right:1px solid rgba(180,165,150,.24);overflow-y:auto;max-height:calc(min(96vh,860px) - 3.4rem)}.note-col:last-child{border-right:0}}
+.dest-list{display:flex;flex-direction:column;gap:.35rem}
+.dest{text-align:left;padding:.55rem .65rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.28);background:rgba(255,255,255,.7);cursor:pointer;min-height:var(--tap)}
+.dest.is-active{border-color:rgba(176,53,110,.4);background:var(--press);box-shadow:var(--sh-sm)}
+.dest.is-rec{box-shadow:0 0 0 1px rgba(176,53,110,.3)}
+.dest .d-title{font-weight:800;font-size:var(--fs-meta);display:flex;align-items:center;gap:.3rem}
+.dest .d-sub{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.1rem}
+.rec-tag{font-size:.5625rem;font-weight:800;letter-spacing:.04em;padding:.05rem .35rem;border-radius:var(--r-pill);background:var(--accent);color:#fff}
+.livepre{padding:.6rem .7rem;border-radius:var(--r-md);background:var(--info-bg);border:1px solid rgba(47,101,149,.22);font-size:var(--fs-meta);color:var(--info)}
+.datacard{padding:.5rem .6rem;border-radius:var(--r-sm);background:rgba(255,255,255,.42)}
+.datacard .k{font-size:.625rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.datacard .v{font-size:var(--fs-meta);font-weight:700;margin-top:.1rem}
+.linked-list{display:flex;flex-direction:column;gap:.3rem}
+.linked{display:flex;gap:.4rem;align-items:flex-start;font-size:var(--fs-meta);color:var(--text-secondary)}
+.linked::before{content:"›";color:var(--accent);font-weight:800}
+.notefield{width:100%;min-height:8rem;border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.9);padding:.7rem .8rem;font:inherit;font-size:var(--fs-body);line-height:1.5;resize:vertical}
+.tags{display:flex;gap:.3rem;flex-wrap:wrap;align-items:center}
+.tagchip{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:var(--r-pill);background:var(--bg-sunken);color:var(--text-secondary);font-size:var(--fs-meta);font-weight:800}
+.tagchip button{border:0;background:transparent;color:var(--text-tertiary);cursor:pointer;font-weight:900;line-height:1;padding:0;font-size:.9rem}
+.tag-add{display:flex;gap:.3rem;align-items:center;margin-top:.3rem}
+.tag-add input{flex:1;min-height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);padding:0 .6rem;font:inherit;font-size:var(--fs-meta)}
+.tag-add button{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);border:1px solid rgba(176,53,110,.35);background:var(--accent);color:#fff;font-size:1.2rem;font-weight:800;cursor:pointer}
+.segrow{display:flex;gap:.3rem;flex-wrap:wrap}
+.segrow .pill{flex:0 0 auto}
+.note-footer{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding-top:.6rem;box-shadow:inset 0 1px 0 rgba(180,165,150,.3);margin-top:auto}
+.note-footer .saves-in{font-size:var(--fs-meta);font-weight:800;color:var(--text-secondary)}
+.note-footer .saves-in b{color:var(--accent)}
+.note-footer .spacer{flex:1;min-width:.3rem}
+.charcount{font-size:var(--fs-kicker);color:var(--text-tertiary);font-weight:700}
+
+/* demo-flagg-rad */
+.demobar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.6rem 0;padding:.5rem .7rem;border-radius:var(--r-md);background:rgba(255,255,255,.55);border:1px dashed rgba(180,165,150,.4);font-size:var(--fs-meta);color:var(--text-secondary)}
+.demobar b{color:var(--text-primary)}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök konversationer…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- ===== HEAD ===== -->
+  <div class="head">
+    <div class="head-main">
+      <span class="kicker">Konversationer</span>
+      <h1 class="h1">Inkorg <small style="font-weight:700;color:var(--text-tertiary);font-size:.7em">3 aktiva trådar</small></h1>
+      <p class="subtitle">Öppna en tråd och starta ★ Svarstudio för att svara med mallar, ton, policykontroll och Smart anteckning.</p>
+    </div>
+  </div>
+
+  <!-- demo-flagg -->
+  <div class="demobar">
+    <label class="switch"><input type="checkbox" id="demoFlag" checked><span class="track"></span></label>
+    <span><b>DEMO-läge</b> är på — fetch() mot riktiga endpoints fakas lokalt. Live-utskick är alltid hårt blockerat (owner-mandat).</span>
+  </div>
+
+  <!-- ===== KONVERSATIONER-BACKDROP (trådkontext) ===== -->
+  <div class="thread-list" id="threadList"></div>
+
+</div>
+
+<!-- ===== SVARSTUDIO OVERLAY ===== -->
+<div class="scrim" id="studioScrim" role="dialog" aria-modal="true" aria-label="Svarstudio">
+  <div class="overlay" id="studioOverlay">
+    <div class="ov-bar">
+      <span class="ov-title">★ Svarstudio</span>
+      <span class="statuspill sp--intent" id="spIntent">Bokning</span>
+      <span class="statuspill sp--prio" id="spPrio">Hög prioritet</span>
+      <span class="statuspill sp--vip">VIP · högt värde</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="ctxToggle" aria-label="Dölj/visa kontext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <button class="icon-btn" id="studioExpand" aria-label="Expandera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/></svg></button>
+      <button class="icon-btn" id="studioClose" aria-label="Stäng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+
+    <div class="studio-grid">
+      <!-- VÄNSTER KONTEXT -->
+      <div class="ctx-col" id="ctxCol">
+        <div class="kundkort">
+          <div class="kk-av" id="kkAv">AK</div>
+          <div style="min-width:0">
+            <div class="kk-name" id="kkName">Anna Karlsson</div>
+            <div class="kk-mood" id="kkMood">● Positiv ton</div>
+            <div class="kk-line" id="kkEmail">anna.karlsson@mail.se</div>
+            <div class="kk-line" id="kkPhone">+46 70 123 45 67</div>
+          </div>
+        </div>
+        <div class="ctx-collapsible" style="display:flex;flex-direction:column;gap:.7rem">
+          <div class="ctx-block">
+            <div class="lbl locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Källa låst</div>
+            <div class="val" id="kkMailbox">Egzona · kons@hairtp.se</div>
+          </div>
+          <div class="ctx-block ctx-do">
+            <div class="lbl" style="color:var(--accent)">Gör detta nu</div>
+            <div class="val" id="kkNext">Svara nu — bekräfta bokningstid</div>
+            <button class="studio-cta" style="margin-top:.5rem">Svara nu</button>
+          </div>
+          <div class="ctx-block">
+            <div class="lbl">Varför i fokus</div>
+            <div class="val" id="kkWhy" style="font-weight:600;color:var(--text-secondary)">Kunden väntar svar på föreslagen tid; SLA löper ut om 38 min.</div>
+          </div>
+          <div class="statusgrid">
+            <div class="sg-cell"><div class="k">Agent</div><div class="v">Egzona K.</div></div>
+            <div class="sg-cell"><div class="k">Status</div><div class="v" style="color:var(--info)">Öppen</div></div>
+            <div class="sg-cell"><div class="k">SLA</div><div class="v" style="color:var(--warning)">38 min kvar</div></div>
+            <div class="sg-cell"><div class="k">Prioritet</div><div class="v" style="color:var(--warning)">Hög</div></div>
+            <div class="sg-cell"><div class="k">Churn-risk</div><div class="v" style="color:var(--success)">Låg</div></div>
+            <div class="sg-cell"><div class="k">Engagement</div><div class="v">Hög</div></div>
+          </div>
+          <div>
+            <div class="ctx-tabs" role="tablist">
+              <button class="ctx-tab is-active" data-tab="ai">AI</button>
+              <button class="ctx-tab" data-tab="hist">Historik</button>
+              <button class="ctx-tab" data-tab="pref">Preferenser</button>
+              <button class="ctx-tab" data-tab="rek">Rek</button>
+            </div>
+            <div class="ctx-tabpanel" id="ctxPanel" style="margin-top:.5rem">
+              <b>★ AI-sammanfattning.</b> Kunden vill boka konsultation och har fått tre tidsförslag. Hon lutar åt fredag fm. Bekräfta tiden och nämn 2 dagars betänketid enligt klinikbeslut.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HUVUDYTA -->
+      <div class="main-col">
+        <div class="cust-msg">
+          <div class="lbl">Senaste meddelande från kund</div>
+          <p id="custMsg">"Hej! Tack för tiderna. Fredag förmiddag passar bäst för mig — går det att boka 09:00? Och hur lång tid ska jag räkna med på plats?"</p>
+        </div>
+
+        <div>
+          <span class="group-lbl">Snabbmallar</span>
+          <div class="pillrow" id="templateRow" role="group" aria-label="Snabbmallar">
+            <button class="pill" data-tpl="confirm_booking">Bekräfta bokning</button>
+            <button class="pill" data-tpl="suggest_times">Föreslå tider</button>
+            <button class="pill" data-tpl="send_pricing">Skicka prislista</button>
+            <button class="pill" data-tpl="ask_more_info">Be om info</button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field"><label>Till</label><input id="toField" value="Anna Karlsson" readonly></div>
+          <div class="field"><label>Från (mailbox)</label>
+            <select id="fromField"><option value="egzona">Egzona · kons@hairtp.se</option><option value="fazli">Fazli · info@hairtp.se</option></select>
+          </div>
+        </div>
+
+        <div>
+          <span class="group-lbl">Svar</span>
+          <textarea class="editor" id="editor" aria-label="Svarstext"></textarea>
+        </div>
+
+        <div class="meta-row">
+          <span class="wordcount" id="wordCount">0 ord</span>
+          <span class="spacer" style="flex:1"></span>
+          <span class="policy policy--ok" id="policyPill" aria-live="polite">Policy OK</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field"><label>Signatur</label>
+            <div class="pillrow" id="sigRow" role="group" aria-label="Signatur">
+              <button class="pill is-active" data-sig="egzona" aria-pressed="true">Egzona</button>
+              <button class="pill" data-sig="fazli" aria-pressed="false">Fazli</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="summaryline" id="summaryLine">Från Egzona · signatur Egzona · nästa steg: bekräfta tid</div>
+
+        <div>
+          <span class="group-lbl">Responsspår</span>
+          <div class="pillrow" id="trackRow" role="group" aria-label="Responsspår">
+            <button class="pill is-active" data-track="booking" aria-pressed="true">Bokning</button>
+            <button class="pill" data-track="follow_up" aria-pressed="false">Uppföljning</button>
+            <button class="pill" data-track="holding" aria-pressed="false">Mellanbesked</button>
+            <button class="pill" data-track="medical" aria-pressed="false">Medicinsk</button>
+            <button class="pill" data-track="pricing" aria-pressed="false">Pris/trygghet</button>
+            <button class="pill" data-track="admin" aria-pressed="false">Admin</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="group-lbl">Tonfilter</span>
+          <div class="pillrow" id="toneRow" role="group" aria-label="Tonfilter">
+            <button class="pill" data-tone="professional" aria-pressed="false">Professionell</button>
+            <button class="pill" data-tone="warm" aria-pressed="false">Varm</button>
+            <button class="pill" data-tone="solution_focus" aria-pressed="false">Lösningsfokus</button>
+            <button class="pill" data-tone="decision_support" aria-pressed="false">Beslutsstöd</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="group-lbl">Finjustera</span>
+          <div class="pillrow" id="refineRow" role="group" aria-label="Finjustera">
+            <button class="pill" data-refine="shorter">Kortare</button>
+            <button class="pill" data-refine="sharper">Skarpare</button>
+          </div>
+        </div>
+
+        <div class="toolbar-row">
+          <button class="tool-btn" id="toolRegen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Regenerera</button>
+          <button class="tool-btn" id="toolPolicy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l7 3v6c0 5-3 7-7 9-4-2-7-4-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Policykontroll</button>
+          <button class="tool-btn tool-note" id="toolNote" data-note-open aria-label="Öppna smart anteckning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>★ Smart anteckning</button>
+          <button class="tool-btn" id="toolGift"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7S9 2 7 4s3 3 5 3M12 7s3-5 5-3-3 3-5 3"/></svg>Extra trygghetsrad</button>
+        </div>
+
+        <div class="notice notice--block" id="sendNotice"></div>
+
+        <div class="actions">
+          <button class="btn btn--primary" id="actSend">Skicka svar</button>
+          <button class="btn" id="actPreview">Förhandsvisning</button>
+          <button class="btn" id="actSaveDraft">Spara utkast</button>
+          <button class="btn" id="actLater">Senare</button>
+          <button class="btn" id="actDone">Klar</button>
+          <button class="btn btn--danger" id="actDelete">Radera</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SMART ANTECKNING — LÄGESVÄLJARE ===== -->
+<div class="scrim" id="modeScrim" role="dialog" aria-modal="true" aria-label="Välj anteckningsläge">
+  <div class="overlay" style="min-height:auto" id="modeOverlay">
+    <div class="ov-bar">
+      <span class="ov-title">★ Smart anteckning</span>
+      <span class="statuspill sp--ai">Intelligensstöd</span>
+      <span class="statuspill sp--vip" id="modeCustPill">Anna Karlsson</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="modeClose" aria-label="Stäng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="modepick">
+      <div class="ctx-now">
+        <div class="lbl">Aktuell kontext</div>
+        <div id="modeCtx">Anna Karlsson · Bokningsdialog (fredag 09:00) · Fokus: bekräfta tid, nämn 2 dagars betänketid</div>
+      </div>
+      <span class="group-lbl">Välj anteckningsläge</span>
+      <div class="mode-grid">
+        <button class="mode-card" data-mode="ai-summary"><span class="mc-title">Sammanfatta konversation</span><span class="mc-sub">Tät helhetssammanfattning av tråden.</span></button>
+        <button class="mode-card" data-mode="ai-extract"><span class="mc-title">Extrahera viktiga detaljer</span><span class="mc-sub">Datum, tider, preferenser, blockerare.</span></button>
+        <button class="mode-card" data-mode="ai-action-items"><span class="mc-title">Identifiera åtgärder</span><span class="mc-sub">Action-orienterad note för team/SLA/uppföljning.</span></button>
+        <button class="mode-card" data-mode="manual"><span class="mc-title">Skapa manuell anteckning</span><span class="mc-sub">Öppna utan AI-förifyllning.</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SMART ANTECKNING — 3-KOLUMNS SHELL ===== -->
+<div class="scrim" id="noteScrim" role="dialog" aria-modal="true" aria-label="Smart anteckning">
+  <div class="overlay" id="noteOverlay">
+    <div class="ov-bar">
+      <span class="ov-title">★ Smart anteckning</span>
+      <span class="statuspill sp--ai">Intelligensstöd</span>
+      <span class="statuspill sp--vip" id="noteCustPill">Anna Karlsson</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="noteClose" aria-label="Stäng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+
+    <div class="note-grid">
+      <!-- VÄNSTER: destinationer -->
+      <div class="note-col">
+        <span class="group-lbl">Var ska anteckningen sparas?</span>
+        <div class="dest-list" id="destList"></div>
+        <span class="group-lbl" style="margin-top:.4rem">Liveförhandsvisning</span>
+        <div class="livepre" id="livePre">Permanent kundprofil · Synlig i alla framtida interaktioner</div>
+      </div>
+
+      <!-- MITTEN: auto-hämtad data -->
+      <div class="note-col">
+        <span class="group-lbl">Auto-hämtad data</span>
+        <div class="datacard"><div class="k">Konversations-ID</div><div class="v" id="dcConv">conv_8841 · Bokningsdialog</div></div>
+        <div class="datacard"><div class="k">Sentiment</div><div class="v" style="color:var(--success)">Positiv</div></div>
+        <div class="datacard"><div class="k">Avsikt</div><div class="v" id="dcIntent">Boka konsultation</div></div>
+        <div class="datacard"><div class="k">Svarstid / SLA</div><div class="v" style="color:var(--warning)">38 min kvar</div></div>
+        <span class="group-lbl" style="margin-top:.4rem">Auto-kopplas till</span>
+        <div class="linked-list" id="linkedList">
+          <div class="linked">Tråd: Bokning fredag 09:00</div>
+          <div class="linked">Kund: Anna Karlsson (VIP)</div>
+          <div class="linked">Ansvarig: Egzona K.</div>
+        </div>
+      </div>
+
+      <!-- HÖGER: editor -->
+      <div class="note-col">
+        <span class="group-lbl">Snabbmallar</span>
+        <div class="pillrow" id="noteTplRow" role="group" aria-label="Anteckningsmallar">
+          <button class="pill" data-ntpl="rebook">Ombokning begärd</button>
+          <button class="pill" data-ntpl="allergy">Allergier / kontraindikationer</button>
+          <button class="pill" data-ntpl="payment">Betalningsplan</button>
+        </div>
+        <span class="group-lbl" style="margin-top:.3rem">Anteckning <span class="charcount" id="noteChars">0 tecken</span></span>
+        <textarea class="notefield" id="noteField" aria-label="Anteckningsfält"></textarea>
+        <span class="group-lbl">Taggar</span>
+        <div class="tags" id="tagList"></div>
+        <div class="tag-add">
+          <input id="tagInput" placeholder="Ny tagg…" aria-label="Ny tagg">
+          <button id="tagAdd" aria-label="Lägg till tagg">+</button>
+        </div>
+        <span class="group-lbl">Prioritet</span>
+        <div class="segrow pillrow" id="prioRow" role="group" aria-label="Prioritet">
+          <button class="pill" data-prio="low" aria-pressed="false">Låg</button>
+          <button class="pill is-active" data-prio="medium" aria-pressed="true">Medel</button>
+          <button class="pill" data-prio="high" aria-pressed="false">Hög</button>
+        </div>
+        <span class="group-lbl">Synlighet</span>
+        <div class="segrow pillrow" id="visRow" role="group" aria-label="Synlighet"></div>
+        <div class="notice notice--ok" id="noteNotice"></div>
+        <div class="note-footer">
+          <span class="saves-in">Sparas i: <b id="savesIn">Kundprofil</b></span>
+          <span class="spacer"></span>
+          <button class="btn" id="noteCancel">Avbryt</button>
+          <button class="btn btn--primary" id="noteSave">Spara anteckning</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BOTNAV (verbatim 5-item duoton från cco-skickat-v3; Hem/Inkorg aktiv) ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+/* =========================================================================
+   CCO Svarstudio + Smart anteckning — wiring mot RIKTIGA backend-kontrakt
+   med DEMO offline-fallback. Live-utskick är HÅRT BLOCKERAT.
+   ========================================================================= */
+"use strict";
+const API='/api/v1';
+let DEMO=true; // default ON; flippa för att träffa riktiga endpoints
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const $=id=>document.getElementById(id);
+
+/* ---- Aktiv tråd / Svarstudio-state (kopplat till selected thread) ---- */
+const THREADS=[
+  {id:'conv_8841',customerId:'cust_anna',customerName:'Anna Karlsson',init:'AK',avatarBg:'linear-gradient(180deg,#c79ae6,#9a63c9)',
+   customerEmail:'anna.karlsson@mail.se',customerPhone:'+46 70 123 45 67',
+   mailboxId:'egzona',mailboxAddress:'kons@hairtp.se',mailboxLabel:'Egzona · kons@hairtp.se',
+   intent:'Boka konsultation',sub:'Vill boka fredag 09:00',time:'2 min',
+   tags:['booking','vip','bookable'],lastMsg:'"Hej! Tack för tiderna. Fredag förmiddag passar bäst för mig — går det att boka 09:00? Och hur lång tid ska jag räkna med på plats?"',
+   why:'Kunden väntar svar på föreslagen tid; SLA löper ut om 38 min.',mood:'● Positiv ton'},
+  {id:'conv_8842',customerId:'cust_marcus',customerName:'Marcus Lund',init:'ML',avatarBg:'linear-gradient(180deg,#7aa8d4,#5286b8)',
+   customerEmail:'marcus.lund@mail.se',customerPhone:'+46 73 987 65 43',
+   mailboxId:'fazli',mailboxAddress:'info@hairtp.se',mailboxLabel:'Fazli · info@hairtp.se',
+   intent:'Pris hårtransplantation',sub:'Frågar om pris och betalning',time:'14 min',
+   tags:['pricing','vip'],lastMsg:'"Vad kostar en DHI-behandling och kan jag dela upp betalningen? Vill gärna veta innan jag bokar."',
+   why:'Pris/trygghet-fråga; högt kundvärde, ej bokad ännu.',mood:'● Neutral ton'},
+  {id:'conv_8843',customerId:'cust_sofie',customerName:'Sofie Bergström',init:'SB',avatarBg:'linear-gradient(180deg,#e08ad0,#c25aa8)',
+   customerEmail:'sofie.b@mail.se',customerPhone:'+46 70 555 22 11',
+   mailboxId:'egzona',mailboxAddress:'kons@hairtp.se',mailboxLabel:'Egzona · kons@hairtp.se',
+   intent:'Medicinsk fråga eftervård',sub:'Allergi-fråga inför behandling',time:'1 tim',
+   tags:['medical','followup'],lastMsg:'"Jag har en nickelallergi och undrar om det påverkar behandlingen? Och hur sköter jag eftervården?"',
+   why:'Medicinsk fråga — kräver klinisk avstämning innan säkert svar.',mood:'● Orolig ton'},
+];
+
+const S={ // Svarstudio-state per aktiv tråd
+  thread:THREADS[0], draftBody:'', baseDraftBody:'',
+  activeTemplateKey:null, activeTrackKey:'booking', activeToneKey:null, activeRefineKey:null,
+  selectedSignatureId:'egzona', composeMailboxId:'egzona',
+  usedToolKeys:new Set(), lastToolKey:null, sending:false, draftId:null, draftStatus:null
+};
+
+/* ===================== DRAFT-TEXTGENERATORER (demo-transforms) ===================== */
+const SIG={egzona:'\n\nVänliga hälsningar,\nEgzona\nHair TP Clinic',fazli:'\n\nVänliga hälsningar,\nFazli\nHair TP Clinic'};
+function greet(){return `Hej ${S.thread.customerName.split(' ')[0]},`;}
+function sig(){return SIG[S.selectedSignatureId]||'';}
+
+const TEMPLATES={
+  confirm_booking:()=>`${greet()}\n\nVad roligt! Jag bekräftar din tid fredag 09:00 för konsultation. Räkna med cirka 45 minuter på plats. Notera att det gäller 2 dagars betänketid om bokningen sker inom 2 dagar.${sig()}`,
+  suggest_times:()=>`${greet()}\n\nTack för ditt svar! Här är tre tider som passar: fredag 09:00, fredag 13:30 eller måndag 10:00. Vilken passar dig bäst så bekräftar jag direkt?${sig()}`,
+  send_pricing:()=>`${greet()}\n\nTack för din fråga! En DHI-behandling ligger mellan 28 000–45 000 kr beroende på omfattning, och vi erbjuder delbetalning. Vill du att jag föreslår en konsultationstid så går vi igenom ditt upplägg?${sig()}`,
+  ask_more_info:()=>`${greet()}\n\nFör att hjälpa dig bäst behöver jag veta vilken behandling du är intresserad av, samt vilka dagar och tider som fungerar för dig den närmaste veckan.${sig()}`
+};
+const TRACKS={
+  booking:()=>`${greet()}\n\nJag bekräftar gärna din bokning. Föreslår fredag 09:00 — passar det bokar jag direkt och skickar bekräftelse med tydligt nästa steg.${sig()}`,
+  follow_up:()=>`${greet()}\n\nJag följer upp vårt tidigare samtal för att se hur du vill gå vidare. Vill du att vi bokar in nästa steg den här veckan?${sig()}`,
+  holding:()=>`${greet()}\n\nKort mellanbesked: ditt ärende är aktivt och vi arbetar med det. Jag återkommer med ett komplett svar inom kort.${sig()}`,
+  medical:()=>`${greet()}\n\nTack för din fråga. Eftersom det rör hälsa och behandling vill jag stämma av med vår behandlare innan jag ger ett säkert svar. Jag återkommer så snart jag har klinikens bedömning.${sig()}`,
+  pricing:()=>`${greet()}\n\nJag förstår att pris och trygghet är viktigt. Vi har transparenta priser och delbetalning, och en kostnadsfri konsultation där vi går igenom ditt upplägg. Vill du att jag föreslår en tid?${sig()}`,
+  admin:()=>`${greet()}\n\nTack — jag hjälper dig med det administrativa. Jag behöver komplettera med uppgifterna nedan så ser jag till att allt blir rätt registrerat.${sig()}`
+};
+const TONES={
+  professional:t=>t.replace(/Vad roligt!|Tack för ditt svar!|Tack för din fråga!/g,'Tack.').replace(/ +/g,' '),
+  warm:t=>t.replace(greet(),`${greet()} så fint att höra från dig!`).replace('Vänliga hälsningar','Varma hälsningar'),
+  solution_focus:t=>t.replace(sig(),'')+`\n\nNästa steg: svara på det här mejlet så bokar jag in dig direkt.${sig()}`,
+  decision_support:t=>t.replace(sig(),'')+`\n\nFör att hjälpa dig besluta: alternativ A bokar tiden nu, alternativ B håller den öppen 24 h. Säg bara vilket.${sig()}`
+};
+function refineShorter(t){const lines=t.split('\n').filter(l=>l.trim());const body=lines.slice(0,Math.max(2,Math.ceil(lines.length/2)));return body.join('\n')+sig();}
+function refineSharper(t){return t.replace(/gärna|kanske|eventuellt|möjligen/gi,'').replace(/\n{3,}/g,'\n\n').trim()+'\n\nÅtgärd krävs: bekräfta inom 24 h.'+'';}
+const GIFT='\n\nPS: Som tack för ditt förtroende ingår en kostnadsfri eftervårdskontroll efter din behandling.';
+
+/* ===================== POLICY ===================== */
+function wordCount(t){return (t.trim().match(/\S+/g)||[]).length;}
+function runPolicy(text){
+  const wc=wordCount(text);
+  if(!text.trim()) return {level:'block',msg:'Skicka spärrat — tomt svar'};
+  if(/journal|hälsodata|diagnos|recept|medicinering|allergi/i.test(text) && S.activeTrackKey==='medical')
+    return {level:'review',msg:'Kräver review — hälso-/journaldata'};
+  if(S.activeTrackKey==='booking' && !/\d{1,2}[:.]\d{2}|fredag|måndag|tisdag|onsdag|torsdag|nästa steg/i.test(text))
+    return {level:'warn',msg:'Lägg till tid — bokningssvar utan konkret tid'};
+  if(wc>120) return {level:'warn',msg:`Korta svaret — ${wc} ord (>120)`};
+  return {level:'ok',msg:'Policy OK'};
+}
+
+/* ===================== RENDER / SYNC ===================== */
+function setEditor(t){ S.draftBody=t; $('editor').value=t; syncMeta(); }
+function syncMeta(){
+  const t=$('editor').value;
+  $('wordCount').textContent=wordCount(t)+' ord';
+  const p=runPolicy(t);
+  const pill=$('policyPill');
+  pill.className='policy policy--'+p.level;
+  pill.textContent=p.msg;
+  $('summaryLine').textContent=`Från ${S.composeMailboxId==='egzona'?'Egzona':'Fazli'} · signatur ${S.selectedSignatureId==='egzona'?'Egzona':'Fazli'} · spår ${S.activeTrackKey}`;
+}
+function markTool(k){S.usedToolKeys.add(k);S.lastToolKey=k;if(k==='note')$('toolNote').classList.add('is-used');}
+
+function loadThread(t){
+  S.thread=t; S.activeTrackKey=inferTrack(t); S.selectedSignatureId=t.mailboxId; S.composeMailboxId=t.mailboxId;
+  S.usedToolKeys=new Set(); S.draftId=null; S.draftStatus=null;
+  $('toolNote').classList.remove('is-used');
+  // kundkort
+  $('kkAv').textContent=t.init; $('kkAv').style.background=t.avatarBg; $('kkName').textContent=t.customerName; $('kkMood').textContent=t.mood;
+  $('kkEmail').textContent=t.customerEmail; $('kkPhone').textContent=t.customerPhone;
+  $('kkMailbox').textContent=t.mailboxLabel; $('kkWhy').textContent=t.why;
+  $('custMsg').textContent=t.lastMsg.replace(/^"|"$/g,'');
+  $('toField').value=t.customerName;
+  $('spIntent').textContent=t.intent.split(' ')[0]==='Boka'?'Bokning':t.intent;
+  // mailbox-select + signatur
+  $('fromField').value=t.mailboxId;
+  selectInGroup('sigRow','sig',t.mailboxId);
+  selectInGroup('trackRow','track',S.activeTrackKey);
+  // bygg initial draft från valt spår (lokal fallback / previewDraftBody)
+  generateInitialDraft();
+  // pills nollställs
+  [...$('templateRow').children].forEach(p=>p.classList.remove('is-active'));
+  [...$('toneRow').children].forEach(p=>{p.classList.remove('is-active');p.setAttribute('aria-pressed','false');});
+  [...$('refineRow').children].forEach(p=>p.classList.remove('is-active'));
+  // mode-picker kontext
+  $('modeCustPill').textContent=t.customerName; $('noteCustPill').textContent=t.customerName;
+  $('modeCtx').textContent=`${t.customerName} · ${t.intent} · Fokus: ${t.why}`;
+  $('dcConv').textContent=`${t.id} · ${t.intent}`; $('dcIntent').textContent=t.intent;
+}
+function inferTrack(t){
+  const tg=t.tags||[];
+  if(tg.includes('medical')) return 'medical';
+  if(tg.includes('pricing')) return 'pricing';
+  if(tg.includes('admin')) return 'admin';
+  if(tg.includes('bookable')||tg.includes('booking')) return 'booking';
+  if(tg.includes('followup')) return 'follow_up';
+  return 'booking';
+}
+
+/* generate-initial: live AI endpoint om aktiverad, annars lokal mall */
+async function generateInitialDraft(){
+  const body=await generateReply(S.activeTrackKey);
+  S.baseDraftBody=body; setEditor(body);
+}
+
+/* ===================== BACKEND-WIRING (riktiga kontrakt + demo-fallback) ===================== */
+async function apiFetch(path,opts){
+  // verklig anropsstruktur — i DEMO returnerar vi fakeresponser utan nätverk
+  return fetch(API+path,opts);
+}
+// POST /cco-comm/drafts/generate-reply
+async function generateReply(track){
+  const payload={customerId:S.thread.customerId,tone:S.activeToneKey||'professional',
+    threadSnippet:S.thread.lastMsg,customerName:S.thread.customerName,
+    signature:S.selectedSignatureId,subject:S.thread.intent,journeyStep:track};
+  if(DEMO){ return (TRACKS[track]||TRACKS.booking)(); }
+  try{
+    const r=await apiFetch('/cco-comm/drafts/generate-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.decision==='blocked'||d.decision==='critical_escalate'){ return d.safeResponse||''; }
+    return d.body||'';
+  }catch(e){ return (TRACKS[track]||TRACKS.booking)(); }
+}
+// POST /cco-comm/drafts  → status draft
+async function createDraft(){
+  const payload={customerId:S.thread.customerId,channel:'email',subject:S.thread.intent,
+    body:$('editor').value,journeyStep:S.activeTrackKey,aiGenerated:!!S.lastToolKey};
+  if(DEMO){ S.draftId='draft_'+Date.now(); S.draftStatus='draft'; return {draft:{id:S.draftId,status:'draft'}}; }
+  const r=await apiFetch('/cco-comm/drafts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json(); S.draftId=d.draft?.id; S.draftStatus=d.draft?.status; return d;
+}
+// POST /cco-comm/drafts/:id/transition
+async function transitionDraft(status,reason){
+  if(DEMO){ S.draftStatus=status; return {draft:{id:S.draftId,status}}; }
+  const r=await apiFetch(`/cco-comm/drafts/${encodeURIComponent(S.draftId)}/transition`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status,reason})});
+  return r.json();
+}
+
+/* ===================== SVARSTUDIO EVENT-WIRING ===================== */
+function selectInGroup(rowId,attr,val){
+  [...$(rowId).children].forEach(p=>{
+    const on=p.getAttribute('data-'+attr)===val;
+    p.classList.toggle('is-active',on);
+    if(p.hasAttribute('aria-pressed'))p.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+// snabbmallar: bygg om draft
+$('templateRow').addEventListener('click',e=>{const b=e.target.closest('[data-tpl]');if(!b)return;
+  const k=b.dataset.tpl; S.activeTemplateKey=k; selectInGroup('templateRow','tpl',k);
+  const t=TEMPLATES[k](); S.baseDraftBody=t; setEditor(t);
+});
+// responsspår: ändra avsikt
+$('trackRow').addEventListener('click',async e=>{const b=e.target.closest('[data-track]');if(!b)return;
+  S.activeTrackKey=b.dataset.track; selectInGroup('trackRow','track',S.activeTrackKey);
+  const t=(TRACKS[S.activeTrackKey]||TRACKS.booking)(); S.baseDraftBody=t; setEditor(t);
+});
+// tonfilter: skriv om
+$('toneRow').addEventListener('click',e=>{const b=e.target.closest('[data-tone]');if(!b)return;
+  S.activeToneKey=b.dataset.tone; selectInGroup('toneRow','tone',S.activeToneKey);
+  setEditor((TONES[S.activeToneKey]||(x=>x))($('editor').value));
+});
+// finjustera
+$('refineRow').addEventListener('click',e=>{const b=e.target.closest('[data-refine]');if(!b)return;
+  S.activeRefineKey=b.dataset.refine; selectInGroup('refineRow','refine',S.activeRefineKey);
+  setEditor(S.activeRefineKey==='shorter'?refineShorter($('editor').value):refineSharper($('editor').value));
+});
+// signatur
+$('sigRow').addEventListener('click',e=>{const b=e.target.closest('[data-sig]');if(!b)return;
+  S.selectedSignatureId=b.dataset.sig; selectInGroup('sigRow','sig',S.selectedSignatureId); syncMeta();
+});
+$('fromField').addEventListener('change',e=>{S.composeMailboxId=e.target.value;syncMeta();});
+$('editor').addEventListener('input',syncMeta);
+// kontext-flikar
+const TABTEXT={
+  ai:'<b>★ AI-sammanfattning.</b> Kunden vill boka konsultation och har fått tre tidsförslag. Hon lutar åt fredag fm. Bekräfta tiden och nämn 2 dagars betänketid enligt klinikbeslut.',
+  hist:'<b>Historik.</b> 2 tidigare trådar · senast kontaktad för 6 dagar sedan · inga uteblivna besök.',
+  pref:'<b>Preferenser.</b> Föredrar förmiddagar · svensk kommunikation · vill ha SMS-påminnelse.',
+  rek:'<b>★ Rek.</b> Bekräfta fredag 09:00, nämn 2 dagars betänketid, erbjud eftervårdskontroll.'
+};
+$('ctxPanel').parentElement.querySelector('.ctx-tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.ctx-tab');if(!b)return;
+  b.parentElement.querySelectorAll('.ctx-tab').forEach(x=>x.classList.remove('is-active'));
+  b.classList.add('is-active'); $('ctxPanel').innerHTML=TABTEXT[b.dataset.tab];
+});
+// verktygsrad
+$('toolRegen').addEventListener('click',()=>{markTool('regenerate');generateInitialDraft();});
+$('toolPolicy').addEventListener('click',()=>{markTool('policy');const p=runPolicy($('editor').value);
+  flashNotice('sendNotice',p.level==='ok'?'notice--ok':'notice--block',`Policykontroll: ${p.msg}`);});
+$('toolGift').addEventListener('click',()=>{markTool('gift');setEditor($('editor').value.replace(sig(),'')+GIFT+sig());});
+$('toolNote').addEventListener('click',openNoteFlow);
+$('ctxToggle').addEventListener('click',()=>$('ctxCol').classList.toggle('is-collapsed'));
+$('studioExpand').addEventListener('click',()=>$('studioOverlay').classList.toggle('expanded'));
+
+function flashNotice(id,cls,msg){const n=$(id);n.className='notice '+cls+' is-show';n.textContent=msg;}
+
+// primära actions
+$('actSaveDraft').addEventListener('click',async()=>{
+  const p=runPolicy($('editor').value);
+  if(p.level==='block'){flashNotice('sendNotice','notice--block','Kan inte spara: '+p.msg);return;}
+  await createDraft();
+  flashNotice('sendNotice','notice--ok',`Utkast sparat (status: ${S.draftStatus}).`);
+});
+// SKICKA SVAR → går mot needs_approval/queued, ALDRIG faktiskt skick. Live-send = 403.
+$('actSend').addEventListener('click',async()=>{
+  if(S.sending)return; S.sending=true;
+  const p=runPolicy($('editor').value);
+  if(p.level==='block'){S.sending=false;flashNotice('sendNotice','notice--block','Spärrat: '+p.msg);return;}
+  if(!S.draftId){ await createDraft(); }
+  await transitionDraft('needs_approval','Skickat till godkännande från Svarstudio');
+  // Försök mot 'sent' → ALLTID 403 (owner-mandat). Visa blockerat.
+  flashNotice('sendNotice','notice--block',
+    'Live-utskick är avstängt (owner-mandat). Svaret ligger nu på godkännande (needs_approval). Inget skickades externt.');
+  S.sending=false;
+});
+$('actPreview').addEventListener('click',()=>flashNotice('sendNotice','notice--ok','Förhandsvisning: svaret ser korrekt ut för '+S.thread.customerName+'.'));
+$('actLater').addEventListener('click',()=>{ // /api/v1/cco/reply-later
+  flashNotice('sendNotice','notice--ok','Tråden parkerad (Senare) med uppföljning. (cco/reply-later)');});
+$('actDone').addEventListener('click',()=>{ // /api/v1/cco/handled
+  flashNotice('sendNotice','notice--ok','Konversationen markerad som klar. (cco/handled)');});
+$('actDelete').addEventListener('click',()=>{setEditor('');flashNotice('sendNotice','notice--block','Utkast rensat.');});
+
+/* ===================== OVERLAY ÖPPNA/STÄNG ===================== */
+function openStudio(t){loadThread(t);$('sendNotice').className='notice';openScrim('studioScrim');}
+function openScrim(id){$(id).classList.add('is-open');document.body.style.overflow='hidden';}
+function closeScrim(id){$(id).classList.remove('is-open');if(!document.querySelector('.scrim.is-open'))document.body.style.overflow='';}
+$('studioClose').addEventListener('click',()=>closeScrim('studioScrim'));
+$('studioScrim').addEventListener('click',e=>{if(e.target===$('studioScrim'))closeScrim('studioScrim');});
+
+/* ===================== SMART ANTECKNING ===================== */
+const NOTE_VISIBILITY_RULES={
+  kundprofil:['team','all_operators'],konversation:['team','all_operators'],
+  medicinsk:['team','internal'],betalning:['team','internal'],
+  sla:['team','all_operators'],intern:['internal','team'],uppfoljning:['team','all_operators']
+};
+const VIS_LABEL={team:'Team',internal:'Intern',all_operators:'Alla operatörer'};
+const DESTINATIONS=[
+  {key:'kundprofil',label:'Kundprofil',sub:'Allmänna kundnoter & preferenser',pre:'Permanent kundprofil · Synlig i alla framtida interaktioner'},
+  {key:'konversation',label:'Konversation',sub:'Specifikt för denna tråd',pre:'Trådanteckning · Synlig på denna konversation'},
+  {key:'medicinsk',label:'Medicinsk',sub:'Behandling & hälsa',pre:'Medicinsk · Aldrig automatiskt kundsynlig · team/intern'},
+  {key:'betalning',label:'Betalning',sub:'Ekonomi & faktura',pre:'Betalning · Intern ekonomi · team/intern'},
+  {key:'sla',label:'SLA / eskalering',sub:'Brådskande uppföljning & ansvar',pre:'SLA · Eskalering synlig för team/operatörer'},
+  {key:'intern',label:'Intern',sub:'Bara för teamet',pre:'Intern · Aldrig kundsynlig'},
+  {key:'uppfoljning',label:'Uppföljning',sub:'Framtida åtgärder',pre:'Uppföljning · Underlag för påminnelse · team/operatörer'}
+];
+const TRACK_TO_DEST={medical:'medicinsk',pricing:'betalning',follow_up:'uppfoljning',booking:'konversation',admin:'intern'};
+const N={destinationKey:'kundprofil',text:'',tags:[],priority:'medium',visibility:'team',templateKey:null,mode:null,
+  // per-destination draftbuffer (bevara text/taggar vid byte)
+  buffers:{}};
+
+const NOTE_MODES={
+  'ai-summary':()=>`SAMMANFATTNING\n• Kunden ${S.thread.customerName} vill: ${S.thread.intent.toLowerCase()}.\n• Vi har redan: föreslagit tider / svarat enligt spår "${S.activeTrackKey}".\n• Nästa steg: bekräfta och driva till konkret åtgärd.`,
+  'ai-extract':()=>`VIKTIGA DETALJER\n• Datum/tid: fredag 09:00 (förslag)\n• Behandling: konsultation\n• Preferens: förmiddagar\n• Blockerare: väntar bekräftelse\n• Saknat beslut: 2 dagars betänketid ej bekräftad`,
+  'ai-action-items':()=>`ÅTGÄRDER\n• Egzona: bekräfta tid fredag 09:00 — idag (SLA 38 min)\n• Team: säkerställ betänketid 2 dagar dokumenteras\n• Risk/SLA: hög prioritet, VIP-kund`,
+  'manual':()=>''
+};
+const NOTE_TEMPLATES={
+  rebook:{text:'Ombokning begärd: kunden vill flytta sin tid. Föreslå minst två nya tider och bekräfta skriftligt.',tags:['ombokning','uppföljning']},
+  allergy:{text:'Allergier / kontraindikationer: kunden uppger känslighet. Markera för medicinsk kontroll innan ny tid föreslås.',tags:['allergi','medicinsk-koll']},
+  payment:{text:'Betalningsplan: kunden vill dela upp betalningen. Notera valt upplägg och fakturareferens.',tags:['betalning','ekonomi']}
+};
+
+function openNoteFlow(){
+  markTool('note');
+  // rekommenderad destination från Svarstudio activeTrackKey
+  N.destinationKey=TRACK_TO_DEST[S.activeTrackKey]||'kundprofil';
+  if(N.mode){ openScrim('noteScrim'); return; }
+  openScrim('modeScrim');
+}
+$('modeClose').addEventListener('click',()=>closeScrim('modeScrim'));
+$('modeScrim').addEventListener('click',e=>{if(e.target===$('modeScrim'))closeScrim('modeScrim');});
+document.querySelector('.mode-grid').addEventListener('click',e=>{
+  const b=e.target.closest('[data-mode]');if(!b)return;
+  N.mode=b.dataset.mode;
+  N.text=(NOTE_MODES[N.mode]||(()=>''))();
+  closeScrim('modeScrim'); openNoteShell();
+});
+
+function openNoteShell(){
+  renderDest(); renderVisibility(); renderTags();
+  $('noteField').value=N.text; updateCharCount();
+  selectInGroup('prioRow','prio',N.priority);
+  $('noteNotice').className='notice notice--ok';
+  openScrim('noteScrim');
+}
+function renderDest(){
+  const rec=TRACK_TO_DEST[S.activeTrackKey];
+  $('destList').innerHTML=DESTINATIONS.map(d=>`
+    <button class="dest ${d.key===N.destinationKey?'is-active':''} ${d.key===rec?'is-rec':''}" data-dest="${d.key}">
+      <div class="d-title">${esc(d.label)} ${d.key===rec?'<span class="rec-tag">REK</span>':''}</div>
+      <div class="d-sub">${esc(d.sub)}</div>
+    </button>`).join('');
+  const dest=DESTINATIONS.find(d=>d.key===N.destinationKey);
+  $('livePre').textContent=dest.pre;
+  $('savesIn').textContent=dest.label;
+}
+$('destList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-dest]');if(!b)return;
+  // bevara nuvarande text/taggar i buffer innan byte
+  N.buffers[N.destinationKey]={text:$('noteField').value,tags:N.tags.slice()};
+  N.destinationKey=b.dataset.dest;
+  const buf=N.buffers[N.destinationKey];
+  if(buf){ N.text=buf.text; N.tags=buf.tags.slice(); }
+  $('noteField').value=N.text; updateCharCount(); renderTags();
+  // restrict visibility per regler (medicinsk/betalning/intern aldrig all_operators)
+  const allowed=NOTE_VISIBILITY_RULES[N.destinationKey];
+  if(!allowed.includes(N.visibility)) N.visibility=allowed[0];
+  renderVisibility(); renderDest();
+});
+function renderVisibility(){
+  const allowed=NOTE_VISIBILITY_RULES[N.destinationKey];
+  $('visRow').innerHTML=['team','internal','all_operators'].filter(v=>allowed.includes(v)).map(v=>
+    `<button class="pill ${v===N.visibility?'is-active':''}" data-vis="${v}" aria-pressed="${v===N.visibility}">${VIS_LABEL[v]}</button>`).join('');
+}
+$('visRow').addEventListener('click',e=>{const b=e.target.closest('[data-vis]');if(!b)return;
+  N.visibility=b.dataset.vis; renderVisibility();});
+$('prioRow').addEventListener('click',e=>{const b=e.target.closest('[data-prio]');if(!b)return;
+  N.priority=b.dataset.prio; selectInGroup('prioRow','prio',N.priority);});
+
+// snabbmallar fyller text + tags
+$('noteTplRow').addEventListener('click',e=>{const b=e.target.closest('[data-ntpl]');if(!b)return;
+  const tpl=NOTE_TEMPLATES[b.dataset.ntpl]; N.templateKey=b.dataset.ntpl;
+  N.text=tpl.text; $('noteField').value=N.text; updateCharCount();
+  tpl.tags.forEach(addTagNorm); renderTags();
+});
+$('noteField').addEventListener('input',()=>{N.text=$('noteField').value;updateCharCount();});
+function updateCharCount(){$('noteChars').textContent=$('noteField').value.length+' tecken';}
+
+// taggar: normalisera + dedupe
+function normTag(t){return String(t).trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9åäö\-]/g,'');}
+function addTagNorm(t){const n=normTag(t);if(n&&!N.tags.includes(n))N.tags.push(n);}
+function renderTags(){
+  $('tagList').innerHTML=N.tags.length?N.tags.map(t=>
+    `<span class="tagchip">${esc(t)}<button data-rm="${esc(t)}" aria-label="Ta bort ${esc(t)}">×</button></span>`).join('')
+    :'<span style="font-size:var(--fs-meta);color:var(--text-tertiary)">Inga taggar än</span>';
+}
+$('tagList').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b)return;
+  N.tags=N.tags.filter(t=>t!==b.dataset.rm); renderTags();});
+$('tagAdd').addEventListener('click',addTagFromInput);
+$('tagInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addTagFromInput();}});
+function addTagFromInput(){const v=$('tagInput').value;if(!v.trim())return;addTagNorm(v);$('tagInput').value='';renderTags();}
+
+$('noteClose').addEventListener('click',()=>closeScrim('noteScrim'));
+$('noteCancel').addEventListener('click',()=>closeScrim('noteScrim'));
+$('noteScrim').addEventListener('click',e=>{if(e.target===$('noteScrim'))closeScrim('noteScrim');});
+
+/* POST /cco-workspace/notes/validate-visibility + POST /cco-workspace/notes */
+async function validateVisibility(destinationKey,visibility){
+  if(DEMO){ const allowed=NOTE_VISIBILITY_RULES[destinationKey]||['team'];
+    return {ok:allowed.includes(visibility),allowed}; }
+  const r=await apiFetch('/cco-workspace/notes/validate-visibility',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({destinationKey,visibility})});
+  const d=await r.json(); return {ok:r.ok&&d.ok!==false,allowed:d.allowed};
+}
+async function saveNote(){
+  const dest=DESTINATIONS.find(d=>d.key===N.destinationKey);
+  const v=await validateVisibility(N.destinationKey,N.visibility);
+  if(!v.ok){
+    flashNoteNotice('notice--block',`Synlighet ${VIS_LABEL[N.visibility]} ej tillåten för ${dest.label}. Tillåtet: ${v.allowed.map(x=>VIS_LABEL[x]).join(', ')}.`);
+    return;
+  }
+  const payload={destinationKey:N.destinationKey,destinationLabel:dest.label,
+    text:$('noteField').value,tags:N.tags.slice(),priority:N.priority,visibility:N.visibility};
+  if(!DEMO){
+    await apiFetch('/cco-workspace/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  }
+  // upsert per destination i buffer
+  N.buffers[N.destinationKey]={text:payload.text,tags:payload.tags.slice()};
+  flashNoteNotice('notice--ok',`Anteckning sparad i ${dest.label}.`);
+  // feedback i Svarstudio
+  flashNotice('sendNotice','notice--ok',`Anteckning sparad i ${dest.label}.`);
+  markTool('note');
+}
+function flashNoteNotice(cls,msg){const n=$('noteNotice');n.className='notice '+cls+' is-show';n.textContent=msg;}
+$('noteSave').addEventListener('click',saveNote);
+
+/* ===================== KONVERSATIONER-BACKDROP ===================== */
+function renderThreads(){
+  $('threadList').innerHTML=THREADS.map((t,i)=>`
+    <article class="thread-row ${i===0?'is-active':''}" data-tid="${t.id}">
+      <div class="tr-av" style="background:${t.avatarBg}">${esc(t.init)}</div>
+      <div class="tr-body">
+        <div class="tr-top"><span class="tr-name">${esc(t.customerName)}</span>
+          <span class="statuspill sp--intent" style="font-size:.625rem">${esc(t.intent)}</span>
+          <span class="tr-time">${esc(t.time)}</span></div>
+        <div class="tr-sub">${esc(t.sub)} · ${esc(t.mailboxLabel)}</div>
+        <div class="tr-studio"><button class="studio-cta" data-studio="${t.id}">★ Svarstudio</button></div>
+      </div>
+    </article>`).join('');
+}
+$('threadList').addEventListener('click',e=>{
+  const c=e.target.closest('[data-studio]');
+  if(c){const t=THREADS.find(x=>x.id===c.dataset.studio);openStudio(t);return;}
+  const row=e.target.closest('[data-tid]');
+  if(row){$('threadList').querySelectorAll('.thread-row').forEach(r=>r.classList.remove('is-active'));row.classList.add('is-active');}
+});
+$('demoFlag').addEventListener('change',e=>{DEMO=e.target.checked;});
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){['noteScrim','modeScrim','studioScrim'].some(id=>{if($(id).classList.contains('is-open')){closeScrim(id);return true;}return false;});}});
+
+renderThreads();
+/* botnav active-toggle (verbatim mönster) */
+(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();
+</script>
+</body>
+</html>
