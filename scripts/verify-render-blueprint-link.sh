@@ -41,7 +41,13 @@ BP_JSON="$(curl -fsS -H "Authorization: Bearer ${API_KEY}" \
   "https://api.render.com/v1/blueprints/${BLUEPRINT_ID}")"
 BP_STATUS="$(printf '%s' "$BP_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log([j.autoSync,j.status,j.path,j.repo].join('|'));});")"
 IFS='|' read -r BP_AUTO BP_STATE BP_PATH BP_REPO <<< "$BP_STATUS"
-[[ "$BP_AUTO" == "true" ]] || fail "Blueprint autoSync är av ($BP_AUTO)"
+if [[ "$BP_AUTO" != "true" ]]; then
+  if [[ "${RENDER_BLUEPRINT_AUTOSYNC_REQUIRED:-true}" == "false" ]]; then
+    echo "::warning::Blueprint autoSync är av ($BP_AUTO) — accepterat eftersom prod-deploy triggas via Render API/deploy hook."
+  else
+    fail "Blueprint autoSync är av ($BP_AUTO)"
+  fi
+fi
 [[ "$BP_PATH" == "render.yaml" ]] || fail "Blueprint path=$BP_PATH, förväntat render.yaml"
 [[ "$BP_REPO" == *"Fazliilzaf/major-arcana"* ]] || fail "Blueprint repo=$BP_REPO"
 
