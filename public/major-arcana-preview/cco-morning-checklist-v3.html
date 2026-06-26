@@ -1,304 +1,1233 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="robots" content="noindex" />
-<title>CCO Morgon-checklist — v3 responsiv</title>
-<style>
-/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>CCO Morgon-checklist — v3 responsiv</title>
+    <style>
+      /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
    WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
    Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
-:root{
-  --bg-page:#faf6f2;--bg-surface:#ffffff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
-  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
-  --accent:#b0356e;--accent-weak:#fdeef4;--accent-weak-bg:#fdeef4;--accent-strong:#8e285699;--text-on-accent:#ffffff;
-  --success:#2f6f54;--success-bg:rgba(47,111,84,.14);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
-  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
-  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
-  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 8px 22px rgba(56,40,28,.12),inset 0 1px 0 rgba(255,255,255,.92);--sh-xl:0 24px 56px rgba(93,74,60,.16),inset 0 1px 0 rgba(255,255,255,.55);
-  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
-  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-card-title:clamp(.9rem,.85rem+.4vw,1.05rem);--fs-h1:clamp(1.5rem,1.2rem+2vw,2.25rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
-  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
-  --maxw:1500px;
-  --error-text:#962b2b;--error-border:#d8526b;--error-bg:#fdecec;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
-body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
-  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
-button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-.tabnum{font-variant-numeric:tabular-nums}
+      :root {
+        --bg-page: #faf6f2;
+        --bg-surface: #ffffff;
+        --bg-sunken: #f3ece3;
+        --bg-rail: #fbf7f2;
+        --text-primary: #221c15;
+        --text-secondary: #574d40;
+        --text-tertiary: #6d6354;
+        --accent: #b0356e;
+        --accent-weak: #fdeef4;
+        --accent-weak-bg: #fdeef4;
+        --accent-strong: #8e285699;
+        --text-on-accent: #ffffff;
+        --success: #2f6f54;
+        --success-bg: rgba(47, 111, 84, 0.14);
+        --warning: #9a6410;
+        --warning-bg: rgba(154, 100, 16, 0.16);
+        --danger: #a83838;
+        --danger-bg: rgba(168, 56, 56, 0.14);
+        --info: #2f6595;
+        --info-bg: rgba(47, 101, 149, 0.14);
+        --violet: #6b31c9;
+        --violet-bg: rgba(107, 49, 201, 0.12);
+        --gold: #8a5f1e;
+        --gold-bg: rgba(138, 95, 30, 0.14);
+        --slate: #475569;
+        --slate-bg: rgba(71, 85, 105, 0.12);
+        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
+        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        --r-sm: 10px;
+        --r-md: 14px;
+        --r-lg: 18px;
+        --r-xl: 24px;
+        --r-pill: 999px;
+        --fs-kicker: 0.6875rem;
+        --fs-meta: 0.75rem;
+        --fs-body: 0.875rem;
+        --fs-card-title: clamp(0.9rem, 0.85rem+0.4vw, 1.05rem);
+        --fs-h1: clamp(1.5rem, 1.2rem+2vw, 2.25rem);
+        --fs-num: clamp(1.35rem, 1.1rem+1.4vw, 1.9rem);
+        --tap: 2.75rem;
+        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
+        --pad-x: clamp(0.875rem, 0.5rem+1.6vw, 1.5rem);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --maxw: 1500px;
+        --error-text: #962b2b;
+        --error-border: #d8526b;
+        --error-bg: #fdecec;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        font-size: 100%;
+        overflow-x: clip;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
+          var(--bg-page);
+        color: var(--text-primary);
+        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-size: var(--fs-body);
+        line-height: 1.45;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      button {
+        font-family: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      .tabnum {
+        font-variant-numeric: tabular-nums;
+      }
 
-/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
-.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
-@media(min-width:1025px){.aux{padding-bottom:2rem}}
+      /* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+      .aux {
+        max-width: var(--maxw);
+        margin-inline: auto;
+        padding: 0 var(--pad-x) 6rem;
+        min-height: 100vh;
+      }
+      @media (min-width: 1025px) {
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
 
-/* topbar (samma som Konversationer/Senare) */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
-  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
-.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
-.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
-.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
-.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
-.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
-.icon-btn svg{width:1.1rem;height:1.1rem}
+      /* topbar (samma som Konversationer/Senare) */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: var(--gap);
+        padding: 0.5rem var(--pad-x);
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+        margin: 0 calc(-1 * var(--pad-x));
+        background: linear-gradient(
+          180deg,
+          rgba(250, 246, 242, 0.97),
+          rgba(250, 246, 242, 0.82) 80%,
+          transparent
+        );
+        backdrop-filter: blur(18px);
+      }
+      .brand {
+        flex-shrink: 0;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 0.4rem 0.7rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+      }
+      .search {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        padding: 0 0.75rem 0 2.1rem;
+      }
+      .search svg {
+        position: absolute;
+        left: 0.7rem;
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-tertiary);
+      }
+      .search input {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        width: 100%;
+        height: 100%;
+        font: inherit;
+        font-size: var(--fs-meta);
+        color: var(--text-primary);
+        outline: none;
+      }
+      .icon-btn {
+        flex-shrink: 0;
+        width: var(--tap);
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        cursor: pointer;
+      }
 
-/* head-zon */
-.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
-.head-main{min-width:0}
-.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
-.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
-.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+      .icon-btn svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
 
-/* pill-rader (filter/period/segment) */
-.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
-.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
-.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
-.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
-.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
-@media(pointer:coarse){.pill{min-height:var(--tap)}}
+      /* sidoräls-primitiver (v11 facit) */
+      .rail-brand {
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        padding: 0.4rem 0.6rem;
+      }
+      .rail-nav {
+        min-height: var(--tap);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0 0.7rem;
+        border-radius: var(--r-md);
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: var(--fs-meta);
+        border: 0;
+        background: transparent;
+        text-align: left;
+      }
+      .rail-nav.is-active {
+        background: var(--accent-weak-bg);
+        color: var(--accent);
+      }
+      .rail-nav svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+      .rail-sec {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin: 1rem 0.7rem 0.3rem;
+      }
 
-/* knappar */
-.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
-.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
-@media(pointer:coarse){.btn{min-height:var(--tap)}}
+      /* head-zon */
+      .head {
+        padding: 0.9rem 0 0.4rem;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: var(--gap);
+        flex-wrap: wrap;
+      }
+      .head-main {
+        min-width: 0;
+      }
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+      }
+      .h1 {
+        margin: 0;
+        font-size: var(--fs-h1);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        margin: 0.3rem 0 0;
+        color: var(--text-secondary);
+        font-size: var(--fs-meta);
+        max-width: 46ch;
+      }
 
-/* kort & paneler */
-.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.panel-head{margin-bottom:.7rem}
-.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
-.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
-.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+      /* pill-rader (filter/period/segment) */
+      .pillrow {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .pillrow.scroll {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .pillrow.scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .pill {
+        flex-shrink: 0;
+        min-height: 2.25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0 0.85rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.3);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        box-shadow: var(--sh-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .pill[aria-pressed='true'],
+      .pill.is-active {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill .c {
+        background: rgba(180, 165, 150, 0.18);
+        padding: 0.05rem 0.4rem;
+        border-radius: var(--r-pill);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      @media (pointer: coarse) {
+        .pill {
+          min-height: var(--tap);
+        }
+      }
+      .pill .dot {
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 999px;
+      }
+      .pill--success {
+        color: var(--success);
+      }
+      .pill--success .dot {
+        background: var(--success);
+      }
+      .pill--warning {
+        color: var(--warning);
+      }
+      .pill--warning .dot {
+        background: var(--warning);
+      }
+      .pill--info {
+        color: var(--info);
+      }
+      .pill--info .dot {
+        background: var(--info);
+      }
+      .pill--vip {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill--vip .dot {
+        background: var(--accent);
+      }
 
-/* metric-kort (KPI) */
-.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
-.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
-.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
-.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
-.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
-.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
-.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
-.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+      /* knappar */
+      .btn {
+        min-height: 2.5rem;
+        padding: 0 1rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        background: rgba(255, 255, 255, 0.85);
+        font: inherit;
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+      }
+      .btn--primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn--danger {
+        background: var(--danger-bg);
+        border-color: rgba(168, 56, 56, 0.3);
+        color: var(--danger);
+      }
+      @media (pointer: coarse) {
+        .btn {
+          min-height: var(--tap);
+        }
+      }
 
-/* switch — 44px träffyta via track-storlek */
-.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
-.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
-.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
-.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
-.switch input:checked + .track{background:var(--success)}
-.switch input:checked + .track::after{transform:translateX(1.4rem)}
-.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+      /* kort & paneler */
+      .card {
+        position: relative;
+        cursor: pointer;
+        padding: 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease,
+          border-color 0.12s ease;
+      }
+      .card:hover {
+        box-shadow: var(--sh-lg);
+        border-color: rgba(176, 53, 110, 0.25);
+      }
+      .card:active {
+        transform: scale(0.99);
+      }
+      .card.is-selected {
+        border-color: var(--accent);
+        box-shadow:
+          0 0 0 2px rgba(176, 53, 110, 0.25),
+          var(--sh-md);
+      }
+      .card.is-open {
+        border-color: var(--accent);
+      }
+      .panel {
+        padding: 1.1rem;
+        border-radius: var(--r-xl);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.88));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+      }
+      .panel-head {
+        margin-bottom: 0.7rem;
+      }
+      .panel-head h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .panel-head p {
+        margin: 0.2rem 0 0;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+      }
+      .sec-kicker {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
 
-/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
-.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
-.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
-.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
-/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
-.nav-i{gap:.2rem;transition:color .2s;position:relative}
-.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
-.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
-.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
-.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.nav-i .ic-dot{fill:currentColor}
-@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
-.nav-i:active .ic{transform:scale(.84)}
-.nav-i.is-active{color:var(--ic,var(--accent))}
-.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
-.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
-.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
-.nav-i.is-active .ic-line{stroke:#fff}
-.nav-i.is-active .ic-dot{fill:#fff}
-.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
-@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
-@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
-@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
-@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+      /* metric-kort (KPI) */
+      .metric {
+        padding: 0.9rem 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+      }
+      .metric .m-label {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .metric .m-val {
+        font-size: var(--fs-num);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-top: 0.15rem;
+        line-height: 1.05;
+      }
+      .metric .m-meta {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        margin-top: 0.25rem;
+      }
+      .metric .m-trend {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      .m-trend--up {
+        color: var(--success);
+      }
+      .m-trend--down {
+        color: var(--danger);
+      }
+      .metric--green {
+        border-left: 3px solid var(--success);
+      }
+      .metric--blue {
+        border-left: 3px solid var(--info);
+      }
+      .metric--rose {
+        border-left: 3px solid var(--accent);
+      }
+      .metric--violet {
+        border-left: 3px solid var(--violet);
+      }
+      .metric--gold {
+        border-left: 3px solid var(--gold);
+      }
+      .metric--slate {
+        border-left: 3px solid var(--slate);
+      }
 
-/* ===== MORGON-CHECKLIST-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+      /* switch — 44px träffyta via track-storlek */
+      .switch {
+        position: relative;
+        flex-shrink: 0;
+        width: 3rem;
+        height: var(--tap);
+        cursor: pointer;
+      }
+      .switch input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        margin: 0;
+        cursor: pointer;
+      }
+      .switch .track {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        width: 3rem;
+        height: 1.6rem;
+        border-radius: 999px;
+        background: rgba(120, 108, 95, 0.32);
+        transition: background 0.2s;
+      }
+      .switch .track::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: var(--sh-sm);
+        transition: transform 0.2s;
+      }
+      .switch input:checked + .track {
+        background: var(--success);
+      }
+      .switch input:checked + .track::after {
+        transform: translateX(1.4rem);
+      }
+      .switch input:focus-visible + .track {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
 
-/* metric-rad — mobil: horisontellt scrollbar; ≥601: 3-up */
-.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
-@media(max-width:600px){
-  .metrics{grid-auto-flow:column;grid-auto-columns:minmax(8.5rem,1fr);grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:calc(-1*var(--pad-x));padding-inline:var(--pad-x)}
-  .metrics::-webkit-scrollbar{display:none}
-  .metric{scroll-snap-align:start}
-}
+      /* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+      .botnav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem calc(0.5rem + var(--safe-bottom));
+        background: linear-gradient(180deg, rgba(250, 246, 242, 0), rgba(250, 246, 242, 0.94) 30%);
+        backdrop-filter: blur(20px);
+      }
+      .nav-i {
+        flex: 1;
+        min-height: var(--tap);
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.1rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .nav-i svg {
+        width: 1.35rem;
+        height: 1.35rem;
+      }
+      .nav-i.is-active {
+        color: var(--accent);
+      }
+      /* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+      .nav-i {
+        gap: 0.2rem;
+        transition: color 0.2s;
+        position: relative;
+      }
+      .nav-i .ic-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.1rem;
+        height: 1.9rem;
+        border-radius: var(--r-pill);
+        transition:
+          background 0.25s,
+          box-shadow 0.25s,
+          transform 0.25s;
+      }
+      .nav-i .ic {
+        width: 1.5rem;
+        height: 1.5rem;
+        transition: transform 0.2s;
+      }
+      .nav-i .ic-fill {
+        fill: currentColor;
+        opacity: 0.24;
+        transition:
+          fill 0.2s,
+          opacity 0.2s;
+      }
+      .nav-i .ic-line {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .nav-i .ic-dot {
+        fill: currentColor;
+      }
+      @media (hover: hover) {
+        .nav-i:not(.is-active):hover .ic {
+          transform: translateY(-2px) rotate(-6deg);
+        }
+        .nav-i:not(.is-active):hover .ic-wrap {
+          background: rgba(176, 53, 110, 0.08);
+        }
+      }
+      .nav-i:active .ic {
+        transform: scale(0.84);
+      }
+      .nav-i.is-active {
+        color: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-wrap {
+        background: var(--ic-bg, var(--accent-weak));
+        box-shadow: 0 7px 16px -6px var(--ic, var(--accent));
+        animation: navfloat 2.8s ease-in-out infinite;
+      }
+      .nav-i.is-active .ic {
+        animation: navpop 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .nav-i.is-active .ic-fill {
+        opacity: 1;
+        fill: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-line {
+        stroke: #fff;
+      }
+      .nav-i.is-active .ic-dot {
+        fill: #fff;
+      }
+      .nav-badge {
+        position: absolute;
+        top: -0.15rem;
+        right: 0.4rem;
+        min-width: 1rem;
+        height: 1rem;
+        padding: 0 0.25rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 0.5625rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px var(--bg-page);
+      }
+      @keyframes navpop {
+        0% {
+          transform: scale(0.55);
+        }
+        55% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes navfloat {
+        0%,
+        100% {
+          transform: translateY(-3px);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .nav-i .ic,
+        .nav-i .ic-wrap {
+          animation: none !important;
+        }
+      }
+      @media (min-width: 601px) {
+        .botnav {
+          display: none;
+        }
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
 
-/* fortskridande-panel (sticky översikt med progress) */
-.progress-panel{margin:.7rem 0 1rem;display:flex;flex-direction:column;gap:.7rem}
-.progress-top{display:flex;align-items:center;gap:var(--gap);flex-wrap:wrap}
-.progress-num{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;line-height:1}
-.progress-sub{font-size:var(--fs-meta);color:var(--text-secondary);font-weight:700}
-.progress-acts{display:flex;gap:.4rem;flex-wrap:wrap;margin-left:auto}
-.bar{height:.65rem;border-radius:999px;background:rgba(120,108,95,.2);overflow:hidden}
-.bar > i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--success),#3f8a68);transition:width .35s ease}
-.alldone{display:none;align-items:center;gap:.5rem;padding:.55rem .8rem;border-radius:var(--r-md);background:var(--success-bg);color:var(--success);font-weight:800;font-size:var(--fs-meta)}
-.alldone.is-on{display:inline-flex}
-.alldone svg{width:1.1rem;height:1.1rem}
+      /* ===== MORGON-CHECKLIST-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
 
-/* checklist-grid — mobil 1-kol, iPad/desktop 2-kol */
-.blocks{display:grid;grid-template-columns:1fr;gap:var(--gap)}
-@media(min-width:601px){.blocks{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(min-width:1025px){.blocks{grid-template-columns:repeat(3,minmax(0,1fr))}}
+      /* metric-rad — mobil: horisontellt scrollbar; ≥601: 3-up */
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--gap);
+        margin: 0.6rem 0 0.2rem;
+      }
+      @media (max-width: 600px) {
+        .metrics {
+          grid-auto-flow: column;
+          grid-auto-columns: minmax(8.5rem, 1fr);
+          grid-template-columns: none;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scrollbar-width: none;
+          margin-inline: calc(-1 * var(--pad-x));
+          padding-inline: var(--pad-x);
+        }
+        .metrics::-webkit-scrollbar {
+          display: none;
+        }
+        .metric {
+          scroll-snap-align: start;
+        }
+      }
 
-/* time-block (card-primitiv + statusvänster-list) */
-.block{display:flex;flex-direction:column;gap:.6rem;border-left:4px solid rgba(180,165,150,.4)}
-.block.is-warning{border-left-color:var(--warning)}
-.block.is-go{border-left-color:var(--success)}
-.block.is-done{border-left-color:var(--success);background:linear-gradient(180deg,rgba(240,248,243,.95),rgba(232,244,238,.86))}
-.block-head{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-.time-tag{flex-shrink:0;font-family:SFMono-Regular,Menlo,monospace;font-size:var(--fs-kicker);font-weight:800;padding:.2rem .5rem;border-radius:var(--r-sm);background:var(--accent-weak);color:var(--accent);letter-spacing:.04em}
-.block.is-warning .time-tag{background:var(--warning-bg);color:var(--warning)}
-.block.is-go .time-tag{background:var(--success-bg);color:var(--success)}
-.block-title{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em;min-width:0}
-.block-count{margin-left:auto;flex-shrink:0;font-size:var(--fs-kicker);font-weight:800;color:var(--text-tertiary)}
-.block-count.is-full{color:var(--success)}
+      /* fortskridande-panel (sticky översikt med progress) */
+      .progress-panel {
+        margin: 0.7rem 0 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+      }
+      .progress-top {
+        display: flex;
+        align-items: center;
+        gap: var(--gap);
+        flex-wrap: wrap;
+      }
+      .progress-num {
+        font-size: var(--fs-num);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      .progress-sub {
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+        font-weight: 700;
+      }
+      .progress-acts {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-left: auto;
+      }
+      .bar {
+        height: 0.65rem;
+        border-radius: 999px;
+        background: rgba(120, 108, 95, 0.2);
+        overflow: hidden;
+      }
+      .bar > i {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--success), #3f8a68);
+        transition: width 0.35s ease;
+      }
+      .alldone {
+        display: none;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: var(--r-md);
+        background: var(--success-bg);
+        color: var(--success);
+        font-weight: 800;
+        font-size: var(--fs-meta);
+      }
+      .alldone.is-on {
+        display: inline-flex;
+      }
+      .alldone svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
 
-/* check-rader — switch + label, ≥44px träffyta */
-.check{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.15rem}
-.check li{margin:0}
-.chk{display:flex;align-items:center;gap:.6rem;min-height:var(--tap);padding:.2rem .25rem;border-radius:var(--r-sm);cursor:pointer}
-.chk:hover{background:rgba(176,53,110,.05)}
-.chk .ctext{flex:1;min-width:0;font-size:var(--fs-meta);color:var(--text-primary);line-height:1.35}
-.chk input:checked ~ .ctext{color:var(--text-tertiary);text-decoration:line-through;text-decoration-color:rgba(120,108,95,.5)}
-.chk code{background:rgba(180,165,150,.16);padding:.05rem .35rem;border-radius:6px;font-size:.7rem;color:var(--gold);font-family:SFMono-Regular,Menlo,monospace;word-break:break-word}
+      /* checklist-grid — mobil 1-kol, iPad/desktop 2-kol */
+      .blocks {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--gap);
+      }
+      @media (min-width: 601px) {
+        .blocks {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (min-width: 1025px) {
+        .blocks {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
 
-/* snabb-länk-rad */
-.quick-row{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.2rem}
-.quick-row a{padding:.3rem .6rem;border-radius:var(--r-pill);background:rgba(255,255,255,.85);border:1px solid rgba(180,165,150,.35);font-size:var(--fs-kicker);font-weight:700;text-decoration:none;color:var(--text-secondary)}
-.quick-row a:hover{background:var(--accent-weak);color:var(--accent);border-color:rgba(176,53,110,.3)}
+      /* time-block (card-primitiv + statusvänster-list) */
+      .block {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        border-left: 4px solid rgba(180, 165, 150, 0.4);
+      }
+      .block.is-warning {
+        border-left-color: var(--warning);
+      }
+      .block.is-go {
+        border-left-color: var(--success);
+      }
+      .block.is-done {
+        border-left-color: var(--success);
+        background: linear-gradient(180deg, rgba(240, 248, 243, 0.95), rgba(232, 244, 238, 0.86));
+      }
+      .block-head {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .time-tag {
+        flex-shrink: 0;
+        font-family: SFMono-Regular, Menlo, monospace;
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        padding: 0.2rem 0.5rem;
+        border-radius: var(--r-sm);
+        background: var(--accent-weak);
+        color: var(--accent);
+        letter-spacing: 0.04em;
+      }
+      .block.is-warning .time-tag {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+      .block.is-go .time-tag {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .block-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        min-width: 0;
+      }
+      .block-count {
+        margin-left: auto;
+        flex-shrink: 0;
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        color: var(--text-tertiary);
+      }
+      .block-count.is-full {
+        color: var(--success);
+      }
 
-/* footer */
-.foot{margin-top:1.2rem;padding-top:.9rem;box-shadow:inset 0 1px 0 rgba(180,165,150,.3);font-size:var(--fs-kicker);color:var(--text-tertiary);text-align:center;line-height:1.6}
-.foot code{background:rgba(180,165,150,.16);padding:.05rem .35rem;border-radius:6px;color:var(--gold);font-family:SFMono-Regular,Menlo,monospace}
-</style>
-</head>
-<body>
-<div class="aux">
+      /* check-rader — switch + label, ≥44px träffyta */
+      .check {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .check li {
+        margin: 0;
+      }
+      .chk {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        min-height: var(--tap);
+        padding: 0.2rem 0.25rem;
+        border-radius: var(--r-sm);
+        cursor: pointer;
+      }
+      .chk:hover {
+        background: rgba(176, 53, 110, 0.05);
+      }
+      .chk .ctext {
+        flex: 1;
+        min-width: 0;
+        font-size: var(--fs-meta);
+        color: var(--text-primary);
+        line-height: 1.35;
+      }
+      .chk input:checked ~ .ctext {
+        color: var(--text-tertiary);
+        text-decoration: line-through;
+        text-decoration-color: rgba(120, 108, 95, 0.5);
+      }
+      .chk code {
+        background: rgba(180, 165, 150, 0.16);
+        padding: 0.05rem 0.35rem;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        color: var(--gold);
+        font-family: SFMono-Regular, Menlo, monospace;
+        word-break: break-word;
+      }
 
-  <!-- ===== TOPBAR ===== -->
-  <div class="topbar"><span class="brand">CCO</span>
-    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i checklistan…"></label>
-    <button class="icon-btn" aria-label="Skriv ut" onclick="window.print()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/></svg></button>
-  </div>
+      /* snabb-länk-rad */
+      .quick-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.2rem;
+      }
+      .quick-row a {
+        padding: 0.3rem 0.6rem;
+        border-radius: var(--r-pill);
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        font-size: var(--fs-kicker);
+        font-weight: 700;
+        text-decoration: none;
+        color: var(--text-secondary);
+      }
+      .quick-row a:hover {
+        background: var(--accent-weak);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.3);
+      }
 
-  <!-- ===== HEAD ===== -->
-  <div class="head">
-    <div class="head-main">
-      <span class="kicker">Hair TP Clinic · Fazli morgon-routine</span>
-      <h1 class="h1">Morgon-checklist · 4 juni 2026</h1>
-      <p class="subtitle">Personalmöte journalpilot — bocka av T-10 till T-0 i ordning</p>
-    </div>
-  </div>
-
-  <!-- ===== METRIC-RAD ===== -->
-  <div class="metrics">
-    <div class="metric metric--green"><div class="m-label">Avbockade</div><div class="m-val tabnum" id="mDone">0/20</div><div class="m-meta">av alla steg</div></div>
-    <div class="metric metric--rose"><div class="m-label">Tidsblock klara</div><div class="m-val tabnum" id="mBlocks">0/6</div><div class="m-meta">T-10 → T-0</div></div>
-    <div class="metric metric--gold"><div class="m-label">Nästa steg</div><div class="m-val tabnum" style="font-size:1.05rem;line-height:1.2" id="mNext">T-10 min</div><div class="m-meta">Förberedelse</div></div>
-  </div>
-
-  <!-- ===== FORTSKRIDANDE-PANEL ===== -->
-  <section class="panel progress-panel" aria-label="Fortskridande">
-    <div class="progress-top">
-      <span class="progress-num tabnum" id="pPct">0%</span>
-      <div>
-        <div class="sec-kicker">Fortskridande</div>
-        <div class="progress-sub" id="pSub" aria-live="polite">0 av 20 steg avbockade</div>
+      /* footer */
+      .foot {
+        margin-top: 1.2rem;
+        padding-top: 0.9rem;
+        box-shadow: inset 0 1px 0 rgba(180, 165, 150, 0.3);
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        text-align: center;
+        line-height: 1.6;
+      }
+      .foot code {
+        background: rgba(180, 165, 150, 0.16);
+        padding: 0.05rem 0.35rem;
+        border-radius: 6px;
+        color: var(--gold);
+        font-family: SFMono-Regular, Menlo, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="aux">
+      <!-- ===== TOPBAR ===== -->
+      <div class="topbar">
+        <span class="brand">CCO</span>
+        <label class="search"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
+          ><input placeholder="Sök i checklistan…"
+        /></label>
+        <button class="icon-btn" aria-label="Skriv ut" onclick="window.print()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+          >
+            <path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z" />
+          </svg>
+        </button>
       </div>
-      <div class="progress-acts">
-        <button class="btn" id="btnReset">Nollställ</button>
-        <button class="btn btn--primary" id="btnAll">Bocka av alla</button>
+
+      <!-- ===== HEAD ===== -->
+      <div class="head">
+        <div class="head-main">
+          <span class="kicker">Hair TP Clinic · Fazli morgon-routine</span>
+          <h1 class="h1">Morgon-checklist · 4 juni 2026</h1>
+          <p class="subtitle">Personalmöte journalpilot — bocka av T-10 till T-0 i ordning</p>
+        </div>
+      </div>
+
+      <!-- ===== METRIC-RAD ===== -->
+      <div class="metrics">
+        <div class="metric metric--green">
+          <div class="m-label">Avbockade</div>
+          <div class="m-val tabnum" id="mDone">0/20</div>
+          <div class="m-meta">av alla steg</div>
+        </div>
+        <div class="metric metric--rose">
+          <div class="m-label">Tidsblock klara</div>
+          <div class="m-val tabnum" id="mBlocks">0/6</div>
+          <div class="m-meta">T-10 → T-0</div>
+        </div>
+        <div class="metric metric--gold">
+          <div class="m-label">Nästa steg</div>
+          <div class="m-val tabnum" style="font-size: 1.05rem; line-height: 1.2" id="mNext">
+            T-10 min
+          </div>
+          <div class="m-meta">Förberedelse</div>
+        </div>
+      </div>
+
+      <!-- ===== FORTSKRIDANDE-PANEL ===== -->
+      <section class="panel progress-panel" aria-label="Fortskridande">
+        <div class="progress-top">
+          <span class="progress-num tabnum" id="pPct">0%</span>
+          <div>
+            <div class="sec-kicker">Fortskridande</div>
+            <div class="progress-sub" id="pSub" aria-live="polite">0 av 20 steg avbockade</div>
+          </div>
+          <div class="progress-acts">
+            <button class="btn" id="btnReset">Nollställ</button>
+            <button class="btn btn--primary" id="btnAll">Bocka av alla</button>
+          </div>
+        </div>
+        <div class="bar"><i id="pBar"></i></div>
+        <span class="alldone" id="allDone"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" /></svg
+          >Klart — alla 20 steg avbockade, redo för T-0</span
+        >
+      </section>
+
+      <!-- ===== CHECKLIST-BLOCK ===== -->
+      <div class="blocks" id="blocks"></div>
+
+      <!-- ===== FOOTER ===== -->
+      <div class="foot">
+        <strong>Hair TP Clinic · 4 juni 2026 · Fazli morgon-routine</strong><br />
+        Komplett runbook: <code>docs/strategy/CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md</code> · Vid
+        problem → backup-URL → Fazli direkt
       </div>
     </div>
-    <div class="bar"><i id="pBar"></i></div>
-    <span class="alldone" id="allDone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Klart — alla 20 steg avbockade, redo för T-0</span>
-  </section>
 
-  <!-- ===== CHECKLIST-BLOCK ===== -->
-  <div class="blocks" id="blocks"></div>
+    <!-- ===== BOTNAV ===== -->
+    <nav class="botnav" aria-label="Huvudnavigering">
+      <button
+        class="nav-i is-active"
+        aria-current="page"
+        style="--ic: var(--accent); --ic-bg: var(--accent-bg)"
+      >
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"
+            />
+            <path
+              class="ic-line"
+              d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"
+            /></svg></span
+        >Hem
+      </button>
+      <button class="nav-i" style="--ic: #2f6595; --ic-bg: rgba(47, 101, 149, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4" /></svg
+          ><span class="nav-badge">3</span></span
+        >Boka
+      </button>
+      <button class="nav-i" style="--ic: #6b31c9; --ic-bg: rgba(107, 49, 201, 0.12)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4" />
+            <circle class="ic-dot" cx="8" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="12" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="16" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="8" cy="17" r="1" />
+            <circle class="ic-dot" cx="12" cy="17" r="1" /></svg></span
+        >Kalender
+      </button>
+      <button class="nav-i" style="--ic: #2f6f54; --ic-bg: rgba(47, 111, 84, 0.16)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"
+            /></svg></span
+        >Kund
+      </button>
+      <button class="nav-i" style="--ic: #8a5f1e; --ic-bg: rgba(138, 95, 30, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"
+            />
+            <path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4" /></svg></span
+        >Journal
+      </button>
+    </nav>
 
-  <!-- ===== FOOTER ===== -->
-  <div class="foot">
-    <strong>Hair TP Clinic · 4 juni 2026 · Fazli morgon-routine</strong><br>
-    Komplett runbook: <code>docs/strategy/CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md</code> · Vid problem → backup-URL → Fazli direkt
-  </div>
-</div>
+    <script>
+      // ===== DATA — VERBATIM svenska checklist-poster från riktiga sidan =====
+      const BLOCKS = [
+        {
+          tag: 'T-10 min',
+          title: 'Förberedelse',
+          status: '',
+          items: [
+            'Stäng alla flikar utom de 4 stöd-sidor',
+            'Mute notifications (Do Not Disturb / Focus Assist)',
+            'Mobilen tyst men nära — för Command Center',
+            'Vatten / kaffe redo',
+          ],
+        },
+        {
+          tag: 'T-9 min',
+          title: 'Öppna stöd-flikar',
+          status: '',
+          items: [
+            'Huvudskärm: <code>/cco-demo.html</code>',
+            'Sido-skärm/telefon: <code>/personal-demo.html</code>',
+            'Sido-flik: <code>/cco-presenter-mode.html</code> (14-stegs flow + 15-min timer)',
+            'Reserv-flik: <code>/journal-pilot-guide.html</code>',
+          ],
+          links: [
+            ['/cco-demo.html', 'Personalstart'],
+            ['/personal-demo.html', 'Command Center'],
+            ['/cco-presenter-mode.html', 'Presenter Mode'],
+            ['/journal-pilot-guide.html', 'Personalguide'],
+          ],
+        },
+        {
+          tag: 'T-8 min',
+          title: 'Smoke-test',
+          status: '',
+          items: [
+            'Klicka pilotkund 1 från personalstart → ska öppna journal-feed',
+            'Klicka tillbaka → klicka pilotkund 3 → ska visa signerad post + rättelse',
+            'Refresh Command Center → ska visa stor grön <strong>GO</strong>',
+          ],
+        },
+        {
+          tag: 'T-5 min',
+          title: 'Failover-check',
+          status: 'warning',
+          items: [
+            'Öppna backup-URL i bakgrund: <code>major-arcana-frankfurt.onrender.com/cco-demo.html</code>',
+            'Om backup laddar 200 → du har failover redo',
+            'Skriv ner mobilnumret till någon som kan ringa Fazli om något händer',
+          ],
+        },
+        {
+          tag: 'T-2 min',
+          title: 'Samla personalen',
+          status: '',
+          items: [
+            'Be alla logga in på sin egen station',
+            'Säg: "Vi börjar med en kontrollerad journalpilot — inget skarpt än"',
+            'Visa skärmen — personalstart i fullskärm',
+          ],
+        },
+        {
+          tag: 'T-0',
+          title: 'Starta presentationen',
+          status: 'go',
+          items: [
+            'Klicka <strong>Start</strong> på 15-min timern i Presenter Mode',
+            'Säg: "Det här är CCO — vårt nya kundkort och journalnav."',
+            'Kör 14-stegs flow från Presenter Mode',
+            'Bocka av varje steg i Presenter Mode — håller dig på spår',
+          ],
+        },
+      ];
 
-<!-- ===== BOTNAV ===== -->
-<nav class="botnav" aria-label="Huvudnavigering">
-  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
-  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
-  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
-  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
-  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
-</nav>
+      // plausibelt demo-läge: första blocket redan klart
+      const PRESET = { 0: [0, 1, 2, 3] };
 
-<script>
-// ===== DATA — VERBATIM svenska checklist-poster från riktiga sidan =====
-const BLOCKS=[
-  {tag:'T-10 min',title:'Förberedelse',status:'',items:[
-    'Stäng alla flikar utom de 4 stöd-sidor',
-    'Mute notifications (Do Not Disturb / Focus Assist)',
-    'Mobilen tyst men nära — för Command Center',
-    'Vatten / kaffe redo',
-  ]},
-  {tag:'T-9 min',title:'Öppna stöd-flikar',status:'',items:[
-    'Huvudskärm: <code>/cco-demo.html</code>',
-    'Sido-skärm/telefon: <code>/personal-demo.html</code>',
-    'Sido-flik: <code>/cco-presenter-mode.html</code> (14-stegs flow + 15-min timer)',
-    'Reserv-flik: <code>/journal-pilot-guide.html</code>',
-  ],links:[
-    ['/cco-demo.html','Personalstart'],
-    ['/personal-demo.html','Command Center'],
-    ['/cco-presenter-mode.html','Presenter Mode'],
-    ['/journal-pilot-guide.html','Personalguide'],
-  ]},
-  {tag:'T-8 min',title:'Smoke-test',status:'',items:[
-    'Klicka pilotkund 1 från personalstart → ska öppna journal-feed',
-    'Klicka tillbaka → klicka pilotkund 3 → ska visa signerad post + rättelse',
-    'Refresh Command Center → ska visa stor grön <strong>GO</strong>',
-  ]},
-  {tag:'T-5 min',title:'Failover-check',status:'warning',items:[
-    'Öppna backup-URL i bakgrund: <code>major-arcana-frankfurt.onrender.com/cco-demo.html</code>',
-    'Om backup laddar 200 → du har failover redo',
-    'Skriv ner mobilnumret till någon som kan ringa Fazli om något händer',
-  ]},
-  {tag:'T-2 min',title:'Samla personalen',status:'',items:[
-    'Be alla logga in på sin egen station',
-    'Säg: "Vi börjar med en kontrollerad journalpilot — inget skarpt än"',
-    'Visa skärmen — personalstart i fullskärm',
-  ]},
-  {tag:'T-0',title:'Starta presentationen',status:'go',items:[
-    'Klicka <strong>Start</strong> på 15-min timern i Presenter Mode',
-    'Säg: "Det här är CCO — vårt nya kundkort och journalnav."',
-    'Kör 14-stegs flow från Presenter Mode',
-    'Bocka av varje steg i Presenter Mode — håller dig på spår',
-  ]},
-];
-
-// plausibelt demo-läge: första blocket redan klart
-const PRESET={0:[0,1,2,3]};
-
-const TOTAL=BLOCKS.reduce((n,b)=>n+b.items.length,0);
-const blocksEl=document.getElementById('blocks');
-let id=0;
-blocksEl.innerHTML=BLOCKS.map((b,bi)=>{
-  const stCls=b.status==='warning'?' is-warning':b.status==='go'?' is-go':'';
-  const rows=b.items.map((it,ii)=>{
-    const checked=(PRESET[bi]||[]).includes(ii)?'checked':'';
-    const cid='c'+(id++);
-    return `<li><label class="chk">
+      const TOTAL = BLOCKS.reduce((n, b) => n + b.items.length, 0);
+      const blocksEl = document.getElementById('blocks');
+      let id = 0;
+      blocksEl.innerHTML = BLOCKS.map((b, bi) => {
+        const stCls = b.status === 'warning' ? ' is-warning' : b.status === 'go' ? ' is-go' : '';
+        const rows = b.items
+          .map((it, ii) => {
+            const checked = (PRESET[bi] || []).includes(ii) ? 'checked' : '';
+            const cid = 'c' + id++;
+            return `<li><label class="chk">
       <span class="switch"><input type="checkbox" data-b="${bi}" id="${cid}" ${checked}><span class="track"></span></span>
       <span class="ctext">${it}</span>
     </label></li>`;
-  }).join('');
-  const links=b.links?`<div class="quick-row">${b.links.map(l=>`<a href="${l[0]}" target="_blank" rel="noopener">${l[1]}</a>`).join('')}</div>`:'';
-  return `<section class="card block${stCls}" data-block="${bi}">
+          })
+          .join('');
+        const links = b.links
+          ? `<div class="quick-row">${b.links.map((l) => `<a href="${l[0]}" target="_blank" rel="noopener">${l[1]}</a>`).join('')}</div>`
+          : '';
+        return `<section class="card block${stCls}" data-block="${bi}">
     <div class="block-head">
       <span class="time-tag">${b.tag}</span>
       <h2 class="block-title">${b.title}</h2>
@@ -307,45 +1236,80 @@ blocksEl.innerHTML=BLOCKS.map((b,bi)=>{
     <ul class="check">${rows}</ul>
     ${links}
   </section>`;
-}).join('');
+      }).join('');
 
-const all=()=>[...blocksEl.querySelectorAll('input[type=checkbox]')];
-const mDone=document.getElementById('mDone'),mBlocks=document.getElementById('mBlocks'),mNext=document.getElementById('mNext');
-const pPct=document.getElementById('pPct'),pSub=document.getElementById('pSub'),pBar=document.getElementById('pBar'),allDone=document.getElementById('allDone');
-const nextMeta=mNext.nextElementSibling;
+      const all = () => [...blocksEl.querySelectorAll('input[type=checkbox]')];
+      const mDone = document.getElementById('mDone'),
+        mBlocks = document.getElementById('mBlocks'),
+        mNext = document.getElementById('mNext');
+      const pPct = document.getElementById('pPct'),
+        pSub = document.getElementById('pSub'),
+        pBar = document.getElementById('pBar'),
+        allDone = document.getElementById('allDone');
+      const nextMeta = mNext.nextElementSibling;
 
-function update(){
-  const boxes=all();
-  const done=boxes.filter(b=>b.checked).length;
-  // per-block
-  let blocksDone=0, nextIdx=-1;
-  BLOCKS.forEach((b,bi)=>{
-    const bx=boxes.filter(x=>+x.dataset.b===bi);
-    const n=bx.filter(x=>x.checked).length;
-    const cnt=blocksEl.querySelector(`[data-count="${bi}"]`);
-    cnt.textContent=n+'/'+bx.length;
-    const full=n===bx.length;
-    cnt.classList.toggle('is-full',full);
-    blocksEl.querySelector(`[data-block="${bi}"]`).classList.toggle('is-done',full);
-    if(full)blocksDone++;
-    else if(nextIdx===-1)nextIdx=bi;
-  });
-  const pct=Math.round(done/TOTAL*100);
-  mDone.textContent=done+'/'+TOTAL;
-  mBlocks.textContent=blocksDone+'/'+BLOCKS.length;
-  pPct.textContent=pct+'%';
-  pSub.textContent=done+' av '+TOTAL+' steg avbockade';
-  pBar.style.width=pct+'%';
-  if(nextIdx===-1){mNext.textContent='Klart';nextMeta.textContent='Alla block avbockade';}
-  else{mNext.textContent=BLOCKS[nextIdx].tag;nextMeta.textContent=BLOCKS[nextIdx].title;}
-  allDone.classList.toggle('is-on',done===TOTAL);
-}
+      function update() {
+        const boxes = all();
+        const done = boxes.filter((b) => b.checked).length;
+        // per-block
+        let blocksDone = 0,
+          nextIdx = -1;
+        BLOCKS.forEach((b, bi) => {
+          const bx = boxes.filter((x) => +x.dataset.b === bi);
+          const n = bx.filter((x) => x.checked).length;
+          const cnt = blocksEl.querySelector(`[data-count="${bi}"]`);
+          cnt.textContent = n + '/' + bx.length;
+          const full = n === bx.length;
+          cnt.classList.toggle('is-full', full);
+          blocksEl.querySelector(`[data-block="${bi}"]`).classList.toggle('is-done', full);
+          if (full) blocksDone++;
+          else if (nextIdx === -1) nextIdx = bi;
+        });
+        const pct = Math.round((done / TOTAL) * 100);
+        mDone.textContent = done + '/' + TOTAL;
+        mBlocks.textContent = blocksDone + '/' + BLOCKS.length;
+        pPct.textContent = pct + '%';
+        pSub.textContent = done + ' av ' + TOTAL + ' steg avbockade';
+        pBar.style.width = pct + '%';
+        if (nextIdx === -1) {
+          mNext.textContent = 'Klart';
+          nextMeta.textContent = 'Alla block avbockade';
+        } else {
+          mNext.textContent = BLOCKS[nextIdx].tag;
+          nextMeta.textContent = BLOCKS[nextIdx].title;
+        }
+        allDone.classList.toggle('is-on', done === TOTAL);
+      }
 
-blocksEl.addEventListener('change',e=>{if(e.target.matches('input[type=checkbox]'))update();});
-document.getElementById('btnAll').addEventListener('click',()=>{all().forEach(b=>b.checked=true);update();});
-document.getElementById('btnReset').addEventListener('click',()=>{all().forEach(b=>b.checked=false);update();});
-update();
-</script>
-<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
-</body>
+      blocksEl.addEventListener('change', (e) => {
+        if (e.target.matches('input[type=checkbox]')) update();
+      });
+      document.getElementById('btnAll').addEventListener('click', () => {
+        all().forEach((b) => (b.checked = true));
+        update();
+      });
+      document.getElementById('btnReset').addEventListener('click', () => {
+        all().forEach((b) => (b.checked = false));
+        update();
+      });
+      update();
+    </script>
+    <script>
+      (function () {
+        var nav = document.querySelector('.botnav');
+        if (!nav) return;
+        nav.addEventListener('click', function (e) {
+          var b = e.target.closest('.nav-i');
+          if (!b) return;
+          nav.querySelectorAll('.nav-i').forEach(function (x) {
+            x.classList.remove('is-active');
+            x.removeAttribute('aria-current');
+          });
+          void b.offsetWidth;
+          b.classList.add('is-active');
+          b.setAttribute('aria-current', 'page');
+        });
+      })();
+    </script>
+  </body>
 </html>

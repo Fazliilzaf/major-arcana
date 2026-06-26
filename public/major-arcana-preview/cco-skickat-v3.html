@@ -188,6 +188,45 @@
         height: 1.1rem;
       }
 
+      /* sidoräls-primitiver (v11 facit) */
+      .rail-brand {
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        padding: 0.4rem 0.6rem;
+      }
+      .rail-nav {
+        min-height: var(--tap);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0 0.7rem;
+        border-radius: var(--r-md);
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: var(--fs-meta);
+        border: 0;
+        background: transparent;
+        text-align: left;
+      }
+      .rail-nav.is-active {
+        background: var(--accent-weak-bg);
+        color: var(--accent);
+      }
+      .rail-nav svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+      .rail-sec {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin: 1rem 0.7rem 0.3rem;
+      }
+
       /* head-zon */
       .head {
         padding: 0.9rem 0 0.4rem;
@@ -251,6 +290,7 @@
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
         font-size: var(--fs-meta);
         font-weight: 700;
+        box-shadow: var(--sh-sm);
         color: var(--text-secondary);
         cursor: pointer;
         white-space: nowrap;
@@ -272,6 +312,37 @@
         .pill {
           min-height: var(--tap);
         }
+      }
+      .pill .dot {
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 999px;
+      }
+      .pill--success {
+        color: var(--success);
+      }
+      .pill--success .dot {
+        background: var(--success);
+      }
+      .pill--warning {
+        color: var(--warning);
+      }
+      .pill--warning .dot {
+        background: var(--warning);
+      }
+      .pill--info {
+        color: var(--info);
+      }
+      .pill--info .dot {
+        background: var(--info);
+      }
+      .pill--vip {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill--vip .dot {
+        background: var(--accent);
       }
 
       /* knappar */
@@ -309,11 +380,33 @@
 
       /* kort & paneler */
       .card {
+        position: relative;
+        cursor: pointer;
         padding: 1rem;
         border-radius: var(--r-lg);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
         border: 1px solid rgba(180, 165, 150, 0.25);
         box-shadow: var(--sh-md);
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease,
+          border-color 0.12s ease;
+      }
+      .card:hover {
+        box-shadow: var(--sh-lg);
+        border-color: rgba(176, 53, 110, 0.25);
+      }
+      .card:active {
+        transform: scale(0.99);
+      }
+      .card.is-selected {
+        border-color: var(--accent);
+        box-shadow:
+          0 0 0 2px rgba(176, 53, 110, 0.25),
+          var(--sh-md);
+      }
+      .card.is-open {
+        border-color: var(--accent);
       }
       .panel {
         padding: 1.1rem;

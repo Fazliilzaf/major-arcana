@@ -1,388 +1,1526 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>CCO Uteblivna besök — v3 responsiv</title>
-<style>
-/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>CCO Uteblivna besök — v3 responsiv</title>
+    <style>
+      /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
    WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
    Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
-:root{
-  --bg-page:#faf6f2;--bg-surface:#ffffff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
-  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
-  --accent:#b0356e;--accent-weak:#fdeef4;--accent-weak-bg:#fdeef4;--accent-strong:#8e285699;--text-on-accent:#ffffff;
-  --success:#2f6f54;--success-bg:rgba(47,111,84,.14);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
-  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
-  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
-  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 8px 22px rgba(56,40,28,.12),inset 0 1px 0 rgba(255,255,255,.92);--sh-xl:0 24px 56px rgba(93,74,60,.16),inset 0 1px 0 rgba(255,255,255,.55);
-  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
-  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-card-title:clamp(.9rem,.85rem+.4vw,1.05rem);--fs-h1:clamp(1.5rem,1.2rem+2vw,2.25rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
-  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
-  --maxw:1500px;
-  --error-text:#962b2b;--error-border:#d8526b;--error-bg:#fdecec;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
-body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
-  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
-button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-.tabnum{font-variant-numeric:tabular-nums}
+      :root {
+        --bg-page: #faf6f2;
+        --bg-surface: #ffffff;
+        --bg-sunken: #f3ece3;
+        --bg-rail: #fbf7f2;
+        --text-primary: #221c15;
+        --text-secondary: #574d40;
+        --text-tertiary: #6d6354;
+        --accent: #b0356e;
+        --accent-weak: #fdeef4;
+        --accent-weak-bg: #fdeef4;
+        --accent-strong: #8e285699;
+        --text-on-accent: #ffffff;
+        --success: #2f6f54;
+        --success-bg: rgba(47, 111, 84, 0.14);
+        --warning: #9a6410;
+        --warning-bg: rgba(154, 100, 16, 0.16);
+        --danger: #a83838;
+        --danger-bg: rgba(168, 56, 56, 0.14);
+        --info: #2f6595;
+        --info-bg: rgba(47, 101, 149, 0.14);
+        --violet: #6b31c9;
+        --violet-bg: rgba(107, 49, 201, 0.12);
+        --gold: #8a5f1e;
+        --gold-bg: rgba(138, 95, 30, 0.14);
+        --slate: #475569;
+        --slate-bg: rgba(71, 85, 105, 0.12);
+        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
+        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        --r-sm: 10px;
+        --r-md: 14px;
+        --r-lg: 18px;
+        --r-xl: 24px;
+        --r-pill: 999px;
+        --fs-kicker: 0.6875rem;
+        --fs-meta: 0.75rem;
+        --fs-body: 0.875rem;
+        --fs-card-title: clamp(0.9rem, 0.85rem+0.4vw, 1.05rem);
+        --fs-h1: clamp(1.5rem, 1.2rem+2vw, 2.25rem);
+        --fs-num: clamp(1.35rem, 1.1rem+1.4vw, 1.9rem);
+        --tap: 2.75rem;
+        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
+        --pad-x: clamp(0.875rem, 0.5rem+1.6vw, 1.5rem);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --maxw: 1500px;
+        --error-text: #962b2b;
+        --error-border: #d8526b;
+        --error-bg: #fdecec;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        font-size: 100%;
+        overflow-x: clip;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
+          var(--bg-page);
+        color: var(--text-primary);
+        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-size: var(--fs-body);
+        line-height: 1.45;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      button {
+        font-family: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      .tabnum {
+        font-variant-numeric: tabular-nums;
+      }
 
-/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
-.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
-@media(min-width:1025px){.aux{padding-bottom:2rem}}
+      /* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+      .aux {
+        max-width: var(--maxw);
+        margin-inline: auto;
+        padding: 0 var(--pad-x) 6rem;
+        min-height: 100vh;
+      }
+      @media (min-width: 1025px) {
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
 
-/* topbar (samma som Konversationer/Senare) */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
-  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
-.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
-.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
-.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
-.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
-.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
-.icon-btn svg{width:1.1rem;height:1.1rem}
+      /* topbar (samma som Konversationer/Senare) */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: var(--gap);
+        padding: 0.5rem var(--pad-x);
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+        margin: 0 calc(-1 * var(--pad-x));
+        background: linear-gradient(
+          180deg,
+          rgba(250, 246, 242, 0.97),
+          rgba(250, 246, 242, 0.82) 80%,
+          transparent
+        );
+        backdrop-filter: blur(18px);
+      }
+      .brand {
+        flex-shrink: 0;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 0.4rem 0.7rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+      }
+      .search {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        padding: 0 0.75rem 0 2.1rem;
+      }
+      .search svg {
+        position: absolute;
+        left: 0.7rem;
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-tertiary);
+      }
+      .search input {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        width: 100%;
+        height: 100%;
+        font: inherit;
+        font-size: var(--fs-meta);
+        color: var(--text-primary);
+        outline: none;
+      }
+      .icon-btn {
+        flex-shrink: 0;
+        width: var(--tap);
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        cursor: pointer;
+      }
 
-/* head-zon */
-.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
-.head-main{min-width:0}
-.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
-.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
-.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+      .icon-btn svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
 
-/* pill-rader (filter/period/segment) */
-.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
-.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
-.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
-.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
-.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
-@media(pointer:coarse){.pill{min-height:var(--tap)}}
+      /* sidoräls-primitiver (v11 facit) */
+      .rail-brand {
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        padding: 0.4rem 0.6rem;
+      }
+      .rail-nav {
+        min-height: var(--tap);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0 0.7rem;
+        border-radius: var(--r-md);
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: var(--fs-meta);
+        border: 0;
+        background: transparent;
+        text-align: left;
+      }
+      .rail-nav.is-active {
+        background: var(--accent-weak-bg);
+        color: var(--accent);
+      }
+      .rail-nav svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+      .rail-sec {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin: 1rem 0.7rem 0.3rem;
+      }
 
-/* knappar */
-.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
-.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
-@media(pointer:coarse){.btn{min-height:var(--tap)}}
+      /* head-zon */
+      .head {
+        padding: 0.9rem 0 0.4rem;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: var(--gap);
+        flex-wrap: wrap;
+      }
+      .head-main {
+        min-width: 0;
+      }
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+      }
+      .h1 {
+        margin: 0;
+        font-size: var(--fs-h1);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        margin: 0.3rem 0 0;
+        color: var(--text-secondary);
+        font-size: var(--fs-meta);
+        max-width: 46ch;
+      }
 
-/* kort & paneler */
-.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.panel-head{margin-bottom:.7rem}
-.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
-.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
-.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+      /* pill-rader (filter/period/segment) */
+      .pillrow {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .pillrow.scroll {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .pillrow.scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .pill {
+        flex-shrink: 0;
+        min-height: 2.25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0 0.85rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.3);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        box-shadow: var(--sh-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .pill[aria-pressed='true'],
+      .pill.is-active {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill .c {
+        background: rgba(180, 165, 150, 0.18);
+        padding: 0.05rem 0.4rem;
+        border-radius: var(--r-pill);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      @media (pointer: coarse) {
+        .pill {
+          min-height: var(--tap);
+        }
+      }
+      .pill .dot {
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 999px;
+      }
+      .pill--success {
+        color: var(--success);
+      }
+      .pill--success .dot {
+        background: var(--success);
+      }
+      .pill--warning {
+        color: var(--warning);
+      }
+      .pill--warning .dot {
+        background: var(--warning);
+      }
+      .pill--info {
+        color: var(--info);
+      }
+      .pill--info .dot {
+        background: var(--info);
+      }
+      .pill--vip {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill--vip .dot {
+        background: var(--accent);
+      }
 
-/* metric-kort (KPI) */
-.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
-.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
-.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
-.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
-.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
-.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
-.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
-.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+      /* knappar */
+      .btn {
+        min-height: 2.5rem;
+        padding: 0 1rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        background: rgba(255, 255, 255, 0.85);
+        font: inherit;
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+      }
+      .btn--primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn--danger {
+        background: var(--danger-bg);
+        border-color: rgba(168, 56, 56, 0.3);
+        color: var(--danger);
+      }
+      @media (pointer: coarse) {
+        .btn {
+          min-height: var(--tap);
+        }
+      }
 
-/* switch — 44px träffyta via track-storlek */
-.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
-.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
-.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
-.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
-.switch input:checked + .track{background:var(--success)}
-.switch input:checked + .track::after{transform:translateX(1.4rem)}
-.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+      /* kort & paneler */
+      .card {
+        position: relative;
+        cursor: pointer;
+        padding: 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease,
+          border-color 0.12s ease;
+      }
+      .card:hover {
+        box-shadow: var(--sh-lg);
+        border-color: rgba(176, 53, 110, 0.25);
+      }
+      .card:active {
+        transform: scale(0.99);
+      }
+      .card.is-selected {
+        border-color: var(--accent);
+        box-shadow:
+          0 0 0 2px rgba(176, 53, 110, 0.25),
+          var(--sh-md);
+      }
+      .card.is-open {
+        border-color: var(--accent);
+      }
+      .panel {
+        padding: 1.1rem;
+        border-radius: var(--r-xl);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.88));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+      }
+      .panel-head {
+        margin-bottom: 0.7rem;
+      }
+      .panel-head h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .panel-head p {
+        margin: 0.2rem 0 0;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+      }
+      .sec-kicker {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
 
-/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
-.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
-.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
-.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
-/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
-.nav-i{gap:.2rem;transition:color .2s;position:relative}
-.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
-.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
-.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
-.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.nav-i .ic-dot{fill:currentColor}
-@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
-.nav-i:active .ic{transform:scale(.84)}
-.nav-i.is-active{color:var(--ic,var(--accent))}
-.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
-.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
-.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
-.nav-i.is-active .ic-line{stroke:#fff}
-.nav-i.is-active .ic-dot{fill:#fff}
-.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
-@keyframes navpop{0%{transform:scale(.7)}100%{transform:scale(1)}}
-@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
-@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
-@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+      /* metric-kort (KPI) */
+      .metric {
+        padding: 0.9rem 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+      }
+      .metric .m-label {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .metric .m-val {
+        font-size: var(--fs-num);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-top: 0.15rem;
+        line-height: 1.05;
+      }
+      .metric .m-meta {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        margin-top: 0.25rem;
+      }
+      .metric .m-trend {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      .m-trend--up {
+        color: var(--success);
+      }
+      .m-trend--down {
+        color: var(--danger);
+      }
+      .metric--green {
+        border-left: 3px solid var(--success);
+      }
+      .metric--blue {
+        border-left: 3px solid var(--info);
+      }
+      .metric--rose {
+        border-left: 3px solid var(--accent);
+      }
+      .metric--violet {
+        border-left: 3px solid var(--violet);
+      }
+      .metric--gold {
+        border-left: 3px solid var(--gold);
+      }
+      .metric--slate {
+        border-left: 3px solid var(--slate);
+      }
 
-/* ===== UTEBLIVNA-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+      /* switch — 44px träffyta via track-storlek */
+      .switch {
+        position: relative;
+        flex-shrink: 0;
+        width: 3rem;
+        height: var(--tap);
+        cursor: pointer;
+      }
+      .switch input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        margin: 0;
+        cursor: pointer;
+      }
+      .switch .track {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        width: 3rem;
+        height: 1.6rem;
+        border-radius: 999px;
+        background: rgba(120, 108, 95, 0.32);
+        transition: background 0.2s;
+      }
+      .switch .track::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: var(--sh-sm);
+        transition: transform 0.2s;
+      }
+      .switch input:checked + .track {
+        background: var(--success);
+      }
+      .switch input:checked + .track::after {
+        transform: translateX(1.4rem);
+      }
+      .switch input:focus-visible + .track {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
 
-/* metric-rad — mobil: horisontellt scrollbar; ≥601: 4-up */
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
-@media(max-width:600px){
-  .metrics{grid-auto-flow:column;grid-auto-columns:minmax(8.5rem,1fr);grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:calc(-1*var(--pad-x));padding-inline:var(--pad-x)}
-  .metrics::-webkit-scrollbar{display:none}
-  .metric{scroll-snap-align:start}
-}
+      /* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+      .botnav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem calc(0.5rem + var(--safe-bottom));
+        background: linear-gradient(180deg, rgba(250, 246, 242, 0), rgba(250, 246, 242, 0.94) 30%);
+        backdrop-filter: blur(20px);
+      }
+      .nav-i {
+        flex: 1;
+        min-height: var(--tap);
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.1rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .nav-i svg {
+        width: 1.35rem;
+        height: 1.35rem;
+      }
+      .nav-i.is-active {
+        color: var(--accent);
+      }
+      /* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+      .nav-i {
+        gap: 0.2rem;
+        transition: color 0.2s;
+        position: relative;
+      }
+      .nav-i .ic-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.1rem;
+        height: 1.9rem;
+        border-radius: var(--r-pill);
+        transition:
+          background 0.25s,
+          box-shadow 0.25s,
+          transform 0.25s;
+      }
+      .nav-i .ic {
+        width: 1.5rem;
+        height: 1.5rem;
+        transition: transform 0.2s;
+      }
+      .nav-i .ic-fill {
+        fill: currentColor;
+        opacity: 0.24;
+        transition:
+          fill 0.2s,
+          opacity 0.2s;
+      }
+      .nav-i .ic-line {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .nav-i .ic-dot {
+        fill: currentColor;
+      }
+      @media (hover: hover) {
+        .nav-i:not(.is-active):hover .ic {
+          transform: translateY(-2px) rotate(-6deg);
+        }
+        .nav-i:not(.is-active):hover .ic-wrap {
+          background: rgba(176, 53, 110, 0.08);
+        }
+      }
+      .nav-i:active .ic {
+        transform: scale(0.84);
+      }
+      .nav-i.is-active {
+        color: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-wrap {
+        background: var(--ic-bg, var(--accent-weak));
+        box-shadow: 0 7px 16px -6px var(--ic, var(--accent));
+        animation: navfloat 2.8s ease-in-out infinite;
+      }
+      .nav-i.is-active .ic {
+        animation: navpop 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .nav-i.is-active .ic-fill {
+        opacity: 1;
+        fill: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-line {
+        stroke: #fff;
+      }
+      .nav-i.is-active .ic-dot {
+        fill: #fff;
+      }
+      .nav-badge {
+        position: absolute;
+        top: -0.15rem;
+        right: 0.4rem;
+        min-width: 1rem;
+        height: 1rem;
+        padding: 0 0.25rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 0.5625rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px var(--bg-page);
+      }
+      @keyframes navpop {
+        0% {
+          transform: scale(0.7);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes navfloat {
+        0%,
+        100% {
+          transform: translateY(-3px);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .nav-i .ic,
+        .nav-i .ic-wrap {
+          animation: none !important;
+        }
+      }
+      @media (min-width: 601px) {
+        .botnav {
+          display: none;
+        }
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
 
-/* filterrad */
-.toolbar{display:flex;flex-direction:column;gap:.5rem;margin:.7rem 0 .9rem}
+      /* ===== UTEBLIVNA-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
 
-/* two-column aux layout */
-.aux-mail-layout{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+      /* metric-rad — mobil: horisontellt scrollbar; ≥601: 4-up */
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--gap);
+        margin: 0.6rem 0 0.2rem;
+      }
+      @media (max-width: 600px) {
+        .metrics {
+          grid-auto-flow: column;
+          grid-auto-columns: minmax(8.5rem, 1fr);
+          grid-template-columns: none;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scrollbar-width: none;
+          margin-inline: calc(-1 * var(--pad-x));
+          padding-inline: var(--pad-x);
+        }
+        .metrics::-webkit-scrollbar {
+          display: none;
+        }
+        .metric {
+          scroll-snap-align: start;
+        }
+      }
 
-/* no-show-lista */
-.ns-list{display:flex;flex-direction:column;gap:.5rem;min-width:0}
-.ns-card{position:relative;width:100%;text-align:left;display:flex;flex-direction:column;gap:.5rem;padding:.85rem .9rem;border-radius:var(--r-md);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.24);box-shadow:var(--sh-sm);cursor:pointer}
-.ns-card.is-active{border-color:var(--accent);background:linear-gradient(180deg,#fff6fa,rgba(253,238,244,.86))}
-.ns-top{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-.ns-name{font-size:var(--fs-body);font-weight:800;color:var(--text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ns-when{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-left:auto;flex-shrink:0}
-.ns-treat{font-size:var(--fs-meta);color:var(--text-secondary)}
-.ns-meta{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}
-.flag{flex-shrink:0;padding:.1rem .5rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.02em;white-space:nowrap}
-.flag--noshow{background:var(--danger-bg);color:var(--danger)}
-.flag--risk{background:var(--warning-bg);color:var(--warning)}
-.flag--dep{background:var(--violet-bg);color:var(--violet)}
-.flag--loss{background:var(--gold-bg);color:var(--gold);font-variant-numeric:tabular-nums}
-.flag--new{background:var(--info-bg);color:var(--info)}
-.flag--rebooked{background:var(--success-bg);color:var(--success)}
-.flag--handled{background:var(--slate-bg);color:var(--slate)}
-.ns-acts{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.15rem}
-.ns-acts .btn{min-height:2.25rem;padding:0 .8rem}
-@media(pointer:coarse){.ns-acts .btn{min-height:var(--tap)}}
+      /* filterrad */
+      .toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin: 0.7rem 0 0.9rem;
+      }
 
-/* side / detalj-panel */
-.side{display:flex;flex-direction:column;gap:var(--gap);min-width:0}
-.dp-head{display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap}
-.dp-name{margin:0;font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
-.dp-sub{margin:.15rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
-.dp-block{margin-top:.9rem}
-.dp-block h4{margin:0 0 .4rem;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)}
-.dp-stat{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
-.dp-stat .s{padding:.55rem .65rem;border-radius:var(--r-md);background:var(--bg-sunken)}
-.dp-stat .s .sv{font-size:1.1rem;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
-.dp-stat .s .sl{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.1rem}
-/* historik-tidslinje */
-.hist{list-style:none;margin:.2rem 0 0;padding:0;display:flex;flex-direction:column;gap:.4rem}
-.hist li{display:flex;gap:.55rem;align-items:flex-start;font-size:var(--fs-meta)}
-.hist .dot{flex-shrink:0;width:.55rem;height:.55rem;border-radius:50%;margin-top:.35rem;background:var(--text-tertiary)}
-.hist .dot--miss{background:var(--danger)}.hist .dot--ok{background:var(--success)}.hist .dot--cancel{background:var(--warning)}
-.hist .ht{font-weight:700;color:var(--text-primary)}
-.hist .hd{color:var(--text-tertiary);font-size:var(--fs-kicker)}
-/* rekommendation */
-.reco{margin-top:.9rem;padding:.85rem .9rem;border-radius:var(--r-md);background:var(--accent-weak);border:1px solid rgba(176,53,110,.22)}
-.reco .rk{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
-.reco p{margin:.3rem 0 0;font-size:var(--fs-meta);color:var(--text-secondary)}
-.dp-acts{display:flex;flex-direction:column;gap:.5rem;margin-top:.9rem}
-.dp-acts .btn{justify-content:center;width:100%}
+      /* two-column aux layout */
+      .aux-mail-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--gap);
+      }
 
-/* iPad 601–1024: två-kolumn (lista ~1.4fr + panel ~280px) */
-@media(min-width:601px){
-  .aux-mail-layout{grid-template-columns:minmax(0,1.4fr) minmax(0,300px);align-items:start}
-  .side{position:sticky;top:4.5rem}
-}
-/* Desktop ≥1025: samma två-kolumn, panel något bredare */
-@media(min-width:1025px){
-  .aux-mail-layout{grid-template-columns:minmax(0,1.5fr) 340px}
-}
-</style>
-</head>
-<body>
-<div class="aux">
+      /* no-show-lista */
+      .ns-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-width: 0;
+      }
+      .ns-card {
+        position: relative;
+        width: 100%;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.85rem 0.9rem;
+        border-radius: var(--r-md);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(180, 165, 150, 0.24);
+        box-shadow: var(--sh-sm);
+        cursor: pointer;
+      }
+      .ns-card.is-active {
+        border-color: var(--accent);
+        background: linear-gradient(180deg, #fff6fa, rgba(253, 238, 244, 0.86));
+      }
+      .ns-top {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .ns-name {
+        font-size: var(--fs-body);
+        font-weight: 800;
+        color: var(--text-primary);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ns-when {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+      .ns-treat {
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+      }
+      .ns-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        align-items: center;
+      }
+      .flag {
+        flex-shrink: 0;
+        padding: 0.1rem 0.5rem;
+        border-radius: var(--r-pill);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .flag--noshow {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+      .flag--risk {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+      .flag--dep {
+        background: var(--violet-bg);
+        color: var(--violet);
+      }
+      .flag--loss {
+        background: var(--gold-bg);
+        color: var(--gold);
+        font-variant-numeric: tabular-nums;
+      }
+      .flag--new {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .flag--rebooked {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .flag--handled {
+        background: var(--slate-bg);
+        color: var(--slate);
+      }
+      .ns-acts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.15rem;
+      }
+      .ns-acts .btn {
+        min-height: 2.25rem;
+        padding: 0 0.8rem;
+      }
+      @media (pointer: coarse) {
+        .ns-acts .btn {
+          min-height: var(--tap);
+        }
+      }
 
-  <!-- ===== TOPBAR ===== -->
-  <div class="topbar"><span class="brand">CCO</span>
-    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök patient eller behandling…"></label>
-    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
-  </div>
+      /* side / detalj-panel */
+      .side {
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+        min-width: 0;
+      }
+      .dp-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+      }
+      .dp-name {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .dp-sub {
+        margin: 0.15rem 0 0;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+      }
+      .dp-block {
+        margin-top: 0.9rem;
+      }
+      .dp-block h4 {
+        margin: 0 0 0.4rem;
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .dp-stat {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+      }
+      .dp-stat .s {
+        padding: 0.55rem 0.65rem;
+        border-radius: var(--r-md);
+        background: var(--bg-sunken);
+      }
+      .dp-stat .s .sv {
+        font-size: 1.1rem;
+        font-weight: 800;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+      }
+      .dp-stat .s .sl {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        margin-top: 0.1rem;
+      }
+      /* historik-tidslinje */
+      .hist {
+        list-style: none;
+        margin: 0.2rem 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .hist li {
+        display: flex;
+        gap: 0.55rem;
+        align-items: flex-start;
+        font-size: var(--fs-meta);
+      }
+      .hist .dot {
+        flex-shrink: 0;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        margin-top: 0.35rem;
+        background: var(--text-tertiary);
+      }
+      .hist .dot--miss {
+        background: var(--danger);
+      }
+      .hist .dot--ok {
+        background: var(--success);
+      }
+      .hist .dot--cancel {
+        background: var(--warning);
+      }
+      .hist .ht {
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .hist .hd {
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+      }
+      /* rekommendation */
+      .reco {
+        margin-top: 0.9rem;
+        padding: 0.85rem 0.9rem;
+        border-radius: var(--r-md);
+        background: var(--accent-weak);
+        border: 1px solid rgba(176, 53, 110, 0.22);
+      }
+      .reco .rk {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .reco p {
+        margin: 0.3rem 0 0;
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+      }
+      .dp-acts {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.9rem;
+      }
+      .dp-acts .btn {
+        justify-content: center;
+        width: 100%;
+      }
 
-  <!-- ===== HEAD ===== -->
-  <div class="head">
-    <div class="head-main">
-      <span class="kicker">Kalender</span>
-      <h1 class="h1">Uteblivna besök</h1>
-      <p class="subtitle">Patienter som inte dök upp. Boka om, begär deposition vid upprepade no-shows och håll förlorad intäkt under kontroll.</p>
+      /* iPad 601–1024: två-kolumn (lista ~1.4fr + panel ~280px) */
+      @media (min-width: 601px) {
+        .aux-mail-layout {
+          grid-template-columns: minmax(0, 1.4fr) minmax(0, 300px);
+          align-items: start;
+        }
+        .side {
+          position: sticky;
+          top: 4.5rem;
+        }
+      }
+      /* Desktop ≥1025: samma två-kolumn, panel något bredare */
+      @media (min-width: 1025px) {
+        .aux-mail-layout {
+          grid-template-columns: minmax(0, 1.5fr) 340px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="aux">
+      <!-- ===== TOPBAR ===== -->
+      <div class="topbar">
+        <span class="brand">CCO</span>
+        <label class="search"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
+          ><input placeholder="Sök patient eller behandling…"
+        /></label>
+        <button class="icon-btn" aria-label="Filtrera">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+          >
+            <path d="M3 5h18M6 12h12M10 19h4" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- ===== HEAD ===== -->
+      <div class="head">
+        <div class="head-main">
+          <span class="kicker">Kalender</span>
+          <h1 class="h1">Uteblivna besök</h1>
+          <p class="subtitle">
+            Patienter som inte dök upp. Boka om, begär deposition vid upprepade no-shows och håll
+            förlorad intäkt under kontroll.
+          </p>
+        </div>
+      </div>
+
+      <!-- ===== METRIC-RAD ===== -->
+      <div class="metrics">
+        <div class="metric metric--rose">
+          <div class="m-label">Uteblivna denna vecka</div>
+          <div class="m-val tabnum">7</div>
+          <div class="m-meta"><span class="m-trend m-trend--up">+2</span> mot förra veckan</div>
+        </div>
+        <div class="metric metric--gold">
+          <div class="m-label">No-show-frekvens</div>
+          <div class="m-val tabnum">6,4%</div>
+          <div class="m-meta">av bokade besök</div>
+        </div>
+        <div class="metric metric--blue">
+          <div class="m-label">Förlorad intäkt</div>
+          <div class="m-val tabnum">18 400 kr</div>
+          <div class="m-meta">denna vecka</div>
+        </div>
+        <div class="metric metric--green">
+          <div class="m-label">Återbokade</div>
+          <div class="m-val tabnum">3</div>
+          <div class="m-meta">av 7 uteblivna</div>
+        </div>
+      </div>
+
+      <!-- ===== FILTER ===== -->
+      <div class="toolbar">
+        <div class="pillrow scroll" role="group" aria-label="Filter">
+          <button class="pill" data-filter="alla" aria-pressed="true">
+            Alla <span class="c tabnum" data-count="alla"></span>
+          </button>
+          <button class="pill" data-filter="nya" aria-pressed="false">
+            Nya <span class="c tabnum" data-count="nya"></span>
+          </button>
+          <button class="pill" data-filter="risk" aria-pressed="false">
+            Hög risk <span class="c tabnum" data-count="risk"></span>
+          </button>
+          <button class="pill" data-filter="aterbokad" aria-pressed="false">
+            Återbokade <span class="c tabnum" data-count="aterbokad"></span>
+          </button>
+          <button class="pill" data-filter="deposition" aria-pressed="false">
+            Deposition krävs <span class="c tabnum" data-count="deposition"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== TVÅ-KOLUMN LAYOUT ===== -->
+      <div class="aux-mail-layout">
+        <!-- VÄNSTER: no-show-lista -->
+        <div class="ns-list" id="nsList"></div>
+
+        <!-- HÖGER: detalj-panel -->
+        <aside class="side">
+          <div class="panel" id="detail" aria-live="polite"></div>
+        </aside>
+      </div>
     </div>
-  </div>
 
-  <!-- ===== METRIC-RAD ===== -->
-  <div class="metrics">
-    <div class="metric metric--rose"><div class="m-label">Uteblivna denna vecka</div><div class="m-val tabnum">7</div><div class="m-meta"><span class="m-trend m-trend--up">+2</span> mot förra veckan</div></div>
-    <div class="metric metric--gold"><div class="m-label">No-show-frekvens</div><div class="m-val tabnum">6,4%</div><div class="m-meta">av bokade besök</div></div>
-    <div class="metric metric--blue"><div class="m-label">Förlorad intäkt</div><div class="m-val tabnum">18 400 kr</div><div class="m-meta">denna vecka</div></div>
-    <div class="metric metric--green"><div class="m-label">Återbokade</div><div class="m-val tabnum">3</div><div class="m-meta">av 7 uteblivna</div></div>
-  </div>
+    <!-- ===== BOTNAV ===== -->
+    <nav class="botnav" aria-label="Huvudnavigering">
+      <button class="nav-i" style="--ic: var(--accent); --ic-bg: var(--accent-weak)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"
+            />
+            <path
+              class="ic-line"
+              d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"
+            /></svg></span
+        >Hem
+      </button>
+      <button class="nav-i" style="--ic: #2f6595; --ic-bg: rgba(47, 101, 149, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4" /></svg
+          ><span class="nav-badge">3</span></span
+        >Boka
+      </button>
+      <button
+        class="nav-i is-active"
+        aria-current="page"
+        style="--ic: #6b31c9; --ic-bg: rgba(107, 49, 201, 0.12)"
+      >
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4" />
+            <circle class="ic-dot" cx="8" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="12" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="16" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="8" cy="17" r="1" />
+            <circle class="ic-dot" cx="12" cy="17" r="1" /></svg></span
+        >Kalender
+      </button>
+      <button class="nav-i" style="--ic: #2f6f54; --ic-bg: rgba(47, 111, 84, 0.16)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"
+            /></svg></span
+        >Kund
+      </button>
+      <button class="nav-i" style="--ic: #8a5f1e; --ic-bg: rgba(138, 95, 30, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"
+            />
+            <path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4" /></svg></span
+        >Journal
+      </button>
+    </nav>
 
-  <!-- ===== FILTER ===== -->
-  <div class="toolbar">
-    <div class="pillrow scroll" role="group" aria-label="Filter">
-      <button class="pill" data-filter="alla" aria-pressed="true">Alla <span class="c tabnum" data-count="alla"></span></button>
-      <button class="pill" data-filter="nya" aria-pressed="false">Nya <span class="c tabnum" data-count="nya"></span></button>
-      <button class="pill" data-filter="risk" aria-pressed="false">Hög risk <span class="c tabnum" data-count="risk"></span></button>
-      <button class="pill" data-filter="aterbokad" aria-pressed="false">Återbokade <span class="c tabnum" data-count="aterbokad"></span></button>
-      <button class="pill" data-filter="deposition" aria-pressed="false">Deposition krävs <span class="c tabnum" data-count="deposition"></span></button>
-    </div>
-  </div>
-
-  <!-- ===== TVÅ-KOLUMN LAYOUT ===== -->
-  <div class="aux-mail-layout">
-
-    <!-- VÄNSTER: no-show-lista -->
-    <div class="ns-list" id="nsList"></div>
-
-    <!-- HÖGER: detalj-panel -->
-    <aside class="side">
-      <div class="panel" id="detail" aria-live="polite"></div>
-    </aside>
-
-  </div>
-</div>
-
-<!-- ===== BOTNAV ===== -->
-<nav class="botnav" aria-label="Huvudnavigering">
-  <button class="nav-i" style="--ic:var(--accent);--ic-bg:var(--accent-weak)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
-  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
-  <button class="nav-i is-active" aria-current="page" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
-  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
-  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
-</nav>
-
-<script>
-/* RISK_NOSHOW_THRESHOLD = 2 (src/ops/ccoKunderEnrichment.js) — no-show ×N ≥ 2 markeras Hög risk.
+    <script>
+      /* RISK_NOSHOW_THRESHOLD = 2 (src/ops/ccoKunderEnrichment.js) — no-show ×N ≥ 2 markeras Hög risk.
    Statuslabels: no_show "Uteblev", cancelled "Avbokad", booked "Bokad" (app.js).
    deposition / depositAmount och ombokning (engine_booking_rebooked "Bokning ombokad i CCO"). */
-const RISK_NOSHOW_THRESHOLD = 2;
+      const RISK_NOSHOW_THRESHOLD = 2;
 
-const ROWS=[
-  {id:1,name:'Emma Svensson',treat:'DHI-konsultation',missedAt:'Idag 09:00',noShow:3,loss:'1 500 kr',status:'ny',dep:true,vip:false,
-    hist:[['miss','Uteblev — DHI-konsultation','Idag 09:00'],['miss','Uteblev — Återbesök','3 maj'],['cancel','Avbokad sent (<24h)','12 apr'],['ok','Genomfört besök','2 mar']]},
-  {id:2,name:'Marcus Lund',treat:'Hårtransplantation 2500 grafts',missedAt:'Idag 11:30',noShow:1,loss:'7 900 kr',status:'ny',dep:false,vip:true,
-    hist:[['miss','Uteblev — Operationsdag','Idag 11:30'],['ok','Genomfört besök — Konsultation','18 apr']]},
-  {id:3,name:'Anna Karlsson',treat:'Återbesök 6 mån',missedAt:'Igår 14:00',noShow:2,loss:'0 kr',status:'risk',dep:true,vip:false,
-    hist:[['miss','Uteblev — Återbesök 6 mån','Igår 14:00'],['miss','Uteblev — Eftervård','21 mar'],['ok','Genomfört besök — DHI','9 jan']]},
-  {id:4,name:'Johan Andersson',treat:'PRP-behandling',missedAt:'Igår 16:15',noShow:1,loss:'2 400 kr',status:'aterbokad',dep:false,vip:false,
-    hist:[['ok','Ombokad till 1 juli 10:00','Idag 08:10'],['miss','Uteblev — PRP-behandling','Igår 16:15'],['ok','Genomfört besök — Konsultation','14 feb']]},
-  {id:5,name:'Sofie Bergström',treat:'Eftervård DHI — checklista',missedAt:'2 dgr sedan',noShow:4,loss:'1 200 kr',status:'risk',dep:true,vip:false,
-    hist:[['miss','Uteblev — Eftervård','2 dgr sedan'],['miss','Uteblev — Återbesök','19 apr'],['miss','Uteblev — Konsultation','30 mar'],['miss','Uteblev — Konsultation','11 feb']]},
-  {id:6,name:'Karl Nyström',treat:'Konsultation hårlinje',missedAt:'3 dgr sedan',noShow:1,loss:'0 kr',status:'hanterad',dep:false,vip:false,
-    hist:[['cancel','Markerad hanterad — kontaktad','2 dgr sedan'],['miss','Uteblev — Konsultation','3 dgr sedan']]},
-  {id:7,name:'Elin Holm',treat:'Återbesök 12 mån',missedAt:'4 dgr sedan',noShow:2,loss:'0 kr',status:'aterbokad',dep:true,vip:false,
-    hist:[['ok','Ombokad till 3 juli 09:00 — deposition begärd','3 dgr sedan'],['miss','Uteblev — Återbesök 12 mån','4 dgr sedan'],['miss','Uteblev — Eftervård','2 apr']]},
-];
+      const ROWS = [
+        {
+          id: 1,
+          name: 'Emma Svensson',
+          treat: 'DHI-konsultation',
+          missedAt: 'Idag 09:00',
+          noShow: 3,
+          loss: '1 500 kr',
+          status: 'ny',
+          dep: true,
+          vip: false,
+          hist: [
+            ['miss', 'Uteblev — DHI-konsultation', 'Idag 09:00'],
+            ['miss', 'Uteblev — Återbesök', '3 maj'],
+            ['cancel', 'Avbokad sent (<24h)', '12 apr'],
+            ['ok', 'Genomfört besök', '2 mar'],
+          ],
+        },
+        {
+          id: 2,
+          name: 'Marcus Lund',
+          treat: 'Hårtransplantation 2500 grafts',
+          missedAt: 'Idag 11:30',
+          noShow: 1,
+          loss: '7 900 kr',
+          status: 'ny',
+          dep: false,
+          vip: true,
+          hist: [
+            ['miss', 'Uteblev — Operationsdag', 'Idag 11:30'],
+            ['ok', 'Genomfört besök — Konsultation', '18 apr'],
+          ],
+        },
+        {
+          id: 3,
+          name: 'Anna Karlsson',
+          treat: 'Återbesök 6 mån',
+          missedAt: 'Igår 14:00',
+          noShow: 2,
+          loss: '0 kr',
+          status: 'risk',
+          dep: true,
+          vip: false,
+          hist: [
+            ['miss', 'Uteblev — Återbesök 6 mån', 'Igår 14:00'],
+            ['miss', 'Uteblev — Eftervård', '21 mar'],
+            ['ok', 'Genomfört besök — DHI', '9 jan'],
+          ],
+        },
+        {
+          id: 4,
+          name: 'Johan Andersson',
+          treat: 'PRP-behandling',
+          missedAt: 'Igår 16:15',
+          noShow: 1,
+          loss: '2 400 kr',
+          status: 'aterbokad',
+          dep: false,
+          vip: false,
+          hist: [
+            ['ok', 'Ombokad till 1 juli 10:00', 'Idag 08:10'],
+            ['miss', 'Uteblev — PRP-behandling', 'Igår 16:15'],
+            ['ok', 'Genomfört besök — Konsultation', '14 feb'],
+          ],
+        },
+        {
+          id: 5,
+          name: 'Sofie Bergström',
+          treat: 'Eftervård DHI — checklista',
+          missedAt: '2 dgr sedan',
+          noShow: 4,
+          loss: '1 200 kr',
+          status: 'risk',
+          dep: true,
+          vip: false,
+          hist: [
+            ['miss', 'Uteblev — Eftervård', '2 dgr sedan'],
+            ['miss', 'Uteblev — Återbesök', '19 apr'],
+            ['miss', 'Uteblev — Konsultation', '30 mar'],
+            ['miss', 'Uteblev — Konsultation', '11 feb'],
+          ],
+        },
+        {
+          id: 6,
+          name: 'Karl Nyström',
+          treat: 'Konsultation hårlinje',
+          missedAt: '3 dgr sedan',
+          noShow: 1,
+          loss: '0 kr',
+          status: 'hanterad',
+          dep: false,
+          vip: false,
+          hist: [
+            ['cancel', 'Markerad hanterad — kontaktad', '2 dgr sedan'],
+            ['miss', 'Uteblev — Konsultation', '3 dgr sedan'],
+          ],
+        },
+        {
+          id: 7,
+          name: 'Elin Holm',
+          treat: 'Återbesök 12 mån',
+          missedAt: '4 dgr sedan',
+          noShow: 2,
+          loss: '0 kr',
+          status: 'aterbokad',
+          dep: true,
+          vip: false,
+          hist: [
+            ['ok', 'Ombokad till 3 juli 09:00 — deposition begärd', '3 dgr sedan'],
+            ['miss', 'Uteblev — Återbesök 12 mån', '4 dgr sedan'],
+            ['miss', 'Uteblev — Eftervård', '2 apr'],
+          ],
+        },
+      ];
 
-const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"]/g,
+          (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[m]
+        );
 
-function statusFlag(r){
-  if(r.status==='aterbokad')return '<span class="flag flag--rebooked">Återbokad</span>';
-  if(r.status==='hanterad')return '<span class="flag flag--handled">Hanterad</span>';
-  if(r.status==='ny')return '<span class="flag flag--new">Ny</span>';
-  return '<span class="flag flag--noshow">Uteblev</span>';
-}
-function isRisk(r){return r.noShow>=RISK_NOSHOW_THRESHOLD && r.status!=='hanterad';}
-function recoText(r){
-  if(r.status==='aterbokad')return 'Bokning ombokad i CCO. Bevaka att den nya tiden bekräftas och att eventuell deposition är betald.';
-  if(r.status==='hanterad')return 'Ärendet är markerat hanterat. Inget ytterligare operativt drag krävs.';
-  if(r.noShow>=4)return 'No-show ×'+r.noShow+' — kräv 100% förskott vid ombokning eller pausa självbokning för patienten.';
-  if(r.noShow>=3)return 'No-show ×'+r.noShow+' — begär 50% deposition vid ombokning innan ny tid bekräftas.';
-  if(r.noShow===2)return 'No-show ×2 — riskflagg över tröskeln ('+RISK_NOSHOW_THRESHOLD+'). Begär deposition vid ombokning och kontakta patienten.';
-  return 'Första uteblivna besöket — boka om utan deposition och skicka påminnelse. Riskflagg vid ×'+RISK_NOSHOW_THRESHOLD+'.';
-}
+      function statusFlag(r) {
+        if (r.status === 'aterbokad') return '<span class="flag flag--rebooked">Återbokad</span>';
+        if (r.status === 'hanterad') return '<span class="flag flag--handled">Hanterad</span>';
+        if (r.status === 'ny') return '<span class="flag flag--new">Ny</span>';
+        return '<span class="flag flag--noshow">Uteblev</span>';
+      }
+      function isRisk(r) {
+        return r.noShow >= RISK_NOSHOW_THRESHOLD && r.status !== 'hanterad';
+      }
+      function recoText(r) {
+        if (r.status === 'aterbokad')
+          return 'Bokning ombokad i CCO. Bevaka att den nya tiden bekräftas och att eventuell deposition är betald.';
+        if (r.status === 'hanterad')
+          return 'Ärendet är markerat hanterat. Inget ytterligare operativt drag krävs.';
+        if (r.noShow >= 4)
+          return (
+            'No-show ×' +
+            r.noShow +
+            ' — kräv 100% förskott vid ombokning eller pausa självbokning för patienten.'
+          );
+        if (r.noShow >= 3)
+          return (
+            'No-show ×' + r.noShow + ' — begär 50% deposition vid ombokning innan ny tid bekräftas.'
+          );
+        if (r.noShow === 2)
+          return (
+            'No-show ×2 — riskflagg över tröskeln (' +
+            RISK_NOSHOW_THRESHOLD +
+            '). Begär deposition vid ombokning och kontakta patienten.'
+          );
+        return (
+          'Första uteblivna besöket — boka om utan deposition och skicka påminnelse. Riskflagg vid ×' +
+          RISK_NOSHOW_THRESHOLD +
+          '.'
+        );
+      }
 
-function card(r){
-  const flags=[];
-  flags.push('<span class="flag flag--noshow">No-show ×'+r.noShow+'</span>');
-  if(isRisk(r))flags.push('<span class="flag flag--risk">Riskflagg</span>');
-  if(r.dep)flags.push('<span class="flag flag--dep">Deposition krävs</span>');
-  flags.push('<span class="flag flag--loss">Förlorad intäkt '+esc(r.loss)+'</span>');
-  flags.push(statusFlag(r));
-  const acts = r.status==='hanterad'
-    ? '<button class="btn">Kontakta</button>'
-    : (r.status==='aterbokad'
-        ? '<button class="btn btn--primary">Markera hanterad</button><button class="btn">Kontakta</button>'
-        : '<button class="btn btn--primary">Boka om</button>'+(r.dep?'<button class="btn">Begär deposition</button>':'')+'<button class="btn">Markera hanterad</button><button class="btn">Kontakta</button>');
-  return '<button class="ns-card" data-id="'+r.id+'" aria-label="Visa no-show-historik för '+esc(r.name)+'">'+
-    '<div class="ns-top"><span class="ns-name">'+esc(r.name)+(r.vip?' ★':'')+'</span><span class="ns-when">'+esc(r.missedAt)+'</span></div>'+
-    '<div class="ns-treat">'+esc(r.treat)+'</div>'+
-    '<div class="ns-meta">'+flags.join('')+'</div>'+
-    '<div class="ns-acts" data-acts>'+acts+'</div>'+
-  '</button>';
-}
+      function card(r) {
+        const flags = [];
+        flags.push('<span class="flag flag--noshow">No-show ×' + r.noShow + '</span>');
+        if (isRisk(r)) flags.push('<span class="flag flag--risk">Riskflagg</span>');
+        if (r.dep) flags.push('<span class="flag flag--dep">Deposition krävs</span>');
+        flags.push('<span class="flag flag--loss">Förlorad intäkt ' + esc(r.loss) + '</span>');
+        flags.push(statusFlag(r));
+        const acts =
+          r.status === 'hanterad'
+            ? '<button class="btn">Kontakta</button>'
+            : r.status === 'aterbokad'
+              ? '<button class="btn btn--primary">Markera hanterad</button><button class="btn">Kontakta</button>'
+              : '<button class="btn btn--primary">Boka om</button>' +
+                (r.dep ? '<button class="btn">Begär deposition</button>' : '') +
+                '<button class="btn">Markera hanterad</button><button class="btn">Kontakta</button>';
+        return (
+          '<button class="ns-card" data-id="' +
+          r.id +
+          '" aria-label="Visa no-show-historik för ' +
+          esc(r.name) +
+          '">' +
+          '<div class="ns-top"><span class="ns-name">' +
+          esc(r.name) +
+          (r.vip ? ' ★' : '') +
+          '</span><span class="ns-when">' +
+          esc(r.missedAt) +
+          '</span></div>' +
+          '<div class="ns-treat">' +
+          esc(r.treat) +
+          '</div>' +
+          '<div class="ns-meta">' +
+          flags.join('') +
+          '</div>' +
+          '<div class="ns-acts" data-acts>' +
+          acts +
+          '</div>' +
+          '</button>'
+        );
+      }
 
-const list=document.getElementById('nsList');
-const detail=document.getElementById('detail');
-let curFilter='alla', curId=ROWS[0].id;
+      const list = document.getElementById('nsList');
+      const detail = document.getElementById('detail');
+      let curFilter = 'alla',
+        curId = ROWS[0].id;
 
-function pass(r){
-  switch(curFilter){
-    case 'nya':return r.status==='ny';
-    case 'risk':return isRisk(r);
-    case 'aterbokad':return r.status==='aterbokad';
-    case 'deposition':return r.dep;
-    default:return true;
-  }
-}
+      function pass(r) {
+        switch (curFilter) {
+          case 'nya':
+            return r.status === 'ny';
+          case 'risk':
+            return isRisk(r);
+          case 'aterbokad':
+            return r.status === 'aterbokad';
+          case 'deposition':
+            return r.dep;
+          default:
+            return true;
+        }
+      }
 
-function renderDetail(r){
-  if(!r){detail.innerHTML='<span class="sec-kicker">Detalj</span><p style="margin:.4rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)">Välj en patient i listan för att se no-show-historik och rekommenderad åtgärd.</p>';return;}
-  const histHtml=r.hist.map(h=>'<li><span class="dot dot--'+h[0]+'"></span><span><span class="ht">'+esc(h[1])+'</span><br><span class="hd">'+esc(h[2])+'</span></span></li>').join('');
-  const depBtn=r.dep?'<button class="btn">Begär deposition</button>':'';
-  const acts = r.status==='hanterad'
-    ? '<button class="btn">Kontakta patient</button>'
-    : (r.status==='aterbokad'
-        ? '<button class="btn btn--primary">Markera hanterad</button><button class="btn">Kontakta patient</button>'
-        : '<button class="btn btn--primary">Boka om</button>'+depBtn+'<button class="btn">Markera hanterad</button><button class="btn">Kontakta patient</button>');
-  detail.innerHTML=
-    '<span class="sec-kicker">No-show-historik</span>'+
-    '<div class="dp-head" style="margin-top:.35rem"><div><h3 class="dp-name">'+esc(r.name)+(r.vip?' ★ VIP':'')+'</h3><p class="dp-sub">'+esc(r.treat)+' · missat '+esc(r.missedAt)+'</p></div>'+statusFlag(r)+'</div>'+
-    '<div class="dp-block"><div class="dp-stat">'+
-      '<div class="s"><div class="sv tabnum">×'+r.noShow+'</div><div class="sl">Uteblivna besök</div></div>'+
-      '<div class="s"><div class="sv tabnum">'+esc(r.loss)+'</div><div class="sl">Förlorad intäkt</div></div>'+
-    '</div></div>'+
-    '<div class="dp-block"><h4>Besökshistorik</h4><ul class="hist">'+histHtml+'</ul></div>'+
-    '<div class="reco"><div class="rk">Rekommenderad åtgärd</div><p>'+esc(recoText(r))+'</p></div>'+
-    '<div class="dp-acts">'+acts+'</div>';
-}
+      function renderDetail(r) {
+        if (!r) {
+          detail.innerHTML =
+            '<span class="sec-kicker">Detalj</span><p style="margin:.4rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)">Välj en patient i listan för att se no-show-historik och rekommenderad åtgärd.</p>';
+          return;
+        }
+        const histHtml = r.hist
+          .map(
+            (h) =>
+              '<li><span class="dot dot--' +
+              h[0] +
+              '"></span><span><span class="ht">' +
+              esc(h[1]) +
+              '</span><br><span class="hd">' +
+              esc(h[2]) +
+              '</span></span></li>'
+          )
+          .join('');
+        const depBtn = r.dep ? '<button class="btn">Begär deposition</button>' : '';
+        const acts =
+          r.status === 'hanterad'
+            ? '<button class="btn">Kontakta patient</button>'
+            : r.status === 'aterbokad'
+              ? '<button class="btn btn--primary">Markera hanterad</button><button class="btn">Kontakta patient</button>'
+              : '<button class="btn btn--primary">Boka om</button>' +
+                depBtn +
+                '<button class="btn">Markera hanterad</button><button class="btn">Kontakta patient</button>';
+        detail.innerHTML =
+          '<span class="sec-kicker">No-show-historik</span>' +
+          '<div class="dp-head" style="margin-top:.35rem"><div><h3 class="dp-name">' +
+          esc(r.name) +
+          (r.vip ? ' ★ VIP' : '') +
+          '</h3><p class="dp-sub">' +
+          esc(r.treat) +
+          ' · missat ' +
+          esc(r.missedAt) +
+          '</p></div>' +
+          statusFlag(r) +
+          '</div>' +
+          '<div class="dp-block"><div class="dp-stat">' +
+          '<div class="s"><div class="sv tabnum">×' +
+          r.noShow +
+          '</div><div class="sl">Uteblivna besök</div></div>' +
+          '<div class="s"><div class="sv tabnum">' +
+          esc(r.loss) +
+          '</div><div class="sl">Förlorad intäkt</div></div>' +
+          '</div></div>' +
+          '<div class="dp-block"><h4>Besökshistorik</h4><ul class="hist">' +
+          histHtml +
+          '</ul></div>' +
+          '<div class="reco"><div class="rk">Rekommenderad åtgärd</div><p>' +
+          esc(recoText(r)) +
+          '</p></div>' +
+          '<div class="dp-acts">' +
+          acts +
+          '</div>';
+      }
 
-function render(){
-  const items=ROWS.filter(pass);
-  list.innerHTML=items.length?items.map(card).join('')
-    :'<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga uteblivna besök i den här vyn.</div>';
-  // markera aktiv
-  if(!items.some(r=>r.id===curId))curId=items.length?items[0].id:null;
-  list.querySelectorAll('.ns-card').forEach(c=>c.classList.toggle('is-active',Number(c.dataset.id)===curId));
-  renderDetail(ROWS.find(r=>r.id===curId)||null);
-}
+      function render() {
+        const items = ROWS.filter(pass);
+        list.innerHTML = items.length
+          ? items.map(card).join('')
+          : '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga uteblivna besök i den här vyn.</div>';
+        // markera aktiv
+        if (!items.some((r) => r.id === curId)) curId = items.length ? items[0].id : null;
+        list
+          .querySelectorAll('.ns-card')
+          .forEach((c) => c.classList.toggle('is-active', Number(c.dataset.id) === curId));
+        renderDetail(ROWS.find((r) => r.id === curId) || null);
+      }
 
-// räknare på filterpills
-document.querySelectorAll('[data-count]').forEach(el=>{
-  const f=el.getAttribute('data-count');
-  el.textContent=ROWS.filter(r=>{const s=curFilter;curFilter=f;const ok=pass(r);curFilter=s;return ok;}).length;
-});
+      // räknare på filterpills
+      document.querySelectorAll('[data-count]').forEach((el) => {
+        const f = el.getAttribute('data-count');
+        el.textContent = ROWS.filter((r) => {
+          const s = curFilter;
+          curFilter = f;
+          const ok = pass(r);
+          curFilter = s;
+          return ok;
+        }).length;
+      });
 
-// row -> detail (klick på kortet, men inte på åtgärdsknappar)
-list.addEventListener('click',e=>{
-  if(e.target.closest('[data-acts] .btn')){e.preventDefault();return;}
-  const c=e.target.closest('.ns-card');if(!c)return;
-  curId=Number(c.dataset.id);
-  list.querySelectorAll('.ns-card').forEach(x=>x.classList.toggle('is-active',x===c));
-  renderDetail(ROWS.find(r=>r.id===curId));
-});
+      // row -> detail (klick på kortet, men inte på åtgärdsknappar)
+      list.addEventListener('click', (e) => {
+        if (e.target.closest('[data-acts] .btn')) {
+          e.preventDefault();
+          return;
+        }
+        const c = e.target.closest('.ns-card');
+        if (!c) return;
+        curId = Number(c.dataset.id);
+        list.querySelectorAll('.ns-card').forEach((x) => x.classList.toggle('is-active', x === c));
+        renderDetail(ROWS.find((r) => r.id === curId));
+      });
 
-// filterpills
-document.querySelectorAll('.pillrow[role=group] .pill').forEach(p=>p.addEventListener('click',()=>{
-  document.querySelectorAll('.pillrow[role=group] .pill').forEach(x=>x.setAttribute('aria-pressed','false'));
-  p.setAttribute('aria-pressed','true');
-  curFilter=p.getAttribute('data-filter');
-  render();
-}));
+      // filterpills
+      document.querySelectorAll('.pillrow[role=group] .pill').forEach((p) =>
+        p.addEventListener('click', () => {
+          document
+            .querySelectorAll('.pillrow[role=group] .pill')
+            .forEach((x) => x.setAttribute('aria-pressed', 'false'));
+          p.setAttribute('aria-pressed', 'true');
+          curFilter = p.getAttribute('data-filter');
+          render();
+        })
+      );
 
-render();
+      render();
 
-// botnav aktiv-flik
-(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();
-</script>
-</body>
+      // botnav aktiv-flik
+      (function () {
+        var nav = document.querySelector('.botnav');
+        if (!nav) return;
+        nav.addEventListener('click', function (e) {
+          var b = e.target.closest('.nav-i');
+          if (!b) return;
+          nav.querySelectorAll('.nav-i').forEach(function (x) {
+            x.classList.remove('is-active');
+            x.removeAttribute('aria-current');
+          });
+          void b.offsetWidth;
+          b.classList.add('is-active');
+          b.setAttribute('aria-current', 'page');
+        });
+      })();
+    </script>
+  </body>
 </html>

@@ -133,6 +133,7 @@ async function runVsMain(only) {
   setupWorktree();
 
   let browser;
+  let exitCode = 0;
   try {
     const mainPreview = join(WORKTREE, 'public', 'major-arcana-preview');
     const mainSurfaces = surfaces(mainPreview, only);
@@ -149,7 +150,8 @@ async function runVsMain(only) {
     // new-only branches (toCompare=0, deletedSurfaces=0, newSurfaces>0) are valid — don't reject.
     if (mainSurfaces.length === 0 && branchFiles.length === 0) {
       console.error('Inga ytor matchade — kontrollera --only-filtret.');
-      process.exit(1);
+      exitCode = 1;
+      return exitCode;
     }
 
     console.log(`== Visual diff (branch vs main) — ${toCompare.length} ytor × ${VIEWPORTS.length} breakpoints ==`);
@@ -198,13 +200,14 @@ async function runVsMain(only) {
       console.log(`\n${failures} problem:`);
       failed.forEach((f) => console.log('  - ' + f));
       console.log(`\nDiff-bilder: ${DIFF_DIR}`);
-      process.exit(1);
+      exitCode = 1;
     }
   } finally {
-    // Always tear down — even if browser launch or shoot throws (bugbot finding #3).
+    // Always tear down — even if browser launch or shoot throws.
     if (browser) await browser.close().catch(() => {});
     teardownWorktree();
   }
+  return exitCode;
 }
 
 async function runCaptureCompare(capture, compare, only) {
@@ -291,7 +294,8 @@ async function runCaptureCompare(capture, compare, only) {
 async function main() {
   const { vsMain, capture, compare, only } = parseArgs();
   if (vsMain) {
-    await runVsMain(only);
+    const code = await runVsMain(only);
+    if (code) process.exit(code);
   } else {
     await runCaptureCompare(capture, compare, only);
   }
