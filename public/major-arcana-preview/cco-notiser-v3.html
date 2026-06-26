@@ -173,13 +173,16 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 @media(pointer:coarse){.n-act{min-height:var(--tap)}}
 .n-act svg{width:.85rem;height:.85rem;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 
-/* tonfärger per kind */
-.t-sla{--tone:var(--danger);--tone-bg:var(--danger-bg)}
-.t-vip{--tone:var(--violet);--tone-bg:var(--violet-bg)}
-.t-bokning{--tone:var(--info);--tone-bg:var(--info-bg)}
-.t-eskalering{--tone:var(--warning);--tone-bg:var(--warning-bg)}
-.t-team{--tone:var(--accent);--tone-bg:var(--accent-weak)}
+/* tonfärger per notistyp (matchar backend-feedens typer) */
+.t-booking{--tone:var(--info);--tone-bg:var(--info-bg)}
+.t-compliance{--tone:var(--warning);--tone-bg:var(--warning-bg)}
+.t-id_verification{--tone:var(--violet);--tone-bg:var(--violet-bg)}
+.t-agreement{--tone:var(--success);--tone-bg:var(--success-bg)}
+.t-mail{--tone:var(--accent);--tone-bg:var(--accent-weak)}
 .t-system{--tone:var(--slate);--tone-bg:var(--slate-bg)}
+
+/* severity-badge (backend severity: info|warning) */
+.n-sev{display:inline-flex;align-items:center;gap:.25rem;padding:.05rem .45rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.02em;background:var(--warning-bg);color:var(--warning);text-transform:uppercase}
 
 /* tom vy */
 .empty{padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)}
@@ -210,7 +213,7 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
     <div class="head-main">
       <span class="kicker">Aviseringar</span>
       <h1 class="h1">Notiser</h1>
-      <p class="subtitle">SLA-varningar, nya VIP, bokningar, eskaleringar och team-omnämnanden — samlat i ett flöde.</p>
+      <p class="subtitle">Bokningar, compliance, ID-verifiering, avtal och mail — samlat i ett flöde från notisfeeden.</p>
     </div>
     <button class="btn btn--primary" id="markAll">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -230,11 +233,11 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
   <div class="toolbar">
     <div class="pillrow scroll" role="group" aria-label="Filtrera efter kategori" id="filters">
       <button class="pill is-active" aria-pressed="true" data-filter="alla">Alla <span class="c" id="cAlla">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="sla">SLA <span class="c" data-c="sla">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="vip">VIP <span class="c" data-c="vip">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="bokning">Bokning <span class="c" data-c="bokning">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="eskalering">Eskalering <span class="c" data-c="eskalering">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="team">Team <span class="c" data-c="team">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="booking">Bokning <span class="c" data-c="booking">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="compliance">Compliance <span class="c" data-c="compliance">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="id_verification">ID-verifiering <span class="c" data-c="id_verification">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="agreement">Avtal <span class="c" data-c="agreement">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="mail">Mail <span class="c" data-c="mail">0</span></button>
       <button class="pill" aria-pressed="false" data-filter="system">System <span class="c" data-c="system">0</span></button>
     </div>
   </div>
@@ -274,61 +277,116 @@ button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outlin
 <script>
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
-// kind → kategori-etikett (verbatim ankrade i Inställningar → Aviseringar + app.js notistyper)
-const KIND={
-  sla:{label:'SLA-varning',cls:'t-sla',icon:'<path d="M12 8v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/>'},
-  vip:{label:'VIP',cls:'t-vip',icon:'<path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/>'},
-  bokning:{label:'Bokning',cls:'t-bokning',icon:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9.7h18M8 3v3.4M16 3v3.4"/>'},
-  eskalering:{label:'Eskalering',cls:'t-eskalering',icon:'<path d="M10.3 3.8 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>'},
-  team:{label:'Team-omnämnande',cls:'t-team',icon:'<circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/>'},
-  system:{label:'System',cls:'t-system',icon:'<path d="M12 2a3 3 0 0 1 3 3 9 9 0 0 1 5 8v3l2 3H2l2-3v-3a9 9 0 0 1 5-8 3 3 0 0 1 3-3Z"/><path d="M10 21a2 2 0 0 0 4 0"/>'},
-};
+/* ===== KONFIG: DEMO på som standard (inga nätverksanrop i preview) ===== */
+const DEMO=true;
+const API='/api/v1';
+async function apiFetch(path,opts){ return fetch(API+path,opts); }
 
-// demo-notiser ankrade i de riktiga kategorierna (Idag / Igår / Tidigare)
-const NOTI=[
-  {id:1,kind:'sla',group:'Idag',title:'SLA-deadline om 8 min',text:'Anna Karlsson väntar på svar i Kons — svarstiden överskrids 14:32.',time:'Idag 14:24',action:'Öppna konversation',read:false},
-  {id:2,kind:'vip',group:'Idag',title:'Ny VIP-kund registrerad',text:'Johan Andersson markerades som VIP via automationen VIP-snabbspår.',time:'Idag 13:58',action:'Visa kund',read:false},
-  {id:3,kind:'bokning',group:'Idag',title:'Ny bokning från Bokadirekt',text:'Emma Svensson bokade konsultation fredag 09:00 — väntar på bekräftelse.',time:'Idag 12:10',action:'Bekräfta',read:false},
-  {id:4,kind:'eskalering',group:'Idag',title:'Eskaleringslarm — betalning',text:'Marcus Lund: payment-escalation utlöst efter två obesvarade påminnelser.',time:'Idag 10:42',action:'Hantera',read:false},
-  {id:5,kind:'team',group:'Idag',title:'Sara @nämnde dig',text:'"@du kan du ta över Sofies eftervårdsärende? Jag är på lunch."',time:'Idag 09:30',action:null,read:false},
-  {id:6,kind:'system',group:'Igår',title:'Slack-integration ansluten',text:'Teamaviseringar och eskaleringslarm skickas nu även till #cco-drift.',time:'Igår 18:05',action:null,read:false},
-  {id:7,kind:'sla',group:'Igår',title:'SLA-varning kvitterad',text:'Karl Nyströms ärende besvarades inom svarstiden — inga åtgärder kvar.',time:'Igår 15:20',action:null,read:true},
-  {id:8,kind:'bokning',group:'Igår',title:'Ombokning bekräftad',text:'Elin Holm flyttade sin tid till torsdag 10:00 — kalendern uppdaterad.',time:'Igår 11:48',action:'Visa i kalender',read:true},
-  {id:9,kind:'vip',group:'Tidigare',title:'VIP-onboarding klar',text:'Välkomstsekvensen för Marcus Lund slutfördes och kvitterades.',time:'Tis 16:10',action:null,read:true},
-  {id:10,kind:'eskalering',group:'Tidigare',title:'Eskalering till senior löst',text:'Sofie Bergströms ärende stängdes av driftansvarig efter eskalering.',time:'Mån 09:15',action:null,read:true},
+// backend-feedens notistyper → UI-presentation (label/färgklass/åtgärd/ikon)
+// typerna matchar src/ops/ccoNotificationFeedStore.js: booking, compliance,
+// id_verification, agreement, mail, system
+const KIND={
+  booking:{label:'Bokning',cls:'t-booking',action:'Öppna bokning',icon:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9.7h18M8 3v3.4M16 3v3.4"/>'},
+  compliance:{label:'Compliance',cls:'t-compliance',action:'Granska',icon:'<path d="M12 3l7 3v5c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>'},
+  id_verification:{label:'ID-verifiering',cls:'t-id_verification',action:'Visa status',icon:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M13 10h5M13 13h5M5.6 15.4c.6-1.1 1.6-1.8 2.9-1.8s2.3.7 2.9 1.8"/>'},
+  agreement:{label:'Avtal',cls:'t-agreement',action:'Öppna avtal',icon:'<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13l2 2 4-4"/>'},
+  mail:{label:'Mail',cls:'t-mail',action:'Öppna konversation',icon:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'},
+  system:{label:'System',cls:'t-system',action:null,icon:'<path d="M12 2a3 3 0 0 1 3 3 9 9 0 0 1 5 8v3l2 3H2l2-3v-3a9 9 0 0 1 5-8 3 3 0 0 1 3-3Z"/><path d="M10 21a2 2 0 0 0 4 0"/>'},
+};
+const TYPE_ORDER=['booking','compliance','id_verification','agreement','mail','system'];
+
+/* ===== DEMO-data: formad exakt som feed-items från GET /cco-notifications/feed ===== */
+const hoursAgo=h=>new Date(Date.now()-h*3600000).toISOString();
+const DEMO_ITEMS=[
+  {id:'booking_d1',type:'booking',title:'Bokningsärende: blocked',body:'Anna Karlsson — väntar på bekräftelse av tid fredag 09:00',severity:'warning',customerId:'cust_anna',createdAt:hoursAgo(1),source:{kind:'booking_case',id:'bc_1'},read:false},
+  {id:'mail_d1',type:'mail',title:'Fråga om eftervård',body:'Johan Andersson: "Hur lång tid tar läkningen efter behandlingen?"',severity:'info',customerId:'cust_johan',createdAt:hoursAgo(2),source:{kind:'journal_entry',id:'je_1'},read:false},
+  {id:'compliance_d1',type:'compliance',title:'Saknad samtyckeslogg',body:'Marknadssamtycke saknas för 1 kund med bokad tid',severity:'warning',customerId:null,createdAt:hoursAgo(4),source:{kind:'compliance_flag',id:'cf_1'},read:false},
+  {id:'booking_d2',type:'booking',title:'Bokningsärende: confirmed',body:'Emma Svensson — konsultation bekräftad fredag 09:00',severity:'info',customerId:'cust_emma',createdAt:hoursAgo(6),source:{kind:'booking_case',id:'bc_2'},read:false},
+  {id:'idv_d1',type:'id_verification',title:'ID-verifiering: rejected',body:'Marcus Lund — uppladdad legitimation kunde inte verifieras',severity:'warning',customerId:'cust_marcus',createdAt:hoursAgo(26),source:{kind:'id_verification',id:'cust_marcus'},read:false},
+  {id:'agreement_d1',type:'agreement',title:'Avtal: signerat',body:'Elin Holm — behandlingsavtal signerat och arkiverat',severity:'info',customerId:'cust_elin',createdAt:hoursAgo(28),source:{kind:'agreement',id:'ag_1'},read:true},
+  {id:'idv_d2',type:'id_verification',title:'ID-verifiering: pending',body:'Sofie Bergström — väntar på granskning av legitimation',severity:'info',customerId:'cust_sofie',createdAt:hoursAgo(30),source:{kind:'id_verification',id:'cust_sofie'},read:true},
+  {id:'mail_d2',type:'mail',title:'Tackmeddelande',body:'Karl Nyström: "Tack för ett trevligt bemötande!"',severity:'info',customerId:'cust_karl',createdAt:hoursAgo(50),source:{kind:'journal_entry',id:'je_2'},read:true},
+  {id:'system_d1',type:'system',title:'Notisfeed synkroniserad',body:'Alla källor (bokning, compliance, ID, avtal, mail) är anslutna',severity:'info',customerId:null,createdAt:hoursAgo(60),source:{kind:'system',id:'sync'},read:true},
 ];
 
 const GROUPS=['Idag','Igår','Tidigare'];
 let curFilter='alla';
+let NOTI=[]; // normaliserade feed-items {id,type,title,body,severity,createdAt,read,...}
 
 const feed=document.getElementById('feed');
 
+/* ===== tids-gruppering + etikett från createdAt (ISO) ===== */
+function dayStart(ms){ const d=new Date(ms); return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); }
+function groupOf(createdAt){
+  const today=dayStart(Date.now());
+  const day=dayStart(new Date(createdAt).getTime());
+  if(day===today) return 'Idag';
+  if(day===today-86400000) return 'Igår';
+  return 'Tidigare';
+}
+function timeLabel(createdAt){
+  const d=new Date(createdAt);
+  const hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
+  const g=groupOf(createdAt);
+  if(g==='Idag') return `Idag ${hh}:${mm}`;
+  if(g==='Igår') return `Igår ${hh}:${mm}`;
+  const wd=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][d.getDay()];
+  return `${wd} ${hh}:${mm}`;
+}
+
+/* ===== BACKEND-WIRING ===== */
+// GET /api/v1/cco-notifications/feed?sinceHours=&limit=
+async function loadFeed(){
+  if(DEMO){ NOTI=DEMO_ITEMS.slice(); render(); return; }
+  try{
+    const r=await apiFetch('/cco-notifications/feed?sinceHours=168&limit=100');
+    if(!r.ok) throw new Error('feed '+r.status);
+    const data=await r.json();
+    NOTI=Array.isArray(data.items)?data.items:[];
+  }catch(e){
+    NOTI=[]; feed.innerHTML='<div class="empty">Kunde inte hämta notiser just nu.</div>'; return;
+  }
+  render();
+}
+// POST /api/v1/cco-notifications/mark-read
+async function markReadApi(ids,all=false){
+  if(DEMO) return true;
+  try{
+    const body=all?{all:true,notificationIds:ids}:{notificationIds:ids};
+    const r=await apiFetch('/cco-notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return r.ok;
+  }catch(e){ return false; }
+}
+
 function itemHTML(n){
-  const k=KIND[n.kind];
-  return `<button class="noti ${k.cls} ${n.read?'is-read':'is-unread'}" data-id="${n.id}" aria-label="${esc(n.title)}${n.read?', läst':', oläst'}">
+  const k=KIND[n.type]||KIND.system;
+  const sev=n.severity==='warning'?'<span class="n-sev">Viktigt</span>':'';
+  return `<button class="noti ${k.cls} ${n.read?'is-read':'is-unread'}" data-id="${esc(n.id)}" aria-label="${esc(n.title)}${n.read?', läst':', oläst'}">
     <span class="n-icon"><svg viewBox="0 0 24 24">${k.icon}</svg></span>
     <span class="n-body">
       <span class="n-top">
         <span class="n-dot" aria-hidden="true"></span>
         <span class="n-title">${esc(n.title)}</span>
+        ${sev}
         <span class="n-cat">${esc(k.label)}</span>
       </span>
-      <span class="n-text">${esc(n.text)}</span>
+      ${n.body?`<span class="n-text">${esc(n.body)}</span>`:''}
       <span class="n-foot">
-        <span class="n-time">${esc(n.time)}</span>
-        ${n.action?`<span class="n-act" role="button" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${esc(n.action)}</span>`:''}
+        <span class="n-time">${esc(timeLabel(n.createdAt))}</span>
+        ${k.action?`<span class="n-act" role="button" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${esc(k.action)}</span>`:''}
       </span>
     </span>
   </button>`;
 }
 
-function passFilter(n){ return curFilter==='alla' ? true : n.kind===curFilter; }
+function passFilter(n){ return curFilter==='alla' ? true : n.type===curFilter; }
+function hasAction(n){ return !!(KIND[n.type]||{}).action; }
 
 function render(){
   const items=NOTI.filter(passFilter);
   let html='';
   GROUPS.forEach(g=>{
-    const gi=items.filter(n=>n.group===g);
+    const gi=items.filter(n=>groupOf(n.createdAt)===g);
     if(!gi.length) return;
     const unread=gi.filter(n=>!n.read).length;
     html+=`<div class="group-h"><span class="gl">${esc(g)}</span><span class="gc">${gi.length}${unread?' · '+unread+' olästa':''}</span></div>`;
@@ -341,44 +399,48 @@ function render(){
 function updateCounts(){
   const total=NOTI.length;
   const unread=NOTI.filter(n=>!n.read).length;
-  const today=NOTI.filter(n=>n.group==='Idag').length;
-  const action=NOTI.filter(n=>n.action && !n.read).length;
+  const today=NOTI.filter(n=>groupOf(n.createdAt)==='Idag').length;
+  const action=NOTI.filter(n=>hasAction(n) && !n.read).length;
   document.getElementById('mUnread').textContent=unread;
   document.getElementById('mTotalInline').textContent=total;
   document.getElementById('mToday').textContent=today;
   document.getElementById('mAction').textContent=action;
   document.getElementById('mTotal').textContent=total;
 
-  // pill-räknare (olästa per kategori)
+  // pill-räknare (olästa per typ)
   document.getElementById('cAlla').textContent=unread;
-  ['sla','vip','bokning','eskalering','team','system'].forEach(k=>{
-    const el=document.querySelector('.c[data-c="'+k+'"]');
-    if(el) el.textContent=NOTI.filter(n=>n.kind===k && !n.read).length;
+  TYPE_ORDER.forEach(t=>{
+    const el=document.querySelector('.c[data-c="'+t+'"]');
+    if(el) el.textContent=NOTI.filter(n=>n.type===t && !n.read).length;
   });
 
   // högerräls kategorisammanfattning
   const cs=document.getElementById('catSummary');
   if(cs){
-    cs.innerHTML=['sla','vip','bokning','eskalering','team','system'].map(k=>{
-      const kd=KIND[k];
-      const u=NOTI.filter(n=>n.kind===k && !n.read).length;
-      const t=NOTI.filter(n=>n.kind===k).length;
+    cs.innerHTML=TYPE_ORDER.map(t=>{
+      const kd=KIND[t];
+      const u=NOTI.filter(n=>n.type===t && !n.read).length;
+      const tot=NOTI.filter(n=>n.type===t).length;
       return `<div class="cat-row ${kd.cls}">
         <span class="cat-chip"><svg viewBox="0 0 24 24">${kd.icon}</svg></span>
-        <span class="cat-name">${esc(kd.label)}<small>${t} totalt</small></span>
+        <span class="cat-name">${esc(kd.label)}<small>${tot} totalt</small></span>
         <span class="cat-count">${u}</span>
       </div>`;
     }).join('');
   }
 }
 
-// klick på item → markera läst + uppdatera räknare
-feed.addEventListener('click',e=>{
+// klick på item → markera läst (optimistiskt) + synka backend
+feed.addEventListener('click',async e=>{
   const card=e.target.closest('.noti');
   if(!card) return;
-  const id=Number(card.dataset.id);
-  const n=NOTI.find(x=>x.id===id);
-  if(n && !n.read){ n.read=true; render(); }
+  const id=card.dataset.id;
+  const n=NOTI.find(x=>String(x.id)===id);
+  if(n && !n.read){
+    n.read=true; render();
+    const ok=await markReadApi([id]);
+    if(!ok){ n.read=false; render(); }
+  }
 });
 
 // filterpills
@@ -392,15 +454,18 @@ document.getElementById('filters').addEventListener('click',e=>{
 });
 
 // markera alla som lästa
-document.getElementById('markAll').addEventListener('click',()=>{
-  NOTI.forEach(n=>n.read=true);
-  render();
+document.getElementById('markAll').addEventListener('click',async()=>{
+  const unreadIds=NOTI.filter(n=>!n.read).map(n=>String(n.id));
+  if(!unreadIds.length) return;
+  NOTI.forEach(n=>n.read=true); render();
+  const ok=await markReadApi(unreadIds,true);
+  if(!ok){ /* behåll optimistiskt läge; nästa loadFeed återställer från servern */ }
 });
 
 // botnav active-toggle (samma beteende som Skickat)
 (function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();
 
-render();
+loadFeed();
 </script>
 </body>
 </html>
