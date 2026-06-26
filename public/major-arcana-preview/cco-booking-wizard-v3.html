@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CCO — Bokningsguide</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;--accent-bg:var(--accent-weak);
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+/* ── duoton botnav (verbatim från cco-skickat-v3) ── */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== Bokningsguide-specifikt ===== */
+.wizard{max-width:900px;margin-inline:auto}
+
+/* stegindikator */
+.stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;margin:.4rem 0 1rem;position:relative}
+.step{display:flex;flex-direction:column;align-items:center;gap:.4rem;text-align:center;min-width:0}
+.step .dot{width:2.1rem;height:2.1rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:var(--fs-meta);border:2px solid rgba(180,165,150,.4);background:var(--bg-surface);color:var(--text-tertiary);transition:.25s}
+.step .st-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-tertiary);line-height:1.15}
+.step.is-current .dot{border-color:var(--accent);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);box-shadow:0 4px 12px -4px var(--accent)}
+.step.is-current .st-label{color:var(--accent)}
+.step.is-done .dot{border-color:var(--success);background:var(--success);color:#fff}
+.step.is-done .st-label{color:var(--success)}
+.progress-track{height:6px;border-radius:999px;background:rgba(180,165,150,.25);overflow:hidden;margin-bottom:1rem}
+.progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),#d96aa0);transition:width .35s ease}
+
+/* steg-paneler */
+.step-panel{display:none}
+.step-panel.is-active{display:block;animation:fadein .3s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* selectable list (kund) */
+.opt-list{display:flex;flex-direction:column;gap:.5rem;margin-top:.7rem}
+.opt{display:flex;align-items:center;gap:.75rem;width:100%;text-align:left;min-height:var(--tap);padding:.7rem .85rem;border-radius:var(--r-md);border:1.5px solid rgba(180,165,150,.3);background:var(--bg-surface);cursor:pointer;color:var(--text-primary);transition:.18s}
+.opt:hover{border-color:rgba(176,53,110,.35)}
+.opt .av{flex-shrink:0;width:2.4rem;height:2.4rem;border-radius:50%;background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);font-weight:800;display:inline-flex;align-items:center;justify-content:center;font-size:var(--fs-meta)}
+.opt .o-main{min-width:0;flex:1}
+.opt .o-name{font-weight:700;font-size:var(--fs-body)}
+.opt .o-sub{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt .o-check{flex-shrink:0;width:1.4rem;height:1.4rem;border-radius:50%;border:2px solid rgba(180,165,150,.5);display:inline-flex;align-items:center;justify-content:center;color:#fff}
+.opt .o-check svg{width:.9rem;height:.9rem;opacity:0;transition:.15s}
+.opt.is-sel{border-color:var(--accent);background:var(--accent-weak)}
+.opt.is-sel .o-check{background:var(--accent);border-color:var(--accent)}
+.opt.is-sel .o-check svg{opacity:1}
+
+/* tjänstekort grid */
+.svc-grid{display:grid;grid-template-columns:1fr;gap:.6rem;margin-top:.7rem}
+@media(min-width:560px){.svc-grid{grid-template-columns:1fr 1fr}}
+.svc{position:relative;text-align:left;display:flex;flex-direction:column;gap:.35rem;min-height:var(--tap);padding:.85rem;border-radius:var(--r-md);border:1.5px solid rgba(180,165,150,.3);background:var(--bg-surface);cursor:pointer;color:var(--text-primary);transition:.18s}
+.svc:hover{border-color:rgba(176,53,110,.35)}
+.svc .s-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+.svc .s-name{font-weight:800;font-size:var(--fs-body);letter-spacing:-.01em}
+.svc .s-tag{flex-shrink:0;font-size:.5625rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:.15rem .45rem;border-radius:var(--r-pill);background:var(--info-bg);color:var(--info)}
+.svc .s-meta{display:flex;gap:.9rem;font-size:var(--fs-meta);color:var(--text-secondary)}
+.svc .s-meta b{color:var(--text-primary)}
+.svc.is-sel{border-color:var(--accent);background:var(--accent-weak);box-shadow:0 6px 16px -8px var(--accent)}
+.svc.is-sel::after{content:"✓";position:absolute;top:.6rem;right:.7rem;width:1.3rem;height:1.3rem;border-radius:50%;background:var(--accent);color:#fff;font-size:.8rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+
+/* tid/slot-grid */
+.dayrow{display:flex;gap:.4rem;overflow-x:auto;scrollbar-width:none;margin-top:.7rem;padding-bottom:.2rem}
+.dayrow::-webkit-scrollbar{display:none}
+.day{flex-shrink:0;min-width:3.4rem;min-height:var(--tap);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;padding:.4rem .55rem;border-radius:var(--r-md);border:1.5px solid rgba(180,165,150,.3);background:var(--bg-surface);cursor:pointer;color:var(--text-primary);transition:.18s}
+.day .d-dow{font-size:.5625rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.day .d-num{font-weight:800;font-size:var(--fs-body)}
+.day.is-sel{border-color:var(--accent);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.day.is-sel .d-dow{color:var(--accent)}
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr));gap:.45rem;margin-top:.85rem}
+.slot{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;min-height:var(--tap);padding:.5rem .7rem;border-radius:var(--r-md);border:1.5px solid rgba(180,165,150,.3);background:var(--bg-surface);cursor:pointer;color:var(--text-primary);transition:.18s}
+.slot:hover{border-color:rgba(176,53,110,.35)}
+.slot .sl-time{font-weight:800;font-size:var(--fs-body);font-variant-numeric:tabular-nums}
+.slot .sl-res{font-size:var(--fs-kicker);color:var(--text-tertiary)}
+.slot.is-sel{border-color:var(--accent);background:var(--accent-weak)}
+.slot.is-sel .sl-res{color:var(--accent)}
+
+/* sammanfattning */
+.sum{display:flex;flex-direction:column;gap:0;margin-top:.5rem;border:1px solid rgba(180,165,150,.25);border-radius:var(--r-md);overflow:hidden}
+.sum-row{display:flex;align-items:center;gap:.85rem;padding:.7rem .9rem;border-bottom:1px solid rgba(180,165,150,.18)}
+.sum-row:last-child{border-bottom:0}
+.sum-row .sr-label{flex-shrink:0;width:7.5rem;font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.sum-row .sr-val{font-weight:700;font-size:var(--fs-body);min-width:0}
+.sum-row .sr-val small{display:block;font-weight:600;font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.1rem}
+.confirm-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-top:.9rem;padding:.7rem .9rem;border-radius:var(--r-md);background:var(--bg-sunken)}
+.confirm-row .cr-main{min-width:0}
+.confirm-row .cr-t{font-weight:700;font-size:var(--fs-body)}
+.confirm-row .cr-s{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.1rem}
+
+.notefield{width:100%;margin-top:.6rem;min-height:3.2rem;padding:.6rem .75rem;border-radius:var(--r-md);border:1.5px solid rgba(180,165,150,.3);background:var(--bg-surface);font:inherit;font-size:var(--fs-meta);color:var(--text-primary);resize:vertical}
+.notefield:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+/* footer-nav */
+.wiz-foot{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:1.1rem}
+.wiz-foot .spacer{flex:1}
+
+/* success-state */
+.success{display:none;text-align:center;padding:1.6rem 1rem}
+.success.is-show{display:block;animation:fadein .35s ease}
+.success .check{width:4.2rem;height:4.2rem;margin:0 auto .9rem;border-radius:50%;background:var(--success);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px -8px var(--success)}
+.success .check svg{width:2.1rem;height:2.1rem}
+.success h2{margin:0 0 .3rem;font-size:1.15rem;font-weight:800;letter-spacing:-.01em}
+.success p{margin:0 auto;color:var(--text-secondary);font-size:var(--fs-meta);max-width:34ch}
+.success .succ-meta{display:inline-flex;flex-wrap:wrap;gap:.4rem;margin-top:.9rem;justify-content:center}
+.tag{display:inline-flex;align-items:center;gap:.3rem;font-size:var(--fs-kicker);font-weight:800;padding:.3rem .65rem;border-radius:var(--r-pill);background:var(--success-bg);color:var(--success)}
+.tag--info{background:var(--info-bg);color:var(--info)}
+.tag--accent{background:var(--accent-weak);color:var(--accent)}
+
+.search-mini{display:flex;align-items:center;gap:.6rem;height:var(--tap);border-radius:var(--r-md);background:var(--bg-surface);border:1.5px solid rgba(180,165,150,.3);padding:0 .85rem;margin-top:.3rem}
+.search-mini svg{flex-shrink:0;width:1.05rem;height:1.05rem;color:var(--text-tertiary)}
+.search-mini input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök kund, tjänst eller tid…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <header class="head">
+    <div class="head-main">
+      <span class="kicker">Boka</span>
+      <h1 class="h1">Bokningsguide</h1>
+      <p class="subtitle">Skapa en bokning steg för steg — kund, behandling, tid och bekräftelse. Hair TP Clinic.</p>
+    </div>
+  </header>
+
+  <main class="wizard">
+    <!-- stegindikator -->
+    <nav class="stepper" id="stepper" aria-label="Bokningssteg">
+      <div class="step is-current" data-step="1"><span class="dot">1</span><span class="st-label">Kund</span></div>
+      <div class="step" data-step="2"><span class="dot">2</span><span class="st-label">Behandling</span></div>
+      <div class="step" data-step="3"><span class="dot">3</span><span class="st-label">Tid</span></div>
+      <div class="step" data-step="4"><span class="dot">4</span><span class="st-label">Bekräfta</span></div>
+    </nav>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:25%"></div></div>
+
+    <section class="panel" id="wizPanel">
+
+      <!-- STEG 1: KUND -->
+      <div class="step-panel is-active" data-panel="1">
+        <div class="panel-head"><h2>Välj kund</h2><p>Sök eller välj en befintlig kund att boka för.</p></div>
+        <label class="search-mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="custSearch" placeholder="Sök på namn eller e-post…" aria-label="Sök kund"></label>
+        <div class="opt-list" id="custList"></div>
+      </div>
+
+      <!-- STEG 2: BEHANDLING -->
+      <div class="step-panel" data-panel="2">
+        <div class="panel-head"><h2>Välj behandling</h2><p>Tjänsterna kommer från klinikens katalog med tid och pris.</p></div>
+        <div class="svc-grid" id="svcGrid"></div>
+      </div>
+
+      <!-- STEG 3: TID -->
+      <div class="step-panel" data-panel="3">
+        <div class="panel-head"><h2>Välj tid</h2><p>Lediga tider för vald behandling. Välj dag och sedan en tid.</p></div>
+        <div class="dayrow" id="dayRow"></div>
+        <div class="slot-grid" id="slotGrid"></div>
+      </div>
+
+      <!-- STEG 4: BEKRÄFTA -->
+      <div class="step-panel" data-panel="4">
+        <div id="confirmView">
+          <div class="panel-head"><h2>Bekräfta bokning</h2><p>Granska detaljerna innan du skapar bokningen.</p></div>
+          <div class="sum" id="summary"></div>
+          <textarea class="notefield" id="noteField" placeholder="Notering till bokningen (valfritt)…" aria-label="Notering"></textarea>
+          <div class="confirm-row">
+            <div class="cr-main">
+              <div class="cr-t">Skicka bekräftelse</div>
+              <div class="cr-s">Mejla bokningsbekräftelse till kunden direkt.</div>
+            </div>
+            <label class="switch"><input type="checkbox" id="sendConfirm" checked aria-label="Skicka bekräftelse"><span class="track"></span></label>
+          </div>
+        </div>
+
+        <div class="success" id="successView">
+          <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <h2>Bokning skapad</h2>
+          <p id="successText">Bokningen är bekräftad och tiden är reserverad i kalendern.</p>
+          <div class="succ-meta" id="successMeta"></div>
+          <div style="margin-top:1.1rem"><button class="btn" id="newBookingBtn" type="button">Skapa ny bokning</button></div>
+        </div>
+      </div>
+
+      <!-- nav -->
+      <div class="wiz-foot" id="wizFoot">
+        <button class="btn" id="prevBtn" type="button" disabled>Föregående</button>
+        <span class="spacer"></span>
+        <button class="btn btn--primary" id="nextBtn" type="button" disabled>Nästa</button>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i is-active" aria-current="page" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+'use strict';
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(m){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]);});};
+var CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+/* ── Kunder (demo, namn från Skickat-ytan) ── */
+var CUSTOMERS=[
+  {name:'Anna Karlsson',email:'anna.karlsson@example.se',sub:'VIP · Senast: Kostnadsfri konsultation'},
+  {name:'Johan Andersson',email:'johan.andersson@example.se',sub:'VIP · Välkomstsekvens pågår'},
+  {name:'Emma Svensson',email:'emma.svensson@example.se',sub:'Väntar på ny tid'},
+  {name:'Marcus Lund',email:'marcus.lund@example.se',sub:'Offert hårtransplantation skickad'},
+  {name:'Sofie Bergström',email:'sofie.bergstrom@example.se',sub:'Eftervård DHI — checklista'},
+  {name:'Karl Nyström',email:'karl.nystrom@example.se',sub:'Ny kund'}
+];
+
+/* ── Tjänster (verbatim från ccoBookingEngineStore + booking-pricing-defaults) ── */
+var SERVICES=[
+  {id:'consultation-physical',label:'Fysisk konsultation',min:30,price:0,mode:'Fysiskt'},
+  {id:'consultation-online',label:'Online möte',min:30,price:0,mode:'Online'},
+  {id:'prp-hair',label:'PRP för hår',min:45,price:4300,mode:'Behandling'},
+  {id:'prp-skin',label:'PRP för hud',min:60,price:4300,mode:'Behandling'},
+  {id:'microneedling',label:'Microneedling + PRP',min:60,price:5800,mode:'Behandling'},
+  {id:'followup-transplant',label:'Uppföljning hårtransplantation',min:30,price:0,mode:'Uppföljning'}
+];
+
+/* ── Resurser/behandlare (verbatim) ── */
+var STAFF=['Fazli Krasniqi','Egzona Krasniqi','Dr. Arya Emami','Veronica','Clara','Wendela','Louise'];
+var LOCATION='Hair TP Clinic';
+
+/* ── Tider/dagar ── */
+var DOW=['Mån','Tis','Ons','Tor','Fre','Lör'];
+function buildDays(){
+  var out=[],d=new Date(2026,5,29); /* mån 29 juni 2026 */
+  for(var i=0;i<6;i++){var x=new Date(d);x.setDate(d.getDate()+i);out.push({dow:DOW[i],num:x.getDate(),iso:x.getDate()+' juni'});}
+  return out;
+}
+var DAYS=buildDays();
+var SLOT_TIMES=['09:00','09:30','11:00','13:30','14:00','15:00','16:30','17:00'];
+
+/* ── State ── */
+var state={step:1,customer:null,service:null,day:null,slot:null};
+var TOTAL=4;
+
+/* ── Render kundlista ── */
+var custList=document.getElementById('custList');
+var custSearch=document.getElementById('custSearch');
+function renderCustomers(){
+  var q=(custSearch.value||'').trim().toLowerCase();
+  var items=CUSTOMERS.filter(function(c){return !q||c.name.toLowerCase().indexOf(q)>=0||c.email.toLowerCase().indexOf(q)>=0;});
+  custList.innerHTML=items.length?items.map(function(c){
+    var sel=state.customer&&state.customer.email===c.email;
+    var init=c.name.split(' ').map(function(p){return p[0];}).join('').slice(0,2);
+    return '<button type="button" class="opt'+(sel?' is-sel':'')+'" data-email="'+esc(c.email)+'">'+
+      '<span class="av">'+esc(init)+'</span>'+
+      '<span class="o-main"><span class="o-name">'+esc(c.name)+'</span><span class="o-sub">'+esc(c.email)+' · '+esc(c.sub)+'</span></span>'+
+      '<span class="o-check">'+CHECK+'</span></button>';
+  }).join(''):'<div style="padding:1.2rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Ingen kund matchar sökningen.</div>';
+}
+custList.addEventListener('click',function(e){
+  var b=e.target.closest('.opt');if(!b)return;
+  state.customer=CUSTOMERS.filter(function(c){return c.email===b.getAttribute('data-email');})[0]||null;
+  renderCustomers();updateNav();
+});
+custSearch.addEventListener('input',renderCustomers);
+
+/* ── Render tjänster ── */
+var svcGrid=document.getElementById('svcGrid');
+function priceLabel(p){return p>0?(p.toLocaleString('sv-SE')+' kr'):'Kostnadsfritt';}
+function renderServices(){
+  svcGrid.innerHTML=SERVICES.map(function(s){
+    var sel=state.service&&state.service.id===s.id;
+    return '<button type="button" class="svc'+(sel?' is-sel':'')+'" data-id="'+esc(s.id)+'">'+
+      '<span class="s-top"><span class="s-name">'+esc(s.label)+'</span><span class="s-tag">'+esc(s.mode)+'</span></span>'+
+      '<span class="s-meta"><span><b>'+s.min+'</b> min</span><span><b>'+esc(priceLabel(s.price))+'</b></span></span>'+
+      '</button>';
+  }).join('');
+}
+svcGrid.addEventListener('click',function(e){
+  var b=e.target.closest('.svc');if(!b)return;
+  state.service=SERVICES.filter(function(s){return s.id===b.getAttribute('data-id');})[0]||null;
+  renderServices();updateNav();
+});
+
+/* ── Render tider ── */
+var dayRow=document.getElementById('dayRow');
+var slotGrid=document.getElementById('slotGrid');
+function renderDays(){
+  dayRow.innerHTML=DAYS.map(function(d,i){
+    var sel=state.day&&state.day.num===d.num;
+    return '<button type="button" class="day'+(sel?' is-sel':'')+'" data-i="'+i+'">'+
+      '<span class="d-dow">'+esc(d.dow)+'</span><span class="d-num">'+d.num+'</span></button>';
+  }).join('');
+}
+function renderSlots(){
+  if(!state.day){slotGrid.innerHTML='<div style="grid-column:1/-1;padding:1rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Välj en dag för att se lediga tider.</div>';return;}
+  slotGrid.innerHTML=SLOT_TIMES.map(function(t,i){
+    var sel=state.slot&&state.slot.time===t;
+    var res=STAFF[i%STAFF.length];
+    return '<button type="button" class="slot'+(sel?' is-sel':'')+'" data-time="'+esc(t)+'" data-res="'+esc(res)+'">'+
+      '<span class="sl-time">'+esc(t)+'</span><span class="sl-res">'+esc(res)+'</span></button>';
+  }).join('');
+}
+dayRow.addEventListener('click',function(e){
+  var b=e.target.closest('.day');if(!b)return;
+  state.day=DAYS[Number(b.getAttribute('data-i'))];state.slot=null;
+  renderDays();renderSlots();updateNav();
+});
+slotGrid.addEventListener('click',function(e){
+  var b=e.target.closest('.slot');if(!b)return;
+  state.slot={time:b.getAttribute('data-time'),res:b.getAttribute('data-res')};
+  renderSlots();updateNav();
+});
+
+/* ── Sammanfattning ── */
+function renderSummary(){
+  var c=state.customer,s=state.service,d=state.day,sl=state.slot;
+  var rows=[
+    ['Kund',c?esc(c.name):'—',c?esc(c.email):''],
+    ['Behandling',s?esc(s.label):'—',s?(s.min+' min · '+esc(priceLabel(s.price))):''],
+    ['Tid',(d&&sl)?(esc(d.iso)+' kl '+esc(sl.time)):'—',(d&&sl)?('Mån–Fre · '+LOCATION):''],
+    ['Behandlare',sl?esc(sl.res):'—',sl?LOCATION:''],
+    ['Status','Bekräftas','confirmed']
+  ];
+  document.getElementById('summary').innerHTML=rows.map(function(r){
+    return '<div class="sum-row"><span class="sr-label">'+r[0]+'</span><span class="sr-val">'+r[1]+(r[2]?'<small>'+r[2]+'</small>':'')+'</span></div>';
+  }).join('');
+}
+
+/* ── Stepper / navigation ── */
+var stepEls=[].slice.call(document.querySelectorAll('.step'));
+var panels=[].slice.call(document.querySelectorAll('.step-panel'));
+var prevBtn=document.getElementById('prevBtn');
+var nextBtn=document.getElementById('nextBtn');
+var progressFill=document.getElementById('progressFill');
+
+function stepComplete(n){
+  if(n===1)return !!state.customer;
+  if(n===2)return !!state.service;
+  if(n===3)return !!(state.day&&state.slot);
+  return true;
+}
+function updateNav(){
+  stepEls.forEach(function(el){
+    var n=Number(el.getAttribute('data-step'));
+    el.classList.toggle('is-current',n===state.step);
+    el.classList.toggle('is-done',n<state.step&&stepComplete(n));
+  });
+  panels.forEach(function(p){p.classList.toggle('is-active',Number(p.getAttribute('data-panel'))===state.step);});
+  progressFill.style.width=(state.step/TOTAL*100)+'%';
+  prevBtn.disabled=state.step===1;
+  if(state.step<TOTAL){
+    nextBtn.textContent='Nästa';
+    nextBtn.disabled=!stepComplete(state.step);
+  }else{
+    nextBtn.textContent='Bekräfta bokning';
+    nextBtn.disabled=false;
+  }
+}
+prevBtn.addEventListener('click',function(){if(state.step>1){state.step--;updateNav();window.scrollTo({top:0,behavior:'smooth'});}});
+nextBtn.addEventListener('click',function(){
+  if(state.step<TOTAL){
+    if(!stepComplete(state.step))return;
+    state.step++;
+    if(state.step===4)renderSummary();
+    updateNav();window.scrollTo({top:0,behavior:'smooth'});
+  }else{
+    confirmBooking();
+  }
+});
+
+/* ── Bekräfta → success ── */
+function confirmBooking(){
+  document.getElementById('confirmView').style.display='none';
+  document.getElementById('wizFoot').style.display='none';
+  var send=document.getElementById('sendConfirm').checked;
+  var c=state.customer,s=state.service,d=state.day,sl=state.slot;
+  document.getElementById('successText').textContent=
+    'Bokningen för '+(c?c.name:'kunden')+' är bekräftad och tiden är reserverad i kalendern.';
+  var meta=[
+    '<span class="tag tag--accent">'+esc(s?s.label:'')+'</span>',
+    '<span class="tag tag--info">'+esc((d?d.iso:'')+' kl '+(sl?sl.time:''))+'</span>',
+    '<span class="tag">'+CHECK+' Bekräftad</span>'
+  ];
+  if(send)meta.push('<span class="tag tag--info">'+CHECK+' Bekräftelse skickad</span>');
+  document.getElementById('successMeta').innerHTML=meta.join('');
+  document.getElementById('successView').classList.add('is-show');
+  stepEls.forEach(function(el){el.classList.remove('is-current');el.classList.add('is-done');});
+  progressFill.style.width='100%';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+document.getElementById('newBookingBtn').addEventListener('click',function(){
+  state={step:1,customer:null,service:null,day:null,slot:null};
+  document.getElementById('confirmView').style.display='';
+  document.getElementById('wizFoot').style.display='';
+  document.getElementById('successView').classList.remove('is-show');
+  custSearch.value='';document.getElementById('noteField').value='';
+  document.getElementById('sendConfirm').checked=true;
+  renderCustomers();renderServices();renderDays();renderSlots();updateNav();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+/* init */
+renderCustomers();renderServices();renderDays();renderSlots();updateNav();
+</script>
+<script>(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();</script>
+</body>
+</html>

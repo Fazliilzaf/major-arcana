@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CCO · Notiser</title>
+<style>
+/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
+   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
+:root{
+  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
+  --accent:#b0356e;--accent-weak:#fdeef4;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
+  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --maxw:1500px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
+  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
+@media(min-width:1025px){.aux{padding-bottom:2rem}}
+
+/* topbar (samma som Konversationer/Senare) */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
+  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
+.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
+.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
+.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
+.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
+.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
+.icon-btn svg{width:1.1rem;height:1.1rem}
+
+/* head-zon */
+.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
+.head-main{min-width:0}
+.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
+.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
+.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+
+/* pill-rader (filter/period/segment) */
+.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
+.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
+@media(pointer:coarse){.pill{min-height:var(--tap)}}
+
+/* knappar */
+.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
+@media(pointer:coarse){.btn{min-height:var(--tap)}}
+
+/* kort & paneler */
+.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
+.panel-head{margin-bottom:.7rem}
+.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
+.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
+.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* metric-kort (KPI) */
+.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
+.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
+.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
+.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
+.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
+.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
+.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+
+/* switch — 44px träffyta via track-storlek */
+.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
+.switch input:checked + .track{background:var(--success)}
+.switch input:checked + .track::after{transform:translateX(1.4rem)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
+.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
+.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== STANDARD BOTTOM-NAV MARKUP (mobil) — använd exakt detta i alla fyra ===== */
+
+/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge (verbatim från Skickat) */
+.nav-i{gap:.2rem;transition:color .2s;position:relative}
+.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
+.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
+.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
+.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-i .ic-dot{fill:currentColor}
+@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
+.nav-i:active .ic{transform:scale(.84)}
+.nav-i.is-active{color:var(--ic,var(--accent))}
+.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
+.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
+.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
+.nav-i.is-active .ic-line{stroke:#fff}
+.nav-i.is-active .ic-dot{fill:#fff}
+.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
+@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
+@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== NOTISER-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+
+/* metric-rad — mobil: 2-up; ≥601: 4-up */
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
+@media(min-width:601px){.metrics{grid-template-columns:repeat(4,1fr)}}
+
+/* layout: feed centrerad, valfri högerräls ≥1025 */
+.layout{margin-top:.6rem}
+@media(min-width:1025px){
+  .layout{display:grid;grid-template-columns:minmax(0,760px) minmax(0,1fr);gap:clamp(1rem,1.4vw,1.6rem);align-items:start;justify-content:center}
+  .rail{position:sticky;top:4.4rem}
+}
+.feed-wrap{min-width:0;max-width:760px;margin-inline:auto;width:100%}
+
+/* filterrad + verktygsrad */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--gap);flex-wrap:wrap;margin:.5rem 0 .2rem}
+
+/* tidsgrupp-rubrik */
+.group-h{display:flex;align-items:center;gap:.55rem;margin:1rem 0 .5rem;color:var(--text-tertiary)}
+.group-h .gl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.group-h .gc{font-size:var(--fs-kicker);font-weight:800;color:var(--text-tertiary);background:rgba(180,165,150,.18);padding:.05rem .45rem;border-radius:var(--r-pill)}
+.group-h::after{content:"";flex:1;height:1px;background:rgba(180,165,150,.28)}
+
+/* feed-lista */
+.feed{display:flex;flex-direction:column;gap:.5rem}
+
+/* notis-item */
+.noti{display:grid;grid-template-columns:auto 1fr;gap:.75rem;padding:.85rem .95rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.9));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm);cursor:pointer;text-align:left;width:100%;min-height:var(--tap);position:relative;transition:transform .12s,box-shadow .2s,opacity .2s}
+.noti:hover{box-shadow:var(--sh-md)}
+.noti:active{transform:scale(.992)}
+/* oläst-rand + accent */
+.noti.is-unread{border-left:3px solid var(--tone,var(--accent))}
+.noti.is-read{opacity:.72}
+.noti.is-read .n-title{font-weight:700;color:var(--text-secondary)}
+
+/* ton-ikon */
+.n-icon{flex-shrink:0;width:2.4rem;height:2.4rem;border-radius:var(--r-md);display:inline-flex;align-items:center;justify-content:center;background:var(--tone-bg,var(--accent-weak));color:var(--tone,var(--accent))}
+.n-icon svg{width:1.25rem;height:1.25rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.n-body{min-width:0}
+.n-top{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.n-title{font-size:var(--fs-body);font-weight:800;letter-spacing:-.01em;color:var(--text-primary);line-height:1.3}
+.n-cat{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:.1rem .45rem;border-radius:var(--r-pill);background:var(--tone-bg,var(--accent-weak));color:var(--tone,var(--accent))}
+.n-text{margin:.2rem 0 0;font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.4}
+.n-foot{display:flex;align-items:center;gap:.6rem;margin-top:.5rem;flex-wrap:wrap}
+.n-time{font-size:var(--fs-kicker);color:var(--text-tertiary);font-weight:700}
+.n-dot{width:.45rem;height:.45rem;border-radius:50%;background:var(--tone,var(--accent));flex-shrink:0;box-shadow:0 0 0 3px var(--tone-bg,var(--accent-weak))}
+.noti.is-read .n-dot{visibility:hidden}
+.n-act{min-height:2.1rem;padding:0 .8rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.4);background:rgba(255,255,255,.9);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.3rem}
+@media(pointer:coarse){.n-act{min-height:var(--tap)}}
+.n-act svg{width:.85rem;height:.85rem;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+/* tonfärger per kind */
+.t-sla{--tone:var(--danger);--tone-bg:var(--danger-bg)}
+.t-vip{--tone:var(--violet);--tone-bg:var(--violet-bg)}
+.t-bokning{--tone:var(--info);--tone-bg:var(--info-bg)}
+.t-eskalering{--tone:var(--warning);--tone-bg:var(--warning-bg)}
+.t-team{--tone:var(--accent);--tone-bg:var(--accent-weak)}
+.t-system{--tone:var(--slate);--tone-bg:var(--slate-bg)}
+
+/* tom vy */
+.empty{padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)}
+
+/* högerräls — kategorisammanfattning */
+.rail .panel + .panel{margin-top:var(--gap)}
+.cat-row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid rgba(180,165,150,.2)}
+.cat-row:last-child{border-bottom:0}
+.cat-chip{width:1.9rem;height:1.9rem;flex-shrink:0;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;background:var(--tone-bg,var(--accent-weak));color:var(--tone,var(--accent))}
+.cat-chip svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cat-name{flex:1;min-width:0;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary)}
+.cat-name small{display:block;font-weight:600;color:var(--text-tertiary);font-size:var(--fs-kicker)}
+.cat-count{font-size:var(--fs-body);font-weight:800;color:var(--text-primary);font-variant-numeric:tabular-nums}
+@media(max-width:1024px){.rail{display:none}}
+</style>
+</head>
+<body>
+<div class="aux">
+
+  <!-- ===== STANDARD TOPBAR MARKUP ===== -->
+  <div class="topbar"><span class="brand">CCO</span>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i notiser…"></label>
+    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
+  </div>
+
+  <!-- head -->
+  <header class="head">
+    <div class="head-main">
+      <span class="kicker">Aviseringar</span>
+      <h1 class="h1">Notiser</h1>
+      <p class="subtitle">SLA-varningar, nya VIP, bokningar, eskaleringar och team-omnämnanden — samlat i ett flöde.</p>
+    </div>
+    <button class="btn btn--primary" id="markAll">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Markera alla som lästa
+    </button>
+  </header>
+
+  <!-- metric-rad -->
+  <section class="metrics" aria-label="Översikt">
+    <div class="metric metric--rose"><div class="m-label">Olästa</div><div class="m-val tabnum" id="mUnread">0</div><div class="m-meta">av <span id="mTotalInline">0</span> totalt</div></div>
+    <div class="metric metric--blue"><div class="m-label">Idag</div><div class="m-val tabnum" id="mToday">0</div><div class="m-meta">nya notiser</div></div>
+    <div class="metric metric--gold"><div class="m-label">Kräver åtgärd</div><div class="m-val tabnum" id="mAction">0</div><div class="m-meta">med åtgärdsknapp</div></div>
+    <div class="metric metric--slate"><div class="m-label">Totalt</div><div class="m-val tabnum" id="mTotal">0</div><div class="m-meta">i flödet</div></div>
+  </section>
+
+  <!-- filterpills -->
+  <div class="toolbar">
+    <div class="pillrow scroll" role="group" aria-label="Filtrera efter kategori" id="filters">
+      <button class="pill is-active" aria-pressed="true" data-filter="alla">Alla <span class="c" id="cAlla">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="sla">SLA <span class="c" data-c="sla">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="vip">VIP <span class="c" data-c="vip">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="bokning">Bokning <span class="c" data-c="bokning">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="eskalering">Eskalering <span class="c" data-c="eskalering">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="team">Team <span class="c" data-c="team">0</span></button>
+      <button class="pill" aria-pressed="false" data-filter="system">System <span class="c" data-c="system">0</span></button>
+    </div>
+  </div>
+
+  <!-- layout: feed + valfri högerräls -->
+  <div class="layout">
+    <div class="feed-wrap">
+      <div id="feed"></div>
+    </div>
+
+    <aside class="rail" aria-label="Kategorisammanfattning">
+      <div class="panel">
+        <div class="panel-head"><h2>Kategorier</h2><p>Olästa per aviseringstyp</p></div>
+        <div id="catSummary"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Aviseringsregler</h2><p>Hämtade från Inställningar → Aviseringar</p></div>
+        <div class="cat-row"><span class="cat-name">SLA-varningar<small>Varna när SLA-deadline närmar sig</small></span><span class="cat-count" style="color:var(--success);font-size:var(--fs-meta)">På</span></div>
+        <div class="cat-row"><span class="cat-name">Team-omnämnanden<small>Meddela när någon @nämner dig</small></span><span class="cat-count" style="color:var(--success);font-size:var(--fs-meta)">På</span></div>
+        <div class="cat-row"><span class="cat-name">Desktop-aviseringar<small>Få meddelanden i bakgrunden</small></span><span class="cat-count" style="color:var(--success);font-size:var(--fs-meta)">På</span></div>
+        <div class="cat-row"><span class="cat-name">Ljudvarningar<small>Spela ljud för nya meddelanden</small></span><span class="cat-count" style="color:var(--text-tertiary);font-size:var(--fs-meta)">Av</span></div>
+      </div>
+    </aside>
+  </div>
+
+</div>
+
+<!-- ===== STANDARD BOTTOM-NAV MARKUP (mobil) — verbatim duoton från Skickat, Hem aktiv ===== -->
+<nav class="botnav" aria-label="Huvudnavigering">
+  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
+  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
+  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
+  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
+  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
+</nav>
+
+<script>
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+// kind → kategori-etikett (verbatim ankrade i Inställningar → Aviseringar + app.js notistyper)
+const KIND={
+  sla:{label:'SLA-varning',cls:'t-sla',icon:'<path d="M12 8v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/>'},
+  vip:{label:'VIP',cls:'t-vip',icon:'<path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/>'},
+  bokning:{label:'Bokning',cls:'t-bokning',icon:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9.7h18M8 3v3.4M16 3v3.4"/>'},
+  eskalering:{label:'Eskalering',cls:'t-eskalering',icon:'<path d="M10.3 3.8 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>'},
+  team:{label:'Team-omnämnande',cls:'t-team',icon:'<circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/>'},
+  system:{label:'System',cls:'t-system',icon:'<path d="M12 2a3 3 0 0 1 3 3 9 9 0 0 1 5 8v3l2 3H2l2-3v-3a9 9 0 0 1 5-8 3 3 0 0 1 3-3Z"/><path d="M10 21a2 2 0 0 0 4 0"/>'},
+};
+
+// demo-notiser ankrade i de riktiga kategorierna (Idag / Igår / Tidigare)
+const NOTI=[
+  {id:1,kind:'sla',group:'Idag',title:'SLA-deadline om 8 min',text:'Anna Karlsson väntar på svar i Kons — svarstiden överskrids 14:32.',time:'Idag 14:24',action:'Öppna konversation',read:false},
+  {id:2,kind:'vip',group:'Idag',title:'Ny VIP-kund registrerad',text:'Johan Andersson markerades som VIP via automationen VIP-snabbspår.',time:'Idag 13:58',action:'Visa kund',read:false},
+  {id:3,kind:'bokning',group:'Idag',title:'Ny bokning från Bokadirekt',text:'Emma Svensson bokade konsultation fredag 09:00 — väntar på bekräftelse.',time:'Idag 12:10',action:'Bekräfta',read:false},
+  {id:4,kind:'eskalering',group:'Idag',title:'Eskaleringslarm — betalning',text:'Marcus Lund: payment-escalation utlöst efter två obesvarade påminnelser.',time:'Idag 10:42',action:'Hantera',read:false},
+  {id:5,kind:'team',group:'Idag',title:'Sara @nämnde dig',text:'"@du kan du ta över Sofies eftervårdsärende? Jag är på lunch."',time:'Idag 09:30',action:null,read:false},
+  {id:6,kind:'system',group:'Igår',title:'Slack-integration ansluten',text:'Teamaviseringar och eskaleringslarm skickas nu även till #cco-drift.',time:'Igår 18:05',action:null,read:false},
+  {id:7,kind:'sla',group:'Igår',title:'SLA-varning kvitterad',text:'Karl Nyströms ärende besvarades inom svarstiden — inga åtgärder kvar.',time:'Igår 15:20',action:null,read:true},
+  {id:8,kind:'bokning',group:'Igår',title:'Ombokning bekräftad',text:'Elin Holm flyttade sin tid till torsdag 10:00 — kalendern uppdaterad.',time:'Igår 11:48',action:'Visa i kalender',read:true},
+  {id:9,kind:'vip',group:'Tidigare',title:'VIP-onboarding klar',text:'Välkomstsekvensen för Marcus Lund slutfördes och kvitterades.',time:'Tis 16:10',action:null,read:true},
+  {id:10,kind:'eskalering',group:'Tidigare',title:'Eskalering till senior löst',text:'Sofie Bergströms ärende stängdes av driftansvarig efter eskalering.',time:'Mån 09:15',action:null,read:true},
+];
+
+const GROUPS=['Idag','Igår','Tidigare'];
+let curFilter='alla';
+
+const feed=document.getElementById('feed');
+
+function itemHTML(n){
+  const k=KIND[n.kind];
+  return `<button class="noti ${k.cls} ${n.read?'is-read':'is-unread'}" data-id="${n.id}" aria-label="${esc(n.title)}${n.read?', läst':', oläst'}">
+    <span class="n-icon"><svg viewBox="0 0 24 24">${k.icon}</svg></span>
+    <span class="n-body">
+      <span class="n-top">
+        <span class="n-dot" aria-hidden="true"></span>
+        <span class="n-title">${esc(n.title)}</span>
+        <span class="n-cat">${esc(k.label)}</span>
+      </span>
+      <span class="n-text">${esc(n.text)}</span>
+      <span class="n-foot">
+        <span class="n-time">${esc(n.time)}</span>
+        ${n.action?`<span class="n-act" role="button" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${esc(n.action)}</span>`:''}
+      </span>
+    </span>
+  </button>`;
+}
+
+function passFilter(n){ return curFilter==='alla' ? true : n.kind===curFilter; }
+
+function render(){
+  const items=NOTI.filter(passFilter);
+  let html='';
+  GROUPS.forEach(g=>{
+    const gi=items.filter(n=>n.group===g);
+    if(!gi.length) return;
+    const unread=gi.filter(n=>!n.read).length;
+    html+=`<div class="group-h"><span class="gl">${esc(g)}</span><span class="gc">${gi.length}${unread?' · '+unread+' olästa':''}</span></div>`;
+    html+=`<div class="feed">${gi.map(itemHTML).join('')}</div>`;
+  });
+  feed.innerHTML = html || '<div class="empty">Inga notiser i den här kategorin.</div>';
+  updateCounts();
+}
+
+function updateCounts(){
+  const total=NOTI.length;
+  const unread=NOTI.filter(n=>!n.read).length;
+  const today=NOTI.filter(n=>n.group==='Idag').length;
+  const action=NOTI.filter(n=>n.action && !n.read).length;
+  document.getElementById('mUnread').textContent=unread;
+  document.getElementById('mTotalInline').textContent=total;
+  document.getElementById('mToday').textContent=today;
+  document.getElementById('mAction').textContent=action;
+  document.getElementById('mTotal').textContent=total;
+
+  // pill-räknare (olästa per kategori)
+  document.getElementById('cAlla').textContent=unread;
+  ['sla','vip','bokning','eskalering','team','system'].forEach(k=>{
+    const el=document.querySelector('.c[data-c="'+k+'"]');
+    if(el) el.textContent=NOTI.filter(n=>n.kind===k && !n.read).length;
+  });
+
+  // högerräls kategorisammanfattning
+  const cs=document.getElementById('catSummary');
+  if(cs){
+    cs.innerHTML=['sla','vip','bokning','eskalering','team','system'].map(k=>{
+      const kd=KIND[k];
+      const u=NOTI.filter(n=>n.kind===k && !n.read).length;
+      const t=NOTI.filter(n=>n.kind===k).length;
+      return `<div class="cat-row ${kd.cls}">
+        <span class="cat-chip"><svg viewBox="0 0 24 24">${kd.icon}</svg></span>
+        <span class="cat-name">${esc(kd.label)}<small>${t} totalt</small></span>
+        <span class="cat-count">${u}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+// klick på item → markera läst + uppdatera räknare
+feed.addEventListener('click',e=>{
+  const card=e.target.closest('.noti');
+  if(!card) return;
+  const id=Number(card.dataset.id);
+  const n=NOTI.find(x=>x.id===id);
+  if(n && !n.read){ n.read=true; render(); }
+});
+
+// filterpills
+document.getElementById('filters').addEventListener('click',e=>{
+  const p=e.target.closest('.pill');
+  if(!p) return;
+  document.querySelectorAll('#filters .pill').forEach(x=>{x.classList.remove('is-active');x.setAttribute('aria-pressed','false');});
+  p.classList.add('is-active'); p.setAttribute('aria-pressed','true');
+  curFilter=p.dataset.filter;
+  render();
+});
+
+// markera alla som lästa
+document.getElementById('markAll').addEventListener('click',()=>{
+  NOTI.forEach(n=>n.read=true);
+  render();
+});
+
+// botnav active-toggle (samma beteende som Skickat)
+(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();
+
+render();
+</script>
+</body>
+</html>
