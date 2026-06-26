@@ -1,491 +1,1936 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>CCO Analytics — v3 responsiv</title>
-<style>
-/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>CCO Analytics — v3 responsiv</title>
+    <style>
+      /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
    WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
    Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
-:root{
-  --bg-page:#faf6f2;--bg-surface:#ffffff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
-  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
-  --accent:#b0356e;--accent-weak:#fdeef4;--accent-weak-bg:#fdeef4;--accent-strong:#8e285699;--text-on-accent:#ffffff;
-  --success:#2f6f54;--success-bg:rgba(47,111,84,.14);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
-  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
-  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
-  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 8px 22px rgba(56,40,28,.12),inset 0 1px 0 rgba(255,255,255,.92);--sh-xl:0 24px 56px rgba(93,74,60,.16),inset 0 1px 0 rgba(255,255,255,.55);
-  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
-  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-card-title:clamp(.9rem,.85rem+.4vw,1.05rem);--fs-h1:clamp(1.5rem,1.2rem+2vw,2.25rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
-  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
-  --maxw:1500px;
-  --error-text:#962b2b;--error-border:#d8526b;--error-bg:#fdecec;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
-body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
-  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
-button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-.tabnum{font-variant-numeric:tabular-nums}
+      :root {
+        --bg-page: #faf6f2;
+        --bg-surface: #ffffff;
+        --bg-sunken: #f3ece3;
+        --bg-rail: #fbf7f2;
+        --text-primary: #221c15;
+        --text-secondary: #574d40;
+        --text-tertiary: #6d6354;
+        --accent: #b0356e;
+        --accent-weak: #fdeef4;
+        --accent-weak-bg: #fdeef4;
+        --accent-strong: #8e285699;
+        --text-on-accent: #ffffff;
+        --success: #2f6f54;
+        --success-bg: rgba(47, 111, 84, 0.14);
+        --warning: #9a6410;
+        --warning-bg: rgba(154, 100, 16, 0.16);
+        --danger: #a83838;
+        --danger-bg: rgba(168, 56, 56, 0.14);
+        --info: #2f6595;
+        --info-bg: rgba(47, 101, 149, 0.14);
+        --violet: #6b31c9;
+        --violet-bg: rgba(107, 49, 201, 0.12);
+        --gold: #8a5f1e;
+        --gold-bg: rgba(138, 95, 30, 0.14);
+        --slate: #475569;
+        --slate-bg: rgba(71, 85, 105, 0.12);
+        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
+        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        --r-sm: 10px;
+        --r-md: 14px;
+        --r-lg: 18px;
+        --r-xl: 24px;
+        --r-pill: 999px;
+        --fs-kicker: 0.6875rem;
+        --fs-meta: 0.75rem;
+        --fs-body: 0.875rem;
+        --fs-card-title: clamp(0.9rem, 0.85rem+0.4vw, 1.05rem);
+        --fs-h1: clamp(1.5rem, 1.2rem+2vw, 2.25rem);
+        --fs-num: clamp(1.35rem, 1.1rem+1.4vw, 1.9rem);
+        --tap: 2.75rem;
+        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
+        --pad-x: clamp(0.875rem, 0.5rem+1.6vw, 1.5rem);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --maxw: 1500px;
+        --error-text: #962b2b;
+        --error-border: #d8526b;
+        --error-bg: #fdecec;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        font-size: 100%;
+        overflow-x: clip;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
+          var(--bg-page);
+        color: var(--text-primary);
+        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-size: var(--fs-body);
+        line-height: 1.45;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      button {
+        font-family: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      .tabnum {
+        font-variant-numeric: tabular-nums;
+      }
 
-/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
-.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
-@media(min-width:1025px){.aux{padding-bottom:2rem}}
+      /* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+      .aux {
+        max-width: var(--maxw);
+        margin-inline: auto;
+        padding: 0 var(--pad-x) 6rem;
+        min-height: 100vh;
+      }
+      @media (min-width: 1025px) {
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
 
-/* topbar (samma som Konversationer/Senare) */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
-  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
-.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
-.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
-.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
-.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
-.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
-.icon-btn svg{width:1.1rem;height:1.1rem}
+      /* topbar (samma som Konversationer/Senare) */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: var(--gap);
+        padding: 0.5rem var(--pad-x);
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+        margin: 0 calc(-1 * var(--pad-x));
+        background: linear-gradient(
+          180deg,
+          rgba(250, 246, 242, 0.97),
+          rgba(250, 246, 242, 0.82) 80%,
+          transparent
+        );
+        backdrop-filter: blur(18px);
+      }
+      .brand {
+        flex-shrink: 0;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 0.4rem 0.7rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+      }
+      .search {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        padding: 0 0.75rem 0 2.1rem;
+      }
+      .search svg {
+        position: absolute;
+        left: 0.7rem;
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-tertiary);
+      }
+      .search input {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        width: 100%;
+        height: 100%;
+        font: inherit;
+        font-size: var(--fs-meta);
+        color: var(--text-primary);
+        outline: none;
+      }
+      .icon-btn {
+        flex-shrink: 0;
+        width: var(--tap);
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        cursor: pointer;
+      }
 
-/* head-zon */
-.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
-.head-main{min-width:0}
-.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
-.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
-.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+      .icon-btn svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
 
-/* pill-rader (filter/period/segment) */
-.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
-.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
-.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
-.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
-.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
-@media(pointer:coarse){.pill{min-height:var(--tap)}}
+      /* sidoräls-primitiver (v11 facit) */
+      .rail-brand {
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        padding: 0.4rem 0.6rem;
+      }
+      .rail-nav {
+        min-height: var(--tap);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0 0.7rem;
+        border-radius: var(--r-md);
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: var(--fs-meta);
+        border: 0;
+        background: transparent;
+        text-align: left;
+      }
+      .rail-nav.is-active {
+        background: var(--accent-weak-bg);
+        color: var(--accent);
+      }
+      .rail-nav svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+      .rail-sec {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin: 1rem 0.7rem 0.3rem;
+      }
 
-/* knappar */
-.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;text-decoration:none}
-.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
-@media(pointer:coarse){.btn{min-height:var(--tap)}}
+      /* head-zon */
+      .head {
+        padding: 0.9rem 0 0.4rem;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: var(--gap);
+        flex-wrap: wrap;
+      }
+      .head-main {
+        min-width: 0;
+      }
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+      }
+      .h1 {
+        margin: 0;
+        font-size: var(--fs-h1);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        margin: 0.3rem 0 0;
+        color: var(--text-secondary);
+        font-size: var(--fs-meta);
+        max-width: 46ch;
+      }
 
-/* kort & paneler */
-.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.panel-head{margin-bottom:.7rem}
-.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
-.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
-.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+      /* pill-rader (filter/period/segment) */
+      .pillrow {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .pillrow.scroll {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .pillrow.scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .pill {
+        flex-shrink: 0;
+        min-height: 2.25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0 0.85rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.3);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        box-shadow: var(--sh-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .pill[aria-pressed='true'],
+      .pill.is-active {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill .c {
+        background: rgba(180, 165, 150, 0.18);
+        padding: 0.05rem 0.4rem;
+        border-radius: var(--r-pill);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      @media (pointer: coarse) {
+        .pill {
+          min-height: var(--tap);
+        }
+      }
+      .pill .dot {
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 999px;
+      }
+      .pill--success {
+        color: var(--success);
+      }
+      .pill--success .dot {
+        background: var(--success);
+      }
+      .pill--warning {
+        color: var(--warning);
+      }
+      .pill--warning .dot {
+        background: var(--warning);
+      }
+      .pill--info {
+        color: var(--info);
+      }
+      .pill--info .dot {
+        background: var(--info);
+      }
+      .pill--vip {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill--vip .dot {
+        background: var(--accent);
+      }
 
-/* metric-kort (KPI) */
-.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
-.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
-.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
-.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
-.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
-.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
-.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
-.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+      /* knappar */
+      .btn {
+        min-height: 2.5rem;
+        padding: 0 1rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        background: rgba(255, 255, 255, 0.85);
+        font: inherit;
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+        text-decoration: none;
+      }
+      .btn--primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn--danger {
+        background: var(--danger-bg);
+        border-color: rgba(168, 56, 56, 0.3);
+        color: var(--danger);
+      }
+      @media (pointer: coarse) {
+        .btn {
+          min-height: var(--tap);
+        }
+      }
 
-/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
-.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
-.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
-.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
-/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
-.nav-i{gap:.2rem;transition:color .2s;position:relative}
-.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
-.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
-.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
-.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.nav-i .ic-dot{fill:currentColor}
-@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
-.nav-i:active .ic{transform:scale(.84)}
-.nav-i.is-active{color:var(--ic,var(--accent))}
-.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
-.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
-.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
-.nav-i.is-active .ic-line{stroke:#fff}
-.nav-i.is-active .ic-dot{fill:#fff}
-.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
-@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
-@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
-@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
-@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+      /* kort & paneler */
+      .card {
+        position: relative;
+        cursor: pointer;
+        padding: 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease,
+          border-color 0.12s ease;
+      }
+      .card:hover {
+        box-shadow: var(--sh-lg);
+        border-color: rgba(176, 53, 110, 0.25);
+      }
+      .card:active {
+        transform: scale(0.99);
+      }
+      .card.is-selected {
+        border-color: var(--accent);
+        box-shadow:
+          0 0 0 2px rgba(176, 53, 110, 0.25),
+          var(--sh-md);
+      }
+      .card.is-open {
+        border-color: var(--accent);
+      }
+      .panel {
+        padding: 1.1rem;
+        border-radius: var(--r-xl);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.88));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+      }
+      .panel-head {
+        margin-bottom: 0.7rem;
+      }
+      .panel-head h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .panel-head p {
+        margin: 0.2rem 0 0;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+      }
+      .sec-kicker {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
 
-/* ===== ANALYTICS-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+      /* metric-kort (KPI) */
+      .metric {
+        padding: 0.9rem 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+      }
+      .metric .m-label {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .metric .m-val {
+        font-size: var(--fs-num);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-top: 0.15rem;
+        line-height: 1.05;
+      }
+      .metric .m-meta {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        margin-top: 0.25rem;
+      }
+      .metric .m-trend {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      .m-trend--up {
+        color: var(--success);
+      }
+      .m-trend--down {
+        color: var(--danger);
+      }
+      .metric--green {
+        border-left: 3px solid var(--success);
+      }
+      .metric--blue {
+        border-left: 3px solid var(--info);
+      }
+      .metric--rose {
+        border-left: 3px solid var(--accent);
+      }
+      .metric--violet {
+        border-left: 3px solid var(--violet);
+      }
+      .metric--gold {
+        border-left: 3px solid var(--gold);
+      }
+      .metric--slate {
+        border-left: 3px solid var(--slate);
+      }
 
-/* head-actions: period-pills + export */
-.head-actions{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
-.head-mark{flex-shrink:0;width:1.5rem;height:1.5rem;border-radius:7px;background:var(--info-bg);color:var(--info);display:inline-flex;align-items:center;justify-content:center}
-.head-mark svg{width:.9rem;height:.9rem}
+      /* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+      .botnav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem calc(0.5rem + var(--safe-bottom));
+        background: linear-gradient(180deg, rgba(250, 246, 242, 0), rgba(250, 246, 242, 0.94) 30%);
+        backdrop-filter: blur(20px);
+      }
+      .nav-i {
+        flex: 1;
+        min-height: var(--tap);
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.1rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .nav-i svg {
+        width: 1.35rem;
+        height: 1.35rem;
+      }
+      .nav-i.is-active {
+        color: var(--accent);
+      }
+      /* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
+      .nav-i {
+        gap: 0.2rem;
+        transition: color 0.2s;
+        position: relative;
+      }
+      .nav-i .ic-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.1rem;
+        height: 1.9rem;
+        border-radius: var(--r-pill);
+        transition:
+          background 0.25s,
+          box-shadow 0.25s,
+          transform 0.25s;
+      }
+      .nav-i .ic {
+        width: 1.5rem;
+        height: 1.5rem;
+        transition: transform 0.2s;
+      }
+      .nav-i .ic-fill {
+        fill: currentColor;
+        opacity: 0.24;
+        transition:
+          fill 0.2s,
+          opacity 0.2s;
+      }
+      .nav-i .ic-line {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .nav-i .ic-dot {
+        fill: currentColor;
+      }
+      @media (hover: hover) {
+        .nav-i:not(.is-active):hover .ic {
+          transform: translateY(-2px) rotate(-6deg);
+        }
+        .nav-i:not(.is-active):hover .ic-wrap {
+          background: rgba(176, 53, 110, 0.08);
+        }
+      }
+      .nav-i:active .ic {
+        transform: scale(0.84);
+      }
+      .nav-i.is-active {
+        color: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-wrap {
+        background: var(--ic-bg, var(--accent-weak));
+        box-shadow: 0 7px 16px -6px var(--ic, var(--accent));
+        animation: navfloat 2.8s ease-in-out infinite;
+      }
+      .nav-i.is-active .ic {
+        animation: navpop 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .nav-i.is-active .ic-fill {
+        opacity: 1;
+        fill: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-line {
+        stroke: #fff;
+      }
+      .nav-i.is-active .ic-dot {
+        fill: #fff;
+      }
+      .nav-badge {
+        position: absolute;
+        top: -0.15rem;
+        right: 0.4rem;
+        min-width: 1rem;
+        height: 1rem;
+        padding: 0 0.25rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 0.5625rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px var(--bg-page);
+      }
+      @keyframes navpop {
+        0% {
+          transform: scale(0.55);
+        }
+        55% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes navfloat {
+        0%,
+        100% {
+          transform: translateY(-3px);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .nav-i .ic,
+        .nav-i .ic-wrap {
+          animation: none !important;
+        }
+      }
+      @media (min-width: 601px) {
+        .botnav {
+          display: none;
+        }
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
 
-/* ===== OPERATIV TELEMETRY ===== */
-.tel-row{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--gap);margin:.6rem 0 .9rem}
-.tel-card{padding:.8rem .9rem;border-radius:var(--r-md);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm);position:relative;overflow:hidden}
-.tel-card[data-status="ok"]{border-left:3px solid var(--success)}
-.tel-card[data-status="warn"]{border-left:3px solid var(--warning)}
-.tel-card[data-status="danger"]{border-left:3px solid var(--danger);animation:telPulse 1.6s ease-in-out infinite}
-@keyframes telPulse{0%,100%{box-shadow:0 0 0 0 rgba(168,56,56,.4)}50%{box-shadow:0 0 0 6px rgba(168,56,56,0)}}
-.tel-lbl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:.25rem}
-.tel-num{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;color:var(--text-primary)}
-.tel-sub{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
-.tel-live-dot{display:inline-block;width:5px;height:5px;border-radius:999px;background:var(--success);margin-right:5px;animation:telPulse 1.6s ease-in-out infinite;vertical-align:middle}
-.tel-pulse-bar{margin:0 0 .9rem;padding:.7rem 1rem;border-radius:var(--r-md);background:linear-gradient(135deg,var(--success-bg),rgba(176,53,110,.05));border:1px solid rgba(47,111,84,.25);font-size:var(--fs-meta);color:var(--success);display:flex;align-items:center;gap:.7rem;line-height:1.4;flex-wrap:wrap}
-.tel-pulse-bar::before{content:"";display:inline-block;width:8px;height:8px;border-radius:999px;background:var(--success);animation:telPulse 1.6s ease-in-out infinite;flex-shrink:0}
-.tel-pulse-bar strong{color:var(--text-primary)}
-.tel-pulse-bar .age{margin-left:auto;font-size:var(--fs-kicker);color:var(--text-tertiary)}
+      /* ===== ANALYTICS-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
 
-/* Team-prestanda */
-.team-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:var(--gap);margin:0 0 1rem}
-.team-card{padding:1.1rem 1.2rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md);min-width:0}
-.team-card h3{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary);margin:0 0 .6rem}
-.team-row{display:grid;grid-template-columns:1fr auto auto auto;gap:.6rem;padding:.45rem .6rem;border-radius:9px;background:rgba(255,255,255,.6);margin-bottom:.25rem;font-size:var(--fs-meta);align-items:center}
-.team-row .name{font-weight:700;color:var(--text-primary);letter-spacing:-.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.team-row .num{font-variant-numeric:tabular-nums;font-weight:800;color:var(--text-secondary)}
-.team-row .num.acc{color:var(--accent)}
-.team-row .sub{font-size:var(--fs-kicker);color:var(--text-tertiary)}
-.team-row.podium-1{background:linear-gradient(135deg,rgba(154,100,16,.12),rgba(255,255,255,.6));font-weight:800}
-.team-row.podium-1 .rank{color:var(--gold)}
-.team-row.podium-2 .rank{color:var(--text-tertiary)}
-.team-row.podium-3 .rank{color:var(--gold)}
-.coach-card{padding:.7rem .8rem;border-radius:var(--r-sm);background:rgba(255,255,255,.6);margin-bottom:.4rem;display:flex;align-items:flex-start;gap:.6rem;font-size:var(--fs-meta);line-height:1.5}
-.coach-icon{flex-shrink:0;width:2rem;height:2rem;border-radius:9px;background:linear-gradient(135deg,var(--accent),#8e2856);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem}
-.coach-title{font-weight:800;color:var(--text-primary);letter-spacing:-.01em}
-.coach-body{color:var(--text-secondary);font-size:var(--fs-meta);margin-top:.2rem}
-.coach-card a{display:inline-block;margin-top:.4rem;font-size:var(--fs-kicker);color:var(--accent);font-weight:800;text-decoration:none;letter-spacing:.04em;text-transform:uppercase}
+      /* head-actions: period-pills + export */
+      .head-actions {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .head-mark {
+        flex-shrink: 0;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 7px;
+        background: var(--info-bg);
+        color: var(--info);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .head-mark svg {
+        width: 0.9rem;
+        height: 0.9rem;
+      }
 
-/* analytics-surface */
-.analytics-surface{position:relative;border-radius:var(--r-xl);padding:1.2rem 1.3rem;background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(247,241,236,.5));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.analytics-surface .head{box-shadow:inset 0 -1px 0 rgba(180,165,150,.4);padding-bottom:.9rem;align-items:center}
+      /* ===== OPERATIV TELEMETRY ===== */
+      .tel-row {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: var(--gap);
+        margin: 0.6rem 0 0.9rem;
+      }
+      .tel-card {
+        padding: 0.8rem 0.9rem;
+        border-radius: var(--r-md);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+        position: relative;
+        overflow: hidden;
+      }
+      .tel-card[data-status='ok'] {
+        border-left: 3px solid var(--success);
+      }
+      .tel-card[data-status='warn'] {
+        border-left: 3px solid var(--warning);
+      }
+      .tel-card[data-status='danger'] {
+        border-left: 3px solid var(--danger);
+        animation: telPulse 1.6s ease-in-out infinite;
+      }
+      @keyframes telPulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(168, 56, 56, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(168, 56, 56, 0);
+        }
+      }
+      .tel-lbl {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin-bottom: 0.25rem;
+      }
+      .tel-num {
+        font-size: var(--fs-num);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        color: var(--text-primary);
+      }
+      .tel-sub {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        margin-top: 0.25rem;
+      }
+      .tel-live-dot {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--success);
+        margin-right: 5px;
+        animation: telPulse 1.6s ease-in-out infinite;
+        vertical-align: middle;
+      }
+      .tel-pulse-bar {
+        margin: 0 0 0.9rem;
+        padding: 0.7rem 1rem;
+        border-radius: var(--r-md);
+        background: linear-gradient(135deg, var(--success-bg), rgba(176, 53, 110, 0.05));
+        border: 1px solid rgba(47, 111, 84, 0.25);
+        font-size: var(--fs-meta);
+        color: var(--success);
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        line-height: 1.4;
+        flex-wrap: wrap;
+      }
+      .tel-pulse-bar::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--success);
+        animation: telPulse 1.6s ease-in-out infinite;
+        flex-shrink: 0;
+      }
+      .tel-pulse-bar strong {
+        color: var(--text-primary);
+      }
+      .tel-pulse-bar .age {
+        margin-left: auto;
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+      }
 
-/* KPI-rad */
-.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--gap);margin:.9rem 0}
-.kpi{padding:.85rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm);position:relative;overflow:hidden;border-left:3px solid var(--kpi-color,var(--gold))}
-.kpi[data-k="revenue"]{--kpi-color:var(--success)}
-.kpi[data-k="bookings"]{--kpi-color:var(--info)}
-.kpi[data-k="customers"]{--kpi-color:var(--accent)}
-.kpi[data-k="ltv"]{--kpi-color:var(--gold)}
-.kpi[data-k="conversion"]{--kpi-color:var(--violet)}
-.kpi[data-k="noshow"]{--kpi-color:var(--warning)}
-.kpi-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:.35rem}
-.kpi-value{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;color:var(--text-primary)}
-.kpi-trend{font-size:var(--fs-kicker);font-weight:800;margin-top:.3rem;color:var(--success)}
-.kpi-trend.down{color:var(--danger)}
-.kpi-spark{display:flex;align-items:flex-end;gap:1px;height:18px;margin-top:.5rem}
-.kpi-spark-bar{flex:1;border-radius:1px 1px 0 0;background:var(--kpi-color,var(--gold));opacity:.62}
+      /* Team-prestanda */
+      .team-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: var(--gap);
+        margin: 0 0 1rem;
+      }
+      .team-card {
+        padding: 1.1rem 1.2rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+        min-width: 0;
+      }
+      .team-card h3 {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin: 0 0 0.6rem;
+      }
+      .team-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        gap: 0.6rem;
+        padding: 0.45rem 0.6rem;
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.6);
+        margin-bottom: 0.25rem;
+        font-size: var(--fs-meta);
+        align-items: center;
+      }
+      .team-row .name {
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.01em;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .team-row .num {
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        color: var(--text-secondary);
+      }
+      .team-row .num.acc {
+        color: var(--accent);
+      }
+      .team-row .sub {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+      }
+      .team-row.podium-1 {
+        background: linear-gradient(135deg, rgba(154, 100, 16, 0.12), rgba(255, 255, 255, 0.6));
+        font-weight: 800;
+      }
+      .team-row.podium-1 .rank {
+        color: var(--gold);
+      }
+      .team-row.podium-2 .rank {
+        color: var(--text-tertiary);
+      }
+      .team-row.podium-3 .rank {
+        color: var(--gold);
+      }
+      .coach-card {
+        padding: 0.7rem 0.8rem;
+        border-radius: var(--r-sm);
+        background: rgba(255, 255, 255, 0.6);
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        font-size: var(--fs-meta);
+        line-height: 1.5;
+      }
+      .coach-icon {
+        flex-shrink: 0;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 9px;
+        background: linear-gradient(135deg, var(--accent), #8e2856);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+      }
+      .coach-title {
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -0.01em;
+      }
+      .coach-body {
+        color: var(--text-secondary);
+        font-size: var(--fs-meta);
+        margin-top: 0.2rem;
+      }
+      .coach-card a {
+        display: inline-block;
+        margin-top: 0.4rem;
+        font-size: var(--fs-kicker);
+        color: var(--accent);
+        font-weight: 800;
+        text-decoration: none;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
 
-/* Layout för charts */
-.chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
-.chart{padding:1rem 1.1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(247,241,236,.78));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm);min-width:0}
-.chart-head{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin-bottom:.9rem}
-.chart-title{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)}
-.chart-sub{font-size:var(--fs-meta);color:var(--text-secondary);font-weight:600;margin-top:.15rem}
-.chart-value{font-size:1.1rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text-primary);letter-spacing:-.02em;white-space:nowrap}
+      /* analytics-surface */
+      .analytics-surface {
+        position: relative;
+        border-radius: var(--r-xl);
+        padding: 1.2rem 1.3rem;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(247, 241, 236, 0.5));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+      }
+      .analytics-surface .head {
+        box-shadow: inset 0 -1px 0 rgba(180, 165, 150, 0.4);
+        padding-bottom: 0.9rem;
+        align-items: center;
+      }
 
-/* Bar chart — scroll-x på mobil så sidan aldrig svämmar över */
-.bars-scroll{overflow-x:auto;scrollbar-width:thin}
-.bars-scroll::-webkit-scrollbar{height:6px}
-.bars-scroll::-webkit-scrollbar-thumb{background:rgba(180,165,150,.5);border-radius:999px}
-.bars{display:flex;align-items:flex-end;gap:5px;height:140px;padding:4px 0;position:relative;min-width:340px}
-.bars::before,.bars::after{content:"";position:absolute;left:0;right:0;height:1px;background:rgba(109,99,84,.2)}
-.bars::before{bottom:0}
-.bars::after{top:50%}
-.bar{flex:1;min-width:16px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--success),#5a9a7d);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);position:relative;cursor:pointer;transition:transform .12s ease}
-.bar:hover{transform:translateY(-2px)}
-.bar.current{background:linear-gradient(180deg,var(--gold),#b88a3a);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 8px rgba(138,95,30,.3)}
-.bar-tip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%) translateY(-4px);white-space:nowrap;padding:.25rem .5rem;border-radius:7px;background:var(--text-primary);color:#fff;font-size:.625rem;font-weight:700;opacity:0;transition:opacity .15s ease;pointer-events:none;z-index:2}
-.bar:hover .bar-tip,.bar:focus-visible .bar-tip{opacity:1}
-.bars-x{display:flex;justify-content:space-between;font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.4rem;font-weight:600;min-width:340px}
+      /* KPI-rad */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: var(--gap);
+        margin: 0.9rem 0;
+      }
+      .kpi {
+        padding: 0.85rem 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+        position: relative;
+        overflow: hidden;
+        border-left: 3px solid var(--kpi-color, var(--gold));
+      }
+      .kpi[data-k='revenue'] {
+        --kpi-color: var(--success);
+      }
+      .kpi[data-k='bookings'] {
+        --kpi-color: var(--info);
+      }
+      .kpi[data-k='customers'] {
+        --kpi-color: var(--accent);
+      }
+      .kpi[data-k='ltv'] {
+        --kpi-color: var(--gold);
+      }
+      .kpi[data-k='conversion'] {
+        --kpi-color: var(--violet);
+      }
+      .kpi[data-k='noshow'] {
+        --kpi-color: var(--warning);
+      }
+      .kpi-label {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin-bottom: 0.35rem;
+      }
+      .kpi-value {
+        font-size: var(--fs-num);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-primary);
+      }
+      .kpi-trend {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        margin-top: 0.3rem;
+        color: var(--success);
+      }
+      .kpi-trend.down {
+        color: var(--danger);
+      }
+      .kpi-spark {
+        display: flex;
+        align-items: flex-end;
+        gap: 1px;
+        height: 18px;
+        margin-top: 0.5rem;
+      }
+      .kpi-spark-bar {
+        flex: 1;
+        border-radius: 1px 1px 0 0;
+        background: var(--kpi-color, var(--gold));
+        opacity: 0.62;
+      }
 
-/* Donut */
-.donut-wrap{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
-.donut{width:120px;height:120px;flex-shrink:0;position:relative}
-.donut svg{width:100%;height:100%;transform:rotate(-90deg)}
-.donut-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
-.donut-center .num{font-size:1.4rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.donut-center .lbl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)}
-.donut-legend{flex:1;min-width:140px;display:flex;flex-direction:column;gap:.4rem}
-.donut-leg{display:flex;align-items:center;gap:.5rem;font-size:var(--fs-meta)}
-.donut-leg .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-.donut-leg .lbl{color:var(--text-secondary);flex:1}
-.donut-leg .v{font-weight:800;font-variant-numeric:tabular-nums}
+      /* Layout för charts */
+      .chart-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--gap);
+        margin-bottom: var(--gap);
+      }
+      .chart {
+        padding: 1rem 1.1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 241, 236, 0.78));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+        min-width: 0;
+      }
+      .chart-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.6rem;
+        margin-bottom: 0.9rem;
+      }
+      .chart-title {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .chart-sub {
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-top: 0.15rem;
+      }
+      .chart-value {
+        font-size: 1.1rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
 
-/* Treatment-breakdown */
-.breakdown{padding:1rem 1.1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(247,241,236,.78));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm);margin-bottom:var(--gap)}
-.breakdown-rows{display:flex;flex-direction:column;gap:.6rem;margin-top:.9rem}
-.br-row{display:grid;grid-template-columns:120px 1fr 70px 56px;gap:.9rem;align-items:center;font-size:var(--fs-meta)}
-.br-name{font-weight:700}
-.br-track{height:8px;border-radius:999px;background:rgba(109,99,84,.18);overflow:hidden;position:relative}
-.br-fill{height:100%;border-radius:999px;background:var(--br-color,var(--success));box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
-.br-row[data-c="dhi"] .br-fill{background:linear-gradient(90deg,var(--violet),#8a5ce0)}
-.br-row[data-c="prp"] .br-fill{background:linear-gradient(90deg,var(--gold),#ab7c33)}
-.br-row[data-c="micro"] .br-fill{background:linear-gradient(90deg,var(--info),#4a85b8)}
-.br-row[data-c="konsult"] .br-fill{background:linear-gradient(90deg,var(--slate),#64748b)}
-.br-row[data-c="botox"] .br-fill{background:linear-gradient(90deg,var(--accent),#c75a8d)}
-.br-count{font-size:var(--fs-kicker);color:var(--text-tertiary);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
-.br-pct{font-size:var(--fs-meta);font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+      /* Bar chart — scroll-x på mobil så sidan aldrig svämmar över */
+      .bars-scroll {
+        overflow-x: auto;
+        scrollbar-width: thin;
+      }
+      .bars-scroll::-webkit-scrollbar {
+        height: 6px;
+      }
+      .bars-scroll::-webkit-scrollbar-thumb {
+        background: rgba(180, 165, 150, 0.5);
+        border-radius: 999px;
+      }
+      .bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 5px;
+        height: 140px;
+        padding: 4px 0;
+        position: relative;
+        min-width: 340px;
+      }
+      .bars::before,
+      .bars::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: rgba(109, 99, 84, 0.2);
+      }
+      .bars::before {
+        bottom: 0;
+      }
+      .bars::after {
+        top: 50%;
+      }
+      .bar {
+        flex: 1;
+        min-width: 16px;
+        border-radius: 4px 4px 0 0;
+        background: linear-gradient(180deg, var(--success), #5a9a7d);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.12s ease;
+      }
+      .bar:hover {
+        transform: translateY(-2px);
+      }
+      .bar.current {
+        background: linear-gradient(180deg, var(--gold), #b88a3a);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 0 8px rgba(138, 95, 30, 0.3);
+      }
+      .bar-tip {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-4px);
+        white-space: nowrap;
+        padding: 0.25rem 0.5rem;
+        border-radius: 7px;
+        background: var(--text-primary);
+        color: #fff;
+        font-size: 0.625rem;
+        font-weight: 700;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .bar:hover .bar-tip,
+      .bar:focus-visible .bar-tip {
+        opacity: 1;
+      }
+      .bars-x {
+        display: flex;
+        justify-content: space-between;
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        margin-top: 0.4rem;
+        font-weight: 600;
+        min-width: 340px;
+      }
 
-/* AI-insights */
-.insights{padding:1rem 1.1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,var(--gold-bg),rgba(138,95,30,.06));border-left:3px solid var(--gold);box-shadow:var(--sh-sm);margin-bottom:var(--gap)}
-.insights-kicker{color:var(--gold);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem}
-.insights-list{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
-.ins{padding:.65rem .8rem;border-radius:var(--r-sm);background:rgba(255,255,255,.7);font-size:var(--fs-meta);line-height:1.45;color:var(--text-primary)}
-.ins strong{color:var(--gold)}
+      /* Donut */
+      .donut-wrap {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .donut {
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .donut svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+      .donut-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+      .donut-center .num {
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+      .donut-center .lbl {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .donut-legend {
+        flex: 1;
+        min-width: 140px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .donut-leg {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: var(--fs-meta);
+      }
+      .donut-leg .sw {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+      .donut-leg .lbl {
+        color: var(--text-secondary);
+        flex: 1;
+      }
+      .donut-leg .v {
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
 
-/* ===== RESPONSIV ===== */
-/* iPad 601–1024: 2–3 kolumner */
-@media(max-width:1024px){
-  .tel-row{grid-template-columns:repeat(3,1fr)}
-  .team-grid{grid-template-columns:1fr 1fr}
-  .team-grid .team-card:first-child{grid-column:1 / -1}
-  .kpi-grid{grid-template-columns:repeat(3,1fr)}
-}
-/* mobil ≤600: 1-kol charts, KPI 2-up, telemetry 2-up */
-@media(max-width:600px){
-  .tel-row{grid-template-columns:repeat(2,1fr)}
-  .team-grid{grid-template-columns:1fr}
-  .team-grid .team-card:first-child{grid-column:auto}
-  .kpi-grid{grid-template-columns:repeat(2,1fr)}
-  .chart-grid{grid-template-columns:1fr}
-  .insights-list{grid-template-columns:1fr}
-  .br-row{grid-template-columns:90px 1fr 52px;gap:.5rem}
-  .br-count{display:none}
-  .head-actions{width:100%}
-}
-</style>
-</head>
-<body>
-<div class="aux">
+      /* Treatment-breakdown */
+      .breakdown {
+        padding: 1rem 1.1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 241, 236, 0.78));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+        margin-bottom: var(--gap);
+      }
+      .breakdown-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        margin-top: 0.9rem;
+      }
+      .br-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 70px 56px;
+        gap: 0.9rem;
+        align-items: center;
+        font-size: var(--fs-meta);
+      }
+      .br-name {
+        font-weight: 700;
+      }
+      .br-track {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(109, 99, 84, 0.18);
+        overflow: hidden;
+        position: relative;
+      }
+      .br-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--br-color, var(--success));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      }
+      .br-row[data-c='dhi'] .br-fill {
+        background: linear-gradient(90deg, var(--violet), #8a5ce0);
+      }
+      .br-row[data-c='prp'] .br-fill {
+        background: linear-gradient(90deg, var(--gold), #ab7c33);
+      }
+      .br-row[data-c='micro'] .br-fill {
+        background: linear-gradient(90deg, var(--info), #4a85b8);
+      }
+      .br-row[data-c='konsult'] .br-fill {
+        background: linear-gradient(90deg, var(--slate), #64748b);
+      }
+      .br-row[data-c='botox'] .br-fill {
+        background: linear-gradient(90deg, var(--accent), #c75a8d);
+      }
+      .br-count {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        font-weight: 600;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .br-pct {
+        font-size: var(--fs-meta);
+        font-weight: 800;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
 
-  <!-- ===== TOPBAR ===== -->
-  <div class="topbar"><span class="brand">CCO</span>
-    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök analytics…"></label>
-    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
-  </div>
+      /* AI-insights */
+      .insights {
+        padding: 1rem 1.1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, var(--gold-bg), rgba(138, 95, 30, 0.06));
+        border-left: 3px solid var(--gold);
+        box-shadow: var(--sh-sm);
+        margin-bottom: var(--gap);
+      }
+      .insights-kicker {
+        color: var(--gold);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 0.7rem;
+      }
+      .insights-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+      }
+      .ins {
+        padding: 0.65rem 0.8rem;
+        border-radius: var(--r-sm);
+        background: rgba(255, 255, 255, 0.7);
+        font-size: var(--fs-meta);
+        line-height: 1.45;
+        color: var(--text-primary);
+      }
+      .ins strong {
+        color: var(--gold);
+      }
 
-  <!-- ===== OPERATIV TELEMETRY ===== -->
-  <div class="tel-row">
-    <div class="tel-card" data-status="ok"><div class="tel-lbl">Beredskap</div><div class="tel-num tabnum">96</div><div class="tel-sub">låg-risk · 0 spår</div></div>
-    <div class="tel-card" data-status="ok"><div class="tel-lbl">P95 latency</div><div class="tel-num tabnum">142</div><div class="tel-sub">ms · backend</div></div>
-    <div class="tel-card" data-status="warn"><div class="tel-lbl">Öppna incidenter</div><div class="tel-num tabnum">1</div><div class="tel-sub">senaste 1h</div></div>
-    <div class="tel-card" data-status="ok"><div class="tel-lbl">Mejlinsikter</div><div class="tel-num tabnum">37</div><div class="tel-sub">2 hi-risk · 9 followup</div></div>
-    <div class="tel-card" data-status="ok"><div class="tel-lbl">Aktiva booking-cases</div><div class="tel-num tabnum">14</div><div class="tel-sub">i flow nu</div></div>
-    <div class="tel-card" data-status="ok"><div class="tel-lbl">Synliga trådar</div><div class="tel-num tabnum">28</div><div class="tel-sub">i konversationer</div></div>
-  </div>
+      /* ===== RESPONSIV ===== */
+      /* iPad 601–1024: 2–3 kolumner */
+      @media (max-width: 1024px) {
+        .tel-row {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .team-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .team-grid .team-card:first-child {
+          grid-column: 1 / -1;
+        }
+        .kpi-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      /* mobil ≤600: 1-kol charts, KPI 2-up, telemetry 2-up */
+      @media (max-width: 600px) {
+        .tel-row {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .team-grid {
+          grid-template-columns: 1fr;
+        }
+        .team-grid .team-card:first-child {
+          grid-column: auto;
+        }
+        .kpi-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .chart-grid {
+          grid-template-columns: 1fr;
+        }
+        .insights-list {
+          grid-template-columns: 1fr;
+        }
+        .br-row {
+          grid-template-columns: 90px 1fr 52px;
+          gap: 0.5rem;
+        }
+        .br-count {
+          display: none;
+        }
+        .head-actions {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="aux">
+      <!-- ===== TOPBAR ===== -->
+      <div class="topbar">
+        <span class="brand">CCO</span>
+        <label class="search"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
+          ><input placeholder="Sök analytics…"
+        /></label>
+        <button class="icon-btn" aria-label="Filtrera">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+          >
+            <path d="M3 5h18M6 12h12M10 19h4" />
+          </svg>
+        </button>
+      </div>
 
-  <div class="tel-pulse-bar"><span><span class="tel-live-dot"></span><strong>Pilotrapport:</strong> Systemet är stabilt — 96% beredskap, 1 incident under uppsikt, alla SLA-mål inom marginal.</span><span class="age">uppdaterad nu</span></div>
-
-  <div class="team-grid">
-    <div class="team-card">
-      <h3>★ Leaderboard · senaste veckan</h3>
-      <div class="team-row podium-1"><span class="name"><span class="rank">🥇</span> Egzona</span><span class="num acc">94</span><span class="num sub">312k · 4min</span><span class="sub">82k upsell</span></div>
-      <div class="team-row podium-2"><span class="name"><span class="rank">🥈</span> Fazli</span><span class="num acc">89</span><span class="num sub">287k · 5min</span><span class="sub">61k upsell</span></div>
-      <div class="team-row podium-3"><span class="name"><span class="rank">🥉</span> Sara</span><span class="num acc">85</span><span class="num sub">241k · 6min</span><span class="sub">44k upsell</span></div>
-      <div class="team-row"><span class="name">Jonas</span><span class="num acc">80</span><span class="num sub">198k · 7min</span><span class="sub">31k upsell</span></div>
-      <div class="team-row"><span class="name">Lina</span><span class="num acc">76</span><span class="num sub">176k · 8min</span><span class="sub">22k upsell</span></div>
-    </div>
-    <div class="team-card">
-      <h3>Team-snitt</h3>
-      <div class="team-row"><span class="name">Konversationer</span><span class="num acc">1 214</span><span></span><span></span></div>
-      <div class="team-row"><span class="name">Snitt-svarstid</span><span class="num">6 min</span><span></span><span></span></div>
-      <div class="team-row"><span class="name">SLA-efterlevnad</span><span class="num">94%</span><span></span><span></span></div>
-      <div class="team-row"><span class="name">CSAT-snitt</span><span class="num">4.6 / 5</span><span></span><span></span></div>
-    </div>
-    <div class="team-card">
-      <h3>★ Coaching för Egzona</h3>
-      <div class="coach-card">
-        <div class="coach-icon">★</div>
-        <div>
-          <div class="coach-title">Topp-presterare denna vecka</div>
-          <div class="coach-body">93% kundbetyg och snabbast svarstid. Föreslå att dela dina svarsmallar med teamet.</div>
-          <a href="#">Öppna coaching →</a>
+      <!-- ===== OPERATIV TELEMETRY ===== -->
+      <div class="tel-row">
+        <div class="tel-card" data-status="ok">
+          <div class="tel-lbl">Beredskap</div>
+          <div class="tel-num tabnum">96</div>
+          <div class="tel-sub">låg-risk · 0 spår</div>
+        </div>
+        <div class="tel-card" data-status="ok">
+          <div class="tel-lbl">P95 latency</div>
+          <div class="tel-num tabnum">142</div>
+          <div class="tel-sub">ms · backend</div>
+        </div>
+        <div class="tel-card" data-status="warn">
+          <div class="tel-lbl">Öppna incidenter</div>
+          <div class="tel-num tabnum">1</div>
+          <div class="tel-sub">senaste 1h</div>
+        </div>
+        <div class="tel-card" data-status="ok">
+          <div class="tel-lbl">Mejlinsikter</div>
+          <div class="tel-num tabnum">37</div>
+          <div class="tel-sub">2 hi-risk · 9 followup</div>
+        </div>
+        <div class="tel-card" data-status="ok">
+          <div class="tel-lbl">Aktiva booking-cases</div>
+          <div class="tel-num tabnum">14</div>
+          <div class="tel-sub">i flow nu</div>
+        </div>
+        <div class="tel-card" data-status="ok">
+          <div class="tel-lbl">Synliga trådar</div>
+          <div class="tel-num tabnum">28</div>
+          <div class="tel-sub">i konversationer</div>
         </div>
       </div>
-      <div class="coach-card">
-        <div class="coach-icon">↑</div>
-        <div>
-          <div class="coach-title">Upsell-möjlighet</div>
-          <div class="coach-body">Du konverterar PRP-kurer bäst — testa att föreslå dem i fler konsultationer.</div>
-          <a href="#">Se mallar →</a>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- ===== ANALYTICS-SURFACE ===== -->
-  <section class="analytics-surface">
-    <header class="head">
-      <div class="head-main">
-        <span class="kicker">
-          <span class="head-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-          Analytics
-        </span>
-        <h2 class="h1">Performance · maj 2026</h2>
+      <div class="tel-pulse-bar">
+        <span
+          ><span class="tel-live-dot"></span><strong>Pilotrapport:</strong> Systemet är stabilt —
+          96% beredskap, 1 incident under uppsikt, alla SLA-mål inom marginal.</span
+        ><span class="age">uppdaterad nu</span>
       </div>
-      <div class="head-actions">
-        <div class="pillrow" role="group" aria-label="Period">
-          <button class="pill" aria-pressed="false">Vecka</button>
-          <button class="pill" aria-pressed="true">Månad</button>
-          <button class="pill" aria-pressed="false">Kvartal</button>
-          <button class="pill" aria-pressed="false">År</button>
-        </div>
-        <a class="btn" href="#" target="_blank" rel="noopener">📄 PDF (chefer)</a>
-        <a class="btn" href="#" target="_blank" rel="noopener">📊 Excel (revisor)</a>
-      </div>
-    </header>
 
-    <!-- KPI-rad -->
-    <div class="kpi-grid">
-      <div class="kpi" data-k="revenue">
-        <div class="kpi-label">Intäkt</div>
-        <div class="kpi-value">2 047 380 kr</div>
-        <div class="kpi-trend">+18% MoM · +24% YTD</div>
-        <div class="kpi-spark"><div class="kpi-spark-bar" style="height:40%"></div><div class="kpi-spark-bar" style="height:55%"></div><div class="kpi-spark-bar" style="height:48%"></div><div class="kpi-spark-bar" style="height:62%"></div><div class="kpi-spark-bar" style="height:70%"></div><div class="kpi-spark-bar" style="height:78%"></div><div class="kpi-spark-bar" style="height:85%"></div><div class="kpi-spark-bar" style="height:92%"></div></div>
-      </div>
-      <div class="kpi" data-k="bookings">
-        <div class="kpi-label">Bokningar</div>
-        <div class="kpi-value">487</div>
-        <div class="kpi-trend">+8% MoM</div>
-        <div class="kpi-spark"><div class="kpi-spark-bar" style="height:60%"></div><div class="kpi-spark-bar" style="height:65%"></div><div class="kpi-spark-bar" style="height:72%"></div><div class="kpi-spark-bar" style="height:68%"></div><div class="kpi-spark-bar" style="height:80%"></div><div class="kpi-spark-bar" style="height:82%"></div><div class="kpi-spark-bar" style="height:88%"></div><div class="kpi-spark-bar" style="height:88%"></div></div>
-      </div>
-      <div class="kpi" data-k="customers">
-        <div class="kpi-label">Nya kunder</div>
-        <div class="kpi-value">89</div>
-        <div class="kpi-trend">+12 vs april</div>
-        <div class="kpi-spark"><div class="kpi-spark-bar" style="height:50%"></div><div class="kpi-spark-bar" style="height:60%"></div><div class="kpi-spark-bar" style="height:55%"></div><div class="kpi-spark-bar" style="height:65%"></div><div class="kpi-spark-bar" style="height:70%"></div><div class="kpi-spark-bar" style="height:78%"></div><div class="kpi-spark-bar" style="height:82%"></div><div class="kpi-spark-bar" style="height:90%"></div></div>
-      </div>
-      <div class="kpi" data-k="ltv">
-        <div class="kpi-label">Snitt LTV</div>
-        <div class="kpi-value">39 632 kr</div>
-        <div class="kpi-trend">+8% Q2</div>
-        <div class="kpi-spark"><div class="kpi-spark-bar" style="height:65%"></div><div class="kpi-spark-bar" style="height:70%"></div><div class="kpi-spark-bar" style="height:75%"></div><div class="kpi-spark-bar" style="height:78%"></div><div class="kpi-spark-bar" style="height:82%"></div><div class="kpi-spark-bar" style="height:85%"></div><div class="kpi-spark-bar" style="height:88%"></div><div class="kpi-spark-bar" style="height:92%"></div></div>
-      </div>
-      <div class="kpi" data-k="conversion">
-        <div class="kpi-label">Konvertering</div>
-        <div class="kpi-value">68%</div>
-        <div class="kpi-trend">+4 pp MoM</div>
-        <div class="kpi-spark"><div class="kpi-spark-bar" style="height:55%"></div><div class="kpi-spark-bar" style="height:60%"></div><div class="kpi-spark-bar" style="height:62%"></div><div class="kpi-spark-bar" style="height:64%"></div><div class="kpi-spark-bar" style="height:66%"></div><div class="kpi-spark-bar" style="height:68%"></div><div class="kpi-spark-bar" style="height:68%"></div><div class="kpi-spark-bar" style="height:72%"></div></div>
-      </div>
-      <div class="kpi" data-k="noshow">
-        <div class="kpi-label">No-shows</div>
-        <div class="kpi-value">2.4%</div>
-        <div class="kpi-trend down">+0.3 pp</div>
-        <div class="kpi-spark"><div class="kpi-spark-bar" style="height:30%"></div><div class="kpi-spark-bar" style="height:28%"></div><div class="kpi-spark-bar" style="height:32%"></div><div class="kpi-spark-bar" style="height:25%"></div><div class="kpi-spark-bar" style="height:35%"></div><div class="kpi-spark-bar" style="height:38%"></div><div class="kpi-spark-bar" style="height:40%"></div><div class="kpi-spark-bar" style="height:42%"></div></div>
-      </div>
-    </div>
-
-    <!-- Chart-grid: bar + donut -->
-    <div class="chart-grid">
-      <div class="chart">
-        <div class="chart-head">
-          <div>
-            <div class="chart-title">Intäkt per vecka</div>
-            <div class="chart-sub">12 veckor · senaste = v.22 (denna)</div>
+      <div class="team-grid">
+        <div class="team-card">
+          <h3>★ Leaderboard · senaste veckan</h3>
+          <div class="team-row podium-1">
+            <span class="name"><span class="rank">🥇</span> Egzona</span
+            ><span class="num acc">94</span><span class="num sub">312k · 4min</span
+            ><span class="sub">82k upsell</span>
           </div>
-          <div class="chart-value">485 200 kr</div>
-        </div>
-        <div class="bars-scroll">
-          <div class="bars">
-            <div class="bar" style="height:42%" tabindex="0"><span class="bar-tip">v.11: 215 200 kr</span></div>
-            <div class="bar" style="height:58%" tabindex="0"><span class="bar-tip">v.12: 296 800 kr</span></div>
-            <div class="bar" style="height:65%" tabindex="0"><span class="bar-tip">v.13: 332 700 kr</span></div>
-            <div class="bar" style="height:52%" tabindex="0"><span class="bar-tip">v.14: 265 900 kr</span></div>
-            <div class="bar" style="height:72%" tabindex="0"><span class="bar-tip">v.15: 368 100 kr</span></div>
-            <div class="bar" style="height:78%" tabindex="0"><span class="bar-tip">v.16: 399 400 kr</span></div>
-            <div class="bar" style="height:68%" tabindex="0"><span class="bar-tip">v.17: 348 200 kr</span></div>
-            <div class="bar" style="height:80%" tabindex="0"><span class="bar-tip">v.18: 409 600 kr</span></div>
-            <div class="bar" style="height:85%" tabindex="0"><span class="bar-tip">v.19: 435 100 kr</span></div>
-            <div class="bar" style="height:88%" tabindex="0"><span class="bar-tip">v.20: 450 700 kr</span></div>
-            <div class="bar" style="height:90%" tabindex="0"><span class="bar-tip">v.21: 461 800 kr</span></div>
-            <div class="bar current" style="height:94%" tabindex="0"><span class="bar-tip">v.22: 485 200 kr (pågående)</span></div>
+          <div class="team-row podium-2">
+            <span class="name"><span class="rank">🥈</span> Fazli</span
+            ><span class="num acc">89</span><span class="num sub">287k · 5min</span
+            ><span class="sub">61k upsell</span>
           </div>
-          <div class="bars-x"><span>v.11</span><span>v.14</span><span>v.18</span><span>v.22</span></div>
+          <div class="team-row podium-3">
+            <span class="name"><span class="rank">🥉</span> Sara</span
+            ><span class="num acc">85</span><span class="num sub">241k · 6min</span
+            ><span class="sub">44k upsell</span>
+          </div>
+          <div class="team-row">
+            <span class="name">Jonas</span><span class="num acc">80</span
+            ><span class="num sub">198k · 7min</span><span class="sub">31k upsell</span>
+          </div>
+          <div class="team-row">
+            <span class="name">Lina</span><span class="num acc">76</span
+            ><span class="num sub">176k · 8min</span><span class="sub">22k upsell</span>
+          </div>
+        </div>
+        <div class="team-card">
+          <h3>Team-snitt</h3>
+          <div class="team-row">
+            <span class="name">Konversationer</span><span class="num acc">1 214</span><span></span
+            ><span></span>
+          </div>
+          <div class="team-row">
+            <span class="name">Snitt-svarstid</span><span class="num">6 min</span><span></span
+            ><span></span>
+          </div>
+          <div class="team-row">
+            <span class="name">SLA-efterlevnad</span><span class="num">94%</span><span></span
+            ><span></span>
+          </div>
+          <div class="team-row">
+            <span class="name">CSAT-snitt</span><span class="num">4.6 / 5</span><span></span
+            ><span></span>
+          </div>
+        </div>
+        <div class="team-card">
+          <h3>★ Coaching för Egzona</h3>
+          <div class="coach-card">
+            <div class="coach-icon">★</div>
+            <div>
+              <div class="coach-title">Topp-presterare denna vecka</div>
+              <div class="coach-body">
+                93% kundbetyg och snabbast svarstid. Föreslå att dela dina svarsmallar med teamet.
+              </div>
+              <a href="#">Öppna coaching →</a>
+            </div>
+          </div>
+          <div class="coach-card">
+            <div class="coach-icon">↑</div>
+            <div>
+              <div class="coach-title">Upsell-möjlighet</div>
+              <div class="coach-body">
+                Du konverterar PRP-kurer bäst — testa att föreslå dem i fler konsultationer.
+              </div>
+              <a href="#">Se mallar →</a>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="chart">
-        <div class="chart-head">
-          <div>
-            <div class="chart-title">Kundsegment</div>
-            <div class="chart-sub">1 247 totalt</div>
+      <!-- ===== ANALYTICS-SURFACE ===== -->
+      <section class="analytics-surface">
+        <header class="head">
+          <div class="head-main">
+            <span class="kicker">
+              <span class="head-mark"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" /></svg
+              ></span>
+              Analytics
+            </span>
+            <h2 class="h1">Performance · maj 2026</h2>
+          </div>
+          <div class="head-actions">
+            <div class="pillrow" role="group" aria-label="Period">
+              <button class="pill" aria-pressed="false">Vecka</button>
+              <button class="pill" aria-pressed="true">Månad</button>
+              <button class="pill" aria-pressed="false">Kvartal</button>
+              <button class="pill" aria-pressed="false">År</button>
+            </div>
+            <a class="btn" href="#" target="_blank" rel="noopener">📄 PDF (chefer)</a>
+            <a class="btn" href="#" target="_blank" rel="noopener">📊 Excel (revisor)</a>
+          </div>
+        </header>
+
+        <!-- KPI-rad -->
+        <div class="kpi-grid">
+          <div class="kpi" data-k="revenue">
+            <div class="kpi-label">Intäkt</div>
+            <div class="kpi-value">2 047 380 kr</div>
+            <div class="kpi-trend">+18% MoM · +24% YTD</div>
+            <div class="kpi-spark">
+              <div class="kpi-spark-bar" style="height: 40%"></div>
+              <div class="kpi-spark-bar" style="height: 55%"></div>
+              <div class="kpi-spark-bar" style="height: 48%"></div>
+              <div class="kpi-spark-bar" style="height: 62%"></div>
+              <div class="kpi-spark-bar" style="height: 70%"></div>
+              <div class="kpi-spark-bar" style="height: 78%"></div>
+              <div class="kpi-spark-bar" style="height: 85%"></div>
+              <div class="kpi-spark-bar" style="height: 92%"></div>
+            </div>
+          </div>
+          <div class="kpi" data-k="bookings">
+            <div class="kpi-label">Bokningar</div>
+            <div class="kpi-value">487</div>
+            <div class="kpi-trend">+8% MoM</div>
+            <div class="kpi-spark">
+              <div class="kpi-spark-bar" style="height: 60%"></div>
+              <div class="kpi-spark-bar" style="height: 65%"></div>
+              <div class="kpi-spark-bar" style="height: 72%"></div>
+              <div class="kpi-spark-bar" style="height: 68%"></div>
+              <div class="kpi-spark-bar" style="height: 80%"></div>
+              <div class="kpi-spark-bar" style="height: 82%"></div>
+              <div class="kpi-spark-bar" style="height: 88%"></div>
+              <div class="kpi-spark-bar" style="height: 88%"></div>
+            </div>
+          </div>
+          <div class="kpi" data-k="customers">
+            <div class="kpi-label">Nya kunder</div>
+            <div class="kpi-value">89</div>
+            <div class="kpi-trend">+12 vs april</div>
+            <div class="kpi-spark">
+              <div class="kpi-spark-bar" style="height: 50%"></div>
+              <div class="kpi-spark-bar" style="height: 60%"></div>
+              <div class="kpi-spark-bar" style="height: 55%"></div>
+              <div class="kpi-spark-bar" style="height: 65%"></div>
+              <div class="kpi-spark-bar" style="height: 70%"></div>
+              <div class="kpi-spark-bar" style="height: 78%"></div>
+              <div class="kpi-spark-bar" style="height: 82%"></div>
+              <div class="kpi-spark-bar" style="height: 90%"></div>
+            </div>
+          </div>
+          <div class="kpi" data-k="ltv">
+            <div class="kpi-label">Snitt LTV</div>
+            <div class="kpi-value">39 632 kr</div>
+            <div class="kpi-trend">+8% Q2</div>
+            <div class="kpi-spark">
+              <div class="kpi-spark-bar" style="height: 65%"></div>
+              <div class="kpi-spark-bar" style="height: 70%"></div>
+              <div class="kpi-spark-bar" style="height: 75%"></div>
+              <div class="kpi-spark-bar" style="height: 78%"></div>
+              <div class="kpi-spark-bar" style="height: 82%"></div>
+              <div class="kpi-spark-bar" style="height: 85%"></div>
+              <div class="kpi-spark-bar" style="height: 88%"></div>
+              <div class="kpi-spark-bar" style="height: 92%"></div>
+            </div>
+          </div>
+          <div class="kpi" data-k="conversion">
+            <div class="kpi-label">Konvertering</div>
+            <div class="kpi-value">68%</div>
+            <div class="kpi-trend">+4 pp MoM</div>
+            <div class="kpi-spark">
+              <div class="kpi-spark-bar" style="height: 55%"></div>
+              <div class="kpi-spark-bar" style="height: 60%"></div>
+              <div class="kpi-spark-bar" style="height: 62%"></div>
+              <div class="kpi-spark-bar" style="height: 64%"></div>
+              <div class="kpi-spark-bar" style="height: 66%"></div>
+              <div class="kpi-spark-bar" style="height: 68%"></div>
+              <div class="kpi-spark-bar" style="height: 68%"></div>
+              <div class="kpi-spark-bar" style="height: 72%"></div>
+            </div>
+          </div>
+          <div class="kpi" data-k="noshow">
+            <div class="kpi-label">No-shows</div>
+            <div class="kpi-value">2.4%</div>
+            <div class="kpi-trend down">+0.3 pp</div>
+            <div class="kpi-spark">
+              <div class="kpi-spark-bar" style="height: 30%"></div>
+              <div class="kpi-spark-bar" style="height: 28%"></div>
+              <div class="kpi-spark-bar" style="height: 32%"></div>
+              <div class="kpi-spark-bar" style="height: 25%"></div>
+              <div class="kpi-spark-bar" style="height: 35%"></div>
+              <div class="kpi-spark-bar" style="height: 38%"></div>
+              <div class="kpi-spark-bar" style="height: 40%"></div>
+              <div class="kpi-spark-bar" style="height: 42%"></div>
+            </div>
           </div>
         </div>
-        <div class="donut-wrap">
-          <div class="donut">
-            <svg viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(109,99,84,.18)" stroke-width="14"/>
-              <!-- VIP 234/1247 = 18.8% -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#b0356e" stroke-width="14" stroke-dasharray="47.2 251.3" stroke-dashoffset="0"/>
-              <!-- Aktiva 558/1247 = 44.7% -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#2f6f54" stroke-width="14" stroke-dasharray="112.4 251.3" stroke-dashoffset="-47.2"/>
-              <!-- Nya 89/1247 = 7.1% -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#2f6595" stroke-width="14" stroke-dasharray="17.9 251.3" stroke-dashoffset="-159.6"/>
-              <!-- Risk 12/1247 = 0.96% -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#9a6410" stroke-width="14" stroke-dasharray="2.4 251.3" stroke-dashoffset="-177.5"/>
-              <!-- Dormant 456/1247 = 36.6% -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#475569" stroke-width="14" stroke-dasharray="91.9 251.3" stroke-dashoffset="-179.9"/>
-            </svg>
-            <div class="donut-center"><div class="num tabnum">1247</div><div class="lbl">kunder</div></div>
+
+        <!-- Chart-grid: bar + donut -->
+        <div class="chart-grid">
+          <div class="chart">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title">Intäkt per vecka</div>
+                <div class="chart-sub">12 veckor · senaste = v.22 (denna)</div>
+              </div>
+              <div class="chart-value">485 200 kr</div>
+            </div>
+            <div class="bars-scroll">
+              <div class="bars">
+                <div class="bar" style="height: 42%" tabindex="0">
+                  <span class="bar-tip">v.11: 215 200 kr</span>
+                </div>
+                <div class="bar" style="height: 58%" tabindex="0">
+                  <span class="bar-tip">v.12: 296 800 kr</span>
+                </div>
+                <div class="bar" style="height: 65%" tabindex="0">
+                  <span class="bar-tip">v.13: 332 700 kr</span>
+                </div>
+                <div class="bar" style="height: 52%" tabindex="0">
+                  <span class="bar-tip">v.14: 265 900 kr</span>
+                </div>
+                <div class="bar" style="height: 72%" tabindex="0">
+                  <span class="bar-tip">v.15: 368 100 kr</span>
+                </div>
+                <div class="bar" style="height: 78%" tabindex="0">
+                  <span class="bar-tip">v.16: 399 400 kr</span>
+                </div>
+                <div class="bar" style="height: 68%" tabindex="0">
+                  <span class="bar-tip">v.17: 348 200 kr</span>
+                </div>
+                <div class="bar" style="height: 80%" tabindex="0">
+                  <span class="bar-tip">v.18: 409 600 kr</span>
+                </div>
+                <div class="bar" style="height: 85%" tabindex="0">
+                  <span class="bar-tip">v.19: 435 100 kr</span>
+                </div>
+                <div class="bar" style="height: 88%" tabindex="0">
+                  <span class="bar-tip">v.20: 450 700 kr</span>
+                </div>
+                <div class="bar" style="height: 90%" tabindex="0">
+                  <span class="bar-tip">v.21: 461 800 kr</span>
+                </div>
+                <div class="bar current" style="height: 94%" tabindex="0">
+                  <span class="bar-tip">v.22: 485 200 kr (pågående)</span>
+                </div>
+              </div>
+              <div class="bars-x">
+                <span>v.11</span><span>v.14</span><span>v.18</span><span>v.22</span>
+              </div>
+            </div>
           </div>
-          <div class="donut-legend">
-            <div class="donut-leg"><span class="sw" style="background:#b0356e"></span><span class="lbl">VIP</span><span class="v">234</span></div>
-            <div class="donut-leg"><span class="sw" style="background:#2f6f54"></span><span class="lbl">Aktiva</span><span class="v">558</span></div>
-            <div class="donut-leg"><span class="sw" style="background:#2f6595"></span><span class="lbl">Nya</span><span class="v">89</span></div>
-            <div class="donut-leg"><span class="sw" style="background:#9a6410"></span><span class="lbl">Risk</span><span class="v">12</span></div>
-            <div class="donut-leg"><span class="sw" style="background:#475569"></span><span class="lbl">Dormant</span><span class="v">456</span></div>
+
+          <div class="chart">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title">Kundsegment</div>
+                <div class="chart-sub">1 247 totalt</div>
+              </div>
+            </div>
+            <div class="donut-wrap">
+              <div class="donut">
+                <svg viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="rgba(109,99,84,.18)"
+                    stroke-width="14"
+                  />
+                  <!-- VIP 234/1247 = 18.8% -->
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#b0356e"
+                    stroke-width="14"
+                    stroke-dasharray="47.2 251.3"
+                    stroke-dashoffset="0"
+                  />
+                  <!-- Aktiva 558/1247 = 44.7% -->
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#2f6f54"
+                    stroke-width="14"
+                    stroke-dasharray="112.4 251.3"
+                    stroke-dashoffset="-47.2"
+                  />
+                  <!-- Nya 89/1247 = 7.1% -->
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#2f6595"
+                    stroke-width="14"
+                    stroke-dasharray="17.9 251.3"
+                    stroke-dashoffset="-159.6"
+                  />
+                  <!-- Risk 12/1247 = 0.96% -->
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#9a6410"
+                    stroke-width="14"
+                    stroke-dasharray="2.4 251.3"
+                    stroke-dashoffset="-177.5"
+                  />
+                  <!-- Dormant 456/1247 = 36.6% -->
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#475569"
+                    stroke-width="14"
+                    stroke-dasharray="91.9 251.3"
+                    stroke-dashoffset="-179.9"
+                  />
+                </svg>
+                <div class="donut-center">
+                  <div class="num tabnum">1247</div>
+                  <div class="lbl">kunder</div>
+                </div>
+              </div>
+              <div class="donut-legend">
+                <div class="donut-leg">
+                  <span class="sw" style="background: #b0356e"></span><span class="lbl">VIP</span
+                  ><span class="v">234</span>
+                </div>
+                <div class="donut-leg">
+                  <span class="sw" style="background: #2f6f54"></span><span class="lbl">Aktiva</span
+                  ><span class="v">558</span>
+                </div>
+                <div class="donut-leg">
+                  <span class="sw" style="background: #2f6595"></span><span class="lbl">Nya</span
+                  ><span class="v">89</span>
+                </div>
+                <div class="donut-leg">
+                  <span class="sw" style="background: #9a6410"></span><span class="lbl">Risk</span
+                  ><span class="v">12</span>
+                </div>
+                <div class="donut-leg">
+                  <span class="sw" style="background: #475569"></span
+                  ><span class="lbl">Dormant</span><span class="v">456</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <!-- Behandlingstyper -->
+        <div class="breakdown">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Behandlingar — intäktsfördelning</div>
+              <div class="chart-sub">YTD 2026 · 5 toppkategorier</div>
+            </div>
+            <div class="chart-value">14.2 MSEK</div>
+          </div>
+          <div class="breakdown-rows">
+            <div class="br-row" data-c="dhi">
+              <div class="br-name">DHI / Hårtx</div>
+              <div class="br-track"><div class="br-fill" style="width: 42%"></div></div>
+              <div class="br-count">142 beh.</div>
+              <div class="br-pct">42%</div>
+            </div>
+            <div class="br-row" data-c="prp">
+              <div class="br-name">PRP-kurer</div>
+              <div class="br-track"><div class="br-fill" style="width: 28%"></div></div>
+              <div class="br-count">389 beh.</div>
+              <div class="br-pct">28%</div>
+            </div>
+            <div class="br-row" data-c="micro">
+              <div class="br-name">Microneedling</div>
+              <div class="br-track"><div class="br-fill" style="width: 14%"></div></div>
+              <div class="br-count">98 beh.</div>
+              <div class="br-pct">14%</div>
+            </div>
+            <div class="br-row" data-c="botox">
+              <div class="br-name">Botox/Filler</div>
+              <div class="br-track"><div class="br-fill" style="width: 10%"></div></div>
+              <div class="br-count">122 beh.</div>
+              <div class="br-pct">10%</div>
+            </div>
+            <div class="br-row" data-c="konsult">
+              <div class="br-name">Konsultationer</div>
+              <div class="br-track"><div class="br-fill" style="width: 6%"></div></div>
+              <div class="br-count">618 beh.</div>
+              <div class="br-pct">6%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI-insikter -->
+        <div class="insights">
+          <div class="insights-kicker">★ AI · Insikter denna månad</div>
+          <div class="insights-list">
+            <div class="ins">
+              <strong>PRP-kurer</strong> ger nu <strong>+34% återbesök</strong> vs konsultationer.
+              Föreslå PRP oftare i Svarstudio.
+            </div>
+            <div class="ins">
+              <strong>5 VIP-kunder</strong> har inte bokat på 60+ dagar — outreach via Svarstudio
+              sparar uppskattningsvis 180 000 kr.
+            </div>
+            <div class="ins">
+              <strong>Fredag eftermiddag</strong> har 32% lägre fyllnadsgrad än övriga em — minska
+              schemaläggning där.
+            </div>
+            <div class="ins">
+              <strong>89 nya kunder</strong> · contact@ är toppkanal (62%), info@ ökar +18% MoM.
+            </div>
+            <div class="ins">
+              <strong>Eva K.</strong> + 4 andra har 3+ no-shows — föreslå 50% deposit-policy för
+              risk-segmentet.
+            </div>
+            <div class="ins">
+              <strong>Egzona</strong> har 93% kundbetyg (snitt 88%) — föreslå hennes profil i
+              marknadsföring.
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- Behandlingstyper -->
-    <div class="breakdown">
-      <div class="chart-head">
-        <div>
-          <div class="chart-title">Behandlingar — intäktsfördelning</div>
-          <div class="chart-sub">YTD 2026 · 5 toppkategorier</div>
-        </div>
-        <div class="chart-value">14.2 MSEK</div>
-      </div>
-      <div class="breakdown-rows">
-        <div class="br-row" data-c="dhi"><div class="br-name">DHI / Hårtx</div><div class="br-track"><div class="br-fill" style="width:42%"></div></div><div class="br-count">142 beh.</div><div class="br-pct">42%</div></div>
-        <div class="br-row" data-c="prp"><div class="br-name">PRP-kurer</div><div class="br-track"><div class="br-fill" style="width:28%"></div></div><div class="br-count">389 beh.</div><div class="br-pct">28%</div></div>
-        <div class="br-row" data-c="micro"><div class="br-name">Microneedling</div><div class="br-track"><div class="br-fill" style="width:14%"></div></div><div class="br-count">98 beh.</div><div class="br-pct">14%</div></div>
-        <div class="br-row" data-c="botox"><div class="br-name">Botox/Filler</div><div class="br-track"><div class="br-fill" style="width:10%"></div></div><div class="br-count">122 beh.</div><div class="br-pct">10%</div></div>
-        <div class="br-row" data-c="konsult"><div class="br-name">Konsultationer</div><div class="br-track"><div class="br-fill" style="width:6%"></div></div><div class="br-count">618 beh.</div><div class="br-pct">6%</div></div>
-      </div>
-    </div>
+    <!-- ===== BOTNAV ===== -->
+    <nav class="botnav" aria-label="Huvudnavigering">
+      <button
+        class="nav-i is-active"
+        aria-current="page"
+        style="--ic: var(--accent); --ic-bg: var(--accent-bg)"
+      >
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"
+            />
+            <path
+              class="ic-line"
+              d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"
+            /></svg></span
+        >Hem
+      </button>
+      <button class="nav-i" style="--ic: #2f6595; --ic-bg: rgba(47, 101, 149, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4" /></svg
+          ><span class="nav-badge">3</span></span
+        >Boka
+      </button>
+      <button class="nav-i" style="--ic: #6b31c9; --ic-bg: rgba(107, 49, 201, 0.12)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4" />
+            <circle class="ic-dot" cx="8" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="12" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="16" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="8" cy="17" r="1" />
+            <circle class="ic-dot" cx="12" cy="17" r="1" /></svg></span
+        >Kalender
+      </button>
+      <button class="nav-i" style="--ic: #2f6f54; --ic-bg: rgba(47, 111, 84, 0.16)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"
+            /></svg></span
+        >Kund
+      </button>
+      <button class="nav-i" style="--ic: #8a5f1e; --ic-bg: rgba(138, 95, 30, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"
+            />
+            <path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4" /></svg></span
+        >Journal
+      </button>
+    </nav>
 
-    <!-- AI-insikter -->
-    <div class="insights">
-      <div class="insights-kicker">★ AI · Insikter denna månad</div>
-      <div class="insights-list">
-        <div class="ins"><strong>PRP-kurer</strong> ger nu <strong>+34% återbesök</strong> vs konsultationer. Föreslå PRP oftare i Svarstudio.</div>
-        <div class="ins"><strong>5 VIP-kunder</strong> har inte bokat på 60+ dagar — outreach via Svarstudio sparar uppskattningsvis 180 000 kr.</div>
-        <div class="ins"><strong>Fredag eftermiddag</strong> har 32% lägre fyllnadsgrad än övriga em — minska schemaläggning där.</div>
-        <div class="ins"><strong>89 nya kunder</strong> · contact@ är toppkanal (62%), info@ ökar +18% MoM.</div>
-        <div class="ins"><strong>Eva K.</strong> + 4 andra har 3+ no-shows — föreslå 50% deposit-policy för risk-segmentet.</div>
-        <div class="ins"><strong>Egzona</strong> har 93% kundbetyg (snitt 88%) — föreslå hennes profil i marknadsföring.</div>
-      </div>
-    </div>
-  </section>
-</div>
-
-<!-- ===== BOTNAV ===== -->
-<nav class="botnav" aria-label="Huvudnavigering">
-  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
-  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
-  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
-  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
-  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
-</nav>
-
-<script>
-// period-pills (enkel-val + active state)
-document.querySelectorAll('.pillrow[role=group]').forEach(group=>{
-  group.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>{
-    group.querySelectorAll('.pill').forEach(x=>x.setAttribute('aria-pressed','false'));
-    p.setAttribute('aria-pressed','true');
-  }));
-});
-// botnav active state
-(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();
-</script>
-</body>
+    <script>
+      // period-pills (enkel-val + active state)
+      document.querySelectorAll('.pillrow[role=group]').forEach((group) => {
+        group.querySelectorAll('.pill').forEach((p) =>
+          p.addEventListener('click', () => {
+            group.querySelectorAll('.pill').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+            p.setAttribute('aria-pressed', 'true');
+          })
+        );
+      });
+      // botnav active state
+      (function () {
+        var nav = document.querySelector('.botnav');
+        if (!nav) return;
+        nav.addEventListener('click', function (e) {
+          var b = e.target.closest('.nav-i');
+          if (!b) return;
+          nav.querySelectorAll('.nav-i').forEach(function (x) {
+            x.classList.remove('is-active');
+            x.removeAttribute('aria-current');
+          });
+          void b.offsetWidth;
+          b.classList.add('is-active');
+          b.setAttribute('aria-current', 'page');
+        });
+      })();
+    </script>
+  </body>
 </html>

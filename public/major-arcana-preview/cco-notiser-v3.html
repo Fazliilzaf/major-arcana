@@ -1,368 +1,1535 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CCO · Notiser</title>
-<style>
-/* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>CCO · Notiser</title>
+    <style>
+      /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
    WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
    Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
-:root{
-  --bg-page:#faf6f2;--bg-surface:#ffffff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
-  --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
-  --accent:#b0356e;--accent-weak:#fdeef4;--accent-weak-bg:#fdeef4;--accent-strong:#8e285699;--text-on-accent:#ffffff;
-  --success:#2f6f54;--success-bg:rgba(47,111,84,.14);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
-  --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
-  --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
-  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 8px 22px rgba(56,40,28,.12),inset 0 1px 0 rgba(255,255,255,.92);--sh-xl:0 24px 56px rgba(93,74,60,.16),inset 0 1px 0 rgba(255,255,255,.55);
-  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
-  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-card-title:clamp(.9rem,.85rem+.4vw,1.05rem);--fs-h1:clamp(1.5rem,1.2rem+2vw,2.25rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
-  --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
-  --maxw:1500px;
-  --error-text:#962b2b;--error-border:#d8526b;--error-bg:#fdecec;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
-body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.4),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.3),transparent 42%),var(--bg-page);
-  color:var(--text-primary);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;font-size:var(--fs-body);line-height:1.45;min-height:100vh;overflow-x:hidden}
-button{font-family:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-.tabnum{font-variant-numeric:tabular-nums}
+      :root {
+        --bg-page: #faf6f2;
+        --bg-surface: #ffffff;
+        --bg-sunken: #f3ece3;
+        --bg-rail: #fbf7f2;
+        --text-primary: #221c15;
+        --text-secondary: #574d40;
+        --text-tertiary: #6d6354;
+        --accent: #b0356e;
+        --accent-weak: #fdeef4;
+        --accent-weak-bg: #fdeef4;
+        --accent-strong: #8e285699;
+        --text-on-accent: #ffffff;
+        --success: #2f6f54;
+        --success-bg: rgba(47, 111, 84, 0.14);
+        --warning: #9a6410;
+        --warning-bg: rgba(154, 100, 16, 0.16);
+        --danger: #a83838;
+        --danger-bg: rgba(168, 56, 56, 0.14);
+        --info: #2f6595;
+        --info-bg: rgba(47, 101, 149, 0.14);
+        --violet: #6b31c9;
+        --violet-bg: rgba(107, 49, 201, 0.12);
+        --gold: #8a5f1e;
+        --gold-bg: rgba(138, 95, 30, 0.14);
+        --slate: #475569;
+        --slate-bg: rgba(71, 85, 105, 0.12);
+        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
+        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        --r-sm: 10px;
+        --r-md: 14px;
+        --r-lg: 18px;
+        --r-xl: 24px;
+        --r-pill: 999px;
+        --fs-kicker: 0.6875rem;
+        --fs-meta: 0.75rem;
+        --fs-body: 0.875rem;
+        --fs-card-title: clamp(0.9rem, 0.85rem+0.4vw, 1.05rem);
+        --fs-h1: clamp(1.5rem, 1.2rem+2vw, 2.25rem);
+        --fs-num: clamp(1.35rem, 1.1rem+1.4vw, 1.9rem);
+        --tap: 2.75rem;
+        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
+        --pad-x: clamp(0.875rem, 0.5rem+1.6vw, 1.5rem);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --maxw: 1500px;
+        --error-text: #962b2b;
+        --error-border: #d8526b;
+        --error-bg: #fdecec;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        font-size: 100%;
+        overflow-x: clip;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
+          var(--bg-page);
+        color: var(--text-primary);
+        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-size: var(--fs-body);
+        line-height: 1.45;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      button {
+        font-family: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      .tabnum {
+        font-variant-numeric: tabular-nums;
+      }
 
-/* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
-.aux{max-width:var(--maxw);margin-inline:auto;padding:0 var(--pad-x) 6rem;min-height:100vh}
-@media(min-width:1025px){.aux{padding-bottom:2rem}}
+      /* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
+      .aux {
+        max-width: var(--maxw);
+        margin-inline: auto;
+        padding: 0 var(--pad-x) 6rem;
+        min-height: 100vh;
+      }
+      @media (min-width: 1025px) {
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
 
-/* topbar (samma som Konversationer/Senare) */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--gap);padding:.5rem var(--pad-x);padding-top:calc(.5rem + env(safe-area-inset-top,0px));
-  margin:0 calc(-1*var(--pad-x));background:linear-gradient(180deg,rgba(250,246,242,.97),rgba(250,246,242,.82) 80%,transparent);backdrop-filter:blur(18px)}
-.brand{flex-shrink:0;font-weight:800;letter-spacing:.08em;padding:.4rem .7rem;border-radius:var(--r-pill);background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent)}
-.search{flex:1;min-width:0;position:relative;display:flex;align-items:center;height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);padding:0 .75rem 0 2.1rem}
-.search svg{position:absolute;left:.7rem;width:1rem;height:1rem;color:var(--text-tertiary)}
-.search input{appearance:none;border:0;background:transparent;width:100%;height:100%;font:inherit;font-size:var(--fs-meta);color:var(--text-primary);outline:none}
-.icon-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:var(--r-md);background:rgba(255,255,255,.7);border:1px solid rgba(180,165,150,.35);box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer}
-.icon-btn svg{width:1.1rem;height:1.1rem}
+      /* topbar (samma som Konversationer/Senare) */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: var(--gap);
+        padding: 0.5rem var(--pad-x);
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+        margin: 0 calc(-1 * var(--pad-x));
+        background: linear-gradient(
+          180deg,
+          rgba(250, 246, 242, 0.97),
+          rgba(250, 246, 242, 0.82) 80%,
+          transparent
+        );
+        backdrop-filter: blur(18px);
+      }
+      .brand {
+        flex-shrink: 0;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 0.4rem 0.7rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+      }
+      .search {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        padding: 0 0.75rem 0 2.1rem;
+      }
+      .search svg {
+        position: absolute;
+        left: 0.7rem;
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-tertiary);
+      }
+      .search input {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        width: 100%;
+        height: 100%;
+        font: inherit;
+        font-size: var(--fs-meta);
+        color: var(--text-primary);
+        outline: none;
+      }
+      .icon-btn {
+        flex-shrink: 0;
+        width: var(--tap);
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        cursor: pointer;
+      }
 
-/* head-zon */
-.head{padding:.9rem 0 .4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);flex-wrap:wrap}
-.head-main{min-width:0}
-.kicker{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem}
-.h1{margin:0;font-size:var(--fs-h1);font-weight:800;letter-spacing:-.02em}
-.subtitle{margin:.3rem 0 0;color:var(--text-secondary);font-size:var(--fs-meta);max-width:46ch}
+      .icon-btn svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
 
-/* pill-rader (filter/period/segment) */
-.pillrow{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
-.pillrow.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pillrow.scroll::-webkit-scrollbar{display:none}
-.pill{flex-shrink:0;min-height:2.25rem;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.3);background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,238,232,.84));font-size:var(--fs-meta);font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
-.pill[aria-pressed="true"],.pill.is-active{background:linear-gradient(180deg,#fdeef4,#f6cfdc);color:var(--accent);border-color:rgba(176,53,110,.32)}
-.pill .c{background:rgba(180,165,150,.18);padding:.05rem .4rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800}
-@media(pointer:coarse){.pill{min-height:var(--tap)}}
+      /* sidoräls-primitiver (v11 facit) */
+      .rail-brand {
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        padding: 0.4rem 0.6rem;
+      }
+      .rail-nav {
+        min-height: var(--tap);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0 0.7rem;
+        border-radius: var(--r-md);
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: var(--fs-meta);
+        border: 0;
+        background: transparent;
+        text-align: left;
+      }
+      .rail-nav.is-active {
+        background: var(--accent-weak-bg);
+        color: var(--accent);
+      }
+      .rail-nav svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+      .rail-sec {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin: 1rem 0.7rem 0.3rem;
+      }
 
-/* knappar */
-.btn{min-height:2.5rem;padding:0 1rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.35);background:rgba(255,255,255,.85);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
-.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn--danger{background:var(--danger-bg);border-color:rgba(168,56,56,.3);color:var(--danger)}
-@media(pointer:coarse){.btn{min-height:var(--tap)}}
+      /* head-zon */
+      .head {
+        padding: 0.9rem 0 0.4rem;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: var(--gap);
+        flex-wrap: wrap;
+      }
+      .head-main {
+        min-width: 0;
+      }
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+      }
+      .h1 {
+        margin: 0;
+        font-size: var(--fs-h1);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        margin: 0.3rem 0 0;
+        color: var(--text-secondary);
+        font-size: var(--fs-meta);
+        max-width: 46ch;
+      }
 
-/* kort & paneler */
-.card{padding:1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.panel{padding:1.1rem;border-radius:var(--r-xl);background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(247,241,236,.88));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-md)}
-.panel-head{margin-bottom:.7rem}
-.panel-head h2{margin:0;font-size:.95rem;font-weight:800;letter-spacing:-.01em}
-.panel-head p{margin:.2rem 0 0;color:var(--text-tertiary);font-size:var(--fs-meta)}
-.sec-kicker{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary)}
+      /* pill-rader (filter/period/segment) */
+      .pillrow {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .pillrow.scroll {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .pillrow.scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .pill {
+        flex-shrink: 0;
+        min-height: 2.25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0 0.85rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.3);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        box-shadow: var(--sh-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .pill[aria-pressed='true'],
+      .pill.is-active {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill .c {
+        background: rgba(180, 165, 150, 0.18);
+        padding: 0.05rem 0.4rem;
+        border-radius: var(--r-pill);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      @media (pointer: coarse) {
+        .pill {
+          min-height: var(--tap);
+        }
+      }
+      .pill .dot {
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 999px;
+      }
+      .pill--success {
+        color: var(--success);
+      }
+      .pill--success .dot {
+        background: var(--success);
+      }
+      .pill--warning {
+        color: var(--warning);
+      }
+      .pill--warning .dot {
+        background: var(--warning);
+      }
+      .pill--info {
+        color: var(--info);
+      }
+      .pill--info .dot {
+        background: var(--info);
+      }
+      .pill--vip {
+        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
+        color: var(--accent);
+        border-color: rgba(176, 53, 110, 0.32);
+      }
+      .pill--vip .dot {
+        background: var(--accent);
+      }
 
-/* metric-kort (KPI) */
-.metric{padding:.9rem 1rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.84));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm)}
-.metric .m-label{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
-.metric .m-val{font-size:var(--fs-num);font-weight:800;letter-spacing:-.02em;margin-top:.15rem;line-height:1.05}
-.metric .m-meta{font-size:var(--fs-kicker);color:var(--text-tertiary);margin-top:.25rem}
-.metric .m-trend{font-size:var(--fs-kicker);font-weight:800}
-.m-trend--up{color:var(--success)}.m-trend--down{color:var(--danger)}
-.metric--green{border-left:3px solid var(--success)}.metric--blue{border-left:3px solid var(--info)}.metric--rose{border-left:3px solid var(--accent)}
-.metric--violet{border-left:3px solid var(--violet)}.metric--gold{border-left:3px solid var(--gold)}.metric--slate{border-left:3px solid var(--slate)}
+      /* knappar */
+      .btn {
+        min-height: 2.5rem;
+        padding: 0 1rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        background: rgba(255, 255, 255, 0.85);
+        font: inherit;
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+      }
+      .btn--primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn--danger {
+        background: var(--danger-bg);
+        border-color: rgba(168, 56, 56, 0.3);
+        color: var(--danger);
+      }
+      @media (pointer: coarse) {
+        .btn {
+          min-height: var(--tap);
+        }
+      }
 
-/* switch — 44px träffyta via track-storlek */
-.switch{position:relative;flex-shrink:0;width:3rem;height:var(--tap);cursor:pointer}
-.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
-.switch .track{position:absolute;top:50%;left:0;transform:translateY(-50%);width:3rem;height:1.6rem;border-radius:999px;background:rgba(120,108,95,.32);transition:background .2s}
-.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:transform .2s}
-.switch input:checked + .track{background:var(--success)}
-.switch input:checked + .track::after{transform:translateX(1.4rem)}
-.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+      /* kort & paneler */
+      .card {
+        position: relative;
+        cursor: pointer;
+        padding: 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease,
+          border-color 0.12s ease;
+      }
+      .card:hover {
+        box-shadow: var(--sh-lg);
+        border-color: rgba(176, 53, 110, 0.25);
+      }
+      .card:active {
+        transform: scale(0.99);
+      }
+      .card.is-selected {
+        border-color: var(--accent);
+        box-shadow:
+          0 0 0 2px rgba(176, 53, 110, 0.25),
+          var(--sh-md);
+      }
+      .card.is-open {
+        border-color: var(--accent);
+      }
+      .panel {
+        padding: 1.1rem;
+        border-radius: var(--r-xl);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.88));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+      }
+      .panel-head {
+        margin-bottom: 0.7rem;
+      }
+      .panel-head h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .panel-head p {
+        margin: 0.2rem 0 0;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+      }
+      .sec-kicker {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
 
-/* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
-.botnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:.25rem;padding:.5rem .75rem calc(.5rem + var(--safe-bottom));background:linear-gradient(180deg,rgba(250,246,242,0),rgba(250,246,242,.94) 30%);backdrop-filter:blur(20px)}
-.nav-i{flex:1;min-height:var(--tap);border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem;color:var(--text-tertiary);font-size:var(--fs-kicker);font-weight:700;text-transform:uppercase}
-.nav-i svg{width:1.35rem;height:1.35rem}.nav-i.is-active{color:var(--accent)}
-@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+      /* metric-kort (KPI) */
+      .metric {
+        padding: 0.9rem 1rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+      }
+      .metric .m-label {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .metric .m-val {
+        font-size: var(--fs-num);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-top: 0.15rem;
+        line-height: 1.05;
+      }
+      .metric .m-meta {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        margin-top: 0.25rem;
+      }
+      .metric .m-trend {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+      }
+      .m-trend--up {
+        color: var(--success);
+      }
+      .m-trend--down {
+        color: var(--danger);
+      }
+      .metric--green {
+        border-left: 3px solid var(--success);
+      }
+      .metric--blue {
+        border-left: 3px solid var(--info);
+      }
+      .metric--rose {
+        border-left: 3px solid var(--accent);
+      }
+      .metric--violet {
+        border-left: 3px solid var(--violet);
+      }
+      .metric--gold {
+        border-left: 3px solid var(--gold);
+      }
+      .metric--slate {
+        border-left: 3px solid var(--slate);
+      }
 
-/* ===== STANDARD BOTTOM-NAV MARKUP (mobil) — använd exakt detta i alla fyra ===== */
+      /* switch — 44px träffyta via track-storlek */
+      .switch {
+        position: relative;
+        flex-shrink: 0;
+        width: 3rem;
+        height: var(--tap);
+        cursor: pointer;
+      }
+      .switch input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        margin: 0;
+        cursor: pointer;
+      }
+      .switch .track {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        width: 3rem;
+        height: 1.6rem;
+        border-radius: 999px;
+        background: rgba(120, 108, 95, 0.32);
+        transition: background 0.2s;
+      }
+      .switch .track::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: var(--sh-sm);
+        transition: transform 0.2s;
+      }
+      .switch input:checked + .track {
+        background: var(--success);
+      }
+      .switch input:checked + .track::after {
+        transform: translateX(1.4rem);
+      }
+      .switch input:focus-visible + .track {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
 
-/* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge (verbatim från Skickat) */
-.nav-i{gap:.2rem;transition:color .2s;position:relative}
-.nav-i .ic-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:3.1rem;height:1.9rem;border-radius:var(--r-pill);transition:background .25s,box-shadow .25s,transform .25s}
-.nav-i .ic{width:1.5rem;height:1.5rem;transition:transform .2s}
-.nav-i .ic-fill{fill:currentColor;opacity:.24;transition:fill .2s,opacity .2s}
-.nav-i .ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.nav-i .ic-dot{fill:currentColor}
-@media(hover:hover){.nav-i:not(.is-active):hover .ic{transform:translateY(-2px) rotate(-6deg)}.nav-i:not(.is-active):hover .ic-wrap{background:rgba(176,53,110,.08)}}
-.nav-i:active .ic{transform:scale(.84)}
-.nav-i.is-active{color:var(--ic,var(--accent))}
-.nav-i.is-active .ic-wrap{background:var(--ic-bg,var(--accent-weak));box-shadow:0 7px 16px -6px var(--ic,var(--accent));animation:navfloat 2.8s ease-in-out infinite}
-.nav-i.is-active .ic{animation:navpop .46s cubic-bezier(.34,1.56,.64,1)}
-.nav-i.is-active .ic-fill{opacity:1;fill:var(--ic,var(--accent))}
-.nav-i.is-active .ic-line{stroke:#fff}
-.nav-i.is-active .ic-dot{fill:#fff}
-.nav-badge{position:absolute;top:-.15rem;right:.4rem;min-width:1rem;height:1rem;padding:0 .25rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.5625rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-page)}
-@keyframes navpop{0%{transform:scale(.55)}55%{transform:scale(1.2)}100%{transform:scale(1)}}
-@keyframes navfloat{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-6px)}}
-@media(prefers-reduced-motion:reduce){.nav-i .ic,.nav-i .ic-wrap{animation:none!important}}
-@media(min-width:601px){.botnav{display:none}.aux{padding-bottom:2rem}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+      /* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
+      .botnav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem calc(0.5rem + var(--safe-bottom));
+        background: linear-gradient(180deg, rgba(250, 246, 242, 0), rgba(250, 246, 242, 0.94) 30%);
+        backdrop-filter: blur(20px);
+      }
+      .nav-i {
+        flex: 1;
+        min-height: var(--tap);
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.1rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .nav-i svg {
+        width: 1.35rem;
+        height: 1.35rem;
+      }
+      .nav-i.is-active {
+        color: var(--accent);
+      }
+      @media (min-width: 601px) {
+        .botnav {
+          display: none;
+        }
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
 
-/* ===== NOTISER-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
+      /* ===== STANDARD BOTTOM-NAV MARKUP (mobil) — använd exakt detta i alla fyra ===== */
 
-/* metric-rad — mobil: 2-up; ≥601: 4-up */
-.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gap);margin:.6rem 0 .2rem}
-@media(min-width:601px){.metrics{grid-template-columns:repeat(4,1fr)}}
+      /* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge (verbatim från Skickat) */
+      .nav-i {
+        gap: 0.2rem;
+        transition: color 0.2s;
+        position: relative;
+      }
+      .nav-i .ic-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.1rem;
+        height: 1.9rem;
+        border-radius: var(--r-pill);
+        transition:
+          background 0.25s,
+          box-shadow 0.25s,
+          transform 0.25s;
+      }
+      .nav-i .ic {
+        width: 1.5rem;
+        height: 1.5rem;
+        transition: transform 0.2s;
+      }
+      .nav-i .ic-fill {
+        fill: currentColor;
+        opacity: 0.24;
+        transition:
+          fill 0.2s,
+          opacity 0.2s;
+      }
+      .nav-i .ic-line {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .nav-i .ic-dot {
+        fill: currentColor;
+      }
+      @media (hover: hover) {
+        .nav-i:not(.is-active):hover .ic {
+          transform: translateY(-2px) rotate(-6deg);
+        }
+        .nav-i:not(.is-active):hover .ic-wrap {
+          background: rgba(176, 53, 110, 0.08);
+        }
+      }
+      .nav-i:active .ic {
+        transform: scale(0.84);
+      }
+      .nav-i.is-active {
+        color: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-wrap {
+        background: var(--ic-bg, var(--accent-weak));
+        box-shadow: 0 7px 16px -6px var(--ic, var(--accent));
+        animation: navfloat 2.8s ease-in-out infinite;
+      }
+      .nav-i.is-active .ic {
+        animation: navpop 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .nav-i.is-active .ic-fill {
+        opacity: 1;
+        fill: var(--ic, var(--accent));
+      }
+      .nav-i.is-active .ic-line {
+        stroke: #fff;
+      }
+      .nav-i.is-active .ic-dot {
+        fill: #fff;
+      }
+      .nav-badge {
+        position: absolute;
+        top: -0.15rem;
+        right: 0.4rem;
+        min-width: 1rem;
+        height: 1rem;
+        padding: 0 0.25rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 0.5625rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px var(--bg-page);
+      }
+      @keyframes navpop {
+        0% {
+          transform: scale(0.55);
+        }
+        55% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes navfloat {
+        0%,
+        100% {
+          transform: translateY(-3px);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .nav-i .ic,
+        .nav-i .ic-wrap {
+          animation: none !important;
+        }
+      }
+      @media (min-width: 601px) {
+        .botnav {
+          display: none;
+        }
+        .aux {
+          padding-bottom: 2rem;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
 
-/* layout: feed centrerad, valfri högerräls ≥1025 */
-.layout{margin-top:.6rem}
-@media(min-width:1025px){
-  .layout{display:grid;grid-template-columns:minmax(0,760px) minmax(0,1fr);gap:clamp(1rem,1.4vw,1.6rem);align-items:start;justify-content:center}
-  .rail{position:sticky;top:4.4rem}
-}
-.feed-wrap{min-width:0;max-width:760px;margin-inline:auto;width:100%}
+      /* ===== NOTISER-SPECIFIK STYLING (bygger på primitiverna ovan) ===== */
 
-/* filterrad + verktygsrad */
-.toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--gap);flex-wrap:wrap;margin:.5rem 0 .2rem}
+      /* metric-rad — mobil: 2-up; ≥601: 4-up */
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--gap);
+        margin: 0.6rem 0 0.2rem;
+      }
+      @media (min-width: 601px) {
+        .metrics {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
 
-/* tidsgrupp-rubrik */
-.group-h{display:flex;align-items:center;gap:.55rem;margin:1rem 0 .5rem;color:var(--text-tertiary)}
-.group-h .gl{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-.group-h .gc{font-size:var(--fs-kicker);font-weight:800;color:var(--text-tertiary);background:rgba(180,165,150,.18);padding:.05rem .45rem;border-radius:var(--r-pill)}
-.group-h::after{content:"";flex:1;height:1px;background:rgba(180,165,150,.28)}
+      /* layout: feed centrerad, valfri högerräls ≥1025 */
+      .layout {
+        margin-top: 0.6rem;
+      }
+      @media (min-width: 1025px) {
+        .layout {
+          display: grid;
+          grid-template-columns: minmax(0, 760px) minmax(0, 1fr);
+          gap: clamp(1rem, 1.4vw, 1.6rem);
+          align-items: start;
+          justify-content: center;
+        }
+        .rail {
+          position: sticky;
+          top: 4.4rem;
+        }
+      }
+      .feed-wrap {
+        min-width: 0;
+        max-width: 760px;
+        margin-inline: auto;
+        width: 100%;
+      }
 
-/* feed-lista */
-.feed{display:flex;flex-direction:column;gap:.5rem}
+      /* filterrad + verktygsrad */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--gap);
+        flex-wrap: wrap;
+        margin: 0.5rem 0 0.2rem;
+      }
 
-/* notis-item */
-.noti{display:grid;grid-template-columns:auto 1fr;gap:.75rem;padding:.85rem .95rem;border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,241,236,.9));border:1px solid rgba(180,165,150,.25);box-shadow:var(--sh-sm);cursor:pointer;text-align:left;width:100%;min-height:var(--tap);position:relative;transition:transform .12s,box-shadow .2s,opacity .2s}
-.noti:hover{box-shadow:var(--sh-md)}
-.noti:active{transform:scale(.992)}
-/* oläst-rand + accent */
-.noti.is-unread{border-left:3px solid var(--tone,var(--accent))}
-.noti.is-read{opacity:.72}
-.noti.is-read .n-title{font-weight:700;color:var(--text-secondary)}
+      /* tidsgrupp-rubrik */
+      .group-h {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin: 1rem 0 0.5rem;
+        color: var(--text-tertiary);
+      }
+      .group-h .gl {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .group-h .gc {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        color: var(--text-tertiary);
+        background: rgba(180, 165, 150, 0.18);
+        padding: 0.05rem 0.45rem;
+        border-radius: var(--r-pill);
+      }
+      .group-h::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: rgba(180, 165, 150, 0.28);
+      }
 
-/* ton-ikon */
-.n-icon{flex-shrink:0;width:2.4rem;height:2.4rem;border-radius:var(--r-md);display:inline-flex;align-items:center;justify-content:center;background:var(--tone-bg,var(--accent-weak));color:var(--tone,var(--accent))}
-.n-icon svg{width:1.25rem;height:1.25rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+      /* feed-lista */
+      .feed {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
 
-.n-body{min-width:0}
-.n-top{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-.n-title{font-size:var(--fs-body);font-weight:800;letter-spacing:-.01em;color:var(--text-primary);line-height:1.3}
-.n-cat{font-size:var(--fs-kicker);font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:.1rem .45rem;border-radius:var(--r-pill);background:var(--tone-bg,var(--accent-weak));color:var(--tone,var(--accent))}
-.n-text{margin:.2rem 0 0;font-size:var(--fs-meta);color:var(--text-secondary);line-height:1.4}
-.n-foot{display:flex;align-items:center;gap:.6rem;margin-top:.5rem;flex-wrap:wrap}
-.n-time{font-size:var(--fs-kicker);color:var(--text-tertiary);font-weight:700}
-.n-dot{width:.45rem;height:.45rem;border-radius:50%;background:var(--tone,var(--accent));flex-shrink:0;box-shadow:0 0 0 3px var(--tone-bg,var(--accent-weak))}
-.noti.is-read .n-dot{visibility:hidden}
-.n-act{min-height:2.1rem;padding:0 .8rem;border-radius:var(--r-pill);border:1px solid rgba(180,165,150,.4);background:rgba(255,255,255,.9);font:inherit;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:.3rem}
-@media(pointer:coarse){.n-act{min-height:var(--tap)}}
-.n-act svg{width:.85rem;height:.85rem;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+      /* notis-item */
+      .noti {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.75rem;
+        padding: 0.85rem 0.95rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.9));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-sm);
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+        min-height: var(--tap);
+        position: relative;
+        transition:
+          transform 0.12s,
+          box-shadow 0.2s,
+          opacity 0.2s;
+      }
+      .noti:hover {
+        box-shadow: var(--sh-md);
+      }
+      .noti:active {
+        transform: scale(0.992);
+      }
+      /* oläst-rand + accent */
+      .noti.is-unread {
+        border-left: 3px solid var(--tone, var(--accent));
+      }
+      .noti.is-read {
+        opacity: 0.72;
+      }
+      .noti.is-read .n-title {
+        font-weight: 700;
+        color: var(--text-secondary);
+      }
 
-/* tonfärger per notistyp (matchar backend-feedens typer) */
-.t-booking{--tone:var(--info);--tone-bg:var(--info-bg)}
-.t-compliance{--tone:var(--warning);--tone-bg:var(--warning-bg)}
-.t-id_verification{--tone:var(--violet);--tone-bg:var(--violet-bg)}
-.t-agreement{--tone:var(--success);--tone-bg:var(--success-bg)}
-.t-mail{--tone:var(--accent);--tone-bg:var(--accent-weak)}
-.t-system{--tone:var(--slate);--tone-bg:var(--slate-bg)}
+      /* ton-ikon */
+      .n-icon {
+        flex-shrink: 0;
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: var(--r-md);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--tone-bg, var(--accent-weak));
+        color: var(--tone, var(--accent));
+      }
+      .n-icon svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
 
-/* severity-badge (backend severity: info|warning) */
-.n-sev{display:inline-flex;align-items:center;gap:.25rem;padding:.05rem .45rem;border-radius:var(--r-pill);font-size:var(--fs-kicker);font-weight:800;letter-spacing:.02em;background:var(--warning-bg);color:var(--warning);text-transform:uppercase}
+      .n-body {
+        min-width: 0;
+      }
+      .n-top {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .n-title {
+        font-size: var(--fs-body);
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+        line-height: 1.3;
+      }
+      .n-cat {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.1rem 0.45rem;
+        border-radius: var(--r-pill);
+        background: var(--tone-bg, var(--accent-weak));
+        color: var(--tone, var(--accent));
+      }
+      .n-text {
+        margin: 0.2rem 0 0;
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+        line-height: 1.4;
+      }
+      .n-foot {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .n-time {
+        font-size: var(--fs-kicker);
+        color: var(--text-tertiary);
+        font-weight: 700;
+      }
+      .n-dot {
+        width: 0.45rem;
+        height: 0.45rem;
+        border-radius: 50%;
+        background: var(--tone, var(--accent));
+        flex-shrink: 0;
+        box-shadow: 0 0 0 3px var(--tone-bg, var(--accent-weak));
+      }
+      .noti.is-read .n-dot {
+        visibility: hidden;
+      }
+      .n-act {
+        min-height: 2.1rem;
+        padding: 0 0.8rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.4);
+        background: rgba(255, 255, 255, 0.9);
+        font: inherit;
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      @media (pointer: coarse) {
+        .n-act {
+          min-height: var(--tap);
+        }
+      }
+      .n-act svg {
+        width: 0.85rem;
+        height: 0.85rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
 
-/* tom vy */
-.empty{padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)}
+      /* tonfärger per notistyp (matchar backend-feedens typer) */
+      .t-booking {
+        --tone: var(--info);
+        --tone-bg: var(--info-bg);
+      }
+      .t-compliance {
+        --tone: var(--warning);
+        --tone-bg: var(--warning-bg);
+      }
+      .t-id_verification {
+        --tone: var(--violet);
+        --tone-bg: var(--violet-bg);
+      }
+      .t-agreement {
+        --tone: var(--success);
+        --tone-bg: var(--success-bg);
+      }
+      .t-mail {
+        --tone: var(--accent);
+        --tone-bg: var(--accent-weak);
+      }
+      .t-system {
+        --tone: var(--slate);
+        --tone-bg: var(--slate-bg);
+      }
 
-/* högerräls — kategorisammanfattning */
-.rail .panel + .panel{margin-top:var(--gap)}
-.cat-row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid rgba(180,165,150,.2)}
-.cat-row:last-child{border-bottom:0}
-.cat-chip{width:1.9rem;height:1.9rem;flex-shrink:0;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;background:var(--tone-bg,var(--accent-weak));color:var(--tone,var(--accent))}
-.cat-chip svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.cat-name{flex:1;min-width:0;font-size:var(--fs-meta);font-weight:700;color:var(--text-primary)}
-.cat-name small{display:block;font-weight:600;color:var(--text-tertiary);font-size:var(--fs-kicker)}
-.cat-count{font-size:var(--fs-body);font-weight:800;color:var(--text-primary);font-variant-numeric:tabular-nums}
-@media(max-width:1024px){.rail{display:none}}
-</style>
-</head>
-<body>
-<div class="aux">
+      /* severity-badge (backend severity: info|warning) */
+      .n-sev {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.05rem 0.45rem;
+        border-radius: var(--r-pill);
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        background: var(--warning-bg);
+        color: var(--warning);
+        text-transform: uppercase;
+      }
 
-  <!-- ===== STANDARD TOPBAR MARKUP ===== -->
-  <div class="topbar"><span class="brand">CCO</span>
-    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Sök i notiser…"></label>
-    <button class="icon-btn" aria-label="Filtrera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg></button>
-  </div>
+      /* tom vy */
+      .empty {
+        padding: 1.6rem 0.5rem;
+        text-align: center;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+      }
 
-  <!-- head -->
-  <header class="head">
-    <div class="head-main">
-      <span class="kicker">Aviseringar</span>
-      <h1 class="h1">Notiser</h1>
-      <p class="subtitle">Bokningar, compliance, ID-verifiering, avtal och mail — samlat i ett flöde från notisfeeden.</p>
-    </div>
-    <button class="btn btn--primary" id="markAll">
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      Markera alla som lästa
-    </button>
-  </header>
-
-  <!-- metric-rad -->
-  <section class="metrics" aria-label="Översikt">
-    <div class="metric metric--rose"><div class="m-label">Olästa</div><div class="m-val tabnum" id="mUnread">0</div><div class="m-meta">av <span id="mTotalInline">0</span> totalt</div></div>
-    <div class="metric metric--blue"><div class="m-label">Idag</div><div class="m-val tabnum" id="mToday">0</div><div class="m-meta">nya notiser</div></div>
-    <div class="metric metric--gold"><div class="m-label">Kräver åtgärd</div><div class="m-val tabnum" id="mAction">0</div><div class="m-meta">med åtgärdsknapp</div></div>
-    <div class="metric metric--slate"><div class="m-label">Totalt</div><div class="m-val tabnum" id="mTotal">0</div><div class="m-meta">i flödet</div></div>
-  </section>
-
-  <!-- filterpills -->
-  <div class="toolbar">
-    <div class="pillrow scroll" role="group" aria-label="Filtrera efter kategori" id="filters">
-      <button class="pill is-active" aria-pressed="true" data-filter="alla">Alla <span class="c" id="cAlla">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="booking">Bokning <span class="c" data-c="booking">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="compliance">Compliance <span class="c" data-c="compliance">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="id_verification">ID-verifiering <span class="c" data-c="id_verification">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="agreement">Avtal <span class="c" data-c="agreement">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="mail">Mail <span class="c" data-c="mail">0</span></button>
-      <button class="pill" aria-pressed="false" data-filter="system">System <span class="c" data-c="system">0</span></button>
-    </div>
-  </div>
-
-  <!-- layout: feed + valfri högerräls -->
-  <div class="layout">
-    <div class="feed-wrap">
-      <div id="feed"></div>
-    </div>
-
-    <aside class="rail" aria-label="Kategorisammanfattning">
-      <div class="panel">
-        <div class="panel-head"><h2>Kategorier</h2><p>Olästa per aviseringstyp</p></div>
-        <div id="catSummary"></div>
+      /* högerräls — kategorisammanfattning */
+      .rail .panel + .panel {
+        margin-top: var(--gap);
+      }
+      .cat-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(180, 165, 150, 0.2);
+      }
+      .cat-row:last-child {
+        border-bottom: 0;
+      }
+      .cat-chip {
+        width: 1.9rem;
+        height: 1.9rem;
+        flex-shrink: 0;
+        border-radius: var(--r-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--tone-bg, var(--accent-weak));
+        color: var(--tone, var(--accent));
+      }
+      .cat-chip svg {
+        width: 1rem;
+        height: 1rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .cat-name {
+        flex: 1;
+        min-width: 0;
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .cat-name small {
+        display: block;
+        font-weight: 600;
+        color: var(--text-tertiary);
+        font-size: var(--fs-kicker);
+      }
+      .cat-count {
+        font-size: var(--fs-body);
+        font-weight: 800;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+      }
+      @media (max-width: 1024px) {
+        .rail {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="aux">
+      <!-- ===== STANDARD TOPBAR MARKUP ===== -->
+      <div class="topbar">
+        <span class="brand">CCO</span>
+        <label class="search"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
+          ><input placeholder="Sök i notiser…"
+        /></label>
+        <button class="icon-btn" aria-label="Filtrera">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+          >
+            <path d="M3 5h18M6 12h12M10 19h4" />
+          </svg>
+        </button>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h2>Aviseringsregler</h2><p>Hämtade från Inställningar → Aviseringar</p></div>
-        <div class="cat-row"><span class="cat-name">SLA-varningar<small>Varna när SLA-deadline närmar sig</small></span><span class="cat-count" style="color:var(--success);font-size:var(--fs-meta)">På</span></div>
-        <div class="cat-row"><span class="cat-name">Team-omnämnanden<small>Meddela när någon @nämner dig</small></span><span class="cat-count" style="color:var(--success);font-size:var(--fs-meta)">På</span></div>
-        <div class="cat-row"><span class="cat-name">Desktop-aviseringar<small>Få meddelanden i bakgrunden</small></span><span class="cat-count" style="color:var(--success);font-size:var(--fs-meta)">På</span></div>
-        <div class="cat-row"><span class="cat-name">Ljudvarningar<small>Spela ljud för nya meddelanden</small></span><span class="cat-count" style="color:var(--text-tertiary);font-size:var(--fs-meta)">Av</span></div>
+
+      <!-- head -->
+      <header class="head">
+        <div class="head-main">
+          <span class="kicker">Aviseringar</span>
+          <h1 class="h1">Notiser</h1>
+          <p class="subtitle">
+            Bokningar, compliance, ID-verifiering, avtal och mail — samlat i ett flöde från
+            notisfeeden.
+          </p>
+        </div>
+        <button class="btn btn--primary" id="markAll">
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Markera alla som lästa
+        </button>
+      </header>
+
+      <!-- metric-rad -->
+      <section class="metrics" aria-label="Översikt">
+        <div class="metric metric--rose">
+          <div class="m-label">Olästa</div>
+          <div class="m-val tabnum" id="mUnread">0</div>
+          <div class="m-meta">av <span id="mTotalInline">0</span> totalt</div>
+        </div>
+        <div class="metric metric--blue">
+          <div class="m-label">Idag</div>
+          <div class="m-val tabnum" id="mToday">0</div>
+          <div class="m-meta">nya notiser</div>
+        </div>
+        <div class="metric metric--gold">
+          <div class="m-label">Kräver åtgärd</div>
+          <div class="m-val tabnum" id="mAction">0</div>
+          <div class="m-meta">med åtgärdsknapp</div>
+        </div>
+        <div class="metric metric--slate">
+          <div class="m-label">Totalt</div>
+          <div class="m-val tabnum" id="mTotal">0</div>
+          <div class="m-meta">i flödet</div>
+        </div>
+      </section>
+
+      <!-- filterpills -->
+      <div class="toolbar">
+        <div class="pillrow scroll" role="group" aria-label="Filtrera efter kategori" id="filters">
+          <button class="pill is-active" aria-pressed="true" data-filter="alla">
+            Alla <span class="c" id="cAlla">0</span>
+          </button>
+          <button class="pill" aria-pressed="false" data-filter="booking">
+            Bokning <span class="c" data-c="booking">0</span>
+          </button>
+          <button class="pill" aria-pressed="false" data-filter="compliance">
+            Compliance <span class="c" data-c="compliance">0</span>
+          </button>
+          <button class="pill" aria-pressed="false" data-filter="id_verification">
+            ID-verifiering <span class="c" data-c="id_verification">0</span>
+          </button>
+          <button class="pill" aria-pressed="false" data-filter="agreement">
+            Avtal <span class="c" data-c="agreement">0</span>
+          </button>
+          <button class="pill" aria-pressed="false" data-filter="mail">
+            Mail <span class="c" data-c="mail">0</span>
+          </button>
+          <button class="pill" aria-pressed="false" data-filter="system">
+            System <span class="c" data-c="system">0</span>
+          </button>
+        </div>
       </div>
-    </aside>
-  </div>
 
-</div>
+      <!-- layout: feed + valfri högerräls -->
+      <div class="layout">
+        <div class="feed-wrap">
+          <div id="feed"></div>
+        </div>
 
-<!-- ===== STANDARD BOTTOM-NAV MARKUP (mobil) — verbatim duoton från Skickat, Hem aktiv ===== -->
-<nav class="botnav" aria-label="Huvudnavigering">
-  <button class="nav-i is-active" aria-current="page" style="--ic:var(--accent);--ic-bg:var(--accent-bg)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"/><path class="ic-line" d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"/></svg></span>Hem</button>
-  <button class="nav-i" style="--ic:#2f6595;--ic-bg:rgba(47,101,149,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4"/></svg><span class="nav-badge">3</span></span>Boka</button>
-  <button class="nav-i" style="--ic:#6b31c9;--ic-bg:rgba(107,49,201,.12)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4"/><circle class="ic-dot" cx="8" cy="13.4" r="1"/><circle class="ic-dot" cx="12" cy="13.4" r="1"/><circle class="ic-dot" cx="16" cy="13.4" r="1"/><circle class="ic-dot" cx="8" cy="17" r="1"/><circle class="ic-dot" cx="12" cy="17" r="1"/></svg></span>Kalender</button>
-  <button class="nav-i" style="--ic:#2f6f54;--ic-bg:rgba(47,111,84,.16)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"/></svg></span>Kund</button>
-  <button class="nav-i" style="--ic:#8a5f1e;--ic-bg:rgba(138,95,30,.14)"><span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-fill" d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"/><path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4"/></svg></span>Journal</button>
-</nav>
+        <aside class="rail" aria-label="Kategorisammanfattning">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Kategorier</h2>
+              <p>Olästa per aviseringstyp</p>
+            </div>
+            <div id="catSummary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Aviseringsregler</h2>
+              <p>Hämtade från Inställningar → Aviseringar</p>
+            </div>
+            <div class="cat-row">
+              <span class="cat-name"
+                >SLA-varningar<small>Varna när SLA-deadline närmar sig</small></span
+              ><span class="cat-count" style="color: var(--success); font-size: var(--fs-meta)"
+                >På</span
+              >
+            </div>
+            <div class="cat-row">
+              <span class="cat-name"
+                >Team-omnämnanden<small>Meddela när någon @nämner dig</small></span
+              ><span class="cat-count" style="color: var(--success); font-size: var(--fs-meta)"
+                >På</span
+              >
+            </div>
+            <div class="cat-row">
+              <span class="cat-name"
+                >Desktop-aviseringar<small>Få meddelanden i bakgrunden</small></span
+              ><span class="cat-count" style="color: var(--success); font-size: var(--fs-meta)"
+                >På</span
+              >
+            </div>
+            <div class="cat-row">
+              <span class="cat-name"
+                >Ljudvarningar<small>Spela ljud för nya meddelanden</small></span
+              ><span
+                class="cat-count"
+                style="color: var(--text-tertiary); font-size: var(--fs-meta)"
+                >Av</span
+              >
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
 
-<script>
-const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+    <!-- ===== STANDARD BOTTOM-NAV MARKUP (mobil) — verbatim duoton från Skickat, Hem aktiv ===== -->
+    <nav class="botnav" aria-label="Huvudnavigering">
+      <button
+        class="nav-i is-active"
+        aria-current="page"
+        style="--ic: var(--accent); --ic-bg: var(--accent-bg)"
+      >
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"
+            />
+            <path
+              class="ic-line"
+              d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"
+            /></svg></span
+        >Hem
+      </button>
+      <button class="nav-i" style="--ic: #2f6595; --ic-bg: rgba(47, 101, 149, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4" /></svg
+          ><span class="nav-badge">3</span></span
+        >Boka
+      </button>
+      <button class="nav-i" style="--ic: #6b31c9; --ic-bg: rgba(107, 49, 201, 0.12)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4" />
+            <circle class="ic-dot" cx="8" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="12" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="16" cy="13.4" r="1" />
+            <circle class="ic-dot" cx="8" cy="17" r="1" />
+            <circle class="ic-dot" cx="12" cy="17" r="1" /></svg></span
+        >Kalender
+      </button>
+      <button class="nav-i" style="--ic: #2f6f54; --ic-bg: rgba(47, 111, 84, 0.16)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"
+            /></svg></span
+        >Kund
+      </button>
+      <button class="nav-i" style="--ic: #8a5f1e; --ic-bg: rgba(138, 95, 30, 0.14)">
+        <span class="ic-wrap"
+          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="ic-fill"
+              d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"
+            />
+            <path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4" /></svg></span
+        >Journal
+      </button>
+    </nav>
 
-/* ===== KONFIG: DEMO på som standard (inga nätverksanrop i preview) ===== */
-const DEMO=true;
-const API='/api/v1';
-async function apiFetch(path,opts){ return fetch(API+path,opts); }
+    <script>
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"]/g,
+          (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[m]
+        );
 
-// backend-feedens notistyper → UI-presentation (label/färgklass/åtgärd/ikon)
-// typerna matchar src/ops/ccoNotificationFeedStore.js: booking, compliance,
-// id_verification, agreement, mail, system
-const KIND={
-  booking:{label:'Bokning',cls:'t-booking',action:'Öppna bokning',icon:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9.7h18M8 3v3.4M16 3v3.4"/>'},
-  compliance:{label:'Compliance',cls:'t-compliance',action:'Granska',icon:'<path d="M12 3l7 3v5c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>'},
-  id_verification:{label:'ID-verifiering',cls:'t-id_verification',action:'Visa status',icon:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M13 10h5M13 13h5M5.6 15.4c.6-1.1 1.6-1.8 2.9-1.8s2.3.7 2.9 1.8"/>'},
-  agreement:{label:'Avtal',cls:'t-agreement',action:'Öppna avtal',icon:'<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13l2 2 4-4"/>'},
-  mail:{label:'Mail',cls:'t-mail',action:'Öppna konversation',icon:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'},
-  system:{label:'System',cls:'t-system',action:null,icon:'<path d="M12 2a3 3 0 0 1 3 3 9 9 0 0 1 5 8v3l2 3H2l2-3v-3a9 9 0 0 1 5-8 3 3 0 0 1 3-3Z"/><path d="M10 21a2 2 0 0 0 4 0"/>'},
-};
-const TYPE_ORDER=['booking','compliance','id_verification','agreement','mail','system'];
+      /* ===== KONFIG: DEMO på som standard (inga nätverksanrop i preview) ===== */
+      const DEMO = true;
+      const API = '/api/v1';
+      async function apiFetch(path, opts) {
+        return fetch(API + path, opts);
+      }
 
-/* ===== DEMO-data: formad exakt som feed-items från GET /cco-notifications/feed ===== */
-const hoursAgo=h=>new Date(Date.now()-h*3600000).toISOString();
-const DEMO_ITEMS=[
-  {id:'booking_d1',type:'booking',title:'Bokningsärende: blocked',body:'Anna Karlsson — väntar på bekräftelse av tid fredag 09:00',severity:'warning',customerId:'cust_anna',createdAt:hoursAgo(1),source:{kind:'booking_case',id:'bc_1'},read:false},
-  {id:'mail_d1',type:'mail',title:'Fråga om eftervård',body:'Johan Andersson: "Hur lång tid tar läkningen efter behandlingen?"',severity:'info',customerId:'cust_johan',createdAt:hoursAgo(2),source:{kind:'journal_entry',id:'je_1'},read:false},
-  {id:'compliance_d1',type:'compliance',title:'Saknad samtyckeslogg',body:'Marknadssamtycke saknas för 1 kund med bokad tid',severity:'warning',customerId:null,createdAt:hoursAgo(4),source:{kind:'compliance_flag',id:'cf_1'},read:false},
-  {id:'booking_d2',type:'booking',title:'Bokningsärende: confirmed',body:'Emma Svensson — konsultation bekräftad fredag 09:00',severity:'info',customerId:'cust_emma',createdAt:hoursAgo(6),source:{kind:'booking_case',id:'bc_2'},read:false},
-  {id:'idv_d1',type:'id_verification',title:'ID-verifiering: rejected',body:'Marcus Lund — uppladdad legitimation kunde inte verifieras',severity:'warning',customerId:'cust_marcus',createdAt:hoursAgo(26),source:{kind:'id_verification',id:'cust_marcus'},read:false},
-  {id:'agreement_d1',type:'agreement',title:'Avtal: signerat',body:'Elin Holm — behandlingsavtal signerat och arkiverat',severity:'info',customerId:'cust_elin',createdAt:hoursAgo(28),source:{kind:'agreement',id:'ag_1'},read:true},
-  {id:'idv_d2',type:'id_verification',title:'ID-verifiering: pending',body:'Sofie Bergström — väntar på granskning av legitimation',severity:'info',customerId:'cust_sofie',createdAt:hoursAgo(30),source:{kind:'id_verification',id:'cust_sofie'},read:true},
-  {id:'mail_d2',type:'mail',title:'Tackmeddelande',body:'Karl Nyström: "Tack för ett trevligt bemötande!"',severity:'info',customerId:'cust_karl',createdAt:hoursAgo(50),source:{kind:'journal_entry',id:'je_2'},read:true},
-  {id:'system_d1',type:'system',title:'Notisfeed synkroniserad',body:'Alla källor (bokning, compliance, ID, avtal, mail) är anslutna',severity:'info',customerId:null,createdAt:hoursAgo(60),source:{kind:'system',id:'sync'},read:true},
-];
+      // backend-feedens notistyper → UI-presentation (label/färgklass/åtgärd/ikon)
+      // typerna matchar src/ops/ccoNotificationFeedStore.js: booking, compliance,
+      // id_verification, agreement, mail, system
+      const KIND = {
+        booking: {
+          label: 'Bokning',
+          cls: 't-booking',
+          action: 'Öppna bokning',
+          icon: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9.7h18M8 3v3.4M16 3v3.4"/>',
+        },
+        compliance: {
+          label: 'Compliance',
+          cls: 't-compliance',
+          action: 'Granska',
+          icon: '<path d="M12 3l7 3v5c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+        },
+        id_verification: {
+          label: 'ID-verifiering',
+          cls: 't-id_verification',
+          action: 'Visa status',
+          icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M13 10h5M13 13h5M5.6 15.4c.6-1.1 1.6-1.8 2.9-1.8s2.3.7 2.9 1.8"/>',
+        },
+        agreement: {
+          label: 'Avtal',
+          cls: 't-agreement',
+          action: 'Öppna avtal',
+          icon: '<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13l2 2 4-4"/>',
+        },
+        mail: {
+          label: 'Mail',
+          cls: 't-mail',
+          action: 'Öppna konversation',
+          icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+        },
+        system: {
+          label: 'System',
+          cls: 't-system',
+          action: null,
+          icon: '<path d="M12 2a3 3 0 0 1 3 3 9 9 0 0 1 5 8v3l2 3H2l2-3v-3a9 9 0 0 1 5-8 3 3 0 0 1 3-3Z"/><path d="M10 21a2 2 0 0 0 4 0"/>',
+        },
+      };
+      const TYPE_ORDER = [
+        'booking',
+        'compliance',
+        'id_verification',
+        'agreement',
+        'mail',
+        'system',
+      ];
 
-const GROUPS=['Idag','Igår','Tidigare'];
-let curFilter='alla';
-let NOTI=[]; // normaliserade feed-items {id,type,title,body,severity,createdAt,read,...}
+      /* ===== DEMO-data: formad exakt som feed-items från GET /cco-notifications/feed ===== */
+      const hoursAgo = (h) => new Date(Date.now() - h * 3600000).toISOString();
+      const DEMO_ITEMS = [
+        {
+          id: 'booking_d1',
+          type: 'booking',
+          title: 'Bokningsärende: blocked',
+          body: 'Anna Karlsson — väntar på bekräftelse av tid fredag 09:00',
+          severity: 'warning',
+          customerId: 'cust_anna',
+          createdAt: hoursAgo(1),
+          source: { kind: 'booking_case', id: 'bc_1' },
+          read: false,
+        },
+        {
+          id: 'mail_d1',
+          type: 'mail',
+          title: 'Fråga om eftervård',
+          body: 'Johan Andersson: "Hur lång tid tar läkningen efter behandlingen?"',
+          severity: 'info',
+          customerId: 'cust_johan',
+          createdAt: hoursAgo(2),
+          source: { kind: 'journal_entry', id: 'je_1' },
+          read: false,
+        },
+        {
+          id: 'compliance_d1',
+          type: 'compliance',
+          title: 'Saknad samtyckeslogg',
+          body: 'Marknadssamtycke saknas för 1 kund med bokad tid',
+          severity: 'warning',
+          customerId: null,
+          createdAt: hoursAgo(4),
+          source: { kind: 'compliance_flag', id: 'cf_1' },
+          read: false,
+        },
+        {
+          id: 'booking_d2',
+          type: 'booking',
+          title: 'Bokningsärende: confirmed',
+          body: 'Emma Svensson — konsultation bekräftad fredag 09:00',
+          severity: 'info',
+          customerId: 'cust_emma',
+          createdAt: hoursAgo(6),
+          source: { kind: 'booking_case', id: 'bc_2' },
+          read: false,
+        },
+        {
+          id: 'idv_d1',
+          type: 'id_verification',
+          title: 'ID-verifiering: rejected',
+          body: 'Marcus Lund — uppladdad legitimation kunde inte verifieras',
+          severity: 'warning',
+          customerId: 'cust_marcus',
+          createdAt: hoursAgo(26),
+          source: { kind: 'id_verification', id: 'cust_marcus' },
+          read: false,
+        },
+        {
+          id: 'agreement_d1',
+          type: 'agreement',
+          title: 'Avtal: signerat',
+          body: 'Elin Holm — behandlingsavtal signerat och arkiverat',
+          severity: 'info',
+          customerId: 'cust_elin',
+          createdAt: hoursAgo(28),
+          source: { kind: 'agreement', id: 'ag_1' },
+          read: true,
+        },
+        {
+          id: 'idv_d2',
+          type: 'id_verification',
+          title: 'ID-verifiering: pending',
+          body: 'Sofie Bergström — väntar på granskning av legitimation',
+          severity: 'info',
+          customerId: 'cust_sofie',
+          createdAt: hoursAgo(30),
+          source: { kind: 'id_verification', id: 'cust_sofie' },
+          read: true,
+        },
+        {
+          id: 'mail_d2',
+          type: 'mail',
+          title: 'Tackmeddelande',
+          body: 'Karl Nyström: "Tack för ett trevligt bemötande!"',
+          severity: 'info',
+          customerId: 'cust_karl',
+          createdAt: hoursAgo(50),
+          source: { kind: 'journal_entry', id: 'je_2' },
+          read: true,
+        },
+        {
+          id: 'system_d1',
+          type: 'system',
+          title: 'Notisfeed synkroniserad',
+          body: 'Alla källor (bokning, compliance, ID, avtal, mail) är anslutna',
+          severity: 'info',
+          customerId: null,
+          createdAt: hoursAgo(60),
+          source: { kind: 'system', id: 'sync' },
+          read: true,
+        },
+      ];
 
-const feed=document.getElementById('feed');
+      const GROUPS = ['Idag', 'Igår', 'Tidigare'];
+      let curFilter = 'alla';
+      let NOTI = []; // normaliserade feed-items {id,type,title,body,severity,createdAt,read,...}
 
-/* ===== tids-gruppering + etikett från createdAt (ISO) ===== */
-function dayStart(ms){ const d=new Date(ms); return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); }
-function groupOf(createdAt){
-  const today=dayStart(Date.now());
-  const day=dayStart(new Date(createdAt).getTime());
-  if(day===today) return 'Idag';
-  if(day===today-86400000) return 'Igår';
-  return 'Tidigare';
-}
-function timeLabel(createdAt){
-  const d=new Date(createdAt);
-  const hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
-  const g=groupOf(createdAt);
-  if(g==='Idag') return `Idag ${hh}:${mm}`;
-  if(g==='Igår') return `Igår ${hh}:${mm}`;
-  const wd=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][d.getDay()];
-  return `${wd} ${hh}:${mm}`;
-}
+      const feed = document.getElementById('feed');
 
-/* ===== BACKEND-WIRING ===== */
-// GET /api/v1/cco-notifications/feed?sinceHours=&limit=
-async function loadFeed(){
-  if(DEMO){ NOTI=DEMO_ITEMS.slice(); render(); return; }
-  try{
-    const r=await apiFetch('/cco-notifications/feed?sinceHours=168&limit=100');
-    if(!r.ok) throw new Error('feed '+r.status);
-    const data=await r.json();
-    NOTI=Array.isArray(data.items)?data.items:[];
-  }catch(e){
-    NOTI=[]; feed.innerHTML='<div class="empty">Kunde inte hämta notiser just nu.</div>'; return;
-  }
-  render();
-}
-// POST /api/v1/cco-notifications/mark-read
-async function markReadApi(ids,all=false){
-  if(DEMO) return true;
-  try{
-    const body=all?{all:true,notificationIds:ids}:{notificationIds:ids};
-    const r=await apiFetch('/cco-notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    return r.ok;
-  }catch(e){ return false; }
-}
+      /* ===== tids-gruppering + etikett från createdAt (ISO) ===== */
+      function dayStart(ms) {
+        const d = new Date(ms);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      }
+      function groupOf(createdAt) {
+        const today = dayStart(Date.now());
+        const day = dayStart(new Date(createdAt).getTime());
+        if (day === today) return 'Idag';
+        if (day === today - 86400000) return 'Igår';
+        return 'Tidigare';
+      }
+      function timeLabel(createdAt) {
+        const d = new Date(createdAt);
+        const hh = String(d.getHours()).padStart(2, '0'),
+          mm = String(d.getMinutes()).padStart(2, '0');
+        const g = groupOf(createdAt);
+        if (g === 'Idag') return `Idag ${hh}:${mm}`;
+        if (g === 'Igår') return `Igår ${hh}:${mm}`;
+        const wd = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'][d.getDay()];
+        return `${wd} ${hh}:${mm}`;
+      }
 
-function itemHTML(n){
-  const k=KIND[n.type]||KIND.system;
-  const sev=n.severity==='warning'?'<span class="n-sev">Viktigt</span>':'';
-  return `<button class="noti ${k.cls} ${n.read?'is-read':'is-unread'}" data-id="${esc(n.id)}" aria-label="${esc(n.title)}${n.read?', läst':', oläst'}">
+      /* ===== BACKEND-WIRING ===== */
+      // GET /api/v1/cco-notifications/feed?sinceHours=&limit=
+      async function loadFeed() {
+        if (DEMO) {
+          NOTI = DEMO_ITEMS.slice();
+          render();
+          return;
+        }
+        try {
+          const r = await apiFetch('/cco-notifications/feed?sinceHours=168&limit=100');
+          if (!r.ok) throw new Error('feed ' + r.status);
+          const data = await r.json();
+          NOTI = Array.isArray(data.items) ? data.items : [];
+        } catch (e) {
+          NOTI = [];
+          feed.innerHTML = '<div class="empty">Kunde inte hämta notiser just nu.</div>';
+          return;
+        }
+        render();
+      }
+      // POST /api/v1/cco-notifications/mark-read
+      async function markReadApi(ids, all = false) {
+        if (DEMO) return true;
+        try {
+          const body = all ? { all: true, notificationIds: ids } : { notificationIds: ids };
+          const r = await apiFetch('/cco-notifications/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          return r.ok;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function itemHTML(n) {
+        const k = KIND[n.type] || KIND.system;
+        const sev = n.severity === 'warning' ? '<span class="n-sev">Viktigt</span>' : '';
+        return `<button class="noti ${k.cls} ${n.read ? 'is-read' : 'is-unread'}" data-id="${esc(n.id)}" aria-label="${esc(n.title)}${n.read ? ', läst' : ', oläst'}">
     <span class="n-icon"><svg viewBox="0 0 24 24">${k.icon}</svg></span>
     <span class="n-body">
       <span class="n-top">
@@ -371,102 +1538,131 @@ function itemHTML(n){
         ${sev}
         <span class="n-cat">${esc(k.label)}</span>
       </span>
-      ${n.body?`<span class="n-text">${esc(n.body)}</span>`:''}
+      ${n.body ? `<span class="n-text">${esc(n.body)}</span>` : ''}
       <span class="n-foot">
         <span class="n-time">${esc(timeLabel(n.createdAt))}</span>
-        ${k.action?`<span class="n-act" role="button" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${esc(k.action)}</span>`:''}
+        ${k.action ? `<span class="n-act" role="button" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${esc(k.action)}</span>` : ''}
       </span>
     </span>
   </button>`;
-}
+      }
 
-function passFilter(n){ return curFilter==='alla' ? true : n.type===curFilter; }
-function hasAction(n){ return !!(KIND[n.type]||{}).action; }
+      function passFilter(n) {
+        return curFilter === 'alla' ? true : n.type === curFilter;
+      }
+      function hasAction(n) {
+        return !!(KIND[n.type] || {}).action;
+      }
 
-function render(){
-  const items=NOTI.filter(passFilter);
-  let html='';
-  GROUPS.forEach(g=>{
-    const gi=items.filter(n=>groupOf(n.createdAt)===g);
-    if(!gi.length) return;
-    const unread=gi.filter(n=>!n.read).length;
-    html+=`<div class="group-h"><span class="gl">${esc(g)}</span><span class="gc">${gi.length}${unread?' · '+unread+' olästa':''}</span></div>`;
-    html+=`<div class="feed">${gi.map(itemHTML).join('')}</div>`;
-  });
-  feed.innerHTML = html || '<div class="empty">Inga notiser i den här kategorin.</div>';
-  updateCounts();
-}
+      function render() {
+        const items = NOTI.filter(passFilter);
+        let html = '';
+        GROUPS.forEach((g) => {
+          const gi = items.filter((n) => groupOf(n.createdAt) === g);
+          if (!gi.length) return;
+          const unread = gi.filter((n) => !n.read).length;
+          html += `<div class="group-h"><span class="gl">${esc(g)}</span><span class="gc">${gi.length}${unread ? ' · ' + unread + ' olästa' : ''}</span></div>`;
+          html += `<div class="feed">${gi.map(itemHTML).join('')}</div>`;
+        });
+        feed.innerHTML = html || '<div class="empty">Inga notiser i den här kategorin.</div>';
+        updateCounts();
+      }
 
-function updateCounts(){
-  const total=NOTI.length;
-  const unread=NOTI.filter(n=>!n.read).length;
-  const today=NOTI.filter(n=>groupOf(n.createdAt)==='Idag').length;
-  const action=NOTI.filter(n=>hasAction(n) && !n.read).length;
-  document.getElementById('mUnread').textContent=unread;
-  document.getElementById('mTotalInline').textContent=total;
-  document.getElementById('mToday').textContent=today;
-  document.getElementById('mAction').textContent=action;
-  document.getElementById('mTotal').textContent=total;
+      function updateCounts() {
+        const total = NOTI.length;
+        const unread = NOTI.filter((n) => !n.read).length;
+        const today = NOTI.filter((n) => groupOf(n.createdAt) === 'Idag').length;
+        const action = NOTI.filter((n) => hasAction(n) && !n.read).length;
+        document.getElementById('mUnread').textContent = unread;
+        document.getElementById('mTotalInline').textContent = total;
+        document.getElementById('mToday').textContent = today;
+        document.getElementById('mAction').textContent = action;
+        document.getElementById('mTotal').textContent = total;
 
-  // pill-räknare (olästa per typ)
-  document.getElementById('cAlla').textContent=unread;
-  TYPE_ORDER.forEach(t=>{
-    const el=document.querySelector('.c[data-c="'+t+'"]');
-    if(el) el.textContent=NOTI.filter(n=>n.type===t && !n.read).length;
-  });
+        // pill-räknare (olästa per typ)
+        document.getElementById('cAlla').textContent = unread;
+        TYPE_ORDER.forEach((t) => {
+          const el = document.querySelector('.c[data-c="' + t + '"]');
+          if (el) el.textContent = NOTI.filter((n) => n.type === t && !n.read).length;
+        });
 
-  // högerräls kategorisammanfattning
-  const cs=document.getElementById('catSummary');
-  if(cs){
-    cs.innerHTML=TYPE_ORDER.map(t=>{
-      const kd=KIND[t];
-      const u=NOTI.filter(n=>n.type===t && !n.read).length;
-      const tot=NOTI.filter(n=>n.type===t).length;
-      return `<div class="cat-row ${kd.cls}">
+        // högerräls kategorisammanfattning
+        const cs = document.getElementById('catSummary');
+        if (cs) {
+          cs.innerHTML = TYPE_ORDER.map((t) => {
+            const kd = KIND[t];
+            const u = NOTI.filter((n) => n.type === t && !n.read).length;
+            const tot = NOTI.filter((n) => n.type === t).length;
+            return `<div class="cat-row ${kd.cls}">
         <span class="cat-chip"><svg viewBox="0 0 24 24">${kd.icon}</svg></span>
         <span class="cat-name">${esc(kd.label)}<small>${tot} totalt</small></span>
         <span class="cat-count">${u}</span>
       </div>`;
-    }).join('');
-  }
-}
+          }).join('');
+        }
+      }
 
-// klick på item → markera läst (optimistiskt) + synka backend
-feed.addEventListener('click',async e=>{
-  const card=e.target.closest('.noti');
-  if(!card) return;
-  const id=card.dataset.id;
-  const n=NOTI.find(x=>String(x.id)===id);
-  if(n && !n.read){
-    n.read=true; render();
-    const ok=await markReadApi([id]);
-    if(!ok){ n.read=false; render(); }
-  }
-});
+      // klick på item → markera läst (optimistiskt) + synka backend
+      feed.addEventListener('click', async (e) => {
+        const card = e.target.closest('.noti');
+        if (!card) return;
+        const id = card.dataset.id;
+        const n = NOTI.find((x) => String(x.id) === id);
+        if (n && !n.read) {
+          n.read = true;
+          render();
+          const ok = await markReadApi([id]);
+          if (!ok) {
+            n.read = false;
+            render();
+          }
+        }
+      });
 
-// filterpills
-document.getElementById('filters').addEventListener('click',e=>{
-  const p=e.target.closest('.pill');
-  if(!p) return;
-  document.querySelectorAll('#filters .pill').forEach(x=>{x.classList.remove('is-active');x.setAttribute('aria-pressed','false');});
-  p.classList.add('is-active'); p.setAttribute('aria-pressed','true');
-  curFilter=p.dataset.filter;
-  render();
-});
+      // filterpills
+      document.getElementById('filters').addEventListener('click', (e) => {
+        const p = e.target.closest('.pill');
+        if (!p) return;
+        document.querySelectorAll('#filters .pill').forEach((x) => {
+          x.classList.remove('is-active');
+          x.setAttribute('aria-pressed', 'false');
+        });
+        p.classList.add('is-active');
+        p.setAttribute('aria-pressed', 'true');
+        curFilter = p.dataset.filter;
+        render();
+      });
 
-// markera alla som lästa
-document.getElementById('markAll').addEventListener('click',async()=>{
-  const unreadIds=NOTI.filter(n=>!n.read).map(n=>String(n.id));
-  if(!unreadIds.length) return;
-  NOTI.forEach(n=>n.read=true); render();
-  const ok=await markReadApi(unreadIds,true);
-  if(!ok){ /* behåll optimistiskt läge; nästa loadFeed återställer från servern */ }
-});
+      // markera alla som lästa
+      document.getElementById('markAll').addEventListener('click', async () => {
+        const unreadIds = NOTI.filter((n) => !n.read).map((n) => String(n.id));
+        if (!unreadIds.length) return;
+        NOTI.forEach((n) => (n.read = true));
+        render();
+        const ok = await markReadApi(unreadIds, true);
+        if (!ok) {
+          /* behåll optimistiskt läge; nästa loadFeed återställer från servern */
+        }
+      });
 
-// botnav active-toggle (samma beteende som Skickat)
-(function(){var nav=document.querySelector('.botnav');if(!nav)return;nav.addEventListener('click',function(e){var b=e.target.closest('.nav-i');if(!b)return;nav.querySelectorAll('.nav-i').forEach(function(x){x.classList.remove('is-active');x.removeAttribute('aria-current');});void b.offsetWidth;b.classList.add('is-active');b.setAttribute('aria-current','page');});})();
+      // botnav active-toggle (samma beteende som Skickat)
+      (function () {
+        var nav = document.querySelector('.botnav');
+        if (!nav) return;
+        nav.addEventListener('click', function (e) {
+          var b = e.target.closest('.nav-i');
+          if (!b) return;
+          nav.querySelectorAll('.nav-i').forEach(function (x) {
+            x.classList.remove('is-active');
+            x.removeAttribute('aria-current');
+          });
+          void b.offsetWidth;
+          b.classList.add('is-active');
+          b.setAttribute('aria-current', 'page');
+        });
+      })();
 
-loadFeed();
-</script>
-</body>
+      loadFeed();
+    </script>
+  </body>
 </html>
