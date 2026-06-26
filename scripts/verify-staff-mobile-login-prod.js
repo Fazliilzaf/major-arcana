@@ -232,6 +232,10 @@ async function runMobileVerify(engine, engineLabel) {
 }
 
 function verifyOwnerApiLogin() {
+  if (!process.env.ARCANA_OWNER_EMAIL || !process.env.ARCANA_OWNER_PASSWORD) {
+    console.log('SKIP: OWNER API-inloggning (MFA) — saknar ARCANA_OWNER_EMAIL/PASSWORD');
+    return;
+  }
   const script = `node "${path.join(root, 'scripts/get-prod-auth-token.js')}" --owner`;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
