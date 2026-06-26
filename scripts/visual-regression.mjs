@@ -142,8 +142,14 @@ async function runVsMain(only) {
 
     const toCompare = branchFiles.filter((f) => mainSet.has(f));
     const newSurfaces = branchFiles.filter((f) => !mainSet.has(f));
-    // Surfaces removed on the branch but still in main (bugbot finding #2).
+    // Surfaces removed on the branch but still in main.
     const deletedSurfaces = mainSurfaces.filter((f) => !branchSet.has(f));
+
+    // Guard: nothing to compare at all means a mistyped --only or empty preview dir.
+    if (toCompare.length === 0 && deletedSurfaces.length === 0) {
+      console.error('Inga ytor matchade — kontrollera --only-filtret.');
+      process.exit(1);
+    }
 
     console.log(`== Visual diff (branch vs main) — ${toCompare.length} ytor × ${VIEWPORTS.length} breakpoints ==`);
     if (newSurfaces.length) console.log(`   Nya ytor (saknas i main): ${newSurfaces.join(', ')}`);

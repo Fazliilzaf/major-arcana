@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "public/major-arcana-preview/cco-*-v3*.html"
+      - "scripts/visual-regression.mjs"
+      - ".github/workflows/visual-regression.yml"
   push:
     branches:
       - "claude/**"
