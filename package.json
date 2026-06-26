@@ -77,6 +77,9 @@
     "capture:ord48-browser-uat": "node ./scripts/capture-ord48-browser-uat.js",
     "capture:ord29-browser-uat": "node ./scripts/capture-ord29-browser-uat.js",
     "capture:ord6-browser-uat": "node ./scripts/capture-ord6-browser-uat.js",
+    "visual:capture": "node scripts/visual-regression.mjs --capture",
+    "visual:compare": "node scripts/visual-regression.mjs --compare",
+    "visual:vs-main": "node scripts/visual-regression.mjs --vs-main",
     "test:visual": "playwright test --config=playwright.config.js",
     "test:visual:update": "playwright test --config=playwright.config.js --update-snapshots",
     "test:system-mail-parser": "node scripts/test/system-mail-parser.test.js",
@@ -452,6 +455,7 @@
     "husky": "^9.1.6",
     "linkedom": "^0.18.12",
     "lint-staged": "^15.2.10",
+    "pngjs": "^6.0.0",
     "prettier": "^3.3.3"
   },
   "overrides": {

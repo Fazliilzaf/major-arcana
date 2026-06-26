@@ -71,3 +71,7 @@ data/arcana.sqlite
 migration/pipedrive/*.csv
 migration/pipedrive/*.json
 !migration/pipedrive/README.md
+
+# Visuell regression — genererade artefakter (lagringsstrategi beslutas separat)
+test/visual/baselines/
+test/visual/diffs/
