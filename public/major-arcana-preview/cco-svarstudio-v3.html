@@ -9,20 +9,21 @@
    WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
    Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
 :root{
-  --bg-page:#faf6f2;--bg-surface:#fff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
+  --bg-page:#faf6f2;--bg-surface:#ffffff;--bg-sunken:#f3ece3;--bg-rail:#fbf7f2;
   --text-primary:#221c15;--text-secondary:#574d40;--text-tertiary:#6d6354;
-  --accent:#b0356e;--accent-weak:#fdeef4;
-  --success:#2f6f54;--success-bg:rgba(47,111,84,.16);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
+  --accent:#b0356e;--accent-weak:#fdeef4;--accent-weak-bg:#fdeef4;--accent-strong:#8e285699;--text-on-accent:#ffffff;
+  --success:#2f6f54;--success-bg:rgba(47,111,84,.14);--warning:#9a6410;--warning-bg:rgba(154,100,16,.16);
   --danger:#a83838;--danger-bg:rgba(168,56,56,.14);--info:#2f6595;--info-bg:rgba(47,101,149,.14);
   --violet:#6b31c9;--violet-bg:rgba(107,49,201,.12);--gold:#8a5f1e;--gold-bg:rgba(138,95,30,.14);--slate:#475569;--slate-bg:rgba(71,85,105,.12);
   --rail-fazli:#6b31c9;--rail-egzona:#8a5f1e;--rail-contact:#1f7e8e;--rail-info:#6d6354;
   /* CCO-facit (Kunder v11 .seg/.ds-tab): vald = vit→krämig lyft, ej rosa fyllning */
   --press:linear-gradient(180deg,#fff,#f4eee8);
-  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 10px 26px rgba(56,40,28,.14);
+  --sh-sm:0 1px 2px rgba(56,40,28,.06);--sh-md:0 3px 10px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.86);--sh-lg:0 8px 22px rgba(56,40,28,.12),inset 0 1px 0 rgba(255,255,255,.92);--sh-xl:0 24px 56px rgba(93,74,60,.16),inset 0 1px 0 rgba(255,255,255,.55);
   --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;--r-pill:999px;
-  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-h1:clamp(1.25rem,1.05rem+1.4vw,1.85rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
+  --fs-kicker:.6875rem;--fs-meta:.75rem;--fs-body:.875rem;--fs-card-title:clamp(.9rem,.85rem+.4vw,1.05rem);--fs-h1:clamp(1.5rem,1.2rem+2vw,2.25rem);--fs-num:clamp(1.35rem,1.1rem+1.4vw,1.9rem);
   --tap:2.75rem;--gap:clamp(.5rem,.4rem+.5vw,.85rem);--pad-x:clamp(.875rem,.5rem+1.6vw,1.5rem);--safe-bottom:env(safe-area-inset-bottom,0px);
   --maxw:1500px;
+  --error-text:#962b2b;--error-border:#d8526b;--error-bg:#fdecec;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{font-size:100%;overflow-x:clip}html,body{margin:0;padding:0;max-width:100%}
