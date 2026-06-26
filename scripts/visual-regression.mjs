@@ -120,11 +120,9 @@ function setupWorktree() {
   if (existsSync(WORKTREE)) {
     try { execSync(`git worktree remove --force ${WORKTREE}`, { cwd: REPO, stdio: 'pipe' }); } catch {}
   }
-  try {
-    execSync(`git worktree add ${WORKTREE} main`, { cwd: REPO, stdio: 'pipe' });
-  } catch {
-    execSync(`git fetch origin main && git worktree add ${WORKTREE} origin/main`, { cwd: REPO, stdio: 'pipe' });
-  }
+  // Always fetch so local main matches the real merge target (bugbot finding #1).
+  execSync('git fetch origin main', { cwd: REPO, stdio: 'pipe' });
+  execSync(`git worktree add ${WORKTREE} origin/main`, { cwd: REPO, stdio: 'pipe' });
 }
 
 function teardownWorktree() {
@@ -134,64 +132,71 @@ function teardownWorktree() {
 async function runVsMain(only) {
   setupWorktree();
 
-  const mainPreview = join(WORKTREE, 'public', 'major-arcana-preview');
-  const mainSet = new Set(surfaces(mainPreview, only));
-  const branchFiles = surfaces(PREVIEW, only);
+  let browser;
+  try {
+    const mainPreview = join(WORKTREE, 'public', 'major-arcana-preview');
+    const mainSurfaces = surfaces(mainPreview, only);
+    const mainSet = new Set(mainSurfaces);
+    const branchFiles = surfaces(PREVIEW, only);
+    const branchSet = new Set(branchFiles);
 
-  const toCompare = branchFiles.filter((f) => mainSet.has(f));
-  const newSurfaces = branchFiles.filter((f) => !mainSet.has(f));
+    const toCompare = branchFiles.filter((f) => mainSet.has(f));
+    const newSurfaces = branchFiles.filter((f) => !mainSet.has(f));
+    // Surfaces removed on the branch but still in main (bugbot finding #2).
+    const deletedSurfaces = mainSurfaces.filter((f) => !branchSet.has(f));
 
-  console.log(`== Visual diff (branch vs main) — ${toCompare.length} ytor × ${VIEWPORTS.length} breakpoints ==`);
-  if (newSurfaces.length) {
-    console.log(`   Nya ytor (saknas i main, hoppar över): ${newSurfaces.join(', ')}`);
-  }
-  console.log('');
+    console.log(`== Visual diff (branch vs main) — ${toCompare.length} ytor × ${VIEWPORTS.length} breakpoints ==`);
+    if (newSurfaces.length) console.log(`   Nya ytor (saknas i main): ${newSurfaces.join(', ')}`);
+    if (deletedSurfaces.length) console.log(`   DELETED (finns i main men borttagna i branch): ${deletedSurfaces.join(', ')}`);
+    console.log('');
 
-  if (existsSync(DIFF_DIR)) rmSync(DIFF_DIR, { recursive: true, force: true });
-  mkdirSync(DIFF_DIR, { recursive: true });
+    if (existsSync(DIFF_DIR)) rmSync(DIFF_DIR, { recursive: true, force: true });
+    mkdirSync(DIFF_DIR, { recursive: true });
 
-  const browser = await chromium.launch({ headless: true, ...(CHROME && { executablePath: CHROME }) });
-  const context = await browser.newContext({ locale: 'sv-SE', deviceScaleFactor: 1 });
-  const page = await context.newPage();
+    browser = await chromium.launch({ headless: true, ...(CHROME && { executablePath: CHROME }) });
+    const context = await browser.newContext({ locale: 'sv-SE', deviceScaleFactor: 1 });
+    const page = await context.newPage();
 
-  let failures = 0;
-  const failed = [];
+    let failures = deletedSurfaces.length; // Each deleted surface counts as a failure.
+    const failed = deletedSurfaces.map((f) => `${f} (borttagen från branch)`);
 
-  for (const file of toCompare) {
-    for (const vp of VIEWPORTS) {
-      const key = keyFor(file, vp);
-      const base = await shoot(page, mainPreview, file, vp);
-      const cur = await shoot(page, PREVIEW, file, vp);
-      const r = pixelDiff(base, cur);
-      if (r.dimMismatch) {
-        console.log(`DIM      ${key}  main=${r.base} branch=${r.cur}`);
-        failures++;
-        failed.push(`${key} (dimension ${r.base}→${r.cur})`);
-        writeFileSync(join(DIFF_DIR, key), PNG.sync.write(cur, { deflateLevel: DEFLATE }));
-        continue;
-      }
-      const pct = (r.ratio * 100).toFixed(3);
-      if (r.ratio > MISMATCH_RATIO) {
-        console.log(`DRIFT    ${key}  ${pct}% (${r.changed}/${r.total})`);
-        failures++;
-        failed.push(`${key} (${pct}%)`);
-        writeFileSync(join(DIFF_DIR, key), PNG.sync.write(r.diffPng, { deflateLevel: DEFLATE }));
-      } else {
-        console.log(`OK       ${key}  ${pct}%`);
+    for (const file of toCompare) {
+      for (const vp of VIEWPORTS) {
+        const key = keyFor(file, vp);
+        const base = await shoot(page, mainPreview, file, vp);
+        const cur = await shoot(page, PREVIEW, file, vp);
+        const r = pixelDiff(base, cur);
+        if (r.dimMismatch) {
+          console.log(`DIM      ${key}  main=${r.base} branch=${r.cur}`);
+          failures++;
+          failed.push(`${key} (dimension ${r.base}→${r.cur})`);
+          writeFileSync(join(DIFF_DIR, key), PNG.sync.write(cur, { deflateLevel: DEFLATE }));
+          continue;
+        }
+        const pct = (r.ratio * 100).toFixed(3);
+        if (r.ratio > MISMATCH_RATIO) {
+          console.log(`DRIFT    ${key}  ${pct}% (${r.changed}/${r.total})`);
+          failures++;
+          failed.push(`${key} (${pct}%)`);
+          writeFileSync(join(DIFF_DIR, key), PNG.sync.write(r.diffPng, { deflateLevel: DEFLATE }));
+        } else {
+          console.log(`OK       ${key}  ${pct}%`);
+        }
       }
     }
-  }
 
-  await browser.close();
-  teardownWorktree();
-
-  const total = toCompare.length * VIEWPORTS.length;
-  console.log(`\n${total - failures}/${total} OK`);
-  if (failures) {
-    console.log(`\n${failures} ytor med drift:`);
-    failed.forEach((f) => console.log('  - ' + f));
-    console.log(`\nDiff-bilder: ${DIFF_DIR}`);
-    process.exit(1);
+    const total = toCompare.length * VIEWPORTS.length;
+    console.log(`\n${total - (failures - deletedSurfaces.length)}/${total} OK`);
+    if (failures) {
+      console.log(`\n${failures} problem:`);
+      failed.forEach((f) => console.log('  - ' + f));
+      console.log(`\nDiff-bilder: ${DIFF_DIR}`);
+      process.exit(1);
+    }
+  } finally {
+    // Always tear down — even if browser launch or shoot throws (bugbot finding #3).
+    if (browser) await browser.close().catch(() => {});
+    teardownWorktree();
   }
 }
 
