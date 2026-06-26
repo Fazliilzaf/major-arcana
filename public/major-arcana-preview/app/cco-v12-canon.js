@@ -1426,7 +1426,7 @@
         var tiles = g
           .slice(0, 12)
           .map(function (p) {
-            var bg = p.thumbnailUrl || p.viewUrl || p.url;
+            var bg = p.thumbnailUrl || p.viewUrl || p.url || p.href;
             pi += 1;
             var ph = txt(p.phase);
             var prefix =
@@ -1437,14 +1437,35 @@
                   : p.isImage === false
                     ? 'FILM'
                     : 'ÖVER';
+            // Klickbar → öppna rit-editorn på besöksfotot (foto-annotation →
+            // sparas i Foto + offert/behandlingsplan). Bara stillbilder, ej film.
+            var src = txt(p.href || p.viewUrl || p.url);
+            var editable = p.isImage !== false && src;
             return (
               '<div class="photo-tile p' +
               ((pi % 6) + 1) +
+              (editable ? ' photo-tile--editable' : '') +
               '"' +
               (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+              (editable
+                ? ' role="button" tabindex="0" data-v12-photo-edit' +
+                  ' data-asset-id="' +
+                  esc(txt(p.id)) +
+                  '" data-photo-src="' +
+                  esc(src) +
+                  '" data-photo-name="' +
+                  esc(txt(p.name || 'Bild')) +
+                  '" data-photo-zone="' +
+                  esc(txt(p.zone || p.phase)) +
+                  '" data-photo-date="' +
+                  esc(txt(p.dateLabel || p.capturedAt)) +
+                  '"'
+                : '') +
               '><span class="lbl">' +
               esc(prefix) +
-              '</span></div>'
+              '</span>' +
+              (editable ? '<span class="photo-tile__draw" aria-hidden="true">✎ Rita</span>' : '') +
+              '</div>'
             );
           })
           .join('');

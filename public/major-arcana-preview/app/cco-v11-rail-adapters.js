@@ -1231,6 +1231,20 @@
           text(f.modifiedTime) ||
           '';
         var phase = photoPhase(f.category);
+        // Markerad/offertklar bild: imageStage='annotated' + selectedFor har
+        // offer/treatment_plan (samma regel som gamla kortet). Driver Foto-
+        // sektionens "Markerade bilder för offert" + rit-editorns trigger.
+        var tech = f.technicalInfo || {};
+        var fmeta = f.meta || f.metadata || {};
+        var selectedFor = toArray(f.selectedFor || tech.selectedFor || fmeta.selectedFor).map(
+          function (v) {
+            return text(v).toLowerCase();
+          }
+        );
+        var imageStage = text(f.imageStage || tech.imageStage || fmeta.imageStage).toLowerCase();
+        var offerReady =
+          imageStage === 'annotated' &&
+          (selectedFor.indexOf('offer') >= 0 || selectedFor.indexOf('treatment_plan') >= 0);
         return {
           id: text(f.id),
           name: name,
@@ -1240,6 +1254,10 @@
           dateLabel: photoDateLabel(capturedAt),
           phase: phase,
           view: photoView(f.angle),
+          zone: text(f.zone || f.region || phase),
+          imageStage: imageStage,
+          selectedFor: selectedFor,
+          offerReady: offerReady,
         };
       })
       .filter(function (it) {
