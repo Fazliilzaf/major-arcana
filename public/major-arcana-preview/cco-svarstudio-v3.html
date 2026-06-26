@@ -618,7 +618,7 @@ const TONES={
   decision_support:t=>t.replace(sig(),'')+`\n\nFör att hjälpa dig besluta: alternativ A bokar tiden nu, alternativ B håller den öppen 24 h. Säg bara vilket.${sig()}`
 };
 function refineShorter(t){const lines=t.split('\n').filter(l=>l.trim());const body=lines.slice(0,Math.max(2,Math.ceil(lines.length/2)));return body.join('\n')+sig();}
-function refineSharper(t){return t.replace(/gärna|kanske|eventuellt|möjligen/gi,'').replace(/\n{3,}/g,'\n\n').trim()+'\n\nÅtgärd krävs: bekräfta inom 24 h.'+'';}
+function refineSharper(t){return t.replace(sig(),'').replace(/gärna|kanske|eventuellt|möjligen/gi,'').replace(/\n{3,}/g,'\n\n').trim()+'\n\nÅtgärd krävs: bekräfta inom 24 h.'+sig();}
 const GIFT='\n\nPS: Som tack för ditt förtroende ingår en kostnadsfri eftervårdskontroll efter din behandling.';
 
 /* ===================== POLICY ===================== */
@@ -651,6 +651,8 @@ function loadThread(t){
   S.thread=t; S.activeTrackKey=inferTrack(t); S.selectedSignatureId=t.mailboxId; S.composeMailboxId=t.mailboxId;
   S.usedToolKeys=new Set(); S.draftId=null; S.draftStatus=null;
   $('toolNote').classList.remove('is-used');
+  // nollställ Smart anteckning-state så en kunds utkast aldrig läcker till nästa tråd
+  N.mode=null; N.text=''; N.tags=[]; N.buffers={}; N.templateKey=null; N.priority='medium'; N.visibility='team'; N.destinationKey='kundprofil';
   // kundkort
   $('kkAv').textContent=t.init; $('kkAv').style.background=t.avatarBg; $('kkName').textContent=t.customerName; $('kkMood').textContent=t.mood;
   $('kkEmail').textContent=t.customerEmail; $('kkPhone').textContent=t.customerPhone;
@@ -886,6 +888,7 @@ $('destList').addEventListener('click',e=>{
   N.destinationKey=b.dataset.dest;
   const buf=N.buffers[N.destinationKey];
   if(buf){ N.text=buf.text; N.tags=buf.tags.slice(); }
+  else { N.text=''; N.tags=[]; }   // ingen sparad buffer → börja tomt, inte föregående sparplats text
   $('noteField').value=N.text; updateCharCount(); renderTags();
   // restrict visibility per regler (medicinsk/betalning/intern aldrig all_operators)
   const allowed=NOTE_VISIBILITY_RULES[N.destinationKey];
@@ -943,10 +946,12 @@ async function saveNote(){
     flashNoteNotice('notice--block',`Synlighet ${VIS_LABEL[N.visibility]} ej tillåten för ${dest.label}. Tillåtet: ${v.allowed.map(x=>VIS_LABEL[x]).join(', ')}.`);
     return;
   }
-  const payload={destinationKey:N.destinationKey,destinationLabel:dest.label,
+  const payload={conversationId:S.thread.id,customerId:S.thread.customerId,
+    destinationKey:N.destinationKey,destinationLabel:dest.label,
     text:$('noteField').value,tags:N.tags.slice(),priority:N.priority,visibility:N.visibility};
   if(!DEMO){
-    await apiFetch('/cco-workspace/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await apiFetch('/cco-workspace/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok){ flashNoteNotice('notice--block','Kunde inte spara anteckning — kräver aktiv tråd-kontext. Försök igen.'); return; }
   }
   // upsert per destination i buffer
   N.buffers[N.destinationKey]={text:payload.text,tags:payload.tags.slice()};
