@@ -58,9 +58,14 @@ jobs:
         run: bash ./scripts/verify-render-blueprint-link.sh
 
       - name: Wait for Render blueprint sync
-        if: env.RENDER_API_KEY != ''
+        if: env.RENDER_API_KEY != '' && env.RENDER_BLUEPRINT_AUTOSYNC_REQUIRED != 'false'
         run: bash ./scripts/wait-for-render-blueprint-sync.sh
         # Deploy-drift: script avslutar 0 vid sync-lag; heal fortsätter (env-restore + readyz).
+
+      - name: Skip Render blueprint sync wait (manual deploy trigger)
+        if: env.RENDER_API_KEY != '' && env.RENDER_BLUEPRINT_AUTOSYNC_REQUIRED == 'false'
+        run: |
+          echo "::notice::Blueprint autoSync är av med flit; deploy verifieras via commit-match och readyz."
 
       - name: Wait for prod deploy (commit match)
         run: |
@@ -117,12 +122,18 @@ jobs:
         if: env.RENDER_API_KEY != ''
         run: node ./scripts/verify-render-env-count.js
 
+      - name: Install Playwright browsers for prod field prep
+        if: env.RENDER_API_KEY != ''
+        run: npx playwright install --with-deps chromium webkit
+
       - name: Verify U2.4 field prep (prod)
         if: env.RENDER_API_KEY != ''
         continue-on-error: false
         env:
           ARCANA_STAFF_EMAIL: ${{ secrets.ARCANA_STAFF_EMAIL }}
           ARCANA_STAFF_PASSWORD: ${{ secrets.ARCANA_STAFF_PASSWORD }}
+          ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+          ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
           ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
         run: |
           if [[ -z "${ARCANA_STAFF_EMAIL:-}" || -z "${ARCANA_STAFF_PASSWORD:-}" ]]; then
