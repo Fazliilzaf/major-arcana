@@ -861,6 +861,136 @@
       }
 
       /* desktop ≥1025: håll korten 2-3-up via maxw + auto-fit redan ovan */
+
+      /* ===== STATUS-BAR ===== */
+      .macro-status {
+        margin: 0.5rem 0 0.2rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: var(--r-md);
+        font-size: var(--fs-meta);
+        font-weight: 700;
+      }
+      .macro-status[hidden] {
+        display: none;
+      }
+      .macro-status--success {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .macro-status--error {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+      .macro-status--warn {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+
+      /* ===== EMPTY STATE ===== */
+      .macro-empty {
+        padding: 1.6rem 0.5rem;
+        text-align: center;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+      }
+
+      /* ===== MODAL ===== */
+      .macro-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--pad-x);
+        background: rgba(34, 28, 21, 0.5);
+        backdrop-filter: blur(6px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s;
+      }
+      .macro-modal.is-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .macro-modal-box {
+        width: 100%;
+        max-width: 28rem;
+        background: var(--bg-surface);
+        border-radius: var(--r-xl);
+        box-shadow: var(--sh-xl);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .macro-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      .macro-modal-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .macro-modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+      }
+      .macro-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        color: var(--text-secondary);
+      }
+      .macro-field input,
+      .macro-field textarea,
+      .macro-field select {
+        padding: 0.6rem 0.8rem;
+        border-radius: var(--r-md);
+        border: 1px solid rgba(180, 165, 150, 0.4);
+        background: var(--bg-sunken);
+        font: inherit;
+        font-size: var(--fs-body);
+        color: var(--text-primary);
+        outline: none;
+        resize: vertical;
+      }
+      .macro-field input:focus,
+      .macro-field textarea:focus,
+      .macro-field select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(176, 53, 110, 0.18);
+      }
+      .macro-modal-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        padding-top: 0.25rem;
+      }
+      .modal-feedback {
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        padding: 0.4rem 0.65rem;
+        border-radius: var(--r-md);
+      }
+      .modal-feedback[hidden] {
+        display: none;
+      }
+      .modal-feedback--error {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+      .modal-feedback--success {
+        background: var(--success-bg);
+        color: var(--success);
+      }
     </style>
   </head>
   <body>
@@ -936,8 +1066,68 @@
         </div>
       </div>
 
+      <!-- ===== STATUS-BAR ===== -->
+      <p id="macroStatus" class="macro-status" hidden></p>
+
       <!-- ===== MAKRO-GRID ===== -->
       <div class="macro-grid" id="macroGrid"></div>
+    </div>
+
+    <!-- ===== CREATE/EDIT MODAL ===== -->
+    <div
+      id="macroModal"
+      class="macro-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="macroModalTitle"
+      aria-hidden="true"
+    >
+      <div class="macro-modal-box">
+        <div class="macro-modal-head">
+          <h2 id="macroModalTitle" class="macro-modal-title">Skapa makro</h2>
+          <button class="icon-btn" id="macroModalClose" aria-label="Stäng modal">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            >
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form id="macroModalForm" class="macro-modal-form" novalidate>
+          <label class="macro-field">
+            <span>Makronamn</span>
+            <input
+              id="macroModalName"
+              type="text"
+              required
+              placeholder="T.ex. Bokningsflöde"
+              autocomplete="off"
+            />
+          </label>
+          <label class="macro-field">
+            <span>Beskrivning</span>
+            <textarea id="macroModalDesc" rows="3" placeholder="Beskriv vad makrot gör…"></textarea>
+          </label>
+          <label class="macro-field">
+            <span>Utlösare</span>
+            <select id="macroModalTrigger">
+              <option value="manual">Manuell körning</option>
+              <option value="auto">Auto-körning</option>
+            </select>
+          </label>
+          <p id="macroModalFeedback" class="modal-feedback" hidden></p>
+          <div class="macro-modal-actions">
+            <button type="button" id="macroModalCancel" class="btn">Avbryt</button>
+            <button type="submit" id="macroModalSubmit" class="btn btn--primary">
+              Spara makro
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- ===== BOTNAV ===== -->
@@ -1007,9 +1197,10 @@
     </nav>
 
     <script>
-      let MACROS = [
+      // ===== Fallback library (shown when API is unreachable) =====
+      const FALLBACK_MACROS = [
         {
-          id: 1,
+          id: 'pricing-followup',
           title: 'Pris & finansieringsspår',
           mode: 'Manuell',
           steg: 3,
@@ -1018,7 +1209,7 @@
           modeLabel: 'Manuell körning',
         },
         {
-          id: 2,
+          id: 'vip-recovery',
           title: 'VIP återhämtning',
           mode: 'Auto',
           steg: 2,
@@ -1027,7 +1218,7 @@
           modeLabel: 'Auto-körning',
         },
         {
-          id: 3,
+          id: 'post-treatment',
           title: 'Eftervårdssteg',
           mode: 'Manuell',
           steg: 3,
@@ -1036,87 +1227,331 @@
           modeLabel: 'Manuell körning',
         },
       ];
-      let nextId = 4;
 
-      const grid = document.getElementById('macroGrid');
-      const esc = (s) =>
-        String(s).replace(
-          /[&<>"]/g,
-          (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[m]
-        );
+      // ===== State =====
+      let MACROS = [];
 
+      // ===== API helpers =====
+      const TONE_BY_TYPE = {
+        template: 'violet',
+        tag: 'rose',
+        assign: 'blue',
+        snooze: 'gold',
+        sla: 'red',
+        archive: 'green',
+      };
+
+      function toneFor(record) {
+        const t = record.actions && record.actions[0] && record.actions[0].type;
+        return TONE_BY_TYPE[t] || (record.trigger === 'auto' ? 'blue' : 'violet');
+      }
+
+      function recordToCard(record) {
+        const trigger = record.trigger === 'auto' ? 'auto' : 'manual';
+        return {
+          id: record.id,
+          title: record.name,
+          mode: trigger === 'auto' ? 'Auto' : 'Manuell',
+          steg: Math.max(1, (record.actions || []).length),
+          tone: toneFor(record),
+          desc: record.description || 'Makrot är redo att köras i arbetsytan.',
+          modeLabel: trigger === 'auto' ? 'Auto-körning' : 'Manuell körning',
+          _raw: record,
+        };
+      }
+
+      function ikey(tag) {
+        return 'mkrn-' + tag + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      }
+
+      async function apiFetch(path, opts) {
+        opts = opts || {};
+        var headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+        var res = await fetch('/api/v1' + path, Object.assign({}, opts, { headers: headers }));
+        if (!res.ok) {
+          var err = new Error(res.status + ' ' + res.statusText);
+          err.status = res.status;
+          throw err;
+        }
+        return res.json();
+      }
+
+      // ===== DOM refs =====
+      var grid = document.getElementById('macroGrid');
+      var statusBar = document.getElementById('macroStatus');
+      var modal = document.getElementById('macroModal');
+      var modalTitle = document.getElementById('macroModalTitle');
+      var modalName = document.getElementById('macroModalName');
+      var modalDesc = document.getElementById('macroModalDesc');
+      var modalTrigger = document.getElementById('macroModalTrigger');
+      var modalFeedback = document.getElementById('macroModalFeedback');
+      var modalSubmit = document.getElementById('macroModalSubmit');
+      var editingId = null;
+
+      var esc = function (s) {
+        return String(s).replace(/[&<>"]/g, function (m) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m];
+        });
+      };
+
+      // ===== Status bar =====
+      function setStatus(msg, type) {
+        statusBar.textContent = msg || '';
+        statusBar.className = 'macro-status' + (type ? ' macro-status--' + type : '');
+        statusBar.hidden = !msg;
+      }
+
+      // ===== Render =====
       function card(m) {
-        return `<article class="macro macro--${m.tone}" data-id="${m.id}">
-    <span class="macro-label">${esc(m.mode)}</span>
-    <div class="macro-head">
-      <h2 class="macro-title">${esc(m.title)}</h2>
-      <span class="steg-chip">${m.steg} steg</span>
-    </div>
-    <p class="macro-desc">${esc(m.desc)}</p>
-    <div class="macro-chips">
-      <span class="mchip mchip--mode-${m.tone}">${esc(m.modeLabel)}</span>
-      <span class="mchip mchip--tone">Standard</span>
-    </div>
-    <div class="macro-foot">
-      <button class="btn" data-act="run">Kör</button>
-      <button class="btn" data-act="open">Öppna</button>
-      <button class="btn" data-act="edit">Redigera</button>
-      <button class="btn btn--danger" data-act="delete">Radera</button>
-    </div>
-  </article>`;
+        return (
+          '<article class="macro macro--' +
+          esc(m.tone) +
+          '" data-id="' +
+          esc(m.id) +
+          '">' +
+          '<span class="macro-label">' +
+          esc(m.mode) +
+          '</span>' +
+          '<div class="macro-head"><h2 class="macro-title">' +
+          esc(m.title) +
+          '</h2><span class="steg-chip">' +
+          esc(m.steg) +
+          ' steg</span></div>' +
+          '<p class="macro-desc">' +
+          esc(m.desc) +
+          '</p>' +
+          '<div class="macro-chips">' +
+          '<span class="mchip mchip--mode-' +
+          esc(m.tone) +
+          '">' +
+          esc(m.modeLabel) +
+          '</span>' +
+          '<span class="mchip mchip--tone">Standard</span>' +
+          '</div>' +
+          '<div class="macro-foot">' +
+          '<button class="btn" data-act="run">Kör</button>' +
+          '<button class="btn" data-act="open">Öppna</button>' +
+          '<button class="btn" data-act="edit">Redigera</button>' +
+          '<button class="btn btn--danger" data-act="delete">Radera</button>' +
+          '</div></article>'
+        );
       }
 
       function render() {
         grid.innerHTML = MACROS.length
           ? MACROS.map(card).join('')
-          : '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga makron ännu — skapa ditt första.</div>';
+          : '<div class="macro-empty">Inga makron ännu — skapa ditt första.</div>';
         updateStats();
       }
 
       function updateStats() {
-        const active = MACROS.filter((m) => m.mode !== 'Auto').length;
-        const auto = MACROS.filter((m) => m.mode === 'Auto').length;
-        const steps = MACROS.reduce((s, m) => s + m.steg, 0);
+        var active = MACROS.filter(function (m) {
+          return m.mode !== 'Auto';
+        }).length;
+        var auto = MACROS.filter(function (m) {
+          return m.mode === 'Auto';
+        }).length;
+        var steps = MACROS.reduce(function (s, m) {
+          return s + m.steg;
+        }, 0);
         document.getElementById('statActive').textContent = active;
         document.getElementById('statAuto').textContent = auto;
         document.getElementById('statSteps').textContent = steps;
       }
 
-      document.getElementById('createMacro').addEventListener('click', () => {
-        MACROS.push({
-          id: nextId++,
-          title: 'Nytt makro',
-          mode: 'Manuell',
-          steg: 1,
-          tone: 'violet',
-          desc: 'Nytt arbetsflöde — lägg till steg och spara.',
-          modeLabel: 'Manuell körning',
-        });
+      // ===== Load from API =====
+      async function loadMacros() {
+        try {
+          var payload = await apiFetch('/cco/macros');
+          var records = (payload && payload.macros) || [];
+          MACROS = records.length ? records.map(recordToCard) : FALLBACK_MACROS.slice();
+        } catch (err) {
+          MACROS = FALLBACK_MACROS.slice();
+          if (err.status === 401 || err.status === 403) {
+            setStatus('Inloggning krävs för makrobiblioteket.', 'error');
+          }
+        }
         render();
+      }
+
+      // ===== Modal =====
+      function openModal(mode, macro) {
+        editingId = mode === 'edit' && macro ? macro.id : null;
+        modalTitle.textContent = mode === 'edit' ? 'Redigera makro' : 'Skapa makro';
+        modalSubmit.textContent = mode === 'edit' ? 'Spara ändringar' : 'Spara makro';
+        modalName.value = (macro && macro.title) || '';
+        modalDesc.value = (macro && macro.desc) || '';
+        modalTrigger.value = macro && macro.mode === 'Auto' ? 'auto' : 'manual';
+        modalFeedback.hidden = true;
+        modalFeedback.textContent = '';
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        modalName.focus();
+      }
+
+      function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        editingId = null;
+      }
+
+      function setModalFeedback(msg, type) {
+        modalFeedback.textContent = msg || '';
+        modalFeedback.className = 'modal-feedback' + (type ? ' modal-feedback--' + type : '');
+        modalFeedback.hidden = !msg;
+      }
+
+      document.getElementById('macroModalClose').addEventListener('click', closeModal);
+      document.getElementById('macroModalCancel').addEventListener('click', closeModal);
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
       });
 
-      grid.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-act]');
-        if (!btn) return;
-        const art = btn.closest('.macro');
-        const id = Number(art.dataset.id);
-        const act = btn.dataset.act;
-        if (act === 'delete') {
-          MACROS = MACROS.filter((m) => m.id !== id);
+      // ===== Modal submit =====
+      document.getElementById('macroModalForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var name = modalName.value.trim();
+        if (!name) {
+          setModalFeedback('Makronamn krävs.', 'error');
+          modalName.focus();
+          return;
+        }
+        var trigger = modalTrigger.value;
+        var body = {
+          name: name,
+          description: modalDesc.value.trim(),
+          trigger: trigger,
+          actions: editingId
+            ? (
+                MACROS.find(function (m) {
+                  return m.id === editingId;
+                }) || {}
+              )._raw
+              ? MACROS.find(function (m) {
+                  return m.id === editingId;
+                })._raw.actions || [{ type: 'template', config: {} }]
+              : [{ type: 'template', config: {} }]
+            : [{ type: 'template', config: {} }],
+        };
+
+        modalSubmit.disabled = true;
+        modalSubmit.textContent = editingId ? 'Sparar…' : 'Skapar…';
+        setModalFeedback('', '');
+
+        try {
+          if (editingId) {
+            var payload = await apiFetch('/cco/macros/' + encodeURIComponent(editingId), {
+              method: 'PUT',
+              body: JSON.stringify(body),
+              headers: { 'x-idempotency-key': ikey('edit') },
+            });
+            var updated = recordToCard(payload.macro);
+            MACROS = MACROS.map(function (m) {
+              return m.id === editingId ? updated : m;
+            });
+            setStatus('Makrot "' + updated.title + '" uppdaterades.', 'success');
+          } else {
+            var payload = await apiFetch('/cco/macros', {
+              method: 'POST',
+              body: JSON.stringify(body),
+              headers: { 'x-idempotency-key': ikey('create') },
+            });
+            MACROS.push(recordToCard(payload.macro));
+            setStatus('Makrot "' + payload.macro.name + '" skapades.', 'success');
+          }
+          closeModal();
           render();
-        } else if (act === 'run') {
-          if (btn.dataset.busy) return;
-          const orig = btn.textContent;
-          btn.dataset.busy = '1';
-          btn.textContent = 'Kör…';
-          setTimeout(() => {
-            btn.textContent = orig;
-            delete btn.dataset.busy;
-          }, 1100);
+        } catch (err) {
+          setModalFeedback(err.message || 'Kunde inte spara makrot.', 'error');
+        } finally {
+          modalSubmit.disabled = false;
+          modalSubmit.textContent = editingId ? 'Spara ändringar' : 'Spara makro';
         }
       });
 
-      render();
+      // ===== Create button =====
+      document.getElementById('createMacro').addEventListener('click', function () {
+        openModal('create', null);
+      });
+
+      // ===== Grid action handler =====
+      grid.addEventListener('click', async function (e) {
+        var btn = e.target.closest('button[data-act]');
+        if (!btn) return;
+        var art = btn.closest('.macro');
+        if (!art) return;
+        var id = art.dataset.id;
+        var macro = MACROS.find(function (m) {
+          return m.id === id;
+        });
+        if (!macro) return;
+        var act = btn.dataset.act;
+
+        if (act === 'edit') {
+          openModal('edit', macro);
+          return;
+        }
+
+        if (act === 'open') {
+          setStatus('Makrot "' + macro.title + '" är redo i automationsbyggaren.', 'success');
+          return;
+        }
+
+        if (act === 'delete') {
+          if (!window.confirm('Radera makrot "' + macro.title + '"?')) return;
+          btn.disabled = true;
+          try {
+            await apiFetch('/cco/macros/' + encodeURIComponent(id), {
+              method: 'DELETE',
+              headers: { 'x-idempotency-key': ikey('del') },
+            });
+            MACROS = MACROS.filter(function (m) {
+              return m.id !== id;
+            });
+            render();
+            setStatus('Makrot "' + macro.title + '" raderades.', 'success');
+          } catch (err) {
+            setStatus(err.message || 'Kunde inte radera makrot.', 'error');
+            btn.disabled = false;
+          }
+          return;
+        }
+
+        if (act === 'run') {
+          if (btn.dataset.busy) return;
+          btn.dataset.busy = '1';
+          btn.disabled = true;
+          var orig = btn.textContent;
+          btn.textContent = 'Kör…';
+          try {
+            var payload = await apiFetch('/cco/macros/' + encodeURIComponent(id) + '/run', {
+              method: 'POST',
+              headers: { 'x-idempotency-key': ikey('run') },
+            });
+            if (payload && payload.macro) {
+              var updated = recordToCard(payload.macro);
+              MACROS = MACROS.map(function (m) {
+                return m.id === id ? updated : m;
+              });
+              render();
+            }
+            setStatus('Makrot "' + macro.title + '" kördes.', 'success');
+          } catch (err) {
+            setStatus(err.message || 'Kunde inte köra makrot.', 'error');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = orig;
+            delete btn.dataset.busy;
+          }
+          return;
+        }
+      });
+
+      // ===== Init =====
+      loadMacros();
     </script>
     <script>
       (function () {
