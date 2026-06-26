@@ -1,0 +1,53 @@
+name: visual-regression
+
+on:
+  pull_request:
+    paths:
+      - "public/major-arcana-preview/cco-*-v3*.html"
+  push:
+    branches:
+      - "claude/**"
+  workflow_dispatch:
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (with full history for worktree)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run visual diff (branch vs main)
+        id: diff
+        run: npm run visual:vs-main
+        continue-on-error: true
+
+      - name: Upload diff images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-diffs
+          path: test/visual/diffs/*.png
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Fail if drift detected
+        if: steps.diff.outcome == 'failure'
+        run: |
+          echo "Visuell drift detekterad — se artifact 'visual-regression-diffs'"
+          exit 1
