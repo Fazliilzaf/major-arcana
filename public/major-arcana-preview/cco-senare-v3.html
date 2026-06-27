@@ -1285,6 +1285,7 @@
           key: 'conv_sn_001',
           name: 'Anna Karlsson',
           init: 'AK',
+          avatarBg: 'linear-gradient(160deg,#c79ae6,#9a63c9)',
           source: 'contact',
           sub: 'PRP-bekräftelse · väntar på friskförsäkran',
           snoozed: 'Idag 08:14',
@@ -1316,6 +1317,7 @@
           key: 'conv_sn_002',
           name: 'Marcus Berg',
           init: 'MB',
+          avatarBg: 'linear-gradient(160deg,#93c5fd,#2563eb)',
           source: 'info',
           sub: 'PRP återbesök — föreslå tid',
           snoozed: 'Igår 16:30',
@@ -1336,6 +1338,7 @@
           key: 'conv_sn_003',
           name: 'Karl Lindberg',
           init: 'KL',
+          avatarBg: 'linear-gradient(160deg,#6ee7b7,#0d9488)',
           source: 'fazli',
           sub: 'DHI ögonbryn — eftervårdsfrågor',
           snoozed: 'Mån 10:00',
@@ -1360,6 +1363,7 @@
           key: 'conv_sn_004',
           name: 'Sofie Andersson',
           init: 'SA',
+          avatarBg: 'linear-gradient(160deg,#fda4af,#e11d48)',
           source: 'contact',
           sub: 'Vill boka microneedling',
           snoozed: 'Mån 14:30',
@@ -1387,6 +1391,7 @@
           key: 'conv_sn_005',
           name: 'Eva Karlsson',
           init: 'EK',
+          avatarBg: 'linear-gradient(160deg,#fcd34d,#d97706)',
           source: 'egzona',
           sub: 'Ombokning efter avbokning',
           snoozed: 'Sön 09:20',
@@ -1414,6 +1419,7 @@
           key: 'conv_sn_006',
           name: 'Linda Persson',
           init: 'LP',
+          avatarBg: 'linear-gradient(160deg,#a5b4fc,#4f46e5)',
           source: 'fazli',
           sub: 'Offert hårtransplantation',
           snoozed: '24 maj',
@@ -1539,7 +1545,7 @@
 
       function threadCard(t) {
         return `<article class="thread ${t.due ? 'is-due' : ''} ${openId === t.id ? 'is-open' : ''}" data-id="${t.id}" data-source="${t.source}" tabindex="0" role="button">
-    <span class="t-av">${esc(t.init)}</span>
+    <span class="t-av" style="background:${esc(t.avatarBg || '')}">${esc(t.init)}</span>
     <div class="t-body"><div class="t-top"><span class="t-name">${esc(t.name)}</span><span class="t-time">snoozad ${esc(t.snoozed)}</span></div>
     <div class="t-sub">${esc(t.sub)}</div>
     <div class="t-prev">${esc(t.msgs[t.msgs.length - 1][1])}</div>
