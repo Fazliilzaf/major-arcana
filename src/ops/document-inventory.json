@@ -108,7 +108,8 @@
       "language": "sv",
       "flowApplies": ["prp_hair"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
-      "notes": "14-dagarstext rad ~601 = avbokningsvillkor (granskas). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal). Ändras ej utan beslut."
+      "notes": "14-dagarstext rad ~601 = avbokningsvillkor (granskas). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal). Ändras ej utan beslut.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Kräver owner-bekräftelse."
     },
     {
       "catalogId": "offert_prp_skin",
@@ -128,7 +129,8 @@
       "language": "sv",
       "flowApplies": ["prp_skin"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
-      "notes": "Samma 14-dagarsstruktur som offert_prp_hair. Rad ~601 = avbokning, rad ~630,675,679 = ångerrätt."
+      "notes": "Samma 14-dagarsstruktur som offert_prp_hair. Rad ~601 = avbokning, rad ~630,675,679 = ångerrätt.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse."
     },
     {
       "catalogId": "offert_microneedling",
@@ -148,7 +150,8 @@
       "language": "sv",
       "flowApplies": ["microneedling"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
-      "notes": "Rad ~663 = ångerrätt Distansavtalslagen. Rad ~710,714 = ångerfristen. Avbokningsvillkor saknas i denna fil — verifiera."
+      "notes": "Rad ~663 = ångerrätt Distansavtalslagen. Rad ~710,714 = ångerfristen. Avbokningsvillkor saknas i denna fil — verifiera.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse."
     },
     {
       "catalogId": "offert_prf",
@@ -168,7 +171,8 @@
       "language": "sv",
       "flowApplies": ["prf"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
-      "notes": "Rad ~661 = ångerrätt Distansavtalslagen (korrekt vid distansavtal). Rad ~708,712 = ångerfristen."
+      "notes": "Rad ~661 = ångerrätt Distansavtalslagen (korrekt vid distansavtal). Rad ~708,712 = ångerfristen.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse."
     },
     {
       "catalogId": "offert_profilo",
@@ -188,7 +192,8 @@
       "language": "sv",
       "flowApplies": ["profhilo"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
-      "notes": "Rad ~661 = ångerrätt Distansavtalslagen. Rad ~708,712 = ångerfristen. Clinic: curatiio."
+      "notes": "Rad ~661 = ångerrätt Distansavtalslagen. Rad ~708,712 = ångerfristen. Clinic: curatiio.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse."
     },
     {
       "catalogId": "samtycke_bokning_2d",
@@ -206,7 +211,8 @@
       "flowApplies": ["all"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_FEL", "14_DAG_AVBOKNING"],
       "notes": "FEL I NAMN: Katalog (hairtp-document-types.catalog.json rad 234) anger '14 dagar' i name-fältet. HTML-titel (steg6-betanketid-samtycke-final-demo.html rad 499) anger 'inom 14 dagar'. Katalog-ID och lag anger 2 dagar (48 h betänketid). Dessutom: cco-signaturer-v3.html rad 1207 visar '14 dagar' i demo-data. Rad 518/522 i HTML = avbokningsvillkor 14 dagar — separat granskning. ÄNDRAS EJ UTAN BESLUT.",
-      "specialFlag": "SAMTYCKE_BOKNING_2_DAGAR"
+      "specialFlag": "SAMTYCKE_BOKNING_2_DAGAR",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse. ⚠ FEL i 14-dagarstexter (se notes)."
     },
     {
       "catalogId": "samtycke_angerratt",
@@ -223,7 +229,8 @@
       "language": "sv",
       "flowApplies": ["all"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "DELAD_FIL"],
-      "notes": "Delar HTML-fil med samtycke_bokning_2d. Ångerrätt-texten (rad 548,552) anger 14 dagar — korrekt vid distansavtal. Gäller: patienten begär att behandling påbörjas under ångerfristen och avsäger sig återstående frist."
+      "notes": "Delar HTML-fil med samtycke_bokning_2d. Ångerrätt-texten (rad 548,552) anger 14 dagar — korrekt vid distansavtal. Gäller: patienten begär att behandling påbörjas under ångerfristen och avsäger sig återstående frist.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source ej angiven separat — delar HTML-fil med samtycke_bokning_2d (DELAD_FIL). Ingen namngiven extern källa. Kräver owner-bekräftelse."
     },
     {
       "catalogId": "prp_hair_info_sve",
@@ -525,7 +532,8 @@
       "language": "sv+en",
       "flowApplies": ["all"],
       "legalFlags": [],
-      "notes": "Automatisk bekräftelse vid bokning. Skickas via SMS och/eller e-post."
+      "notes": "Automatisk bekräftelse vid bokning. Skickas via SMS och/eller e-post.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" (templateId: booking_confirmation_hair_tp). Klinikens egna text synkad via facit. Ingen namngiven extern källa. Kräver owner-bekräftelse."
     },
     {
       "catalogId": "auto_bokningspaminnelse",
@@ -542,7 +550,8 @@
       "language": "sv+en",
       "flowApplies": ["all"],
       "legalFlags": [],
-      "notes": "Automatisk påminnelse innan bokad tid. Tidpunkt för utskick konfigureras per klinik."
+      "notes": "Automatisk påminnelse innan bokad tid. Tidpunkt för utskick konfigureras per klinik.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" (templateId: booking_reminder_24h). Klinikens egna text synkad via facit. Ingen namngiven extern källa. Kräver owner-bekräftelse."
     },
     {
       "catalogId": "auto_avbokningsbekraftelse",

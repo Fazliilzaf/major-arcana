@@ -1044,7 +1044,7 @@
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
           file: 'steg7-offert-prp-hair-final-demo.html',
           notes:
-            'Rad ~601 = avbokningsvillkor (granskas). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal).',
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Kräver owner-bekräftelse. Rad ~601 = avbokningsvillkor (granskas). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal).',
         },
         {
           id: 'offert_prp_skin',
@@ -1058,7 +1058,8 @@
           flows: ['prp_skin'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
           file: 'steg7-offert-prp-skin-final-demo.html',
-          notes: 'Samma 14-dagarsstruktur som offert_prp_hair.',
+          notes:
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Kräver owner-bekräftelse. Samma 14-dagarsstruktur som offert_prp_hair.',
         },
         {
           id: 'offert_microneedling',
@@ -1072,7 +1073,8 @@
           flows: ['microneedling'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
           file: 'steg7-offert-microneedling-final-demo.html',
-          notes: 'Rad ~663 = ångerrätt. Avbokningsvillkor — verifiera.',
+          notes:
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Kräver owner-bekräftelse. Rad ~663 = ångerrätt. Avbokningsvillkor — verifiera.',
         },
         {
           id: 'offert_prf',
@@ -1086,7 +1088,8 @@
           flows: ['prf'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT'],
           file: 'steg7-offert-prf-final-demo.html',
-          notes: 'Rad ~661 = ångerrätt Distansavtalslagen (korrekt vid distansavtal).',
+          notes:
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Kräver owner-bekräftelse. Rad ~661 = ångerrätt Distansavtalslagen (korrekt vid distansavtal).',
         },
         {
           id: 'offert_profilo',
@@ -1100,7 +1103,8 @@
           flows: ['profhilo'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT'],
           file: 'steg7-offert-profilo-final-demo.html',
-          notes: 'Rad ~661 = ångerrätt. Clinic: curatiio.',
+          notes:
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Kräver owner-bekräftelse. Rad ~661 = ångerrätt. Clinic: curatiio.',
         },
         {
           id: 'samtycke_bokning_2d',
@@ -1115,7 +1119,7 @@
           flags: ['GRANSKNINGSKRAV', '14_DAG_FEL', '14_DAG_AVBOKNING'],
           file: 'steg6-betanketid-samtycke-final-demo.html',
           notes:
-            '⚠ FEL: Katalog och HTML-titel anger "14 dagar" — korrekt period är 2 dagar (48 h betänketid). Tre platser med fel. Ändras ej utan beslut.',
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Kräver owner-bekräftelse. ⚠ FEL i 14-dagarstexter (se nedan). ⚠ FEL: Katalog och HTML-titel anger "14 dagar" — korrekt period är 2 dagar (48 h betänketid). Tre platser med fel. Ändras ej utan beslut.',
         },
         {
           id: 'samtycke_angerratt',
@@ -1130,7 +1134,7 @@
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', 'DELAD_FIL'],
           file: 'steg6-betanketid-samtycke-final-demo.html',
           notes:
-            'Delar HTML-fil med samtycke_bokning_2d. Ångerrätt-text (rad 548,552) anger 14 dagar — korrekt vid distansavtal.',
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source ej angiven separat — delar HTML-fil med samtycke_bokning_2d (DELAD_FIL). Ingen namngiven extern källa. Kräver owner-bekräftelse. Delar HTML-fil med samtycke_bokning_2d. Ångerrätt-text (rad 548,552) anger 14 dagar — korrekt vid distansavtal.',
         },
         {
           id: 'prp_hair_info_sve',
@@ -1378,7 +1382,8 @@
           flows: ['all'],
           flags: [],
           file: 'steg2-auto-bokningsbekraftelse-final-demo.html',
-          notes: 'Automatisk bekräftelse vid bokning. SMS och/eller e-post.',
+          notes:
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync" (templateId: booking_confirmation_hair_tp). Klinikens egna text synkad via facit. Ingen namngiven extern källa. Kräver owner-bekräftelse. Automatisk bekräftelse vid bokning. SMS och/eller e-post.',
         },
         {
           id: 'auto_bokningspaminnelse',
@@ -1392,7 +1397,8 @@
           flows: ['all'],
           flags: [],
           file: 'auto-bokningspaminnelse-final-demo.html',
-          notes: 'Automatisk påminnelse innan bokad tid. Tidpunkt konfigureras per klinik.',
+          notes:
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync" (templateId: booking_reminder_24h). Klinikens egna text synkad via facit. Ingen namngiven extern källa. Kräver owner-bekräftelse. Automatisk påminnelse innan bokad tid. Tidpunkt konfigureras per klinik.',
         },
         {
           id: 'auto_avbokningsbekraftelse',
