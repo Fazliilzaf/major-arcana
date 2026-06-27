@@ -231,7 +231,7 @@
     },
     {
       "id": "samtycke_bokning_2d",
-      "name": "Samtycke vid bokning inom 14 dagar",
+      "name": "Samtycke vid bokning inom 2 dagar",
       "number": 10,
       "clinic": "hairtp",
       "filler": "patient",
