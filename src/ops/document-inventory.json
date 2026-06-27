@@ -209,8 +209,8 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["all"],
-      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_FEL"],
-      "notes": "FEL I NAMN: Katalog (hairtp-document-types.catalog.json rad 234) anger '14 dagar' i name-fältet. HTML-titel (steg6-betanketid-samtycke-final-demo.html rad 499) anger 'inom 14 dagar'. Katalog-ID och lag anger 2 dagar (48 h betänketid). Dessutom: cco-signaturer-v3.html rad 1207 visar '14 dagar' i demo-data. Rad 518/522 i HTML = avbokningsvillkor 14 dagar — separat granskning. ÄNDRAS EJ UTAN BESLUT.",
+      "legalFlags": ["GRANSKNINGSKRAV"],
+      "notes": "FIXAT 2026-06-27: HTML-titel (rad 499) och brödtext (rad 501) ändrade från \"14 dagar\" till \"2 dagar\" (betänketid 48 h). Avbokningsvillkor (rad 518/522) anger fortfarande 14 dagar — separat granskning (kontextberoende distans vs klinik). Kräver juridisk verifiering innan användning.",
       "specialFlag": "SAMTYCKE_BOKNING_2_DAGAR",
       "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad. ⚠ FEL i 14-dagarstexter (se notes)."
     },
