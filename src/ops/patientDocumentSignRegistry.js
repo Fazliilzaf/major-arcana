@@ -78,7 +78,7 @@ const SIGN_CONFIG_BY_REGISTRY = Object.freeze({
     tenantId: DEFAULT_TENANT,
     requiresPatientId: true,
     journalType: 'consent_bundle',
-    title: 'Samtycke vid bokning inom 14 dagar',
+    title: 'Samtycke vid bokning inom 2 dagar',
     consentKind: 'booking_within_14d',
     consentApiId: 154369,
     requiredAckSelectors: ['#booking-ack'],
