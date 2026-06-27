@@ -23,6 +23,7 @@
       "action": "fylls_i",
       "filler": "patient",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg3-halsodeklaration-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
@@ -39,6 +40,7 @@
       "action": "fylls_i",
       "filler": "patient",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
@@ -55,6 +57,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": [
         "public/major-arcana-preview/steg8-friskforsakran-final.html",
         "public/major-arcana-preview/cco-friskforsakran-demo-overlay.html"
@@ -74,6 +77,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-tp-final-demo.html",
         "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html"
@@ -93,6 +97,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prp-hair-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prp-hair-final-demo.html"
@@ -112,6 +117,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prp-skin-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prp-skin-final-demo.html"
@@ -131,6 +137,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-microneedling-final-demo.html",
         "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html"
@@ -150,6 +157,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prf-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prf-final-demo.html"
@@ -169,6 +177,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-profilo-final-demo.html",
         "public/major-arcana-preview/steg7-offert-profilo-final-demo.html"
@@ -188,6 +197,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html",
       "formProvider": "meridiq_g4",
@@ -205,6 +215,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html",
       "formProvider": "meridiq_g4",
@@ -221,6 +232,7 @@
       "action": "visas",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg4-prp-hair-info-sve-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-prp-hair-info-sve-final-demo.html",
       "formProvider": "meridiq_g4",
@@ -237,6 +249,7 @@
       "action": "visas",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg4-prp-hair-info-eng-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-prp-hair-info-eng-final-demo.html",
       "formProvider": "meridiq_g4",
@@ -253,6 +266,7 @@
       "action": "visas",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg4-microneedling-info-sve-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-microneedling-info-sve-final-demo.html",
       "formProvider": "meridiq_g4",
@@ -269,6 +283,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": [
         "public/major-arcana-preview/steg9-foto-samtycke-final-demo.html",
         "public/major-arcana-preview/cco-foto-samtycke-demo-overlay.html"
@@ -288,6 +303,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg8-journal-tp-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
@@ -304,6 +320,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg8-journal-tp-post-prp-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
@@ -320,6 +337,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg8-journal-tp-follow-4-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
@@ -336,6 +354,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg8-journal-tp-follow-6-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
@@ -352,6 +371,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg8-journal-tp-follow-12-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
@@ -368,6 +388,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "Meridiq",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
@@ -384,6 +405,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg5-behandlingsplan-staff-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg5-behandlingsplan-staff-final-demo.html",
       "formProvider": "manual",
@@ -400,6 +422,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg4-konsultationsmall-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
       "formProvider": "manual",
@@ -416,6 +439,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg8-ordination-tp-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
       "formProvider": "manual",
@@ -432,6 +456,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/staff-anteckningar-kort-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/staff-anteckningar-kort-final-demo.html",
       "formProvider": "manual",
@@ -448,6 +473,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg4-id-verifiering-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
       "formProvider": "manual",
@@ -464,6 +490,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg5-info-offert-tp-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg5-info-offert-tp-final-demo.html",
       "formProvider": "email_template",
@@ -480,6 +507,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg2-auto-bokningsbekraftelse-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg2-auto-bokningsbekraftelse-final-demo.html",
       "formProvider": "sms_template",
@@ -496,6 +524,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/auto-bokningspaminnelse-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/auto-bokningspaminnelse-final-demo.html",
       "formProvider": "sms_template",
@@ -512,6 +541,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/auto-avbokningsbekraftelse-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/auto-avbokningsbekraftelse-final-demo.html",
       "formProvider": "sms_template",
@@ -528,6 +558,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html",
       "formProvider": "email_template",
@@ -544,6 +575,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg6-auto-betanketid-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
       "formProvider": "email_template",
@@ -560,6 +592,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "saknas_kalla",
+      "contentSource": "Nordbro",
       "repoFiles": ["public/major-arcana-preview/auto-medical-finance-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "email_template",
@@ -576,6 +609,7 @@
       "action": "visas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/auto-integritet-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/auto-integritet-final-demo.html",
       "formProvider": "static",
@@ -592,6 +626,7 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/steg8-fore-efter-bildmall-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg8-fore-efter-bildmall-final-demo.html",
       "formProvider": "manual",
@@ -608,6 +643,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
+      "contentSource": "okänd",
       "repoFiles": ["public/major-arcana-preview/staff-auto-internt-sms-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/staff-auto-internt-sms-final-demo.html",
       "formProvider": "sms_template",
@@ -672,5 +708,13 @@
       ],
       "priority": "hög"
     }
-  ]
+  ],
+  "contentSourceLegend": {
+    "Meridiq": "Innehåll/formulär från och förvaltat i Meridiq-plattformen.",
+    "SharePoint": "Innehåll ursprungligen från SharePoint / Microsoft.",
+    "Nordbro": "Innehåll från Nordbro (t.ex. Medical Finance).",
+    "Insatt": "Innehåll från Insatt-plattformen.",
+    "repo": "Innehåll skapat och ägt i repo / in-house.",
+    "okänd": "Innehållskällan är ej bekräftad — kräver utredning."
+  }
 }
