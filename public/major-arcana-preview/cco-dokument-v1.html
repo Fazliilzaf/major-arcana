@@ -497,25 +497,229 @@
         text-decoration: underline;
       }
 
-      /* EXPANDABLE NOTES */
-      .doc-notes {
-        grid-column: 1/-1;
+      /* DETAIL PANEL */
+      #detailOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(43, 37, 31, 0.18);
+        display: none;
+        z-index: 300;
+      }
+      #detailPanel {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 400px;
+        max-width: 100vw;
+        background: linear-gradient(180deg, #fdf9f5, #f8f2ec);
+        border-left: 1px solid rgba(180, 165, 150, 0.3);
+        box-shadow: -8px 0 32px rgba(56, 40, 28, 0.14);
+        display: none;
+        flex-direction: column;
+        z-index: 301;
+        overflow: hidden;
+      }
+      .dp-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 18px 16px 16px;
+        border-bottom: 1px solid rgba(180, 165, 150, 0.22);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 246, 242, 0.7));
+        flex-shrink: 0;
+      }
+      .dp-cat-rail {
+        width: 4px;
+        min-height: 44px;
+        border-radius: 2px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        align-self: stretch;
+      }
+      .dp-head-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .dp-kicker {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 5px;
+      }
+      .dp-title {
+        font-size: 14.5px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--cco-color-brand);
+        line-height: 1.3;
+        word-break: break-word;
+      }
+      .dp-head-chips {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .dp-close {
+        background: rgba(132, 117, 107, 0.1);
+        border: none;
+        border-radius: 8px;
+        width: 28px;
+        height: 28px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--cco-text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 2px;
+        font-family: inherit;
+      }
+      .dp-close:hover {
+        background: rgba(132, 117, 107, 0.2);
+      }
+      .dp-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .dp-section {
+        display: flex;
+        flex-direction: column;
+      }
+      .dp-section-label {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 8px;
+      }
+      .dp-flag-card {
+        padding: 9px 12px;
+        border-radius: 10px;
+        margin-bottom: 5px;
+      }
+      .dp-flag-card:last-child {
+        margin-bottom: 0;
+      }
+      .dp-flag-label {
         font-size: 11px;
+        font-weight: 800;
+        margin-bottom: 2px;
+      }
+      .dp-flag-desc {
+        font-size: 10.5px;
+        line-height: 1.45;
+        opacity: 0.82;
+      }
+      .dp-flag-danger {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
+      .dp-flag-danger-border {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+        border: 1px solid rgba(185, 74, 74, 0.4);
+      }
+      .dp-flag-warning {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .dp-flag-info {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .dp-flag-slate {
+        background: var(--slate-bg);
+        color: var(--slate);
+      }
+      .dp-meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid rgba(180, 165, 150, 0.14);
+        font-size: 11.5px;
+      }
+      .dp-meta-row:last-child {
+        border-bottom: 0;
+      }
+      .dp-meta-key {
+        color: var(--cco-text-tertiary);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .dp-meta-val {
+        text-align: right;
+        font-weight: 700;
+        color: var(--cco-color-brand);
+      }
+      .dp-meta-id {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--cco-text-secondary);
+        font-family: ui-monospace, 'Cascadia Code', monospace;
+      }
+      .dp-file-link {
+        display: inline-block;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--accent-studio);
+        text-decoration: none;
+        padding: 7px 12px;
+        border-radius: 8px;
+        background: rgba(187, 71, 121, 0.08);
+        border: 1px solid rgba(187, 71, 121, 0.2);
+        word-break: break-all;
+      }
+      .dp-file-link:hover {
+        background: rgba(187, 71, 121, 0.14);
+      }
+      .dp-extern-src {
+        font-size: 11.5px;
+        color: var(--cco-text-secondary);
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(132, 117, 107, 0.08);
+        line-height: 1.45;
+      }
+      .dp-notes-text {
+        font-size: 11.5px;
         color: var(--cco-text-secondary);
         line-height: 1.55;
-        padding: 8px 10px;
+        margin: 0;
+        padding: 10px 12px;
         border-radius: 9px;
         background: rgba(250, 246, 242, 0.8);
         border: 1px solid rgba(180, 165, 150, 0.2);
-        display: none;
-        margin-top: 4px;
       }
-      .doc-item.is-open .doc-notes {
-        display: block;
+      .dp-footer {
+        padding: 12px 16px;
+        border-top: 1px solid rgba(180, 165, 150, 0.22);
+        flex-shrink: 0;
+        background: rgba(250, 246, 242, 0.6);
       }
-      .doc-item.is-open {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 247, 242, 0.92));
-        box-shadow: 0 8px 22px rgba(56, 40, 28, 0.09);
+      .dp-no-flags {
+        font-size: 11px;
+        color: var(--cco-text-tertiary);
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(132, 117, 107, 0.06);
+      }
+      @media (max-width: 480px) {
+        #detailPanel {
+          width: 100vw;
+          left: 0;
+        }
       }
 
       /* SECTION */
@@ -727,6 +931,29 @@
         Inga dokument matchar filtret.
       </div>
     </div>
+
+    <!-- DETAIL PANEL -->
+    <div id="detailOverlay"></div>
+    <aside id="detailPanel" role="complementary" aria-label="Dokumentdetaljer" aria-hidden="true">
+      <div class="dp-head">
+        <div class="dp-cat-rail" id="dpCatRail"></div>
+        <div class="dp-head-text">
+          <div class="dp-kicker" id="dpKicker"></div>
+          <div class="dp-title" id="dpTitle"></div>
+          <div class="dp-head-chips" id="dpChips"></div>
+        </div>
+        <button class="dp-close" id="dpClose" aria-label="Stäng">✕</button>
+      </div>
+      <div class="dp-body">
+        <div class="dp-section" id="dpFlags"></div>
+        <div class="dp-section" id="dpMeta"></div>
+        <div class="dp-section" id="dpSource"></div>
+        <div class="dp-section" id="dpNotes"></div>
+      </div>
+      <div class="dp-footer">
+        <span class="readonly-badge">🔒 Läs-/översiktsläge</span>
+      </div>
+    </aside>
 
     <script>
       const DOCS = [
@@ -1231,6 +1458,77 @@
         saknas_kalla: 'Saknas källa',
         Nordbro: 'Nordbro',
       };
+      const LANG_LABELS = {
+        sv: 'Svenska',
+        en: 'Engelska',
+        'sv+en': 'Svenska + Engelska',
+      };
+      const FLOW_LABELS = {
+        tp: 'Hårtransplantation',
+        prp_hair: 'PRP Hår',
+        prp_skin: 'PRP Hud',
+        prf: 'PRF Hud',
+        microneedling: 'Microneedling',
+        profhilo: 'Profhilo',
+        all: 'Alla flöden',
+      };
+      const CAT_COLORS = {
+        kundformular: '#4a7ba8',
+        signeringsunderlag: '#c8821e',
+        personalformular: '#475569',
+        journalmall: '#7c3aed',
+        info: '#4a8268',
+        epost_sms: '#8a8174',
+      };
+      const FLAG_META = {
+        PATIENTDATA: {
+          label: 'Patientdata (PDL)',
+          desc: 'Journaluppgifter regleras av Patientdatalagen — kräver behörighet och loggning.',
+          cls: 'danger',
+        },
+        GDPR: {
+          label: 'GDPR Art. 9',
+          desc: 'Känsliga personuppgifter kräver aktivt samtycke och tydlig rättslig grund.',
+          cls: 'warning',
+        },
+        GRANSKNINGSKRAV: {
+          label: 'Granskningskrav',
+          desc: 'Måste granskas av medicinskt ansvarig innan användning.',
+          cls: 'warning',
+        },
+        '14_DAG_FEL': {
+          label: '⚠ 14-dagarsfel',
+          desc: 'Dokumentet anger "14 dagar" — korrekt period är 2 dagar (48 h betänketid). Ändras ej utan beslut.',
+          cls: 'danger-border',
+        },
+        '14_DAG_ANGERATT': {
+          label: 'Ångerrätt 14 dagar',
+          desc: 'Distansavtalslagen — korrekt vid distansavtal. Kräver granskning vid klinik-signering.',
+          cls: 'info',
+        },
+        '14_DAG_AVBOKNING': {
+          label: 'Avbokning 14 dagar',
+          desc: 'Avbokningsvillkor — verifiera om kontextberoende (distans vs klinik).',
+          cls: 'info',
+        },
+        SAKNAS_FIL: {
+          label: 'Fil saknas',
+          desc: 'Canonical-filen saknas i repo — ej bekräftad som källa.',
+          cls: 'danger',
+        },
+        SAKNAS_KALLA: {
+          label: 'Källa saknas',
+          desc: 'Ursprung, ägare och avtal ej bekräftade. Kräver utredning.',
+          cls: 'danger',
+        },
+        DELAD_FIL: {
+          label: 'Delad fil',
+          desc: 'Delar HTML-fil med annat dokument i inventariet.',
+          cls: 'slate',
+        },
+      };
+
+      const DOCS_MAP = Object.fromEntries(DOCS.map((d) => [d.id, d]));
 
       function esc(s) {
         return String(s || '').replace(
@@ -1259,7 +1557,7 @@
             const fileLink = d.file
               ? `<a class="doc-link" href="/major-arcana-preview/${esc(d.file)}" target="_blank">↗ Öppna fil</a>`
               : `<span style="font-size:10px;color:var(--cco-text-tertiary)">Extern källa</span>`;
-            return `<div class="doc-item" data-cat="${esc(d.cat)}" data-id="${esc(d.id)}">
+            return `<div class="doc-item" data-cat="${esc(d.cat)}" data-id="${esc(d.id)}" title="Klicka för detaljer">
       <div class="doc-main">
         <div class="doc-name">${esc(d.name)}</div>
         <div class="doc-chips">
@@ -1270,7 +1568,6 @@
           <span class="chip chip-lang">${esc(d.lang)}</span>
         </div>
         ${fileLink}
-        <div class="doc-notes">${esc(d.notes)}</div>
       </div>
       <div class="doc-flags">${flags}</div>
     </div>`;
@@ -1280,10 +1577,93 @@
         list.querySelectorAll('.doc-item').forEach((el) => {
           el.addEventListener('click', (e) => {
             if (e.target.tagName === 'A') return;
-            el.classList.toggle('is-open');
+            const doc = DOCS_MAP[el.dataset.id];
+            if (doc) openDetail(doc);
           });
         });
       }
+
+      function openDetail(doc) {
+        const panel = document.getElementById('detailPanel');
+        const overlay = document.getElementById('detailOverlay');
+
+        document.getElementById('dpCatRail').style.background = CAT_COLORS[doc.cat] || '#ccc';
+        document.getElementById('dpKicker').textContent =
+          (CAT_LABELS[doc.cat] || doc.cat) + ' · Steg ' + doc.step;
+        document.getElementById('dpTitle').textContent = doc.name;
+        document.getElementById('dpChips').innerHTML =
+          `<span class="chip chip-cat ${esc(doc.cat)}">${esc(CAT_LABELS[doc.cat] || doc.cat)}</span>` +
+          `<span class="chip chip-act ${esc(doc.act)}">${esc(ACT_LABELS[doc.act] || doc.act)}</span>` +
+          `<span class="chip chip-lang">${esc(LANG_LABELS[doc.lang] || doc.lang)}</span>`;
+
+        const flagsEl = document.getElementById('dpFlags');
+        if (doc.flags.length) {
+          flagsEl.innerHTML =
+            '<div class="dp-section-label">Juridiska flaggor</div>' +
+            doc.flags
+              .map((f) => {
+                const m = FLAG_META[f] || { label: f, desc: '', cls: 'slate' };
+                return (
+                  `<div class="dp-flag-card dp-flag-${m.cls}">` +
+                  `<div class="dp-flag-label">${esc(m.label)}</div>` +
+                  (m.desc ? `<div class="dp-flag-desc">${esc(m.desc)}</div>` : '') +
+                  `</div>`
+                );
+              })
+              .join('');
+        } else {
+          flagsEl.innerHTML =
+            '<div class="dp-section-label">Juridiska flaggor</div>' +
+            '<div class="dp-no-flags">Inga juridiska flaggor för detta dokument.</div>';
+        }
+
+        const flows = doc.flows.map((f) => FLOW_LABELS[f] || f).join(', ');
+        document.getElementById('dpMeta').innerHTML =
+          '<div class="dp-section-label">Detaljer</div>' +
+          `<div class="dp-meta-row"><span class="dp-meta-key">Källa</span><span class="dp-meta-val">${esc(SRC_LABELS[doc.src] || doc.src)}</span></div>` +
+          `<div class="dp-meta-row"><span class="dp-meta-key">Steg i kundresa</span><span class="dp-meta-val">${esc(doc.step)}</span></div>` +
+          `<div class="dp-meta-row"><span class="dp-meta-key">Flöde</span><span class="dp-meta-val">${esc(flows)}</span></div>` +
+          `<div class="dp-meta-row"><span class="dp-meta-key">Språk</span><span class="dp-meta-val">${esc(LANG_LABELS[doc.lang] || doc.lang)}</span></div>` +
+          `<div class="dp-meta-row"><span class="dp-meta-key">Dokument-ID</span><span class="dp-meta-id">${esc(doc.id)}</span></div>`;
+
+        const srcEl = document.getElementById('dpSource');
+        if (doc.file) {
+          srcEl.innerHTML =
+            '<div class="dp-section-label">Canonical fil</div>' +
+            `<a class="dp-file-link" href="/major-arcana-preview/${esc(doc.file)}" target="_blank" rel="noopener">↗ ${esc(doc.file)}</a>`;
+        } else {
+          srcEl.innerHTML =
+            '<div class="dp-section-label">Canonical källa</div>' +
+            `<div class="dp-extern-src">Extern källa — ${esc(SRC_LABELS[doc.src] || doc.src)}. Filen lever utanför repo.</div>`;
+        }
+
+        const notesEl = document.getElementById('dpNotes');
+        if (doc.notes) {
+          notesEl.innerHTML =
+            '<div class="dp-section-label">Anteckningar</div>' +
+            `<p class="dp-notes-text">${esc(doc.notes)}</p>`;
+        } else {
+          notesEl.innerHTML = '';
+        }
+
+        panel.style.display = 'flex';
+        overlay.style.display = 'block';
+        panel.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeDetail() {
+        const panel = document.getElementById('detailPanel');
+        const overlay = document.getElementById('detailOverlay');
+        panel.style.display = 'none';
+        overlay.style.display = 'none';
+        panel.setAttribute('aria-hidden', 'true');
+      }
+
+      document.getElementById('dpClose').addEventListener('click', closeDetail);
+      document.getElementById('detailOverlay').addEventListener('click', closeDetail);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDetail();
+      });
 
       function getFiltered() {
         const cat = document.getElementById('catFilter').value;
