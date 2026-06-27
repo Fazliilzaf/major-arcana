@@ -1116,10 +1116,10 @@
           contentSrc: 'klinik',
           lang: 'sv',
           flows: ['all'],
-          flags: ['GRANSKNINGSKRAV', '14_DAG_FEL'],
+          flags: ['GRANSKNINGSKRAV'],
           file: 'steg6-betanketid-samtycke-final-demo.html',
           notes:
-            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync". Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad. Betänketid: 2 dagar (48 h). 14_DAG_AVBOKNING borttagen — ångerfrist/14 dagar tillhör ej detta samtycke. ⚠ FEL: Katalog och HTML-titel anger "14 dagar" — korrekt period är 2 dagar (48 h betänketid). Tre platser med fel. Ändras ej utan beslut.',
+            'Källa: hairtp-document-content-bundle.json ccoTemplate.source="owner_facit_sync". Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Betänketid: 2 dagar (48 h). FIXAT 2026-06-27: HTML-titel (rad 499) och brödtext (rad 501) ändrade från "14 dagar" till "2 dagar". Avbokningsvillkor (rad 518/522) anger fortfarande 14 dagar — separat granskning krävs (kontextberoende distans vs klinik). Kräver juridisk verifiering innan användning.',
         },
         {
           id: 'samtycke_angerratt',
