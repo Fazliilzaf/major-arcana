@@ -684,6 +684,23 @@
       .dp-file-link:hover {
         background: rgba(187, 71, 121, 0.14);
       }
+      .dp-file-link-inline {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent-studio);
+        text-decoration: none;
+        word-break: break-all;
+      }
+      .dp-file-link-inline:hover {
+        text-decoration: underline;
+      }
+      .dp-missing {
+        color: var(--cco-text-tertiary);
+        font-style: italic;
+      }
+      .dp-src-unknown {
+        color: var(--cco-status-warning);
+      }
       .dp-extern-src {
         font-size: 11.5px;
         color: var(--cco-text-secondary);
@@ -964,6 +981,7 @@
           cat: 'kundformular',
           act: 'fylls_i',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['tp'],
           flags: ['PATIENTDATA', 'GRANSKNINGSKRAV'],
@@ -977,6 +995,7 @@
           cat: 'kundformular',
           act: 'fylls_i',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'en',
           flows: ['tp'],
           flags: ['PATIENTDATA', 'GRANSKNINGSKRAV'],
@@ -990,6 +1009,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['tp'],
           flags: ['PATIENTDATA', 'GRANSKNINGSKRAV'],
@@ -1003,6 +1023,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['tp'],
           flags: ['GRANSKNINGSKRAV', 'SAKNAS_FIL'],
@@ -1017,6 +1038,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['prp_hair'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
@@ -1031,6 +1053,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['prp_skin'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
@@ -1044,6 +1067,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['microneedling'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
@@ -1057,6 +1081,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['prf'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT'],
@@ -1070,6 +1095,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['profhilo'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT'],
@@ -1083,6 +1109,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['all'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_FEL', '14_DAG_AVBOKNING'],
@@ -1097,6 +1124,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['all'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', 'DELAD_FIL'],
@@ -1111,6 +1139,7 @@
           cat: 'info',
           act: 'visas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['prp_hair'],
           flags: [],
@@ -1124,6 +1153,7 @@
           cat: 'info',
           act: 'visas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'en',
           flows: ['prp_hair'],
           flags: [],
@@ -1137,6 +1167,7 @@
           cat: 'info',
           act: 'visas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv+en',
           flows: ['microneedling'],
           flags: [],
@@ -1150,6 +1181,7 @@
           cat: 'signeringsunderlag',
           act: 'signeras',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['all'],
           flags: ['GDPR', 'GRANSKNINGSKRAV'],
@@ -1164,6 +1196,7 @@
           cat: 'journalmall',
           act: 'fylls_i',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['tp'],
           flags: ['PATIENTDATA'],
@@ -1177,6 +1210,7 @@
           cat: 'journalmall',
           act: 'fylls_i',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['tp'],
           flags: ['PATIENTDATA'],
@@ -1190,6 +1224,7 @@
           cat: 'journalmall',
           act: 'fylls_i',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['tp'],
           flags: ['PATIENTDATA'],
@@ -1203,6 +1238,7 @@
           cat: 'journalmall',
           act: 'fylls_i',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['tp'],
           flags: ['PATIENTDATA'],
@@ -1216,6 +1252,7 @@
           cat: 'journalmall',
           act: 'fylls_i',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['tp'],
           flags: ['PATIENTDATA'],
@@ -1229,6 +1266,7 @@
           cat: 'journalmall',
           act: 'fylls_i',
           src: 'Meridiq',
+          contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['prp_hair', 'prp_skin', 'prf', 'microneedling'],
           flags: ['PATIENTDATA'],
@@ -1242,6 +1280,7 @@
           cat: 'personalformular',
           act: 'fylls_i',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['all'],
           flags: [],
@@ -1255,6 +1294,7 @@
           cat: 'personalformular',
           act: 'fylls_i',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['all'],
           flags: [],
@@ -1268,6 +1308,7 @@
           cat: 'personalformular',
           act: 'fylls_i',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['tp'],
           flags: ['GRANSKNINGSKRAV'],
@@ -1282,6 +1323,7 @@
           cat: 'personalformular',
           act: 'fylls_i',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['all'],
           flags: [],
@@ -1295,6 +1337,7 @@
           cat: 'personalformular',
           act: 'fylls_i',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv+en',
           flows: ['all'],
           flags: ['GDPR', 'GRANSKNINGSKRAV'],
@@ -1309,6 +1352,7 @@
           cat: 'epost_sms',
           act: 'skickas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['tp'],
           flags: [],
@@ -1322,6 +1366,7 @@
           cat: 'epost_sms',
           act: 'skickas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv+en',
           flows: ['all'],
           flags: [],
@@ -1335,6 +1380,7 @@
           cat: 'epost_sms',
           act: 'skickas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv+en',
           flows: ['all'],
           flags: [],
@@ -1348,6 +1394,7 @@
           cat: 'epost_sms',
           act: 'skickas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv+en',
           flows: ['all'],
           flags: [],
@@ -1361,6 +1408,7 @@
           cat: 'epost_sms',
           act: 'skickas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv+en',
           flows: ['all'],
           flags: [],
@@ -1374,6 +1422,7 @@
           cat: 'epost_sms',
           act: 'skickas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['all'],
           flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT'],
@@ -1388,6 +1437,7 @@
           cat: 'epost_sms',
           act: 'skickas',
           src: 'saknas_kalla',
+          contentSrc: 'Nordbro',
           lang: 'sv',
           flows: ['all'],
           flags: ['GRANSKNINGSKRAV', 'SAKNAS_KALLA'],
@@ -1402,6 +1452,7 @@
           cat: 'info',
           act: 'visas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv+en',
           flows: ['all'],
           flags: ['GDPR', 'GRANSKNINGSKRAV'],
@@ -1416,6 +1467,7 @@
           cat: 'journalmall',
           act: 'fylls_i',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['tp'],
           flags: ['PATIENTDATA', 'GDPR'],
@@ -1430,6 +1482,7 @@
           cat: 'epost_sms',
           act: 'skickas',
           src: 'repo',
+          contentSrc: 'okänd',
           lang: 'sv',
           flows: ['all'],
           flags: [],
@@ -1453,10 +1506,18 @@
         visas: 'Visas',
       };
       const SRC_LABELS = {
-        repo: 'Repo',
-        Meridiq: 'Meridiq',
+        repo: 'Repo / preview-fil',
+        Meridiq: 'Meridiq (live-system)',
         saknas_kalla: 'Saknas källa',
         Nordbro: 'Nordbro',
+      };
+      const CONTENT_SRC_LABELS = {
+        Meridiq: 'Meridiq',
+        SharePoint: 'SharePoint / Microsoft',
+        Nordbro: 'Nordbro',
+        Insatt: 'Insatt',
+        repo: 'Repo / in-house',
+        okänd: 'Okänd / ej bekräftad',
       };
       const LANG_LABELS = {
         sv: 'Svenska',
@@ -1621,22 +1682,22 @@
         const flows = doc.flows.map((f) => FLOW_LABELS[f] || f).join(', ');
         document.getElementById('dpMeta').innerHTML =
           '<div class="dp-section-label">Detaljer</div>' +
-          `<div class="dp-meta-row"><span class="dp-meta-key">Källa</span><span class="dp-meta-val">${esc(SRC_LABELS[doc.src] || doc.src)}</span></div>` +
           `<div class="dp-meta-row"><span class="dp-meta-key">Steg i kundresa</span><span class="dp-meta-val">${esc(doc.step)}</span></div>` +
           `<div class="dp-meta-row"><span class="dp-meta-key">Flöde</span><span class="dp-meta-val">${esc(flows)}</span></div>` +
           `<div class="dp-meta-row"><span class="dp-meta-key">Språk</span><span class="dp-meta-val">${esc(LANG_LABELS[doc.lang] || doc.lang)}</span></div>` +
           `<div class="dp-meta-row"><span class="dp-meta-key">Dokument-ID</span><span class="dp-meta-id">${esc(doc.id)}</span></div>`;
 
         const srcEl = document.getElementById('dpSource');
-        if (doc.file) {
-          srcEl.innerHTML =
-            '<div class="dp-section-label">Canonical fil</div>' +
-            `<a class="dp-file-link" href="/major-arcana-preview/${esc(doc.file)}" target="_blank" rel="noopener">↗ ${esc(doc.file)}</a>`;
-        } else {
-          srcEl.innerHTML =
-            '<div class="dp-section-label">Canonical källa</div>' +
-            `<div class="dp-extern-src">Extern källa — ${esc(SRC_LABELS[doc.src] || doc.src)}. Filen lever utanför repo.</div>`;
-        }
+        const filRow = doc.file
+          ? `<div class="dp-meta-row"><span class="dp-meta-key">Färdig fil</span><a class="dp-file-link-inline" href="/major-arcana-preview/${esc(doc.file)}" target="_blank" rel="noopener">↗ ${esc(doc.file)}</a></div>`
+          : `<div class="dp-meta-row"><span class="dp-meta-key">Färdig fil</span><span class="dp-meta-val dp-missing">Ingen repo-fil</span></div>`;
+        const contentSrcLabel = CONTENT_SRC_LABELS[doc.contentSrc] || doc.contentSrc || 'Okänd';
+        const contentSrcCls = doc.contentSrc === 'okänd' ? ' dp-src-unknown' : '';
+        srcEl.innerHTML =
+          '<div class="dp-section-label">Källinformation</div>' +
+          filRow +
+          `<div class="dp-meta-row"><span class="dp-meta-key">Innehållskälla</span><span class="dp-meta-val${contentSrcCls}">${esc(contentSrcLabel)}</span></div>` +
+          `<div class="dp-meta-row"><span class="dp-meta-key">Canonical live-källa</span><span class="dp-meta-val">${esc(SRC_LABELS[doc.src] || doc.src)}</span></div>`;
 
         const notesEl = document.getElementById('dpNotes');
         if (doc.notes) {
