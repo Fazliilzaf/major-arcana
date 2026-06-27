@@ -77,7 +77,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "Nordbro",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-tp-final-demo.html",
         "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html"
@@ -87,7 +87,8 @@
       "language": "sv",
       "flowApplies": ["tp"],
       "legalFlags": ["GRANSKNINGSKRAV", "SAKNAS_FIL"],
-      "notes": "Steg 5: personal skapar offert. Steg 7: patient signerar. Dedikerad steg7-offert-tp-final-demo.html saknas i repo — steg7-v6-kundkort-final-demo.html täcker sannolikt steg 7 för TP. Bekräfta canonical steg7-fil."
+      "notes": "Steg 5: personal skapar offert. Steg 7: patient signerar. Dedikerad steg7-offert-tp-final-demo.html saknas i repo — steg7-v6-kundkort-final-demo.html täcker sannolikt steg 7 för TP. Bekräfta canonical steg7-fil.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"sharepoint_nordbro\""
     },
     {
       "catalogId": "offert_prp_hair",
@@ -232,14 +233,15 @@
       "action": "visas",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg4-prp-hair-info-sve-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-prp-hair-info-sve-final-demo.html",
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["prp_hair"],
       "legalFlags": [],
-      "notes": "Informationsdokument. Patient läser innan konsultation. Ingen signering."
+      "notes": "Informationsdokument. Patient läser innan konsultation. Ingen signering.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: migration/meridiq/consent-catalog.json#152994 (apiId 152994)"
     },
     {
       "catalogId": "prp_hair_info_eng",
@@ -249,14 +251,15 @@
       "action": "visas",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg4-prp-hair-info-eng-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-prp-hair-info-eng-final-demo.html",
       "formProvider": "meridiq_g4",
       "language": "en",
       "flowApplies": ["prp_hair"],
       "legalFlags": [],
-      "notes": "Engelsk version av PRP-hår-information."
+      "notes": "Engelsk version av PRP-hår-information.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: migration/meridiq/consent-catalog.json#152987 (apiId 152987)"
     },
     {
       "catalogId": "microneedling_info",
@@ -266,14 +269,15 @@
       "action": "visas",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "Meridiq",
       "repoFiles": ["public/major-arcana-preview/steg4-microneedling-info-sve-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-microneedling-info-sve-final-demo.html",
       "formProvider": "meridiq_g4",
       "language": "sv+en",
       "flowApplies": ["microneedling"],
       "legalFlags": [],
-      "notes": "Tvåspråkigt informationsdokument. Ingen PRF-specifik infofil finns i repo — verifiera om microneedling_info täcker PRF också."
+      "notes": "Tvåspråkigt informationsdokument. Ingen PRF-specifik infofil finns i repo — verifiera om microneedling_info täcker PRF också.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: consent-catalog.json#152998 (SV) + #152997 (EN)"
     },
     {
       "catalogId": "foto_samtycke",
@@ -283,7 +287,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": [
         "public/major-arcana-preview/steg9-foto-samtycke-final-demo.html",
         "public/major-arcana-preview/cco-foto-samtycke-demo-overlay.html"
@@ -293,7 +297,8 @@
       "language": "sv",
       "flowApplies": ["all"],
       "legalFlags": ["GDPR", "GRANSKNINGSKRAV"],
-      "notes": "GDPR Art. 6(1)(a) och 9(2)(a) — samtycke till publicering av bilder som kan vara hälsodata. Samtycke måste vara frivilligt, specifikt och återkallelsebart. Demo-overlay finns för CCO-preview."
+      "notes": "GDPR Art. 6(1)(a) och 9(2)(a) — samtycke till publicering av bilder som kan vara hälsodata. Samtycke måste vara frivilligt, specifikt och återkallelsebart. Demo-overlay finns för CCO-preview.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: cco-templates#consent_photo_internal/publish, meridiq.consentApiId=null"
     },
     {
       "catalogId": "journal_tp",
@@ -405,14 +410,15 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/steg5-behandlingsplan-staff-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg5-behandlingsplan-staff-final-demo.html",
       "formProvider": "manual",
       "language": "sv",
       "flowApplies": ["all"],
       "legalFlags": [],
-      "notes": "Personal skapar behandlingsplan som grund för offert. Inte legalt känsligt i sig — känsliga uppgifter tillkommer i offert-dokumenten."
+      "notes": "Personal skapar behandlingsplan som grund för offert. Inte legalt känsligt i sig — känsliga uppgifter tillkommer i offert-dokumenten.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: sources enbart CCO-kodfiler (offerEmail.js, patient-master-ui.js)"
     },
     {
       "catalogId": "konsultationsmall",
@@ -422,14 +428,15 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "Nordbro",
       "repoFiles": ["public/major-arcana-preview/steg4-konsultationsmall-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
       "formProvider": "manual",
       "language": "sv",
       "flowApplies": ["all"],
       "legalFlags": [],
-      "notes": "Strukturerad konsultationsmall som fylls i av personal under/efter konsultation. Används som underlag för offert och behandlingsplan."
+      "notes": "Strukturerad konsultationsmall som fylls i av personal under/efter konsultation. Används som underlag för offert och behandlingsplan.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"nordbro\", text \"Nordbro v2\""
     },
     {
       "catalogId": "ordination_tp",
@@ -439,14 +446,15 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "SharePoint",
       "repoFiles": ["public/major-arcana-preview/steg8-ordination-tp-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
       "formProvider": "manual",
       "language": "sv",
       "flowApplies": ["tp"],
       "legalFlags": ["GRANSKNINGSKRAV"],
-      "notes": "Ordinationsmall med medicinska parametrar (läkemedelsdoser, tekniska specifikationer för TP). Måste granskas av medicinskt ansvarig."
+      "notes": "Ordinationsmall med medicinska parametrar (läkemedelsdoser, tekniska specifikationer för TP). Måste granskas av medicinskt ansvarig.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: blocker pekar på \"SharePoint NY Ordination – Lokalbedövning vid hår-.docx\""
     },
     {
       "catalogId": "anteckningar_kort",
@@ -456,14 +464,15 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/staff-anteckningar-kort-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/staff-anteckningar-kort-final-demo.html",
       "formProvider": "manual",
       "language": "sv",
       "flowApplies": ["all"],
       "legalFlags": [],
-      "notes": "Interna anteckningar kopplade till patientkortet. Aldrig del av kundresan, aldrig synligt för patient."
+      "notes": "Interna anteckningar kopplade till patientkortet. Aldrig del av kundresan, aldrig synligt för patient.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: \"Fritext i CCO patientkort — by design, ingen fast mall\""
     },
     {
       "catalogId": "id_verifiering",
@@ -473,14 +482,15 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/steg4-id-verifiering-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
       "formProvider": "manual",
       "language": "sv+en",
       "flowApplies": ["all"],
       "legalFlags": ["GDPR", "GRANSKNINGSKRAV"],
-      "notes": "Personal kontrollerar och loggar identitetshandling. GDPR: personnummer och ID-uppgifter = känsliga personuppgifter. Kräver klar rättslig grund (t.ex. avtal, rättslig förpliktelse). Loggning av ID-kontroll rekommenderas."
+      "notes": "Personal kontrollerar och loggar identitetshandling. GDPR: personnummer och ID-uppgifter = känsliga personuppgifter. Kräver klar rättslig grund (t.ex. avtal, rättslig förpliktelse). Loggning av ID-kontroll rekommenderas.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: sources CCO-kodfiler (patientIdentityVerification.js, patientIdentity.js)"
     },
     {
       "catalogId": "info_offert_tp",
@@ -490,14 +500,15 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/steg5-info-offert-tp-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg5-info-offert-tp-final-demo.html",
       "formProvider": "email_template",
       "language": "sv",
       "flowApplies": ["tp"],
       "legalFlags": [],
-      "notes": "Automatisk e-post som skickas med offert/behandlingsplan i steg 5. Innehåller länk till offertdokumentet."
+      "notes": "Automatisk e-post som skickas med offert/behandlingsplan i steg 5. Innehåller länk till offertdokumentet.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: source är src/templates/offerEmail.js"
     },
     {
       "catalogId": "auto_bokningsbekraftelse",
@@ -541,14 +552,15 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/auto-avbokningsbekraftelse-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/auto-avbokningsbekraftelse-final-demo.html",
       "formProvider": "sms_template",
       "language": "sv+en",
       "flowApplies": ["all"],
       "legalFlags": [],
-      "notes": "Automatisk bekräftelse vid avbokning."
+      "notes": "Automatisk bekräftelse vid avbokning.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"cco_native\", src/templates/bookingCancellationEmail.js"
     },
     {
       "catalogId": "auto_instruktion_formular",
@@ -558,14 +570,15 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html",
       "formProvider": "email_template",
       "language": "sv+en",
       "flowApplies": ["all"],
       "legalFlags": [],
-      "notes": "Automatisk e-post med länk till hälsodeklaration (steg 3) eller friskförsäkran (steg 8). Skickas av systemet, ej manuellt."
+      "notes": "Automatisk e-post med länk till hälsodeklaration (steg 3) eller friskförsäkran (steg 8). Skickas av systemet, ej manuellt.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: source är src/ops/ccoPatientOutreach.js"
     },
     {
       "catalogId": "auto_betanketid",
@@ -575,14 +588,15 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/steg6-auto-betanketid-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
       "formProvider": "email_template",
       "language": "sv",
       "flowApplies": ["all"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
-      "notes": "Skickas när offert/avtal sänds för signering. Rad 544,548: ångerrätt-text anger 14 dagar — korrekt vid distansavtal (Distansavtalslagen). Kräver granskning: används detta mejl även vid klinik-signering? I så fall gäller inte ångerrätten."
+      "notes": "Skickas när offert/avtal sänds för signering. Rad 544,548: ångerrätt-text anger 14 dagar — korrekt vid distansavtal (Distansavtalslagen). Kräver granskning: används detta mejl även vid klinik-signering? I så fall gäller inte ångerrätten.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: e-postmall src/templates/offerEmail.js i CCO-repo"
     },
     {
       "catalogId": "auto_medical_finance",
@@ -609,14 +623,15 @@
       "action": "visas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/auto-integritet-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/auto-integritet-final-demo.html",
       "formProvider": "static",
       "language": "sv+en",
       "flowApplies": ["all"],
       "legalFlags": ["GDPR", "GRANSKNINGSKRAV"],
-      "notes": "GDPR Art. 13/14-information (informationsskyldighet). Måste avspegla faktisk behandling av personuppgifter, inkl. ändamål, laglig grund, lagringstid och rättigheter. Kräver juridisk granskning och versionshantering."
+      "notes": "GDPR Art. 13/14-information (informationsskyldighet). Måste avspegla faktisk behandling av personuppgifter, inkl. ändamål, laglig grund, lagringstid och rättigheter. Kräver juridisk granskning och versionshantering.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: source är docs/legal/personuppgiftspolicy-pub-maj-arcana.md (utkast, kräver juristgranskning)"
     },
     {
       "catalogId": "fore_efter_bildmall",
@@ -626,14 +641,15 @@
       "action": "fylls_i",
       "filler": "staff",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/steg8-fore-efter-bildmall-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg8-fore-efter-bildmall-final-demo.html",
       "formProvider": "manual",
       "language": "sv",
       "flowApplies": ["tp"],
       "legalFlags": ["PATIENTDATA", "GDPR"],
-      "notes": "Bilder kopplade till behandlingsjournal. Hälsobilder = känsliga personuppgifter (GDPR Art. 9). Kräver aktivt samtycke (foto_samtycke, steg 9) innan publicering. Intern användning och publicering måste hanteras separat."
+      "notes": "Bilder kopplade till behandlingsjournal. Hälsobilder = känsliga personuppgifter (GDPR Art. 9). Kräver aktivt samtycke (foto_samtycke, steg 9) innan publicering. Intern användning och publicering måste hanteras separat.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: source är src/ops/ccoAssetNaming/photoReviewNaming.js"
     },
     {
       "catalogId": "auto_internt_sms",
@@ -643,14 +659,15 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "repo",
       "repoFiles": ["public/major-arcana-preview/staff-auto-internt-sms-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/staff-auto-internt-sms-final-demo.html",
       "formProvider": "sms_template",
       "language": "sv",
       "flowApplies": ["all"],
       "legalFlags": [],
-      "notes": "Internt SMS till personal vid bokning/avbokning. Skickas INTE till patient. Arkiveras i systemet."
+      "notes": "Internt SMS till personal vid bokning/avbokning. Skickas INTE till patient. Arkiveras i systemet.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: sources docs/strategy/CLIENTO-INVENTORY.md + src/templates/bookingReservationEmail.js"
     }
   ],
   "uiSurfaces": {
