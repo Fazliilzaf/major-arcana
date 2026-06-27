@@ -3069,17 +3069,23 @@
 
       /* POST /cco-workspace/notes/validate-visibility + POST /cco-workspace/notes */
       async function validateVisibility(destinationKey, visibility) {
-        if (DEMO) {
+        // lokal fallback om DEMO=true eller API misslyckas
+        const localCheck = () => {
           const allowed = NOTE_VISIBILITY_RULES[destinationKey] || ['team'];
           return { ok: allowed.includes(visibility), allowed };
+        };
+        if (DEMO) return localCheck();
+        try {
+          const r = await apiFetch('/cco-workspace/notes/validate-visibility', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ destinationKey, visibility }),
+          });
+          const d = r.ok ? await r.json() : {};
+          return r.ok ? { ok: d.ok !== false, allowed: d.allowed } : localCheck();
+        } catch {
+          return localCheck();
         }
-        const r = await apiFetch('/cco-workspace/notes/validate-visibility', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ destinationKey, visibility }),
-        });
-        const d = await r.json();
-        return { ok: r.ok && d.ok !== false, allowed: d.allowed };
       }
       async function saveNote() {
         const dest = DESTINATIONS.find((d) => d.key === N.destinationKey);
@@ -3102,15 +3108,23 @@
           visibility: N.visibility,
         };
         if (!DEMO) {
-          const r = await apiFetch('/cco-workspace/notes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          if (!r.ok) {
+          try {
+            const r = await apiFetch('/cco-workspace/notes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!r.ok) {
+              flashNoteNotice(
+                'notice--block',
+                'Kunde inte spara anteckning — kräver aktiv tråd-kontext. Försök igen.'
+              );
+              return;
+            }
+          } catch {
             flashNoteNotice(
               'notice--block',
-              'Kunde inte spara anteckning — kräver aktiv tråd-kontext. Försök igen.'
+              'Nätverksfel — anteckning sparades inte. Kontrollera anslutning och försök igen.'
             );
             return;
           }
