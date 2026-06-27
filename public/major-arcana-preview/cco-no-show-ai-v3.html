@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CCO · No-show prediction</title>
+    <style>
+      :root {
+        --cco-bg-page: #faf6f2;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+        --cco-status-danger: #b94a4a;
+        --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+        --accent-studio: #bb4779;
+        --calendar-accent: #c8821e;
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        min-height: 100vh;
+        padding: 14px;
+      }
+      .top-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 10px 14px;
+        color: var(--cco-text-tertiary);
+        font-size: 12px;
+      }
+      .top-nav .brand {
+        font-weight: 800;
+        color: var(--cco-color-brand);
+        letter-spacing: 0.06em;
+        font-size: 13px;
+      }
+      .top-nav a {
+        color: inherit;
+        text-decoration: none;
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      .top-nav a.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        font-weight: 700;
+      }
+
+      .hero {
+        max-width: 1180px;
+        margin: 0 auto 14px;
+        padding: 22px 26px;
+        border-radius: 28px;
+        background: linear-gradient(135deg, rgba(252, 224, 228, 0.95), var(--rose-pill-top));
+        color: var(--cco-color-brand);
+        box-shadow: 0 18px 38px rgba(185, 74, 74, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.5), transparent 42%);
+        pointer-events: none;
+      }
+      .hero h1 {
+        font-size: 24px;
+        font-weight: 800;
+        margin: 0 0 4px;
+        letter-spacing: -0.02em;
+        color: var(--cco-color-brand);
+      }
+      .hero .kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-status-danger);
+        margin-bottom: 6px;
+      }
+      .hero p {
+        margin: 0;
+        color: var(--cco-text-secondary);
+        font-size: 13px;
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .hero-stat {
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.66);
+        backdrop-filter: blur(6px);
+      }
+      .hero-stat .num {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--cco-color-brand);
+        font-variant-numeric: tabular-nums;
+      }
+      .hero-stat .lbl {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-top: 4px;
+      }
+      .hero-stat .sub {
+        font-size: 10px;
+        color: var(--cco-text-secondary);
+        margin-top: 2px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 14px;
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+      .panel {
+        padding: 22px 24px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: 0 24px 50px rgba(93, 74, 60, 0.08);
+      }
+      .panel h2 {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin: 0 0 12px;
+      }
+      .panel h2 .ct {
+        margin-left: auto;
+        font-size: 9.5px;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: rgba(185, 74, 74, 0.14);
+        color: var(--cco-status-danger);
+      }
+      .panel h2 {
+        display: flex;
+        align-items: center;
+      }
+
+      /* Risk-list */
+      .risk-row {
+        display: grid;
+        grid-template-columns: 60px 1fr 80px auto;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        margin-bottom: 8px;
+        align-items: center;
+        cursor: pointer;
+        transition: transform 0.12s ease;
+      }
+      .risk-row:hover {
+        transform: translateX(2px);
+      }
+      .risk-pct {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        line-height: 1;
+      }
+      .risk-pct small {
+        display: block;
+        font-size: 8px;
+        color: var(--cco-text-tertiary);
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        margin-top: 2px;
+        text-transform: uppercase;
+      }
+      .risk-pct.high {
+        color: var(--cco-status-danger);
+      }
+      .risk-pct.med {
+        color: var(--calendar-accent);
+      }
+      .risk-pct.low {
+        color: var(--cco-status-success);
+      }
+      .risk-mid .name {
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+      .risk-mid .meta {
+        font-size: 10.5px;
+        color: var(--cco-text-tertiary);
+        margin-top: 2px;
+      }
+      .risk-mid .factors {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 6px;
+      }
+      .risk-mid .factors span {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(185, 74, 74, 0.1);
+        color: var(--cco-status-danger);
+      }
+      .risk-time {
+        text-align: center;
+      }
+      .risk-time .when {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--calendar-accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .risk-time .day {
+        font-size: 9.5px;
+        color: var(--cco-text-tertiary);
+        margin-top: 1px;
+      }
+      .risk-acts {
+        display: flex;
+        gap: 4px;
+      }
+      .risk-acts button {
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(132, 117, 107, 0.22);
+        background: white;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .risk-acts button.prim {
+        background: linear-gradient(135deg, var(--accent-studio), #9e3a68);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(187, 71, 121, 0.28);
+      }
+
+      /* Right panel — factor explanation */
+      .factor {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.55);
+        margin-bottom: 6px;
+      }
+      .factor-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+      .factor-name {
+        font-size: 11.5px;
+        font-weight: 700;
+      }
+      .factor-val {
+        font-size: 11px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .factor-val.up {
+        color: var(--cco-status-danger);
+      }
+      .factor-val.down {
+        color: var(--cco-status-success);
+      }
+      .factor-bar {
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(132, 117, 107, 0.16);
+        overflow: hidden;
+        position: relative;
+      }
+      .factor-bar i {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        background: var(--cco-status-danger);
+      }
+      .factor-bar i.neg {
+        background: var(--cco-status-success);
+        transform: translateX(-100%);
+      }
+
+      .impact-card {
+        padding: 16px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(74, 130, 104, 0.14), rgba(74, 130, 104, 0.06));
+        border: 1px solid rgba(74, 130, 104, 0.22);
+        margin-bottom: 12px;
+      }
+      .impact-card .kicker {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-status-success);
+        margin-bottom: 4px;
+      }
+      .impact-card .num {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--cco-status-success);
+        font-variant-numeric: tabular-nums;
+      }
+      .impact-card .sub {
+        font-size: 11px;
+        color: var(--cco-text-secondary);
+        margin-top: 3px;
+        line-height: 1.4;
+      }
+
+      /* Calendar mini-grid showing risks */
+      .cal-mini {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        margin-top: 8px;
+      }
+      .cal-mini .h {
+        font-size: 9px;
+        text-align: center;
+        color: var(--cco-text-tertiary);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+      .cal-mini .d {
+        aspect-ratio: 1;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.5);
+        position: relative;
+        cursor: pointer;
+      }
+      .cal-mini .d small {
+        font-size: 7px;
+        color: var(--cco-text-tertiary);
+        margin-top: 1px;
+      }
+      .cal-mini .d.r1 {
+        background: rgba(74, 130, 104, 0.18);
+        color: var(--cco-status-success);
+      }
+      .cal-mini .d.r2 {
+        background: rgba(200, 130, 30, 0.22);
+        color: var(--calendar-accent);
+      }
+      .cal-mini .d.r3 {
+        background: rgba(185, 74, 74, 0.26);
+        color: var(--cco-status-danger);
+      }
+      .cal-mini .d.r4 {
+        background: rgba(185, 74, 74, 0.4);
+        color: white;
+      }
+
+      /* Model spec */
+      .model-spec {
+        font-size: 11px;
+        line-height: 1.55;
+        color: var(--cco-text-secondary);
+      }
+      .model-spec strong {
+        color: var(--cco-color-brand);
+      }
+      .model-spec code {
+        font-family: SFMono-Regular, Menlo, monospace;
+        font-size: 10.5px;
+        padding: 1px 6px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.6);
+      }
+    </style>
+    <link rel="stylesheet" href="/cco-polish.css" />
+    <script src="/cco-polish.js" defer></script>
+  </head>
+  <body data-stage="beta">
+    <div
+      style="
+        max-width: 1180px;
+        margin: 0 auto 12px;
+        padding: 11px 16px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(200, 130, 30, 0.14), rgba(187, 71, 121, 0.08));
+        border: 1px solid rgba(200, 130, 30, 0.32);
+        font-size: 11.5px;
+        color: #8a5a18;
+        font-weight: 600;
+        line-height: 1.5;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      "
+    >
+      <span style="font-size: 16px">&#9888;</span>
+      <span
+        ><strong>Demonstrationsdata.</strong> Modellen kör på syntetiska bokningar (4 218 mock).
+        Innan skarp användning krävs träning på 18 mån faktisk Cliento-historik — kontakta Fazli
+        innan ni ringer en patient baserat på risk-listan här.</span
+      >
+    </div>
+    <div class="top-nav">
+      <span class="brand">CCO</span>
+      <a href="/kalender.html">Kalender</a>
+      <a href="/kunder.html">Kunder</a>
+      <a href="/konversationer.html">Konversationer</a>
+      <a href="/analytics.html">Analytics</a>
+      <a href="/no-show-ai.html" class="active">No-show AI</a>
+      <a href="/ai-coach.html">Coach</a>
+    </div>
+
+    <div class="hero">
+      <div class="kicker">&#9733; AI Prediction · uppdaterad 09:42</div>
+      <h1>No-show-risk för dagens &amp; morgondagens bokningar</h1>
+      <p>
+        Modellen tränas på 18 månaders historik från Hair TP Clinic — 4 218 bokningar, 312 no-shows,
+        187 late-cancels. Den föreslår actions men skickar inget automatiskt.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num">7</div>
+          <div class="lbl">Hög risk (&gt;60%)</div>
+          <div class="sub">av 28 bokningar idag+imorgon</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">14 200 kr</div>
+          <div class="lbl">Potentiell besparing</div>
+          <div class="sub">om alla 7 räddas</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">87%</div>
+          <div class="lbl">Modell-precision</div>
+          <div class="sub">5-fold cross-validation</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">-38%</div>
+          <div class="lbl">No-show-rate</div>
+          <div class="sub">sedan modellen togs in (mars)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <main class="panel">
+        <h2>Top risk-bokningar <span class="ct">7 högrisk</span></h2>
+
+        <div class="risk-row">
+          <div class="risk-pct high">87%<small>risk</small></div>
+          <div class="risk-mid">
+            <div class="name">Henrik Johansson</div>
+            <div class="meta">FUE 2500 graft · 120 min · Fazli</div>
+            <div class="factors">
+              <span>3 no-shows tidigare</span><span>Bokad 47 dgr sedan</span
+              ><span>Sen avbokning förra ggn</span>
+            </div>
+          </div>
+          <div class="risk-time">
+            <div class="when">15:00</div>
+            <div class="day">idag · fre</div>
+          </div>
+          <div class="risk-acts">
+            <button class="prim">&#128222; Ring</button><button>SMS</button>
+          </div>
+        </div>
+
+        <div class="risk-row">
+          <div class="risk-pct high">79%<small>risk</small></div>
+          <div class="risk-mid">
+            <div class="name">Petra Lindström</div>
+            <div class="meta">PRP-injektion · 60 min · Egzona</div>
+            <div class="factors">
+              <span>2 no-shows</span><span>Boendeavstånd 42 km</span><span>Regn väntat</span>
+            </div>
+          </div>
+          <div class="risk-time">
+            <div class="when">17:30</div>
+            <div class="day">idag · fre</div>
+          </div>
+          <div class="risk-acts">
+            <button class="prim">&#128222; Ring</button><button>SMS</button>
+          </div>
+        </div>
+
+        <div class="risk-row">
+          <div class="risk-pct high">72%<small>risk</small></div>
+          <div class="risk-mid">
+            <div class="name">Mikael Berg</div>
+            <div class="meta">Konsultation · 45 min · Fazli</div>
+            <div class="factors">
+              <span>1 no-show</span><span>Ny patient</span><span>Bokad sista minuten</span>
+            </div>
+          </div>
+          <div class="risk-time">
+            <div class="when">08:00</div>
+            <div class="day">imorgon · lör</div>
+          </div>
+          <div class="risk-acts">
+            <button class="prim">&#128222; Ring</button><button>SMS</button>
+          </div>
+        </div>
+
+        <div class="risk-row">
+          <div class="risk-pct med">64%<small>risk</small></div>
+          <div class="risk-mid">
+            <div class="name">Sara Lindqvist</div>
+            <div class="meta">Mesoterapi · 45 min · Egzona</div>
+            <div class="factors"><span>1 late-cancel</span><span>Inget mail-respons 14d</span></div>
+          </div>
+          <div class="risk-time">
+            <div class="when">14:00</div>
+            <div class="day">imorgon · lör</div>
+          </div>
+          <div class="risk-acts">
+            <button class="prim">&#128222; Ring</button><button>SMS</button>
+          </div>
+        </div>
+
+        <div class="risk-row">
+          <div class="risk-pct med">61%<small>risk</small></div>
+          <div class="risk-mid">
+            <div class="name">Jonas Persson</div>
+            <div class="meta">Uppföljning 6m · 30 min · Fazli</div>
+            <div class="factors">
+              <span>Tidigt på morgonen</span><span>Bokad 62 dgr sedan</span>
+            </div>
+          </div>
+          <div class="risk-time">
+            <div class="when">08:30</div>
+            <div class="day">imorgon · lör</div>
+          </div>
+          <div class="risk-acts">
+            <button class="prim">&#128222; Ring</button><button>SMS</button>
+          </div>
+        </div>
+
+        <h2 style="margin-top: 24px">Risk-värmekarta · kommande 2 veckor</h2>
+        <div class="cal-mini">
+          <div class="h">M</div>
+          <div class="h">T</div>
+          <div class="h">O</div>
+          <div class="h">T</div>
+          <div class="h">F</div>
+          <div class="h">L</div>
+          <div class="h">S</div>
+          <div class="d r1">25<small>4%</small></div>
+          <div class="d r2">26<small>18%</small></div>
+          <div class="d r1">27<small>6%</small></div>
+          <div class="d r2">28<small>22%</small></div>
+          <div class="d r4">29<small>41%</small></div>
+          <div class="d r3">30<small>34%</small></div>
+          <div class="d r1">31<small>0%</small></div>
+          <div class="d r1">1<small>5%</small></div>
+          <div class="d r2">2<small>14%</small></div>
+          <div class="d r3">3<small>28%</small></div>
+          <div class="d r2">4<small>17%</small></div>
+          <div class="d r2">5<small>21%</small></div>
+          <div class="d r2">6<small>19%</small></div>
+          <div class="d r1">7<small>2%</small></div>
+        </div>
+      </main>
+
+      <aside class="panel">
+        <h2>Aktuell bokning · Henrik J.</h2>
+
+        <div class="factor">
+          <div class="factor-head">
+            <span class="factor-name">No-show-historik (3st)</span
+            ><span class="factor-val up">+34%</span>
+          </div>
+          <div class="factor-bar"><i style="width: 34%"></i></div>
+        </div>
+        <div class="factor">
+          <div class="factor-head">
+            <span class="factor-name">Dagar sedan bokning (47)</span
+            ><span class="factor-val up">+18%</span>
+          </div>
+          <div class="factor-bar"><i style="width: 18%"></i></div>
+        </div>
+        <div class="factor">
+          <div class="factor-head">
+            <span class="factor-name">Sen avbokning förra besöket</span
+            ><span class="factor-val up">+12%</span>
+          </div>
+          <div class="factor-bar"><i style="width: 12%"></i></div>
+        </div>
+        <div class="factor">
+          <div class="factor-head">
+            <span class="factor-name">Tid på dygnet (15:00)</span
+            ><span class="factor-val up">+8%</span>
+          </div>
+          <div class="factor-bar"><i style="width: 8%"></i></div>
+        </div>
+        <div class="factor">
+          <div class="factor-head">
+            <span class="factor-name">Boendeavstånd (8 km)</span
+            ><span class="factor-val down">&#8722;4%</span>
+          </div>
+          <div class="factor-bar"><i class="neg" style="width: 4%"></i></div>
+        </div>
+        <div class="factor">
+          <div class="factor-head">
+            <span class="factor-name">VIP-status (lojalitetspoäng 78)</span
+            ><span class="factor-val down">&#8722;7%</span>
+          </div>
+          <div class="factor-bar"><i class="neg" style="width: 7%"></i></div>
+        </div>
+
+        <div class="impact-card" style="margin-top: 14px">
+          <div class="kicker">Räddningsekonomi · idag+imorgon</div>
+          <div class="num">14 200 kr</div>
+          <div class="sub">
+            Om alla 7 högrisk räddas. Telefonsamtal har historiskt 73% framgång — då handlar det om
+            <strong>10 366 kr i sparad intäkt</strong>.
+          </div>
+        </div>
+
+        <h2 style="margin-top: 14px">Modell-spec</h2>
+        <div class="model-spec">
+          <strong>Algoritm:</strong> Logistic regression med L2-regularisering (sklearn-style)<br />
+          <strong>Features (12):</strong> historiska no-shows, late-cancels, dagar-sedan-bokning,
+          tid-på-dygnet, dag-i-veckan, boendeavstånd, behandlingstyp, behandlingslängd,
+          lojalitetspoäng, mejlrespons-tid, väder (regn/snö), första-gång-patient<br />
+          <strong>Träning:</strong> <code>2024-11 → 2026-05</code> · 4 218 bokningar<br />
+          <strong>Performance:</strong> AUC 0.84 · precision 0.87 · recall 0.71<br />
+          <strong>Återträning:</strong> varje söndag 03:00<br />
+          <strong>Förklarbarhet:</strong> SHAP-värden för varje prediktion (visas ovan)
+        </div>
+      </aside>
+    </div>
+  </body>
+</html>

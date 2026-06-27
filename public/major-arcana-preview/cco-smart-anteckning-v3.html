@@ -1,1366 +1,1493 @@
 <!doctype html>
 <html lang="sv">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Smart anteckning · CCO</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CCO · Smart anteckning</title>
     <style>
-      /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
-   WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
-   Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
       :root {
-        --bg-page: #faf6f2;
-        --bg-surface: #ffffff;
-        --bg-sunken: #f3ece3;
-        --bg-rail: #fbf7f2;
-        --text-primary: #221c15;
-        --text-secondary: #574d40;
-        --text-tertiary: #6d6354;
-        --accent: #b0356e;
-        --accent-weak: #fdeef4;
-        --accent-weak-bg: #fdeef4;
-        --accent-strong: #8e285699;
-        --text-on-accent: #ffffff;
-        --success: #2f6f54;
-        --success-bg: rgba(47, 111, 84, 0.14);
-        --warning: #9a6410;
-        --warning-bg: rgba(154, 100, 16, 0.16);
-        --danger: #a83838;
-        --danger-bg: rgba(168, 56, 56, 0.14);
-        --info: #2f6595;
-        --info-bg: rgba(47, 101, 149, 0.14);
-        --violet: #6b31c9;
-        --violet-bg: rgba(107, 49, 201, 0.12);
-        --gold: #8a5f1e;
-        --gold-bg: rgba(138, 95, 30, 0.14);
-        --slate: #475569;
-        --slate-bg: rgba(71, 85, 105, 0.12);
-        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
-        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
-        --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
-        --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
-        --r-sm: 10px;
-        --r-md: 14px;
-        --r-lg: 18px;
-        --r-xl: 24px;
-        --r-pill: 999px;
-        --fs-kicker: 0.6875rem;
-        --fs-meta: 0.75rem;
-        --fs-body: 0.875rem;
-        --fs-card-title: clamp(0.9rem, 0.85rem+0.4vw, 1.05rem);
-        --fs-h1: clamp(1.5rem, 1.2rem+2vw, 2.25rem);
-        --fs-num: clamp(1.35rem, 1.1rem+1.4vw, 1.9rem);
-        --tap: 2.75rem;
-        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
-        --pad-x: clamp(0.875rem, 0.5rem+1.6vw, 1.5rem);
-        --safe-bottom: env(safe-area-inset-bottom, 0px);
-        --maxw: 1500px;
-        --error-text: #962b2b;
-        --error-border: #d8526b;
-        --error-bg: #fdecec;
+        --cco-bg-page: #faf6f2;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+        --cco-status-danger: #b94a4a;
+        --accent-studio: #bb4779;
+        --accent-studio-glow: rgba(187, 71, 121, 0.32);
+        --calendar-accent: #c8821e;
+        --calendar-accent-glow: rgba(200, 130, 30, 0.22);
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+        --panel-shell-shadow-strong:
+          0 32px 70px rgba(93, 74, 60, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        --panel-card-shadow:
+          0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --rail-fazli: #7c3aed;
+        --rail-egzona: #a37433;
+        --rail-contact: #2596a8;
+        --rail-info: #84756b;
       }
       * {
         box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
-      }
-      html {
-        font-size: 100%;
-        overflow-x: clip;
       }
       html,
       body {
         margin: 0;
         padding: 0;
-        max-width: 100%;
       }
       body {
         background:
-          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
-          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
-          var(--bg-page);
-        color: var(--text-primary);
-        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
-        font-size: var(--fs-body);
-        line-height: 1.45;
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
         min-height: 100vh;
-        overflow-x: hidden;
-      }
-      button {
-        font-family: inherit;
-      }
-      :focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-        border-radius: 6px;
-      }
-      .tabnum {
-        font-variant-numeric: tabular-nums;
+        padding: 14px;
       }
 
-      /* page wrapper — centrerad, max-bredd, plats för botnav på mobil */
-      .aux {
-        max-width: var(--maxw);
-        margin-inline: auto;
-        padding: 0 var(--pad-x) 6rem;
-        min-height: 100vh;
-      }
-      @media (min-width: 1025px) {
-        .aux {
-          padding-bottom: 2rem;
-        }
-      }
-
-      /* topbar (samma som Konversationer/Senare) */
-      .topbar {
-        position: sticky;
-        top: 0;
-        z-index: 50;
+      .top-nav {
         display: flex;
         align-items: center;
-        gap: var(--gap);
-        padding: 0.5rem var(--pad-x);
-        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
-        margin: 0 calc(-1 * var(--pad-x));
-        background: linear-gradient(
-          180deg,
-          rgba(250, 246, 242, 0.97),
-          rgba(250, 246, 242, 0.82) 80%,
-          transparent
-        );
-        backdrop-filter: blur(18px);
+        gap: 14px;
+        padding: 0 10px 14px;
+        color: var(--cco-text-tertiary);
+        font-size: 12px;
       }
-      .brand {
-        flex-shrink: 0;
+      .top-nav .brand {
         font-weight: 800;
-        letter-spacing: 0.08em;
-        padding: 0.4rem 0.7rem;
-        border-radius: var(--r-pill);
-        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
-        color: var(--accent);
+        color: var(--cco-color-brand);
+        letter-spacing: 0.06em;
+        font-size: 13px;
       }
-      .search {
-        flex: 1;
-        min-width: 0;
-        position: relative;
+      .top-nav a {
+        color: inherit;
+        text-decoration: none;
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      .top-nav a.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        font-weight: 700;
+      }
+
+      .app-grid {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 360px;
+        gap: 16px;
+        align-items: start;
+      }
+
+      /* Vänster: anteckningslista */
+      .notes-list-shell {
+        position: sticky;
+        top: 14px;
+        padding: 16px 14px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: 0 18px 38px rgba(93, 74, 60, 0.07);
+        backdrop-filter: blur(14px);
+        max-height: calc(100vh - 80px);
         display: flex;
-        align-items: center;
-        height: var(--tap);
-        border-radius: var(--r-md);
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba(180, 165, 150, 0.35);
-        box-shadow: var(--sh-sm);
-        padding: 0 0.75rem 0 2.1rem;
+        flex-direction: column;
       }
-      .search svg {
-        position: absolute;
-        left: 0.7rem;
-        width: 1rem;
-        height: 1rem;
-        color: var(--text-tertiary);
+      .nl-kicker {
+        color: #84756b;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
       }
-      .search input {
+      .nl-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0 0 10px;
+      }
+      .nl-search {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        font-size: 12px;
+        outline: none;
+        margin-bottom: 10px;
+        width: 100%;
+      }
+      .nl-tabs {
+        display: flex;
+        gap: 3px;
+        padding: 3px;
+        background: rgba(255, 255, 255, 0.55);
+        border-radius: 10px;
+        margin-bottom: 10px;
+      }
+      .nl-tab {
+        flex: 1;
         appearance: none;
         border: 0;
+        cursor: pointer;
+        min-height: 26px;
+        padding: 0 6px;
+        border-radius: 8px;
         background: transparent;
-        width: 100%;
-        height: 100%;
-        font: inherit;
-        font-size: var(--fs-meta);
-        color: var(--text-primary);
-        outline: none;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--cco-text-secondary);
       }
-      .icon-btn {
-        flex-shrink: 0;
-        width: var(--tap);
-        height: var(--tap);
-        border-radius: var(--r-md);
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba(180, 165, 150, 0.35);
-        box-shadow: var(--sh-sm);
+      .nl-tab.active {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.88));
+        color: var(--cco-color-brand);
+        box-shadow: 0 2px 6px rgba(56, 40, 28, 0.07);
+      }
+      .nl-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .note-link {
+        position: relative;
+        padding: 9px 9px 9px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.5);
+      }
+      .note-link:hover {
+        background: rgba(255, 255, 255, 0.85);
+      }
+      .note-link.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      }
+      .note-link::before {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 11px;
+        bottom: 11px;
+        width: 3px;
+        border-radius: 2px;
+        background: var(--rail, var(--rail-info));
+      }
+      .note-link[data-source='contact'] {
+        --rail: var(--rail-contact);
+      }
+      .note-link[data-source='info'] {
+        --rail: var(--rail-info);
+      }
+      .note-link[data-source='fazli'] {
+        --rail: var(--rail-fazli);
+      }
+      .note-link[data-source='egzona'] {
+        --rail: var(--rail-egzona);
+      }
+      .nl-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .nl-customer {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--cco-color-brand);
+      }
+      .nl-when {
+        font-size: 9.5px;
+        color: var(--cco-text-tertiary);
+        font-weight: 600;
+      }
+      .nl-preview {
+        font-size: 10.5px;
+        color: var(--cco-text-secondary);
+        margin-top: 2px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.4;
+      }
+      .nl-tags {
+        display: flex;
+        gap: 3px;
+        margin-top: 5px;
+      }
+      .nl-tag {
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+      .nl-tag.privat {
+        background: rgba(132, 117, 107, 0.16);
+        color: var(--cco-text-tertiary);
+      }
+      .nl-tag.viktig {
+        background: rgba(200, 130, 30, 0.14);
+        color: var(--calendar-accent);
+      }
+      .nl-tag.journal {
+        background: rgba(74, 130, 104, 0.14);
+        color: var(--cco-status-success);
+      }
+      .nl-tag.ai {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+      }
+
+      /* Mitten: anteckningsyta */
+      .note-shell {
+        position: relative;
+        border-radius: 28px;
+        padding: 20px 22px 16px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: var(--panel-shell-shadow-strong);
+        backdrop-filter: blur(14px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 80px);
+      }
+      .note-shell::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background:
+          radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.55), transparent 24%),
+          radial-gradient(circle at 78% 10%, rgba(255, 228, 240, 0.32), transparent 26%);
+        pointer-events: none;
+      }
+      .note-shell > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .note-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding-bottom: 12px;
+      }
+      .nh-main {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .nh-kicker {
+        color: #84756b;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .nh-mark {
+        width: 20px;
+        height: 20px;
+        border-radius: 7px;
+        background: rgba(187, 71, 121, 0.14);
+        color: var(--accent-studio);
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: var(--text-primary);
-        cursor: pointer;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
       }
-
-      .icon-btn svg {
-        width: 1.1rem;
-        height: 1.1rem;
+      .nh-mark svg {
+        width: 13px;
+        height: 13px;
       }
-
-      /* sidoräls-primitiver (v11 facit) */
-      .rail-brand {
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        color: var(--accent);
-        padding: 0.4rem 0.6rem;
-      }
-      .rail-nav {
-        min-height: var(--tap);
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        padding: 0 0.7rem;
-        border-radius: var(--r-md);
-        cursor: pointer;
-        color: var(--text-secondary);
-        font-weight: 700;
-        font-size: var(--fs-meta);
-        border: 0;
-        background: transparent;
-        text-align: left;
-      }
-      .rail-nav.is-active {
-        background: var(--accent-weak-bg);
-        color: var(--accent);
-      }
-      .rail-nav svg {
-        width: 1.1rem;
-        height: 1.1rem;
-      }
-      .rail-sec {
-        font-size: var(--fs-kicker);
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--text-tertiary);
-        margin: 1rem 0.7rem 0.3rem;
-      }
-
-      /* head-zon */
-      .head {
-        padding: 0.9rem 0 0.4rem;
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: var(--gap);
-        flex-wrap: wrap;
-      }
-      .head-main {
-        min-width: 0;
-      }
-      .kicker {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        color: var(--text-tertiary);
-        font-size: var(--fs-kicker);
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        margin-bottom: 0.25rem;
-      }
-      .h1 {
+      .nh-main h2 {
         margin: 0;
-        font-size: var(--fs-h1);
-        font-weight: 800;
-        letter-spacing: -0.02em;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
       }
-      .subtitle {
-        margin: 0.3rem 0 0;
-        color: var(--text-secondary);
-        font-size: var(--fs-meta);
-        max-width: 46ch;
-      }
-
-      /* pill-rader (filter/period/segment) */
-      .pillrow {
+      .nh-actions {
         display: flex;
-        gap: 0.4rem;
-        flex-wrap: wrap;
-        align-items: center;
+        gap: 6px;
       }
-      .pillrow.scroll {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-      .pillrow.scroll::-webkit-scrollbar {
-        display: none;
-      }
-      .pill {
-        flex-shrink: 0;
-        min-height: 2.25rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0 0.85rem;
-        border-radius: var(--r-pill);
-        border: 1px solid rgba(180, 165, 150, 0.3);
+      .nav-btn {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        cursor: pointer;
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 11px;
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
-        font-size: var(--fs-meta);
-        font-weight: 700;
-        box-shadow: var(--sh-sm);
-        color: var(--text-secondary);
-        cursor: pointer;
-        white-space: nowrap;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--cco-color-brand);
+        box-shadow: 0 2px 6px rgba(56, 40, 28, 0.06);
       }
-      .pill[aria-pressed='true'],
-      .pill.is-active {
-        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
-        color: var(--accent);
-        border-color: rgba(176, 53, 110, 0.32);
+      .nav-btn--ai {
+        background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+        color: var(--calendar-accent);
+        border-color: rgba(200, 130, 30, 0.32);
       }
-      .pill .c {
-        background: rgba(180, 165, 150, 0.18);
-        padding: 0.05rem 0.4rem;
-        border-radius: var(--r-pill);
-        font-size: var(--fs-kicker);
-        font-weight: 800;
-      }
-      @media (pointer: coarse) {
-        .pill {
-          min-height: var(--tap);
-        }
-      }
-      .pill .dot {
-        width: 0.4rem;
-        height: 0.4rem;
-        border-radius: 999px;
-      }
-      .pill--success {
-        color: var(--success);
-      }
-      .pill--success .dot {
-        background: var(--success);
-      }
-      .pill--warning {
-        color: var(--warning);
-      }
-      .pill--warning .dot {
-        background: var(--warning);
-      }
-      .pill--info {
-        color: var(--info);
-      }
-      .pill--info .dot {
-        background: var(--info);
-      }
-      .pill--vip {
-        background: linear-gradient(180deg, #fdeef4, #f6cfdc);
-        color: var(--accent);
-        border-color: rgba(176, 53, 110, 0.32);
-      }
-      .pill--vip .dot {
-        background: var(--accent);
+      .nav-btn:disabled {
+        opacity: 0.55;
+        cursor: wait;
       }
 
-      /* knappar */
-      .btn {
-        min-height: 2.5rem;
-        padding: 0 1rem;
-        border-radius: var(--r-pill);
-        border: 1px solid rgba(180, 165, 150, 0.35);
-        background: rgba(255, 255, 255, 0.85);
-        font: inherit;
-        font-size: var(--fs-meta);
-        font-weight: 700;
-        color: var(--text-primary);
-        cursor: pointer;
+      /* Sprint A — journal-state badge */
+      .journal-state-badge {
         display: inline-flex;
         align-items: center;
-        gap: 0.35rem;
-        white-space: nowrap;
-      }
-      .btn--primary {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: #fff;
-      }
-      .btn--danger {
-        background: var(--danger-bg);
-        border-color: rgba(168, 56, 56, 0.3);
-        color: var(--danger);
-      }
-      @media (pointer: coarse) {
-        .btn {
-          min-height: var(--tap);
-        }
-      }
-
-      /* kort & paneler */
-      .card {
-        position: relative;
-        cursor: pointer;
-        padding: 1rem;
-        border-radius: var(--r-lg);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
-        border: 1px solid rgba(180, 165, 150, 0.25);
-        box-shadow: var(--sh-md);
-        transition:
-          transform 0.12s ease,
-          box-shadow 0.12s ease,
-          border-color 0.12s ease;
-      }
-      .card:hover {
-        box-shadow: var(--sh-lg);
-        border-color: rgba(176, 53, 110, 0.25);
-      }
-      .card:active {
-        transform: scale(0.99);
-      }
-      .card.is-selected {
-        border-color: var(--accent);
-        box-shadow:
-          0 0 0 2px rgba(176, 53, 110, 0.25),
-          var(--sh-md);
-      }
-      .card.is-open {
-        border-color: var(--accent);
-      }
-      .panel {
-        padding: 1.1rem;
-        border-radius: var(--r-xl);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.88));
-        border: 1px solid rgba(180, 165, 150, 0.25);
-        box-shadow: var(--sh-md);
-      }
-      .panel-head {
-        margin-bottom: 0.7rem;
-      }
-      .panel-head h2 {
-        margin: 0;
-        font-size: 0.95rem;
-        font-weight: 800;
-        letter-spacing: -0.01em;
-      }
-      .panel-head p {
-        margin: 0.2rem 0 0;
-        color: var(--text-tertiary);
-        font-size: var(--fs-meta);
-      }
-      .sec-kicker {
-        font-size: var(--fs-kicker);
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--text-tertiary);
-      }
-
-      /* metric-kort (KPI) */
-      .metric {
-        padding: 0.9rem 1rem;
-        border-radius: var(--r-lg);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
-        border: 1px solid rgba(180, 165, 150, 0.25);
-        box-shadow: var(--sh-sm);
-      }
-      .metric .m-label {
-        font-size: var(--fs-kicker);
+        gap: 5px;
+        height: 26px;
+        padding: 0 11px;
+        border-radius: 999px;
+        font-size: 10.5px;
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: var(--text-tertiary);
+        font-variant-numeric: tabular-nums;
+        margin-right: auto;
       }
-      .metric .m-val {
-        font-size: var(--fs-num);
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        margin-top: 0.15rem;
-        line-height: 1.05;
+      .journal-state-badge.state-draft {
+        background: rgba(132, 117, 107, 0.12);
+        color: var(--cco-text-secondary);
       }
-      .metric .m-meta {
-        font-size: var(--fs-kicker);
-        color: var(--text-tertiary);
-        margin-top: 0.25rem;
+      .journal-state-badge.state-signed {
+        background: rgba(74, 130, 104, 0.18);
+        color: var(--cco-status-success);
       }
-      .metric .m-trend {
-        font-size: var(--fs-kicker);
-        font-weight: 800;
+      .journal-state-badge.state-locked {
+        background: rgba(187, 71, 121, 0.18);
+        color: var(--accent-studio);
       }
-      .m-trend--up {
-        color: var(--success);
+      .journal-state-badge.state-corrected {
+        background: rgba(200, 130, 30, 0.18);
+        color: var(--calendar-accent);
       }
-      .m-trend--down {
-        color: var(--danger);
-      }
-      .metric--green {
-        border-left: 3px solid var(--success);
-      }
-      .metric--blue {
-        border-left: 3px solid var(--info);
-      }
-      .metric--rose {
-        border-left: 3px solid var(--accent);
-      }
-      .metric--violet {
-        border-left: 3px solid var(--violet);
-      }
-      .metric--gold {
-        border-left: 3px solid var(--gold);
-      }
-      .metric--slate {
-        border-left: 3px solid var(--slate);
+      .journal-state-badge.state-error {
+        background: rgba(185, 74, 74, 0.18);
+        color: var(--cco-status-danger);
       }
 
-      /* switch — 44px träffyta via track-storlek */
-      .switch {
-        position: relative;
-        flex-shrink: 0;
-        width: 3rem;
-        height: var(--tap);
-        cursor: pointer;
-      }
-      .switch input {
-        position: absolute;
-        inset: 0;
-        opacity: 0;
-        margin: 0;
-        cursor: pointer;
-      }
-      .switch .track {
-        position: absolute;
-        top: 50%;
-        left: 0;
-        transform: translateY(-50%);
-        width: 3rem;
-        height: 1.6rem;
-        border-radius: 999px;
-        background: rgba(120, 108, 95, 0.32);
-        transition: background 0.2s;
-      }
-      .switch .track::after {
-        content: '';
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 1.2rem;
-        height: 1.2rem;
-        border-radius: 50%;
-        background: #fff;
-        box-shadow: var(--sh-sm);
-        transition: transform 0.2s;
-      }
-      .switch input:checked + .track {
-        background: var(--success);
-      }
-      .switch input:checked + .track::after {
-        transform: translateX(1.4rem);
-      }
-      .switch input:focus-visible + .track {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-      }
-
-      /* bottom-nav (samma som Konversationer/Senare-prototyperna) — döljs ≥601 */
-      .botnav {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 60;
+      /* Customer-context bar */
+      .ctx-bar {
         display: flex;
         align-items: center;
-        justify-content: space-around;
-        gap: 0.25rem;
-        padding: 0.5rem 0.75rem calc(0.5rem + var(--safe-bottom));
-        background: linear-gradient(180deg, rgba(250, 246, 242, 0), rgba(250, 246, 242, 0.94) 30%);
-        backdrop-filter: blur(20px);
+        gap: 14px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.55);
+        margin-bottom: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.7);
       }
-      .nav-i {
+      .ctx-av {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: 11px;
+        flex-shrink: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          0 2px 6px rgba(56, 40, 28, 0.14);
+      }
+      .ctx-meta {
         flex: 1;
-        min-height: var(--tap);
-        border: 0;
-        background: transparent;
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.1rem;
-        color: var(--text-tertiary);
-        font-size: var(--fs-kicker);
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-      .nav-i svg {
-        width: 1.35rem;
-        height: 1.35rem;
-      }
-      .nav-i.is-active {
-        color: var(--accent);
-      }
-      /* lekfull bottom-nav — duoton-ikoner, per-flik-färg, studs + sväv + badge */
-      .nav-i {
-        gap: 0.2rem;
-        transition: color 0.2s;
-        position: relative;
-      }
-      .nav-i .ic-wrap {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 3.1rem;
-        height: 1.9rem;
-        border-radius: var(--r-pill);
-        transition:
-          background 0.25s,
-          box-shadow 0.25s,
-          transform 0.25s;
-      }
-      .nav-i .ic {
-        width: 1.5rem;
-        height: 1.5rem;
-        transition: transform 0.2s;
-      }
-      .nav-i .ic-fill {
-        fill: currentColor;
-        opacity: 0.24;
-        transition:
-          fill 0.2s,
-          opacity 0.2s;
-      }
-      .nav-i .ic-line {
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.7;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-      .nav-i .ic-dot {
-        fill: currentColor;
-      }
-      @media (hover: hover) {
-        .nav-i:not(.is-active):hover .ic {
-          transform: translateY(-2px) rotate(-6deg);
-        }
-        .nav-i:not(.is-active):hover .ic-wrap {
-          background: rgba(176, 53, 110, 0.08);
-        }
-      }
-      .nav-i:active .ic {
-        transform: scale(0.84);
-      }
-      .nav-i.is-active {
-        color: var(--ic, var(--accent));
-      }
-      .nav-i.is-active .ic-wrap {
-        background: var(--ic-bg, var(--accent-weak));
-        box-shadow: 0 7px 16px -6px var(--ic, var(--accent));
-        animation: navfloat 2.8s ease-in-out infinite;
-      }
-      .nav-i.is-active .ic {
-        animation: navpop 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      .nav-i.is-active .ic-fill {
-        opacity: 1;
-        fill: var(--ic, var(--accent));
-      }
-      .nav-i.is-active .ic-line {
-        stroke: #fff;
-      }
-      .nav-i.is-active .ic-dot {
-        fill: #fff;
-      }
-      .nav-badge {
-        position: absolute;
-        top: -0.15rem;
-        right: 0.4rem;
-        min-width: 1rem;
-        height: 1rem;
-        padding: 0 0.25rem;
-        border-radius: 999px;
-        background: var(--accent);
-        color: #fff;
-        font-size: 0.5625rem;
-        font-weight: 800;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 0 0 2px var(--bg-page);
-      }
-      @keyframes navpop {
-        0% {
-          transform: scale(0.55);
-        }
-        55% {
-          transform: scale(1.2);
-        }
-        100% {
-          transform: scale(1);
-        }
-      }
-      @keyframes navfloat {
-        0%,
-        100% {
-          transform: translateY(-3px);
-        }
-        50% {
-          transform: translateY(-6px);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .nav-i .ic,
-        .nav-i .ic-wrap {
-          animation: none !important;
-        }
-      }
-      @media (min-width: 601px) {
-        .botnav {
-          display: none;
-        }
-        .aux {
-          padding-bottom: 2rem;
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        * {
-          transition: none !important;
-        }
-      }
-
-      /* ===== SMART ANTECKNING — composer-yta (bygger på primitiverna ovan) ===== */
-      .layout {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: var(--gap);
-        margin-top: 0.6rem;
-      }
-      @media (min-width: 1025px) {
-        .layout {
-          grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-          align-items: start;
-        }
-      }
-
-      /* patientkontext-chip */
-      .ctx-chip {
-        display: flex;
-        align-items: center;
-        gap: 0.7rem;
-        padding: 0.6rem 0.8rem;
-        border-radius: var(--r-lg);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.86));
-        border: 1px solid rgba(180, 165, 150, 0.28);
-        box-shadow: var(--sh-sm);
-        margin-bottom: 0.7rem;
-      }
-      .ctx-avatar {
-        flex-shrink: 0;
-        width: 2.4rem;
-        height: 2.4rem;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-        color: #fff;
-        background: linear-gradient(140deg, #b0356e, #d76a9b);
-      }
-      .ctx-copy {
         min-width: 0;
       }
       .ctx-name {
-        font-weight: 800;
-        font-size: var(--fs-body);
+        font-size: 13px;
+        font-weight: 700;
       }
       .ctx-sub {
-        font-size: var(--fs-meta);
-        color: var(--text-tertiary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        font-size: 10.5px;
+        color: var(--cco-text-tertiary);
+        margin-top: 1px;
+      }
+      .ctx-link {
+        font-size: 10.5px;
+        color: var(--accent-studio);
+        font-weight: 700;
+        text-decoration: none;
       }
 
-      .field-label {
-        display: block;
-        font-size: var(--fs-kicker);
+      /* AI-sammanfattning */
+      .ai-summary {
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.82));
+        border-left: 3px solid var(--calendar-accent);
+        box-shadow:
+          0 4px 14px var(--calendar-accent-glow),
+          inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        margin-bottom: 14px;
+      }
+      .ai-summary-kicker {
+        color: var(--calendar-accent);
+        font-size: 10px;
         font-weight: 800;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: var(--text-tertiary);
-        margin: 0.2rem 0 0.4rem;
+        margin-bottom: 6px;
       }
-      .note-input {
-        width: 100%;
-        min-height: 7.5rem;
-        resize: vertical;
-        border-radius: var(--r-md);
-        border: 1px solid rgba(180, 165, 150, 0.4);
-        background: rgba(255, 255, 255, 0.9);
-        padding: 0.75rem;
-        font: inherit;
-        font-size: var(--fs-body);
-        color: var(--text-primary);
+      .ai-summary-body {
+        font-size: 12.5px;
         line-height: 1.5;
-        outline: none;
       }
-      .note-input:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px var(--accent-weak);
+      .ai-summary-body strong {
+        color: var(--calendar-accent);
       }
 
-      .ai-row {
+      /* Editor */
+      .editor-wrap {
+        flex: 1;
         display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 0;
+      }
+      .editor-toolbar {
+        display: flex;
+        gap: 5px;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        align-items: center;
-        margin-top: 0.7rem;
+        padding-bottom: 8px;
+        box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
       }
-      .btn--ai {
-        background: linear-gradient(135deg, #6b31c9, #b0356e);
-        border-color: transparent;
-        color: #fff;
-        box-shadow: 0 6px 16px -8px rgba(107, 49, 201, 0.7);
-      }
-      .btn--ai:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-      .ai-hint {
-        font-size: var(--fs-meta);
-        color: var(--text-tertiary);
-      }
-
-      /* guard-banner — AI utkast, människa signerar */
-      .guard {
-        display: flex;
-        gap: 0.6rem;
-        align-items: flex-start;
-        padding: 0.7rem 0.85rem;
-        border-radius: var(--r-md);
-        background: var(--warning-bg);
-        border: 1px solid rgba(154, 100, 16, 0.32);
-        margin-top: 0.85rem;
-      }
-      .guard svg {
-        flex-shrink: 0;
-        width: 1.15rem;
-        height: 1.15rem;
-        color: var(--warning);
-        margin-top: 0.05rem;
-      }
-      .guard p {
-        margin: 0;
-        font-size: var(--fs-meta);
-        color: #6e4a0c;
+      .et-btn {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        cursor: pointer;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.6);
+        font-size: 11px;
         font-weight: 600;
+        color: var(--cco-text-secondary);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
       }
-      .guard strong {
-        color: #553807;
+      .et-btn:hover {
+        background: rgba(255, 255, 255, 0.95);
+        color: var(--cco-color-brand);
+      }
+      .et-btn.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        border-color: rgba(187, 71, 121, 0.32);
+      }
+      .et-tag {
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 8.5px;
+        font-weight: 800;
+        margin-left: 4px;
+      }
+      .editor-area {
+        flex: 1;
+        min-height: 200px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 14px;
+        padding: 14px 16px;
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--cco-color-brand);
+        outline: none;
+        overflow-y: auto;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      }
+      .editor-area:focus {
+        background: #fff;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 0 0 2px var(--calendar-accent-glow);
       }
 
-      .sub-head {
-        margin: 1rem 0 0.45rem;
-        font-size: var(--fs-kicker);
+      /* AI extract result (Sprint F) */
+      .ai-extract-result {
+        margin-top: 10px;
+        padding: 13px 15px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(187, 71, 121, 0.07), rgba(200, 130, 30, 0.05));
+        border: 1px solid rgba(187, 71, 121, 0.22);
+      }
+      .ai-extract-result[hidden] {
+        display: none;
+      }
+      .aer-h {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent-studio);
+      }
+      .aer-conf {
+        margin-left: auto;
+        font-size: 9.5px;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(74, 130, 104, 0.14);
+        color: var(--cco-status-success);
+      }
+      .aer-conf.low {
+        background: rgba(200, 130, 30, 0.14);
+        color: var(--calendar-accent);
+      }
+      .aer-close {
+        margin-left: 6px;
+        border: none;
+        background: transparent;
+        color: var(--cco-text-tertiary);
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .aer-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 6px;
+      }
+      .aer-field {
+        padding: 7px 10px;
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.7);
+        font-size: 11px;
+      }
+      .aer-field .lbl {
+        font-size: 9px;
         font-weight: 800;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: var(--text-tertiary);
+        color: var(--cco-text-tertiary);
+        margin-bottom: 2px;
       }
-
-      /* strukturerad förhandsvisning (höger) */
-      .struct {
+      .aer-field .val {
+        font-weight: 700;
+        color: var(--cco-color-brand);
+        font-variant-numeric: tabular-nums;
+      }
+      .aer-suggest {
+        margin-top: 8px;
+        padding: 7px 10px;
+        border-radius: 9px;
+        background: rgba(200, 130, 30, 0.08);
+        font-size: 10.5px;
+        color: var(--calendar-accent);
+        line-height: 1.45;
+      }
+      .aer-suggest[hidden] {
+        display: none;
+      }
+      .aer-foot {
         display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-      }
-      .struct-empty {
-        padding: 1.4rem 1rem;
-        text-align: center;
-        color: var(--text-tertiary);
-        font-size: var(--fs-meta);
-        border: 1px dashed rgba(180, 165, 150, 0.5);
-        border-radius: var(--r-md);
-        background: rgba(243, 236, 227, 0.5);
-      }
-      .struct-sec {
-        border-radius: var(--r-md);
-        border: 1px solid rgba(180, 165, 150, 0.25);
-        background: rgba(255, 255, 255, 0.7);
-        padding: 0.7rem 0.8rem;
-      }
-      .struct-sec h4 {
-        margin: 0 0 0.25rem;
-        font-size: var(--fs-kicker);
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--accent);
-      }
-      .struct-sec p {
-        margin: 0;
-        font-size: var(--fs-body);
-        color: var(--text-secondary);
-        line-height: 1.5;
-      }
-
-      .pillrow.tight {
-        margin-top: 0.5rem;
-      }
-      .pill--cat[aria-pressed='true'] {
-        background: linear-gradient(180deg, #e6dcf6, #d9c8f0);
-        color: var(--violet);
-        border-color: rgba(107, 49, 201, 0.3);
-      }
-      .pill--treat[aria-pressed='true'] {
-        background: linear-gradient(180deg, #dceee5, #c6e3d4);
-        color: var(--success);
-        border-color: rgba(47, 111, 84, 0.3);
-      }
-
-      .preview-foot {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
         align-items: center;
-        margin-top: 0.9rem;
-        padding-top: 0.85rem;
-        border-top: 1px solid rgba(180, 165, 150, 0.25);
+        gap: 10px;
+        margin-top: 10px;
+        padding-top: 9px;
+        border-top: 1px solid rgba(132, 117, 107, 0.12);
+        font-size: 10px;
+        color: var(--cco-text-tertiary);
       }
-      .preview-foot .grow {
+      .aer-foot em {
+        font-style: italic;
         flex: 1;
-        min-width: 0;
       }
-      .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.2rem 0.6rem;
-        border-radius: var(--r-pill);
-        font-size: var(--fs-kicker);
+      .aer-apply {
+        padding: 5px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(187, 71, 121, 0.32);
+        background: transparent;
+        font-size: 10.5px;
         font-weight: 800;
+        color: var(--accent-studio);
+        cursor: pointer;
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
-      .status-pill--draft {
-        background: var(--slate-bg);
-        color: var(--slate);
+      .aer-apply:not(:disabled):hover {
+        background: var(--accent-studio);
+        color: white;
       }
-      .status-pill--signed {
-        background: var(--success-bg);
-        color: var(--success);
-      }
-      .btn--sign:disabled {
+      .aer-apply:disabled {
         opacity: 0.45;
         cursor: not-allowed;
       }
-      .feedback {
-        font-size: var(--fs-meta);
-        font-weight: 700;
-        color: var(--success);
-        min-height: 1rem;
+
+      /* Autosave-indicator */
+      .autosave {
+        font-size: 10.5px;
+        color: var(--cco-status-success);
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .autosave::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--cco-status-success);
+        box-shadow: 0 0 6px var(--cco-status-success);
       }
 
-      /* recent smart-notes */
-      .recent {
+      /* Footer / actions */
+      .note-footer {
+        padding-top: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        box-shadow: inset 0 1px 0 rgba(215, 202, 194, 0.5);
+        margin-top: auto;
+      }
+      .nf-tags {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .nf-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .tag-pill {
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .tag-pill.active.privat {
+        background: rgba(132, 117, 107, 0.18);
+        color: var(--cco-text-secondary);
+        border-color: rgba(132, 117, 107, 0.32);
+      }
+      .tag-pill.active.viktig {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+        border-color: rgba(200, 130, 30, 0.32);
+      }
+      .tag-pill.active.journal {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+        border-color: rgba(74, 130, 104, 0.32);
+      }
+      .tag-pill {
+        background: rgba(255, 255, 255, 0.55);
+        color: var(--cco-text-tertiary);
+        border-color: rgba(132, 117, 107, 0.18);
+      }
+
+      /* Höger: historik + kopplingar */
+      .links-shell {
+        position: sticky;
+        top: 14px;
+        padding: 18px 16px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: 0 18px 38px rgba(93, 74, 60, 0.07);
+        backdrop-filter: blur(14px);
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
-        margin-top: 0.6rem;
+        gap: 14px;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
       }
-      .recent-item {
+      .links-kicker {
+        color: #84756b;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .links-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 4px 0 0;
+      }
+      .links-section {
+        padding-top: 10px;
+        box-shadow: inset 0 1px 0 rgba(215, 202, 194, 0.5);
+      }
+      .links-section:first-of-type {
+        box-shadow: none;
+        padding-top: 0;
+      }
+      .link-item {
         display: flex;
+        gap: 9px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.5);
+        margin-bottom: 4px;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .link-item:hover {
+        background: rgba(255, 255, 255, 0.85);
+      }
+      .link-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        background: rgba(187, 71, 121, 0.14);
+        color: var(--accent-studio);
+        display: inline-flex;
         align-items: center;
-        gap: 0.6rem;
-        padding: 0.6rem 0.7rem;
-        border-radius: var(--r-md);
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba(180, 165, 150, 0.22);
-      }
-      .recent-dot {
+        justify-content: center;
+        font-size: 12px;
         flex-shrink: 0;
-        width: 0.55rem;
-        height: 0.55rem;
-        border-radius: 50%;
-        background: var(--accent);
       }
-      .recent-dot.is-signed {
-        background: var(--success);
+      .link-icon[data-t='booking'] {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
       }
-      .recent-copy {
-        min-width: 0;
+      .link-icon[data-t='note'] {
+        background: rgba(187, 71, 121, 0.14);
+        color: var(--accent-studio);
+      }
+      .link-icon[data-t='photo'] {
+        background: var(--calendar-accent-glow);
+        color: var(--calendar-accent);
+      }
+      .link-body {
         flex: 1;
+        min-width: 0;
       }
-      .recent-copy strong {
-        display: block;
-        font-size: var(--fs-meta);
-        font-weight: 800;
+      .link-title {
+        font-weight: 700;
+        color: var(--cco-color-brand);
       }
-      .recent-copy small {
-        display: block;
-        font-size: var(--fs-kicker);
-        color: var(--text-tertiary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .recent-time {
-        flex-shrink: 0;
-        font-size: var(--fs-kicker);
-        color: var(--text-tertiary);
+      .link-meta {
+        font-size: 9.5px;
+        color: var(--cco-text-tertiary);
+        margin-top: 1px;
       }
     </style>
+    <link rel="stylesheet" href="/cco-polish.css" />
+    <script src="/cco-polish.js" defer></script>
   </head>
-  <body>
-    <div class="aux">
-      <!-- ===== TOPBAR ===== -->
-      <div class="topbar">
-        <span class="brand">CCO</span>
-        <label class="search"
-          ><svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
-          ><input placeholder="Sök patient eller anteckning…"
-        /></label>
-        <button class="icon-btn" aria-label="Filtrera">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-            stroke-linecap="round"
-          >
-            <path d="M3 5h18M6 12h12M10 19h4" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- ===== HEAD ===== -->
-      <header class="head">
-        <div class="head-main">
-          <span class="kicker">Journal</span>
-          <h1 class="h1">Smart anteckning</h1>
-          <p class="subtitle">
-            Skriv en snabb anteckning — låt AI strukturera den till en journalpost. AI fyller bara
-            ett utkast; en människa måste granska och signera innan den skrivs in i journalen.
-          </p>
-        </div>
-      </header>
-
-      <div class="layout">
-        <!-- ===== LEFT — COMPOSER ===== -->
-        <section class="panel" aria-label="Anteckningskomponator">
-          <div class="panel-head">
-            <h2>Komponera</h2>
-            <p>Snabb anteckning → AI-strukturerat utkast</p>
-          </div>
-
-          <!-- patientkontext-chip -->
-          <div class="ctx-chip">
-            <span class="ctx-avatar" aria-hidden="true">AK</span>
-            <span class="ctx-copy">
-              <span class="ctx-name">Anna Karlsson</span>
-              <span class="ctx-sub"
-                >Ombokning inför PRP 2/3 · Dr. Eriksson · konversation #4821</span
-              >
-            </span>
-          </div>
-
-          <label class="field-label" for="quick">Snabb anteckning</label>
-          <textarea
-            id="quick"
-            class="note-input"
-            data-quick
-            placeholder="Skriv fritt, t.ex. vad som hände i samtalet…"
-          >
-Kunden önskar ombokning av PRP 2/3. Föredrar fredagar 09:00-12:00 med Dr. Eriksson. Var mycket nöjd med senaste behandlingen. Inga nya besvär eller biverkningar rapporterade.</textarea
-          >
-
-          <div class="ai-row">
-            <button class="btn btn--ai" type="button" data-ai-structure>★ AI-strukturera</button>
-            <span class="ai-hint" data-ai-hint>Föreslår sektioner, kategori och behandling</span>
-          </div>
-
-          <div class="guard" role="note">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M12 2 4 5v6c0 5 3.4 8.6 8 11 4.6-2.4 8-6 8-11V5l-8-3Z" />
-              <path d="M12 8v4M12 16h.01" />
-            </svg>
-            <p>
-              <strong>AI får aldrig skriva i journalen automatiskt.</strong> Förslaget sparas som
-              <strong>utkast</strong> — en behörig användare måste granska och signera. Vid
-              signering låses posten (status&nbsp;draft → signed).
-            </p>
-          </div>
-
-          <div class="sub-head">Kategori</div>
-          <div class="pillrow tight" role="group" aria-label="Kategori">
-            <button class="pill pill--cat" type="button" data-cat aria-pressed="false">
-              Konversation
-            </button>
-            <button class="pill pill--cat" type="button" data-cat aria-pressed="false">
-              Medicinsk
-            </button>
-            <button class="pill pill--cat" type="button" data-cat aria-pressed="false">
-              Uppföljning
-            </button>
-            <button class="pill pill--cat" type="button" data-cat aria-pressed="false">
-              Betalning
-            </button>
-          </div>
-
-          <div class="sub-head">Behandling</div>
-          <div class="pillrow tight" role="group" aria-label="Behandling">
-            <button class="pill pill--treat" type="button" data-treat aria-pressed="false">
-              PRP hår 2/3
-            </button>
-            <button class="pill pill--treat" type="button" data-treat aria-pressed="false">
-              Microneedling
-            </button>
-            <button class="pill pill--treat" type="button" data-treat aria-pressed="false">
-              DHI
-            </button>
-            <button class="pill pill--treat" type="button" data-treat aria-pressed="false">
-              Konsultation
-            </button>
-          </div>
-        </section>
-
-        <!-- ===== RIGHT — PREVIEW / FÖRHANDSVISNING ===== -->
-        <section class="panel" aria-label="Förhandsvisning av strukturerad journalpost">
-          <div class="panel-head">
-            <h2>Förhandsvisning</h2>
-            <p>
-              Strukturerad journalpost ·
-              <span data-status-pill class="status-pill status-pill--draft">Utkast</span>
-            </p>
-          </div>
-
-          <div class="struct" data-struct>
-            <div class="struct-empty" data-empty>
-              Tryck <strong>★ AI-strukturera</strong> för att fylla förhandsvisningen med Anledning,
-              Bedömning, Åtgärd och Uppföljning.
-            </div>
-          </div>
-
-          <div class="preview-foot">
-            <span class="grow feedback" data-feedback aria-live="polite"></span>
-            <button class="btn" type="button" data-save-draft disabled>Spara utkast</button>
-            <button class="btn btn--primary btn--sign" type="button" data-sign disabled>
-              Granska &amp; signera
-            </button>
-          </div>
-
-          <div class="sub-head">Senaste smarta anteckningar</div>
-          <div class="recent">
-            <div class="recent-item">
-              <span class="recent-dot is-signed" aria-hidden="true"></span>
-              <span class="recent-copy"
-                ><strong>Anna Karlsson · PRP 2/3</strong
-                ><small>Signerad av Dr. Eriksson · ombokning bekräftad</small></span
-              >
-              <span class="recent-time">Idag 14:02</span>
-            </div>
-            <div class="recent-item">
-              <span class="recent-dot" aria-hidden="true"></span>
-              <span class="recent-copy"
-                ><strong>Johan Andersson · Konsultation</strong
-                ><small>Utkast · väntar på signering</small></span
-              >
-              <span class="recent-time">Idag 11:18</span>
-            </div>
-            <div class="recent-item">
-              <span class="recent-dot is-signed" aria-hidden="true"></span>
-              <span class="recent-copy"
-                ><strong>Emma Svensson · Microneedling</strong
-                ><small>Signerad av Anna Lind · eftervård noterad</small></span
-              >
-              <span class="recent-time">Igår 16:45</span>
-            </div>
-          </div>
-        </section>
-      </div>
+  <body data-stage="beta">
+    <div class="top-nav">
+      <span class="brand">CCO</span>
+      <a href="/kalender.html">Kalender</a>
+      <a href="/kunder.html">Kunder</a>
+      <a href="/konversationer.html">Konversationer</a>
+      <a href="/smart-anteckning.html" class="active">Anteckningar</a>
+      <a href="/analytics.html">Analytics</a>
+      <a href="#">Mer</a>
     </div>
 
-    <!-- ===== BOTNAV (verbatim från cco-skickat-v3.html — Journal aktiv) ===== -->
-    <nav class="botnav" aria-label="Huvudnavigering">
-      <button class="nav-i" style="--ic: var(--accent); --ic-bg: var(--accent-bg)">
-        <span class="ic-wrap"
-          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              class="ic-fill"
-              d="M3.2 11.3 12 4l8.8 7.3c.3.2.5.6.5 1V20a1 1 0 0 1-1 1H3.7a1 1 0 0 1-1-1v-7.7c0-.4.2-.8.5-1Z"
-            />
-            <path
-              class="ic-line"
-              d="M9.4 21v-4.7a1.1 1.1 0 0 1 1.1-1.1h3a1.1 1.1 0 0 1 1.1 1.1V21"
-            /></svg></span
-        >Hem
-      </button>
-      <button class="nav-i" style="--ic: #2f6595; --ic-bg: rgba(47, 101, 149, 0.14)">
-        <span class="ic-wrap"
-          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              class="ic-fill"
-              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
-            />
-            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4M12 12.6v4.4M9.8 14.8h4.4" /></svg
-          ><span class="nav-badge">3</span></span
-        >Boka
-      </button>
-      <button class="nav-i" style="--ic: #6b31c9; --ic-bg: rgba(107, 49, 201, 0.12)">
-        <span class="ic-wrap"
-          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              class="ic-fill"
-              d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
-            />
-            <path class="ic-line" d="M3 9.7h18M8 3v3.4M16 3v3.4" />
-            <circle class="ic-dot" cx="8" cy="13.4" r="1" />
-            <circle class="ic-dot" cx="12" cy="13.4" r="1" />
-            <circle class="ic-dot" cx="16" cy="13.4" r="1" />
-            <circle class="ic-dot" cx="8" cy="17" r="1" />
-            <circle class="ic-dot" cx="12" cy="17" r="1" /></svg></span
-        >Kalender
-      </button>
-      <button class="nav-i" style="--ic: #2f6f54; --ic-bg: rgba(47, 111, 84, 0.16)">
-        <span class="ic-wrap"
-          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              class="ic-fill"
-              d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-4.2 0-7.6 2.7-7.6 6.1 0 .5.4.9.9.9h13.4c.5 0 .9-.4.9-.9 0-3.4-3.4-6.1-7.6-6.1Z"
-            /></svg></span
-        >Kund
-      </button>
-      <button
-        class="nav-i is-active"
-        aria-current="page"
-        style="--ic: #8a5f1e; --ic-bg: rgba(138, 95, 30, 0.14)"
-      >
-        <span class="ic-wrap"
-          ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              class="ic-fill"
-              d="M7 2.6h9.4A2.6 2.6 0 0 1 19 5.2V20a1.4 1.4 0 0 1-1.4 1.4H7A2.4 2.4 0 0 1 4.6 19V5A2.4 2.4 0 0 1 7 2.6Z"
-            />
-            <path class="ic-line" d="M8.4 7.6h6.2M8.4 11.2h6.2M8.4 14.8h4" /></svg></span
-        >Journal
-      </button>
-    </nav>
+    <div class="app-grid">
+      <!-- VÄNSTER: lista -->
+      <aside class="notes-list-shell">
+        <div class="nl-kicker">Anteckningar</div>
+        <h2 class="nl-title">142 totalt · 8 idag</h2>
+        <input class="nl-search" type="search" placeholder="Sök i anteckningar…" />
+        <div class="nl-tabs">
+          <button class="nl-tab active">Alla</button>
+          <button class="nl-tab">Mina</button>
+          <button class="nl-tab">Viktigt</button>
+          <button class="nl-tab">Privat</button>
+        </div>
+        <div class="nl-list" id="notesList"></div>
+      </aside>
+
+      <!-- MITTEN: editor -->
+      <section class="note-shell">
+        <header class="note-header">
+          <div class="nh-main">
+            <span class="nh-kicker">
+              <span class="nh-mark"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" /></svg
+              ></span>
+              Smart anteckning
+            </span>
+            <h2>Anna Karlsson · PRP-uppföljning</h2>
+          </div>
+          <div class="nh-actions">
+            <span class="autosave">Auto-sparad 14:23</span>
+            <button class="nav-btn">↗ Dela</button>
+            <button class="nav-btn nav-btn--ai">★ AI-sammanfatta</button>
+          </div>
+        </header>
+
+        <!-- Kund-kontext -->
+        <div class="ctx-bar">
+          <div class="ctx-av" style="background: linear-gradient(180deg, #d8c1f0, #b48ad6)">AK</div>
+          <div class="ctx-meta">
+            <div class="ctx-name">Anna Karlsson</div>
+            <div class="ctx-sub">VIP · PRP-kur 4/6 · senaste besök 5 maj</div>
+          </div>
+          <a class="ctx-link" href="/kunder.html">→ Öppna kunddossiér</a>
+        </div>
+
+        <!-- AI-sammanfattning av tidigare anteckningar -->
+        <div class="ai-summary">
+          <div class="ai-summary-kicker">★ AI · Sammanfattning av 3 senaste anteckningar</div>
+          <div class="ai-summary-body">
+            Anna har <strong>tolererat PRP väldigt bra</strong> — inga biverkningar genom 3
+            behandlingar. <strong>Motiverad och följsam</strong>. Egzona noterade intresse för VIP+
+            uppgradering vid besöket 11 feb. <strong>Påminn att skicka friskförsäkran</strong> innan
+            nästa tid (saknas fortfarande).
+          </div>
+        </div>
+
+        <!-- Editor -->
+        <div class="editor-wrap">
+          <div class="editor-toolbar">
+            <button class="et-btn active">Anteckning</button>
+            <button class="et-btn">Mall: Konsultation</button>
+            <button class="et-btn">Mall: PRP-uppföljning</button>
+            <button class="et-btn">Mall: DHI-eftervård</button>
+            <span style="flex: 1"></span>
+            <button class="et-btn">★ AI fortsätt skriva</button>
+            <button
+              class="et-btn"
+              id="aiExtractBtn"
+              type="button"
+              title="Extrahera strukturerade fält från fri-text (Norwood, grafts, mediciner, etc)"
+            >
+              ★ AI extrahera fält
+            </button>
+            <button class="et-btn">@ Tagga kollega</button>
+            <button class="et-btn">📎 Bifoga foto</button>
+          </div>
+          <div class="editor-area" id="noteEditor" contenteditable="true">
+            PRP 4/6 idag — andra behandlingen efter sommarpaus. Hudreaktion: lugn, lätt rodnad
+            första 20 min sedan helt borta. Smärtskala: 2/10 (förra gången 3/10) — kommit över
+            första oron. Mätningar: • Hårtäthet temple-zon vänster: 38% (förra: 32%) • Hårtäthet
+            höger: 41% (förra: 36%) • Subjektiv uppskattning från kund: "ser definitivt mer ut nu"
+            Eftervård: - Inga produkter i 24h - Lugna styrkeövningar OK efter 48h - Nästa tid bokad
+            ~3v (omkring 18 jun) Kommentar: Föreslå VIP+ uppgradering nästa besök — hon nämnde själv
+            detta sist.
+          </div>
+
+          <!-- AI-extract resultat (Sprint F) -->
+          <div id="aiExtractResult" class="ai-extract-result" hidden aria-live="polite">
+            <div class="aer-h">
+              <span>★ AI · Extraherade fält</span>
+              <span class="aer-conf" id="aerConf"></span>
+              <button class="aer-close" id="aerClose" type="button" aria-label="Stäng">✕</button>
+            </div>
+            <div class="aer-fields" id="aerFields"></div>
+            <div class="aer-suggest" id="aerSuggest" hidden></div>
+            <div class="aer-foot">
+              <em>Granska och justera — inget sparas automatiskt. Explicit klick krävs.</em>
+              <button class="aer-apply" id="aerApply" type="button" disabled>
+                Tillämpa på journal-formulär
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="note-footer">
+          <div class="nf-tags" role="group" aria-label="Tag-pills för journal-anteckning">
+            <button
+              class="tag-pill journal active"
+              data-tag="journal"
+              type="button"
+              aria-pressed="true"
+            >
+              📋 Journalanteckning
+            </button>
+            <button class="tag-pill" data-tag="viktig" type="button" aria-pressed="false">
+              ⚠ Viktigt
+            </button>
+            <button class="tag-pill" data-tag="privat" type="button" aria-pressed="false">
+              🔒 Privat
+            </button>
+            <button class="tag-pill" data-tag="ring" type="button" aria-pressed="false">
+              📞 Ring
+            </button>
+            <button class="tag-pill" data-tag="prp" type="button" aria-pressed="false">
+              💧 PRP
+            </button>
+            <button class="tag-pill" data-tag="ombokning" type="button" aria-pressed="false">
+              ↻ Ombokning
+            </button>
+            <button class="tag-pill" data-tag="nojd-kund" type="button" aria-pressed="false">
+              ⭐ Nöjd kund
+            </button>
+            <span
+              id="journalTagCount"
+              style="
+                font-size: 9.5px;
+                font-weight: 700;
+                color: var(--cco-text-tertiary);
+                margin-left: auto;
+                align-self: center;
+              "
+              aria-live="polite"
+            ></span>
+          </div>
+          <div class="nf-actions">
+            <span id="journalStateBadge" class="journal-state-badge state-draft" aria-live="polite"
+              >📝 Utkast</span
+            >
+            <button
+              class="nav-btn"
+              id="journalSaveBtn"
+              type="button"
+              title="Spara som draft i journal-store"
+            >
+              💾 Spara utkast
+            </button>
+            <button
+              class="nav-btn nav-btn--ai"
+              id="journalSignBtn"
+              type="button"
+              title="Signera + lås (kan ej ändras efter detta)"
+            >
+              ✍ Signera + lås
+            </button>
+            <button
+              class="nav-btn"
+              id="journalCorrectionBtn"
+              type="button"
+              hidden
+              title="Skapa rättelse-post (för signerade poster)"
+            >
+              ↪ Rättelse
+            </button>
+            <button
+              class="nav-btn"
+              id="journalPdfBtn"
+              type="button"
+              hidden
+              title="Generera PDF av signerad journal (PDL-arkivering)"
+            >
+              📄 Generera PDF
+            </button>
+          </div>
+        </footer>
+      </section>
+
+      <!-- HÖGER: kopplingar -->
+      <aside class="links-shell">
+        <div>
+          <div class="links-kicker">Kopplade till</div>
+          <h3 class="links-title">Annas resa</h3>
+        </div>
+
+        <div class="links-section">
+          <div class="links-kicker" style="margin-bottom: 6px">★ Den här anteckningen</div>
+          <div class="link-item">
+            <div class="link-icon" data-t="booking">📅</div>
+            <div class="link-body">
+              <div class="link-title">PRP för hår · tor 28 maj 08:00</div>
+              <div class="link-meta">Behandling · Egzona</div>
+            </div>
+          </div>
+          <div class="link-item">
+            <div class="link-icon" data-t="photo">📷</div>
+            <div class="link-body">
+              <div class="link-title">Före-bild #4 · tor 28 maj</div>
+              <div class="link-meta">Hårtäthet vänster temple</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="links-section">
+          <div class="links-kicker" style="margin-bottom: 6px">Tidigare anteckningar</div>
+          <div class="link-item">
+            <div class="link-icon" data-t="note">✎</div>
+            <div class="link-body">
+              <div class="link-title">PRP 3/6 · 5 maj</div>
+              <div class="link-meta">Egzona — Bra svar på behandling…</div>
+            </div>
+          </div>
+          <div class="link-item">
+            <div class="link-icon" data-t="note">✎</div>
+            <div class="link-body">
+              <div class="link-title">PRP 2/6 · 14 apr</div>
+              <div class="link-meta">Egzona — Kund är väldigt motiverad…</div>
+            </div>
+          </div>
+          <div class="link-item">
+            <div class="link-icon" data-t="note">✎</div>
+            <div class="link-body">
+              <div class="link-title">Konsultation · 11 feb</div>
+              <div class="link-meta">Fazli — Pratade om VIP+</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="links-section">
+          <div class="links-kicker" style="margin-bottom: 6px">Snabbtaggar</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px">
+            <span class="nl-tag viktig">#viktigt</span>
+            <span class="nl-tag privat">#privat</span>
+            <span class="nl-tag journal">#journal</span>
+            <span
+              class="nl-tag"
+              style="background: var(--cco-status-info-bg); color: var(--cco-status-info)"
+              >#ring</span
+            >
+            <span
+              class="nl-tag"
+              style="background: var(--cco-status-info-bg); color: var(--cco-status-info)"
+              >#återbesök</span
+            >
+            <span class="nl-tag ai">#ai-utkast</span>
+          </div>
+        </div>
+      </aside>
+    </div>
 
     <script>
+      const NOTES = [
+        {
+          customer: 'Anna Karlsson',
+          source: 'contact',
+          when: '14:23',
+          preview:
+            'PRP 4/6 idag — andra behandlingen efter sommarpaus. Hudreaktion: lugn, lätt rodnad…',
+          tags: [['journal', '📋 Journal']],
+          active: true,
+        },
+        {
+          customer: 'Karl Lindberg',
+          source: 'fazli',
+          when: '10:42',
+          preview:
+            'DHI ögonbryn-konsultation. Mycket nervös men beslutsam. Planera in pre-medication…',
+          tags: [['viktig', '⚠ Viktigt']],
+        },
+        {
+          customer: 'Eva Karlsson',
+          source: 'egzona',
+          when: '08:30',
+          preview: 'No-show ×3. Föreslår 50% deposition vid nästa bokning + ring för att höra…',
+          tags: [['privat', '🔒 Privat']],
+        },
+        {
+          customer: 'Sofie Andersson',
+          source: 'contact',
+          when: 'igår',
+          preview: 'På väntelistan. Mycket motiverad. Tipsa Egzona om Maria-luckan 14:30 idag.',
+          tags: [['ai', '★ AI']],
+        },
+        {
+          customer: 'Marcus Berg',
+          source: 'info',
+          when: 'igår',
+          preview: 'PRP-paus efter 3 behandlingar pga sommarjobb utomlands. Återkommer i sept.',
+          tags: [],
+        },
+        {
+          customer: 'Erik Nordström',
+          source: 'contact',
+          when: '24 maj',
+          preview: 'PRP 4/6 klart. Föreslå 5:e omkring 14-16 jun. Frisk och tolererat bra.',
+          tags: [['journal', '📋 Journal']],
+        },
+        {
+          customer: 'Lisa Holm',
+          source: 'info',
+          when: '23 maj',
+          preview: 'Första konsultation. Frågor kring DHI vs FUE — gav broschyr.',
+          tags: [],
+        },
+        {
+          customer: 'Maria Larsson',
+          source: 'contact',
+          when: '23 maj',
+          preview: 'Avbokade tor 28. Föreslog ny tid fre 14:00 — ej bekräftat.',
+          tags: [['viktig', '⚠ Viktigt']],
+        },
+      ];
+      document.getElementById('notesList').innerHTML = NOTES.map(
+        (n) => `
+  <div class="note-link ${n.active ? 'active' : ''}" data-source="${n.source}">
+    <div class="nl-title-row"><span class="nl-customer">${n.customer}</span><span class="nl-when">${n.when}</span></div>
+    <div class="nl-preview">${n.preview}</div>
+    ${n.tags.length ? `<div class="nl-tags">${n.tags.map(([k, l]) => `<span class="nl-tag ${k}">${l}</span>`).join('')}</div>` : ''}
+  </div>
+`
+      ).join('');
+      document.querySelectorAll('.note-link').forEach((l) =>
+        l.addEventListener('click', () => {
+          document
+            .querySelectorAll('.note-link.active')
+            .forEach((o) => o.classList.remove('active'));
+          l.classList.add('active');
+        })
+      );
+
+      // P2 — journal.tag: aria + counter
       (function () {
-        var nav = document.querySelector('.botnav');
-        if (nav) {
-          nav.addEventListener('click', function (e) {
-            var b = e.target.closest('.nav-i');
-            if (!b) return;
-            nav.querySelectorAll('.nav-i').forEach(function (x) {
-              x.classList.remove('is-active');
-              x.removeAttribute('aria-current');
-            });
-            void b.offsetWidth;
-            b.classList.add('is-active');
-            b.setAttribute('aria-current', 'page');
+        const counter = document.getElementById('journalTagCount');
+        function updateCount() {
+          const n = document.querySelectorAll('.tag-pill.active').length;
+          if (counter)
+            counter.textContent = n > 0 ? n + ' ' + (n === 1 ? 'tagg' : 'taggar') + ' valda' : '';
+        }
+        document.querySelectorAll('.tag-pill[data-tag]').forEach((t) => {
+          t.addEventListener('click', () => {
+            t.classList.toggle('active');
+            t.setAttribute('aria-pressed', t.classList.contains('active') ? 'true' : 'false');
+            updateCount();
           });
+        });
+        updateCount();
+      })();
+
+      // Block prevent-default ONLY for non-Sprint-A buttons
+      document.querySelectorAll('.et-btn').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          if (b.id === 'aiExtractBtn') return; // Sprint F own handler
+          e.preventDefault();
+        })
+      );
+      document.querySelectorAll('.nav-btn').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          if (
+            b.id === 'journalSaveBtn' ||
+            b.id === 'journalSignBtn' ||
+            b.id === 'journalCorrectionBtn'
+          )
+            return;
+          e.preventDefault();
+        })
+      );
+
+      // Sprint A — Save / Sign / Correction via /api/v1/cco-journal-quick/*
+      (function () {
+        const saveBtn = document.getElementById('journalSaveBtn');
+        const signBtn = document.getElementById('journalSignBtn');
+        const corrBtn = document.getElementById('journalCorrectionBtn');
+        const badge = document.getElementById('journalStateBadge');
+        const editor = document.getElementById('noteEditor');
+        if (!saveBtn || !signBtn || !editor) return;
+
+        let currentEntry = null;
+        const PATIENT_ID = 'demo-patient-anna';
+        const TENANT_ID = 'hairtpclinic';
+        const HEADERS = {
+          'Content-Type': 'application/json',
+          'X-CCO-Role': 'konsult',
+          'X-CCO-User': 'demo-konsult',
+          'X-CCO-Tenant': TENANT_ID,
+        };
+
+        function setBadge(state, label) {
+          badge.className = 'journal-state-badge state-' + state;
+          badge.textContent = label;
+        }
+        function setState(entry) {
+          if (!entry) return;
+          currentEntry = entry;
+          const pdfBtn = document.getElementById('journalPdfBtn');
+          if (entry.locked || entry.status === 'signed') {
+            setBadge('locked', '🔒 Signerad + låst');
+            saveBtn.hidden = true;
+            signBtn.hidden = true;
+            corrBtn.hidden = false;
+            if (pdfBtn) pdfBtn.hidden = false;
+          } else if (entry.status === 'corrected') {
+            setBadge('corrected', '↪ Korrigerad');
+            saveBtn.hidden = true;
+            signBtn.hidden = true;
+            corrBtn.hidden = true;
+            if (pdfBtn) pdfBtn.hidden = true;
+          } else {
+            setBadge('draft', '📝 Utkast');
+            saveBtn.hidden = false;
+            signBtn.hidden = false;
+            corrBtn.hidden = true;
+            if (pdfBtn) pdfBtn.hidden = true;
+          }
         }
 
-        // pill toggles (single-select per group)
-        document.querySelectorAll('.pillrow.tight').forEach(function (row) {
-          row.addEventListener('click', function (e) {
-            var p = e.target.closest('.pill');
-            if (!p) return;
-            row.querySelectorAll('.pill').forEach(function (x) {
-              x.setAttribute('aria-pressed', 'false');
-            });
-            p.setAttribute('aria-pressed', 'true');
-          });
-        });
+        async function generatePdf() {
+          if (!currentEntry?.entryId) return;
+          const pdfBtn = document.getElementById('journalPdfBtn');
+          if (pdfBtn) {
+            pdfBtn.disabled = true;
+            pdfBtn.textContent = '⏳ Genererar…';
+          }
+          try {
+            const url = `/api/v1/cco-journal-quick/entry/${encodeURIComponent(currentEntry.entryId)}/pdf?patientId=${encodeURIComponent(PATIENT_ID)}&tenantId=${encodeURIComponent(TENANT_ID)}`;
+            const r = await fetch(url, { headers: HEADERS });
+            if (!r.ok) {
+              const err = await r.json().catch(() => ({}));
+              throw new Error(err.error || 'HTTP ' + r.status);
+            }
+            const hash = r.headers.get('X-Journal-Tamper-Hash');
+            const blob = await r.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `journal-${currentEntry.entryId.substring(0, 12)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+            setBadge('locked', '🔒 PDF · hash ' + (hash || '').substring(0, 8) + '…');
+          } catch (e) {
+            setBadge('error', '⚠ ' + e.message);
+          } finally {
+            if (pdfBtn) {
+              pdfBtn.disabled = false;
+              pdfBtn.textContent = '📄 Generera PDF';
+            }
+          }
+        }
+        document.getElementById('journalPdfBtn')?.addEventListener('click', generatePdf);
 
-        var SECTIONS = [
-          {
-            h: 'Anledning',
-            p: 'Patienten kontaktade kliniken för att omboka PRP-behandling 2 av 3 i serien. Önskar tidigare slot.',
-          },
-          {
-            h: 'Bedömning',
-            p: 'Inga nya besvär eller biverkningar rapporterade. Patienten nöjd med tidigare resultat. Ingen kontraindikation för fortsatt serie.',
-          },
-          {
-            h: 'Åtgärd',
-            p: 'Föreslå fredagstider 09:00–12:00 med Dr. Eriksson. Bekräfta ny tid och uppdatera behandlingsplan i serien.',
-          },
-          {
-            h: 'Uppföljning',
-            p: 'Boka PRP 2/3, skicka bekräftelse och förbered kallelse till PRP 3/3 cirka 4 veckor senare.',
-          },
-        ];
-
-        var structEl = document.querySelector('[data-struct]');
-        var emptyEl = structEl.querySelector('[data-empty]');
-        var statusPill = document.querySelector('[data-status-pill]');
-        var saveBtn = document.querySelector('[data-save-draft]');
-        var signBtn = document.querySelector('[data-sign]');
-        var feedback = document.querySelector('[data-feedback]');
-        var aiBtn = document.querySelector('[data-ai-structure]');
-        var aiHint = document.querySelector('[data-ai-hint]');
-        var structured = false,
-          signed = false;
-
-        function fillPreview() {
-          structEl.innerHTML = '';
-          SECTIONS.forEach(function (s) {
-            var d = document.createElement('div');
-            d.className = 'struct-sec';
-            var h = document.createElement('h4');
-            h.textContent = s.h;
-            var p = document.createElement('p');
-            p.textContent = s.p;
-            d.appendChild(h);
-            d.appendChild(p);
-            structEl.appendChild(d);
-          });
-          // auto-select kategori + behandling som AI föreslår
-          var catRow = document.querySelectorAll('.pillrow.tight')[0];
-          var treatRow = document.querySelectorAll('.pillrow.tight')[1];
-          catRow.querySelectorAll('.pill').forEach(function (x) {
-            x.setAttribute('aria-pressed', 'false');
-          });
-          treatRow.querySelectorAll('.pill').forEach(function (x) {
-            x.setAttribute('aria-pressed', 'false');
-          });
-          catRow.querySelector('.pill').setAttribute('aria-pressed', 'true'); // Konversation
-          treatRow.querySelector('.pill').setAttribute('aria-pressed', 'true'); // PRP hår 2/3
-          structured = true;
-          signed = false;
-          statusPill.className = 'status-pill status-pill--draft';
-          statusPill.textContent = 'Utkast';
-          saveBtn.disabled = false;
-          signBtn.disabled = false; // signering möjlig först när utkastet finns
-          feedback.textContent = 'AI-utkast klart — granska innan signering.';
-          aiHint.textContent = 'Utkast ifyllt · granska och justera vid behov';
+        function getSelectedTags() {
+          return Array.from(document.querySelectorAll('.tag-pill.active'))
+            .map((p) => p.dataset.tag)
+            .filter(Boolean);
         }
 
-        aiBtn.addEventListener('click', function () {
-          aiBtn.disabled = true;
-          aiBtn.textContent = 'Strukturerar…';
-          setTimeout(function () {
-            fillPreview();
-            aiBtn.disabled = false;
-            aiBtn.textContent = '★ AI-strukturera om';
-          }, 420);
-        });
-
-        saveBtn.addEventListener('click', function () {
-          if (!structured) return;
-          feedback.textContent = 'Utkast sparat · status: draft (osignerat).';
-        });
-
-        signBtn.addEventListener('click', function () {
-          if (!structured) return;
-          signed = true;
-          statusPill.className = 'status-pill status-pill--signed';
-          statusPill.textContent = 'Signerad';
-          signBtn.disabled = true;
+        async function save() {
           saveBtn.disabled = true;
-          feedback.textContent = 'Journalpost signerad och låst (status: signed).';
+          setBadge('draft', '💾 Sparar…');
+          try {
+            const body = {
+              patientId: PATIENT_ID,
+              tenantId: TENANT_ID,
+              journalType: 'consultation_plan',
+              title: 'Anteckning från smart-anteckning · ' + new Date().toLocaleString('sv-SE'),
+              fields: { notes: editor.innerText.trim(), tags: getSelectedTags() },
+            };
+            if (currentEntry?.entryId) body.entryId = currentEntry.entryId;
+            const r = await fetch('/api/v1/cco-journal-quick/entry', {
+              method: 'PUT',
+              headers: HEADERS,
+              body: JSON.stringify(body),
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+            setState(data.entry);
+            if (window.CCOPolish?.pushUndo) {
+              window.CCOPolish.pushUndo({ label: 'Spara journal-draft', undo: () => {} });
+            }
+          } catch (e) {
+            setBadge('error', '⚠ ' + e.message);
+          } finally {
+            saveBtn.disabled = false;
+          }
+        }
+
+        async function sign() {
+          if (!currentEntry?.entryId) {
+            await save();
+            if (!currentEntry?.entryId) return;
+          }
+          if (
+            !confirm(
+              'Signera + lås journal-posten?\n\nEfter signering kan endast en rättelse-post läggas till. Originalet är immutable enligt Patientdatalagen 2008:355.'
+            )
+          )
+            return;
+          signBtn.disabled = true;
+          setBadge('signed', '✍ Signerar…');
+          try {
+            const r = await fetch('/api/v1/cco-journal-quick/entry/sign', {
+              method: 'POST',
+              headers: HEADERS,
+              body: JSON.stringify({
+                patientId: PATIENT_ID,
+                tenantId: TENANT_ID,
+                entryId: currentEntry.entryId,
+              }),
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+            setState(data.entry);
+          } catch (e) {
+            setBadge('error', '⚠ ' + e.message);
+          } finally {
+            signBtn.disabled = false;
+          }
+        }
+
+        async function correction() {
+          if (!currentEntry?.entryId) return;
+          const reason = prompt(
+            'Skapa rättelse-post.\n\nAnge anledning (minst 10 tecken — krävs för spårbarhet enligt PDL):'
+          );
+          if (!reason || reason.trim().length < 10) {
+            setBadge('error', '⚠ Reason måste vara minst 10 tecken');
+            setTimeout(() => setState(currentEntry), 2200);
+            return;
+          }
+          corrBtn.disabled = true;
+          setBadge('corrected', '↪ Skapar rättelse…');
+          try {
+            const r = await fetch('/api/v1/cco-journal-quick/entry/correction', {
+              method: 'POST',
+              headers: HEADERS,
+              body: JSON.stringify({
+                patientId: PATIENT_ID,
+                tenantId: TENANT_ID,
+                entryId: currentEntry.entryId,
+                reason: reason.trim(),
+                fields: { notes: editor.innerText.trim() },
+              }),
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+            setBadge('draft', '📝 Rättelse-utkast (ny entry, original kvar)');
+            currentEntry = data.correction;
+            saveBtn.hidden = false;
+            signBtn.hidden = false;
+            corrBtn.hidden = true;
+          } catch (e) {
+            setBadge('error', '⚠ ' + e.message);
+          } finally {
+            corrBtn.disabled = false;
+          }
+        }
+
+        saveBtn.addEventListener('click', save);
+        signBtn.addEventListener('click', sign);
+        corrBtn.addEventListener('click', correction);
+      })();
+
+      // Sprint F — AI extrahera fält från fri-text (explicit klick, inget auto-skick)
+      (function () {
+        const FIELD_LABELS = {
+          date: 'Datum',
+          treatments: 'Behandling',
+          norwoodStage: 'Norwood',
+          medications: 'Mediciner',
+          graftCount: 'Grafts',
+          donorDensity: 'Densitet (hår/cm²)',
+          allergies: 'Allergier',
+        };
+        const btn = document.getElementById('aiExtractBtn');
+        const editor = document.getElementById('noteEditor');
+        const result = document.getElementById('aiExtractResult');
+        const fieldsEl = document.getElementById('aerFields');
+        const suggestEl = document.getElementById('aerSuggest');
+        const confEl = document.getElementById('aerConf');
+        const closeBtn = document.getElementById('aerClose');
+        const applyBtn = document.getElementById('aerApply');
+        if (!btn || !editor || !result) return;
+
+        function renderResult(data) {
+          const fields = data.fields || {};
+          const entries = Object.entries(fields);
+          if (!entries.length) {
+            fieldsEl.innerHTML =
+              '<div class="aer-field"><div class="lbl">Inget hittades</div><div class="val">Skriv mer eller fyll i manuellt.</div></div>';
+          } else {
+            fieldsEl.innerHTML = entries
+              .map(([k, v]) => {
+                const val = Array.isArray(v) ? v.join(', ') : String(v);
+                return `<div class="aer-field"><div class="lbl">${FIELD_LABELS[k] || k}</div><div class="val">${val}</div></div>`;
+              })
+              .join('');
+          }
+          const pct = Math.round((data.confidence || 0) * 100);
+          confEl.textContent = pct + '% säkerhet';
+          confEl.classList.toggle('low', pct < 70);
+          const sugg = (data.suggestions || []).filter(Boolean);
+          if (sugg.length) {
+            suggestEl.hidden = false;
+            suggestEl.textContent = '★ Förslag: ' + sugg.map((s) => s.hint).join(' · ');
+          } else {
+            suggestEl.hidden = true;
+          }
+          applyBtn.disabled = entries.length === 0;
+          result.hidden = false;
+        }
+
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          const text = editor.innerText.trim();
+          if (!text) {
+            btn.disabled = false;
+            return;
+          }
+          try {
+            const r = await fetch('/api/v1/cco-ai/extract', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CCO-Role': 'konsult' },
+              body: JSON.stringify({ text }),
+            });
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            renderResult(await r.json());
+            if (window.CCOPolish?.pushUndo) {
+              window.CCOPolish.pushUndo({
+                label: 'AI extract',
+                undo: () => {
+                  result.hidden = true;
+                },
+              });
+            }
+          } catch (e) {
+            fieldsEl.innerHTML = `<div class="aer-field"><div class="lbl">Fel</div><div class="val">${e.message}</div></div>`;
+            result.hidden = false;
+          } finally {
+            btn.disabled = false;
+          }
+        });
+
+        closeBtn?.addEventListener('click', () => {
+          result.hidden = true;
+        });
+        applyBtn?.addEventListener('click', () => {
+          applyBtn.textContent = '✓ Tillämpat';
+          applyBtn.disabled = true;
+          setTimeout(() => {
+            applyBtn.textContent = 'Tillämpa på journal-formulär';
+            applyBtn.disabled = false;
+          }, 2000);
         });
       })();
     </script>
+
+    <script src="/cco-personal-demo-safe.js"></script>
   </body>
 </html>
