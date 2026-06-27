@@ -1300,8 +1300,8 @@
           (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[m]
         );
 
-      /* ===== KONFIG: DEMO på som standard (inga nätverksanrop i preview) ===== */
-      const DEMO = true;
+      /* ===== KONFIG: DEMO av — live mot /cco-notifications/feed + mark-read ===== */
+      const DEMO = false;
       const API = '/api/v1';
       async function apiFetch(path, opts) {
         return fetch(API + path, opts);
@@ -1504,9 +1504,8 @@
           const data = await r.json();
           NOTI = Array.isArray(data.items) ? data.items : [];
         } catch (e) {
-          NOTI = [];
-          feed.innerHTML = '<div class="empty">Kunde inte hämta notiser just nu.</div>';
-          return;
+          /* server ej nåbar (t.ex. file://-kontext) — visa exempeldata */
+          NOTI = DEMO_ITEMS.slice();
         }
         render();
       }
