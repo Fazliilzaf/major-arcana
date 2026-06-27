@@ -705,7 +705,7 @@
     },
     {
       "issue": "14-dagarsfel i samtycke_bokning_2d — ÅTGÄRDAT",
-      "detail": "Åtgärdat 2026-06-27: (1) HTML-titel rad 499 = '2 dagar', (2) betänketidtext rad 501 = '2 dagar', (3) avbokningsvillkor rad 518-529 = 2 kalenderdagar + 500 kr, (4) cco-signaturer-v3.html rad 1207 demo-data = '2 dagar'. Ångerrätt (14 dagar, Distansavtalslagen) hanteras korrekt i samtycke_angerratt.",
+      "detail": "Åtgärdat 2026-06-27: (1) HTML-titel rad 499 = '2 dagar', (2) betänketidtext rad 501 = '2 dagar', (3) avbokningsvillkor rad 518-529 = 2 kalenderdagar + 500 kr, (4) cco-signaturer-v3.html rad 1207 demo-data = '2 dagar', (5) hairtp-document-types.catalog.json rad 234 name = '2 dagar'. Ångerrätt (14 dagar, Distansavtalslagen) hanteras korrekt i samtycke_angerratt.",
       "affectedId": "samtycke_bokning_2d",
       "priority": "löst"
     },
