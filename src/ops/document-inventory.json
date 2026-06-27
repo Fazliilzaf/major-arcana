@@ -98,7 +98,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prp-hair-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prp-hair-final-demo.html"
@@ -109,7 +109,7 @@
       "flowApplies": ["prp_hair"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
       "notes": "14-dagarstext rad ~601 = avbokningsvillkor (granskas). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal). Ändras ej utan beslut.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Kräver owner-bekräftelse."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "offert_prp_skin",
@@ -119,7 +119,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prp-skin-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prp-skin-final-demo.html"
@@ -130,7 +130,7 @@
       "flowApplies": ["prp_skin"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
       "notes": "Samma 14-dagarsstruktur som offert_prp_hair. Rad ~601 = avbokning, rad ~630,675,679 = ångerrätt.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "offert_microneedling",
@@ -140,7 +140,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-microneedling-final-demo.html",
         "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html"
@@ -151,7 +151,7 @@
       "flowApplies": ["microneedling"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
       "notes": "Rad ~663 = ångerrätt Distansavtalslagen. Rad ~710,714 = ångerfristen. Avbokningsvillkor saknas i denna fil — verifiera.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "offert_prf",
@@ -161,7 +161,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prf-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prf-final-demo.html"
@@ -172,7 +172,7 @@
       "flowApplies": ["prf"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
       "notes": "Rad ~661 = ångerrätt Distansavtalslagen (korrekt vid distansavtal). Rad ~708,712 = ångerfristen.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "offert_profilo",
@@ -182,7 +182,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-profilo-final-demo.html",
         "public/major-arcana-preview/steg7-offert-profilo-final-demo.html"
@@ -193,7 +193,7 @@
       "flowApplies": ["profhilo"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
       "notes": "Rad ~661 = ångerrätt Distansavtalslagen. Rad ~708,712 = ångerfristen. Clinic: curatiio.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "samtycke_bokning_2d",
@@ -203,16 +203,16 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": ["public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html",
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["all"],
-      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_FEL", "14_DAG_AVBOKNING"],
+      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_FEL"],
       "notes": "FEL I NAMN: Katalog (hairtp-document-types.catalog.json rad 234) anger '14 dagar' i name-fältet. HTML-titel (steg6-betanketid-samtycke-final-demo.html rad 499) anger 'inom 14 dagar'. Katalog-ID och lag anger 2 dagar (48 h betänketid). Dessutom: cco-signaturer-v3.html rad 1207 visar '14 dagar' i demo-data. Rad 518/522 i HTML = avbokningsvillkor 14 dagar — separat granskning. ÄNDRAS EJ UTAN BESLUT.",
       "specialFlag": "SAMTYCKE_BOKNING_2_DAGAR",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Kräver owner-bekräftelse. ⚠ FEL i 14-dagarstexter (se notes)."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad. ⚠ FEL i 14-dagarstexter (se notes)."
     },
     {
       "catalogId": "samtycke_angerratt",
@@ -222,7 +222,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": ["public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html",
       "formProvider": "meridiq_g4",
@@ -230,7 +230,7 @@
       "flowApplies": ["all"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "DELAD_FIL"],
       "notes": "Delar HTML-fil med samtycke_bokning_2d. Ångerrätt-texten (rad 548,552) anger 14 dagar — korrekt vid distansavtal. Gäller: patienten begär att behandling påbörjas under ångerfristen och avsäger sig återstående frist.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source ej angiven separat — delar HTML-fil med samtycke_bokning_2d (DELAD_FIL). Ingen namngiven extern källa. Kräver owner-bekräftelse."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source ej angiven separat — delar HTML-fil med samtycke_bokning_2d (DELAD_FIL). Ingen namngiven extern källa. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "prp_hair_info_sve",
@@ -525,7 +525,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": ["public/major-arcana-preview/steg2-auto-bokningsbekraftelse-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/steg2-auto-bokningsbekraftelse-final-demo.html",
       "formProvider": "sms_template",
@@ -533,7 +533,7 @@
       "flowApplies": ["all"],
       "legalFlags": [],
       "notes": "Automatisk bekräftelse vid bokning. Skickas via SMS och/eller e-post.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" (templateId: booking_confirmation_hair_tp). Klinikens egna text synkad via facit. Ingen namngiven extern källa. Kräver owner-bekräftelse."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" (templateId: booking_confirmation_hair_tp). Klinikens egna text synkad via facit. Ingen namngiven extern källa. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "auto_bokningspaminnelse",
@@ -543,7 +543,7 @@
       "action": "skickas",
       "filler": "system_auto",
       "sourceCanonical": "repo",
-      "contentSource": "okänd",
+      "contentSource": "klinik",
       "repoFiles": ["public/major-arcana-preview/auto-bokningspaminnelse-final-demo.html"],
       "canonicalFile": "public/major-arcana-preview/auto-bokningspaminnelse-final-demo.html",
       "formProvider": "sms_template",
@@ -551,7 +551,7 @@
       "flowApplies": ["all"],
       "legalFlags": [],
       "notes": "Automatisk påminnelse innan bokad tid. Tidpunkt för utskick konfigureras per klinik.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" (templateId: booking_reminder_24h). Klinikens egna text synkad via facit. Ingen namngiven extern källa. Kräver owner-bekräftelse."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" (templateId: booking_reminder_24h). Klinikens egna text synkad via facit. Ingen namngiven extern källa. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "auto_avbokningsbekraftelse",
@@ -741,6 +741,7 @@
     "Nordbro": "Innehåll från Nordbro (t.ex. Medical Finance).",
     "Insatt": "Innehåll från Insatt-plattformen.",
     "repo": "Innehåll skapat och ägt i repo / in-house.",
-    "okänd": "Innehållskällan är ej bekräftad — kräver utredning."
+    "okänd": "Innehållskällan är ej bekräftad — kräver utredning.",
+    "klinik": "Klinikens egen text via owner-sync (facit). Extern leverantörsplattform ej bekräftad."
   }
 }
