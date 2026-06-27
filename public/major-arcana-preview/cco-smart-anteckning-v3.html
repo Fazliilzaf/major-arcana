@@ -84,19 +84,6 @@
         color: var(--accent-studio);
         font-weight: 700;
       }
-      .top-nav a.is-demo::after {
-        content: 'demo';
-        font-size: 8px;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        background: rgba(200, 130, 30, 0.14);
-        color: #a07010;
-        padding: 1px 5px;
-        border-radius: 4px;
-        margin-left: 4px;
-        vertical-align: 2px;
-      }
 
       .app-grid {
         display: grid;
@@ -810,21 +797,91 @@
         color: var(--cco-text-tertiary);
         margin-top: 1px;
       }
+
+      /* CCO nav flyout */
+      .cco-nav-trigger {
+        position: relative;
+        cursor: default;
+      }
+      .cco-nav-flyout {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 200;
+        display: none;
+        min-width: 180px;
+        padding: 6px;
+        background: #fff;
+        border: 1px solid rgba(132, 117, 107, 0.18);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(93, 74, 60, 0.12);
+      }
+      .cco-nav-trigger:hover .cco-nav-flyout,
+      .cco-nav-trigger:focus-within .cco-nav-flyout {
+        display: block;
+      }
+      .cco-nav-flyout a {
+        display: block;
+        padding: 7px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        color: #2b251f;
+        text-decoration: none;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .cco-nav-flyout a:hover {
+        background: rgba(132, 117, 107, 0.08);
+      }
+      .cco-nav-flyout a.is-current {
+        background: linear-gradient(180deg, rgba(252, 233, 240, 0.98), rgba(241, 207, 220, 0.95));
+        color: #bb4779;
+      }
+      .cco-nav-flyout a.is-demo::after {
+        content: 'demo';
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        background: rgba(200, 130, 30, 0.14);
+        color: #a07010;
+        padding: 1px 5px;
+        border-radius: 4px;
+        margin-left: 4px;
+        vertical-align: 2px;
+      }
     </style>
     <link rel="stylesheet" href="/cco-polish.css" />
     <script src="/cco-polish.js" defer></script>
   </head>
   <body data-stage="beta">
     <div class="top-nav">
-      <span class="brand">CCO</span>
-      <a href="/major-arcana-preview/cco-svarstudio-v3.html">Svarstudio</a>
-      <a href="/major-arcana-preview/cco-makron-v3.html">Makron</a>
-      <a href="/major-arcana-preview/cco-senare-v3.html">Senare</a>
-      <a href="/major-arcana-preview/cco-skickat-v3.html">Skickat</a>
-      <a href="/major-arcana-preview/cco-notiser-v3.html">Notiser</a>
-      <a href="/major-arcana-preview/cco-smart-anteckning-v3.html" class="active">Anteckningar</a>
-      <a href="/major-arcana-preview/cco-dokument-v1.html">Dokument</a>
-      <a href="/major-arcana-preview/cco-no-show-ai-v3.html" class="is-demo">No-show AI</a>
+      <span class="brand cco-nav-trigger" tabindex="0"
+        >CCO<span class="cco-nav-flyout"
+          ><a href="/major-arcana-preview/cco-svarstudio-v3.html">Svarstudio</a
+          ><a href="/major-arcana-preview/cco-makron-v3.html">Makron</a
+          ><a href="/major-arcana-preview/cco-senare-v3.html">Senare</a
+          ><a href="/major-arcana-preview/cco-skickat-v3.html">Skickat</a
+          ><a href="/major-arcana-preview/cco-notiser-v3.html">Notiser</a
+          ><a href="/major-arcana-preview/cco-smart-anteckning-v3.html" class="is-current"
+            >Anteckningar</a
+          ><a href="/major-arcana-preview/cco-dokument-v1.html">Dokument</a
+          ><a href="/major-arcana-preview/cco-no-show-ai-v3.html" class="is-demo"
+            >No-show AI</a
+          ></span
+        ></span
+      >
+      <a href="/kalender.html">Kalender</a>
+      <a href="/kunder.html">Kunder</a>
+      <a href="/konversationer.html">Konversationer</a>
+      <a href="/smart-anteckning.html" class="active">Anteckningar</a>
+      <a href="/analytics.html">Analytics</a>
+      <a href="#">Mer</a>
     </div>
 
     <div class="app-grid">

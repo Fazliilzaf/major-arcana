@@ -991,43 +991,52 @@
         background: var(--success-bg);
         color: var(--success);
       }
-      /* CCO unified navigation */
-      .cco-top-nav {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 8px 16px 6px;
+
+      /* CCO nav flyout */
+      .cco-nav-trigger {
+        position: relative;
+        cursor: default;
+      }
+      .cco-nav-flyout {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 200;
+        display: none;
+        min-width: 180px;
+        padding: 6px;
+        background: #fff;
+        border: 1px solid rgba(132, 117, 107, 0.18);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(93, 74, 60, 0.12);
+      }
+      .cco-nav-trigger:hover .cco-nav-flyout,
+      .cco-nav-trigger:focus-within .cco-nav-flyout {
+        display: block;
+      }
+      .cco-nav-flyout a {
+        display: block;
+        padding: 7px 12px;
+        border-radius: 8px;
+        font-size: 12px;
         font-family:
           Inter,
           -apple-system,
           system-ui,
           sans-serif;
-        font-size: 12px;
-        color: #8a8174;
-        flex-wrap: wrap;
-      }
-      .cco-top-nav .brand {
-        font-weight: 800;
         color: #2b251f;
-        letter-spacing: 0.06em;
-        font-size: 13px;
-        margin-right: 8px;
-      }
-      .cco-top-nav a {
-        color: inherit;
         text-decoration: none;
-        padding: 5px 11px;
-        border-radius: 999px;
+        font-weight: 600;
+        white-space: nowrap;
       }
-      .cco-top-nav a:hover {
-        background: rgba(132, 117, 107, 0.1);
+      .cco-nav-flyout a:hover {
+        background: rgba(132, 117, 107, 0.08);
       }
-      .cco-top-nav a.active {
+      .cco-nav-flyout a.is-current {
         background: linear-gradient(180deg, rgba(252, 233, 240, 0.98), rgba(241, 207, 220, 0.95));
         color: #bb4779;
-        font-weight: 700;
       }
-      .cco-top-nav a.is-demo::after {
+      .cco-nav-flyout a.is-demo::after {
         content: 'demo';
         font-size: 8px;
         font-weight: 800;
@@ -1043,21 +1052,23 @@
     </style>
   </head>
   <body>
-    <nav class="cco-top-nav">
-      <span class="brand">CCO</span>
-      <a href="/major-arcana-preview/cco-svarstudio-v3.html">Svarstudio</a>
-      <a href="/major-arcana-preview/cco-makron-v3.html" class="active">Makron</a>
-      <a href="/major-arcana-preview/cco-senare-v3.html">Senare</a>
-      <a href="/major-arcana-preview/cco-skickat-v3.html">Skickat</a>
-      <a href="/major-arcana-preview/cco-notiser-v3.html">Notiser</a>
-      <a href="/major-arcana-preview/cco-smart-anteckning-v3.html">Anteckningar</a>
-      <a href="/major-arcana-preview/cco-dokument-v1.html">Dokument</a>
-      <a href="/major-arcana-preview/cco-no-show-ai-v3.html" class="is-demo">No-show AI</a>
-    </nav>
     <div class="aux">
       <!-- ===== TOPBAR ===== -->
       <div class="topbar">
-        <span class="brand">CCO</span>
+        <span class="brand cco-nav-trigger" tabindex="0"
+          >CCO<span class="cco-nav-flyout"
+            ><a href="/major-arcana-preview/cco-svarstudio-v3.html">Svarstudio</a
+            ><a href="/major-arcana-preview/cco-makron-v3.html" class="is-current">Makron</a
+            ><a href="/major-arcana-preview/cco-senare-v3.html">Senare</a
+            ><a href="/major-arcana-preview/cco-skickat-v3.html">Skickat</a
+            ><a href="/major-arcana-preview/cco-notiser-v3.html">Notiser</a
+            ><a href="/major-arcana-preview/cco-smart-anteckning-v3.html">Anteckningar</a
+            ><a href="/major-arcana-preview/cco-dokument-v1.html">Dokument</a
+            ><a href="/major-arcana-preview/cco-no-show-ai-v3.html" class="is-demo"
+              >No-show AI</a
+            ></span
+          ></span
+        >
         <label class="search"
           ><svg
             viewBox="0 0 24 24"
