@@ -84,6 +84,19 @@
         color: var(--accent-studio);
         font-weight: 700;
       }
+      .top-nav a.is-demo::after {
+        content: 'demo';
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        background: rgba(200, 130, 30, 0.14);
+        color: #a07010;
+        padding: 1px 5px;
+        border-radius: 4px;
+        margin-left: 4px;
+        vertical-align: 2px;
+      }
 
       .app-grid {
         display: grid;
@@ -804,12 +817,14 @@
   <body data-stage="beta">
     <div class="top-nav">
       <span class="brand">CCO</span>
-      <a href="/kalender.html">Kalender</a>
-      <a href="/kunder.html">Kunder</a>
-      <a href="/konversationer.html">Konversationer</a>
-      <a href="/smart-anteckning.html" class="active">Anteckningar</a>
-      <a href="/analytics.html">Analytics</a>
-      <a href="#">Mer</a>
+      <a href="/major-arcana-preview/cco-svarstudio-v3.html">Svarstudio</a>
+      <a href="/major-arcana-preview/cco-makron-v3.html">Makron</a>
+      <a href="/major-arcana-preview/cco-senare-v3.html">Senare</a>
+      <a href="/major-arcana-preview/cco-skickat-v3.html">Skickat</a>
+      <a href="/major-arcana-preview/cco-notiser-v3.html">Notiser</a>
+      <a href="/major-arcana-preview/cco-smart-anteckning-v3.html" class="active">Anteckningar</a>
+      <a href="/major-arcana-preview/cco-dokument-v1.html">Dokument</a>
+      <a href="/major-arcana-preview/cco-no-show-ai-v3.html" class="is-demo">No-show AI</a>
     </div>
 
     <div class="app-grid">
