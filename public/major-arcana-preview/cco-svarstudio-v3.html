@@ -1197,6 +1197,53 @@
         width: 1rem;
         height: 1rem;
       }
+      #macroWrap {
+        position: relative;
+      }
+      .macro-picker-panel {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        z-index: 20;
+        background: var(--surface);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        border-radius: var(--r-md);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        min-width: 220px;
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 0.3rem 0;
+      }
+      .mpick-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.8rem;
+        font-size: var(--fs-meta);
+      }
+      .mpick-item:hover {
+        background: var(--accent-weak);
+      }
+      .mpick-name {
+        flex: 1;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .mpick-run {
+        border: 1px solid rgba(176, 53, 110, 0.3);
+        border-radius: var(--r-pill);
+        background: none;
+        color: var(--accent);
+        font-size: var(--fs-meta);
+        padding: 0.2rem 0.55rem;
+        cursor: pointer;
+      }
+      .mpick-empty {
+        padding: 0.8rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+        text-align: center;
+      }
       .actions {
         display: flex;
         gap: 0.4rem;
@@ -1857,6 +1904,27 @@
                   /></svg
                 >Extra trygghetsrad
               </button>
+              <div id="macroWrap">
+                <button class="tool-btn" id="toolMacro">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  >
+                    <rect x="3" y="3" width="8" height="8" rx="1" />
+                    <rect x="13" y="3" width="8" height="8" rx="1" />
+                    <rect x="3" y="13" width="8" height="8" rx="1" />
+                    <path d="M13 17h8M17 13v8" /></svg
+                  >Kör makro
+                </button>
+                <div id="macroPickerPanel" class="macro-picker-panel" hidden>
+                  <div id="macroPickerList">
+                    <div class="mpick-empty">Laddar…</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="notice notice--block" id="sendNotice"></div>
@@ -2101,7 +2169,7 @@
    ========================================================================= */
       'use strict';
       const API = '/api/v1';
-      let DEMO = true; // default ON; flippa för att träffa riktiga endpoints
+      let DEMO = false; // live mode; fallback mock-data vid API-fel
       const esc = (s) =>
         String(s == null ? '' : s).replace(
           /[&<>"]/g,
@@ -2550,6 +2618,65 @@
         setEditor($('editor').value.replace(sig(), '') + GIFT + sig());
       });
       $('toolNote').addEventListener('click', openNoteFlow);
+
+      // ===== MAKROVAL I SVARSTUDIO =====
+      let _mPickCache = null;
+      async function fetchPickerMacros() {
+        if (_mPickCache) return _mPickCache;
+        try {
+          const r = await apiFetch('/cco/macros');
+          const d = r.ok ? await r.json() : {};
+          _mPickCache = (d && d.macros) || [];
+        } catch {
+          _mPickCache = [];
+        }
+        return _mPickCache;
+      }
+      function renderMacroPickerList(macros) {
+        const el = $('macroPickerList');
+        if (!macros.length) {
+          el.innerHTML = '<div class="mpick-empty">Inga makron hittades.</div>';
+          return;
+        }
+        el.innerHTML = macros
+          .map(
+            (m) =>
+              `<div class="mpick-item"><span class="mpick-name">${esc(m.name)}</span><button class="mpick-run" data-mid="${esc(m.id)}" data-mname="${esc(m.name)}">Kör</button></div>`
+          )
+          .join('');
+      }
+      $('toolMacro').addEventListener('click', async () => {
+        const panel = $('macroPickerPanel');
+        const opening = panel.hidden;
+        panel.hidden = !opening;
+        if (opening) {
+          $('macroPickerList').innerHTML = '<div class="mpick-empty">Laddar…</div>';
+          renderMacroPickerList(await fetchPickerMacros());
+        }
+      });
+      $('macroPickerList').addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-mid]');
+        if (!b) return;
+        $('macroPickerPanel').hidden = true;
+        markTool('macro');
+        if (!DEMO) {
+          try {
+            await apiFetch(`/cco/macros/${encodeURIComponent(b.dataset.mid)}/run`, {
+              method: 'POST',
+            });
+          } catch {}
+        }
+        flashNotice('sendNotice', 'notice--ok', `Makro "${b.dataset.mname}" kördes.`);
+      });
+      document.addEventListener(
+        'click',
+        (e) => {
+          const wrap = $('macroWrap');
+          if (wrap && !wrap.contains(e.target)) $('macroPickerPanel').hidden = true;
+        },
+        true
+      );
+
       $('ctxToggle').addEventListener('click', () => $('ctxCol').classList.toggle('is-collapsed'));
       $('studioExpand').addEventListener('click', () =>
         $('studioOverlay').classList.toggle('expanded')
