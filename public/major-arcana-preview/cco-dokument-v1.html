@@ -496,6 +496,37 @@
       .doc-link:hover {
         text-decoration: underline;
       }
+      .doc-live-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 5px;
+      }
+      .doc-live-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 7px;
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border: 1px solid rgba(132, 117, 107, 0.16);
+        background: rgba(132, 117, 107, 0.07);
+        color: var(--cco-text-secondary);
+      }
+      .doc-live-pill.is-ready {
+        background: rgba(84, 139, 106, 0.12);
+        border-color: rgba(84, 139, 106, 0.22);
+        color: var(--accent-booking);
+      }
+      .doc-live-pill.is-missing {
+        background: var(--cco-status-warning-bg);
+        border-color: rgba(163, 112, 44, 0.2);
+        color: var(--cco-status-warning);
+      }
 
       /* DETAIL PANEL */
       #detailOverlay {
@@ -684,6 +715,29 @@
       .dp-file-link:hover {
         background: rgba(187, 71, 121, 0.14);
       }
+      .dp-live-box {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(84, 139, 106, 0.08);
+        border: 1px solid rgba(84, 139, 106, 0.18);
+      }
+      .dp-live-box.is-missing {
+        background: rgba(132, 117, 107, 0.07);
+        border-color: rgba(132, 117, 107, 0.16);
+      }
+      .dp-live-title {
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--cco-color-brand);
+      }
+      .dp-live-meta {
+        font-size: 10.5px;
+        line-height: 1.4;
+        color: var(--cco-text-secondary);
+      }
       .dp-file-link-inline {
         font-size: 11px;
         font-weight: 700;
@@ -860,7 +914,8 @@
           <h1>Dokumentöversikt</h1>
           <p class="subtitle">
             Inventarium av 36 dokument — kategori, källa, juridiska flaggor och koppling till
-            kundresan. Ingen live-signering. Ingen textändring utan separat beslut.
+            kundresan. Live-dokument öppnas från backend-manifestet. Ingen live-signering. Ingen
+            textändring utan separat beslut.
           </p>
         </div>
         <span class="readonly-badge">🔒 Läs-/översiktsläge</span>
@@ -868,16 +923,11 @@
 
       <!-- GAPS BANNER -->
       <div class="gaps-banner" id="gapsBanner">
-        <div class="gaps-banner-head">⚠ Identifierade riskpunkter — kräver beslut</div>
-        <div class="gap-item">
-          <span class="gap-prio kritisk">Kritisk</span
-          ><strong>14-dagarsfel i samtycke_bokning_2d</strong> — tre platser anger "14 dagar" där
-          betänketid är 2 dagar (48 h). Ändras ej utan beslut.
-        </div>
+        <div class="gaps-banner-head">⚠ Aktiva riskpunkter — kräver beslut</div>
         <div class="gap-item">
           <span class="gap-prio hög">Hög</span
-          ><strong>steg7-offert-tp-final-demo.html saknas</strong> i repo — steg7-v6-kundkort
-          bekräftas ej som canonical.
+          ><strong>TP-avtal kräver granskning vid aktivering</strong> — Nordbro/Curatiio-policy med
+          14 dagars avbokning behålls oförändrad tills TP-flödet produktionssätts.
         </div>
         <div class="gap-item">
           <span class="gap-prio hög">Hög</span><strong>auto_medical_finance källa okänd</strong> —
@@ -1607,12 +1657,92 @@
       };
 
       const DOCS_MAP = Object.fromEntries(DOCS.map((d) => [d.id, d]));
+      const LIVE_MANIFEST_ENDPOINT = '/api/v1/cco/patient-documents/live/manifest';
+      let liveManifestById = new Map();
+      let liveManifestLoaded = false;
+      let liveManifestFailed = false;
+      let activeDetailDoc = null;
 
       function esc(s) {
         return String(s || '').replace(
           /[&<>"']/g,
           (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
         );
+      }
+
+      function getLiveRow(doc) {
+        return liveManifestById.get(doc.id) || null;
+      }
+
+      function renderLivePill(doc) {
+        const row = getLiveRow(doc);
+        if (row?.exists) {
+          const audience = row.audience === 'staff' ? 'Personal' : 'Patient';
+          return `<span class="doc-live-pill is-ready">Live · ${esc(audience)}</span>`;
+        }
+        if (liveManifestLoaded) {
+          return '<span class="doc-live-pill is-missing">Saknar live</span>';
+        }
+        if (liveManifestFailed) {
+          return '<span class="doc-live-pill is-missing">Live okänd</span>';
+        }
+        return '<span class="doc-live-pill">Live hämtas</span>';
+      }
+
+      function renderLiveDetail(doc) {
+        const row = getLiveRow(doc);
+        if (row?.exists) {
+          const audience = row.audience === 'staff' ? 'Personaldokument' : 'Patientdokument';
+          return (
+            '<div class="dp-section-label">Live-dokument</div>' +
+            '<div class="dp-live-box">' +
+            `<div class="dp-live-title">${esc(audience)} · klart att öppna</div>` +
+            `<a class="dp-file-link" href="${esc(row.livePath)}" target="_blank" rel="noopener">↗ Öppna live-dokument</a>` +
+            `<div class="dp-live-meta">Registry: <span class="dp-meta-id">${esc(row.registryId)}</span><br>HTML: ${esc(row.htmlFile || 'okänd')}</div>` +
+            '</div>'
+          );
+        }
+        if (liveManifestLoaded) {
+          return (
+            '<div class="dp-section-label">Live-dokument</div>' +
+            '<div class="dp-live-box is-missing">' +
+            '<div class="dp-live-title">Saknar live-koppling</div>' +
+            '<div class="dp-live-meta">Dokumentet finns i katalogen men backend-manifestet exponerar ingen färdig livefil.</div>' +
+            '</div>'
+          );
+        }
+        const message = liveManifestFailed
+          ? 'Manifestet kunde inte hämtas just nu.'
+          : 'Manifestet hämtas från backend.';
+        return (
+          '<div class="dp-section-label">Live-dokument</div>' +
+          '<div class="dp-live-box is-missing">' +
+          '<div class="dp-live-title">Live-status väntar</div>' +
+          `<div class="dp-live-meta">${esc(message)}</div>` +
+          '</div>'
+        );
+      }
+
+      async function loadLiveManifest() {
+        try {
+          const res = await fetch(LIVE_MANIFEST_ENDPOINT, {
+            headers: { Accept: 'application/json' },
+          });
+          if (!res.ok) throw new Error(`Manifest ${res.status}`);
+          const payload = await res.json();
+          liveManifestById = new Map(
+            (payload.documents || []).map((row) => [row.registryId, row])
+          );
+          liveManifestLoaded = true;
+          liveManifestFailed = false;
+        } catch (err) {
+          liveManifestById = new Map();
+          liveManifestLoaded = false;
+          liveManifestFailed = true;
+          console.warn('[cco-dokument] kunde inte hämta live-manifest', err);
+        }
+        update();
+        if (activeDetailDoc) openDetail(activeDetailDoc);
       }
 
       function renderDocs(docs) {
@@ -1646,7 +1776,7 @@
           <span class="chip chip-step">Steg ${esc(d.step)}</span>
           <span class="chip chip-lang">${esc(d.lang)}</span>
         </div>
-        ${fileLink}
+        <div class="doc-live-row">${fileLink}${renderLivePill(d)}</div>
       </div>
       <div class="doc-flags">${flags}</div>
     </div>`;
@@ -1663,6 +1793,7 @@
       }
 
       function openDetail(doc) {
+        activeDetailDoc = doc;
         const panel = document.getElementById('detailPanel');
         const overlay = document.getElementById('detailOverlay');
 
@@ -1714,7 +1845,8 @@
           '<div class="dp-section-label">Källinformation</div>' +
           filRow +
           `<div class="dp-meta-row"><span class="dp-meta-key">Innehållskälla</span><span class="dp-meta-val${contentSrcCls}">${esc(contentSrcLabel)}</span></div>` +
-          `<div class="dp-meta-row"><span class="dp-meta-key">Canonical live-källa</span><span class="dp-meta-val">${esc(SRC_LABELS[doc.src] || doc.src)}</span></div>`;
+          `<div class="dp-meta-row"><span class="dp-meta-key">Canonical live-källa</span><span class="dp-meta-val">${esc(SRC_LABELS[doc.src] || doc.src)}</span></div>` +
+          renderLiveDetail(doc);
 
         const notesEl = document.getElementById('dpNotes');
         if (doc.notes) {
@@ -1731,6 +1863,7 @@
       }
 
       function closeDetail() {
+        activeDetailDoc = null;
         const panel = document.getElementById('detailPanel');
         const overlay = document.getElementById('detailOverlay');
         panel.style.display = 'none';
@@ -1794,6 +1927,7 @@
 
       renderSummary();
       update();
+      loadLiveManifest();
     </script>
   </body>
 </html>
