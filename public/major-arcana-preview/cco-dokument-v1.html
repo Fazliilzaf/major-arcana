@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CCO · Dokumentöversikt</title>
+    <style>
+      :root {
+        --cco-bg-page: #faf6f2;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+        --cco-status-danger: #b94a4a;
+        --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
+        --accent-studio: #bb4779;
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+        --violet: #7c3aed;
+        --violet-bg: rgba(124, 58, 237, 0.12);
+        --slate: #475569;
+        --slate-bg: rgba(71, 85, 105, 0.12);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+        min-height: 100vh;
+        padding: 14px 16px 40px;
+      }
+
+      .top-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 4px 14px;
+        color: var(--cco-text-tertiary);
+        font-size: 12px;
+        max-width: 1240px;
+        margin: 0 auto;
+      }
+      .top-nav .brand {
+        font-weight: 800;
+        color: var(--cco-color-brand);
+        letter-spacing: 0.06em;
+        font-size: 13px;
+      }
+      .top-nav a {
+        color: inherit;
+        text-decoration: none;
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      .top-nav a.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        font-weight: 700;
+      }
+
+      .wrap {
+        max-width: 1240px;
+        margin: 0 auto;
+      }
+
+      /* HEAD */
+      .head {
+        padding: 2px 0 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .kicker-mark {
+        width: 20px;
+        height: 20px;
+        border-radius: 7px;
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 9px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        margin: 0;
+        font-size: 12.5px;
+        color: var(--cco-text-secondary);
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .readonly-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: var(--slate-bg);
+        color: var(--slate);
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border: 1px solid rgba(71, 85, 105, 0.2);
+      }
+
+      /* TOOLBAR */
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: 0 8px 20px rgba(93, 74, 60, 0.06);
+        margin-bottom: 14px;
+      }
+      .toolbar label {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--cco-text-tertiary);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+      .toolbar select,
+      .toolbar input {
+        padding: 5px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(132, 117, 107, 0.22);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--cco-color-brand);
+        font-family: inherit;
+        outline: none;
+      }
+      .toolbar input {
+        min-width: 180px;
+      }
+      .sep {
+        flex: 1;
+      }
+
+      /* SUMMARY PILLS */
+      .summary {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .sum-pill {
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: opacity 0.12s;
+      }
+      .sum-pill:hover {
+        opacity: 0.8;
+      }
+      .sum-all {
+        background: rgba(43, 37, 31, 0.1);
+        color: var(--cco-color-brand);
+        border-color: rgba(43, 37, 31, 0.15);
+      }
+      .sum-kundformular {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .sum-signeringsunderlag {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .sum-personalformular {
+        background: var(--slate-bg);
+        color: var(--slate);
+      }
+      .sum-journalmall {
+        background: var(--violet-bg);
+        color: var(--violet);
+      }
+      .sum-info {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .sum-epost_sms {
+        background: rgba(132, 117, 107, 0.14);
+        color: var(--cco-text-secondary);
+      }
+
+      /* GAPS BANNER */
+      .gaps-banner {
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: var(--cco-status-danger-bg);
+        border-left: 4px solid var(--cco-status-danger);
+        margin-bottom: 14px;
+      }
+      .gaps-banner-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--cco-status-danger);
+        margin-bottom: 8px;
+      }
+      .gap-item {
+        font-size: 11px;
+        color: var(--cco-color-brand);
+        line-height: 1.5;
+        padding: 4px 0;
+        border-bottom: 1px solid rgba(185, 74, 74, 0.1);
+      }
+      .gap-item:last-child {
+        border-bottom: 0;
+      }
+      .gap-prio {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-right: 6px;
+      }
+      .gap-prio.kritisk {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
+      .gap-prio.hög {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .gap-prio.medel {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+
+      /* DOC LIST */
+      .doc-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .doc-item {
+        position: relative;
+        padding: 10px 14px 10px 18px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.62));
+        border: 1px solid rgba(180, 165, 150, 0.22);
+        box-shadow: 0 2px 8px rgba(56, 40, 28, 0.04);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 12px;
+        align-items: start;
+        transition:
+          box-shadow 0.12s,
+          transform 0.1s;
+        cursor: pointer;
+      }
+      .doc-item:hover {
+        box-shadow: 0 6px 18px rgba(56, 40, 28, 0.08);
+        transform: translateY(-1px);
+      }
+      .doc-item::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 12px;
+        bottom: 12px;
+        width: 3px;
+        border-radius: 2px;
+      }
+      .doc-item[data-cat='kundformular']::before {
+        background: var(--cco-status-info);
+      }
+      .doc-item[data-cat='signeringsunderlag']::before {
+        background: var(--cco-status-warning);
+      }
+      .doc-item[data-cat='personalformular']::before {
+        background: var(--slate);
+      }
+      .doc-item[data-cat='journalmall']::before {
+        background: var(--violet);
+      }
+      .doc-item[data-cat='info']::before {
+        background: var(--cco-status-success);
+      }
+      .doc-item[data-cat='epost_sms']::before {
+        background: var(--cco-text-tertiary);
+      }
+      .doc-item.hidden {
+        display: none;
+      }
+
+      .doc-main {
+      }
+      .doc-name {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--cco-color-brand);
+        margin-bottom: 4px;
+      }
+      .doc-chips {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .chip {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .chip-cat.kundformular {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .chip-cat.signeringsunderlag {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .chip-cat.personalformular {
+        background: var(--slate-bg);
+        color: var(--slate);
+      }
+      .chip-cat.journalmall {
+        background: var(--violet-bg);
+        color: var(--violet);
+      }
+      .chip-cat.info {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .chip-cat.epost_sms {
+        background: rgba(132, 117, 107, 0.14);
+        color: var(--cco-text-secondary);
+      }
+      .chip-act.fylls_i {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .chip-act.signeras {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .chip-act.skickas {
+        background: var(--slate-bg);
+        color: var(--slate);
+      }
+      .chip-act.visas {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .chip-src.repo {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .chip-src.meridiq,
+      .chip-src.Meridiq {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .chip-src.saknas_kalla {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
+      .chip-src.nordbro,
+      .chip-src.Nordbro {
+        background: var(--slate-bg);
+        color: var(--slate);
+      }
+      .chip-step {
+        background: rgba(43, 37, 31, 0.08);
+        color: var(--cco-text-secondary);
+      }
+      .chip-lang {
+        background: rgba(43, 37, 31, 0.06);
+        color: var(--cco-text-tertiary);
+      }
+
+      .doc-flags {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        align-items: flex-end;
+        flex-shrink: 0;
+      }
+      .flag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .flag.PATIENTDATA {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
+      .flag.GDPR {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .flag.GRANSKNINGSKRAV {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .flag.14_DAG_FEL {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+        border: 1px solid rgba(185, 74, 74, 0.4);
+      }
+      .flag.14_DAG_ANGERATT {
+        background: rgba(74, 123, 168, 0.1);
+        color: var(--cco-status-info);
+      }
+      .flag.14_DAG_AVBOKNING {
+        background: rgba(74, 123, 168, 0.1);
+        color: var(--cco-status-info);
+      }
+      .flag.SAKNAS_FIL {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
+      .flag.SAKNAS_KALLA {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
+      .flag.DELAD_FIL {
+        background: var(--slate-bg);
+        color: var(--slate);
+      }
+
+      .doc-link {
+        font-size: 10px;
+        color: var(--accent-studio);
+        font-weight: 700;
+        text-decoration: none;
+        margin-top: 3px;
+        display: inline-block;
+      }
+      .doc-link:hover {
+        text-decoration: underline;
+      }
+
+      /* EXPANDABLE NOTES */
+      .doc-notes {
+        grid-column: 1/-1;
+        font-size: 11px;
+        color: var(--cco-text-secondary);
+        line-height: 1.55;
+        padding: 8px 10px;
+        border-radius: 9px;
+        background: rgba(250, 246, 242, 0.8);
+        border: 1px solid rgba(180, 165, 150, 0.2);
+        display: none;
+        margin-top: 4px;
+      }
+      .doc-item.is-open .doc-notes {
+        display: block;
+      }
+      .doc-item.is-open {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 247, 242, 0.92));
+        box-shadow: 0 8px 22px rgba(56, 40, 28, 0.09);
+      }
+
+      /* SECTION */
+      .section-head {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        padding: 16px 0 6px;
+      }
+
+      /* COUNT */
+      .list-count {
+        font-size: 11px;
+        color: var(--cco-text-tertiary);
+        font-weight: 700;
+        padding: 4px 0 10px;
+      }
+      .list-count span {
+        color: var(--cco-color-brand);
+        font-weight: 800;
+      }
+
+      /* EMPTY */
+      .empty-msg {
+        padding: 32px;
+        text-align: center;
+        color: var(--cco-text-tertiary);
+        font-size: 13px;
+      }
+    </style>
+    <link rel="stylesheet" href="/cco-polish.css" />
+    <script src="/cco-polish.js" defer></script>
+  </head>
+  <body data-stage="beta">
+    <div class="top-nav">
+      <span class="brand">CCO</span>
+      <a href="/kalender.html">Kalender</a>
+      <a href="/kunder.html">Kunder</a>
+      <a href="/konversationer.html">Konversationer</a>
+      <a href="/smart-anteckning.html">Anteckningar</a>
+      <a href="/cco-dokument-v1.html" class="active">Dokument</a>
+    </div>
+
+    <div class="wrap">
+      <div class="head">
+        <div>
+          <div class="kicker"><span class="kicker-mark">D</span>Fas 2 · Dokumentflödet</div>
+          <h1>Dokumentöversikt</h1>
+          <p class="subtitle">
+            Inventarium av 36 dokument — kategori, källa, juridiska flaggor och koppling till
+            kundresan. Ingen live-signering. Ingen textändring utan separat beslut.
+          </p>
+        </div>
+        <span class="readonly-badge">🔒 Läs-/översiktsläge</span>
+      </div>
+
+      <!-- GAPS BANNER -->
+      <div class="gaps-banner" id="gapsBanner">
+        <div class="gaps-banner-head">⚠ Identifierade riskpunkter — kräver beslut</div>
+        <div class="gap-item">
+          <span class="gap-prio kritisk">Kritisk</span
+          ><strong>14-dagarsfel i samtycke_bokning_2d</strong> — tre platser anger "14 dagar" där
+          betänketid är 2 dagar (48 h). Ändras ej utan beslut.
+        </div>
+        <div class="gap-item">
+          <span class="gap-prio hög">Hög</span
+          ><strong>steg7-offert-tp-final-demo.html saknas</strong> i repo — steg7-v6-kundkort
+          bekräftas ej som canonical.
+        </div>
+        <div class="gap-item">
+          <span class="gap-prio hög">Hög</span><strong>auto_medical_finance källa okänd</strong> —
+          ursprung, ägare och avtal ej bekräftat.
+        </div>
+        <div class="gap-item">
+          <span class="gap-prio hög">Hög</span
+          ><strong>Ångerrätt 14 dagar i offert-dokument</strong> kräver kontextgranskning
+          (distansavtal vs klinik-signering).
+        </div>
+        <div class="gap-item">
+          <span class="gap-prio medel">Medel</span
+          ><strong>Informationsdokument saknas för PRF</strong> — verifiera om microneedling_info
+          täcker PRF.
+        </div>
+      </div>
+
+      <!-- TOOLBAR -->
+      <div class="toolbar">
+        <label>Kategori:</label>
+        <select id="catFilter">
+          <option value="">Alla</option>
+          <option value="kundformular">Kundformulär</option>
+          <option value="signeringsunderlag">Signeringsunderlag</option>
+          <option value="personalformular">Personalformulär</option>
+          <option value="journalmall">Journalmall</option>
+          <option value="info">Information</option>
+          <option value="epost_sms">E-post / SMS</option>
+        </select>
+        <label>Action:</label>
+        <select id="actFilter">
+          <option value="">Alla</option>
+          <option value="fylls_i">Fylls i</option>
+          <option value="signeras">Signeras</option>
+          <option value="skickas">Skickas</option>
+          <option value="visas">Visas</option>
+        </select>
+        <label>Källa:</label>
+        <select id="srcFilter">
+          <option value="">Alla</option>
+          <option value="repo">Repo</option>
+          <option value="Meridiq">Meridiq</option>
+          <option value="saknas_kalla">Saknas källa</option>
+        </select>
+        <label>Flagga:</label>
+        <select id="flagFilter">
+          <option value="">Alla</option>
+          <option value="14_DAG_FEL">14-dagarsfel</option>
+          <option value="PATIENTDATA">Patientdata (PDL)</option>
+          <option value="GDPR">GDPR</option>
+          <option value="GRANSKNINGSKRAV">Granskningskrav</option>
+          <option value="SAKNAS_KALLA">Saknas källa</option>
+          <option value="SAKNAS_FIL">Saknas fil</option>
+        </select>
+        <div class="sep"></div>
+        <input type="search" id="searchInput" placeholder="Sök namn eller ID…" />
+      </div>
+
+      <!-- SUMMARY PILLS -->
+      <div class="summary" id="summaryRow"></div>
+
+      <!-- LIST COUNT -->
+      <div class="list-count" id="listCount"></div>
+
+      <!-- DOC LIST -->
+      <div class="doc-list" id="docList"></div>
+      <div class="empty-msg" id="emptyMsg" style="display: none">
+        Inga dokument matchar filtret.
+      </div>
+    </div>
+
+    <script>
+      const DOCS = [
+        {
+          id: 'haelso_tp_sve',
+          name: 'Hälsodeklaration · Hair TP Clinic',
+          step: '3',
+          cat: 'kundformular',
+          act: 'fylls_i',
+          src: 'Meridiq',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['PATIENTDATA', 'GRANSKNINGSKRAV'],
+          file: null,
+          notes: 'Formuläret lever i Meridiq G4. Repofilen är demo/preview.',
+        },
+        {
+          id: 'health_tp_eng',
+          name: 'Health Questionnaire · Hair TP Clinic (ENG)',
+          step: '3',
+          cat: 'kundformular',
+          act: 'fylls_i',
+          src: 'Meridiq',
+          lang: 'en',
+          flows: ['tp'],
+          flags: ['PATIENTDATA', 'GRANSKNINGSKRAV'],
+          file: null,
+          notes: 'Engelsk version. Lever i Meridiq G4.',
+        },
+        {
+          id: 'friskfoers_tp',
+          name: 'Friskförsäkran · Hårtransplantation',
+          step: '8',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'Meridiq',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['PATIENTDATA', 'GRANSKNINGSKRAV'],
+          file: null,
+          notes: 'Signeras av patient på behandlingsdagen. Demo-overlay finns för CCO-preview.',
+        },
+        {
+          id: 'offert_tp',
+          name: 'Offert · Hårtransplantation (TP)',
+          step: '5→7',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['GRANSKNINGSKRAV', 'SAKNAS_FIL'],
+          file: 'steg5-offert-tp-final-demo.html',
+          notes:
+            'steg7-offert-tp-final-demo.html saknas — steg7-v6-kundkort-final-demo.html är möjlig canonical men ej bekräftad.',
+        },
+        {
+          id: 'offert_prp_hair',
+          name: 'Offert · PRP Hår',
+          step: '5→7',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['prp_hair'],
+          flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
+          file: 'steg7-offert-prp-hair-final-demo.html',
+          notes:
+            'Rad ~601 = avbokningsvillkor (granskas). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal).',
+        },
+        {
+          id: 'offert_prp_skin',
+          name: 'Offert · PRP Hud',
+          step: '5→7',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['prp_skin'],
+          flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
+          file: 'steg7-offert-prp-skin-final-demo.html',
+          notes: 'Samma 14-dagarsstruktur som offert_prp_hair.',
+        },
+        {
+          id: 'offert_microneedling',
+          name: 'Offert · Microneedling + PRP',
+          step: '5→7',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['microneedling'],
+          flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', '14_DAG_AVBOKNING'],
+          file: 'steg7-offert-microneedling-final-demo.html',
+          notes: 'Rad ~663 = ångerrätt. Avbokningsvillkor — verifiera.',
+        },
+        {
+          id: 'offert_prf',
+          name: 'Offert · PRF Hud',
+          step: '5→7',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['prf'],
+          flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT'],
+          file: 'steg7-offert-prf-final-demo.html',
+          notes: 'Rad ~661 = ångerrätt Distansavtalslagen (korrekt vid distansavtal).',
+        },
+        {
+          id: 'offert_profilo',
+          name: 'Offert · Profhilo',
+          step: '5→7',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['profhilo'],
+          flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT'],
+          file: 'steg7-offert-profilo-final-demo.html',
+          notes: 'Rad ~661 = ångerrätt. Clinic: curatiio.',
+        },
+        {
+          id: 'samtycke_bokning_2d',
+          name: 'Samtycke vid bokning inom 2 dagar',
+          step: '6',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['all'],
+          flags: ['GRANSKNINGSKRAV', '14_DAG_FEL', '14_DAG_AVBOKNING'],
+          file: 'steg6-betanketid-samtycke-final-demo.html',
+          notes:
+            '⚠ FEL: Katalog och HTML-titel anger "14 dagar" — korrekt period är 2 dagar (48 h betänketid). Tre platser med fel. Ändras ej utan beslut.',
+        },
+        {
+          id: 'samtycke_angerratt',
+          name: 'Begäran + samtycke ångerfrist (2 dagar)',
+          step: '6',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['all'],
+          flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT', 'DELAD_FIL'],
+          file: 'steg6-betanketid-samtycke-final-demo.html',
+          notes:
+            'Delar HTML-fil med samtycke_bokning_2d. Ångerrätt-text (rad 548,552) anger 14 dagar — korrekt vid distansavtal.',
+        },
+        {
+          id: 'prp_hair_info_sve',
+          name: 'Patientinformation · PRP Hår (SV)',
+          step: '3→4',
+          cat: 'info',
+          act: 'visas',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['prp_hair'],
+          flags: [],
+          file: 'steg4-prp-hair-info-sve-final-demo.html',
+          notes: 'Informationsdokument. Patient läser innan konsultation. Ingen signering.',
+        },
+        {
+          id: 'prp_hair_info_eng',
+          name: 'Patient Information · PRP Hair (EN)',
+          step: '3→4',
+          cat: 'info',
+          act: 'visas',
+          src: 'repo',
+          lang: 'en',
+          flows: ['prp_hair'],
+          flags: [],
+          file: 'steg4-prp-hair-info-eng-final-demo.html',
+          notes: 'Engelsk version av PRP-hår-information.',
+        },
+        {
+          id: 'microneedling_info',
+          name: 'Patientinformation · Microneedling (SV+EN)',
+          step: '3→4',
+          cat: 'info',
+          act: 'visas',
+          src: 'repo',
+          lang: 'sv+en',
+          flows: ['microneedling'],
+          flags: [],
+          file: 'steg4-microneedling-info-sve-final-demo.html',
+          notes: 'Tvåspråkigt. Ingen PRF-specifik infofil i repo — verifiera om denna täcker PRF.',
+        },
+        {
+          id: 'foto_samtycke',
+          name: 'Samtycke till foto-publicering',
+          step: '9',
+          cat: 'signeringsunderlag',
+          act: 'signeras',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['all'],
+          flags: ['GDPR', 'GRANSKNINGSKRAV'],
+          file: 'steg9-foto-samtycke-final-demo.html',
+          notes:
+            'GDPR Art. 6(1)(a) och 9(2)(a) — samtycke till publicering av bilder som kan vara hälsodata. Måste vara frivilligt och återkallelsebart.',
+        },
+        {
+          id: 'journal_tp',
+          name: 'Journal · Hårtransplantation Behandlingsdag',
+          step: '8',
+          cat: 'journalmall',
+          act: 'fylls_i',
+          src: 'Meridiq',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['PATIENTDATA'],
+          file: null,
+          notes: 'Journalanteckning regleras av PDL. Canonical lever i Meridiq.',
+        },
+        {
+          id: 'journal_tp_post_prp',
+          name: 'Journal · TP Efterbehandling (PRP)',
+          step: 'post-8',
+          cat: 'journalmall',
+          act: 'fylls_i',
+          src: 'Meridiq',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['PATIENTDATA'],
+          file: null,
+          notes: 'Efterbehandlingsjournal för PRP-fas av TP. Canonical i Meridiq.',
+        },
+        {
+          id: 'journal_tp_follow_4',
+          name: 'Journal · TP Uppföljning 4 månader',
+          step: 'post-8',
+          cat: 'journalmall',
+          act: 'fylls_i',
+          src: 'Meridiq',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['PATIENTDATA'],
+          file: null,
+          notes: '4-månaders uppföljningsjournal. Canonical i Meridiq.',
+        },
+        {
+          id: 'journal_tp_follow_6',
+          name: 'Journal · TP Uppföljning 6 månader',
+          step: 'post-8',
+          cat: 'journalmall',
+          act: 'fylls_i',
+          src: 'Meridiq',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['PATIENTDATA'],
+          file: null,
+          notes: '6-månaders uppföljningsjournal. Canonical i Meridiq.',
+        },
+        {
+          id: 'journal_tp_follow_12',
+          name: 'Journal · TP Resultatuppföljning 12 månader',
+          step: 'post-8',
+          cat: 'journalmall',
+          act: 'fylls_i',
+          src: 'Meridiq',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['PATIENTDATA'],
+          file: null,
+          notes: '12-månaders resultatjournal — slutpunkt i TP-uppföljningsserien.',
+        },
+        {
+          id: 'journal_prp_multi',
+          name: 'Journal · PRP / PRF / Microneedling',
+          step: '8',
+          cat: 'journalmall',
+          act: 'fylls_i',
+          src: 'Meridiq',
+          lang: 'sv',
+          flows: ['prp_hair', 'prp_skin', 'prf', 'microneedling'],
+          flags: ['PATIENTDATA'],
+          file: null,
+          notes: 'Gemensam journalmall för PRP/PRF/Microneedling-flöden.',
+        },
+        {
+          id: 'behandlingsplan_staff',
+          name: 'Behandlingsplan / Offert (skapas av personal)',
+          step: '5',
+          cat: 'personalformular',
+          act: 'fylls_i',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['all'],
+          flags: [],
+          file: 'steg5-behandlingsplan-staff-final-demo.html',
+          notes: 'Personal skapar behandlingsplan som grund för offert.',
+        },
+        {
+          id: 'konsultationsmall',
+          name: 'Konsultationsmall · Hair TP Clinic',
+          step: '4',
+          cat: 'personalformular',
+          act: 'fylls_i',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['all'],
+          flags: [],
+          file: 'steg4-konsultationsmall-final-demo.html',
+          notes: 'Strukturerad konsultationsmall som fylls i av personal under/efter konsultation.',
+        },
+        {
+          id: 'ordination_tp',
+          name: 'Ordinationsmall · Hårtransplantation',
+          step: '5→8',
+          cat: 'personalformular',
+          act: 'fylls_i',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['GRANSKNINGSKRAV'],
+          file: 'steg8-ordination-tp-final-demo.html',
+          notes:
+            'Medicinska parametrar (läkemedelsdoser, tekniska spec). Måste granskas av medicinskt ansvarig.',
+        },
+        {
+          id: 'anteckningar_kort',
+          name: 'Anteckningar på patientkort',
+          step: 'cross',
+          cat: 'personalformular',
+          act: 'fylls_i',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['all'],
+          flags: [],
+          file: 'staff-anteckningar-kort-final-demo.html',
+          notes: 'Interna anteckningar på patientkortet. Aldrig synliga för patient.',
+        },
+        {
+          id: 'id_verifiering',
+          name: 'ID-verifiering (pass / körkort / leg)',
+          step: '4→8',
+          cat: 'personalformular',
+          act: 'fylls_i',
+          src: 'repo',
+          lang: 'sv+en',
+          flows: ['all'],
+          flags: ['GDPR', 'GRANSKNINGSKRAV'],
+          file: 'steg4-id-verifiering-final-demo.html',
+          notes:
+            'GDPR: personnummer och ID = känsliga personuppgifter. Kräver klar rättslig grund. Loggning rekommenderas.',
+        },
+        {
+          id: 'info_offert_tp',
+          name: 'Offert & Behandlingsplan · Följemejl TP',
+          step: '5',
+          cat: 'epost_sms',
+          act: 'skickas',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: [],
+          file: 'steg5-info-offert-tp-final-demo.html',
+          notes: 'Automatisk e-post som skickas med offert/behandlingsplan.',
+        },
+        {
+          id: 'auto_bokningsbekraftelse',
+          name: 'Bokningsbekräftelse (SMS / e-post)',
+          step: '2',
+          cat: 'epost_sms',
+          act: 'skickas',
+          src: 'repo',
+          lang: 'sv+en',
+          flows: ['all'],
+          flags: [],
+          file: 'steg2-auto-bokningsbekraftelse-final-demo.html',
+          notes: 'Automatisk bekräftelse vid bokning. SMS och/eller e-post.',
+        },
+        {
+          id: 'auto_bokningspaminnelse',
+          name: 'Bokningspåminnelse (SMS / e-post)',
+          step: 'cross',
+          cat: 'epost_sms',
+          act: 'skickas',
+          src: 'repo',
+          lang: 'sv+en',
+          flows: ['all'],
+          flags: [],
+          file: 'auto-bokningspaminnelse-final-demo.html',
+          notes: 'Automatisk påminnelse innan bokad tid. Tidpunkt konfigureras per klinik.',
+        },
+        {
+          id: 'auto_avbokningsbekraftelse',
+          name: 'Avbokningsbekräftelse (SMS / e-post)',
+          step: 'cross',
+          cat: 'epost_sms',
+          act: 'skickas',
+          src: 'repo',
+          lang: 'sv+en',
+          flows: ['all'],
+          flags: [],
+          file: 'auto-avbokningsbekraftelse-final-demo.html',
+          notes: 'Automatisk bekräftelse vid avbokning.',
+        },
+        {
+          id: 'auto_instruktion_formular',
+          name: 'Instruktionsmejl: hälsodeklaration / friskförsäkran',
+          step: 'cross',
+          cat: 'epost_sms',
+          act: 'skickas',
+          src: 'repo',
+          lang: 'sv+en',
+          flows: ['all'],
+          flags: [],
+          file: 'steg3-auto-instruktion-formular-final-demo.html',
+          notes: 'Automatisk e-post med länk till hälsodeklaration eller friskförsäkran.',
+        },
+        {
+          id: 'auto_betanketid',
+          name: 'Betänketidsmejl enligt lag (48 h / 2 dagar)',
+          step: '6',
+          cat: 'epost_sms',
+          act: 'skickas',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['all'],
+          flags: ['GRANSKNINGSKRAV', '14_DAG_ANGERATT'],
+          file: 'steg6-auto-betanketid-final-demo.html',
+          notes:
+            'Rad 544,548: ångerrätt anger 14 dagar — korrekt vid distansavtal. Kräver granskning vid klinik-signering.',
+        },
+        {
+          id: 'auto_medical_finance',
+          name: 'Medical Finance · Betalningsinformation (e-post)',
+          step: 'cross',
+          cat: 'epost_sms',
+          act: 'skickas',
+          src: 'saknas_kalla',
+          lang: 'sv',
+          flows: ['all'],
+          flags: ['GRANSKNINGSKRAV', 'SAKNAS_KALLA'],
+          file: null,
+          notes:
+            'Källa ej bekräftad — kan vara Nordbro Medical Finance. Verifiera: avtal, mall, ägare och om texten kräver uppdatering.',
+        },
+        {
+          id: 'auto_integritet',
+          name: 'Personuppgiftspolicy / Integritetsinfo',
+          step: 'cross',
+          cat: 'info',
+          act: 'visas',
+          src: 'repo',
+          lang: 'sv+en',
+          flows: ['all'],
+          flags: ['GDPR', 'GRANSKNINGSKRAV'],
+          file: 'auto-integritet-final-demo.html',
+          notes:
+            'GDPR Art. 13/14-information. Måste avspegla faktisk behandling: ändamål, laglig grund, lagringstid, rättigheter.',
+        },
+        {
+          id: 'fore_efter_bildmall',
+          name: 'Före/efter-bildmall (journal → bild)',
+          step: '8→9',
+          cat: 'journalmall',
+          act: 'fylls_i',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['PATIENTDATA', 'GDPR'],
+          file: 'steg8-fore-efter-bildmall-final-demo.html',
+          notes:
+            'Hälsobilder = känsliga personuppgifter (GDPR Art. 9). Kräver aktivt samtycke (foto_samtycke) innan publicering.',
+        },
+        {
+          id: 'auto_internt_sms',
+          name: 'Internt SMS vid bokning/avbokning',
+          step: 'cross',
+          cat: 'epost_sms',
+          act: 'skickas',
+          src: 'repo',
+          lang: 'sv',
+          flows: ['all'],
+          flags: [],
+          file: 'staff-auto-internt-sms-final-demo.html',
+          notes: 'Internt SMS till personal — INTE till patient. Arkiveras i systemet.',
+        },
+      ];
+
+      const CAT_LABELS = {
+        kundformular: 'Kundformulär',
+        signeringsunderlag: 'Signeringsunderlag',
+        personalformular: 'Personalformulär',
+        journalmall: 'Journalmall',
+        info: 'Information',
+        epost_sms: 'E-post / SMS',
+      };
+      const ACT_LABELS = {
+        fylls_i: 'Fylls i',
+        signeras: 'Signeras',
+        skickas: 'Skickas',
+        visas: 'Visas',
+      };
+      const SRC_LABELS = {
+        repo: 'Repo',
+        Meridiq: 'Meridiq',
+        saknas_kalla: 'Saknas källa',
+        Nordbro: 'Nordbro',
+      };
+
+      function esc(s) {
+        return String(s || '').replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+        );
+      }
+
+      function renderDocs(docs) {
+        const list = document.getElementById('docList');
+        const empty = document.getElementById('emptyMsg');
+        const count = document.getElementById('listCount');
+        if (!docs.length) {
+          list.innerHTML = '';
+          empty.style.display = 'block';
+          count.innerHTML = '';
+          return;
+        }
+        empty.style.display = 'none';
+        count.innerHTML = `Visar <span>${docs.length}</span> av ${DOCS.length} dokument`;
+        list.innerHTML = docs
+          .map((d) => {
+            const flags = d.flags
+              .map((f) => `<span class="flag ${esc(f)}">${esc(f.replace(/_/g, ' '))}</span>`)
+              .join('');
+            const fileLink = d.file
+              ? `<a class="doc-link" href="/major-arcana-preview/${esc(d.file)}" target="_blank">↗ Öppna fil</a>`
+              : `<span style="font-size:10px;color:var(--cco-text-tertiary)">Extern källa</span>`;
+            return `<div class="doc-item" data-cat="${esc(d.cat)}" data-id="${esc(d.id)}">
+      <div class="doc-main">
+        <div class="doc-name">${esc(d.name)}</div>
+        <div class="doc-chips">
+          <span class="chip chip-cat ${esc(d.cat)}">${esc(CAT_LABELS[d.cat] || d.cat)}</span>
+          <span class="chip chip-act ${esc(d.act)}">${esc(ACT_LABELS[d.act] || d.act)}</span>
+          <span class="chip chip-src ${esc(d.src)}">${esc(SRC_LABELS[d.src] || d.src)}</span>
+          <span class="chip chip-step">Steg ${esc(d.step)}</span>
+          <span class="chip chip-lang">${esc(d.lang)}</span>
+        </div>
+        ${fileLink}
+        <div class="doc-notes">${esc(d.notes)}</div>
+      </div>
+      <div class="doc-flags">${flags}</div>
+    </div>`;
+          })
+          .join('');
+
+        list.querySelectorAll('.doc-item').forEach((el) => {
+          el.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') return;
+            el.classList.toggle('is-open');
+          });
+        });
+      }
+
+      function getFiltered() {
+        const cat = document.getElementById('catFilter').value;
+        const act = document.getElementById('actFilter').value;
+        const src = document.getElementById('srcFilter').value;
+        const flag = document.getElementById('flagFilter').value;
+        const q = document.getElementById('searchInput').value.toLowerCase().trim();
+        return DOCS.filter((d) => {
+          if (cat && d.cat !== cat) return false;
+          if (act && d.act !== act) return false;
+          if (src && d.src !== src) return false;
+          if (flag && !d.flags.includes(flag)) return false;
+          if (q && !d.name.toLowerCase().includes(q) && !d.id.toLowerCase().includes(q))
+            return false;
+          return true;
+        });
+      }
+
+      function renderSummary() {
+        const counts = {};
+        DOCS.forEach((d) => {
+          counts[d.cat] = (counts[d.cat] || 0) + 1;
+        });
+        const row = document.getElementById('summaryRow');
+        row.innerHTML =
+          `<span class="sum-pill sum-all" data-filter-cat="">Alle · ${DOCS.length}</span>` +
+          Object.entries(counts)
+            .map(
+              ([cat, n]) =>
+                `<span class="sum-pill sum-${esc(cat)}" data-filter-cat="${esc(cat)}">${esc(CAT_LABELS[cat] || cat)} · ${n}</span>`
+            )
+            .join('');
+        row.querySelectorAll('.sum-pill').forEach((pill) => {
+          pill.addEventListener('click', () => {
+            document.getElementById('catFilter').value = pill.dataset.filterCat;
+            update();
+          });
+        });
+      }
+
+      function update() {
+        renderDocs(getFiltered());
+      }
+
+      ['catFilter', 'actFilter', 'srcFilter', 'flagFilter'].forEach((id) =>
+        document.getElementById(id).addEventListener('change', update)
+      );
+      document.getElementById('searchInput').addEventListener('input', update);
+
+      renderSummary();
+      update();
+    </script>
+  </body>
+</html>
