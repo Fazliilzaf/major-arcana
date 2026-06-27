@@ -149,8 +149,8 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["microneedling"],
-      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
-      "notes": "Rad ~663 = ångerrätt Distansavtalslagen. Rad ~710,714 = ångerfristen. Avbokningsvillkor saknas i denna fil — verifiera.",
+      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
+      "notes": "Rad ~663 = ångerrätt Distansavtalslagen. Rad ~710,714 = ångerfristen. Avbokningsvillkor verifierat: 2 kalenderdagar + 500 kr (rad ~627,635).",
       "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
@@ -216,7 +216,7 @@
     },
     {
       "catalogId": "samtycke_angerratt",
-      "name": "Begäran + samtycke ångerfrist (2 dagar)",
+      "name": "Begäran + samtycke ångerfrist",
       "journeyStep": 6,
       "category": "signeringsunderlag",
       "action": "signeras",
