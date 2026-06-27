@@ -2654,19 +2654,53 @@
           renderMacroPickerList(await fetchPickerMacros());
         }
       });
+      // templateId → TRACKS-nyckel (utökas allt eftersom fler makron tillkommer)
+      const TEMPLATE_TO_TRACK = {
+        'booking-confirm': 'booking',
+        'vip-greeting': 'booking',
+        'follow-up': 'follow_up',
+        'holding-reply': 'holding',
+        'medical-inquiry': 'medical',
+        'pricing-inquiry': 'pricing',
+        'admin-request': 'admin',
+      };
       $('macroPickerList').addEventListener('click', async (e) => {
         const b = e.target.closest('[data-mid]');
         if (!b) return;
         $('macroPickerPanel').hidden = true;
         markTool('macro');
-        if (!DEMO) {
-          try {
-            await apiFetch(`/cco/macros/${encodeURIComponent(b.dataset.mid)}/run`, {
-              method: 'POST',
-            });
-          } catch {}
+        let macro = null;
+        try {
+          const r = await apiFetch(`/cco/macros/${encodeURIComponent(b.dataset.mid)}/run`, {
+            method: 'POST',
+          });
+          const d = r.ok ? await r.json() : {};
+          macro = d.macro || null;
+        } catch {}
+        // fallback: använd cachad lista om /run misslyckades
+        if (!macro && _mPickCache) {
+          macro = _mPickCache.find((m) => m.id === b.dataset.mid) || null;
         }
-        flashNotice('sendNotice', 'notice--ok', `Makro "${b.dataset.mname}" kördes.`);
+        // applicera template-action i editorn om den finns
+        const templateAction =
+          macro && Array.isArray(macro.actions)
+            ? macro.actions.find((a) => a.type === 'template')
+            : null;
+        if (templateAction) {
+          const trackKey = TEMPLATE_TO_TRACK[(templateAction.config || {}).templateId] || 'booking';
+          S.activeTrackKey = trackKey;
+          selectInGroup('trackRow', 'track', trackKey);
+          const text = (TRACKS[trackKey] || TRACKS.booking)();
+          S.baseDraftBody = text;
+          setEditor(text);
+          flashNotice(
+            'sendNotice',
+            'notice--ok',
+            `Makro "${b.dataset.mname}" applicerat — mall laddad i editorn.`
+          );
+        } else {
+          flashNotice('sendNotice', 'notice--ok', `Makro "${b.dataset.mname}" kördes.`);
+        }
       });
       document.addEventListener(
         'click',
