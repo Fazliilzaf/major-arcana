@@ -107,8 +107,8 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["prp_hair"],
-      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
-      "notes": "14-dagarstext rad ~601 = avbokningsvillkor (granskas). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal). Ändras ej utan beslut.",
+      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
+      "notes": "Rad ~601 = avbokningsvillkor rättat 2026-06-27: 2 kalenderdagar + 500 kr (källa: booking_confirmation_hair_tp via owner-sync). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal).",
       "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
@@ -128,8 +128,8 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["prp_skin"],
-      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
-      "notes": "Samma 14-dagarsstruktur som offert_prp_hair. Rad ~601 = avbokning, rad ~630,675,679 = ångerrätt.",
+      "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
+      "notes": "Rad ~601 = avbokningsvillkor rättat 2026-06-27: 2 kalenderdagar + 500 kr (källa: booking_confirmation_hair_tp via owner-sync). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal).",
       "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
@@ -210,9 +210,9 @@
       "language": "sv",
       "flowApplies": ["all"],
       "legalFlags": ["GRANSKNINGSKRAV"],
-      "notes": "FIXAT 2026-06-27: HTML-titel (rad 499) och brödtext (rad 501) ändrade från \"14 dagar\" till \"2 dagar\" (betänketid 48 h). Avbokningsvillkor (rad 518/522) anger fortfarande 14 dagar — separat granskning (kontextberoende distans vs klinik). Kräver juridisk verifiering innan användning.",
+      "notes": "Betänketid: 2 dagar (48 h) — HTML-titel och body rättade 2026-06-27. Avbokningsvillkor rättade 2026-06-27: 2 kalenderdagar + 500 kr (källa: booking_confirmation_hair_tp via owner-sync). Demo-data i cco-signaturer-v3.html uppdaterad. Ångerrätt (14 dagar, Distansavtalslagen) hanteras separat i samtycke_angerratt.",
       "specialFlag": "SAMTYCKE_BOKNING_2_DAGAR",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad. ⚠ FEL i 14-dagarstexter (se notes)."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
     {
       "catalogId": "samtycke_angerratt",
@@ -704,10 +704,10 @@
       "priority": "hög"
     },
     {
-      "issue": "14-dagarsfel i samtycke_bokning_2d",
-      "detail": "Tre platser anger fel period: (1) hairtp-document-types.catalog.json rad 234 name-fält, (2) steg6-betanketid-samtycke-final-demo.html rad 499 titel, (3) cco-signaturer-v3.html rad 1207 demo-data. Betänketid vid estetiska ingrepp på klinik är 48 h (2 dagar), inte 14 dagar. Ändras ej utan beslut.",
+      "issue": "14-dagarsfel i samtycke_bokning_2d — ÅTGÄRDAT",
+      "detail": "Åtgärdat 2026-06-27: (1) HTML-titel rad 499 = '2 dagar', (2) betänketidtext rad 501 = '2 dagar', (3) avbokningsvillkor rad 518-529 = 2 kalenderdagar + 500 kr, (4) cco-signaturer-v3.html rad 1207 demo-data = '2 dagar'. Ångerrätt (14 dagar, Distansavtalslagen) hanteras korrekt i samtycke_angerratt.",
       "affectedId": "samtycke_bokning_2d",
-      "priority": "kritisk"
+      "priority": "löst"
     },
     {
       "issue": "auto_medical_finance källa okänd",
