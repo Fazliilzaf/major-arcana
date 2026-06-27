@@ -47,7 +47,7 @@
       "language": "en",
       "flowApplies": ["tp"],
       "legalFlags": ["PATIENTDATA", "GRANSKNINGSKRAV"],
-      "notes": "Engelsk version av hälsodeklarationen. Lever i Meridiq G4. Repofil är demo."
+      "notes": "Engelsk version av hälsodeklarationen. Owner-beslut 2026-06-28: ska spegla svenska canonical (Meridiq apiId 16414), inte tidigare ENG archive 14865. Repofil är demo/live-preview."
     },
     {
       "catalogId": "friskfoers_tp",
