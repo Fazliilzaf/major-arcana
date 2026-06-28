@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#b0356e" />
+    <title>Din plan · Hair TP Clinic</title>
+    <style>
+      /* ===== ARCANA KUNDPORTAL v4 — "Din trygghetszon" ===== */
+      :root {
+        --bg-page: #faf6f2;
+        --bg-surface: #ffffff;
+        --text-primary: #221c15;
+        --text-secondary: #574d40;
+        --text-tertiary: #6d6354;
+        --accent: #b0356e;
+        --accent-weak: rgba(176, 53, 110, 0.1);
+        --accent-glow: rgba(176, 53, 110, 0.38);
+        --violet: #6b31c9;
+        --violet-bg: rgba(107, 49, 201, 0.1);
+        --violet-glow: rgba(107, 49, 201, 0.3);
+        --gold: #8a5f1e;
+        --gold-bg: rgba(138, 95, 30, 0.13);
+        --success: #2a6e52;
+        --success-bg: rgba(42, 110, 82, 0.12);
+        --info: #2b5f91;
+        --info-bg: rgba(43, 95, 145, 0.11);
+        /* Shadows — CCO layered system */
+        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
+        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        --sh-accent: 0 14px 36px rgba(176, 53, 110, 0.38);
+        --sh-violet: 0 12px 32px rgba(107, 49, 201, 0.28);
+        /* Radius */
+        --r-sm: 10px;
+        --r-md: 14px;
+        --r-lg: 18px;
+        --r-xl: 24px;
+        --r-pill: 999px;
+        /* Type */
+        --fs-kicker: 0.6875rem;
+        --fs-meta: 0.75rem;
+        --fs-body: 0.875rem;
+        --fs-h1: clamp(1.45rem, 1.1rem+2vw, 2.1rem);
+        /* Layout */
+        --tap: 2.75rem;
+        --gap: clamp(0.6rem, 0.4rem+0.5vw, 0.95rem);
+        --pad-x: clamp(1rem, 0.5rem+2vw, 1.5rem);
+        --max-w: 490px;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        font-size: 100%;
+        overflow-x: clip;
+        scroll-behavior: smooth;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 7% 0%, rgba(255, 205, 175, 0.6) 0%, transparent 36%),
+          radial-gradient(ellipse at 92% 3%, rgba(255, 178, 210, 0.45) 0%, transparent 42%),
+          radial-gradient(ellipse at 50% 100%, rgba(255, 215, 190, 0.3) 0%, transparent 52%),
+          var(--bg-page);
+        color: var(--text-primary);
+        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-size: var(--fs-body);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+      }
+
+      /* ─── TOPBAR ────────────────────────────────── */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: calc(0.65rem + env(safe-area-inset-top, 0px)) var(--pad-x) 0.65rem;
+        background: linear-gradient(
+          180deg,
+          rgba(250, 246, 242, 0.97) 0%,
+          rgba(250, 246, 242, 0.82) 80%,
+          transparent
+        );
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+      }
+      .brand-pill {
+        font-weight: 900;
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 0.32rem 0.7rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(145deg, #fdeef4, #f4c4d7);
+        color: var(--accent);
+        box-shadow: 0 2px 8px rgba(176, 53, 110, 0.18);
+      }
+      .topbar-spacer {
+        flex: 1;
+      }
+      .notif-btn {
+        position: relative;
+        width: var(--tap);
+        height: var(--tap);
+        border-radius: var(--r-md);
+        border: 1px solid rgba(180, 165, 150, 0.28);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: var(--sh-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-secondary);
+      }
+      .notif-dot {
+        position: absolute;
+        top: 0.44rem;
+        right: 0.44rem;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid white;
+        animation: blink 1.8s ease-in-out infinite;
+      }
+      .avatar {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 50%;
+        background: linear-gradient(145deg, var(--accent), #8c2455);
+        color: #fff;
+        font-weight: 900;
+        font-size: 0.78rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(176, 53, 110, 0.32);
+        border: 2px solid rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+      }
+
+      /* ─── PAGE ──────────────────────────────────── */
+      .page {
+        max-width: var(--max-w);
+        margin-inline: auto;
+        padding: 0.75rem var(--pad-x) 1rem;
+      }
+
+      /* ─── JOURNEY ───────────────────────────────── */
+      .journey {
+        display: flex;
+        align-items: flex-start;
+        padding: 1rem 1.25rem;
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        box-shadow: var(--sh-md);
+        border-radius: var(--r-xl);
+        margin-bottom: var(--gap);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .journey::-webkit-scrollbar {
+        display: none;
+      }
+      .step-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.28rem;
+        flex: 1;
+        min-width: 48px;
+      }
+      .step-dot {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.68rem;
+        font-weight: 900;
+        flex-shrink: 0;
+        transition: all 0.2s;
+      }
+      .step-dot.done {
+        background: linear-gradient(145deg, var(--success), #1b4f3a);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(42, 110, 82, 0.38);
+      }
+      .step-dot.active {
+        background: linear-gradient(145deg, var(--accent), #8c2455);
+        color: #fff;
+        box-shadow: 0 4px 18px rgba(176, 53, 110, 0.45);
+        animation: pulse-step 2.2s ease-in-out infinite;
+      }
+      .step-dot.locked {
+        background: rgba(180, 165, 150, 0.14);
+        color: var(--text-tertiary);
+        border: 1.5px dashed rgba(180, 165, 150, 0.45);
+      }
+      @keyframes pulse-step {
+        0%,
+        100% {
+          box-shadow: 0 4px 18px rgba(176, 53, 110, 0.45);
+        }
+        50% {
+          box-shadow:
+            0 4px 28px rgba(176, 53, 110, 0.7),
+            0 0 0 7px rgba(176, 53, 110, 0.1);
+        }
+      }
+      .step-label {
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--text-tertiary);
+        text-align: center;
+        white-space: nowrap;
+      }
+      .step-label.active {
+        color: var(--accent);
+      }
+      .step-label.done {
+        color: var(--success);
+      }
+      .step-connector {
+        height: 2px;
+        flex: 1;
+        min-width: 10px;
+        margin-top: 1rem;
+        margin-bottom: 1.45rem;
+        background: rgba(180, 165, 150, 0.22);
+        border-radius: 1px;
+      }
+      .step-connector.done {
+        background: linear-gradient(90deg, var(--success), rgba(42, 110, 82, 0.35));
+      }
+
+      /* ─── HERO ──────────────────────────────────── */
+      .hero-card {
+        padding: 1.6rem 1.5rem 1.35rem;
+        border-radius: var(--r-xl);
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(255, 235, 245, 0.88) 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        box-shadow: var(--sh-xl);
+        margin-bottom: var(--gap);
+        position: relative;
+        overflow: hidden;
+      }
+      .hero-card::before {
+        content: '';
+        position: absolute;
+        top: -60px;
+        right: -50px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(176, 53, 110, 0.13), transparent 70%);
+        pointer-events: none;
+      }
+      .hero-card::after {
+        content: '';
+        position: absolute;
+        bottom: -50px;
+        left: -30px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(107, 49, 201, 0.09), transparent 70%);
+        pointer-events: none;
+      }
+      .greeting {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin-bottom: 0.25rem;
+      }
+      .hero-name {
+        font-size: var(--fs-h1);
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin: 0 0 0.6rem;
+      }
+      .hero-name span {
+        background: linear-gradient(135deg, var(--accent) 0%, var(--violet) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .appt-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.38rem 0.8rem;
+        border-radius: var(--r-pill);
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(180, 165, 150, 0.28);
+        font-size: var(--fs-kicker);
+        font-weight: 700;
+        color: var(--gold);
+        box-shadow: var(--sh-sm);
+      }
+
+      /* ─── SECTION HEADING ───────────────────────── */
+      .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin: 1.2rem 0 0.55rem;
+      }
+      .section-heading::before {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(180, 165, 150, 0.28));
+      }
+      .section-heading::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(270deg, transparent, rgba(180, 165, 150, 0.28));
+      }
+
+      /* ─── CARD BASE ─────────────────────────────── */
+      .card {
+        padding: 1.25rem;
+        border-radius: var(--r-xl);
+        background: rgba(255, 255, 255, 0.93);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.88);
+        box-shadow: var(--sh-lg);
+        margin-bottom: var(--gap);
+        position: relative;
+      }
+      .card-title {
+        font-size: 0.9rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.9rem;
+      }
+
+      /* ─── SIGN CTA ──────────────────────────────── */
+      .sign-card {
+        padding: 1.6rem 1.5rem;
+        border-radius: var(--r-xl);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(255, 228, 242, 0.88));
+        border: 1px solid rgba(176, 53, 110, 0.22);
+        box-shadow:
+          0 18px 52px rgba(176, 53, 110, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        margin-bottom: var(--gap);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .sign-card::before {
+        content: '';
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 280px;
+        height: 140px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(176, 53, 110, 0.1), transparent 70%);
+        pointer-events: none;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.38rem;
+        padding: 0.26rem 0.7rem;
+        border-radius: var(--r-pill);
+        background: rgba(176, 53, 110, 0.1);
+        border: 1px solid rgba(176, 53, 110, 0.2);
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 0.9rem;
+      }
+      .status-chip .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: blink 1.5s ease-in-out infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      .sign-card h3 {
+        font-size: 1.1rem;
+        font-weight: 900;
+        letter-spacing: -0.025em;
+        margin: 0 0 0.4rem;
+      }
+      .sign-card p {
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+        margin: 0 0 1.15rem;
+        line-height: 1.5;
+      }
+      .btn-sign {
+        width: 100%;
+        padding: 1.05rem 1.5rem;
+        border-radius: var(--r-lg);
+        border: 0;
+        cursor: pointer;
+        font: 800 0.9rem/1 inherit;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        background: linear-gradient(145deg, #c03878, #8c2455);
+        color: #fff;
+        box-shadow:
+          0 14px 36px rgba(176, 53, 110, 0.46),
+          inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        transition:
+          transform 0.18s,
+          box-shadow 0.18s;
+        animation: cta-pulse 3s ease-in-out infinite;
+        position: relative;
+      }
+      .btn-sign:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 20px 44px rgba(176, 53, 110, 0.58),
+          inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        animation: none;
+      }
+      .btn-sign:active {
+        transform: translateY(0px);
+      }
+      @keyframes cta-pulse {
+        0%,
+        100% {
+          box-shadow:
+            0 14px 36px rgba(176, 53, 110, 0.46),
+            inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        }
+        50% {
+          box-shadow:
+            0 18px 48px rgba(176, 53, 110, 0.65),
+            0 0 0 9px rgba(176, 53, 110, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        }
+      }
+
+      /* ─── AI BADGE ──────────────────────────────── */
+      .ai-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.22rem 0.62rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(135deg, var(--violet-bg), rgba(107, 49, 201, 0.05));
+        border: 1px solid rgba(107, 49, 201, 0.22);
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--violet);
+        margin-bottom: 0.75rem;
+      }
+      .ai-badge::before {
+        content: '\2736';
+        font-size: 0.6rem;
+      }
+
+      /* ─── PHOTO PLACEHOLDER ─────────────────────── */
+      .photo-slot {
+        aspect-ratio: 16/9;
+        border-radius: var(--r-lg);
+        background: linear-gradient(145deg, rgba(180, 165, 150, 0.1), rgba(180, 165, 150, 0.04));
+        border: 1.5px dashed rgba(180, 165, 150, 0.38);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+        font-weight: 700;
+        margin-bottom: 0.9rem;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
+      }
+      .photo-slot:hover {
+        border-color: rgba(176, 53, 110, 0.38);
+        background: rgba(176, 53, 110, 0.04);
+      }
+      .photo-slot .photo-hint {
+        font-size: 0.65rem;
+        opacity: 0.65;
+      }
+      .annotation-dot {
+        position: absolute;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid white;
+        box-shadow: 0 0 0 4px rgba(176, 53, 110, 0.22);
+        animation: ann-pulse 2.8s ease-in-out infinite;
+      }
+      @keyframes ann-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 4px rgba(176, 53, 110, 0.22);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(176, 53, 110, 0.12);
+        }
+      }
+
+      /* ─── GRAFT BAR ─────────────────────────────── */
+      .graft-bar {
+        height: 9px;
+        border-radius: 5px;
+        overflow: hidden;
+        display: flex;
+        margin: 0.75rem 0;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+      }
+      .graft-bar-seg {
+        transition: flex 0.4s;
+      }
+
+      /* ─── ZONE GRID ─────────────────────────────── */
+      .zone-visual {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.625rem;
+        margin-bottom: 0.25rem;
+      }
+      .zone-item {
+        padding: 0.8rem 0.875rem;
+        border-radius: var(--r-md);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(250, 245, 240, 0.72));
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        box-shadow: var(--sh-sm);
+      }
+      .zone-item.full {
+        grid-column: 1/-1;
+      }
+      .zone-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.35rem;
+      }
+      .zone-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--text-tertiary);
+        text-transform: uppercase;
+        margin-bottom: 0.28rem;
+        display: flex;
+        align-items: center;
+      }
+      .zone-num {
+        font-size: clamp(1.2rem, 1rem+1vw, 1.55rem);
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      .zone-sub {
+        font-size: 0.64rem;
+        color: var(--text-tertiary);
+        margin-top: 0.15rem;
+      }
+      .zone-bar {
+        height: 4px;
+        border-radius: 2px;
+        margin-top: 0.55rem;
+        opacity: 0.6;
+      }
+      .z-hairline .zone-dot,
+      .z-hairline .zone-bar {
+        background: var(--accent);
+      }
+      .z-hairline .zone-num {
+        color: var(--accent);
+      }
+      .z-mid .zone-dot,
+      .z-mid .zone-bar {
+        background: var(--violet);
+      }
+      .z-mid .zone-num {
+        color: var(--violet);
+      }
+      .z-crown .zone-dot,
+      .z-crown .zone-bar {
+        background: var(--gold);
+      }
+      .z-crown .zone-num {
+        color: var(--gold);
+      }
+      .z-total .zone-dot,
+      .z-total .zone-bar {
+        background: var(--success);
+      }
+      .z-total .zone-num {
+        color: var(--success);
+      }
+      .z-hairline .zone-bar {
+        background: linear-gradient(90deg, var(--accent), rgba(176, 53, 110, 0.25));
+      }
+      .z-mid .zone-bar {
+        background: linear-gradient(90deg, var(--violet), rgba(107, 49, 201, 0.25));
+      }
+      .z-crown .zone-bar {
+        background: linear-gradient(90deg, var(--gold), rgba(138, 95, 30, 0.25));
+      }
+      .z-total .zone-bar {
+        background: linear-gradient(90deg, var(--success), rgba(42, 110, 82, 0.25));
+      }
+
+      /* ─── PRICE ─────────────────────────────────── */
+      .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid rgba(180, 165, 150, 0.13);
+      }
+      .price-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .price-label {
+        font-size: var(--fs-meta);
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
+      .price-val {
+        font-size: var(--fs-meta);
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .price-val.total {
+        font-size: 1.4rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        background: linear-gradient(135deg, var(--accent), var(--violet));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .price-val.discount {
+        color: var(--success);
+      }
+      .divider {
+        height: 1px;
+        background: rgba(180, 165, 150, 0.13);
+        margin: 0.35rem 0;
+      }
+
+      /* ─── REFLECTION ────────────────────────────── */
+      .reflection-card {
+        padding: 1.1rem 1.25rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(145deg, var(--info-bg), rgba(43, 95, 145, 0.05));
+        border: 1px solid rgba(43, 95, 145, 0.2);
+        margin-bottom: var(--gap);
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+      }
+      .reflection-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: rgba(43, 95, 145, 0.14);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+      }
+      .reflection-title {
+        font-size: var(--fs-meta);
+        font-weight: 800;
+        color: var(--info);
+        margin-bottom: 0.14rem;
+      }
+      .reflection-desc {
+        font-size: 0.7rem;
+        color: rgba(43, 95, 145, 0.75);
+        line-height: 1.45;
+      }
+      .reflection-days {
+        margin-left: auto;
+        flex-shrink: 0;
+        text-align: center;
+        padding: 0.42rem 0.8rem;
+        border-radius: var(--r-md);
+        background: rgba(43, 95, 145, 0.12);
+      }
+      .reflection-days .num {
+        font-size: 1.55rem;
+        font-weight: 900;
+        color: var(--info);
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .reflection-days .lbl {
+        font-size: 0.54rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(43, 95, 145, 0.65);
+      }
+
+      /* ─── AI INSIGHTS ───────────────────────────── */
+      .ai-card {
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(245, 238, 255, 0.88));
+        border: 1px solid rgba(107, 49, 201, 0.16);
+        box-shadow:
+          0 10px 30px rgba(107, 49, 201, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
+      .insight-row {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(107, 49, 201, 0.08);
+      }
+      .insight-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .insight-icon {
+        width: 2rem;
+        height: 2rem;
+        flex-shrink: 0;
+        border-radius: var(--r-sm);
+        background: var(--violet-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+      }
+      .insight-title {
+        font-size: var(--fs-meta);
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 0.14rem;
+      }
+      .insight-text {
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+        line-height: 1.45;
+      }
+
+      /* ─── LOCKED ────────────────────────────────── */
+      .locked-card {
+        padding: 1.1rem 1.25rem;
+        border-radius: var(--r-xl);
+        background: rgba(180, 165, 150, 0.06);
+        border: 1.5px dashed rgba(180, 165, 150, 0.3);
+        margin-bottom: var(--gap);
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        opacity: 0.72;
+      }
+      .locked-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: rgba(180, 165, 150, 0.14);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+      }
+      .locked-title {
+        font-size: var(--fs-body);
+        font-weight: 800;
+        color: var(--text-secondary);
+        margin-bottom: 0.14rem;
+      }
+      .locked-desc {
+        font-size: 0.7rem;
+        color: var(--text-tertiary);
+      }
+      .locked-badge {
+        margin-left: auto;
+        flex-shrink: 0;
+        padding: 0.22rem 0.58rem;
+        border-radius: var(--r-pill);
+        background: rgba(180, 165, 150, 0.14);
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+
+      /* ─── UPLOAD ────────────────────────────────── */
+      .upload-area {
+        padding: 1.2rem;
+        border-radius: var(--r-lg);
+        background: rgba(255, 255, 255, 0.65);
+        border: 1.5px dashed rgba(180, 165, 150, 0.38);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .upload-area:hover {
+        border-color: rgba(176, 53, 110, 0.38);
+        background: rgba(176, 53, 110, 0.03);
+      }
+      .upload-area .upload-icon {
+        font-size: 1.5rem;
+        opacity: 0.48;
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+      .upload-area p {
+        margin: 0;
+        font-size: 0.72rem;
+        color: var(--text-tertiary);
+        font-weight: 600;
+      }
+
+      /* ─── CONTACT CARD ──────────────────────────── */
+      .contact-card {
+        padding: 1.1rem 1.25rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.85), rgba(250, 246, 242, 0.7));
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: var(--sh-md);
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+      }
+      .contact-avatar {
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 50%;
+        background: linear-gradient(145deg, var(--gold-bg), rgba(138, 95, 30, 0.25));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+      }
+      .contact-name {
+        font-size: var(--fs-meta);
+        font-weight: 800;
+        color: var(--text-primary);
+      }
+      .contact-role {
+        font-size: 0.68rem;
+        color: var(--text-tertiary);
+      }
+      .contact-btn {
+        margin-left: auto;
+        padding: 0.38rem 0.85rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.3);
+        background: rgba(255, 255, 255, 0.75);
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--text-secondary);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .contact-btn:hover {
+        border-color: rgba(176, 53, 110, 0.3);
+        color: var(--accent);
+      }
+
+      /* ─── BOTTOM NAV ────────────────────────────── */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: rgba(250, 246, 242, 0.96);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border-top: 1px solid rgba(180, 165, 150, 0.18);
+        padding: 0.5rem var(--pad-x) calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        justify-content: space-around;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: var(--r-md);
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        border: 0;
+        background: transparent;
+        transition: all 0.15s;
+        position: relative;
+      }
+      .nav-item svg {
+        width: 1.2rem;
+        height: 1.2rem;
+      }
+      .nav-item.active {
+        color: var(--accent);
+        background: var(--accent-weak);
+      }
+      .nav-dot {
+        position: absolute;
+        top: 0.3rem;
+        right: 0.3rem;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid rgba(250, 246, 242, 0.96);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ─── TOPBAR ─────────────────────────────────────────── -->
+    <header class="topbar">
+      <div class="brand-pill">ARCANA</div>
+      <div class="topbar-spacer"></div>
+      <button class="notif-btn" aria-label="Notiser">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          width="17"
+          height="17"
+        >
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+        <span class="notif-dot"></span>
+      </button>
+      <div class="avatar" aria-label="Adam Karlsson">AK</div>
+    </header>
+
+    <main class="page">
+      <!-- ─── JOURNEY ──────────────────────────────────────── -->
+      <div class="journey" role="navigation" aria-label="Din resa">
+        <div class="step-item">
+          <div class="step-dot done" aria-label="Genomfört">✓</div>
+          <span class="step-label done">Konsult.</span>
+        </div>
+        <div class="step-connector done"></div>
+        <div class="step-item">
+          <div class="step-dot done" aria-label="Genomfört">✓</div>
+          <span class="step-label done">Offert</span>
+        </div>
+        <div class="step-connector done"></div>
+        <div class="step-item">
+          <div class="step-dot active" aria-current="step">✍</div>
+          <span class="step-label active">Signering</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item">
+          <div class="step-dot locked" aria-label="Låst">✶</div>
+          <span class="step-label">Operation</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item">
+          <div class="step-dot locked" aria-label="Låst">✶</div>
+          <span class="step-label">Eftervård</span>
+        </div>
+      </div>
+
+      <!-- ─── HERO ─────────────────────────────────────────── -->
+      <div class="hero-card">
+        <div class="greeting">Välkommen tillbaka</div>
+        <h1 class="hero-name">Adam, <span>din plan är redo.</span></h1>
+        <div class="appt-chip">
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          Operation planerad · 15 september 2026
+        </div>
+      </div>
+
+      <!-- ─── SIGN CTA ──────────────────────────────────────── -->
+      <div class="sign-card" role="region" aria-label="Signering">
+        <div class="status-chip"><span class="dot"></span> Väntar på din signatur</div>
+        <h3>Godkänn din behandlingsplan</h3>
+        <p>
+          Läs igenom offerten nedan — sedan signerar du digitalt direkt här i portalen. Säkert,
+          enkelt och alltid tillgängligt.
+        </p>
+        <button class="btn-sign" type="button">Signera digitalt →</button>
+      </div>
+
+      <!-- ─── OFFER ─────────────────────────────────────────── -->
+      <div class="section-heading">Din offert</div>
+
+      <!-- Consultation photo + zones -->
+      <div class="card">
+        <div class="ai-badge">AI-genererad planering</div>
+        <div class="card-title">Planerade zoner · Konsultationsbild</div>
+
+        <div class="photo-slot" role="img" aria-label="Konsultationsbild med markerade zoner">
+          <div class="annotation-dot" style="top: 26%; left: 31%"></div>
+          <div class="annotation-dot" style="top: 33%; left: 54%; animation-delay: 0.9s"></div>
+          <div class="annotation-dot" style="top: 20%; left: 47%; animation-delay: 1.7s"></div>
+          <svg
+            width="34"
+            height="34"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            opacity=".38"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="3" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          <span>Konsultationsbild med markeringar</span>
+          <span class="photo-hint">Laddas från kliniken</span>
+        </div>
+
+        <!-- Stacked graft bar -->
+        <div class="graft-bar" aria-hidden="true">
+          <div
+            class="graft-bar-seg"
+            style="flex: 800; background: linear-gradient(90deg, #c03878, #d55090)"
+          ></div>
+          <div
+            class="graft-bar-seg"
+            style="flex: 1200; background: linear-gradient(90deg, #7035c8, #9152dc)"
+          ></div>
+          <div
+            class="graft-bar-seg"
+            style="flex: 500; background: linear-gradient(90deg, #9a6a20, #c58c30)"
+          ></div>
+        </div>
+
+        <!-- Zone grid -->
+        <div class="zone-visual">
+          <div class="zone-item z-hairline">
+            <div class="zone-label"><span class="zone-dot"></span>Hårlinje</div>
+            <div class="zone-num">800</div>
+            <div class="zone-sub">hårsäckar</div>
+            <div class="zone-bar" style="width: 65%"></div>
+          </div>
+          <div class="zone-item z-mid">
+            <div class="zone-label"><span class="zone-dot"></span>Mittparti</div>
+            <div class="zone-num">1 200</div>
+            <div class="zone-sub">hårsäckar</div>
+            <div class="zone-bar" style="width: 100%"></div>
+          </div>
+          <div class="zone-item z-crown">
+            <div class="zone-label"><span class="zone-dot"></span>Krona</div>
+            <div class="zone-num">500</div>
+            <div class="zone-sub">hårsäckar</div>
+            <div class="zone-bar" style="width: 42%"></div>
+          </div>
+          <div class="zone-item z-total full">
+            <div class="zone-label"><span class="zone-dot"></span>Totalt · DHI-metoden</div>
+            <div class="zone-num" style="font-size: 1.7rem">2 500</div>
+            <div class="zone-sub">hårsäckar planerade</div>
+            <div class="zone-bar" style="width: 100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Price -->
+      <div class="card">
+        <div class="card-title">Prisspecifikation</div>
+        <div class="price-row">
+          <span class="price-label">Hårtransplantation DHI · 2 500 gr</span>
+          <span class="price-val">59 000 kr</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">4 × PRP-behandlingar (ingår)</span>
+          <span class="price-val">inkl.</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">Förskottsbetalning (erlagd)</span>
+          <span class="price-val discount">−5 000 kr</span>
+        </div>
+        <div class="divider"></div>
+        <div class="price-row">
+          <span class="price-label" style="font-weight: 800">Resterande på operationsdagen</span>
+          <span class="price-val total">54 000 kr</span>
+        </div>
+      </div>
+
+      <!-- Reflection period -->
+      <div class="reflection-card" role="note">
+        <div class="reflection-icon">⚖️</div>
+        <div style="min-width: 0">
+          <div class="reflection-title">Betänketid · Distansavtalslagen</div>
+          <div class="reflection-desc">
+            14 dagars ångerrätt från att du mottog denna plan. Signeringen bekräftar att du väljer
+            att starta inom ångerfristen.
+          </div>
+        </div>
+        <div class="reflection-days">
+          <div class="num">10</div>
+          <div class="lbl">dagar<br />kvar</div>
+        </div>
+      </div>
+
+      <!-- AI insights -->
+      <div class="section-heading">AI-analys</div>
+      <div class="card ai-card">
+        <div class="ai-badge">Arcana AI · personlig plan</div>
+        <div class="insight-row">
+          <div class="insight-icon">💧</div>
+          <div>
+            <div class="insight-title">Optimal kandidat för DHI</div>
+            <div class="insight-text">
+              Din hårstruktur och donatorstäthet matchar DHI-metoden väl — ger naturligare
+              hårriktning och tätare hårlinje utan synliga ärr i donatorzon.
+            </div>
+          </div>
+        </div>
+        <div class="insight-row">
+          <div class="insight-icon">📅</div>
+          <div>
+            <div class="insight-title">Operationstiming är rätt</div>
+            <div class="insight-text">
+              September är optimalt. Du undviker sommarsolens UV under de kritiska första månaderna
+              och hinner se synlig tillväxt lagom till sommaren.
+            </div>
+          </div>
+        </div>
+        <div class="insight-row">
+          <div class="insight-icon">📈</div>
+          <div>
+            <div class="insight-title">Förväntad tillväxtbana</div>
+            <div class="insight-text">
+              Synlig skillnad märks typiskt vid 4–6 månader. Fullresultat utvärderas vid 12 månader
+              — vi bokar automatiskt din uppföljning.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── LOCKED STEPS ──────────────────────────────────── -->
+      <div class="section-heading">Kommande steg</div>
+
+      <div class="locked-card" aria-label="Låst — signera för att låsa upp">
+        <div class="locked-icon">📋</div>
+        <div>
+          <div class="locked-title">Förberedelser inför operation</div>
+          <div class="locked-desc">
+            Detaljerade instruktioner dag för dag · Låses upp efter signering
+          </div>
+        </div>
+        <span class="locked-badge">🔒 Låst</span>
+      </div>
+
+      <div class="locked-card" aria-label="Låst — signera för att låsa upp">
+        <div class="locked-icon">🌿</div>
+        <div>
+          <div class="locked-title">Eftervårdsguide</div>
+          <div class="locked-desc">Dag 1 → 12 månader · Bilder, video, instruktioner</div>
+        </div>
+        <span class="locked-badge">🔒 Låst</span>
+      </div>
+
+      <div class="locked-card" aria-label="Låst — signera för att låsa upp">
+        <div class="locked-icon">📸</div>
+        <div>
+          <div class="locked-title">Bilduppföljning &amp; jämförelse</div>
+          <div class="locked-desc">
+            Kliniken skickar in bilder · Du lämnar in bilder · Sida vid sida
+          </div>
+        </div>
+        <span class="locked-badge">🔒 Låst</span>
+      </div>
+
+      <!-- ─── CONTACT ────────────────────────────────────────── -->
+      <div class="section-heading">Din kontakt</div>
+      <div class="contact-card card" style="margin-bottom: var(--gap)">
+        <div class="contact-avatar">👨‍⚕️</div>
+        <div>
+          <div class="contact-name">Fazli Krasniqi</div>
+          <div class="contact-role">Hårspecialist · Hair TP Clinic</div>
+        </div>
+        <button class="contact-btn" type="button">Skicka meddelande</button>
+      </div>
+
+      <!-- Upload (preview) -->
+      <div class="section-heading">Dina bilder</div>
+      <div class="card">
+        <div class="card-title">Ladda upp bilder till kliniken</div>
+        <div class="upload-area" role="button" tabindex="0" aria-label="Ladda upp bild">
+          <span class="upload-icon">📸</span>
+          <p>Tryck för att ladda upp</p>
+          <p style="margin-top: 0.22rem; font-size: 0.64rem; opacity: 0.65">
+            JPG, PNG · Max 20 MB per bild
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <!-- ─── BOTTOM NAV ─────────────────────────────────────────── -->
+    <nav class="bottom-nav" aria-label="Portalmeny">
+      <button class="nav-item active" type="button" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        </svg>
+        Hem
+      </button>
+      <button class="nav-item" type="button" style="position: relative">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+        Offert
+        <span class="nav-dot"></span>
+      </button>
+      <button class="nav-item" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        Signera
+      </button>
+      <button class="nav-item" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
+        </svg>
+        Bilder
+      </button>
+      <button class="nav-item" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+          />
+        </svg>
+        Eftervård
+      </button>
+    </nav>
+  </body>
+</html>

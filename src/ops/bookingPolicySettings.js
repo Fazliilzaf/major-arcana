@@ -18,7 +18,7 @@ function asObject(value) {
 function clampMinutes(value, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
-  return Math.max(0, Math.min(7 * 24 * 60, Math.round(parsed)));
+  return Math.max(0, Math.min(365 * 24 * 60, Math.round(parsed)));
 }
 
 function clampDays(value, fallback) {
@@ -90,9 +90,7 @@ function resolveServicePolicyFields(service = {}, settings = {}) {
   const global = normalized.globalDefaults;
   const meetingMode = normalizeText(override.meetingMode || service.meetingMode).toLowerCase();
   const defaultNotice =
-    meetingMode === 'online'
-      ? global.minNoticeOnlineMinutes
-      : global.minNoticePhysicalMinutes;
+    meetingMode === 'online' ? global.minNoticeOnlineMinutes : global.minNoticePhysicalMinutes;
 
   return {
     meetingMode: meetingMode || undefined,
