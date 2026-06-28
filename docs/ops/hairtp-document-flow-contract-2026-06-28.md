@@ -88,14 +88,14 @@ The owner-requested offer needs a stronger structured plan:
 Before legal-facing text is changed again, every relevant document decision must be verified against source material:
 
 - Nordbro legal documents and comments.
-- Insatt material.
+- Insatt material (GDPR/patient data scope — see section below).
 - Microsoft/SharePoint documents.
 - Meridiq source catalogs and forms.
 - GetAccept templates and signed-document archive.
 - Pipedrive pipeline/customer journey material.
 - Google Drive imported document/image archives.
 - Legal e-mail correspondence with Gabriella at Nordbro (`gabrielle.handler@nordbro.com`) where it discusses document wording, timing, reflection period, cancellation, offer/agreement flow, or patient information.
-- Legal/product e-mail correspondence with Sofia Lysen at Insatt (`sofia.lysen@insatt.com`) where it discusses friskförsäkran, agreement templates, signing flow, timing, patient information, or document source/version ownership.
+- Legal/product e-mail correspondence with Sofia Lysén at Insatt (`sofia.lysen@insatt.com`): scope confirmed as GDPR compliance — see verified section below. Separate quote required for any review of patient-facing templates, offer terms or booking conditions.
 
 No legal conclusion should be inferred from filenames alone.
 
@@ -129,19 +129,52 @@ No legal conclusion should be inferred from filenames alone.
 
 **Conclusion:** Sofia/Insatt are the GDPR compliance source, not the patient document flow source. Their deliverables (registerförteckning, integritetspolicies) may inform which systems handle which data but do not govern document wording, signing order, or timing. A separate quote is required if Insatt is to review patient-facing document templates or booking/cancellation terms.
 
-**Owner decision 2026-06-28:** request a separate Insatt review specifically for the Hair TP health declaration flow. Scope must include:
-
-- whether health data must be collected before/at consultation or can be collected later,
-- what minimum health data is necessary at consultation booking versus before treatment,
-- whether the Swedish canonical health declaration and matching English version are appropriate from a GDPR/patient-data perspective,
-- how the health declaration should be stored, audited and surfaced in CCO,
-- whether the health declaration timing affects the document journey or patient-information package.
-
-This review is a GDPR/patient-data necessity review. It does not replace Nordbro/legal review of treatment agreement terms, offer wording, cancellation terms or medical consent text.
-
 **Mailbox reviewed:** info@fazli.se / fazli@hairtpclinic.com  
 **Reviewed:** 2026-06-28  
 **Sensitive content:** not copied to repository
+
+## Owner decision: Insatt to separately review hälsodeklarationen (2026-06-28)
+
+Insatt ska granska Hair TP-hälsodeklarationen separat. Scope för den granskningen:
+
+- Sofia/Insatt är GDPR/patientdata-källa för hälsodeklarationen.
+- Fråga: ska hälsouppgifter samlas in vid konsultation eller i ett senare skede (dataminimering)?
+- Kontrollera svensk canonical + engelsk spegling för GDPR-konformitet.
+- Scope: GDPR/dataminimering/lagring/audit/timing.
+- Scope ersätter inte Nordbro-granskning av avtal, offertvillkor eller samtyckestext.
+
+### Hälsodeklaration — repo-inventering
+
+**Svensk canonical:**
+- Fil: `public/major-arcana-preview/steg3-halsodeklaration-final-demo.html`
+- Meridiq source: `migration/meridiq/questionary-catalog.json` apiId `16414`
+- Intro/GDPR-text source: `SharePoint ”1. Hälsodeklaration TP, PRP, Microneedling PRF.docx”`
+- Registry ID (signering): `haelso_tp_sve`
+- Titel på dokument: ”Inför konsultation”
+- Används för: Hårtransplantation (TP), PRP hår & hud, Microneedling PRF
+- Personuppgifter som samlas in: förnamn, efternamn, personnummer, adress, postnummer, ort, e-post, telefon
+- Hälsofrågor: 14 frågor (Ja/Nej/Vet ej med fritextfält), Meridiq ID-serien 450976–
+- GDPR-samtyckesrutor:
+  - `#gdpr-lagring`: ”Jag godkänner att mina uppgifter sparas i Hair TP Clinics system enligt patientdatalagen och GDPR.”
+  - `#gdpr-mail`: ”Jag ger mitt godkännande till att ta emot utskick på mail från Hair TP Clinic.”
+
+**Engelsk spegling:**
+- Fil: `public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html`
+- Meridiq source: `migration/meridiq/steg3-health-declaration-eng-facit.json` archive `14865`
+- Registry ID (signering): `health_tp_eng`
+- Kontext: ”before your consultation or treatment”
+- Hälsofrågor: 29 frågor (Meridiq ID-serien 408040–), Ja/Nej/Vet ej
+
+### GDPR-frågor för Insatt att besvara
+
+1. **Timing/dataminimering**: Hälsodeklarationen samlas in vid konsultation (steg 3). Måste personnummer och fullständiga hälsouppgifter samlas in då, eller kan de inhämtas i ett senare skede?
+2. **Legal grund**: Formuliering använder ”patientdatalagen och GDPR”. Är patientdatalagen rätt legal grund för PRP/microneedling (inte strikt sjukvårdsbehandlingar)?
+3. **Gallringstid**: Ingen lagrings-/gallringstid syns i formuliering — behövs explicit text?
+4. **Marknadsföringssamtycke** (`#gdpr-mail`): Är det korrekt att koppla mark-nadsföringsopt-in till hälsodeklarationen, eller ska detta separeras?
+5. **Paritetsgranskning**: 14 frågor (SV) vs 29 frågor (EN) — skillnaden ska verifieras mot Meridiq-källan.
+6. **SharePoint-källa**: Intro/GDPR-texten hämtas från SharePoint-dokument. Beställ versionsstämpel och ägarskap.
+
+**Inga textförändringar görs utan Insatts svar och owner-beslut.**
 
 ## Open decisions before implementation
 
@@ -150,14 +183,15 @@ This review is a GDPR/patient-data necessity review. It does not replace Nordbro
 3. Confirm whether GetAccept remains the live signing provider or whether Arcana internal signing is the primary path with GetAccept as archive/import.
 4. Confirm where Gabriella/Nordbro and Sofia/Insatt e-mail evidence should be stored in the source-evidence chain without copying sensitive mailbox content into git.
 5. Confirm the exact patient-facing download mechanism for annotated offer images: authenticated patient portal, expiring signed link, or provider-hosted signing package.
-6. Request separate Insatt review of the Hair TP health declaration timing/content from a GDPR and patient-data minimization perspective.
+6. **[Insatt]** Confirm GDPR basis, timing, data minimisation and retention for hälsodeklarationen (Swedish canonical + English mirror) — see owner decision above.
 
 ## Implementation sequence
 
 Recommended order:
 
 1. Source audit: Nordbro/Insatt/Microsoft/Meridiq/GetAccept/Pipedrive/Drive plus Gabriella/Nordbro and Sofia/Insatt e-mail evidence.
-2. Data contract: extend consultation plan fields from `zones: string[]` to structured zone rows with graft counts.
-3. Offer package: include structured zone rows, annotated consultation photos and immutable sent-package audit.
-4. Patient link: ensure download/access is authenticated or signed/expiring and logged.
-5. Operation-day gate: ensure Friskförsäkran is surfaced for same-day transplant signing, not as a pre-offer requirement.
+2. Insatt review: hälsodeklarationen GDPR scope (open decision 6).
+3. Data contract: extend consultation plan fields from `zones: string[]` to structured zone rows with graft counts.
+4. Offer package: include structured zone rows, annotated consultation photos and immutable sent-package audit.
+5. Patient link: ensure download/access is authenticated or signed/expiring and logged.
+6. Operation-day gate: ensure Friskförsäkran is surfaced for same-day transplant signing, not as a pre-offer requirement.
