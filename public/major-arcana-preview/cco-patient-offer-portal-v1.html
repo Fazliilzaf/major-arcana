@@ -1,0 +1,1126 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>CCO · Kundportal offertpaket</title>
+    <style>
+      /* CCO AUX SHARED FOUNDATION, hämtad från v3-ytorna och anpassad för denna presentation. */
+      :root {
+        --bg-page: #faf6f2;
+        --bg-surface: #ffffff;
+        --bg-sunken: #f3ece3;
+        --bg-rail: #fbf7f2;
+        --text-primary: #221c15;
+        --text-secondary: #574d40;
+        --text-tertiary: #6d6354;
+        --accent: #b0356e;
+        --accent-weak: #fdeef4;
+        --accent-weak-bg: #fdeef4;
+        --accent-strong: #8e285699;
+        --text-on-accent: #ffffff;
+        --success: #2f6f54;
+        --success-bg: rgba(47, 111, 84, 0.14);
+        --warning: #9a6410;
+        --warning-bg: rgba(154, 100, 16, 0.16);
+        --danger: #a83838;
+        --danger-bg: rgba(168, 56, 56, 0.14);
+        --info: #2f6595;
+        --info-bg: rgba(47, 101, 149, 0.14);
+        --violet: #6b31c9;
+        --violet-bg: rgba(107, 49, 201, 0.12);
+        --gold: #8a5f1e;
+        --gold-bg: rgba(138, 95, 30, 0.14);
+        --slate: #475569;
+        --slate-bg: rgba(71, 85, 105, 0.12);
+        --press: linear-gradient(180deg, #fff, #f4eee8);
+        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
+        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        --r-sm: 10px;
+        --r-md: 14px;
+        --r-lg: 18px;
+        --r-xl: 24px;
+        --r-pill: 999px;
+        --fs-kicker: 0.6875rem;
+        --fs-meta: 0.75rem;
+        --fs-body: 0.875rem;
+        --fs-card-title: clamp(0.9rem, 0.85rem + 0.4vw, 1.05rem);
+        --fs-h1: clamp(1.35rem, 1.1rem + 1.25vw, 2rem);
+        --fs-num: clamp(1.35rem, 1.1rem + 1.4vw, 1.9rem);
+        --tap: 2.75rem;
+        --gap: clamp(0.5rem, 0.4rem + 0.5vw, 0.85rem);
+        --pad-x: clamp(0.875rem, 0.5rem + 1.6vw, 1.5rem);
+        --maxw: 1500px;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html {
+        font-size: 100%;
+        overflow-x: clip;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+      }
+
+      body {
+        min-height: 100vh;
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
+          var(--bg-page);
+        color: var(--text-primary);
+        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-size: var(--fs-body);
+        line-height: 1.45;
+        overflow-x: hidden;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+
+      .aux {
+        max-width: var(--maxw);
+        margin-inline: auto;
+        min-height: 100vh;
+        padding: 0 var(--pad-x) 2rem;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: var(--gap);
+        padding: 0.5rem var(--pad-x);
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+        margin: 0 calc(-1 * var(--pad-x));
+        background: linear-gradient(
+          180deg,
+          rgba(250, 246, 242, 0.97),
+          rgba(250, 246, 242, 0.82) 80%,
+          transparent
+        );
+        backdrop-filter: blur(18px);
+      }
+
+      .brand {
+        flex-shrink: 0;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 0.4rem 0.7rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(180deg, #f2ece3, #e4dac9);
+        color: var(--text-secondary);
+      }
+
+      .search {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        padding: 0 0.75rem 0 2.1rem;
+      }
+
+      .search svg {
+        position: absolute;
+        left: 0.7rem;
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-tertiary);
+      }
+
+      .search input {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        width: 100%;
+        height: 100%;
+        color: var(--text-primary);
+        outline: none;
+        font-size: var(--fs-meta);
+      }
+
+      .icon-btn {
+        flex-shrink: 0;
+        width: var(--tap);
+        height: var(--tap);
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        box-shadow: var(--sh-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+      }
+
+      .icon-btn svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+
+      .presentation-shell {
+        display: grid;
+        grid-template-columns: 17rem minmax(0, 1fr) 22rem;
+        gap: var(--gap);
+        align-items: start;
+      }
+
+      .rail {
+        position: sticky;
+        top: 4.6rem;
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .rail-brand {
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        padding: 0.4rem 0.6rem;
+      }
+
+      .rail-nav {
+        min-height: var(--tap);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0 0.7rem;
+        border-radius: var(--r-md);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: var(--fs-meta);
+        border: 0;
+        background: transparent;
+        text-align: left;
+      }
+
+      .rail-nav.is-active {
+        background: var(--accent-weak-bg);
+        color: var(--accent);
+        box-shadow: inset 0 0 0 1px rgba(176, 53, 110, 0.12);
+      }
+
+      .rail-sec {
+        margin-top: 0.7rem;
+        padding: 0.75rem;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(244, 238, 232, 0.72));
+        border: 1px solid rgba(180, 165, 150, 0.28);
+        box-shadow: var(--sh-sm);
+      }
+
+      .rail-sec b,
+      .rail-sec span {
+        display: block;
+      }
+
+      .rail-sec b {
+        font-size: var(--fs-meta);
+      }
+
+      .rail-sec span {
+        margin-top: 0.2rem;
+        color: var(--text-tertiary);
+        font-size: 0.74rem;
+      }
+
+      .main {
+        display: grid;
+        gap: var(--gap);
+        min-width: 0;
+      }
+
+      .side {
+        position: sticky;
+        top: 4.6rem;
+        display: grid;
+        gap: var(--gap);
+      }
+
+      .panel,
+      .card {
+        background: var(--bg-surface);
+        border: 1px solid rgba(180, 165, 150, 0.22);
+        border-radius: var(--r-lg);
+        box-shadow: var(--sh-md);
+      }
+
+      .panel {
+        padding: clamp(0.95rem, 0.75rem + 0.8vw, 1.4rem);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.8rem;
+      }
+
+      .panel-head h1,
+      .panel-head h2,
+      .panel-head p {
+        margin: 0;
+      }
+
+      .panel-head h1 {
+        max-width: 18ch;
+        font-size: var(--fs-h1);
+        line-height: 1.05;
+        letter-spacing: -0.045em;
+      }
+
+      .panel-head h2 {
+        font-size: 1.05rem;
+        letter-spacing: -0.02em;
+      }
+
+      .panel-head p {
+        margin-top: 0.25rem;
+        color: var(--text-secondary);
+        max-width: 68ch;
+      }
+
+      .kicker {
+        color: var(--accent);
+        font-size: var(--fs-kicker);
+        font-weight: 850;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .pillrow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+
+      .pill {
+        min-height: 2.15rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 0 0.75rem;
+        border-radius: var(--r-pill);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+        background: var(--press);
+        color: var(--text-secondary);
+        font-size: var(--fs-meta);
+        font-weight: 800;
+        box-shadow: var(--sh-sm);
+        white-space: nowrap;
+      }
+
+      .pill.is-active {
+        border-color: rgba(176, 53, 110, 0.18);
+        background: var(--accent-weak-bg);
+        color: var(--accent);
+      }
+
+      .pill--success {
+        background: var(--success-bg);
+        color: var(--success);
+        border-color: rgba(47, 111, 84, 0.18);
+      }
+
+      .pill--warning {
+        background: var(--warning-bg);
+        color: var(--warning);
+        border-color: rgba(154, 100, 16, 0.18);
+      }
+
+      .pill--info {
+        background: var(--info-bg);
+        color: var(--info);
+        border-color: rgba(47, 101, 149, 0.18);
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.65rem;
+        margin-top: 0.9rem;
+      }
+
+      .metric {
+        min-height: 5.1rem;
+        padding: 0.75rem;
+        border-radius: var(--r-md);
+        background: var(--bg-sunken);
+        border: 1px solid rgba(180, 165, 150, 0.22);
+      }
+
+      .metric span {
+        display: block;
+        color: var(--text-tertiary);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .metric b {
+        display: block;
+        margin-top: 0.3rem;
+        font-size: var(--fs-num);
+        line-height: 1;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.65rem;
+      }
+
+      .step {
+        padding: 0.85rem;
+        min-height: 8rem;
+      }
+
+      .step-num {
+        width: 1.7rem;
+        height: 1.7rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--text-primary);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 900;
+      }
+
+      .step.is-now {
+        background: linear-gradient(180deg, #fff9e7, #fff3d2);
+        border-color: rgba(154, 100, 16, 0.2);
+      }
+
+      .step.is-done {
+        background: linear-gradient(180deg, #f2fffa, #e5f6ee);
+        border-color: rgba(47, 111, 84, 0.18);
+      }
+
+      .step h3 {
+        margin: 0.7rem 0 0.3rem;
+        font-size: var(--fs-card-title);
+      }
+
+      .step p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+      }
+
+      .offer-grid {
+        display: grid;
+        grid-template-columns: 19rem minmax(0, 1fr);
+        gap: 0.8rem;
+      }
+
+      .price-card {
+        min-height: 17rem;
+        padding: 1rem;
+        border-radius: var(--r-lg);
+        background: #221c15;
+        color: white;
+        box-shadow: var(--sh-lg);
+      }
+
+      .price-card .kicker {
+        color: #f184b3;
+      }
+
+      .price {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: clamp(2.3rem, 5vw, 3.7rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+        font-weight: 950;
+      }
+
+      .price-card p {
+        margin: 0.65rem 0 0;
+        color: rgba(255, 255, 255, 0.76);
+      }
+
+      .small-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.45rem;
+        margin-top: 1rem;
+      }
+
+      .small-metrics div {
+        padding: 0.65rem;
+        border-radius: var(--r-sm);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .small-metrics span,
+      .small-metrics b {
+        display: block;
+      }
+
+      .small-metrics span {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.68rem;
+        font-weight: 800;
+      }
+
+      .zone-list {
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .zone {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem 0.9rem;
+        border-radius: var(--r-md);
+        background: var(--press);
+        border: 1px solid rgba(180, 165, 150, 0.28);
+        box-shadow: var(--sh-sm);
+      }
+
+      .zone b,
+      .zone span {
+        display: block;
+      }
+
+      .zone span {
+        margin-top: 0.15rem;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+      }
+
+      .zone strong {
+        color: var(--accent);
+        font-size: 1.25rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .image-grid,
+      .docs-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.7rem;
+      }
+
+      .mock-photo {
+        padding: 0.65rem;
+        border-radius: var(--r-md);
+        background: var(--bg-sunken);
+        border: 1px solid rgba(180, 165, 150, 0.22);
+      }
+
+      .mock-photo svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: var(--r-sm);
+        background: #fffaf5;
+      }
+
+      .mock-photo footer,
+      .doc-card footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        margin-top: 0.55rem;
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+      }
+
+      .doc-card {
+        padding: 0.85rem;
+      }
+
+      .doc-card h3 {
+        margin: 0.8rem 0 0.25rem;
+        font-size: var(--fs-card-title);
+      }
+
+      .doc-card p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+      }
+
+      .audit {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .audit-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0.65rem;
+        align-items: start;
+        padding: 0.7rem;
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(180, 165, 150, 0.22);
+      }
+
+      .dot {
+        width: 0.62rem;
+        height: 0.62rem;
+        margin-top: 0.33rem;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 0 4px var(--success-bg);
+      }
+
+      .audit-row b,
+      .audit-row span {
+        display: block;
+      }
+
+      .audit-row span,
+      .audit-row time {
+        color: var(--text-tertiary);
+        font-size: 0.76rem;
+      }
+
+      .login-code {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.4rem;
+        margin-top: 0.75rem;
+      }
+
+      .login-code div {
+        min-height: 2.3rem;
+        display: grid;
+        place-items: center;
+        border-radius: var(--r-sm);
+        background: var(--text-primary);
+        color: white;
+        font-weight: 900;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+
+      .action-stack {
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .action-btn {
+        min-height: var(--tap);
+        border: 0;
+        border-radius: var(--r-md);
+        font-weight: 900;
+        box-shadow: var(--sh-md);
+      }
+
+      .action-btn.primary {
+        background: var(--accent);
+        color: var(--text-on-accent);
+      }
+
+      .action-btn.secondary {
+        background: var(--press);
+        color: var(--text-primary);
+        border: 1px solid rgba(180, 165, 150, 0.35);
+      }
+
+      .note {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+      }
+
+      @media (max-width: 1180px) {
+        .presentation-shell {
+          grid-template-columns: 14rem minmax(0, 1fr);
+        }
+
+        .side {
+          position: static;
+          grid-column: 1 / -1;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 860px) {
+        .topbar {
+          gap: 0.45rem;
+        }
+
+        .search {
+          display: none;
+        }
+
+        .presentation-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: static;
+          display: flex;
+          overflow-x: auto;
+          padding-bottom: 0.35rem;
+        }
+
+        .rail-brand,
+        .rail-sec {
+          display: none;
+        }
+
+        .rail-nav {
+          white-space: nowrap;
+          background: rgba(255, 255, 255, 0.64);
+          border: 1px solid rgba(180, 165, 150, 0.24);
+        }
+
+        .metrics,
+        .flow,
+        .offer-grid,
+        .side {
+          grid-template-columns: 1fr;
+        }
+
+        .panel-head {
+          display: grid;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .aux {
+          padding-bottom: 5.5rem;
+        }
+
+        .brand {
+          letter-spacing: 0.03em;
+        }
+
+        .topbar .icon-btn:nth-last-child(2) {
+          display: none;
+        }
+
+        .metrics,
+        .image-grid,
+        .docs-grid,
+        .small-metrics {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="aux">
+      <div class="topbar">
+        <span class="brand">CCO</span>
+        <label class="search" aria-label="Sök i kundportalpresentation">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="m21 21-4.35-4.35M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+          <input value="Kundportal · offertpaket · patientdata skyddad" readonly />
+        </label>
+        <button class="icon-btn" type="button" aria-label="Dela presentation">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <path
+              d="M12 16V4m0 0 4 4m-4-4L8 8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" aria-label="Mer">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.7" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.7" fill="currentColor" />
+            <circle cx="19" cy="12" r="1.7" fill="currentColor" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="presentation-shell">
+        <aside class="rail" aria-label="Portalstruktur">
+          <div class="rail-brand">PORTAL V1</div>
+          <button class="rail-nav is-active" type="button">Översikt</button>
+          <button class="rail-nav" type="button">Offertpaket</button>
+          <button class="rail-nav" type="button">Ritade bilder</button>
+          <button class="rail-nav" type="button">Dokument</button>
+          <button class="rail-nav" type="button">Audit</button>
+          <div class="rail-sec">
+            <b>Presentation</b>
+            <span>Statisk CCO-demo. Inga riktiga kunddata, inga utskick, ingen signering.</span>
+          </div>
+        </aside>
+
+        <main class="main">
+          <section class="panel" aria-labelledby="portalTitle">
+            <div class="panel-head">
+              <div>
+                <div class="kicker">Kundens trygga yta efter konsultation</div>
+                <h1 id="portalTitle">Kundportal för offert, ritningar och dokument.</h1>
+                <p>
+                  Samma CCO-tråd, men kundvänligt: personal publicerar bara godkänt material. Kunden
+                  får en säker inloggning, ser sitt offertpaket, kan ladda ner vid behov och kan gå
+                  vidare utan att känsliga länkar sprids i mejltrådar.
+                </p>
+              </div>
+              <div class="pillrow" aria-label="Status">
+                <span class="pill is-active">Demo · inga riktiga data</span>
+                <span class="pill pill--success">Audit först</span>
+              </div>
+            </div>
+            <div class="metrics">
+              <div class="metric"><span>Pris</span><b>54 900 kr</b></div>
+              <div class="metric"><span>Grafts</span><b>3 500</b></div>
+              <div class="metric"><span>Metod</span><b>DHI</b></div>
+              <div class="metric"><span>Betänketid</span><b>startar vid info</b></div>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="journeyTitle">
+            <div class="panel-head">
+              <div>
+                <h2 id="journeyTitle">Kundresa i portalen</h2>
+                <p>
+                  Det här är flödet du beskrev, utan att blanda ihop friskförsäkran, offert och
+                  samtycke.
+                </p>
+              </div>
+              <span class="pill pill--warning">Före avtal</span>
+            </div>
+            <div class="flow">
+              <article class="card step is-done">
+                <div class="step-num">1</div>
+                <h3>Konsultation klar</h3>
+                <p>Ritade bilder och behandlingsmål sparas från stora kundvyn.</p>
+              </article>
+              <article class="card step is-now">
+                <div class="step-num">2</div>
+                <h3>Offert publiceras</h3>
+                <p>Pris, graftplan, patientinformation och bilder blir kundens beslutsunderlag.</p>
+              </article>
+              <article class="card step">
+                <div class="step-num">3</div>
+                <h3>Avtal & samtycke</h3>
+                <p>Skickas när kunden vill gå vidare efter att underlaget finns i portalen.</p>
+              </article>
+              <article class="card step">
+                <div class="step-num">4</div>
+                <h3>Behandlingsdag</h3>
+                <p>Friskförsäkran signeras samma dag som hårtransplantationen.</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="offerTitle">
+            <div class="panel-head">
+              <div>
+                <h2 id="offerTitle">Offertpaket</h2>
+                <p>
+                  Det här blir kundens läsbara behandlingsplan, byggd av personalens godkända data.
+                </p>
+              </div>
+              <span class="pill pill--info">Version 1 · låst paket</span>
+            </div>
+            <div class="offer-grid">
+              <div class="price-card">
+                <div class="kicker">DHI hårtransplantation</div>
+                <strong class="price">54 900 kr</strong>
+                <p>Exempelpris. Skarp vy hämtar pris från staff-godkänt offertunderlag.</p>
+                <div class="small-metrics">
+                  <div><span>Totalt</span><b>3 500 grafts</b></div>
+                  <div><span>Tid</span><b>1 dag</b></div>
+                  <div><span>Status</span><b>Klar</b></div>
+                </div>
+              </div>
+              <div class="zone-list">
+                <div class="zone">
+                  <div><b>Hårlinje</b><span>Mjukt naturligt frontområde enligt ritning.</span></div>
+                  <strong>500</strong>
+                </div>
+                <div class="zone">
+                  <div>
+                    <b>Mitten / täthet</b><span>Förtätning enligt markerat behandlingsfält.</span>
+                  </div>
+                  <strong>1 000</strong>
+                </div>
+                <div class="zone">
+                  <div><b>Krona</b><span>Planerad täckning och rotationsriktning.</span></div>
+                  <strong>2 000</strong>
+                </div>
+                <div class="zone">
+                  <div>
+                    <b>Planering</b
+                    ><span>Patientinformation och tjänstespecifikation publicerad.</span>
+                  </div>
+                  <strong>klar</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="imagesTitle">
+            <div class="panel-head">
+              <div>
+                <h2 id="imagesTitle">Ritade konsultationsbilder</h2>
+                <p>
+                  Kopplas från stora kundvyn. Personal väljer vilka ritningar som publiceras i
+                  portal/offertunderlag.
+                </p>
+              </div>
+              <span class="pill pill--success">Patientdata · skyddad</span>
+            </div>
+            <div class="image-grid">
+              <article class="mock-photo">
+                <svg viewBox="0 0 420 260" role="img" aria-label="Illustration av hårlinjeritning">
+                  <rect width="420" height="260" rx="18" fill="#fff8f1" />
+                  <path
+                    d="M120 208 156 82h120l42 126Z"
+                    fill="#f4d4c5"
+                    stroke="#c9a390"
+                    stroke-width="3"
+                  />
+                  <path
+                    d="M144 110c42-62 152-60 190 12 7 14 12 34 12 60-44-25-95-36-150-31-30 3-54 12-76 26 0-24 5-46 24-67Z"
+                    fill="#241c18"
+                  />
+                  <path
+                    d="M130 157c76-35 150-31 226 16"
+                    fill="none"
+                    stroke="#b0356e"
+                    stroke-width="8"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M156 183c58 24 113 24 166 0"
+                    fill="none"
+                    stroke="#2f6f54"
+                    stroke-width="5"
+                    stroke-dasharray="10 10"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="190" cy="162" r="8" fill="#b0356e" />
+                  <circle cx="272" cy="160" r="8" fill="#b0356e" />
+                  <text x="32" y="38" fill="#574d40" font-size="18" font-weight="800">
+                    Hårlinje · 500 grafts
+                  </text>
+                </svg>
+                <footer><b>Frontal plan</b><span class="pill pill--success">Godkänd</span></footer>
+              </article>
+              <article class="mock-photo">
+                <svg viewBox="0 0 420 260" role="img" aria-label="Illustration av kronritning">
+                  <rect width="420" height="260" rx="18" fill="#f7fbfb" />
+                  <circle
+                    cx="214"
+                    cy="134"
+                    r="84"
+                    fill="#f1c8b8"
+                    stroke="#c9a390"
+                    stroke-width="3"
+                  />
+                  <path
+                    d="M151 94c36-55 120-48 152 5 28 45 13 101-34 134 9-55-14-94-63-116-24-11-42-18-55-23Z"
+                    fill="#241c18"
+                  />
+                  <path
+                    d="M154 144c38-54 105-56 150-11"
+                    fill="none"
+                    stroke="#b0356e"
+                    stroke-width="7"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M143 148c24 58 81 74 142 55"
+                    fill="none"
+                    stroke="#b0356e"
+                    stroke-width="7"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M188 105c57 23 80 67 66 132"
+                    fill="none"
+                    stroke="#2f6f54"
+                    stroke-width="5"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M172 151c43-16 86-9 129 21"
+                    fill="none"
+                    stroke="#2f6595"
+                    stroke-width="4"
+                    stroke-dasharray="9 8"
+                  />
+                  <text x="32" y="38" fill="#574d40" font-size="18" font-weight="800">
+                    Krona · 2 000 grafts
+                  </text>
+                </svg>
+                <footer>
+                  <b>Krona och täthet</b><span class="pill pill--success">Godkänd</span>
+                </footer>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="docsTitle">
+            <div class="panel-head">
+              <div>
+                <h2 id="docsTitle">Dokument i kundens portal</h2>
+                <p>
+                  Kunden behöver inte leta i mejl. Portalen visar bara det staff har publicerat.
+                </p>
+              </div>
+              <span class="pill">Ladda ner paket</span>
+            </div>
+            <div class="docs-grid">
+              <article class="card doc-card">
+                <span class="pill pill--success">Läst</span>
+                <h3>Offert & behandlingsplan</h3>
+                <p>Pris, graftplan, metod, bilder och planering.</p>
+                <footer><span>PDF</span><b>Publicerad</b></footer>
+              </article>
+              <article class="card doc-card">
+                <span class="pill pill--warning">Betänketid</span>
+                <h3>Patientinformation</h3>
+                <p>Informationen som startar kundens beslutsunderlag.</p>
+                <footer><span>Info</span><b>Låst</b></footer>
+              </article>
+              <article class="card doc-card">
+                <span class="pill pill--info">Nästa</span>
+                <h3>Avtal & samtycke</h3>
+                <p>Öppnas först när kunden vill gå vidare.</p>
+                <footer><span>Signering</span><b>Väntar</b></footer>
+              </article>
+              <article class="card doc-card">
+                <span class="pill">Behandlingsdag</span>
+                <h3>Friskförsäkran</h3>
+                <p>Fylls i samma dag som hårtransplantationen.</p>
+                <footer><span>Formulär</span><b>Ej skickad</b></footer>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="auditTitle">
+            <div class="panel-head">
+              <div>
+                <h2 id="auditTitle">Säkerhet, lag och spårbarhet</h2>
+                <p>
+                  Känsligt material ligger kvar i portalen. Delning, öppning och nedladdning loggas.
+                </p>
+              </div>
+              <span class="pill pill--success">Audit först</span>
+            </div>
+            <div class="audit">
+              <div class="audit-row">
+                <i class="dot"></i>
+                <div>
+                  <b>Offertpaket publicerat av personal</b
+                  ><span>Snapshot låst: pris, bilder, zoner, dokumentversioner.</span>
+                </div>
+                <time>10:42</time>
+              </div>
+              <div class="audit-row">
+                <i class="dot"></i>
+                <div>
+                  <b>Kunden öppnade paketet</b
+                  ><span>Betänketid och läskvitto kan beräknas från publicerad information.</span>
+                </div>
+                <time>11:08</time>
+              </div>
+              <div class="audit-row">
+                <i class="dot"></i>
+                <div>
+                  <b>Nedladdning loggad</b
+                  ><span>PDF kan laddas ner av kunden, men originalet ligger kvar i portalen.</span>
+                </div>
+                <time>11:11</time>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <aside class="side" aria-label="Kundportalens kontrollpanel">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="kicker">Säker åtkomst</div>
+                <h2>Engångskod</h2>
+                <p class="note">E-post + kod. Sessionen går ut automatiskt.</p>
+              </div>
+              <span class="pill pill--success">Aktiv</span>
+            </div>
+            <div class="login-code" aria-label="Exempel på engångskod">
+              <div>4</div>
+              <div>8</div>
+              <div>1</div>
+              <div>2</div>
+              <div>9</div>
+              <div>6</div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="kicker">Kundens åtgärder</div>
+                <h2>Kontrollerat nästa steg</h2>
+              </div>
+            </div>
+            <div class="action-stack">
+              <button class="action-btn secondary" type="button">Ställ fråga</button>
+              <button class="action-btn primary" type="button">Jag vill gå vidare</button>
+            </div>
+            <p class="note" style="margin-top: 0.75rem">
+              I skarp version triggar detta inte live-utskick utan staff-grind, dokumentversion och
+              audit.
+            </p>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </body>
+</html>
