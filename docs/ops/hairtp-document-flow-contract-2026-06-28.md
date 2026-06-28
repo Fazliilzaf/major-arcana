@@ -99,6 +99,40 @@ Before legal-facing text is changed again, every relevant document decision must
 
 No legal conclusion should be inferred from filenames alone.
 
+## Source verification: Insatt / Sofia Lysén (completed 2026-06-28)
+
+**Scope confirmed:** Insatt's engagement covers GDPR compliance only — not patient document flow, treatment agreements, signing, or Friskförsäkran.
+
+**Evidence trace (no sensitive content copied):**
+
+| Date | Subject | Key finding |
+|---|---|---|
+| 2025-04-30 | GDPR-frågor | Insatt requests access to process documentation |
+| 2025-05-08 | GDPR-frågor | Reviews personal data processing documentation |
+| 2025-05-20 | GDPR-frågor | Scope discussion — certain formulations outside the quoted engagement |
+| 2025-05-21 | GDPR-frågor | Cajsa-Stella Danielsson added as co-jurist; access to shared Drive requested |
+| 2025-06-04 | Möte för genomgång av registerförteckning | Data register draft ready; review meeting with Leonora and Fazli |
+| 2025-06-17 | Sv: Möte för genomgång av registerförteckning | **Scope exclusion confirmed:** "vi tittar inte på t.ex. bokningsvillkor" — booking/cancellation terms explicitly out of scope; a separate quote is required if Insatt is to review those |
+| 2025-06-17 | Sv: Möte... (attachment: Offert Hair TP Clinic.pdf) | Insatt's engagement offer attached; scope = data register, privacy documents only |
+| 2025-06-17 | Registerförteckning (Cajsa-Stella) | GDPR process question raised: "is it necessary to collect health data at consultation, or can it be collected later?" — a register question, not a document-template question; no documented answer in the reviewed thread |
+| 2025-06-24 | Sv: Registerförteckning | 75 % of estimated hours reached; reminder to review data register |
+| 2025-07-02 | Sv: Registerförteckning — slutleverans | **Delivered:** GDPR information (employees), GDPR information (website), Intern integritetspolicy, IT-Policy, Logg för personuppgiftsincidenter, Nulägesanalys och åtgärdsförslag, Underbilaga 1 – Instruktion (data-processor instruction template) |
+| 2025-09-01 | Sv: Registerförteckning | Clarification re. dataskyddsombud (DPO) requirement |
+
+**What Insatt has NOT addressed:**
+- Friskförsäkran (content, timing, signing)
+- Treatment agreement templates
+- Signing flow (GetAccept or internal)
+- Patient document timing / reflection period start
+- Booking and cancellation terms (explicitly excluded)
+- Offer package structure
+
+**Conclusion:** Sofia/Insatt are the GDPR compliance source, not the patient document flow source. Their deliverables (registerförteckning, integritetspolicies) may inform which systems handle which data but do not govern document wording, signing order, or timing. A separate quote is required if Insatt is to review patient-facing document templates or booking/cancellation terms.
+
+**Mailbox reviewed:** info@fazli.se / fazli@hairtpclinic.com  
+**Reviewed:** 2026-06-28  
+**Sensitive content:** not copied to repository
+
 ## Open decisions before implementation
 
 1. Confirm whether the booking-stage 2-day consent and the post-consultation agreement/consent are two separate documents in live flow, or one shared document used at two different moments.
