@@ -95,6 +95,7 @@ Before legal-facing text is changed again, every relevant document decision must
 - Pipedrive pipeline/customer journey material.
 - Google Drive imported document/image archives.
 - Legal e-mail correspondence with Gabriella at Nordbro (`gabrielle.handler@nordbro.com`) where it discusses document wording, timing, reflection period, cancellation, offer/agreement flow, or patient information.
+- Legal/product e-mail correspondence with Sofia Lysen at Insatt (`sofia.lysen@insatt.com`) where it discusses friskförsäkran, agreement templates, signing flow, timing, patient information, or document source/version ownership.
 
 No legal conclusion should be inferred from filenames alone.
 
@@ -103,16 +104,15 @@ No legal conclusion should be inferred from filenames alone.
 1. Confirm whether the booking-stage 2-day consent and the post-consultation agreement/consent are two separate documents in live flow, or one shared document used at two different moments.
 2. Confirm the current Nordbro-approved TP offer/agreement version for FUE/DHI and whether zone-level graft planning belongs in the offer, the patient information/service specification, or both.
 3. Confirm whether GetAccept remains the live signing provider or whether Arcana internal signing is the primary path with GetAccept as archive/import.
-4. Confirm where Gabriella/Nordbro e-mail evidence should be stored in the source-evidence chain without copying sensitive mailbox content into git.
+4. Confirm where Gabriella/Nordbro and Sofia/Insatt e-mail evidence should be stored in the source-evidence chain without copying sensitive mailbox content into git.
 5. Confirm the exact patient-facing download mechanism for annotated offer images: authenticated patient portal, expiring signed link, or provider-hosted signing package.
 
 ## Implementation sequence
 
 Recommended order:
 
-1. Source audit: Nordbro/Insatt/Microsoft/Meridiq/GetAccept/Pipedrive/Drive plus Gabriella e-mail evidence.
+1. Source audit: Nordbro/Insatt/Microsoft/Meridiq/GetAccept/Pipedrive/Drive plus Gabriella/Nordbro and Sofia/Insatt e-mail evidence.
 2. Data contract: extend consultation plan fields from `zones: string[]` to structured zone rows with graft counts.
 3. Offer package: include structured zone rows, annotated consultation photos and immutable sent-package audit.
 4. Patient link: ensure download/access is authenticated or signed/expiring and logged.
 5. Operation-day gate: ensure Friskförsäkran is surfaced for same-day transplant signing, not as a pre-offer requirement.
-
