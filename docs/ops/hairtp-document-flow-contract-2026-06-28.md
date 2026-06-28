@@ -129,6 +129,16 @@ No legal conclusion should be inferred from filenames alone.
 
 **Conclusion:** Sofia/Insatt are the GDPR compliance source, not the patient document flow source. Their deliverables (registerförteckning, integritetspolicies) may inform which systems handle which data but do not govern document wording, signing order, or timing. A separate quote is required if Insatt is to review patient-facing document templates or booking/cancellation terms.
 
+**Owner decision 2026-06-28:** request a separate Insatt review specifically for the Hair TP health declaration flow. Scope must include:
+
+- whether health data must be collected before/at consultation or can be collected later,
+- what minimum health data is necessary at consultation booking versus before treatment,
+- whether the Swedish canonical health declaration and matching English version are appropriate from a GDPR/patient-data perspective,
+- how the health declaration should be stored, audited and surfaced in CCO,
+- whether the health declaration timing affects the document journey or patient-information package.
+
+This review is a GDPR/patient-data necessity review. It does not replace Nordbro/legal review of treatment agreement terms, offer wording, cancellation terms or medical consent text.
+
 **Mailbox reviewed:** info@fazli.se / fazli@hairtpclinic.com  
 **Reviewed:** 2026-06-28  
 **Sensitive content:** not copied to repository
@@ -140,6 +150,7 @@ No legal conclusion should be inferred from filenames alone.
 3. Confirm whether GetAccept remains the live signing provider or whether Arcana internal signing is the primary path with GetAccept as archive/import.
 4. Confirm where Gabriella/Nordbro and Sofia/Insatt e-mail evidence should be stored in the source-evidence chain without copying sensitive mailbox content into git.
 5. Confirm the exact patient-facing download mechanism for annotated offer images: authenticated patient portal, expiring signed link, or provider-hosted signing package.
+6. Request separate Insatt review of the Hair TP health declaration timing/content from a GDPR and patient-data minimization perspective.
 
 ## Implementation sequence
 
