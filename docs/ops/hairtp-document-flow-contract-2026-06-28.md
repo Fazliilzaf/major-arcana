@@ -1,6 +1,6 @@
 # Hair TP document flow contract — owner decision 2026-06-28
 
-Status: owner-provided operational truth, pending source verification against Nordbro, Insatt, Microsoft/SharePoint, Meridiq, GetAccept, Pipedrive and relevant legal e-mail correspondence.
+Status: owner-provided operational truth. Existing Nordbro-approved source material is treated as approved facit when unchanged; any text/content change reopens legal review.
 
 This document locks the intended Hair TP Clinic document flow before further implementation. It does not change legal text, send documents, or activate any external integration.
 
@@ -99,6 +99,19 @@ Before legal-facing text is changed again, every relevant document decision must
 
 No legal conclusion should be inferred from filenames alone.
 
+## Owner decision: Nordbro-approved material remains approved when unchanged (2026-06-28)
+
+Nordbro/Gabriella source material that has already been approved is approved facit. It should not be sent back for review or treated as legally open merely because it is being surfaced in Arcana/CCO.
+
+Required handling:
+
+- If repository text/content matches Nordbro-approved source material: mark as `Nordbro-approved / unchanged`.
+- If only metadata, UI placement, navigation, source labels, links or technical wiring changes: no new Nordbro review is required.
+- If patient-facing wording, terms, timing, price logic, cancellation wording, reflection-period wording, agreement structure or consent content changes: mark as `requires renewed Nordbro review`.
+- If the source cannot be matched to a Nordbro-approved version: keep `GRANSKNINGSKRAV` until owner confirms source/version.
+
+This is an integrity-control rule, not a request for legal re-review. The purpose is to prevent accidental text drift while avoiding unnecessary re-approval loops for unchanged Nordbro material.
+
 ## Source verification: Insatt / Sofia Lysén (completed 2026-06-28)
 
 **Scope confirmed:** Insatt's engagement covers GDPR compliance only — not patient document flow, treatment agreements, signing, or Friskförsäkran.
@@ -188,7 +201,7 @@ Detta ersätter inte Nordbro-granskning av avtal, offertvillkor eller samtyckest
 ## Open decisions before implementation
 
 1. Confirm whether the booking-stage 2-day consent and the post-consultation agreement/consent are two separate documents in live flow, or one shared document used at two different moments.
-2. Confirm the current Nordbro-approved TP offer/agreement version for FUE/DHI and whether zone-level graft planning belongs in the offer, the patient information/service specification, or both.
+2. **[Nordbro integrity]** Confirm repository copies match the existing Nordbro-approved facit before live use. Do not request new Nordbro review unless text/content has changed or source/version cannot be matched.
 3. Confirm whether GetAccept remains the live signing provider or whether Arcana internal signing is the primary path with GetAccept as archive/import.
 4. Confirm where Gabriella/Nordbro and Sofia/Insatt e-mail evidence should be stored in the source-evidence chain without copying sensitive mailbox content into git.
 5. Confirm the exact patient-facing download mechanism for annotated offer images: authenticated patient portal, expiring signed link, or provider-hosted signing package.
@@ -198,7 +211,7 @@ Detta ersätter inte Nordbro-granskning av avtal, offertvillkor eller samtyckest
 
 Recommended order:
 
-1. Source audit: Nordbro/Insatt/Microsoft/Meridiq/GetAccept/Pipedrive/Drive plus Gabriella/Nordbro and Sofia/Insatt e-mail evidence.
+1. Source audit: verify integrity against Nordbro-approved facit, Insatt/Microsoft/Meridiq/GetAccept/Pipedrive/Drive plus Gabriella/Nordbro and Sofia/Insatt e-mail evidence. Unchanged Nordbro material remains approved; changed text triggers renewed review.
 2. Hälsodeklaration parity guard: verify English remains a strict mirror of the approved Swedish canonical; do not send for external review unless open decision 6 is triggered.
 3. Data contract: extend consultation plan fields from `zones: string[]` to structured zone rows with graft counts.
 4. Offer package: include structured zone rows, annotated consultation photos and immutable sent-package audit.
