@@ -134,15 +134,21 @@ No legal conclusion should be inferred from filenames alone.
 **Reviewed:** 2026-06-28  
 **Sensitive content:** not copied to repository
 
-## Owner decision: Insatt to separately review hälsodeklarationen (2026-06-28)
+## Owner decision: hälsodeklarationen approved in Swedish; English must mirror it (2026-06-28)
 
-Insatt ska granska Hair TP-hälsodeklarationen separat. Scope för den granskningen:
+Den svenska hälsodeklarationen är godkänd owner-facit. Den engelska versionen ska vara en trogen översättning/spegling av den svenska versionen och behöver inte skickas vidare för separat granskning så länge den inte avviker i sak.
 
-- Sofia/Insatt är GDPR/patientdata-källa för hälsodeklarationen.
-- Fråga: ska hälsouppgifter samlas in vid konsultation eller i ett senare skede (dataminimering)?
-- Kontrollera svensk canonical + engelsk spegling för GDPR-konformitet.
-- Scope: GDPR/dataminimering/lagring/audit/timing.
-- Scope ersätter inte Nordbro-granskning av avtal, offertvillkor eller samtyckestext.
+Insatt/Sofia används fortsatt som GDPR/patientdata-källa för generella dataskyddsfrågor, men ingen ny Insatt-remiss krävs för själva engelska hälsodeklarationen om den följer svensk canonical.
+
+Ny extern granskning krävs endast om vi:
+
+- ändrar innehåll eller frågeomfång i svensk canonical,
+- låter engelskan avvika från svensk canonical,
+- flyttar när hälsouppgifter/personnummer samlas in,
+- ändrar GDPR-/patientdatalag-formulering, lagring, audit eller marknadsföringssamtycke,
+- använder hälsodeklarationen för ett nytt behandlingsflöde som inte täcks av befintligt godkännande.
+
+Detta ersätter inte Nordbro-granskning av avtal, offertvillkor eller samtyckestext.
 
 ### Hälsodeklaration — repo-inventering
 
@@ -168,7 +174,7 @@ Insatt ska granska Hair TP-hälsodeklarationen separat. Scope för den gransknin
 - Kontext: ”before your consultation or treatment”
 - Hälsofrågor: 14 frågor, speglar svensk canonical (Meridiq ID-serien 450976–), Ja/Nej/Vet ej
 
-### GDPR-frågor för Insatt att besvara
+### GDPR-frågor som bara öppnas vid ändring av facit
 
 1. **Timing/dataminimering**: Hälsodeklarationen samlas in vid konsultation (steg 3). Måste personnummer och fullständiga hälsouppgifter samlas in då, eller kan de inhämtas i ett senare skede?
 2. **Legal grund**: Formulering använder ”patientdatalagen och GDPR”. Är patientdatalagen rätt legal grund för PRP/microneedling (inte strikt sjukvårdsbehandlingar)?
@@ -177,7 +183,7 @@ Insatt ska granska Hair TP-hälsodeklarationen separat. Scope för den gransknin
 5. **Paritetsgranskning**: Bekräfta att svensk canonical och engelsk spegling har samma GDPR/patientdata-scope och att 14-frågeversionen är rätt miniminivå.
 6. **SharePoint-källa**: Intro/GDPR-texten hämtas från SharePoint-dokument. Beställ versionsstämpel och ägarskap.
 
-**Inga textförändringar görs utan Insatts svar och owner-beslut.**
+**Inga textförändringar görs utan owner-beslut. Insatt-remiss krävs bara om ändringen påverkar GDPR/patientdata-scope enligt listan ovan.**
 
 ## Open decisions before implementation
 
@@ -186,14 +192,14 @@ Insatt ska granska Hair TP-hälsodeklarationen separat. Scope för den gransknin
 3. Confirm whether GetAccept remains the live signing provider or whether Arcana internal signing is the primary path with GetAccept as archive/import.
 4. Confirm where Gabriella/Nordbro and Sofia/Insatt e-mail evidence should be stored in the source-evidence chain without copying sensitive mailbox content into git.
 5. Confirm the exact patient-facing download mechanism for annotated offer images: authenticated patient portal, expiring signed link, or provider-hosted signing package.
-6. **[Insatt]** Confirm GDPR basis, timing, data minimisation and retention for hälsodeklarationen (Swedish canonical + English mirror) — see owner decision above.
+6. **[Hälsodeklaration]** Keep Swedish canonical as approved facit and English as strict mirror. Reopen Insatt/GDPR review only if content, timing, data minimisation, retention or legal wording changes.
 
 ## Implementation sequence
 
 Recommended order:
 
 1. Source audit: Nordbro/Insatt/Microsoft/Meridiq/GetAccept/Pipedrive/Drive plus Gabriella/Nordbro and Sofia/Insatt e-mail evidence.
-2. Insatt review: hälsodeklarationen GDPR scope (open decision 6).
+2. Hälsodeklaration parity guard: verify English remains a strict mirror of the approved Swedish canonical; do not send for external review unless open decision 6 is triggered.
 3. Data contract: extend consultation plan fields from `zones: string[]` to structured zone rows with graft counts.
 4. Offer package: include structured zone rows, annotated consultation photos and immutable sent-package audit.
 5. Patient link: ensure download/access is authenticated or signed/expiring and logged.
