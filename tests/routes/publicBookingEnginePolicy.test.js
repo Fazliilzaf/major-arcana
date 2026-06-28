@@ -29,7 +29,7 @@ test('setBookingPolicySettings affects availability and reservation enforcement'
       globalDefaults: {
         minNoticeOnlineMinutes: 999999,
         minNoticePhysicalMinutes: 999999,
-        maxBookingDaysAhead: 180,
+        maxBookingDaysAhead: 1,
         cancellationPolicyHours: 24,
       },
       serviceOverrides: {
@@ -97,7 +97,11 @@ test('setBookingPolicySettings tightens cancellation policy at runtime', async (
       srvIds: 'consultation-physical',
     });
     assert.ok(availability.length >= 1);
-    const slot = availability[0];
+    const slot = {
+      ...availability[0],
+      startsAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      endsAt: new Date(Date.now() + 48 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+    };
 
     await store.reserveSlots({
       tenantId: 'hair-tp-clinic',
