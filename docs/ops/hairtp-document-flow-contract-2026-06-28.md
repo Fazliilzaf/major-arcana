@@ -105,21 +105,22 @@ No legal conclusion should be inferred from filenames alone.
 
 **Evidence trace (no sensitive content copied):**
 
-| Date | Subject | Key finding |
-|---|---|---|
-| 2025-04-30 | GDPR-frågor | Insatt requests access to process documentation |
-| 2025-05-08 | GDPR-frågor | Reviews personal data processing documentation |
-| 2025-05-20 | GDPR-frågor | Scope discussion — certain formulations outside the quoted engagement |
-| 2025-05-21 | GDPR-frågor | Cajsa-Stella Danielsson added as co-jurist; access to shared Drive requested |
-| 2025-06-04 | Möte för genomgång av registerförteckning | Data register draft ready; review meeting with Leonora and Fazli |
-| 2025-06-17 | Sv: Möte för genomgång av registerförteckning | **Scope exclusion confirmed:** "vi tittar inte på t.ex. bokningsvillkor" — booking/cancellation terms explicitly out of scope; a separate quote is required if Insatt is to review those |
-| 2025-06-17 | Sv: Möte... (attachment: Offert Hair TP Clinic.pdf) | Insatt's engagement offer attached; scope = data register, privacy documents only |
-| 2025-06-17 | Registerförteckning (Cajsa-Stella) | GDPR process question raised: "is it necessary to collect health data at consultation, or can it be collected later?" — a register question, not a document-template question; no documented answer in the reviewed thread |
-| 2025-06-24 | Sv: Registerförteckning | 75 % of estimated hours reached; reminder to review data register |
-| 2025-07-02 | Sv: Registerförteckning — slutleverans | **Delivered:** GDPR information (employees), GDPR information (website), Intern integritetspolicy, IT-Policy, Logg för personuppgiftsincidenter, Nulägesanalys och åtgärdsförslag, Underbilaga 1 – Instruktion (data-processor instruction template) |
-| 2025-09-01 | Sv: Registerförteckning | Clarification re. dataskyddsombud (DPO) requirement |
+| Date       | Subject                                             | Key finding                                                                                                                                                                                                                                          |
+| ---------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2025-04-30 | GDPR-frågor                                         | Insatt requests access to process documentation                                                                                                                                                                                                      |
+| 2025-05-08 | GDPR-frågor                                         | Reviews personal data processing documentation                                                                                                                                                                                                       |
+| 2025-05-20 | GDPR-frågor                                         | Scope discussion — certain formulations outside the quoted engagement                                                                                                                                                                                |
+| 2025-05-21 | GDPR-frågor                                         | Cajsa-Stella Danielsson added as co-jurist; access to shared Drive requested                                                                                                                                                                         |
+| 2025-06-04 | Möte för genomgång av registerförteckning           | Data register draft ready; review meeting with Leonora and Fazli                                                                                                                                                                                     |
+| 2025-06-17 | Sv: Möte för genomgång av registerförteckning       | **Scope exclusion confirmed:** "vi tittar inte på t.ex. bokningsvillkor" — booking/cancellation terms explicitly out of scope; a separate quote is required if Insatt is to review those                                                             |
+| 2025-06-17 | Sv: Möte... (attachment: Offert Hair TP Clinic.pdf) | Insatt's engagement offer attached; scope = data register, privacy documents only                                                                                                                                                                    |
+| 2025-06-17 | Registerförteckning (Cajsa-Stella)                  | GDPR process question raised: "is it necessary to collect health data at consultation, or can it be collected later?" — a register question, not a document-template question; no documented answer in the reviewed thread                           |
+| 2025-06-24 | Sv: Registerförteckning                             | 75 % of estimated hours reached; reminder to review data register                                                                                                                                                                                    |
+| 2025-07-02 | Sv: Registerförteckning — slutleverans              | **Delivered:** GDPR information (employees), GDPR information (website), Intern integritetspolicy, IT-Policy, Logg för personuppgiftsincidenter, Nulägesanalys och åtgärdsförslag, Underbilaga 1 – Instruktion (data-processor instruction template) |
+| 2025-09-01 | Sv: Registerförteckning                             | Clarification re. dataskyddsombud (DPO) requirement                                                                                                                                                                                                  |
 
 **What Insatt has NOT addressed:**
+
 - Friskförsäkran (content, timing, signing)
 - Treatment agreement templates
 - Signing flow (GetAccept or internal)
@@ -146,6 +147,7 @@ Insatt ska granska Hair TP-hälsodeklarationen separat. Scope för den gransknin
 ### Hälsodeklaration — repo-inventering
 
 **Svensk canonical:**
+
 - Fil: `public/major-arcana-preview/steg3-halsodeklaration-final-demo.html`
 - Meridiq source: `migration/meridiq/questionary-catalog.json` apiId `16414`
 - Intro/GDPR-text source: `SharePoint ”1. Hälsodeklaration TP, PRP, Microneedling PRF.docx”`
@@ -159,19 +161,20 @@ Insatt ska granska Hair TP-hälsodeklarationen separat. Scope för den gransknin
   - `#gdpr-mail`: ”Jag ger mitt godkännande till att ta emot utskick på mail från Hair TP Clinic.”
 
 **Engelsk spegling:**
+
 - Fil: `public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html`
-- Meridiq source: `migration/meridiq/steg3-health-declaration-eng-facit.json` archive `14865`
+- Source-beslut: svensk canonical speglad till engelska i PR #356 (2026-06-28)
 - Registry ID (signering): `health_tp_eng`
 - Kontext: ”before your consultation or treatment”
-- Hälsofrågor: 29 frågor (Meridiq ID-serien 408040–), Ja/Nej/Vet ej
+- Hälsofrågor: 14 frågor, speglar svensk canonical (Meridiq ID-serien 450976–), Ja/Nej/Vet ej
 
 ### GDPR-frågor för Insatt att besvara
 
 1. **Timing/dataminimering**: Hälsodeklarationen samlas in vid konsultation (steg 3). Måste personnummer och fullständiga hälsouppgifter samlas in då, eller kan de inhämtas i ett senare skede?
-2. **Legal grund**: Formuliering använder ”patientdatalagen och GDPR”. Är patientdatalagen rätt legal grund för PRP/microneedling (inte strikt sjukvårdsbehandlingar)?
-3. **Gallringstid**: Ingen lagrings-/gallringstid syns i formuliering — behövs explicit text?
-4. **Marknadsföringssamtycke** (`#gdpr-mail`): Är det korrekt att koppla mark-nadsföringsopt-in till hälsodeklarationen, eller ska detta separeras?
-5. **Paritetsgranskning**: 14 frågor (SV) vs 29 frågor (EN) — skillnaden ska verifieras mot Meridiq-källan.
+2. **Legal grund**: Formulering använder ”patientdatalagen och GDPR”. Är patientdatalagen rätt legal grund för PRP/microneedling (inte strikt sjukvårdsbehandlingar)?
+3. **Gallringstid**: Ingen lagrings-/gallringstid syns i formulering — behövs explicit text?
+4. **Marknadsföringssamtycke** (`#gdpr-mail`): Är det korrekt att koppla marknadsförings-opt-in till hälsodeklarationen, eller ska detta separeras?
+5. **Paritetsgranskning**: Bekräfta att svensk canonical och engelsk spegling har samma GDPR/patientdata-scope och att 14-frågeversionen är rätt miniminivå.
 6. **SharePoint-källa**: Intro/GDPR-texten hämtas från SharePoint-dokument. Beställ versionsstämpel och ägarskap.
 
 **Inga textförändringar görs utan Insatts svar och owner-beslut.**
