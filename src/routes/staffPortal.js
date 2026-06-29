@@ -626,6 +626,97 @@ function createStaffPortalRouter({
     return labels[type] || 'Notis';
   }
 
+  function buildNextBestAction(item) {
+    const source = String(item?.source || '');
+    const actions = Array.isArray(item?.actions) ? item.actions : [];
+    const actionKeys = new Set(actions.map((action) => String(action.key || '')));
+    const links = item?.links || {};
+
+    if (source === 'notification') {
+      const type = String(item?.type || 'system');
+      if (type === 'mail') {
+        return {
+          label: 'Öppna kundfrågan',
+          reason: 'Kundmeddelanden ska hanteras från arbetsvyn så svaret hamnar i rätt tråd.',
+          href:
+            item.actionUrl || links.staffPortal || links.staffTask || links.customerCard || null,
+          safety: 'Skickar inget svar automatiskt.',
+        };
+      }
+      if (type === 'booking' || type === 'agreement') {
+        return {
+          label: 'Öppna granskningsunderlag',
+          reason: 'Bokning eller avtal behöver mänsklig kontroll innan nästa steg.',
+          href:
+            item.actionUrl || links.doctorReview || links.staffPortal || links.customerCard || null,
+          safety: 'Ändrar ingen boknings- eller signeringsstatus.',
+        };
+      }
+      if (type === 'compliance' || type === 'system') {
+        return {
+          label: 'Öppna QMS-spår',
+          reason: 'System- och compliance-notiser ska följas upp i kvalitetsspåret.',
+          href: item.actionUrl || links.staffPortal || buildStaffPortalUrl({ panel: 'qms' }),
+          safety: 'Skapar ingen avvikelse automatiskt.',
+        };
+      }
+      return {
+        label: 'Öppna notisen',
+        reason: 'Notisen har signaler som bör granskas manuellt.',
+        href: item.actionUrl || links.staffPortal || links.customerCard || null,
+        safety: 'Read-only.',
+      };
+    }
+
+    if (actionKeys.has('customer_reply')) {
+      return {
+        label: 'Svara kunden från arbetsvyn',
+        reason: 'Kunden väntar på svar och ärendet behöver ligga kvar i rätt konversation.',
+        href: links.staffTask || links.customerCard || null,
+        safety: 'Öppnar bara underlaget; svaret skickas manuellt.',
+      };
+    }
+    if (actionKeys.has('ordination')) {
+      return {
+        label: 'Skicka/öppna läkarkö',
+        reason: 'Behandling med lokalbedövning kräver individuell ordination innan ingrepp.',
+        href: links.doctorReview || links.ordination || links.staffTask || null,
+        safety: 'Ingen ordination godkänns utan läkarsignatur.',
+      };
+    }
+    if (actionKeys.has('checklist')) {
+      return {
+        label: 'Gå igenom checklistan',
+        reason: 'Minst en handoff-checkpunkt saknas innan ärendet är redo.',
+        href: links.staffTask || links.qms || null,
+        safety: 'Checkpunkter kräver manuell bekräftelse.',
+      };
+    }
+    if (actionKeys.has('photos')) {
+      return {
+        label: 'Granska kundbilder',
+        reason: 'Bilder finns kopplade till ärendet och kan påverka uppföljning/offertunderlag.',
+        href: links.customerCard || links.photos || null,
+        safety: 'Bilder ändras inte från radarn.',
+      };
+    }
+    if (actionKeys.has('today_booking')) {
+      return {
+        label: 'Öppna dagens kund',
+        reason: 'Kunden har bokning idag och bör kontrolleras innan besök/ingrepp.',
+        href: links.customerCard || links.staffTask || null,
+        safety: 'Endast navigering.',
+      };
+    }
+
+    return {
+      label: 'Öppna underlaget',
+      reason: 'Ingen akut automatisk åtgärd föreslås.',
+      href: links.customerCard || links.staffTask || null,
+      safety: 'Read-only.',
+    };
+  }
+
   function buildNotificationPriorityItem(item, index = 0) {
     const severity = String(item?.severity || 'info').toLowerCase();
     const hasAction = Boolean(
@@ -645,7 +736,7 @@ function createStaffPortalRouter({
       item?.links?.customerCard ||
       null;
 
-    return {
+    const priorityItem = {
       id: `notification:${item?.id || index}`,
       source: 'notification',
       priority,
@@ -666,13 +757,15 @@ function createStaffPortalRouter({
         },
       ],
     };
+    priorityItem.nextBestAction = buildNextBestAction(priorityItem);
+    return priorityItem;
   }
 
   function buildQueuePriorityItem(item) {
     const labels = Array.isArray(item.actions)
       ? item.actions.map((action) => action.label || action.key).filter(Boolean)
       : [];
-    return {
+    const priorityItem = {
       id: `queue:${item.id}`,
       source: 'queue',
       priority: item.priority,
@@ -685,6 +778,8 @@ function createStaffPortalRouter({
       actions: item.actions || [],
       queueItem: item,
     };
+    priorityItem.nextBestAction = buildNextBestAction(priorityItem);
+    return priorityItem;
   }
 
   // Lägg till requireAuth som global pre-filter för /api/v1/staff/*
