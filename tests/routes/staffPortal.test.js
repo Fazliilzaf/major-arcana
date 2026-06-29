@@ -626,17 +626,54 @@ test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder m
       );
       assert.equal(completeChecklist.status, 200);
 
+      await bookingCaseStore.updateOrdinationReview(
+        'case-action-1',
+        {
+          status: 'needs_completion',
+          signature: 'Dr Test',
+          comment: 'Komplettera samtycke före beslut',
+        },
+        { userId: 'doctor-1', role: 'konsult' }
+      );
+
+      const queueAfterRequest = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/daily-work-queue`,
+        {
+          headers: { 'x-cco-role': 'personal' },
+        }
+      );
+      assert.equal(queueAfterRequest.status, 200);
+      const queueBody = await queueAfterRequest.json();
+      assert.equal(queueBody.items[0].ordinationStatus, 'needs_completion');
+      assert.equal(
+        queueBody.items[0].completionRequest.comment,
+        'Komplettera samtycke före beslut'
+      );
+
+      const resolveCompletion = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/daily-work-queue/case-action-1/action`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'personal' },
+          body: JSON.stringify({ action: 'resolve_completion' }),
+        }
+      );
+      assert.equal(resolveCompletion.status, 200);
+
       const stored = await bookingCaseStore.getCase('case-action-1');
       assert.equal(stored.staffActions.seenBy, 'staff-1');
       assert.equal(stored.staffActions.sentToDoctorBy, 'staff-1');
       assert.equal(stored.ordinationReview.status, 'pending');
       assert.equal(stored.handoffChecklist.journalReady, true);
+      assert.equal(stored.staffActions.completionResolvedBy, 'staff-1');
       assert.ok(stored.history.some((entry) => entry.action === 'staff_mark_seen'));
       assert.ok(stored.history.some((entry) => entry.action === 'staff_send_to_doctor'));
       assert.ok(stored.history.some((entry) => entry.action === 'staff_complete_checklist'));
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_resolve_completion'));
       assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.mark_seen'));
       assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.send_to_doctor'));
       assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.complete_checklist'));
+      assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.resolve_completion'));
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }

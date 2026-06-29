@@ -111,6 +111,8 @@ function normalizeStaffActions(input = null) {
       seenBy: null,
       sentToDoctorAt: null,
       sentToDoctorBy: null,
+      completionResolvedAt: null,
+      completionResolvedBy: null,
       lastActionAt: null,
       lastActionBy: null,
       lastAction: null,
@@ -121,6 +123,8 @@ function normalizeStaffActions(input = null) {
     seenBy: normalizeText(input.seenBy) || null,
     sentToDoctorAt: normalizeText(input.sentToDoctorAt) || null,
     sentToDoctorBy: normalizeText(input.sentToDoctorBy) || null,
+    completionResolvedAt: normalizeText(input.completionResolvedAt) || null,
+    completionResolvedBy: normalizeText(input.completionResolvedBy) || null,
     lastActionAt: normalizeText(input.lastActionAt) || null,
     lastActionBy: normalizeText(input.lastActionBy) || null,
     lastAction: normalizeText(input.lastAction) || null,
@@ -527,7 +531,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     const idx = findIndexById(id);
     if (idx === -1) throw notFound('booking_case_not_found');
     const action = normalizeKey(input.action);
-    const allowed = ['mark_seen', 'send_to_doctor', 'complete_checklist'];
+    const allowed = ['mark_seen', 'send_to_doctor', 'complete_checklist', 'resolve_completion'];
     if (!allowed.includes(action)) {
       throw badRequest(`Ogiltig personalåtgärd. Tillåtna: ${allowed.join(', ')}.`);
     }
@@ -565,6 +569,19 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
         [itemKey]: true,
       };
       detail.itemKey = itemKey;
+    }
+
+    if (action === 'resolve_completion') {
+      if (normalizeKey(record.ordinationReview?.status) !== 'needs_completion') {
+        throw badRequest('Komplettering kan bara markeras klar när läkaren har begärt den.');
+      }
+      record.ordinationReview = normalizeOrdinationReview({
+        ...record.ordinationReview,
+        status: 'pending',
+        comment: normalizeText(record.ordinationReview?.comment),
+      });
+      record.staffActions.completionResolvedAt = ts;
+      record.staffActions.completionResolvedBy = actorUserId;
     }
 
     record.staffActions.lastActionAt = ts;
