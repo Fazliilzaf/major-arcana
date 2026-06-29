@@ -171,8 +171,9 @@ function createStaffPortalRouter({
 
   /* ── GET /api/v1/staff/ordination-reviews ─────────────────────
      Granskningskö för ordinationsunderlag (doctor view).
-     Returnerar ärenden med handoffChecklist.encounterLinked = false
-     eller där ordination ännu ej godkänts av läkare.
+     Returnerar alla öppna bokningsärenden (ej completed/cancelled)
+     för manuell läkargranskning. Fas 3 lägger till
+     handoffChecklist-filtrering när fältet finns i bookingCaseStore.
      Kräver ordination.view-permission (owner, operator, konsult).
   ─────────────────────────────────────────────────────────────── */
   router.get(
@@ -185,7 +186,6 @@ function createStaffPortalRouter({
 
         let reviews = [];
         if (bookingCaseStore) {
-          // Visa alla ärenden som inte är avslutade — läkaren granskar handoff-checklistor
           const allOpen = await bookingCaseStore.listCases({
             tenantId: tenantId || undefined,
             limit: limit * 4,

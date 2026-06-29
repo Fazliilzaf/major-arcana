@@ -826,9 +826,9 @@
         <!-- Demo role switcher -->
         <div class="demo-bar">
           <span class="label">Prototypvy · Byt roll</span>
-          <button class="role-btn active" onclick="setRole('nurse')">Sjuksköterska</button>
-          <button class="role-btn" onclick="setRole('doctor')">Läkare</button>
-          <button class="role-btn" onclick="setRole('admin')">Admin / Ägare</button>
+          <button class="role-btn active">Sjuksköterska</button>
+          <button class="role-btn">Läkare</button>
+          <button class="role-btn">Admin / Ägare</button>
           <span id="dataStatusLabel" style="margin-left: auto; font-size: 10px; color: var(--text3)"
             >Laddar data…</span
           >
@@ -1538,7 +1538,10 @@
           const el = document.getElementById('liveTaskCount');
           if (el) el.textContent = data.count;
           const badge = document.querySelector('[data-live-badge="tasks"]');
-          if (badge) badge.textContent = data.count;
+          if (badge) {
+            badge.textContent = data.count;
+            badge.style.display = data.count > 0 ? '' : 'none';
+          }
         }
       }
 
