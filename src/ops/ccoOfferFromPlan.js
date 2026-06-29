@@ -52,8 +52,19 @@ function buildPlanSnapshot(journalEntry = {}, patient = {}) {
       method: normalizeText(fields.method),
       graftsTotal: normalizeText(fields.graftsTotal),
       zones: asArray(fields.zones)
-        .map((zone) => normalizeText(zone))
+        .map((zone) => {
+          if (zone && typeof zone === 'object')
+            return normalizeText(zone.label || zone.name || zone.zone || '');
+          return normalizeText(zone);
+        })
         .filter(Boolean),
+      graftsZones: asArray(fields.zones).reduce((acc, zone) => {
+        if (!zone || typeof zone !== 'object') return acc;
+        const label = normalizeText(zone.label || zone.name || zone.zone || '').toLowerCase();
+        const grafts = normalizeText(zone.grafts || zone.graftCount || zone.count || '');
+        if (label && grafts) acc[label] = grafts;
+        return acc;
+      }, {}),
       prpIncluded: fields.prpIncluded,
       notes: normalizeText(fields.notes),
     },

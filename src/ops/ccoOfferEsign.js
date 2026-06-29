@@ -122,17 +122,27 @@ function buildOfferSignPageHtml({
   const depositAmount = normalizeText(commercialCase.depositAmount);
   const consultationDate = normalizeText(fields.consultationDate);
 
-  const photosWithData = Array.isArray(planSnapshot.attachments)
-    ? planSnapshot.attachments.filter((p) => p && normalizeText(p.dataUrl))
-    : [];
+  const graftsZones =
+    fields.graftsZones && typeof fields.graftsZones === 'object' ? fields.graftsZones : {};
+
+  const allAttachments = Array.isArray(planSnapshot.attachments) ? planSnapshot.attachments : [];
+  const photosToShow = allAttachments.filter((p) => p && p.photoId);
+  const photoSrc = (p) => {
+    if (normalizeText(p.dataUrl)) return normalizeText(p.dataUrl);
+    if (!token || !origin) return '';
+    const v = p.annotatedPreviewAvailable ? '&variant=annotated' : '';
+    return `${origin}/api/v1/cco-commercial/offer-photo?token=${encodeURIComponent(token)}&photoId=${encodeURIComponent(p.photoId)}${v}`;
+  };
 
   // Zone grid HTML
   const zoneItemsHtml = zones
     .map((z) => {
       const key = z.toLowerCase().trim();
       const meta = ZONE_META[key] || { cls: 'z-front', label: z };
+      const zoneGrafts = graftsZones[key] || '';
       return `<div class="zone-item ${meta.cls}">
       <div class="zone-label-row"><span class="zone-dot"></span>${esc(meta.label)}</div>
+      ${zoneGrafts ? `<div class="zone-num">${esc(zoneGrafts)}<span class="zone-unit"> hårsäckar</span></div>` : ''}
       <div class="zone-bar"></div>
     </div>`;
     })
@@ -158,15 +168,17 @@ function buildOfferSignPageHtml({
       : '';
 
   const photosSection =
-    photosWithData.length > 0
+    photosToShow.length > 0
       ? `<div class="section-card">
     <div class="card-label">Konsultationsbilder</div>
     <div class="photos-grid">
-      ${photosWithData
-        .map(
-          (p) =>
-            `<img class="consult-photo" src="${esc(normalizeText(p.dataUrl))}" alt="${esc(p.fileName || 'Konsultationsbild')}" loading="lazy" />`
-        )
+      ${photosToShow
+        .map((p) => {
+          const src = photoSrc(p);
+          if (!src) return '';
+          return `<img class="consult-photo" src="${esc(src)}" alt="${esc(p.fileName || 'Konsultationsbild')}" loading="lazy" />`;
+        })
+        .filter(Boolean)
         .join('')}
     </div>
   </div>`
