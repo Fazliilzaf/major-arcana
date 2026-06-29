@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#bb4779" />
+    <title>Din offert · Hair TP Clinic</title>
+    <style>
+      /* ============================================================
+         CCO v3 design tokens — identiska med staff-portal och
+         cco-patient-offer-portal-v3 (preview)
+         ============================================================ */
+      :root {
+        --bg: #faf6f2;
+        --surface: #fff;
+        --accent: #bb4779;
+        --accent-light: #fdeef4;
+        --violet: #6b31c9;
+        --gold: #8a5f1e;
+        --sage: #2f6f54;
+        --info: #2f6595;
+        --text: #221c15;
+        --text2: #574d40;
+        --text3: #6d6354;
+        --border: rgba(180, 165, 150, 0.22);
+        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
+        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --r: 14px;
+        --r-sm: 10px;
+        --r-pill: 999px;
+        --max-w: 480px;
+        --pad: clamp(1rem, 0.5rem + 2vw, 1.5rem);
+        --gap: 0.75rem;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        overflow-x: clip;
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%), var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          sans-serif;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+      }
+
+      /* DEMO-banner */
+      .demo-banner {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        background: repeating-linear-gradient(
+          -45deg,
+          rgba(187, 71, 121, 0.9),
+          rgba(187, 71, 121, 0.9) 10px,
+          rgba(140, 36, 85, 0.9) 10px,
+          rgba(140, 36, 85, 0.9) 20px
+        );
+        color: #fff;
+        text-align: center;
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 0.4rem var(--pad);
+      }
+
+      /* TOPBAR */
+      .topbar {
+        position: sticky;
+        top: 1.65rem;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: calc(0.65rem + env(safe-area-inset-top, 0px)) var(--pad) 0.65rem;
+        background: linear-gradient(
+          180deg,
+          rgba(250, 246, 242, 0.97),
+          rgba(250, 246, 242, 0.82) 80%,
+          transparent
+        );
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+      .brand-pill {
+        font-weight: 900;
+        font-size: 0.6rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 0.32rem 0.75rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+        color: var(--accent);
+        box-shadow: var(--sh-sm);
+      }
+      .topbar-spacer {
+        flex: 1;
+      }
+      .avatar {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 50%;
+        background: linear-gradient(180deg, var(--accent), #8c2455);
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.78rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+          0 4px 12px rgba(176, 53, 110, 0.32),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        flex-shrink: 0;
+      }
+
+      /* PAGE */
+      .page {
+        max-width: var(--max-w);
+        margin-inline: auto;
+        padding: 0.75rem var(--pad) 1rem;
+      }
+
+      /* JOURNEY */
+      .journey {
+        display: flex;
+        align-items: flex-start;
+        padding: 0.9rem 1.1rem;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.86));
+        border: 1px solid var(--border);
+        box-shadow: var(--sh-md);
+        border-radius: 20px;
+        margin-bottom: var(--gap);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .journey::-webkit-scrollbar {
+        display: none;
+      }
+      .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.28rem;
+        flex: 1;
+        min-width: 44px;
+      }
+      .step-dot {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.62rem;
+        font-weight: 800;
+        flex-shrink: 0;
+      }
+      .step-dot.done {
+        background: linear-gradient(180deg, var(--sage), #1b4f3a);
+        color: #fff;
+        box-shadow:
+          0 4px 12px rgba(42, 110, 82, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+      .step-dot.active {
+        background: linear-gradient(180deg, var(--accent), #8c2455);
+        color: #fff;
+        box-shadow:
+          0 4px 14px rgba(176, 53, 110, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+      .step-dot.locked {
+        background: rgba(167, 145, 125, 0.1);
+        color: var(--text3);
+        border: 1.5px dashed rgba(167, 145, 125, 0.32);
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow:
+            0 4px 14px rgba(176, 53, 110, 0.42),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        50% {
+          box-shadow:
+            0 4px 22px rgba(176, 53, 110, 0.62),
+            0 0 0 6px rgba(176, 53, 110, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+      }
+      .step-label {
+        font-size: 0.55rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--text3);
+        text-align: center;
+        white-space: nowrap;
+      }
+      .step-label.active {
+        color: var(--accent);
+      }
+      .step-label.done {
+        color: var(--sage);
+      }
+      .step-conn {
+        height: 2px;
+        flex: 1;
+        min-width: 8px;
+        background: rgba(167, 145, 125, 0.14);
+        margin-top: 1rem;
+        border-radius: 2px;
+      }
+      .step-conn.done {
+        background: linear-gradient(90deg, var(--sage), rgba(47, 111, 84, 0.3));
+      }
+
+      /* CARDS */
+      .section-card {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.86));
+        border: 1px solid var(--border);
+        box-shadow: var(--sh-md);
+        border-radius: var(--r);
+        padding: 1rem 1.1rem;
+        margin-bottom: var(--gap);
+      }
+      .card-label {
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-bottom: 0.65rem;
+      }
+
+      /* ZONE GRID */
+      .zone-visual {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
+        margin-bottom: 0.2rem;
+      }
+      .zone-item {
+        padding: 0.75rem 0.875rem;
+        border-radius: var(--r-sm);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 241, 236, 0.78));
+        border: 1px solid var(--border);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+      .zone-item.full {
+        grid-column: 1 / -1;
+      }
+      .zone-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.3rem;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+      .zone-label-row {
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text3);
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.3rem;
+      }
+      .zone-num {
+        font-size: clamp(1.1rem, 1rem + 1vw, 1.45rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+      .zone-unit {
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--text3);
+        margin-left: 0.15rem;
+      }
+      .zone-bar {
+        height: 3px;
+        border-radius: 2px;
+        margin-top: 0.5rem;
+        opacity: 0.55;
+      }
+      .z-front .zone-dot {
+        background: var(--accent);
+      }
+      .z-front .zone-num {
+        color: var(--accent);
+      }
+      .z-front .zone-bar {
+        background: linear-gradient(90deg, var(--accent), rgba(187, 71, 121, 0.15));
+      }
+      .z-mid .zone-dot {
+        background: var(--violet);
+      }
+      .z-mid .zone-num {
+        color: var(--violet);
+      }
+      .z-mid .zone-bar {
+        background: linear-gradient(90deg, var(--violet), rgba(107, 49, 201, 0.15));
+      }
+      .z-crown .zone-dot {
+        background: var(--gold);
+      }
+      .z-crown .zone-num {
+        color: var(--gold);
+      }
+      .z-crown .zone-bar {
+        background: linear-gradient(90deg, var(--gold), rgba(138, 95, 30, 0.15));
+      }
+      .z-total .zone-dot {
+        background: var(--sage);
+      }
+      .z-total .zone-num {
+        color: var(--sage);
+      }
+      .z-total .zone-bar {
+        background: linear-gradient(90deg, var(--sage), rgba(47, 111, 84, 0.15));
+      }
+
+      /* SCALP ILLUSTRATION */
+      .scalp-wrap {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 0.75rem;
+      }
+      .scalp-svg {
+        width: min(220px, 50vw);
+        height: auto;
+        filter: drop-shadow(0 4px 12px rgba(56, 40, 28, 0.1));
+      }
+
+      /* PRICE */
+      .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(167, 145, 125, 0.12);
+      }
+      .price-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .price-row.total-row {
+        margin-top: 0.2rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid rgba(167, 145, 125, 0.16);
+        border-bottom: 0;
+      }
+      .price-label {
+        font-size: 0.75rem;
+        color: var(--text2);
+        font-weight: 500;
+      }
+      .price-val {
+        font-size: 0.75rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .price-val.total {
+        font-size: 1.25rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        background: linear-gradient(135deg, var(--accent), var(--violet));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* TIMELINE */
+      .timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .tl-row {
+        display: flex;
+        gap: 0.875rem;
+        align-items: flex-start;
+        padding: 0.6rem 0;
+      }
+      .tl-row:not(:last-child) {
+        border-bottom: 1px solid rgba(167, 145, 125, 0.1);
+      }
+      .tl-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+      .tl-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 0.1rem;
+      }
+      .tl-meta {
+        font-size: 0.68rem;
+        color: var(--text3);
+      }
+
+      /* BETÄNKETID */
+      .betatid-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.875rem;
+        padding: 1rem 1.1rem;
+        border-radius: var(--r);
+        margin-bottom: var(--gap);
+      }
+      .betatid-card.info {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(47, 101, 149, 0.05));
+        border: 1px solid rgba(47, 101, 149, 0.16);
+        box-shadow:
+          0 4px 12px rgba(47, 101, 149, 0.08),
+          0 1px 2px rgba(47, 101, 149, 0.04);
+      }
+      .betatid-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 50%;
+        background: rgba(47, 101, 149, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+      .betatid-body {
+        flex: 1;
+      }
+      .betatid-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--info);
+        margin-bottom: 0.2rem;
+      }
+      .betatid-text {
+        font-size: 0.72rem;
+        color: var(--text2);
+        line-height: 1.45;
+      }
+
+      /* FORM */
+      .form-card {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.86));
+        border: 1px solid var(--border);
+        box-shadow: var(--sh-md);
+        border-radius: var(--r);
+        padding: 1rem 1.1rem;
+      }
+      .form-field-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text2);
+        display: block;
+        margin-bottom: 0.4rem;
+      }
+      .form-input {
+        width: 100%;
+        padding: 0.7rem 0.875rem;
+        border: 1px solid var(--border);
+        border-radius: var(--r-sm);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.875rem;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .form-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(187, 71, 121, 0.1);
+      }
+      .submit-btn {
+        display: block;
+        width: 100%;
+        margin-top: 0.875rem;
+        padding: 0.9rem 1rem;
+        border: 0;
+        border-radius: var(--r-pill);
+        background: linear-gradient(135deg, var(--accent), #8c2455);
+        color: #fff;
+        font: inherit;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(176, 53, 110, 0.36);
+        transition: opacity 0.15s;
+      }
+      .submit-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .page-footer {
+        text-align: center;
+        font-size: 0.68rem;
+        color: var(--text3);
+        margin-top: 1.5rem;
+        line-height: 1.7;
+      }
+
+      @media (max-width: 360px) {
+        .zone-visual {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Tydlig DEMO-markering — syns alltid, kan inte misstas för riktig data -->
+    <div class="demo-banner" role="alert" aria-label="Demo-läge">
+      ⚠ DEMO — ingen riktig patientdata · för utveckling och granskning
+    </div>
+
+    <div class="topbar">
+      <div class="brand-pill">HAIR TP</div>
+      <div class="topbar-spacer"></div>
+      <div class="avatar">AJ</div>
+    </div>
+
+    <div class="page">
+      <!-- JOURNEY -->
+      <div class="journey" aria-label="Din resa med Hair TP Clinic">
+        <div class="step">
+          <div class="step-dot done" aria-label="Klar">✓</div>
+          <div class="step-label done">Konsultation</div>
+        </div>
+        <div class="step-conn done"></div>
+        <div class="step">
+          <div class="step-dot active" aria-label="Aktiv">2</div>
+          <div class="step-label active">Offert</div>
+        </div>
+        <div class="step-conn"></div>
+        <div class="step">
+          <div class="step-dot active" aria-label="Pågår">3</div>
+          <div class="step-label active">Betänketid</div>
+        </div>
+        <div class="step-conn"></div>
+        <div class="step">
+          <div class="step-dot locked" aria-label="Låst">4</div>
+          <div class="step-label">Operation</div>
+        </div>
+      </div>
+
+      <!-- HÄLSNING -->
+      <div class="section-card">
+        <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 0.2rem">
+          Hej, Anna Johansson
+        </div>
+        <div style="font-size: 0.82rem; color: var(--text2)">
+          Här är din behandlingsoffert från Hair TP Clinic. Granska planen nedan och signera när
+          betänketiden löpt ut.
+        </div>
+        <div style="margin-top: 0.6rem; font-size: 0.72rem; color: var(--text3)">
+          <strong>Behandling:</strong> DHI — Hårlinje, Mitt, Krona &nbsp;·&nbsp;
+          <strong>Konsultation:</strong> 2026-05-15
+        </div>
+      </div>
+
+      <!-- ZONRITNING + ZONÖVERSIKT -->
+      <div class="section-card">
+        <div class="card-label">Behandlingsplan · Zoner</div>
+
+        <!-- SVG-illustration av skalpen med markerade zoner -->
+        <div class="scalp-wrap" aria-hidden="true">
+          <svg
+            class="scalp-svg"
+            viewBox="0 0 220 260"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            role="img"
+            aria-label="Skalpkarta med markerade behandlingszoner"
+          >
+            <!-- Huvud silhuett -->
+            <ellipse
+              cx="110"
+              cy="130"
+              rx="88"
+              ry="108"
+              fill="#f3ece3"
+              stroke="rgba(180,165,150,0.4)"
+              stroke-width="1.5"
+            />
+            <!-- Öron -->
+            <ellipse
+              cx="22"
+              cy="148"
+              rx="10"
+              ry="16"
+              fill="#f3ece3"
+              stroke="rgba(180,165,150,0.4)"
+              stroke-width="1.5"
+            />
+            <ellipse
+              cx="198"
+              cy="148"
+              rx="10"
+              ry="16"
+              fill="#f3ece3"
+              stroke="rgba(180,165,150,0.4)"
+              stroke-width="1.5"
+            />
+            <!-- Ansiktskontur nederdel -->
+            <path
+              d="M 62 220 Q 110 248 158 220"
+              stroke="rgba(180,165,150,0.35)"
+              stroke-width="1.2"
+              fill="none"
+            />
+
+            <!-- Zon: Krona (top) -->
+            <ellipse
+              cx="110"
+              cy="48"
+              rx="52"
+              ry="34"
+              fill="rgba(138,95,30,0.18)"
+              stroke="#8a5f1e"
+              stroke-width="1.5"
+              stroke-dasharray="4 2"
+            />
+            <text
+              x="110"
+              y="46"
+              text-anchor="middle"
+              font-size="8"
+              font-weight="700"
+              fill="#8a5f1e"
+              font-family="system-ui,sans-serif"
+            >
+              KRONA
+            </text>
+
+            <!-- Zon: Mitt -->
+            <ellipse
+              cx="110"
+              cy="98"
+              rx="60"
+              ry="30"
+              fill="rgba(107,49,201,0.12)"
+              stroke="#6b31c9"
+              stroke-width="1.5"
+              stroke-dasharray="4 2"
+            />
+            <text
+              x="110"
+              y="96"
+              text-anchor="middle"
+              font-size="8"
+              font-weight="700"
+              fill="#6b31c9"
+              font-family="system-ui,sans-serif"
+            >
+              MITT
+            </text>
+
+            <!-- Zon: Hårlinje (front) -->
+            <path
+              d="M 55 136 Q 110 120 165 136 Q 110 155 55 136 Z"
+              fill="rgba(187,71,121,0.14)"
+              stroke="#bb4779"
+              stroke-width="1.5"
+              stroke-dasharray="4 2"
+            />
+            <text
+              x="110"
+              y="140"
+              text-anchor="middle"
+              font-size="8"
+              font-weight="700"
+              fill="#bb4779"
+              font-family="system-ui,sans-serif"
+            >
+              HÅRLINJE
+            </text>
+          </svg>
+        </div>
+
+        <!-- Zonkort-grid -->
+        <div class="zone-visual">
+          <div class="zone-item z-front">
+            <div class="zone-label-row"><span class="zone-dot"></span>Hårlinje</div>
+            <div class="zone-bar"></div>
+          </div>
+          <div class="zone-item z-mid">
+            <div class="zone-label-row"><span class="zone-dot"></span>Mitt</div>
+            <div class="zone-bar"></div>
+          </div>
+          <div class="zone-item z-crown">
+            <div class="zone-label-row"><span class="zone-dot"></span>Krona</div>
+            <div class="zone-bar"></div>
+          </div>
+          <!-- Total — spanning full width -->
+          <div class="zone-item z-total full">
+            <div class="zone-label-row"><span class="zone-dot"></span>Totalt</div>
+            <div class="zone-num">3 500<span class="zone-unit"> hårsäckar</span></div>
+            <div class="zone-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRIS -->
+      <div class="section-card">
+        <div class="card-label">Pris</div>
+        <div class="price-row">
+          <span class="price-label">Behandlingspris (DHI, 3 500 grafts)</span>
+          <span class="price-val">49 000 kr</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">PRP-behandling (inkluderad)</span>
+          <span class="price-val">0 kr</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">Förskott vid bokning</span>
+          <span class="price-val">10 000 kr</span>
+        </div>
+        <div class="price-row total-row">
+          <span class="price-label">Totalt</span>
+          <span class="price-val total">49 000 kr</span>
+        </div>
+      </div>
+
+      <!-- PLANERING / TIDSLINJE -->
+      <div class="section-card">
+        <div class="card-label">Planering</div>
+        <div class="timeline">
+          <div class="tl-row">
+            <div class="tl-icon" style="background: rgba(47, 111, 84, 0.1)">✓</div>
+            <div>
+              <div class="tl-title">Konsultation</div>
+              <div class="tl-meta">2026-05-15 · Genomförd</div>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-icon" style="background: rgba(187, 71, 121, 0.1)">📄</div>
+            <div>
+              <div class="tl-title">Offert skickad</div>
+              <div class="tl-meta">2026-05-20 · Betänketid 14 dagar</div>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-icon" style="background: rgba(47, 101, 149, 0.1)">✍️</div>
+            <div>
+              <div class="tl-title">Signering möjlig</div>
+              <div class="tl-meta">Från 2026-06-03</div>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-icon" style="background: rgba(138, 95, 30, 0.1)">🔬</div>
+            <div>
+              <div class="tl-title">Operationsdag</div>
+              <div class="tl-meta">Bokas efter signering · Friskförsäkran skickas separat</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BETÄNKETID -->
+      <div class="betatid-card info">
+        <div class="betatid-icon">⏳</div>
+        <div class="betatid-body">
+          <div class="betatid-title">Betänketid — 5 dagar kvar</div>
+          <div class="betatid-text">
+            Enligt distansavtalslagen gäller 14 dagars betänketid. Du kan signera offerten från och
+            med <strong>2026-06-03</strong>.
+          </div>
+        </div>
+      </div>
+
+      <!-- SIGNERING -->
+      <div class="form-card">
+        <div class="card-label">Signering</div>
+        <form
+          method="post"
+          action="#demo-no-action"
+          onsubmit="
+            event.preventDefault();
+            alert('DEMO — ingen signering sker i demo-läge.');
+          "
+        >
+          <label class="form-field-label" for="csnField">Ditt fullständiga namn</label>
+          <input
+            class="form-input"
+            type="text"
+            id="csnField"
+            name="customerSignedName"
+            placeholder="Förnamn Efternamn"
+            autocomplete="name"
+            disabled
+          />
+          <button class="submit-btn" type="submit" disabled>Öppnar 2026-06-03</button>
+        </form>
+        <div
+          style="margin-top: 0.75rem; font-size: 0.68rem; color: var(--text3); text-align: center"
+        >
+          Knappen aktiveras automatiskt när betänketiden löper ut.
+        </div>
+      </div>
+
+      <div class="page-footer">
+        Hair TP Clinic &nbsp;·&nbsp; Konfidentiell offert<br />
+        Dela inte denna länk med obehöriga.<br />
+        <span style="color: var(--accent); font-weight: 700">DEMO — ingen riktig data</span>
+      </div>
+    </div>
+  </body>
+</html>
