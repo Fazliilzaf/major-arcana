@@ -512,6 +512,41 @@
       .queue-feedback.error {
         color: var(--danger);
       }
+      .assignment-row {
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) minmax(140px, 1fr) auto;
+        gap: 7px;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .assignment-row select,
+      .assignment-row input {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--brand);
+        font: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 7px 10px;
+        outline: none;
+      }
+      .assignment-feedback {
+        display: block;
+        margin-top: 7px;
+        font-size: 10.5px;
+        font-weight: 750;
+        color: var(--text3);
+      }
+      .assignment-feedback.ok {
+        color: var(--sage);
+      }
+      .assignment-feedback.error {
+        color: var(--danger);
+      }
       .flow-chip-row {
         display: flex;
         flex-wrap: wrap;
@@ -1023,7 +1058,8 @@
         .two-col,
         .three-col,
         .handoff-grid,
-        .signal-grid {
+        .signal-grid,
+        .assignment-row {
           grid-template-columns: 1fr;
         }
         .img-grid {
@@ -1070,7 +1106,8 @@
         .two-col,
         .three-col,
         .handoff-grid,
-        .signal-grid {
+        .signal-grid,
+        .assignment-row {
           grid-template-columns: 1fr;
         }
         .img-grid {
@@ -1839,6 +1876,7 @@
 
       let _meData = null; // cachat resultat från /api/v1/staff/me
       let _liveMode = false; // true = inloggad, använder riktig data
+      let _staffTeam = []; // cachat personalregister för admin-tilldelning
 
       async function apiFetch(path, opts = {}) {
         try {
@@ -1901,6 +1939,29 @@
         return `<span class="pill ${cls}">${escapeHtml(label)}</span>`;
       }
 
+      function staffDisplayName(userId) {
+        const key = String(userId || '').trim();
+        if (!key) return '';
+        const match = _staffTeam.find((item) => String(item.userId || '') === key);
+        return match?.label || key;
+      }
+
+      function staffOptions(selectedUserId) {
+        const selected = String(selectedUserId || '').trim();
+        const base = '<option value="">Välj ansvarig</option>';
+        const options = _staffTeam
+          .map((item) => {
+            const value = String(item.userId || '');
+            const label = item.label || value;
+            return `<option value="${escapeHtml(value)}"${value === selected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+          })
+          .join('');
+        if (selected && !_staffTeam.some((item) => String(item.userId || '') === selected)) {
+          return `${base}<option value="${escapeHtml(selected)}" selected>${escapeHtml(selected)}</option>${options}`;
+        }
+        return base + options;
+      }
+
       function ordinationStatusPill(item) {
         const review = item?.ordinationReview || null;
         const status = String(review?.status || '').toLowerCase();
@@ -1951,7 +2012,7 @@
           'Behandling ej angiven';
         const owner =
           item.assignedToName ||
-          item.assignedTo ||
+          staffDisplayName(item.assignedTo) ||
           item.staffName ||
           item.ownerName ||
           'Ej tilldelad';
@@ -1971,6 +2032,17 @@
         const customerAction = cardUrl
           ? `<a class="btn" href="${escapeHtml(cardUrl)}" target="_blank" rel="noopener">Visa kundkort</a>`
           : '<button class="btn" disabled title="Saknar patientId/customerId">Visa kundkort</button>';
+        const assignmentHtml =
+          opts.assignable && item.id
+            ? `<div class="assignment-row" data-case-id="${escapeHtml(item.id)}">
+                <select data-field="assignedTo" aria-label="Ansvarig personal">
+                  ${staffOptions(item.assignedTo)}
+                </select>
+                <input data-field="note" placeholder="Notis, t.ex. postop dag 7">
+                <button class="btn primary assignment-action" data-case-id="${escapeHtml(item.id)}">Tilldela</button>
+              </div>
+              <span class="assignment-feedback" data-feedback-for="${escapeHtml(item.id)}">${item.assignment?.assignedAt ? 'Senaste tilldelning är audit-loggad.' : 'Redo för ansvarstilldelning.'}</span>`
+            : '';
         return `<div class="item-card ${cc}">
           <div class="item-icon">${opts.icon || '👤'}</div>
           <div class="item-body">
@@ -1979,9 +2051,11 @@
             <div class="flow-chip-row">
               ${statusPill(state)}
               ${ordinationStatusPill(item)}
+              ${item.assignedTo ? `<span class="pill info">Ansvarig: ${escapeHtml(owner)}</span>` : '<span class="pill neutral">Ej tilldelad</span>'}
               ${item.followUpDueAt ? `<span class="pill amber">Uppföljning ${escapeHtml(formatDateTime(item.followUpDueAt))}</span>` : ''}
               ${item.waitingOn ? `<span class="pill neutral">Väntar på ${escapeHtml(item.waitingOn)}</span>` : ''}
             </div>
+            ${assignmentHtml}
           </div>
           <div class="item-actions">
             ${customerAction}
@@ -2251,6 +2325,47 @@
         }
       }
 
+      async function submitAssignment(button) {
+        const caseId = button?.dataset?.caseId || '';
+        if (!caseId) return;
+
+        const row = button.closest('.assignment-row');
+        const card = button.closest('.item-card');
+        const assignedTo = row?.querySelector('[data-field="assignedTo"]')?.value || '';
+        const note = row?.querySelector('[data-field="note"]')?.value || '';
+        const escapedId =
+          window.CSS && typeof CSS.escape === 'function'
+            ? CSS.escape(caseId)
+            : String(caseId).replace(/["\\]/g, '\\$&');
+        const feedback = card?.querySelector(`[data-feedback-for="${escapedId}"]`);
+        const setFeedback = (message, type) => {
+          if (!feedback) return;
+          feedback.textContent = message;
+          feedback.className = `assignment-feedback ${type || ''}`.trim();
+        };
+
+        try {
+          button.disabled = true;
+          setFeedback('Sparar ansvar och audit-loggar...', '');
+          await staffPost(`/api/v1/staff/cases/${encodeURIComponent(caseId)}/assign`, {
+            assignedTo,
+            note,
+          });
+          setFeedback('Ansvar sparat och audit-loggat.', 'ok');
+          await Promise.all([
+            loadReviewQueue(),
+            loadDailyWorkQueue(),
+            loadMyCustomers(),
+            loadTasks(),
+            loadAudit(),
+          ]);
+        } catch (err) {
+          setFeedback(err.message || 'Kunde inte spara tilldelningen.', 'error');
+        } finally {
+          button.disabled = false;
+        }
+      }
+
       /* Hämta inloggad personal och uppdatera UI om lyckad */
       async function loadMe() {
         const me = await apiFetch('/api/v1/staff/me');
@@ -2283,6 +2398,14 @@
         }
       }
 
+      async function loadStaffTeam() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/team');
+        if (data && data.ok) {
+          _staffTeam = Array.isArray(data.staff) ? data.staff : [];
+        }
+      }
+
       /* Hämta granskningskö och uppdatera badge på ordinationer-nav */
       async function loadReviewQueue() {
         if (!_liveMode) return;
@@ -2295,10 +2418,10 @@
           const adminList = document.getElementById('liveAdminCaseList');
           if (adminList && data.queue?.length) {
             adminList.innerHTML =
-              '<div class="live-note">Live ärendekö från CCO. Ärendebeslut hanteras i respektive specialistvy.</div>' +
+              '<div class="live-note">Live ärendekö från CCO. Owner kan tilldela ansvarig personal här; tilldelningen syns direkt i personalens vy och audit-loggas.</div>' +
               data.queue
                 .slice(0, 8)
-                .map((item) => renderCaseCard(item, { icon: '📁' }))
+                .map((item) => renderCaseCard(item, { icon: '📁', assignable: true }))
                 .join('');
             const fallback = document.getElementById('adminFallbackCases');
             if (fallback) fallback.style.display = 'none';
@@ -2459,6 +2582,7 @@
       async function initLiveData() {
         await loadMe();
         if (_liveMode) {
+          await loadStaffTeam();
           await Promise.all([
             loadDailyWorkQueue(),
             loadTasks(),
@@ -2585,6 +2709,11 @@
         if (queueButton) {
           event.preventDefault();
           submitQueueAction(queueButton);
+        }
+        const assignmentButton = event.target.closest?.('.assignment-action');
+        if (assignmentButton) {
+          event.preventDefault();
+          submitAssignment(assignmentButton);
         }
       });
 
