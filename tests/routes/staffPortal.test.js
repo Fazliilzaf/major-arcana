@@ -197,6 +197,74 @@ test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende',
   }
 });
 
+test('GET /api/v1/staff/ordination-reviews exponerar signoff-underlag för läkare', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-ordination-signoff-'));
+  try {
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-signoff-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-signoff',
+      customerName: 'Signoff Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      startsAt: '2030-06-29T08:30:00.000Z',
+      handoffChecklist: {
+        journalReady: true,
+        consentSigned: false,
+        paymentSettled: true,
+        encounterLinked: true,
+      },
+      treatmentPlan: {
+        method: 'DHI',
+        graftsTotal: 2800,
+        zones: [{ label: 'Hårlinje', grafts: 800 }],
+      },
+    });
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        bookingCaseStore,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'doctor-1', tenantId: 'hairtpclinic', role: 'konsult' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/ordination-reviews`, {
+        headers: { 'x-cco-role': 'konsult' },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.count, 1);
+      assert.equal(body.reviews[0].ordinationReadout.signoff.signatureRequired, true);
+      assert.equal(body.reviews[0].ordinationReadout.signoff.commentRequiredForReject, true);
+      assert.equal(body.reviews[0].ordinationReadout.signoff.decisionRequired, true);
+      assert.equal(body.reviews[0].ordinationReadout.signoff.canApproveAfterManualReview, false);
+      assert.deepEqual(body.reviews[0].ordinationReadout.signoff.blockers, [
+        { key: 'consentSigned', label: 'Samtycken och patientinformation signerade' },
+      ]);
+      assert.equal(
+        body.reviews[0].ordinationReadout.signoff.safety,
+        'Läkaren måste granska underlaget manuellt. Systemet kan aldrig skapa ordination.approved automatiskt.'
+      );
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('GET /api/v1/staff/notifications exponerar personalens read-only notisfeed', async () => {
   const calls = [];
   const notificationFeedStore = {

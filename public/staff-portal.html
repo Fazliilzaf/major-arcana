@@ -995,6 +995,50 @@
         min-height: 40px;
         resize: vertical;
       }
+      .ordination-signoff {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid rgba(106, 91, 190, 0.16);
+        border-radius: 12px;
+        background:
+          linear-gradient(135deg, rgba(106, 91, 190, 0.08), rgba(255, 255, 255, 0.66)),
+          rgba(255, 255, 255, 0.58);
+        box-shadow: 0 10px 26px rgba(57, 44, 96, 0.08);
+      }
+      .ordination-signoff-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 8px;
+      }
+      .ordination-signoff-title {
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .ordination-signoff-copy {
+        color: var(--text2);
+        font-size: 11.5px;
+        line-height: 1.45;
+      }
+      .ordination-blockers {
+        display: grid;
+        gap: 6px;
+        margin-top: 9px;
+      }
+      .ordination-blocker {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 8px;
+        border: 1px solid rgba(200, 130, 30, 0.18);
+        border-radius: 10px;
+        background: rgba(255, 250, 242, 0.72);
+        color: var(--brand);
+        font-size: 11px;
+        font-weight: 800;
+      }
       .ordination-feedback {
         width: 100%;
         font-size: 11px;
@@ -2952,6 +2996,37 @@
               .join('')
           : '<div class="live-note">Inga dokumentreferenser hittades.</div>';
         const missingCount = Array.isArray(readout.missing) ? readout.missing.length : 0;
+        const signoff = readout.signoff || {};
+        const blockers = Array.isArray(signoff.blockers) ? signoff.blockers : [];
+        const signoffReady = Boolean(signoff.canApproveAfterManualReview);
+        const signoffHtml = `<div class="ordination-signoff">
+          <div class="ordination-signoff-head">
+            <div>
+              <div class="ordination-signoff-title">Läkarens sign-off</div>
+              <div class="ordination-signoff-copy">${escapeHtml(signoff.safety || 'Läkaren granskar och signerar manuellt. Ingen automatisk ordination skapas.')}</div>
+            </div>
+            <span class="pill ${signoffReady ? 'sage' : 'amber'}">${signoffReady ? 'Redo att granska' : 'Kontroll behövs'}</span>
+          </div>
+          <div class="flow-chip-row">
+            <span class="pill neutral">Roll: ${escapeHtml(signoff.requiredActor || 'läkare/ägare')}</span>
+            <span class="pill neutral">Signatur krävs</span>
+            <span class="pill neutral">Motivering vid avvisning</span>
+          </div>
+          ${
+            blockers.length
+              ? `<div class="ordination-blockers">
+                  ${blockers
+                    .map(
+                      (blocker) => `<div class="ordination-blocker">
+                        <span>${escapeHtml(blocker.label || blocker.key || 'Kontrollpunkt')}</span>
+                        <span>Kontrollera</span>
+                      </div>`
+                    )
+                    .join('')}
+                </div>`
+              : '<div class="live-note" style="margin-top:9px">Alla förhandskontroller är markerade klara. Läkaren gör ändå egen medicinsk granskning före signatur.</div>'
+          }
+        </div>`;
         const ordinationLinks = renderDeepLinks(
           {
             ...item,
@@ -3008,6 +3083,7 @@
             ${ordinationLinks}
             ${plan.planningNote ? `<div class="live-note" style="margin:12px 0 0">Planering: ${escapeHtml(plan.planningNote)}</div>` : ''}
             ${plan.individualOrdinationNote ? `<div class="safety-notice" style="margin:12px 0 0">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
+            ${signoffHtml}
             ${decisionMeta}
             <div class="safety-notice" style="margin:12px 0 0">
               🔒 Läkarbeslut kräver läkare/ägare, manuell signatur och audit-logg. Sjuksköterskor kan se status men inte godkänna. ${missingCount ? `${missingCount} readiness-punkt${missingCount === 1 ? '' : 'er'} bör kontrolleras.` : 'Readiness ser komplett ut.'}
