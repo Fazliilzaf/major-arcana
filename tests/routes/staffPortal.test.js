@@ -323,6 +323,14 @@ test('GET /api/v1/staff/ordination-reviews visar återkommen komplettering', asy
       assert.equal(body.ok, true);
       assert.equal(body.count, 1);
       assert.equal(body.reviews[0].ordinationReview.status, 'pending');
+      assert.deepEqual(
+        body.reviews[0].ordinationReadout.timeline.map((entry) => entry.label),
+        ['Läkare begärde komplettering', 'Personal markerade komplettering klar']
+      );
+      assert.deepEqual(
+        body.reviews[0].ordinationReadout.timeline.map((entry) => entry.action),
+        ['ordination_needs_completion', 'staff_resolve_completion']
+      );
       assert.deepEqual(body.reviews[0].ordinationReadout.completionReturn, {
         returned: true,
         requestedAt: body.reviews[0].ordinationReadout.completionReturn.requestedAt,

@@ -393,6 +393,27 @@ function createStaffPortalRouter({
     const lastCompletionResolved = [...history]
       .reverse()
       .find((entry) => entry?.action === 'staff_resolve_completion');
+    const timelineLabels = {
+      case_created: 'Ärende skapat',
+      staff_mark_seen: 'Personal markerade sedd',
+      staff_send_to_doctor: 'Skickad till läkare',
+      staff_complete_checklist: 'Checkpunkt klar',
+      ordination_needs_completion: 'Läkare begärde komplettering',
+      staff_resolve_completion: 'Personal markerade komplettering klar',
+      ordination_approved: 'Ordination godkänd',
+      ordination_rejected: 'Ordination avvisad',
+    };
+    const timeline = history
+      .filter((entry) => entry && typeof entry === 'object' && timelineLabels[entry.action])
+      .slice(-8)
+      .map((entry) => ({
+        at: entry.at || null,
+        action: entry.action,
+        label: timelineLabels[entry.action],
+        userId: entry.userId || null,
+        role: entry.role || null,
+        itemKey: entry.itemKey || null,
+      }));
     const completionReturn =
       lastCompletionRequest && lastCompletionResolved
         ? {
@@ -425,6 +446,7 @@ function createStaffPortalRouter({
           'Läkaren måste granska underlaget manuellt. Systemet kan aldrig skapa ordination.approved automatiskt.',
       },
       completionReturn,
+      timeline,
       documents: buildOrdinationDocuments(caseRecord),
       patient: {
         patientId: caseRecord.patientId || null,
