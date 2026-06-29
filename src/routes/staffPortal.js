@@ -717,6 +717,70 @@ function createStaffPortalRouter({
     };
   }
 
+  function buildRoleCards(item) {
+    const actions = Array.isArray(item?.actions) ? item.actions : [];
+    const actionKeys = new Set(actions.map((action) => String(action.key || '')));
+    const next = item?.nextBestAction || buildNextBestAction(item);
+    const baseTitle = item?.title || 'Prioritet';
+    const baseBody = item?.body || next.reason || '';
+
+    const nurse = {
+      role: 'nurse',
+      title: baseTitle,
+      subtitle: baseBody || 'Hantera kundens fråga, bild eller handoff manuellt.',
+      badge: 'Personal',
+      focus: 'kundkontakt',
+      ctaLabel: next.label || 'Öppna arbetsvy',
+      href: next.href || item?.links?.staffTask || item?.links?.customerCard || null,
+      safety: next.safety || 'Inga kundsvar skickas automatiskt.',
+    };
+    const doctor = {
+      role: 'doctor',
+      title: actionKeys.has('ordination') ? `Ordination: ${baseTitle}` : baseTitle,
+      subtitle: actionKeys.has('ordination')
+        ? 'Granska underlag för lokalbedövning och signera endast efter egen bedömning.'
+        : baseBody || 'Granska bara de delar som kräver medicinskt ansvar.',
+      badge: 'Läkare',
+      focus: actionKeys.has('ordination') ? 'ordination' : 'klinisk granskning',
+      ctaLabel: actionKeys.has('ordination') ? 'Öppna läkarkö' : next.label || 'Öppna underlag',
+      href: item?.links?.doctorReview || item?.links?.ordination || next.href || null,
+      safety: 'Ingen ordination godkänns utan läkarsignatur.',
+    };
+    const admin = {
+      role: 'admin',
+      title: baseTitle,
+      subtitle: actionKeys.has('ordination')
+        ? 'Följ flaskhalsen och säkerställ att rätt roll hanterar ärendet.'
+        : baseBody || 'Koordinera ansvar, QMS och arbetsfördelning.',
+      badge: 'Admin',
+      focus: 'koordination',
+      ctaLabel: item?.links?.adminCase ? 'Öppna adminärende' : next.label || 'Öppna',
+      href: item?.links?.adminCase || next.href || item?.links?.customerCard || null,
+      safety: 'Ändrar inget ansvar, audit eller status från radarn.',
+    };
+
+    if (item?.source === 'notification') {
+      nurse.badge = notificationKindLabel(item.type);
+      doctor.badge = notificationKindLabel(item.type);
+      admin.badge = notificationKindLabel(item.type);
+      admin.focus = 'notisuppföljning';
+    }
+    if (actionKeys.has('customer_reply')) {
+      nurse.focus = 'kundsvar';
+      nurse.ctaLabel = 'Öppna kundfrågan';
+    }
+    if (actionKeys.has('photos')) {
+      nurse.focus = 'kundbilder';
+      nurse.ctaLabel = 'Granska bilder';
+    }
+    if (actionKeys.has('checklist')) {
+      nurse.focus = 'checklista';
+      admin.focus = 'handoff';
+    }
+
+    return { nurse, doctor, admin };
+  }
+
   function buildNotificationPriorityItem(item, index = 0) {
     const severity = String(item?.severity || 'info').toLowerCase();
     const hasAction = Boolean(
@@ -758,6 +822,7 @@ function createStaffPortalRouter({
       ],
     };
     priorityItem.nextBestAction = buildNextBestAction(priorityItem);
+    priorityItem.roleCards = buildRoleCards(priorityItem);
     return priorityItem;
   }
 
@@ -779,6 +844,7 @@ function createStaffPortalRouter({
       queueItem: item,
     };
     priorityItem.nextBestAction = buildNextBestAction(priorityItem);
+    priorityItem.roleCards = buildRoleCards(priorityItem);
     return priorityItem;
   }
 
