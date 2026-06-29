@@ -104,7 +104,7 @@ test('operation readout gor planerad operation till tydlig handoff och tid-delni
     operationStatus: 'ready',
     clearanceStatus: 'cleared',
     outcomeStatus: 'unknown',
-    scheduledForIso: '2026-06-29T08:00:00.000Z',
+    scheduledForIso: '2030-06-29T08:00:00.000Z',
     doctorName: 'Dr. Eriksson',
     theatreName: 'Rum 2',
   });

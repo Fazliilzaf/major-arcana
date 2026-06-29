@@ -13662,6 +13662,10 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // ── Personalportal ────────────────────────────────────────────
+  const staffPortalRouter = require('./src/routes/staffPortal');
+  app.use('/', staffPortalRouter);
+
   setStartupPhase('scheduler');
   runtimeState.ready = true;
   runtimeState.lastError = null;
