@@ -340,8 +340,19 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
       assert.equal(body.items[0].source, 'notification');
       assert.equal(body.items[0].priority, 'urgent');
       assert.equal(body.items[0].actionUrl, '/staff-portal?role=nurse&panel=customers#thread-1');
+      assert.equal(body.items[0].nextBestAction.label, 'Öppna kundfrågan');
+      assert.equal(
+        body.items[0].nextBestAction.href,
+        '/staff-portal?role=nurse&panel=customers#thread-1'
+      );
+      assert.match(body.items[0].nextBestAction.safety, /automatiskt/);
       assert.equal(body.items[1].source, 'queue');
       assert.equal(body.items[1].queueItem.id, 'case-priority-1');
+      assert.equal(body.items[1].nextBestAction.label, 'Skicka/öppna läkarkö');
+      assert.equal(
+        body.items[1].nextBestAction.href,
+        '/staff-portal?role=doctor&panel=ordination#ordination-case-priority-1'
+      );
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
