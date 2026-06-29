@@ -2877,6 +2877,15 @@
         );
         const wasSeen = Boolean(item.staffActions?.seenAt);
         const sentToDoctor = Boolean(item.staffActions?.sentToDoctorAt);
+        const needsCompletion =
+          String(item.ordinationStatus || '').toLowerCase() === 'needs_completion';
+        const completionRequest = item.completionRequest || {};
+        const completionHtml = needsCompletion
+          ? `<div class="safety-notice" style="margin:10px 0 0">
+              <span>🩺</span>
+              <span><strong>Läkaren begär komplettering:</strong> ${escapeHtml(completionRequest.comment || 'Komplettera underlaget enligt läkarens instruktion.')}${completionRequest.requestedAt ? ' · ' + escapeHtml(formatDateTime(completionRequest.requestedAt)) : ''}</span>
+            </div>`
+          : '';
         const cardUrl = customerCardUrl({
           patientId: item.patientId || customer.patientId,
           customerId: item.customerId || customer.customerId,
@@ -2897,7 +2906,12 @@
           firstMissingChecklist
             ? `<button class="btn queue-action" data-action="complete_checklist" data-item-key="${escapeHtml(firstMissingChecklist[0])}" data-case-id="${escapeHtml(itemId)}">Checkpunkt klar</button>`
             : '<button class="btn" disabled>Checklista klar</button>',
-        ].join('');
+          needsCompletion
+            ? `<button class="btn primary queue-action" data-action="resolve_completion" data-case-id="${escapeHtml(itemId)}">Komplettering klar</button>`
+            : null,
+        ]
+          .filter(Boolean)
+          .join('');
         return `<div class="item-card ${priority === 'urgent' ? 'urgent' : priority === 'today' ? 'pending' : priority === 'done' ? 'approved' : 'info-c'}">
           <div class="item-icon">${priority === 'urgent' ? '⚡' : priority === 'today' ? '📍' : priority === 'done' ? '✅' : '⏳'}</div>
           <div class="item-body">
@@ -2910,6 +2924,7 @@
             <div class="queue-action-row">
               ${queueActions}
             </div>
+            ${completionHtml}
             ${renderDeepLinks(
               {
                 ...item,

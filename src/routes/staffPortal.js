@@ -560,8 +560,14 @@ function createStaffPortalRouter({
     if (requiresOrdination && ordinationStatus !== 'approved') {
       actions.push({
         key: 'ordination',
-        label: 'Ordination väntar',
-        severity: ordinationStatus === 'rejected' ? 'danger' : 'warning',
+        label:
+          ordinationStatus === 'needs_completion' ? 'Komplettering begärd' : 'Ordination väntar',
+        severity:
+          ordinationStatus === 'rejected'
+            ? 'danger'
+            : ordinationStatus === 'needs_completion'
+              ? 'warning'
+              : 'warning',
       });
       priority = priority === 'urgent' ? priority : 'today';
       priorityRank = Math.min(priorityRank, 20);
@@ -618,6 +624,14 @@ function createStaffPortalRouter({
       assignedTo: caseRecord.assignedTo || null,
       assignment: caseRecord.assignment || null,
       ordinationStatus: ordinationStatus || null,
+      completionRequest:
+        ordinationStatus === 'needs_completion'
+          ? {
+              comment: caseRecord.ordinationReview?.comment || '',
+              requestedBy: caseRecord.ordinationReview?.decidedBy || null,
+              requestedAt: caseRecord.ordinationReview?.decidedAt || null,
+            }
+          : null,
       staffActions: caseRecord.staffActions || null,
       links: {
         ...(customerItem.links || {}),
