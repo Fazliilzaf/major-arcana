@@ -3016,6 +3016,26 @@
         const signoff = readout.signoff || {};
         const blockers = Array.isArray(signoff.blockers) ? signoff.blockers : [];
         const signoffReady = Boolean(signoff.canApproveAfterManualReview);
+        const completionReturn = readout.completionReturn || null;
+        const completionReturnHtml =
+          completionReturn && completionReturn.returned
+            ? `<div class="ordination-signoff" style="margin-top:12px">
+                <div class="ordination-signoff-head">
+                  <div>
+                    <div class="ordination-signoff-title">Återkom från komplettering</div>
+                    <div class="ordination-signoff-copy">
+                      Personal markerade kompletteringen klar${completionReturn.resolvedAt ? ' · ' + escapeHtml(formatDateTime(completionReturn.resolvedAt)) : ''}${completionReturn.resolvedBy ? ' · ' + escapeHtml(staffDisplayName(completionReturn.resolvedBy) || completionReturn.resolvedBy) : ''}.
+                    </div>
+                  </div>
+                  <span class="pill sage">Tillbaka i läkarkön</span>
+                </div>
+                ${
+                  completionReturn.comment
+                    ? `<div class="live-note" style="margin-top:9px">Ursprunglig begäran: ${escapeHtml(completionReturn.comment)}</div>`
+                    : ''
+                }
+              </div>`
+            : '';
         const signoffHtml = `<div class="ordination-signoff">
           <div class="ordination-signoff-head">
             <div>
@@ -3100,6 +3120,7 @@
             ${ordinationLinks}
             ${plan.planningNote ? `<div class="live-note" style="margin:12px 0 0">Planering: ${escapeHtml(plan.planningNote)}</div>` : ''}
             ${plan.individualOrdinationNote ? `<div class="safety-notice" style="margin:12px 0 0">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
+            ${completionReturnHtml}
             ${signoffHtml}
             ${decisionMeta}
             <div class="safety-notice" style="margin:12px 0 0">

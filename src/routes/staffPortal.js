@@ -386,6 +386,29 @@ function createStaffPortalRouter({
       (item) => item.key !== 'ordinationDecision' && !item.done
     );
     const reviewStatus = String(caseRecord.ordinationReview?.status || '').toLowerCase();
+    const history = Array.isArray(caseRecord.history) ? caseRecord.history : [];
+    const lastCompletionRequest = [...history]
+      .reverse()
+      .find((entry) => entry?.action === 'ordination_needs_completion');
+    const lastCompletionResolved = [...history]
+      .reverse()
+      .find((entry) => entry?.action === 'staff_resolve_completion');
+    const completionReturn =
+      lastCompletionRequest && lastCompletionResolved
+        ? {
+            returned: true,
+            requestedAt: lastCompletionRequest.at || caseRecord.ordinationReview?.decidedAt || null,
+            requestedBy:
+              lastCompletionRequest.userId || caseRecord.ordinationReview?.decidedBy || null,
+            comment: caseRecord.ordinationReview?.comment || '',
+            resolvedAt:
+              caseRecord.staffActions?.completionResolvedAt || lastCompletionResolved.at || null,
+            resolvedBy:
+              caseRecord.staffActions?.completionResolvedBy ||
+              lastCompletionResolved.userId ||
+              null,
+          }
+        : null;
     return {
       treatmentPlan,
       readiness,
@@ -401,6 +424,7 @@ function createStaffPortalRouter({
         safety:
           'Läkaren måste granska underlaget manuellt. Systemet kan aldrig skapa ordination.approved automatiskt.',
       },
+      completionReturn,
       documents: buildOrdinationDocuments(caseRecord),
       patient: {
         patientId: caseRecord.patientId || null,

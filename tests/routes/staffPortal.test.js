@@ -265,6 +265,82 @@ test('GET /api/v1/staff/ordination-reviews exponerar signoff-underlag för läka
   }
 });
 
+test('GET /api/v1/staff/ordination-reviews visar återkommen komplettering', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-ordination-return-'));
+  try {
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-return-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-return',
+      customerName: 'Return Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      handoffChecklist: {
+        journalReady: true,
+        consentSigned: true,
+        paymentSettled: true,
+        encounterLinked: true,
+      },
+    });
+    await bookingCaseStore.updateOrdinationReview(
+      'case-return-1',
+      {
+        status: 'needs_completion',
+        signature: 'Dr Test',
+        comment: 'Komplettera friskförsäkran före beslut',
+      },
+      { userId: 'doctor-1', role: 'konsult' }
+    );
+    await bookingCaseStore.recordStaffAction(
+      'case-return-1',
+      { action: 'resolve_completion' },
+      { userId: 'staff-1', role: 'personal' }
+    );
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        bookingCaseStore,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'doctor-1', tenantId: 'hairtpclinic', role: 'konsult' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/ordination-reviews`, {
+        headers: { 'x-cco-role': 'konsult' },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.count, 1);
+      assert.equal(body.reviews[0].ordinationReview.status, 'pending');
+      assert.deepEqual(body.reviews[0].ordinationReadout.completionReturn, {
+        returned: true,
+        requestedAt: body.reviews[0].ordinationReadout.completionReturn.requestedAt,
+        requestedBy: 'doctor-1',
+        comment: 'Komplettera friskförsäkran före beslut',
+        resolvedAt: body.reviews[0].ordinationReadout.completionReturn.resolvedAt,
+        resolvedBy: 'staff-1',
+      });
+      assert.ok(body.reviews[0].ordinationReadout.completionReturn.requestedAt);
+      assert.ok(body.reviews[0].ordinationReadout.completionReturn.resolvedAt);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('POST /api/v1/staff/ordination-reviews/:id/request-completion skapar komplettering med audit', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-ordination-completion-'));
   try {
