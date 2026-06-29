@@ -1703,7 +1703,7 @@
           const badge = document.querySelector('[data-live-badge="tasks"]');
           if (badge) {
             badge.textContent = data.count;
-            if (data.count > 0) badge.style.display = 'inline-block';
+            badge.style.display = data.count > 0 ? '' : 'none';
           }
         }
       }
