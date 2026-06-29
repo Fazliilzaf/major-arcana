@@ -2283,16 +2283,24 @@
       function renderDeepLinks(item, opts = {}) {
         const card = opts.cardUrl || item?.links?.customerCard || customerCardUrl(item);
         const workspace = opts.workspaceUrl || item?.links?.workspace || workspaceUrl(item);
+        const staffTask = item?.links?.staffTask || '';
+        const doctorReview = item?.links?.doctorReview || '';
+        const adminCase = item?.links?.adminCase || '';
         const threads = item?.links?.threads || staffApiLink('threads', item);
         const photos = item?.links?.photos || staffApiLink('photos', item);
         const audit = item?.links?.audit || staffApiLink('audit', item);
         const ordination = item?.links?.ordination || (item?.id ? `#ordination-${item.id}` : '');
+        const qms = item?.links?.qms || '';
         const links = [
+          opts.showStaffTask && staffTask ? ['Öppna arbetsvy', staffTask, 'primary'] : null,
+          opts.showDoctorReview && doctorReview ? ['Läkarkö', doctorReview, 'primary'] : null,
+          opts.showAdminCase && adminCase ? ['Adminärende', adminCase, ''] : null,
           card ? ['Kundkort', card, 'primary'] : null,
           workspace ? ['Workspace', workspace, ''] : null,
           opts.showThreads && threads ? ['Trådar', threads, ''] : null,
           opts.showPhotos && photos ? ['Bilder', photos, ''] : null,
           opts.showOrdination && ordination ? ['Ordination', ordination, ''] : null,
+          opts.showQms && qms ? ['QMS', qms, ''] : null,
           opts.showAudit && audit ? ['Audit', audit, ''] : null,
         ].filter(Boolean);
         if (!links.length) return '';
@@ -2358,7 +2366,12 @@
               ${item.followUpDueAt ? `<span class="pill amber">Uppföljning ${escapeHtml(formatDateTime(item.followUpDueAt))}</span>` : ''}
               ${item.waitingOn ? `<span class="pill neutral">Väntar på ${escapeHtml(item.waitingOn)}</span>` : ''}
             </div>
-            ${renderDeepLinks(item, { cardUrl, showAudit: true, showOrdination: true })}
+            ${renderDeepLinks(item, {
+              cardUrl,
+              showAdminCase: true,
+              showAudit: true,
+              showOrdination: true,
+            })}
             ${assignmentHtml}
           </div>
           <div class="item-actions">
@@ -2426,6 +2439,7 @@
                 showThreads: threadCount > 0,
                 showPhotos: photoCount > 0,
                 showOrdination: true,
+                showStaffTask: true,
               }
             )}
           </div>
@@ -2512,6 +2526,9 @@
                 showThreads: true,
                 showPhotos: true,
                 showOrdination: true,
+                showStaffTask: true,
+                showDoctorReview: true,
+                showQms: true,
                 showAudit: true,
               }
             )}

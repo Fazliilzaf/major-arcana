@@ -214,19 +214,43 @@ function createStaffPortalRouter({
     if (pid) customerParams.set('patientId', pid);
     const workspaceParams = new URLSearchParams({ view: 'customers', workspace: '1' });
     if (pid) workspaceParams.set('patientId', pid);
+    const nurseTaskUrl = buildStaffPortalUrl({
+      role: 'nurse',
+      panel: customerId || patientId ? 'customers' : 'tasks',
+    });
+    const doctorReviewUrl = cleanCaseId
+      ? buildStaffPortalUrl({
+          role: 'doctor',
+          panel: 'ordination',
+          hash: `ordination-${cleanCaseId}`,
+        })
+      : buildStaffPortalUrl({ role: 'doctor', panel: 'ordination' });
+    const adminCaseUrl = buildStaffPortalUrl({ role: 'admin', panel: 'all-cases' });
+    const qmsUrl = buildStaffPortalUrl({ panel: 'qms' });
     return {
       customerCard: pid ? `/major-arcana-preview/?${customerParams.toString()}` : null,
       workspace: pid ? `/major-arcana-preview/?${workspaceParams.toString()}` : null,
       threads: cid ? `/api/v1/staff/customer-threads/${encodeURIComponent(cid)}` : null,
       photos: pid ? `/api/v1/staff/customer-photos/${encodeURIComponent(pid)}` : null,
-      ordination: cleanCaseId
-        ? `/staff-portal#ordination-${encodeURIComponent(cleanCaseId)}`
-        : null,
+      staffTask: nurseTaskUrl,
+      doctorReview: doctorReviewUrl,
+      adminCase: adminCaseUrl,
+      ordination: doctorReviewUrl,
+      qms: qmsUrl,
       audit: cleanCaseId
         ? `/api/v1/staff/audit?action=${encodeURIComponent('staff_portal')}&caseId=${encodeURIComponent(cleanCaseId)}`
         : null,
       tenantId: tenantId || null,
     };
+  }
+
+  function buildStaffPortalUrl({ role = '', panel = '', hash = '' } = {}) {
+    const params = new URLSearchParams();
+    if (role) params.set('role', role);
+    if (panel) params.set('panel', panel);
+    const query = params.toString();
+    const fragment = hash ? `#${encodeURIComponent(hash)}` : '';
+    return `/staff-portal${query ? `?${query}` : ''}${fragment}`;
   }
 
   function isTodayIso(value) {
@@ -578,7 +602,8 @@ function createStaffPortalRouter({
       staffActions: caseRecord.staffActions || null,
       links: {
         ...(customerItem.links || {}),
-        qms: '/staff-portal#qms',
+        staffTask: buildStaffPortalUrl({ role: 'nurse', panel: 'tasks' }),
+        qms: buildStaffPortalUrl({ panel: 'qms' }),
       },
       actions,
       customer: customerItem,

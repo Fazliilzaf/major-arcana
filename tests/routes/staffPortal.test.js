@@ -111,6 +111,12 @@ test('GET /api/v1/staff/my-customers aggregerar egna kunder med bildsignal', asy
       );
       assert.equal(body.customers[0].links.photos, '/api/v1/staff/customer-photos/patient-1');
       assert.equal(body.customers[0].links.threads, '/api/v1/staff/customer-threads/customer-1');
+      assert.equal(body.customers[0].links.staffTask, '/staff-portal?role=nurse&panel=customers');
+      assert.equal(
+        body.customers[0].links.doctorReview,
+        '/staff-portal?role=doctor&panel=ordination#ordination-case-1'
+      );
+      assert.equal(body.customers[0].links.adminCase, '/staff-portal?role=admin&panel=all-cases');
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
@@ -173,8 +179,16 @@ test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende',
         body.items[0].links.customerCard,
         '/major-arcana-preview/?view=customers&patientId=patient-today'
       );
-      assert.equal(body.items[0].links.qms, '/staff-portal#qms');
-      assert.equal(body.items[0].links.ordination, '/staff-portal#ordination-case-today-tp');
+      assert.equal(body.items[0].links.qms, '/staff-portal?panel=qms');
+      assert.equal(body.items[0].links.staffTask, '/staff-portal?role=nurse&panel=tasks');
+      assert.equal(
+        body.items[0].links.ordination,
+        '/staff-portal?role=doctor&panel=ordination#ordination-case-today-tp'
+      );
+      assert.equal(
+        body.items[0].links.doctorReview,
+        '/staff-portal?role=doctor&panel=ordination#ordination-case-today-tp'
+      );
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
