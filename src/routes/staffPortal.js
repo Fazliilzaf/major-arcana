@@ -382,10 +382,25 @@ function createStaffPortalRouter({
     const treatmentPlan = buildTreatmentPlanReadout(caseRecord);
     const readiness = buildReadinessChecklist(caseRecord);
     const missing = readiness.filter((item) => !item.done).map((item) => item.key);
+    const preDecisionMissing = readiness.filter(
+      (item) => item.key !== 'ordinationDecision' && !item.done
+    );
+    const reviewStatus = String(caseRecord.ordinationReview?.status || '').toLowerCase();
     return {
       treatmentPlan,
       readiness,
       missing,
+      signoff: {
+        status: reviewStatus || 'pending',
+        decisionRequired: !['approved', 'rejected'].includes(reviewStatus),
+        requiredActor: 'legitimerad läkare/ägare',
+        signatureRequired: true,
+        commentRequiredForReject: true,
+        canApproveAfterManualReview: preDecisionMissing.length === 0,
+        blockers: preDecisionMissing.map((item) => ({ key: item.key, label: item.label })),
+        safety:
+          'Läkaren måste granska underlaget manuellt. Systemet kan aldrig skapa ordination.approved automatiskt.',
+      },
       documents: buildOrdinationDocuments(caseRecord),
       patient: {
         patientId: caseRecord.patientId || null,
