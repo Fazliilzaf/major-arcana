@@ -163,6 +163,9 @@
         color: var(--accent);
         font-weight: 700;
       }
+      .nav-item.deep-link-active {
+        box-shadow: inset 0 0 0 1px rgba(187, 71, 121, 0.2);
+      }
       .nav-item .icon {
         font-size: 15px;
         width: 18px;
@@ -587,6 +590,17 @@
       }
       .deep-link:hover {
         background: rgba(43, 37, 31, 0.06);
+      }
+      .deeplink-target {
+        animation: deeplinkPulse 1.8s ease-out 1;
+      }
+      @keyframes deeplinkPulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(187, 71, 121, 0.28);
+        }
+        100% {
+          box-shadow: 0 0 0 14px rgba(187, 71, 121, 0);
+        }
       }
       .handoff-grid {
         display: grid;
@@ -2792,7 +2806,9 @@
             };
             document.getElementById('userRoleEl').textContent = roleMap[me.role] || me.role;
           }
-          setRole(roleFromSession(me.role));
+          const sessionRole = roleFromSession(me.role);
+          const requestedRole = requestedRoleFromUrl();
+          setRole(canUseRequestedRole(requestedRole, sessionRole) ? requestedRole : sessionRole);
           document.getElementById('dataStatusLabel').textContent = 'Live CCO-data';
           document.getElementById('dataStatusLabel').style.color = 'var(--sage)';
         } else {
@@ -3191,6 +3207,7 @@
             loadDelegations(),
             loadQmsHandbook(),
           ]);
+          applyDeepLink();
         }
       }
 
@@ -3248,6 +3265,68 @@
       };
 
       let currentRole = 'nurse';
+      let _pendingDeepLink = null;
+
+      const PANEL_ALIASES = {
+        mine: 'mine',
+        queue: 'mine',
+        tasks: 'mine',
+        cases: 'cases',
+        customers: 'cases',
+        customer: 'cases',
+        deleg: 'deleg',
+        delegation: 'deleg',
+        documents: 'documents',
+        docs: 'docs',
+        qms: 'qms',
+        'qms-dr': 'qms-dr',
+        'qms-admin': 'qms-admin',
+        ord: 'ord',
+        ordination: 'ord',
+        ordinations: 'ord',
+        history: 'history',
+        overview: 'overview',
+        staff: 'staff',
+        'all-cases': 'all-cases',
+        allcases: 'all-cases',
+        catalog: 'catalog',
+        audit: 'audit',
+      };
+
+      const PANEL_ROLE = {
+        mine: 'nurse',
+        cases: 'nurse',
+        deleg: 'nurse',
+        qms: 'nurse',
+        ord: 'doctor',
+        history: 'doctor',
+        docs: 'doctor',
+        documents: 'admin',
+        'qms-dr': 'doctor',
+        overview: 'admin',
+        staff: 'admin',
+        'all-cases': 'admin',
+        catalog: 'admin',
+        'qms-admin': 'admin',
+        audit: 'admin',
+      };
+
+      const PANEL_TARGET = {
+        mine: '#liveDailyQueueList',
+        cases: '#liveMyCustomerList',
+        deleg: '#liveDelegationList',
+        qms: '#liveQmsHandbookNurse',
+        ord: '#liveDoctorReviewList',
+        history: '#view-doctor .card-list',
+        docs: '#view-doctor .doc-row',
+        'qms-dr': '#liveQmsHandbookDoctor',
+        overview: '#view-admin .stats',
+        staff: '#view-admin .card-list',
+        'all-cases': '#liveAdminCaseList',
+        catalog: '#view-admin .doc-row',
+        'qms-admin': '#liveQmsHandbookAdmin',
+        audit: '#liveAuditList',
+      };
 
       function roleFromSession(rawRole) {
         const key = String(rawRole || '')
@@ -3263,6 +3342,97 @@
       function roleButtonFor(role) {
         const index = role === 'doctor' ? 1 : role === 'admin' ? 2 : 0;
         return document.querySelectorAll('.role-btn')[index] || null;
+      }
+
+      function requestedRoleFromUrl() {
+        const params = new URLSearchParams(window.location.search || '');
+        const rawRole = params.get('role') || params.get('staffRole') || '';
+        return rawRole ? roleFromSession(rawRole) : '';
+      }
+
+      function normalizePanel(rawPanel) {
+        const key = String(rawPanel || '')
+          .trim()
+          .replace(/^#/, '')
+          .toLowerCase();
+        if (!key) return '';
+        if (key.startsWith('ordination-')) return 'ord';
+        return PANEL_ALIASES[key] || '';
+      }
+
+      function requestedPanelFromUrl() {
+        const params = new URLSearchParams(window.location.search || '');
+        return normalizePanel(params.get('panel') || params.get('view') || window.location.hash);
+      }
+
+      function requestedDeepLink() {
+        const panel = requestedPanelFromUrl();
+        const role = requestedRoleFromUrl();
+        const targetHash = String(window.location.hash || '').replace(/^#/, '');
+        return {
+          role,
+          panel,
+          targetHash,
+        };
+      }
+
+      function resolvePanelForRole(panel, role) {
+        if (panel === 'qms') {
+          if (role === 'admin') return 'qms-admin';
+          if (role === 'doctor') return 'qms-dr';
+        }
+        if (panel === 'documents' && role === 'doctor') return 'docs';
+        if (panel === 'documents' && role === 'nurse') return 'deleg';
+        if (panel === 'documents') return 'catalog';
+        return panel;
+      }
+
+      function canUseRequestedRole(requestedRole, sessionRole) {
+        if (!requestedRole) return false;
+        if (!sessionRole) return true;
+        if (sessionRole === 'admin') return true;
+        return requestedRole === sessionRole;
+      }
+
+      function activateNavPanel(panel) {
+        if (!panel) return;
+        document.querySelectorAll('#navMenu .nav-item').forEach((item) => {
+          item.classList.toggle('active', item.dataset.panel === panel);
+          item.classList.toggle('deep-link-active', item.dataset.panel === panel);
+        });
+      }
+
+      function scrollToPanel(panel, targetHash) {
+        const hashTarget = targetHash ? document.getElementById(targetHash) : null;
+        const panelTarget = PANEL_TARGET[panel]
+          ? document.querySelector(PANEL_TARGET[panel])
+          : null;
+        const target = hashTarget || panelTarget;
+        if (!target) return false;
+        target.classList.remove('deeplink-target');
+        target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        window.setTimeout(() => target.classList.add('deeplink-target'), 60);
+        return true;
+      }
+
+      function applyDeepLink(options = {}) {
+        const link = options.link || _pendingDeepLink || requestedDeepLink();
+        if (!link.role && !link.panel && !link.targetHash) return;
+
+        const panel = resolvePanelForRole(link.panel, link.role || currentRole);
+        const role = link.role || PANEL_ROLE[panel] || currentRole;
+        if (role && role !== currentRole) {
+          _pendingDeepLink = { ...link, role, panel };
+          setRole(role);
+          return;
+        }
+
+        if (panel) activateNavPanel(panel);
+        const didScroll = scrollToPanel(panel, link.targetHash);
+        if (!didScroll && !options.retry) {
+          window.setTimeout(() => applyDeepLink({ link, retry: true }), 180);
+        }
+        _pendingDeepLink = null;
       }
 
       function setRole(role, evt) {
@@ -3286,7 +3456,7 @@
             const badgeHtml = item.liveBadge
               ? `<span class="nav-badge"${badgeAttr} style="display:none">0</span>`
               : '';
-            return `<button class="nav-item"><span class="icon">${item.icon}</span>${item.label}${badgeHtml}</button>`;
+            return `<button class="nav-item" data-panel="${escapeHtml(item.id)}"><span class="icon">${item.icon}</span>${item.label}${badgeHtml}</button>`;
           })
           .join('');
 
@@ -3309,12 +3479,23 @@
           loadMyCustomers();
           loadQmsHandbook();
         }
+        window.setTimeout(() => applyDeepLink(), 0);
       }
 
       document.querySelectorAll('.role-btn').forEach((btn, i) => {
         const roles = ['nurse', 'doctor', 'admin'];
         btn.addEventListener('click', (e) => setRole(roles[i], e));
       });
+
+      document.getElementById('navMenu').addEventListener('click', (event) => {
+        const item = event.target.closest?.('.nav-item');
+        if (!item) return;
+        const panel = item.dataset.panel || '';
+        activateNavPanel(panel);
+        scrollToPanel(panel, '');
+      });
+
+      window.addEventListener('hashchange', () => applyDeepLink());
 
       document.addEventListener('click', (event) => {
         const button = event.target.closest?.('.ordination-action');
