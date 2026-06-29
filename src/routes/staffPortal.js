@@ -483,6 +483,70 @@ function createStaffPortalRouter({
     return 'pending';
   }
 
+  function buildOrdinationNextAction(caseRecord = {}, readout = {}) {
+    const mode = classifyOrdinationWorkMode(caseRecord, readout);
+    const signoffReady = Boolean(readout.signoff?.canApproveAfterManualReview);
+    const presets = {
+      returned: {
+        mode,
+        label: 'Granska igen',
+        tone: 'sage',
+        primary: 'Öppna underlag och fatta nytt beslut',
+        description:
+          'Personal har markerat kompletteringen klar. Läkaren behöver granska underlaget på nytt före godkännande eller avvisning.',
+        owner: 'doctor',
+        suggestedAction: 'review_again',
+        canUseDecisionButtons: signoffReady,
+      },
+      completion: {
+        mode,
+        label: 'Väntar personal',
+        tone: 'amber',
+        primary: 'Invänta komplettering',
+        description:
+          'Läkaren har begärt komplettering. Nästa steg ägs av personal tills underlaget markeras klart.',
+        owner: 'staff',
+        suggestedAction: 'wait_for_completion',
+        canUseDecisionButtons: false,
+      },
+      approved: {
+        mode,
+        label: 'Beslut klart',
+        tone: 'sage',
+        primary: 'Visa beslut',
+        description:
+          'Ordinationen är godkänd. Kortet är read-only för historik, audit och beslutssammanfattning.',
+        owner: 'doctor',
+        suggestedAction: 'read_decision',
+        canUseDecisionButtons: false,
+      },
+      rejected: {
+        mode,
+        label: 'Beslut klart',
+        tone: 'danger',
+        primary: 'Visa motivering',
+        description:
+          'Ordinationen är avvisad. Kortet är read-only för historik, audit och motivering.',
+        owner: 'doctor',
+        suggestedAction: 'read_rejection',
+        canUseDecisionButtons: false,
+      },
+      pending: {
+        mode,
+        label: signoffReady ? 'Redo för läkare' : 'Kontroll behövs',
+        tone: signoffReady ? 'sage' : 'amber',
+        primary: signoffReady ? 'Granska och signera manuellt' : 'Kontrollera blockerare',
+        description: signoffReady
+          ? 'Förhandskontrollerna är klara. Läkaren gör egen manuell bedömning före signatur.'
+          : 'En eller flera readiness-punkter behöver kontrolleras innan trygg signering.',
+        owner: signoffReady ? 'doctor' : 'staff',
+        suggestedAction: signoffReady ? 'manual_review' : 'resolve_blockers',
+        canUseDecisionButtons: signoffReady,
+      },
+    };
+    return presets[mode] || presets.pending;
+  }
+
   function loadDocumentCatalog() {
     try {
       const catalog = require('../ops/hairtp-document-types.catalog.json');
@@ -1484,9 +1548,11 @@ function createStaffPortalRouter({
             .map((c) => {
               const ordinationReadout = buildOrdinationReviewReadout(c);
               const workMode = classifyOrdinationWorkMode(c, ordinationReadout);
+              const nextAction = buildOrdinationNextAction(c, ordinationReadout);
               return {
                 ...c,
                 workMode,
+                nextAction,
                 ordinationReadout,
               };
             });
