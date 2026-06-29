@@ -170,6 +170,118 @@ function createStaffPortalRouter({
     };
   }
 
+  function isTodayIso(value) {
+    if (!value) return false;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return false;
+    const now = new Date();
+    return date.toISOString().slice(0, 10) === now.toISOString().slice(0, 10);
+  }
+
+  function isTreatmentRequiringOrdination(caseRecord = {}) {
+    const haystack = [
+      caseRecord.serviceLabel,
+      caseRecord.serviceId,
+      caseRecord.treatmentType,
+      caseRecord.treatment,
+      caseRecord.procedure,
+      caseRecord.encounterType,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return /tp|transplant|hårtransplant|dhi|fue|lokalbedöv/.test(haystack);
+  }
+
+  function countMissingHandoff(checklist = {}) {
+    if (!checklist || typeof checklist !== 'object') return 0;
+    return Object.values(checklist).filter((value) => value === false).length;
+  }
+
+  function buildDailyWorkQueueItem(customerItem) {
+    const caseRecord = customerItem.case || {};
+    const startsAt = caseRecord.startsAt || caseRecord.scheduledForIso || caseRecord.scheduledAt;
+    const ordinationStatus = String(caseRecord.ordinationReview?.status || '').toLowerCase();
+    const requiresOrdination = isTreatmentRequiringOrdination(caseRecord);
+    const missingHandoff = countMissingHandoff(caseRecord.handoffChecklist);
+    const actions = [];
+    let priority = 'waiting';
+    let priorityRank = 30;
+
+    if (customerItem.threads.needsReply > 0) {
+      actions.push({
+        key: 'customer_reply',
+        label: 'Svara på kundfråga',
+        severity: 'urgent',
+      });
+      priority = 'urgent';
+      priorityRank = Math.min(priorityRank, 10);
+    }
+
+    if (requiresOrdination && ordinationStatus !== 'approved') {
+      actions.push({
+        key: 'ordination',
+        label: 'Ordination väntar',
+        severity: ordinationStatus === 'rejected' ? 'danger' : 'warning',
+      });
+      priority = priority === 'urgent' ? priority : 'today';
+      priorityRank = Math.min(priorityRank, 20);
+    }
+
+    if (isTodayIso(startsAt)) {
+      actions.push({
+        key: 'today_booking',
+        label: 'Kund idag',
+        severity: 'today',
+      });
+      priority = priority === 'urgent' ? priority : 'today';
+      priorityRank = Math.min(priorityRank, 20);
+    }
+
+    if (customerItem.photos.count > 0) {
+      actions.push({
+        key: 'photos',
+        label: `${customerItem.photos.count} bild${customerItem.photos.count === 1 ? '' : 'er'} finns`,
+        severity: 'info',
+      });
+      priorityRank = Math.min(priorityRank, 25);
+    }
+
+    if (missingHandoff > 0) {
+      actions.push({
+        key: 'checklist',
+        label: `${missingHandoff} checkpunkt${missingHandoff === 1 ? '' : 'er'} kvar`,
+        severity: 'warning',
+      });
+      priority = priority === 'urgent' ? priority : 'today';
+      priorityRank = Math.min(priorityRank, 22);
+    }
+
+    if (!actions.length) {
+      priority = 'done';
+      priorityRank = 50;
+      actions.push({
+        key: 'no_action',
+        label: 'Ingen akut åtgärd',
+        severity: 'done',
+      });
+    }
+
+    return {
+      id: caseRecord.id || customerItem.customerId || customerItem.patientId,
+      priority,
+      priorityRank,
+      title: customerItem.title,
+      patientId: customerItem.patientId,
+      customerId: customerItem.customerId,
+      startsAt: startsAt || null,
+      state: caseRecord.state || caseRecord.status || 'pending',
+      ordinationStatus: ordinationStatus || null,
+      actions,
+      customer: customerItem,
+    };
+  }
+
   // Lägg till requireAuth som global pre-filter för /api/v1/staff/*
   // (HTML-routen /staff-portal är öppen)
   if (requireAuth) {
@@ -270,6 +382,59 @@ function createStaffPortalRouter({
         );
 
         res.json({ ok: true, customers, count: customers.length, summary });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /* ── GET /api/v1/staff/daily-work-queue ───────────────────────
+     Prioriterad read-only kö för vardagsarbetet:
+       - akut: kundfråga/svar krävs
+       - idag: kund idag, ordination/checklista väntar
+       - väntar: bilder eller mindre uppföljningssignaler
+       - klar: inga åtgärdssignaler
+  ─────────────────────────────────────────────────────────────── */
+  router.get(
+    '/api/v1/staff/daily-work-queue',
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const role = req.cco?.role ?? null;
+        const userId = req.auth?.userId ?? null;
+        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const limit = Math.min(Number(req.query.limit) || 30, 80);
+        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+
+        let cases = [];
+        if (bookingCaseStore) {
+          cases = await bookingCaseStore.listCases({
+            tenantId: tenantId || undefined,
+            assignedTo: all ? null : userId || undefined,
+            limit,
+          });
+        }
+
+        const customers = await Promise.all(
+          cases.slice(0, limit).map((item) => buildCustomerWorkItem(item, { tenantId }))
+        );
+        const items = customers
+          .map(buildDailyWorkQueueItem)
+          .sort(
+            (a, b) =>
+              a.priorityRank - b.priorityRank ||
+              String(a.startsAt).localeCompare(String(b.startsAt))
+          );
+        const summary = items.reduce(
+          (acc, item) => {
+            acc.total += 1;
+            acc[item.priority] = (acc[item.priority] || 0) + 1;
+            return acc;
+          },
+          { total: 0, urgent: 0, today: 0, waiting: 0, done: 0 }
+        );
+
+        res.json({ ok: true, items, count: items.length, summary });
       } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
       }

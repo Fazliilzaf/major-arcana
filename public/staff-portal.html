@@ -462,6 +462,37 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
+      .queue-priority {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 70px;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 5px 8px;
+        font-size: 9px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: rgba(43, 37, 31, 0.06);
+        color: var(--text2);
+      }
+      .queue-priority.urgent {
+        background: rgba(198, 85, 74, 0.12);
+        color: var(--danger);
+      }
+      .queue-priority.today {
+        background: rgba(201, 132, 70, 0.13);
+        color: var(--amber);
+      }
+      .queue-priority.waiting {
+        background: rgba(66, 133, 166, 0.12);
+        color: var(--info);
+      }
+      .queue-priority.done {
+        background: rgba(74, 130, 104, 0.12);
+        color: var(--sage);
+      }
       .flow-chip-row {
         display: flex;
         flex-wrap: wrap;
@@ -1146,11 +1177,11 @@
 
           <div class="stats">
             <div class="stat">
-              <div class="stat-num amber">3</div>
+              <div class="stat-num amber" id="liveQueueUrgentCount">3</div>
               <div class="stat-lbl">Inkomna frågor</div>
             </div>
             <div class="stat">
-              <div class="stat-num sage">2</div>
+              <div class="stat-num sage" id="liveQueueTodayCount">2</div>
               <div class="stat-lbl">Bokningar idag</div>
             </div>
             <div class="stat">
@@ -1158,10 +1189,17 @@
               <div class="stat-lbl">Aktiva ärenden</div>
             </div>
             <div class="stat">
-              <div class="stat-num danger">1</div>
+              <div class="stat-num danger" id="liveQueueWaitingCount">1</div>
               <div class="stat-lbl">Checklista kvar</div>
             </div>
           </div>
+
+          <div class="section-title">Daglig arbetskö</div>
+          <div class="safety-notice">
+            🧭 Prioriterad read-only vy. Den visar vad personalen bör titta på först, men ändrar
+            aldrig journal, ordination eller kundkommunikation automatiskt.
+          </div>
+          <div id="liveDailyQueueList" class="live-panel"></div>
 
           <!-- Inkomna kundfrågor & bilder -->
           <div class="section-title">Inkomna frågor & bilder (tilldelade mig)</div>
@@ -1986,6 +2024,61 @@
         </div>`;
       }
 
+      function priorityLabel(priority) {
+        const map = {
+          urgent: 'Akut',
+          today: 'Idag',
+          waiting: 'Väntar',
+          done: 'Klar',
+        };
+        return map[priority] || 'Väntar';
+      }
+
+      function actionPill(action) {
+        const cls =
+          action.severity === 'urgent' || action.severity === 'danger'
+            ? 'danger'
+            : action.severity === 'warning' || action.severity === 'today'
+              ? 'amber'
+              : action.severity === 'done'
+                ? 'sage'
+                : 'info';
+        return `<span class="pill ${cls}">${escapeHtml(action.label || action.key || 'Åtgärd')}</span>`;
+      }
+
+      function renderDailyQueueCard(item) {
+        const priority = String(item.priority || 'waiting');
+        const customer = item.customer?.case || {};
+        const cardUrl = customerCardUrl({
+          patientId: item.patientId || customer.patientId,
+          customerId: item.customerId || customer.customerId,
+        });
+        const customerAction = cardUrl
+          ? `<a class="btn primary" href="${escapeHtml(cardUrl)}" target="_blank" rel="noopener">Öppna kundkort</a>`
+          : '<button class="btn" disabled title="Saknar patientId/customerId">Öppna kundkort</button>';
+        const treatment =
+          customer.treatmentType ||
+          customer.serviceLabel ||
+          customer.treatment ||
+          customer.service ||
+          'Behandling ej angiven';
+        const actionHtml = Array.isArray(item.actions) ? item.actions.map(actionPill).join('') : '';
+        return `<div class="item-card ${priority === 'urgent' ? 'urgent' : priority === 'today' ? 'pending' : priority === 'done' ? 'approved' : 'info-c'}">
+          <div class="item-icon">${priority === 'urgent' ? '⚡' : priority === 'today' ? '📍' : priority === 'done' ? '✅' : '⏳'}</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(item.title || 'Kund')}</div>
+            <div class="item-meta">${escapeHtml(treatment)}${item.startsAt ? ' · ' + escapeHtml(formatDateTime(item.startsAt)) : ''}</div>
+            <div class="flow-chip-row">
+              <span class="queue-priority ${escapeHtml(priority)}">${escapeHtml(priorityLabel(priority))}</span>
+              ${actionHtml}
+            </div>
+          </div>
+          <div class="item-actions">
+            ${customerAction}
+          </div>
+        </div>`;
+      }
+
       function renderOrdinationCard(item) {
         const title = getCaseTitle(item, 'Ordinationsunderlag');
         const treatment = item.treatmentType || item.treatment || item.service || 'Behandling';
@@ -2162,6 +2255,32 @@
         }
       }
 
+      async function loadDailyWorkQueue() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/daily-work-queue?limit=20');
+        if (!data || !data.ok) return;
+
+        const summary = data.summary || {};
+        const urgentEl = document.getElementById('liveQueueUrgentCount');
+        const todayEl = document.getElementById('liveQueueTodayCount');
+        const waitingEl = document.getElementById('liveQueueWaitingCount');
+        if (urgentEl) urgentEl.textContent = Number(summary.urgent || 0);
+        if (todayEl) todayEl.textContent = Number(summary.today || 0);
+        if (waitingEl) waitingEl.textContent = Number(summary.waiting || 0);
+
+        const container = document.getElementById('liveDailyQueueList');
+        if (!container) return;
+
+        if (data.items?.length) {
+          container.innerHTML =
+            `<div class="live-note">Live arbetskö: ${Number(summary.urgent || 0)} akut · ${Number(summary.today || 0)} idag · ${Number(summary.waiting || 0)} väntar.</div>` +
+            data.items.slice(0, 10).map(renderDailyQueueCard).join('');
+        } else {
+          container.innerHTML =
+            '<div class="live-note">Ingen daglig arbetskö hittades just nu.</div>';
+        }
+      }
+
       /* Hämta uppgifter och uppdatera nurse stats */
       async function loadTasks() {
         if (!_liveMode) return;
@@ -2271,6 +2390,7 @@
         await loadMe();
         if (_liveMode) {
           await Promise.all([
+            loadDailyWorkQueue(),
             loadTasks(),
             loadMyCustomers(),
             loadReviewQueue(),
@@ -2372,6 +2492,7 @@
 
         // Uppdatera live-badges efter byte
         if (_liveMode) {
+          loadDailyWorkQueue();
           loadReviewQueue();
           loadOrdinationReviews();
           loadTasks();

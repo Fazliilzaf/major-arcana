@@ -107,3 +107,61 @@ test('GET /api/v1/staff/my-customers aggregerar egna kunder med bildsignal', asy
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-daily-queue-'));
+  try {
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-today-tp',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-today',
+      customerName: 'Dagens Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-1',
+      startsAt: new Date().toISOString(),
+      handoffChecklist: {
+        journalReady: true,
+        consentSigned: false,
+        paymentSettled: true,
+        encounterLinked: false,
+      },
+    });
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        bookingCaseStore,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/daily-work-queue`, {
+        headers: { 'x-cco-role': 'personal' },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.count, 1);
+      assert.equal(body.summary.today, 1);
+      assert.equal(body.items[0].priority, 'today');
+      assert.ok(body.items[0].actions.some((action) => action.key === 'ordination'));
+      assert.ok(body.items[0].actions.some((action) => action.key === 'checklist'));
+      assert.ok(body.items[0].actions.some((action) => action.key === 'today_booking'));
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
