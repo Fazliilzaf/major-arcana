@@ -2,7 +2,7 @@
 <html lang="sv">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>CCO · Personalportal</title>
     <link rel="stylesheet" href="/cco-polish.css" />
     <style>
@@ -48,12 +48,15 @@
         font-size: 13px;
         line-height: 1.4;
         min-height: 100vh;
+        overflow-x: hidden;
       }
 
       /* ── Layout shell ─────────────────────────────────────────────── */
       .shell {
         display: flex;
         min-height: 100vh;
+        width: 100%;
+        min-width: 0;
       }
 
       /* ── Sidebar ──────────────────────────────────────────────────── */
@@ -66,6 +69,7 @@
         display: flex;
         flex-direction: column;
         padding: 0 0 24px;
+        flex-shrink: 0;
         position: sticky;
         top: 0;
         height: 100vh;
@@ -214,6 +218,7 @@
       /* ── Main content ─────────────────────────────────────────────── */
       .main {
         flex: 1;
+        min-width: 0;
         padding: 24px 28px 48px;
         overflow-y: auto;
       }
@@ -563,7 +568,8 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 30px;
+        min-height: 34px;
+        max-width: 100%;
         padding: 5px 10px;
         border-radius: 999px;
         border: 1px solid rgba(43, 37, 31, 0.1);
@@ -655,6 +661,7 @@
         gap: 6px;
         flex-shrink: 0;
         align-items: center;
+        min-width: 0;
       }
       .btn {
         display: inline-flex;
@@ -749,6 +756,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 10px;
         padding: 6px 0;
         border-bottom: 1px solid var(--border);
         font-size: 12px;
@@ -776,6 +784,10 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        min-width: 0;
+      }
+      .ord-header > div:last-child {
+        min-width: 0;
       }
       .ord-title {
         font-size: 14px;
@@ -912,6 +924,7 @@
       }
       .check-label {
         flex: 1;
+        min-width: 0;
       }
       .check-by {
         font-size: 10px;
@@ -970,6 +983,7 @@
         border: 1px solid var(--border);
         border-radius: 10px;
         margin-bottom: 6px;
+        min-width: 0;
       }
       .doc-icon {
         width: 32px;
@@ -987,6 +1001,7 @@
         font-size: 12px;
         font-weight: 700;
         flex: 1;
+        min-width: 0;
       }
       .doc-valid {
         font-size: 10px;
@@ -1197,12 +1212,26 @@
           min-width: 100px;
           font-size: 10.5px;
         }
+        .deep-link-row {
+          gap: 7px;
+        }
+        .deep-link,
+        .btn {
+          min-height: 40px;
+        }
+        .doc-row {
+          flex-wrap: wrap;
+        }
+        .doc-name {
+          flex-basis: calc(100% - 48px);
+        }
       }
 
       /* ── Responsive — mobile (≤640px) ────────────────────────── */
       @media (max-width: 640px) {
         .mobile-topbar {
           display: flex;
+          padding-top: calc(11px + env(safe-area-inset-top, 0px));
         }
         .shell {
           flex-direction: column;
@@ -1224,7 +1253,8 @@
           transform: translateX(0);
         }
         .main {
-          padding: 14px 14px 48px;
+          padding: 14px max(14px, env(safe-area-inset-right, 0px))
+            calc(48px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
           width: 100%;
         }
         .stats {
@@ -1266,6 +1296,54 @@
           flex-wrap: wrap;
           padding-top: 6px;
           margin-left: 50px;
+        }
+        .deep-link-row {
+          gap: 7px;
+        }
+        .deep-link,
+        .btn,
+        .role-btn,
+        .queue-priority {
+          min-height: 44px;
+        }
+        .deep-link {
+          flex: 1 1 calc(50% - 7px);
+          padding: 7px 10px;
+          white-space: normal;
+          text-align: center;
+          line-height: 1.2;
+        }
+        .item-card {
+          gap: 10px;
+          padding: 13px 13px 14px;
+        }
+        .item-title,
+        .kundkort-name,
+        .ord-title,
+        .qms-card-title {
+          overflow-wrap: anywhere;
+        }
+        .kk-row,
+        .check-item,
+        .doc-row {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        .kk-row span:last-child {
+          text-align: right;
+          min-width: 45%;
+        }
+        .check-by {
+          width: 100%;
+          text-align: left;
+          padding-left: 28px;
+        }
+        .doc-row .pill,
+        .doc-row .btn {
+          margin-left: 44px !important;
+        }
+        .doc-valid {
+          display: none;
         }
         /* Ordination actions — wrap on mobile */
         .ord-actions {
