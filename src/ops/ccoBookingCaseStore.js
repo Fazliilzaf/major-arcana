@@ -193,6 +193,29 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
       .map((c) => ({ ...c }));
   }
 
+  async function listCasesForCustomer({
+    tenantId,
+    customerId = null,
+    patientId = null,
+    limit = 50,
+  } = {}) {
+    const wantedCustomer = normalizeText(customerId);
+    const wantedPatient = normalizeText(patientId);
+    if (!wantedCustomer && !wantedPatient) return [];
+    const max = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Number(limit) : 50;
+    const list = await listCases({ tenantId, limit: Math.max(max * 4, 200) });
+    return list
+      .filter((c) => {
+        const caseCustomer = normalizeText(c.customerId);
+        const casePatient = normalizeText(c.patientId);
+        return (
+          (wantedCustomer && (caseCustomer === wantedCustomer || casePatient === wantedCustomer)) ||
+          (wantedPatient && (casePatient === wantedPatient || caseCustomer === wantedPatient))
+        );
+      })
+      .slice(0, max);
+  }
+
   function stats() {
     const byState = {};
     for (const s of VALID_STATES) byState[s] = 0;
@@ -396,6 +419,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
 
   return {
     listCases,
+    listCasesForCustomer,
     stats,
     getCase,
     createCase,
