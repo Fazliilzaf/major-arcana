@@ -1810,6 +1810,25 @@
         return `<span class="pill ${cls}">${escapeHtml(label)}</span>`;
       }
 
+      function ordinationStatusPill(item) {
+        const review = item?.ordinationReview || null;
+        const status = String(review?.status || '').toLowerCase();
+        if (status === 'approved') {
+          const by = review.decidedBy ? ` · ${review.decidedBy}` : '';
+          return `<span class="pill sage">Ordination godkänd${escapeHtml(by)}</span>`;
+        }
+        if (status === 'rejected') {
+          return '<span class="pill danger">Ordination avvisad</span>';
+        }
+        const treatment = String(
+          item?.serviceLabel || item?.serviceId || item?.treatment || ''
+        ).toLowerCase();
+        if (treatment.includes('tp') || treatment.includes('transplant')) {
+          return '<span class="pill amber">Ordination väntar</span>';
+        }
+        return '';
+      }
+
       function getCaseTitle(item, fallback = 'Kundärende') {
         return (
           item.customerName ||
@@ -1857,12 +1876,13 @@
             <div class="item-meta">${meta}</div>
             <div class="flow-chip-row">
               ${statusPill(state)}
+              ${ordinationStatusPill(item)}
               ${item.followUpDueAt ? `<span class="pill amber">Uppföljning ${escapeHtml(formatDateTime(item.followUpDueAt))}</span>` : ''}
               ${item.waitingOn ? `<span class="pill neutral">Väntar på ${escapeHtml(item.waitingOn)}</span>` : ''}
             </div>
           </div>
           <div class="item-actions">
-            <button class="btn" disabled title="Read-only Fas 4">Visa kundkort</button>
+            <button class="btn" disabled title="Kundkort-länk kopplas i nästa fas">Visa kundkort</button>
           </div>
         </div>`;
       }
@@ -2013,7 +2033,7 @@
           const adminList = document.getElementById('liveAdminCaseList');
           if (adminList && data.queue?.length) {
             adminList.innerHTML =
-              '<div class="live-note">Live ärendekö från CCO. Åtgärder är låsta i Fas 4.</div>' +
+              '<div class="live-note">Live ärendekö från CCO. Ärendebeslut hanteras i respektive specialistvy.</div>' +
               data.queue
                 .slice(0, 8)
                 .map((item) => renderCaseCard(item, { icon: '📁' }))
@@ -2035,7 +2055,7 @@
           const container = document.getElementById('liveDoctorReviewList');
           if (container && data.reviews?.length) {
             container.innerHTML =
-              '<div class="live-note">Live ordinationskö. Signering är spärrad tills skrivflöde + 2FA aktiveras.</div>' +
+              '<div class="live-note">Live ordinationskö. Läkare/ägare kan signera här; personal ser statusen direkt på kundraden.</div>' +
               data.reviews.slice(0, 6).map(renderOrdinationCard).join('');
             const fallback = document.getElementById('doctorFallbackReviews');
             if (fallback) fallback.style.display = 'none';
@@ -2059,7 +2079,7 @@
           const container = document.getElementById('liveNurseTaskList');
           if (container && data.tasks?.length) {
             container.innerHTML =
-              '<div class="live-note">Live uppgifter tilldelade inloggad personal. Kundnamn visas bara för behörig session.</div>' +
+              '<div class="live-note">Live uppgifter tilldelade inloggad personal. Ordinationsstatus visas direkt på kundraden när den finns.</div>' +
               data.tasks
                 .slice(0, 8)
                 .map((item) => renderCaseCard(item, { icon: '💬', kind: 'info-c' }))

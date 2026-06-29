@@ -51,6 +51,40 @@ test('cco booking case store: create → get → list → stats', async () => {
   assert.equal(s.byState.confirmed, 0);
 });
 
+test('cco booking case store: listCasesForCustomer matchar customerId och patientId', async () => {
+  const filePath = await tmpFile();
+  const store = await createCcoBookingCaseStore({ filePath });
+
+  const a = await store.createCase(
+    { tenantId: 'hairtp-clinic', customerId: 'cust-1', patientId: 'patient-1' },
+    { role: 'owner' }
+  );
+  await store.createCase(
+    { tenantId: 'hairtp-clinic', customerId: 'cust-2', patientId: 'patient-2' },
+    { role: 'owner' }
+  );
+  await store.updateOrdinationReview(
+    a.id,
+    { status: 'approved', signature: 'Dr Test', comment: 'OK' },
+    { role: 'konsult', userId: 'dr-1' }
+  );
+
+  const byCustomer = await store.listCasesForCustomer({
+    tenantId: 'hairtp-clinic',
+    customerId: 'cust-1',
+  });
+  assert.equal(byCustomer.length, 1);
+  assert.equal(byCustomer[0].id, a.id);
+  assert.equal(byCustomer[0].ordinationReview.status, 'approved');
+
+  const byPatient = await store.listCasesForCustomer({
+    tenantId: 'hairtp-clinic',
+    patientId: 'patient-1',
+  });
+  assert.equal(byPatient.length, 1);
+  assert.equal(byPatient[0].id, a.id);
+});
+
 test('cco booking case store: state transition and candidate + handoff flow', async () => {
   const filePath = await tmpFile();
   const store = await createCcoBookingCaseStore({ filePath });
