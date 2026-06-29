@@ -315,9 +315,12 @@ test('GET /api/v1/staff/ordination-reviews visar återkommen komplettering', asy
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     const { port } = server.address();
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/ordination-reviews`, {
-        headers: { 'x-cco-role': 'konsult' },
-      });
+      const res = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/ordination-reviews?mode=returned`,
+        {
+          headers: { 'x-cco-role': 'konsult' },
+        }
+      );
       assert.equal(res.status, 200);
       const body = await res.json();
       assert.equal(body.ok, true);
@@ -351,6 +354,122 @@ test('GET /api/v1/staff/ordination-reviews visar återkommen komplettering', asy
       });
       assert.ok(body.reviews[0].ordinationReadout.completionReturn.requestedAt);
       assert.ok(body.reviews[0].ordinationReadout.completionReturn.resolvedAt);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-ordination-modes-'));
+  try {
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+    });
+    const createCase = (id, customerName) =>
+      bookingCaseStore.createCase({
+        id,
+        tenantId: 'hairtpclinic',
+        state: 'confirmed',
+        patientId: `patient-${id}`,
+        customerName,
+        serviceLabel: 'Hårtransplantation DHI',
+        handoffChecklist: {
+          journalReady: true,
+          consentSigned: true,
+          paymentSettled: true,
+          encounterLinked: true,
+        },
+      });
+
+    await createCase('case-mode-pending', 'Pending Kund');
+    await createCase('case-mode-completion', 'Completion Kund');
+    await createCase('case-mode-returned', 'Returned Kund');
+    await createCase('case-mode-approved', 'Approved Kund');
+    await createCase('case-mode-rejected', 'Rejected Kund');
+    await bookingCaseStore.updateOrdinationReview(
+      'case-mode-completion',
+      { status: 'needs_completion', signature: 'Dr Test', comment: 'Komplettera underlag' },
+      { userId: 'doctor-1', role: 'konsult' }
+    );
+    await bookingCaseStore.updateOrdinationReview(
+      'case-mode-returned',
+      { status: 'needs_completion', signature: 'Dr Test', comment: 'Komplettera foto' },
+      { userId: 'doctor-1', role: 'konsult' }
+    );
+    await bookingCaseStore.recordStaffAction(
+      'case-mode-returned',
+      { action: 'resolve_completion' },
+      { userId: 'staff-1', role: 'personal' }
+    );
+    await bookingCaseStore.updateOrdinationReview(
+      'case-mode-approved',
+      { status: 'approved', signature: 'Dr Test', comment: 'OK' },
+      { userId: 'doctor-1', role: 'konsult' }
+    );
+    await bookingCaseStore.updateOrdinationReview(
+      'case-mode-rejected',
+      { status: 'rejected', signature: 'Dr Test', comment: 'Avvisas' },
+      { userId: 'doctor-1', role: 'konsult' }
+    );
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        bookingCaseStore,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'doctor-1', tenantId: 'hairtpclinic', role: 'konsult' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const fetchMode = async (mode) => {
+        const res = await fetch(
+          `http://127.0.0.1:${port}/api/v1/staff/ordination-reviews?mode=${mode}&limit=20`,
+          { headers: { 'x-cco-role': 'konsult' } }
+        );
+        assert.equal(res.status, 200);
+        return res.json();
+      };
+
+      const all = await fetchMode('all');
+      assert.equal(all.count, 5);
+      assert.deepEqual(all.modes, {
+        all: 5,
+        pending: 1,
+        returned: 1,
+        completion: 1,
+        approved: 1,
+        rejected: 1,
+      });
+
+      const returned = await fetchMode('returned');
+      assert.equal(returned.mode, 'returned');
+      assert.deepEqual(
+        returned.reviews.map((item) => item.id),
+        ['case-mode-returned']
+      );
+      assert.equal(returned.reviews[0].workMode, 'returned');
+
+      const approved = await fetchMode('approved');
+      assert.deepEqual(
+        approved.reviews.map((item) => item.id),
+        ['case-mode-approved']
+      );
+
+      const invalid = await fetchMode('bananas');
+      assert.equal(invalid.mode, 'pending');
+      assert.deepEqual(
+        invalid.reviews.map((item) => item.id),
+        ['case-mode-pending']
+      );
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }

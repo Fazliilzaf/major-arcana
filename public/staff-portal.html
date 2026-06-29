@@ -1044,6 +1044,29 @@
         display: grid;
         gap: 7px;
       }
+      .ordination-mode-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 12px;
+      }
+      .ordination-mode-btn {
+        min-height: 34px;
+        padding: 8px 11px;
+        border: 1px solid rgba(45, 35, 28, 0.1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text2);
+        font-size: 11px;
+        font-weight: 850;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(50, 40, 32, 0.06);
+      }
+      .ordination-mode-btn.active {
+        border-color: rgba(211, 75, 132, 0.28);
+        background: linear-gradient(135deg, rgba(253, 238, 244, 0.96), rgba(245, 240, 255, 0.92));
+        color: var(--brand);
+      }
       .ordination-timeline-summary {
         margin-top: 12px;
         display: grid;
@@ -1971,6 +1994,7 @@
 
           <!-- Ordinationsunderlag 1 -->
           <div class="section-title">Väntande granskning</div>
+          <div id="ordinationModeRow" class="ordination-mode-row"></div>
           <div id="liveDoctorReviewList" class="live-panel"></div>
 
           <div id="doctorFallbackReviews">
@@ -2394,6 +2418,7 @@
       let _meData = null; // cachat resultat från /api/v1/staff/me
       let _liveMode = false; // true = inloggad, använder riktig data
       let _staffTeam = []; // cachat personalregister för admin-tilldelning
+      let _ordinationMode = 'pending'; // läkarkortets arbetsläge
 
       async function apiFetch(path, opts = {}) {
         try {
@@ -2461,6 +2486,24 @@
         if (!key) return '';
         const match = _staffTeam.find((item) => String(item.userId || '') === key);
         return match?.label || key;
+      }
+
+      const ORDINATION_MODES = [
+        ['pending', 'Väntar beslut'],
+        ['returned', 'Komplettering klar'],
+        ['completion', 'Väntar komplettering'],
+        ['approved', 'Godkända'],
+        ['rejected', 'Avvisade'],
+        ['all', 'Alla'],
+      ];
+
+      function renderOrdinationModeRow(modes = {}) {
+        const row = document.getElementById('ordinationModeRow');
+        if (!row) return;
+        row.innerHTML = ORDINATION_MODES.map(([mode, label]) => {
+          const count = Number(modes[mode] || 0);
+          return `<button class="ordination-mode-btn ${mode === _ordinationMode ? 'active' : ''}" data-ordination-mode="${escapeHtml(mode)}">${escapeHtml(label)} · ${escapeHtml(String(count))}</button>`;
+        }).join('');
       }
 
       function staffOptions(selectedUserId) {
@@ -3450,17 +3493,23 @@
 
       async function loadOrdinationReviews() {
         if (!_liveMode) return;
-        const data = await apiFetch('/api/v1/staff/ordination-reviews?limit=12');
+        const params = new URLSearchParams({ limit: '12', mode: _ordinationMode });
+        const data = await apiFetch(`/api/v1/staff/ordination-reviews?${params.toString()}`);
         if (data && data.ok) {
+          if (data.mode) _ordinationMode = data.mode;
+          renderOrdinationModeRow(data.modes || {});
           const badge = document.querySelector('[data-live-badge="review-queue"]');
           if (badge) badge.textContent = data.count;
           if (badge) badge.style.display = data.count > 0 ? '' : 'none';
 
           const container = document.getElementById('liveDoctorReviewList');
-          if (container && data.reviews?.length) {
-            container.innerHTML =
-              '<div class="live-note">Live ordinationskö. Läkare/ägare kan signera här; personal ser statusen direkt på kundraden.</div>' +
-              data.reviews.slice(0, 6).map(renderOrdinationCard).join('');
+          if (container) {
+            const activeLabel =
+              ORDINATION_MODES.find(([mode]) => mode === _ordinationMode)?.[1] || 'Arbetsläge';
+            container.innerHTML = data.reviews?.length
+              ? `<div class="live-note">Live ordinationskö · ${escapeHtml(activeLabel)}. Läkare/ägare kan signera här; personal ser statusen direkt på kundraden.</div>` +
+                data.reviews.slice(0, 6).map(renderOrdinationCard).join('')
+              : `<div class="live-note">Inga ordinationer i läget “${escapeHtml(activeLabel)}”. Byt arbetsläge ovan för att se fler ärenden.</div>`;
             const fallback = document.getElementById('doctorFallbackReviews');
             if (fallback) fallback.style.display = 'none';
           }
@@ -4202,6 +4251,15 @@
         if (assignmentButton) {
           event.preventDefault();
           submitAssignment(assignmentButton);
+        }
+        const ordinationModeButton = event.target.closest?.('.ordination-mode-btn');
+        if (ordinationModeButton) {
+          event.preventDefault();
+          const mode = ordinationModeButton.dataset.ordinationMode || 'pending';
+          if (mode !== _ordinationMode) {
+            _ordinationMode = mode;
+            loadOrdinationReviews();
+          }
         }
         if (event.target.closest?.('#reportDeviationBtn')) {
           event.preventDefault();
