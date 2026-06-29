@@ -277,6 +277,7 @@ function createStaffPortalRouter({
       startsAt: startsAt || null,
       state: caseRecord.state || caseRecord.status || 'pending',
       ordinationStatus: ordinationStatus || null,
+      staffActions: caseRecord.staffActions || null,
       actions,
       customer: customerItem,
     };
@@ -437,6 +438,54 @@ function createStaffPortalRouter({
         res.json({ ok: true, items, count: items.length, summary });
       } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /* ── POST /api/v1/staff/daily-work-queue/:id/action ───────────
+     Säkra vardagsåtgärder för personalens arbetskö.
+     Detta skickar inga kundmeddelanden och fattar inga medicinska beslut.
+     Alla åtgärder sparas i booking-case history + audit.
+  ─────────────────────────────────────────────────────────────── */
+  router.post(
+    '/api/v1/staff/daily-work-queue/:id/action',
+    requirePermission('customers.read'),
+    async (req, res) => {
+      const id = String(req.params.id || '').trim();
+      const action = String(req.body?.action || '').trim();
+      const itemKey = String(req.body?.itemKey || '').trim();
+
+      if (!id) return res.status(400).json({ ok: false, error: 'Ärende-id krävs.' });
+      if (!action) return res.status(400).json({ ok: false, error: 'action krävs.' });
+      if (!bookingCaseStore?.recordStaffAction) {
+        return res.status(503).json({ ok: false, error: 'Booking case store saknas.' });
+      }
+
+      try {
+        const caseRecord = await bookingCaseStore.recordStaffAction(
+          id,
+          { action, itemKey },
+          getActor(req)
+        );
+
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: `staff_portal.${action}`,
+            actor: { role: req.cco?.role ?? null, userId: req.auth?.userId ?? null, ip: null },
+            target: { kind: 'booking_case', id, tenantId: req.auth?.tenantId ?? null },
+            result: 'ok',
+            detail: itemKey ? { itemKey } : {},
+          });
+        }
+
+        return res.json({
+          ok: true,
+          action,
+          itemKey: itemKey || null,
+          case: caseRecord,
+        });
+      } catch (err) {
+        return handleWriteError(res, err);
       }
     }
   );
