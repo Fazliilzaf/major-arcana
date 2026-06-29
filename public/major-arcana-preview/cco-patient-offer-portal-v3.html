@@ -1975,7 +1975,7 @@
         z-index: 5;
       }
 
-      /* Demo steg-väljare (prototype-läge) */
+      /* Stegväljare (prototypgranskning) */
       .stage-bar {
         position: sticky;
         top: 4.2rem;
@@ -2017,6 +2017,117 @@
         background: rgba(255, 255, 255, 0.22);
         color: #fff;
         border-color: rgba(255, 255, 255, 0.5);
+      }
+
+      @media (min-width: 768px) {
+        :root {
+          --max-w: min(940px, calc(100vw - 3rem));
+          --pad-x: clamp(1.25rem, 3vw, 2rem);
+          --fs-body: 0.9rem;
+          --fs-meta: 0.78rem;
+        }
+
+        body {
+          padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .topbar {
+          padding-inline: max(var(--pad-x), calc((100vw - var(--max-w)) / 2));
+        }
+
+        .stage-bar {
+          top: 4.05rem;
+          justify-content: center;
+          padding-inline: max(var(--pad-x), calc((100vw - var(--max-w)) / 2));
+        }
+
+        .page {
+          display: grid;
+          grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.95fr);
+          gap: var(--gap);
+          align-items: start;
+        }
+
+        .journey,
+        .hero-card,
+        .section-heading,
+        .value-card,
+        .testimonial-card,
+        .faq-card,
+        .contact-card {
+          grid-column: 1 / -1;
+        }
+
+        .journey {
+          overflow: visible;
+        }
+
+        .hero-card {
+          min-height: 13rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          padding: 2rem;
+        }
+
+        .sign-card {
+          grid-column: 2;
+          grid-row: span 3;
+          position: sticky;
+          top: 7.25rem;
+          align-self: start;
+        }
+
+        .section-heading {
+          margin-top: 1.5rem;
+        }
+
+        .bottom-nav {
+          left: 50%;
+          right: auto;
+          bottom: 1rem;
+          transform: translateX(-50%);
+          width: min(620px, calc(100vw - 2rem));
+          border: 1px solid rgba(167, 145, 125, 0.22);
+          border-radius: var(--panel-radius);
+          box-shadow: var(--sh-lg);
+          padding: 0.55rem 0.7rem;
+        }
+
+        .sticky-sign {
+          display: none;
+        }
+      }
+
+      @media (min-width: 1120px) {
+        :root {
+          --max-w: min(1180px, calc(100vw - 4rem));
+          --fs-h1: 2.45rem;
+        }
+
+        .page {
+          grid-template-columns: minmax(0, 1.15fr) minmax(21rem, 0.85fr);
+        }
+
+        .hero-card {
+          min-height: 15rem;
+        }
+
+        .timeline-card,
+        .value-card,
+        .testimonial-card,
+        .faq-card {
+          grid-column: 1;
+        }
+
+        .contact-card {
+          grid-column: 1 / -1;
+        }
+
+        .bottom-nav {
+          width: min(680px, calc(100vw - 2rem));
+          display: none;
+        }
       }
 
       @media print {
@@ -2070,13 +2181,13 @@
       <div class="avatar" aria-label="Adam Karlsson">AK</div>
     </header>
 
-    <!-- DEMO steg-väljare -->
-    <div class="stage-bar" role="group" aria-label="Demo: välj steg">
-      <span class="stage-bar-label">Demo steg →</span>
+    <!-- Stegväljare för prototypgranskning -->
+    <div class="stage-bar" role="group" aria-label="Välj steg i portalen">
+      <span class="stage-bar-label">Visa steg →</span>
       <button class="stage-btn" onclick="applyStage(0)">0 · Konsultation</button>
       <button class="stage-btn active" onclick="applyStage(1)">1 · Offert mottagen</button>
       <button class="stage-btn" onclick="applyStage(2)">2 · Signerad</button>
-      <button class="stage-btn" onclick="applyStage(3)">3 · Post-op</button>
+      <button class="stage-btn" onclick="applyStage(3)">3 · Efter operation</button>
       <button class="stage-btn" onclick="applyStage(4)">4 · Uppföljning</button>
     </div>
 
@@ -2270,7 +2381,7 @@
         <div class="countdown-card" id="countdownCard">
           <div class="countdown-days" id="countdownDays">78</div>
           <div class="countdown-label">dagar till operation</div>
-          <div class="countdown-date">15 september 2026 · kl 08:00 · Hair TP Clinic Stockholm</div>
+          <div class="countdown-date">15 september 2026 · kl 08:00 · Hair TP Clinic Göteborg</div>
           <div class="countdown-msg">
             🌱 Din resa har börjat. Förberedelseguiden är nu upplåst — läs igenom den lugnt under
             nästa vecka.
@@ -2505,7 +2616,7 @@
       <div class="card" data-unlock="1" data-tease-label="🔒 Låses upp när offert skickas">
         <div class="card-title">Prisspecifikation</div>
         <div class="price-row">
-          <span class="price-label">Hårtransplantation DHI · 2 500 gr</span
+          <span class="price-label">Hårtransplantation DHI · 2 500 hårsäckar</span
           ><span class="price-val">59 000 kr</span>
         </div>
         <div class="price-row">
@@ -2544,7 +2655,7 @@
         <div class="card-title">Vad ingår i din plan?</div>
         <div class="value-list">
           <div class="value-item">
-            <span class="value-item-check">✓</span>Hårtransplantation DHI · 2 500 grafts
+            <span class="value-item-check">✓</span>Hårtransplantation DHI · 2 500 hårsäckar
           </div>
           <div class="value-item">
             <span class="value-item-check">✓</span>4 × PRP-behandlingar (mån 1, 3, 6, 9)
@@ -2583,7 +2694,7 @@
               hade jag redan mer hår än på 10 år. Beslutet att välja DHI var rätt."
             </div>
             <div class="testimonial-meta">
-              Patient, 34 år · Norwood III · 2 400 grafts · Resultat efter 11 månader
+              Patient, 34 år · Norwood III · 2 400 hårsäckar · Resultat efter 11 månader
             </div>
           </div>
         </div>
@@ -2659,7 +2770,7 @@
           <div>
             <div class="insight-title">Förväntad täckningsgrad</div>
             <div class="insight-text">
-              Baserat på donatorstäthet och 2 500 gr beräknas täckningsgraden till ~87 %.
+              Baserat på donatorstäthet och 2 500 hårsäckar beräknas täckningsgraden till ~87 %.
               Fullresultat utvärderas vid 12 månader.
             </div>
             <span class="data-pill">~87 % täckning</span
@@ -2724,7 +2835,7 @@
             </svg>
           </summary>
           <div class="faq-a">
-            Operationen tar normalt 6–8 timmar beroende på antalet grafts. Du är vaken under hela
+            Operationen tar normalt 6–8 timmar beroende på antalet hårsäckar. Du är vaken under hela
             ingreppet och får pauser. Ta gärna med öronsnäckor och en film att titta på.
           </div>
         </details>
@@ -2819,7 +2930,7 @@
             <div class="booking-tag confirmed">Bekräftad</div>
             <div class="booking-title">Hårtransplantation · DHI-metoden</div>
             <div class="booking-when">15 september 2026 · kl 08:00</div>
-            <div class="booking-where">Hair TP Clinic · Stockholm</div>
+            <div class="booking-where">Hair TP Clinic · Göteborg</div>
           </div>
           <div class="booking-lock">🔒</div>
         </div>
