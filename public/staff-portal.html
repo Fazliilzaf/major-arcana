@@ -493,6 +493,25 @@
         background: rgba(74, 130, 104, 0.12);
         color: var(--sage);
       }
+      .queue-action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .queue-feedback {
+        display: block;
+        margin-top: 8px;
+        font-size: 10.5px;
+        font-weight: 750;
+        color: var(--text3);
+      }
+      .queue-feedback.ok {
+        color: var(--sage);
+      }
+      .queue-feedback.error {
+        color: var(--danger);
+      }
       .flow-chip-row {
         display: flex;
         flex-wrap: wrap;
@@ -2049,6 +2068,13 @@
       function renderDailyQueueCard(item) {
         const priority = String(item.priority || 'waiting');
         const customer = item.customer?.case || {};
+        const itemId = String(item.id || customer.id || '');
+        const missingChecklist = customer.handoffChecklist || {};
+        const firstMissingChecklist = Object.entries(missingChecklist).find(
+          ([, value]) => value === false
+        );
+        const wasSeen = Boolean(item.staffActions?.seenAt);
+        const sentToDoctor = Boolean(item.staffActions?.sentToDoctorAt);
         const cardUrl = customerCardUrl({
           patientId: item.patientId || customer.patientId,
           customerId: item.customerId || customer.customerId,
@@ -2063,6 +2089,13 @@
           customer.service ||
           'Behandling ej angiven';
         const actionHtml = Array.isArray(item.actions) ? item.actions.map(actionPill).join('') : '';
+        const queueActions = [
+          `<button class="btn queue-action" data-action="mark_seen" data-case-id="${escapeHtml(itemId)}"${wasSeen ? ' disabled' : ''}>${wasSeen ? 'Sedd' : 'Markera sedd'}</button>`,
+          `<button class="btn queue-action" data-action="send_to_doctor" data-case-id="${escapeHtml(itemId)}"${sentToDoctor ? ' disabled' : ''}>${sentToDoctor ? 'Skickad läkare' : 'Skicka till läkare'}</button>`,
+          firstMissingChecklist
+            ? `<button class="btn queue-action" data-action="complete_checklist" data-item-key="${escapeHtml(firstMissingChecklist[0])}" data-case-id="${escapeHtml(itemId)}">Checkpunkt klar</button>`
+            : '<button class="btn" disabled>Checklista klar</button>',
+        ].join('');
         return `<div class="item-card ${priority === 'urgent' ? 'urgent' : priority === 'today' ? 'pending' : priority === 'done' ? 'approved' : 'info-c'}">
           <div class="item-icon">${priority === 'urgent' ? '⚡' : priority === 'today' ? '📍' : priority === 'done' ? '✅' : '⏳'}</div>
           <div class="item-body">
@@ -2072,6 +2105,10 @@
               <span class="queue-priority ${escapeHtml(priority)}">${escapeHtml(priorityLabel(priority))}</span>
               ${actionHtml}
             </div>
+            <div class="queue-action-row">
+              ${queueActions}
+            </div>
+            <span class="queue-feedback" data-feedback-for="${escapeHtml(itemId)}">${wasSeen || sentToDoctor ? 'Senaste personalåtgärd är sparad i audit.' : 'Redo för personalåtgärd.'}</span>
           </div>
           <div class="item-actions">
             ${customerAction}
@@ -2177,6 +2214,39 @@
         } catch (err) {
           setFeedback(err.message || 'Kunde inte spara beslutet.', 'error');
         } finally {
+          button.disabled = false;
+        }
+      }
+
+      async function submitQueueAction(button) {
+        const caseId = button?.dataset?.caseId || '';
+        const action = button?.dataset?.action || '';
+        const itemKey = button?.dataset?.itemKey || '';
+        if (!caseId || !action) return;
+
+        const card = button.closest('.item-card');
+        const escapedId =
+          window.CSS && typeof CSS.escape === 'function'
+            ? CSS.escape(caseId)
+            : String(caseId).replace(/["\\]/g, '\\$&');
+        const feedback = card?.querySelector(`[data-feedback-for="${escapedId}"]`);
+        const setFeedback = (message, type) => {
+          if (!feedback) return;
+          feedback.textContent = message;
+          feedback.className = `queue-feedback ${type || ''}`.trim();
+        };
+
+        try {
+          button.disabled = true;
+          setFeedback('Sparar åtgärd och audit-loggar...', '');
+          await staffPost(`/api/v1/staff/daily-work-queue/${encodeURIComponent(caseId)}/action`, {
+            action,
+            itemKey,
+          });
+          setFeedback('Sparat och audit-loggat.', 'ok');
+          await Promise.all([loadDailyWorkQueue(), loadMyCustomers(), loadTasks(), loadAudit()]);
+        } catch (err) {
+          setFeedback(err.message || 'Kunde inte spara åtgärden.', 'error');
           button.disabled = false;
         }
       }
@@ -2510,6 +2580,11 @@
         if (button) {
           event.preventDefault();
           submitOrdinationDecision(button);
+        }
+        const queueButton = event.target.closest?.('.queue-action');
+        if (queueButton) {
+          event.preventDefault();
+          submitQueueAction(queueButton);
         }
       });
 

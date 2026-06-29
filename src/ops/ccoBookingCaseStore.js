@@ -102,6 +102,29 @@ function normalizeOrdinationReview(input = null) {
   };
 }
 
+function normalizeStaffActions(input = null) {
+  if (!input || typeof input !== 'object') {
+    return {
+      seenAt: null,
+      seenBy: null,
+      sentToDoctorAt: null,
+      sentToDoctorBy: null,
+      lastActionAt: null,
+      lastActionBy: null,
+      lastAction: null,
+    };
+  }
+  return {
+    seenAt: normalizeText(input.seenAt) || null,
+    seenBy: normalizeText(input.seenBy) || null,
+    sentToDoctorAt: normalizeText(input.sentToDoctorAt) || null,
+    sentToDoctorBy: normalizeText(input.sentToDoctorBy) || null,
+    lastActionAt: normalizeText(input.lastActionAt) || null,
+    lastActionBy: normalizeText(input.lastActionBy) || null,
+    lastAction: normalizeText(input.lastAction) || null,
+  };
+}
+
 function normalizeCaseRecord(input = {}) {
   const ts = normalizeText(input.createdAt) || nowIso();
   const state = VALID_STATES.includes(normalizeKey(input.state))
@@ -135,6 +158,7 @@ function normalizeCaseRecord(input = {}) {
         : {}),
     },
     ordinationReview: normalizeOrdinationReview(input.ordinationReview),
+    staffActions: normalizeStaffActions(input.staffActions),
     handoffCompletedAt: normalizeText(input.handoffCompletedAt) || null,
     history: Array.isArray(input.history) ? input.history : [],
     createdAt: ts,
@@ -391,6 +415,66 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     return { ...record };
   }
 
+  async function recordStaffAction(id, input = {}, actor = {}) {
+    const idx = findIndexById(id);
+    if (idx === -1) throw notFound('booking_case_not_found');
+    const action = normalizeKey(input.action);
+    const allowed = ['mark_seen', 'send_to_doctor', 'complete_checklist'];
+    if (!allowed.includes(action)) {
+      throw badRequest(`Ogiltig personalåtgärd. Tillåtna: ${allowed.join(', ')}.`);
+    }
+
+    const record = state.cases[idx];
+    const ts = nowIso();
+    const actorUserId = normalizeText(actor?.userId) || 'unknown';
+    const detail = {};
+    record.staffActions = normalizeStaffActions(record.staffActions);
+
+    if (action === 'mark_seen') {
+      record.staffActions.seenAt = ts;
+      record.staffActions.seenBy = actorUserId;
+    }
+
+    if (action === 'send_to_doctor') {
+      record.staffActions.sentToDoctorAt = ts;
+      record.staffActions.sentToDoctorBy = actorUserId;
+      if (!record.ordinationReview) {
+        record.ordinationReview = normalizeOrdinationReview({ status: 'pending' });
+      }
+    }
+
+    if (action === 'complete_checklist') {
+      const itemKey = normalizeText(input.itemKey);
+      const allowedKeys = Object.keys(emptyHandoffChecklist());
+      if (!allowedKeys.includes(itemKey)) {
+        throw badRequest(`Ogiltig checkpunkt. Tillåtna: ${allowedKeys.join(', ')}.`);
+      }
+      record.handoffChecklist = {
+        ...emptyHandoffChecklist(),
+        ...(record.handoffChecklist && typeof record.handoffChecklist === 'object'
+          ? record.handoffChecklist
+          : {}),
+        [itemKey]: true,
+      };
+      detail.itemKey = itemKey;
+    }
+
+    record.staffActions.lastActionAt = ts;
+    record.staffActions.lastActionBy = actorUserId;
+    record.staffActions.lastAction = action;
+    record.updatedAt = ts;
+    record.history.push({
+      at: ts,
+      action: `staff_${action}`,
+      role: normalizeText(actor?.role) || 'system',
+      userId: actorUserId,
+      ...(detail.itemKey ? { itemKey: detail.itemKey } : {}),
+    });
+    await save();
+    audit(`cco.booking_case.staff_${action}`, actor, record.id, detail);
+    return { ...record };
+  }
+
   async function attemptHandoffComplete(id, actor = {}) {
     const idx = findIndexById(id);
     if (idx === -1) throw notFound('booking_case_not_found');
@@ -427,6 +511,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     transitionState,
     updateHandoffChecklist,
     updateOrdinationReview,
+    recordStaffAction,
     attemptHandoffComplete,
   };
 }

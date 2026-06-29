@@ -165,3 +165,101 @@ test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende',
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder med audit', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-queue-action-'));
+  try {
+    const auditEntries = [];
+    const ccoAuditLog = {
+      append(entry) {
+        auditEntries.push(entry);
+      },
+      query() {
+        return auditEntries;
+      },
+    };
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+      auditLog: ccoAuditLog,
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-action-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-action',
+      customerName: 'Action Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-1',
+      handoffChecklist: {
+        journalReady: false,
+        consentSigned: false,
+        paymentSettled: true,
+        encounterLinked: false,
+      },
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        bookingCaseStore,
+        ccoAuditLog,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const markSeen = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/daily-work-queue/case-action-1/action`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'personal' },
+          body: JSON.stringify({ action: 'mark_seen' }),
+        }
+      );
+      assert.equal(markSeen.status, 200);
+
+      const sendDoctor = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/daily-work-queue/case-action-1/action`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'personal' },
+          body: JSON.stringify({ action: 'send_to_doctor' }),
+        }
+      );
+      assert.equal(sendDoctor.status, 200);
+
+      const completeChecklist = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/daily-work-queue/case-action-1/action`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'personal' },
+          body: JSON.stringify({ action: 'complete_checklist', itemKey: 'journalReady' }),
+        }
+      );
+      assert.equal(completeChecklist.status, 200);
+
+      const stored = await bookingCaseStore.getCase('case-action-1');
+      assert.equal(stored.staffActions.seenBy, 'staff-1');
+      assert.equal(stored.staffActions.sentToDoctorBy, 'staff-1');
+      assert.equal(stored.ordinationReview.status, 'pending');
+      assert.equal(stored.handoffChecklist.journalReady, true);
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_mark_seen'));
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_send_to_doctor'));
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_complete_checklist'));
+      assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.mark_seen'));
+      assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.send_to_doctor'));
+      assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.complete_checklist'));
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
