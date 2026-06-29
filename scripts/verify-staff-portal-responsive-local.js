@@ -29,9 +29,12 @@ function links(caseId = 'case-tp-001', patientId = 'patient-001') {
     workspace: `/major-arcana-preview/?view=customers&workspace=1&patientId=${patientId}`,
     threads: `/api/v1/staff/customer-threads/${patientId}`,
     photos: `/api/v1/staff/customer-photos/${patientId}`,
-    ordination: `/staff-portal#ordination-${caseId}`,
+    staffTask: '/staff-portal?role=nurse&panel=tasks',
+    doctorReview: `/staff-portal?role=doctor&panel=ordination#ordination-${caseId}`,
+    adminCase: '/staff-portal?role=admin&panel=all-cases',
+    ordination: `/staff-portal?role=doctor&panel=ordination#ordination-${caseId}`,
     audit: `/api/v1/staff/audit?action=staff_portal&caseId=${caseId}`,
-    qms: '/staff-portal#qms',
+    qms: '/staff-portal?panel=qms',
   };
 }
 
