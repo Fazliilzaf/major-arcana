@@ -1,1267 +1,1717 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CCO · Personalportal</title>
-<link rel="stylesheet" href="/cco-polish.css" />
-<style>
-/* ── Tokens (inline för fristående prototyp) ──────────────────── */
-:root {
-  --bg: #faf6f2;
-  --brand: #2b251f;
-  --accent: #bb4779;
-  --sage: #4a8268;
-  --amber: #c8821e;
-  --info: #4a7ba8;
-  --danger: #b94a4a;
-  --violet: #7c3aed;
-  --text2: rgba(70,60,50,.62);
-  --text3: #8a8174;
-  --border: rgba(43,37,31,.10);
-  --surface: rgba(255,255,255,.88);
-  --rose-top: rgba(252,233,240,.98);
-  --rose-bot: rgba(241,207,220,.95);
-  --card-bg: linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));
-  --shadow: 0 4px 16px rgba(43,37,31,.08);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body {
-  background:
-    radial-gradient(ellipse at 10% 0%, rgba(255,225,200,.38),transparent 35%),
-    radial-gradient(ellipse at 90% 3%, rgba(255,210,225,.28),transparent 38%),
-    var(--bg);
-  color: var(--brand);
-  font-family: Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
-  font-size: 13px;
-  line-height: 1.4;
-  min-height: 100vh;
-}
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CCO · Personalportal</title>
+    <link rel="stylesheet" href="/cco-polish.css" />
+    <style>
+      /* ── Tokens (inline för fristående prototyp) ──────────────────── */
+      :root {
+        --bg: #faf6f2;
+        --brand: #2b251f;
+        --accent: #bb4779;
+        --sage: #4a8268;
+        --amber: #c8821e;
+        --info: #4a7ba8;
+        --danger: #b94a4a;
+        --violet: #7c3aed;
+        --text2: rgba(70, 60, 50, 0.62);
+        --text3: #8a8174;
+        --border: rgba(43, 37, 31, 0.1);
+        --surface: rgba(255, 255, 255, 0.88);
+        --rose-top: rgba(252, 233, 240, 0.98);
+        --rose-bot: rgba(241, 207, 220, 0.95);
+        --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        --shadow: 0 4px 16px rgba(43, 37, 31, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 10% 0%, rgba(255, 225, 200, 0.38), transparent 35%),
+          radial-gradient(ellipse at 90% 3%, rgba(255, 210, 225, 0.28), transparent 38%), var(--bg);
+        color: var(--brand);
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+        min-height: 100vh;
+      }
 
-/* ── Layout shell ─────────────────────────────────────────────── */
-.shell { display:flex; min-height:100vh }
+      /* ── Layout shell ─────────────────────────────────────────────── */
+      .shell {
+        display: flex;
+        min-height: 100vh;
+      }
 
-/* ── Sidebar ──────────────────────────────────────────────────── */
-.sidebar {
-  width: 220px;
-  min-height: 100vh;
-  background: linear-gradient(180deg,rgba(255,255,255,.72),rgba(247,241,236,.62));
-  border-right: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  display: flex;
-  flex-direction: column;
-  padding: 0 0 24px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-.sidebar-brand {
-  padding: 18px 16px 14px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 8px;
-}
-.sidebar-brand .logo {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--text3);
-}
-.sidebar-brand .portal-name {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -.02em;
-  color: var(--brand);
-  margin-top: 2px;
-}
+      /* ── Sidebar ──────────────────────────────────────────────────── */
+      .sidebar {
+        width: 220px;
+        min-height: 100vh;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(247, 241, 236, 0.62));
+        border-right: 1px solid var(--border);
+        backdrop-filter: blur(12px);
+        display: flex;
+        flex-direction: column;
+        padding: 0 0 24px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+      }
+      .sidebar-brand {
+        padding: 18px 16px 14px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 8px;
+      }
+      .sidebar-brand .logo {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text3);
+      }
+      .sidebar-brand .portal-name {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--brand);
+        margin-top: 2px;
+      }
 
-.role-badge {
-  margin: 0 12px 12px;
-  padding: 7px 12px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.role-badge.nurse  { background: rgba(74,130,104,.12);  color: var(--sage) }
-.role-badge.doctor { background: rgba(74,123,168,.14);  color: var(--info) }
-.role-badge.admin  { background: rgba(187,71,121,.10);  color: var(--accent) }
-.role-badge .dot { width:7px;height:7px;border-radius:50%;background:currentColor }
+      .role-badge {
+        margin: 0 12px 12px;
+        padding: 7px 12px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .role-badge.nurse {
+        background: rgba(74, 130, 104, 0.12);
+        color: var(--sage);
+      }
+      .role-badge.doctor {
+        background: rgba(74, 123, 168, 0.14);
+        color: var(--info);
+      }
+      .role-badge.admin {
+        background: rgba(187, 71, 121, 0.1);
+        color: var(--accent);
+      }
+      .role-badge .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
 
-nav { flex:1 }
-.nav-section {
-  padding: 4px 10px 2px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-top: 10px;
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 14px;
-  margin: 1px 8px;
-  border-radius: 9px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--brand);
-  text-decoration: none;
-  transition: background .1s;
-  border: none;
-  background: none;
-  width: calc(100% - 16px);
-  text-align: left;
-}
-.nav-item:hover { background: rgba(43,37,31,.06) }
-.nav-item.active {
-  background: linear-gradient(180deg,var(--rose-top),var(--rose-bot));
-  color: var(--accent);
-  font-weight: 700;
-}
-.nav-item .icon { font-size: 15px; width: 18px; text-align: center }
-.nav-badge {
-  margin-left: auto;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 5px;
-}
+      nav {
+        flex: 1;
+      }
+      .nav-section {
+        padding: 4px 10px 2px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-top: 10px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 8px 14px;
+        margin: 1px 8px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--brand);
+        text-decoration: none;
+        transition: background 0.1s;
+        border: none;
+        background: none;
+        width: calc(100% - 16px);
+        text-align: left;
+      }
+      .nav-item:hover {
+        background: rgba(43, 37, 31, 0.06);
+      }
+      .nav-item.active {
+        background: linear-gradient(180deg, var(--rose-top), var(--rose-bot));
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .nav-item .icon {
+        font-size: 15px;
+        width: 18px;
+        text-align: center;
+      }
+      .nav-badge {
+        margin-left: auto;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+      }
 
-.sidebar-footer {
-  padding: 12px 14px 0;
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
-}
-.user-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.avatar {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg,#bb4779,#4a8268);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.user-name { font-size: 12px; font-weight: 700 }
-.user-role { font-size: 10px; color: var(--text3) }
+      .sidebar-footer {
+        padding: 12px 14px 0;
+        border-top: 1px solid var(--border);
+        margin-top: 8px;
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #bb4779, #4a8268);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .user-name {
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .user-role {
+        font-size: 10px;
+        color: var(--text3);
+      }
 
-/* ── Main content ─────────────────────────────────────────────── */
-.main { flex:1; padding: 24px 28px 48px; overflow-y: auto }
+      /* ── Main content ─────────────────────────────────────────────── */
+      .main {
+        flex: 1;
+        padding: 24px 28px 48px;
+        overflow-y: auto;
+      }
 
-.page-header {
-  margin-bottom: 22px;
-}
-.page-header .kicker {
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-bottom: 4px;
-}
-.page-header h1 {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -.03em;
-}
-.page-header .lead {
-  font-size: 13px;
-  color: var(--text2);
-  margin-top: 4px;
-}
+      .page-header {
+        margin-bottom: 22px;
+      }
+      .page-header .kicker {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-bottom: 4px;
+      }
+      .page-header h1 {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .page-header .lead {
+        font-size: 13px;
+        color: var(--text2);
+        margin-top: 4px;
+      }
 
-/* Role switcher (demo only) */
-.demo-bar {
-  background: rgba(124,58,237,.08);
-  border: 1px solid rgba(124,58,237,.2);
-  border-radius: 12px;
-  padding: 10px 16px;
-  margin-bottom: 22px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.demo-bar .label {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--violet);
-}
-.role-btn {
-  padding: 5px 13px;
-  border-radius: 999px;
-  border: 1px solid rgba(124,58,237,.25);
-  background: none;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--violet);
-  transition: background .1s, color .1s;
-}
-.role-btn:hover { background: rgba(124,58,237,.1) }
-.role-btn.active { background: var(--violet); color: #fff; border-color: var(--violet) }
+      /* Role switcher (demo only) */
+      .demo-bar {
+        background: rgba(124, 58, 237, 0.08);
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        border-radius: 12px;
+        padding: 10px 16px;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .demo-bar .label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--violet);
+      }
+      .role-btn {
+        padding: 5px 13px;
+        border-radius: 999px;
+        border: 1px solid rgba(124, 58, 237, 0.25);
+        background: none;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--violet);
+        transition:
+          background 0.1s,
+          color 0.1s;
+      }
+      .role-btn:hover {
+        background: rgba(124, 58, 237, 0.1);
+      }
+      .role-btn.active {
+        background: var(--violet);
+        color: #fff;
+        border-color: var(--violet);
+      }
 
-/* ── Stat row ─────────────────────────────────────────────────── */
-.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 22px }
-.stat {
-  background: var(--card-bg);
-  border: 1px solid rgba(255,255,255,.6);
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: var(--shadow);
-}
-.stat-num {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -.02em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-.stat-num.sage   { color: var(--sage) }
-.stat-num.amber  { color: var(--amber) }
-.stat-num.danger { color: var(--danger) }
-.stat-num.info   { color: var(--info) }
-.stat-lbl {
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-top: 4px;
-}
+      /* ── Stat row ─────────────────────────────────────────────────── */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+      .stat {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: var(--shadow);
+      }
+      .stat-num {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+      }
+      .stat-num.sage {
+        color: var(--sage);
+      }
+      .stat-num.amber {
+        color: var(--amber);
+      }
+      .stat-num.danger {
+        color: var(--danger);
+      }
+      .stat-num.info {
+        color: var(--info);
+      }
+      .stat-lbl {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-top: 4px;
+      }
 
-/* ── Section title ────────────────────────────────────────────── */
-.section-title {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin: 24px 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.section-title::after {
-  content:"";
-  flex:1;
-  height:1px;
-  background: var(--border);
-}
+      /* ── Section title ────────────────────────────────────────────── */
+      .section-title {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin: 24px 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
 
-/* ── Cards / list items ───────────────────────────────────────── */
-.card-list { display: flex; flex-direction: column; gap: 8px }
+      /* ── Cards / list items ───────────────────────────────────────── */
+      .card-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
-.item-card {
-  background: var(--card-bg);
-  border: 1px solid rgba(255,255,255,.6);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 14px 16px;
-  position: relative;
-  overflow: hidden;
-}
-.item-card::before {
-  content:"";
-  position:absolute;
-  top:0;left:0;bottom:0;
-  width: 3px;
-  background: var(--cc, var(--amber));
-}
-.item-card.urgent   { --cc: var(--danger) }
-.item-card.pending  { --cc: var(--amber) }
-.item-card.approved { --cc: var(--sage) }
-.item-card.info-c   { --cc: var(--info) }
-.item-card.violet   { --cc: var(--violet) }
+      .item-card {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 14px 16px;
+        position: relative;
+        overflow: hidden;
+      }
+      .item-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--cc, var(--amber));
+      }
+      .item-card.urgent {
+        --cc: var(--danger);
+      }
+      .item-card.pending {
+        --cc: var(--amber);
+      }
+      .item-card.approved {
+        --cc: var(--sage);
+      }
+      .item-card.info-c {
+        --cc: var(--info);
+      }
+      .item-card.violet {
+        --cc: var(--violet);
+      }
 
-.item-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  flex-shrink: 0;
-  background: rgba(var(--cc-rgb,200,130,30),.1);
-}
-.item-body { flex:1; min-width:0 }
-.item-title { font-size: 13px; font-weight: 700; margin-bottom: 2px }
-.item-meta  { font-size: 11px; color: var(--text2); line-height: 1.4 }
-.item-time  { font-size: 10.5px; color: var(--text3); white-space: nowrap; margin-top: 2px }
+      .item-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        flex-shrink: 0;
+        background: rgba(var(--cc-rgb, 200, 130, 30), 0.1);
+      }
+      .item-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .item-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+      .item-meta {
+        font-size: 11px;
+        color: var(--text2);
+        line-height: 1.4;
+      }
+      .item-time {
+        font-size: 10.5px;
+        color: var(--text3);
+        white-space: nowrap;
+        margin-top: 2px;
+      }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.pill.sage    { background: rgba(74,130,104,.12); color: var(--sage) }
-.pill.amber   { background: rgba(200,130,30,.12);  color: var(--amber) }
-.pill.danger  { background: rgba(185,74,74,.12);   color: var(--danger) }
-.pill.info    { background: rgba(74,123,168,.12);  color: var(--info) }
-.pill.violet  { background: rgba(124,58,237,.12);  color: var(--violet) }
-.pill.neutral { background: rgba(43,37,31,.07);    color: var(--text2) }
-.pill::before { content:""; width:5px;height:5px;border-radius:50%;background:currentColor }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .pill.sage {
+        background: rgba(74, 130, 104, 0.12);
+        color: var(--sage);
+      }
+      .pill.amber {
+        background: rgba(200, 130, 30, 0.12);
+        color: var(--amber);
+      }
+      .pill.danger {
+        background: rgba(185, 74, 74, 0.12);
+        color: var(--danger);
+      }
+      .pill.info {
+        background: rgba(74, 123, 168, 0.12);
+        color: var(--info);
+      }
+      .pill.violet {
+        background: rgba(124, 58, 237, 0.12);
+        color: var(--violet);
+      }
+      .pill.neutral {
+        background: rgba(43, 37, 31, 0.07);
+        color: var(--text2);
+      }
+      .pill::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+      }
 
-.item-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  align-items: center;
-}
-.btn {
-  padding: 6px 13px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: none;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--brand);
-  transition: background .1s;
-}
-.btn:hover { background: rgba(43,37,31,.06) }
-.btn.primary {
-  background: linear-gradient(135deg,var(--sage),#2e5a47);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 2px 8px rgba(74,130,104,.3);
-}
-.btn.primary:hover { filter: brightness(1.08) }
-.btn.danger-btn {
-  color: var(--danger);
-  border-color: rgba(185,74,74,.3);
-}
-.btn[disabled] {
-  opacity: .45;
-  cursor: not-allowed;
-}
+      .item-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+        align-items: center;
+      }
+      .btn {
+        padding: 6px 13px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: none;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--brand);
+        transition: background 0.1s;
+      }
+      .btn:hover {
+        background: rgba(43, 37, 31, 0.06);
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, var(--sage), #2e5a47);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 2px 8px rgba(74, 130, 104, 0.3);
+      }
+      .btn.primary:hover {
+        filter: brightness(1.08);
+      }
+      .btn.danger-btn {
+        color: var(--danger);
+        border-color: rgba(185, 74, 74, 0.3);
+      }
+      .btn[disabled] {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
 
-/* ── Two-col grid ─────────────────────────────────────────────── */
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
-.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px }
+      /* ── Two-col grid ─────────────────────────────────────────────── */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .three-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
 
-/* ── Kundkort mini ────────────────────────────────────────────── */
-.kundkort {
-  background: var(--card-bg);
-  border: 1px solid rgba(255,255,255,.6);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.kundkort-header {
-  padding: 16px 18px 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid var(--border);
-}
-.kundkort-avatar {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg,#4a8268,#2e5a47);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.kundkort-name { font-size: 15px; font-weight: 800; letter-spacing: -.01em }
-.kundkort-sub  { font-size: 11px; color: var(--text2); margin-top: 2px }
-.kundkort-body { padding: 14px 18px }
-.kk-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-}
-.kk-row:last-child { border-bottom: none }
-.kk-label { color: var(--text3); font-size: 11px }
+      /* ── Kundkort mini ────────────────────────────────────────────── */
+      .kundkort {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .kundkort-header {
+        padding: 16px 18px 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .kundkort-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4a8268, #2e5a47);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .kundkort-name {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .kundkort-sub {
+        font-size: 11px;
+        color: var(--text2);
+        margin-top: 2px;
+      }
+      .kundkort-body {
+        padding: 14px 18px;
+      }
+      .kk-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .kk-row:last-child {
+        border-bottom: none;
+      }
+      .kk-label {
+        color: var(--text3);
+        font-size: 11px;
+      }
 
-/* ── Ordination review card ───────────────────────────────────── */
-.ord-card {
-  background: var(--card-bg);
-  border: 1px solid rgba(255,255,255,.6);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.ord-header {
-  padding: 16px 18px;
-  background: rgba(200,130,30,.06);
-  border-bottom: 1px solid rgba(200,130,30,.15);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.ord-title { font-size: 14px; font-weight: 800 }
-.ord-meta  { font-size: 11px; color: var(--text2); margin-top: 2px }
-.ord-body  { padding: 14px 18px }
-.ord-field { margin-bottom: 10px }
-.ord-field-label {
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-bottom: 3px;
-}
-.ord-field-val { font-size: 12px; color: var(--brand) }
-.ord-actions {
-  padding: 12px 18px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.safety-notice {
-  background: rgba(185,74,74,.07);
-  border: 1px solid rgba(185,74,74,.2);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 11.5px;
-  color: var(--danger);
-  line-height: 1.5;
-  margin-bottom: 14px;
-  display: flex;
-  gap: 8px;
-}
+      /* ── Ordination review card ───────────────────────────────────── */
+      .ord-card {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .ord-header {
+        padding: 16px 18px;
+        background: rgba(200, 130, 30, 0.06);
+        border-bottom: 1px solid rgba(200, 130, 30, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .ord-title {
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .ord-meta {
+        font-size: 11px;
+        color: var(--text2);
+        margin-top: 2px;
+      }
+      .ord-body {
+        padding: 14px 18px;
+      }
+      .ord-field {
+        margin-bottom: 10px;
+      }
+      .ord-field-label {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-bottom: 3px;
+      }
+      .ord-field-val {
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .ord-actions {
+        padding: 12px 18px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .safety-notice {
+        background: rgba(185, 74, 74, 0.07);
+        border: 1px solid rgba(185, 74, 74, 0.2);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 11.5px;
+        color: var(--danger);
+        line-height: 1.5;
+        margin-bottom: 14px;
+        display: flex;
+        gap: 8px;
+      }
 
-/* ── Checklist ────────────────────────────────────────────────── */
-.checklist { display: flex; flex-direction: column; gap: 6px }
-.check-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
-  background: rgba(255,255,255,.6);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 12px;
-}
-.check-item.done { opacity: .6 }
-.check-box {
-  width: 18px; height: 18px;
-  border: 2px solid var(--border);
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 11px;
-}
-.check-item.done .check-box {
-  background: var(--sage);
-  border-color: var(--sage);
-  color: #fff;
-}
-.check-label { flex:1 }
-.check-by { font-size: 10px; color: var(--text3); text-align: right }
+      /* ── Checklist ────────────────────────────────────────────────── */
+      .checklist {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .check-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 12px;
+      }
+      .check-item.done {
+        opacity: 0.6;
+      }
+      .check-box {
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--border);
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 11px;
+      }
+      .check-item.done .check-box {
+        background: var(--sage);
+        border-color: var(--sage);
+        color: #fff;
+      }
+      .check-label {
+        flex: 1;
+      }
+      .check-by {
+        font-size: 10px;
+        color: var(--text3);
+        text-align: right;
+      }
 
-/* ── Audit trail ──────────────────────────────────────────────── */
-.audit-row {
-  display: flex;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 11.5px;
-}
-.audit-row:last-child { border-bottom: none }
-.audit-time { color: var(--text3); white-space: nowrap; min-width: 120px }
-.audit-action { font-weight: 700 }
-.audit-actor  { color: var(--text2) }
+      /* ── Audit trail ──────────────────────────────────────────────── */
+      .audit-row {
+        display: flex;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 11.5px;
+      }
+      .audit-row:last-child {
+        border-bottom: none;
+      }
+      .audit-time {
+        color: var(--text3);
+        white-space: nowrap;
+        min-width: 120px;
+      }
+      .audit-action {
+        font-weight: 700;
+      }
+      .audit-actor {
+        color: var(--text2);
+      }
 
-/* ── Image thumbnails ─────────────────────────────────────────── */
-.img-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px }
-.img-thumb {
-  aspect-ratio: 1;
-  background: var(--border);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  color: var(--text3);
-  border: 1px solid rgba(255,255,255,.5);
-}
+      /* ── Image thumbnails ─────────────────────────────────────────── */
+      .img-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .img-thumb {
+        aspect-ratio: 1;
+        background: var(--border);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: var(--text3);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
 
-/* ── Delegation doc list ──────────────────────────────────────── */
-.doc-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: rgba(255,255,255,.6);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 6px;
-}
-.doc-icon {
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  background: rgba(74,123,168,.12);
-  color: var(--info);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-.doc-name  { font-size: 12px; font-weight: 700; flex:1 }
-.doc-valid { font-size: 10px; color: var(--text3) }
+      /* ── Delegation doc list ──────────────────────────────────────── */
+      .doc-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        margin-bottom: 6px;
+      }
+      .doc-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(74, 123, 168, 0.12);
+        color: var(--info);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+      }
+      .doc-name {
+        font-size: 12px;
+        font-weight: 700;
+        flex: 1;
+      }
+      .doc-valid {
+        font-size: 10px;
+        color: var(--text3);
+      }
 
-/* ── Tab views hidden by default ──────────────────────────────── */
-.view { display: none }
-.view.active { display: block }
+      /* ── Tab views hidden by default ──────────────────────────────── */
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+      }
 
-/* ── Responsive ───────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .stats { grid-template-columns: 1fr 1fr }
-  .two-col, .three-col { grid-template-columns: 1fr }
-  .sidebar { width: 190px }
-  .img-grid { grid-template-columns: repeat(3,1fr) }
-}
-@media (max-width: 640px) {
-  .shell { flex-direction: column }
-  .sidebar { width: 100%; min-height: auto; height: auto; position: static }
-  .stats { grid-template-columns: 1fr 1fr }
-  .main { padding: 16px }
-}
-</style>
-</head>
-<body>
-<div class="shell">
-
-  <!-- ── Sidebar ──────────────────────────────────────── -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="logo">Hair TP Clinic</div>
-      <div class="portal-name">Personalportal</div>
-    </div>
-
-    <div class="role-badge nurse" id="roleBadge">
-      <span class="dot"></span>
-      <span id="roleLabel">Sjuksköterska</span>
-    </div>
-
-    <nav id="navMenu">
-      <!-- Rendered by JS per role -->
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="user-row">
-        <div class="avatar" id="avatarEl">AL</div>
-        <div>
-          <div class="user-name" id="userNameEl">Anna Lindström</div>
-          <div class="user-role" id="userRoleEl">Sjuksköterska</div>
+      /* ── Responsive ───────────────────────────────────────────────── */
+      @media (max-width: 900px) {
+        .stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        .two-col,
+        .three-col {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          width: 190px;
+        }
+        .img-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      @media (max-width: 640px) {
+        .shell {
+          flex-direction: column;
+        }
+        .sidebar {
+          width: 100%;
+          min-height: auto;
+          height: auto;
+          position: static;
+        }
+        .stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        .main {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <!-- ── Sidebar ──────────────────────────────────────── -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+          <div class="logo">Hair TP Clinic</div>
+          <div class="portal-name">Personalportal</div>
         </div>
-      </div>
-    </div>
-  </aside>
 
-  <!-- ── Main ─────────────────────────────────────────── -->
-  <main class="main" id="mainContent">
+        <div class="role-badge nurse" id="roleBadge">
+          <span class="dot"></span>
+          <span id="roleLabel">Sjuksköterska</span>
+        </div>
 
-    <!-- Demo role switcher -->
-    <div class="demo-bar">
-      <span class="label">Prototypvy · Byt roll</span>
-      <button class="role-btn active" onclick="setRole('nurse')">Sjuksköterska</button>
-      <button class="role-btn"        onclick="setRole('doctor')">Läkare</button>
-      <button class="role-btn"        onclick="setRole('admin')">Admin / Ägare</button>
-      <span style="margin-left:auto;font-size:10px;color:var(--text3)">Read-only · ingen riktig data</span>
-    </div>
+        <nav id="navMenu">
+          <!-- Rendered by JS per role -->
+        </nav>
 
-    <!-- ──────────────────────────────────────────────────
+        <div class="sidebar-footer">
+          <div class="user-row">
+            <div class="avatar" id="avatarEl">AL</div>
+            <div>
+              <div class="user-name" id="userNameEl">Anna Lindström</div>
+              <div class="user-role" id="userRoleEl">Sjuksköterska</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ── Main ─────────────────────────────────────────── -->
+      <main class="main" id="mainContent">
+        <!-- Demo role switcher -->
+        <div class="demo-bar">
+          <span class="label">Prototypvy · Byt roll</span>
+          <button class="role-btn active" onclick="setRole('nurse')">Sjuksköterska</button>
+          <button class="role-btn" onclick="setRole('doctor')">Läkare</button>
+          <button class="role-btn" onclick="setRole('admin')">Admin / Ägare</button>
+          <span id="dataStatusLabel" style="margin-left: auto; font-size: 10px; color: var(--text3)"
+            >Laddar data…</span
+          >
+        </div>
+
+        <!-- ──────────────────────────────────────────────────
          SJUKSKÖTERSKA
     ─────────────────────────────────────────────────── -->
-    <div id="view-nurse" class="view active">
+        <div id="view-nurse" class="view active">
+          <div class="page-header">
+            <div class="kicker">Sjuksköterska · Idag</div>
+            <h1>Mina uppgifter</h1>
+            <p class="lead">Inkomna ärenden, tilldelade kunder och delegationsdokument.</p>
+          </div>
 
-      <div class="page-header">
-        <div class="kicker">Sjuksköterska · Idag</div>
-        <h1>Mina uppgifter</h1>
-        <p class="lead">Inkomna ärenden, tilldelade kunder och delegationsdokument.</p>
-      </div>
+          <div class="stats">
+            <div class="stat">
+              <div class="stat-num amber">3</div>
+              <div class="stat-lbl">Inkomna frågor</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num sage">2</div>
+              <div class="stat-lbl">Bokningar idag</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num info" id="liveTaskCount">5</div>
+              <div class="stat-lbl">Aktiva ärenden</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num danger">1</div>
+              <div class="stat-lbl">Checklista kvar</div>
+            </div>
+          </div>
 
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-num amber">3</div>
-          <div class="stat-lbl">Inkomna frågor</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num sage">2</div>
-          <div class="stat-lbl">Bokningar idag</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num info">5</div>
-          <div class="stat-lbl">Aktiva ärenden</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num danger">1</div>
-          <div class="stat-lbl">Checklista kvar</div>
-        </div>
-      </div>
+          <!-- Inkomna kundfrågor & bilder -->
+          <div class="section-title">Inkomna frågor & bilder (tilldelade mig)</div>
+          <div class="safety-notice">
+            🔒 Kunden ser inte vem som hanterar ärendet. Svar skickas från klinikens gemensamma
+            kanal.
+          </div>
+          <div class="card-list">
+            <div class="item-card urgent">
+              <div class="item-icon">💬</div>
+              <div class="item-body">
+                <div class="item-title">Magnus E. — Fråga om läkning dag 5</div>
+                <div class="item-meta">
+                  «Håret runt transplantat ser lite rött ut, är det normalt?» · Bild bifogad
+                </div>
+                <div style="margin-top: 8px">
+                  <div class="img-grid" style="grid-template-columns: repeat(3, 52px); gap: 6px">
+                    <div class="img-thumb">🖼</div>
+                    <div class="img-thumb">🖼</div>
+                  </div>
+                </div>
+              </div>
+              <div class="item-actions">
+                <span class="pill amber">Obesvarad</span>
+              </div>
+            </div>
 
-      <!-- Inkomna kundfrågor & bilder -->
-      <div class="section-title">Inkomna frågor & bilder (tilldelade mig)</div>
-      <div class="safety-notice">
-        🔒 Kunden ser inte vem som hanterar ärendet. Svar skickas från klinikens gemensamma kanal.
-      </div>
-      <div class="card-list">
+            <div class="item-card pending">
+              <div class="item-icon">📷</div>
+              <div class="item-body">
+                <div class="item-title">Leila K. — Uppföljningsbilder dag 30</div>
+                <div class="item-meta">Skickade 4 bilder. Väntar på feedback.</div>
+                <div style="margin-top: 8px">
+                  <div class="img-grid" style="grid-template-columns: repeat(4, 52px); gap: 6px">
+                    <div class="img-thumb">🖼</div>
+                    <div class="img-thumb">🖼</div>
+                    <div class="img-thumb">🖼</div>
+                    <div class="img-thumb">🖼</div>
+                  </div>
+                </div>
+              </div>
+              <div class="item-actions">
+                <span class="pill amber">Granskas</span>
+              </div>
+            </div>
 
-        <div class="item-card urgent">
-          <div class="item-icon">💬</div>
-          <div class="item-body">
-            <div class="item-title">Magnus E. — Fråga om läkning dag 5</div>
-            <div class="item-meta">«Håret runt transplantat ser lite rött ut, är det normalt?» · Bild bifogad</div>
-            <div style="margin-top:8px">
-              <div class="img-grid" style="grid-template-columns:repeat(3,52px);gap:6px">
-                <div class="img-thumb">🖼</div>
-                <div class="img-thumb">🖼</div>
+            <div class="item-card approved">
+              <div class="item-icon">✅</div>
+              <div class="item-body">
+                <div class="item-title">Jonas B. — Fråga om shampoo-rutin</div>
+                <div class="item-meta">Besvarat av Anna L. · 28 jun 09:14</div>
+              </div>
+              <div class="item-actions">
+                <span class="pill sage">Hanterat</span>
               </div>
             </div>
           </div>
-          <div class="item-actions">
-            <span class="pill amber">Obesvarad</span>
-          </div>
-        </div>
 
-        <div class="item-card pending">
-          <div class="item-icon">📷</div>
-          <div class="item-body">
-            <div class="item-title">Leila K. — Uppföljningsbilder dag 30</div>
-            <div class="item-meta">Skickade 4 bilder. Väntar på feedback.</div>
-            <div style="margin-top:8px">
-              <div class="img-grid" style="grid-template-columns:repeat(4,52px);gap:6px">
-                <div class="img-thumb">🖼</div>
-                <div class="img-thumb">🖼</div>
-                <div class="img-thumb">🖼</div>
-                <div class="img-thumb">🖼</div>
+          <!-- Kundkort + tilldelning -->
+          <div class="section-title">Mina kunder idag</div>
+          <div class="two-col">
+            <div class="kundkort">
+              <div class="kundkort-header">
+                <div class="kundkort-avatar">ME</div>
+                <div>
+                  <div class="kundkort-name">Magnus Eriksson</div>
+                  <div class="kundkort-sub">TP · DHI · 2026-06-23 · Ansvarig: Anna L.</div>
+                </div>
+              </div>
+              <div class="kundkort-body">
+                <div class="kk-row">
+                  <span class="kk-label">Ingrepp</span>
+                  <span>DHI 2 800 transplantat</span>
+                </div>
+                <div class="kk-row">
+                  <span class="kk-label">Ordinationsstatus</span>
+                  <span class="pill sage">Godkänd av Dr. Öberg</span>
+                </div>
+                <div class="kk-row">
+                  <span class="kk-label">Hälsodeklaration</span>
+                  <span class="pill sage">Signerad</span>
+                </div>
+                <div class="kk-row">
+                  <span class="kk-label">Friskförsäkran</span>
+                  <span class="pill sage">Signerad</span>
+                </div>
+                <div class="kk-row">
+                  <span class="kk-label">Nästa kontakt</span>
+                  <span>Dag 7-kontroll · 30 jun</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="kundkort">
+              <div class="kundkort-header">
+                <div
+                  class="kundkort-avatar"
+                  style="background: linear-gradient(135deg, #bb4779, #7c3aed)"
+                >
+                  LK
+                </div>
+                <div>
+                  <div class="kundkort-name">Leila Khalil</div>
+                  <div class="kundkort-sub">TP · FUE · 2026-05-29 · Ansvarig: Anna L.</div>
+                </div>
+              </div>
+              <div class="kundkort-body">
+                <div class="kk-row">
+                  <span class="kk-label">Ingrepp</span>
+                  <span>FUE 1 600 transplantat</span>
+                </div>
+                <div class="kk-row">
+                  <span class="kk-label">Ordinationsstatus</span>
+                  <span class="pill sage">Godkänd av Dr. Öberg</span>
+                </div>
+                <div class="kk-row">
+                  <span class="kk-label">Hälsodeklaration</span>
+                  <span class="pill sage">Signerad</span>
+                </div>
+                <div class="kk-row">
+                  <span class="kk-label">Friskförsäkran</span>
+                  <span class="pill sage">Signerad</span>
+                </div>
+                <div class="kk-row">
+                  <span class="kk-label">Nästa kontakt</span>
+                  <span>Dag 30-uppföljning · idag</span>
+                </div>
               </div>
             </div>
           </div>
-          <div class="item-actions">
-            <span class="pill amber">Granskas</span>
-          </div>
-        </div>
 
-        <div class="item-card approved">
-          <div class="item-icon">✅</div>
-          <div class="item-body">
-            <div class="item-title">Jonas B. — Fråga om shampoo-rutin</div>
-            <div class="item-meta">Besvarat av Anna L. · 28 jun 09:14</div>
+          <!-- Delegationsdokument -->
+          <div class="section-title">Mina delegeringsdokument</div>
+          <div id="liveDelegationList"></div>
+          <div class="doc-row">
+            <div class="doc-icon">📄</div>
+            <div class="doc-name">Delegering — lokal infiltrationsanestesi (lidokain)</div>
+            <div class="doc-valid">Giltig t.o.m. 2026-12-31</div>
+            <span class="pill sage" style="margin-left: 8px">Aktiv</span>
+            <button class="btn" style="margin-left: 8px">Visa</button>
           </div>
-          <div class="item-actions">
-            <span class="pill sage">Hanterat</span>
+          <div class="doc-row">
+            <div class="doc-icon">📄</div>
+            <div class="doc-name">Delegering — PRP-förberedelse och injektion</div>
+            <div class="doc-valid">Giltig t.o.m. 2026-09-30</div>
+            <span class="pill sage" style="margin-left: 8px">Aktiv</span>
+            <button class="btn" style="margin-left: 8px">Visa</button>
           </div>
-        </div>
-
-      </div>
-
-      <!-- Kundkort + tilldelning -->
-      <div class="section-title">Mina kunder idag</div>
-      <div class="two-col">
-
-        <div class="kundkort">
-          <div class="kundkort-header">
-            <div class="kundkort-avatar">ME</div>
-            <div>
-              <div class="kundkort-name">Magnus Eriksson</div>
-              <div class="kundkort-sub">TP · DHI · 2026-06-23 · Ansvarig: Anna L.</div>
-            </div>
+          <div class="doc-row">
+            <div class="doc-icon">📄</div>
+            <div class="doc-name">Delegering — postoperativ omvårdnad TP</div>
+            <div class="doc-valid">Utgick 2026-05-01</div>
+            <span class="pill danger" style="margin-left: 8px">Utgången</span>
+            <button class="btn" style="margin-left: 8px">Visa</button>
           </div>
-          <div class="kundkort-body">
-            <div class="kk-row">
-              <span class="kk-label">Ingrepp</span>
-              <span>DHI 2 800 transplantat</span>
-            </div>
-            <div class="kk-row">
-              <span class="kk-label">Ordinationsstatus</span>
-              <span class="pill sage">Godkänd av Dr. Öberg</span>
-            </div>
-            <div class="kk-row">
-              <span class="kk-label">Hälsodeklaration</span>
-              <span class="pill sage">Signerad</span>
-            </div>
-            <div class="kk-row">
-              <span class="kk-label">Friskförsäkran</span>
-              <span class="pill sage">Signerad</span>
-            </div>
-            <div class="kk-row">
-              <span class="kk-label">Nästa kontakt</span>
-              <span>Dag 7-kontroll · 30 jun</span>
-            </div>
-          </div>
-        </div>
 
-        <div class="kundkort">
-          <div class="kundkort-header">
-            <div class="kundkort-avatar" style="background:linear-gradient(135deg,#bb4779,#7c3aed)">LK</div>
-            <div>
-              <div class="kundkort-name">Leila Khalil</div>
-              <div class="kundkort-sub">TP · FUE · 2026-05-29 · Ansvarig: Anna L.</div>
+          <!-- QMS Checklista -->
+          <div class="section-title">Preoperativ checklista · Magnus E. · Idag</div>
+          <div class="checklist">
+            <div class="check-item done">
+              <div class="check-box">✓</div>
+              <div class="check-label">Hälsodeklaration kontrollerad och signerad</div>
+              <div class="check-by">Anna L. · 08:22</div>
+            </div>
+            <div class="check-item done">
+              <div class="check-box">✓</div>
+              <div class="check-label">Friskförsäkran kontrollerad och signerad</div>
+              <div class="check-by">Anna L. · 08:23</div>
+            </div>
+            <div class="check-item done">
+              <div class="check-box">✓</div>
+              <div class="check-label">Ordination godkänd av legitimerad läkare (Dr. Öberg)</div>
+              <div class="check-by">Dr. Öberg · 07:55</div>
+            </div>
+            <div class="check-item">
+              <div class="check-box"></div>
+              <div class="check-label">Informerat samtycke för foton bekräftat</div>
+              <div class="check-by">— ej klar</div>
+            </div>
+            <div class="check-item">
+              <div class="check-box"></div>
+              <div class="check-label">Instrument och sterila fält kontrollerade</div>
+              <div class="check-by">— ej klar</div>
             </div>
           </div>
-          <div class="kundkort-body">
-            <div class="kk-row">
-              <span class="kk-label">Ingrepp</span>
-              <span>FUE 1 600 transplantat</span>
-            </div>
-            <div class="kk-row">
-              <span class="kk-label">Ordinationsstatus</span>
-              <span class="pill sage">Godkänd av Dr. Öberg</span>
-            </div>
-            <div class="kk-row">
-              <span class="kk-label">Hälsodeklaration</span>
-              <span class="pill sage">Signerad</span>
-            </div>
-            <div class="kk-row">
-              <span class="kk-label">Friskförsäkran</span>
-              <span class="pill sage">Signerad</span>
-            </div>
-            <div class="kk-row">
-              <span class="kk-label">Nästa kontakt</span>
-              <span>Dag 30-uppföljning · idag</span>
-            </div>
-          </div>
+          <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+            ⚠ Checklistan sparas med tidsstämpel och kan ej raderas — audit trail. Godkännande av
+            ordination sker alltid av legitimerad läkare i systemet.
+          </p>
         </div>
+        <!-- /nurse -->
 
-      </div>
-
-      <!-- Delegationsdokument -->
-      <div class="section-title">Mina delegeringsdokument</div>
-      <div class="doc-row">
-        <div class="doc-icon">📄</div>
-        <div class="doc-name">Delegering — lokal infiltrationsanestesi (lidokain)</div>
-        <div class="doc-valid">Giltig t.o.m. 2026-12-31</div>
-        <span class="pill sage" style="margin-left:8px">Aktiv</span>
-        <button class="btn" style="margin-left:8px">Visa</button>
-      </div>
-      <div class="doc-row">
-        <div class="doc-icon">📄</div>
-        <div class="doc-name">Delegering — PRP-förberedelse och injektion</div>
-        <div class="doc-valid">Giltig t.o.m. 2026-09-30</div>
-        <span class="pill sage" style="margin-left:8px">Aktiv</span>
-        <button class="btn" style="margin-left:8px">Visa</button>
-      </div>
-      <div class="doc-row">
-        <div class="doc-icon">📄</div>
-        <div class="doc-name">Delegering — postoperativ omvårdnad TP</div>
-        <div class="doc-valid">Utgick 2026-05-01</div>
-        <span class="pill danger" style="margin-left:8px">Utgången</span>
-        <button class="btn" style="margin-left:8px">Visa</button>
-      </div>
-
-      <!-- QMS Checklista -->
-      <div class="section-title">Preoperativ checklista · Magnus E. · Idag</div>
-      <div class="checklist">
-        <div class="check-item done">
-          <div class="check-box">✓</div>
-          <div class="check-label">Hälsodeklaration kontrollerad och signerad</div>
-          <div class="check-by">Anna L. · 08:22</div>
-        </div>
-        <div class="check-item done">
-          <div class="check-box">✓</div>
-          <div class="check-label">Friskförsäkran kontrollerad och signerad</div>
-          <div class="check-by">Anna L. · 08:23</div>
-        </div>
-        <div class="check-item done">
-          <div class="check-box">✓</div>
-          <div class="check-label">Ordination godkänd av legitimerad läkare (Dr. Öberg)</div>
-          <div class="check-by">Dr. Öberg · 07:55</div>
-        </div>
-        <div class="check-item">
-          <div class="check-box"></div>
-          <div class="check-label">Informerat samtycke för foton bekräftat</div>
-          <div class="check-by">— ej klar</div>
-        </div>
-        <div class="check-item">
-          <div class="check-box"></div>
-          <div class="check-label">Instrument och sterila fält kontrollerade</div>
-          <div class="check-by">— ej klar</div>
-        </div>
-      </div>
-      <p style="font-size:11px;color:var(--text3);margin-top:10px">
-        ⚠ Checklistan sparas med tidsstämpel och kan ej raderas — audit trail.
-        Godkännande av ordination sker alltid av legitimerad läkare i systemet.
-      </p>
-
-    </div><!-- /nurse -->
-
-    <!-- ──────────────────────────────────────────────────
+        <!-- ──────────────────────────────────────────────────
          LÄKARE
     ─────────────────────────────────────────────────── -->
-    <div id="view-doctor" class="view">
-
-      <div class="page-header">
-        <div class="kicker">Läkare · Human-in-the-loop</div>
-        <h1>Väntande ordinationer</h1>
-        <p class="lead">Varje ordination kräver din manuella granskning och signatur. Systemet fattar inga medicinska beslut.</p>
-      </div>
-
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-num amber">2</div>
-          <div class="stat-lbl">Väntar granskning</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num sage">8</div>
-          <div class="stat-lbl">Godkända idag</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num danger">0</div>
-          <div class="stat-lbl">Avvisade</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num info">3</div>
-          <div class="stat-lbl">Aktiva patienter</div>
-        </div>
-      </div>
-
-      <div class="safety-notice">
-        🔴 <strong>Medicinskt ansvar:</strong> Systemet skapar aldrig automatisk godkänd status.
-        Din signatur och tidsstämpel krävs för varje ordination. AI används inte för klinisk bedömning.
-      </div>
-
-      <!-- Ordinationsunderlag 1 -->
-      <div class="section-title">Väntande granskning</div>
-
-      <div class="ord-card" style="margin-bottom:14px">
-        <div class="ord-header">
-          <div>
-            <div class="ord-title">Ordinationsunderlag — DHI 2 800 graft</div>
-            <div class="ord-meta">Patient: Magnus Eriksson · Inbokad: 2026-06-30 kl 08:00 · Begärd: 2026-06-28 av admin</div>
+        <div id="view-doctor" class="view">
+          <div class="page-header">
+            <div class="kicker">Läkare · Human-in-the-loop</div>
+            <h1>Väntande ordinationer</h1>
+            <p class="lead">
+              Varje ordination kräver din manuella granskning och signatur. Systemet fattar inga
+              medicinska beslut.
+            </p>
           </div>
-          <span class="pill amber" style="margin-left:auto">Väntar läkare</span>
-        </div>
-        <div class="ord-body">
-          <div class="three-col">
-            <div class="ord-field">
-              <div class="ord-field-label">Behandlingstyp</div>
-              <div class="ord-field-val">DHI Hårtransplantation</div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="stat-num amber">2</div>
+              <div class="stat-lbl">Väntar granskning</div>
             </div>
-            <div class="ord-field">
-              <div class="ord-field-label">Antal transplantat</div>
-              <div class="ord-field-val">2 800</div>
+            <div class="stat">
+              <div class="stat-num sage">8</div>
+              <div class="stat-lbl">Godkända idag</div>
             </div>
-            <div class="ord-field">
-              <div class="ord-field-label">Anestesi</div>
-              <div class="ord-field-val">Lokal (lidokain 1% + adrenalin)</div>
+            <div class="stat">
+              <div class="stat-num danger">0</div>
+              <div class="stat-lbl">Avvisade</div>
             </div>
-            <div class="ord-field">
-              <div class="ord-field-label">Hälsodeklaration</div>
-              <div class="ord-field-val"><span class="pill sage">Signerad 2026-06-20</span></div>
-            </div>
-            <div class="ord-field">
-              <div class="ord-field-label">Friskförsäkran</div>
-              <div class="ord-field-val"><span class="pill sage">Signerad 2026-06-20</span></div>
-            </div>
-            <div class="ord-field">
-              <div class="ord-field-label">Kontraindikationer</div>
-              <div class="ord-field-val">Inga flaggade i hälsodekl.</div>
+            <div class="stat">
+              <div class="stat-num info">3</div>
+              <div class="stat-lbl">Aktiva patienter</div>
             </div>
           </div>
-          <div class="ord-field">
-            <div class="ord-field-label">Allmän ordination — protokoll</div>
-            <div class="ord-field-val" style="margin-top:4px">
-              <div class="doc-row" style="margin-bottom:0">
-                <div class="doc-icon">📋</div>
-                <div class="doc-name">Allmän ordination TP v2.3 — postoperativ vård &amp; medicin</div>
-                <button class="btn">Läs dokument</button>
+
+          <div class="safety-notice">
+            🔴 <strong>Medicinskt ansvar:</strong> Systemet skapar aldrig automatisk godkänd status.
+            Din signatur och tidsstämpel krävs för varje ordination. AI används inte för klinisk
+            bedömning.
+          </div>
+
+          <!-- Ordinationsunderlag 1 -->
+          <div class="section-title">Väntande granskning</div>
+
+          <div class="ord-card" style="margin-bottom: 14px">
+            <div class="ord-header">
+              <div>
+                <div class="ord-title">Ordinationsunderlag — DHI 2 800 graft</div>
+                <div class="ord-meta">
+                  Patient: Magnus Eriksson · Inbokad: 2026-06-30 kl 08:00 · Begärd: 2026-06-28 av
+                  admin
+                </div>
+              </div>
+              <span class="pill amber" style="margin-left: auto">Väntar läkare</span>
+            </div>
+            <div class="ord-body">
+              <div class="three-col">
+                <div class="ord-field">
+                  <div class="ord-field-label">Behandlingstyp</div>
+                  <div class="ord-field-val">DHI Hårtransplantation</div>
+                </div>
+                <div class="ord-field">
+                  <div class="ord-field-label">Antal transplantat</div>
+                  <div class="ord-field-val">2 800</div>
+                </div>
+                <div class="ord-field">
+                  <div class="ord-field-label">Anestesi</div>
+                  <div class="ord-field-val">Lokal (lidokain 1% + adrenalin)</div>
+                </div>
+                <div class="ord-field">
+                  <div class="ord-field-label">Hälsodeklaration</div>
+                  <div class="ord-field-val">
+                    <span class="pill sage">Signerad 2026-06-20</span>
+                  </div>
+                </div>
+                <div class="ord-field">
+                  <div class="ord-field-label">Friskförsäkran</div>
+                  <div class="ord-field-val">
+                    <span class="pill sage">Signerad 2026-06-20</span>
+                  </div>
+                </div>
+                <div class="ord-field">
+                  <div class="ord-field-label">Kontraindikationer</div>
+                  <div class="ord-field-val">Inga flaggade i hälsodekl.</div>
+                </div>
+              </div>
+              <div class="ord-field">
+                <div class="ord-field-label">Allmän ordination — protokoll</div>
+                <div class="ord-field-val" style="margin-top: 4px">
+                  <div class="doc-row" style="margin-bottom: 0">
+                    <div class="doc-icon">📋</div>
+                    <div class="doc-name">
+                      Allmän ordination TP v2.3 — postoperativ vård &amp; medicin
+                    </div>
+                    <button class="btn">Läs dokument</button>
+                  </div>
+                </div>
+              </div>
+              <div class="ord-field" style="margin-top: 10px">
+                <div class="ord-field-label">Individuell ordination (om avvikelse krävs)</div>
+                <div class="ord-field-val" style="color: var(--text3); font-style: italic">
+                  Ingen individuell avvikelse begärd för denna patient.
+                </div>
+              </div>
+            </div>
+            <div class="ord-actions">
+              <button class="btn primary" disabled title="Läs-only prototyp">
+                ✓ Godkänn &amp; signera
+              </button>
+              <button class="btn danger-btn" disabled title="Läs-only prototyp">✗ Avvisa</button>
+              <button class="btn" disabled>Begär komplettering</button>
+              <span style="margin-left: auto; font-size: 10px; color: var(--text3)"
+                >Kräver inloggning + 2FA · Tidsstämplas i audit-logg</span
+              >
+            </div>
+          </div>
+
+          <div class="ord-card" style="margin-bottom: 14px">
+            <div class="ord-header">
+              <div>
+                <div class="ord-title">Ordinationsunderlag — PRP Hårskamlp</div>
+                <div class="ord-meta">
+                  Patient: Sara Johansson · Inbokad: 2026-06-30 kl 13:00 · Begärd: 2026-06-29 av
+                  admin
+                </div>
+              </div>
+              <span class="pill amber" style="margin-left: auto">Väntar läkare</span>
+            </div>
+            <div class="ord-body">
+              <div class="three-col">
+                <div class="ord-field">
+                  <div class="ord-field-label">Behandlingstyp</div>
+                  <div class="ord-field-val">PRP Hårskalp (3 sessioner)</div>
+                </div>
+                <div class="ord-field">
+                  <div class="ord-field-label">Volym PRP</div>
+                  <div class="ord-field-val">Enligt allmän ordination</div>
+                </div>
+                <div class="ord-field">
+                  <div class="ord-field-label">Hälsodeklaration</div>
+                  <div class="ord-field-val">
+                    <span class="pill sage">Signerad 2026-06-25</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="ord-actions">
+              <button class="btn primary" disabled>✓ Godkänn &amp; signera</button>
+              <button class="btn danger-btn" disabled>✗ Avvisa</button>
+              <span style="margin-left: auto; font-size: 10px; color: var(--text3)"
+                >Kräver inloggning + 2FA</span
+              >
+            </div>
+          </div>
+
+          <!-- Historik -->
+          <div class="section-title">Min granskningshistorik · idag</div>
+          <div class="card-list">
+            <div class="item-card approved">
+              <div class="item-icon">✅</div>
+              <div class="item-body">
+                <div class="item-title">DHI 1 800 graft — Jonas Bergström</div>
+                <div class="item-meta">
+                  Godkänd av Dr. Öberg · 2026-06-29 07:55 · Signatur: DO-20260629-001
+                </div>
+              </div>
+              <span class="pill sage">Godkänd</span>
+            </div>
+            <div class="item-card approved">
+              <div class="item-icon">✅</div>
+              <div class="item-body">
+                <div class="item-title">FUE 2 200 graft — Amir Hosseini</div>
+                <div class="item-meta">
+                  Godkänd av Dr. Öberg · 2026-06-28 16:12 · Signatur: DO-20260628-007
+                </div>
+              </div>
+              <span class="pill sage">Godkänd</span>
+            </div>
+          </div>
+
+          <!-- Dokument -->
+          <div class="section-title">Ordinationsdokument (referens)</div>
+          <div class="doc-row">
+            <div class="doc-icon">📋</div>
+            <div class="doc-name">
+              Allmän ordination TP — postoperativ vård &amp; medicinering v2.3
+            </div>
+            <div class="doc-valid">Publicerad 2026-01-15 · Ansvarig: Dr. Öberg</div>
+            <button class="btn" style="margin-left: 8px">Läs</button>
+          </div>
+          <div class="doc-row">
+            <div class="doc-icon">📋</div>
+            <div class="doc-name">Allmän ordination PRP — injektion &amp; frekvens v1.4</div>
+            <div class="doc-valid">Publicerad 2026-03-01 · Ansvarig: Dr. Öberg</div>
+            <button class="btn" style="margin-left: 8px">Läs</button>
+          </div>
+          <div class="doc-row">
+            <div class="doc-icon">📝</div>
+            <div class="doc-name">Mall — Individuell ordination (avvikelse från allmän)</div>
+            <div class="doc-valid">Version 1.0 · Skapas per patient vid behov</div>
+            <button class="btn" style="margin-left: 8px">Visa mall</button>
+          </div>
+        </div>
+        <!-- /doctor -->
+
+        <!-- ──────────────────────────────────────────────────
+         ADMIN / OWNER
+    ─────────────────────────────────────────────────── -->
+        <div id="view-admin" class="view">
+          <div class="page-header">
+            <div class="kicker">Admin · Ägarvy</div>
+            <h1>Kliniköversikt</h1>
+            <p class="lead">Personalstatus, alla ärenden, QMS-avvikelser och full audit-logg.</p>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="stat-num info">12</div>
+              <div class="stat-lbl">Aktiva ärenden</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num amber">2</div>
+              <div class="stat-lbl">Ord. väntar läkare</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num danger">1</div>
+              <div class="stat-lbl">Öppen avvikelse</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num sage">3</div>
+              <div class="stat-lbl">Personal idag</div>
+            </div>
+          </div>
+
+          <!-- Personalöversikt -->
+          <div class="section-title">Personal på plats idag</div>
+          <div class="card-list">
+            <div class="item-card info-c">
+              <div class="item-icon">👩‍⚕️</div>
+              <div class="item-body">
+                <div class="item-title">Anna Lindström — Sjuksköterska</div>
+                <div class="item-meta">
+                  Tilldelad: Magnus E., Leila K., Jonas B. · 3 aktiva ärenden · 1 obesvarat
+                  meddelande
+                </div>
+              </div>
+              <span class="pill sage">Inloggad</span>
+            </div>
+            <div class="item-card info-c">
+              <div class="item-icon">👨‍⚕️</div>
+              <div class="item-body">
+                <div class="item-title">Dr. Marcus Öberg — Läkare</div>
+                <div class="item-meta">
+                  2 ordinationer väntar signatur · Senast aktiv: 2026-06-29 08:45
+                </div>
+              </div>
+              <span class="pill amber">Granskar</span>
+            </div>
+            <div class="item-card info-c">
+              <div class="item-icon">🧑‍💼</div>
+              <div class="item-body">
+                <div class="item-title">Fazli Krasniqi — Ägare / Admin</div>
+                <div class="item-meta">
+                  Full åtkomst · Audit-logg, inställningar, dokumentkatalog
+                </div>
+              </div>
+              <span class="pill info">Admin</span>
+            </div>
+          </div>
+
+          <!-- Alla ärenden -->
+          <div class="section-title">Alla aktiva ärenden</div>
+          <div class="card-list">
+            <div class="item-card pending">
+              <div class="item-icon">👤</div>
+              <div class="item-body">
+                <div class="item-title">Magnus Eriksson — DHI 2 800 graft</div>
+                <div class="item-meta">
+                  Ansvarig: Anna L. · Ordination: <span class="pill amber">Väntar Dr. Öberg</span> ·
+                  Bokning: 2026-06-30
+                </div>
+              </div>
+              <button class="btn">Kundkort</button>
+            </div>
+            <div class="item-card approved">
+              <div class="item-icon">👤</div>
+              <div class="item-body">
+                <div class="item-title">Leila Khalil — FUE 1 600 graft · Dag 30</div>
+                <div class="item-meta">
+                  Ansvarig: Anna L. · Ordination: <span class="pill sage">Godkänd</span> · Bilder
+                  inskickade
+                </div>
+              </div>
+              <button class="btn">Kundkort</button>
+            </div>
+            <div class="item-card approved">
+              <div class="item-icon">👤</div>
+              <div class="item-body">
+                <div class="item-title">Jonas Bergström — DHI 1 800 graft · Postop dag 7</div>
+                <div class="item-meta">
+                  Ansvarig: Anna L. · Ordination: <span class="pill sage">Godkänd</span>
+                </div>
+              </div>
+              <button class="btn">Kundkort</button>
+            </div>
+          </div>
+
+          <!-- QMS Avvikelser -->
+          <div class="section-title">QMS · Avvikelserapporter</div>
+          <div class="item-card urgent" style="margin-bottom: 8px">
+            <div class="item-icon">⚠️</div>
+            <div class="item-body">
+              <div class="item-title">AVV-2026-004 — Sterilitetskontroll ej dokumenterad</div>
+              <div class="item-meta">Rapporterad av Anna L. · 2026-06-27 · Kategori: Procedur</div>
+            </div>
+            <div class="item-actions">
+              <span class="pill danger">Öppen</span>
+              <button class="btn">Hantera</button>
+            </div>
+          </div>
+          <div class="item-card approved">
+            <div class="item-icon">✅</div>
+            <div class="item-body">
+              <div class="item-title">AVV-2026-003 — Fördröjd bokningsbekräftelse</div>
+              <div class="item-meta">
+                Stängd av Fazli K. · 2026-06-25 · Åtgärd: Automatiseringsregel uppdaterad
+              </div>
+            </div>
+            <span class="pill sage">Stängd</span>
+          </div>
+
+          <!-- QMS Handboksreferens -->
+          <div class="section-title">Kvalitetshandbok &amp; OLS-dokument</div>
+          <div class="doc-row">
+            <div class="doc-icon">📚</div>
+            <div class="doc-name">
+              Klinisk kvalitetshandbok v1.2 — procedurer, ansvar, eskalering
+            </div>
+            <button class="btn" style="margin-left: auto">Läs</button>
+          </div>
+          <div class="doc-row">
+            <div class="doc-icon">📋</div>
+            <div class="doc-name">Checklistemallar — preop, postop, daglig drift</div>
+            <button class="btn" style="margin-left: auto">Hantera</button>
+          </div>
+          <div class="doc-row">
+            <div class="doc-icon">📄</div>
+            <div class="doc-name">Avvikelserapport (blankett OLS-3)</div>
+            <button class="btn" style="margin-left: auto">Ny rapport</button>
+          </div>
+
+          <!-- Audit-logg -->
+          <div class="section-title">Audit-logg · senaste händelser</div>
+          <div
+            style="
+              background: var(--card-bg);
+              border: 1px solid rgba(255, 255, 255, 0.6);
+              border-radius: 14px;
+              padding: 14px 18px;
+              box-shadow: var(--shadow);
+            "
+          >
+            <div id="liveAuditList"></div>
+            <div class="audit-row" id="auditFallback">
+              <div class="audit-time">2026-06-29 08:55</div>
+              <div>
+                <div class="audit-action">ordination.approved</div>
+                <div class="audit-actor">
+                  Dr. Marcus Öberg · DHI 1 800 · Jonas Bergström · Signatur DO-20260629-001
+                </div>
+              </div>
+            </div>
+            <div class="audit-row">
+              <div class="audit-time">2026-06-29 08:22</div>
+              <div>
+                <div class="audit-action">qms.checklist.item_completed</div>
+                <div class="audit-actor">
+                  Anna Lindström · Hälsodeklaration kontrollerad · Magnus Eriksson
+                </div>
+              </div>
+            </div>
+            <div class="audit-row">
+              <div class="audit-time">2026-06-28 16:12</div>
+              <div>
+                <div class="audit-action">ordination.approved</div>
+                <div class="audit-actor">
+                  Dr. Marcus Öberg · FUE 2 200 · Amir Hosseini · Signatur DO-20260628-007
+                </div>
+              </div>
+            </div>
+            <div class="audit-row">
+              <div class="audit-time">2026-06-28 11:40</div>
+              <div>
+                <div class="audit-action">customer.message.assigned</div>
+                <div class="audit-actor">
+                  Fazli Krasniqi → Anna Lindström · Magnus Eriksson · Fråga dag 5
+                </div>
+              </div>
+            </div>
+            <div class="audit-row">
+              <div class="audit-time">2026-06-27 14:05</div>
+              <div>
+                <div class="audit-action">qms.deviation.reported</div>
+                <div class="audit-actor">
+                  Anna Lindström · AVV-2026-004 · Sterilitetskontroll ej dokumenterad
+                </div>
               </div>
             </div>
           </div>
-          <div class="ord-field" style="margin-top:10px">
-            <div class="ord-field-label">Individuell ordination (om avvikelse krävs)</div>
-            <div class="ord-field-val" style="color:var(--text3);font-style:italic">Ingen individuell avvikelse begärd för denna patient.</div>
-          </div>
+          <p style="font-size: 11px; color: var(--text3); margin-top: 8px">
+            Audit-loggen är skrivskyddad och oföränderlig. Full export tillgänglig för
+            revisor/ägare.
+          </p>
         </div>
-        <div class="ord-actions">
-          <button class="btn primary" disabled title="Läs-only prototyp">✓ Godkänn &amp; signera</button>
-          <button class="btn danger-btn" disabled title="Läs-only prototyp">✗ Avvisa</button>
-          <button class="btn" disabled>Begär komplettering</button>
-          <span style="margin-left:auto;font-size:10px;color:var(--text3)">Kräver inloggning + 2FA · Tidsstämplas i audit-logg</span>
-        </div>
-      </div>
+        <!-- /admin -->
+      </main>
+    </div>
 
-      <div class="ord-card" style="margin-bottom:14px">
-        <div class="ord-header">
-          <div>
-            <div class="ord-title">Ordinationsunderlag — PRP Hårskamlp</div>
-            <div class="ord-meta">Patient: Sara Johansson · Inbokad: 2026-06-30 kl 13:00 · Begärd: 2026-06-29 av admin</div>
-          </div>
-          <span class="pill amber" style="margin-left:auto">Väntar läkare</span>
-        </div>
-        <div class="ord-body">
-          <div class="three-col">
-            <div class="ord-field">
-              <div class="ord-field-label">Behandlingstyp</div>
-              <div class="ord-field-val">PRP Hårskalp (3 sessioner)</div>
-            </div>
-            <div class="ord-field">
-              <div class="ord-field-label">Volym PRP</div>
-              <div class="ord-field-val">Enligt allmän ordination</div>
-            </div>
-            <div class="ord-field">
-              <div class="ord-field-label">Hälsodeklaration</div>
-              <div class="ord-field-val"><span class="pill sage">Signerad 2026-06-25</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="ord-actions">
-          <button class="btn primary" disabled>✓ Godkänn &amp; signera</button>
-          <button class="btn danger-btn" disabled>✗ Avvisa</button>
-          <span style="margin-left:auto;font-size:10px;color:var(--text3)">Kräver inloggning + 2FA</span>
-        </div>
-      </div>
+    <script>
+      'use strict';
 
-      <!-- Historik -->
-      <div class="section-title">Min granskningshistorik · idag</div>
-      <div class="card-list">
-        <div class="item-card approved">
-          <div class="item-icon">✅</div>
-          <div class="item-body">
-            <div class="item-title">DHI 1 800 graft — Jonas Bergström</div>
-            <div class="item-meta">Godkänd av Dr. Öberg · 2026-06-29 07:55 · Signatur: DO-20260629-001</div>
-          </div>
-          <span class="pill sage">Godkänd</span>
+      /* ── Live-data klient ─────────────────────────────────────────── */
+
+      let _meData = null; // cachat resultat från /api/v1/staff/me
+      let _liveMode = false; // true = inloggad, använder riktig data
+
+      async function apiFetch(path, opts = {}) {
+        try {
+          const res = await fetch(path, { credentials: 'include', ...opts });
+          if (!res.ok) return null;
+          return res.json();
+        } catch {
+          return null;
+        }
+      }
+
+      /* Hämta inloggad personal och uppdatera UI om lyckad */
+      async function loadMe() {
+        const me = await apiFetch('/api/v1/staff/me');
+        if (me && me.ok) {
+          _meData = me;
+          _liveMode = true;
+          if (me.name) {
+            document.getElementById('userNameEl').textContent = me.name;
+            const initials = me.name
+              .split(' ')
+              .map((p) => p[0])
+              .join('')
+              .slice(0, 2)
+              .toUpperCase();
+            document.getElementById('avatarEl').textContent = initials;
+          }
+          if (me.role) {
+            const roleMap = {
+              owner: 'Admin / Ägare',
+              operator: 'Admin',
+              konsult: 'Läkare',
+              personal: 'Sjuksköterska',
+            };
+            document.getElementById('userRoleEl').textContent = roleMap[me.role] || me.role;
+          }
+          document.getElementById('dataStatusLabel').textContent = 'Live CCO-data';
+          document.getElementById('dataStatusLabel').style.color = 'var(--sage)';
+        } else {
+          document.getElementById('dataStatusLabel').textContent = 'Demoläge · ingen session';
+        }
+      }
+
+      /* Hämta granskningskö och uppdatera badge på ordinationer-nav */
+      async function loadReviewQueue() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/review-queue?limit=10');
+        if (data && data.ok) {
+          const badge = document.querySelector('[data-live-badge="review-queue"]');
+          if (badge) badge.textContent = data.count;
+          if (badge) badge.style.display = data.count > 0 ? '' : 'none';
+        }
+      }
+
+      /* Hämta uppgifter och uppdatera nurse stats */
+      async function loadTasks() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/tasks?limit=50');
+        if (data && data.ok) {
+          const el = document.getElementById('liveTaskCount');
+          if (el) el.textContent = data.count;
+          const badge = document.querySelector('[data-live-badge="tasks"]');
+          if (badge) badge.textContent = data.count;
+        }
+      }
+
+      /* Hämta audit-logg och injicera i admin-view */
+      async function loadAudit() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/audit?limit=8');
+
+        const container = document.getElementById('liveAuditList');
+        if (!container) return;
+
+        if (data && data.ok && data.entries.length) {
+          container.innerHTML = data.entries
+            .map((e) => {
+              const ts = e.ts ? e.ts.replace('T', ' ').slice(0, 16) : '—';
+              const uid = e.actor?.userId ?? e.actor?.role ?? '—';
+              return `<div class="audit-row">
+        <div class="audit-time">${ts}</div>
+        <div>
+          <div class="audit-action">${e.action ?? '—'}</div>
+          <div class="audit-actor">${uid}${e.target?.id ? ' · ' + e.target.id : ''}</div>
         </div>
-        <div class="item-card approved">
-          <div class="item-icon">✅</div>
-          <div class="item-body">
-            <div class="item-title">FUE 2 200 graft — Amir Hosseini</div>
-            <div class="item-meta">Godkänd av Dr. Öberg · 2026-06-28 16:12 · Signatur: DO-20260628-007</div>
-          </div>
-          <span class="pill sage">Godkänd</span>
-        </div>
-      </div>
+      </div>`;
+            })
+            .join('');
+          // Göm demoläge-rader när riktig data finns
+          const fallback = document.getElementById('auditFallback');
+          if (fallback) {
+            let sib = fallback;
+            while (sib) {
+              sib.style.display = 'none';
+              sib = sib.nextElementSibling;
+            }
+          }
+        } else {
+          container.innerHTML =
+            '<div class="audit-row"><div class="audit-time">—</div><div><div class="audit-actor" style="color:var(--text3)">Inga loggposter tillgängliga (kräver inloggning med owner/revisor-roll)</div></div></div>';
+        }
+      }
 
-      <!-- Dokument -->
-      <div class="section-title">Ordinationsdokument (referens)</div>
-      <div class="doc-row">
-        <div class="doc-icon">📋</div>
-        <div class="doc-name">Allmän ordination TP — postoperativ vård &amp; medicinering v2.3</div>
-        <div class="doc-valid">Publicerad 2026-01-15 · Ansvarig: Dr. Öberg</div>
-        <button class="btn" style="margin-left:8px">Läs</button>
-      </div>
-      <div class="doc-row">
-        <div class="doc-icon">📋</div>
-        <div class="doc-name">Allmän ordination PRP — injektion &amp; frekvens v1.4</div>
-        <div class="doc-valid">Publicerad 2026-03-01 · Ansvarig: Dr. Öberg</div>
-        <button class="btn" style="margin-left:8px">Läs</button>
-      </div>
-      <div class="doc-row">
-        <div class="doc-icon">📝</div>
-        <div class="doc-name">Mall — Individuell ordination (avvikelse från allmän)</div>
-        <div class="doc-valid">Version 1.0 · Skapas per patient vid behov</div>
-        <button class="btn" style="margin-left:8px">Visa mall</button>
-      </div>
+      /* Hämta dokument och visa delegeringsdokument för nurse-view */
+      async function loadDelegations() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/documents?filler=staff&category=internal');
+        if (!data || !data.ok || !data.documents.length) return;
 
-    </div><!-- /doctor -->
+        const container = document.getElementById('liveDelegationList');
+        if (!container) return;
+        container.innerHTML = data.documents
+          .slice(0, 6)
+          .map(
+            (d) => `
+    <div class="doc-row">
+      <div class="doc-icon">📄</div>
+      <div class="doc-name">${d.name}</div>
+      <span class="pill sage" style="margin-left:auto">Aktiv</span>
+    </div>`
+          )
+          .join('');
+      }
 
-    <!-- ──────────────────────────────────────────────────
-         ADMIN / OWNER
-    ─────────────────────────────────────────────────── -->
-    <div id="view-admin" class="view">
+      /* Startsekvens */
+      async function initLiveData() {
+        await loadMe();
+        if (_liveMode) {
+          await Promise.all([loadTasks(), loadReviewQueue(), loadAudit(), loadDelegations()]);
+        }
+      }
 
-      <div class="page-header">
-        <div class="kicker">Admin · Ägarvy</div>
-        <h1>Kliniköversikt</h1>
-        <p class="lead">Personalstatus, alla ärenden, QMS-avvikelser och full audit-logg.</p>
-      </div>
+      /* ── Roll-konfiguration (nav + demo-switcher) ─────────────────── */
 
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-num info">12</div>
-          <div class="stat-lbl">Aktiva ärenden</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num amber">2</div>
-          <div class="stat-lbl">Ord. väntar läkare</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num danger">1</div>
-          <div class="stat-lbl">Öppen avvikelse</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num sage">3</div>
-          <div class="stat-lbl">Personal idag</div>
-        </div>
-      </div>
+      const ROLES = {
+        nurse: {
+          label: 'Sjuksköterska',
+          badgeClass: 'nurse',
+          user: 'Anna Lindström',
+          avatar: 'AL',
+          nav: [
+            { section: 'Arbetsflöde' },
+            { id: 'mine', icon: '📋', label: 'Mina uppgifter', liveBadge: 'tasks' },
+            { id: 'cases', icon: '👤', label: 'Mina kunder' },
+            { section: 'Dokument' },
+            { id: 'deleg', icon: '📄', label: 'Delegering' },
+            { section: 'Kvalitet' },
+            { id: 'qms', icon: '✅', label: 'QMS-checklista' },
+          ],
+        },
+        doctor: {
+          label: 'Läkare',
+          badgeClass: 'doctor',
+          user: 'Dr. Marcus Öberg',
+          avatar: 'MÖ',
+          nav: [
+            { section: 'Arbetsflöde' },
+            { id: 'ord', icon: '⚕️', label: 'Ordinationer', liveBadge: 'review-queue' },
+            { id: 'history', icon: '🕓', label: 'Min historik' },
+            { section: 'Dokument' },
+            { id: 'docs', icon: '📋', label: 'Ordinationsdokument' },
+            { section: 'Kvalitet' },
+            { id: 'qms-dr', icon: '✅', label: 'QMS / avvikelser' },
+          ],
+        },
+        admin: {
+          label: 'Admin / Ägare',
+          badgeClass: 'admin',
+          user: 'Fazli Krasniqi',
+          avatar: 'FK',
+          nav: [
+            { section: 'Översikt' },
+            { id: 'overview', icon: '🏥', label: 'Kliniköversikt' },
+            { id: 'staff', icon: '👥', label: 'Personalöversikt' },
+            { section: 'Ärenden' },
+            { id: 'all-cases', icon: '📁', label: 'Alla ärenden' },
+            { section: 'Dokument' },
+            { id: 'catalog', icon: '📚', label: 'Dokumentkatalog' },
+            { section: 'Kvalitet & Compliance' },
+            { id: 'qms-admin', icon: '⚠️', label: 'Avvikelser' },
+            { id: 'audit', icon: '🔒', label: 'Audit-logg' },
+          ],
+        },
+      };
 
-      <!-- Personalöversikt -->
-      <div class="section-title">Personal på plats idag</div>
-      <div class="card-list">
-        <div class="item-card info-c">
-          <div class="item-icon">👩‍⚕️</div>
-          <div class="item-body">
-            <div class="item-title">Anna Lindström — Sjuksköterska</div>
-            <div class="item-meta">Tilldelad: Magnus E., Leila K., Jonas B. · 3 aktiva ärenden · 1 obesvarat meddelande</div>
-          </div>
-          <span class="pill sage">Inloggad</span>
-        </div>
-        <div class="item-card info-c">
-          <div class="item-icon">👨‍⚕️</div>
-          <div class="item-body">
-            <div class="item-title">Dr. Marcus Öberg — Läkare</div>
-            <div class="item-meta">2 ordinationer väntar signatur · Senast aktiv: 2026-06-29 08:45</div>
-          </div>
-          <span class="pill amber">Granskar</span>
-        </div>
-        <div class="item-card info-c">
-          <div class="item-icon">🧑‍💼</div>
-          <div class="item-body">
-            <div class="item-title">Fazli Krasniqi — Ägare / Admin</div>
-            <div class="item-meta">Full åtkomst · Audit-logg, inställningar, dokumentkatalog</div>
-          </div>
-          <span class="pill info">Admin</span>
-        </div>
-      </div>
+      let currentRole = 'nurse';
 
-      <!-- Alla ärenden -->
-      <div class="section-title">Alla aktiva ärenden</div>
-      <div class="card-list">
-        <div class="item-card pending">
-          <div class="item-icon">👤</div>
-          <div class="item-body">
-            <div class="item-title">Magnus Eriksson — DHI 2 800 graft</div>
-            <div class="item-meta">Ansvarig: Anna L. · Ordination: <span class="pill amber">Väntar Dr. Öberg</span> · Bokning: 2026-06-30</div>
-          </div>
-          <button class="btn">Kundkort</button>
-        </div>
-        <div class="item-card approved">
-          <div class="item-icon">👤</div>
-          <div class="item-body">
-            <div class="item-title">Leila Khalil — FUE 1 600 graft · Dag 30</div>
-            <div class="item-meta">Ansvarig: Anna L. · Ordination: <span class="pill sage">Godkänd</span> · Bilder inskickade</div>
-          </div>
-          <button class="btn">Kundkort</button>
-        </div>
-        <div class="item-card approved">
-          <div class="item-icon">👤</div>
-          <div class="item-body">
-            <div class="item-title">Jonas Bergström — DHI 1 800 graft · Postop dag 7</div>
-            <div class="item-meta">Ansvarig: Anna L. · Ordination: <span class="pill sage">Godkänd</span></div>
-          </div>
-          <button class="btn">Kundkort</button>
-        </div>
-      </div>
+      function setRole(role, evt) {
+        currentRole = role;
+        const cfg = ROLES[role];
 
-      <!-- QMS Avvikelser -->
-      <div class="section-title">QMS · Avvikelserapporter</div>
-      <div class="item-card urgent" style="margin-bottom:8px">
-        <div class="item-icon">⚠️</div>
-        <div class="item-body">
-          <div class="item-title">AVV-2026-004 — Sterilitetskontroll ej dokumenterad</div>
-          <div class="item-meta">Rapporterad av Anna L. · 2026-06-27 · Kategori: Procedur</div>
-        </div>
-        <div class="item-actions">
-          <span class="pill danger">Öppen</span>
-          <button class="btn">Hantera</button>
-        </div>
-      </div>
-      <div class="item-card approved">
-        <div class="item-icon">✅</div>
-        <div class="item-body">
-          <div class="item-title">AVV-2026-003 — Fördröjd bokningsbekräftelse</div>
-          <div class="item-meta">Stängd av Fazli K. · 2026-06-25 · Åtgärd: Automatiseringsregel uppdaterad</div>
-        </div>
-        <span class="pill sage">Stängd</span>
-      </div>
+        document.getElementById('roleBadge').className = 'role-badge ' + cfg.badgeClass;
+        document.getElementById('roleLabel').textContent = cfg.label;
 
-      <!-- QMS Handboksreferens -->
-      <div class="section-title">Kvalitetshandbok &amp; OLS-dokument</div>
-      <div class="doc-row">
-        <div class="doc-icon">📚</div>
-        <div class="doc-name">Klinisk kvalitetshandbok v1.2 — procedurer, ansvar, eskalering</div>
-        <button class="btn" style="margin-left:auto">Läs</button>
-      </div>
-      <div class="doc-row">
-        <div class="doc-icon">📋</div>
-        <div class="doc-name">Checklistemallar — preop, postop, daglig drift</div>
-        <button class="btn" style="margin-left:auto">Hantera</button>
-      </div>
-      <div class="doc-row">
-        <div class="doc-icon">📄</div>
-        <div class="doc-name">Avvikelserapport (blankett OLS-3)</div>
-        <button class="btn" style="margin-left:auto">Ny rapport</button>
-      </div>
+        if (!_liveMode) {
+          document.getElementById('userNameEl').textContent = cfg.user;
+          document.getElementById('avatarEl').textContent = cfg.avatar;
+        }
+        document.getElementById('userRoleEl').textContent = cfg.label;
 
-      <!-- Audit-logg -->
-      <div class="section-title">Audit-logg · senaste händelser</div>
-      <div style="background:var(--card-bg);border:1px solid rgba(255,255,255,.6);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)">
-        <div class="audit-row">
-          <div class="audit-time">2026-06-29 08:55</div>
-          <div>
-            <div class="audit-action">ordination.approved</div>
-            <div class="audit-actor">Dr. Marcus Öberg · DHI 1 800 · Jonas Bergström · Signatur DO-20260629-001</div>
-          </div>
-        </div>
-        <div class="audit-row">
-          <div class="audit-time">2026-06-29 08:22</div>
-          <div>
-            <div class="audit-action">qms.checklist.item_completed</div>
-            <div class="audit-actor">Anna Lindström · Hälsodeklaration kontrollerad · Magnus Eriksson</div>
-          </div>
-        </div>
-        <div class="audit-row">
-          <div class="audit-time">2026-06-28 16:12</div>
-          <div>
-            <div class="audit-action">ordination.approved</div>
-            <div class="audit-actor">Dr. Marcus Öberg · FUE 2 200 · Amir Hosseini · Signatur DO-20260628-007</div>
-          </div>
-        </div>
-        <div class="audit-row">
-          <div class="audit-time">2026-06-28 11:40</div>
-          <div>
-            <div class="audit-action">customer.message.assigned</div>
-            <div class="audit-actor">Fazli Krasniqi → Anna Lindström · Magnus Eriksson · Fråga dag 5</div>
-          </div>
-        </div>
-        <div class="audit-row">
-          <div class="audit-time">2026-06-27 14:05</div>
-          <div>
-            <div class="audit-action">qms.deviation.reported</div>
-            <div class="audit-actor">Anna Lindström · AVV-2026-004 · Sterilitetskontroll ej dokumenterad</div>
-          </div>
-        </div>
-      </div>
-      <p style="font-size:11px;color:var(--text3);margin-top:8px">Audit-loggen är skrivskyddad och oföränderlig. Full export tillgänglig för revisor/ägare.</p>
+        const nav = document.getElementById('navMenu');
+        nav.innerHTML = cfg.nav
+          .map((item) => {
+            if (item.section) return `<div class="nav-section">${item.section}</div>`;
+            const badgeAttr = item.liveBadge ? ` data-live-badge="${item.liveBadge}"` : '';
+            const badgeHtml = item.liveBadge
+              ? `<span class="nav-badge"${badgeAttr} style="display:none">0</span>`
+              : '';
+            return `<button class="nav-item"><span class="icon">${item.icon}</span>${item.label}${badgeHtml}</button>`;
+          })
+          .join('');
 
-    </div><!-- /admin -->
+        const first = nav.querySelector('.nav-item');
+        if (first) first.classList.add('active');
 
-  </main>
-</div>
+        document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
+        document.getElementById('view-' + role).classList.add('active');
 
-<script>
-const ROLES = {
-  nurse: {
-    label: 'Sjuksköterska',
-    badgeClass: 'nurse',
-    user: 'Anna Lindström',
-    avatar: 'AL',
-    nav: [
-      { section: 'Arbetsflöde' },
-      { id: 'mine',    icon: '📋', label: 'Mina uppgifter',       badge: 4 },
-      { id: 'cases',   icon: '👤', label: 'Mina kunder' },
-      { section: 'Dokument' },
-      { id: 'deleg',   icon: '📄', label: 'Delegering' },
-      { section: 'Kvalitet' },
-      { id: 'qms',     icon: '✅', label: 'QMS-checklista',       badge: 1 },
-    ]
-  },
-  doctor: {
-    label: 'Läkare',
-    badgeClass: 'doctor',
-    user: 'Dr. Marcus Öberg',
-    avatar: 'MÖ',
-    nav: [
-      { section: 'Arbetsflöde' },
-      { id: 'ord',     icon: '⚕️', label: 'Ordinationer',         badge: 2 },
-      { id: 'history', icon: '🕓', label: 'Min historik' },
-      { section: 'Dokument' },
-      { id: 'docs',    icon: '📋', label: 'Ordinationsdokument' },
-      { section: 'Kvalitet' },
-      { id: 'qms-dr',  icon: '✅', label: 'QMS / avvikelser' },
-    ]
-  },
-  admin: {
-    label: 'Admin / Ägare',
-    badgeClass: 'admin',
-    user: 'Fazli Krasniqi',
-    avatar: 'FK',
-    nav: [
-      { section: 'Översikt' },
-      { id: 'overview',  icon: '🏥', label: 'Kliniköversikt' },
-      { id: 'staff',     icon: '👥', label: 'Personalöversikt' },
-      { section: 'Ärenden' },
-      { id: 'all-cases', icon: '📁', label: 'Alla ärenden' },
-      { section: 'Dokument' },
-      { id: 'catalog',   icon: '📚', label: 'Dokumentkatalog' },
-      { section: 'Kvalitet & Compliance' },
-      { id: 'qms-admin', icon: '⚠️', label: 'Avvikelser',          badge: 1 },
-      { id: 'audit',     icon: '🔒', label: 'Audit-logg' },
-    ]
-  }
-};
+        document.querySelectorAll('.role-btn').forEach((b) => b.classList.remove('active'));
+        if (evt && evt.target) evt.target.classList.add('active');
 
-let currentRole = 'nurse';
+        // Uppdatera live-badges efter byte
+        if (_liveMode) {
+          loadReviewQueue();
+          loadTasks();
+        }
+      }
 
-function setRole(role) {
-  currentRole = role;
-  const cfg = ROLES[role];
+      document.querySelectorAll('.role-btn').forEach((btn, i) => {
+        const roles = ['nurse', 'doctor', 'admin'];
+        btn.addEventListener('click', (e) => setRole(roles[i], e));
+      });
 
-  // Role badge
-  const badge = document.getElementById('roleBadge');
-  badge.className = 'role-badge ' + cfg.badgeClass;
-  document.getElementById('roleLabel').textContent = cfg.label;
-
-  // User info
-  document.getElementById('userNameEl').textContent = cfg.user;
-  document.getElementById('userRoleEl').textContent = cfg.label;
-  document.getElementById('avatarEl').textContent = cfg.avatar;
-
-  // Nav
-  const nav = document.getElementById('navMenu');
-  nav.innerHTML = cfg.nav.map(item => {
-    if (item.section) {
-      return `<div class="nav-section">${item.section}</div>`;
-    }
-    return `<button class="nav-item" onclick="void 0">
-      <span class="icon">${item.icon}</span>
-      ${item.label}
-      ${item.badge ? `<span class="nav-badge">${item.badge}</span>` : ''}
-    </button>`;
-  }).join('');
-
-  // First nav item active
-  const first = nav.querySelector('.nav-item');
-  if (first) first.classList.add('active');
-
-  // Views
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-' + role).classList.add('active');
-
-  // Role buttons
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-}
-</script>
-</body>
+      // DOM är redan redo (script i slutet av body)
+      setRole('nurse', { target: document.querySelector('.role-btn') });
+      initLiveData();
+    </script>
+  </body>
 </html>

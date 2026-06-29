@@ -13662,9 +13662,21 @@ process.once('SIGTERM', () => {
     })
   );
 
-  // ── Personalportal ────────────────────────────────────────────
-  const staffPortalRouter = require('./src/routes/staffPortal');
-  app.use('/', staffPortalRouter);
+  // ── Personalportal (Fas 2 — store-injektion) ──────────────────
+  const { createStaffPortalRouter } = require('./src/routes/staffPortal');
+  app.use(
+    '/',
+    createStaffPortalRouter({
+      config,
+      requireAuth: auth.requireAuth,
+      ccoAuditLog,
+      bookingCaseStore: ccoBookingCaseStore || null,
+      journalPhotoStore: ccoJournalPhotoStore || null,
+      mailIngestionStore: ccoMailIngestionStore || null,
+      getCommDraftStore: () => app.locals.ccoCommDraftStore || null,
+      getSendActionStore: () => app.locals.ccoSendActionStore || null,
+    })
+  );
 
   setStartupPhase('scheduler');
   runtimeState.ready = true;
