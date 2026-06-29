@@ -23,6 +23,7 @@ const express = require('express');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
+const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates');
 
 /**
  * createStaffPortalRouter — Factory med store-injektion.
@@ -33,6 +34,7 @@ const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
  * @param {object}   opts.authStore             - Auth store för personalregister (valfri)
  * @param {object}   opts.ccoAuditLog           - ccoAuditLog-instans (valfri)
  * @param {object}   opts.bookingCaseStore      - ccoBookingCaseStore (valfri)
+ * @param {object}   opts.qmsStore              - QMS-store för OLS/handbok/avvikelser (valfri)
  * @param {object}   opts.journalPhotoStore     - ccoJournalPhotoStore (valfri)
  * @param {object}   opts.mailIngestionStore    - ccoMailIngestionStore (valfri)
  * @param {function} opts.getCommDraftStore     - Lazy-getter: () => commDraftStore | null
@@ -44,6 +46,7 @@ function createStaffPortalRouter({
   authStore = null,
   ccoAuditLog = null,
   bookingCaseStore = null,
+  qmsStore = null,
   journalPhotoStore: _journalPhotoStore = null,
   mailIngestionStore = null,
   getCommDraftStore = null,
@@ -336,6 +339,123 @@ function createStaffPortalRouter({
         hitl: true,
         message:
           'Läkare måste fatta beslut manuellt. Systemet kan aldrig auto-godkänna ordination.',
+      },
+    };
+  }
+
+  function loadDocumentCatalog() {
+    try {
+      const catalog = require('../ops/hairtp-document-types.catalog.json');
+      return Array.isArray(catalog) ? catalog : catalog.types || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function buildStaffHandbookDocuments(catalog = []) {
+    const staffDocs = catalog.filter((doc) => {
+      const haystack = [
+        doc.id,
+        doc.registryId,
+        doc.name,
+        doc.category,
+        doc.filler,
+        ...(Array.isArray(doc.tags) ? doc.tags : []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return (
+        doc.filler === 'staff' ||
+        doc.category === 'internal' ||
+        /deleg|ordination|journal|id-verifiering|anteckning|handbok|intern|staff|personal/.test(
+          haystack
+        )
+      );
+    });
+
+    return staffDocs.slice(0, 24).map((doc) => ({
+      id: doc.id || doc.registryId || doc.name,
+      name: doc.name || doc.title || doc.id || 'Dokument',
+      category: doc.category || 'staff',
+      filler: doc.filler || null,
+      source: doc.contentSource || doc.contentSrc || doc.source || null,
+      flags: Array.isArray(doc.legalFlags) ? doc.legalFlags : [],
+      canonicalSource: doc.canonicalSource || doc.canonicalUrl || null,
+    }));
+  }
+
+  function buildQmsHandbookReadout({ tenantId = 'hairtpclinic' } = {}) {
+    const catalog = loadDocumentCatalog();
+    const dashboard = qmsStore?.getDashboard ? qmsStore.getDashboard(tenantId) : null;
+    const checklists =
+      qmsStore?.listChecklists?.({ tenantId, status: 'active' }) || CHECKLIST_TEMPLATES;
+    const processes =
+      qmsStore?.listProcesses?.({ tenantId, status: 'active' }) || PROCESS_TEMPLATES;
+    const deviations = qmsStore?.listDeviations?.({ tenantId }) || [];
+    const capas = qmsStore?.listCapas?.({ tenantId }) || [];
+    const qmsDocs =
+      qmsStore
+        ?.listDocuments?.({ tenantId })
+        ?.filter((doc) =>
+          ['approved', 'review'].includes(String(doc.status || '').toLowerCase())
+        ) || [];
+    const openDeviations = deviations.filter((item) => item.status !== 'closed');
+    const openCapas = capas.filter((item) => item.status !== 'closed');
+
+    return {
+      tenantId,
+      generatedAt: new Date().toISOString(),
+      mode: qmsStore ? 'live' : 'template',
+      summary: {
+        activeChecklists: checklists.length,
+        activeProcesses: processes.length,
+        handbookDocuments: qmsDocs.length + buildStaffHandbookDocuments(catalog).length,
+        openDeviations: openDeviations.length,
+        openCapas: openCapas.length,
+        alerts: dashboard?.alerts?.length || 0,
+      },
+      dashboard: dashboard || {
+        overview: {
+          totalChecklists: checklists.length,
+          totalProcesses: processes.length,
+          totalDocuments: qmsDocs.length,
+        },
+        alerts: [],
+      },
+      handbook: {
+        principles: [
+          'Personal följer fastställda rutiner och dokumenterar avvikelser direkt.',
+          'Medicinska beslut och ordinationer kräver behörig mänsklig granskning.',
+          'Kundkommunikation, bilder och journalunderlag hanteras via CCO med audit-spår.',
+          'OLS/QMS används för förbättring, inte för att dölja fel.',
+        ],
+        documents: [...qmsDocs, ...buildStaffHandbookDocuments(catalog)].slice(0, 30),
+      },
+      checklists: checklists.slice(0, 12).map((item) => ({
+        checklistId: item.checklistId || item.templateId,
+        title: item.title,
+        category: item.category || 'general',
+        frequency: item.frequency || 'vid behov',
+        responsibleRole: item.responsibleRole || 'STAFF',
+        status: item.status || 'template',
+        steps: Array.isArray(item.steps) ? item.steps.slice(0, 8) : [],
+      })),
+      processes: processes.slice(0, 12).map((item) => ({
+        processId: item.processId || item.templateId,
+        referenceNumber: item.referenceNumber || item.templateId,
+        title: item.title,
+        category: item.category || 'clinical',
+        owner: item.owner || item.responsibleRole || 'OWNER',
+        status: item.status || 'template',
+        steps: Array.isArray(item.steps) ? item.steps.slice(0, 8) : [],
+      })),
+      deviations: openDeviations.slice(0, 12),
+      capas: openCapas.slice(0, 12),
+      safety: {
+        hitl: true,
+        message:
+          'OLS/handbok hjälper personalen följa rutiner. Systemet ersätter inte medicinskt ansvar, juridisk granskning eller journalföring.',
       },
     };
   }
@@ -863,17 +983,33 @@ function createStaffPortalRouter({
   ─────────────────────────────────────────────────────────────── */
   router.get('/api/v1/staff/documents', requirePermission('delegation.read'), (req, res) => {
     try {
-      const catalog = require('../ops/hairtp-document-types.catalog.json');
       const category = req.query.category || null;
       const filler = req.query.filler || null;
 
-      let docs = Array.isArray(catalog) ? catalog : catalog.types || [];
+      let docs = loadDocumentCatalog();
       if (category) docs = docs.filter((d) => d.category === category);
       if (filler) docs = docs.filter((d) => d.filler === filler);
 
       res.json({ ok: true, documents: docs, count: docs.length });
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  /* ── GET /api/v1/staff/qms/handbook ─────────────────────────
+     Samlad OLS/QMS-readout för personalportalen:
+       - kvalitetshandbok/principer
+       - aktiva checklistor och SOP-rutiner
+       - öppna avvikelser/CAPA
+       - dokumentkatalogens personal-/internunderlag
+     Read-only. Alla skrivningar sker via separata, audit-loggade endpoints.
+  ─────────────────────────────────────────────────────────────── */
+  router.get('/api/v1/staff/qms/handbook', requirePermission('qms.read'), (req, res) => {
+    try {
+      const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+      return res.json({ ok: true, qms: buildQmsHandbookReadout({ tenantId }) });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
     }
   });
 
@@ -1019,35 +1155,68 @@ function createStaffPortalRouter({
   /* ── POST /api/v1/staff/qms/deviations ───────────────────────
      Rapporterar en ny avvikelse (OLS-3). All personal.
   ─────────────────────────────────────────────────────────────── */
-  router.post(
-    '/api/v1/staff/qms/deviations',
-    requireAnyRole(['owner', 'operator', 'konsult', 'personal']),
-    (req, res) => {
-      const { kind, description } = req.body ?? {};
+  router.post('/api/v1/staff/qms/deviations', requirePermission('qms.read'), async (req, res) => {
+    const {
+      kind,
+      description,
+      severity = 'medium',
+      category,
+      affectedArea,
+      patientId,
+    } = req.body ?? {};
 
-      if (!kind || !description || description.trim().length < 10) {
-        return res
-          .status(400)
-          .json({ ok: false, error: 'kind och description (min 10 tecken) krävs.' });
-      }
-
-      const reportedBy = req.auth?.userId ?? req.session?.userId ?? 'unknown';
-      const reportedAt = new Date().toISOString();
-      const deviationId = `AVV-${Date.now()}`;
-
-      if (ccoAuditLog) {
-        ccoAuditLog.append({
-          action: 'qms.deviation.reported',
-          actor: { role: req.cco?.role ?? null, userId: reportedBy, ip: null },
-          target: { kind: 'entity', id: deviationId, tenantId: req.auth?.tenantId ?? null },
-          result: 'ok',
-          detail: { kind, description },
-        });
-      }
-
-      res.json({ ok: true, deviationId, kind, status: 'open', reportedBy, reportedAt });
+    if (!kind || !description || description.trim().length < 10) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'kind och description (min 10 tecken) krävs.' });
     }
-  );
+
+    const reportedBy = req.auth?.userId ?? req.session?.userId ?? 'unknown';
+    const reportedAt = new Date().toISOString();
+    const tenantId = req.auth?.tenantId || 'hairtpclinic';
+    let deviation = null;
+
+    try {
+      if (qmsStore?.reportDeviation) {
+        deviation = qmsStore.reportDeviation({
+          tenantId,
+          title: kind,
+          description,
+          severity,
+          category: category || kind,
+          reportedBy,
+          patientId,
+          affectedArea,
+        });
+        await qmsStore.persist?.();
+      }
+    } catch (err) {
+      return handleWriteError(res, err);
+    }
+
+    const deviationId = deviation?.deviationId || `AVV-${Date.now()}`;
+
+    if (ccoAuditLog) {
+      ccoAuditLog.append({
+        action: 'qms.deviation.reported',
+        actor: { role: req.cco?.role ?? null, userId: reportedBy, ip: null },
+        target: { kind: 'entity', id: deviationId, tenantId },
+        result: 'ok',
+        detail: { kind, severity, category: category || kind, description },
+      });
+    }
+
+    res.json({
+      ok: true,
+      deviationId,
+      referenceNumber: deviation?.referenceNumber || null,
+      kind,
+      status: deviation?.status || 'open',
+      reportedBy,
+      reportedAt: deviation?.reportedAt || reportedAt,
+      deviation,
+    });
+  });
 
   return router;
 }
