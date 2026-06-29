@@ -8,6 +8,7 @@ const express = require('express');
 
 const { createStaffPortalRouter } = require('../../src/routes/staffPortal');
 const { createCcoBookingCaseStore } = require('../../src/ops/ccoBookingCaseStore');
+const { createQmsStore } = require('../../src/qms/qmsStore');
 
 async function withServer(run) {
   const app = express();
@@ -363,6 +364,136 @@ test('POST /api/v1/staff/cases/:id/assign tilldelar ansvarig personal med audit'
       assert.ok(stored.history.some((entry) => entry.action === 'staff_assigned'));
       assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.case_assigned'));
       assert.ok(auditEntries.some((entry) => entry.action === 'cco.booking_case.staff_assigned'));
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/v1/staff/qms/handbook sammanställer OLS och handbok från QMS-store', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-qms-handbook-'));
+  try {
+    const qmsStore = createQmsStore({ filePath: path.join(dir, 'qms.json') });
+    await qmsStore.load();
+    qmsStore.createChecklist({
+      tenantId: 'hairtpclinic',
+      title: 'Preop TP',
+      category: 'patient_safety',
+      steps: [{ title: 'Friskförsäkran signerad' }],
+      createdBy: 'owner-1',
+    });
+    qmsStore.createProcess({
+      tenantId: 'hairtpclinic',
+      title: 'Rutin: operationsdag',
+      category: 'clinical',
+      steps: [{ title: 'Kontrollera ordination' }],
+      createdBy: 'owner-1',
+    });
+    qmsStore.createDocument({
+      tenantId: 'hairtpclinic',
+      title: 'Personalhandbok',
+      category: 'policy',
+      content: 'Rutiner',
+      approvedBy: 'owner-1',
+      createdBy: 'owner-1',
+    });
+    qmsStore.reportDeviation({
+      tenantId: 'hairtpclinic',
+      title: 'Testavvikelse',
+      description: 'En processavvikelse som ska visas.',
+      severity: 'medium',
+      category: 'process',
+      reportedBy: 'staff-1',
+    });
+    await qmsStore.persist();
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        qmsStore,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/qms/handbook`, {
+        headers: { 'x-cco-role': 'personal' },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.qms.mode, 'live');
+      assert.equal(body.qms.summary.activeChecklists, 1);
+      assert.equal(body.qms.summary.activeProcesses, 1);
+      assert.equal(body.qms.summary.openDeviations, 1);
+      assert.ok(body.qms.handbook.documents.some((doc) => doc.title === 'Personalhandbok'));
+      assert.ok(body.qms.safety.hitl);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('POST /api/v1/staff/qms/deviations persisterar avvikelse och audit-loggar', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-qms-deviation-'));
+  try {
+    const auditEntries = [];
+    const ccoAuditLog = {
+      append(entry) {
+        auditEntries.push(entry);
+      },
+      query() {
+        return auditEntries;
+      },
+    };
+    const qmsStore = createQmsStore({ filePath: path.join(dir, 'qms.json') });
+    await qmsStore.load();
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createStaffPortalRouter({
+        qmsStore,
+        ccoAuditLog,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/qms/deviations`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'personal' },
+        body: JSON.stringify({
+          kind: 'documentation',
+          description: 'Dokumentationsavvikelse som ska in i OLS.',
+          severity: 'medium',
+        }),
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.status, 'reported');
+      assert.ok(body.referenceNumber);
+
+      const deviations = qmsStore.listDeviations({ tenantId: 'hairtpclinic' });
+      assert.equal(deviations.length, 1);
+      assert.equal(deviations[0].reportedBy, 'staff-1');
+      assert.equal(deviations[0].category, 'documentation');
+      assert.ok(auditEntries.some((entry) => entry.action === 'qms.deviation.reported'));
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
