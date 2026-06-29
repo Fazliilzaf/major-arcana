@@ -89,6 +89,19 @@ function emptyHandoffChecklist() {
   };
 }
 
+function normalizeOrdinationReview(input = null) {
+  if (!input || typeof input !== 'object') return null;
+  const status = normalizeKey(input.status);
+  return {
+    status: ['approved', 'rejected', 'pending'].includes(status) ? status : 'pending',
+    decidedAt: normalizeText(input.decidedAt) || null,
+    decidedBy: normalizeText(input.decidedBy) || null,
+    decidedByRole: normalizeText(input.decidedByRole) || null,
+    signature: normalizeText(input.signature) || '',
+    comment: normalizeText(input.comment) || '',
+  };
+}
+
 function normalizeCaseRecord(input = {}) {
   const ts = normalizeText(input.createdAt) || nowIso();
   const state = VALID_STATES.includes(normalizeKey(input.state))
@@ -121,6 +134,7 @@ function normalizeCaseRecord(input = {}) {
         ? input.handoffChecklist
         : {}),
     },
+    ordinationReview: normalizeOrdinationReview(input.ordinationReview),
     handoffCompletedAt: normalizeText(input.handoffCompletedAt) || null,
     history: Array.isArray(input.history) ? input.history : [],
     createdAt: ts,
@@ -315,6 +329,45 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     return { ...record };
   }
 
+  async function updateOrdinationReview(id, input = {}, actor = {}) {
+    const idx = findIndexById(id);
+    if (idx === -1) throw notFound('booking_case_not_found');
+    const status = normalizeKey(input.status);
+    if (!['approved', 'rejected'].includes(status)) {
+      throw badRequest('Ogiltigt ordinationsbeslut. Tillåtna: approved, rejected.');
+    }
+
+    const record = state.cases[idx];
+    const ts = nowIso();
+    const next = normalizeOrdinationReview({
+      status,
+      decidedAt: ts,
+      decidedBy: actor?.userId || input.decidedBy || 'unknown',
+      decidedByRole: actor?.role || input.decidedByRole || 'system',
+      signature: input.signature || '',
+      comment: input.comment || '',
+    });
+
+    record.ordinationReview = next;
+    record.updatedAt = ts;
+    record.history.push({
+      at: ts,
+      action: status === 'approved' ? 'ordination_approved' : 'ordination_rejected',
+      role: normalizeText(actor?.role) || 'system',
+      userId: normalizeText(actor?.userId) || null,
+    });
+    await save();
+    audit(
+      status === 'approved'
+        ? 'cco.booking_case.ordination_approved'
+        : 'cco.booking_case.ordination_rejected',
+      actor,
+      record.id,
+      { status, comment: next.comment }
+    );
+    return { ...record };
+  }
+
   async function attemptHandoffComplete(id, actor = {}) {
     const idx = findIndexById(id);
     if (idx === -1) throw notFound('booking_case_not_found');
@@ -349,6 +402,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     proposeCandidate,
     transitionState,
     updateHandoffChecklist,
+    updateOrdinationReview,
     attemptHandoffComplete,
   };
 }
