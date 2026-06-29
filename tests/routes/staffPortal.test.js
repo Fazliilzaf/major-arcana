@@ -101,6 +101,16 @@ test('GET /api/v1/staff/my-customers aggregerar egna kunder med bildsignal', asy
       assert.equal(body.customers[0].patientId, 'patient-1');
       assert.equal(body.customers[0].photos.count, 1);
       assert.equal(body.customers[0].signals.hasCustomerCard, true);
+      assert.equal(
+        body.customers[0].links.customerCard,
+        '/major-arcana-preview/?view=customers&patientId=patient-1'
+      );
+      assert.equal(
+        body.customers[0].links.workspace,
+        '/major-arcana-preview/?view=customers&workspace=1&patientId=patient-1'
+      );
+      assert.equal(body.customers[0].links.photos, '/api/v1/staff/customer-photos/patient-1');
+      assert.equal(body.customers[0].links.threads, '/api/v1/staff/customer-threads/customer-1');
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
@@ -159,6 +169,12 @@ test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende',
       assert.ok(body.items[0].actions.some((action) => action.key === 'ordination'));
       assert.ok(body.items[0].actions.some((action) => action.key === 'checklist'));
       assert.ok(body.items[0].actions.some((action) => action.key === 'today_booking'));
+      assert.equal(
+        body.items[0].links.customerCard,
+        '/major-arcana-preview/?view=customers&patientId=patient-today'
+      );
+      assert.equal(body.items[0].links.qms, '/staff-portal#qms');
+      assert.equal(body.items[0].links.ordination, '/staff-portal#ordination-case-today-tp');
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
