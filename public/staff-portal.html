@@ -475,6 +475,30 @@
         flex-wrap: wrap;
         gap: 5px;
       }
+      .checklist-progress {
+        margin-top: 10px;
+        display: grid;
+        gap: 6px;
+      }
+      .checklist-progress-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 8px;
+        border: 1px solid rgba(30, 41, 59, 0.08);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.58);
+      }
+      .checklist-progress-row.is-complete {
+        background: rgba(74, 130, 104, 0.08);
+      }
+      .checklist-progress-label {
+        color: var(--text);
+        font-size: 11px;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+      }
       .notification-toolbar {
         display: flex;
         flex-wrap: wrap;
@@ -2572,6 +2596,31 @@
               .map((step) => `<span class="pill amber">${escapeHtml(step)}</span>`)
               .join('')
           : '';
+        const checklistLabel = (key) =>
+          ({
+            journalReady: 'Journal klar',
+            consentSigned: 'Samtycke signerat',
+            paymentSettled: 'Betalning klar',
+            encounterLinked: 'Besök länkat',
+          })[key] || key;
+        const checklistHtml =
+          detail.caseId && Array.isArray(detail.checklistItems) && detail.checklistItems.length
+            ? `<div class="checklist-progress">
+                ${detail.checklistItems
+                  .map((entry) => {
+                    const complete = Boolean(entry.complete);
+                    return `<div class="checklist-progress-row ${complete ? 'is-complete' : ''}">
+                      <span class="checklist-progress-label">${escapeHtml(checklistLabel(entry.key || entry.label || 'Checkpunkt'))}</span>
+                      ${
+                        complete
+                          ? '<span class="pill sage">Klar</span>'
+                          : `<button class="btn queue-action" data-action="complete_checklist" data-item-key="${escapeHtml(entry.key)}" data-case-id="${escapeHtml(detail.caseId)}">Markera klar</button>`
+                      }
+                    </div>`;
+                  })
+                  .join('')}
+              </div>`
+            : '';
         const detailBox = detail.kind
           ? `<div class="case-detail-box">
               <div class="next-action-kicker">Ärendedetalj</div>
@@ -2587,6 +2636,7 @@
               </div>
               ${signalHtml ? `<div class="case-detail-list">${signalHtml}</div>` : ''}
               ${remainingHtml ? `<div class="case-detail-list">${remainingHtml}</div>` : ''}
+              ${checklistHtml}
               ${detailLinkHtml ? `<div class="deep-link-row">${detailLinkHtml}</div>` : ''}
             </div>`
           : '';

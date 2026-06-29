@@ -802,6 +802,11 @@ function createStaffPortalRouter({
     const customerItem = item?.queueItem?.customer || {};
     const caseRecord = customerItem.case || {};
     const checklist = caseRecord.handoffChecklist || {};
+    const checklistItems = Object.entries(checklist).map(([key, value]) => ({
+      key,
+      label: key,
+      complete: value !== false,
+    }));
     const missingChecklist = Object.entries(checklist)
       .filter(([, value]) => value === false)
       .map(([key]) => key);
@@ -839,6 +844,7 @@ function createStaffPortalRouter({
         .filter((action) => action.key !== 'no_action')
         .map((action) => action.label || action.key)
         .filter(Boolean),
+      checklistItems,
       missingChecklist,
       links: item.links || {},
     };

@@ -369,6 +369,15 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
       assert.equal(body.items[1].detail.customer, 'Prioritet Kund');
       assert.equal(body.items[1].detail.treatment, 'Hårtransplantation DHI');
       assert.deepEqual(body.items[1].detail.missingChecklist, ['consentSigned']);
+      assert.deepEqual(
+        body.items[1].detail.checklistItems.map((item) => [item.key, item.complete]),
+        [
+          ['journalReady', true],
+          ['consentSigned', false],
+          ['paymentSettled', true],
+          ['encounterLinked', true],
+        ]
+      );
       assert.ok(body.items[1].detail.remainingSteps.includes('Ordination väntar'));
     } finally {
       await new Promise((resolve) => server.close(resolve));
