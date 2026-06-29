@@ -516,6 +516,9 @@
         align-items: center;
       }
       .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         padding: 6px 13px;
         border-radius: 999px;
         border: 1px solid var(--border);
@@ -524,6 +527,7 @@
         font-size: 11px;
         font-weight: 700;
         color: var(--brand);
+        text-decoration: none;
         transition: background 0.1s;
       }
       .btn:hover {
@@ -1842,6 +1846,13 @@
         );
       }
 
+      function customerCardUrl(item) {
+        const patientId = String(item?.patientId || item?.customerId || '').trim();
+        if (!patientId) return '';
+        const params = new URLSearchParams({ view: 'customers', patientId });
+        return `/major-arcana-preview/?${params.toString()}`;
+      }
+
       function renderCaseCard(item, opts = {}) {
         const title = getCaseTitle(item, opts.fallbackTitle || 'Kundärende');
         const treatment =
@@ -1869,6 +1880,10 @@
           .join(' · ');
         const state = item.needsReplyStatus || item.state || item.status || 'pending';
         const cc = opts.kind || (String(state).includes('need') ? 'urgent' : 'pending');
+        const cardUrl = customerCardUrl(item);
+        const customerAction = cardUrl
+          ? `<a class="btn" href="${escapeHtml(cardUrl)}" target="_blank" rel="noopener">Visa kundkort</a>`
+          : '<button class="btn" disabled title="Saknar patientId/customerId">Visa kundkort</button>';
         return `<div class="item-card ${cc}">
           <div class="item-icon">${opts.icon || '👤'}</div>
           <div class="item-body">
@@ -1882,7 +1897,7 @@
             </div>
           </div>
           <div class="item-actions">
-            <button class="btn" disabled title="Kundkort-länk kopplas i nästa fas">Visa kundkort</button>
+            ${customerAction}
           </div>
         </div>`;
       }
