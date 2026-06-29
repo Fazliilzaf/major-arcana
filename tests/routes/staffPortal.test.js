@@ -1,9 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
+const os = require('node:os');
+const path = require('node:path');
+const fs = require('node:fs/promises');
 const express = require('express');
 
 const { createStaffPortalRouter } = require('../../src/routes/staffPortal');
+const { createCcoBookingCaseStore } = require('../../src/ops/ccoBookingCaseStore');
 
 async function withServer(run) {
   const app = express();
@@ -34,4 +38,72 @@ test('GET /api/v1/staff/documents?filler=staff läser katalogens types-array', a
       true
     );
   });
+});
+
+test('GET /api/v1/staff/my-customers aggregerar egna kunder med bildsignal', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-my-customers-'));
+  try {
+    const photoRoot = path.join(dir, 'journal-photos');
+    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-1'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-1', 'front.jpg'), 'x');
+
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-1',
+      customerId: 'customer-1',
+      customerName: 'Test Kund',
+      serviceLabel: 'Hårtransplantation',
+      assignedTo: 'staff-1',
+      startsAt: '2030-06-29T10:00:00.000Z',
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-2',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-2',
+      customerName: 'Annan Kund',
+      assignedTo: 'staff-2',
+    });
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        config: {
+          stateRoot: dir,
+          journalPhotosDir: photoRoot,
+        },
+        bookingCaseStore,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/my-customers`, {
+        headers: { 'x-cco-role': 'personal' },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.count, 1);
+      assert.equal(body.summary.total, 1);
+      assert.equal(body.summary.withPhotos, 1);
+      assert.equal(body.customers[0].patientId, 'patient-1');
+      assert.equal(body.customers[0].photos.count, 1);
+      assert.equal(body.customers[0].signals.hasCustomerCard, true);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
 });
