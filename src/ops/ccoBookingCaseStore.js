@@ -93,7 +93,9 @@ function normalizeOrdinationReview(input = null) {
   if (!input || typeof input !== 'object') return null;
   const status = normalizeKey(input.status);
   return {
-    status: ['approved', 'rejected', 'pending'].includes(status) ? status : 'pending',
+    status: ['approved', 'rejected', 'pending', 'needs_completion'].includes(status)
+      ? status
+      : 'pending',
     decidedAt: normalizeText(input.decidedAt) || null,
     decidedBy: normalizeText(input.decidedBy) || null,
     decidedByRole: normalizeText(input.decidedByRole) || null,
@@ -448,8 +450,10 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     const idx = findIndexById(id);
     if (idx === -1) throw notFound('booking_case_not_found');
     const status = normalizeKey(input.status);
-    if (!['approved', 'rejected'].includes(status)) {
-      throw badRequest('Ogiltigt ordinationsbeslut. Tillåtna: approved, rejected.');
+    if (!['approved', 'rejected', 'needs_completion'].includes(status)) {
+      throw badRequest(
+        'Ogiltigt ordinationsbeslut. Tillåtna: approved, rejected, needs_completion.'
+      );
     }
 
     const record = state.cases[idx];
@@ -465,21 +469,20 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
 
     record.ordinationReview = next;
     record.updatedAt = ts;
+    const historyAction =
+      status === 'approved'
+        ? 'ordination_approved'
+        : status === 'rejected'
+          ? 'ordination_rejected'
+          : 'ordination_needs_completion';
     record.history.push({
       at: ts,
-      action: status === 'approved' ? 'ordination_approved' : 'ordination_rejected',
+      action: historyAction,
       role: normalizeText(actor?.role) || 'system',
       userId: normalizeText(actor?.userId) || null,
     });
     await save();
-    audit(
-      status === 'approved'
-        ? 'cco.booking_case.ordination_approved'
-        : 'cco.booking_case.ordination_rejected',
-      actor,
-      record.id,
-      { status, comment: next.comment }
-    );
+    audit(`cco.booking_case.${historyAction}`, actor, record.id, { status, comment: next.comment });
     return { ...record };
   }
 
