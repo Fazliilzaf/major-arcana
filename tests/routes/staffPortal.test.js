@@ -197,6 +197,79 @@ test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende',
   }
 });
 
+test('GET /api/v1/staff/notifications exponerar personalens read-only notisfeed', async () => {
+  const calls = [];
+  const notificationFeedStore = {
+    async getFeed(args) {
+      calls.push(args);
+      return {
+        items: [
+          {
+            id: 'n-1',
+            type: 'booking',
+            title: 'Bokningsärende: blocked',
+            body: 'Väntar på läkargranskning',
+            severity: 'warning',
+            read: false,
+            createdAt: '2030-06-29T08:00:00.000Z',
+            actionUrl: '/staff-portal?role=doctor&panel=ordination#ordination-case-1',
+            links: {
+              staffPortal: '/staff-portal?role=nurse&panel=customers',
+              doctorReview: '/staff-portal?role=doctor&panel=ordination#ordination-case-1',
+            },
+          },
+        ],
+        summary: {
+          total: 1,
+          unread: 1,
+          actionRequired: 1,
+          byType: { booking: 1 },
+        },
+      };
+    },
+  };
+
+  const app = express();
+  app.use(
+    createStaffPortalRouter({
+      notificationFeedStore,
+      requireAuth: (req, _res, next) => {
+        req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+        next();
+      },
+    })
+  );
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address();
+  try {
+    const res = await fetch(
+      `http://127.0.0.1:${port}/api/v1/staff/notifications?limit=8&sinceHours=168`,
+      {
+        headers: { 'x-cco-role': 'personal' },
+      }
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.mode, 'live');
+    assert.equal(body.count, 1);
+    assert.equal(body.summary.unread, 1);
+    assert.equal(body.summary.actionRequired, 1);
+    assert.equal(
+      body.items[0].actionUrl,
+      '/staff-portal?role=doctor&panel=ordination#ordination-case-1'
+    );
+    assert.equal(body.items[0].links.staffPortal, '/staff-portal?role=nurse&panel=customers');
+    assert.equal(calls[0].role, 'personal');
+    assert.equal(calls[0].userId, 'staff-1');
+    assert.equal(calls[0].limit, 8);
+    assert.equal(calls[0].sinceHours, 168);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder med audit', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-queue-action-'));
   try {

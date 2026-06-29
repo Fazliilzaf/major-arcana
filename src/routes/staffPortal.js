@@ -34,9 +34,11 @@ const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates'
  * @param {object}   opts.authStore             - Auth store för personalregister (valfri)
  * @param {object}   opts.ccoAuditLog           - ccoAuditLog-instans (valfri)
  * @param {object}   opts.bookingCaseStore      - ccoBookingCaseStore (valfri)
+ * @param {object}   opts.notificationFeedStore - ccoNotificationFeedStore (valfri)
  * @param {object}   opts.qmsStore              - QMS-store för OLS/handbok/avvikelser (valfri)
  * @param {object}   opts.journalPhotoStore     - ccoJournalPhotoStore (valfri)
  * @param {object}   opts.mailIngestionStore    - ccoMailIngestionStore (valfri)
+ * @param {function} opts.getNotificationFeedStore - Lazy-getter: () => notificationFeedStore | null
  * @param {function} opts.getCommDraftStore     - Lazy-getter: () => commDraftStore | null
  * @param {function} opts.getSendActionStore    - Lazy-getter: () => sendActionStore | null
  */
@@ -46,9 +48,11 @@ function createStaffPortalRouter({
   authStore = null,
   ccoAuditLog = null,
   bookingCaseStore = null,
+  notificationFeedStore = null,
   qmsStore = null,
   journalPhotoStore: _journalPhotoStore = null,
   mailIngestionStore = null,
+  getNotificationFeedStore = null,
   getCommDraftStore = null,
   getSendActionStore = null,
 } = {}) {
@@ -637,6 +641,60 @@ function createStaffPortalRouter({
         tenantId: auth.tenantId ?? null,
         name: auth.name ?? auth.displayName ?? auth.staffName ?? null,
       });
+    }
+  );
+
+  /* ── GET /api/v1/staff/notifications ──────────────────────────
+     Personalens read-only notisinkorg. Återanvänder CCO:s
+     notification-feed och dess staff-portal deep links.
+  ─────────────────────────────────────────────────────────────── */
+  router.get(
+    '/api/v1/staff/notifications',
+    requirePermission('notifications.read'),
+    async (req, res) => {
+      try {
+        const role = req.cco?.role ?? req.auth?.role ?? req.query.role ?? null;
+        const userId = req.auth?.userId ?? req.headers['x-cco-user'] ?? role ?? 'staff';
+        const sinceHours = Math.min(Math.max(Number(req.query.sinceHours) || 72, 1), 24 * 30);
+        const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
+
+        const feedStore = getNotificationFeedStore?.() ?? notificationFeedStore;
+        if (!feedStore?.getFeed) {
+          return res.json({
+            ok: true,
+            mode: 'unavailable',
+            items: [],
+            count: 0,
+            summary: { total: 0, unread: 0, actionRequired: 0, byType: {} },
+          });
+        }
+
+        const feed = await feedStore.getFeed({
+          role,
+          userId,
+          sinceHours,
+          limit,
+        });
+        const items = Array.isArray(feed?.items) ? feed.items : [];
+        const summary = feed?.summary || {};
+        res.json({
+          ok: true,
+          mode: 'live',
+          count: items.length,
+          items,
+          summary: {
+            total: Number(summary.total ?? items.length),
+            unread: Number(summary.unread ?? items.filter((item) => !item.read).length),
+            actionRequired: Number(
+              summary.actionRequired ??
+                items.filter((item) => item.actionUrl || item.links?.staffPortal).length
+            ),
+            byType: summary.byType || {},
+          },
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
     }
   );
 

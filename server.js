@@ -13672,6 +13672,7 @@ process.once('SIGTERM', () => {
       authStore,
       ccoAuditLog,
       bookingCaseStore: ccoBookingCaseStore || null,
+      getNotificationFeedStore: () => app.locals.ccoNotificationFeedStore || null,
       qmsStore,
       journalPhotoStore: ccoJournalPhotoStore || null,
       mailIngestionStore: ccoMailIngestionStore || null,
