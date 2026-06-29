@@ -813,6 +813,7 @@
 
       /* notis-item */
       .noti {
+        box-sizing: border-box;
         display: grid;
         grid-template-columns: auto 1fr;
         gap: 0.75rem;
@@ -822,6 +823,10 @@
         border: 1px solid rgba(180, 165, 150, 0.25);
         box-shadow: var(--sh-sm);
         cursor: pointer;
+        font-family: inherit;
+        font-size: 13.3333px;
+        color: inherit;
+        line-height: normal;
         text-align: left;
         width: 100%;
         min-height: var(--tap);
@@ -935,11 +940,13 @@
         font: inherit;
         font-size: var(--fs-meta);
         font-weight: 700;
+        line-height: normal;
         color: var(--text-primary);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
+        text-decoration: none;
       }
       @media (pointer: coarse) {
         .n-act {
@@ -1599,7 +1606,14 @@
       function itemHTML(n) {
         const k = KIND[n.type] || KIND.system;
         const sev = n.severity === 'warning' ? '<span class="n-sev">Viktigt</span>' : '';
-        return `<button class="noti ${k.cls} ${n.read ? 'is-read' : 'is-unread'}" data-id="${esc(n.id)}" aria-label="${esc(n.title)}${n.read ? ', läst' : ', oläst'}">
+        const actionUrl = n.actionUrl || n.links?.staffPortal || n.links?.customerCard || '';
+        const actionHtml =
+          k.action && actionUrl
+            ? `<a class="n-act" href="${esc(actionUrl)}" target="_blank" rel="noopener" data-action-link="1"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${esc(k.action)}</a>`
+            : k.action
+              ? `<span class="n-act" role="button" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${esc(k.action)}</span>`
+              : '';
+        return `<article class="noti ${k.cls} ${n.read ? 'is-read' : 'is-unread'}" data-id="${esc(n.id)}" role="button" tabindex="0" aria-label="${esc(n.title)}${n.read ? ', läst' : ', oläst'}">
     <span class="n-icon"><svg viewBox="0 0 24 24">${k.icon}</svg></span>
     <span class="n-body">
       <span class="n-top">
@@ -1611,10 +1625,10 @@
       ${n.body ? `<span class="n-text">${esc(n.body)}</span>` : ''}
       <span class="n-foot">
         <span class="n-time">${esc(timeLabel(n.createdAt))}</span>
-        ${k.action ? `<span class="n-act" role="button" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${esc(k.action)}</span>` : ''}
+        ${actionHtml}
       </span>
     </span>
-  </button>`;
+  </article>`;
       }
 
       function passFilter(n) {
@@ -1674,6 +1688,10 @@
 
       // klick på item → markera läst (optimistiskt) + synka backend
       feed.addEventListener('click', async (e) => {
+        if (e.target.closest('[data-action-link]')) {
+          e.stopPropagation();
+          return;
+        }
         const card = e.target.closest('.noti');
         if (!card) return;
         const id = card.dataset.id;
@@ -1687,6 +1705,14 @@
             render();
           }
         }
+      });
+
+      feed.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const card = e.target.closest('.noti');
+        if (!card || e.target.closest('[data-action-link]')) return;
+        e.preventDefault();
+        card.click();
       });
 
       // filterpills
