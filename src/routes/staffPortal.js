@@ -781,6 +781,69 @@ function createStaffPortalRouter({
     return { nurse, doctor, admin };
   }
 
+  function buildPriorityDetail(item) {
+    if (item?.source === 'notification') {
+      return {
+        kind: 'notification',
+        title: item.title || notificationKindLabel(item.type),
+        status: item.read ? 'läst' : 'ny',
+        customer: null,
+        treatment: null,
+        timing: item.createdAt || null,
+        signals: [
+          item.type ? `Typ: ${notificationKindLabel(item.type)}` : null,
+          item.severity ? `Nivå: ${item.severity}` : null,
+        ].filter(Boolean),
+        remainingSteps: ['Öppna notisen och hantera manuellt i rätt vy.'],
+        links: item.links || {},
+      };
+    }
+
+    const customerItem = item?.queueItem?.customer || {};
+    const caseRecord = customerItem.case || {};
+    const checklist = caseRecord.handoffChecklist || {};
+    const missingChecklist = Object.entries(checklist)
+      .filter(([, value]) => value === false)
+      .map(([key]) => key);
+    const actions = Array.isArray(item?.actions) ? item.actions : [];
+    const treatment =
+      caseRecord.serviceLabel ||
+      caseRecord.treatmentType ||
+      caseRecord.treatment ||
+      caseRecord.service ||
+      'Behandling ej angiven';
+
+    return {
+      kind: 'case',
+      caseId: caseRecord.id || item.id || null,
+      customer: customerItem.title || item.title || 'Kund',
+      patientId: customerItem.patientId || item.patientId || null,
+      customerId: customerItem.customerId || item.customerId || null,
+      status: caseRecord.state || caseRecord.status || item.state || 'pending',
+      treatment,
+      timing: item.startsAt || caseRecord.startsAt || caseRecord.scheduledForIso || null,
+      ordinationStatus: item.ordinationStatus || caseRecord.ordinationReview?.status || null,
+      assignedTo: item.assignedTo || caseRecord.assignedTo || null,
+      signals: [
+        customerItem.threads?.needsReply
+          ? `${customerItem.threads.needsReply} tråd kräver svar`
+          : null,
+        customerItem.photos?.count
+          ? `${customerItem.photos.count} bild${customerItem.photos.count === 1 ? '' : 'er'} finns`
+          : null,
+        missingChecklist.length
+          ? `${missingChecklist.length} checkpunkt${missingChecklist.length === 1 ? '' : 'er'} saknas`
+          : null,
+      ].filter(Boolean),
+      remainingSteps: actions
+        .filter((action) => action.key !== 'no_action')
+        .map((action) => action.label || action.key)
+        .filter(Boolean),
+      missingChecklist,
+      links: item.links || {},
+    };
+  }
+
   function buildNotificationPriorityItem(item, index = 0) {
     const severity = String(item?.severity || 'info').toLowerCase();
     const hasAction = Boolean(
@@ -823,6 +886,7 @@ function createStaffPortalRouter({
     };
     priorityItem.nextBestAction = buildNextBestAction(priorityItem);
     priorityItem.roleCards = buildRoleCards(priorityItem);
+    priorityItem.detail = buildPriorityDetail(priorityItem);
     return priorityItem;
   }
 
@@ -845,6 +909,7 @@ function createStaffPortalRouter({
     };
     priorityItem.nextBestAction = buildNextBestAction(priorityItem);
     priorityItem.roleCards = buildRoleCards(priorityItem);
+    priorityItem.detail = buildPriorityDetail(priorityItem);
     return priorityItem;
   }
 

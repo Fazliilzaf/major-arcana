@@ -348,6 +348,8 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
       assert.match(body.items[0].nextBestAction.safety, /automatiskt/);
       assert.equal(body.items[0].roleCards.nurse.focus, 'kundkontakt');
       assert.equal(body.items[0].roleCards.admin.badge, 'Kundfråga');
+      assert.equal(body.items[0].detail.kind, 'notification');
+      assert.equal(body.items[0].detail.status, 'ny');
       assert.equal(body.items[1].source, 'queue');
       assert.equal(body.items[1].queueItem.id, 'case-priority-1');
       assert.equal(body.items[1].nextBestAction.label, 'Skicka/öppna läkarkö');
@@ -363,6 +365,11 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
         '/staff-portal?role=doctor&panel=ordination#ordination-case-priority-1'
       );
       assert.equal(body.items[1].roleCards.admin.focus, 'handoff');
+      assert.equal(body.items[1].detail.kind, 'case');
+      assert.equal(body.items[1].detail.customer, 'Prioritet Kund');
+      assert.equal(body.items[1].detail.treatment, 'Hårtransplantation DHI');
+      assert.deepEqual(body.items[1].detail.missingChecklist, ['consentSigned']);
+      assert.ok(body.items[1].detail.remainingSteps.includes('Ordination väntar'));
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }

@@ -441,6 +441,40 @@
         color: var(--text3);
         font-weight: 750;
       }
+      .case-detail-box {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(30, 41, 59, 0.08);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.68);
+      }
+      .case-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .case-detail-cell {
+        min-width: 0;
+      }
+      .case-detail-label {
+        color: var(--text3);
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .case-detail-value {
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 750;
+        overflow-wrap: anywhere;
+      }
+      .case-detail-list {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
       .notification-toolbar {
         display: flex;
         flex-wrap: wrap;
@@ -2505,6 +2539,57 @@
               <div class="next-action-safety">${escapeHtml(roleCard?.safety || next.safety || 'Read-only.')}</div>
             </div>`
           : '';
+        const detail = item.detail || {};
+        const detailCells = [
+          ['Kund', detail.customer || item.title || '—'],
+          ['Behandling', detail.treatment || '—'],
+          ['Status', detail.status || priorityLabel(priority)],
+          ['Tid', detail.timing ? formatDateTime(detail.timing) : '—'],
+        ];
+        const detailLinks = detail.links || item.links || {};
+        const detailLinkHtml = [
+          detailLinks.customerCard ? ['Kundkort', detailLinks.customerCard] : null,
+          detailLinks.workspace ? ['Workspace', detailLinks.workspace] : null,
+          detailLinks.threads ? ['Trådar', detailLinks.threads] : null,
+          detailLinks.photos ? ['Bilder', detailLinks.photos] : null,
+          detailLinks.doctorReview ? ['Läkarkö', detailLinks.doctorReview] : null,
+          detailLinks.qms ? ['QMS', detailLinks.qms] : null,
+        ]
+          .filter(Boolean)
+          .map(
+            ([label, link]) =>
+              `<a class="deep-link" href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`
+          )
+          .join('');
+        const signalHtml = Array.isArray(detail.signals)
+          ? detail.signals
+              .map((signal) => `<span class="pill info">${escapeHtml(signal)}</span>`)
+              .join('')
+          : '';
+        const remainingHtml = Array.isArray(detail.remainingSteps)
+          ? detail.remainingSteps
+              .slice(0, 4)
+              .map((step) => `<span class="pill amber">${escapeHtml(step)}</span>`)
+              .join('')
+          : '';
+        const detailBox = detail.kind
+          ? `<div class="case-detail-box">
+              <div class="next-action-kicker">Ärendedetalj</div>
+              <div class="case-detail-grid">
+                ${detailCells
+                  .map(
+                    ([label, value]) => `<div class="case-detail-cell">
+                      <div class="case-detail-label">${escapeHtml(label)}</div>
+                      <div class="case-detail-value">${escapeHtml(value)}</div>
+                    </div>`
+                  )
+                  .join('')}
+              </div>
+              ${signalHtml ? `<div class="case-detail-list">${signalHtml}</div>` : ''}
+              ${remainingHtml ? `<div class="case-detail-list">${remainingHtml}</div>` : ''}
+              ${detailLinkHtml ? `<div class="deep-link-row">${detailLinkHtml}</div>` : ''}
+            </div>`
+          : '';
         return `<div class="item-card priority-card ${tone}">
           <div class="item-icon">${icon}</div>
           <div class="item-body">
@@ -2517,6 +2602,7 @@
               ${actionHtml}
             </div>
             ${nextBox}
+            ${detailBox}
           </div>
           <div class="item-actions">
             ${
