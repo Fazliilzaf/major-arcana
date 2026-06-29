@@ -2958,7 +2958,9 @@
             ? '<span class="pill sage" style="margin-left:auto">Godkänd</span>'
             : reviewStatus === 'rejected'
               ? '<span class="pill danger" style="margin-left:auto">Avvisad</span>'
-              : '<span class="pill amber" style="margin-left:auto">Väntar läkare</span>';
+              : reviewStatus === 'needs_completion'
+                ? '<span class="pill amber" style="margin-left:auto">Komplettering begärd</span>'
+                : '<span class="pill amber" style="margin-left:auto">Väntar läkare</span>';
         const disabledAttr = canApprove ? '' : ' disabled';
         const decisionMeta = review.decidedAt
           ? `<div class="live-note" style="margin:12px 0 0">Senaste beslut: ${escapeHtml(reviewStatus)} · ${escapeHtml(formatDateTime(review.decidedAt))}${review.decidedBy ? ' · ' + escapeHtml(review.decidedBy) : ''}</div>`
@@ -3102,7 +3104,7 @@
           <div class="ord-actions">
             <button class="btn primary ordination-action" data-action="approve" data-review-id="${escapeHtml(item.id || '')}"${disabledAttr}>✓ Godkänn &amp; signera</button>
             <button class="btn danger-btn ordination-action" data-action="reject" data-review-id="${escapeHtml(item.id || '')}"${disabledAttr}>✗ Avvisa</button>
-            <button class="btn" disabled>Begär komplettering</button>
+            <button class="btn ordination-action" data-action="request-completion" data-review-id="${escapeHtml(item.id || '')}"${disabledAttr}>Begär komplettering</button>
             <span class="ordination-feedback" data-feedback-for="${escapeHtml(item.id || '')}">${canApprove ? 'Redo för manuell läkaråtgärd.' : 'Endast läkare/ägare kan signera.'}</span>
           </div>
         </div>`;
@@ -3111,7 +3113,7 @@
       async function submitOrdinationDecision(button) {
         const id = button?.dataset?.reviewId;
         const action = button?.dataset?.action;
-        if (!id || !['approve', 'reject'].includes(action)) return;
+        if (!id || !['approve', 'reject', 'request-completion'].includes(action)) return;
 
         const card = button.closest('.ord-card');
         const escapedId =
@@ -3135,7 +3137,13 @@
             signature,
             comment,
           });
-          setFeedback(action === 'approve' ? 'Godkänd och loggad.' : 'Avvisad och loggad.', 'ok');
+          const success =
+            action === 'approve'
+              ? 'Godkänd och loggad.'
+              : action === 'reject'
+                ? 'Avvisad och loggad.'
+                : 'Komplettering begärd och loggad.';
+          setFeedback(success, 'ok');
           await loadOrdinationReviews();
           await loadAudit();
         } catch (err) {

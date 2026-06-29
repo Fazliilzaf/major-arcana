@@ -265,6 +265,98 @@ test('GET /api/v1/staff/ordination-reviews exponerar signoff-underlag för läka
   }
 });
 
+test('POST /api/v1/staff/ordination-reviews/:id/request-completion skapar komplettering med audit', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-ordination-completion-'));
+  try {
+    const auditEntries = [];
+    const ccoAuditLog = {
+      append(entry) {
+        auditEntries.push(entry);
+      },
+      query() {
+        return auditEntries;
+      },
+    };
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+      auditLog: ccoAuditLog,
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-completion-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-completion',
+      customerName: 'Komplettering Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      handoffChecklist: {
+        journalReady: true,
+        consentSigned: false,
+        paymentSettled: true,
+        encounterLinked: true,
+      },
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        bookingCaseStore,
+        ccoAuditLog,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'doctor-1', tenantId: 'hairtpclinic', role: 'konsult' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const missingComment = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/ordination-reviews/case-completion-1/request-completion`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'konsult' },
+          body: JSON.stringify({ signature: 'Dr Test', comment: '' }),
+        }
+      );
+      assert.equal(missingComment.status, 400);
+
+      const res = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/ordination-reviews/case-completion-1/request-completion`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'konsult' },
+          body: JSON.stringify({
+            signature: 'Dr Test',
+            comment: 'Komplettera samtycke före beslut',
+          }),
+        }
+      );
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.status, 'needs_completion');
+
+      const stored = await bookingCaseStore.getCase('case-completion-1');
+      assert.equal(stored.ordinationReview.status, 'needs_completion');
+      assert.equal(stored.ordinationReview.comment, 'Komplettera samtycke före beslut');
+      assert.ok(stored.history.some((entry) => entry.action === 'ordination_needs_completion'));
+      assert.ok(auditEntries.some((entry) => entry.action === 'ordination.completion_requested'));
+      assert.ok(
+        auditEntries.some(
+          (entry) => entry.action === 'cco.booking_case.ordination_needs_completion'
+        )
+      );
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('GET /api/v1/staff/notifications exponerar personalens read-only notisfeed', async () => {
   const calls = [];
   const notificationFeedStore = {

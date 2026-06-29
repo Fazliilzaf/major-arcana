@@ -1628,6 +1628,65 @@ function createStaffPortalRouter({
     }
   );
 
+  /* ── POST /api/v1/staff/ordination-reviews/:id/request-completion ─
+     Läkare begär komplettering från personal utan att avvisa ärendet.
+     Kräver motivering och audit-loggas. Ingen ordination godkänns.
+  ─────────────────────────────────────────────────────────────── */
+  router.post(
+    '/api/v1/staff/ordination-reviews/:id/request-completion',
+    requirePermission('ordination.approve'),
+    async (req, res) => {
+      const { id } = req.params;
+      const { comment = '', signature = '' } = req.body ?? {};
+      const trimmedComment = String(comment || '').trim();
+      const trimmedSignature = String(signature || '').trim();
+
+      if (!trimmedComment || trimmedComment.length < 5) {
+        return res.status(400).json({ ok: false, error: 'Kompletteringsinstruktion krävs.' });
+      }
+
+      if (!trimmedSignature || trimmedSignature.length < 2) {
+        return res.status(400).json({ ok: false, error: 'Signatur krävs vid komplettering.' });
+      }
+
+      let caseRecord = null;
+      try {
+        if (bookingCaseStore?.updateOrdinationReview) {
+          caseRecord = await bookingCaseStore.updateOrdinationReview(
+            id,
+            {
+              status: 'needs_completion',
+              signature: trimmedSignature,
+              comment: trimmedComment,
+            },
+            getActor(req)
+          );
+        }
+      } catch (err) {
+        return handleWriteError(res, err);
+      }
+
+      if (ccoAuditLog) {
+        ccoAuditLog.append({
+          action: 'ordination.completion_requested',
+          actor: { role: req.cco?.role ?? null, userId: req.auth?.userId ?? null, ip: null },
+          target: { kind: 'entity', id, tenantId: req.auth?.tenantId ?? null },
+          result: 'ok',
+          detail: { signature: trimmedSignature, comment: trimmedComment },
+        });
+      }
+
+      res.json({
+        ok: true,
+        reviewId: id,
+        status: 'needs_completion',
+        requestedBy: req.auth?.userId ?? req.session?.userId ?? 'unknown',
+        requestedAt: new Date().toISOString(),
+        case: caseRecord,
+      });
+    }
+  );
+
   /* ── POST /api/v1/staff/qms/checklists/:id/complete-item ──────
      Markerar ett checklisteobjekt som klart. Immutable — audit.
   ─────────────────────────────────────────────────────────────── */
