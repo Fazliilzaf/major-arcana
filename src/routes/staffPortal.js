@@ -191,12 +191,41 @@ function createStaffPortalRouter({
         count: photos.length,
         latest: photos.slice(0, 4),
       },
+      links: buildStaffPortalLinks({
+        caseId: caseRecord.id,
+        customerId,
+        patientId,
+        tenantId,
+      }),
       signals: {
         hasCustomerCard: Boolean(patientId || customerId),
         hasMessages: threads.length > 0,
         hasPhotos: photos.length > 0,
         needsReply: openThreads.length > 0,
       },
+    };
+  }
+
+  function buildStaffPortalLinks({ caseId, customerId, patientId, tenantId } = {}) {
+    const pid = String(patientId || customerId || '').trim();
+    const cid = String(customerId || patientId || '').trim();
+    const cleanCaseId = String(caseId || '').trim();
+    const customerParams = new URLSearchParams({ view: 'customers' });
+    if (pid) customerParams.set('patientId', pid);
+    const workspaceParams = new URLSearchParams({ view: 'customers', workspace: '1' });
+    if (pid) workspaceParams.set('patientId', pid);
+    return {
+      customerCard: pid ? `/major-arcana-preview/?${customerParams.toString()}` : null,
+      workspace: pid ? `/major-arcana-preview/?${workspaceParams.toString()}` : null,
+      threads: cid ? `/api/v1/staff/customer-threads/${encodeURIComponent(cid)}` : null,
+      photos: pid ? `/api/v1/staff/customer-photos/${encodeURIComponent(pid)}` : null,
+      ordination: cleanCaseId
+        ? `/staff-portal#ordination-${encodeURIComponent(cleanCaseId)}`
+        : null,
+      audit: cleanCaseId
+        ? `/api/v1/staff/audit?action=${encodeURIComponent('staff_portal')}&caseId=${encodeURIComponent(cleanCaseId)}`
+        : null,
+      tenantId: tenantId || null,
     };
   }
 
@@ -547,6 +576,10 @@ function createStaffPortalRouter({
       assignment: caseRecord.assignment || null,
       ordinationStatus: ordinationStatus || null,
       staffActions: caseRecord.staffActions || null,
+      links: {
+        ...(customerItem.links || {}),
+        qms: '/staff-portal#qms',
+      },
       actions,
       customer: customerItem,
     };

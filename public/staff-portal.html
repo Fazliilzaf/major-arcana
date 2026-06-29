@@ -553,6 +553,35 @@
         gap: 6px;
         margin-top: 8px;
       }
+      .deep-link-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .deep-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(43, 37, 31, 0.1);
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--brand);
+        font-size: 10.5px;
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .deep-link.primary {
+        background: linear-gradient(135deg, rgba(187, 71, 121, 0.14), rgba(124, 58, 237, 0.1));
+        color: var(--accent);
+        border-color: rgba(187, 71, 121, 0.22);
+      }
+      .deep-link:hover {
+        background: rgba(43, 37, 31, 0.06);
+      }
       .handoff-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2128,6 +2157,61 @@
         return `/major-arcana-preview/?${params.toString()}`;
       }
 
+      function workspaceUrl(item) {
+        const patientId = String(item?.patientId || item?.customerId || '').trim();
+        if (!patientId) return '';
+        const params = new URLSearchParams({ view: 'customers', patientId, workspace: '1' });
+        return `/major-arcana-preview/?${params.toString()}`;
+      }
+
+      function staffApiLink(kind, item) {
+        const patientId = String(item?.patientId || item?.customer?.patientId || '').trim();
+        const customerId = String(
+          item?.customerId || item?.customer?.customerId || item?.customer?.case?.customerId || ''
+        ).trim();
+        const caseId = String(item?.id || item?.caseId || item?.customer?.case?.id || '').trim();
+        if (kind === 'threads' && (customerId || patientId)) {
+          return `/api/v1/staff/customer-threads/${encodeURIComponent(customerId || patientId)}`;
+        }
+        if (kind === 'photos' && patientId) {
+          return `/api/v1/staff/customer-photos/${encodeURIComponent(patientId)}`;
+        }
+        if (kind === 'audit' && caseId) {
+          return `/api/v1/staff/audit?action=staff_portal&caseId=${encodeURIComponent(caseId)}`;
+        }
+        return '';
+      }
+
+      function documentCatalogUrl(doc) {
+        const id = String(doc?.id || doc?.registryId || doc?.documentId || doc?.name || '').trim();
+        if (!id) return '/major-arcana-preview/cco-dokument-v1.html';
+        return `/major-arcana-preview/cco-dokument-v1.html?document=${encodeURIComponent(id)}`;
+      }
+
+      function renderDeepLinks(item, opts = {}) {
+        const card = opts.cardUrl || item?.links?.customerCard || customerCardUrl(item);
+        const workspace = opts.workspaceUrl || item?.links?.workspace || workspaceUrl(item);
+        const threads = item?.links?.threads || staffApiLink('threads', item);
+        const photos = item?.links?.photos || staffApiLink('photos', item);
+        const audit = item?.links?.audit || staffApiLink('audit', item);
+        const ordination = item?.links?.ordination || (item?.id ? `#ordination-${item.id}` : '');
+        const links = [
+          card ? ['Kundkort', card, 'primary'] : null,
+          workspace ? ['Workspace', workspace, ''] : null,
+          opts.showThreads && threads ? ['Trådar', threads, ''] : null,
+          opts.showPhotos && photos ? ['Bilder', photos, ''] : null,
+          opts.showOrdination && ordination ? ['Ordination', ordination, ''] : null,
+          opts.showAudit && audit ? ['Audit', audit, ''] : null,
+        ].filter(Boolean);
+        if (!links.length) return '';
+        return `<div class="deep-link-row">${links
+          .map(
+            ([label, href, cls]) =>
+              `<a class="deep-link ${cls}" href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`
+          )
+          .join('')}</div>`;
+      }
+
       function renderCaseCard(item, opts = {}) {
         const title = getCaseTitle(item, opts.fallbackTitle || 'Kundärende');
         const treatment =
@@ -2182,6 +2266,7 @@
               ${item.followUpDueAt ? `<span class="pill amber">Uppföljning ${escapeHtml(formatDateTime(item.followUpDueAt))}</span>` : ''}
               ${item.waitingOn ? `<span class="pill neutral">Väntar på ${escapeHtml(item.waitingOn)}</span>` : ''}
             </div>
+            ${renderDeepLinks(item, { cardUrl, showAudit: true, showOrdination: true })}
             ${assignmentHtml}
           </div>
           <div class="item-actions">
@@ -2237,6 +2322,20 @@
               ${photoCount ? '<span class="pill violet">Bilder finns</span>' : ''}
               ${ordinationStatusPill(customer)}
             </div>
+            ${renderDeepLinks(
+              {
+                ...item,
+                links: item.links,
+                patientId: item.patientId || customer.patientId,
+                customerId: item.customerId || customer.customerId,
+              },
+              {
+                cardUrl,
+                showThreads: threadCount > 0,
+                showPhotos: photoCount > 0,
+                showOrdination: true,
+              }
+            )}
           </div>
           <div class="item-actions">
             ${customerAction}
@@ -2309,6 +2408,21 @@
             <div class="queue-action-row">
               ${queueActions}
             </div>
+            ${renderDeepLinks(
+              {
+                ...item,
+                patientId: item.patientId || customer.patientId,
+                customerId: item.customerId || customer.customerId,
+                links: item.links,
+              },
+              {
+                cardUrl,
+                showThreads: true,
+                showPhotos: true,
+                showOrdination: true,
+                showAudit: true,
+              }
+            )}
             <span class="queue-feedback" data-feedback-for="${escapeHtml(itemId)}">${wasSeen || sentToDoctor ? 'Senaste personalåtgärd är sparad i audit.' : 'Redo för personalåtgärd.'}</span>
           </div>
           <div class="item-actions">
@@ -2377,7 +2491,15 @@
               .join('')
           : '<div class="live-note">Inga dokumentreferenser hittades.</div>';
         const missingCount = Array.isArray(readout.missing) ? readout.missing.length : 0;
-        return `<div class="ord-card" style="margin-bottom:14px">
+        const ordinationLinks = renderDeepLinks(
+          {
+            ...item,
+            patientId: readout.patient?.patientId || item.patientId,
+            customerId: readout.patient?.customerId || item.customerId,
+          },
+          { showAudit: true }
+        );
+        return `<div class="ord-card" id="ordination-${escapeHtml(item.id || '')}" style="margin-bottom:14px">
           <div class="ord-header">
             <div>
               <div class="ord-title">Ordinationsunderlag — ${escapeHtml(treatment)}</div>
@@ -2422,6 +2544,7 @@
             </div>
             <div class="section-title" style="margin-top:14px">Dokumentunderlag</div>
             ${docsHtml}
+            ${ordinationLinks}
             ${plan.planningNote ? `<div class="live-note" style="margin:12px 0 0">Planering: ${escapeHtml(plan.planningNote)}</div>` : ''}
             ${plan.individualOrdinationNote ? `<div class="safety-notice" style="margin:12px 0 0">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
             ${decisionMeta}
@@ -2878,6 +3001,7 @@
               <div class="doc-name">${escapeHtml(doc.title || doc.name || doc.id || 'Dokument')}</div>
               <div class="doc-valid">${escapeHtml(doc.category || doc.status || 'handbok')}</div>
               ${Array.isArray(doc.flags) && doc.flags.length ? `<span class="pill amber">${escapeHtml(doc.flags[0])}</span>` : ''}
+              <a class="btn" href="${escapeHtml(documentCatalogUrl(doc))}" target="_blank" rel="noopener">Öppna</a>
             </div>`
           )
           .join('');
