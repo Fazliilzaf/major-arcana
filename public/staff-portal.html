@@ -2463,6 +2463,7 @@
       }
 
       function renderPriorityRadarCard(item) {
+        const roleCard = item.roleCards?.[currentRole] || item.roleCards?.nurse || null;
         const source = String(item.source || 'queue');
         const priority = String(item.priority || 'waiting');
         const icon =
@@ -2494,23 +2495,25 @@
           item.links?.customerCard ||
           '';
         const next = item.nextBestAction || {};
-        const nextHref = next.href || href;
+        const nextHref = roleCard?.href || next.href || href;
+        const nextLabel = roleCard?.ctaLabel || next.label || 'Öppna';
         const nextBox = next.label
           ? `<div class="next-action-box">
-              <div class="next-action-kicker">Nästa bästa steg</div>
-              <div class="next-action-title">${escapeHtml(next.label)}</div>
-              <div class="next-action-reason">${escapeHtml(next.reason || 'Öppna underlaget och fortsätt manuellt.')}</div>
-              <div class="next-action-safety">${escapeHtml(next.safety || 'Read-only.')}</div>
+              <div class="next-action-kicker">Nästa bästa steg · ${escapeHtml(roleCard?.badge || sourceLabel)}</div>
+              <div class="next-action-title">${escapeHtml(nextLabel)}</div>
+              <div class="next-action-reason">${escapeHtml(roleCard?.subtitle || next.reason || 'Öppna underlaget och fortsätt manuellt.')}</div>
+              <div class="next-action-safety">${escapeHtml(roleCard?.safety || next.safety || 'Read-only.')}</div>
             </div>`
           : '';
         return `<div class="item-card priority-card ${tone}">
           <div class="item-icon">${icon}</div>
           <div class="item-body">
-            <div class="item-title">${escapeHtml(item.title || 'Prioritet')}</div>
+            <div class="item-title">${escapeHtml(roleCard?.title || item.title || 'Prioritet')}</div>
             <div class="item-meta">${escapeHtml(item.body || 'Öppna underlaget och fortsätt manuellt.')}${when ? ' · ' + escapeHtml(formatDateTime(when)) : ''}</div>
             <div class="flow-chip-row">
               <span class="queue-priority ${escapeHtml(priority)}">${escapeHtml(priorityLabel(priority))}</span>
               <span class="pill info">${escapeHtml(sourceLabel)}</span>
+              ${roleCard?.focus ? `<span class="pill violet">${escapeHtml(roleCard.focus)}</span>` : ''}
               ${actionHtml}
             </div>
             ${nextBox}
@@ -2518,7 +2521,7 @@
           <div class="item-actions">
             ${
               nextHref
-                ? `<a class="btn primary" href="${escapeHtml(nextHref)}" target="_blank" rel="noopener">${escapeHtml(next.label || 'Öppna')}</a>`
+                ? `<a class="btn primary" href="${escapeHtml(nextHref)}" target="_blank" rel="noopener">${escapeHtml(nextLabel)}</a>`
                 : '<button class="btn" disabled>Ingen länk</button>'
             }
           </div>

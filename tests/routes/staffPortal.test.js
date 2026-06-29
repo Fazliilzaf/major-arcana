@@ -346,6 +346,8 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
         '/staff-portal?role=nurse&panel=customers#thread-1'
       );
       assert.match(body.items[0].nextBestAction.safety, /automatiskt/);
+      assert.equal(body.items[0].roleCards.nurse.focus, 'kundkontakt');
+      assert.equal(body.items[0].roleCards.admin.badge, 'Kundfråga');
       assert.equal(body.items[1].source, 'queue');
       assert.equal(body.items[1].queueItem.id, 'case-priority-1');
       assert.equal(body.items[1].nextBestAction.label, 'Skicka/öppna läkarkö');
@@ -353,6 +355,14 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
         body.items[1].nextBestAction.href,
         '/staff-portal?role=doctor&panel=ordination#ordination-case-priority-1'
       );
+      assert.equal(body.items[1].roleCards.nurse.focus, 'checklista');
+      assert.equal(body.items[1].roleCards.doctor.focus, 'ordination');
+      assert.equal(body.items[1].roleCards.doctor.ctaLabel, 'Öppna läkarkö');
+      assert.equal(
+        body.items[1].roleCards.doctor.href,
+        '/staff-portal?role=doctor&panel=ordination#ordination-case-priority-1'
+      );
+      assert.equal(body.items[1].roleCards.admin.focus, 'handoff');
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
