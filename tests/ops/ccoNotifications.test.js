@@ -97,7 +97,24 @@ test('getFeed returns a unified, shaped, time-filtered feed', async () => {
       assert.ok(NOTIFICATION_TYPES.includes(item.type), `okänd typ: ${item.type}`);
       assert.equal(typeof item.read, 'boolean');
       assert.ok(item.createdAt);
+      assert.equal(typeof item.actionUrl, 'string');
+      assert.ok(item.links && typeof item.links === 'object');
     }
+
+    const booking = result.items.find((item) => item.type === 'booking');
+    assert.equal(booking.actionUrl, '/staff-portal?role=doctor&panel=ordination#ordination-bc-1');
+    assert.equal(booking.links.staffTask, '/staff-portal?role=nurse&panel=customers');
+    assert.equal(booking.links.adminCase, '/staff-portal?role=admin&panel=all-cases');
+
+    const compliance = result.items.find((item) => item.type === 'compliance');
+    assert.equal(compliance.actionUrl, '/staff-portal?panel=qms');
+
+    const mail = result.items.find((item) => item.type === 'mail');
+    assert.equal(mail.actionUrl, '/staff-portal?role=nurse&panel=customers');
+    assert.equal(
+      mail.links.customerCard,
+      '/major-arcana-preview/?view=customers&patientId=anna%40e.com'
+    );
 
     // alla olästa initialt
     assert.equal(result.unread, result.count);

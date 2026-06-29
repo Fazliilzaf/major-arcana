@@ -36,16 +36,74 @@ function makeId(type, parts) {
   return `${type}_${crypto.createHash('sha1').update(seed).digest('hex').slice(0, 16)}`;
 }
 
-function notif({ type, title, body = '', at, severity = 'info', source = {}, customerId = null }) {
+function staffPortalUrl({ role = '', panel = '', hash = '' } = {}) {
+  const params = new URLSearchParams();
+  if (role) params.set('role', role);
+  if (panel) params.set('panel', panel);
+  const query = params.toString();
+  const fragment = hash ? `#${encodeURIComponent(hash)}` : '';
+  return `/staff-portal${query ? `?${query}` : ''}${fragment}`;
+}
+
+function customerCardUrl(customerId) {
+  const cid = normalizeText(customerId);
+  if (!cid) return null;
+  const params = new URLSearchParams({ view: 'customers', patientId: cid });
+  return `/major-arcana-preview/?${params.toString()}`;
+}
+
+function notificationLinks({ type, customerId = null, source = {} }) {
+  const sourceId = normalizeText(source?.id);
+  const cid = normalizeText(customerId);
+  const customerCard = customerCardUrl(cid);
+  const staffTask = staffPortalUrl({ role: 'nurse', panel: cid ? 'customers' : 'tasks' });
+  const doctorReview =
+    type === 'booking' && sourceId
+      ? staffPortalUrl({
+          role: 'doctor',
+          panel: 'ordination',
+          hash: `ordination-${sourceId}`,
+        })
+      : null;
+  const adminCase = staffPortalUrl({ role: 'admin', panel: 'all-cases' });
+  const qms = staffPortalUrl({ panel: 'qms' });
+
+  const byType = {
+    booking: doctorReview || adminCase,
+    compliance: qms,
+    id_verification: customerCard || staffTask,
+    agreement: customerCard || staffTask,
+    mail: staffTask,
+    system: qms,
+  };
+
   return {
-    id: makeId(type, [title, customerId, at, JSON.stringify(source)]),
+    actionUrl: byType[type] || staffTask,
+    links: {
+      staffPortal: staffTask,
+      staffTask,
+      doctorReview,
+      adminCase,
+      qms,
+      customerCard,
+    },
+  };
+}
+
+function notif({ type, title, body = '', at, severity = 'info', source = {}, customerId = null }) {
+  const cleanCustomerId = customerId ? normalizeText(customerId) : null;
+  const action = notificationLinks({ type, customerId: cleanCustomerId, source });
+  return {
+    id: makeId(type, [title, cleanCustomerId, at, JSON.stringify(source)]),
     type,
     title: normalizeText(title),
     body: normalizeText(body),
     severity,
-    customerId: customerId ? normalizeText(customerId) : null,
+    customerId: cleanCustomerId,
     createdAt: toIso(at) || nowIso(),
     source,
+    actionUrl: action.actionUrl,
+    links: action.links,
     read: false,
   };
 }
