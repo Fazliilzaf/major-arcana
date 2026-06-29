@@ -327,6 +327,58 @@ async function checkViewport(page, name) {
   );
 }
 
+async function checkDeepLinks(page) {
+  const cases = [
+    {
+      url: '/staff-portal.html?role=doctor&panel=ordination',
+      view: 'view-doctor',
+      panel: 'ord',
+      target: 'liveDoctorReviewList',
+      label: 'doctor ordination panel',
+    },
+    {
+      url: '/staff-portal.html?panel=qms',
+      view: 'view-admin',
+      panel: 'qms-admin',
+      target: 'liveQmsHandbookAdmin',
+      label: 'owner qms panel',
+    },
+    {
+      url: '/staff-portal.html#ordination-case-tp-001',
+      view: 'view-doctor',
+      panel: 'ord',
+      target: 'ordination-case-tp-001',
+      label: 'ordination hash target',
+    },
+  ];
+
+  for (const item of cases) {
+    await page.goto(item.url, { waitUntil: 'networkidle' });
+    await page.waitForFunction(
+      ({ view, panel }) =>
+        document.querySelector('.view.active')?.id === view &&
+        document.querySelector('#navMenu .nav-item.deep-link-active')?.dataset.panel === panel,
+      { view: item.view, panel: item.panel },
+      { timeout: 10000 }
+    );
+    const result = await page.evaluate((targetId) => {
+      const target = document.getElementById(targetId);
+      const activeView = document.querySelector('.view.active')?.id || '';
+      const activePanel =
+        document.querySelector('#navMenu .nav-item.deep-link-active')?.dataset.panel || '';
+      return {
+        activeView,
+        activePanel,
+        targetExists: Boolean(target),
+      };
+    }, item.target);
+    if (!result.targetExists) {
+      throw new Error(`${item.label}: missing target ${item.target}`);
+    }
+    console.log(`PASS deeplink: ${item.label}`);
+  }
+}
+
 async function main() {
   const server = createServer();
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -342,6 +394,9 @@ async function main() {
       const page = await context.newPage();
       try {
         await checkViewport(page, viewport.name);
+        if (viewport.name === 'desktop') {
+          await checkDeepLinks(page);
+        }
       } finally {
         await context.close();
       }
