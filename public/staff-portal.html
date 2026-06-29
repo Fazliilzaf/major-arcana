@@ -1101,6 +1101,52 @@
       .ordination-next-action.danger {
         background: linear-gradient(135deg, rgba(255, 238, 238, 0.9), rgba(255, 255, 255, 0.78));
       }
+      .ordination-decision-summary {
+        margin: 12px 0 0;
+        padding: 12px;
+        border: 1px solid rgba(45, 35, 28, 0.09);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: 0 12px 28px rgba(50, 40, 32, 0.06);
+      }
+      .ordination-decision-summary.sage {
+        background: linear-gradient(135deg, rgba(241, 250, 246, 0.94), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-decision-summary.danger {
+        background: linear-gradient(135deg, rgba(255, 238, 238, 0.92), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-decision-title {
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .ordination-decision-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .ordination-decision-cell {
+        min-width: 0;
+        padding: 8px 9px;
+        border: 1px solid rgba(30, 41, 59, 0.08);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.66);
+      }
+      .ordination-decision-cell strong {
+        display: block;
+        color: var(--text3);
+        font-size: 10px;
+        font-weight: 850;
+      }
+      .ordination-decision-cell span {
+        display: block;
+        margin-top: 3px;
+        color: var(--brand);
+        font-size: 11.5px;
+        font-weight: 850;
+        overflow-wrap: anywhere;
+      }
       .ordination-timeline-summary {
         margin-top: 12px;
         display: grid;
@@ -1494,6 +1540,7 @@
         .two-col,
         .three-col,
         .handoff-grid,
+        .ordination-decision-grid,
         .ordination-timeline-summary,
         .signal-grid,
         .assignment-row,
@@ -1561,6 +1608,7 @@
         .two-col,
         .three-col,
         .handoff-grid,
+        .ordination-decision-grid,
         .ordination-timeline-summary,
         .signal-grid,
         .assignment-row,
@@ -3154,9 +3202,43 @@
               .join('')
           : '<div class="live-note">Inga dokumentreferenser hittades.</div>';
         const missingCount = Array.isArray(readout.missing) ? readout.missing.length : 0;
+        const auditHref = item.links?.audit || staffApiLink('audit', item);
         const signoff = readout.signoff || {};
         const blockers = Array.isArray(signoff.blockers) ? signoff.blockers : [];
         const signoffReady = Boolean(signoff.canApproveAfterManualReview);
+        const decisionSummary = readout.decisionSummary || null;
+        const decisionSummaryHtml = decisionSummary
+          ? `<div class="ordination-decision-summary ${escapeHtml(decisionSummary.tone || 'info')}">
+            <div class="ordination-decision-title">${escapeHtml(decisionSummary.label || 'Beslut')}</div>
+            <div class="ordination-decision-grid">
+              <div class="ordination-decision-cell">
+                <strong>Beslut</strong>
+                <span>${escapeHtml(decisionSummary.status || '—')}</span>
+              </div>
+              <div class="ordination-decision-cell">
+                <strong>Signerad av</strong>
+                <span>${escapeHtml(staffDisplayName(decisionSummary.decidedBy) || decisionSummary.decidedBy || '—')}</span>
+              </div>
+              <div class="ordination-decision-cell">
+                <strong>Tidpunkt</strong>
+                <span>${escapeHtml(formatDateTime(decisionSummary.decidedAt))}</span>
+              </div>
+              <div class="ordination-decision-cell">
+                <strong>Signatur</strong>
+                <span>${escapeHtml(decisionSummary.signature || '—')}</span>
+              </div>
+              <div class="ordination-decision-cell">
+                <strong>Audit</strong>
+                <span>${auditHref ? `<a href="${escapeHtml(auditHref)}" target="_blank" rel="noopener">${escapeHtml(decisionSummary.auditAction || 'audit')}</a>` : escapeHtml(decisionSummary.auditAction || '—')}</span>
+              </div>
+              <div class="ordination-decision-cell">
+                <strong>Läge</strong>
+                <span>Read-only</span>
+              </div>
+            </div>
+            ${decisionSummary.comment ? `<div class="live-note" style="margin-top:10px">Motivering/kommentar: ${escapeHtml(decisionSummary.comment)}</div>` : ''}
+          </div>`
+          : '';
         const nextAction = item.nextAction || {};
         const nextActionTone = ['sage', 'amber', 'danger', 'info'].includes(nextAction.tone)
           ? nextAction.tone
@@ -3320,6 +3402,7 @@
             ${plan.individualOrdinationNote ? `<div class="safety-notice" style="margin:12px 0 0">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
             ${completionReturnHtml}
             ${timelineHtml}
+            ${decisionSummaryHtml}
             ${nextActionHtml}
             ${signoffHtml}
             ${decisionMeta}

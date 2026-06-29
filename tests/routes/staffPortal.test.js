@@ -482,10 +482,35 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
         approved.reviews.map((item) => item.id),
         ['case-mode-approved']
       );
+      assert.deepEqual(approved.reviews[0].ordinationReadout.decisionSummary, {
+        status: 'approved',
+        label: 'Godkänd ordination',
+        tone: 'sage',
+        decidedAt: approved.reviews[0].ordinationReadout.decisionSummary.decidedAt,
+        decidedBy: 'doctor-1',
+        signature: 'Dr Test',
+        comment: 'OK',
+        auditAction: 'ordination.approved',
+        readOnly: true,
+      });
+      assert.ok(approved.reviews[0].ordinationReadout.decisionSummary.decidedAt);
       assert.deepEqual(
         approved.reviews.map((item) => item.nextAction.suggestedAction),
         ['read_decision']
       );
+
+      const rejected = await fetchMode('rejected');
+      assert.deepEqual(rejected.reviews[0].ordinationReadout.decisionSummary, {
+        status: 'rejected',
+        label: 'Avvisad ordination',
+        tone: 'danger',
+        decidedAt: rejected.reviews[0].ordinationReadout.decisionSummary.decidedAt,
+        decidedBy: 'doctor-1',
+        signature: 'Dr Test',
+        comment: 'Avvisas',
+        auditAction: 'ordination.rejected',
+        readOnly: true,
+      });
 
       const invalid = await fetchMode('bananas');
       assert.equal(invalid.mode, 'pending');

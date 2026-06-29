@@ -442,6 +442,19 @@ function createStaffPortalRouter({
         !['approved', 'rejected'].includes(reviewStatus) &&
         !['ordination_needs_completion'].includes(latestTimelineEntry?.action || ''),
     };
+    const decisionSummary = ['approved', 'rejected'].includes(reviewStatus)
+      ? {
+          status: reviewStatus,
+          label: reviewStatus === 'approved' ? 'Godkänd ordination' : 'Avvisad ordination',
+          tone: reviewStatus === 'approved' ? 'sage' : 'danger',
+          decidedAt: caseRecord.ordinationReview?.decidedAt || null,
+          decidedBy: caseRecord.ordinationReview?.decidedBy || null,
+          signature: caseRecord.ordinationReview?.signature || null,
+          comment: caseRecord.ordinationReview?.comment || '',
+          auditAction: reviewStatus === 'approved' ? 'ordination.approved' : 'ordination.rejected',
+          readOnly: true,
+        }
+      : null;
     return {
       treatmentPlan,
       readiness,
@@ -460,6 +473,7 @@ function createStaffPortalRouter({
       completionReturn,
       timeline,
       timelineSummary,
+      decisionSummary,
       documents: buildOrdinationDocuments(caseRecord),
       patient: {
         patientId: caseRecord.patientId || null,
