@@ -32,6 +32,26 @@ async function withStaffServer(run) {
       customerName: 'Test Kund',
       serviceLabel: 'Hårtransplantation',
       startsAt: '2030-06-29T10:00:00.000Z',
+      assignedTo: 'staff-1',
+      treatmentPlan: {
+        method: 'DHI',
+        graftsTotal: '2800',
+        price: '65000 kr',
+        anesthesia: 'Lokalbedövning enligt ordinationsmall',
+        planningNote: 'Hårlinje 500, mitt 1000, krona 1300.',
+        individualOrdinationNote: 'Ingen avvikelse från allmän ordination.',
+        zones: [
+          { label: 'Hårlinje', grafts: '500' },
+          { label: 'Mitt', grafts: '1000' },
+          { label: 'Krona', grafts: '1300' },
+        ],
+      },
+      handoffChecklist: {
+        journalReady: true,
+        consentSigned: true,
+        paymentSettled: false,
+        encounterLinked: true,
+      },
     },
     { role: 'operator', userId: 'ops-1' }
   );
@@ -51,6 +71,29 @@ async function withStaffServer(run) {
     await fs.rm(dir, { recursive: true, force: true });
   }
 }
+
+test('ordination reviews returnerar komplett läkarunderlag', async () => {
+  await withStaffServer(async ({ baseUrl }) => {
+    const res = await fetch(`${baseUrl}/api/v1/staff/ordination-reviews`, {
+      headers: { 'x-cco-role': 'konsult' },
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.count, 1);
+    const review = body.reviews[0];
+    assert.equal(review.ordinationReadout.treatmentPlan.method, 'DHI');
+    assert.equal(review.ordinationReadout.treatmentPlan.graftsTotal, '2800');
+    assert.equal(review.ordinationReadout.treatmentPlan.zones.length, 3);
+    assert.ok(review.ordinationReadout.documents.some((doc) => doc.id === 'ordination_tp'));
+    assert.ok(
+      review.ordinationReadout.readiness.some(
+        (item) => item.key === 'paymentSettled' && item.done === false
+      )
+    );
+    assert.equal(review.ordinationReadout.safety.hitl, true);
+  });
+});
 
 test('ordination approve är RBAC-spärrad för personal', async () => {
   await withStaffServer(async ({ baseUrl }) => {

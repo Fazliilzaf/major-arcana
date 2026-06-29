@@ -220,6 +220,126 @@ function createStaffPortalRouter({
     return /tp|transplant|hårtransplant|dhi|fue|lokalbedöv/.test(haystack);
   }
 
+  function buildTreatmentPlanReadout(caseRecord = {}) {
+    const plan =
+      caseRecord.treatmentPlan && typeof caseRecord.treatmentPlan === 'object'
+        ? caseRecord.treatmentPlan
+        : {};
+    const treatment =
+      caseRecord.serviceLabel ||
+      caseRecord.treatmentType ||
+      caseRecord.treatment ||
+      caseRecord.procedure ||
+      'Behandling ej angiven';
+    const method =
+      plan.method ||
+      caseRecord.method ||
+      caseRecord.technique ||
+      String(treatment).match(/\b(DHI|FUE|PRP|PRF)\b/i)?.[1] ||
+      '';
+    const graftsTotal =
+      plan.graftsTotal ||
+      caseRecord.graftsTotal ||
+      caseRecord.totalGrafts ||
+      caseRecord.grafts ||
+      caseRecord.graftCount ||
+      '';
+    const zones = Array.isArray(plan.zones) ? plan.zones : [];
+    return {
+      treatment,
+      method: method || null,
+      graftsTotal: graftsTotal || null,
+      price: plan.price || caseRecord.price || caseRecord.totalPrice || null,
+      anesthesia:
+        plan.anesthesia ||
+        caseRecord.anesthesia ||
+        (isTreatmentRequiringOrdination(caseRecord)
+          ? 'Lokalbedövning enligt ordinationsmall'
+          : null),
+      planningNote: plan.planningNote || caseRecord.planningNote || caseRecord.notes || '',
+      generalOrdinationRef: plan.generalOrdinationRef || 'ordination_tp',
+      individualOrdinationNote: plan.individualOrdinationNote || '',
+      zones,
+      documents: Array.isArray(plan.documents) ? plan.documents : [],
+    };
+  }
+
+  function buildReadinessChecklist(caseRecord = {}) {
+    const checklist = caseRecord.handoffChecklist || {};
+    const review = caseRecord.ordinationReview || {};
+    return [
+      {
+        key: 'journalReady',
+        label: 'Journal / behandlingsplan kontrollerad',
+        done: checklist.journalReady === true,
+      },
+      {
+        key: 'consentSigned',
+        label: 'Samtycken och patientinformation signerade',
+        done: checklist.consentSigned === true,
+      },
+      {
+        key: 'paymentSettled',
+        label: 'Betalning/administrativ status klar',
+        done: checklist.paymentSettled === true,
+      },
+      {
+        key: 'encounterLinked',
+        label: 'Bokning och patientkort länkade',
+        done: checklist.encounterLinked === true,
+      },
+      {
+        key: 'ordinationDecision',
+        label: 'Läkarbeslut finns',
+        done: ['approved', 'rejected'].includes(String(review.status || '').toLowerCase()),
+      },
+    ];
+  }
+
+  function buildOrdinationDocuments(caseRecord = {}) {
+    const plan = buildTreatmentPlanReadout(caseRecord);
+    const docs = [
+      { id: 'ordination_tp', name: 'Ordinationsmall · Hårtransplantation', status: 'referens' },
+      { id: 'haelso_tp_sve', name: 'Hälsodeklaration · Hair TP Clinic', status: 'kontrollera' },
+      { id: 'friskfoers_tp', name: 'Friskförsäkran · TP', status: 'operationsdag' },
+      { id: 'behandlingsplan_staff', name: 'Behandlingsplan / offert', status: 'underlag' },
+    ];
+    const extraDocs = Array.isArray(plan.documents) ? plan.documents : [];
+    const byId = new Map();
+    for (const doc of [...docs, ...extraDocs]) {
+      const id = String(doc.id || doc.registryId || doc.documentId || doc.name || '').trim();
+      if (!id || byId.has(id)) continue;
+      byId.set(id, {
+        id,
+        name: doc.name || doc.title || doc.label || id,
+        status: doc.status || doc.state || 'underlag',
+      });
+    }
+    return [...byId.values()];
+  }
+
+  function buildOrdinationReviewReadout(caseRecord = {}) {
+    const treatmentPlan = buildTreatmentPlanReadout(caseRecord);
+    const readiness = buildReadinessChecklist(caseRecord);
+    const missing = readiness.filter((item) => !item.done).map((item) => item.key);
+    return {
+      treatmentPlan,
+      readiness,
+      missing,
+      documents: buildOrdinationDocuments(caseRecord),
+      patient: {
+        patientId: caseRecord.patientId || null,
+        customerId: caseRecord.customerId || null,
+        name: caseRecord.customerName || caseRecord.patientName || caseRecord.customerEmail || null,
+      },
+      safety: {
+        hitl: true,
+        message:
+          'Läkare måste fatta beslut manuellt. Systemet kan aldrig auto-godkänna ordination.',
+      },
+    };
+  }
+
   function countMissingHandoff(checklist = {}) {
     if (!checklist || typeof checklist !== 'object') return 0;
     return Object.values(checklist).filter((value) => value === false).length;
@@ -635,6 +755,11 @@ function createStaffPortalRouter({
           });
           reviews = allOpen
             .filter((c) => !['completed', 'cancelled'].includes(c.state))
+            .filter((c) => isTreatmentRequiringOrdination(c) || c.ordinationReview)
+            .map((c) => ({
+              ...c,
+              ordinationReadout: buildOrdinationReviewReadout(c),
+            }))
             .slice(0, limit);
         }
         res.json({ ok: true, reviews, count: reviews.length });
