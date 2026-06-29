@@ -140,6 +140,57 @@ function normalizeAssignment(input = null) {
   };
 }
 
+function normalizeTreatmentPlan(input = null) {
+  if (!input || typeof input !== 'object') {
+    return {
+      method: '',
+      graftsTotal: '',
+      price: '',
+      anesthesia: '',
+      planningNote: '',
+      generalOrdinationRef: '',
+      individualOrdinationNote: '',
+      zones: [],
+      documents: [],
+    };
+  }
+  const zones = Array.isArray(input.zones)
+    ? input.zones
+        .map((zone) => {
+          if (typeof zone === 'string') {
+            return { label: normalizeText(zone), grafts: '' };
+          }
+          return {
+            label: normalizeText(zone?.label || zone?.name || zone?.zone),
+            grafts: normalizeText(zone?.grafts || zone?.graftCount || zone?.count),
+          };
+        })
+        .filter((zone) => zone.label || zone.grafts)
+    : [];
+  const documents = Array.isArray(input.documents)
+    ? input.documents
+        .map((doc) => ({
+          id: normalizeText(doc?.id || doc?.registryId || doc?.documentId),
+          name: normalizeText(doc?.name || doc?.title || doc?.label),
+          status: normalizeText(doc?.status || doc?.state),
+        }))
+        .filter((doc) => doc.id || doc.name)
+    : [];
+  return {
+    method: normalizeText(input.method || input.technique || input.procedureMethod),
+    graftsTotal: normalizeText(input.graftsTotal || input.totalGrafts || input.grafts),
+    price: normalizeText(input.price || input.totalPrice || input.amount),
+    anesthesia: normalizeText(input.anesthesia || input.localAnesthesia),
+    planningNote: normalizeText(input.planningNote || input.plan || input.note),
+    generalOrdinationRef: normalizeText(input.generalOrdinationRef || input.generalOrdinationId),
+    individualOrdinationNote: normalizeText(
+      input.individualOrdinationNote || input.individualOrdination || input.deviationNote
+    ),
+    zones,
+    documents,
+  };
+}
+
 function normalizeCaseRecord(input = {}) {
   const ts = normalizeText(input.createdAt) || nowIso();
   const state = VALID_STATES.includes(normalizeKey(input.state))
@@ -165,6 +216,7 @@ function normalizeCaseRecord(input = {}) {
     scheduledAt: normalizeText(input.scheduledAt) || null,
     assignedTo: normalizeText(input.assignedTo) || null,
     assignment: normalizeAssignment(input.assignment),
+    treatmentPlan: normalizeTreatmentPlan(input.treatmentPlan),
     notes: normalizeText(input.notes) || '',
     candidates: Array.isArray(input.candidates) ? input.candidates : [],
     handoffChecklist: {

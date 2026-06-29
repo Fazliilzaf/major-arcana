@@ -2192,8 +2192,17 @@
 
       function renderOrdinationCard(item) {
         const title = getCaseTitle(item, 'Ordinationsunderlag');
-        const treatment = item.treatmentType || item.treatment || item.service || 'Behandling';
-        const grafts = item.grafts || item.graftCount || item.totalGrafts || '—';
+        const readout = item.ordinationReadout || {};
+        const plan = readout.treatmentPlan || {};
+        const treatment =
+          plan.treatment ||
+          item.treatmentType ||
+          item.treatment ||
+          item.serviceLabel ||
+          item.service ||
+          'Behandling';
+        const grafts =
+          plan.graftsTotal || item.grafts || item.graftCount || item.totalGrafts || '—';
         const when = item.startsAt || item.scheduledForIso || item.scheduledAt;
         const review = item.ordinationReview || {};
         const reviewStatus = review.status || '';
@@ -2208,11 +2217,44 @@
         const decisionMeta = review.decidedAt
           ? `<div class="live-note" style="margin:12px 0 0">Senaste beslut: ${escapeHtml(reviewStatus)} · ${escapeHtml(formatDateTime(review.decidedAt))}${review.decidedBy ? ' · ' + escapeHtml(review.decidedBy) : ''}</div>`
           : '';
+        const zones = Array.isArray(plan.zones) ? plan.zones : [];
+        const zoneHtml = zones.length
+          ? zones
+              .map(
+                (zone) => `<div class="handoff-step">
+                  <div class="handoff-label">${escapeHtml(zone.label || 'Zon')}</div>
+                  <div class="handoff-value">${escapeHtml(zone.grafts || '—')} graft</div>
+                </div>`
+              )
+              .join('')
+          : '<div class="live-note" style="margin-top:10px">Zonplan saknas ännu. Läkarbeslut kan ändå dokumenteras, men offert-/operationsplan bör kompletteras.</div>';
+        const readiness = Array.isArray(readout.readiness) ? readout.readiness : [];
+        const readinessHtml = readiness.length
+          ? readiness
+              .map(
+                (step) =>
+                  `<span class="pill ${step.done ? 'sage' : 'amber'}">${step.done ? '✓' : '…'} ${escapeHtml(step.label)}</span>`
+              )
+              .join('')
+          : '<span class="pill amber">Readiness saknas</span>';
+        const docs = Array.isArray(readout.documents) ? readout.documents : [];
+        const docsHtml = docs.length
+          ? docs
+              .map(
+                (doc) => `<div class="doc-row" style="margin-bottom:6px">
+                  <div class="doc-icon">📋</div>
+                  <div class="doc-name">${escapeHtml(doc.name || doc.id || 'Dokument')}</div>
+                  <span class="pill neutral" style="margin-left:auto">${escapeHtml(doc.status || 'underlag')}</span>
+                </div>`
+              )
+              .join('')
+          : '<div class="live-note">Inga dokumentreferenser hittades.</div>';
+        const missingCount = Array.isArray(readout.missing) ? readout.missing.length : 0;
         return `<div class="ord-card" style="margin-bottom:14px">
           <div class="ord-header">
             <div>
               <div class="ord-title">Ordinationsunderlag — ${escapeHtml(treatment)}</div>
-              <div class="ord-meta">Patient: ${escapeHtml(title)} · Tid: ${formatDateTime(when)} · Ärende: ${escapeHtml(item.id || '—')}</div>
+              <div class="ord-meta">Patient: ${escapeHtml(title)} · Tid: ${formatDateTime(when)} · Ärende: ${escapeHtml(item.id || '—')}${item.assignedTo ? ' · Ansvarig: ' + escapeHtml(staffDisplayName(item.assignedTo) || item.assignedTo) : ''}</div>
             </div>
             ${reviewPill}
           </div>
@@ -2223,17 +2265,41 @@
                 <div class="handoff-value">${escapeHtml(treatment)}</div>
               </div>
               <div class="handoff-step">
+                <div class="handoff-label">Metod</div>
+                <div class="handoff-value">${escapeHtml(plan.method || '—')}</div>
+              </div>
+              <div class="handoff-step">
                 <div class="handoff-label">Hårsäckar / graft</div>
                 <div class="handoff-value">${escapeHtml(grafts)}</div>
+              </div>
+              <div class="handoff-step">
+                <div class="handoff-label">Pris</div>
+                <div class="handoff-value">${escapeHtml(plan.price || '—')}</div>
+              </div>
+              <div class="handoff-step">
+                <div class="handoff-label">Anestesi</div>
+                <div class="handoff-value">${escapeHtml(plan.anesthesia || '—')}</div>
               </div>
               <div class="handoff-step">
                 <div class="handoff-label">Status</div>
                 <div class="handoff-value">${statusPill(item.state || item.status || 'pending')}</div>
               </div>
             </div>
+            <div class="section-title" style="margin-top:14px">Zonplan</div>
+            <div class="handoff-grid">
+              ${zoneHtml}
+            </div>
+            <div class="section-title" style="margin-top:14px">Readiness före beslut</div>
+            <div class="flow-chip-row">
+              ${readinessHtml}
+            </div>
+            <div class="section-title" style="margin-top:14px">Dokumentunderlag</div>
+            ${docsHtml}
+            ${plan.planningNote ? `<div class="live-note" style="margin:12px 0 0">Planering: ${escapeHtml(plan.planningNote)}</div>` : ''}
+            ${plan.individualOrdinationNote ? `<div class="safety-notice" style="margin:12px 0 0">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
             ${decisionMeta}
             <div class="safety-notice" style="margin:12px 0 0">
-              🔒 Fas 5: beslut kräver läkare/ägare, manuell signatur och audit-logg. Sjuksköterskor kan se men inte godkänna.
+              🔒 Läkarbeslut kräver läkare/ägare, manuell signatur och audit-logg. Sjuksköterskor kan se status men inte godkänna. ${missingCount ? `${missingCount} readiness-punkt${missingCount === 1 ? '' : 'er'} bör kontrolleras.` : 'Readiness ser komplett ut.'}
             </div>
             <div class="ordination-write" data-review-id="${escapeHtml(item.id || '')}">
               <label>
