@@ -75,6 +75,18 @@ function createStaffPortalRouter({
     return _threadStorePromise;
   }
 
+  function getActor(req) {
+    return {
+      role: req.cco?.role ?? req.auth?.role ?? null,
+      userId: req.auth?.userId ?? req.session?.userId ?? null,
+    };
+  }
+
+  function handleWriteError(res, err) {
+    const status = Number(err?.statusCode) || 500;
+    return res.status(status).json({ ok: false, error: err?.message || 'Kunde inte spara.' });
+  }
+
   // Lägg till requireAuth som global pre-filter för /api/v1/staff/*
   // (HTML-routen /staff-portal är öppen)
   if (requireAuth) {
@@ -341,9 +353,24 @@ function createStaffPortalRouter({
     async (req, res) => {
       const { id } = req.params;
       const { comment = '', signature = '' } = req.body ?? {};
+      const trimmedSignature = String(signature || '').trim();
+      const trimmedComment = String(comment || '').trim();
 
-      if (!signature || signature.trim().length < 2) {
+      if (!trimmedSignature || trimmedSignature.length < 2) {
         return res.status(400).json({ ok: false, error: 'Signatur krävs för godkännande.' });
+      }
+
+      let caseRecord = null;
+      try {
+        if (bookingCaseStore?.updateOrdinationReview) {
+          caseRecord = await bookingCaseStore.updateOrdinationReview(
+            id,
+            { status: 'approved', signature: trimmedSignature, comment: trimmedComment },
+            getActor(req)
+          );
+        }
+      } catch (err) {
+        return handleWriteError(res, err);
       }
 
       if (ccoAuditLog) {
@@ -352,7 +379,7 @@ function createStaffPortalRouter({
           actor: { role: req.cco?.role ?? null, userId: req.auth?.userId ?? null, ip: null },
           target: { kind: 'entity', id, tenantId: req.auth?.tenantId ?? null },
           result: 'ok',
-          detail: { signature, comment },
+          detail: { signature: trimmedSignature, comment: trimmedComment },
         });
       }
 
@@ -362,7 +389,8 @@ function createStaffPortalRouter({
         status: 'approved',
         approvedBy: req.auth?.userId ?? req.session?.userId ?? 'unknown',
         approvedAt: new Date().toISOString(),
-        signature,
+        signature: trimmedSignature,
+        case: caseRecord,
       });
     }
   );
@@ -376,10 +404,29 @@ function createStaffPortalRouter({
     requirePermission('ordination.approve'),
     async (req, res) => {
       const { id } = req.params;
-      const { comment = '' } = req.body ?? {};
+      const { comment = '', signature = '' } = req.body ?? {};
+      const trimmedComment = String(comment || '').trim();
+      const trimmedSignature = String(signature || '').trim();
 
-      if (!comment || comment.trim().length < 5) {
+      if (!trimmedComment || trimmedComment.length < 5) {
         return res.status(400).json({ ok: false, error: 'Motivering krävs vid avvisning.' });
+      }
+
+      if (!trimmedSignature || trimmedSignature.length < 2) {
+        return res.status(400).json({ ok: false, error: 'Signatur krävs vid avvisning.' });
+      }
+
+      let caseRecord = null;
+      try {
+        if (bookingCaseStore?.updateOrdinationReview) {
+          caseRecord = await bookingCaseStore.updateOrdinationReview(
+            id,
+            { status: 'rejected', signature: trimmedSignature, comment: trimmedComment },
+            getActor(req)
+          );
+        }
+      } catch (err) {
+        return handleWriteError(res, err);
       }
 
       if (ccoAuditLog) {
@@ -388,7 +435,7 @@ function createStaffPortalRouter({
           actor: { role: req.cco?.role ?? null, userId: req.auth?.userId ?? null, ip: null },
           target: { kind: 'entity', id, tenantId: req.auth?.tenantId ?? null },
           result: 'ok',
-          detail: { comment },
+          detail: { signature: trimmedSignature, comment: trimmedComment },
         });
       }
 
@@ -398,6 +445,7 @@ function createStaffPortalRouter({
         status: 'rejected',
         rejectedBy: req.auth?.userId ?? req.session?.userId ?? 'unknown',
         rejectedAt: new Date().toISOString(),
+        case: caseRecord,
       });
     }
   );

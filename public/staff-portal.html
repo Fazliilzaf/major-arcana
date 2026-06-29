@@ -666,6 +666,57 @@
         gap: 8px;
         align-items: center;
       }
+      .ordination-write {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid rgba(74, 130, 104, 0.18);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.58);
+        display: grid;
+        grid-template-columns: minmax(140px, 0.7fr) minmax(180px, 1.3fr);
+        gap: 10px;
+      }
+      .ordination-write label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text3);
+      }
+      .ordination-write input,
+      .ordination-write textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        color: var(--brand);
+        font: inherit;
+        font-size: 12px;
+        letter-spacing: 0;
+        padding: 9px 10px;
+        outline: none;
+      }
+      .ordination-write textarea {
+        min-height: 40px;
+        resize: vertical;
+      }
+      .ordination-feedback {
+        width: 100%;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text2);
+      }
+      .ordination-feedback.ok {
+        color: var(--sage);
+      }
+      .ordination-feedback.error {
+        color: var(--danger);
+      }
       .safety-notice {
         background: rgba(185, 74, 74, 0.07);
         border: 1px solid rgba(185, 74, 74, 0.2);
@@ -973,6 +1024,9 @@
         .ord-actions > span {
           width: 100%;
           margin-left: 0 !important;
+        }
+        .ordination-write {
+          grid-template-columns: 1fr;
         }
         /* Demo bar wraps nicely */
         .demo-bar {
@@ -1714,6 +1768,20 @@
           .replaceAll("'", '&#039;');
       }
 
+      async function staffPost(path, payload) {
+        const res = await fetch(path, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload || {}),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(body.error || 'Åtgärden kunde inte sparas.');
+        }
+        return body;
+      }
+
       function formatDateTime(value) {
         if (!value) return '—';
         const date = new Date(value);
@@ -1804,13 +1872,26 @@
         const treatment = item.treatmentType || item.treatment || item.service || 'Behandling';
         const grafts = item.grafts || item.graftCount || item.totalGrafts || '—';
         const when = item.startsAt || item.scheduledForIso || item.scheduledAt;
+        const review = item.ordinationReview || {};
+        const reviewStatus = review.status || '';
+        const canApprove = ['owner', 'konsult'].includes(String(_meData?.role || '').toLowerCase());
+        const reviewPill =
+          reviewStatus === 'approved'
+            ? '<span class="pill sage" style="margin-left:auto">Godkänd</span>'
+            : reviewStatus === 'rejected'
+              ? '<span class="pill danger" style="margin-left:auto">Avvisad</span>'
+              : '<span class="pill amber" style="margin-left:auto">Väntar läkare</span>';
+        const disabledAttr = canApprove ? '' : ' disabled';
+        const decisionMeta = review.decidedAt
+          ? `<div class="live-note" style="margin:12px 0 0">Senaste beslut: ${escapeHtml(reviewStatus)} · ${escapeHtml(formatDateTime(review.decidedAt))}${review.decidedBy ? ' · ' + escapeHtml(review.decidedBy) : ''}</div>`
+          : '';
         return `<div class="ord-card" style="margin-bottom:14px">
           <div class="ord-header">
             <div>
               <div class="ord-title">Ordinationsunderlag — ${escapeHtml(treatment)}</div>
               <div class="ord-meta">Patient: ${escapeHtml(title)} · Tid: ${formatDateTime(when)} · Ärende: ${escapeHtml(item.id || '—')}</div>
             </div>
-            <span class="pill amber" style="margin-left:auto">Väntar läkare</span>
+            ${reviewPill}
           </div>
           <div class="ord-body">
             <div class="handoff-grid">
@@ -1827,16 +1908,65 @@
                 <div class="handoff-value">${statusPill(item.state || item.status || 'pending')}</div>
               </div>
             </div>
+            ${decisionMeta}
             <div class="safety-notice" style="margin:12px 0 0">
-              🔒 Read-only Fas 4: läkaren ser underlaget här. Godkännande och signatur aktiveras först i separat skriv-PR med 2FA + audit.
+              🔒 Fas 5: beslut kräver läkare/ägare, manuell signatur och audit-logg. Sjuksköterskor kan se men inte godkänna.
+            </div>
+            <div class="ordination-write" data-review-id="${escapeHtml(item.id || '')}">
+              <label>
+                Signatur
+                <input data-field="signature" placeholder="t.ex. Dr. Namn"${disabledAttr}>
+              </label>
+              <label>
+                Kommentar / motivering
+                <textarea data-field="comment" placeholder="Kort kommentar vid godkännande, obligatorisk motivering vid avvisning"${disabledAttr}></textarea>
+              </label>
             </div>
           </div>
           <div class="ord-actions">
-            <button class="btn primary" disabled>✓ Godkänn &amp; signera</button>
-            <button class="btn danger-btn" disabled>✗ Avvisa</button>
+            <button class="btn primary ordination-action" data-action="approve" data-review-id="${escapeHtml(item.id || '')}"${disabledAttr}>✓ Godkänn &amp; signera</button>
+            <button class="btn danger-btn ordination-action" data-action="reject" data-review-id="${escapeHtml(item.id || '')}"${disabledAttr}>✗ Avvisa</button>
             <button class="btn" disabled>Begär komplettering</button>
+            <span class="ordination-feedback" data-feedback-for="${escapeHtml(item.id || '')}">${canApprove ? 'Redo för manuell läkaråtgärd.' : 'Endast läkare/ägare kan signera.'}</span>
           </div>
         </div>`;
+      }
+
+      async function submitOrdinationDecision(button) {
+        const id = button?.dataset?.reviewId;
+        const action = button?.dataset?.action;
+        if (!id || !['approve', 'reject'].includes(action)) return;
+
+        const card = button.closest('.ord-card');
+        const escapedId =
+          window.CSS && typeof CSS.escape === 'function'
+            ? CSS.escape(id)
+            : String(id).replace(/["\\]/g, '\\$&');
+        const fields = card?.querySelector(`.ordination-write[data-review-id="${escapedId}"]`);
+        const signature = fields?.querySelector('[data-field="signature"]')?.value || '';
+        const comment = fields?.querySelector('[data-field="comment"]')?.value || '';
+        const feedback = card?.querySelector(`[data-feedback-for="${escapedId}"]`);
+        const setFeedback = (message, type) => {
+          if (!feedback) return;
+          feedback.textContent = message;
+          feedback.className = `ordination-feedback ${type || ''}`.trim();
+        };
+
+        try {
+          button.disabled = true;
+          setFeedback('Sparar beslut och audit-loggar...', '');
+          await staffPost(`/api/v1/staff/ordination-reviews/${encodeURIComponent(id)}/${action}`, {
+            signature,
+            comment,
+          });
+          setFeedback(action === 'approve' ? 'Godkänd och loggad.' : 'Avvisad och loggad.', 'ok');
+          await loadOrdinationReviews();
+          await loadAudit();
+        } catch (err) {
+          setFeedback(err.message || 'Kunde inte spara beslutet.', 'error');
+        } finally {
+          button.disabled = false;
+        }
       }
 
       /* Hämta inloggad personal och uppdatera UI om lyckad */
@@ -2112,6 +2242,14 @@
       document.querySelectorAll('.role-btn').forEach((btn, i) => {
         const roles = ['nurse', 'doctor', 'admin'];
         btn.addEventListener('click', (e) => setRole(roles[i], e));
+      });
+
+      document.addEventListener('click', (event) => {
+        const button = event.target.closest?.('.ordination-action');
+        if (button) {
+          event.preventDefault();
+          submitOrdinationDecision(button);
+        }
       });
 
       /* ── Mobile drawer ──────────────────────────────────────────── */
