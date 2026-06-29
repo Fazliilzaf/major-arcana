@@ -614,6 +614,79 @@ function createStaffPortalRouter({
     };
   }
 
+  function notificationKindLabel(type) {
+    const labels = {
+      booking: 'Bokning',
+      compliance: 'Compliance',
+      id_verification: 'ID-verifiering',
+      agreement: 'Avtal',
+      mail: 'Kundfråga',
+      system: 'System',
+    };
+    return labels[type] || 'Notis';
+  }
+
+  function buildNotificationPriorityItem(item, index = 0) {
+    const severity = String(item?.severity || 'info').toLowerCase();
+    const hasAction = Boolean(
+      item?.actionUrl ||
+      item?.links?.staffPortal ||
+      item?.links?.staffTask ||
+      item?.links?.customerCard
+    );
+    const priority =
+      severity === 'warning' || severity === 'danger' || hasAction ? 'urgent' : 'waiting';
+    const priorityRank = priority === 'urgent' ? 5 + index : 35 + index;
+    const type = String(item?.type || 'system');
+    const actionUrl =
+      item?.actionUrl ||
+      item?.links?.staffPortal ||
+      item?.links?.staffTask ||
+      item?.links?.customerCard ||
+      null;
+
+    return {
+      id: `notification:${item?.id || index}`,
+      source: 'notification',
+      priority,
+      priorityRank,
+      title: item?.title || notificationKindLabel(type),
+      body: item?.body || '',
+      type,
+      severity,
+      read: Boolean(item?.read),
+      createdAt: item?.createdAt || null,
+      actionUrl,
+      links: item?.links || {},
+      actions: [
+        {
+          key: `notification_${type}`,
+          label: notificationKindLabel(type),
+          severity: priority === 'urgent' ? 'urgent' : 'info',
+        },
+      ],
+    };
+  }
+
+  function buildQueuePriorityItem(item) {
+    const labels = Array.isArray(item.actions)
+      ? item.actions.map((action) => action.label || action.key).filter(Boolean)
+      : [];
+    return {
+      id: `queue:${item.id}`,
+      source: 'queue',
+      priority: item.priority,
+      priorityRank: Number(item.priorityRank || 30) + 10,
+      title: item.title,
+      body: labels.join(' · '),
+      startsAt: item.startsAt || null,
+      actionUrl: item.links?.staffTask || item.links?.customerCard || null,
+      links: item.links || {},
+      actions: item.actions || [],
+      queueItem: item,
+    };
+  }
+
   // Lägg till requireAuth som global pre-filter för /api/v1/staff/*
   // (HTML-routen /staff-portal är öppen)
   if (requireAuth) {
@@ -694,6 +767,77 @@ function createStaffPortalRouter({
         });
       } catch (err) {
         res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /* ── GET /api/v1/staff/work-priorities ───────────────────────
+     Samlad read-only prioriteringsradar:
+       - notiser med åtgärdslänk först
+       - därefter daglig arbetskö
+     Inga mark-read, inga journaländringar och inga kundutskick.
+  ─────────────────────────────────────────────────────────────── */
+  router.get(
+    '/api/v1/staff/work-priorities',
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const role = req.cco?.role ?? req.auth?.role ?? req.query.role ?? null;
+        const userId = req.auth?.userId ?? req.headers['x-cco-user'] ?? role ?? 'staff';
+        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 30);
+        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+
+        const feedStore = getNotificationFeedStore?.() ?? notificationFeedStore;
+        const [feed, cases] = await Promise.all([
+          feedStore?.getFeed
+            ? feedStore.getFeed({ role, userId, sinceHours: 168, limit: 12 })
+            : Promise.resolve({ items: [] }),
+          bookingCaseStore?.listCases
+            ? bookingCaseStore.listCases({
+                tenantId: tenantId || undefined,
+                assignedTo: all ? null : userId || undefined,
+                limit: 30,
+              })
+            : Promise.resolve([]),
+        ]);
+
+        const customers = await Promise.all(
+          (Array.isArray(cases) ? cases : [])
+            .slice(0, 30)
+            .map((item) => buildCustomerWorkItem(item, { tenantId }))
+        );
+        const queueItems = customers.map(buildDailyWorkQueueItem);
+        const notificationItems = (Array.isArray(feed?.items) ? feed.items : [])
+          .filter(
+            (item) =>
+              !item.read || item.actionUrl || item.links?.staffPortal || item.links?.staffTask
+          )
+          .map(buildNotificationPriorityItem);
+
+        const items = [...notificationItems, ...queueItems.map(buildQueuePriorityItem)]
+          .sort(
+            (a, b) =>
+              a.priorityRank - b.priorityRank ||
+              String(a.createdAt || a.startsAt || '').localeCompare(
+                String(b.createdAt || b.startsAt || '')
+              )
+          )
+          .slice(0, limit);
+
+        const summary = items.reduce(
+          (acc, item) => {
+            acc.total += 1;
+            acc[item.source] = (acc[item.source] || 0) + 1;
+            acc[item.priority] = (acc[item.priority] || 0) + 1;
+            return acc;
+          },
+          { total: 0, notification: 0, queue: 0, urgent: 0, today: 0, waiting: 0, done: 0 }
+        );
+
+        res.json({ ok: true, items, count: items.length, summary });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
       }
     }
   );

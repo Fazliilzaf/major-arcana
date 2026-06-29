@@ -402,6 +402,13 @@
       .item-card.notification-card .item-icon {
         background: rgba(187, 71, 121, 0.1);
       }
+      .item-card.priority-card {
+        align-items: center;
+        border-color: rgba(187, 71, 121, 0.18);
+      }
+      .item-card.priority-card .item-icon {
+        background: linear-gradient(135deg, rgba(187, 71, 121, 0.16), rgba(126, 87, 194, 0.1));
+      }
       .notification-toolbar {
         display: flex;
         flex-wrap: wrap;
@@ -1495,6 +1502,13 @@
             </div>
           </div>
 
+          <div class="section-title">Prioritetsradar</div>
+          <div class="safety-notice">
+            ✨ Samlar notiser och arbetskö till “titta här först”. Read-only: inga kundsvar,
+            journaländringar eller lästa-markeringar sker automatiskt.
+          </div>
+          <div id="livePriorityRadarNurse" class="live-panel"></div>
+
           <div class="section-title">Min notisinkorg</div>
           <div class="safety-notice">
             🔔 Read-only radar från CCO. Notiser öppnar rätt personalvy, men markerar inget som läst
@@ -1737,6 +1751,13 @@
             </div>
           </div>
 
+          <div class="section-title">Prioritetsradar</div>
+          <div class="safety-notice">
+            ✨ Visar ordinationer och kliniska notiser som bör granskas först. Beslut kräver
+            fortfarande manuell läkarsignatur.
+          </div>
+          <div id="livePriorityRadarDoctor" class="live-panel"></div>
+
           <div class="section-title">Min notisinkorg</div>
           <div class="safety-notice">
             🔔 Read-only radar från CCO. Kliniska notiser leder till rätt granskningsvy; beslut
@@ -1948,6 +1969,13 @@
               <div class="stat-lbl">Personal idag</div>
             </div>
           </div>
+
+          <div class="section-title">Prioritetsradar</div>
+          <div class="safety-notice">
+            ✨ Samlad owner-vy för notiser och arbetskö. Hjälper koordinera personal utan att ändra
+            journal eller kundkommunikation automatiskt.
+          </div>
+          <div id="livePriorityRadarAdmin" class="live-panel"></div>
 
           <div class="section-title">Kliniknotiser</div>
           <div class="safety-notice">
@@ -2402,6 +2430,58 @@
         </div>`;
       }
 
+      function renderPriorityRadarCard(item) {
+        const source = String(item.source || 'queue');
+        const priority = String(item.priority || 'waiting');
+        const icon =
+          source === 'notification'
+            ? '🔔'
+            : priority === 'urgent'
+              ? '⚡'
+              : priority === 'today'
+                ? '📍'
+                : priority === 'done'
+                  ? '✅'
+                  : '⏳';
+        const tone =
+          priority === 'urgent'
+            ? 'urgent'
+            : priority === 'today'
+              ? 'pending'
+              : priority === 'done'
+                ? 'approved'
+                : 'info-c';
+        const sourceLabel = source === 'notification' ? 'Notis' : 'Arbetskö';
+        const when = item.createdAt || item.startsAt;
+        const actionHtml = Array.isArray(item.actions) ? item.actions.map(actionPill).join('') : '';
+        const href =
+          item.actionUrl ||
+          item.links?.staffTask ||
+          item.links?.doctorReview ||
+          item.links?.staffPortal ||
+          item.links?.customerCard ||
+          '';
+        return `<div class="item-card priority-card ${tone}">
+          <div class="item-icon">${icon}</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(item.title || 'Prioritet')}</div>
+            <div class="item-meta">${escapeHtml(item.body || 'Öppna underlaget och fortsätt manuellt.')}${when ? ' · ' + escapeHtml(formatDateTime(when)) : ''}</div>
+            <div class="flow-chip-row">
+              <span class="queue-priority ${escapeHtml(priority)}">${escapeHtml(priorityLabel(priority))}</span>
+              <span class="pill info">${escapeHtml(sourceLabel)}</span>
+              ${actionHtml}
+            </div>
+          </div>
+          <div class="item-actions">
+            ${
+              href
+                ? `<a class="btn primary" href="${escapeHtml(href)}" target="_blank" rel="noopener">Öppna</a>`
+                : '<button class="btn" disabled>Ingen länk</button>'
+            }
+          </div>
+        </div>`;
+      }
+
       function renderCaseCard(item, opts = {}) {
         const title = getCaseTitle(item, opts.fallbackTitle || 'Kundärende');
         const treatment =
@@ -2833,7 +2913,13 @@
             itemKey,
           });
           setFeedback('Sparat och audit-loggat.', 'ok');
-          await Promise.all([loadDailyWorkQueue(), loadMyCustomers(), loadTasks(), loadAudit()]);
+          await Promise.all([
+            loadDailyWorkQueue(),
+            loadStaffPriorityRadar(),
+            loadMyCustomers(),
+            loadTasks(),
+            loadAudit(),
+          ]);
         } catch (err) {
           setFeedback(err.message || 'Kunde inte spara åtgärden.', 'error');
           button.disabled = false;
@@ -2870,6 +2956,7 @@
           await Promise.all([
             loadReviewQueue(),
             loadDailyWorkQueue(),
+            loadStaffPriorityRadar(),
             loadMyCustomers(),
             loadTasks(),
             loadAudit(),
@@ -3029,6 +3116,34 @@
           ? summary + items.slice(0, 5).map(renderNotificationCard).join('')
           : summary +
             '<div class="live-note">Inga aktuella notiser för den här rollen just nu.</div>';
+      }
+
+      async function loadStaffPriorityRadar() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/work-priorities?limit=8');
+        if (!data || !data.ok) return;
+
+        const roleTargets = {
+          nurse: 'livePriorityRadarNurse',
+          doctor: 'livePriorityRadarDoctor',
+          admin: 'livePriorityRadarAdmin',
+        };
+        const container = document.getElementById(roleTargets[currentRole] || roleTargets.nurse);
+        if (!container) return;
+
+        const summary = data.summary || {};
+        const items = Array.isArray(data.items) ? data.items : [];
+        document.querySelectorAll('[data-live-badge="priorities"]').forEach((badge) => {
+          badge.textContent =
+            Number(summary.urgent || 0) || Number(summary.today || 0) || data.count || 0;
+          badge.style.display = data.count ? '' : 'none';
+        });
+        container.innerHTML = items.length
+          ? `<div class="notification-toolbar">
+              <div class="live-note" style="margin:0">Prioritet: ${Number(summary.urgent || 0)} akut · ${Number(summary.today || 0)} idag · ${Number(summary.notification || 0)} notiser · ${Number(summary.queue || 0)} arbetskö.</div>
+              <a class="deep-link primary" href="/staff-portal?role=${escapeHtml(currentRole)}&panel=notifications">Visa notiser</a>
+            </div>` + items.slice(0, 6).map(renderPriorityRadarCard).join('')
+          : '<div class="live-note">Inga prioriterade ärenden just nu.</div>';
       }
 
       /* Hämta uppgifter och uppdatera nurse stats */
@@ -3338,6 +3453,7 @@
           await loadStaffTeam();
           await Promise.all([
             loadDailyWorkQueue(),
+            loadStaffPriorityRadar(),
             loadStaffNotifications(),
             loadTasks(),
             loadMyCustomers(),
@@ -3361,6 +3477,7 @@
           avatar: 'AL',
           nav: [
             { section: 'Arbetsflöde' },
+            { id: 'priority', icon: '✨', label: 'Prioritet', liveBadge: 'priorities' },
             { id: 'notifications', icon: '🔔', label: 'Notiser', liveBadge: 'notifications' },
             { id: 'mine', icon: '📋', label: 'Mina uppgifter', liveBadge: 'tasks' },
             { id: 'cases', icon: '👤', label: 'Mina kunder' },
@@ -3377,6 +3494,7 @@
           avatar: 'MÖ',
           nav: [
             { section: 'Arbetsflöde' },
+            { id: 'priority', icon: '✨', label: 'Prioritet', liveBadge: 'priorities' },
             { id: 'notifications', icon: '🔔', label: 'Notiser', liveBadge: 'notifications' },
             { id: 'ord', icon: '⚕️', label: 'Ordinationer', liveBadge: 'review-queue' },
             { id: 'history', icon: '🕓', label: 'Min historik' },
@@ -3393,6 +3511,7 @@
           avatar: 'FK',
           nav: [
             { section: 'Översikt' },
+            { id: 'priority', icon: '✨', label: 'Prioritet', liveBadge: 'priorities' },
             { id: 'notifications', icon: '🔔', label: 'Kliniknotiser', liveBadge: 'notifications' },
             { id: 'overview', icon: '🏥', label: 'Kliniköversikt' },
             { id: 'staff', icon: '👥', label: 'Personalöversikt' },
@@ -3413,6 +3532,9 @@
       const PANEL_ALIASES = {
         mine: 'mine',
         queue: 'mine',
+        priority: 'priority',
+        priorities: 'priority',
+        prioritet: 'priority',
         tasks: 'mine',
         notifications: 'notifications',
         notiser: 'notifications',
@@ -3458,6 +3580,7 @@
 
       const PANEL_TARGET = {
         mine: '#liveDailyQueueList',
+        priority: '#livePriorityRadarNurse',
         notifications: '#liveNotificationInboxNurse',
         cases: '#liveMyCustomerList',
         deleg: '#liveDelegationList',
@@ -3551,13 +3674,19 @@
       function scrollToPanel(panel, targetHash) {
         const hashTarget = targetHash ? document.getElementById(targetHash) : null;
         const panelSelector =
-          panel === 'notifications'
+          panel === 'priority'
             ? {
-                nurse: '#liveNotificationInboxNurse',
-                doctor: '#liveNotificationInboxDoctor',
-                admin: '#liveNotificationInboxAdmin',
+                nurse: '#livePriorityRadarNurse',
+                doctor: '#livePriorityRadarDoctor',
+                admin: '#livePriorityRadarAdmin',
               }[currentRole] || PANEL_TARGET[panel]
-            : PANEL_TARGET[panel];
+            : panel === 'notifications'
+              ? {
+                  nurse: '#liveNotificationInboxNurse',
+                  doctor: '#liveNotificationInboxDoctor',
+                  admin: '#liveNotificationInboxAdmin',
+                }[currentRole] || PANEL_TARGET[panel]
+              : PANEL_TARGET[panel];
         const panelTarget = panelSelector ? document.querySelector(panelSelector) : null;
         const target = hashTarget || panelTarget;
         if (!target) return false;
@@ -3625,6 +3754,7 @@
         // Uppdatera live-badges efter byte
         if (_liveMode) {
           loadDailyWorkQueue();
+          loadStaffPriorityRadar();
           loadStaffNotifications();
           loadReviewQueue();
           loadOrdinationReviews();
