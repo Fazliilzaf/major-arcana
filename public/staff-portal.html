@@ -435,6 +435,33 @@
         font-weight: 700;
         padding: 9px 12px;
       }
+      .signal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 10px;
+      }
+      .signal-tile {
+        min-height: 48px;
+        border-radius: 11px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.58);
+        padding: 8px 9px;
+      }
+      .signal-value {
+        font-size: 16px;
+        font-weight: 850;
+        color: var(--brand);
+        line-height: 1;
+      }
+      .signal-label {
+        margin-top: 4px;
+        font-size: 9px;
+        font-weight: 800;
+        color: var(--text3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
       .flow-chip-row {
         display: flex;
         flex-wrap: wrap;
@@ -945,7 +972,8 @@
         }
         .two-col,
         .three-col,
-        .handoff-grid {
+        .handoff-grid,
+        .signal-grid {
           grid-template-columns: 1fr;
         }
         .img-grid {
@@ -991,7 +1019,8 @@
         }
         .two-col,
         .three-col,
-        .handoff-grid {
+        .handoff-grid,
+        .signal-grid {
           grid-template-columns: 1fr;
         }
         .img-grid {
@@ -1194,6 +1223,7 @@
 
           <!-- Kundkort + tilldelning -->
           <div class="section-title">Mina kunder idag</div>
+          <div id="liveMyCustomerList" class="live-panel"></div>
           <div class="two-col">
             <div class="kundkort">
               <div class="kundkort-header">
@@ -1902,6 +1932,60 @@
         </div>`;
       }
 
+      function renderCustomerSignalCard(item) {
+        const customer = item.case || {};
+        const title = item.title || getCaseTitle(customer, 'Kund');
+        const treatment =
+          customer.treatmentType ||
+          customer.serviceLabel ||
+          customer.treatment ||
+          customer.service ||
+          'Behandling ej angiven';
+        const when = customer.startsAt || customer.scheduledForIso || customer.scheduledAt;
+        const cardUrl = customerCardUrl({
+          patientId: item.patientId || customer.patientId,
+          customerId: item.customerId || customer.customerId,
+        });
+        const customerAction = cardUrl
+          ? `<a class="btn primary" href="${escapeHtml(cardUrl)}" target="_blank" rel="noopener">Öppna kundkort</a>`
+          : '<button class="btn" disabled title="Saknar patientId/customerId">Öppna kundkort</button>';
+        const needsReply = Number(item.threads?.needsReply || 0);
+        const threadCount = Number(item.threads?.count || 0);
+        const photoCount = Number(item.photos?.count || 0);
+        const state = customer.needsReplyStatus || customer.state || customer.status || 'pending';
+
+        return `<div class="item-card ${needsReply ? 'urgent' : photoCount ? 'violet' : 'info-c'}">
+          <div class="item-icon">${needsReply ? '💬' : photoCount ? '📷' : '👤'}</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(title)}</div>
+            <div class="item-meta">${escapeHtml(treatment)}${when ? ' · ' + escapeHtml(formatDateTime(when)) : ''}${customer.assignedTo ? ' · Ansvarig: ' + escapeHtml(customer.assignedTo) : ''}</div>
+            <div class="signal-grid" aria-label="Kundsignaler">
+              <div class="signal-tile">
+                <div class="signal-value">${threadCount}</div>
+                <div class="signal-label">Trådar</div>
+              </div>
+              <div class="signal-tile">
+                <div class="signal-value">${needsReply}</div>
+                <div class="signal-label">Svar krävs</div>
+              </div>
+              <div class="signal-tile">
+                <div class="signal-value">${photoCount}</div>
+                <div class="signal-label">Bilder</div>
+              </div>
+            </div>
+            <div class="flow-chip-row">
+              ${statusPill(state)}
+              ${needsReply ? '<span class="pill danger">Kundfråga</span>' : ''}
+              ${photoCount ? '<span class="pill violet">Bilder finns</span>' : ''}
+              ${ordinationStatusPill(customer)}
+            </div>
+          </div>
+          <div class="item-actions">
+            ${customerAction}
+          </div>
+        </div>`;
+      }
+
       function renderOrdinationCard(item) {
         const title = getCaseTitle(item, 'Ordinationsunderlag');
         const treatment = item.treatmentType || item.treatment || item.service || 'Behandling';
@@ -2105,6 +2189,25 @@
         }
       }
 
+      async function loadMyCustomers() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/my-customers?limit=12');
+        if (!data || !data.ok) return;
+
+        const container = document.getElementById('liveMyCustomerList');
+        if (!container) return;
+
+        if (data.customers?.length) {
+          const summary = data.summary || {};
+          container.innerHTML =
+            `<div class="live-note">Live kundöversikt: ${Number(summary.total || 0)} tilldelade kunder · ${Number(summary.needsReply || 0)} med öppna svar · ${Number(summary.withPhotos || 0)} med bilder.</div>` +
+            data.customers.slice(0, 8).map(renderCustomerSignalCard).join('');
+        } else {
+          container.innerHTML =
+            '<div class="live-note">Inga tilldelade kunder med live-data just nu.</div>';
+        }
+      }
+
       /* Hämta audit-logg och injicera i admin-view */
       async function loadAudit() {
         if (!_liveMode) return;
@@ -2169,6 +2272,7 @@
         if (_liveMode) {
           await Promise.all([
             loadTasks(),
+            loadMyCustomers(),
             loadReviewQueue(),
             loadOrdinationReviews(),
             loadAudit(),
@@ -2271,6 +2375,7 @@
           loadReviewQueue();
           loadOrdinationReviews();
           loadTasks();
+          loadMyCustomers();
         }
       }
 

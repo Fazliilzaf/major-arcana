@@ -87,6 +87,89 @@ function createStaffPortalRouter({
     return res.status(status).json({ ok: false, error: err?.message || 'Kunde inte spara.' });
   }
 
+  async function listPhotoMetadata({ tenantId = 'hairtpclinic', patientId }) {
+    const cleanPatientId = String(patientId || '').trim();
+    if (!cleanPatientId) return [];
+
+    const baseDir = config.journalPhotosDir || path.join(__dirname, '../../data/journal-photos');
+    const patientDir = path.join(baseDir, tenantId, cleanPatientId);
+
+    try {
+      const files = await fs.readdir(patientDir);
+      return files
+        .filter((f) => /\.(jpg|jpeg|png)$/i.test(f) && !f.endsWith('.annotated.png'))
+        .map((f) => {
+          const ext = path.extname(f).slice(1).toLowerCase();
+          const photoId = path.basename(f, path.extname(f));
+          return {
+            photoId,
+            ext,
+            mimeType: ext === 'png' ? 'image/png' : 'image/jpeg',
+            fileName: f,
+          };
+        });
+    } catch (dirErr) {
+      if (dirErr.code !== 'ENOENT') throw dirErr;
+      return [];
+    }
+  }
+
+  async function buildCustomerWorkItem(caseRecord, { tenantId }) {
+    const customerId = String(
+      caseRecord.customerId || caseRecord.patientId || caseRecord.customerEmail || ''
+    ).trim();
+    const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
+
+    let threads = [];
+    let threadSummary = null;
+    if (customerId) {
+      try {
+        const store = await getThreadStore();
+        const built = await store.buildThreadsForCustomer(customerId, { tenantId });
+        threads = Array.isArray(built?.threads) ? built.threads : [];
+        threadSummary = built?.summary || null;
+      } catch (_err) {
+        threads = [];
+        threadSummary = null;
+      }
+    }
+
+    const photos = patientId ? await listPhotoMetadata({ tenantId, patientId }) : [];
+    const openThreads = threads.filter((thread) => {
+      const state = String(
+        thread.needsReplyStatus || thread.status || thread.state || thread.queueState || ''
+      ).toLowerCase();
+      return state.includes('need') || state.includes('open') || state.includes('pending');
+    });
+
+    return {
+      case: caseRecord,
+      customerId: customerId || null,
+      patientId: patientId || null,
+      title:
+        caseRecord.customerName ||
+        caseRecord.patientName ||
+        caseRecord.customerEmail ||
+        caseRecord.id ||
+        'Kund',
+      threads: {
+        count: threads.length,
+        needsReply: openThreads.length,
+        summary: threadSummary,
+      },
+      photos: {
+        count: photos.length,
+        latest: photos.slice(0, 4),
+      },
+      signals: {
+        hasCustomerCard: Boolean(patientId || customerId),
+        hasMessages: threads.length > 0,
+        hasPhotos: photos.length > 0,
+        needsReply: openThreads.length > 0,
+      },
+    };
+  }
+
   // Lägg till requireAuth som global pre-filter för /api/v1/staff/*
   // (HTML-routen /staff-portal är öppen)
   if (requireAuth) {
@@ -143,6 +226,55 @@ function createStaffPortalRouter({
       res.status(500).json({ ok: false, error: err.message });
     }
   });
+
+  /* ── GET /api/v1/staff/my-customers ───────────────────────────
+     Samlad read-only arbetsvy för personal:
+       - mina tilldelade kunder från bookingCaseStore
+       - konversationssignal från ccoConversationThreadStore
+       - bildsignal från journal photo-metadata på disk
+     Inga journal-/medicinbeslut, inga skrivningar.
+  ─────────────────────────────────────────────────────────────── */
+  router.get(
+    '/api/v1/staff/my-customers',
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const role = req.cco?.role ?? null;
+        const userId = req.auth?.userId ?? null;
+        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const limit = Math.min(Number(req.query.limit) || 20, 50);
+        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+
+        let cases = [];
+        if (bookingCaseStore) {
+          cases = await bookingCaseStore.listCases({
+            tenantId: tenantId || undefined,
+            assignedTo: all ? null : userId || undefined,
+            limit,
+          });
+        }
+
+        const customers = await Promise.all(
+          cases.slice(0, limit).map((item) => buildCustomerWorkItem(item, { tenantId }))
+        );
+
+        const summary = customers.reduce(
+          (acc, item) => {
+            acc.total += 1;
+            if (item.signals.needsReply) acc.needsReply += 1;
+            if (item.signals.hasPhotos) acc.withPhotos += 1;
+            if (item.signals.hasCustomerCard) acc.withCustomerCard += 1;
+            return acc;
+          },
+          { total: 0, needsReply: 0, withPhotos: 0, withCustomerCard: 0 }
+        );
+
+        res.json({ ok: true, customers, count: customers.length, summary });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
 
   /* ── GET /api/v1/staff/review-queue ───────────────────────────
      Manuell granskningskö — ärenden i pågående handläggning.
@@ -281,28 +413,7 @@ function createStaffPortalRouter({
           return res.status(400).json({ ok: false, error: 'patientId krävs.' });
         }
 
-        const baseDir =
-          config.journalPhotosDir || path.join(__dirname, '../../data/journal-photos');
-        const patientDir = path.join(baseDir, tenantId, patientId);
-
-        let photos = [];
-        try {
-          const files = await fs.readdir(patientDir);
-          photos = files
-            .filter((f) => /\.(jpg|jpeg|png)$/i.test(f) && !f.endsWith('.annotated.png'))
-            .map((f) => {
-              const ext = path.extname(f).slice(1).toLowerCase();
-              const photoId = path.basename(f, path.extname(f));
-              return {
-                photoId,
-                ext,
-                mimeType: ext === 'png' ? 'image/png' : 'image/jpeg',
-                fileName: f,
-              };
-            });
-        } catch (dirErr) {
-          if (dirErr.code !== 'ENOENT') throw dirErr;
-        }
+        const photos = await listPhotoMetadata({ tenantId, patientId });
 
         if (ccoAuditLog) {
           ccoAuditLog.append({
