@@ -393,6 +393,28 @@
       .item-card.violet {
         --cc: var(--violet);
       }
+      .item-card.notification-card {
+        align-items: center;
+      }
+      .item-card.notification-card.is-read {
+        opacity: 0.72;
+      }
+      .item-card.notification-card .item-icon {
+        background: rgba(187, 71, 121, 0.1);
+      }
+      .notification-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .notification-summary {
+        color: var(--text2);
+        font-size: 11px;
+        font-weight: 750;
+      }
 
       .item-icon {
         width: 36px;
@@ -1473,6 +1495,13 @@
             </div>
           </div>
 
+          <div class="section-title">Min notisinkorg</div>
+          <div class="safety-notice">
+            🔔 Read-only radar från CCO. Notiser öppnar rätt personalvy, men markerar inget som läst
+            och gör inga åtgärder automatiskt.
+          </div>
+          <div id="liveNotificationInboxNurse" class="live-panel"></div>
+
           <div class="section-title">Daglig arbetskö</div>
           <div class="safety-notice">
             🧭 Prioriterad read-only vy. Den visar vad personalen bör titta på först, men ändrar
@@ -1708,6 +1737,13 @@
             </div>
           </div>
 
+          <div class="section-title">Min notisinkorg</div>
+          <div class="safety-notice">
+            🔔 Read-only radar från CCO. Kliniska notiser leder till rätt granskningsvy; beslut
+            kräver fortsatt manuell signatur.
+          </div>
+          <div id="liveNotificationInboxDoctor" class="live-panel"></div>
+
           <div class="safety-notice">
             🔴 <strong>Medicinskt ansvar:</strong> Systemet skapar aldrig automatisk godkänd status.
             Din signatur och tidsstämpel krävs för varje ordination. AI används inte för klinisk
@@ -1912,6 +1948,13 @@
               <div class="stat-lbl">Personal idag</div>
             </div>
           </div>
+
+          <div class="section-title">Kliniknotiser</div>
+          <div class="safety-notice">
+            🔔 Read-only owner-radar från CCO. Visar avvikelser, systemnotiser och ärenden som
+            kräver koordinering.
+          </div>
+          <div id="liveNotificationInboxAdmin" class="live-panel"></div>
 
           <!-- Personalöversikt -->
           <div class="section-title">Personal på plats idag</div>
@@ -2310,6 +2353,53 @@
               `<a class="deep-link ${cls}" href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`
           )
           .join('')}</div>`;
+      }
+
+      const NOTIFICATION_KIND = {
+        booking: ['📅', 'Bokning', 'pending'],
+        compliance: ['🛡️', 'Compliance', 'urgent'],
+        id_verification: ['🪪', 'ID', 'violet'],
+        agreement: ['📄', 'Avtal', 'approved'],
+        mail: ['✉️', 'Kundfråga', 'info-c'],
+        system: ['🔔', 'System', 'info-c'],
+      };
+
+      function renderNotificationCard(item) {
+        const [icon, label, tone] = NOTIFICATION_KIND[item.type] || NOTIFICATION_KIND.system;
+        const severity = String(item.severity || 'info').toLowerCase();
+        const cardTone = severity === 'warning' ? 'urgent' : tone;
+        const actionUrl =
+          item.actionUrl ||
+          item.links?.staffPortal ||
+          item.links?.staffTask ||
+          item.links?.customerCard ||
+          '';
+        const actionLabel =
+          item.type === 'booking'
+            ? 'Öppna granskning'
+            : item.type === 'compliance' || item.type === 'system'
+              ? 'Öppna QMS'
+              : item.type === 'mail'
+                ? 'Öppna arbetsvy'
+                : 'Öppna';
+        return `<div class="item-card notification-card ${cardTone} ${item.read ? 'is-read' : ''}">
+          <div class="item-icon">${icon}</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(item.title || label)}</div>
+            <div class="item-meta">${escapeHtml(item.body || 'Ingen extra text')}${item.createdAt ? ' · ' + escapeHtml(formatDateTime(item.createdAt)) : ''}</div>
+            <div class="flow-chip-row">
+              <span class="pill ${severity === 'warning' ? 'danger' : 'info'}">${escapeHtml(label)}</span>
+              ${item.read ? '<span class="pill neutral">Läst</span>' : '<span class="pill amber">Ny</span>'}
+            </div>
+          </div>
+          <div class="item-actions">
+            ${
+              actionUrl
+                ? `<a class="btn primary" href="${escapeHtml(actionUrl)}" target="_blank" rel="noopener">${escapeHtml(actionLabel)}</a>`
+                : '<button class="btn" disabled>Ingen länk</button>'
+            }
+          </div>
+        </div>`;
       }
 
       function renderCaseCard(item, opts = {}) {
@@ -2909,6 +2999,38 @@
         }
       }
 
+      async function loadStaffNotifications() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/notifications?limit=8&sinceHours=168');
+        if (!data || !data.ok) return;
+
+        const unread = Number(data.summary?.unread || 0);
+        const actionRequired = Number(data.summary?.actionRequired || 0);
+        document.querySelectorAll('[data-live-badge="notifications"]').forEach((badge) => {
+          badge.textContent = unread || actionRequired || data.count || 0;
+          badge.style.display = unread || actionRequired || data.count ? '' : 'none';
+        });
+
+        const roleTargets = {
+          nurse: 'liveNotificationInboxNurse',
+          doctor: 'liveNotificationInboxDoctor',
+          admin: 'liveNotificationInboxAdmin',
+        };
+        const container = document.getElementById(roleTargets[currentRole] || roleTargets.nurse);
+        if (!container) return;
+
+        const items = Array.isArray(data.items) ? data.items : [];
+        const summary = `<div class="notification-toolbar">
+          <div class="live-note" style="margin:0">Live notiser: ${Number(data.count || 0)} totalt · ${unread} olästa · ${actionRequired} med åtgärdslänk.</div>
+          <a class="deep-link primary" href="/major-arcana-preview/cco-notiser-v3.html" target="_blank" rel="noopener">Öppna Notiser 2.0</a>
+        </div>`;
+
+        container.innerHTML = items.length
+          ? summary + items.slice(0, 5).map(renderNotificationCard).join('')
+          : summary +
+            '<div class="live-note">Inga aktuella notiser för den här rollen just nu.</div>';
+      }
+
       /* Hämta uppgifter och uppdatera nurse stats */
       async function loadTasks() {
         if (!_liveMode) return;
@@ -3216,6 +3338,7 @@
           await loadStaffTeam();
           await Promise.all([
             loadDailyWorkQueue(),
+            loadStaffNotifications(),
             loadTasks(),
             loadMyCustomers(),
             loadReviewQueue(),
@@ -3238,6 +3361,7 @@
           avatar: 'AL',
           nav: [
             { section: 'Arbetsflöde' },
+            { id: 'notifications', icon: '🔔', label: 'Notiser', liveBadge: 'notifications' },
             { id: 'mine', icon: '📋', label: 'Mina uppgifter', liveBadge: 'tasks' },
             { id: 'cases', icon: '👤', label: 'Mina kunder' },
             { section: 'Dokument' },
@@ -3253,6 +3377,7 @@
           avatar: 'MÖ',
           nav: [
             { section: 'Arbetsflöde' },
+            { id: 'notifications', icon: '🔔', label: 'Notiser', liveBadge: 'notifications' },
             { id: 'ord', icon: '⚕️', label: 'Ordinationer', liveBadge: 'review-queue' },
             { id: 'history', icon: '🕓', label: 'Min historik' },
             { section: 'Dokument' },
@@ -3268,6 +3393,7 @@
           avatar: 'FK',
           nav: [
             { section: 'Översikt' },
+            { id: 'notifications', icon: '🔔', label: 'Kliniknotiser', liveBadge: 'notifications' },
             { id: 'overview', icon: '🏥', label: 'Kliniköversikt' },
             { id: 'staff', icon: '👥', label: 'Personalöversikt' },
             { section: 'Ärenden' },
@@ -3288,6 +3414,8 @@
         mine: 'mine',
         queue: 'mine',
         tasks: 'mine',
+        notifications: 'notifications',
+        notiser: 'notifications',
         cases: 'cases',
         customers: 'cases',
         customer: 'cases',
@@ -3330,6 +3458,7 @@
 
       const PANEL_TARGET = {
         mine: '#liveDailyQueueList',
+        notifications: '#liveNotificationInboxNurse',
         cases: '#liveMyCustomerList',
         deleg: '#liveDelegationList',
         qms: '#liveQmsHandbookNurse',
@@ -3421,9 +3550,15 @@
 
       function scrollToPanel(panel, targetHash) {
         const hashTarget = targetHash ? document.getElementById(targetHash) : null;
-        const panelTarget = PANEL_TARGET[panel]
-          ? document.querySelector(PANEL_TARGET[panel])
-          : null;
+        const panelSelector =
+          panel === 'notifications'
+            ? {
+                nurse: '#liveNotificationInboxNurse',
+                doctor: '#liveNotificationInboxDoctor',
+                admin: '#liveNotificationInboxAdmin',
+              }[currentRole] || PANEL_TARGET[panel]
+            : PANEL_TARGET[panel];
+        const panelTarget = panelSelector ? document.querySelector(panelSelector) : null;
         const target = hashTarget || panelTarget;
         if (!target) return false;
         target.classList.remove('deeplink-target');
@@ -3490,6 +3625,7 @@
         // Uppdatera live-badges efter byte
         if (_liveMode) {
           loadDailyWorkQueue();
+          loadStaffNotifications();
           loadReviewQueue();
           loadOrdinationReviews();
           loadTasks();
