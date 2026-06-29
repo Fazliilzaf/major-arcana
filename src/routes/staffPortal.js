@@ -474,6 +474,15 @@ function createStaffPortalRouter({
     };
   }
 
+  function classifyOrdinationWorkMode(caseRecord = {}, readout = {}) {
+    const status = String(caseRecord.ordinationReview?.status || '').toLowerCase();
+    if (status === 'approved') return 'approved';
+    if (status === 'rejected') return 'rejected';
+    if (status === 'needs_completion') return 'completion';
+    if (readout.timelineSummary?.returnedFromCompletion) return 'returned';
+    return 'pending';
+  }
+
   function loadDocumentCatalog() {
     try {
       const catalog = require('../ops/hairtp-document-types.catalog.json');
@@ -1446,23 +1455,54 @@ function createStaffPortalRouter({
       try {
         const tenantId = req.auth?.tenantId ?? null;
         const limit = Math.min(Number(req.query.limit) || 20, 100);
+        const requestedMode = String(req.query.mode || 'pending')
+          .trim()
+          .toLowerCase();
+        const mode = ['all', 'pending', 'returned', 'completion', 'approved', 'rejected'].includes(
+          requestedMode
+        )
+          ? requestedMode
+          : 'pending';
 
         let reviews = [];
+        let modes = {
+          all: 0,
+          pending: 0,
+          returned: 0,
+          completion: 0,
+          approved: 0,
+          rejected: 0,
+        };
         if (bookingCaseStore) {
           const allOpen = await bookingCaseStore.listCases({
             tenantId: tenantId || undefined,
-            limit: limit * 4,
+            limit: limit * 8,
           });
-          reviews = allOpen
+          const builtReviews = allOpen
             .filter((c) => !['completed', 'cancelled'].includes(c.state))
             .filter((c) => isTreatmentRequiringOrdination(c) || c.ordinationReview)
-            .map((c) => ({
-              ...c,
-              ordinationReadout: buildOrdinationReviewReadout(c),
-            }))
+            .map((c) => {
+              const ordinationReadout = buildOrdinationReviewReadout(c);
+              const workMode = classifyOrdinationWorkMode(c, ordinationReadout);
+              return {
+                ...c,
+                workMode,
+                ordinationReadout,
+              };
+            });
+          modes = builtReviews.reduce(
+            (acc, item) => {
+              acc.all += 1;
+              if (acc[item.workMode] !== undefined) acc[item.workMode] += 1;
+              return acc;
+            },
+            { ...modes }
+          );
+          reviews = builtReviews
+            .filter((item) => mode === 'all' || item.workMode === mode)
             .slice(0, limit);
         }
-        res.json({ ok: true, reviews, count: reviews.length });
+        res.json({ ok: true, reviews, count: reviews.length, mode, modes });
       } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
       }
