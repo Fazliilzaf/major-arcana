@@ -414,6 +414,7 @@ function createStaffPortalRouter({
         role: entry.role || null,
         itemKey: entry.itemKey || null,
       }));
+    const latestTimelineEntry = timeline.at(-1) || null;
     const completionReturn =
       lastCompletionRequest && lastCompletionResolved
         ? {
@@ -430,6 +431,17 @@ function createStaffPortalRouter({
               null,
           }
         : null;
+    const timelineSummary = {
+      eventCount: timeline.length,
+      latestLabel: latestTimelineEntry?.label || 'Ingen historik ännu',
+      latestAction: latestTimelineEntry?.action || null,
+      latestAt: latestTimelineEntry?.at || null,
+      latestActor: latestTimelineEntry?.userId || latestTimelineEntry?.role || null,
+      returnedFromCompletion: Boolean(completionReturn?.returned),
+      requiresDoctorAttention:
+        !['approved', 'rejected'].includes(reviewStatus) &&
+        !['ordination_needs_completion'].includes(latestTimelineEntry?.action || ''),
+    };
     return {
       treatmentPlan,
       readiness,
@@ -447,6 +459,7 @@ function createStaffPortalRouter({
       },
       completionReturn,
       timeline,
+      timelineSummary,
       documents: buildOrdinationDocuments(caseRecord),
       patient: {
         patientId: caseRecord.patientId || null,

@@ -331,6 +331,16 @@ test('GET /api/v1/staff/ordination-reviews visar återkommen komplettering', asy
         body.reviews[0].ordinationReadout.timeline.map((entry) => entry.action),
         ['ordination_needs_completion', 'staff_resolve_completion']
       );
+      assert.deepEqual(body.reviews[0].ordinationReadout.timelineSummary, {
+        eventCount: 2,
+        latestLabel: 'Personal markerade komplettering klar',
+        latestAction: 'staff_resolve_completion',
+        latestAt: body.reviews[0].ordinationReadout.timelineSummary.latestAt,
+        latestActor: 'staff-1',
+        returnedFromCompletion: true,
+        requiresDoctorAttention: true,
+      });
+      assert.ok(body.reviews[0].ordinationReadout.timelineSummary.latestAt);
       assert.deepEqual(body.reviews[0].ordinationReadout.completionReturn, {
         returned: true,
         requestedAt: body.reviews[0].ordinationReadout.completionReturn.requestedAt,
