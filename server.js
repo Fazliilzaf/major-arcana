@@ -13669,6 +13669,7 @@ process.once('SIGTERM', () => {
     createStaffPortalRouter({
       config,
       requireAuth: auth.requireAuth,
+      authStore,
       ccoAuditLog,
       bookingCaseStore: ccoBookingCaseStore || null,
       journalPhotoStore: ccoJournalPhotoStore || null,

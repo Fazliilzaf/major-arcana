@@ -125,6 +125,21 @@ function normalizeStaffActions(input = null) {
   };
 }
 
+function normalizeAssignment(input = null) {
+  if (!input || typeof input !== 'object') {
+    return {
+      assignedBy: null,
+      assignedAt: null,
+      note: '',
+    };
+  }
+  return {
+    assignedBy: normalizeText(input.assignedBy) || null,
+    assignedAt: normalizeText(input.assignedAt) || null,
+    note: normalizeText(input.note) || '',
+  };
+}
+
 function normalizeCaseRecord(input = {}) {
   const ts = normalizeText(input.createdAt) || nowIso();
   const state = VALID_STATES.includes(normalizeKey(input.state))
@@ -149,6 +164,7 @@ function normalizeCaseRecord(input = {}) {
     endsAt: normalizeText(input.endsAt) || null,
     scheduledAt: normalizeText(input.scheduledAt) || null,
     assignedTo: normalizeText(input.assignedTo) || null,
+    assignment: normalizeAssignment(input.assignment),
     notes: normalizeText(input.notes) || '',
     candidates: Array.isArray(input.candidates) ? input.candidates : [],
     handoffChecklist: {
@@ -415,6 +431,43 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     return { ...record };
   }
 
+  async function assignStaff(id, input = {}, actor = {}) {
+    const idx = findIndexById(id);
+    if (idx === -1) throw notFound('booking_case_not_found');
+    const assignedTo = normalizeText(input.assignedTo);
+    if (!assignedTo) throw badRequest('assignedTo krävs.');
+
+    const record = state.cases[idx];
+    const ts = nowIso();
+    const previousAssignedTo = record.assignedTo || null;
+    const assignedBy = normalizeText(actor?.userId) || 'unknown';
+    const note = normalizeText(input.note);
+
+    record.assignedTo = assignedTo;
+    record.assignment = {
+      assignedBy,
+      assignedAt: ts,
+      note,
+    };
+    record.updatedAt = ts;
+    record.history.push({
+      at: ts,
+      action: 'staff_assigned',
+      from: previousAssignedTo,
+      to: assignedTo,
+      role: normalizeText(actor?.role) || 'system',
+      userId: assignedBy,
+      ...(note ? { note } : {}),
+    });
+    await save();
+    audit('cco.booking_case.staff_assigned', actor, record.id, {
+      previousAssignedTo,
+      assignedTo,
+      note,
+    });
+    return { ...record };
+  }
+
   async function recordStaffAction(id, input = {}, actor = {}) {
     const idx = findIndexById(id);
     if (idx === -1) throw notFound('booking_case_not_found');
@@ -511,6 +564,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     transitionState,
     updateHandoffChecklist,
     updateOrdinationReview,
+    assignStaff,
     recordStaffAction,
     attemptHandoffComplete,
   };

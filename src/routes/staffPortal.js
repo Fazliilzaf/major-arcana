@@ -30,6 +30,7 @@ const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
  * @param {object} opts
  * @param {object}   opts.config               - Appkonfiguration (stateRoot, journalPhotosDir, m.m.)
  * @param {function} opts.requireAuth           - Auth-middleware (valfri)
+ * @param {object}   opts.authStore             - Auth store för personalregister (valfri)
  * @param {object}   opts.ccoAuditLog           - ccoAuditLog-instans (valfri)
  * @param {object}   opts.bookingCaseStore      - ccoBookingCaseStore (valfri)
  * @param {object}   opts.journalPhotoStore     - ccoJournalPhotoStore (valfri)
@@ -40,6 +41,7 @@ const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
 function createStaffPortalRouter({
   config = {},
   requireAuth = null,
+  authStore = null,
   ccoAuditLog = null,
   bookingCaseStore = null,
   journalPhotoStore: _journalPhotoStore = null,
@@ -85,6 +87,31 @@ function createStaffPortalRouter({
   function handleWriteError(res, err) {
     const status = Number(err?.statusCode) || 500;
     return res.status(status).json({ ok: false, error: err?.message || 'Kunde inte spara.' });
+  }
+
+  async function listActiveStaffMembers(tenantId) {
+    if (!authStore?.listTenantMembers || !tenantId) return [];
+    const members = await authStore.listTenantMembers(tenantId);
+    return (Array.isArray(members) ? members : [])
+      .filter((item) => {
+        const membership = item?.membership || {};
+        const role = String(membership.role || '').toUpperCase();
+        const status = String(membership.status || '').toLowerCase();
+        return status === 'active' && ['STAFF', 'OWNER'].includes(role);
+      })
+      .map((item) => {
+        const user = item.user || {};
+        const membership = item.membership || {};
+        return {
+          userId: user.id || membership.userId || null,
+          email: user.email || null,
+          role: membership.role || null,
+          status: membership.status || null,
+          membershipId: membership.id || null,
+          label: user.email || user.id || membership.userId || 'Personal',
+        };
+      })
+      .filter((item) => item.userId);
   }
 
   async function listPhotoMetadata({ tenantId = 'hairtpclinic', patientId }) {
@@ -276,6 +303,8 @@ function createStaffPortalRouter({
       customerId: customerItem.customerId,
       startsAt: startsAt || null,
       state: caseRecord.state || caseRecord.status || 'pending',
+      assignedTo: caseRecord.assignedTo || null,
+      assignment: caseRecord.assignment || null,
       ordinationStatus: ordinationStatus || null,
       staffActions: caseRecord.staffActions || null,
       actions,
@@ -335,6 +364,19 @@ function createStaffPortalRouter({
         });
       }
       res.json({ ok: true, tasks, count: tasks.length });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  /* ── GET /api/v1/staff/team ───────────────────────────────────
+     Personalregister för owner/admin. Läser authStore, skriver inget.
+  ─────────────────────────────────────────────────────────────── */
+  router.get('/api/v1/staff/team', requirePermission('staff.manage'), async (req, res) => {
+    try {
+      const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+      const staff = await listActiveStaffMembers(tenantId);
+      res.json({ ok: true, staff, count: staff.length });
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message });
     }
@@ -484,6 +526,49 @@ function createStaffPortalRouter({
           itemKey: itemKey || null,
           case: caseRecord,
         });
+      } catch (err) {
+        return handleWriteError(res, err);
+      }
+    }
+  );
+
+  /* ── POST /api/v1/staff/cases/:id/assign ──────────────────────
+     Owner/admin tilldelar eller omfördelar kundansvar.
+     Detta skickar inga kundmeddelanden och ändrar inga journaldata.
+     Alla tilldelningar sparas i booking-case history + audit.
+  ─────────────────────────────────────────────────────────────── */
+  router.post(
+    '/api/v1/staff/cases/:id/assign',
+    requirePermission('staff.manage'),
+    async (req, res) => {
+      const id = String(req.params.id || '').trim();
+      const assignedTo = String(req.body?.assignedTo || '').trim();
+      const note = String(req.body?.note || '').trim();
+
+      if (!id) return res.status(400).json({ ok: false, error: 'Ärende-id krävs.' });
+      if (!assignedTo) return res.status(400).json({ ok: false, error: 'assignedTo krävs.' });
+      if (!bookingCaseStore?.assignStaff) {
+        return res.status(503).json({ ok: false, error: 'Booking case store saknas.' });
+      }
+
+      try {
+        const caseRecord = await bookingCaseStore.assignStaff(
+          id,
+          { assignedTo, note },
+          getActor(req)
+        );
+
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'staff_portal.case_assigned',
+            actor: { role: req.cco?.role ?? null, userId: req.auth?.userId ?? null, ip: null },
+            target: { kind: 'booking_case', id, tenantId: req.auth?.tenantId ?? null },
+            result: 'ok',
+            detail: { assignedTo, note },
+          });
+        }
+
+        return res.json({ ok: true, assignedTo, case: caseRecord });
       } catch (err) {
         return handleWriteError(res, err);
       }

@@ -263,3 +263,110 @@ test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder m
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+test('POST /api/v1/staff/cases/:id/assign tilldelar ansvarig personal med audit', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-case-assign-'));
+  try {
+    const auditEntries = [];
+    const ccoAuditLog = {
+      append(entry) {
+        auditEntries.push(entry);
+      },
+      query() {
+        return auditEntries;
+      },
+    };
+    const authStore = {
+      async listTenantMembers(tenantId) {
+        assert.equal(tenantId, 'hairtpclinic');
+        return [
+          {
+            user: { id: 'staff-1', email: 'anna@hairtpclinic.com' },
+            membership: { id: 'm-1', userId: 'staff-1', role: 'STAFF', status: 'active' },
+          },
+          {
+            user: { id: 'staff-2', email: 'nora@hairtpclinic.com' },
+            membership: { id: 'm-2', userId: 'staff-2', role: 'STAFF', status: 'active' },
+          },
+          {
+            user: { id: 'staff-disabled', email: 'old@hairtpclinic.com' },
+            membership: {
+              id: 'm-3',
+              userId: 'staff-disabled',
+              role: 'STAFF',
+              status: 'disabled',
+            },
+          },
+        ];
+      },
+    };
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+      auditLog: ccoAuditLog,
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-assign-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-assign',
+      customerName: 'Tilldelningskund',
+      assignedTo: 'staff-1',
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        authStore,
+        bookingCaseStore,
+        ccoAuditLog,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'owner-1', tenantId: 'hairtpclinic', role: 'owner' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const team = await fetch(`http://127.0.0.1:${port}/api/v1/staff/team`, {
+        headers: { 'x-cco-role': 'owner' },
+      });
+      assert.equal(team.status, 200);
+      const teamBody = await team.json();
+      assert.equal(teamBody.ok, true);
+      assert.equal(teamBody.count, 2);
+      assert.deepEqual(
+        teamBody.staff.map((item) => item.userId),
+        ['staff-1', 'staff-2']
+      );
+
+      const assign = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/cases/case-assign-1/assign`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'owner' },
+          body: JSON.stringify({ assignedTo: 'staff-2', note: 'Flyttad till Nora' }),
+        }
+      );
+      assert.equal(assign.status, 200);
+      const assignBody = await assign.json();
+      assert.equal(assignBody.ok, true);
+      assert.equal(assignBody.case.assignedTo, 'staff-2');
+
+      const stored = await bookingCaseStore.getCase('case-assign-1');
+      assert.equal(stored.assignedTo, 'staff-2');
+      assert.equal(stored.assignment.assignedBy, 'owner-1');
+      assert.equal(stored.assignment.note, 'Flyttad till Nora');
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_assigned'));
+      assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.case_assigned'));
+      assert.ok(auditEntries.some((entry) => entry.action === 'cco.booking_case.staff_assigned'));
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
