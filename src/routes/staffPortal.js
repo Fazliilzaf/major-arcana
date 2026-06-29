@@ -320,7 +320,7 @@ function createStaffPortalRouter({
       const category = req.query.category || null;
       const filler = req.query.filler || null;
 
-      let docs = catalog;
+      let docs = Array.isArray(catalog) ? catalog : catalog.types || [];
       if (category) docs = docs.filter((d) => d.category === category);
       if (filler) docs = docs.filter((d) => d.filler === filler);
 

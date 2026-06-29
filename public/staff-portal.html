@@ -417,6 +417,54 @@
         white-space: nowrap;
         margin-top: 2px;
       }
+      .live-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .live-panel:empty {
+        display: none;
+      }
+      .live-note {
+        background: rgba(74, 130, 104, 0.08);
+        border: 1px solid rgba(74, 130, 104, 0.18);
+        border-radius: 10px;
+        color: var(--sage);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 9px 12px;
+      }
+      .flow-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .handoff-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .handoff-step {
+        background: rgba(255, 255, 255, 0.62);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 9px 10px;
+      }
+      .handoff-label {
+        color: var(--text3);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .handoff-value {
+        font-size: 12px;
+        font-weight: 800;
+        margin-top: 2px;
+      }
 
       .pill {
         display: inline-flex;
@@ -841,7 +889,8 @@
           grid-template-columns: repeat(2, 1fr);
         }
         .two-col,
-        .three-col {
+        .three-col,
+        .handoff-grid {
           grid-template-columns: 1fr;
         }
         .img-grid {
@@ -886,7 +935,8 @@
           gap: 8px;
         }
         .two-col,
-        .three-col {
+        .three-col,
+        .handoff-grid {
           grid-template-columns: 1fr;
         }
         .img-grid {
@@ -1032,7 +1082,8 @@
             🔒 Kunden ser inte vem som hanterar ärendet. Svar skickas från klinikens gemensamma
             kanal.
           </div>
-          <div class="card-list">
+          <div id="liveNurseTaskList" class="live-panel"></div>
+          <div class="card-list" id="nurseFallbackList">
             <div class="item-card urgent">
               <div class="item-icon">💬</div>
               <div class="item-body">
@@ -1257,115 +1308,118 @@
 
           <!-- Ordinationsunderlag 1 -->
           <div class="section-title">Väntande granskning</div>
+          <div id="liveDoctorReviewList" class="live-panel"></div>
 
-          <div class="ord-card" style="margin-bottom: 14px">
-            <div class="ord-header">
-              <div>
-                <div class="ord-title">Ordinationsunderlag — DHI 2 800 graft</div>
-                <div class="ord-meta">
-                  Patient: Magnus Eriksson · Inbokad: 2026-06-30 kl 08:00 · Begärd: 2026-06-28 av
-                  admin
-                </div>
-              </div>
-              <span class="pill amber" style="margin-left: auto">Väntar läkare</span>
-            </div>
-            <div class="ord-body">
-              <div class="three-col">
-                <div class="ord-field">
-                  <div class="ord-field-label">Behandlingstyp</div>
-                  <div class="ord-field-val">DHI Hårtransplantation</div>
-                </div>
-                <div class="ord-field">
-                  <div class="ord-field-label">Antal transplantat</div>
-                  <div class="ord-field-val">2 800</div>
-                </div>
-                <div class="ord-field">
-                  <div class="ord-field-label">Anestesi</div>
-                  <div class="ord-field-val">Lokal (lidokain 1% + adrenalin)</div>
-                </div>
-                <div class="ord-field">
-                  <div class="ord-field-label">Hälsodeklaration</div>
-                  <div class="ord-field-val">
-                    <span class="pill sage">Signerad 2026-06-20</span>
+          <div id="doctorFallbackReviews">
+            <div class="ord-card" style="margin-bottom: 14px">
+              <div class="ord-header">
+                <div>
+                  <div class="ord-title">Ordinationsunderlag — DHI 2 800 graft</div>
+                  <div class="ord-meta">
+                    Patient: Magnus Eriksson · Inbokad: 2026-06-30 kl 08:00 · Begärd: 2026-06-28 av
+                    admin
                   </div>
                 </div>
-                <div class="ord-field">
-                  <div class="ord-field-label">Friskförsäkran</div>
-                  <div class="ord-field-val">
-                    <span class="pill sage">Signerad 2026-06-20</span>
-                  </div>
-                </div>
-                <div class="ord-field">
-                  <div class="ord-field-label">Kontraindikationer</div>
-                  <div class="ord-field-val">Inga flaggade i hälsodekl.</div>
-                </div>
+                <span class="pill amber" style="margin-left: auto">Väntar läkare</span>
               </div>
-              <div class="ord-field">
-                <div class="ord-field-label">Allmän ordination — protokoll</div>
-                <div class="ord-field-val" style="margin-top: 4px">
-                  <div class="doc-row" style="margin-bottom: 0">
-                    <div class="doc-icon">📋</div>
-                    <div class="doc-name">
-                      Allmän ordination TP v2.3 — postoperativ vård &amp; medicin
+              <div class="ord-body">
+                <div class="three-col">
+                  <div class="ord-field">
+                    <div class="ord-field-label">Behandlingstyp</div>
+                    <div class="ord-field-val">DHI Hårtransplantation</div>
+                  </div>
+                  <div class="ord-field">
+                    <div class="ord-field-label">Antal transplantat</div>
+                    <div class="ord-field-val">2 800</div>
+                  </div>
+                  <div class="ord-field">
+                    <div class="ord-field-label">Anestesi</div>
+                    <div class="ord-field-val">Lokal (lidokain 1% + adrenalin)</div>
+                  </div>
+                  <div class="ord-field">
+                    <div class="ord-field-label">Hälsodeklaration</div>
+                    <div class="ord-field-val">
+                      <span class="pill sage">Signerad 2026-06-20</span>
                     </div>
-                    <button class="btn">Läs dokument</button>
+                  </div>
+                  <div class="ord-field">
+                    <div class="ord-field-label">Friskförsäkran</div>
+                    <div class="ord-field-val">
+                      <span class="pill sage">Signerad 2026-06-20</span>
+                    </div>
+                  </div>
+                  <div class="ord-field">
+                    <div class="ord-field-label">Kontraindikationer</div>
+                    <div class="ord-field-val">Inga flaggade i hälsodekl.</div>
+                  </div>
+                </div>
+                <div class="ord-field">
+                  <div class="ord-field-label">Allmän ordination — protokoll</div>
+                  <div class="ord-field-val" style="margin-top: 4px">
+                    <div class="doc-row" style="margin-bottom: 0">
+                      <div class="doc-icon">📋</div>
+                      <div class="doc-name">
+                        Allmän ordination TP v2.3 — postoperativ vård &amp; medicin
+                      </div>
+                      <button class="btn">Läs dokument</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="ord-field" style="margin-top: 10px">
+                  <div class="ord-field-label">Individuell ordination (om avvikelse krävs)</div>
+                  <div class="ord-field-val" style="color: var(--text3); font-style: italic">
+                    Ingen individuell avvikelse begärd för denna patient.
                   </div>
                 </div>
               </div>
-              <div class="ord-field" style="margin-top: 10px">
-                <div class="ord-field-label">Individuell ordination (om avvikelse krävs)</div>
-                <div class="ord-field-val" style="color: var(--text3); font-style: italic">
-                  Ingen individuell avvikelse begärd för denna patient.
-                </div>
+              <div class="ord-actions">
+                <button class="btn primary" disabled title="Läs-only prototyp">
+                  ✓ Godkänn &amp; signera
+                </button>
+                <button class="btn danger-btn" disabled title="Läs-only prototyp">✗ Avvisa</button>
+                <button class="btn" disabled>Begär komplettering</button>
+                <span style="margin-left: auto; font-size: 10px; color: var(--text3)"
+                  >Kräver inloggning + 2FA · Tidsstämplas i audit-logg</span
+                >
               </div>
             </div>
-            <div class="ord-actions">
-              <button class="btn primary" disabled title="Läs-only prototyp">
-                ✓ Godkänn &amp; signera
-              </button>
-              <button class="btn danger-btn" disabled title="Läs-only prototyp">✗ Avvisa</button>
-              <button class="btn" disabled>Begär komplettering</button>
-              <span style="margin-left: auto; font-size: 10px; color: var(--text3)"
-                >Kräver inloggning + 2FA · Tidsstämplas i audit-logg</span
-              >
-            </div>
-          </div>
 
-          <div class="ord-card" style="margin-bottom: 14px">
-            <div class="ord-header">
-              <div>
-                <div class="ord-title">Ordinationsunderlag — PRP Hårskamlp</div>
-                <div class="ord-meta">
-                  Patient: Sara Johansson · Inbokad: 2026-06-30 kl 13:00 · Begärd: 2026-06-29 av
-                  admin
+            <div class="ord-card" style="margin-bottom: 14px">
+              <div class="ord-header">
+                <div>
+                  <div class="ord-title">Ordinationsunderlag — PRP Hårskamlp</div>
+                  <div class="ord-meta">
+                    Patient: Sara Johansson · Inbokad: 2026-06-30 kl 13:00 · Begärd: 2026-06-29 av
+                    admin
+                  </div>
                 </div>
+                <span class="pill amber" style="margin-left: auto">Väntar läkare</span>
               </div>
-              <span class="pill amber" style="margin-left: auto">Väntar läkare</span>
-            </div>
-            <div class="ord-body">
-              <div class="three-col">
-                <div class="ord-field">
-                  <div class="ord-field-label">Behandlingstyp</div>
-                  <div class="ord-field-val">PRP Hårskalp (3 sessioner)</div>
-                </div>
-                <div class="ord-field">
-                  <div class="ord-field-label">Volym PRP</div>
-                  <div class="ord-field-val">Enligt allmän ordination</div>
-                </div>
-                <div class="ord-field">
-                  <div class="ord-field-label">Hälsodeklaration</div>
-                  <div class="ord-field-val">
-                    <span class="pill sage">Signerad 2026-06-25</span>
+              <div class="ord-body">
+                <div class="three-col">
+                  <div class="ord-field">
+                    <div class="ord-field-label">Behandlingstyp</div>
+                    <div class="ord-field-val">PRP Hårskalp (3 sessioner)</div>
+                  </div>
+                  <div class="ord-field">
+                    <div class="ord-field-label">Volym PRP</div>
+                    <div class="ord-field-val">Enligt allmän ordination</div>
+                  </div>
+                  <div class="ord-field">
+                    <div class="ord-field-label">Hälsodeklaration</div>
+                    <div class="ord-field-val">
+                      <span class="pill sage">Signerad 2026-06-25</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="ord-actions">
-              <button class="btn primary" disabled>✓ Godkänn &amp; signera</button>
-              <button class="btn danger-btn" disabled>✗ Avvisa</button>
-              <span style="margin-left: auto; font-size: 10px; color: var(--text3)"
-                >Kräver inloggning + 2FA</span
-              >
+              <div class="ord-actions">
+                <button class="btn primary" disabled>✓ Godkänn &amp; signera</button>
+                <button class="btn danger-btn" disabled>✗ Avvisa</button>
+                <span style="margin-left: auto; font-size: 10px; color: var(--text3)"
+                  >Kräver inloggning + 2FA</span
+                >
+              </div>
             </div>
           </div>
 
@@ -1486,7 +1540,8 @@
 
           <!-- Alla ärenden -->
           <div class="section-title">Alla aktiva ärenden</div>
-          <div class="card-list">
+          <div id="liveAdminCaseList" class="live-panel"></div>
+          <div class="card-list" id="adminFallbackCases">
             <div class="item-card pending">
               <div class="item-icon">👤</div>
               <div class="item-body">
@@ -1650,6 +1705,140 @@
         }
       }
 
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
+      function formatDateTime(value) {
+        if (!value) return '—';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return escapeHtml(value);
+        return date.toLocaleString('sv-SE', {
+          month: 'short',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+
+      function statusPill(state) {
+        const key = String(state || 'pending').toLowerCase();
+        const map = {
+          confirmed: ['sage', 'Bekräftad'],
+          completed: ['sage', 'Klar'],
+          handled: ['sage', 'Hanterad'],
+          proposed: ['amber', 'Förslag'],
+          qualifying: ['amber', 'Granskas'],
+          pending: ['amber', 'Väntar'],
+          needs_reply: ['danger', 'Svar krävs'],
+          cancelled: ['neutral', 'Avbruten'],
+        };
+        const [cls, label] = map[key] || ['info', key.replaceAll('_', ' ')];
+        return `<span class="pill ${cls}">${escapeHtml(label)}</span>`;
+      }
+
+      function getCaseTitle(item, fallback = 'Kundärende') {
+        return (
+          item.customerName ||
+          item.patientName ||
+          item.customer?.name ||
+          item.patient?.name ||
+          item.name ||
+          item.title ||
+          item.id ||
+          fallback
+        );
+      }
+
+      function renderCaseCard(item, opts = {}) {
+        const title = getCaseTitle(item, opts.fallbackTitle || 'Kundärende');
+        const treatment =
+          item.treatmentType ||
+          item.treatment ||
+          item.service ||
+          item.procedure ||
+          item.type ||
+          'Behandling ej angiven';
+        const owner =
+          item.assignedToName ||
+          item.assignedTo ||
+          item.staffName ||
+          item.ownerName ||
+          'Ej tilldelad';
+        const when = item.startsAt || item.scheduledForIso || item.scheduledAt || item.updatedAt;
+        const meta = [
+          treatment,
+          `Ansvarig: ${owner}`,
+          when ? `Tid: ${formatDateTime(when)}` : null,
+          item.id ? `ID: ${item.id}` : null,
+        ]
+          .filter(Boolean)
+          .map(escapeHtml)
+          .join(' · ');
+        const state = item.needsReplyStatus || item.state || item.status || 'pending';
+        const cc = opts.kind || (String(state).includes('need') ? 'urgent' : 'pending');
+        return `<div class="item-card ${cc}">
+          <div class="item-icon">${opts.icon || '👤'}</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(title)}</div>
+            <div class="item-meta">${meta}</div>
+            <div class="flow-chip-row">
+              ${statusPill(state)}
+              ${item.followUpDueAt ? `<span class="pill amber">Uppföljning ${escapeHtml(formatDateTime(item.followUpDueAt))}</span>` : ''}
+              ${item.waitingOn ? `<span class="pill neutral">Väntar på ${escapeHtml(item.waitingOn)}</span>` : ''}
+            </div>
+          </div>
+          <div class="item-actions">
+            <button class="btn" disabled title="Read-only Fas 4">Visa kundkort</button>
+          </div>
+        </div>`;
+      }
+
+      function renderOrdinationCard(item) {
+        const title = getCaseTitle(item, 'Ordinationsunderlag');
+        const treatment = item.treatmentType || item.treatment || item.service || 'Behandling';
+        const grafts = item.grafts || item.graftCount || item.totalGrafts || '—';
+        const when = item.startsAt || item.scheduledForIso || item.scheduledAt;
+        return `<div class="ord-card" style="margin-bottom:14px">
+          <div class="ord-header">
+            <div>
+              <div class="ord-title">Ordinationsunderlag — ${escapeHtml(treatment)}</div>
+              <div class="ord-meta">Patient: ${escapeHtml(title)} · Tid: ${formatDateTime(when)} · Ärende: ${escapeHtml(item.id || '—')}</div>
+            </div>
+            <span class="pill amber" style="margin-left:auto">Väntar läkare</span>
+          </div>
+          <div class="ord-body">
+            <div class="handoff-grid">
+              <div class="handoff-step">
+                <div class="handoff-label">Behandling</div>
+                <div class="handoff-value">${escapeHtml(treatment)}</div>
+              </div>
+              <div class="handoff-step">
+                <div class="handoff-label">Hårsäckar / graft</div>
+                <div class="handoff-value">${escapeHtml(grafts)}</div>
+              </div>
+              <div class="handoff-step">
+                <div class="handoff-label">Status</div>
+                <div class="handoff-value">${statusPill(item.state || item.status || 'pending')}</div>
+              </div>
+            </div>
+            <div class="safety-notice" style="margin:12px 0 0">
+              🔒 Read-only Fas 4: läkaren ser underlaget här. Godkännande och signatur aktiveras först i separat skriv-PR med 2FA + audit.
+            </div>
+          </div>
+          <div class="ord-actions">
+            <button class="btn primary" disabled>✓ Godkänn &amp; signera</button>
+            <button class="btn danger-btn" disabled>✗ Avvisa</button>
+            <button class="btn" disabled>Begär komplettering</button>
+          </div>
+        </div>`;
+      }
+
       /* Hämta inloggad personal och uppdatera UI om lyckad */
       async function loadMe() {
         const me = await apiFetch('/api/v1/staff/me');
@@ -1690,6 +1879,37 @@
           const badge = document.querySelector('[data-live-badge="review-queue"]');
           if (badge) badge.textContent = data.count;
           if (badge) badge.style.display = data.count > 0 ? '' : 'none';
+
+          const adminList = document.getElementById('liveAdminCaseList');
+          if (adminList && data.queue?.length) {
+            adminList.innerHTML =
+              '<div class="live-note">Live ärendekö från CCO. Åtgärder är låsta i Fas 4.</div>' +
+              data.queue
+                .slice(0, 8)
+                .map((item) => renderCaseCard(item, { icon: '📁' }))
+                .join('');
+            const fallback = document.getElementById('adminFallbackCases');
+            if (fallback) fallback.style.display = 'none';
+          }
+        }
+      }
+
+      async function loadOrdinationReviews() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/ordination-reviews?limit=12');
+        if (data && data.ok) {
+          const badge = document.querySelector('[data-live-badge="review-queue"]');
+          if (badge) badge.textContent = data.count;
+          if (badge) badge.style.display = data.count > 0 ? '' : 'none';
+
+          const container = document.getElementById('liveDoctorReviewList');
+          if (container && data.reviews?.length) {
+            container.innerHTML =
+              '<div class="live-note">Live ordinationskö. Signering är spärrad tills skrivflöde + 2FA aktiveras.</div>' +
+              data.reviews.slice(0, 6).map(renderOrdinationCard).join('');
+            const fallback = document.getElementById('doctorFallbackReviews');
+            if (fallback) fallback.style.display = 'none';
+          }
         }
       }
 
@@ -1704,6 +1924,18 @@
           if (badge) {
             badge.textContent = data.count;
             badge.style.display = data.count > 0 ? '' : 'none';
+          }
+
+          const container = document.getElementById('liveNurseTaskList');
+          if (container && data.tasks?.length) {
+            container.innerHTML =
+              '<div class="live-note">Live uppgifter tilldelade inloggad personal. Kundnamn visas bara för behörig session.</div>' +
+              data.tasks
+                .slice(0, 8)
+                .map((item) => renderCaseCard(item, { icon: '💬', kind: 'info-c' }))
+                .join('');
+            const fallback = document.getElementById('nurseFallbackList');
+            if (fallback) fallback.style.display = 'none';
           }
         }
       }
@@ -1770,7 +2002,13 @@
       async function initLiveData() {
         await loadMe();
         if (_liveMode) {
-          await Promise.all([loadTasks(), loadReviewQueue(), loadAudit(), loadDelegations()]);
+          await Promise.all([
+            loadTasks(),
+            loadReviewQueue(),
+            loadOrdinationReviews(),
+            loadAudit(),
+            loadDelegations(),
+          ]);
         }
       }
 
@@ -1866,6 +2104,7 @@
         // Uppdatera live-badges efter byte
         if (_liveMode) {
           loadReviewQueue();
+          loadOrdinationReviews();
           loadTasks();
         }
       }
