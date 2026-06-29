@@ -159,6 +159,22 @@ const PERMISSIONS = {
   'scalp.read': ['owner', 'operator', 'konsult', 'personal'],
   'scalp.write': ['owner', 'operator', 'konsult'],
   'scalp.verify': ['owner', 'operator', 'konsult'],
+
+  // ── Personalportal — Staff Portal ─────────────────────────────
+  //
+  // ordination.view    : se ordinationsunderlag (läkare + ägare)
+  // ordination.approve : godkänna/avvisa ordination (legitimerad läkare + ägare)
+  //                      ALDRIG automation, ALDRIG AI — alltid human-in-the-loop
+  // delegation.read    : se egna delegeringsdokument (all personal)
+  // qms.read           : läsa QMS-checklistor, handbok, avvikelser (all personal)
+  // qms.write          : hantera avvikelser, stänga ärenden (owner + operator)
+  // staff.manage       : tilldela personal till ärenden, se personalöversikt (owner)
+  'ordination.view':    ['owner', 'operator', 'konsult'],
+  'ordination.approve': ['owner', 'konsult'],
+  'delegation.read':    ['owner', 'operator', 'konsult', 'personal'],
+  'qms.read':           ['owner', 'operator', 'konsult', 'personal'],
+  'qms.write':          ['owner', 'operator'],
+  'staff.manage':       ['owner'],
 };
 
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
