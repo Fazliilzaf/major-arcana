@@ -757,43 +757,206 @@
         display: block;
       }
 
-      /* ── Responsive ───────────────────────────────────────────────── */
-      @media (max-width: 900px) {
+      /* ── Mobile top bar ──────────────────────────────────────────── */
+      .mobile-topbar {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 16px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.9));
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(12px);
+      }
+      .hamburger {
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: rgba(43, 37, 31, 0.07);
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 17px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--brand);
+        transition: background 0.1s;
+      }
+      .hamburger:hover {
+        background: rgba(43, 37, 31, 0.12);
+      }
+      .mobile-brand {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--brand);
+        flex: 1;
+      }
+      .mobile-role-pill {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: rgba(43, 37, 31, 0.07);
+        color: var(--text2);
+      }
+
+      /* ── Sidebar overlay (mobile drawer backdrop) ─────────────── */
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(43, 37, 31, 0.35);
+        z-index: 98;
+        backdrop-filter: blur(2px);
+      }
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      /* ── Touch targets ────────────────────────────────────────── */
+      .nav-item {
+        min-height: 40px;
+      }
+      .btn {
+        min-height: 34px;
+      }
+      .role-btn {
+        min-height: 32px;
+      }
+
+      /* ── Responsive — tablet (641–900px) ─────────────────────── */
+      @media (min-width: 641px) and (max-width: 900px) {
+        .sidebar {
+          width: 200px;
+          min-width: 200px;
+        }
+        .main {
+          padding: 18px 20px 40px;
+        }
         .stats {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(2, 1fr);
         }
         .two-col,
         .three-col {
           grid-template-columns: 1fr;
         }
-        .sidebar {
-          width: 190px;
-        }
         .img-grid {
           grid-template-columns: repeat(3, 1fr);
         }
+        .audit-time {
+          min-width: 100px;
+          font-size: 10.5px;
+        }
       }
+
+      /* ── Responsive — mobile (≤640px) ────────────────────────── */
       @media (max-width: 640px) {
+        .mobile-topbar {
+          display: flex;
+        }
         .shell {
           flex-direction: column;
         }
         .sidebar {
+          width: 280px;
+          min-height: 100%;
+          height: 100%;
+          position: fixed;
+          top: 0;
+          left: 0;
+          z-index: 99;
+          transform: translateX(-100%);
+          transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 4px 0 28px rgba(43, 37, 31, 0.18);
+          overflow-y: auto;
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .main {
+          padding: 14px 14px 48px;
           width: 100%;
-          min-height: auto;
-          height: auto;
-          position: static;
         }
         .stats {
           grid-template-columns: 1fr 1fr;
+          gap: 8px;
         }
-        .main {
-          padding: 16px;
+        .two-col,
+        .three-col {
+          grid-template-columns: 1fr;
+        }
+        .img-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        /* Audit log — tighter on mobile */
+        .audit-row {
+          flex-direction: column;
+          gap: 2px;
+        }
+        .audit-time {
+          min-width: 0;
+          font-size: 10px;
+        }
+        /* Doc rows — hide date on narrow */
+        .doc-valid {
+          display: none;
+        }
+        /* Item cards — actions wrap below on mobile */
+        .item-card {
+          flex-wrap: wrap;
+        }
+        .item-actions {
+          width: 100%;
+          flex-wrap: wrap;
+          padding-top: 6px;
+          margin-left: 50px;
+        }
+        /* Ordination actions — wrap on mobile */
+        .ord-actions {
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .ord-actions > span {
+          width: 100%;
+          margin-left: 0 !important;
+        }
+        /* Demo bar wraps nicely */
+        .demo-bar {
+          padding: 8px 12px;
+          gap: 7px;
+        }
+        /* Stat numbers slightly smaller */
+        .stat-num {
+          font-size: 22px;
+        }
+      }
+
+      /* ── Very small screens (≤380px) ─────────────────────────── */
+      @media (max-width: 380px) {
+        .stats {
+          grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
+    <!-- ── Mobile top bar ────────────────────────────────── -->
+    <div class="mobile-topbar" id="mobileTopbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Öppna meny" aria-expanded="false">
+        ☰
+      </button>
+      <span class="mobile-brand">Personalportal</span>
+      <span class="mobile-role-pill" id="mobileRolePill">Sjuksköterska</span>
+    </div>
+
     <div class="shell">
+      <!-- ── Sidebar overlay (mobile drawer backdrop) ────── -->
+      <div class="sidebar-overlay" id="sidebarOverlay" role="presentation"></div>
+
       <!-- ── Sidebar ──────────────────────────────────────── -->
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
@@ -826,9 +989,9 @@
         <!-- Demo role switcher -->
         <div class="demo-bar">
           <span class="label">Prototypvy · Byt roll</span>
-          <button class="role-btn active" onclick="setRole('nurse')">Sjuksköterska</button>
-          <button class="role-btn" onclick="setRole('doctor')">Läkare</button>
-          <button class="role-btn" onclick="setRole('admin')">Admin / Ägare</button>
+          <button class="role-btn active">Sjuksköterska</button>
+          <button class="role-btn">Läkare</button>
+          <button class="role-btn">Admin / Ägare</button>
           <span id="dataStatusLabel" style="margin-left: auto; font-size: 10px; color: var(--text3)"
             >Laddar data…</span
           >
@@ -1538,7 +1701,10 @@
           const el = document.getElementById('liveTaskCount');
           if (el) el.textContent = data.count;
           const badge = document.querySelector('[data-live-badge="tasks"]');
-          if (badge) badge.textContent = data.count;
+          if (badge) {
+            badge.textContent = data.count;
+            if (data.count > 0) badge.style.display = 'inline-block';
+          }
         }
       }
 
@@ -1582,7 +1748,7 @@
       /* Hämta dokument och visa delegeringsdokument för nurse-view */
       async function loadDelegations() {
         if (!_liveMode) return;
-        const data = await apiFetch('/api/v1/staff/documents?filler=staff&category=internal');
+        const data = await apiFetch('/api/v1/staff/documents?filler=staff');
         if (!data || !data.ok || !data.documents.length) return;
 
         const container = document.getElementById('liveDelegationList');
@@ -1708,6 +1874,42 @@
         const roles = ['nurse', 'doctor', 'admin'];
         btn.addEventListener('click', (e) => setRole(roles[i], e));
       });
+
+      /* ── Mobile drawer ──────────────────────────────────────────── */
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      const hamburger = document.getElementById('hamburgerBtn');
+
+      function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        hamburger.setAttribute('aria-expanded', 'true');
+        hamburger.textContent = '✕';
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
+        hamburger.textContent = '☰';
+      }
+
+      hamburger.addEventListener('click', () => {
+        sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+      });
+      overlay.addEventListener('click', closeSidebar);
+
+      // Stäng drawer när ett nav-item väljs på mobil
+      document.getElementById('navMenu').addEventListener('click', (e) => {
+        if (e.target.closest('.nav-item') && window.innerWidth <= 640) closeSidebar();
+      });
+
+      /* Uppdatera mobil roll-pill vid rollbyte */
+      const _origSetRole = setRole;
+      setRole = function (role, evt) {
+        _origSetRole(role, evt);
+        const pill = document.getElementById('mobileRolePill');
+        if (pill && ROLES[role]) pill.textContent = ROLES[role].label;
+      };
 
       // DOM är redan redo (script i slutet av body)
       setRole('nurse', { target: document.querySelector('.role-btn') });
