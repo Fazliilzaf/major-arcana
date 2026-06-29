@@ -1067,6 +1067,40 @@
         background: linear-gradient(135deg, rgba(253, 238, 244, 0.96), rgba(245, 240, 255, 0.92));
         color: var(--brand);
       }
+      .ordination-next-action {
+        margin: 12px 0 0;
+        padding: 12px;
+        border: 1px solid rgba(45, 35, 28, 0.09);
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 247, 251, 0.72));
+        box-shadow: 0 12px 28px rgba(50, 40, 32, 0.06);
+      }
+      .ordination-next-action-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .ordination-next-action-title {
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .ordination-next-action-copy {
+        margin-top: 5px;
+        color: var(--text2);
+        font-size: 11.5px;
+        line-height: 1.5;
+      }
+      .ordination-next-action.sage {
+        background: linear-gradient(135deg, rgba(241, 250, 246, 0.92), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-next-action.amber {
+        background: linear-gradient(135deg, rgba(255, 248, 230, 0.92), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-next-action.danger {
+        background: linear-gradient(135deg, rgba(255, 238, 238, 0.9), rgba(255, 255, 255, 0.78));
+      }
       .ordination-timeline-summary {
         margin-top: 12px;
         display: grid;
@@ -3123,6 +3157,23 @@
         const signoff = readout.signoff || {};
         const blockers = Array.isArray(signoff.blockers) ? signoff.blockers : [];
         const signoffReady = Boolean(signoff.canApproveAfterManualReview);
+        const nextAction = item.nextAction || {};
+        const nextActionTone = ['sage', 'amber', 'danger', 'info'].includes(nextAction.tone)
+          ? nextAction.tone
+          : 'info';
+        const nextActionHtml = `<div class="ordination-next-action ${escapeHtml(nextActionTone)}">
+          <div class="ordination-next-action-head">
+            <div>
+              <div class="ordination-next-action-title">Nästa åtgärd · ${escapeHtml(nextAction.primary || 'Granska underlag')}</div>
+              <div class="ordination-next-action-copy">${escapeHtml(nextAction.description || 'Följ ordinationsflödet och gör manuell bedömning.')}</div>
+            </div>
+            <span class="pill ${escapeHtml(nextActionTone)}">${escapeHtml(nextAction.label || 'Läkare')}</span>
+          </div>
+          <div class="flow-chip-row" style="margin-top:9px">
+            <span class="pill neutral">Ägare: ${escapeHtml(nextAction.owner === 'staff' ? 'Personal' : 'Läkare')}</span>
+            <span class="pill neutral">Läge: ${escapeHtml(nextAction.mode || item.workMode || 'pending')}</span>
+          </div>
+        </div>`;
         const completionReturn = readout.completionReturn || null;
         const completionReturnHtml =
           completionReturn && completionReturn.returned
@@ -3269,6 +3320,7 @@
             ${plan.individualOrdinationNote ? `<div class="safety-notice" style="margin:12px 0 0">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
             ${completionReturnHtml}
             ${timelineHtml}
+            ${nextActionHtml}
             ${signoffHtml}
             ${decisionMeta}
             <div class="safety-notice" style="margin:12px 0 0">

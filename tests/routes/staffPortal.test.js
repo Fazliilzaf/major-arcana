@@ -457,11 +457,34 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
         ['case-mode-returned']
       );
       assert.equal(returned.reviews[0].workMode, 'returned');
+      assert.deepEqual(returned.reviews[0].nextAction, {
+        mode: 'returned',
+        label: 'Granska igen',
+        tone: 'sage',
+        primary: 'Öppna underlag och fatta nytt beslut',
+        description:
+          'Personal har markerat kompletteringen klar. Läkaren behöver granska underlaget på nytt före godkännande eller avvisning.',
+        owner: 'doctor',
+        suggestedAction: 'review_again',
+        canUseDecisionButtons: true,
+      });
+
+      const completion = await fetchMode('completion');
+      assert.deepEqual(
+        completion.reviews.map((item) => item.id),
+        ['case-mode-completion']
+      );
+      assert.equal(completion.reviews[0].nextAction.owner, 'staff');
+      assert.equal(completion.reviews[0].nextAction.canUseDecisionButtons, false);
 
       const approved = await fetchMode('approved');
       assert.deepEqual(
         approved.reviews.map((item) => item.id),
         ['case-mode-approved']
+      );
+      assert.deepEqual(
+        approved.reviews.map((item) => item.nextAction.suggestedAction),
+        ['read_decision']
       );
 
       const invalid = await fetchMode('bananas');
