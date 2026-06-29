@@ -249,7 +249,7 @@ function createServer() {
 
 async function checkViewport(page, name) {
   await page.goto('/staff-portal.html', { waitUntil: 'networkidle' });
-  await page.waitForSelector('.deep-link', { timeout: 10000 });
+  await page.waitForSelector('.deep-link', { state: 'attached', timeout: 10000 });
 
   const metrics = await page.evaluate(() => {
     const doc = document.documentElement;
@@ -272,6 +272,11 @@ async function checkViewport(page, name) {
   }
   if (metrics.visibleDeepLinks < 4) {
     throw new Error(`${name}: expected visible deep links, got ${metrics.visibleDeepLinks}`);
+  }
+  if (metrics.activeView !== 'view-admin') {
+    throw new Error(
+      `${name}: expected owner session to land on admin view, got ${metrics.activeView}`
+    );
   }
 
   if (name === 'mobile') {

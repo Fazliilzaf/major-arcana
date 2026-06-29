@@ -2779,12 +2779,20 @@
           if (me.role) {
             const roleMap = {
               owner: 'Admin / Ägare',
+              admin: 'Admin / Ägare',
               operator: 'Admin',
+              revisor: 'Admin / Ägare',
               konsult: 'Läkare',
+              doctor: 'Läkare',
+              läkare: 'Läkare',
+              lakare: 'Läkare',
               personal: 'Sjuksköterska',
+              staff: 'Sjuksköterska',
+              nurse: 'Sjuksköterska',
             };
             document.getElementById('userRoleEl').textContent = roleMap[me.role] || me.role;
           }
+          setRole(roleFromSession(me.role));
           document.getElementById('dataStatusLabel').textContent = 'Live CCO-data';
           document.getElementById('dataStatusLabel').style.color = 'var(--sage)';
         } else {
@@ -3241,6 +3249,22 @@
 
       let currentRole = 'nurse';
 
+      function roleFromSession(rawRole) {
+        const key = String(rawRole || '')
+          .trim()
+          .toLowerCase();
+        if (['owner', 'admin', 'operator', 'revisor'].includes(key)) return 'admin';
+        if (['konsult', 'doctor', 'lakare', 'läkare', 'physician'].includes(key)) return 'doctor';
+        if (['personal', 'staff', 'nurse', 'sjukskoterska', 'sjuksköterska'].includes(key))
+          return 'nurse';
+        return 'nurse';
+      }
+
+      function roleButtonFor(role) {
+        const index = role === 'doctor' ? 1 : role === 'admin' ? 2 : 0;
+        return document.querySelectorAll('.role-btn')[index] || null;
+      }
+
       function setRole(role, evt) {
         currentRole = role;
         const cfg = ROLES[role];
@@ -3273,7 +3297,8 @@
         document.getElementById('view-' + role).classList.add('active');
 
         document.querySelectorAll('.role-btn').forEach((b) => b.classList.remove('active'));
-        if (evt && evt.target) evt.target.classList.add('active');
+        const activeButton = evt?.target || roleButtonFor(role);
+        if (activeButton) activeButton.classList.add('active');
 
         // Uppdatera live-badges efter byte
         if (_liveMode) {
