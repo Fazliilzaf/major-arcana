@@ -144,6 +144,70 @@ function createPatientPortalRouter({
     };
   }
 
+  function buildPatientAftercareActions(item = null) {
+    if (!item) return [];
+    const base = [
+      {
+        id: 'aftercare_read',
+        label: 'Läs eftervården',
+        description:
+          'Följ instruktionerna du fått från kliniken. Kontakta oss om något avviker eller känns oklart.',
+        state: 'available',
+        type: 'read_only',
+      },
+    ];
+    if (item.status === 'clinic_review') {
+      return [
+        {
+          id: 'clinic_review_wait',
+          label: 'Kliniken granskar',
+          description:
+            'Ditt underlag ligger hos kliniken. Du behöver inte göra något mer just nu om vi inte ber om komplettering.',
+          state: 'waiting_clinic',
+          type: 'read_only',
+        },
+        ...base,
+      ];
+    }
+    if (item.status === 'due' || item.status === 'overdue') {
+      return [
+        {
+          id: 'prepare_followup_photos',
+          label: 'Förbered uppföljningsbilder',
+          description:
+            'Om kliniken ber om bilder: ta dem i bra ljus, från samma vinklar, utan filter. Uppladdning aktiveras bara via säker kliniklänk.',
+          state: 'prepared',
+          type: 'photo_upload_intent',
+          uploadEnabled: false,
+        },
+        ...base,
+      ];
+    }
+    if (item.status === 'completed') {
+      return [
+        {
+          id: 'followup_completed',
+          label: 'Uppföljning klar',
+          description:
+            'Kliniken har markerat uppföljningen som klar. Historiken finns kvar hos kliniken.',
+          state: 'done',
+          type: 'read_only',
+        },
+        ...base,
+      ];
+    }
+    return [
+      {
+        id: 'next_followup',
+        label: 'Nästa steg visas här',
+        description: 'När det är dags för nästa uppföljning visar portalen vad som är aktuellt.',
+        state: 'planned',
+        type: 'read_only',
+      },
+      ...base,
+    ];
+  }
+
   async function buildPatientFollowupStatus(invite = {}) {
     if (!bookingCaseStore?.listCasesForCustomer || !invite?.patientId) return null;
     const cases = await bookingCaseStore.listCasesForCustomer({
@@ -167,9 +231,20 @@ function createPatientPortalRouter({
         return (rank[a.status] || 80) - (rank[b.status] || 80);
       });
     if (!items.length) return null;
+    const current = items[0];
+    const patientActions = buildPatientAftercareActions(current);
     return {
-      current: items[0],
+      current,
       items,
+      patientActions,
+      uploadIntents: patientActions
+        .filter((action) => action.type === 'photo_upload_intent')
+        .map((action) => ({
+          id: action.id,
+          label: action.label,
+          enabled: action.uploadEnabled === true,
+          reason: 'Kräver separat säker upload-token från kliniken.',
+        })),
       summary: {
         total: items.length,
         clinicReview: items.filter((item) => item.status === 'clinic_review').length,
