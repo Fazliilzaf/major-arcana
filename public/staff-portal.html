@@ -1918,6 +1918,9 @@
           </div>
 
           <!-- Kundkort + tilldelning -->
+          <div class="section-title">Delegerad kundinbox</div>
+          <div id="liveDelegatedInboxList" class="live-panel"></div>
+
           <div class="section-title">Mina kunder idag</div>
           <div id="liveMyCustomerList" class="live-panel"></div>
           <div class="two-col">
@@ -3067,6 +3070,49 @@
         </div>`;
       }
 
+      function renderDelegatedInboxCard(item) {
+        const when = item.receivedAt ? formatDateTime(item.receivedAt) : '—';
+        const title = item.customerName || item.customerId || 'Kund';
+        const subject = item.subject || 'Kundfråga';
+        const preview = item.preview || 'Ingen förhandsvisning.';
+        const threadHref = item.links?.threads || staffApiLink('threads', item);
+        return `<div class="item-card urgent">
+          <div class="item-icon">💬</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(title)} · ${escapeHtml(subject)}</div>
+            <div class="item-meta">${escapeHtml(preview)} · ${escapeHtml(when)}</div>
+            <div class="flow-chip-row">
+              <span class="pill danger">Svar krävs</span>
+              <span class="pill info">${escapeHtml(item.channel || 'kanal')}</span>
+              ${item.assignedTo ? `<span class="pill neutral">Ansvarig: ${escapeHtml(staffDisplayName(item.assignedTo) || item.assignedTo)}</span>` : ''}
+            </div>
+            ${item.action?.safety ? `<div class="live-note" style="margin-top:9px">${escapeHtml(item.action.safety)}</div>` : ''}
+            ${renderDeepLinks(
+              {
+                ...item,
+                links: item.links,
+                patientId: item.patientId,
+                customerId: item.customerId,
+              },
+              {
+                showThreads: Boolean(threadHref),
+                showPhotos: true,
+                showStaffTask: true,
+                cardUrl: item.links?.customerCard,
+                workspaceUrl: item.links?.workspace,
+              }
+            )}
+          </div>
+          <div class="item-actions">
+            ${
+              threadHref
+                ? `<a class="btn primary" href="${escapeHtml(threadHref)}" target="_blank" rel="noopener">${escapeHtml(item.action?.label || 'Öppna tråd')}</a>`
+                : '<button class="btn" disabled>Ingen tråd</button>'
+            }
+          </div>
+        </div>`;
+      }
+
       function priorityLabel(priority) {
         const map = {
           urgent: 'Akut',
@@ -3549,6 +3595,7 @@
           await Promise.all([
             loadDailyWorkQueue(),
             loadStaffPriorityRadar(),
+            loadDelegatedInbox(),
             loadMyCustomers(),
             loadTasks(),
             loadAudit(),
@@ -3590,6 +3637,7 @@
             loadReviewQueue(),
             loadDailyWorkQueue(),
             loadStaffPriorityRadar(),
+            loadDelegatedInbox(),
             loadMyCustomers(),
             loadTasks(),
             loadAudit(),
@@ -3828,6 +3876,25 @@
         } else {
           container.innerHTML =
             '<div class="live-note">Inga tilldelade kunder med live-data just nu.</div>';
+        }
+      }
+
+      async function loadDelegatedInbox() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/delegated-inbox?limit=12');
+        if (!data || !data.ok) return;
+
+        const container = document.getElementById('liveDelegatedInboxList');
+        if (!container) return;
+
+        if (data.items?.length) {
+          const summary = data.summary || {};
+          container.innerHTML =
+            `<div class="live-note">Live delegerad inbox: ${Number(summary.total || 0)} kundfrågor · ${Number(summary.unanswered || 0)} obesvarade. Svar sker i CCO-konversationen.</div>` +
+            data.items.slice(0, 8).map(renderDelegatedInboxCard).join('');
+        } else {
+          container.innerHTML =
+            '<div class="live-note">Inga obesvarade kundfrågor på dina delegerade kunder just nu.</div>';
         }
       }
 
@@ -4095,6 +4162,7 @@
             loadStaffPriorityRadar(),
             loadStaffNotifications(),
             loadTasks(),
+            loadDelegatedInbox(),
             loadMyCustomers(),
             loadReviewQueue(),
             loadOrdinationReviews(),
@@ -4398,6 +4466,7 @@
           loadReviewQueue();
           loadOrdinationReviews();
           loadTasks();
+          loadDelegatedInbox();
           loadMyCustomers();
           loadQmsHandbook();
         }
