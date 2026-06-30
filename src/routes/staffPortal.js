@@ -1364,6 +1364,44 @@ function createStaffPortalRouter({
     return Object.values(checklist).filter((value) => value === false).length;
   }
 
+  function buildCompletionChecklistForStaff(caseRecord = {}) {
+    const review = caseRecord.ordinationReview || {};
+    const status = String(review.status || '').toLowerCase();
+    if (status !== 'needs_completion') return null;
+    const handoffItems = buildReadinessChecklist(caseRecord)
+      .filter((item) => item.key !== 'ordinationDecision')
+      .filter((item) => item.done === false)
+      .map((item) => ({
+        key: item.key,
+        label: item.label,
+        done: false,
+        source: 'handoff',
+      }));
+    const items = [
+      {
+        key: 'doctor_comment',
+        label: review.comment ? 'Läs läkarens kommentar' : 'Hämta kompletteringsorsak från läkaren',
+        done: Boolean(review.comment),
+        source: 'doctor_feedback',
+      },
+      ...handoffItems,
+      {
+        key: 'return_to_doctor',
+        label: 'När underlaget är kompletterat: markera “Komplettering klar”',
+        done: false,
+        source: 'staff_action',
+      },
+    ];
+    return {
+      readOnly: true,
+      missingCount: handoffItems.length,
+      summary: handoffItems.length
+        ? `${handoffItems.length} handoff-punkt${handoffItems.length === 1 ? '' : 'er'} behöver säkras innan retur.`
+        : 'Inga handoff-punkter saknas i kortet. Kontrollera underlaget och returnera till läkaren.',
+      items,
+    };
+  }
+
   function buildDoctorFeedbackForStaff(caseRecord = {}) {
     const review = caseRecord.ordinationReview || {};
     const status = String(review.status || '').toLowerCase();
@@ -1395,6 +1433,7 @@ function createStaffPortalRouter({
       requestedAt: review.decidedAt || null,
       signature: review.signature || null,
       nextStep: preset.nextStep,
+      completionChecklist: buildCompletionChecklistForStaff(caseRecord),
       readOnly: true,
     };
   }
