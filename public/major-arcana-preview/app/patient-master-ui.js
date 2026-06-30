@@ -8703,6 +8703,40 @@
     return `<p class="patient-master-muted">${escapeHtml(bits.join(' · '))}</p>`;
   }
 
+  function renderOfferNextStep(linkedOffer, customerPortalUrl) {
+    if (!linkedOffer) return '';
+    const quoteStatus = linkedOffer.quoteStatus || 'draft';
+    const esignStatus = linkedOffer.esignStatus || 'draft';
+    const coolingActive =
+      linkedOffer.coolingOffEndsAt && Date.parse(linkedOffer.coolingOffEndsAt) > Date.now();
+    const signedAt = linkedOffer.quoteAcceptedAt || linkedOffer.customerAcceptedAt;
+    let nextStep = 'Nästa: skicka offerten när pris, zoner och bilder är kontrollerade.';
+    let tone = 'is-accent';
+
+    if (quoteStatus === 'accepted' || esignStatus === 'accepted' || signedAt) {
+      nextStep = 'Nästa: skapa behandlingsavtal och samtycke från accepterad offert.';
+      tone = 'is-accent';
+    } else if (quoteStatus === 'sent' && coolingActive) {
+      nextStep = `Kunden kan läsa portalen nu. Signering öppnar efter betänketiden ${String(
+        linkedOffer.coolingOffEndsAt
+      ).slice(0, 10)}.`;
+      tone = '';
+    } else if (quoteStatus === 'sent') {
+      nextStep = 'Nästa: kunden kan signera offerten. Följ upp via kundportalen.';
+      tone = 'is-accent';
+    }
+
+    return `
+      <div class="patient-master-offer-next-step">
+        <div class="patient-master-offer-meta-badges">
+          <span class="patient-master-status-badge${tone ? ` ${tone}` : ''}">${escapeHtml(nextStep)}</span>
+          <span class="patient-master-status-badge">Portal ${customerPortalUrl ? 'klar' : 'saknas'}</span>
+          <span class="patient-master-status-badge">Signering ${escapeHtml(esignStatus)}</span>
+        </div>
+      </div>
+    `;
+  }
+
   let offerWizardEntryId = '';
   let offerWizardStep = 1;
   let offerWizardPreviewHtml = '';
@@ -9027,6 +9061,7 @@
               : `<p class="patient-master-muted">Skapa offert från planen när bilder är markerade och planen är klar.</p>`
           }
           ${renderOfferStatusMeta(linkedOffer)}
+          ${renderOfferNextStep(linkedOffer, customerPortalUrl)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
           <div class="patient-master-plan-photo-actions">
             <button type="button" class="customers-utility-button" data-patient-action="create-offer-from-plan" data-patient-entry-id="${escapeHtml(planEntry.entryId)}">
@@ -9055,6 +9090,11 @@
             ${
               customerPortalUrl
                 ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalUrl)}" target="_blank" rel="noopener">Öppna kundportal</a>`
+                : ''
+            }
+            ${
+              customerPortalUrl
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-url="${escapeHtml(customerPortalUrl)}">Kopiera portallänk</button>`
                 : ''
             }
             ${
@@ -11563,6 +11603,26 @@
     }
   }
 
+  async function copyCustomerPortalLink(url) {
+    const rawUrl = normalizeText(url);
+    if (!rawUrl) {
+      setStatus('Ingen kundportallänk att kopiera.', 'error');
+      return;
+    }
+    const absoluteUrl = new URL(rawUrl, window.location.origin).toString();
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(absoluteUrl);
+      } else {
+        window.prompt('Kopiera kundportallänken:', absoluteUrl);
+        return;
+      }
+      setStatus('Kundportallänk kopierad.', 'success');
+    } catch {
+      setStatus('Kunde inte kopiera kundportallänken.', 'error');
+    }
+  }
+
   function closePatientQrOverlay() {
     document.querySelector('.patient-master-qr-overlay')?.remove();
   }
@@ -12577,6 +12637,8 @@
           void sendOfferForSign();
         } else if (actionButton.dataset.patientAction === 'accept-offer') {
           void acceptOffer(actionButton.dataset.patientForceOffer === '1');
+        } else if (actionButton.dataset.patientAction === 'copy-customer-portal-link') {
+          void copyCustomerPortalLink(actionButton.dataset.customerPortalUrl);
         } else if (actionButton.dataset.patientAction === 'send-patient-info') {
           void sendPatientInfo();
         } else if (actionButton.dataset.patientAction === 'create-agreement-from-offer') {
