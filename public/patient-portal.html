@@ -1,234 +1,704 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="theme-color" content="#bb4779">
-<title>Patientportal · Hair TP Clinic</title>
-<style>
-  :root{
-    --cco-bg-page:#faf6f2;
-    --cco-color-brand:#2b251f;
-    --cco-text-secondary:rgba(70,60,50,.62);
-    --cco-text-tertiary:#8a8174;
-    --cco-status-success:#4a8268;
-    --cco-status-success-bg:rgba(74,130,104,.14);
-    --cco-status-warning:#c8821e;
-    --cco-status-warning-bg:rgba(200,130,30,.14);
-    --cco-status-danger:#b94a4a;
-    --cco-status-danger-bg:rgba(185,74,74,.14);
-    --cco-status-info:#4a7ba8;
-    --cco-status-info-bg:rgba(74,123,168,.14);
-    --accent-studio:#bb4779;
-    --calendar-accent:#c8821e;
-    --rose-pill-top:rgba(252,233,240,.98);
-    --rose-pill-bottom:rgba(241,207,220,.95);
-    --panel-shell-top:rgba(250,246,242,.94);
-    --panel-shell-bottom:rgba(244,238,233,.86);
-  }
-  *{box-sizing:border-box}html,body{margin:0;padding:0}
-  body{
-    background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.42),transparent 38%),var(--cco-bg-page);
-    color:var(--cco-color-brand);
-    font-family:Inter,-apple-system,system-ui,sans-serif;
-    font-size:14.5px;line-height:1.55;min-height:100vh;padding:20px;
-  }
-  .wrap{max-width:680px;margin:0 auto}
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#bb4779" />
+    <title>Patientportal · Hair TP Clinic</title>
+    <style>
+      :root {
+        --cco-bg-page: #faf6f2;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+        --cco-status-danger: #b94a4a;
+        --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+        --accent-studio: #bb4779;
+        --calendar-accent: #c8821e;
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 14.5px;
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .wrap {
+        max-width: 680px;
+        margin: 0 auto;
+      }
 
-  /* Header */
-  .top{display:flex;align-items:center;gap:10px;padding:0 6px 18px;font-size:11.5px;color:var(--cco-text-tertiary)}
-  .brand{font-weight:800;color:var(--cco-color-brand);letter-spacing:.06em;font-size:13px}
+      /* Header */
+      .top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 6px 18px;
+        font-size: 11.5px;
+        color: var(--cco-text-tertiary);
+      }
+      .brand {
+        font-weight: 800;
+        color: var(--cco-color-brand);
+        letter-spacing: 0.06em;
+        font-size: 13px;
+      }
 
-  /* Hero */
-  .hero{padding:24px 26px;border-radius:24px;background:linear-gradient(135deg,rgba(255,250,242,.95),rgba(252,224,200,.6));border:1px solid rgba(255,255,255,.72);box-shadow:0 18px 38px rgba(93,74,60,.06);position:relative;overflow:hidden;margin-bottom:16px}
-  .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% 12%,rgba(255,255,255,.5),transparent 42%);pointer-events:none}
-  .hero .kicker{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--calendar-accent);margin-bottom:6px;position:relative}
-  .hero h1{font-size:22px;font-weight:800;margin:0 0 6px;letter-spacing:-.02em;position:relative}
-  .hero p{margin:0;font-size:13.5px;color:var(--cco-text-secondary);line-height:1.5;position:relative}
-  .hero .appt{margin-top:12px;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.85);font-size:11.5px;font-weight:700;position:relative}
+      /* Hero */
+      .hero {
+        padding: 24px 26px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, rgba(255, 250, 242, 0.95), rgba(252, 224, 200, 0.6));
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: 0 18px 38px rgba(93, 74, 60, 0.06);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.5), transparent 42%);
+        pointer-events: none;
+      }
+      .hero .kicker {
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--calendar-accent);
+        margin-bottom: 6px;
+        position: relative;
+      }
+      .hero h1 {
+        font-size: 22px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        letter-spacing: -0.02em;
+        position: relative;
+      }
+      .hero p {
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--cco-text-secondary);
+        line-height: 1.5;
+        position: relative;
+      }
+      .hero .appt {
+        margin-top: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        font-size: 11.5px;
+        font-weight: 700;
+        position: relative;
+      }
 
-  /* Panel */
-  .panel{padding:22px 26px;border-radius:24px;background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 18px 40px rgba(93,74,60,.08);border:1px solid rgba(255,255,255,.7);margin-bottom:14px}
-  .panel h2{font-size:13px;font-weight:800;letter-spacing:.04em;margin:0 0 12px;display:flex;align-items:center;gap:8px}
-  .panel h2 .step{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;background:linear-gradient(180deg,var(--rose-pill-top),var(--rose-pill-bottom));color:var(--accent-studio);font-size:11px;font-weight:800}
+      /* Panel */
+      .panel {
+        padding: 22px 26px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 18px 40px rgba(93, 74, 60, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        margin-bottom: 14px;
+      }
+      .panel h2 {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        margin: 0 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .panel h2 .step {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        font-size: 11px;
+        font-weight: 800;
+      }
 
-  /* Legal notice */
-  .legal{padding:13px 16px;border-radius:14px;background:rgba(74,123,168,.08);border:1px solid rgba(74,123,168,.22);font-size:11.5px;color:var(--cco-status-info);line-height:1.55;margin-bottom:14px}
+      /* Legal notice */
+      .legal {
+        padding: 13px 16px;
+        border-radius: 14px;
+        background: rgba(74, 123, 168, 0.08);
+        border: 1px solid rgba(74, 123, 168, 0.22);
+        font-size: 11.5px;
+        color: var(--cco-status-info);
+        line-height: 1.55;
+        margin-bottom: 14px;
+      }
 
-  /* Form fields */
-  .field{margin-bottom:14px}
-  .field label.lbl{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:5px}
-  .field input,.field textarea,.field select{width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:14px;color:var(--cco-color-brand);outline:none}
-  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
-  .field textarea{min-height:80px;resize:vertical}
-  .field .hint{font-size:11px;color:var(--cco-text-tertiary);margin-top:4px}
+      /* Follow-up status */
+      .followup-card {
+        padding: 16px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(252, 233, 240, 0.58));
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        box-shadow: 0 12px 28px rgba(93, 74, 60, 0.07);
+        margin-bottom: 12px;
+      }
+      .followup-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .followup-ico {
+        width: 42px;
+        height: 42px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--accent-studio), #9e3a68);
+        color: white;
+        box-shadow: 0 10px 24px rgba(187, 71, 121, 0.22);
+        font-weight: 900;
+      }
+      .followup-title {
+        font-size: 15px;
+        font-weight: 850;
+        margin: 0 0 2px;
+      }
+      .followup-sub {
+        font-size: 12.5px;
+        color: var(--cco-text-secondary);
+        margin: 0;
+      }
+      .followup-badge {
+        margin-left: auto;
+        white-space: nowrap;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 850;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .followup-badge[data-status='clinic_review'] {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .followup-badge[data-status='overdue'],
+      .followup-badge[data-status='due'] {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .followup-badge[data-status='completed'] {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .followup-badge[data-status='upcoming'],
+      .followup-badge[data-status='before_treatment'] {
+        background: rgba(187, 71, 121, 0.1);
+        color: var(--accent-studio);
+      }
+      .followup-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .followup-mini {
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(132, 117, 107, 0.14);
+        padding: 10px;
+      }
+      .followup-mini span {
+        display: block;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 800;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 2px;
+      }
+      .followup-mini strong {
+        font-size: 13px;
+        color: var(--cco-color-brand);
+      }
+      .followup-note {
+        font-size: 11.5px;
+        color: var(--cco-text-secondary);
+        line-height: 1.5;
+        margin: 12px 0 0;
+      }
 
-  /* Checklist questions */
-  .checks{display:flex;flex-direction:column;gap:8px}
-  .check{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid rgba(132,117,107,.18);cursor:pointer}
-  .check:hover{border-color:rgba(187,71,121,.32)}
-  .check input{flex-shrink:0;margin-top:3px;cursor:pointer}
-  .check span{font-size:13px;line-height:1.5}
-  .check strong{font-weight:700;color:var(--cco-color-brand)}
-  .check em{font-style:normal;color:var(--cco-text-tertiary);font-size:11.5px}
+      /* Form fields */
+      .field {
+        margin-bottom: 14px;
+      }
+      .field label.lbl {
+        display: block;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 5px;
+      }
+      .field input,
+      .field textarea,
+      .field select {
+        width: 100%;
+        padding: 11px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: white;
+        font-family: inherit;
+        font-size: 14px;
+        color: var(--cco-color-brand);
+        outline: none;
+      }
+      .field input:focus,
+      .field textarea:focus,
+      .field select:focus {
+        border-color: var(--accent-studio);
+        box-shadow: 0 0 0 3px rgba(187, 71, 121, 0.12);
+      }
+      .field textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      .field .hint {
+        font-size: 11px;
+        color: var(--cco-text-tertiary);
+        margin-top: 4px;
+      }
 
-  /* Form heading per form */
-  .form-block{padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid rgba(132,117,107,.18)}
-  .form-block:last-child{border-bottom:none;padding-bottom:0;margin-bottom:0}
-  .form-title{font-size:14px;font-weight:800;margin:0 0 10px;display:flex;align-items:center;gap:7px}
-  .form-title::before{content:"";width:8px;height:8px;border-radius:999px;background:var(--accent-studio)}
+      /* Checklist questions */
+      .checks {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .check {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 11px 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(132, 117, 107, 0.18);
+        cursor: pointer;
+      }
+      .check:hover {
+        border-color: rgba(187, 71, 121, 0.32);
+      }
+      .check input {
+        flex-shrink: 0;
+        margin-top: 3px;
+        cursor: pointer;
+      }
+      .check span {
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .check strong {
+        font-weight: 700;
+        color: var(--cco-color-brand);
+      }
+      .check em {
+        font-style: normal;
+        color: var(--cco-text-tertiary);
+        font-size: 11.5px;
+      }
 
-  /* BankID-stub */
-  .bankid-box{padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(74,123,168,.1),rgba(74,123,168,.04));border:1px solid rgba(74,123,168,.32);margin-top:10px}
-  .bankid-box h3{margin:0 0 8px;font-size:13px;font-weight:800;color:var(--cco-status-info);display:flex;align-items:center;gap:8px}
-  .bankid-box h3::before{content:"🔒";font-size:14px}
-  .bankid-box p{margin:0 0 10px;font-size:12px;color:var(--cco-text-secondary)}
+      /* Form heading per form */
+      .form-block {
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(132, 117, 107, 0.18);
+      }
+      .form-block:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+      }
+      .form-title {
+        font-size: 14px;
+        font-weight: 800;
+        margin: 0 0 10px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .form-title::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--accent-studio);
+      }
 
-  /* Buttons */
-  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
-  .btn{flex:1;min-width:160px;padding:14px 18px;border-radius:14px;border:none;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;font-family:inherit}
-  .btn-primary{background:linear-gradient(135deg,var(--accent-studio),#9e3a68);color:white;box-shadow:0 12px 28px rgba(187,71,121,.28)}
-  .btn-primary:hover{transform:translateY(-1px)}
-  .btn-primary:disabled{opacity:.55;cursor:wait;transform:none}
-  .btn-ghost{background:transparent;border:1px solid rgba(132,117,107,.28);color:var(--cco-text-secondary)}
+      /* BankID-stub */
+      .bankid-box {
+        padding: 16px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(74, 123, 168, 0.1), rgba(74, 123, 168, 0.04));
+        border: 1px solid rgba(74, 123, 168, 0.32);
+        margin-top: 10px;
+      }
+      .bankid-box h3 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--cco-status-info);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .bankid-box h3::before {
+        content: '🔒';
+        font-size: 14px;
+      }
+      .bankid-box p {
+        margin: 0 0 10px;
+        font-size: 12px;
+        color: var(--cco-text-secondary);
+      }
 
-  /* Status */
-  .status{margin-top:14px;padding:12px 16px;border-radius:12px;font-size:13px;display:none}
-  .status.show{display:block}
-  .status.success{background:var(--cco-status-success-bg);color:var(--cco-status-success)}
-  .status.error{background:var(--cco-status-danger-bg);color:var(--cco-status-danger)}
+      /* Buttons */
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        flex: 1;
+        min-width: 160px;
+        padding: 14px 18px;
+        border-radius: 14px;
+        border: none;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent-studio), #9e3a68);
+        color: white;
+        box-shadow: 0 12px 28px rgba(187, 71, 121, 0.28);
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+      }
+      .btn-primary:disabled {
+        opacity: 0.55;
+        cursor: wait;
+        transform: none;
+      }
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        color: var(--cco-text-secondary);
+      }
 
-  /* Confirmation screen */
-  .done-banner{padding:22px 26px;border-radius:22px;background:linear-gradient(135deg,rgba(74,130,104,.18),rgba(74,130,104,.06));border:1px solid rgba(74,130,104,.32);text-align:center}
-  .done-banner .ico{font-size:42px;margin-bottom:8px}
-  .done-banner h3{margin:0 0 6px;font-size:18px;color:var(--cco-status-success);font-weight:800}
-  .done-banner p{margin:0 0 8px;font-size:13.5px;color:var(--cco-text-secondary)}
-  .done-banner code{font-family:SF Mono,Menlo,monospace;font-size:11px;background:rgba(74,130,104,.08);padding:3px 8px;border-radius:5px;color:var(--cco-status-success)}
+      /* Status */
+      .status {
+        margin-top: 14px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        display: none;
+      }
+      .status.show {
+        display: block;
+      }
+      .status.success {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .status.error {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
 
-  /* Error/expired banner */
-  .err-banner{padding:22px 26px;border-radius:22px;background:linear-gradient(135deg,rgba(185,74,74,.14),rgba(185,74,74,.04));border:1px solid rgba(185,74,74,.32);text-align:center}
-  .err-banner .ico{font-size:38px;margin-bottom:8px}
-  .err-banner h3{margin:0 0 6px;font-size:17px;color:var(--cco-status-danger);font-weight:800}
-  .err-banner p{margin:0;font-size:13px;color:var(--cco-text-secondary);line-height:1.5}
+      /* Confirmation screen */
+      .done-banner {
+        padding: 22px 26px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, rgba(74, 130, 104, 0.18), rgba(74, 130, 104, 0.06));
+        border: 1px solid rgba(74, 130, 104, 0.32);
+        text-align: center;
+      }
+      .done-banner .ico {
+        font-size: 42px;
+        margin-bottom: 8px;
+      }
+      .done-banner h3 {
+        margin: 0 0 6px;
+        font-size: 18px;
+        color: var(--cco-status-success);
+        font-weight: 800;
+      }
+      .done-banner p {
+        margin: 0 0 8px;
+        font-size: 13.5px;
+        color: var(--cco-text-secondary);
+      }
+      .done-banner code {
+        font-family:
+          SF Mono,
+          Menlo,
+          monospace;
+        font-size: 11px;
+        background: rgba(74, 130, 104, 0.08);
+        padding: 3px 8px;
+        border-radius: 5px;
+        color: var(--cco-status-success);
+      }
 
-  @media (max-width:520px){
-    body{padding:14px}
-    .hero{padding:18px 20px;border-radius:20px}
-    .panel{padding:18px 20px;border-radius:20px}
-    .btn{font-size:12px;padding:12px 14px}
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="top">
-    <span class="brand">HAIR TP CLINIC</span>
-    <span style="margin-left:auto">Patientportal · säker länk</span>
-  </div>
+      /* Error/expired banner */
+      .err-banner {
+        padding: 22px 26px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, rgba(185, 74, 74, 0.14), rgba(185, 74, 74, 0.04));
+        border: 1px solid rgba(185, 74, 74, 0.32);
+        text-align: center;
+      }
+      .err-banner .ico {
+        font-size: 38px;
+        margin-bottom: 8px;
+      }
+      .err-banner h3 {
+        margin: 0 0 6px;
+        font-size: 17px;
+        color: var(--cco-status-danger);
+        font-weight: 800;
+      }
+      .err-banner p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--cco-text-secondary);
+        line-height: 1.5;
+      }
 
-  <div id="loadingState" class="panel" style="text-align:center;color:var(--cco-text-tertiary)">
-    <p>Läser invitation…</p>
-  </div>
+      @media (max-width: 520px) {
+        body {
+          padding: 14px;
+        }
+        .hero {
+          padding: 18px 20px;
+          border-radius: 20px;
+        }
+        .panel {
+          padding: 18px 20px;
+          border-radius: 20px;
+        }
+        .followup-head {
+          flex-wrap: wrap;
+        }
+        .followup-badge {
+          margin-left: 54px;
+        }
+        .followup-grid {
+          grid-template-columns: 1fr;
+        }
+        .btn {
+          font-size: 12px;
+          padding: 12px 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <span class="brand">HAIR TP CLINIC</span>
+        <span style="margin-left: auto">Patientportal · säker länk</span>
+      </div>
 
-  <div id="completedState" class="done-banner" hidden>
-    <div class="ico">✓</div>
-    <h3>Formuläret är redan inskickat</h3>
-    <p>Tack! Hair TP Clinic har mottagit dina uppgifter. Du kan stänga sidan.</p>
-  </div>
+      <div
+        id="loadingState"
+        class="panel"
+        style="text-align: center; color: var(--cco-text-tertiary)"
+      >
+        <p>Läser invitation…</p>
+      </div>
 
-  <div id="errorState" class="err-banner" hidden>
-    <div class="ico" id="errIco">⚠</div>
-    <h3 id="errHeading">Länken är ogiltig eller har utgått</h3>
-    <p id="errBody">Kontakta kliniken på <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a> för en ny länk.</p>
-  </div>
+      <div id="completedState" class="done-banner" hidden>
+        <div class="ico">✓</div>
+        <h3>Formuläret är redan inskickat</h3>
+        <p>Tack! Hair TP Clinic har mottagit dina uppgifter. Du kan stänga sidan.</p>
+      </div>
 
-  <div id="activeState" hidden>
-    <!-- Hero -->
-    <div class="hero">
-      <div class="kicker">Hair TP Clinic · Säker patientportal</div>
-      <h1 id="patientGreeting">Välkommen</h1>
-      <p id="serviceLabel">Här fyller du i de uppgifter vi behöver inför ditt besök.</p>
-      <div class="appt" id="appt" hidden>📅 <span id="apptText"></span></div>
-    </div>
+      <div id="errorState" class="err-banner" hidden>
+        <div class="ico" id="errIco">⚠</div>
+        <h3 id="errHeading">Länken är ogiltig eller har utgått</h3>
+        <p id="errBody">
+          Kontakta kliniken på
+          <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a> för en ny länk.
+        </p>
+      </div>
 
-    <!-- Legal -->
-    <div class="legal">
-      <strong>Vad signerar du?</strong> Dina svar och samtycken sparas i din patientjournal hos Hair TP Clinic i 10 år enligt journallagen 2008:355. Du har rätt att begära utdrag eller kontroll enligt GDPR.
-    </div>
-
-    <!-- Forms (rendrade dynamiskt baserat på invite.forms[]) -->
-    <div class="panel">
-      <h2><span class="step">1</span>Dina uppgifter</h2>
-      <div class="field"><label class="lbl" for="firstName">Förnamn (om annat än det vi har)</label><input type="text" id="firstName" autocomplete="given-name"></div>
-      <div class="field"><label class="lbl" for="phone">Telefon</label><input type="tel" id="phone" autocomplete="tel" placeholder="07X-XXX XX XX"></div>
-    </div>
-
-    <div class="panel">
-      <h2><span class="step">2</span>Formulär att fylla i <span id="formCount" style="margin-left:auto;font-size:10.5px;font-weight:700;color:var(--cco-text-tertiary)"></span></h2>
-      <div id="formsRoot"></div>
-    </div>
-
-    <!-- BankID-stub -->
-    <div class="panel">
-      <h2><span class="step">3</span>Signera</h2>
-      <div class="bankid-box">
-        <h3>Signera med BankID</h3>
-        <p>I produktion öppnas BankID-appen. I denna förhandsvisning bekräftar du genom att fylla i ditt fullständiga namn.</p>
-        <div class="field">
-          <label class="lbl" for="signatureName">Ditt fullständiga namn (BankID-bekräftelse)</label>
-          <input type="text" id="signatureName" placeholder="För- och efternamn">
+      <div id="activeState" hidden>
+        <!-- Hero -->
+        <div class="hero">
+          <div class="kicker">Hair TP Clinic · Säker patientportal</div>
+          <h1 id="patientGreeting">Välkommen</h1>
+          <p id="serviceLabel">Här fyller du i de uppgifter vi behöver inför ditt besök.</p>
+          <div class="appt" id="appt" hidden>📅 <span id="apptText"></span></div>
         </div>
+
+        <!-- Legal -->
+        <div class="legal">
+          <strong>Vad signerar du?</strong> Dina svar och samtycken sparas i din patientjournal hos
+          Hair TP Clinic i 10 år enligt journallagen 2008:355. Du har rätt att begära utdrag eller
+          kontroll enligt GDPR.
+        </div>
+
+        <div id="followupPanel" class="panel" hidden>
+          <h2><span class="step">✓</span>Din uppföljning</h2>
+          <div id="followupRoot"></div>
+        </div>
+
+        <!-- Forms (rendrade dynamiskt baserat på invite.forms[]) -->
+        <div class="panel">
+          <h2><span class="step">1</span>Dina uppgifter</h2>
+          <div class="field">
+            <label class="lbl" for="firstName">Förnamn (om annat än det vi har)</label
+            ><input type="text" id="firstName" autocomplete="given-name" />
+          </div>
+          <div class="field">
+            <label class="lbl" for="phone">Telefon</label
+            ><input type="tel" id="phone" autocomplete="tel" placeholder="07X-XXX XX XX" />
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>
+            <span class="step">2</span>Formulär att fylla i
+            <span
+              id="formCount"
+              style="
+                margin-left: auto;
+                font-size: 10.5px;
+                font-weight: 700;
+                color: var(--cco-text-tertiary);
+              "
+            ></span>
+          </h2>
+          <div id="formsRoot"></div>
+        </div>
+
+        <!-- BankID-stub -->
+        <div class="panel">
+          <h2><span class="step">3</span>Signera</h2>
+          <div class="bankid-box">
+            <h3>Signera med BankID</h3>
+            <p>
+              I produktion öppnas BankID-appen. I denna förhandsvisning bekräftar du genom att fylla
+              i ditt fullständiga namn.
+            </p>
+            <div class="field">
+              <label class="lbl" for="signatureName"
+                >Ditt fullständiga namn (BankID-bekräftelse)</label
+              >
+              <input type="text" id="signatureName" placeholder="För- och efternamn" />
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" id="cancelBtn">Avbryt</button>
+          <button type="button" class="btn btn-primary" id="submitBtn">
+            ✓ Signera och skicka in
+          </button>
+        </div>
+
+        <div class="status" id="status" role="status" aria-live="polite"></div>
       </div>
     </div>
 
-    <div class="actions">
-      <button type="button" class="btn btn-ghost" id="cancelBtn">Avbryt</button>
-      <button type="button" class="btn btn-primary" id="submitBtn">✓ Signera och skicka in</button>
-    </div>
+    <script>
+      (function () {
+        // Hämta token från URL ?token=xxx eller path /portal/:token (rewriten via server)
+        function getToken() {
+          const url = new URL(location.href);
+          let t = url.searchParams.get('token');
+          if (!t) {
+            const m = url.pathname.match(/^\/portal\/([^/]+)$/);
+            if (m) t = m[1];
+          }
+          return t;
+        }
 
-    <div class="status" id="status" role="status" aria-live="polite"></div>
-  </div>
-</div>
+        const token = getToken();
 
-<script>
-(function(){
-  // Hämta token från URL ?token=xxx eller path /portal/:token (rewriten via server)
-  function getToken() {
-    const url = new URL(location.href);
-    let t = url.searchParams.get('token');
-    if (!t) {
-      const m = url.pathname.match(/^\/portal\/([^/]+)$/);
-      if (m) t = m[1];
-    }
-    return t;
-  }
+        function $(id) {
+          return document.getElementById(id);
+        }
 
-  const token = getToken();
+        function showState(stateId) {
+          ['loadingState', 'completedState', 'errorState', 'activeState'].forEach((s) => {
+            const el = $(s);
+            if (el) el.hidden = s !== stateId;
+          });
+        }
 
-  function $(id) { return document.getElementById(id); }
+        function showError(heading, body, ico) {
+          $('errIco').textContent = ico || '⚠';
+          $('errHeading').textContent = heading;
+          $('errBody').innerHTML = body;
+          showState('errorState');
+        }
 
-  function showState(stateId) {
-    ['loadingState','completedState','errorState','activeState'].forEach(s => {
-      const el = $(s);
-      if (el) el.hidden = s !== stateId;
-    });
-  }
+        if (!token) {
+          showError(
+            'Ingen länk angiven',
+            'Klicka på länken från ditt mail eller SMS, eller kontakta kliniken om du tror något är fel.'
+          );
+          return;
+        }
 
-  function showError(heading, body, ico) {
-    $('errIco').textContent = ico || '⚠';
-    $('errHeading').textContent = heading;
-    $('errBody').innerHTML = body;
-    showState('errorState');
-  }
-
-  if (!token) {
-    showError('Ingen länk angiven', 'Klicka på länken från ditt mail eller SMS, eller kontakta kliniken om du tror något är fel.');
-    return;
-  }
-
-  // ─── Form-renderers per form-typ ──────────────────
-  const FORM_RENDERERS = {
-    health_declaration: (form) => `
+        // ─── Form-renderers per form-typ ──────────────────
+        const FORM_RENDERERS = {
+          health_declaration: (form) => `
       <div class="form-block">
         <div class="form-title">${form.label || 'Hälsodeklaration'}</div>
         <div class="checks">
@@ -247,7 +717,7 @@
         </div>
       </div>
     `,
-    fitness_certificate: (form) => `
+          fitness_certificate: (form) => `
       <div class="form-block">
         <div class="form-title">${form.label || 'Friskförsäkran (FUE)'}</div>
         <div class="checks">
@@ -258,7 +728,7 @@
         </div>
       </div>
     `,
-    treatment_consent: (form) => `
+          treatment_consent: (form) => `
       <div class="form-block">
         <div class="form-title">${form.label || 'Behandlingssamtycke'}</div>
         <p style="font-size:12.5px;line-height:1.5;color:var(--cco-text-secondary);margin:0 0 10px">
@@ -272,7 +742,7 @@
         </div>
       </div>
     `,
-    photo_publish: (form) => `
+          photo_publish: (form) => `
       <div class="form-block">
         <div class="form-title">${form.label || 'Publiceringssamtycke för före/efter-bilder'}</div>
         <p style="font-size:12.5px;line-height:1.5;color:var(--cco-text-secondary);margin:0 0 10px">
@@ -286,7 +756,7 @@
         <p style="font-size:11.5px;color:var(--cco-text-tertiary);margin-top:10px;font-style:italic">Du kan när som helst återkalla samtycket. Foton tas då bort från publika ytor.</p>
       </div>
     `,
-    marketing: (form) => `
+          marketing: (form) => `
       <div class="form-block">
         <div class="form-title">${form.label || 'Marknadssamtycke (frivilligt)'}</div>
         <div class="checks">
@@ -296,7 +766,7 @@
         <p style="font-size:11.5px;color:var(--cco-text-tertiary);margin-top:8px;font-style:italic">Avregistrering med en knapp i varje meddelande.</p>
       </div>
     `,
-    patient_information: (form) => `
+          patient_information: (form) => `
       <div class="form-block">
         <div class="form-title">${form.label || 'Bekräfta att du läst patient-information'}</div>
         <p style="font-size:12.5px;line-height:1.5;color:var(--cco-text-secondary);margin:0 0 10px">
@@ -307,121 +777,204 @@
         </div>
       </div>
     `,
-  };
+        };
 
-  function renderForms(invite) {
-    $('patientGreeting').textContent = 'Hej ' + (invite.patientName || 'där') + '!';
-    $('serviceLabel').textContent = invite.serviceLabel || 'Här fyller du i de uppgifter vi behöver inför ditt besök.';
-    if (invite.appointmentDate) {
-      $('appt').hidden = false;
-      $('apptText').textContent = invite.appointmentDate;
-    }
-    const forms = Array.isArray(invite.forms) ? invite.forms : [];
-    $('formCount').textContent = forms.length === 1 ? '1 formulär' : forms.length + ' formulär';
-    const root = $('formsRoot');
-    if (!forms.length) {
-      root.innerHTML = '<p style="color:var(--cco-text-tertiary)">Inget formulär att fylla i — bara signering.</p>';
-      return;
-    }
-    root.innerHTML = forms.map(f => {
-      const renderer = FORM_RENDERERS[f.journalType] || FORM_RENDERERS.patient_information;
-      return renderer(f);
-    }).join('');
-  }
+        function renderForms(invite) {
+          $('patientGreeting').textContent = 'Hej ' + (invite.patientName || 'där') + '!';
+          $('serviceLabel').textContent =
+            invite.serviceLabel || 'Här fyller du i de uppgifter vi behöver inför ditt besök.';
+          if (invite.appointmentDate) {
+            $('appt').hidden = false;
+            $('apptText').textContent = invite.appointmentDate;
+          }
+          const forms = Array.isArray(invite.forms) ? invite.forms : [];
+          $('formCount').textContent =
+            forms.length === 1 ? '1 formulär' : forms.length + ' formulär';
+          const root = $('formsRoot');
+          if (!forms.length) {
+            root.innerHTML =
+              '<p style="color:var(--cco-text-tertiary)">Inget formulär att fylla i — bara signering.</p>';
+            return;
+          }
+          root.innerHTML = forms
+            .map((f) => {
+              const renderer = FORM_RENDERERS[f.journalType] || FORM_RENDERERS.patient_information;
+              return renderer(f);
+            })
+            .join('');
+        }
 
-  function collectFormData() {
-    const data = {};
-    document.querySelectorAll('[data-form][data-q]').forEach(el => {
-      const fid = el.dataset.form;
-      const q = el.dataset.q;
-      if (!data[fid]) data[fid] = {};
-      if (el.type === 'checkbox') {
-        data[fid][q] = el.checked;
-      } else {
-        data[fid][q] = (el.value || '').trim();
-      }
-    });
-    // Common fields
-    const firstName = $('firstName').value.trim();
-    const phone = $('phone').value.trim();
-    if (firstName) data._patient = { firstName };
-    if (phone) { data._patient = data._patient || {}; data._patient.phone = phone; }
-    return data;
-  }
+        function formatDate(value) {
+          const date = new Date(value || '');
+          if (!Number.isFinite(date.getTime())) return 'Ej satt';
+          return date.toLocaleDateString('sv-SE', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          });
+        }
 
-  // ─── Load invite ──────────────────────────────────
-  async function load() {
-    try {
-      const r = await fetch('/api/patient-portal/' + encodeURIComponent(token));
-      const data = await r.json();
-      if (!r.ok || !data.ok) {
-        const msg = data.message || data.error || 'Länken är inte giltig längre.';
-        showError(msg, 'Be kliniken om en ny länk på <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a> eller telefon.');
-        return;
-      }
-      if (data.status === 'completed') {
-        showState('completedState');
-        return;
-      }
-      renderForms(data.invite || {});
-      showState('activeState');
-    } catch (e) {
-      showError('Kunde inte kontakta servern', 'Försök igen om en stund: ' + e.message);
-    }
-  }
+        function escapeHtml(value) {
+          return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
 
-  // ─── Submit ───────────────────────────────────────
-  async function submit() {
-    const status = $('status');
-    status.className = 'status';
-    status.textContent = '';
+        function renderFollowupStatus(status) {
+          const panel = $('followupPanel');
+          const root = $('followupRoot');
+          if (!panel || !root || !status || !status.current) {
+            if (panel) panel.hidden = true;
+            return;
+          }
+          const current = status.current;
+          const daysText =
+            current.daysSinceTreatment < 0
+              ? Math.abs(current.daysSinceTreatment) + ' dagar kvar'
+              : current.daysSinceTreatment + ' dagar sedan';
+          const nextText =
+            current.status === 'completed'
+              ? 'Historik sparad'
+              : current.milestone?.label || current.nextMilestone?.label || 'Uppföljning';
+          const actionText =
+            current.status === 'clinic_review'
+              ? 'Kliniken granskar ditt underlag och återkommer vid behov.'
+              : current.status === 'due' || current.status === 'overdue'
+                ? 'Kliniken håller uppföljningen aktiv. Skicka bara in bilder eller svar om personalen ber om det.'
+                : current.status === 'completed'
+                  ? 'Den här uppföljningen är markerad som klar av kliniken.'
+                  : 'Nästa uppföljning visas här när den blir aktuell.';
+          root.innerHTML = `
+      <div class="followup-card">
+        <div class="followup-head">
+          <div class="followup-ico">↻</div>
+          <div>
+            <p class="followup-title">${escapeHtml(current.label || 'Uppföljning')}</p>
+            <p class="followup-sub">${escapeHtml(current.treatment || 'Behandling')} · ${escapeHtml(daysText)}</p>
+          </div>
+          <span class="followup-badge" data-status="${escapeHtml(current.status || 'upcoming')}">${current.status === 'clinic_review' ? 'Kliniken' : current.status === 'completed' ? 'Klar' : current.status === 'overdue' ? 'Väntar' : current.status === 'due' ? 'Aktuell' : 'Planerad'}</span>
+        </div>
+        <div class="followup-grid">
+          <div class="followup-mini"><span>Behandling</span><strong>${escapeHtml(formatDate(current.treatmentDate))}</strong></div>
+          <div class="followup-mini"><span>Steg</span><strong>${escapeHtml(nextText)}</strong></div>
+          <div class="followup-mini"><span>Status</span><strong>${escapeHtml(status.summary?.completed || 0)}/${escapeHtml(status.summary?.total || 1)} klara</strong></div>
+        </div>
+        <p class="followup-note">${escapeHtml(actionText)}</p>
+        <p class="followup-note"><strong>Tryggt:</strong> ${escapeHtml(status.safety?.message || 'Det här är endast en översikt. Kliniken hanterar journal och medicinska beslut.')}</p>
+      </div>
+    `;
+          panel.hidden = false;
+        }
 
-    const signatureName = $('signatureName').value.trim();
-    if (!signatureName || signatureName.length < 3) {
-      status.className = 'status show error';
-      status.textContent = '⚠ Du måste fylla i ditt fullständiga namn för att signera.';
-      return;
-    }
+        function collectFormData() {
+          const data = {};
+          document.querySelectorAll('[data-form][data-q]').forEach((el) => {
+            const fid = el.dataset.form;
+            const q = el.dataset.q;
+            if (!data[fid]) data[fid] = {};
+            if (el.type === 'checkbox') {
+              data[fid][q] = el.checked;
+            } else {
+              data[fid][q] = (el.value || '').trim();
+            }
+          });
+          // Common fields
+          const firstName = $('firstName').value.trim();
+          const phone = $('phone').value.trim();
+          if (firstName) data._patient = { firstName };
+          if (phone) {
+            data._patient = data._patient || {};
+            data._patient.phone = phone;
+          }
+          return data;
+        }
 
-    const formData = collectFormData();
-    const formCount = Object.keys(formData).filter(k => !k.startsWith('_')).length;
+        // ─── Load invite ──────────────────────────────────
+        async function load() {
+          try {
+            const r = await fetch('/api/patient-portal/' + encodeURIComponent(token));
+            const data = await r.json();
+            if (!r.ok || !data.ok) {
+              const msg = data.message || data.error || 'Länken är inte giltig längre.';
+              showError(
+                msg,
+                'Be kliniken om en ny länk på <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a> eller telefon.'
+              );
+              return;
+            }
+            if (data.status === 'completed') {
+              showState('completedState');
+              return;
+            }
+            renderForms(data.invite || {});
+            renderFollowupStatus(data.followupStatus || null);
+            showState('activeState');
+          } catch (e) {
+            showError('Kunde inte kontakta servern', 'Försök igen om en stund: ' + e.message);
+          }
+        }
 
-    if (!confirm(`Signera och skicka in ${formCount} formulär?\n\nEfter signering låses dina svar enligt journallagen och kan inte ändras (men du kan begära korrigering via kliniken).`)) return;
+        // ─── Submit ───────────────────────────────────────
+        async function submit() {
+          const status = $('status');
+          status.className = 'status';
+          status.textContent = '';
 
-    $('submitBtn').disabled = true;
-    status.className = 'status show';
-    status.textContent = 'Signerar med BankID-mock…';
-    status.style.color = 'var(--cco-text-secondary)';
+          const signatureName = $('signatureName').value.trim();
+          if (!signatureName || signatureName.length < 3) {
+            status.className = 'status show error';
+            status.textContent = '⚠ Du måste fylla i ditt fullständiga namn för att signera.';
+            return;
+          }
 
-    try {
-      const r = await fetch('/api/patient-portal/' + encodeURIComponent(token) + '/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ formData, signature: signatureName }),
-      });
-      const data = await r.json();
-      if (!r.ok || !data.ok) {
-        throw new Error(data.error || data.message || 'HTTP ' + r.status);
-      }
-      // Visa bekräftelse
-      showState('completedState');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (e) {
-      status.className = 'status show error';
-      status.textContent = '⚠ Kunde inte signera: ' + e.message + '. Försök igen eller kontakta kliniken.';
-      $('submitBtn').disabled = false;
-    }
-  }
+          const formData = collectFormData();
+          const formCount = Object.keys(formData).filter((k) => !k.startsWith('_')).length;
 
-  $('submitBtn').addEventListener('click', submit);
-  $('cancelBtn').addEventListener('click', () => {
-    if (confirm('Avbryta? Du kan komma tillbaka via samma länk senare (giltig i 7 dagar).')) {
-      location.href = 'https://www.hairtpclinic.com';
-    }
-  });
+          if (
+            !confirm(
+              `Signera och skicka in ${formCount} formulär?\n\nEfter signering låses dina svar enligt journallagen och kan inte ändras (men du kan begära korrigering via kliniken).`
+            )
+          )
+            return;
 
-  load();
-})();
-</script>
-</body>
+          $('submitBtn').disabled = true;
+          status.className = 'status show';
+          status.textContent = 'Signerar med BankID-mock…';
+          status.style.color = 'var(--cco-text-secondary)';
+
+          try {
+            const r = await fetch('/api/patient-portal/' + encodeURIComponent(token) + '/submit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ formData, signature: signatureName }),
+            });
+            const data = await r.json();
+            if (!r.ok || !data.ok) {
+              throw new Error(data.error || data.message || 'HTTP ' + r.status);
+            }
+            // Visa bekräftelse
+            showState('completedState');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } catch (e) {
+            status.className = 'status show error';
+            status.textContent =
+              '⚠ Kunde inte signera: ' + e.message + '. Försök igen eller kontakta kliniken.';
+            $('submitBtn').disabled = false;
+          }
+        }
+
+        $('submitBtn').addEventListener('click', submit);
+        $('cancelBtn').addEventListener('click', () => {
+          if (confirm('Avbryta? Du kan komma tillbaka via samma länk senare (giltig i 7 dagar).')) {
+            location.href = 'https://www.hairtpclinic.com';
+          }
+        });
+
+        load();
+      })();
+    </script>
+  </body>
 </html>

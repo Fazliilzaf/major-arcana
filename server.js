@@ -13537,6 +13537,7 @@ process.once('SIGTERM', () => {
     createPatientPortalRouter({
       patientPortalStore,
       journalStore: ccoJournalStore || null,
+      bookingCaseStore: ccoBookingCaseStore || null,
     })
   );
   app.locals.patientPortalStore = patientPortalStore; // Beslut #2: exponera för staff-API

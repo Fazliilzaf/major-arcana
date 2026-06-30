@@ -19,8 +19,22 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog = null }) {
+function createPatientPortalRouter({
+  patientPortalStore,
+  journalStore,
+  auditLog = null,
+  bookingCaseStore = null,
+}) {
   const router = express.Router();
+
+  const FOLLOWUP_MILESTONES = [
+    { key: 'postop_day_1', day: 1, label: 'Postop dag 1' },
+    { key: 'postop_day_7', day: 7, label: 'Postop dag 7' },
+    { key: 'postop_day_30', day: 30, label: 'Postop dag 30' },
+    { key: 'followup_month_4', day: 120, label: 'Uppföljning 4 månader' },
+    { key: 'followup_month_6', day: 180, label: 'Uppföljning 6 månader' },
+    { key: 'followup_month_12', day: 365, label: 'Resultatuppföljning 12 månader' },
+  ];
 
   function logPortalAudit(kind, detail = {}) {
     try {
@@ -51,6 +65,123 @@ function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog 
       req.socket?.remoteAddress ||
       'unknown'
     );
+  }
+
+  function latestHistoryAt(caseRecord = {}, action) {
+    const history = Array.isArray(caseRecord.history) ? caseRecord.history : [];
+    return history
+      .filter((entry) => entry?.action === action && entry.at)
+      .map((entry) => Date.parse(entry.at))
+      .filter(Number.isFinite)
+      .sort((a, b) => b - a)[0];
+  }
+
+  function isFollowupCompleted(caseRecord = {}) {
+    const completedAt = latestHistoryAt(caseRecord, 'staff_followup_completed');
+    if (!completedAt) return false;
+    const needsDoctorAt = latestHistoryAt(caseRecord, 'staff_followup_needs_doctor');
+    return !needsDoctorAt || completedAt >= needsDoctorAt;
+  }
+
+  function isFollowupWaitingClinic(caseRecord = {}) {
+    const needsDoctorAt = latestHistoryAt(caseRecord, 'staff_followup_needs_doctor');
+    if (!needsDoctorAt) return false;
+    const completedAt = latestHistoryAt(caseRecord, 'staff_followup_completed');
+    return !completedAt || completedAt < needsDoctorAt;
+  }
+
+  function daysSince(startIso, now = new Date()) {
+    const startMs = Date.parse(startIso || '');
+    if (!Number.isFinite(startMs)) return null;
+    return Math.floor((now.getTime() - startMs) / 86400000);
+  }
+
+  function buildPatientFollowupItem(caseRecord = {}, { now = new Date() } = {}) {
+    const startsAt = caseRecord.startsAt || caseRecord.scheduledAt || caseRecord.scheduledForIso;
+    const elapsedDays = daysSince(startsAt, now);
+    if (elapsedDays === null) return null;
+    const completed = isFollowupCompleted(caseRecord);
+    const waitingClinic = isFollowupWaitingClinic(caseRecord);
+    const nextMilestone =
+      FOLLOWUP_MILESTONES.find((item) => elapsedDays < item.day) ||
+      FOLLOWUP_MILESTONES[FOLLOWUP_MILESTONES.length - 1];
+    const activeMilestone =
+      FOLLOWUP_MILESTONES.filter((item) => elapsedDays >= item.day).at(-1) || nextMilestone;
+    const daysUntil = activeMilestone.day - elapsedDays;
+    const status = completed
+      ? 'completed'
+      : waitingClinic
+        ? 'clinic_review'
+        : elapsedDays < 0
+          ? 'before_treatment'
+          : daysUntil > 0
+            ? 'upcoming'
+            : Math.abs(daysUntil) <= 2
+              ? 'due'
+              : 'overdue';
+    return {
+      caseId: caseRecord.id || null,
+      treatment: caseRecord.serviceLabel || caseRecord.treatment || 'Behandling',
+      treatmentDate: startsAt || null,
+      daysSinceTreatment: elapsedDays,
+      status,
+      label:
+        status === 'completed'
+          ? 'Uppföljning klar'
+          : status === 'clinic_review'
+            ? 'Kliniken granskar'
+            : status === 'overdue'
+              ? 'Uppföljning väntar'
+              : status === 'due'
+                ? 'Dags för uppföljning'
+                : status === 'before_treatment'
+                  ? 'Inför behandling'
+                  : 'Nästa uppföljning',
+      milestone: activeMilestone,
+      nextMilestone,
+      daysUntil,
+      readOnly: true,
+    };
+  }
+
+  async function buildPatientFollowupStatus(invite = {}) {
+    if (!bookingCaseStore?.listCasesForCustomer || !invite?.patientId) return null;
+    const cases = await bookingCaseStore.listCasesForCustomer({
+      tenantId: invite.tenantId || undefined,
+      patientId: invite.patientId,
+      customerId: invite.customerId || undefined,
+      limit: 20,
+    });
+    const items = (Array.isArray(cases) ? cases : [])
+      .map((item) => buildPatientFollowupItem(item))
+      .filter(Boolean)
+      .sort((a, b) => {
+        const rank = {
+          clinic_review: 10,
+          overdue: 20,
+          due: 30,
+          upcoming: 40,
+          before_treatment: 50,
+          completed: 90,
+        };
+        return (rank[a.status] || 80) - (rank[b.status] || 80);
+      });
+    if (!items.length) return null;
+    return {
+      current: items[0],
+      items,
+      summary: {
+        total: items.length,
+        clinicReview: items.filter((item) => item.status === 'clinic_review').length,
+        due: items.filter((item) => item.status === 'due' || item.status === 'overdue').length,
+        completed: items.filter((item) => item.status === 'completed').length,
+      },
+      safety: {
+        readOnly: true,
+        message:
+          'Det här är en trygg översikt. Journalanteckningar och medicinska beslut hanteras alltid av kliniken.',
+      },
+    };
   }
 
   router.get('/patient-portal/:token', async (req, res) => {
@@ -86,6 +217,7 @@ function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog 
         patientId: invite.patientId,
         outcome: 'already_completed',
       });
+      const followupStatus = await buildPatientFollowupStatus(invite);
       return res.json({
         ok: true,
         status: 'completed',
@@ -94,6 +226,7 @@ function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog 
           patientName: invite.patientName,
           serviceLabel: invite.serviceLabel,
         },
+        followupStatus,
       });
     }
     logPortalAudit('portal.invite.viewed', {
@@ -105,6 +238,7 @@ function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog 
       outcome: 'opened',
       formCount: (invite.forms || []).length,
     });
+    const followupStatus = await buildPatientFollowupStatus(invite);
     return res.json({
       ok: true,
       status: 'pending',
@@ -115,6 +249,7 @@ function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog 
         forms: invite.forms,
         expiresAt: invite.expiresAt,
       },
+      followupStatus,
     });
   });
 
@@ -204,13 +339,11 @@ function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog 
         userAgent: ua,
         outcome: 'formdata_too_large',
       });
-      return res
-        .status(413)
-        .json({
-          ok: false,
-          error: 'formdata_too_large',
-          message: 'Formuläret är för stort. Kontakta kliniken.',
-        });
+      return res.status(413).json({
+        ok: false,
+        error: 'formdata_too_large',
+        message: 'Formuläret är för stort. Kontakta kliniken.',
+      });
     }
     const DANGEROUS_KEYS = ['__proto__', 'constructor', 'prototype'];
     function hasDangerousKeys(obj, depth = 0) {
