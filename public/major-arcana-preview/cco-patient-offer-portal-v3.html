@@ -462,6 +462,37 @@
         margin: 0 0 1.1rem;
         line-height: 1.55;
       }
+      .portal-status-panel {
+        display: none;
+        gap: 0.45rem;
+        margin: 0 0 1rem;
+        padding: 0.85rem;
+        border-radius: var(--card-radius);
+        background: rgba(255, 250, 246, 0.82);
+        border: 1px solid rgba(223, 212, 203, 0.7);
+        text-align: left;
+      }
+      html[data-customer-offer-context='live'] .portal-status-panel {
+        display: grid;
+      }
+      .portal-status-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+      }
+      .portal-status-row strong {
+        color: var(--text-primary);
+        font-weight: 750;
+      }
+      .portal-status-next {
+        margin-top: 0.15rem;
+        font-size: 0.78rem;
+        line-height: 1.45;
+        color: var(--text-primary);
+        font-weight: 650;
+      }
 
       /* MEDICAL WARNING */
       .medical-warn {
@@ -2322,12 +2353,31 @@
         data-unlock="1"
         data-tease-label="🔒 Offert skickas snart"
       >
-        <div class="status-chip"><span class="dot"></span>Väntar på din signatur</div>
-        <h3>Godkänn din behandlingsplan</h3>
-        <p>
+        <div class="status-chip" data-portal-status-chip>
+          <span class="dot"></span>Väntar på din signatur
+        </div>
+        <h3 data-portal-sign-title>Godkänn din behandlingsplan</h3>
+        <p data-portal-sign-copy>
           Läs igenom offerten nedan och bekräfta nedanstående — sedan signerar du med Mobilt BankID.
           Juridiskt bindande och säkert.
         </p>
+        <div class="portal-status-panel" aria-live="polite">
+          <div class="portal-status-row">
+            <span>Offert</span>
+            <strong data-portal-quote-status>Väntar</strong>
+          </div>
+          <div class="portal-status-row">
+            <span>Signering</span>
+            <strong data-portal-esign-status>Ej signerad</strong>
+          </div>
+          <div class="portal-status-row">
+            <span>Betänketid</span>
+            <strong data-portal-cooling-status>Kontrolleras</strong>
+          </div>
+          <div class="portal-status-next" data-portal-next-step>
+            Läs igenom offerten och signera när allt stämmer.
+          </div>
+        </div>
 
         <div class="medical-warn">
           <div class="medical-warn-icon">⚠️</div>
@@ -3160,8 +3210,8 @@
     <div class="sticky-sign" id="stickySign">
       <div class="sticky-inner">
         <div class="sticky-label">
-          <strong>Redo att signera?</strong>
-          Offerten är klar — signera digitalt nu.
+          <strong data-sticky-sign-title>Redo att signera?</strong>
+          <span data-sticky-sign-copy>Offerten är klar — signera digitalt nu.</span>
         </div>
         <button class="btn-sign-sm" type="button">Signera →</button>
       </div>
@@ -3276,6 +3326,12 @@
         document.querySelectorAll(selector).forEach(function (node) {
           node.textContent = value;
         });
+      }
+
+      function setPortalText(selector, value) {
+        var text = safeText(value);
+        if (!text) return;
+        setText(selector, text);
       }
 
       function renderOfferPlanToPortal(planInput) {
@@ -3395,7 +3451,89 @@
         }
       }
 
+      function portalStatusLabel(status, fallback) {
+        var value = safeText(status);
+        if (value === 'accepted') return 'Signerad';
+        if (value === 'sent') return 'Skickad';
+        if (value === 'draft') return 'Utkast';
+        return fallback || value || 'Väntar';
+      }
+
+      function applyCustomerOfferContext(contextInput) {
+        var context = asObject(contextInput);
+        var hasLiveContext = Object.keys(context).length > 0;
+        if (hasLiveContext) {
+          document.documentElement.dataset.customerOfferContext = 'live';
+        }
+        var quoteStatus = safeText(context.quoteStatus) || 'draft';
+        var esignStatus = safeText(context.esignStatus) || 'draft';
+        var cooling = asObject(context.coolingOff);
+        var offerSignUrl = safeText(context.offerSignUrl);
+        var accepted = quoteStatus === 'accepted' || esignStatus === 'accepted';
+        var coolingActive = Boolean(cooling.active);
+        var coolingEndsAt = safeText(cooling.endsAt || cooling.coolingOffEndsAt).slice(0, 10);
+        var nextStep = 'Läs igenom offerten och signera när allt stämmer.';
+
+        setPortalText('[data-portal-quote-status]', portalStatusLabel(quoteStatus, 'Väntar'));
+        setPortalText('[data-portal-esign-status]', portalStatusLabel(esignStatus, 'Ej signerad'));
+
+        if (accepted) {
+          nextStep = 'Offerten är signerad. Kliniken förbereder nästa steg i behandlingsflödet.';
+          setPortalText('[data-portal-status-chip]', 'Signerad');
+          setPortalText('[data-portal-sign-title]', 'Offerten är signerad');
+          setPortalText(
+            '[data-portal-sign-copy]',
+            'Din bekräftelse är mottagen. Du kan fortfarande läsa och skriva ut underlaget här.'
+          );
+          setPortalText('[data-sticky-sign-title]', 'Offert signerad');
+          setPortalText('[data-sticky-sign-copy]', 'Nästa steg hanteras av kliniken.');
+          var signButtonAccepted = document.getElementById('bankidBtn');
+          if (signButtonAccepted) signButtonAccepted.style.display = 'none';
+          var signedBox = document.getElementById('bankidSigned');
+          if (signedBox) signedBox.classList.add('visible');
+        } else if (coolingActive) {
+          nextStep = coolingEndsAt
+            ? 'Du kan läsa portalen nu. Signering öppnar efter betänketiden ' + coolingEndsAt + '.'
+            : 'Du kan läsa portalen nu. Signering öppnar efter betänketiden.';
+          setPortalText('[data-portal-status-chip]', 'Betänketid pågår');
+          setPortalText('[data-portal-sign-title]', 'Läs igenom din offert');
+          setPortalText(
+            '[data-portal-sign-copy]',
+            'Offerten är mottagen. Betänketiden behöver löpa klart innan signering öppnar.'
+          );
+          setPortalText('[data-sticky-sign-title]', 'Betänketid pågår');
+          setPortalText('[data-sticky-sign-copy]', 'Läs igenom offerten i lugn och ro.');
+          var signButtonCooling = document.getElementById('bankidBtn');
+          if (signButtonCooling) {
+            signButtonCooling.disabled = true;
+            signButtonCooling.textContent = coolingEndsAt
+              ? 'Signering öppnar ' + coolingEndsAt
+              : 'Signering öppnar efter betänketid';
+          }
+        } else if (quoteStatus === 'sent' && offerSignUrl) {
+          setPortalText('[data-portal-status-chip]', 'Redo för signering');
+          setPortalText('[data-sticky-sign-title]', 'Redo att signera?');
+          setPortalText('[data-sticky-sign-copy]', 'Offerten är klar — öppna säker signering.');
+        }
+
+        setPortalText(
+          '[data-portal-cooling-status]',
+          coolingActive ? coolingEndsAt || 'Pågår' : 'Ingen aktiv spärr'
+        );
+        setPortalText('[data-portal-next-step]', nextStep);
+
+        var signButton = document.getElementById('bankidBtn');
+        if (signButton && offerSignUrl && !accepted && !coolingActive) {
+          signButton.onclick = function () {
+            window.location.href = offerSignUrl;
+          };
+          signButton.classList.add('enabled');
+          signButton.textContent = 'Öppna säker signering';
+        }
+      }
+
       renderOfferPlanToPortal(window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);
+      applyCustomerOfferContext(window.ARCANA_CUSTOMER_OFFER_CONTEXT || {});
 
       // ===== STEG-SYSTEM =====
       var STAGE = 1; // standard: offert mottagen
