@@ -34,6 +34,7 @@ const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates'
  * @param {object}   opts.authStore             - Auth store för personalregister (valfri)
  * @param {object}   opts.ccoAuditLog           - ccoAuditLog-instans (valfri)
  * @param {object}   opts.bookingCaseStore      - ccoBookingCaseStore (valfri)
+ * @param {object}   opts.patientPortalStore    - Patientportal-store för säkra kundtokens (valfri)
  * @param {object}   opts.notificationFeedStore - ccoNotificationFeedStore (valfri)
  * @param {object}   opts.qmsStore              - QMS-store för OLS/handbok/avvikelser (valfri)
  * @param {object}   opts.journalPhotoStore     - ccoJournalPhotoStore (valfri)
@@ -48,6 +49,7 @@ function createStaffPortalRouter({
   authStore = null,
   ccoAuditLog = null,
   bookingCaseStore = null,
+  patientPortalStore = null,
   notificationFeedStore = null,
   qmsStore = null,
   journalPhotoStore: _journalPhotoStore = null,
@@ -626,6 +628,20 @@ function createStaffPortalRouter({
     const query = params.toString();
     const fragment = hash ? `#${encodeURIComponent(hash)}` : '';
     return `/staff-portal${query ? `?${query}` : ''}${fragment}`;
+  }
+
+  function publicPatientPortalUrl(pathValue = '') {
+    const rawBase =
+      config.patientPortalPublicBaseUrl ||
+      config.publicBaseUrl ||
+      config.appBaseUrl ||
+      process.env.ARCANA_PUBLIC_BASE_URL ||
+      '';
+    const cleanPath = String(pathValue || '').startsWith('/')
+      ? String(pathValue || '')
+      : `/${String(pathValue || '')}`;
+    if (!rawBase) return cleanPath;
+    return `${String(rawBase).replace(/\/+$/, '')}${cleanPath}`;
   }
 
   function isTodayIso(value) {
@@ -2189,6 +2205,97 @@ function createStaffPortalRouter({
             noAutoJournal: true,
             message:
               'Åtgärden är audit-loggad. Fortsatt kundkontakt, journal och läkarbedömning görs i ordinarie CCO-flöde.',
+          },
+        });
+      } catch (err) {
+        return handleWriteError(res, err);
+      }
+    }
+  );
+
+  /* ── POST /api/v1/staff/followups/:id/upload-token ─────────────
+     Skapar en tidsbegränsad kundlänk för uppföljningsbilder.
+     Skickar inget automatiskt och skriver ingen journal.
+  ─────────────────────────────────────────────────────────────── */
+  router.post(
+    '/api/v1/staff/followups/:id/upload-token',
+    requirePermission('customers.read'),
+    async (req, res) => {
+      const id = String(req.params.id || '').trim();
+      const actor = getActor(req);
+      const tenantId = req.auth?.tenantId || req.cco?.tenantId || 'hairtpclinic';
+
+      if (!id) return res.status(400).json({ ok: false, error: 'Ärende-id krävs.' });
+      if (!bookingCaseStore?.getCase) {
+        return res.status(503).json({ ok: false, error: 'Booking case store saknas.' });
+      }
+      if (!patientPortalStore?.createFollowupUploadToken) {
+        return res.status(503).json({ ok: false, error: 'Patientportalens token-store saknas.' });
+      }
+
+      try {
+        const caseRecord = await bookingCaseStore.getCase(id);
+        if (!caseRecord) {
+          return res.status(404).json({ ok: false, error: 'Ärendet hittades inte.' });
+        }
+        const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
+        if (!patientId) {
+          return res.status(400).json({ ok: false, error: 'Patient-id saknas på ärendet.' });
+        }
+
+        const followupItem = await buildStaffFollowupItem(caseRecord, { tenantId });
+        const milestoneKey = String(
+          req.body?.milestoneKey || followupItem?.milestone?.key || 'followup'
+        ).trim();
+        const maxPhotos = Number(req.body?.maxPhotos || 6);
+        const expiresInHours = Number(req.body?.expiresInHours || 72);
+        const tokenRecord = await patientPortalStore.createFollowupUploadToken({
+          tenantId,
+          patientId,
+          caseId: id,
+          milestoneKey,
+          label: followupItem?.milestone?.label || 'Uppföljningsbilder',
+          maxPhotos,
+          expiresInHours,
+        });
+        const path = `/api/patient-portal/followup-photo-upload/${encodeURIComponent(tokenRecord.token)}`;
+        const uploadUrl = publicPatientPortalUrl(path);
+
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'staff_portal.followup_upload_token_created',
+            actor: { role: actor.role, userId: actor.userId, ip: null },
+            target: { kind: 'booking_case', id, tenantId },
+            result: 'ok',
+            detail: {
+              patientId,
+              milestoneKey,
+              maxPhotos: tokenRecord.maxPhotos,
+              expiresAt: tokenRecord.expiresAt,
+              safety:
+                'Token skapar bara en kunduppladdningslänk. Ingen kundkontakt, journal eller medicinsk bedömning skapas automatiskt.',
+            },
+          });
+        }
+
+        return res.json({
+          ok: true,
+          uploadToken: {
+            token: tokenRecord.token,
+            caseId: id,
+            patientId,
+            milestoneKey,
+            maxPhotos: tokenRecord.maxPhotos,
+            remainingUploads: tokenRecord.remainingUploads,
+            expiresAt: tokenRecord.expiresAt,
+            uploadPath: path,
+            uploadUrl,
+          },
+          safety: {
+            noAutoSend: true,
+            noAutoJournal: true,
+            message:
+              'Länken är skapad. Skicka den via ordinarie godkänd kundkanal; inga journalanteckningar skapas automatiskt.',
           },
         });
       } catch (err) {

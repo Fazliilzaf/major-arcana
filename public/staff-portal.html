@@ -3355,6 +3355,7 @@
           : `<button class="btn followup-action" data-action="followup_contacted" data-case-id="${escapeHtml(item.caseId || '')}">Kontaktad</button>
             <button class="btn followup-action" data-action="followup_needs_doctor" data-case-id="${escapeHtml(item.caseId || '')}">Behöver läkare</button>
             <button class="btn followup-action" data-action="followup_journal_draft" data-case-id="${escapeHtml(item.caseId || '')}">Journalutkast</button>
+            <button class="btn followup-upload-token-action" data-case-id="${escapeHtml(item.caseId || '')}">Skapa bildlänk</button>
             <button class="btn primary followup-action" data-action="followup_completed" data-case-id="${escapeHtml(item.caseId || '')}">Markera klar</button>`;
         return `<div class="item-card ${cardClass}">
           <div class="item-icon">${cardIcon}</div>
@@ -3978,6 +3979,43 @@
           ]);
         } catch (err) {
           setFeedback(err.message || 'Kunde inte spara uppföljningsåtgärd.', 'error');
+          button.disabled = false;
+        }
+      }
+
+      async function createFollowupUploadToken(button) {
+        const caseId = button?.dataset?.caseId || '';
+        if (!caseId) return;
+
+        const card = button.closest('.item-card');
+        const escapedId =
+          window.CSS && typeof CSS.escape === 'function'
+            ? CSS.escape(caseId)
+            : String(caseId).replace(/["\\]/g, '\\$&');
+        const feedback = card?.querySelector(`[data-followup-feedback-for="${escapedId}"]`);
+        const setFeedback = (message, type) => {
+          if (!feedback) return;
+          feedback.textContent = message;
+          feedback.className = `queue-feedback ${type || ''}`.trim();
+        };
+
+        try {
+          button.disabled = true;
+          setFeedback('Skapar säker bilduppladdningslänk...', '');
+          const result = await staffPost(
+            `/api/v1/staff/followups/${encodeURIComponent(caseId)}/upload-token`,
+            { maxPhotos: 6, expiresInHours: 72 }
+          );
+          const uploadUrl = result?.uploadToken?.uploadUrl || result?.uploadToken?.uploadPath || '';
+          setFeedback(
+            uploadUrl
+              ? `Säker bildlänk skapad: ${uploadUrl}`
+              : 'Säker bildlänk skapad. Kopiera den från API-svaret vid behov.',
+            'ok'
+          );
+        } catch (err) {
+          setFeedback(err.message || 'Kunde inte skapa bildlänk.', 'error');
+        } finally {
           button.disabled = false;
         }
       }
@@ -5010,6 +5048,11 @@
         if (followupButton) {
           event.preventDefault();
           submitFollowupAction(followupButton);
+        }
+        const followupUploadTokenButton = event.target.closest?.('.followup-upload-token-action');
+        if (followupUploadTokenButton) {
+          event.preventDefault();
+          createFollowupUploadToken(followupUploadTokenButton);
         }
         const followupDetailButton = event.target.closest?.('.followup-detail-toggle');
         if (followupDetailButton) {
