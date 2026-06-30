@@ -85,6 +85,41 @@ test('cco booking case store: listCasesForCustomer matchar customerId och patien
   assert.equal(byPatient[0].id, a.id);
 });
 
+test('cco booking case store: listCasesForCustomer hittar äldre kundcase utanför recent-fönster', async () => {
+  const filePath = await tmpFile();
+  const store = await createCcoBookingCaseStore({ filePath });
+
+  const target = await store.createCase(
+    {
+      tenantId: 'hairtp-clinic',
+      id: 'case-old-customer',
+      customerId: 'cust-old',
+      patientId: 'patient-old',
+    },
+    { role: 'owner' }
+  );
+
+  for (let index = 0; index < 220; index += 1) {
+    await store.createCase(
+      {
+        tenantId: 'hairtp-clinic',
+        id: `case-newer-${index}`,
+        customerId: `cust-newer-${index}`,
+        patientId: `patient-newer-${index}`,
+      },
+      { role: 'owner' }
+    );
+  }
+
+  const byCustomer = await store.listCasesForCustomer({
+    tenantId: 'hairtp-clinic',
+    customerId: 'cust-old',
+    limit: 1,
+  });
+  assert.equal(byCustomer.length, 1);
+  assert.equal(byCustomer[0].id, target.id);
+});
+
 test('cco booking case store: state transition and candidate + handoff flow', async () => {
   const filePath = await tmpFile();
   const store = await createCcoBookingCaseStore({ filePath });

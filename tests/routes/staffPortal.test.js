@@ -110,6 +110,10 @@ test('GET /api/v1/staff/my-customers aggregerar egna kunder med bildsignal', asy
         '/major-arcana-preview/?view=customers&workspace=1&patientId=patient-1'
       );
       assert.equal(body.customers[0].links.photos, '/api/v1/staff/customer-photos/patient-1');
+      assert.equal(
+        body.customers[0].links.followupStatus,
+        '/api/v1/staff/customer-followup-status/patient-1'
+      );
       assert.equal(body.customers[0].links.threads, '/api/v1/staff/customer-threads/customer-1');
       assert.equal(body.customers[0].links.staffTask, '/staff-portal?role=nurse&panel=customers');
       assert.equal(
@@ -524,6 +528,100 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       const completed = await fetchMode('completed');
       assert.equal(completed.items[0].caseId, 'case-follow-completed');
       assert.equal(completed.items[0].status, 'completed');
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/v1/staff/customer-followup-status/:patientId exponerar kundkortets read-only statusbro', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-customer-followup-status-'));
+  try {
+    const photoRoot = path.join(dir, 'journal-photos');
+    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-status'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-status', 'month4.jpg'), 'x');
+    const auditEntries = [];
+    const ccoAuditLog = {
+      append(entry) {
+        auditEntries.push(entry);
+      },
+      query() {
+        return auditEntries;
+      },
+    };
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-status-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-status',
+      customerId: 'customer-status',
+      customerName: 'Status Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-1',
+      startsAt: new Date(Date.now() - 130 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+    await bookingCaseStore.recordStaffAction(
+      'case-status-1',
+      { action: 'followup_needs_doctor' },
+      { userId: 'staff-1', role: 'personal' }
+    );
+    for (let index = 0; index < 130; index += 1) {
+      await bookingCaseStore.createCase({
+        id: `case-status-fill-${index}`,
+        tenantId: 'hairtpclinic',
+        state: 'confirmed',
+        patientId: `patient-fill-${index}`,
+        customerId: `customer-fill-${index}`,
+        customerName: `Filler ${index}`,
+        serviceLabel: 'Kontroll',
+        assignedTo: 'staff-1',
+        startsAt: new Date(Date.now() - index * 60 * 1000).toISOString(),
+      });
+    }
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir, journalPhotosDir: photoRoot },
+        bookingCaseStore,
+        ccoAuditLog,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'owner-1', tenantId: 'hairtpclinic', role: 'owner' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/customer-followup-status/patient-status?customerId=customer-status`,
+        { headers: { 'x-cco-role': 'owner' } }
+      );
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.patientId, 'patient-status');
+      assert.equal(body.current.caseId, 'case-status-1');
+      assert.equal(body.current.status, 'overdue');
+      assert.equal(body.current.waitingDoctor, true);
+      assert.equal(body.current.photos.count, 1);
+      assert.equal(body.summary.total, 1);
+      assert.equal(body.summary.waitingDoctor, 1);
+      assert.equal(body.summary.withPhotos, 1);
+      assert.equal(body.timelineEvents.length, 1);
+      assert.equal(body.timelineEvents[0].title, 'Behöver läkare');
+      assert.equal(body.timelineEvents[0].readOnly, true);
+      assert.equal(body.safety.noAutoJournal, true);
+      assert.ok(
+        auditEntries.some((entry) => entry.action === 'staff_portal.customer_followup_status.read')
+      );
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }

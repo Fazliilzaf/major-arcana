@@ -485,6 +485,99 @@ function createStaffPortalRouter({
     };
   }
 
+  async function buildCustomerFollowupStatus({
+    patientId,
+    customerId,
+    tenantId,
+    now = new Date(),
+  } = {}) {
+    const cleanPatientId = String(patientId || '').trim();
+    const cleanCustomerId = String(customerId || cleanPatientId || '').trim();
+    if (!cleanPatientId && !cleanCustomerId) return null;
+    if (!bookingCaseStore?.listCases && !bookingCaseStore?.listCasesForCustomer) return null;
+
+    const cases = bookingCaseStore?.listCasesForCustomer
+      ? await bookingCaseStore.listCasesForCustomer({
+          tenantId: tenantId || undefined,
+          patientId: cleanPatientId || undefined,
+          customerId: cleanCustomerId || undefined,
+          limit: 200,
+        })
+      : await bookingCaseStore.listCases({
+          tenantId: tenantId || undefined,
+          limit: 5000,
+        });
+    const relatedCases = (Array.isArray(cases) ? cases : []).filter((item) => {
+      const itemPatientId = String(item.patientId || '').trim();
+      const itemCustomerId = String(item.customerId || '').trim();
+      return (
+        (cleanPatientId && itemPatientId === cleanPatientId) ||
+        (cleanCustomerId && itemCustomerId === cleanCustomerId) ||
+        (cleanCustomerId && itemPatientId === cleanCustomerId)
+      );
+    });
+    const followups = (
+      await Promise.all(relatedCases.map((item) => buildStaffFollowupItem(item, { tenantId, now })))
+    )
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          a.priorityRank - b.priorityRank ||
+          Math.abs(a.daysUntil || 0) - Math.abs(b.daysUntil || 0) ||
+          String(b.startsAt || '').localeCompare(String(a.startsAt || ''))
+      );
+    const latest = followups[0] || null;
+    const timelineEvents = followups.flatMap((item) =>
+      (Array.isArray(item.followupHistory) ? item.followupHistory : []).map((entry) => ({
+        id: `${item.caseId || 'case'}:${entry.action}:${entry.at || 'unknown'}`,
+        type: 'staff_followup',
+        caseId: item.caseId,
+        patientId: item.patientId,
+        customerId: item.customerId,
+        at: entry.at || null,
+        title: entry.label || 'Uppföljning',
+        status: item.status,
+        actor: entry.userId || entry.role || null,
+        readOnly: true,
+      }))
+    );
+    const summary = followups.reduce(
+      (acc, item) => {
+        acc.total += 1;
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        if (item.waitingDoctor) acc.waitingDoctor += 1;
+        if (item.photos?.count) acc.withPhotos += 1;
+        return acc;
+      },
+      {
+        total: 0,
+        overdue: 0,
+        due: 0,
+        upcoming: 0,
+        upcoming_operation: 0,
+        completed: 0,
+        waitingDoctor: 0,
+        withPhotos: 0,
+      }
+    );
+    return {
+      patientId: cleanPatientId || latest?.patientId || null,
+      customerId: cleanCustomerId || latest?.customerId || null,
+      current: latest,
+      followups,
+      timelineEvents: timelineEvents.sort((a, b) =>
+        String(b.at || '').localeCompare(String(a.at || ''))
+      ),
+      summary,
+      safety: {
+        readOnly: true,
+        noAutoJournal: true,
+        message:
+          'Kundkortets uppföljningsstatus är ett read-only arbetsstöd. Journal och kundkontakt skapas manuellt i ordinarie CCO-flöde.',
+      },
+    };
+  }
+
   function buildStaffPortalLinks({ caseId, customerId, patientId, tenantId } = {}) {
     const pid = String(patientId || customerId || '').trim();
     const cid = String(customerId || patientId || '').trim();
@@ -511,6 +604,9 @@ function createStaffPortalRouter({
       workspace: pid ? `/major-arcana-preview/?${workspaceParams.toString()}` : null,
       threads: cid ? `/api/v1/staff/customer-threads/${encodeURIComponent(cid)}` : null,
       photos: pid ? `/api/v1/staff/customer-photos/${encodeURIComponent(pid)}` : null,
+      followupStatus: pid
+        ? `/api/v1/staff/customer-followup-status/${encodeURIComponent(pid)}`
+        : null,
       staffTask: nurseTaskUrl,
       doctorReview: doctorReviewUrl,
       adminCase: adminCaseUrl,
@@ -2459,6 +2555,65 @@ function createStaffPortalRouter({
         res.json({ ok: true, patientId, photos, count: photos.length });
       } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /* ── GET /api/v1/staff/customer-followup-status/:patientId ─────
+     Kundkort/workspace-bro för uppföljningsstatus.
+     Returnerar read-only status + timeline-events; skriver ingen journal.
+  ─────────────────────────────────────────────────────────────── */
+  router.get(
+    '/api/v1/staff/customer-followup-status/:patientId',
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const patientId = String(req.params.patientId || '').trim();
+        const customerId = String(req.query.customerId || '').trim();
+        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+
+        if (!patientId) {
+          return res.status(400).json({ ok: false, error: 'patientId krävs.' });
+        }
+
+        const status = await buildCustomerFollowupStatus({
+          patientId,
+          customerId,
+          tenantId,
+        });
+
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'staff_portal.customer_followup_status.read',
+            actor: { role: req.cco?.role ?? null, userId: req.auth?.userId ?? null, ip: null },
+            target: { kind: 'patient_followup_status', id: patientId, tenantId },
+            result: 'ok',
+            detail: {
+              total: status?.summary?.total || 0,
+              waitingDoctor: status?.summary?.waitingDoctor || 0,
+              completed: status?.summary?.completed || 0,
+            },
+          });
+        }
+
+        return res.json({
+          ok: true,
+          ...(status || {
+            patientId,
+            customerId: customerId || null,
+            current: null,
+            followups: [],
+            timelineEvents: [],
+            summary: { total: 0 },
+            safety: {
+              readOnly: true,
+              noAutoJournal: true,
+              message: 'Ingen uppföljningsstatus hittades för kunden.',
+            },
+          }),
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
       }
     }
   );

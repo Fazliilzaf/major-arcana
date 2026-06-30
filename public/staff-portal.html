@@ -2744,6 +2744,9 @@
         if (kind === 'photos' && patientId) {
           return `/api/v1/staff/customer-photos/${encodeURIComponent(patientId)}`;
         }
+        if (kind === 'followupStatus' && patientId) {
+          return `/api/v1/staff/customer-followup-status/${encodeURIComponent(patientId)}`;
+        }
         if (kind === 'audit' && caseId) {
           return `/api/v1/staff/audit?action=staff_portal&caseId=${encodeURIComponent(caseId)}`;
         }
@@ -2764,6 +2767,7 @@
         const adminCase = item?.links?.adminCase || '';
         const threads = item?.links?.threads || staffApiLink('threads', item);
         const photos = item?.links?.photos || staffApiLink('photos', item);
+        const followupStatus = item?.links?.followupStatus || staffApiLink('followupStatus', item);
         const audit = item?.links?.audit || staffApiLink('audit', item);
         const ordination = item?.links?.ordination || (item?.id ? `#ordination-${item.id}` : '');
         const qms = item?.links?.qms || '';
@@ -2775,6 +2779,7 @@
           workspace ? ['Workspace', workspace, ''] : null,
           opts.showThreads && threads ? ['Trådar', threads, ''] : null,
           opts.showPhotos && photos ? ['Bilder', photos, ''] : null,
+          opts.showFollowupStatus && followupStatus ? ['Uppföljning', followupStatus, ''] : null,
           opts.showOrdination && ordination ? ['Ordination', ordination, ''] : null,
           opts.showQms && qms ? ['QMS', qms, ''] : null,
           opts.showAudit && audit ? ['Audit', audit, ''] : null,
@@ -3373,6 +3378,7 @@
               {
                 showPhotos: true,
                 showThreads: true,
+                showFollowupStatus: true,
                 showStaffTask: true,
                 cardUrl: item.links?.customerCard,
                 workspaceUrl: item.links?.workspace,
@@ -3484,6 +3490,7 @@
                 cardUrl,
                 showThreads: true,
                 showPhotos: true,
+                showFollowupStatus: true,
                 showOrdination: true,
                 showStaffTask: true,
                 showDoctorReview: true,
