@@ -601,6 +601,13 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
         'Journalutkast begärt'
       );
       assert.equal(followupsBody.items[0].followupHistorySummary.latestBy, 'staff-1');
+      assert.equal(followupsBody.items[0].milestone.label, 'Postop dag 7');
+      assert.equal(followupsBody.items[0].photos.count, 0);
+      assert.equal(
+        followupsBody.items[0].links.workspace,
+        '/major-arcana-preview/?view=customers&workspace=1&patientId=patient-follow-action'
+      );
+      assert.ok(followupsBody.items[0].links.audit.includes('case-follow-action-1'));
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
