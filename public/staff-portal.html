@@ -2637,6 +2637,7 @@
         ['due', 'Idag'],
         ['upcoming', 'Planerade'],
         ['with_photos', 'Med bilder'],
+        ['incoming_uploads', 'Bilder inkomna'],
         ['needs_doctor', 'Behöver läkare'],
         ['waiting_doctor', 'Väntar läkare'],
         ['completed', 'Klara'],
@@ -2660,6 +2661,7 @@
           due: summary.due || 0,
           upcoming: Number(summary.upcoming || 0) + Number(summary.upcoming_operation || 0),
           with_photos: summary.withPhotos || 0,
+          incoming_uploads: summary.incomingUploads || 0,
           needs_doctor: summary.needsDoctor || 0,
           waiting_doctor: summary.waitingDoctor || 0,
           completed: summary.completed || 0,
@@ -4420,7 +4422,7 @@
 
         if (data.items?.length) {
           container.innerHTML =
-            `<div class="live-note">Live uppföljningar · ${escapeHtml(activeLabel)}: ${Number(data.count || 0)} visade av ${Number(summary.total || 0)} ärenden · ${Number(summary.overdue || 0)} försenade · ${Number(summary.due || 0)} aktuella · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.needsDoctor || 0)} behöver läkare.</div>` +
+            `<div class="live-note">Live uppföljningar · ${escapeHtml(activeLabel)}: ${Number(data.count || 0)} visade av ${Number(summary.total || 0)} ärenden · ${Number(summary.overdue || 0)} försenade · ${Number(summary.due || 0)} aktuella · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} bilder inkomna · ${Number(summary.needsDoctor || 0)} behöver läkare.</div>` +
             data.items.slice(0, 8).map(renderStaffFollowupCard).join('');
         } else {
           container.innerHTML = `<div class="live-note">Inga uppföljningar i läget “${escapeHtml(activeLabel)}”. Byt arbetsläge ovan för att se fler ärenden.</div>`;
@@ -4454,13 +4456,14 @@
           badge.textContent = active;
           badge.style.display = active > 0 ? '' : 'none';
         });
-        container.innerHTML = `<div class="live-note">Live owner-överblick: ${Number(summary.total || 0)} uppföljningsärenden · ${Number(summary.completed || 0)} klara · ${Number(summary.withPhotos || 0)} med bilder.</div>
+        container.innerHTML = `<div class="live-note">Live owner-överblick: ${Number(summary.total || 0)} uppföljningsärenden · ${Number(summary.completed || 0)} klara · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} kunduppladdningar.</div>
           <div class="qms-grid" style="margin-top:10px">
             ${ownerFollowupMetric('Försenade', summary.overdue, 'danger', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Idag/aktuella', summary.due, 'amber', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Väntar läkare', summary.waitingDoctor, 'info', '/staff-portal?role=doctor&panel=ord')}
             ${ownerFollowupMetric('Klara', summary.completed, 'sage', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Med bilder', summary.withPhotos, 'violet', '/staff-portal?role=nurse&panel=followups')}
+            ${ownerFollowupMetric('Bilder inkomna', summary.incomingUploads, 'violet', '/staff-portal?role=nurse&panel=followups&followupMode=incoming_uploads')}
           </div>`;
       }
 
@@ -4925,6 +4928,12 @@
         return normalizePanel(params.get('panel') || params.get('view') || window.location.hash);
       }
 
+      function requestedFollowupModeFromUrl() {
+        const params = new URLSearchParams(window.location.search || '');
+        const rawMode = String(params.get('followupMode') || params.get('mode') || '').trim();
+        return FOLLOWUP_MODES.some(([mode]) => mode === rawMode) ? rawMode : '';
+      }
+
       function requestedDeepLink() {
         const panel = requestedPanelFromUrl();
         const role = requestedRoleFromUrl();
@@ -4990,6 +4999,9 @@
       function applyDeepLink(options = {}) {
         const link = options.link || _pendingDeepLink || requestedDeepLink();
         if (!link.role && !link.panel && !link.targetHash) return;
+
+        const followupMode = requestedFollowupModeFromUrl();
+        if (followupMode) _followupMode = followupMode;
 
         const panel = resolvePanelForRole(link.panel, link.role || currentRole);
         const role = link.role || PANEL_ROLE[panel] || currentRole;

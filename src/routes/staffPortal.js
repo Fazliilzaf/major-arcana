@@ -557,7 +557,8 @@ function createStaffPortalRouter({
         acc.total += 1;
         acc[item.status] = (acc[item.status] || 0) + 1;
         if (item.waitingDoctor) acc.waitingDoctor += 1;
-        if (item.photos?.count) acc.withPhotos += 1;
+        if (item.photos?.count || item.photos?.incomingFromPortal) acc.withPhotos += 1;
+        if (item.photos?.incomingFromPortal) acc.incomingUploads += 1;
         return acc;
       },
       {
@@ -569,6 +570,7 @@ function createStaffPortalRouter({
         completed: 0,
         waitingDoctor: 0,
         withPhotos: 0,
+        incomingUploads: 0,
       }
     );
     return {
@@ -2159,7 +2161,9 @@ function createStaffPortalRouter({
         if (mode === 'due') return item.status === 'due';
         if (mode === 'upcoming')
           return item.status === 'upcoming' || item.status === 'upcoming_operation';
-        if (mode === 'with_photos') return Number(item.photos?.count || 0) > 0;
+        if (mode === 'with_photos')
+          return Number(item.photos?.count || 0) > 0 || Boolean(item.photos?.incomingFromPortal);
+        if (mode === 'incoming_uploads') return Boolean(item.photos?.incomingFromPortal);
         if (mode === 'waiting_doctor') return Boolean(item.waitingDoctor);
         if (mode === 'completed') return item.status === 'completed';
         if (mode === 'needs_doctor') {
@@ -2182,7 +2186,8 @@ function createStaffPortalRouter({
         (acc, item) => {
           acc.total += 1;
           acc[item.status] = (acc[item.status] || 0) + 1;
-          if (item.photos?.count) acc.withPhotos += 1;
+          if (item.photos?.count || item.photos?.incomingFromPortal) acc.withPhotos += 1;
+          if (item.photos?.incomingFromPortal) acc.incomingUploads += 1;
           if (item.waitingDoctor) acc.waitingDoctor += 1;
           if (
             item.followupHistory?.some((entry) => entry.action === 'staff_followup_needs_doctor')
@@ -2198,6 +2203,7 @@ function createStaffPortalRouter({
           upcoming: 0,
           upcoming_operation: 0,
           withPhotos: 0,
+          incomingUploads: 0,
           needsDoctor: 0,
           waitingDoctor: 0,
           completed: 0,
