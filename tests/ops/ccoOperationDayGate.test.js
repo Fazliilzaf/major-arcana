@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const {
   assertOperationDayJournalAllowed,
   patientFitnessSigned,
+  resolveFitnessSignedFromJournal,
 } = require('../../src/ops/ccoOperationDayGate');
 const { buildSignedBundleAgreementUpdate } = require('../../src/ops/ccoTreatmentAgreementBundle');
 
@@ -41,6 +42,62 @@ describe('ccoOperationDayGate', () => {
   it('patientFitnessSigned läser patient.fitnessCertificate', () => {
     assert.equal(patientFitnessSigned({ fitnessCertificate: { signedAt: '2026-05-20' } }), true);
     assert.equal(patientFitnessSigned({ missingFitnessCertificate: true }), false);
+  });
+
+  it('resolveFitnessSignedFromJournal returnerar true när journal har signerad fitness_certificate', async () => {
+    const journalStore = {
+      async listEntries({ journalType }) {
+        if (journalType !== 'fitness_certificate') return [];
+        return [
+          {
+            entryId: 'fc-1',
+            journalType: 'fitness_certificate',
+            status: 'signed',
+            signedAt: '2026-06-14T09:00:00.000Z',
+          },
+        ];
+      },
+    };
+    const result = await resolveFitnessSignedFromJournal({
+      journalStore,
+      tenantId: 'hair-tp-clinic',
+      patientId: 'patient-1',
+      patient: {},
+    });
+    assert.equal(result, true);
+  });
+
+  it('resolveFitnessSignedFromJournal returnerar false när inga signerade poster finns', async () => {
+    const journalStore = {
+      async listEntries() {
+        return [{ entryId: 'fc-draft', journalType: 'fitness_certificate', status: 'draft' }];
+      },
+    };
+    const result = await resolveFitnessSignedFromJournal({
+      journalStore,
+      tenantId: 'hair-tp-clinic',
+      patientId: 'patient-1',
+      patient: {},
+    });
+    assert.equal(result, false);
+  });
+
+  it('resolveFitnessSignedFromJournal kortsluter via patientCard när fitnessSigned=true', async () => {
+    let queryCalled = false;
+    const journalStore = {
+      async listEntries() {
+        queryCalled = true;
+        return [];
+      },
+    };
+    const result = await resolveFitnessSignedFromJournal({
+      journalStore,
+      tenantId: 'hair-tp-clinic',
+      patientId: 'patient-1',
+      patient: { fitnessSigned: true },
+    });
+    assert.equal(result, true);
+    assert.equal(queryCalled, false);
   });
 });
 
