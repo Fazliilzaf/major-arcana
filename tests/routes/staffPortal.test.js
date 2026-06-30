@@ -370,6 +370,8 @@ test('GET /api/v1/staff/followups prioriterar egna postop-uppföljningar', async
       assert.equal(body.items[0].milestone.key, 'postop_day_7');
       assert.equal(body.items[0].status, 'due');
       assert.equal(body.items[0].photos.count, 1);
+      assert.deepEqual(body.items[0].followupHistory, []);
+      assert.equal(body.items[0].followupHistorySummary.count, 0);
       assert.equal(
         body.items[0].links.workspace,
         '/major-arcana-preview/?view=customers&workspace=1&patientId=patient-follow-1'
@@ -464,6 +466,23 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
       assert.ok(
         auditEntries.some((entry) => entry.action === 'staff_portal.followup_journal_draft')
       );
+
+      const followupsAfterActions = await fetch(`http://127.0.0.1:${port}/api/v1/staff/followups`, {
+        headers: { 'x-cco-role': 'personal' },
+      });
+      assert.equal(followupsAfterActions.status, 200);
+      const followupsBody = await followupsAfterActions.json();
+      assert.equal(followupsBody.items[0].followupHistory.length, 3);
+      assert.deepEqual(
+        followupsBody.items[0].followupHistory.map((entry) => entry.label),
+        ['Kontaktad', 'Behöver läkare', 'Journalutkast begärt']
+      );
+      assert.equal(followupsBody.items[0].followupHistorySummary.count, 3);
+      assert.equal(
+        followupsBody.items[0].followupHistorySummary.latestLabel,
+        'Journalutkast begärt'
+      );
+      assert.equal(followupsBody.items[0].followupHistorySummary.latestBy, 'staff-1');
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
