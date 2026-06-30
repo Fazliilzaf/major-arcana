@@ -130,18 +130,31 @@ function createStaffPortalRouter({
 
     try {
       const files = await fs.readdir(patientDir);
-      return files
-        .filter((f) => /\.(jpg|jpeg|png)$/i.test(f) && !f.endsWith('.annotated.png'))
-        .map((f) => {
-          const ext = path.extname(f).slice(1).toLowerCase();
-          const photoId = path.basename(f, path.extname(f));
-          return {
-            photoId,
-            ext,
-            mimeType: ext === 'png' ? 'image/png' : 'image/jpeg',
-            fileName: f,
-          };
-        });
+      const rows = await Promise.all(
+        files
+          .filter((f) => /\.(jpg|jpeg|png)$/i.test(f) && !f.endsWith('.annotated.png'))
+          .map(async (f) => {
+            const ext = path.extname(f).slice(1).toLowerCase();
+            const photoId = path.basename(f, path.extname(f));
+            let updatedAt = null;
+            try {
+              const stat = await fs.stat(path.join(patientDir, f));
+              updatedAt = stat.mtime.toISOString();
+            } catch {
+              updatedAt = null;
+            }
+            return {
+              photoId,
+              ext,
+              mimeType: ext === 'png' ? 'image/png' : 'image/jpeg',
+              fileName: f,
+              updatedAt,
+            };
+          })
+      );
+      return rows.sort((a, b) =>
+        String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
+      );
     } catch (dirErr) {
       if (dirErr.code !== 'ENOENT') throw dirErr;
       return [];
@@ -262,6 +275,42 @@ function createStaffPortalRouter({
           tenantId,
         }),
       }));
+  }
+
+  async function buildDelegatedPhotoInboxItem(caseRecord, { tenantId } = {}) {
+    const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
+    const customerId = String(
+      caseRecord.customerId || caseRecord.patientId || caseRecord.customerEmail || ''
+    ).trim();
+    if (!patientId) return null;
+
+    const photos = await listPhotoMetadata({ tenantId, patientId });
+    if (!photos.length) return null;
+
+    return {
+      caseId: caseRecord.id || null,
+      customerId: customerId || null,
+      patientId,
+      customerName:
+        caseRecord.customerName || caseRecord.patientName || caseRecord.customerEmail || patientId,
+      assignedTo: caseRecord.assignedTo || null,
+      treatment: caseRecord.serviceLabel || caseRecord.treatment || caseRecord.service || null,
+      priority: 'waiting',
+      count: photos.length,
+      latestAt: photos[0]?.updatedAt || null,
+      latest: photos.slice(0, 6),
+      action: {
+        label: 'Granska bilder',
+        safety:
+          'Bildinkorgen är read-only. Granskning och journalåtgärder görs i ordinarie kundkort/workspace.',
+      },
+      links: buildStaffPortalLinks({
+        caseId: caseRecord.id,
+        customerId,
+        patientId,
+        tenantId,
+      }),
+    };
   }
 
   function buildStaffPortalLinks({ caseId, customerId, patientId, tenantId } = {}) {
@@ -1474,6 +1523,65 @@ function createStaffPortalRouter({
             readOnly: true,
             message:
               'Delegerad inbox visar kundfrågor för tilldelade kunder. Svar skrivs i CCO-konversationen med ordinarie audit.',
+          },
+        });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /* ── GET /api/v1/staff/delegated-photo-inbox ──────────────────
+     Read-only bildinkorg för personalens tilldelade kunder.
+     Visar metadata/senaste bilder, aldrig råfil eller journalbeslut.
+  ─────────────────────────────────────────────────────────────── */
+  router.get(
+    '/api/v1/staff/delegated-photo-inbox',
+    requirePermission('photo.read'),
+    async (req, res) => {
+      try {
+        const role = req.cco?.role ?? null;
+        const userId = req.auth?.userId ?? null;
+        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const limit = Math.min(Number(req.query.limit) || 20, 60);
+        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+
+        let cases = [];
+        if (bookingCaseStore) {
+          cases = await bookingCaseStore.listCases({
+            tenantId: tenantId || undefined,
+            assignedTo: all ? null : userId || undefined,
+            limit,
+          });
+        }
+
+        const built = await Promise.all(
+          cases.slice(0, limit).map((item) => buildDelegatedPhotoInboxItem(item, { tenantId }))
+        );
+        const items = built
+          .filter(Boolean)
+          .sort((a, b) => String(b.latestAt || '').localeCompare(String(a.latestAt || '')))
+          .slice(0, limit);
+        const summary = items.reduce(
+          (acc, item) => {
+            acc.total += 1;
+            acc.photos += Number(item.count || 0);
+            if (item.latestAt) acc.withRecent += 1;
+            return acc;
+          },
+          { total: 0, photos: 0, withRecent: 0 }
+        );
+
+        res.json({
+          ok: true,
+          delegatedTo: all ? 'all' : userId || null,
+          items,
+          count: items.length,
+          summary,
+          safety: {
+            readOnly: true,
+            message:
+              'Delegerad bildinkorg visar bildmetadata för tilldelade kunder. Råfiler och journalåtgärder hanteras i kundkort/workspace.',
           },
         });
       } catch (err) {
