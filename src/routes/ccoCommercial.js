@@ -172,6 +172,14 @@ function buildCustomerOfferPortalContext(commercialCase = {}, { token = '', orig
       token && origin
         ? `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(token)}`
         : '',
+    offerDocumentUrl:
+      token && origin && commercialCase.offerDocumentId
+        ? `${origin}/api/v1/cco-commercial/customer-offer-document?token=${encodeURIComponent(token)}`
+        : '',
+    offerDocumentPdfUrl:
+      token && origin && commercialCase.offerDocumentId
+        ? `${origin}/api/v1/cco-commercial/customer-offer-document.pdf?token=${encodeURIComponent(token)}`
+        : '',
   };
 }
 
@@ -674,6 +682,29 @@ function createCcoCommercialRouter({
     return { commercialCase };
   }
 
+  async function readOrCreateOfferPdf(tenantId, documentId) {
+    let payload = await offerDocumentStore.readPdf({
+      tenantId,
+      documentId,
+    });
+    if (!payload?.buffer) {
+      const htmlPayload = await offerDocumentStore.readHtml({
+        tenantId,
+        documentId,
+      });
+      if (!htmlPayload?.html) {
+        return { error: 'Offertdokumentet saknas på disk.', statusCode: 404 };
+      }
+      const pdfBuffer = await renderHtmlToPdfBuffer(htmlPayload.html);
+      payload = await offerDocumentStore.savePdf({
+        tenantId,
+        documentId,
+        buffer: pdfBuffer,
+      });
+    }
+    return { payload };
+  }
+
   router.get(
     '/cco-commercial/offer-document.pdf',
     requireAuth,
@@ -690,25 +721,11 @@ function createCcoCommercialRouter({
         }
         const auth = await loadAuthorizedOfferDocument(actor, patientId, documentId);
         if (auth.error) return res.status(auth.statusCode).json({ error: auth.error });
-        let payload = await offerDocumentStore.readPdf({
-          tenantId: actor.tenantId,
-          documentId,
-        });
-        if (!payload?.buffer) {
-          const htmlPayload = await offerDocumentStore.readHtml({
-            tenantId: actor.tenantId,
-            documentId,
-          });
-          if (!htmlPayload?.html) {
-            return res.status(404).json({ error: 'Offertdokumentet saknas på disk.' });
-          }
-          const pdfBuffer = await renderHtmlToPdfBuffer(htmlPayload.html);
-          payload = await offerDocumentStore.savePdf({
-            tenantId: actor.tenantId,
-            documentId,
-            buffer: pdfBuffer,
-          });
-        }
+        const { payload, error, statusCode } = await readOrCreateOfferPdf(
+          actor.tenantId,
+          documentId
+        );
+        if (error) return res.status(statusCode).json({ error });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
           'Content-Disposition',
@@ -718,6 +735,62 @@ function createCcoCommercialRouter({
         return res.send(payload.buffer);
       })
   );
+
+  router.get('/cco-commercial/customer-offer-document', async (req, res) => {
+    try {
+      if (!offerDocumentStore) {
+        return res.status(503).send('Offertdokument saknas.');
+      }
+      const token = normalizeText(req.query.token);
+      if (!token) return res.status(400).send('token saknas.');
+      const match = commercialStore.findCaseByEsignToken
+        ? await commercialStore.findCaseByEsignToken(token)
+        : null;
+      if (!match?.offerDocumentId) return res.status(404).send('Offertdokument hittades inte.');
+      await recordCustomerQuoteOpen(match, 'customer_offer_document');
+      const payload = await offerDocumentStore.readHtml({
+        tenantId: match.tenantId || WORKSPACE_ID,
+        documentId: match.offerDocumentId,
+      });
+      if (!payload?.html) return res.status(404).send('Offertdokumentet saknas på disk.');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'private, max-age=60');
+      return res.send(payload.html);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).send('Kunde inte visa offertdokument.');
+    }
+  });
+
+  router.get('/cco-commercial/customer-offer-document.pdf', async (req, res) => {
+    try {
+      if (!offerDocumentStore) {
+        return res.status(503).send('Offertdokument saknas.');
+      }
+      const token = normalizeText(req.query.token);
+      if (!token) return res.status(400).send('token saknas.');
+      const match = commercialStore.findCaseByEsignToken
+        ? await commercialStore.findCaseByEsignToken(token)
+        : null;
+      if (!match?.offerDocumentId) return res.status(404).send('Offertdokument hittades inte.');
+      await recordCustomerQuoteOpen(match, 'customer_offer_document_pdf');
+      const { payload, error, statusCode } = await readOrCreateOfferPdf(
+        match.tenantId || WORKSPACE_ID,
+        match.offerDocumentId
+      );
+      if (error) return res.status(statusCode).send(error);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="offert-${match.offerDocumentId.slice(0, 8)}.pdf"`
+      );
+      res.setHeader('Cache-Control', 'private, max-age=60');
+      return res.send(payload.buffer);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).send('Kunde inte ladda ner offert-PDF.');
+    }
+  });
 
   router.get(
     '/cco-commercial/offer-document.doc',

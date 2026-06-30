@@ -62,3 +62,13 @@ test('customer offer portal applies K8 live status context', () => {
   assert.match(source, /Betänketid pågår/);
   assert.match(source, /Öppna säker signering/);
 });
+
+test('customer offer portal wires K9 token-protected document downloads', () => {
+  const source = readPortal();
+  assert.match(source, /data-offer-document-pdf/);
+  assert.match(source, /data-offer-document-link/);
+  assert.match(source, /offerDocumentPdfUrl/);
+  assert.match(source, /offerDocumentUrl/);
+  assert.match(source, /Ladda ner offert-PDF/);
+  assert.match(source, /Öppna offertunderlag/);
+});
