@@ -678,6 +678,9 @@
         letter-spacing: 0.02em;
         transition: all 0.15s;
       }
+      .btn-pdf[hidden] {
+        display: none !important;
+      }
       .btn-pdf:hover {
         border-color: rgba(167, 145, 125, 0.38);
         color: var(--text-secondary);
@@ -2440,7 +2443,7 @@
           </div>
         </div>
 
-        <button class="btn-pdf" type="button" onclick="window.print()">
+        <button class="btn-pdf" type="button" onclick="window.print()" data-offer-document-pdf>
           <svg
             width="13"
             height="13"
@@ -2455,6 +2458,9 @@
           </svg>
           Spara offert som PDF
         </button>
+        <a class="btn-pdf" href="#" target="_blank" rel="noopener" data-offer-document-link hidden>
+          Öppna offertunderlag
+        </a>
       </div>
 
       <div class="section-heading" data-unlock="1" data-tease-label="">Din offert</div>
@@ -3469,6 +3475,8 @@
         var esignStatus = safeText(context.esignStatus) || 'draft';
         var cooling = asObject(context.coolingOff);
         var offerSignUrl = safeText(context.offerSignUrl);
+        var offerDocumentPdfUrl = safeText(context.offerDocumentPdfUrl);
+        var offerDocumentUrl = safeText(context.offerDocumentUrl);
         var accepted = quoteStatus === 'accepted' || esignStatus === 'accepted';
         var coolingActive = Boolean(cooling.active);
         var coolingEndsAt = safeText(cooling.endsAt || cooling.coolingOffEndsAt).slice(0, 10);
@@ -3529,6 +3537,20 @@
           };
           signButton.classList.add('enabled');
           signButton.textContent = 'Öppna säker signering';
+        }
+
+        var pdfButton = document.querySelector('[data-offer-document-pdf]');
+        if (pdfButton && offerDocumentPdfUrl) {
+          pdfButton.onclick = function () {
+            window.location.href = offerDocumentPdfUrl;
+          };
+          pdfButton.textContent = 'Ladda ner offert-PDF';
+        }
+
+        var documentLink = document.querySelector('[data-offer-document-link]');
+        if (documentLink && offerDocumentUrl) {
+          documentLink.href = offerDocumentUrl;
+          documentLink.hidden = false;
         }
       }
 

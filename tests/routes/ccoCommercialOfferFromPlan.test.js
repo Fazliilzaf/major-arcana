@@ -290,6 +290,8 @@ test('offer-from-plan creates commercial case and html document', async () => {
       assert.match(portalHtml, /"quoteStatus":"sent"/);
       assert.match(portalHtml, /"esignStatus":"sent"/);
       assert.match(portalHtml, /"offerSignUrl":"http:\/\/127\.0\.0\.1:/);
+      assert.match(portalHtml, /"offerDocumentUrl":"http:\/\/127\.0\.0\.1:/);
+      assert.match(portalHtml, /"offerDocumentPdfUrl":"http:\/\/127\.0\.0\.1:/);
       assert.match(portalHtml, /"customerName":"Kund"/);
       assert.match(portalHtml, /"total":"3500"/);
       assert.match(portalHtml, /"quotedAmount":"75 000 kr"/);
@@ -302,6 +304,20 @@ test('offer-from-plan creates commercial case and html document', async () => {
 
       const signUrl = new URL(sentPayload.offerSignUrl);
       const token = signUrl.searchParams.get('token');
+      const customerDocResponse = await fetch(
+        `${baseUrl}/cco-commercial/customer-offer-document?token=${encodeURIComponent(token)}`
+      );
+      assert.equal(customerDocResponse.status, 200);
+      assert.match(await customerDocResponse.text(), /75 000 kr/);
+
+      const customerPdfResponse = await fetch(
+        `${baseUrl}/cco-commercial/customer-offer-document.pdf?token=${encodeURIComponent(token)}`
+      );
+      assert.equal(customerPdfResponse.status, 200);
+      assert.match(customerPdfResponse.headers.get('content-type') || '', /application\/pdf/);
+      const customerPdfBytes = Buffer.from(await customerPdfResponse.arrayBuffer());
+      assert.match(String(customerPdfBytes.slice(0, 8)), /^%PDF-/);
+
       const photoResponse = await fetch(
         `${baseUrl}/cco-commercial/offer-photo?token=${encodeURIComponent(token)}&photoId=photo-1&variant=annotated`
       );
