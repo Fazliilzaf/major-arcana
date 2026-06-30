@@ -9,6 +9,7 @@ const express = require('express');
 const { createStaffPortalRouter } = require('../../src/routes/staffPortal');
 const { createCcoBookingCaseStore } = require('../../src/ops/ccoBookingCaseStore');
 const { createQmsStore } = require('../../src/qms/qmsStore');
+const { createPatientPortalStore } = require('../../src/routes/patientPortal');
 
 async function withServer(run) {
   const app = express();
@@ -737,6 +738,98 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
         '/major-arcana-preview/?view=customers&workspace=1&patientId=patient-follow-action'
       );
       assert.ok(followupsBody.items[0].links.audit.includes('case-follow-action-1'));
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('POST /api/v1/staff/followups/:id/upload-token skapar säker kundlänk', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-followup-upload-token-'));
+  try {
+    const auditEntries = [];
+    const ccoAuditLog = {
+      append(entry) {
+        auditEntries.push(entry);
+      },
+      query() {
+        return auditEntries;
+      },
+    };
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+      auditLog: ccoAuditLog,
+    });
+    const patientPortalStore = createPatientPortalStore({
+      filePath: path.join(dir, 'patient-portal.json'),
+    });
+    await patientPortalStore.load();
+    await bookingCaseStore.createCase({
+      id: 'case-follow-upload-token',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-follow-upload-token',
+      customerId: 'customer-follow-upload-token',
+      customerName: 'Bildlänk Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-1',
+      startsAt: new Date(Date.now() - 130 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createStaffPortalRouter({
+        config: {
+          stateRoot: dir,
+          publicBaseUrl: 'https://arcana.hairtpclinic.com',
+        },
+        bookingCaseStore,
+        patientPortalStore,
+        ccoAuditLog,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/followups/case-follow-upload-token/upload-token`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'personal' },
+          body: JSON.stringify({ maxPhotos: 3, expiresInHours: 12 }),
+        }
+      );
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.uploadToken.caseId, 'case-follow-upload-token');
+      assert.equal(body.uploadToken.patientId, 'patient-follow-upload-token');
+      assert.equal(body.uploadToken.milestoneKey, 'followup_month_4');
+      assert.equal(body.uploadToken.maxPhotos, 3);
+      assert.equal(body.uploadToken.remainingUploads, 3);
+      assert.match(body.uploadToken.uploadPath, /^\/api\/patient-portal\/followup-photo-upload\//);
+      assert.match(
+        body.uploadToken.uploadUrl,
+        /^https:\/\/arcana\.hairtpclinic\.com\/api\/patient-portal\/followup-photo-upload\//
+      );
+      assert.equal(body.safety.noAutoSend, true);
+      assert.equal(body.safety.noAutoJournal, true);
+
+      const storedToken = await patientPortalStore.findFollowupUploadToken(body.uploadToken.token);
+      assert.equal(storedToken.patientId, 'patient-follow-upload-token');
+      assert.equal(storedToken.caseId, 'case-follow-upload-token');
+      assert.equal(storedToken.remainingUploads, 3);
+      assert.ok(
+        auditEntries.some((entry) => entry.action === 'staff_portal.followup_upload_token_created')
+      );
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
