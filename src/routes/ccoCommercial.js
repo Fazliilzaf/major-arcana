@@ -769,6 +769,54 @@ function createCcoCommercialRouter({
     return res.status(200).send(pixel);
   });
 
+  router.get('/cco-commercial/offer-photo', async (req, res) => {
+    try {
+      const token = normalizeText(req.query.token);
+      const photoId = normalizeText(req.query.photoId);
+      const variant = normalizeText(req.query.variant);
+      if (!token || !photoId) return res.status(400).send('token och photoId krävs.');
+      if (!journalPhotoStore) return res.status(503).send('Bildlagring ej konfigurerad.');
+      const match = commercialStore.findCaseByEsignToken
+        ? await commercialStore.findCaseByEsignToken(token)
+        : null;
+      if (!match) return res.status(404).send('Offert hittades inte.');
+      const snapshot = match.planSnapshot || {};
+      const attachments = Array.isArray(snapshot.attachments) ? snapshot.attachments : [];
+      const entry = attachments.find((a) => normalizeText(a.photoId) === photoId);
+      if (!entry) return res.status(403).send('Bild ej tillgänglig i denna offert.');
+      const patientId = normalizeText(snapshot.patientId) || normalizeText(match.customerId);
+      const tenantId = normalizeText(match.tenantId);
+      let payload = null;
+      if (variant === 'annotated' && entry.annotatedPreviewAvailable) {
+        payload = await journalPhotoStore.readAnnotatedPreview({ tenantId, patientId, photoId });
+      }
+      if (!payload) {
+        payload = await journalPhotoStore.readPhoto({ tenantId, patientId, photoId });
+      }
+      if (!payload?.buffer) return res.status(404).send('Bildfil hittades inte.');
+      if (authStore?.addAuditEvent) {
+        authStore
+          .addAuditEvent({
+            tenantId,
+            actorUserId: 'customer_offer_view',
+            action: 'cco.commercial.offer_photo_accessed',
+            outcome: 'success',
+            targetType: 'cco_commercial',
+            targetId: match.commercialCaseId,
+            metadata: { photoId, variant: variant || 'original', source: 'offer_photo_endpoint' },
+          })
+          .catch(() => {});
+      }
+      res.setHeader('Content-Type', payload.mimeType || 'image/jpeg');
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      return res.send(payload.buffer);
+    } catch (error) {
+      console.error('[cco-commercial/offer-photo]', error);
+      return res.status(500).send('Kunde inte hämta bild.');
+    }
+  });
+
   router.post('/cco-commercial/getaccept/webhook', async (req, res) => {
     try {
       if (!verifyGetAcceptWebhookSignature(req)) {
