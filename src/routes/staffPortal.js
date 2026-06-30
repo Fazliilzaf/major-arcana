@@ -1716,6 +1716,7 @@ function createStaffPortalRouter({
       const userId = req.auth?.userId ?? null;
       const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
       const limit = Math.min(Number(req.query.limit) || 20, 60);
+      const mode = String(req.query.mode || 'all').trim();
       const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
 
       let cases = [];
@@ -1730,8 +1731,21 @@ function createStaffPortalRouter({
       const built = await Promise.all(
         cases.slice(0, limit).map((item) => buildStaffFollowupItem(item, { tenantId }))
       );
-      const items = built
-        .filter(Boolean)
+      const filtered = built.filter(Boolean).filter((item) => {
+        if (mode === 'all') return true;
+        if (mode === 'overdue') return item.status === 'overdue';
+        if (mode === 'due') return item.status === 'due';
+        if (mode === 'upcoming')
+          return item.status === 'upcoming' || item.status === 'upcoming_operation';
+        if (mode === 'with_photos') return Number(item.photos?.count || 0) > 0;
+        if (mode === 'needs_doctor') {
+          return item.followupHistory?.some(
+            (entry) => entry.action === 'staff_followup_needs_doctor'
+          );
+        }
+        return true;
+      });
+      const items = filtered
         .sort(
           (a, b) =>
             a.priorityRank - b.priorityRank ||
@@ -1739,19 +1753,34 @@ function createStaffPortalRouter({
             String(a.startsAt || '').localeCompare(String(b.startsAt || ''))
         )
         .slice(0, limit);
-      const summary = items.reduce(
+      const summarySource = built.filter(Boolean);
+      const summary = summarySource.reduce(
         (acc, item) => {
           acc.total += 1;
           acc[item.status] = (acc[item.status] || 0) + 1;
           if (item.photos?.count) acc.withPhotos += 1;
+          if (
+            item.followupHistory?.some((entry) => entry.action === 'staff_followup_needs_doctor')
+          ) {
+            acc.needsDoctor += 1;
+          }
           return acc;
         },
-        { total: 0, overdue: 0, due: 0, upcoming: 0, upcoming_operation: 0, withPhotos: 0 }
+        {
+          total: 0,
+          overdue: 0,
+          due: 0,
+          upcoming: 0,
+          upcoming_operation: 0,
+          withPhotos: 0,
+          needsDoctor: 0,
+        }
       );
 
       res.json({
         ok: true,
         delegatedTo: all ? 'all' : userId || null,
+        mode,
         items,
         count: items.length,
         summary,
