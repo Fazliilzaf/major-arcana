@@ -17,6 +17,7 @@ const {
   buildOfferPlanData,
   buildPlanSnapshot,
 } = require('../../src/ops/ccoOfferFromPlan');
+const { buildOfferSignPageHtml } = require('../../src/ops/ccoOfferEsign');
 
 function mockAuth() {
   return (_req, _res, next) => next();
@@ -49,6 +50,20 @@ async function createFixture() {
   const offerDocumentStore = await createCcoOfferDocumentStore({
     baseDir: path.join(tempDir, 'offer-documents'),
   });
+  const photoReads = [];
+  const journalPhotoStore = {
+    photoReads,
+    async readAnnotatedPreview({ photoId }) {
+      photoReads.push({ variant: 'annotated', photoId });
+      if (photoId !== 'photo-1') return null;
+      return { buffer: Buffer.from('annotated-photo'), mimeType: 'image/jpeg' };
+    },
+    async readPhoto({ photoId }) {
+      photoReads.push({ variant: 'original', photoId });
+      if (photoId !== 'photo-1') return null;
+      return { buffer: Buffer.from('original-photo'), mimeType: 'image/jpeg' };
+    },
+  };
   const app = express();
   app.use(express.json({ limit: '2mb' }));
   app.use(
@@ -56,6 +71,7 @@ async function createFixture() {
     createCcoCommercialRouter({
       commercialStore,
       journalStore,
+      journalPhotoStore,
       offerDocumentStore,
       authStore: {
         async addAuditEvent() {
@@ -76,7 +92,7 @@ async function createFixture() {
       renderHtmlToPdfBuffer: async () => Buffer.from(`%PDF-1.4\n${'mock offer pdf '.repeat(80)}\n`),
     })
   );
-  return { app, tempDir, journalStore };
+  return { app, tempDir, journalStore, journalPhotoStore };
 }
 
 test('buildOfferDocumentHtml includes plan fields and patient name', () => {
@@ -132,6 +148,35 @@ test('buildOfferDocumentHtml includes plan fields and patient name', () => {
   assert.match(html, /2300 hårsäckar/);
   assert.match(html, /75 000 kr/);
   assert.match(html, /photo-1/);
+});
+
+test('buildOfferSignPageHtml renders secure annotated consultation photo panel', () => {
+  const html = buildOfferSignPageHtml({
+    origin: 'http://127.0.0.1:3100',
+    token: 'tok-1',
+    commercialCase: {
+      customerName: 'Abbe Holmlund',
+      quoteStatus: 'sent',
+      offerPlan: {
+        schemaVersion: 'offer-plan.v1',
+        attachments: [
+          {
+            photoId: 'photo-1',
+            label: 'Hårlinje ritad framifrån',
+            hasAnnotation: true,
+            annotatedPreviewAvailable: true,
+          },
+        ],
+      },
+    },
+  });
+  assert.match(html, /Ritade konsultationsbilder/);
+  assert.match(html, /Hårlinje ritad framifrån/);
+  assert.match(html, /Ritad plan/);
+  assert.match(
+    html,
+    /\/api\/v1\/cco-commercial\/offer-photo\?token=tok-1&amp;photoId=photo-1&amp;variant=annotated/
+  );
 });
 
 test('offer-from-plan creates commercial case and html document', async () => {
@@ -227,6 +272,31 @@ test('offer-from-plan creates commercial case and html document', async () => {
         sentPayload.commercialCase.offerPlan.informationDeliveredAt,
         sentPayload.commercialCase.quoteSentAt
       );
+
+      const signPageResponse = await fetch(sentPayload.offerSignUrl);
+      assert.equal(signPageResponse.status, 200);
+      const signPageHtml = await signPageResponse.text();
+      assert.match(signPageHtml, /Ritade konsultationsbilder/);
+      assert.match(signPageHtml, /Front/);
+      assert.match(signPageHtml, /offer-photo\?token=/);
+
+      const signUrl = new URL(sentPayload.offerSignUrl);
+      const token = signUrl.searchParams.get('token');
+      const photoResponse = await fetch(
+        `${baseUrl}/cco-commercial/offer-photo?token=${encodeURIComponent(token)}&photoId=photo-1&variant=annotated`
+      );
+      assert.equal(photoResponse.status, 200);
+      assert.match(photoResponse.headers.get('content-type') || '', /image\/jpeg/);
+      assert.equal(await photoResponse.text(), 'original-photo');
+      assert.deepEqual(fixture.journalPhotoStore.photoReads.at(-1), {
+        variant: 'original',
+        photoId: 'photo-1',
+      });
+
+      const forbiddenPhotoResponse = await fetch(
+        `${baseUrl}/cco-commercial/offer-photo?token=${encodeURIComponent(token)}&photoId=photo-outside-offer`
+      );
+      assert.equal(forbiddenPhotoResponse.status, 403);
 
       const pdfResponse = await fetch(
         `${baseUrl}/cco-commercial/offer-document.pdf?patientId=patient-1&documentId=${encodeURIComponent(payload.commercialCase.offerDocumentId)}`
