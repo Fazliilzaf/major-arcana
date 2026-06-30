@@ -1987,6 +1987,37 @@ test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder m
         requestedAt: queueBody.items[0].doctorFeedback.requestedAt,
         signature: 'Dr Test',
         nextStep: 'Komplettera underlaget och markera “Komplettering klar”.',
+        completionChecklist: {
+          readOnly: true,
+          missingCount: 2,
+          summary: '2 handoff-punkter behöver säkras innan retur.',
+          items: [
+            {
+              key: 'doctor_comment',
+              label: 'Läs läkarens kommentar',
+              done: true,
+              source: 'doctor_feedback',
+            },
+            {
+              key: 'consentSigned',
+              label: 'Samtycken och patientinformation signerade',
+              done: false,
+              source: 'handoff',
+            },
+            {
+              key: 'encounterLinked',
+              label: 'Bokning och patientkort länkade',
+              done: false,
+              source: 'handoff',
+            },
+            {
+              key: 'return_to_doctor',
+              label: 'När underlaget är kompletterat: markera “Komplettering klar”',
+              done: false,
+              source: 'staff_action',
+            },
+          ],
+        },
         readOnly: true,
       });
       assert.ok(queueBody.items[0].doctorFeedback.requestedAt);

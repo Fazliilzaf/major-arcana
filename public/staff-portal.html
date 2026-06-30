@@ -3536,6 +3536,24 @@
         )
           ? doctorFeedback.tone
           : 'info';
+        const completionChecklist = doctorFeedback?.completionChecklist || null;
+        const completionChecklistHtml =
+          completionChecklist && Array.isArray(completionChecklist.items)
+            ? `<div class="live-note" style="margin-top:9px">${escapeHtml(
+                completionChecklist.summary || 'Komplettera underlaget innan retur till läkaren.'
+              )}</div>
+              <div class="checklist-progress" aria-label="Kompletteringslista">
+                ${completionChecklist.items
+                  .map((entry) => {
+                    const complete = Boolean(entry.done);
+                    return `<div class="checklist-progress-row ${complete ? 'is-complete' : ''}">
+                      <span class="checklist-progress-label">${escapeHtml(entry.label || entry.key || 'Checkpunkt')}</span>
+                      <span class="pill ${complete ? 'sage' : 'amber'}">${complete ? 'Klar' : 'Att göra'}</span>
+                    </div>`;
+                  })
+                  .join('')}
+              </div>`
+            : '';
         const doctorFeedbackHtml = doctorFeedback
           ? `<div class="ordination-next-action ${escapeHtml(doctorFeedbackTone)}" style="margin-top:10px">
               <div class="ordination-next-action-head">
@@ -3550,6 +3568,7 @@
                 <span class="pill ${escapeHtml(doctorFeedbackTone)}">Read-only</span>
               </div>
               <div class="live-note" style="margin-top:9px"><strong>Nästa steg:</strong> ${escapeHtml(doctorFeedback.nextStep || 'Följ ordinarie CCO-flöde.')}</div>
+              ${completionChecklistHtml}
             </div>`
           : '';
         const cardUrl = customerCardUrl({
