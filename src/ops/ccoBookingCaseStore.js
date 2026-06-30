@@ -551,6 +551,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
       'followup_contacted',
       'followup_needs_doctor',
       'followup_journal_draft',
+      'followup_completed',
     ];
     if (!allowed.includes(action)) {
       throw badRequest(`Ogiltig personalåtgärd. Tillåtna: ${allowed.join(', ')}.`);
@@ -620,6 +621,11 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     if (action === 'followup_journal_draft') {
       record.staffActions.followupJournalDraftRequestedAt = ts;
       record.staffActions.followupJournalDraftRequestedBy = actorUserId;
+    }
+
+    if (action === 'followup_completed') {
+      record.staffActions.followupCompletedAt = ts;
+      record.staffActions.followupCompletedBy = actorUserId;
     }
 
     record.staffActions.lastActionAt = ts;
