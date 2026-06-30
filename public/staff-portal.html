@@ -2324,6 +2324,13 @@
           </div>
           <div id="livePriorityRadarAdmin" class="live-panel"></div>
 
+          <div class="section-title">Uppföljningar · owner-summering</div>
+          <div class="safety-notice">
+            🩺 Read-only överblick för uppföljningar: försenade, väntar läkare, klara och
+            bildärenden. Åtgärder görs i personal-/läkarläge.
+          </div>
+          <div id="liveOwnerFollowupDashboard" class="live-panel"></div>
+
           <div class="section-title">Kliniknotiser</div>
           <div class="safety-notice">
             🔔 Read-only owner-radar från CCO. Visar avvikelser, systemnotiser och ärenden som
@@ -2631,6 +2638,8 @@
         ['upcoming', 'Planerade'],
         ['with_photos', 'Med bilder'],
         ['needs_doctor', 'Behöver läkare'],
+        ['waiting_doctor', 'Väntar läkare'],
+        ['completed', 'Klara'],
       ];
 
       function renderOrdinationModeRow(modes = {}) {
@@ -2652,6 +2661,8 @@
           upcoming: Number(summary.upcoming || 0) + Number(summary.upcoming_operation || 0),
           with_photos: summary.withPhotos || 0,
           needs_doctor: summary.needsDoctor || 0,
+          waiting_doctor: summary.waitingDoctor || 0,
+          completed: summary.completed || 0,
         };
         row.innerHTML = FOLLOWUP_MODES.map(([mode, label]) => {
           const count = Number(counts[mode] || 0);
@@ -3206,6 +3217,7 @@
             due: 'Idag/nu',
             upcoming: 'Planerad',
             upcoming_operation: 'Inför operation',
+            completed: 'Klar',
           }[status] || 'Uppföljning'
         );
       }
@@ -3214,11 +3226,15 @@
         if (status === 'overdue') return 'danger';
         if (status === 'due') return 'amber';
         if (status === 'upcoming_operation') return 'info';
+        if (status === 'completed') return 'sage';
         return 'violet';
       }
 
       function followupNextActionLabel(item) {
-        if (item.followupHistory?.some((entry) => entry.action === 'staff_followup_needs_doctor')) {
+        if (item.status === 'completed') {
+          return 'Uppföljningen är klar. Behåll historiken synlig vid behov.';
+        }
+        if (item.waitingDoctor) {
           return 'Följ läkarspåret och öppna kundens workspace.';
         }
         if (Number(item.photos?.count || 0) > 0) {
@@ -3287,6 +3303,16 @@
         const pillClass = followupPillClass(status);
         const followupHistory = Array.isArray(item.followupHistory) ? item.followupHistory : [];
         const latestFollowup = item.followupHistorySummary || {};
+        const isCompleted = status === 'completed' || item.completed === true;
+        const cardClass =
+          status === 'overdue'
+            ? 'urgent'
+            : status === 'due'
+              ? 'pending'
+              : isCompleted
+                ? 'approved'
+                : 'info-c';
+        const cardIcon = isCompleted ? '✅' : status === 'overdue' ? '⚡' : '🗓️';
         const followupHistoryHtml = followupHistory.length
           ? `<div class="ordination-timeline-summary">
               <div class="ordination-timeline-chip">
@@ -3319,8 +3345,14 @@
             : Number(item.daysUntil || 0) === 0
               ? 'idag'
               : `om ${Number(item.daysUntil || 0)} dagar`;
-        return `<div class="item-card ${status === 'overdue' ? 'urgent' : status === 'due' ? 'pending' : 'info-c'}">
-          <div class="item-icon">${status === 'overdue' ? '⚡' : '🗓️'}</div>
+        const followupActions = isCompleted
+          ? '<button class="btn" disabled>Klar</button>'
+          : `<button class="btn followup-action" data-action="followup_contacted" data-case-id="${escapeHtml(item.caseId || '')}">Kontaktad</button>
+            <button class="btn followup-action" data-action="followup_needs_doctor" data-case-id="${escapeHtml(item.caseId || '')}">Behöver läkare</button>
+            <button class="btn followup-action" data-action="followup_journal_draft" data-case-id="${escapeHtml(item.caseId || '')}">Journalutkast</button>
+            <button class="btn primary followup-action" data-action="followup_completed" data-case-id="${escapeHtml(item.caseId || '')}">Markera klar</button>`;
+        return `<div class="item-card ${cardClass}">
+          <div class="item-icon">${cardIcon}</div>
           <div class="item-body">
             <div class="item-title">${escapeHtml(title)} · ${escapeHtml(milestone.label || 'Uppföljning')}</div>
             <div class="item-meta">${escapeHtml(item.treatment || 'Behandling')} · Operation ${escapeHtml(formatDateTime(item.startsAt))} · ${escapeHtml(daysText)}</div>
@@ -3354,9 +3386,7 @@
                 : '<button class="btn" disabled>Ingen workspace</button>'
             }
             <button class="btn followup-detail-toggle" data-case-id="${escapeHtml(item.caseId || '')}">Detalj</button>
-            <button class="btn followup-action" data-action="followup_contacted" data-case-id="${escapeHtml(item.caseId || '')}">Kontaktad</button>
-            <button class="btn followup-action" data-action="followup_needs_doctor" data-case-id="${escapeHtml(item.caseId || '')}">Behöver läkare</button>
-            <button class="btn followup-action" data-action="followup_journal_draft" data-case-id="${escapeHtml(item.caseId || '')}">Journalutkast</button>
+            ${followupActions}
           </div>
           ${renderFollowupDetail(item)}
           <div class="queue-feedback" data-followup-feedback-for="${escapeHtml(item.caseId || '')}"></div>
@@ -3603,6 +3633,29 @@
         </div>`;
         const completionReturn = readout.completionReturn || null;
         const followupEscalation = readout.followupEscalation || null;
+        const followupPhotos = followupEscalation?.photos || {};
+        const followupPhotoCount = Number(followupPhotos.count || 0);
+        const followupPhotoHref = followupPhotos.href || followupEscalation?.links?.photos || '';
+        const followupPhotoHtml = followupEscalation?.active
+          ? `<div class="case-detail-grid" style="margin-top:10px">
+              <div class="case-detail-cell">
+                <div class="case-detail-label">Bildunderlag</div>
+                <div class="case-detail-value">${followupPhotoCount} bild${followupPhotoCount === 1 ? '' : 'er'}</div>
+              </div>
+              <div class="case-detail-cell">
+                <div class="case-detail-label">Senaste bild</div>
+                <div class="case-detail-value">${escapeHtml(formatDateTime(followupPhotos.latestAt))}</div>
+              </div>
+            </div>
+            <div class="deep-link-row" style="margin-top:10px">
+              ${
+                followupPhotoHref
+                  ? `<a class="deep-link primary" href="${escapeHtml(followupPhotoHref)}" target="_blank" rel="noopener">Öppna bilder</a>`
+                  : '<span class="deep-link" aria-disabled="true">Inga bilder att öppna</span>'
+              }
+            </div>
+            <div class="live-note" style="margin-top:9px">Bilder visas read-only i läkarkortet. Granskning och journal förs manuellt i CCO.</div>`
+          : '';
         const followupEscalationHtml =
           followupEscalation && followupEscalation.active
             ? `<div class="ordination-signoff" style="margin-top:12px">
@@ -3616,6 +3669,7 @@
                   <span class="pill info">Read-only läkarspår</span>
                 </div>
                 <div class="live-note" style="margin-top:9px">${escapeHtml(followupEscalation.safety || 'Granska uppföljningen manuellt i CCO.')}</div>
+                ${followupPhotoHtml}
               </div>`
             : '';
         const completionReturnHtml =
@@ -3910,6 +3964,8 @@
             loadStaffFollowups(),
             loadDailyWorkQueue(),
             loadStaffPriorityRadar(),
+            loadOwnerFollowupDashboard(),
+            loadOrdinationReviews(),
             loadMyCustomers(),
             loadAudit(),
           ]);
@@ -4284,6 +4340,43 @@
         }
       }
 
+      function ownerFollowupMetric(label, value, tone, href) {
+        const count = Number(value || 0);
+        const link = href
+          ? `<a class="deep-link" href="${escapeHtml(href)}">Öppna</a>`
+          : '<span class="deep-link" aria-disabled="true">Read-only</span>';
+        return `<div class="qms-card">
+          <div class="qms-card-title ${escapeHtml(tone || '')}">${escapeHtml(String(count))}</div>
+          <div class="qms-card-meta">${escapeHtml(label)}</div>
+          <div style="margin-top:8px">${link}</div>
+        </div>`;
+      }
+
+      async function loadOwnerFollowupDashboard() {
+        if (!_liveMode) return;
+        const container = document.getElementById('liveOwnerFollowupDashboard');
+        if (!container) return;
+        const data = await apiFetch('/api/v1/staff/followups?assignedTo=all&limit=60');
+        if (!data || !data.ok) return;
+        const summary = data.summary || {};
+        const active =
+          Number(summary.overdue || 0) +
+          Number(summary.due || 0) +
+          Number(summary.waitingDoctor || 0);
+        document.querySelectorAll('[data-live-badge="owner-followups"]').forEach((badge) => {
+          badge.textContent = active;
+          badge.style.display = active > 0 ? '' : 'none';
+        });
+        container.innerHTML = `<div class="live-note">Live owner-överblick: ${Number(summary.total || 0)} uppföljningsärenden · ${Number(summary.completed || 0)} klara · ${Number(summary.withPhotos || 0)} med bilder.</div>
+          <div class="qms-grid" style="margin-top:10px">
+            ${ownerFollowupMetric('Försenade', summary.overdue, 'danger', '/staff-portal?role=nurse&panel=followups')}
+            ${ownerFollowupMetric('Idag/aktuella', summary.due, 'amber', '/staff-portal?role=nurse&panel=followups')}
+            ${ownerFollowupMetric('Väntar läkare', summary.waitingDoctor, 'info', '/staff-portal?role=doctor&panel=ord')}
+            ${ownerFollowupMetric('Klara', summary.completed, 'sage', '/staff-portal?role=nurse&panel=followups')}
+            ${ownerFollowupMetric('Med bilder', summary.withPhotos, 'violet', '/staff-portal?role=nurse&panel=followups')}
+          </div>`;
+      }
+
       /* Hämta audit-logg och injicera i admin-view */
       async function loadAudit() {
         if (!_liveMode) return;
@@ -4609,6 +4702,12 @@
             { section: 'Översikt' },
             { id: 'priority', icon: '✨', label: 'Prioritet', liveBadge: 'priorities' },
             { id: 'notifications', icon: '🔔', label: 'Kliniknotiser', liveBadge: 'notifications' },
+            {
+              id: 'owner-followups',
+              icon: '🩺',
+              label: 'Uppföljningar',
+              liveBadge: 'owner-followups',
+            },
             { id: 'overview', icon: '🏥', label: 'Kliniköversikt' },
             { id: 'staff', icon: '👥', label: 'Personalöversikt' },
             { section: 'Ärenden' },
@@ -4653,6 +4752,7 @@
         ordinations: 'ord',
         history: 'history',
         overview: 'overview',
+        'owner-followups': 'owner-followups',
         staff: 'staff',
         'all-cases': 'all-cases',
         allcases: 'all-cases',
@@ -4672,6 +4772,7 @@
         documents: 'admin',
         'qms-dr': 'doctor',
         overview: 'admin',
+        'owner-followups': 'admin',
         staff: 'admin',
         'all-cases': 'admin',
         catalog: 'admin',
@@ -4692,6 +4793,7 @@
         docs: '#view-doctor .doc-row',
         'qms-dr': '#liveQmsHandbookDoctor',
         overview: '#view-admin .stats',
+        'owner-followups': '#liveOwnerFollowupDashboard',
         staff: '#view-admin .card-list',
         'all-cases': '#liveAdminCaseList',
         catalog: '#view-admin .doc-row',
@@ -4864,6 +4966,7 @@
           loadDelegatedInbox();
           loadDelegatedPhotoInbox();
           loadStaffFollowups();
+          loadOwnerFollowupDashboard();
           loadMyCustomers();
           loadQmsHandbook();
         }

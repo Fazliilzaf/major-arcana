@@ -338,6 +338,7 @@ function createStaffPortalRouter({
       staff_followup_contacted: 'Kontaktad',
       staff_followup_needs_doctor: 'Behöver läkare',
       staff_followup_journal_draft: 'Journalutkast begärt',
+      staff_followup_completed: 'Uppföljning klar',
     };
     const history = Array.isArray(caseRecord.history) ? caseRecord.history : [];
     return history
@@ -358,6 +359,29 @@ function createStaffPortalRouter({
     );
   }
 
+  function latestFollowupActionAt(caseRecord = {}, action) {
+    const history = Array.isArray(caseRecord.history) ? caseRecord.history : [];
+    return history
+      .filter((entry) => entry?.action === action && entry.at)
+      .map((entry) => Date.parse(entry.at))
+      .filter(Number.isFinite)
+      .sort((a, b) => b - a)[0];
+  }
+
+  function isFollowupCompleted(caseRecord = {}) {
+    const completedAt = latestFollowupActionAt(caseRecord, 'staff_followup_completed');
+    if (!completedAt) return false;
+    const needsDoctorAt = latestFollowupActionAt(caseRecord, 'staff_followup_needs_doctor');
+    return !needsDoctorAt || completedAt >= needsDoctorAt;
+  }
+
+  function isFollowupWaitingDoctor(caseRecord = {}) {
+    const needsDoctorAt = latestFollowupActionAt(caseRecord, 'staff_followup_needs_doctor');
+    if (!needsDoctorAt) return false;
+    const completedAt = latestFollowupActionAt(caseRecord, 'staff_followup_completed');
+    return !completedAt || completedAt < needsDoctorAt;
+  }
+
   async function buildStaffFollowupItem(caseRecord, { tenantId, now = new Date() } = {}) {
     const startsAt = caseRecord.startsAt || caseRecord.scheduledForIso || caseRecord.scheduledAt;
     const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
@@ -374,8 +398,11 @@ function createStaffPortalRouter({
       FOLLOWUP_MILESTONES[FOLLOWUP_MILESTONES.length - 1];
     const activeMilestone = dueMilestones[dueMilestones.length - 1] || nextMilestone;
     const daysUntil = activeMilestone.day - daysSince;
-    const status =
-      daysSince < 0
+    const followupCompleted = isFollowupCompleted(caseRecord);
+    const waitingDoctor = isFollowupWaitingDoctor(caseRecord);
+    const status = followupCompleted
+      ? 'completed'
+      : daysSince < 0
         ? 'upcoming_operation'
         : daysUntil > 0
           ? 'upcoming'
@@ -383,8 +410,24 @@ function createStaffPortalRouter({
             ? 'due'
             : 'overdue';
     const priorityRank =
-      status === 'overdue' ? 10 : status === 'due' ? 20 : status === 'upcoming' ? 40 : 60;
+      status === 'overdue'
+        ? 10
+        : status === 'due'
+          ? 20
+          : waitingDoctor
+            ? 25
+            : status === 'upcoming'
+              ? 40
+              : status === 'completed'
+                ? 80
+                : 60;
     const followupHistory = buildFollowupHistory(caseRecord);
+    const links = buildStaffPortalLinks({
+      caseId: caseRecord.id,
+      customerId,
+      patientId,
+      tenantId,
+    });
 
     return {
       caseId: caseRecord.id || null,
@@ -401,13 +444,23 @@ function createStaffPortalRouter({
       startsAt: startsAt || null,
       daysSince,
       status,
-      priority: status === 'overdue' ? 'urgent' : status === 'due' ? 'today' : 'waiting',
+      completed: followupCompleted,
+      waitingDoctor,
+      priority:
+        status === 'completed'
+          ? 'done'
+          : status === 'overdue'
+            ? 'urgent'
+            : status === 'due'
+              ? 'today'
+              : 'waiting',
       priorityRank,
       milestone: activeMilestone,
       daysUntil,
       photos: {
         count: photos.length,
         latestAt: photos[0]?.updatedAt || null,
+        href: links.photos || null,
       },
       followupHistory,
       followupHistorySummary: {
@@ -422,16 +475,13 @@ function createStaffPortalRouter({
             ? 'Följ upp nu'
             : status === 'due'
               ? 'Öppna uppföljning'
-              : 'Planera uppföljning',
+              : status === 'completed'
+                ? 'Visa historik'
+                : 'Planera uppföljning',
         safety:
           'Uppföljningslistan är read-only. Kontakt, bildgranskning och journalanteckning görs i ordinarie CCO-flöde.',
       },
-      links: buildStaffPortalLinks({
-        caseId: caseRecord.id,
-        customerId,
-        patientId,
-        tenantId,
-      }),
+      links,
     };
   }
 
@@ -729,16 +779,17 @@ function createStaffPortalRouter({
           'Läkaren måste granska underlaget manuellt. Systemet kan aldrig skapa ordination.approved automatiskt.',
       },
       completionReturn,
-      followupEscalation: latestFollowupEscalation
-        ? {
-            active: true,
-            label: latestFollowupEscalation.label,
-            at: latestFollowupEscalation.at,
-            by: latestFollowupEscalation.userId || latestFollowupEscalation.role || null,
-            safety:
-              'Uppföljningen behöver läkarblick, men skapar ingen ordination och inget kundutskick automatiskt.',
-          }
-        : null,
+      followupEscalation:
+        latestFollowupEscalation && isFollowupWaitingDoctor(caseRecord)
+          ? {
+              active: true,
+              label: latestFollowupEscalation.label,
+              at: latestFollowupEscalation.at,
+              by: latestFollowupEscalation.userId || latestFollowupEscalation.role || null,
+              safety:
+                'Uppföljningen behöver läkarblick, men skapar ingen ordination och inget kundutskick automatiskt.',
+            }
+          : null,
       timeline,
       timelineSummary,
       decisionSummary,
@@ -1633,10 +1684,10 @@ function createStaffPortalRouter({
         const followupItems = followups
           .filter(Boolean)
           .filter((item) => {
-            const needsDoctor = item.followupHistory?.some(
-              (entry) => entry.action === 'staff_followup_needs_doctor'
+            if (item.status === 'completed') return false;
+            return (
+              item.status === 'overdue' || item.waitingDoctor || Number(item.photos?.count || 0) > 0
             );
-            return item.status === 'overdue' || needsDoctor || Number(item.photos?.count || 0) > 0;
           })
           .map(buildFollowupPriorityItem);
         const followupCaseIds = new Set(
@@ -1925,6 +1976,8 @@ function createStaffPortalRouter({
         if (mode === 'upcoming')
           return item.status === 'upcoming' || item.status === 'upcoming_operation';
         if (mode === 'with_photos') return Number(item.photos?.count || 0) > 0;
+        if (mode === 'waiting_doctor') return Boolean(item.waitingDoctor);
+        if (mode === 'completed') return item.status === 'completed';
         if (mode === 'needs_doctor') {
           return item.followupHistory?.some(
             (entry) => entry.action === 'staff_followup_needs_doctor'
@@ -1946,6 +1999,7 @@ function createStaffPortalRouter({
           acc.total += 1;
           acc[item.status] = (acc[item.status] || 0) + 1;
           if (item.photos?.count) acc.withPhotos += 1;
+          if (item.waitingDoctor) acc.waitingDoctor += 1;
           if (
             item.followupHistory?.some((entry) => entry.action === 'staff_followup_needs_doctor')
           ) {
@@ -1961,6 +2015,8 @@ function createStaffPortalRouter({
           upcoming_operation: 0,
           withPhotos: 0,
           needsDoctor: 0,
+          waitingDoctor: 0,
+          completed: 0,
         }
       );
 
@@ -1997,6 +2053,7 @@ function createStaffPortalRouter({
         'followup_contacted',
         'followup_needs_doctor',
         'followup_journal_draft',
+        'followup_completed',
       ]);
 
       if (!id) return res.status(400).json({ ok: false, error: 'Ärende-id krävs.' });
@@ -2269,6 +2326,12 @@ function createStaffPortalRouter({
             tenantId: tenantId || undefined,
             limit: limit * 8,
           });
+          const followupReadouts = await Promise.all(
+            allOpen.map((c) => buildStaffFollowupItem(c, { tenantId: tenantId || undefined }))
+          );
+          const followupByCaseId = new Map(
+            followupReadouts.filter(Boolean).map((item) => [item.caseId, item])
+          );
           const builtReviews = allOpen
             .filter((c) => !['completed', 'cancelled'].includes(c.state))
             .filter(
@@ -2279,6 +2342,11 @@ function createStaffPortalRouter({
             )
             .map((c) => {
               const ordinationReadout = buildOrdinationReviewReadout(c);
+              const followupItem = followupByCaseId.get(c.id);
+              if (ordinationReadout.followupEscalation?.active && followupItem) {
+                ordinationReadout.followupEscalation.photos = followupItem.photos;
+                ordinationReadout.followupEscalation.links = followupItem.links;
+              }
               const workMode = classifyOrdinationWorkMode(c, ordinationReadout);
               const nextAction = buildOrdinationNextAction(c, ordinationReadout);
               return {
