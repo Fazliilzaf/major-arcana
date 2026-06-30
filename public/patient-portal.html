@@ -264,6 +264,37 @@
         line-height: 1.5;
         margin: 12px 0 0;
       }
+      .aftercare-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+        margin-top: 12px;
+      }
+      .aftercare-action {
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(132, 117, 107, 0.15);
+        padding: 11px 12px;
+      }
+      .aftercare-action strong {
+        display: block;
+        font-size: 12.5px;
+        margin-bottom: 3px;
+      }
+      .aftercare-action p {
+        margin: 0;
+        color: var(--cco-text-secondary);
+        font-size: 11.5px;
+        line-height: 1.45;
+      }
+      .aftercare-action[data-state='prepared'] {
+        border-color: rgba(200, 130, 30, 0.26);
+        background: rgba(200, 130, 30, 0.08);
+      }
+      .aftercare-action[data-state='waiting_clinic'] {
+        border-color: rgba(74, 123, 168, 0.25);
+        background: rgba(74, 123, 168, 0.08);
+      }
 
       /* Form fields */
       .field {
@@ -537,6 +568,9 @@
           margin-left: 54px;
         }
         .followup-grid {
+          grid-template-columns: 1fr;
+        }
+        .aftercare-actions {
           grid-template-columns: 1fr;
         }
         .btn {
@@ -862,11 +896,25 @@
           <div class="followup-mini"><span>Steg</span><strong>${escapeHtml(nextText)}</strong></div>
           <div class="followup-mini"><span>Status</span><strong>${escapeHtml(status.summary?.completed || 0)}/${escapeHtml(status.summary?.total || 1)} klara</strong></div>
         </div>
+        ${renderAftercareActions(status.patientActions || [])}
         <p class="followup-note">${escapeHtml(actionText)}</p>
         <p class="followup-note"><strong>Tryggt:</strong> ${escapeHtml(status.safety?.message || 'Det här är endast en översikt. Kliniken hanterar journal och medicinska beslut.')}</p>
       </div>
     `;
           panel.hidden = false;
+        }
+
+        function renderAftercareActions(actions) {
+          if (!Array.isArray(actions) || !actions.length) return '';
+          return `<div class="aftercare-actions">${actions
+            .map(
+              (action) => `
+          <div class="aftercare-action" data-state="${escapeHtml(action.state || 'available')}">
+            <strong>${escapeHtml(action.label || 'Nästa steg')}</strong>
+            <p>${escapeHtml(action.description || '')}</p>
+          </div>`
+            )
+            .join('')}</div>`;
         }
 
         function collectFormData() {
