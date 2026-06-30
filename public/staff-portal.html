@@ -1147,6 +1147,39 @@
         font-weight: 850;
         overflow-wrap: anywhere;
       }
+      .ordination-audit-receipt {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(74, 130, 104, 0.16);
+        background: rgba(74, 130, 104, 0.08);
+      }
+      .ordination-audit-receipt-title {
+        color: var(--sage);
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .ordination-audit-receipt-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 8px;
+      }
+      .ordination-audit-receipt-grid span {
+        min-width: 0;
+        color: var(--text2);
+        font-size: 10.5px;
+        font-weight: 750;
+        overflow-wrap: anywhere;
+      }
+      .ordination-audit-receipt-grid strong {
+        display: block;
+        color: var(--brand);
+        font-size: 11px;
+        font-weight: 900;
+      }
       .ordination-timeline-summary {
         margin-top: 12px;
         display: grid;
@@ -3207,6 +3240,20 @@
         const blockers = Array.isArray(signoff.blockers) ? signoff.blockers : [];
         const signoffReady = Boolean(signoff.canApproveAfterManualReview);
         const decisionSummary = readout.decisionSummary || null;
+        const receipt = decisionSummary?.auditReceipt || null;
+        const receiptHtml = receipt
+          ? `<div class="ordination-audit-receipt">
+              <div class="ordination-audit-receipt-title">Signaturkvitto · audit-spår</div>
+              <div class="ordination-audit-receipt-grid">
+                <span><strong>Case</strong>${escapeHtml(receipt.caseId || item.id || '—')}</span>
+                <span><strong>Patient</strong>${escapeHtml(receipt.patientId || readout.patient?.patientId || '—')}</span>
+                <span><strong>Action</strong>${escapeHtml(receipt.action || decisionSummary.auditAction || '—')}</span>
+                <span><strong>Store</strong>${escapeHtml(receipt.storeAction || '—')}</span>
+                <span><strong>Actor</strong>${escapeHtml(staffDisplayName(receipt.actor) || receipt.actor || '—')}</span>
+                <span><strong>Immutable</strong>${receipt.immutable ? 'Ja' : '—'}</span>
+              </div>
+            </div>`
+          : '';
         const decisionSummaryHtml = decisionSummary
           ? `<div class="ordination-decision-summary ${escapeHtml(decisionSummary.tone || 'info')}">
             <div class="ordination-decision-title">${escapeHtml(decisionSummary.label || 'Beslut')}</div>
@@ -3237,6 +3284,7 @@
               </div>
             </div>
             ${decisionSummary.comment ? `<div class="live-note" style="margin-top:10px">Motivering/kommentar: ${escapeHtml(decisionSummary.comment)}</div>` : ''}
+            ${receiptHtml}
           </div>`
           : '';
         const nextAction = item.nextAction || {};

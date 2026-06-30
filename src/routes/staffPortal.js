@@ -442,6 +442,21 @@ function createStaffPortalRouter({
         !['approved', 'rejected'].includes(reviewStatus) &&
         !['ordination_needs_completion'].includes(latestTimelineEntry?.action || ''),
     };
+    const decisionAuditAction =
+      reviewStatus === 'approved'
+        ? 'ordination.approved'
+        : reviewStatus === 'rejected'
+          ? 'ordination.rejected'
+          : null;
+    const decisionHistoryAction =
+      reviewStatus === 'approved'
+        ? 'ordination_approved'
+        : reviewStatus === 'rejected'
+          ? 'ordination_rejected'
+          : null;
+    const decisionHistoryEntry = decisionHistoryAction
+      ? [...history].reverse().find((entry) => entry?.action === decisionHistoryAction) || null
+      : null;
     const decisionSummary = ['approved', 'rejected'].includes(reviewStatus)
       ? {
           status: reviewStatus,
@@ -451,7 +466,20 @@ function createStaffPortalRouter({
           decidedBy: caseRecord.ordinationReview?.decidedBy || null,
           signature: caseRecord.ordinationReview?.signature || null,
           comment: caseRecord.ordinationReview?.comment || '',
-          auditAction: reviewStatus === 'approved' ? 'ordination.approved' : 'ordination.rejected',
+          auditAction: decisionAuditAction,
+          auditReceipt: {
+            action: decisionAuditAction,
+            storeAction: decisionHistoryEntry?.action || decisionHistoryAction,
+            caseId: caseRecord.id || null,
+            patientId: caseRecord.patientId || null,
+            tenantId: caseRecord.tenantId || null,
+            actor: caseRecord.ordinationReview?.decidedBy || decisionHistoryEntry?.userId || null,
+            actorRole:
+              caseRecord.ordinationReview?.decidedByRole || decisionHistoryEntry?.role || null,
+            at: caseRecord.ordinationReview?.decidedAt || decisionHistoryEntry?.at || null,
+            signature: caseRecord.ordinationReview?.signature || null,
+            immutable: true,
+          },
           readOnly: true,
         }
       : null;
@@ -1598,8 +1626,9 @@ function createStaffPortalRouter({
       const limit = Math.min(Number(req.query.limit) || 50, 200);
       const since = req.query.since || null;
       const action = req.query.action || null;
+      const targetId = req.query.caseId || req.query.targetId || null;
 
-      const entries = ccoAuditLog ? ccoAuditLog.query({ limit, since, action }) : [];
+      const entries = ccoAuditLog ? ccoAuditLog.query({ limit, since, action, targetId }) : [];
 
       res.json({ ok: true, entries, count: entries.length });
     } catch (err) {
