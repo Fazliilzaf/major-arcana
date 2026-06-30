@@ -229,6 +229,7 @@
     offerDocumentPdfUrl: '',
     offerDocumentWordUrl: '',
     offerSignUrl: '',
+    customerPortalUrl: '',
     treatmentAgreement: null,
     agreementReadout: null,
     agreementDocumentUrl: '',
@@ -713,6 +714,7 @@
     runtime.offerDocumentPdfUrl = '';
     runtime.offerDocumentWordUrl = '';
     runtime.offerSignUrl = '';
+    runtime.customerPortalUrl = '';
     runtime.treatmentAgreement = null;
     runtime.agreementReadout = null;
     runtime.agreementDocumentUrl = '';
@@ -8998,6 +9000,11 @@
       linkedOffer?.offerDocumentId && runtime.selectedPatientId
         ? `/api/v1/cco-commercial/offer-document.doc?patientId=${encodeURIComponent(runtime.selectedPatientId)}&documentId=${encodeURIComponent(linkedOffer.offerDocumentId)}`
         : runtime.offerDocumentWordUrl || '';
+    const customerPortalUrl =
+      runtime.customerPortalUrl ||
+      (linkedOffer?.esignToken
+        ? `/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(linkedOffer.esignToken)}`
+        : '');
     const canSendForSign = linkedOffer && linkedOffer.quoteStatus !== 'accepted';
     const canAccept =
       linkedOffer && linkedOffer.quoteStatus === 'sent' && linkedOffer.quoteStatus !== 'accepted';
@@ -9043,6 +9050,11 @@
             ${
               canSendForSign
                 ? `<button type="button" class="customers-utility-button" data-patient-action="send-offer-for-sign">Skicka för signering</button>`
+                : ''
+            }
+            ${
+              customerPortalUrl
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalUrl)}" target="_blank" rel="noopener">Öppna kundportal</a>`
                 : ''
             }
             ${
@@ -10906,6 +10918,7 @@
       runtime.offerDocumentPdfUrl = '';
       runtime.offerDocumentWordUrl = '';
       runtime.offerSignUrl = '';
+      runtime.customerPortalUrl = '';
       return;
     }
     try {
@@ -10917,12 +10930,14 @@
       runtime.offerDocumentPdfUrl = '';
       runtime.offerDocumentWordUrl = '';
       runtime.offerSignUrl = '';
+      runtime.customerPortalUrl = '';
     } catch {
       runtime.commercialCase = null;
       runtime.offerDocumentUrl = '';
       runtime.offerDocumentPdfUrl = '';
       runtime.offerDocumentWordUrl = '';
       runtime.offerSignUrl = '';
+      runtime.customerPortalUrl = '';
     }
   }
 
@@ -11352,6 +11367,7 @@
       runtime.offerDocumentUrl = payload.offerDocumentUrl || '';
       runtime.offerDocumentPdfUrl = payload.offerDocumentPdfUrl || '';
       runtime.offerDocumentWordUrl = payload.offerDocumentWordUrl || '';
+      runtime.customerPortalUrl = '';
       setStatus('Offert skapad från behandlingsplan.', 'success');
       runtime.detailTab = 'journal';
       await loadPatientDetail(patientId);
@@ -11371,6 +11387,7 @@
       });
       runtime.commercialCase = payload.commercialCase || null;
       runtime.offerSignUrl = payload.offerSignUrl || '';
+      runtime.customerPortalUrl = payload.customerPortalUrl || '';
       setStatus('Offert skickad. Betänketid startad.', 'success');
       await loadPatientDetail(patientId);
     } catch (error) {
