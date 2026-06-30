@@ -1090,6 +1090,39 @@ function createStaffPortalRouter({
       };
     }
 
+    if (source === 'followup') {
+      if (actionKeys.has('followup_needs_doctor')) {
+        return {
+          label: 'Öppna läkarspåret',
+          reason: 'Uppföljningen är markerad som behöver läkare och ska följas upp manuellt.',
+          href: links.doctorReview || links.workspace || links.customerCard || null,
+          safety: 'Skapar ingen ordination och skickar inget till kund.',
+        };
+      }
+      if (actionKeys.has('followup_overdue')) {
+        return {
+          label: 'Kontakta kunden',
+          reason: 'Uppföljningen är försenad och bör hanteras från kundens workspace.',
+          href: links.workspace || links.customerCard || null,
+          safety: 'Öppnar bara underlaget; kontakt och journal sker manuellt.',
+        };
+      }
+      if (actionKeys.has('photos')) {
+        return {
+          label: 'Granska uppföljningsbilder',
+          reason: 'Kunden har bildunderlag kopplat till uppföljningen.',
+          href: links.workspace || links.photos || links.customerCard || null,
+          safety: 'Bilder ändras inte från radarn.',
+        };
+      }
+      return {
+        label: 'Öppna uppföljningen',
+        reason: 'Uppföljningen behöver manuell kontroll.',
+        href: links.workspace || links.customerCard || null,
+        safety: 'Read-only.',
+      };
+    }
+
     if (actionKeys.has('customer_reply')) {
       return {
         label: 'Svara kunden från arbetsvyn',
@@ -1187,6 +1220,18 @@ function createStaffPortalRouter({
       admin.badge = notificationKindLabel(item.type);
       admin.focus = 'notisuppföljning';
     }
+    if (item?.source === 'followup') {
+      nurse.badge = 'Uppföljning';
+      nurse.focus = 'uppföljning';
+      nurse.ctaLabel = 'Öppna uppföljningen';
+      doctor.badge = 'Uppföljning';
+      doctor.focus = actionKeys.has('followup_needs_doctor') ? 'klinisk granskning' : 'status';
+      doctor.ctaLabel = actionKeys.has('followup_needs_doctor')
+        ? 'Öppna läkarspår'
+        : 'Visa underlag';
+      admin.badge = 'Uppföljning';
+      admin.focus = 'uppföljningsläge';
+    }
     if (actionKeys.has('customer_reply')) {
       nurse.focus = 'kundsvar';
       nurse.ctaLabel = 'Öppna kundfrågan';
@@ -1218,6 +1263,30 @@ function createStaffPortalRouter({
         ].filter(Boolean),
         remainingSteps: ['Öppna notisen och hantera manuellt i rätt vy.'],
         links: item.links || {},
+      };
+    }
+
+    if (item?.source === 'followup') {
+      const followup = item.followupItem || {};
+      const latest = followup.followupHistorySummary || {};
+      return {
+        kind: 'followup',
+        caseId: followup.caseId || null,
+        customer: followup.customerName || item.title || 'Kund',
+        patientId: followup.patientId || null,
+        customerId: followup.customerId || null,
+        status: followup.status || 'uppföljning',
+        treatment: followup.treatment || 'Behandling ej angiven',
+        timing: followup.startsAt || null,
+        signals: [
+          followup.milestone?.label ? `Milestone: ${followup.milestone.label}` : null,
+          Number(followup.photos?.count || 0)
+            ? `${followup.photos.count} bild${followup.photos.count === 1 ? '' : 'er'} finns`
+            : null,
+          latest.latestLabel ? `Senast: ${latest.latestLabel}` : null,
+        ].filter(Boolean),
+        remainingSteps: item.actions.map((action) => action.label || action.key).filter(Boolean),
+        links: followup.links || item.links || {},
       };
     }
 
@@ -1311,6 +1380,59 @@ function createStaffPortalRouter({
           severity: priority === 'urgent' ? 'urgent' : 'info',
         },
       ],
+    };
+    priorityItem.nextBestAction = buildNextBestAction(priorityItem);
+    priorityItem.roleCards = buildRoleCards(priorityItem);
+    priorityItem.detail = buildPriorityDetail(priorityItem);
+    return priorityItem;
+  }
+
+  function buildFollowupPriorityItem(item, index = 0) {
+    const needsDoctor = item.followupHistory?.some(
+      (entry) => entry.action === 'staff_followup_needs_doctor'
+    );
+    const hasPhotos = Number(item.photos?.count || 0) > 0;
+    const isOverdue = item.status === 'overdue';
+    const priority =
+      needsDoctor || isOverdue ? 'urgent' : item.status === 'due' ? 'today' : 'waiting';
+    const priorityRank = needsDoctor
+      ? 8 + index
+      : isOverdue
+        ? 12 + index
+        : hasPhotos
+          ? 24 + index
+          : 32 + index;
+    const actions = [
+      isOverdue
+        ? { key: 'followup_overdue', label: 'Försenad uppföljning', severity: 'urgent' }
+        : null,
+      item.status === 'due'
+        ? { key: 'followup_due', label: 'Uppföljning idag', severity: 'today' }
+        : null,
+      needsDoctor
+        ? { key: 'followup_needs_doctor', label: 'Behöver läkare', severity: 'urgent' }
+        : null,
+      hasPhotos
+        ? {
+            key: 'photos',
+            label: `${item.photos.count} bild${item.photos.count === 1 ? '' : 'er'} finns`,
+            severity: 'info',
+          }
+        : null,
+    ].filter(Boolean);
+
+    const priorityItem = {
+      id: `followup:${item.caseId || item.patientId || index}`,
+      source: 'followup',
+      priority,
+      priorityRank,
+      title: `${item.customerName || item.patientId || 'Kund'} · ${item.milestone?.label || 'Uppföljning'}`,
+      body: actions.map((action) => action.label).join(' · '),
+      startsAt: item.startsAt || null,
+      actionUrl: item.links?.workspace || item.links?.customerCard || null,
+      links: item.links || {},
+      actions,
+      followupItem: item,
     };
     priorityItem.nextBestAction = buildNextBestAction(priorityItem);
     priorityItem.roleCards = buildRoleCards(priorityItem);
@@ -1461,15 +1583,38 @@ function createStaffPortalRouter({
             .slice(0, 30)
             .map((item) => buildCustomerWorkItem(item, { tenantId }))
         );
-        const queueItems = customers.map(buildDailyWorkQueueItem);
+        const followups = await Promise.all(
+          (Array.isArray(cases) ? cases : [])
+            .slice(0, 30)
+            .map((item) => buildStaffFollowupItem(item, { tenantId }))
+        );
+        const queueItems = customers
+          .map(buildDailyWorkQueueItem)
+          .filter((item) => item.priority !== 'done');
         const notificationItems = (Array.isArray(feed?.items) ? feed.items : [])
           .filter(
             (item) =>
               !item.read || item.actionUrl || item.links?.staffPortal || item.links?.staffTask
           )
           .map(buildNotificationPriorityItem);
+        const followupItems = followups
+          .filter(Boolean)
+          .filter((item) => {
+            const needsDoctor = item.followupHistory?.some(
+              (entry) => entry.action === 'staff_followup_needs_doctor'
+            );
+            return item.status === 'overdue' || needsDoctor || Number(item.photos?.count || 0) > 0;
+          })
+          .map(buildFollowupPriorityItem);
+        const followupCaseIds = new Set(
+          followupItems.map((item) => item.followupItem?.caseId).filter(Boolean)
+        );
 
-        const items = [...notificationItems, ...queueItems.map(buildQueuePriorityItem)]
+        const items = [
+          ...notificationItems,
+          ...followupItems,
+          ...queueItems.filter((item) => !followupCaseIds.has(item.id)).map(buildQueuePriorityItem),
+        ]
           .sort(
             (a, b) =>
               a.priorityRank - b.priorityRank ||
@@ -1486,7 +1631,16 @@ function createStaffPortalRouter({
             acc[item.priority] = (acc[item.priority] || 0) + 1;
             return acc;
           },
-          { total: 0, notification: 0, queue: 0, urgent: 0, today: 0, waiting: 0, done: 0 }
+          {
+            total: 0,
+            notification: 0,
+            followup: 0,
+            queue: 0,
+            urgent: 0,
+            today: 0,
+            waiting: 0,
+            done: 0,
+          }
         );
 
         res.json({ ok: true, items, count: items.length, summary });
