@@ -13538,6 +13538,7 @@ process.once('SIGTERM', () => {
       patientPortalStore,
       journalStore: ccoJournalStore || null,
       bookingCaseStore: ccoBookingCaseStore || null,
+      journalPhotoStore: ccoJournalPhotoStore || null,
     })
   );
   app.locals.patientPortalStore = patientPortalStore; // Beslut #2: exponera för staff-API
