@@ -1978,6 +1978,18 @@ test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder m
         queueBody.items[0].completionRequest.comment,
         'Komplettera samtycke före beslut'
       );
+      assert.deepEqual(queueBody.items[0].doctorFeedback, {
+        status: 'needs_completion',
+        label: 'Läkaren begär komplettering',
+        tone: 'amber',
+        comment: 'Komplettera samtycke före beslut',
+        requestedBy: 'doctor-1',
+        requestedAt: queueBody.items[0].doctorFeedback.requestedAt,
+        signature: 'Dr Test',
+        nextStep: 'Komplettera underlaget och markera “Komplettering klar”.',
+        readOnly: true,
+      });
+      assert.ok(queueBody.items[0].doctorFeedback.requestedAt);
 
       const resolveCompletion = await fetch(
         `http://127.0.0.1:${port}/api/v1/staff/daily-work-queue/case-action-1/action`,
