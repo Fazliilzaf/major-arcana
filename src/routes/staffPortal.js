@@ -572,6 +572,7 @@ function createStaffPortalRouter({
         if (item.waitingDoctor) acc.waitingDoctor += 1;
         if (item.photos?.count || item.photos?.incomingFromPortal) acc.withPhotos += 1;
         if (item.photos?.incomingReviewPending) acc.incomingUploads += 1;
+        if (item.photos?.reviewedAt) acc.reviewedPhotos += 1;
         return acc;
       },
       {
@@ -584,6 +585,7 @@ function createStaffPortalRouter({
         waitingDoctor: 0,
         withPhotos: 0,
         incomingUploads: 0,
+        reviewedPhotos: 0,
       }
     );
     return {
@@ -2177,6 +2179,7 @@ function createStaffPortalRouter({
         if (mode === 'with_photos')
           return Number(item.photos?.count || 0) > 0 || Boolean(item.photos?.incomingFromPortal);
         if (mode === 'incoming_uploads') return Boolean(item.photos?.incomingReviewPending);
+        if (mode === 'reviewed_photos') return Boolean(item.photos?.reviewedAt);
         if (mode === 'waiting_doctor') return Boolean(item.waitingDoctor);
         if (mode === 'completed') return item.status === 'completed';
         if (mode === 'needs_doctor') {
@@ -2201,6 +2204,7 @@ function createStaffPortalRouter({
           acc[item.status] = (acc[item.status] || 0) + 1;
           if (item.photos?.count || item.photos?.incomingFromPortal) acc.withPhotos += 1;
           if (item.photos?.incomingReviewPending) acc.incomingUploads += 1;
+          if (item.photos?.reviewedAt) acc.reviewedPhotos += 1;
           if (item.waitingDoctor) acc.waitingDoctor += 1;
           if (
             item.followupHistory?.some((entry) => entry.action === 'staff_followup_needs_doctor')
@@ -2217,6 +2221,7 @@ function createStaffPortalRouter({
           upcoming_operation: 0,
           withPhotos: 0,
           incomingUploads: 0,
+          reviewedPhotos: 0,
           needsDoctor: 0,
           waitingDoctor: 0,
           completed: 0,

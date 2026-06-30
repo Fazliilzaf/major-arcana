@@ -2638,6 +2638,7 @@
         ['upcoming', 'Planerade'],
         ['with_photos', 'Med bilder'],
         ['incoming_uploads', 'Bilder inkomna'],
+        ['reviewed_photos', 'Bilder granskade'],
         ['needs_doctor', 'Behöver läkare'],
         ['waiting_doctor', 'Väntar läkare'],
         ['completed', 'Klara'],
@@ -2662,6 +2663,7 @@
           upcoming: Number(summary.upcoming || 0) + Number(summary.upcoming_operation || 0),
           with_photos: summary.withPhotos || 0,
           incoming_uploads: summary.incomingUploads || 0,
+          reviewed_photos: summary.reviewedPhotos || 0,
           needs_doctor: summary.needsDoctor || 0,
           waiting_doctor: summary.waitingDoctor || 0,
           completed: summary.completed || 0,
@@ -4433,7 +4435,7 @@
 
         if (data.items?.length) {
           container.innerHTML =
-            `<div class="live-note">Live uppföljningar · ${escapeHtml(activeLabel)}: ${Number(data.count || 0)} visade av ${Number(summary.total || 0)} ärenden · ${Number(summary.overdue || 0)} försenade · ${Number(summary.due || 0)} aktuella · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} bilder inkomna · ${Number(summary.needsDoctor || 0)} behöver läkare.</div>` +
+            `<div class="live-note">Live uppföljningar · ${escapeHtml(activeLabel)}: ${Number(data.count || 0)} visade av ${Number(summary.total || 0)} ärenden · ${Number(summary.overdue || 0)} försenade · ${Number(summary.due || 0)} aktuella · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} bilder inkomna · ${Number(summary.reviewedPhotos || 0)} bilder granskade · ${Number(summary.needsDoctor || 0)} behöver läkare.</div>` +
             data.items.slice(0, 8).map(renderStaffFollowupCard).join('');
         } else {
           container.innerHTML = `<div class="live-note">Inga uppföljningar i läget “${escapeHtml(activeLabel)}”. Byt arbetsläge ovan för att se fler ärenden.</div>`;
@@ -4467,7 +4469,7 @@
           badge.textContent = active;
           badge.style.display = active > 0 ? '' : 'none';
         });
-        container.innerHTML = `<div class="live-note">Live owner-överblick: ${Number(summary.total || 0)} uppföljningsärenden · ${Number(summary.completed || 0)} klara · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} kunduppladdningar.</div>
+        container.innerHTML = `<div class="live-note">Live owner-överblick: ${Number(summary.total || 0)} uppföljningsärenden · ${Number(summary.completed || 0)} klara · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} kunduppladdningar · ${Number(summary.reviewedPhotos || 0)} bildgranskningar klara.</div>
           <div class="qms-grid" style="margin-top:10px">
             ${ownerFollowupMetric('Försenade', summary.overdue, 'danger', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Idag/aktuella', summary.due, 'amber', '/staff-portal?role=nurse&panel=followups')}
@@ -4475,6 +4477,7 @@
             ${ownerFollowupMetric('Klara', summary.completed, 'sage', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Med bilder', summary.withPhotos, 'violet', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Bilder inkomna', summary.incomingUploads, 'violet', '/staff-portal?role=nurse&panel=followups&followupMode=incoming_uploads')}
+            ${ownerFollowupMetric('Bilder granskade', summary.reviewedPhotos, 'sage', '/staff-portal?role=nurse&panel=followups&followupMode=reviewed_photos')}
           </div>`;
       }
 

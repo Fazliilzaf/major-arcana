@@ -519,6 +519,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       assert.equal(all.summary.upcoming, 1);
       assert.equal(all.summary.withPhotos, 2);
       assert.equal(all.summary.incomingUploads, 1);
+      assert.equal(all.summary.reviewedPhotos, 0);
       assert.equal(all.summary.needsDoctor, 2);
       assert.equal(all.summary.waitingDoctor, 1);
       assert.equal(all.summary.completed, 1);
@@ -566,6 +567,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       const incomingAfterReview = await fetchMode('incoming_uploads');
       assert.equal(incomingAfterReview.items.length, 0);
       assert.equal(incomingAfterReview.summary.incomingUploads, 0);
+      assert.equal(incomingAfterReview.summary.reviewedPhotos, 1);
       const withPhotosAfterReview = await fetchMode('with_photos');
       assert.deepEqual(withPhotosAfterReview.items.map((item) => item.caseId).sort(), [
         'case-follow-incoming-upload',
@@ -577,6 +579,16 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       assert.equal(reviewedUpload.photos.incomingFromPortal, true);
       assert.equal(reviewedUpload.photos.incomingReviewPending, false);
       assert.ok(reviewedUpload.photos.reviewedAt);
+
+      const reviewedPhotos = await fetchMode('reviewed_photos');
+      assert.deepEqual(
+        reviewedPhotos.items.map((item) => item.caseId),
+        ['case-follow-incoming-upload']
+      );
+      assert.equal(reviewedPhotos.summary.incomingUploads, 0);
+      assert.equal(reviewedPhotos.summary.reviewedPhotos, 1);
+      assert.equal(reviewedPhotos.items[0].photos.incomingFromPortal, true);
+      assert.equal(reviewedPhotos.items[0].photos.incomingReviewPending, false);
 
       const needsDoctor = await fetchMode('needs_doctor');
       assert.deepEqual(
