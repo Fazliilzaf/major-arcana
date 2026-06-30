@@ -1,6 +1,8 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const express = require('express');
 const {
   WORKSPACE_ID,
@@ -97,6 +99,74 @@ function listOfferPhotoAttachments(commercialCase = {}) {
       seen.add(photoId);
       return true;
     });
+}
+
+function escapeScriptJson(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+function buildCustomerOfferPortalPlan(commercialCase = {}) {
+  const offerPlan =
+    commercialCase.offerPlan && typeof commercialCase.offerPlan === 'object'
+      ? commercialCase.offerPlan
+      : {};
+  return {
+    ...offerPlan,
+    customerName:
+      normalizeText(offerPlan.customerName) ||
+      normalizeText(commercialCase.customerName) ||
+      normalizeText(commercialCase.customerSignedName) ||
+      'Kund',
+    operationDateLabel:
+      normalizeText(offerPlan.operationDateLabel) ||
+      normalizeText(commercialCase.operationDateLabel) ||
+      '',
+    price: {
+      ...(offerPlan.price && typeof offerPlan.price === 'object' ? offerPlan.price : {}),
+      quotedAmount:
+        normalizeText(offerPlan.price?.quotedAmount) || normalizeText(commercialCase.quotedAmount),
+      depositAmount:
+        normalizeText(offerPlan.price?.depositAmount) ||
+        normalizeText(commercialCase.depositAmount),
+      remainingAmount:
+        normalizeText(offerPlan.price?.remainingAmount) ||
+        normalizeText(commercialCase.remainingAmount),
+    },
+  };
+}
+
+let cachedCustomerOfferPortalHtml = null;
+
+async function loadCustomerOfferPortalHtml() {
+  if (cachedCustomerOfferPortalHtml) return cachedCustomerOfferPortalHtml;
+  const filePath = path.join(
+    __dirname,
+    '..',
+    '..',
+    'public',
+    'major-arcana-preview',
+    'cco-patient-offer-portal-v3.html'
+  );
+  cachedCustomerOfferPortalHtml = await fs.readFile(filePath, 'utf8');
+  return cachedCustomerOfferPortalHtml;
+}
+
+async function buildCustomerOfferPortalHtml(commercialCase = {}) {
+  const html = await loadCustomerOfferPortalHtml();
+  const plan = buildCustomerOfferPortalPlan(commercialCase);
+  const payload = `<script>window.ARCANA_CUSTOMER_OFFER_PLAN=${escapeScriptJson(plan)};</script>`;
+  if (html.includes('window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN')) {
+    return html.replace(
+      '<script>\n      // ===== K4:',
+      `${payload}\n    <script>\n      // ===== K4:`
+    );
+  }
+  return html.replace('</head>', `${payload}\n</head>`);
 }
 
 function createCcoCommercialRouter({
@@ -705,6 +775,7 @@ function createCcoCommercialRouter({
           commercialCase,
           commercialReadout: buildCommercialCaseReadout(commercialCase),
           offerSignUrl: `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(commercialCase.esignToken)}`,
+          customerPortalUrl: `${origin}/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(commercialCase.esignToken)}`,
         });
       })
   );
@@ -774,6 +845,25 @@ function createCcoCommercialRouter({
     } catch (error) {
       console.error(error);
       return res.status(500).send('Kunde inte visa signeringssida.');
+    }
+  });
+
+  router.get('/cco-commercial/customer-offer-portal', async (req, res) => {
+    try {
+      const token = normalizeText(req.query.token);
+      if (!token) return res.status(400).send('token saknas.');
+      const match = commercialStore.findCaseByEsignToken
+        ? await commercialStore.findCaseByEsignToken(token)
+        : null;
+      if (!match) return res.status(404).send('Kundportal hittades inte.');
+      await recordCustomerQuoteOpen(match, 'customer_offer_portal');
+      const html = await buildCustomerOfferPortalHtml(match);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'private, max-age=60');
+      return res.send(html);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).send('Kunde inte visa kundportal.');
     }
   });
 
