@@ -78,11 +78,22 @@ Det här finns redan i repo och ska återanvändas:
 - `informationDeliveredAt` sätts när offerten skickas för signering. Det är startpunkten för kundens mottagna patientinformation i offertflödet.
 - Patientportalen ska senare läsa samma `offerPlan`, så UI och PDF inte driver isär.
 
+## K3 — Token-skyddad bildpanel
+
+Kundens signerings-/offertsida visar nu ritade konsultationsbilder via befintlig token-route:
+
+- Bildkälla: `offerPlan.attachments` + `planSnapshot.attachments`.
+- Bildroute: `GET /api/v1/cco-commercial/offer-photo?token=...&photoId=...`.
+- Variant: `variant=annotated` används när ritad preview finns.
+- Säkerhet: token får bara läsa `photoId` som faktiskt ingår i samma offert.
+- UI: caption, markering för `Ritad plan`, och öppning i ny flik via samma token-skyddade URL.
+
+Inget nytt lagringslager byggdes.
+
 ## Nästa block
 
 | Fas | Innehåll                                                               |
 | --- | ---------------------------------------------------------------------- |
-| K3  | Token-skyddad bildpanel i portalen med ritade konsultationsbilder      |
 | K4  | Kundportal visar zoner, hårsäckar, pris och planering från `offerPlan` |
 | K5  | Personalflöde för att granska/justera `offerPlan` innan utskick        |
 | K6  | Portalstatus: betänketid, signering, nedladdning, nästa steg           |

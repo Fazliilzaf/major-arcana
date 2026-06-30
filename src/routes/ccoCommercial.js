@@ -84,6 +84,21 @@ function buildPatientRegisterContext(actor, body = {}) {
   };
 }
 
+function listOfferPhotoAttachments(commercialCase = {}) {
+  const snapshot = commercialCase.planSnapshot || {};
+  const offerPlan = commercialCase.offerPlan || {};
+  const seen = new Set();
+  return [snapshot.attachments, offerPlan.attachments]
+    .flatMap((items) => (Array.isArray(items) ? items : []))
+    .filter((item) => item && typeof item === 'object')
+    .filter((item) => {
+      const photoId = normalizeText(item.photoId);
+      if (!photoId || seen.has(photoId)) return false;
+      seen.add(photoId);
+      return true;
+    });
+}
+
 function createCcoCommercialRouter({
   commercialStore,
   journalStore = null,
@@ -793,7 +808,7 @@ function createCcoCommercialRouter({
         : null;
       if (!match) return res.status(404).send('Offert hittades inte.');
       const snapshot = match.planSnapshot || {};
-      const attachments = Array.isArray(snapshot.attachments) ? snapshot.attachments : [];
+      const attachments = listOfferPhotoAttachments(match);
       const entry = attachments.find((a) => normalizeText(a.photoId) === photoId);
       if (!entry) return res.status(403).send('Bild ej tillgänglig i denna offert.');
       const patientId = normalizeText(snapshot.patientId) || normalizeText(match.customerId);

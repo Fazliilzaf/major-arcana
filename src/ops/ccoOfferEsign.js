@@ -53,6 +53,33 @@ function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function normalizePhotoAttachment(value = {}) {
+  const item = asObject(value);
+  const photoId = normalizeText(item.photoId);
+  if (!photoId) return null;
+  return {
+    photoId,
+    fileName: normalizeText(item.fileName || item.label) || 'Konsultationsbild',
+    label: normalizeText(item.label || item.fileName) || 'Konsultationsbild',
+    hasAnnotation: Boolean(item.hasAnnotation || item.annotatedPreviewAvailable),
+    annotatedPreviewAvailable: Boolean(item.annotatedPreviewAvailable),
+    dataUrl: normalizeText(item.dataUrl),
+  };
+}
+
+function mergePhotoAttachments(...groups) {
+  const seen = new Set();
+  return groups
+    .flatMap((group) => (Array.isArray(group) ? group : []))
+    .map(normalizePhotoAttachment)
+    .filter(Boolean)
+    .filter((item) => {
+      if (seen.has(item.photoId)) return false;
+      seen.add(item.photoId);
+      return true;
+    });
+}
+
 function canAcceptOffer(commercialCase = {}, options = {}) {
   const quoteStatus = normalizeText(commercialCase.quoteStatus);
   if (quoteStatus === 'accepted') {
@@ -142,8 +169,7 @@ function buildOfferSignPageHtml({
   const graftsZones =
     fields.graftsZones && typeof fields.graftsZones === 'object' ? fields.graftsZones : {};
 
-  const allAttachments = Array.isArray(planSnapshot.attachments) ? planSnapshot.attachments : [];
-  const photosToShow = allAttachments.filter((p) => p && p.photoId);
+  const photosToShow = mergePhotoAttachments(offerPlan.attachments, planSnapshot.attachments);
   const photoSrc = (p) => {
     if (normalizeText(p.dataUrl)) return normalizeText(p.dataUrl);
     if (!token || !origin) return '';
@@ -192,13 +218,22 @@ function buildOfferSignPageHtml({
   const photosSection =
     photosToShow.length > 0
       ? `<div class="section-card">
-    <div class="card-label">Konsultationsbilder</div>
+    <div class="card-label">Ritade konsultationsbilder</div>
+    <div class="photo-note">Bilderna visas bara via din säkra offertlänk. Markerade bilder används som underlag för planeringen.</div>
     <div class="photos-grid">
       ${photosToShow
         .map((p) => {
           const src = photoSrc(p);
           if (!src) return '';
-          return `<img class="consult-photo" src="${esc(src)}" alt="${esc(p.fileName || 'Konsultationsbild')}" loading="lazy" />`;
+          return `<figure class="consult-photo-card">
+            <a href="${esc(src)}" target="_blank" rel="noopener">
+              <img class="consult-photo" src="${esc(src)}" alt="${esc(p.label)}" loading="lazy" />
+            </a>
+            <figcaption>
+              <span>${esc(p.label)}</span>
+              ${p.hasAnnotation ? '<strong>Ritad plan</strong>' : '<em>Originalbild</em>'}
+            </figcaption>
+          </figure>`;
         })
         .filter(Boolean)
         .join('')}
@@ -352,9 +387,18 @@ function buildOfferSignPageHtml({
     .z-total .zone-num{color:var(--sage)}
     .z-total .zone-bar{background:linear-gradient(90deg,var(--sage),rgba(47,111,84,0.15))}
     /* photos */
+    .photo-note{font-size:0.72rem;color:var(--text2);line-height:1.45;margin-bottom:0.65rem}
     .photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.5rem}
+    .consult-photo-card{margin:0;padding:0.4rem;border-radius:var(--r-sm);
+      background:rgba(255,255,255,0.72);border:1px solid rgba(167,145,125,0.14)}
     .consult-photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r-sm);
       border:1px solid var(--border)}
+    .consult-photo-card figcaption{display:flex;align-items:center;justify-content:space-between;
+      gap:0.35rem;margin-top:0.38rem;font-size:0.66rem;color:var(--text2)}
+    .consult-photo-card figcaption strong{font-size:0.58rem;text-transform:uppercase;
+      letter-spacing:0.03em;color:var(--accent);background:var(--accent-light);
+      border-radius:var(--r-pill);padding:0.14rem 0.34rem;white-space:nowrap}
+    .consult-photo-card figcaption em{font-style:normal;color:var(--text3);white-space:nowrap}
     /* price */
     .price-row{display:flex;justify-content:space-between;align-items:baseline;
       padding:0.5rem 0;border-bottom:1px solid rgba(167,145,125,0.12)}
