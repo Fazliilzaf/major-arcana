@@ -113,6 +113,12 @@ function normalizeStaffActions(input = null) {
       sentToDoctorBy: null,
       completionResolvedAt: null,
       completionResolvedBy: null,
+      followupContactedAt: null,
+      followupContactedBy: null,
+      followupNeedsDoctorAt: null,
+      followupNeedsDoctorBy: null,
+      followupJournalDraftRequestedAt: null,
+      followupJournalDraftRequestedBy: null,
       lastActionAt: null,
       lastActionBy: null,
       lastAction: null,
@@ -125,6 +131,12 @@ function normalizeStaffActions(input = null) {
     sentToDoctorBy: normalizeText(input.sentToDoctorBy) || null,
     completionResolvedAt: normalizeText(input.completionResolvedAt) || null,
     completionResolvedBy: normalizeText(input.completionResolvedBy) || null,
+    followupContactedAt: normalizeText(input.followupContactedAt) || null,
+    followupContactedBy: normalizeText(input.followupContactedBy) || null,
+    followupNeedsDoctorAt: normalizeText(input.followupNeedsDoctorAt) || null,
+    followupNeedsDoctorBy: normalizeText(input.followupNeedsDoctorBy) || null,
+    followupJournalDraftRequestedAt: normalizeText(input.followupJournalDraftRequestedAt) || null,
+    followupJournalDraftRequestedBy: normalizeText(input.followupJournalDraftRequestedBy) || null,
     lastActionAt: normalizeText(input.lastActionAt) || null,
     lastActionBy: normalizeText(input.lastActionBy) || null,
     lastAction: normalizeText(input.lastAction) || null,
@@ -531,7 +543,15 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     const idx = findIndexById(id);
     if (idx === -1) throw notFound('booking_case_not_found');
     const action = normalizeKey(input.action);
-    const allowed = ['mark_seen', 'send_to_doctor', 'complete_checklist', 'resolve_completion'];
+    const allowed = [
+      'mark_seen',
+      'send_to_doctor',
+      'complete_checklist',
+      'resolve_completion',
+      'followup_contacted',
+      'followup_needs_doctor',
+      'followup_journal_draft',
+    ];
     if (!allowed.includes(action)) {
       throw badRequest(`Ogiltig personalåtgärd. Tillåtna: ${allowed.join(', ')}.`);
     }
@@ -582,6 +602,24 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
       });
       record.staffActions.completionResolvedAt = ts;
       record.staffActions.completionResolvedBy = actorUserId;
+    }
+
+    if (action === 'followup_contacted') {
+      record.staffActions.followupContactedAt = ts;
+      record.staffActions.followupContactedBy = actorUserId;
+    }
+
+    if (action === 'followup_needs_doctor') {
+      record.staffActions.followupNeedsDoctorAt = ts;
+      record.staffActions.followupNeedsDoctorBy = actorUserId;
+      if (!record.ordinationReview) {
+        record.ordinationReview = normalizeOrdinationReview({ status: 'pending' });
+      }
+    }
+
+    if (action === 'followup_journal_draft') {
+      record.staffActions.followupJournalDraftRequestedAt = ts;
+      record.staffActions.followupJournalDraftRequestedBy = actorUserId;
     }
 
     record.staffActions.lastActionAt = ts;

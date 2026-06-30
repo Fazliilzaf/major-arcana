@@ -1740,6 +1740,67 @@ function createStaffPortalRouter({
     }
   });
 
+  /* ── POST /api/v1/staff/followups/:id/action ─────────────────
+     Säkra uppföljningsåtgärder med audit.
+     Skickar inga meddelanden, skriver ingen journal och fattar inga kliniska beslut.
+  ─────────────────────────────────────────────────────────────── */
+  router.post(
+    '/api/v1/staff/followups/:id/action',
+    requirePermission('customers.read'),
+    async (req, res) => {
+      const id = String(req.params.id || '').trim();
+      const action = String(req.body?.action || '').trim();
+      const allowed = new Set([
+        'followup_contacted',
+        'followup_needs_doctor',
+        'followup_journal_draft',
+      ]);
+
+      if (!id) return res.status(400).json({ ok: false, error: 'Ärende-id krävs.' });
+      if (!allowed.has(action)) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Ogiltig uppföljningsåtgärd.',
+          allowed: [...allowed],
+        });
+      }
+      if (!bookingCaseStore?.recordStaffAction) {
+        return res.status(503).json({ ok: false, error: 'Booking case store saknas.' });
+      }
+
+      try {
+        const caseRecord = await bookingCaseStore.recordStaffAction(id, { action }, getActor(req));
+
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: `staff_portal.${action}`,
+            actor: { role: req.cco?.role ?? null, userId: req.auth?.userId ?? null, ip: null },
+            target: { kind: 'booking_case', id, tenantId: req.auth?.tenantId ?? null },
+            result: 'ok',
+            detail: {
+              safety:
+                'Uppföljningsåtgärden är intern. Ingen kundkontakt, journal eller ordination skapas automatiskt.',
+            },
+          });
+        }
+
+        return res.json({
+          ok: true,
+          action,
+          case: caseRecord,
+          safety: {
+            noAutoSend: true,
+            noAutoJournal: true,
+            message:
+              'Åtgärden är audit-loggad. Fortsatt kundkontakt, journal och läkarbedömning görs i ordinarie CCO-flöde.',
+          },
+        });
+      } catch (err) {
+        return handleWriteError(res, err);
+      }
+    }
+  );
+
   /* ── GET /api/v1/staff/daily-work-queue ───────────────────────
      Prioriterad read-only kö för vardagsarbetet:
        - akut: kundfråga/svar krävs
