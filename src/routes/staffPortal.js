@@ -352,6 +352,12 @@ function createStaffPortalRouter({
       }));
   }
 
+  function hasFollowupDoctorEscalation(caseRecord = {}) {
+    return buildFollowupHistory(caseRecord).some(
+      (entry) => entry.action === 'staff_followup_needs_doctor'
+    );
+  }
+
   async function buildStaffFollowupItem(caseRecord, { tenantId, now = new Date() } = {}) {
     const startsAt = caseRecord.startsAt || caseRecord.scheduledForIso || caseRecord.scheduledAt;
     const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
@@ -612,11 +618,16 @@ function createStaffPortalRouter({
     const lastCompletionResolved = [...history]
       .reverse()
       .find((entry) => entry?.action === 'staff_resolve_completion');
+    const followupHistory = buildFollowupHistory(caseRecord);
+    const latestFollowupEscalation = [...followupHistory]
+      .reverse()
+      .find((entry) => entry.action === 'staff_followup_needs_doctor');
     const timelineLabels = {
       case_created: 'Ärende skapat',
       staff_mark_seen: 'Personal markerade sedd',
       staff_send_to_doctor: 'Skickad till läkare',
       staff_complete_checklist: 'Checkpunkt klar',
+      staff_followup_needs_doctor: 'Uppföljning eskalerad till läkare',
       ordination_needs_completion: 'Läkare begärde komplettering',
       staff_resolve_completion: 'Personal markerade komplettering klar',
       ordination_approved: 'Ordination godkänd',
@@ -718,6 +729,16 @@ function createStaffPortalRouter({
           'Läkaren måste granska underlaget manuellt. Systemet kan aldrig skapa ordination.approved automatiskt.',
       },
       completionReturn,
+      followupEscalation: latestFollowupEscalation
+        ? {
+            active: true,
+            label: latestFollowupEscalation.label,
+            at: latestFollowupEscalation.at,
+            by: latestFollowupEscalation.userId || latestFollowupEscalation.role || null,
+            safety:
+              'Uppföljningen behöver läkarblick, men skapar ingen ordination och inget kundutskick automatiskt.',
+          }
+        : null,
       timeline,
       timelineSummary,
       decisionSummary,
@@ -737,6 +758,7 @@ function createStaffPortalRouter({
 
   function classifyOrdinationWorkMode(caseRecord = {}, readout = {}) {
     const status = String(caseRecord.ordinationReview?.status || '').toLowerCase();
+    if (readout.followupEscalation?.active) return 'followup';
     if (status === 'approved') return 'approved';
     if (status === 'rejected') return 'rejected';
     if (status === 'needs_completion') return 'completion';
@@ -790,6 +812,17 @@ function createStaffPortalRouter({
           'Ordinationen är avvisad. Kortet är read-only för historik, audit och motivering.',
         owner: 'doctor',
         suggestedAction: 'read_rejection',
+        canUseDecisionButtons: false,
+      },
+      followup: {
+        mode,
+        label: 'Uppföljning',
+        tone: 'info',
+        primary: 'Granska uppföljningsunderlag',
+        description:
+          'Personal har markerat uppföljningen som behöver läkare. Öppna kundens workspace, titta på historik/bilder och återkoppla manuellt i rätt CCO-flöde.',
+        owner: 'doctor',
+        suggestedAction: 'review_followup',
         canUseDecisionButtons: false,
       },
       pending: {
@@ -2209,9 +2242,15 @@ function createStaffPortalRouter({
         const requestedMode = String(req.query.mode || 'pending')
           .trim()
           .toLowerCase();
-        const mode = ['all', 'pending', 'returned', 'completion', 'approved', 'rejected'].includes(
-          requestedMode
-        )
+        const mode = [
+          'all',
+          'pending',
+          'returned',
+          'completion',
+          'followup',
+          'approved',
+          'rejected',
+        ].includes(requestedMode)
           ? requestedMode
           : 'pending';
 
@@ -2221,6 +2260,7 @@ function createStaffPortalRouter({
           pending: 0,
           returned: 0,
           completion: 0,
+          followup: 0,
           approved: 0,
           rejected: 0,
         };
@@ -2231,7 +2271,12 @@ function createStaffPortalRouter({
           });
           const builtReviews = allOpen
             .filter((c) => !['completed', 'cancelled'].includes(c.state))
-            .filter((c) => isTreatmentRequiringOrdination(c) || c.ordinationReview)
+            .filter(
+              (c) =>
+                isTreatmentRequiringOrdination(c) ||
+                c.ordinationReview ||
+                hasFollowupDoctorEscalation(c)
+            )
             .map((c) => {
               const ordinationReadout = buildOrdinationReviewReadout(c);
               const workMode = classifyOrdinationWorkMode(c, ordinationReadout);

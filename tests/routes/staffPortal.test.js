@@ -878,6 +878,7 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
     await createCase('case-mode-pending', 'Pending Kund');
     await createCase('case-mode-completion', 'Completion Kund');
     await createCase('case-mode-returned', 'Returned Kund');
+    await createCase('case-mode-followup', 'Followup Kund');
     await createCase('case-mode-approved', 'Approved Kund');
     await createCase('case-mode-rejected', 'Rejected Kund');
     await bookingCaseStore.updateOrdinationReview(
@@ -893,6 +894,11 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
     await bookingCaseStore.recordStaffAction(
       'case-mode-returned',
       { action: 'resolve_completion' },
+      { userId: 'staff-1', role: 'personal' }
+    );
+    await bookingCaseStore.recordStaffAction(
+      'case-mode-followup',
+      { action: 'followup_needs_doctor' },
       { userId: 'staff-1', role: 'personal' }
     );
     await bookingCaseStore.updateOrdinationReview(
@@ -931,12 +937,13 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
       };
 
       const all = await fetchMode('all');
-      assert.equal(all.count, 5);
+      assert.equal(all.count, 6);
       assert.deepEqual(all.modes, {
-        all: 5,
+        all: 6,
         pending: 1,
         returned: 1,
         completion: 1,
+        followup: 1,
         approved: 1,
         rejected: 1,
       });
@@ -967,6 +974,24 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
       );
       assert.equal(completion.reviews[0].nextAction.owner, 'staff');
       assert.equal(completion.reviews[0].nextAction.canUseDecisionButtons, false);
+
+      const followup = await fetchMode('followup');
+      assert.deepEqual(
+        followup.reviews.map((item) => item.id),
+        ['case-mode-followup']
+      );
+      assert.equal(followup.reviews[0].workMode, 'followup');
+      assert.equal(followup.reviews[0].nextAction.suggestedAction, 'review_followup');
+      assert.equal(followup.reviews[0].nextAction.canUseDecisionButtons, false);
+      assert.deepEqual(followup.reviews[0].ordinationReadout.followupEscalation, {
+        active: true,
+        label: 'Behöver läkare',
+        at: followup.reviews[0].ordinationReadout.followupEscalation.at,
+        by: 'staff-1',
+        safety:
+          'Uppföljningen behöver läkarblick, men skapar ingen ordination och inget kundutskick automatiskt.',
+      });
+      assert.ok(followup.reviews[0].ordinationReadout.followupEscalation.at);
 
       const approved = await fetchMode('approved');
       assert.deepEqual(

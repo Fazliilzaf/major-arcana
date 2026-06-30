@@ -2618,6 +2618,7 @@
         ['pending', 'Väntar beslut'],
         ['returned', 'Komplettering klar'],
         ['completion', 'Väntar komplettering'],
+        ['followup', 'Uppföljning'],
         ['approved', 'Godkända'],
         ['rejected', 'Avvisade'],
         ['all', 'Alla'],
@@ -3493,7 +3494,9 @@
               : reviewStatus === 'needs_completion'
                 ? '<span class="pill amber" style="margin-left:auto">Komplettering begärd</span>'
                 : '<span class="pill amber" style="margin-left:auto">Väntar läkare</span>';
-        const disabledAttr = canApprove ? '' : ' disabled';
+        const nextAction = item.nextAction || {};
+        const canUseDecisionButtons = nextAction.canUseDecisionButtons !== false;
+        const disabledAttr = canApprove && canUseDecisionButtons ? '' : ' disabled';
         const decisionMeta = review.decidedAt
           ? `<div class="live-note" style="margin:12px 0 0">Senaste beslut: ${escapeHtml(reviewStatus)} · ${escapeHtml(formatDateTime(review.decidedAt))}${review.decidedBy ? ' · ' + escapeHtml(review.decidedBy) : ''}</div>`
           : '';
@@ -3582,7 +3585,6 @@
             ${receiptHtml}
           </div>`
           : '';
-        const nextAction = item.nextAction || {};
         const nextActionTone = ['sage', 'amber', 'danger', 'info'].includes(nextAction.tone)
           ? nextAction.tone
           : 'info';
@@ -3600,6 +3602,22 @@
           </div>
         </div>`;
         const completionReturn = readout.completionReturn || null;
+        const followupEscalation = readout.followupEscalation || null;
+        const followupEscalationHtml =
+          followupEscalation && followupEscalation.active
+            ? `<div class="ordination-signoff" style="margin-top:12px">
+                <div class="ordination-signoff-head">
+                  <div>
+                    <div class="ordination-signoff-title">Uppföljning behöver läkare</div>
+                    <div class="ordination-signoff-copy">
+                      Personal har eskalerat uppföljningen${followupEscalation.at ? ' · ' + escapeHtml(formatDateTime(followupEscalation.at)) : ''}${followupEscalation.by ? ' · ' + escapeHtml(staffDisplayName(followupEscalation.by) || followupEscalation.by) : ''}.
+                    </div>
+                  </div>
+                  <span class="pill info">Read-only läkarspår</span>
+                </div>
+                <div class="live-note" style="margin-top:9px">${escapeHtml(followupEscalation.safety || 'Granska uppföljningen manuellt i CCO.')}</div>
+              </div>`
+            : '';
         const completionReturnHtml =
           completionReturn && completionReturn.returned
             ? `<div class="ordination-signoff" style="margin-top:12px">
@@ -3743,6 +3761,7 @@
             ${ordinationLinks}
             ${plan.planningNote ? `<div class="live-note" style="margin:12px 0 0">Planering: ${escapeHtml(plan.planningNote)}</div>` : ''}
             ${plan.individualOrdinationNote ? `<div class="safety-notice" style="margin:12px 0 0">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
+            ${followupEscalationHtml}
             ${completionReturnHtml}
             ${timelineHtml}
             ${decisionSummaryHtml}
@@ -3767,7 +3786,13 @@
             <button class="btn primary ordination-action" data-action="approve" data-review-id="${escapeHtml(item.id || '')}"${disabledAttr}>✓ Godkänn &amp; signera</button>
             <button class="btn danger-btn ordination-action" data-action="reject" data-review-id="${escapeHtml(item.id || '')}"${disabledAttr}>✗ Avvisa</button>
             <button class="btn ordination-action" data-action="request-completion" data-review-id="${escapeHtml(item.id || '')}"${disabledAttr}>Begär komplettering</button>
-            <span class="ordination-feedback" data-feedback-for="${escapeHtml(item.id || '')}">${canApprove ? 'Redo för manuell läkaråtgärd.' : 'Endast läkare/ägare kan signera.'}</span>
+            <span class="ordination-feedback" data-feedback-for="${escapeHtml(item.id || '')}">${
+              canApprove && canUseDecisionButtons
+                ? 'Redo för manuell läkaråtgärd.'
+                : canApprove
+                  ? 'Det här läget är read-only; använd nästa åtgärd ovan.'
+                  : 'Endast läkare/ägare kan signera.'
+            }</span>
           </div>
         </div>`;
       }
@@ -4035,8 +4060,14 @@
           if (data.mode) _ordinationMode = data.mode;
           renderOrdinationModeRow(data.modes || {});
           const badge = document.querySelector('[data-live-badge="review-queue"]');
-          if (badge) badge.textContent = data.count;
-          if (badge) badge.style.display = data.count > 0 ? '' : 'none';
+          const doctorBadgeCount =
+            Number(data.modes?.followup || 0) ||
+            Number(data.modes?.pending || 0) ||
+            Number(data.modes?.returned || 0) ||
+            Number(data.modes?.completion || 0) ||
+            Number(data.count || 0);
+          if (badge) badge.textContent = doctorBadgeCount;
+          if (badge) badge.style.display = doctorBadgeCount > 0 ? '' : 'none';
 
           const container = document.getElementById('liveDoctorReviewList');
           if (container) {
@@ -4132,7 +4163,7 @@
         });
         container.innerHTML = items.length
           ? `<div class="notification-toolbar">
-              <div class="live-note" style="margin:0">Prioritet: ${Number(summary.urgent || 0)} akut · ${Number(summary.today || 0)} idag · ${Number(summary.notification || 0)} notiser · ${Number(summary.queue || 0)} arbetskö.</div>
+              <div class="live-note" style="margin:0">Prioritet: ${Number(summary.urgent || 0)} akut · ${Number(summary.today || 0)} idag · ${Number(summary.notification || 0)} notiser · ${Number(summary.followup || 0)} uppföljningar · ${Number(summary.queue || 0)} arbetskö.</div>
               <a class="deep-link primary" href="/staff-portal?role=${escapeHtml(currentRole)}&panel=notifications">Visa notiser</a>
             </div>` + items.slice(0, 6).map(renderPriorityRadarCard).join('')
           : '<div class="live-note">Inga prioriterade ärenden just nu.</div>';
@@ -4233,6 +4264,14 @@
         if (!container) return;
         const summary = data.summary || {};
         renderFollowupModeRow(summary);
+        document.querySelectorAll('[data-live-badge="followups"]').forEach((badge) => {
+          const count =
+            Number(summary.needsDoctor || 0) ||
+            Number(summary.overdue || 0) ||
+            Number(summary.due || 0);
+          badge.textContent = count;
+          badge.style.display = count > 0 ? '' : 'none';
+        });
         const activeLabel =
           FOLLOWUP_MODES.find(([mode]) => mode === _followupMode)?.[1] || 'Uppföljningar';
 
@@ -4536,6 +4575,7 @@
             { id: 'priority', icon: '✨', label: 'Prioritet', liveBadge: 'priorities' },
             { id: 'notifications', icon: '🔔', label: 'Notiser', liveBadge: 'notifications' },
             { id: 'mine', icon: '📋', label: 'Mina uppgifter', liveBadge: 'tasks' },
+            { id: 'followups', icon: '🩺', label: 'Uppföljningar', liveBadge: 'followups' },
             { id: 'cases', icon: '👤', label: 'Mina kunder' },
             { section: 'Dokument' },
             { id: 'deleg', icon: '📄', label: 'Delegering' },
@@ -4594,6 +4634,10 @@
         tasks: 'mine',
         notifications: 'notifications',
         notiser: 'notifications',
+        followups: 'followups',
+        followup: 'followups',
+        uppfoljningar: 'followups',
+        uppföljningar: 'followups',
         cases: 'cases',
         customers: 'cases',
         customer: 'cases',
@@ -4618,6 +4662,7 @@
 
       const PANEL_ROLE = {
         mine: 'nurse',
+        followups: 'nurse',
         cases: 'nurse',
         deleg: 'nurse',
         qms: 'nurse',
@@ -4636,6 +4681,7 @@
 
       const PANEL_TARGET = {
         mine: '#liveDailyQueueList',
+        followups: '#liveStaffFollowupList',
         priority: '#livePriorityRadarNurse',
         notifications: '#liveNotificationInboxNurse',
         cases: '#liveMyCustomerList',
