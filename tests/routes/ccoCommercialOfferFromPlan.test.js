@@ -268,6 +268,7 @@ test('offer-from-plan creates commercial case and html document', async () => {
       const sentPayload = await sendResponse.json();
       assert.equal(sentPayload.commercialCase.quoteStatus, 'sent');
       assert.ok(sentPayload.offerSignUrl);
+      assert.ok(sentPayload.customerPortalUrl);
       assert.equal(
         sentPayload.commercialCase.offerPlan.informationDeliveredAt,
         sentPayload.commercialCase.quoteSentAt
@@ -279,6 +280,20 @@ test('offer-from-plan creates commercial case and html document', async () => {
       assert.match(signPageHtml, /Ritade konsultationsbilder/);
       assert.match(signPageHtml, /Front/);
       assert.match(signPageHtml, /offer-photo\?token=/);
+
+      const portalResponse = await fetch(sentPayload.customerPortalUrl);
+      assert.equal(portalResponse.status, 200);
+      const portalHtml = await portalResponse.text();
+      assert.match(portalHtml, /window\.ARCANA_CUSTOMER_OFFER_PLAN=/);
+      assert.match(portalHtml, /"customerName":"Kund"/);
+      assert.match(portalHtml, /"total":"3500"/);
+      assert.match(portalHtml, /"quotedAmount":"75 000 kr"/);
+      assert.match(portalHtml, /"depositAmount":"15 000 kr"/);
+      assert.match(portalHtml, /Hårlinje först, därefter mitt och krona enligt ritade bilder/);
+      assert.match(
+        portalHtml,
+        /renderOfferPlanToPortal\(window\.ARCANA_CUSTOMER_OFFER_PLAN \|\| DEMO_OFFER_PLAN\)/
+      );
 
       const signUrl = new URL(sentPayload.offerSignUrl);
       const token = signUrl.searchParams.get('token');
