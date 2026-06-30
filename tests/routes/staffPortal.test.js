@@ -383,6 +383,95 @@ test('GET /api/v1/staff/followups prioriterar egna postop-uppföljningar', async
   }
 });
 
+test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med audit', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-followup-action-'));
+  try {
+    const auditEntries = [];
+    const ccoAuditLog = {
+      append(entry) {
+        auditEntries.push(entry);
+      },
+      query() {
+        return auditEntries;
+      },
+    };
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+      auditLog: ccoAuditLog,
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-follow-action-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-follow-action',
+      customerId: 'customer-follow-action',
+      customerName: 'Uppföljningsåtgärd Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-1',
+      startsAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        bookingCaseStore,
+        ccoAuditLog,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      for (const action of [
+        'followup_contacted',
+        'followup_needs_doctor',
+        'followup_journal_draft',
+      ]) {
+        const res = await fetch(
+          `http://127.0.0.1:${port}/api/v1/staff/followups/case-follow-action-1/action`,
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-cco-role': 'personal' },
+            body: JSON.stringify({ action }),
+          }
+        );
+        assert.equal(res.status, 200);
+        const body = await res.json();
+        assert.equal(body.ok, true);
+        assert.equal(body.action, action);
+        assert.equal(body.safety.noAutoSend, true);
+        assert.equal(body.safety.noAutoJournal, true);
+      }
+
+      const stored = await bookingCaseStore.getCase('case-follow-action-1');
+      assert.equal(stored.staffActions.followupContactedBy, 'staff-1');
+      assert.equal(stored.staffActions.followupNeedsDoctorBy, 'staff-1');
+      assert.equal(stored.staffActions.followupJournalDraftRequestedBy, 'staff-1');
+      assert.ok(stored.ordinationReview);
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_followup_contacted'));
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_followup_needs_doctor'));
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_followup_journal_draft'));
+      assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.followup_contacted'));
+      assert.ok(
+        auditEntries.some((entry) => entry.action === 'staff_portal.followup_needs_doctor')
+      );
+      assert.ok(
+        auditEntries.some((entry) => entry.action === 'staff_portal.followup_journal_draft')
+      );
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-daily-queue-'));
   try {

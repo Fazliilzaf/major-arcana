@@ -3232,7 +3232,11 @@
                 ? `<a class="btn primary" href="${escapeHtml(item.links.workspace)}" target="_blank" rel="noopener">${escapeHtml(item.action?.label || 'Öppna')}</a>`
                 : '<button class="btn" disabled>Ingen workspace</button>'
             }
+            <button class="btn followup-action" data-action="followup_contacted" data-case-id="${escapeHtml(item.caseId || '')}">Kontaktad</button>
+            <button class="btn followup-action" data-action="followup_needs_doctor" data-case-id="${escapeHtml(item.caseId || '')}">Behöver läkare</button>
+            <button class="btn followup-action" data-action="followup_journal_draft" data-case-id="${escapeHtml(item.caseId || '')}">Journalutkast</button>
           </div>
+          <div class="queue-feedback" data-followup-feedback-for="${escapeHtml(item.caseId || '')}"></div>
         </div>`;
       }
 
@@ -3727,6 +3731,43 @@
           ]);
         } catch (err) {
           setFeedback(err.message || 'Kunde inte spara åtgärden.', 'error');
+          button.disabled = false;
+        }
+      }
+
+      async function submitFollowupAction(button) {
+        const caseId = button?.dataset?.caseId || '';
+        const action = button?.dataset?.action || '';
+        if (!caseId || !action) return;
+
+        const card = button.closest('.item-card');
+        const escapedId =
+          window.CSS && typeof CSS.escape === 'function'
+            ? CSS.escape(caseId)
+            : String(caseId).replace(/["\\]/g, '\\$&');
+        const feedback = card?.querySelector(`[data-followup-feedback-for="${escapedId}"]`);
+        const setFeedback = (message, type) => {
+          if (!feedback) return;
+          feedback.textContent = message;
+          feedback.className = `queue-feedback ${type || ''}`.trim();
+        };
+
+        try {
+          button.disabled = true;
+          setFeedback('Sparar uppföljningsåtgärd och audit-loggar...', '');
+          await staffPost(`/api/v1/staff/followups/${encodeURIComponent(caseId)}/action`, {
+            action,
+          });
+          setFeedback('Sparat och audit-loggat. Fortsätt i ordinarie CCO-flöde.', 'ok');
+          await Promise.all([
+            loadStaffFollowups(),
+            loadDailyWorkQueue(),
+            loadStaffPriorityRadar(),
+            loadMyCustomers(),
+            loadAudit(),
+          ]);
+        } catch (err) {
+          setFeedback(err.message || 'Kunde inte spara uppföljningsåtgärd.', 'error');
           button.disabled = false;
         }
       }
@@ -4667,6 +4708,11 @@
         if (queueButton) {
           event.preventDefault();
           submitQueueAction(queueButton);
+        }
+        const followupButton = event.target.closest?.('.followup-action');
+        if (followupButton) {
+          event.preventDefault();
+          submitFollowupAction(followupButton);
         }
         const assignmentButton = event.target.closest?.('.assignment-action');
         if (assignmentButton) {
