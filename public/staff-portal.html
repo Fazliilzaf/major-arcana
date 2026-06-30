@@ -3193,6 +3193,34 @@
         const milestone = item.milestone || {};
         const status = item.status || 'upcoming';
         const pillClass = followupPillClass(status);
+        const followupHistory = Array.isArray(item.followupHistory) ? item.followupHistory : [];
+        const latestFollowup = item.followupHistorySummary || {};
+        const followupHistoryHtml = followupHistory.length
+          ? `<div class="ordination-timeline-summary">
+              <div class="ordination-timeline-chip">
+                <strong>Senast</strong>
+                <span>${escapeHtml(latestFollowup.latestLabel || followupHistory.at(-1)?.label || 'Uppföljning')}</span>
+              </div>
+              <div class="ordination-timeline-chip">
+                <strong>Historik</strong>
+                <span>${Number(latestFollowup.count || followupHistory.length || 0)} händelse${Number(latestFollowup.count || followupHistory.length || 0) === 1 ? '' : 'r'}${latestFollowup.latestAt ? ' · ' + escapeHtml(formatDateTime(latestFollowup.latestAt)) : ''}</span>
+              </div>
+            </div>
+            <div class="ordination-timeline">
+              ${followupHistory
+                .slice(-4)
+                .reverse()
+                .map((entry) => {
+                  const actor = staffDisplayName(entry.userId) || entry.userId || entry.role || '';
+                  return `<div class="ordination-timeline-row">
+                    <span class="ordination-timeline-dot"></span>
+                    <span class="ordination-timeline-label">${escapeHtml(entry.label || entry.action || 'Uppföljning')}</span>
+                    <span class="ordination-timeline-meta">${entry.at ? escapeHtml(formatDateTime(entry.at)) : ''}${actor ? ' · ' + escapeHtml(actor) : ''}</span>
+                  </div>`;
+                })
+                .join('')}
+            </div>`
+          : '<div class="live-note" style="margin-top:9px">Ingen uppföljningshistorik ännu.</div>';
         const daysText =
           Number(item.daysUntil || 0) < 0
             ? `${Math.abs(Number(item.daysUntil || 0))} dagar sen`
@@ -3210,6 +3238,7 @@
               <span class="pill violet">${Number(item.photos?.count || 0)} bild${Number(item.photos?.count || 0) === 1 ? '' : 'er'}</span>
             </div>
             <div class="live-note" style="margin-top:9px">${escapeHtml(item.action?.safety || 'Read-only uppföljningsstöd.')}</div>
+            ${followupHistoryHtml}
             ${renderDeepLinks(
               {
                 ...item,

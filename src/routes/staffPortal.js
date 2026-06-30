@@ -333,6 +333,25 @@ function createStaffPortalRouter({
     return Math.floor((now.getTime() - startMs) / (24 * 60 * 60 * 1000));
   }
 
+  function buildFollowupHistory(caseRecord = {}) {
+    const labels = {
+      staff_followup_contacted: 'Kontaktad',
+      staff_followup_needs_doctor: 'Behöver läkare',
+      staff_followup_journal_draft: 'Journalutkast begärt',
+    };
+    const history = Array.isArray(caseRecord.history) ? caseRecord.history : [];
+    return history
+      .filter((entry) => entry && typeof entry === 'object' && labels[entry.action])
+      .slice(-6)
+      .map((entry) => ({
+        at: entry.at || null,
+        action: entry.action,
+        label: labels[entry.action],
+        userId: entry.userId || null,
+        role: entry.role || null,
+      }));
+  }
+
   async function buildStaffFollowupItem(caseRecord, { tenantId, now = new Date() } = {}) {
     const startsAt = caseRecord.startsAt || caseRecord.scheduledForIso || caseRecord.scheduledAt;
     const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
@@ -359,6 +378,7 @@ function createStaffPortalRouter({
             : 'overdue';
     const priorityRank =
       status === 'overdue' ? 10 : status === 'due' ? 20 : status === 'upcoming' ? 40 : 60;
+    const followupHistory = buildFollowupHistory(caseRecord);
 
     return {
       caseId: caseRecord.id || null,
@@ -382,6 +402,13 @@ function createStaffPortalRouter({
       photos: {
         count: photos.length,
         latestAt: photos[0]?.updatedAt || null,
+      },
+      followupHistory,
+      followupHistorySummary: {
+        count: followupHistory.length,
+        latestAt: followupHistory.at(-1)?.at || null,
+        latestLabel: followupHistory.at(-1)?.label || null,
+        latestBy: followupHistory.at(-1)?.userId || null,
       },
       action: {
         label:
