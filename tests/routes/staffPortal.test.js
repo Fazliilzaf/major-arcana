@@ -520,6 +520,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       assert.equal(all.summary.withPhotos, 2);
       assert.equal(all.summary.incomingUploads, 1);
       assert.equal(all.summary.reviewedPhotos, 0);
+      assert.equal(all.summary.photoReviewOverdue, 1);
       assert.equal(all.summary.needsDoctor, 2);
       assert.equal(all.summary.waitingDoctor, 1);
       assert.equal(all.summary.completed, 1);
@@ -556,8 +557,18 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       assert.equal(incomingUploads.summary.incomingUploads, 1);
       assert.equal(incomingUploads.items[0].photos.incomingFromPortal, true);
       assert.equal(incomingUploads.items[0].photos.incomingReviewPending, true);
+      assert.equal(incomingUploads.items[0].photos.reviewOverdue, true);
+      assert.equal(incomingUploads.items[0].photos.reviewDueWithinHours, 24);
+      assert.ok(incomingUploads.items[0].photos.reviewAgeHours >= 24);
       assert.equal(incomingUploads.items[0].photos.portalUploadCount, 1);
       assert.equal(incomingUploads.items[0].followupUploadToken.status, 'received');
+
+      const photoReviewOverdue = await fetchMode('photo_review_overdue');
+      assert.deepEqual(
+        photoReviewOverdue.items.map((item) => item.caseId),
+        ['case-follow-incoming-upload']
+      );
+      assert.equal(photoReviewOverdue.summary.photoReviewOverdue, 1);
 
       await bookingCaseStore.recordStaffAction(
         'case-follow-incoming-upload',
@@ -568,6 +579,10 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       assert.equal(incomingAfterReview.items.length, 0);
       assert.equal(incomingAfterReview.summary.incomingUploads, 0);
       assert.equal(incomingAfterReview.summary.reviewedPhotos, 1);
+      assert.equal(incomingAfterReview.summary.photoReviewOverdue, 0);
+      const photoReviewOverdueAfterReview = await fetchMode('photo_review_overdue');
+      assert.equal(photoReviewOverdueAfterReview.items.length, 0);
+      assert.equal(photoReviewOverdueAfterReview.summary.photoReviewOverdue, 0);
       const withPhotosAfterReview = await fetchMode('with_photos');
       assert.deepEqual(withPhotosAfterReview.items.map((item) => item.caseId).sort(), [
         'case-follow-incoming-upload',
@@ -578,6 +593,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       );
       assert.equal(reviewedUpload.photos.incomingFromPortal, true);
       assert.equal(reviewedUpload.photos.incomingReviewPending, false);
+      assert.equal(reviewedUpload.photos.reviewOverdue, false);
       assert.ok(reviewedUpload.photos.reviewedAt);
 
       const reviewedPhotos = await fetchMode('reviewed_photos');
@@ -1393,6 +1409,9 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
           portalUploadCount: 0,
           reviewedAt: null,
           incomingReviewPending: false,
+          reviewAgeHours: null,
+          reviewOverdue: false,
+          reviewDueWithinHours: 24,
         },
         links: followup.reviews[0].ordinationReadout.followupEscalation.links,
         safety:

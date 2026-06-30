@@ -389,6 +389,21 @@ function createStaffPortalRouter({
     return latestFollowupActionAt(caseRecord, 'staff_followup_photos_reviewed') || null;
   }
 
+  function followupPhotoReviewSla(latestUploadedAt, reviewedAt, now = new Date()) {
+    const uploadedMs = Date.parse(latestUploadedAt || '');
+    if (!Number.isFinite(uploadedMs)) {
+      return { ageHours: null, overdue: false, dueWithinHours: 24 };
+    }
+    const reviewedMs = Date.parse(reviewedAt || '');
+    const pending = !Number.isFinite(reviewedMs) || reviewedMs < uploadedMs;
+    const ageHours = Math.max(0, Math.floor((now.getTime() - uploadedMs) / (60 * 60 * 1000)));
+    return {
+      ageHours,
+      overdue: pending && ageHours >= 24,
+      dueWithinHours: 24,
+    };
+  }
+
   async function buildStaffFollowupItem(caseRecord, { tenantId, now = new Date() } = {}) {
     const startsAt = caseRecord.startsAt || caseRecord.scheduledForIso || caseRecord.scheduledAt;
     const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
@@ -442,6 +457,18 @@ function createStaffPortalRouter({
       caseId: caseRecord.id,
       milestoneKey: activeMilestone.key,
     });
+    const photosReviewedIso = photosReviewedAt ? new Date(photosReviewedAt).toISOString() : null;
+    const incomingReviewPending = Boolean(
+      followupUploadToken?.hasUploads &&
+      (!photosReviewedAt ||
+        (followupUploadToken?.latestUploadedAt &&
+          photosReviewedAt < Date.parse(followupUploadToken.latestUploadedAt)))
+    );
+    const photoReviewSla = followupPhotoReviewSla(
+      followupUploadToken?.latestUploadedAt,
+      photosReviewedIso,
+      now
+    );
 
     return {
       caseId: caseRecord.id || null,
@@ -477,13 +504,11 @@ function createStaffPortalRouter({
         href: links.photos || null,
         incomingFromPortal: Boolean(followupUploadToken?.hasUploads),
         portalUploadCount: followupUploadToken?.uploadedCount || 0,
-        reviewedAt: photosReviewedAt ? new Date(photosReviewedAt).toISOString() : null,
-        incomingReviewPending: Boolean(
-          followupUploadToken?.hasUploads &&
-          (!photosReviewedAt ||
-            (followupUploadToken?.latestUploadedAt &&
-              photosReviewedAt < Date.parse(followupUploadToken.latestUploadedAt)))
-        ),
+        reviewedAt: photosReviewedIso,
+        incomingReviewPending,
+        reviewAgeHours: photoReviewSla.ageHours,
+        reviewOverdue: photoReviewSla.overdue,
+        reviewDueWithinHours: photoReviewSla.dueWithinHours,
       },
       followupUploadToken,
       followupHistory,
@@ -573,6 +598,7 @@ function createStaffPortalRouter({
         if (item.photos?.count || item.photos?.incomingFromPortal) acc.withPhotos += 1;
         if (item.photos?.incomingReviewPending) acc.incomingUploads += 1;
         if (item.photos?.reviewedAt) acc.reviewedPhotos += 1;
+        if (item.photos?.reviewOverdue) acc.photoReviewOverdue += 1;
         return acc;
       },
       {
@@ -586,6 +612,7 @@ function createStaffPortalRouter({
         withPhotos: 0,
         incomingUploads: 0,
         reviewedPhotos: 0,
+        photoReviewOverdue: 0,
       }
     );
     return {
@@ -2179,6 +2206,7 @@ function createStaffPortalRouter({
         if (mode === 'with_photos')
           return Number(item.photos?.count || 0) > 0 || Boolean(item.photos?.incomingFromPortal);
         if (mode === 'incoming_uploads') return Boolean(item.photos?.incomingReviewPending);
+        if (mode === 'photo_review_overdue') return Boolean(item.photos?.reviewOverdue);
         if (mode === 'reviewed_photos') return Boolean(item.photos?.reviewedAt);
         if (mode === 'waiting_doctor') return Boolean(item.waitingDoctor);
         if (mode === 'completed') return item.status === 'completed';
@@ -2205,6 +2233,7 @@ function createStaffPortalRouter({
           if (item.photos?.count || item.photos?.incomingFromPortal) acc.withPhotos += 1;
           if (item.photos?.incomingReviewPending) acc.incomingUploads += 1;
           if (item.photos?.reviewedAt) acc.reviewedPhotos += 1;
+          if (item.photos?.reviewOverdue) acc.photoReviewOverdue += 1;
           if (item.waitingDoctor) acc.waitingDoctor += 1;
           if (
             item.followupHistory?.some((entry) => entry.action === 'staff_followup_needs_doctor')
@@ -2222,6 +2251,7 @@ function createStaffPortalRouter({
           withPhotos: 0,
           incomingUploads: 0,
           reviewedPhotos: 0,
+          photoReviewOverdue: 0,
           needsDoctor: 0,
           waitingDoctor: 0,
           completed: 0,
