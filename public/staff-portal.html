@@ -1921,6 +1921,9 @@
           <div class="section-title">Delegerad kundinbox</div>
           <div id="liveDelegatedInboxList" class="live-panel"></div>
 
+          <div class="section-title">Delegerad bildinkorg</div>
+          <div id="liveDelegatedPhotoInboxList" class="live-panel"></div>
+
           <div class="section-title">Mina kunder idag</div>
           <div id="liveMyCustomerList" class="live-panel"></div>
           <div class="two-col">
@@ -3113,6 +3116,57 @@
         </div>`;
       }
 
+      function renderDelegatedPhotoInboxCard(item) {
+        const title = item.customerName || item.patientId || 'Kund';
+        const latestAt = item.latestAt ? formatDateTime(item.latestAt) : '—';
+        const photos = Array.isArray(item.latest) ? item.latest : [];
+        const photoGrid = photos.length
+          ? `<div class="img-grid" style="grid-template-columns: repeat(${Math.min(photos.length, 6)}, 52px); gap: 6px; margin-top: 9px">
+              ${photos
+                .map(
+                  (photo) =>
+                    `<div class="img-thumb" title="${escapeHtml(photo.fileName || photo.photoId || 'Bild')}">🖼</div>`
+                )
+                .join('')}
+            </div>`
+          : '';
+        return `<div class="item-card violet">
+          <div class="item-icon">📷</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(title)} · ${Number(item.count || 0)} bild${Number(item.count || 0) === 1 ? '' : 'er'}</div>
+            <div class="item-meta">${escapeHtml(item.treatment || 'Behandling')} · Senast uppdaterad ${escapeHtml(latestAt)}</div>
+            <div class="flow-chip-row">
+              <span class="pill violet">Bildunderlag</span>
+              ${item.assignedTo ? `<span class="pill neutral">Ansvarig: ${escapeHtml(staffDisplayName(item.assignedTo) || item.assignedTo)}</span>` : ''}
+              <span class="pill info">Read-only</span>
+            </div>
+            ${photoGrid}
+            ${item.action?.safety ? `<div class="live-note" style="margin-top:9px">${escapeHtml(item.action.safety)}</div>` : ''}
+            ${renderDeepLinks(
+              {
+                ...item,
+                links: item.links,
+                patientId: item.patientId,
+                customerId: item.customerId,
+              },
+              {
+                showPhotos: true,
+                showStaffTask: true,
+                cardUrl: item.links?.customerCard,
+                workspaceUrl: item.links?.workspace,
+              }
+            )}
+          </div>
+          <div class="item-actions">
+            ${
+              item.links?.photos
+                ? `<a class="btn primary" href="${escapeHtml(item.links.photos)}" target="_blank" rel="noopener">${escapeHtml(item.action?.label || 'Granska bilder')}</a>`
+                : '<button class="btn" disabled>Inga bilder</button>'
+            }
+          </div>
+        </div>`;
+      }
+
       function priorityLabel(priority) {
         const map = {
           urgent: 'Akut',
@@ -3596,6 +3650,7 @@
             loadDailyWorkQueue(),
             loadStaffPriorityRadar(),
             loadDelegatedInbox(),
+            loadDelegatedPhotoInbox(),
             loadMyCustomers(),
             loadTasks(),
             loadAudit(),
@@ -3638,6 +3693,7 @@
             loadDailyWorkQueue(),
             loadStaffPriorityRadar(),
             loadDelegatedInbox(),
+            loadDelegatedPhotoInbox(),
             loadMyCustomers(),
             loadTasks(),
             loadAudit(),
@@ -3895,6 +3951,25 @@
         } else {
           container.innerHTML =
             '<div class="live-note">Inga obesvarade kundfrågor på dina delegerade kunder just nu.</div>';
+        }
+      }
+
+      async function loadDelegatedPhotoInbox() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/delegated-photo-inbox?limit=12');
+        if (!data || !data.ok) return;
+
+        const container = document.getElementById('liveDelegatedPhotoInboxList');
+        if (!container) return;
+
+        if (data.items?.length) {
+          const summary = data.summary || {};
+          container.innerHTML =
+            `<div class="live-note">Live bildinkorg: ${Number(summary.total || 0)} kunder · ${Number(summary.photos || 0)} bilder. Granskning sker i kundkort/workspace.</div>` +
+            data.items.slice(0, 8).map(renderDelegatedPhotoInboxCard).join('');
+        } else {
+          container.innerHTML =
+            '<div class="live-note">Inga bilder på dina delegerade kunder just nu.</div>';
         }
       }
 
@@ -4163,6 +4238,7 @@
             loadStaffNotifications(),
             loadTasks(),
             loadDelegatedInbox(),
+            loadDelegatedPhotoInbox(),
             loadMyCustomers(),
             loadReviewQueue(),
             loadOrdinationReviews(),
@@ -4467,6 +4543,7 @@
           loadOrdinationReviews();
           loadTasks();
           loadDelegatedInbox();
+          loadDelegatedPhotoInbox();
           loadMyCustomers();
           loadQmsHandbook();
         }
