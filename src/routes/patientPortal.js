@@ -10,6 +10,7 @@
  */
 
 const express = require('express');
+const multer = require('multer');
 const crypto = require('node:crypto');
 
 function normalizeText(v) {
@@ -24,8 +25,22 @@ function createPatientPortalRouter({
   journalStore,
   auditLog = null,
   bookingCaseStore = null,
+  journalPhotoStore = null,
 }) {
   const router = express.Router();
+  const followupPhotoUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 12 * 1024 * 1024, files: 1 },
+    fileFilter(_req, file, cb) {
+      const mime = normalizeText(file?.mimetype).toLowerCase();
+      if (!['image/jpeg', 'image/png'].includes(mime)) {
+        const error = new Error('Endast JPG eller PNG stöds.');
+        error.statusCode = 415;
+        return cb(error);
+      }
+      return cb(null, true);
+    },
+  });
 
   const FOLLOWUP_MILESTONES = [
     { key: 'postop_day_1', day: 1, label: 'Postop dag 1' },
@@ -144,7 +159,7 @@ function createPatientPortalRouter({
     };
   }
 
-  function buildPatientAftercareActions(item = null) {
+  function buildPatientAftercareActions(item = null, uploadToken = null) {
     if (!item) return [];
     const base = [
       {
@@ -170,15 +185,25 @@ function createPatientPortalRouter({
       ];
     }
     if (item.status === 'due' || item.status === 'overdue') {
+      const uploadEnabled = Boolean(uploadToken?.token);
       return [
         {
           id: 'prepare_followup_photos',
           label: 'Förbered uppföljningsbilder',
-          description:
-            'Om kliniken ber om bilder: ta dem i bra ljus, från samma vinklar, utan filter. Uppladdning aktiveras bara via säker kliniklänk.',
-          state: 'prepared',
+          description: uploadEnabled
+            ? 'Kliniken har öppnat en säker bilduppladdning. Ta bilder i bra ljus, från samma vinklar, utan filter.'
+            : 'Om kliniken ber om bilder: ta dem i bra ljus, från samma vinklar, utan filter. Uppladdning aktiveras bara via säker kliniklänk.',
+          state: uploadEnabled ? 'available' : 'prepared',
           type: 'photo_upload_intent',
-          uploadEnabled: false,
+          uploadEnabled,
+          uploadUrl: uploadEnabled
+            ? `/api/patient-portal/followup-photo-upload/${uploadToken.token}`
+            : null,
+          expiresAt: uploadToken?.expiresAt || null,
+          remainingUploads:
+            uploadToken && Number.isFinite(uploadToken.remainingUploads)
+              ? uploadToken.remainingUploads
+              : null,
         },
         ...base,
       ];
@@ -208,6 +233,16 @@ function createPatientPortalRouter({
     ];
   }
 
+  async function findActiveFollowupUploadToken(invite = {}, item = null) {
+    if (!item?.caseId || !patientPortalStore?.findFollowupUploadTokenForCase) return null;
+    return patientPortalStore.findFollowupUploadTokenForCase({
+      tenantId: invite.tenantId,
+      patientId: invite.patientId,
+      caseId: item.caseId,
+      milestoneKey: item.milestone?.key,
+    });
+  }
+
   async function buildPatientFollowupStatus(invite = {}) {
     if (!bookingCaseStore?.listCasesForCustomer || !invite?.patientId) return null;
     const cases = await bookingCaseStore.listCasesForCustomer({
@@ -232,7 +267,8 @@ function createPatientPortalRouter({
       });
     if (!items.length) return null;
     const current = items[0];
-    const patientActions = buildPatientAftercareActions(current);
+    const uploadToken = await findActiveFollowupUploadToken(invite, current);
+    const patientActions = buildPatientAftercareActions(current, uploadToken);
     return {
       current,
       items,
@@ -243,7 +279,13 @@ function createPatientPortalRouter({
           id: action.id,
           label: action.label,
           enabled: action.uploadEnabled === true,
-          reason: 'Kräver separat säker upload-token från kliniken.',
+          reason:
+            action.uploadEnabled === true
+              ? null
+              : 'Kräver separat säker upload-token från kliniken.',
+          url: action.uploadUrl || null,
+          expiresAt: action.expiresAt || null,
+          remainingUploads: action.remainingUploads ?? null,
         })),
       summary: {
         total: items.length,
@@ -258,6 +300,109 @@ function createPatientPortalRouter({
       },
     };
   }
+
+  router.post('/patient-portal/followup-photo-upload/:uploadToken', async (req, res) => {
+    followupPhotoUpload.single('photo')(req, res, async (uploadError) => {
+      const uploadToken = normalizeText(req.params?.uploadToken);
+      const ip = getClientIp(req);
+      const ua = req.headers['user-agent'] || '';
+
+      try {
+        if (!uploadToken) {
+          return res.status(400).json({ ok: false, error: 'missing_upload_token' });
+        }
+        if (uploadError) {
+          const isTooLarge = uploadError.code === 'LIMIT_FILE_SIZE';
+          logPortalAudit('portal.followup_photo.upload_failed', {
+            token: uploadToken,
+            ip,
+            userAgent: ua,
+            outcome: isTooLarge ? 'file_too_large' : 'invalid_file_type',
+          });
+          return res.status(isTooLarge ? 413 : uploadError.statusCode || 415).json({
+            ok: false,
+            error: isTooLarge ? 'file_too_large' : 'invalid_file_type',
+            message: uploadError.message || 'Bilden kunde inte laddas upp.',
+          });
+        }
+        if (!journalPhotoStore?.savePhoto) {
+          return res.status(503).json({
+            ok: false,
+            error: 'photo_store_unavailable',
+            message: 'Bilduppladdning är inte aktiv just nu.',
+          });
+        }
+        const tokenRecord = await patientPortalStore.findFollowupUploadToken(uploadToken);
+        if (!tokenRecord) {
+          logPortalAudit('portal.followup_photo.upload_failed', {
+            token: uploadToken,
+            ip,
+            userAgent: ua,
+            outcome: 'upload_token_invalid',
+          });
+          return res.status(404).json({
+            ok: false,
+            error: 'upload_token_invalid',
+            message: 'Uppladdningslänken är ogiltig eller har gått ut.',
+          });
+        }
+        if (!req.file?.buffer?.length) {
+          return res.status(400).json({
+            ok: false,
+            error: 'missing_photo',
+            message: 'Välj en bild innan du laddar upp.',
+          });
+        }
+
+        const photo = await journalPhotoStore.savePhoto({
+          tenantId: tokenRecord.tenantId,
+          patientId: tokenRecord.patientId,
+          buffer: req.file.buffer,
+          mimeType: req.file.mimetype,
+          originalName: req.file.originalname,
+        });
+        const updatedToken = await patientPortalStore.recordFollowupUpload(uploadToken, {
+          photo,
+          ip,
+          userAgent: ua,
+        });
+
+        logPortalAudit('portal.followup_photo.uploaded', {
+          token: uploadToken,
+          ip,
+          userAgent: ua,
+          tenantId: tokenRecord.tenantId,
+          patientId: tokenRecord.patientId,
+          outcome: 'uploaded',
+        });
+
+        return res.json({
+          ok: true,
+          caseId: tokenRecord.caseId,
+          milestoneKey: tokenRecord.milestoneKey,
+          remainingUploads: updatedToken?.remainingUploads ?? 0,
+          photo: {
+            photoId: photo.photoId,
+            fileName: photo.fileName,
+            byteSize: photo.byteSize,
+            storedAt: photo.storedAt,
+          },
+        });
+      } catch (_err) {
+        logPortalAudit('portal.followup_photo.upload_failed', {
+          token: uploadToken,
+          ip,
+          userAgent: ua,
+          outcome: 'upload_failed',
+        });
+        return res.status(500).json({
+          ok: false,
+          error: 'upload_failed',
+          message: 'Bilden kunde inte sparas. Försök igen eller kontakta kliniken.',
+        });
+      }
+    });
+  });
 
   router.get('/patient-portal/:token', async (req, res) => {
     const token = normalizeText(req.params?.token);
@@ -494,7 +639,41 @@ function createPatientPortalRouter({
 function createPatientPortalStore({ filePath }) {
   const fs = require('node:fs/promises');
   const path = require('node:path');
-  let state = { invites: [] };
+  let state = { invites: [], followupUploadTokens: [] };
+
+  function ensureStateShape() {
+    if (!state || typeof state !== 'object' || Array.isArray(state)) {
+      state = { invites: [], followupUploadTokens: [] };
+    }
+    if (!Array.isArray(state.invites)) state.invites = [];
+    if (!Array.isArray(state.followupUploadTokens)) state.followupUploadTokens = [];
+  }
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function clampInt(value, min, max, fallback) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, Math.floor(n)));
+  }
+
+  function activeUploadToken(record = {}) {
+    if (!record?.token || record.revokedAt) return false;
+    if (record.expiresAt && new Date(record.expiresAt) < new Date()) return false;
+    const maxPhotos = clampInt(record.maxPhotos, 1, 12, 6);
+    const usedCount = clampInt(record.usedCount, 0, 9999, 0);
+    return usedCount < maxPhotos;
+  }
+
+  function withRemainingUploads(record = {}) {
+    const item = clone(record);
+    const maxPhotos = clampInt(item.maxPhotos, 1, 12, 6);
+    const usedCount = clampInt(item.usedCount, 0, 9999, 0);
+    item.remainingUploads = Math.max(0, maxPhotos - usedCount);
+    return item;
+  }
 
   async function load() {
     try {
@@ -502,14 +681,92 @@ function createPatientPortalStore({ filePath }) {
     } catch {
       /* first run */
     }
+    ensureStateShape();
   }
 
   async function persist() {
+    ensureStateShape();
     const dir = path.dirname(filePath);
     await fs.mkdir(dir, { recursive: true });
     const tmp = `${filePath}.${process.pid}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(state, null, 2) + '\n', 'utf8');
     await fs.rename(tmp, filePath);
+  }
+
+  async function createFollowupUploadToken({
+    tenantId,
+    patientId,
+    caseId,
+    milestoneKey,
+    label,
+    maxPhotos = 6,
+    expiresInHours = 72,
+  }) {
+    ensureStateShape();
+    const token = crypto.randomBytes(32).toString('base64url');
+    const record = {
+      token,
+      tenantId: normalizeText(tenantId),
+      patientId: normalizeText(patientId),
+      caseId: normalizeText(caseId),
+      milestoneKey: normalizeText(milestoneKey),
+      label: normalizeText(label) || 'Uppföljningsbilder',
+      maxPhotos: clampInt(maxPhotos, 1, 12, 6),
+      usedCount: 0,
+      uploadedPhotos: [],
+      expiresAt: new Date(
+        Date.now() + clampInt(expiresInHours, 1, 24 * 30, 72) * 60 * 60 * 1000
+      ).toISOString(),
+      createdAt: nowIso(),
+      revokedAt: null,
+    };
+    state.followupUploadTokens.push(record);
+    await persist();
+    return withRemainingUploads(record);
+  }
+
+  async function findFollowupUploadToken(token) {
+    ensureStateShape();
+    const record = state.followupUploadTokens.find((item) => item.token === token);
+    if (!activeUploadToken(record)) return null;
+    return withRemainingUploads(record);
+  }
+
+  async function findFollowupUploadTokenForCase({ tenantId, patientId, caseId, milestoneKey }) {
+    ensureStateShape();
+    const tid = normalizeText(tenantId);
+    const pid = normalizeText(patientId);
+    const cid = normalizeText(caseId);
+    const mid = normalizeText(milestoneKey);
+    const record = state.followupUploadTokens
+      .filter(
+        (item) =>
+          activeUploadToken(item) &&
+          item.tenantId === tid &&
+          item.patientId === pid &&
+          item.caseId === cid &&
+          (!mid || item.milestoneKey === mid)
+      )
+      .sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))[0];
+    return record ? withRemainingUploads(record) : null;
+  }
+
+  async function recordFollowupUpload(token, { photo, ip, userAgent } = {}) {
+    ensureStateShape();
+    const record = state.followupUploadTokens.find((item) => item.token === token);
+    if (!activeUploadToken(record)) return null;
+    record.usedCount = clampInt(record.usedCount, 0, 9999, 0) + 1;
+    record.uploadedPhotos = Array.isArray(record.uploadedPhotos) ? record.uploadedPhotos : [];
+    record.uploadedPhotos.push({
+      photoId: normalizeText(photo?.photoId),
+      fileName: normalizeText(photo?.fileName),
+      byteSize: Number.isFinite(Number(photo?.byteSize)) ? Number(photo.byteSize) : 0,
+      storedAt: normalizeText(photo?.storedAt) || nowIso(),
+      ip: normalizeText(ip),
+      userAgent: normalizeText(userAgent).slice(0, 80),
+    });
+    await persist();
+    return withRemainingUploads(record);
   }
 
   async function createInvite({
@@ -571,7 +828,18 @@ function createPatientPortalStore({ filePath }) {
     return state.invites.filter((i) => (!tid || i.tenantId === tid) && !i.completedAt);
   }
 
-  return { load, persist, createInvite, findInvite, completeInvite, listPending };
+  return {
+    load,
+    persist,
+    createInvite,
+    findInvite,
+    completeInvite,
+    listPending,
+    createFollowupUploadToken,
+    findFollowupUploadToken,
+    findFollowupUploadTokenForCase,
+    recordFollowupUpload,
+  };
 }
 
 module.exports = { createPatientPortalRouter, createPatientPortalStore };
