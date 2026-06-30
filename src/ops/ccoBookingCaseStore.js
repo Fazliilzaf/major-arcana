@@ -119,6 +119,8 @@ function normalizeStaffActions(input = null) {
       followupNeedsDoctorBy: null,
       followupJournalDraftRequestedAt: null,
       followupJournalDraftRequestedBy: null,
+      followupPhotosReviewedAt: null,
+      followupPhotosReviewedBy: null,
       lastActionAt: null,
       lastActionBy: null,
       lastAction: null,
@@ -137,6 +139,8 @@ function normalizeStaffActions(input = null) {
     followupNeedsDoctorBy: normalizeText(input.followupNeedsDoctorBy) || null,
     followupJournalDraftRequestedAt: normalizeText(input.followupJournalDraftRequestedAt) || null,
     followupJournalDraftRequestedBy: normalizeText(input.followupJournalDraftRequestedBy) || null,
+    followupPhotosReviewedAt: normalizeText(input.followupPhotosReviewedAt) || null,
+    followupPhotosReviewedBy: normalizeText(input.followupPhotosReviewedBy) || null,
     lastActionAt: normalizeText(input.lastActionAt) || null,
     lastActionBy: normalizeText(input.lastActionBy) || null,
     lastAction: normalizeText(input.lastAction) || null,
@@ -554,6 +558,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
       'followup_contacted',
       'followup_needs_doctor',
       'followup_journal_draft',
+      'followup_photos_reviewed',
       'followup_completed',
     ];
     if (!allowed.includes(action)) {
@@ -624,6 +629,11 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     if (action === 'followup_journal_draft') {
       record.staffActions.followupJournalDraftRequestedAt = ts;
       record.staffActions.followupJournalDraftRequestedBy = actorUserId;
+    }
+
+    if (action === 'followup_photos_reviewed') {
+      record.staffActions.followupPhotosReviewedAt = ts;
+      record.staffActions.followupPhotosReviewedBy = actorUserId;
     }
 
     if (action === 'followup_completed') {

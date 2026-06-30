@@ -3386,6 +3386,11 @@
               </div>
             </div>`
             : '<div class="live-note" style="margin-top:9px">Ingen aktiv kundlänk för bilduppladdning.</div>';
+        const photoReviewHtml = item.photos?.incomingReviewPending
+          ? '<div class="live-note" style="margin-top:9px">Bildgranskning väntar. Markera granskad när personalen har tittat på underlaget.</div>'
+          : item.photos?.reviewedAt
+            ? `<div class="live-note" style="margin-top:9px">Bildgranskning markerad ${escapeHtml(formatDateTime(item.photos.reviewedAt))}.</div>`
+            : '';
         return `<div class="item-card ${cardClass}">
           <div class="item-icon">${cardIcon}</div>
           <div class="item-body">
@@ -3398,6 +3403,7 @@
             </div>
             <div class="live-note" style="margin-top:9px">${escapeHtml(item.action?.safety || 'Read-only uppföljningsstöd.')}</div>
             ${uploadTokenHtml}
+            ${photoReviewHtml}
             ${followupHistoryHtml}
             ${renderDeepLinks(
               {
@@ -3425,6 +3431,11 @@
             ${
               uploadToken?.hasUploads && (uploadToken.reviewUrl || item.links?.photos)
                 ? `<a class="btn primary" href="${escapeHtml(uploadToken.reviewUrl || item.links.photos)}" target="_blank" rel="noopener">Granska bilder</a>`
+                : ''
+            }
+            ${
+              item.photos?.incomingReviewPending
+                ? `<button class="btn followup-action" data-action="followup_photos_reviewed" data-case-id="${escapeHtml(item.caseId || '')}">Markera bilder granskade</button>`
                 : ''
             }
             <button class="btn followup-detail-toggle" data-case-id="${escapeHtml(item.caseId || '')}">Detalj</button>
