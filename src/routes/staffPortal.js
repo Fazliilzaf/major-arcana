@@ -1190,6 +1190,99 @@ function createStaffPortalRouter({
     }));
   }
 
+  function qmsHaystack(item = {}) {
+    return [
+      item.checklistId,
+      item.processId,
+      item.templateId,
+      item.referenceNumber,
+      item.title,
+      item.category,
+      item.frequency,
+      item.responsibleRole,
+      item.owner,
+      ...(Array.isArray(item.steps)
+        ? item.steps.flatMap((step) => [step?.title, step?.description, step?.responsibleRole])
+        : []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  }
+
+  function summarizeQmsItem(item = {}, type = 'checklist') {
+    return {
+      type,
+      id: item.checklistId || item.processId || item.templateId || item.referenceNumber || null,
+      title: item.title || (type === 'process' ? 'Rutin' : 'Checklista'),
+      category: item.category || 'general',
+      owner: item.owner || item.responsibleRole || 'STAFF',
+      steps: Array.isArray(item.steps) ? item.steps.slice(0, 4) : [],
+    };
+  }
+
+  function buildContextualQmsGuidance(checklists = [], processes = []) {
+    const contexts = [
+      {
+        key: 'followups',
+        title: 'Uppföljning',
+        description: 'När personal hanterar postop-kontakt, kundfrågor och färdigmarkering.',
+        pattern:
+          /uppfölj|postop|eftervård|kontakt|journal|transplant|operation|consultation|konsultation/,
+      },
+      {
+        key: 'photo_review',
+        title: 'Bildgranskning',
+        description: 'När kunden har laddat upp bilder och personalen behöver granska underlaget.',
+        pattern: /foto|bild|photo|upload|före|efter|journal|transplant|operation/,
+      },
+      {
+        key: 'ordination',
+        title: 'Ordination och läkarbeslut',
+        description: 'När läkare ska granska eller fatta beslut om ordinationsunderlag.',
+        pattern: /ordination|läkare|bedövning|läkemedel|medication|clinical|transplant/,
+      },
+      {
+        key: 'qms',
+        title: 'Avvikelse och OLS',
+        description:
+          'När något behöver rapporteras, följas upp eller förbättras i ledningssystemet.',
+        pattern: /avvik|deviation|capa|quality|qms|ols|gdpr|policy/,
+      },
+    ];
+
+    return contexts.map((context) => {
+      let matchedChecklists = checklists
+        .filter((item) => context.pattern.test(qmsHaystack(item)))
+        .slice(0, 3)
+        .map((item) => summarizeQmsItem(item, 'checklist'));
+      let matchedProcesses = processes
+        .filter((item) => context.pattern.test(qmsHaystack(item)))
+        .slice(0, 3)
+        .map((item) => summarizeQmsItem(item, 'process'));
+      if (!matchedChecklists.length) {
+        matchedChecklists = CHECKLIST_TEMPLATES.filter((item) =>
+          context.pattern.test(qmsHaystack(item))
+        )
+          .slice(0, 2)
+          .map((item) => summarizeQmsItem(item, 'checklist'));
+      }
+      if (!matchedProcesses.length) {
+        matchedProcesses = PROCESS_TEMPLATES.filter((item) =>
+          context.pattern.test(qmsHaystack(item))
+        )
+          .slice(0, 2)
+          .map((item) => summarizeQmsItem(item, 'process'));
+      }
+      return {
+        ...context,
+        checklists: matchedChecklists,
+        processes: matchedProcesses,
+        empty: matchedChecklists.length === 0 && matchedProcesses.length === 0,
+      };
+    });
+  }
+
   function buildQmsHandbookReadout({ tenantId = 'hairtpclinic' } = {}) {
     const catalog = loadDocumentCatalog();
     const dashboard = qmsStore?.getDashboard ? qmsStore.getDashboard(tenantId) : null;
@@ -1237,6 +1330,7 @@ function createStaffPortalRouter({
         ],
         documents: [...qmsDocs, ...buildStaffHandbookDocuments(catalog)].slice(0, 30),
       },
+      contexts: buildContextualQmsGuidance(checklists, processes),
       checklists: checklists.slice(0, 12).map((item) => ({
         checklistId: item.checklistId || item.templateId,
         title: item.title,

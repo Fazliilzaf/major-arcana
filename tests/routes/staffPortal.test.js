@@ -2180,6 +2180,19 @@ test('GET /api/v1/staff/qms/handbook sammanställer OLS och handbok från QMS-st
       assert.equal(body.qms.summary.activeProcesses, 1);
       assert.equal(body.qms.summary.openDeviations, 1);
       assert.ok(body.qms.handbook.documents.some((doc) => doc.title === 'Personalhandbok'));
+      assert.deepEqual(
+        body.qms.contexts.map((item) => item.key),
+        ['followups', 'photo_review', 'ordination', 'qms']
+      );
+      const followupContext = body.qms.contexts.find((item) => item.key === 'followups');
+      assert.equal(followupContext.title, 'Uppföljning');
+      assert.ok(followupContext.processes.some((item) => item.title === 'Rutin: operationsdag'));
+      const photoContext = body.qms.contexts.find((item) => item.key === 'photo_review');
+      assert.ok(photoContext.processes.some((item) => item.title === 'Rutin: operationsdag'));
+      const ordinationContext = body.qms.contexts.find((item) => item.key === 'ordination');
+      assert.ok(ordinationContext.processes.some((item) => item.title === 'Rutin: operationsdag'));
+      const qmsContext = body.qms.contexts.find((item) => item.key === 'qms');
+      assert.equal(qmsContext.empty, false);
       assert.ok(body.qms.safety.hitl);
     } finally {
       await new Promise((resolve) => server.close(resolve));
