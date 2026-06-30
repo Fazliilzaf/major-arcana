@@ -309,12 +309,13 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     patientId = null,
     limit = 50,
   } = {}) {
+    const tenant = normalizeText(tenantId);
     const wantedCustomer = normalizeText(customerId);
     const wantedPatient = normalizeText(patientId);
     if (!wantedCustomer && !wantedPatient) return [];
     const max = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Number(limit) : 50;
-    const list = await listCases({ tenantId, limit: Math.max(max * 4, 200) });
-    return list
+    return state.cases
+      .filter((c) => (tenant ? c.tenantId === tenant : true))
       .filter((c) => {
         const caseCustomer = normalizeText(c.customerId);
         const casePatient = normalizeText(c.patientId);
@@ -323,6 +324,8 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
           (wantedPatient && (casePatient === wantedPatient || caseCustomer === wantedPatient))
         );
       })
+      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+      .map((c) => ({ ...c }))
       .slice(0, max);
   }
 
