@@ -1279,6 +1279,21 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
         encounterLinked: true,
       },
     });
+    await bookingCaseStore.createCase({
+      id: 'case-priority-followup',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-priority-followup',
+      customerName: 'Uppföljning Prioritet',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-1',
+      startsAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+    await bookingCaseStore.recordStaffAction(
+      'case-priority-followup',
+      { action: 'followup_needs_doctor' },
+      { userId: 'staff-1', role: 'personal' }
+    );
 
     const notificationFeedStore = {
       async getFeed() {
@@ -1321,8 +1336,9 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
       assert.equal(res.status, 200);
       const body = await res.json();
       assert.equal(body.ok, true);
-      assert.equal(body.count, 2);
+      assert.equal(body.count, 3);
       assert.equal(body.summary.notification, 1);
+      assert.equal(body.summary.followup, 1);
       assert.equal(body.summary.queue, 1);
       assert.equal(body.items[0].source, 'notification');
       assert.equal(body.items[0].priority, 'urgent');
@@ -1337,27 +1353,36 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
       assert.equal(body.items[0].roleCards.admin.badge, 'Kundfråga');
       assert.equal(body.items[0].detail.kind, 'notification');
       assert.equal(body.items[0].detail.status, 'ny');
-      assert.equal(body.items[1].source, 'queue');
-      assert.equal(body.items[1].queueItem.id, 'case-priority-1');
-      assert.equal(body.items[1].nextBestAction.label, 'Skicka/öppna läkarkö');
+      assert.equal(body.items[1].source, 'followup');
+      assert.equal(body.items[1].priority, 'urgent');
+      assert.equal(body.items[1].title, 'Uppföljning Prioritet · Postop dag 7');
+      assert.equal(body.items[1].nextBestAction.label, 'Öppna läkarspåret');
+      assert.equal(body.items[1].roleCards.nurse.focus, 'uppföljning');
+      assert.equal(body.items[1].roleCards.doctor.focus, 'klinisk granskning');
+      assert.equal(body.items[1].detail.kind, 'followup');
+      assert.equal(body.items[1].detail.caseId, 'case-priority-followup');
+      assert.ok(body.items[1].detail.remainingSteps.includes('Behöver läkare'));
+      assert.equal(body.items[2].source, 'queue');
+      assert.equal(body.items[2].queueItem.id, 'case-priority-1');
+      assert.equal(body.items[2].nextBestAction.label, 'Skicka/öppna läkarkö');
       assert.equal(
-        body.items[1].nextBestAction.href,
+        body.items[2].nextBestAction.href,
         '/staff-portal?role=doctor&panel=ordination#ordination-case-priority-1'
       );
-      assert.equal(body.items[1].roleCards.nurse.focus, 'checklista');
-      assert.equal(body.items[1].roleCards.doctor.focus, 'ordination');
-      assert.equal(body.items[1].roleCards.doctor.ctaLabel, 'Öppna läkarkö');
+      assert.equal(body.items[2].roleCards.nurse.focus, 'checklista');
+      assert.equal(body.items[2].roleCards.doctor.focus, 'ordination');
+      assert.equal(body.items[2].roleCards.doctor.ctaLabel, 'Öppna läkarkö');
       assert.equal(
-        body.items[1].roleCards.doctor.href,
+        body.items[2].roleCards.doctor.href,
         '/staff-portal?role=doctor&panel=ordination#ordination-case-priority-1'
       );
-      assert.equal(body.items[1].roleCards.admin.focus, 'handoff');
-      assert.equal(body.items[1].detail.kind, 'case');
-      assert.equal(body.items[1].detail.customer, 'Prioritet Kund');
-      assert.equal(body.items[1].detail.treatment, 'Hårtransplantation DHI');
-      assert.deepEqual(body.items[1].detail.missingChecklist, ['consentSigned']);
+      assert.equal(body.items[2].roleCards.admin.focus, 'handoff');
+      assert.equal(body.items[2].detail.kind, 'case');
+      assert.equal(body.items[2].detail.customer, 'Prioritet Kund');
+      assert.equal(body.items[2].detail.treatment, 'Hårtransplantation DHI');
+      assert.deepEqual(body.items[2].detail.missingChecklist, ['consentSigned']);
       assert.deepEqual(
-        body.items[1].detail.checklistItems.map((item) => [item.key, item.complete]),
+        body.items[2].detail.checklistItems.map((item) => [item.key, item.complete]),
         [
           ['journalReady', true],
           ['consentSigned', false],
@@ -1365,7 +1390,7 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
           ['encounterLinked', true],
         ]
       );
-      assert.ok(body.items[1].detail.remainingSteps.includes('Ordination väntar'));
+      assert.ok(body.items[2].detail.remainingSteps.includes('Ordination väntar'));
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
