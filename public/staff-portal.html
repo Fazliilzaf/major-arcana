@@ -3530,10 +3530,26 @@
         const needsCompletion =
           String(item.ordinationStatus || '').toLowerCase() === 'needs_completion';
         const completionRequest = item.completionRequest || {};
-        const completionHtml = needsCompletion
-          ? `<div class="safety-notice" style="margin:10px 0 0">
-              <span>🩺</span>
-              <span><strong>Läkaren begär komplettering:</strong> ${escapeHtml(completionRequest.comment || 'Komplettera underlaget enligt läkarens instruktion.')}${completionRequest.requestedAt ? ' · ' + escapeHtml(formatDateTime(completionRequest.requestedAt)) : ''}</span>
+        const doctorFeedback = item.doctorFeedback || null;
+        const doctorFeedbackTone = ['sage', 'amber', 'danger', 'info'].includes(
+          doctorFeedback?.tone
+        )
+          ? doctorFeedback.tone
+          : 'info';
+        const doctorFeedbackHtml = doctorFeedback
+          ? `<div class="ordination-next-action ${escapeHtml(doctorFeedbackTone)}" style="margin-top:10px">
+              <div class="ordination-next-action-head">
+                <div>
+                  <div class="ordination-next-action-title">${escapeHtml(doctorFeedback.label || 'Läkarens besked')}</div>
+                  <div class="ordination-next-action-copy">
+                    ${escapeHtml(doctorFeedback.comment || completionRequest.comment || 'Ingen kommentar angiven.')}
+                    ${doctorFeedback.requestedAt ? ' · ' + escapeHtml(formatDateTime(doctorFeedback.requestedAt)) : ''}
+                    ${doctorFeedback.requestedBy ? ' · ' + escapeHtml(staffDisplayName(doctorFeedback.requestedBy) || doctorFeedback.requestedBy) : ''}
+                  </div>
+                </div>
+                <span class="pill ${escapeHtml(doctorFeedbackTone)}">Read-only</span>
+              </div>
+              <div class="live-note" style="margin-top:9px"><strong>Nästa steg:</strong> ${escapeHtml(doctorFeedback.nextStep || 'Följ ordinarie CCO-flöde.')}</div>
             </div>`
           : '';
         const cardUrl = customerCardUrl({
@@ -3574,7 +3590,7 @@
             <div class="queue-action-row">
               ${queueActions}
             </div>
-            ${completionHtml}
+            ${doctorFeedbackHtml}
             ${renderDeepLinks(
               {
                 ...item,

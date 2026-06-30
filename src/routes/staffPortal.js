@@ -1364,6 +1364,41 @@ function createStaffPortalRouter({
     return Object.values(checklist).filter((value) => value === false).length;
   }
 
+  function buildDoctorFeedbackForStaff(caseRecord = {}) {
+    const review = caseRecord.ordinationReview || {};
+    const status = String(review.status || '').toLowerCase();
+    if (!['needs_completion', 'approved', 'rejected'].includes(status)) return null;
+    const presets = {
+      needs_completion: {
+        label: 'Läkaren begär komplettering',
+        tone: 'amber',
+        nextStep: 'Komplettera underlaget och markera “Komplettering klar”.',
+      },
+      approved: {
+        label: 'Läkaren har godkänt',
+        tone: 'sage',
+        nextStep: 'Gå vidare enligt operations-/bokningsflödet.',
+      },
+      rejected: {
+        label: 'Läkaren har avvisat',
+        tone: 'danger',
+        nextStep: 'Kontakta ansvarig och rätta underlaget innan nytt försök.',
+      },
+    };
+    const preset = presets[status];
+    return {
+      status,
+      label: preset.label,
+      tone: preset.tone,
+      comment: review.comment || '',
+      requestedBy: review.decidedBy || null,
+      requestedAt: review.decidedAt || null,
+      signature: review.signature || null,
+      nextStep: preset.nextStep,
+      readOnly: true,
+    };
+  }
+
   function buildDailyWorkQueueItem(customerItem) {
     const caseRecord = customerItem.case || {};
     const startsAt = caseRecord.startsAt || caseRecord.scheduledForIso || caseRecord.scheduledAt;
@@ -1451,6 +1486,7 @@ function createStaffPortalRouter({
       assignedTo: caseRecord.assignedTo || null,
       assignment: caseRecord.assignment || null,
       ordinationStatus: ordinationStatus || null,
+      doctorFeedback: buildDoctorFeedbackForStaff(caseRecord),
       completionRequest:
         ordinationStatus === 'needs_completion'
           ? {
