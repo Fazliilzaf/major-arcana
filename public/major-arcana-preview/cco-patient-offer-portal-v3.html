@@ -2221,7 +2221,9 @@
 
       <div class="hero-card">
         <div class="greeting">Välkommen tillbaka</div>
-        <h1 class="hero-name">Adam, <span>din plan är redo.</span></h1>
+        <h1 class="hero-name">
+          <span data-offer-customer-first-name>Adam</span>, <span>din plan är redo.</span>
+        </h1>
         <div class="appt-chip">
           <svg
             width="11"
@@ -2236,7 +2238,7 @@
             <line x1="8" y1="2" x2="8" y2="6" />
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
-          Operation planerad · 15 september 2026
+          <span data-offer-operation-date>Operation planerad · 15 september 2026</span>
         </div>
       </div>
 
@@ -2372,8 +2374,8 @@
           <div class="bankid-signed-check">✓</div>
           <div class="bankid-signed-title">Signering slutförd</div>
           <div class="bankid-signed-meta">
-            Signerad av Adam Karlsson · <span id="signedTime"></span><br />Bekräftelse skickas till
-            din e-post
+            Signerad av <span data-offer-customer-name>Adam Karlsson</span> ·
+            <span id="signedTime"></span><br />Bekräftelse skickas till din e-post
           </div>
         </div>
 
@@ -2409,7 +2411,7 @@
 
       <div class="card" data-unlock="1" data-tease-label="🔒 Låses upp när offert skickas">
         <div class="ai-badge">AI-genererad planering</div>
-        <div class="card-title">Planerade zoner · DHI-metoden</div>
+        <div class="card-title">Planerade zoner · <span data-offer-method>DHI</span>-metoden</div>
         <div class="scalp-wrap" role="img" aria-label="Skalp-karta med planerade zoner">
           <svg
             class="scalp-svg"
@@ -2559,7 +2561,7 @@
               stroke-width="1"
             />
           </svg>
-          <div class="zone-legend">
+          <div class="zone-legend" data-offer-zone-legend>
             <div class="legend-item">
               <span class="legend-dot" style="background: var(--accent)"></span>Hårlinje 800
             </div>
@@ -2571,7 +2573,7 @@
             </div>
           </div>
         </div>
-        <div class="graft-bar" aria-hidden="true">
+        <div class="graft-bar" aria-hidden="true" data-offer-graft-bar>
           <div
             class="graft-seg"
             style="flex: 800; background: linear-gradient(90deg, #b0356e, #c85080)"
@@ -2585,7 +2587,7 @@
             style="flex: 500; background: linear-gradient(90deg, #8a5f1e, #b07c30)"
           ></div>
         </div>
-        <div class="zone-visual">
+        <div class="zone-visual" data-offer-zones>
           <div class="zone-item z-hairline">
             <div class="zone-label"><span class="zone-dot"></span>Hårlinje</div>
             <div class="zone-num">800</div>
@@ -2616,8 +2618,10 @@
       <div class="card" data-unlock="1" data-tease-label="🔒 Låses upp när offert skickas">
         <div class="card-title">Prisspecifikation</div>
         <div class="price-row">
-          <span class="price-label">Hårtransplantation DHI · 2 500 hårsäckar</span
-          ><span class="price-val">59 000 kr</span>
+          <span class="price-label"
+            >Hårtransplantation <span data-offer-price-method>DHI</span> ·
+            <span data-offer-price-total-grafts>2 500</span> hårsäckar</span
+          ><span class="price-val" data-offer-quoted-amount>59 000 kr</span>
         </div>
         <div class="price-row">
           <span class="price-label">4 × PRP-behandlingar (ingår)</span
@@ -2625,12 +2629,12 @@
         </div>
         <div class="price-row">
           <span class="price-label">Förskottsbetalning (erlagd)</span
-          ><span class="price-val discount">−5 000 kr</span>
+          ><span class="price-val discount" data-offer-deposit-amount>−5 000 kr</span>
         </div>
         <div class="divider"></div>
         <div class="price-row">
           <span class="price-label" style="font-weight: 700">Resterande på operationsdagen</span
-          ><span class="price-val total">54 000 kr</span>
+          ><span class="price-val total" data-offer-total-amount>54 000 kr</span>
         </div>
         <div class="klarna-chip">
           <svg
@@ -2655,7 +2659,9 @@
         <div class="card-title">Vad ingår i din plan?</div>
         <div class="value-list">
           <div class="value-item">
-            <span class="value-item-check">✓</span>Hårtransplantation DHI · 2 500 hårsäckar
+            <span class="value-item-check">✓</span>Hårtransplantation
+            <span data-offer-value-method>DHI</span> ·
+            <span data-offer-value-total-grafts>2 500</span> hårsäckar
           </div>
           <div class="value-item">
             <span class="value-item-check">✓</span>4 × PRP-behandlingar (mån 1, 3, 6, 9)
@@ -2675,7 +2681,7 @@
         </div>
         <div class="value-total">
           <span class="value-total-label">Totalt paketpris</span>
-          <span class="value-total-price">54 000 kr</span>
+          <span class="value-total-price" data-offer-value-total>59 000 kr</span>
         </div>
       </div>
 
@@ -2770,8 +2776,10 @@
           <div>
             <div class="insight-title">Förväntad täckningsgrad</div>
             <div class="insight-text">
-              Baserat på donatorstäthet och 2 500 hårsäckar beräknas täckningsgraden till ~87 %.
-              Fullresultat utvärderas vid 12 månader.
+              <span data-offer-planning-note
+                >Baserat på donatorstäthet och 2 500 hårsäckar beräknas täckningsgraden till ~87 %.
+                Fullresultat utvärderas vid 12 månader.</span
+              >
             </div>
             <span class="data-pill">~87 % täckning</span
             ><span class="data-pill">4–6 mån synlig</span>
@@ -3194,6 +3202,201 @@
     </nav>
 
     <script>
+      // ===== K4: offerPlan → kundportal =====
+      var DEMO_OFFER_PLAN = {
+        schemaVersion: 'offer-plan.v1',
+        customerName: 'Adam Karlsson',
+        operationDateLabel: 'Operation planerad · 15 september 2026',
+        method: 'DHI',
+        planningNote:
+          'Planering från konsultation och ritade bilder: bygga hårlinje först, därefter täthet i mittpartiet och mjuk förbättring av kronan.',
+        grafts: {
+          total: '2500',
+          zones: [
+            { key: 'hairline', label: 'Hårlinje', grafts: '800' },
+            { key: 'mid_scalp', label: 'Mittparti', grafts: '1200' },
+            { key: 'crown', label: 'Krona', grafts: '500' },
+          ],
+        },
+        price: {
+          quotedAmount: '59 000 kr',
+          depositAmount: '−5 000 kr',
+          remainingAmount: '54 000 kr',
+          currency: 'SEK',
+        },
+      };
+
+      function safeText(value) {
+        return typeof value === 'string' ? value.trim() : '';
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function asObject(value) {
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+      }
+
+      function normalizeGraftNumber(value) {
+        var text = safeText(String(value || ''));
+        if (!text) return '';
+        var number = text.match(/\d[\d\s.]*/);
+        return number ? number[0].replace(/[^\d]/g, '') : text;
+      }
+
+      function formatGrafts(value) {
+        var normalized = normalizeGraftNumber(value);
+        var number = Number(normalized);
+        if (Number.isFinite(number) && number > 0) return number.toLocaleString('sv-SE');
+        return normalized || '—';
+      }
+
+      function zoneClass(key, label) {
+        var raw = (safeText(key) || safeText(label)).toLowerCase();
+        if (/hair|hår|front|linje/.test(raw)) return 'z-hairline';
+        if (/mid|mitt|middle/.test(raw)) return 'z-mid';
+        if (/crown|krona|vertex/.test(raw)) return 'z-crown';
+        return 'z-hairline';
+      }
+
+      function zoneColor(key, label) {
+        var cls = zoneClass(key, label);
+        if (cls === 'z-mid') return 'var(--violet)';
+        if (cls === 'z-crown') return 'var(--gold)';
+        return 'var(--accent)';
+      }
+
+      function setText(selector, value) {
+        document.querySelectorAll(selector).forEach(function (node) {
+          node.textContent = value;
+        });
+      }
+
+      function renderOfferPlanToPortal(planInput) {
+        var plan = asObject(planInput);
+        var grafts = asObject(plan.grafts);
+        var price = asObject(plan.price);
+        var zones = Array.isArray(grafts.zones) ? grafts.zones.filter(Boolean) : [];
+        var totalGrafts =
+          safeText(grafts.total) ||
+          String(
+            zones.reduce(function (sum, zone) {
+              var parsed = Number(normalizeGraftNumber(asObject(zone).grafts));
+              return Number.isFinite(parsed) ? sum + parsed : sum;
+            }, 0) || ''
+          );
+        var method = safeText(plan.method) || 'DHI';
+        var quotedAmount = safeText(price.quotedAmount) || '59 000 kr';
+        var depositAmount = safeText(price.depositAmount) || '−5 000 kr';
+        var remainingAmount = safeText(price.remainingAmount) || '54 000 kr';
+        var customerName = safeText(plan.customerName) || 'Adam Karlsson';
+        var firstName = customerName.split(/\s+/)[0] || customerName || 'Adam';
+
+        setText('[data-offer-customer-name]', customerName);
+        setText('[data-offer-customer-first-name]', firstName);
+        setText(
+          '[data-offer-operation-date]',
+          safeText(plan.operationDateLabel) || 'Operation planerad · 15 september 2026'
+        );
+        setText('[data-offer-method]', method);
+        setText('[data-offer-price-method]', method);
+        setText('[data-offer-value-method]', method);
+        setText('[data-offer-price-total-grafts]', formatGrafts(totalGrafts));
+        setText('[data-offer-value-total-grafts]', formatGrafts(totalGrafts));
+        setText('[data-offer-quoted-amount]', quotedAmount);
+        setText('[data-offer-total-amount]', remainingAmount);
+        setText('[data-offer-value-total]', remainingAmount);
+        setText('[data-offer-deposit-amount]', depositAmount);
+        setText(
+          '[data-offer-planning-note]',
+          safeText(plan.planningNote) ||
+            'Planering från konsultation och ritade bilder. Personalen granskar planen innan utskick.'
+        );
+
+        var legend = document.querySelector('[data-offer-zone-legend]');
+        if (legend && zones.length) {
+          legend.innerHTML = zones
+            .map(function (zone) {
+              var item = asObject(zone);
+              return (
+                '<div class="legend-item"><span class="legend-dot" style="background:' +
+                zoneColor(item.key, item.label) +
+                '"></span>' +
+                escapeHtml(safeText(item.label || item.key || 'Zon')) +
+                ' ' +
+                escapeHtml(formatGrafts(item.grafts)) +
+                '</div>'
+              );
+            })
+            .join('');
+        }
+
+        var totalNumber = Math.max(
+          1,
+          Number(normalizeGraftNumber(totalGrafts)) ||
+            zones.reduce(function (sum, zone) {
+              var parsed = Number(normalizeGraftNumber(asObject(zone).grafts));
+              return Number.isFinite(parsed) ? sum + parsed : sum;
+            }, 0) ||
+            1
+        );
+        var graftBar = document.querySelector('[data-offer-graft-bar]');
+        if (graftBar && zones.length) {
+          graftBar.innerHTML = zones
+            .map(function (zone) {
+              var item = asObject(zone);
+              var flex = Number(normalizeGraftNumber(item.grafts)) || 1;
+              return (
+                '<div class="graft-seg" style="flex:' +
+                flex +
+                ';background:' +
+                zoneColor(item.key, item.label) +
+                '"></div>'
+              );
+            })
+            .join('');
+        }
+
+        var zoneGrid = document.querySelector('[data-offer-zones]');
+        if (zoneGrid && zones.length) {
+          zoneGrid.innerHTML =
+            zones
+              .map(function (zone) {
+                var item = asObject(zone);
+                var graftNumber = Number(normalizeGraftNumber(item.grafts)) || 0;
+                var width = Math.max(
+                  18,
+                  Math.min(100, Math.round((graftNumber / totalNumber) * 100))
+                );
+                return (
+                  '<div class="zone-item ' +
+                  zoneClass(item.key, item.label) +
+                  '"><div class="zone-label"><span class="zone-dot"></span>' +
+                  escapeHtml(safeText(item.label || item.key || 'Zon')) +
+                  '</div><div class="zone-num">' +
+                  escapeHtml(formatGrafts(item.grafts)) +
+                  '</div><div class="zone-sub">hårsäckar</div><div class="zone-bar" style="width:' +
+                  width +
+                  '%"></div></div>'
+                );
+              })
+              .join('') +
+            '<div class="zone-item z-total full"><div class="zone-label"><span class="zone-dot"></span>Totalt · ' +
+            escapeHtml(method) +
+            '-metoden</div><div class="zone-num" style="font-size:1.9rem">' +
+            escapeHtml(formatGrafts(totalGrafts)) +
+            '</div><div class="zone-sub">hårsäckar planerade</div><div class="zone-bar" style="width:100%"></div></div>';
+        }
+      }
+
+      renderOfferPlanToPortal(window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);
+
       // ===== STEG-SYSTEM =====
       var STAGE = 1; // standard: offert mottagen
       function applyStage(n) {
