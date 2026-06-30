@@ -853,6 +853,57 @@ test('POST /api/v1/staff/followups/:id/upload-token skapar säker kundlänk', as
       const reusedBody = await reusedRes.json();
       assert.equal(reusedBody.uploadToken.reused, true);
       assert.equal(reusedBody.uploadToken.token, body.uploadToken.token);
+      await patientPortalStore.recordFollowupUpload(body.uploadToken.token, {
+        photo: {
+          photoId: 'followup-photo-1',
+          fileName: 'month4-1.jpg',
+          byteSize: 1234,
+          storedAt: '2030-06-29T10:00:00.000Z',
+        },
+        ip: '127.0.0.1',
+        userAgent: 'node-test',
+      });
+      await patientPortalStore.recordFollowupUpload(body.uploadToken.token, {
+        photo: {
+          photoId: 'followup-photo-2',
+          fileName: 'month4-2.jpg',
+          byteSize: 2345,
+          storedAt: '2030-06-29T11:00:00.000Z',
+        },
+        ip: '127.0.0.1',
+        userAgent: 'node-test',
+      });
+      await patientPortalStore.recordFollowupUpload(body.uploadToken.token, {
+        photo: {
+          photoId: 'followup-photo-3',
+          fileName: 'month4-3.jpg',
+          byteSize: 3456,
+          storedAt: '2030-06-29T12:00:00.000Z',
+        },
+        ip: '127.0.0.1',
+        userAgent: 'node-test',
+      });
+
+      const arrivedRes = await fetch(`http://127.0.0.1:${port}/api/v1/staff/followups`, {
+        headers: { 'x-cco-role': 'personal' },
+      });
+      assert.equal(arrivedRes.status, 200);
+      const arrivedBody = await arrivedRes.json();
+      const arrivedToken = arrivedBody.items[0].followupUploadToken;
+      assert.equal(arrivedToken.active, false);
+      assert.equal(arrivedToken.status, 'received');
+      assert.equal(arrivedToken.hasUploads, true);
+      assert.equal(arrivedToken.uploadedCount, 3);
+      assert.equal(arrivedToken.remainingUploads, 0);
+      assert.equal(arrivedToken.latestUploadedAt, '2030-06-29T12:00:00.000Z');
+      assert.equal(arrivedToken.latestPhoto.fileName, 'month4-3.jpg');
+      assert.equal(
+        arrivedToken.reviewUrl,
+        '/api/v1/staff/customer-photos/patient-follow-upload-token'
+      );
+      assert.equal(arrivedBody.items[0].photos.incomingFromPortal, true);
+      assert.equal(arrivedBody.items[0].photos.portalUploadCount, 3);
+      assert.equal(arrivedBody.items[0].photos.latestAt, '2030-06-29T12:00:00.000Z');
       assert.ok(
         auditEntries.some((entry) => entry.action === 'staff_portal.followup_upload_token_created')
       );
@@ -1252,6 +1303,8 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
           count: 1,
           latestAt: followup.reviews[0].ordinationReadout.followupEscalation.photos.latestAt,
           href: '/api/v1/staff/customer-photos/patient-case-mode-followup',
+          incomingFromPortal: false,
+          portalUploadCount: 0,
         },
         links: followup.reviews[0].ordinationReadout.followupEscalation.links,
         safety:

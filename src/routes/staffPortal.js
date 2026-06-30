@@ -467,8 +467,10 @@ function createStaffPortalRouter({
       daysUntil,
       photos: {
         count: photos.length,
-        latestAt: photos[0]?.updatedAt || null,
+        latestAt: followupUploadToken?.latestUploadedAt || photos[0]?.updatedAt || null,
         href: links.photos || null,
+        incomingFromPortal: Boolean(followupUploadToken?.hasUploads),
+        portalUploadCount: followupUploadToken?.uploadedCount || 0,
       },
       followupUploadToken,
       followupHistory,
@@ -657,8 +659,11 @@ function createStaffPortalRouter({
     caseId,
     milestoneKey,
   } = {}) {
-    if (!patientPortalStore?.findFollowupUploadTokenForCase) return null;
-    const tokenRecord = await patientPortalStore.findFollowupUploadTokenForCase({
+    const finder =
+      patientPortalStore?.findLatestFollowupUploadTokenForCase ||
+      patientPortalStore?.findFollowupUploadTokenForCase;
+    if (!finder) return null;
+    const tokenRecord = await finder.call(patientPortalStore, {
       tenantId,
       patientId,
       caseId,
@@ -675,19 +680,39 @@ function createStaffPortalRouter({
         .filter(Boolean)
         .sort()
         .at(-1) || null;
+    const remainingUploads = Number(tokenRecord.remainingUploads ?? 0);
+    const hasUploads = uploadedPhotos.length > 0;
+    const expired = tokenRecord.expiresAt && Date.parse(tokenRecord.expiresAt) < Date.now();
+    const active = !expired && remainingUploads > 0;
+    const latestPhoto = uploadedPhotos
+      .slice()
+      .sort((a, b) => String(b?.storedAt || '').localeCompare(String(a?.storedAt || '')))[0];
     return {
-      active: true,
+      active,
+      hasUploads,
+      status: active ? 'active' : hasUploads ? 'received' : expired ? 'expired' : 'closed',
       token: tokenRecord.token,
       caseId: tokenRecord.caseId || caseId || null,
       patientId: tokenRecord.patientId || patientId || null,
       milestoneKey: tokenRecord.milestoneKey || milestoneKey || null,
       maxPhotos: tokenRecord.maxPhotos || null,
-      remainingUploads: tokenRecord.remainingUploads ?? null,
+      remainingUploads,
       uploadedCount: uploadedPhotos.length,
       latestUploadedAt,
+      latestPhoto: latestPhoto
+        ? {
+            photoId: latestPhoto.photoId || null,
+            fileName: latestPhoto.fileName || null,
+            byteSize: latestPhoto.byteSize || 0,
+            storedAt: latestPhoto.storedAt || null,
+          }
+        : null,
       expiresAt: tokenRecord.expiresAt || null,
       uploadPath,
       uploadUrl: publicPatientPortalUrl(uploadPath),
+      reviewUrl: patientId
+        ? `/api/v1/staff/customer-photos/${encodeURIComponent(patientId)}`
+        : null,
     };
   }
 
