@@ -1925,6 +1925,7 @@
           <div id="liveDelegatedPhotoInboxList" class="live-panel"></div>
 
           <div class="section-title">Mina uppföljningar</div>
+          <div id="followupModeRow" class="ordination-mode-row"></div>
           <div id="liveStaffFollowupList" class="live-panel"></div>
 
           <div class="section-title">Mina kunder idag</div>
@@ -2543,6 +2544,7 @@
       let _liveMode = false; // true = inloggad, använder riktig data
       let _staffTeam = []; // cachat personalregister för admin-tilldelning
       let _ordinationMode = 'pending'; // läkarkortets arbetsläge
+      let _followupMode = 'all'; // personalens uppföljningsfilter
 
       async function apiFetch(path, opts = {}) {
         try {
@@ -2621,12 +2623,38 @@
         ['all', 'Alla'],
       ];
 
+      const FOLLOWUP_MODES = [
+        ['all', 'Alla'],
+        ['overdue', 'Försenade'],
+        ['due', 'Idag'],
+        ['upcoming', 'Planerade'],
+        ['with_photos', 'Med bilder'],
+        ['needs_doctor', 'Behöver läkare'],
+      ];
+
       function renderOrdinationModeRow(modes = {}) {
         const row = document.getElementById('ordinationModeRow');
         if (!row) return;
         row.innerHTML = ORDINATION_MODES.map(([mode, label]) => {
           const count = Number(modes[mode] || 0);
           return `<button class="ordination-mode-btn ${mode === _ordinationMode ? 'active' : ''}" data-ordination-mode="${escapeHtml(mode)}">${escapeHtml(label)} · ${escapeHtml(String(count))}</button>`;
+        }).join('');
+      }
+
+      function renderFollowupModeRow(summary = {}) {
+        const row = document.getElementById('followupModeRow');
+        if (!row) return;
+        const counts = {
+          all: summary.total || 0,
+          overdue: summary.overdue || 0,
+          due: summary.due || 0,
+          upcoming: Number(summary.upcoming || 0) + Number(summary.upcoming_operation || 0),
+          with_photos: summary.withPhotos || 0,
+          needs_doctor: summary.needsDoctor || 0,
+        };
+        row.innerHTML = FOLLOWUP_MODES.map(([mode, label]) => {
+          const count = Number(counts[mode] || 0);
+          return `<button class="ordination-mode-btn ${mode === _followupMode ? 'active' : ''}" data-followup-mode="${escapeHtml(mode)}">${escapeHtml(label)} · ${escapeHtml(String(count))}</button>`;
         }).join('');
       }
 
@@ -4116,20 +4144,24 @@
 
       async function loadStaffFollowups() {
         if (!_liveMode) return;
-        const data = await apiFetch('/api/v1/staff/followups?limit=12');
+        const params = new URLSearchParams({ limit: '12', mode: _followupMode });
+        const data = await apiFetch(`/api/v1/staff/followups?${params.toString()}`);
         if (!data || !data.ok) return;
+        if (data.mode) _followupMode = data.mode;
 
         const container = document.getElementById('liveStaffFollowupList');
         if (!container) return;
+        const summary = data.summary || {};
+        renderFollowupModeRow(summary);
+        const activeLabel =
+          FOLLOWUP_MODES.find(([mode]) => mode === _followupMode)?.[1] || 'Uppföljningar';
 
         if (data.items?.length) {
-          const summary = data.summary || {};
           container.innerHTML =
-            `<div class="live-note">Live uppföljningar: ${Number(summary.total || 0)} ärenden · ${Number(summary.overdue || 0)} försenade · ${Number(summary.due || 0)} aktuella · ${Number(summary.withPhotos || 0)} med bilder.</div>` +
+            `<div class="live-note">Live uppföljningar · ${escapeHtml(activeLabel)}: ${Number(data.count || 0)} visade av ${Number(summary.total || 0)} ärenden · ${Number(summary.overdue || 0)} försenade · ${Number(summary.due || 0)} aktuella · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.needsDoctor || 0)} behöver läkare.</div>` +
             data.items.slice(0, 8).map(renderStaffFollowupCard).join('');
         } else {
-          container.innerHTML =
-            '<div class="live-note">Inga uppföljningar på dina delegerade kunder just nu.</div>';
+          container.innerHTML = `<div class="live-note">Inga uppföljningar i läget “${escapeHtml(activeLabel)}”. Byt arbetsläge ovan för att se fler ärenden.</div>`;
         }
       }
 
@@ -4742,6 +4774,17 @@
         if (followupButton) {
           event.preventDefault();
           submitFollowupAction(followupButton);
+        }
+        const followupModeButton = event.target.closest?.(
+          '.ordination-mode-btn[data-followup-mode]'
+        );
+        if (followupModeButton) {
+          event.preventDefault();
+          const mode = followupModeButton.dataset.followupMode || 'all';
+          if (mode !== _followupMode) {
+            _followupMode = mode;
+            loadStaffFollowups();
+          }
         }
         const assignmentButton = event.target.closest?.('.assignment-action');
         if (assignmentButton) {

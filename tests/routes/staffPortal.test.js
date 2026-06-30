@@ -385,6 +385,124 @@ test('GET /api/v1/staff/followups prioriterar egna postop-uppföljningar', async
   }
 });
 
+test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-followup-modes-'));
+  try {
+    const photoRoot = path.join(dir, 'journal-photos');
+    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-photo-mode'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-photo-mode', 'day7.jpg'), 'x');
+
+    const now = Date.now();
+    const daysAgo = (days) => new Date(now - days * 24 * 60 * 60 * 1000).toISOString();
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+    });
+    const baseCase = {
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-1',
+    };
+    await bookingCaseStore.createCase({
+      ...baseCase,
+      id: 'case-follow-overdue',
+      patientId: 'patient-overdue',
+      customerName: 'Försenad Kund',
+      startsAt: daysAgo(20),
+    });
+    await bookingCaseStore.createCase({
+      ...baseCase,
+      id: 'case-follow-due',
+      patientId: 'patient-due',
+      customerName: 'Dagens Kund',
+      startsAt: daysAgo(8),
+    });
+    await bookingCaseStore.createCase({
+      ...baseCase,
+      id: 'case-follow-upcoming',
+      patientId: 'patient-upcoming',
+      customerName: 'Planerad Kund',
+      startsAt: daysAgo(0),
+    });
+    await bookingCaseStore.createCase({
+      ...baseCase,
+      id: 'case-follow-photo',
+      patientId: 'patient-photo-mode',
+      customerName: 'Bild Kund',
+      startsAt: daysAgo(8),
+    });
+    await bookingCaseStore.recordStaffAction(
+      'case-follow-photo',
+      { action: 'followup_needs_doctor' },
+      { userId: 'staff-1', role: 'personal' }
+    );
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir, journalPhotosDir: photoRoot },
+        bookingCaseStore,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const fetchMode = async (mode) => {
+        const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/followups?mode=${mode}`, {
+          headers: { 'x-cco-role': 'personal' },
+        });
+        assert.equal(res.status, 200);
+        return res.json();
+      };
+
+      const all = await fetchMode('all');
+      assert.equal(all.summary.total, 4);
+      assert.equal(all.summary.overdue, 1);
+      assert.equal(all.summary.due, 2);
+      assert.equal(all.summary.upcoming, 1);
+      assert.equal(all.summary.withPhotos, 1);
+      assert.equal(all.summary.needsDoctor, 1);
+
+      const overdue = await fetchMode('overdue');
+      assert.deepEqual(
+        overdue.items.map((item) => item.caseId),
+        ['case-follow-overdue']
+      );
+
+      const due = await fetchMode('due');
+      assert.deepEqual(
+        due.items.map((item) => item.status),
+        ['due', 'due']
+      );
+
+      const upcoming = await fetchMode('upcoming');
+      assert.deepEqual(
+        upcoming.items.map((item) => item.caseId),
+        ['case-follow-upcoming']
+      );
+
+      const withPhotos = await fetchMode('with_photos');
+      assert.deepEqual(
+        withPhotos.items.map((item) => item.caseId),
+        ['case-follow-photo']
+      );
+
+      const needsDoctor = await fetchMode('needs_doctor');
+      assert.equal(needsDoctor.items[0].caseId, 'case-follow-photo');
+      assert.equal(needsDoctor.items[0].followupHistorySummary.latestLabel, 'Behöver läkare');
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med audit', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-followup-action-'));
   try {
