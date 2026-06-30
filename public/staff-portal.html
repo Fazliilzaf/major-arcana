@@ -3216,6 +3216,69 @@
         return 'violet';
       }
 
+      function followupNextActionLabel(item) {
+        if (item.followupHistory?.some((entry) => entry.action === 'staff_followup_needs_doctor')) {
+          return 'Följ läkarspåret och öppna kundens workspace.';
+        }
+        if (Number(item.photos?.count || 0) > 0) {
+          return 'Granska nya bilder i kundens workspace.';
+        }
+        if (item.status === 'overdue') {
+          return 'Kontakta kunden och dokumentera uppföljningen.';
+        }
+        if (item.status === 'due') {
+          return 'Gör dagens uppföljning och välj åtgärd.';
+        }
+        return 'Planera uppföljning och bevaka nästa milestone.';
+      }
+
+      function renderFollowupDetail(item) {
+        const milestone = item.milestone || {};
+        const latest = item.followupHistorySummary || {};
+        const cells = [
+          ['Kund', item.customerName || item.patientId || '—'],
+          ['Milestone', milestone.label || 'Uppföljning'],
+          ['Status', followupStatusLabel(item.status)],
+          ['Operation', formatDateTime(item.startsAt)],
+          [
+            'Bildunderlag',
+            `${Number(item.photos?.count || 0)} bild${Number(item.photos?.count || 0) === 1 ? '' : 'er'}`,
+          ],
+          ['Senaste åtgärd', latest.latestLabel || 'Ingen ännu'],
+        ];
+        const links = item.links || {};
+        const linkHtml = [
+          links.workspace ? ['Workspace', links.workspace] : null,
+          links.customerCard ? ['Kundkort', links.customerCard] : null,
+          links.photos ? ['Bilder', links.photos] : null,
+          links.threads ? ['Trådar', links.threads] : null,
+          links.audit ? ['Audit', links.audit] : null,
+        ]
+          .filter(Boolean)
+          .map(
+            ([label, href]) =>
+              `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`
+          )
+          .join('');
+
+        return `<div class="case-detail-box followup-detail" data-followup-detail="${escapeHtml(item.caseId || '')}" hidden>
+          <div class="next-action-kicker">Uppföljningsdetalj</div>
+          <div class="next-action-title">${escapeHtml(followupNextActionLabel(item))}</div>
+          <div class="case-detail-grid">
+            ${cells
+              .map(
+                ([label, value]) => `<div class="case-detail-cell">
+                  <div class="case-detail-label">${escapeHtml(label)}</div>
+                  <div class="case-detail-value">${escapeHtml(value)}</div>
+                </div>`
+              )
+              .join('')}
+          </div>
+          ${linkHtml ? `<div class="deep-link-row">${linkHtml}</div>` : ''}
+          <div class="live-note" style="margin-top:9px">Detaljen är read-only. Åtgärder sparas som intern historik och audit-logg; journal, kundkontakt och läkarbedömning sker i ordinarie CCO-flöde.</div>
+        </div>`;
+      }
+
       function renderStaffFollowupCard(item) {
         const title = item.customerName || item.patientId || 'Kund';
         const milestone = item.milestone || {};
@@ -3289,10 +3352,12 @@
                 ? `<a class="btn primary" href="${escapeHtml(item.links.workspace)}" target="_blank" rel="noopener">${escapeHtml(item.action?.label || 'Öppna')}</a>`
                 : '<button class="btn" disabled>Ingen workspace</button>'
             }
+            <button class="btn followup-detail-toggle" data-case-id="${escapeHtml(item.caseId || '')}">Detalj</button>
             <button class="btn followup-action" data-action="followup_contacted" data-case-id="${escapeHtml(item.caseId || '')}">Kontaktad</button>
             <button class="btn followup-action" data-action="followup_needs_doctor" data-case-id="${escapeHtml(item.caseId || '')}">Behöver läkare</button>
             <button class="btn followup-action" data-action="followup_journal_draft" data-case-id="${escapeHtml(item.caseId || '')}">Journalutkast</button>
           </div>
+          ${renderFollowupDetail(item)}
           <div class="queue-feedback" data-followup-feedback-for="${escapeHtml(item.caseId || '')}"></div>
         </div>`;
       }
@@ -3827,6 +3892,21 @@
           setFeedback(err.message || 'Kunde inte spara uppföljningsåtgärd.', 'error');
           button.disabled = false;
         }
+      }
+
+      function toggleFollowupDetail(button) {
+        const caseId = button?.dataset?.caseId || '';
+        if (!caseId) return;
+        const card = button.closest('.item-card');
+        const escapedId =
+          window.CSS && typeof CSS.escape === 'function'
+            ? CSS.escape(caseId)
+            : String(caseId).replace(/["\\]/g, '\\$&');
+        const detail = card?.querySelector(`[data-followup-detail="${escapedId}"]`);
+        if (!detail) return;
+        const nextHidden = !detail.hidden;
+        detail.hidden = nextHidden;
+        button.textContent = nextHidden ? 'Detalj' : 'Dölj detalj';
       }
 
       async function submitAssignment(button) {
@@ -4774,6 +4854,11 @@
         if (followupButton) {
           event.preventDefault();
           submitFollowupAction(followupButton);
+        }
+        const followupDetailButton = event.target.closest?.('.followup-detail-toggle');
+        if (followupDetailButton) {
+          event.preventDefault();
+          toggleFollowupDetail(followupDetailButton);
         }
         const followupModeButton = event.target.closest?.(
           '.ordination-mode-btn[data-followup-mode]'
