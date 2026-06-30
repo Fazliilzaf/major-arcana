@@ -90,10 +90,20 @@ Kundens signerings-/offertsida visar nu ritade konsultationsbilder via befintlig
 
 Inget nytt lagringslager byggdes.
 
+## K4 — OfferPlan i kundportalen
+
+`public/major-arcana-preview/cco-patient-offer-portal-v3.html` kan nu rendera samma `offerPlan`-kontrakt som offertdokument och signeringssida använder:
+
+- `window.ARCANA_CUSTOMER_OFFER_PLAN` kan injiceras av riktig portal-runtime.
+- `DEMO_OFFER_PLAN` finns kvar för trygg preview utan backend.
+- Zoner, hårsäckar, graft-bar, pris, deposition, kundnamn och planeringsanteckning renderas från samma data.
+- Renderingen escape:ar dynamiska värden innan de skrivs till HTML.
+
+Det gör att PDF/offert, signeringssida och portal kan dela samma källa i kommande live-koppling.
+
 ## Nästa block
 
-| Fas | Innehåll                                                               |
-| --- | ---------------------------------------------------------------------- |
-| K4  | Kundportal visar zoner, hårsäckar, pris och planering från `offerPlan` |
-| K5  | Personalflöde för att granska/justera `offerPlan` innan utskick        |
-| K6  | Portalstatus: betänketid, signering, nedladdning, nästa steg           |
+| Fas | Innehåll                                                        |
+| --- | --------------------------------------------------------------- |
+| K5  | Personalflöde för att granska/justera `offerPlan` innan utskick |
+| K6  | Portalstatus: betänketid, signering, nedladdning, nästa steg    |
