@@ -21,6 +21,7 @@ const {
 const {
   buildOfferDefaultsFromPlan,
   buildOfferDocumentHtml,
+  buildOfferPlanData,
   buildPlanSnapshot,
   resolvePlanPhotoDataUrls,
 } = require('../ops/ccoOfferFromPlan');
@@ -66,6 +67,7 @@ function toCaseInput(context, body = {}) {
     esignStatus: normalizeText(body.esignStatus),
     planSnapshot:
       body.planSnapshot && typeof body.planSnapshot === 'object' ? body.planSnapshot : undefined,
+    offerPlan: body.offerPlan && typeof body.offerPlan === 'object' ? body.offerPlan : undefined,
   };
 }
 
@@ -388,6 +390,7 @@ function createCcoCommercialRouter({
           ...body,
           notes: normalizeText(body.notesToCustomer) || normalizeText(body.notes) || undefined,
         });
+        const offerPlan = buildOfferPlanData(planSnapshot, defaults);
         const context = buildPatientRegisterContext(actor, {
           patientId,
           customerName: patient?.displayName || patient?.fullName || '',
@@ -401,6 +404,7 @@ function createCcoCommercialRouter({
             linkedJournalEntryId: entryId,
             linkedPatientId: patientId,
             planSnapshot,
+            offerPlan,
             quoteStatus: 'draft',
             commercialStatus: 'needs_review',
             paymentStatus: 'pending',
@@ -426,6 +430,7 @@ function createCcoCommercialRouter({
               offerType: defaults.offerType,
               notes: defaults.notes,
               templateKey: defaults.offerTemplateKey,
+              offerPlan,
             },
           });
         }
@@ -441,6 +446,7 @@ function createCcoCommercialRouter({
             linkedJournalEntryId: entryId,
             linkedPatientId: patientId,
             planSnapshot,
+            offerPlan,
             quoteStatus: 'draft',
             commercialStatus: 'needs_review',
             paymentStatus: 'pending',
@@ -451,6 +457,7 @@ function createCcoCommercialRouter({
             linkedJournalEntryId: entryId,
             linkedPatientId: patientId,
             planSnapshot,
+            offerPlan,
             quoteStatus: 'draft',
             commercialStatus: 'needs_review',
           }),
@@ -512,6 +519,7 @@ function createCcoCommercialRouter({
           commercialCase,
           commercialReadout: buildCommercialCaseReadout(commercialCase),
           planSnapshot,
+          offerPlan: commercialCase.offerPlan || offerPlan,
           offerDocumentUrl: `/api/v1/cco-commercial/offer-document?patientId=${encodeURIComponent(patientId)}&documentId=${encodeURIComponent(docId)}`,
           offerDocumentPdfUrl: `/api/v1/cco-commercial/offer-document.pdf?patientId=${encodeURIComponent(patientId)}&documentId=${encodeURIComponent(docId)}`,
           offerDocumentWordUrl: `/api/v1/cco-commercial/offer-document.doc?patientId=${encodeURIComponent(patientId)}&documentId=${encodeURIComponent(docId)}`,
@@ -660,6 +668,10 @@ function createCcoCommercialRouter({
           quoteStatus: 'sent',
           commercialStatus: 'quote_sent',
           quoteSentAt: sentAt,
+          offerPlan:
+            existing.offerPlan && typeof existing.offerPlan === 'object'
+              ? { ...existing.offerPlan, informationDeliveredAt: sentAt }
+              : existing.offerPlan,
           coolingOffEndsAt: addDaysIso(sentAt, template.coolingOffDays),
           esignToken: existing.esignToken || buildEsignToken(),
           esignStatus: 'sent',

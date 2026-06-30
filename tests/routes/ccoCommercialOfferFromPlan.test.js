@@ -12,7 +12,11 @@ const { createCcoCommercialRouter } = require('../../src/routes/ccoCommercial');
 const { createCcoCommercialStore } = require('../../src/ops/ccoCommercialStore');
 const { createCcoJournalStore } = require('../../src/ops/ccoJournalStore');
 const { createCcoOfferDocumentStore } = require('../../src/ops/ccoOfferDocumentStore');
-const { buildOfferDocumentHtml, buildPlanSnapshot } = require('../../src/ops/ccoOfferFromPlan');
+const {
+  buildOfferDocumentHtml,
+  buildOfferPlanData,
+  buildPlanSnapshot,
+} = require('../../src/ops/ccoOfferFromPlan');
 
 function mockAuth() {
   return (_req, _res, next) => next();
@@ -69,14 +73,45 @@ async function createFixture() {
       },
       requireAuth: (_req, _res, next) => next(),
       requireRole: () => (_req, _res, next) => next(),
-      renderHtmlToPdfBuffer: async () =>
-        Buffer.from(`%PDF-1.4\n${'mock offer pdf '.repeat(80)}\n`),
+      renderHtmlToPdfBuffer: async () => Buffer.from(`%PDF-1.4\n${'mock offer pdf '.repeat(80)}\n`),
     })
   );
   return { app, tempDir, journalStore };
 }
 
 test('buildOfferDocumentHtml includes plan fields and patient name', () => {
+  const planSnapshot = buildPlanSnapshot(
+    {
+      entryId: 'entry-1',
+      journalType: 'consultation_plan',
+      patientId: 'patient-1',
+      personnummer: '19960830-4698',
+      fields: {
+        method: 'FUE',
+        graftsTotal: '2800',
+        zones: [
+          { label: 'Hårlinje', grafts: '500' },
+          { label: 'Krona', grafts: '2300' },
+        ],
+        notes: 'Plan A',
+      },
+      attachments: [
+        {
+          type: 'consultation_photo',
+          photoId: 'photo-1',
+          fileName: 'front.jpg',
+          hasAnnotation: true,
+          annotatedPreviewAvailable: true,
+        },
+      ],
+    },
+    { displayName: 'Abbe Holmlund' }
+  );
+  const offerPlan = buildOfferPlanData(planSnapshot, {
+    offerType: 'FUE — Hårlinje, krona',
+    quotedAmount: '75 000 kr',
+    depositAmount: '15 000 kr',
+  });
   const html = buildOfferDocumentHtml({
     origin: 'http://127.0.0.1:3100',
     commercialCase: {
@@ -85,34 +120,16 @@ test('buildOfferDocumentHtml includes plan fields and patient name', () => {
       quotedAmount: '75 000 kr',
       depositAmount: '15 000 kr',
       notes: 'Plan enligt konsultation',
+      offerPlan,
     },
-    planSnapshot: buildPlanSnapshot(
-      {
-        entryId: 'entry-1',
-        journalType: 'consultation_plan',
-        patientId: 'patient-1',
-        personnummer: '19960830-4698',
-        fields: {
-          method: 'FUE',
-          graftsTotal: '2800',
-          zones: ['Front', 'Vertex'],
-          notes: 'Plan A',
-        },
-        attachments: [
-          {
-            type: 'consultation_photo',
-            photoId: 'photo-1',
-            fileName: 'front.jpg',
-            hasAnnotation: true,
-            annotatedPreviewAvailable: true,
-          },
-        ],
-      },
-      { displayName: 'Abbe Holmlund' }
-    ),
+    planSnapshot,
   });
   assert.match(html, /Abbe Holmlund/);
   assert.match(html, /2800/);
+  assert.match(html, /Hårlinje/);
+  assert.match(html, /500 hårsäckar/);
+  assert.match(html, /Krona/);
+  assert.match(html, /2300 hårsäckar/);
   assert.match(html, /75 000 kr/);
   assert.match(html, /photo-1/);
 });
@@ -126,10 +143,27 @@ test('offer-from-plan creates commercial case and html document', async () => {
       personnummer: '19960830-4698',
       actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' },
     });
+    const planEntry = await fixture.journalStore.upsertEntry(
+      {
+        ...entry,
+        fields: {
+          ...entry.fields,
+          method: 'DHI',
+          graftsTotal: '3500',
+          zones: [
+            { label: 'Hårlinje', grafts: '500' },
+            { label: 'Mitt', grafts: '1000' },
+            { label: 'Krona', grafts: '2000' },
+          ],
+          notes: 'Hårlinje först, därefter mitt och krona enligt ritade bilder.',
+        },
+      },
+      { actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' } }
+    );
     await fixture.journalStore.addConsultationPhotoAttachment({
       tenantId: 'tenant-a',
       patientId: 'patient-1',
-      entryId: entry.entryId,
+      entryId: planEntry.entryId,
       photo: {
         photoId: 'photo-1',
         fileName: 'front.jpg',
@@ -145,18 +179,30 @@ test('offer-from-plan creates commercial case and html document', async () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           patientId: 'patient-1',
-          entryId: entry.entryId,
+          entryId: planEntry.entryId,
           quotedAmount: '75 000 kr',
           depositAmount: '15 000 kr',
         }),
       });
       assert.equal(response.status, 200);
       const payload = await response.json();
-      assert.equal(payload.commercialCase.linkedJournalEntryId, entry.entryId);
+      assert.equal(payload.commercialCase.linkedJournalEntryId, planEntry.entryId);
       assert.equal(payload.commercialCase.quoteStatus, 'draft');
       assert.ok(payload.commercialCase.offerDocumentId);
       assert.ok(payload.offerDocumentUrl);
       assert.ok(payload.offerDocumentPdfUrl);
+      assert.equal(payload.offerPlan.schemaVersion, 'offer-plan.v1');
+      assert.equal(payload.offerPlan.method, 'DHI');
+      assert.equal(payload.offerPlan.grafts.total, '3500');
+      assert.deepEqual(
+        payload.offerPlan.grafts.zones.map((zone) => [zone.label, zone.grafts]),
+        [
+          ['Hårlinje', '500'],
+          ['Mitt', '1000'],
+          ['Krona', '2000'],
+        ]
+      );
+      assert.equal(payload.offerPlan.price.quotedAmount, '75 000 kr');
 
       const docResponse = await fetch(
         `${baseUrl}/cco-commercial/offer-document?patientId=patient-1&documentId=${encodeURIComponent(payload.commercialCase.offerDocumentId)}`
@@ -165,6 +211,22 @@ test('offer-from-plan creates commercial case and html document', async () => {
       const html = await docResponse.text();
       assert.match(html, /Hair TP Clinic/);
       assert.match(html, /75 000 kr/);
+      assert.match(html, /Hårlinje/);
+      assert.match(html, /Krona/);
+
+      const sendResponse = await fetch(`${baseUrl}/cco-commercial/offer-send-for-sign`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ patientId: 'patient-1' }),
+      });
+      assert.equal(sendResponse.status, 200);
+      const sentPayload = await sendResponse.json();
+      assert.equal(sentPayload.commercialCase.quoteStatus, 'sent');
+      assert.ok(sentPayload.offerSignUrl);
+      assert.equal(
+        sentPayload.commercialCase.offerPlan.informationDeliveredAt,
+        sentPayload.commercialCase.quoteSentAt
+      );
 
       const pdfResponse = await fetch(
         `${baseUrl}/cco-commercial/offer-document.pdf?patientId=patient-1&documentId=${encodeURIComponent(payload.commercialCase.offerDocumentId)}`

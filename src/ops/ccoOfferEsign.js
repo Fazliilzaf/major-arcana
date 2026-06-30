@@ -49,6 +49,10 @@ function getCoolingOffMeta(commercialCase = {}, nowMs = Date.now()) {
   };
 }
 
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
 function canAcceptOffer(commercialCase = {}, options = {}) {
   const quoteStatus = normalizeText(commercialCase.quoteStatus);
   if (quoteStatus === 'accepted') {
@@ -114,13 +118,26 @@ function buildOfferSignPageHtml({
 
   const fields =
     planSnapshot.fields && typeof planSnapshot.fields === 'object' ? planSnapshot.fields : {};
-  const zones = Array.isArray(fields.zones) ? fields.zones.filter(Boolean) : [];
-  const graftsTotal = normalizeText(fields.graftsTotal);
-  const method = normalizeText(fields.method);
+  const offerPlan = asObject(commercialCase.offerPlan);
+  const planGrafts = asObject(offerPlan.grafts);
+  const planZones = Array.isArray(planGrafts.zones) ? planGrafts.zones : [];
+  const zones = planZones.length
+    ? planZones.map((zone) => zone.label || zone.key).filter(Boolean)
+    : Array.isArray(fields.zones)
+      ? fields.zones.filter(Boolean)
+      : [];
+  const graftsTotal = normalizeText(planGrafts.total) || normalizeText(fields.graftsTotal);
+  const method = normalizeText(offerPlan.method) || normalizeText(fields.method);
   const offerType = normalizeText(commercialCase.offerType) || method || 'Behandlingsplan';
-  const quotedAmount = normalizeText(commercialCase.quotedAmount);
-  const depositAmount = normalizeText(commercialCase.depositAmount);
-  const consultationDate = normalizeText(fields.consultationDate);
+  const quotedAmount =
+    normalizeText(offerPlan.price?.quotedAmount) || normalizeText(commercialCase.quotedAmount);
+  const depositAmount =
+    normalizeText(offerPlan.price?.depositAmount) || normalizeText(commercialCase.depositAmount);
+  const consultationDate =
+    normalizeText(offerPlan.consultationDate) || normalizeText(fields.consultationDate);
+  const informationDeliveredAt =
+    normalizeText(offerPlan.informationDeliveredAt) || normalizeText(commercialCase.quoteSentAt);
+  const planningNote = normalizeText(offerPlan.planningNote) || normalizeText(fields.notes);
 
   const graftsZones =
     fields.graftsZones && typeof fields.graftsZones === 'object' ? fields.graftsZones : {};
@@ -139,7 +156,12 @@ function buildOfferSignPageHtml({
     .map((z) => {
       const key = z.toLowerCase().trim();
       const meta = ZONE_META[key] || { cls: 'z-front', label: z };
-      const zoneGrafts = graftsZones[key] || '';
+      const zoneFromPlan = planZones.find(
+        (zone) =>
+          normalizeText(zone.label).toLowerCase() === key ||
+          normalizeText(zone.key).toLowerCase() === key
+      );
+      const zoneGrafts = normalizeText(zoneFromPlan?.grafts) || graftsZones[key] || '';
       return `<div class="zone-item ${meta.cls}">
       <div class="zone-label-row"><span class="zone-dot"></span>${esc(meta.label)}</div>
       ${zoneGrafts ? `<div class="zone-num">${esc(zoneGrafts)}<span class="zone-unit"> hårsäckar</span></div>` : ''}
@@ -424,8 +446,9 @@ function buildOfferSignPageHtml({
       <div style="font-size:1.1rem;font-weight:800;margin-bottom:0.2rem">Hej, ${esc(patientName)}</div>
       <div style="font-size:0.82rem;color:var(--text2)">Här är din behandlingsoffert från Hair TP Clinic. Granska planen nedan och signera när betänketiden löpt ut.</div>
       <div style="margin-top:0.6rem;font-size:0.72rem;color:var(--text3)">
-        <strong>Behandling:</strong> ${esc(offerType)}${consultationDate ? ` &nbsp;·&nbsp; <strong>Konsultation:</strong> ${esc(consultationDate)}` : ''}
+        <strong>Behandling:</strong> ${esc(offerType)}${consultationDate ? ` &nbsp;·&nbsp; <strong>Konsultation:</strong> ${esc(consultationDate)}` : ''}${informationDeliveredAt ? ` &nbsp;·&nbsp; <strong>Patientinformation:</strong> ${esc(informationDeliveredAt.slice(0, 10))}` : ''}
       </div>
+      ${planningNote ? `<div style="margin-top:0.5rem;font-size:0.76rem;color:var(--text2)"><strong>Planering:</strong> ${esc(planningNote)}</div>` : ''}
     </div>
 
     ${zonesSection}

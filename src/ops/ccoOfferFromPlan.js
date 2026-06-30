@@ -23,6 +23,40 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+function normalizeZoneKey(value) {
+  const raw = normalizeText(value).toLowerCase();
+  if (!raw) return '';
+  if (/hår|hair|front|linje|temp/.test(raw)) return 'hairline';
+  if (/mitt|mid|middle|scalp|central/.test(raw)) return 'mid_scalp';
+  if (/krona|crown|vertex/.test(raw)) return 'crown';
+  return raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/å/g, 'a')
+    .replace(/ä/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function normalizeZoneLabel(value, fallback = '') {
+  const raw = normalizeText(value || fallback);
+  const key = normalizeZoneKey(raw);
+  const labels = {
+    hairline: 'Hårlinje',
+    mid_scalp: 'Mitt',
+    crown: 'Krona',
+  };
+  return labels[key] || raw || 'Zon';
+}
+
+function normalizeZoneGrafts(value) {
+  const text = normalizeText(value);
+  if (!text) return '';
+  const number = text.match(/\d[\d\s.]*/)?.[0]?.replace(/[^\d]/g, '') || '';
+  return number || text;
+}
+
 function buildPlanSnapshot(journalEntry = {}, patient = {}) {
   const entry = asObject(journalEntry);
   const fields = asObject(entry.fields);
@@ -70,6 +104,68 @@ function buildPlanSnapshot(journalEntry = {}, patient = {}) {
     },
     attachments,
     capturedAt: new Date().toISOString(),
+  };
+}
+
+function buildOfferPlanData(planSnapshot = {}, commercialCase = {}) {
+  const fields = asObject(planSnapshot.fields);
+  const graftsZones = asObject(fields.graftsZones);
+  const rawZones = asArray(fields.zones);
+  const zones = rawZones
+    .map((zone) => {
+      const zoneObject = asObject(zone);
+      const rawLabel =
+        normalizeText(zoneObject.label || zoneObject.name || zoneObject.zone) ||
+        normalizeText(zone);
+      const key = normalizeZoneKey(rawLabel);
+      if (!key && !rawLabel) return null;
+      const grafts =
+        normalizeZoneGrafts(zoneObject.grafts || zoneObject.graftCount || zoneObject.count) ||
+        normalizeZoneGrafts(graftsZones[rawLabel.toLowerCase()] || graftsZones[key]);
+      return {
+        key: key || normalizeZoneKey(rawLabel),
+        label: normalizeZoneLabel(rawLabel),
+        grafts,
+        note: normalizeText(zoneObject.note || zoneObject.notes || zoneObject.comment),
+        source: 'consultation_plan',
+      };
+    })
+    .filter(Boolean);
+
+  const totalFromZones = zones.reduce((sum, zone) => {
+    const parsed = Number(String(zone.grafts || '').replace(/[^\d]/g, ''));
+    return Number.isFinite(parsed) ? sum + parsed : sum;
+  }, 0);
+  const graftsTotal =
+    normalizeZoneGrafts(fields.graftsTotal) || (totalFromZones ? String(totalFromZones) : '');
+  const quotedAmount = normalizeText(commercialCase.quotedAmount);
+  const depositAmount = normalizeText(commercialCase.depositAmount);
+  const quoteSentAt = normalizeText(commercialCase.quoteSentAt);
+
+  return {
+    schemaVersion: 'offer-plan.v1',
+    treatmentLabel:
+      normalizeText(commercialCase.offerType) || normalizeText(fields.method) || 'Behandlingsplan',
+    method: normalizeText(fields.method),
+    consultationDate: normalizeText(fields.consultationDate),
+    informationDeliveredAt: quoteSentAt || null,
+    planningNote: normalizeText(commercialCase.notes) || normalizeText(fields.notes),
+    grafts: {
+      total: graftsTotal,
+      zones,
+    },
+    price: {
+      quotedAmount,
+      depositAmount,
+      currency: normalizeText(commercialCase.currency) || 'SEK',
+    },
+    prpIncluded: fields.prpIncluded === true ? true : fields.prpIncluded === false ? false : null,
+    attachments: asArray(planSnapshot.attachments).map((item) => ({
+      photoId: normalizeText(item.photoId),
+      label: normalizeText(item.label || item.fileName) || 'Konsultationsbild',
+      hasAnnotation: Boolean(item.hasAnnotation || item.annotatedPreviewAvailable),
+      annotatedPreviewAvailable: Boolean(item.annotatedPreviewAvailable),
+    })),
   };
 }
 
@@ -150,7 +246,16 @@ function buildOfferDocumentHtml({
   const patientName =
     normalizeText(planSnapshot.displayName) || normalizeText(commercialCase.customerName) || 'Kund';
   const fields = asObject(planSnapshot.fields);
-  const zones = asArray(fields.zones).join(', ');
+  const offerPlan = asObject(commercialCase.offerPlan).schemaVersion
+    ? commercialCase.offerPlan
+    : buildOfferPlanData(planSnapshot, commercialCase);
+  const planZones = asArray(offerPlan.grafts?.zones);
+  const zones = planZones.length
+    ? planZones
+        .map((zone) => zone.label)
+        .filter(Boolean)
+        .join(', ')
+    : asArray(fields.zones).join(', ');
   const template = getOfferTemplate(commercialCase.offerTemplateKey);
   const cooling = getCoolingOffMeta(commercialCase);
   const photoRows = Array.isArray(embeddedPhotos)
@@ -223,18 +328,29 @@ function buildOfferDocumentHtml({
       <h2>Överenskommen behandlingsplan</h2>
       <dl>
         <dt>Behandling</dt><dd>${escapeHtml(commercialCase.offerType || fields.method || '—')}</dd>
-        <dt>Metod</dt><dd>${escapeHtml(fields.method || '—')}</dd>
-        <dt>Grafts</dt><dd>${escapeHtml(fields.graftsTotal || '—')}</dd>
+        <dt>Metod</dt><dd>${escapeHtml(offerPlan.method || fields.method || '—')}</dd>
+        <dt>Grafts</dt><dd>${escapeHtml(offerPlan.grafts?.total || fields.graftsTotal || '—')}</dd>
         <dt>Zoner</dt><dd>${escapeHtml(zones || '—')}</dd>
         <dt>PRP</dt><dd>${fields.prpIncluded === true ? 'Ja' : fields.prpIncluded === false ? 'Nej' : '—'}</dd>
-        <dt>Pris</dt><dd>${escapeHtml(commercialCase.quotedAmount || 'Enligt separat prislista')}</dd>
+        <dt>Pris</dt><dd>${escapeHtml(offerPlan.price?.quotedAmount || commercialCase.quotedAmount || 'Enligt separat prislista')}</dd>
         <dt>Moms</dt><dd>Inkluderad enligt gällande skattesats (25 % om inget annat anges)</dd>
-        <dt>Deposition</dt><dd>${escapeHtml(commercialCase.depositAmount || '—')}</dd>
+        <dt>Deposition</dt><dd>${escapeHtml(offerPlan.price?.depositAmount || commercialCase.depositAmount || '—')}</dd>
+        <dt>Patientinformation</dt><dd>${escapeHtml(offerPlan.informationDeliveredAt ? offerPlan.informationDeliveredAt.slice(0, 10) : 'Skickas med offerten')}</dd>
       </dl>
       ${
-        fields.notes || commercialCase.notes
+        planZones.length
+          ? `<h3>Zonfördelning</h3><dl>${planZones
+              .map(
+                (zone) =>
+                  `<dt>${escapeHtml(zone.label)}</dt><dd>${escapeHtml(zone.grafts || '—')} hårsäckar${zone.note ? ` · ${escapeHtml(zone.note)}` : ''}</dd>`
+              )
+              .join('')}</dl>`
+          : ''
+      }
+      ${
+        offerPlan.planningNote || fields.notes || commercialCase.notes
           ? `<div class="offer-agreement"><strong>Anteckning</strong>\n${escapeHtml(
-              commercialCase.notes || fields.notes
+              offerPlan.planningNote || commercialCase.notes || fields.notes
             )}</div>`
           : ''
       }
@@ -284,6 +400,7 @@ function buildOfferDocumentHtml({
 module.exports = {
   buildOfferDefaultsFromPlan,
   buildOfferDocumentHtml,
+  buildOfferPlanData,
   buildPlanSnapshot,
   resolvePlanPhotoDataUrls,
   photoUrl,
