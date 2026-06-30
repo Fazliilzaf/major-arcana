@@ -1924,6 +1924,9 @@
           <div class="section-title">Delegerad bildinkorg</div>
           <div id="liveDelegatedPhotoInboxList" class="live-panel"></div>
 
+          <div class="section-title">Mina uppföljningar</div>
+          <div id="liveStaffFollowupList" class="live-panel"></div>
+
           <div class="section-title">Mina kunder idag</div>
           <div id="liveMyCustomerList" class="live-panel"></div>
           <div class="two-col">
@@ -3167,6 +3170,72 @@
         </div>`;
       }
 
+      function followupStatusLabel(status) {
+        return (
+          {
+            overdue: 'Försenad',
+            due: 'Idag/nu',
+            upcoming: 'Planerad',
+            upcoming_operation: 'Inför operation',
+          }[status] || 'Uppföljning'
+        );
+      }
+
+      function followupPillClass(status) {
+        if (status === 'overdue') return 'danger';
+        if (status === 'due') return 'amber';
+        if (status === 'upcoming_operation') return 'info';
+        return 'violet';
+      }
+
+      function renderStaffFollowupCard(item) {
+        const title = item.customerName || item.patientId || 'Kund';
+        const milestone = item.milestone || {};
+        const status = item.status || 'upcoming';
+        const pillClass = followupPillClass(status);
+        const daysText =
+          Number(item.daysUntil || 0) < 0
+            ? `${Math.abs(Number(item.daysUntil || 0))} dagar sen`
+            : Number(item.daysUntil || 0) === 0
+              ? 'idag'
+              : `om ${Number(item.daysUntil || 0)} dagar`;
+        return `<div class="item-card ${status === 'overdue' ? 'urgent' : status === 'due' ? 'pending' : 'info-c'}">
+          <div class="item-icon">${status === 'overdue' ? '⚡' : '🗓️'}</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(title)} · ${escapeHtml(milestone.label || 'Uppföljning')}</div>
+            <div class="item-meta">${escapeHtml(item.treatment || 'Behandling')} · Operation ${escapeHtml(formatDateTime(item.startsAt))} · ${escapeHtml(daysText)}</div>
+            <div class="flow-chip-row">
+              <span class="pill ${pillClass}">${escapeHtml(followupStatusLabel(status))}</span>
+              <span class="pill neutral">${escapeHtml(milestone.kind || 'kontroll')}</span>
+              <span class="pill violet">${Number(item.photos?.count || 0)} bild${Number(item.photos?.count || 0) === 1 ? '' : 'er'}</span>
+            </div>
+            <div class="live-note" style="margin-top:9px">${escapeHtml(item.action?.safety || 'Read-only uppföljningsstöd.')}</div>
+            ${renderDeepLinks(
+              {
+                ...item,
+                links: item.links,
+                patientId: item.patientId,
+                customerId: item.customerId,
+              },
+              {
+                showPhotos: true,
+                showThreads: true,
+                showStaffTask: true,
+                cardUrl: item.links?.customerCard,
+                workspaceUrl: item.links?.workspace,
+              }
+            )}
+          </div>
+          <div class="item-actions">
+            ${
+              item.links?.workspace
+                ? `<a class="btn primary" href="${escapeHtml(item.links.workspace)}" target="_blank" rel="noopener">${escapeHtml(item.action?.label || 'Öppna')}</a>`
+                : '<button class="btn" disabled>Ingen workspace</button>'
+            }
+          </div>
+        </div>`;
+      }
+
       function priorityLabel(priority) {
         const map = {
           urgent: 'Akut',
@@ -3651,6 +3720,7 @@
             loadStaffPriorityRadar(),
             loadDelegatedInbox(),
             loadDelegatedPhotoInbox(),
+            loadStaffFollowups(),
             loadMyCustomers(),
             loadTasks(),
             loadAudit(),
@@ -3694,6 +3764,7 @@
             loadStaffPriorityRadar(),
             loadDelegatedInbox(),
             loadDelegatedPhotoInbox(),
+            loadStaffFollowups(),
             loadMyCustomers(),
             loadTasks(),
             loadAudit(),
@@ -3973,6 +4044,25 @@
         }
       }
 
+      async function loadStaffFollowups() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/staff/followups?limit=12');
+        if (!data || !data.ok) return;
+
+        const container = document.getElementById('liveStaffFollowupList');
+        if (!container) return;
+
+        if (data.items?.length) {
+          const summary = data.summary || {};
+          container.innerHTML =
+            `<div class="live-note">Live uppföljningar: ${Number(summary.total || 0)} ärenden · ${Number(summary.overdue || 0)} försenade · ${Number(summary.due || 0)} aktuella · ${Number(summary.withPhotos || 0)} med bilder.</div>` +
+            data.items.slice(0, 8).map(renderStaffFollowupCard).join('');
+        } else {
+          container.innerHTML =
+            '<div class="live-note">Inga uppföljningar på dina delegerade kunder just nu.</div>';
+        }
+      }
+
       /* Hämta audit-logg och injicera i admin-view */
       async function loadAudit() {
         if (!_liveMode) return;
@@ -4239,6 +4329,7 @@
             loadTasks(),
             loadDelegatedInbox(),
             loadDelegatedPhotoInbox(),
+            loadStaffFollowups(),
             loadMyCustomers(),
             loadReviewQueue(),
             loadOrdinationReviews(),
@@ -4544,6 +4635,7 @@
           loadTasks();
           loadDelegatedInbox();
           loadDelegatedPhotoInbox();
+          loadStaffFollowups();
           loadMyCustomers();
           loadQmsHandbook();
         }
