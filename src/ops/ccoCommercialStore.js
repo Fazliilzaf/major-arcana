@@ -391,6 +391,8 @@ function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } 
     offerDocumentPdfId: normalizeText(safeCase.offerDocumentPdfId),
     offerDocumentWordId: normalizeText(safeCase.offerDocumentWordId),
     offerTemplateKey: normalizeText(safeCase.offerTemplateKey),
+    offerPlan:
+      safeCase.offerPlan && typeof safeCase.offerPlan === 'object' ? safeCase.offerPlan : null,
     quoteSentAt: normalizeText(safeCase.quoteSentAt),
     quoteAcceptedAt: normalizeText(safeCase.quoteAcceptedAt),
     customerSignedName: normalizeText(safeCase.customerSignedName),
@@ -523,6 +525,12 @@ function normalizeCommercialCase(input = {}, existing = {}) {
         ? safe.planSnapshot
         : previous.planSnapshot && typeof previous.planSnapshot === 'object'
           ? previous.planSnapshot
+          : null,
+    offerPlan:
+      safe.offerPlan && typeof safe.offerPlan === 'object'
+        ? safe.offerPlan
+        : previous.offerPlan && typeof previous.offerPlan === 'object'
+          ? previous.offerPlan
           : null,
     requiredActions,
     events: asArray(safe.events).length
