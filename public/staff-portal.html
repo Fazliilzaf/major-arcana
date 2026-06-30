@@ -3318,6 +3318,10 @@
         const followupHistory = Array.isArray(item.followupHistory) ? item.followupHistory : [];
         const latestFollowup = item.followupHistorySummary || {};
         const uploadToken = item.followupUploadToken || null;
+        const reviewDetail = item.photos?.reviewDetail || null;
+        const recentReviewPhotos = Array.isArray(reviewDetail?.recentPhotos)
+          ? reviewDetail.recentPhotos
+          : [];
         const isCompleted = status === 'completed' || item.completed === true;
         const cardClass =
           status === 'overdue'
@@ -3395,6 +3399,39 @@
           : item.photos?.reviewedAt
             ? `<div class="live-note" style="margin-top:9px">Bildgranskning markerad ${escapeHtml(formatDateTime(item.photos.reviewedAt))}.</div>`
             : '';
+        const photoReviewDetailHtml = reviewDetail
+          ? `<div class="ordination-timeline-summary">
+              <div class="ordination-timeline-chip">
+                <strong>Bildgranskning</strong>
+                <span>${escapeHtml(reviewDetail.status === 'overdue' ? 'Sen' : reviewDetail.status === 'pending' ? 'Väntar' : reviewDetail.status === 'reviewed' ? 'Granskad' : 'Mottagen')}${item.photos?.reviewAgeHours !== null && item.photos?.reviewAgeHours !== undefined ? ' · ' + Number(item.photos.reviewAgeHours || 0) + 'h sedan' : ''}</span>
+              </div>
+              <div class="ordination-timeline-chip">
+                <strong>Senaste bild</strong>
+                <span>${escapeHtml(reviewDetail.latestPhoto?.fileName || 'Uppföljningsbild')}${reviewDetail.latestUploadedAt ? ' · ' + escapeHtml(formatDateTime(reviewDetail.latestUploadedAt)) : ''}</span>
+              </div>
+              ${
+                recentReviewPhotos.length
+                  ? `<div class="ordination-timeline-chip">
+                    <strong>Filer</strong>
+                    <span>${recentReviewPhotos
+                      .map(
+                        (photo) =>
+                          `${escapeHtml(photo.fileName || photo.photoId || 'bild')}${photo.storedAt ? ' (' + escapeHtml(formatDateTime(photo.storedAt)) + ')' : ''}`
+                      )
+                      .join(' · ')}</span>
+                  </div>`
+                  : ''
+              }
+              ${
+                reviewDetail.reviewUrl
+                  ? `<div class="ordination-timeline-chip">
+                    <strong>Direktlänk</strong>
+                    <span><a class="deep-link" href="${escapeHtml(reviewDetail.reviewUrl)}" target="_blank" rel="noopener">Öppna bildvy</a></span>
+                  </div>`
+                  : ''
+              }
+            </div>`
+          : '';
         return `<div class="item-card ${cardClass}">
           <div class="item-icon">${cardIcon}</div>
           <div class="item-body">
@@ -3415,6 +3452,7 @@
             <div class="live-note" style="margin-top:9px">${escapeHtml(item.action?.safety || 'Read-only uppföljningsstöd.')}</div>
             ${uploadTokenHtml}
             ${photoReviewHtml}
+            ${photoReviewDetailHtml}
             ${followupHistoryHtml}
             ${renderDeepLinks(
               {

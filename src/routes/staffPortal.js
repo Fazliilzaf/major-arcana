@@ -469,6 +469,7 @@ function createStaffPortalRouter({
       photosReviewedIso,
       now
     );
+    const reviewUrl = followupUploadToken?.reviewUrl || links.photos || null;
 
     return {
       caseId: caseRecord.id || null,
@@ -509,6 +510,22 @@ function createStaffPortalRouter({
         reviewAgeHours: photoReviewSla.ageHours,
         reviewOverdue: photoReviewSla.overdue,
         reviewDueWithinHours: photoReviewSla.dueWithinHours,
+        reviewDetail: followupUploadToken?.hasUploads
+          ? {
+              latestPhoto: followupUploadToken.latestPhoto || null,
+              recentPhotos: followupUploadToken.recentPhotos || [],
+              uploadedCount: followupUploadToken.uploadedCount || 0,
+              latestUploadedAt: followupUploadToken.latestUploadedAt || null,
+              reviewUrl,
+              status: incomingReviewPending
+                ? photoReviewSla.overdue
+                  ? 'overdue'
+                  : 'pending'
+                : photosReviewedIso
+                  ? 'reviewed'
+                  : 'received',
+            }
+          : null,
       },
       followupUploadToken,
       followupHistory,
@@ -731,6 +748,16 @@ function createStaffPortalRouter({
     const latestPhoto = uploadedPhotos
       .slice()
       .sort((a, b) => String(b?.storedAt || '').localeCompare(String(a?.storedAt || '')))[0];
+    const recentPhotos = uploadedPhotos
+      .slice()
+      .sort((a, b) => String(b?.storedAt || '').localeCompare(String(a?.storedAt || '')))
+      .slice(0, 6)
+      .map((photo) => ({
+        photoId: photo?.photoId || null,
+        fileName: photo?.fileName || null,
+        byteSize: photo?.byteSize || 0,
+        storedAt: photo?.storedAt || null,
+      }));
     return {
       active,
       hasUploads,
@@ -751,6 +778,7 @@ function createStaffPortalRouter({
             storedAt: latestPhoto.storedAt || null,
           }
         : null,
+      recentPhotos,
       expiresAt: tokenRecord.expiresAt || null,
       uploadPath,
       uploadUrl: publicPatientPortalUrl(uploadPath),

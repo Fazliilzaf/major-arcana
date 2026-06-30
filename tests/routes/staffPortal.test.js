@@ -560,6 +560,24 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       assert.equal(incomingUploads.items[0].photos.reviewOverdue, true);
       assert.equal(incomingUploads.items[0].photos.reviewDueWithinHours, 24);
       assert.ok(incomingUploads.items[0].photos.reviewAgeHours >= 24);
+      assert.equal(incomingUploads.items[0].photos.reviewDetail.status, 'overdue');
+      assert.equal(incomingUploads.items[0].photos.reviewDetail.uploadedCount, 1);
+      assert.equal(
+        incomingUploads.items[0].photos.reviewDetail.latestPhoto.fileName,
+        'incoming-day7.jpg'
+      );
+      assert.deepEqual(incomingUploads.items[0].photos.reviewDetail.recentPhotos, [
+        {
+          photoId: 'incoming-upload-1',
+          fileName: 'incoming-day7.jpg',
+          byteSize: 1234,
+          storedAt: '2026-06-29T12:00:00.000Z',
+        },
+      ]);
+      assert.equal(
+        incomingUploads.items[0].photos.reviewDetail.reviewUrl,
+        '/api/v1/staff/customer-photos/patient-incoming-upload'
+      );
       assert.equal(incomingUploads.items[0].photos.portalUploadCount, 1);
       assert.equal(incomingUploads.items[0].followupUploadToken.status, 'received');
 
@@ -594,6 +612,8 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       assert.equal(reviewedUpload.photos.incomingFromPortal, true);
       assert.equal(reviewedUpload.photos.incomingReviewPending, false);
       assert.equal(reviewedUpload.photos.reviewOverdue, false);
+      assert.equal(reviewedUpload.photos.reviewDetail.status, 'reviewed');
+      assert.equal(reviewedUpload.photos.reviewDetail.latestPhoto.fileName, 'incoming-day7.jpg');
       assert.ok(reviewedUpload.photos.reviewedAt);
 
       const reviewedPhotos = await fetchMode('reviewed_photos');
@@ -1412,6 +1432,7 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
           reviewAgeHours: null,
           reviewOverdue: false,
           reviewDueWithinHours: 24,
+          reviewDetail: null,
         },
         links: followup.reviews[0].ordinationReadout.followupEscalation.links,
         safety:
