@@ -430,6 +430,12 @@ function createStaffPortalRouter({
       patientId,
       tenantId,
     });
+    const followupUploadToken = await buildFollowupUploadTokenStatus({
+      tenantId,
+      patientId,
+      caseId: caseRecord.id,
+      milestoneKey: activeMilestone.key,
+    });
 
     return {
       caseId: caseRecord.id || null,
@@ -464,6 +470,7 @@ function createStaffPortalRouter({
         latestAt: photos[0]?.updatedAt || null,
         href: links.photos || null,
       },
+      followupUploadToken,
       followupHistory,
       followupHistorySummary: {
         count: followupHistory.length,
@@ -642,6 +649,46 @@ function createStaffPortalRouter({
       : `/${String(pathValue || '')}`;
     if (!rawBase) return cleanPath;
     return `${String(rawBase).replace(/\/+$/, '')}${cleanPath}`;
+  }
+
+  async function buildFollowupUploadTokenStatus({
+    tenantId,
+    patientId,
+    caseId,
+    milestoneKey,
+  } = {}) {
+    if (!patientPortalStore?.findFollowupUploadTokenForCase) return null;
+    const tokenRecord = await patientPortalStore.findFollowupUploadTokenForCase({
+      tenantId,
+      patientId,
+      caseId,
+      milestoneKey,
+    });
+    if (!tokenRecord?.token) return null;
+    const uploadPath = `/api/patient-portal/followup-photo-upload/${encodeURIComponent(tokenRecord.token)}`;
+    const uploadedPhotos = Array.isArray(tokenRecord.uploadedPhotos)
+      ? tokenRecord.uploadedPhotos
+      : [];
+    const latestUploadedAt =
+      uploadedPhotos
+        .map((item) => item?.storedAt)
+        .filter(Boolean)
+        .sort()
+        .at(-1) || null;
+    return {
+      active: true,
+      token: tokenRecord.token,
+      caseId: tokenRecord.caseId || caseId || null,
+      patientId: tokenRecord.patientId || patientId || null,
+      milestoneKey: tokenRecord.milestoneKey || milestoneKey || null,
+      maxPhotos: tokenRecord.maxPhotos || null,
+      remainingUploads: tokenRecord.remainingUploads ?? null,
+      uploadedCount: uploadedPhotos.length,
+      latestUploadedAt,
+      expiresAt: tokenRecord.expiresAt || null,
+      uploadPath,
+      uploadUrl: publicPatientPortalUrl(uploadPath),
+    };
   }
 
   function isTodayIso(value) {
@@ -2249,21 +2296,33 @@ function createStaffPortalRouter({
         ).trim();
         const maxPhotos = Number(req.body?.maxPhotos || 6);
         const expiresInHours = Number(req.body?.expiresInHours || 72);
-        const tokenRecord = await patientPortalStore.createFollowupUploadToken({
+        const existingToken = await buildFollowupUploadTokenStatus({
           tenantId,
           patientId,
           caseId: id,
           milestoneKey,
-          label: followupItem?.milestone?.label || 'Uppföljningsbilder',
-          maxPhotos,
-          expiresInHours,
         });
-        const path = `/api/patient-portal/followup-photo-upload/${encodeURIComponent(tokenRecord.token)}`;
-        const uploadUrl = publicPatientPortalUrl(path);
+        const tokenRecord =
+          existingToken ||
+          (await patientPortalStore.createFollowupUploadToken({
+            tenantId,
+            patientId,
+            caseId: id,
+            milestoneKey,
+            label: followupItem?.milestone?.label || 'Uppföljningsbilder',
+            maxPhotos,
+            expiresInHours,
+          }));
+        const path =
+          tokenRecord.uploadPath ||
+          `/api/patient-portal/followup-photo-upload/${encodeURIComponent(tokenRecord.token)}`;
+        const uploadUrl = tokenRecord.uploadUrl || publicPatientPortalUrl(path);
 
         if (ccoAuditLog) {
           ccoAuditLog.append({
-            action: 'staff_portal.followup_upload_token_created',
+            action: existingToken
+              ? 'staff_portal.followup_upload_token_reused'
+              : 'staff_portal.followup_upload_token_created',
             actor: { role: actor.role, userId: actor.userId, ip: null },
             target: { kind: 'booking_case', id, tenantId },
             result: 'ok',
@@ -2272,6 +2331,7 @@ function createStaffPortalRouter({
               milestoneKey,
               maxPhotos: tokenRecord.maxPhotos,
               expiresAt: tokenRecord.expiresAt,
+              reusedExistingToken: Boolean(existingToken),
               safety:
                 'Token skapar bara en kunduppladdningslänk. Ingen kundkontakt, journal eller medicinsk bedömning skapas automatiskt.',
             },
@@ -2287,9 +2347,11 @@ function createStaffPortalRouter({
             milestoneKey,
             maxPhotos: tokenRecord.maxPhotos,
             remainingUploads: tokenRecord.remainingUploads,
+            uploadedCount: tokenRecord.uploadedCount || 0,
             expiresAt: tokenRecord.expiresAt,
             uploadPath: path,
             uploadUrl,
+            reused: Boolean(existingToken),
           },
           safety: {
             noAutoSend: true,

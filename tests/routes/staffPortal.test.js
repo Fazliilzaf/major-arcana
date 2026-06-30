@@ -827,8 +827,37 @@ test('POST /api/v1/staff/followups/:id/upload-token skapar säker kundlänk', as
       assert.equal(storedToken.patientId, 'patient-follow-upload-token');
       assert.equal(storedToken.caseId, 'case-follow-upload-token');
       assert.equal(storedToken.remainingUploads, 3);
+      const followupsRes = await fetch(`http://127.0.0.1:${port}/api/v1/staff/followups`, {
+        headers: { 'x-cco-role': 'personal' },
+      });
+      assert.equal(followupsRes.status, 200);
+      const followupsBody = await followupsRes.json();
+      assert.equal(followupsBody.items[0].followupUploadToken.active, true);
+      assert.equal(followupsBody.items[0].followupUploadToken.token, body.uploadToken.token);
+      assert.equal(followupsBody.items[0].followupUploadToken.uploadedCount, 0);
+      assert.equal(followupsBody.items[0].followupUploadToken.remainingUploads, 3);
+      assert.match(
+        followupsBody.items[0].followupUploadToken.uploadUrl,
+        /^https:\/\/arcana\.hairtpclinic\.com\/api\/patient-portal\/followup-photo-upload\//
+      );
+
+      const reusedRes = await fetch(
+        `http://127.0.0.1:${port}/api/v1/staff/followups/case-follow-upload-token/upload-token`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cco-role': 'personal' },
+          body: JSON.stringify({ maxPhotos: 3, expiresInHours: 12 }),
+        }
+      );
+      assert.equal(reusedRes.status, 200);
+      const reusedBody = await reusedRes.json();
+      assert.equal(reusedBody.uploadToken.reused, true);
+      assert.equal(reusedBody.uploadToken.token, body.uploadToken.token);
       assert.ok(
         auditEntries.some((entry) => entry.action === 'staff_portal.followup_upload_token_created')
+      );
+      assert.ok(
+        auditEntries.some((entry) => entry.action === 'staff_portal.followup_upload_token_reused')
       );
     } finally {
       await new Promise((resolve) => server.close(resolve));

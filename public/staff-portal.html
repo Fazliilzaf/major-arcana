@@ -3308,6 +3308,7 @@
         const pillClass = followupPillClass(status);
         const followupHistory = Array.isArray(item.followupHistory) ? item.followupHistory : [];
         const latestFollowup = item.followupHistorySummary || {};
+        const uploadToken = item.followupUploadToken || null;
         const isCompleted = status === 'completed' || item.completed === true;
         const cardClass =
           status === 'overdue'
@@ -3355,8 +3356,20 @@
           : `<button class="btn followup-action" data-action="followup_contacted" data-case-id="${escapeHtml(item.caseId || '')}">Kontaktad</button>
             <button class="btn followup-action" data-action="followup_needs_doctor" data-case-id="${escapeHtml(item.caseId || '')}">Behöver läkare</button>
             <button class="btn followup-action" data-action="followup_journal_draft" data-case-id="${escapeHtml(item.caseId || '')}">Journalutkast</button>
-            <button class="btn followup-upload-token-action" data-case-id="${escapeHtml(item.caseId || '')}">Skapa bildlänk</button>
+            <button class="btn followup-upload-token-action" data-case-id="${escapeHtml(item.caseId || '')}" data-upload-url="${escapeHtml(uploadToken?.uploadUrl || uploadToken?.uploadPath || '')}">${uploadToken?.active ? 'Visa bildlänk' : 'Skapa bildlänk'}</button>
             <button class="btn primary followup-action" data-action="followup_completed" data-case-id="${escapeHtml(item.caseId || '')}">Markera klar</button>`;
+        const uploadTokenHtml = uploadToken?.active
+          ? `<div class="ordination-timeline-summary">
+              <div class="ordination-timeline-chip">
+                <strong>Bildlänk</strong>
+                <span>Aktiv till ${escapeHtml(formatDateTime(uploadToken.expiresAt))}</span>
+              </div>
+              <div class="ordination-timeline-chip">
+                <strong>Uppladdning</strong>
+                <span>${Number(uploadToken.uploadedCount || 0)} uppladdade · ${Number(uploadToken.remainingUploads || 0)} kvar</span>
+              </div>
+            </div>`
+          : '<div class="live-note" style="margin-top:9px">Ingen aktiv kundlänk för bilduppladdning.</div>';
         return `<div class="item-card ${cardClass}">
           <div class="item-icon">${cardIcon}</div>
           <div class="item-body">
@@ -3368,6 +3381,7 @@
               <span class="pill violet">${Number(item.photos?.count || 0)} bild${Number(item.photos?.count || 0) === 1 ? '' : 'er'}</span>
             </div>
             <div class="live-note" style="margin-top:9px">${escapeHtml(item.action?.safety || 'Read-only uppföljningsstöd.')}</div>
+            ${uploadTokenHtml}
             ${followupHistoryHtml}
             ${renderDeepLinks(
               {
@@ -3998,6 +4012,11 @@
           feedback.textContent = message;
           feedback.className = `queue-feedback ${type || ''}`.trim();
         };
+        const existingUrl = button?.dataset?.uploadUrl || '';
+        if (existingUrl) {
+          setFeedback(`Aktiv säker bildlänk: ${existingUrl}`, 'ok');
+          return;
+        }
 
         try {
           button.disabled = true;
@@ -4013,6 +4032,10 @@
               : 'Säker bildlänk skapad. Kopiera den från API-svaret vid behov.',
             'ok'
           );
+          if (uploadUrl) {
+            button.dataset.uploadUrl = uploadUrl;
+            button.textContent = 'Visa bildlänk';
+          }
         } catch (err) {
           setFeedback(err.message || 'Kunde inte skapa bildlänk.', 'error');
         } finally {
