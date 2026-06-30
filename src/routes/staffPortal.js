@@ -965,6 +965,21 @@ function createStaffPortalRouter({
               caseRecord.staffActions?.completionResolvedBy ||
               lastCompletionResolved.userId ||
               null,
+            durationLabel: formatDurationMinutes(
+              lastCompletionRequest.at || caseRecord.ordinationReview?.decidedAt,
+              caseRecord.staffActions?.completionResolvedAt || lastCompletionResolved.at
+            ),
+            reviewPrompt: {
+              label: 'Komplettering tillbaka',
+              tone: 'sage',
+              primary: 'Granska kompletterat underlag igen',
+              description:
+                'Personal har markerat kompletteringen klar. Läkaren behöver göra ny manuell bedömning före godkännande eller avvisning.',
+              safety:
+                'Returen skapar inget beslut automatiskt. Godkännande/avvisning kräver fortsatt läkarsignatur.',
+              owner: 'doctor',
+              readOnly: true,
+            },
           }
         : null;
     const timelineSummary = {
@@ -1362,6 +1377,18 @@ function createStaffPortalRouter({
   function countMissingHandoff(checklist = {}) {
     if (!checklist || typeof checklist !== 'object') return 0;
     return Object.values(checklist).filter((value) => value === false).length;
+  }
+
+  function formatDurationMinutes(fromIso, toIso) {
+    const from = Date.parse(fromIso || '');
+    const to = Date.parse(toIso || '');
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) return null;
+    const minutes = Math.max(1, Math.round((to - from) / 60000));
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.round((minutes / 60) * 10) / 10;
+    if (hours < 48) return `${hours} tim`;
+    const days = Math.round((hours / 24) * 10) / 10;
+    return `${days} dagar`;
   }
 
   function buildCompletionChecklistForStaff(caseRecord = {}) {

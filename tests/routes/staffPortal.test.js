@@ -1266,9 +1266,22 @@ test('GET /api/v1/staff/ordination-reviews visar återkommen komplettering', asy
         comment: 'Komplettera friskförsäkran före beslut',
         resolvedAt: body.reviews[0].ordinationReadout.completionReturn.resolvedAt,
         resolvedBy: 'staff-1',
+        durationLabel: body.reviews[0].ordinationReadout.completionReturn.durationLabel,
+        reviewPrompt: {
+          label: 'Komplettering tillbaka',
+          tone: 'sage',
+          primary: 'Granska kompletterat underlag igen',
+          description:
+            'Personal har markerat kompletteringen klar. Läkaren behöver göra ny manuell bedömning före godkännande eller avvisning.',
+          safety:
+            'Returen skapar inget beslut automatiskt. Godkännande/avvisning kräver fortsatt läkarsignatur.',
+          owner: 'doctor',
+          readOnly: true,
+        },
       });
       assert.ok(body.reviews[0].ordinationReadout.completionReturn.requestedAt);
       assert.ok(body.reviews[0].ordinationReadout.completionReturn.resolvedAt);
+      assert.ok(body.reviews[0].ordinationReadout.completionReturn.durationLabel);
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }

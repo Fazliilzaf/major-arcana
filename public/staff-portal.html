@@ -3827,6 +3827,23 @@
                     ? `<div class="live-note" style="margin-top:9px">Ursprunglig begäran: ${escapeHtml(completionReturn.comment)}</div>`
                     : ''
                 }
+                ${
+                  completionReturn.reviewPrompt
+                    ? `<div class="ordination-next-action ${escapeHtml(completionReturn.reviewPrompt.tone || 'sage')}" style="margin-top:10px">
+                        <div class="ordination-next-action-head">
+                          <div>
+                            <div class="ordination-next-action-title">${escapeHtml(completionReturn.reviewPrompt.primary || 'Granska igen')}</div>
+                            <div class="ordination-next-action-copy">
+                              ${escapeHtml(completionReturn.reviewPrompt.description || 'Komplettering är tillbaka för ny manuell granskning.')}
+                              ${completionReturn.durationLabel ? ' · Ledtid ' + escapeHtml(completionReturn.durationLabel) : ''}
+                            </div>
+                          </div>
+                          <span class="pill ${escapeHtml(completionReturn.reviewPrompt.tone || 'sage')}">${escapeHtml(completionReturn.reviewPrompt.label || 'Tillbaka')}</span>
+                        </div>
+                        <div class="live-note" style="margin-top:9px">${escapeHtml(completionReturn.reviewPrompt.safety || 'Inget beslut skapas automatiskt.')}</div>
+                      </div>`
+                    : ''
+                }
               </div>`
             : '';
         const timeline = Array.isArray(readout.timeline) ? readout.timeline : [];
