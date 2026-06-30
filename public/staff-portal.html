@@ -2638,6 +2638,7 @@
         ['upcoming', 'Planerade'],
         ['with_photos', 'Med bilder'],
         ['incoming_uploads', 'Bilder inkomna'],
+        ['photo_review_overdue', 'Bildgranskning sen'],
         ['reviewed_photos', 'Bilder granskade'],
         ['needs_doctor', 'Behöver läkare'],
         ['waiting_doctor', 'Väntar läkare'],
@@ -2663,6 +2664,7 @@
           upcoming: Number(summary.upcoming || 0) + Number(summary.upcoming_operation || 0),
           with_photos: summary.withPhotos || 0,
           incoming_uploads: summary.incomingUploads || 0,
+          photo_review_overdue: summary.photoReviewOverdue || 0,
           reviewed_photos: summary.reviewedPhotos || 0,
           needs_doctor: summary.needsDoctor || 0,
           waiting_doctor: summary.waitingDoctor || 0,
@@ -3402,6 +3404,13 @@
               <span class="pill ${pillClass}">${escapeHtml(followupStatusLabel(status))}</span>
               <span class="pill neutral">${escapeHtml(milestone.kind || 'kontroll')}</span>
               <span class="pill violet">${Number(item.photos?.count || 0)} bild${Number(item.photos?.count || 0) === 1 ? '' : 'er'}</span>
+              ${
+                item.photos?.reviewOverdue
+                  ? `<span class="pill danger">Bildgranskning sen · ${Number(item.photos?.reviewAgeHours || 0)}h</span>`
+                  : item.photos?.incomingReviewPending
+                    ? `<span class="pill amber">Bildgranskning väntar</span>`
+                    : ''
+              }
             </div>
             <div class="live-note" style="margin-top:9px">${escapeHtml(item.action?.safety || 'Read-only uppföljningsstöd.')}</div>
             ${uploadTokenHtml}
@@ -4436,6 +4445,7 @@
         if (data.items?.length) {
           container.innerHTML =
             `<div class="live-note">Live uppföljningar · ${escapeHtml(activeLabel)}: ${Number(data.count || 0)} visade av ${Number(summary.total || 0)} ärenden · ${Number(summary.overdue || 0)} försenade · ${Number(summary.due || 0)} aktuella · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} bilder inkomna · ${Number(summary.reviewedPhotos || 0)} bilder granskade · ${Number(summary.needsDoctor || 0)} behöver läkare.</div>` +
+            `<div class="live-note">Bild-SLA: ${Number(summary.photoReviewOverdue || 0)} kunduppladdning${Number(summary.photoReviewOverdue || 0) === 1 ? '' : 'ar'} väntar granskning längre än 24h.</div>` +
             data.items.slice(0, 8).map(renderStaffFollowupCard).join('');
         } else {
           container.innerHTML = `<div class="live-note">Inga uppföljningar i läget “${escapeHtml(activeLabel)}”. Byt arbetsläge ovan för att se fler ärenden.</div>`;
@@ -4469,7 +4479,7 @@
           badge.textContent = active;
           badge.style.display = active > 0 ? '' : 'none';
         });
-        container.innerHTML = `<div class="live-note">Live owner-överblick: ${Number(summary.total || 0)} uppföljningsärenden · ${Number(summary.completed || 0)} klara · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} kunduppladdningar · ${Number(summary.reviewedPhotos || 0)} bildgranskningar klara.</div>
+        container.innerHTML = `<div class="live-note">Live owner-överblick: ${Number(summary.total || 0)} uppföljningsärenden · ${Number(summary.completed || 0)} klara · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} kunduppladdningar · ${Number(summary.photoReviewOverdue || 0)} sena bildgranskningar · ${Number(summary.reviewedPhotos || 0)} bildgranskningar klara.</div>
           <div class="qms-grid" style="margin-top:10px">
             ${ownerFollowupMetric('Försenade', summary.overdue, 'danger', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Idag/aktuella', summary.due, 'amber', '/staff-portal?role=nurse&panel=followups')}
@@ -4477,6 +4487,7 @@
             ${ownerFollowupMetric('Klara', summary.completed, 'sage', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Med bilder', summary.withPhotos, 'violet', '/staff-portal?role=nurse&panel=followups')}
             ${ownerFollowupMetric('Bilder inkomna', summary.incomingUploads, 'violet', '/staff-portal?role=nurse&panel=followups&followupMode=incoming_uploads')}
+            ${ownerFollowupMetric('Bildgranskning sen', summary.photoReviewOverdue, 'danger', '/staff-portal?role=nurse&panel=followups&followupMode=photo_review_overdue')}
             ${ownerFollowupMetric('Bilder granskade', summary.reviewedPhotos, 'sage', '/staff-portal?role=nurse&panel=followups&followupMode=reviewed_photos')}
           </div>`;
       }
