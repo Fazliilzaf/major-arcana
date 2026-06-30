@@ -313,6 +313,95 @@ function createStaffPortalRouter({
     };
   }
 
+  const FOLLOWUP_MILESTONES = [
+    { key: 'postop_day_1', day: 1, label: 'Postop dag 1', kind: 'trygghetscheck' },
+    { key: 'postop_day_7', day: 7, label: 'Postop dag 7', kind: 'läkning' },
+    { key: 'postop_day_30', day: 30, label: 'Postop dag 30', kind: 'foto/återkoppling' },
+    { key: 'followup_month_4', day: 120, label: 'Uppföljning 4 månader', kind: 'resultat' },
+    { key: 'followup_month_6', day: 180, label: 'Uppföljning 6 månader', kind: 'resultat' },
+    {
+      key: 'followup_month_12',
+      day: 365,
+      label: 'Resultatuppföljning 12 månader',
+      kind: 'slutstatus',
+    },
+  ];
+
+  function daysBetween(startIso, now = new Date()) {
+    const startMs = Date.parse(startIso || '');
+    if (!Number.isFinite(startMs)) return null;
+    return Math.floor((now.getTime() - startMs) / (24 * 60 * 60 * 1000));
+  }
+
+  async function buildStaffFollowupItem(caseRecord, { tenantId, now = new Date() } = {}) {
+    const startsAt = caseRecord.startsAt || caseRecord.scheduledForIso || caseRecord.scheduledAt;
+    const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
+    const customerId = String(
+      caseRecord.customerId || caseRecord.patientId || caseRecord.customerEmail || ''
+    ).trim();
+    const daysSince = daysBetween(startsAt, now);
+    if (daysSince === null) return null;
+
+    const photos = patientId ? await listPhotoMetadata({ tenantId, patientId }) : [];
+    const dueMilestones = FOLLOWUP_MILESTONES.filter((item) => daysSince >= item.day);
+    const nextMilestone =
+      FOLLOWUP_MILESTONES.find((item) => daysSince < item.day) ||
+      FOLLOWUP_MILESTONES[FOLLOWUP_MILESTONES.length - 1];
+    const activeMilestone = dueMilestones[dueMilestones.length - 1] || nextMilestone;
+    const daysUntil = activeMilestone.day - daysSince;
+    const status =
+      daysSince < 0
+        ? 'upcoming_operation'
+        : daysUntil > 0
+          ? 'upcoming'
+          : Math.abs(daysUntil) <= 2
+            ? 'due'
+            : 'overdue';
+    const priorityRank =
+      status === 'overdue' ? 10 : status === 'due' ? 20 : status === 'upcoming' ? 40 : 60;
+
+    return {
+      caseId: caseRecord.id || null,
+      customerId: customerId || null,
+      patientId: patientId || null,
+      customerName:
+        caseRecord.customerName ||
+        caseRecord.patientName ||
+        caseRecord.customerEmail ||
+        caseRecord.id ||
+        'Kund',
+      assignedTo: caseRecord.assignedTo || null,
+      treatment: caseRecord.serviceLabel || caseRecord.treatment || caseRecord.service || null,
+      startsAt: startsAt || null,
+      daysSince,
+      status,
+      priority: status === 'overdue' ? 'urgent' : status === 'due' ? 'today' : 'waiting',
+      priorityRank,
+      milestone: activeMilestone,
+      daysUntil,
+      photos: {
+        count: photos.length,
+        latestAt: photos[0]?.updatedAt || null,
+      },
+      action: {
+        label:
+          status === 'overdue'
+            ? 'Följ upp nu'
+            : status === 'due'
+              ? 'Öppna uppföljning'
+              : 'Planera uppföljning',
+        safety:
+          'Uppföljningslistan är read-only. Kontakt, bildgranskning och journalanteckning görs i ordinarie CCO-flöde.',
+      },
+      links: buildStaffPortalLinks({
+        caseId: caseRecord.id,
+        customerId,
+        patientId,
+        tenantId,
+      }),
+    };
+  }
+
   function buildStaffPortalLinks({ caseId, customerId, patientId, tenantId } = {}) {
     const pid = String(patientId || customerId || '').trim();
     const cid = String(customerId || patientId || '').trim();
@@ -1589,6 +1678,67 @@ function createStaffPortalRouter({
       }
     }
   );
+
+  /* ── GET /api/v1/staff/followups ──────────────────────────────
+     Read-only uppföljningslista för ansvarig personal.
+     Härleds från operations-/bokningsdatum och befintlig bildmetadata.
+  ─────────────────────────────────────────────────────────────── */
+  router.get('/api/v1/staff/followups', requirePermission('customers.read'), async (req, res) => {
+    try {
+      const role = req.cco?.role ?? null;
+      const userId = req.auth?.userId ?? null;
+      const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+      const limit = Math.min(Number(req.query.limit) || 20, 60);
+      const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+
+      let cases = [];
+      if (bookingCaseStore) {
+        cases = await bookingCaseStore.listCases({
+          tenantId: tenantId || undefined,
+          assignedTo: all ? null : userId || undefined,
+          limit,
+        });
+      }
+
+      const built = await Promise.all(
+        cases.slice(0, limit).map((item) => buildStaffFollowupItem(item, { tenantId }))
+      );
+      const items = built
+        .filter(Boolean)
+        .sort(
+          (a, b) =>
+            a.priorityRank - b.priorityRank ||
+            Math.abs(a.daysUntil || 0) - Math.abs(b.daysUntil || 0) ||
+            String(a.startsAt || '').localeCompare(String(b.startsAt || ''))
+        )
+        .slice(0, limit);
+      const summary = items.reduce(
+        (acc, item) => {
+          acc.total += 1;
+          acc[item.status] = (acc[item.status] || 0) + 1;
+          if (item.photos?.count) acc.withPhotos += 1;
+          return acc;
+        },
+        { total: 0, overdue: 0, due: 0, upcoming: 0, upcoming_operation: 0, withPhotos: 0 }
+      );
+
+      res.json({
+        ok: true,
+        delegatedTo: all ? 'all' : userId || null,
+        items,
+        count: items.length,
+        summary,
+        milestones: FOLLOWUP_MILESTONES,
+        safety: {
+          readOnly: true,
+          message:
+            'Uppföljningar är prioriteringsstöd. Kontakt, bildgranskning och journal förs i ordinarie CCO-flöde.',
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
 
   /* ── GET /api/v1/staff/daily-work-queue ───────────────────────
      Prioriterad read-only kö för vardagsarbetet:

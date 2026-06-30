@@ -302,6 +302,87 @@ test('GET /api/v1/staff/delegated-photo-inbox visar bara delegerade kundbilder',
   }
 });
 
+test('GET /api/v1/staff/followups prioriterar egna postop-uppföljningar', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-followups-'));
+  try {
+    const photoRoot = path.join(dir, 'journal-photos');
+    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-follow-1'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-follow-1', 'day7.jpg'), 'x');
+
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    const oneDayAgo = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
+    const bookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(dir, 'booking-cases.json'),
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-follow-1',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-follow-1',
+      customerId: 'customer-follow-1',
+      customerName: 'Uppföljning Kund',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-1',
+      startsAt: eightDaysAgo,
+    });
+    await bookingCaseStore.createCase({
+      id: 'case-follow-2',
+      tenantId: 'hairtpclinic',
+      state: 'confirmed',
+      patientId: 'patient-follow-2',
+      customerId: 'customer-follow-2',
+      customerName: 'Annan Uppföljning',
+      serviceLabel: 'Hårtransplantation DHI',
+      assignedTo: 'staff-2',
+      startsAt: oneDayAgo,
+    });
+
+    const app = express();
+    app.use(
+      createStaffPortalRouter({
+        config: {
+          stateRoot: dir,
+          journalPhotosDir: photoRoot,
+        },
+        bookingCaseStore,
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/v1/staff/followups`, {
+        headers: { 'x-cco-role': 'personal' },
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.delegatedTo, 'staff-1');
+      assert.equal(body.count, 1);
+      assert.equal(body.summary.total, 1);
+      assert.equal(body.summary.withPhotos, 1);
+      assert.equal(body.items[0].caseId, 'case-follow-1');
+      assert.equal(body.items[0].patientId, 'patient-follow-1');
+      assert.equal(body.items[0].milestone.key, 'postop_day_7');
+      assert.equal(body.items[0].status, 'due');
+      assert.equal(body.items[0].photos.count, 1);
+      assert.equal(
+        body.items[0].links.workspace,
+        '/major-arcana-preview/?view=customers&workspace=1&patientId=patient-follow-1'
+      );
+      assert.match(body.safety.message, /Uppföljningar/);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-daily-queue-'));
   try {
