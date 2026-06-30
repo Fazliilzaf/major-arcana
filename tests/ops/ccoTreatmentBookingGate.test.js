@@ -134,6 +134,108 @@ test('behandlingsbokning på operationsdag ger 409 utan FC även när bundle är
   );
 });
 
+test('behandlingsbokning på operationsdag passerar när journalStore har signerad fitness_certificate', async () => {
+  const prevGate = process.env.CCO_ID_VERIFICATION_HARD_GATE;
+  process.env.CCO_ID_VERIFICATION_HARD_GATE = 'false';
+  try {
+    const treatmentAgreementStore = {
+      async getPatientAgreement() {
+        return {
+          agreementStatus: 'bookable',
+          bundleStatus: 'signed',
+          signedAt: '2026-06-14T08:00:00.000Z',
+          consent: { signed: true, signedAt: '2026-06-14T08:00:00.000Z', signedBy: 'Op Kund' },
+        };
+      },
+    };
+    const patientMasterStore = {
+      async findPatientByEmail() {
+        return { id: 'patient-fc-journal' };
+      },
+      async getPatient() {
+        return {
+          id: 'patient-fc-journal',
+          primaryEmail: 'fcjournal@example.com',
+          todayVisit: true,
+        };
+      },
+    };
+    const journalStore = {
+      async listEntries({ journalType }) {
+        if (journalType !== 'fitness_certificate') return [];
+        return [
+          {
+            entryId: 'fc-op-day',
+            journalType: 'fitness_certificate',
+            status: 'signed',
+            signedAt: '2026-06-14T09:30:00.000Z',
+          },
+        ];
+      },
+    };
+
+    const gate = await checkTreatmentBookingGate({
+      treatmentAgreementStore,
+      patientMasterStore,
+      journalStore,
+      tenantId: 'hair-tp-clinic',
+      customerEmail: 'fcjournal@example.com',
+      body: { serviceId: 'fue' },
+    });
+    assert.equal(gate.allowed, true);
+  } finally {
+    if (prevGate === undefined) delete process.env.CCO_ID_VERIFICATION_HARD_GATE;
+    else process.env.CCO_ID_VERIFICATION_HARD_GATE = prevGate;
+  }
+});
+
+test('behandlingsbokning på operationsdag blockeras när varken patientCard eller journal har FC', async () => {
+  const treatmentAgreementStore = {
+    async getPatientAgreement() {
+      return {
+        agreementStatus: 'bookable',
+        bundleStatus: 'signed',
+        signedAt: '2026-06-14T08:00:00.000Z',
+        consent: { signed: true, signedAt: '2026-06-14T08:00:00.000Z', signedBy: 'Op Kund 2' },
+      };
+    },
+  };
+  const patientMasterStore = {
+    async findPatientByEmail() {
+      return { id: 'patient-no-fc' };
+    },
+    async getPatient() {
+      return {
+        id: 'patient-no-fc',
+        primaryEmail: 'nofc@example.com',
+        todayVisit: true,
+      };
+    },
+  };
+  const journalStore = {
+    async listEntries() {
+      return [{ entryId: 'fc-draft', journalType: 'fitness_certificate', status: 'draft' }];
+    },
+  };
+
+  await assert.rejects(
+    () =>
+      assertTreatmentBookingAllowed({
+        treatmentAgreementStore,
+        patientMasterStore,
+        journalStore,
+        tenantId: 'hair-tp-clinic',
+        customerEmail: 'nofc@example.com',
+        body: { serviceId: 'fue' },
+      }),
+    (err) => {
+      assert.equal(err.statusCode, 409);
+      assert.equal(err.metadata?.code, 'operation_day_fitness_required');
+      return true;
+    }
+  );
+});
+
 test('behandlingsbokning ger 409 identity_verification_required när bundle OK men ID overifierat', async () => {
   const prevGate = process.env.CCO_ID_VERIFICATION_HARD_GATE;
   process.env.CCO_ID_VERIFICATION_HARD_GATE = 'true';

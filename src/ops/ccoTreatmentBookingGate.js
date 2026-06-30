@@ -10,6 +10,7 @@ const {
 const {
   assertOperationDayJournalAllowedForPatient,
   patientFitnessSigned,
+  resolveFitnessSignedFromJournal,
   resolveTodayVisitForPatient,
 } = require('./ccoOperationDayGate');
 
@@ -105,6 +106,7 @@ async function checkTreatmentBookingGate({
   patientMasterStore,
   patientIdentityStore = null,
   bookingStore = null,
+  journalStore = null,
   config = null,
   tenantId,
   patientId,
@@ -193,7 +195,12 @@ async function checkTreatmentBookingGate({
     bookingStore,
     tenantId,
   });
-  const fitnessSigned = patientFitnessSigned(patientCard || {});
+  const fitnessSigned = await resolveFitnessSignedFromJournal({
+    journalStore,
+    tenantId,
+    patientId: resolvedPatientId,
+    patient: patientCard || {},
+  });
   const identityVerified = await resolvePatientIdentityVerified({
     patientIdentityStore,
     config,
