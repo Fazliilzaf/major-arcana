@@ -210,6 +210,60 @@ function createStaffPortalRouter({
     };
   }
 
+  async function buildDelegatedInboxItems(caseRecord, { tenantId, limitPerCustomer = 5 } = {}) {
+    const customerId = String(
+      caseRecord.customerId || caseRecord.patientId || caseRecord.customerEmail || ''
+    ).trim();
+    const patientId = String(caseRecord.patientId || caseRecord.customerId || '').trim();
+    if (!customerId) return [];
+
+    let threads = [];
+    try {
+      const store = await getThreadStore();
+      const built = await store.buildThreadsForCustomer(customerId, { tenantId });
+      threads = store.filterThreads(built.threads || [], 'unanswered');
+    } catch (_err) {
+      threads = [];
+    }
+
+    return threads
+      .slice()
+      .sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))
+      .slice(0, limitPerCustomer)
+      .map((thread) => ({
+        threadId: thread.threadId || thread.id || null,
+        caseId: caseRecord.id || null,
+        customerId,
+        patientId: patientId || null,
+        customerName:
+          caseRecord.customerName ||
+          caseRecord.patientName ||
+          caseRecord.customerEmail ||
+          customerId,
+        assignedTo: caseRecord.assignedTo || null,
+        subject: thread.subject || 'Kundfråga',
+        preview: thread.preview || thread.bodyPreview || '',
+        from: thread.from || thread.sender || null,
+        channel: thread.channel || 'email',
+        mailboxId: thread.mailboxId || null,
+        receivedAt: thread.ts || thread.createdAt || null,
+        status: thread.threadStatus || 'unanswered',
+        priority: 'urgent',
+        action: {
+          label: 'Öppna kundtråd',
+          href: buildStaffPortalUrl({ role: 'nurse', panel: 'customers', hash: thread.threadId }),
+          safety:
+            'Svar skickas inte härifrån. Öppna CCO-konversationen och följ ordinarie svarsstudio.',
+        },
+        links: buildStaffPortalLinks({
+          caseId: caseRecord.id,
+          customerId,
+          patientId,
+          tenantId,
+        }),
+      }));
+  }
+
   function buildStaffPortalLinks({ caseId, customerId, patientId, tenantId } = {}) {
     const pid = String(patientId || customerId || '').trim();
     const cid = String(customerId || patientId || '').trim();
@@ -1360,6 +1414,68 @@ function createStaffPortalRouter({
         );
 
         res.json({ ok: true, customers, count: customers.length, summary });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /* ── GET /api/v1/staff/delegated-inbox ────────────────────────
+     Read-only inbox för kundfrågor kopplade till personalens tilldelade kunder.
+     Sjuksköterskor ser egna assignedTo-kunder; owner/operator kan läsa alla.
+     Inga svar skickas och inga trådar markeras här.
+  ─────────────────────────────────────────────────────────────── */
+  router.get(
+    '/api/v1/staff/delegated-inbox',
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const role = req.cco?.role ?? null;
+        const userId = req.auth?.userId ?? null;
+        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const limit = Math.min(Number(req.query.limit) || 20, 60);
+        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+
+        let cases = [];
+        if (bookingCaseStore) {
+          cases = await bookingCaseStore.listCases({
+            tenantId: tenantId || undefined,
+            assignedTo: all ? null : userId || undefined,
+            limit,
+          });
+        }
+
+        const groupedItems = await Promise.all(
+          cases
+            .slice(0, limit)
+            .map((item) => buildDelegatedInboxItems(item, { tenantId, limitPerCustomer: 4 }))
+        );
+        const items = groupedItems
+          .flat()
+          .sort((a, b) => String(b.receivedAt || '').localeCompare(String(a.receivedAt || '')))
+          .slice(0, limit);
+        const summary = items.reduce(
+          (acc, item) => {
+            acc.total += 1;
+            if (item.status === 'unanswered') acc.unanswered += 1;
+            if (item.channel) acc.channels[item.channel] = (acc.channels[item.channel] || 0) + 1;
+            return acc;
+          },
+          { total: 0, unanswered: 0, channels: {} }
+        );
+
+        res.json({
+          ok: true,
+          delegatedTo: all ? 'all' : userId || null,
+          items,
+          count: items.length,
+          summary,
+          safety: {
+            readOnly: true,
+            message:
+              'Delegerad inbox visar kundfrågor för tilldelade kunder. Svar skrivs i CCO-konversationen med ordinarie audit.',
+          },
+        });
       } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
       }
