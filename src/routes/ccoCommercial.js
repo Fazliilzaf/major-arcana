@@ -156,10 +156,30 @@ async function loadCustomerOfferPortalHtml() {
   return cachedCustomerOfferPortalHtml;
 }
 
-async function buildCustomerOfferPortalHtml(commercialCase = {}) {
+function buildCustomerOfferPortalContext(commercialCase = {}, { token = '', origin = '' } = {}) {
+  const quoteStatus = normalizeText(commercialCase.quoteStatus) || 'draft';
+  const esignStatus = normalizeText(commercialCase.esignStatus) || 'draft';
+  const coolingOff = getCoolingOffMeta(commercialCase);
+  return {
+    schemaVersion: 'customer-offer-portal-context.v1',
+    quoteStatus,
+    esignStatus,
+    coolingOff,
+    quoteSentAt: normalizeText(commercialCase.quoteSentAt),
+    quoteAcceptedAt: normalizeText(commercialCase.quoteAcceptedAt),
+    customerSignedName: normalizeText(commercialCase.customerSignedName),
+    offerSignUrl:
+      token && origin
+        ? `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(token)}`
+        : '',
+  };
+}
+
+async function buildCustomerOfferPortalHtml(commercialCase = {}, options = {}) {
   const html = await loadCustomerOfferPortalHtml();
   const plan = buildCustomerOfferPortalPlan(commercialCase);
-  const payload = `<script>window.ARCANA_CUSTOMER_OFFER_PLAN=${escapeScriptJson(plan)};</script>`;
+  const portalContext = buildCustomerOfferPortalContext(commercialCase, options);
+  const payload = `<script>window.ARCANA_CUSTOMER_OFFER_PLAN=${escapeScriptJson(plan)};window.ARCANA_CUSTOMER_OFFER_CONTEXT=${escapeScriptJson(portalContext)};</script>`;
   if (html.includes('window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN')) {
     return html.replace(
       '<script>\n      // ===== K4:',
@@ -857,7 +877,8 @@ function createCcoCommercialRouter({
         : null;
       if (!match) return res.status(404).send('Kundportal hittades inte.');
       await recordCustomerQuoteOpen(match, 'customer_offer_portal');
-      const html = await buildCustomerOfferPortalHtml(match);
+      const origin = `${req.protocol}://${req.get('host')}`;
+      const html = await buildCustomerOfferPortalHtml(match, { token, origin });
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 'private, max-age=60');
       return res.send(html);

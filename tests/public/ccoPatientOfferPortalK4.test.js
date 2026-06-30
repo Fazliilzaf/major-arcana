@@ -50,3 +50,15 @@ test('customer offer portal escapes offerPlan values before innerHTML rendering'
   assert.match(source, /escapeHtml\(formatGrafts\(item\.grafts\)\)/);
   assert.match(source, /escapeHtml\(method\)/);
 });
+
+test('customer offer portal applies K8 live status context', () => {
+  const source = readPortal();
+  assert.match(source, /window\.ARCANA_CUSTOMER_OFFER_CONTEXT \|\| \{\}/);
+  assert.match(source, /function applyCustomerOfferContext\(contextInput\)/);
+  assert.match(source, /data-portal-quote-status/);
+  assert.match(source, /data-portal-esign-status/);
+  assert.match(source, /data-portal-cooling-status/);
+  assert.match(source, /data-portal-next-step/);
+  assert.match(source, /Betänketid pågår/);
+  assert.match(source, /Öppna säker signering/);
+});

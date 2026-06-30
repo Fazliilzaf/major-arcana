@@ -285,6 +285,11 @@ test('offer-from-plan creates commercial case and html document', async () => {
       assert.equal(portalResponse.status, 200);
       const portalHtml = await portalResponse.text();
       assert.match(portalHtml, /window\.ARCANA_CUSTOMER_OFFER_PLAN=/);
+      assert.match(portalHtml, /window\.ARCANA_CUSTOMER_OFFER_CONTEXT=/);
+      assert.match(portalHtml, /"schemaVersion":"customer-offer-portal-context\.v1"/);
+      assert.match(portalHtml, /"quoteStatus":"sent"/);
+      assert.match(portalHtml, /"esignStatus":"sent"/);
+      assert.match(portalHtml, /"offerSignUrl":"http:\/\/127\.0\.0\.1:/);
       assert.match(portalHtml, /"customerName":"Kund"/);
       assert.match(portalHtml, /"total":"3500"/);
       assert.match(portalHtml, /"quotedAmount":"75 000 kr"/);
