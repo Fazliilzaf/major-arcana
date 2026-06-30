@@ -402,6 +402,10 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
     const bookingCaseStore = await createCcoBookingCaseStore({
       filePath: path.join(dir, 'booking-cases.json'),
     });
+    const patientPortalStore = createPatientPortalStore({
+      filePath: path.join(dir, 'patient-portal.json'),
+    });
+    await patientPortalStore.load();
     const baseCase = {
       tenantId: 'hairtpclinic',
       state: 'confirmed',
@@ -436,6 +440,31 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       customerName: 'Bild Kund',
       startsAt: daysAgo(8),
     });
+    await bookingCaseStore.createCase({
+      ...baseCase,
+      id: 'case-follow-incoming-upload',
+      patientId: 'patient-incoming-upload',
+      customerName: 'Inkommen Bild Kund',
+      startsAt: daysAgo(8),
+    });
+    const incomingToken = await patientPortalStore.createFollowupUploadToken({
+      tenantId: 'hairtpclinic',
+      patientId: 'patient-incoming-upload',
+      caseId: 'case-follow-incoming-upload',
+      milestoneKey: 'postop_day_7',
+      maxPhotos: 1,
+      expiresInHours: 12,
+    });
+    await patientPortalStore.recordFollowupUpload(incomingToken.token, {
+      photo: {
+        photoId: 'incoming-upload-1',
+        fileName: 'incoming-day7.jpg',
+        byteSize: 1234,
+        storedAt: '2030-06-29T12:00:00.000Z',
+      },
+      ip: '127.0.0.1',
+      userAgent: 'node-test',
+    });
     await bookingCaseStore.recordStaffAction(
       'case-follow-photo',
       { action: 'followup_needs_doctor' },
@@ -464,6 +493,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       createStaffPortalRouter({
         config: { stateRoot: dir, journalPhotosDir: photoRoot },
         bookingCaseStore,
+        patientPortalStore,
         requireAuth: (req, _res, next) => {
           req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
           next();
@@ -483,11 +513,12 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       };
 
       const all = await fetchMode('all');
-      assert.equal(all.summary.total, 5);
+      assert.equal(all.summary.total, 6);
       assert.equal(all.summary.overdue, 1);
-      assert.equal(all.summary.due, 2);
+      assert.equal(all.summary.due, 3);
       assert.equal(all.summary.upcoming, 1);
-      assert.equal(all.summary.withPhotos, 1);
+      assert.equal(all.summary.withPhotos, 2);
+      assert.equal(all.summary.incomingUploads, 1);
       assert.equal(all.summary.needsDoctor, 2);
       assert.equal(all.summary.waitingDoctor, 1);
       assert.equal(all.summary.completed, 1);
@@ -501,7 +532,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       const due = await fetchMode('due');
       assert.deepEqual(
         due.items.map((item) => item.status),
-        ['due', 'due']
+        ['due', 'due', 'due']
       );
 
       const upcoming = await fetchMode('upcoming');
@@ -511,10 +542,20 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       );
 
       const withPhotos = await fetchMode('with_photos');
+      assert.deepEqual(withPhotos.items.map((item) => item.caseId).sort(), [
+        'case-follow-incoming-upload',
+        'case-follow-photo',
+      ]);
+
+      const incomingUploads = await fetchMode('incoming_uploads');
       assert.deepEqual(
-        withPhotos.items.map((item) => item.caseId),
-        ['case-follow-photo']
+        incomingUploads.items.map((item) => item.caseId),
+        ['case-follow-incoming-upload']
       );
+      assert.equal(incomingUploads.summary.incomingUploads, 1);
+      assert.equal(incomingUploads.items[0].photos.incomingFromPortal, true);
+      assert.equal(incomingUploads.items[0].photos.portalUploadCount, 1);
+      assert.equal(incomingUploads.items[0].followupUploadToken.status, 'received');
 
       const needsDoctor = await fetchMode('needs_doctor');
       assert.deepEqual(
