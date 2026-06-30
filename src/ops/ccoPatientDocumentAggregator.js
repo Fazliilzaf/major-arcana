@@ -78,7 +78,7 @@ function inferStatusFromPatientSignals(type, card = {}, journalEntries = []) {
   }
   if (id === 'foto_samtycke') {
     if (card.photoConsent?.signed) return 'signed';
-    return 'planned';
+    return 'planned'; // voluntary — never 'pending'
   }
   if (id.startsWith('offert_')) {
     if (card.agreementSigned || card.treatmentPlanStatus === 'accepted') return 'signed';
@@ -99,10 +99,21 @@ function inferStatusFromPatientSignals(type, card = {}, journalEntries = []) {
   return 'planned';
 }
 
+function resolveSignalMetaForType(type, card = {}) {
+  if (type.id === 'foto_samtycke' && card.photoConsent?.signed) {
+    return {
+      signedAt: normalizeText(card.photoConsent.grantedAt) || null,
+      signedBy: normalizeText(card.photoConsent.grantedBy) || null,
+    };
+  }
+  return { signedAt: null, signedBy: null };
+}
+
 function buildRowFromType(type, instance, card, journalEntries) {
   const uiStatus = instance
     ? mapInstanceUiStatus(instance.status)
     : inferStatusFromPatientSignals(type, card, journalEntries);
+  const signalMeta = instance ? null : resolveSignalMetaForType(type, card);
   const flow = (type.flowApplies || []).find((f) => f !== 'all') || 'tp';
   return {
     instanceId: instance?.instanceId || null,
@@ -119,8 +130,8 @@ function buildRowFromType(type, instance, card, journalEntries) {
       instance?.payload?.amountKr ||
       instance?.payload?.beloppKr ||
       (type.category === 'commit' && type.filler === 'patient' ? null : null),
-    signedAt: instance?.signedAt || null,
-    signedBy: instance?.actor || null,
+    signedAt: instance?.signedAt || signalMeta?.signedAt || null,
+    signedBy: instance?.actor || signalMeta?.signedBy || null,
     channel: type.formProvider,
   };
 }
@@ -245,6 +256,7 @@ module.exports = {
   resolvePrimaryFlow,
   mapInstanceUiStatus,
   inferStatusFromPatientSignals,
+  resolveSignalMetaForType,
   typeAppliesToPatient,
   groupForType,
   getDocumentTypeById,
