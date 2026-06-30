@@ -460,7 +460,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
         photoId: 'incoming-upload-1',
         fileName: 'incoming-day7.jpg',
         byteSize: 1234,
-        storedAt: '2030-06-29T12:00:00.000Z',
+        storedAt: '2026-06-29T12:00:00.000Z',
       },
       ip: '127.0.0.1',
       userAgent: 'node-test',
@@ -554,8 +554,29 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       );
       assert.equal(incomingUploads.summary.incomingUploads, 1);
       assert.equal(incomingUploads.items[0].photos.incomingFromPortal, true);
+      assert.equal(incomingUploads.items[0].photos.incomingReviewPending, true);
       assert.equal(incomingUploads.items[0].photos.portalUploadCount, 1);
       assert.equal(incomingUploads.items[0].followupUploadToken.status, 'received');
+
+      await bookingCaseStore.recordStaffAction(
+        'case-follow-incoming-upload',
+        { action: 'followup_photos_reviewed' },
+        { userId: 'staff-1', role: 'personal' }
+      );
+      const incomingAfterReview = await fetchMode('incoming_uploads');
+      assert.equal(incomingAfterReview.items.length, 0);
+      assert.equal(incomingAfterReview.summary.incomingUploads, 0);
+      const withPhotosAfterReview = await fetchMode('with_photos');
+      assert.deepEqual(withPhotosAfterReview.items.map((item) => item.caseId).sort(), [
+        'case-follow-incoming-upload',
+        'case-follow-photo',
+      ]);
+      const reviewedUpload = withPhotosAfterReview.items.find(
+        (item) => item.caseId === 'case-follow-incoming-upload'
+      );
+      assert.equal(reviewedUpload.photos.incomingFromPortal, true);
+      assert.equal(reviewedUpload.photos.incomingReviewPending, false);
+      assert.ok(reviewedUpload.photos.reviewedAt);
 
       const needsDoctor = await fetchMode('needs_doctor');
       assert.deepEqual(
@@ -721,6 +742,7 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
         'followup_contacted',
         'followup_needs_doctor',
         'followup_journal_draft',
+        'followup_photos_reviewed',
         'followup_completed',
       ]) {
         const res = await fetch(
@@ -743,11 +765,13 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
       assert.equal(stored.staffActions.followupContactedBy, 'staff-1');
       assert.equal(stored.staffActions.followupNeedsDoctorBy, 'staff-1');
       assert.equal(stored.staffActions.followupJournalDraftRequestedBy, 'staff-1');
+      assert.equal(stored.staffActions.followupPhotosReviewedBy, 'staff-1');
       assert.equal(stored.staffActions.followupCompletedBy, 'staff-1');
       assert.ok(stored.ordinationReview);
       assert.ok(stored.history.some((entry) => entry.action === 'staff_followup_contacted'));
       assert.ok(stored.history.some((entry) => entry.action === 'staff_followup_needs_doctor'));
       assert.ok(stored.history.some((entry) => entry.action === 'staff_followup_journal_draft'));
+      assert.ok(stored.history.some((entry) => entry.action === 'staff_followup_photos_reviewed'));
       assert.ok(stored.history.some((entry) => entry.action === 'staff_followup_completed'));
       assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.followup_contacted'));
       assert.ok(
@@ -756,6 +780,9 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
       assert.ok(
         auditEntries.some((entry) => entry.action === 'staff_portal.followup_journal_draft')
       );
+      assert.ok(
+        auditEntries.some((entry) => entry.action === 'staff_portal.followup_photos_reviewed')
+      );
       assert.ok(auditEntries.some((entry) => entry.action === 'staff_portal.followup_completed'));
 
       const followupsAfterActions = await fetch(`http://127.0.0.1:${port}/api/v1/staff/followups`, {
@@ -763,12 +790,18 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
       });
       assert.equal(followupsAfterActions.status, 200);
       const followupsBody = await followupsAfterActions.json();
-      assert.equal(followupsBody.items[0].followupHistory.length, 4);
+      assert.equal(followupsBody.items[0].followupHistory.length, 5);
       assert.deepEqual(
         followupsBody.items[0].followupHistory.map((entry) => entry.label),
-        ['Kontaktad', 'Behöver läkare', 'Journalutkast begärt', 'Uppföljning klar']
+        [
+          'Kontaktad',
+          'Behöver läkare',
+          'Journalutkast begärt',
+          'Bilder granskade',
+          'Uppföljning klar',
+        ]
       );
-      assert.equal(followupsBody.items[0].followupHistorySummary.count, 4);
+      assert.equal(followupsBody.items[0].followupHistorySummary.count, 5);
       assert.equal(followupsBody.items[0].followupHistorySummary.latestLabel, 'Uppföljning klar');
       assert.equal(followupsBody.items[0].status, 'completed');
       assert.equal(followupsBody.items[0].followupHistorySummary.latestBy, 'staff-1');
@@ -1346,6 +1379,8 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
           href: '/api/v1/staff/customer-photos/patient-case-mode-followup',
           incomingFromPortal: false,
           portalUploadCount: 0,
+          reviewedAt: null,
+          incomingReviewPending: false,
         },
         links: followup.reviews[0].ordinationReadout.followupEscalation.links,
         safety:
