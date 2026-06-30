@@ -751,6 +751,31 @@ function createPatientPortalStore({ filePath }) {
     return record ? withRemainingUploads(record) : null;
   }
 
+  async function findLatestFollowupUploadTokenForCase({
+    tenantId,
+    patientId,
+    caseId,
+    milestoneKey,
+  }) {
+    ensureStateShape();
+    const tid = normalizeText(tenantId);
+    const pid = normalizeText(patientId);
+    const cid = normalizeText(caseId);
+    const mid = normalizeText(milestoneKey);
+    const record = state.followupUploadTokens
+      .filter(
+        (item) =>
+          item?.token &&
+          !item.revokedAt &&
+          item.tenantId === tid &&
+          item.patientId === pid &&
+          item.caseId === cid &&
+          (!mid || item.milestoneKey === mid)
+      )
+      .sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))[0];
+    return record ? withRemainingUploads(record) : null;
+  }
+
   async function recordFollowupUpload(token, { photo, ip, userAgent } = {}) {
     ensureStateShape();
     const record = state.followupUploadTokens.find((item) => item.token === token);
@@ -838,6 +863,7 @@ function createPatientPortalStore({ filePath }) {
     createFollowupUploadToken,
     findFollowupUploadToken,
     findFollowupUploadTokenForCase,
+    findLatestFollowupUploadTokenForCase,
     recordFollowupUpload,
   };
 }

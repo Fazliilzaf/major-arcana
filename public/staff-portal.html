@@ -3242,6 +3242,9 @@
         if (item.waitingDoctor) {
           return 'Följ läkarspåret och öppna kundens workspace.';
         }
+        if (item.followupUploadToken?.hasUploads) {
+          return 'Kunden har laddat upp uppföljningsbilder. Granska bildunderlaget.';
+        }
         if (Number(item.photos?.count || 0) > 0) {
           return 'Granska nya bilder i kundens workspace.';
         }
@@ -3369,7 +3372,18 @@
                 <span>${Number(uploadToken.uploadedCount || 0)} uppladdade · ${Number(uploadToken.remainingUploads || 0)} kvar</span>
               </div>
             </div>`
-          : '<div class="live-note" style="margin-top:9px">Ingen aktiv kundlänk för bilduppladdning.</div>';
+          : uploadToken?.hasUploads
+            ? `<div class="ordination-timeline-summary">
+              <div class="ordination-timeline-chip">
+                <strong>Bilder inkomna</strong>
+                <span>${Number(uploadToken.uploadedCount || 0)} uppladdade${uploadToken.latestUploadedAt ? ' · ' + escapeHtml(formatDateTime(uploadToken.latestUploadedAt)) : ''}</span>
+              </div>
+              <div class="ordination-timeline-chip">
+                <strong>Senaste fil</strong>
+                <span>${escapeHtml(uploadToken.latestPhoto?.fileName || 'Uppföljningsbild')}</span>
+              </div>
+            </div>`
+            : '<div class="live-note" style="margin-top:9px">Ingen aktiv kundlänk för bilduppladdning.</div>';
         return `<div class="item-card ${cardClass}">
           <div class="item-icon">${cardIcon}</div>
           <div class="item-body">
@@ -3405,6 +3419,11 @@
               item.links?.workspace
                 ? `<a class="btn primary" href="${escapeHtml(item.links.workspace)}" target="_blank" rel="noopener">${escapeHtml(item.action?.label || 'Öppna')}</a>`
                 : '<button class="btn" disabled>Ingen workspace</button>'
+            }
+            ${
+              uploadToken?.hasUploads && (uploadToken.reviewUrl || item.links?.photos)
+                ? `<a class="btn primary" href="${escapeHtml(uploadToken.reviewUrl || item.links.photos)}" target="_blank" rel="noopener">Granska bilder</a>`
+                : ''
             }
             <button class="btn followup-detail-toggle" data-case-id="${escapeHtml(item.caseId || '')}">Detalj</button>
             ${followupActions}
