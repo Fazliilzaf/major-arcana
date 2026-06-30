@@ -491,9 +491,22 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
         signature: 'Dr Test',
         comment: 'OK',
         auditAction: 'ordination.approved',
+        auditReceipt: {
+          action: 'ordination.approved',
+          storeAction: 'ordination_approved',
+          caseId: 'case-mode-approved',
+          patientId: 'patient-case-mode-approved',
+          tenantId: 'hairtpclinic',
+          actor: 'doctor-1',
+          actorRole: 'konsult',
+          at: approved.reviews[0].ordinationReadout.decisionSummary.auditReceipt.at,
+          signature: 'Dr Test',
+          immutable: true,
+        },
         readOnly: true,
       });
       assert.ok(approved.reviews[0].ordinationReadout.decisionSummary.decidedAt);
+      assert.ok(approved.reviews[0].ordinationReadout.decisionSummary.auditReceipt.at);
       assert.deepEqual(
         approved.reviews.map((item) => item.nextAction.suggestedAction),
         ['read_decision']
@@ -509,6 +522,18 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
         signature: 'Dr Test',
         comment: 'Avvisas',
         auditAction: 'ordination.rejected',
+        auditReceipt: {
+          action: 'ordination.rejected',
+          storeAction: 'ordination_rejected',
+          caseId: 'case-mode-rejected',
+          patientId: 'patient-case-mode-rejected',
+          tenantId: 'hairtpclinic',
+          actor: 'doctor-1',
+          actorRole: 'konsult',
+          at: rejected.reviews[0].ordinationReadout.decisionSummary.auditReceipt.at,
+          signature: 'Dr Test',
+          immutable: true,
+        },
         readOnly: true,
       });
 
@@ -523,6 +548,56 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
     }
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/v1/staff/audit filtrerar läkarkvittens per caseId', async () => {
+  let queryArgs = null;
+  const ccoAuditLog = {
+    query(args) {
+      queryArgs = args;
+      return [
+        {
+          ts: '2030-06-29T10:00:00.000Z',
+          action: 'ordination.approved',
+          actor: { role: 'konsult', userId: 'doctor-1' },
+          target: { kind: 'entity', id: 'case-audit-1', tenantId: 'hairtpclinic' },
+          result: 'ok',
+        },
+      ];
+    },
+  };
+
+  const app = express();
+  app.use(
+    createStaffPortalRouter({
+      ccoAuditLog,
+      requireAuth: (req, _res, next) => {
+        req.auth = { userId: 'owner-1', tenantId: 'hairtpclinic', role: 'owner' };
+        next();
+      },
+    })
+  );
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address();
+  try {
+    const res = await fetch(
+      `http://127.0.0.1:${port}/api/v1/staff/audit?action=ordination&caseId=case-audit-1&limit=8`,
+      { headers: { 'x-cco-role': 'owner' } }
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.count, 1);
+    assert.deepEqual(queryArgs, {
+      limit: 8,
+      since: null,
+      action: 'ordination',
+      targetId: 'case-audit-1',
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
   }
 });
 
