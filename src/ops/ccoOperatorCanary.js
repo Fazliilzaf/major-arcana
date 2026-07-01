@@ -98,6 +98,24 @@ function assertCanaryAllows(track, { projectRoot, maxDecisions, enabled = true }
   return summary;
 }
 
+function assertCanaryAllowsCount(track, count, { projectRoot, maxDecisions, enabled = true } = {}) {
+  const needed = Math.max(0, Number(count) || 0);
+  const summary = assertCanaryAllows(track, { projectRoot, maxDecisions, enabled });
+  if (needed > summary.decisionsRemaining) {
+    const e = new Error('canary_batch_would_exceed_limit');
+    e.statusCode = 429;
+    e.detail = {
+      track,
+      requested: needed,
+      decisionsRemaining: summary.decisionsRemaining,
+      maxDecisions: summary.maxDecisions,
+      used: summary.decisionsUsed,
+    };
+    throw e;
+  }
+  return summary;
+}
+
 function recordCanaryDecision(track, patch = {}, { projectRoot, maxDecisions } = {}) {
   const { filePath, state } = loadState(projectRoot);
   const t = state[track] || emptyTrack();
@@ -201,6 +219,7 @@ module.exports = {
   TRACKS,
   loadState,
   assertCanaryAllows,
+  assertCanaryAllowsCount,
   recordCanaryDecision,
   recordCanarySafetyViolation,
   getTrackSummary,

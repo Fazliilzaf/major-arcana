@@ -296,3 +296,143 @@ test('summary reflects writeEnabled flag', async () => {
     assert.equal(body.phase, 'R2_canary');
   });
 });
+
+test('batch preview and confirm routes work when write enabled', async () => {
+  await withFixture(async (dir) => {
+    const dataDir = path.join(dir, 'data');
+    const second = {
+      id: 'a2',
+      patientId: 'cliento_fixture',
+      status: 'NEEDS_REVIEW',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'drive-fixture-2',
+      originalFileName: 'IMG_2.JPG',
+      mimeType: 'image/jpeg',
+      category: 'photo_before',
+      confidence: 'high',
+      originalDrivePath: 'Hair TP Clinic 2025/foo/IMG_2.JPG',
+      originalDriveFileId: 'drive-fixture-2',
+      storageProvider: 'local',
+      storageKey: '2025/foo/IMG_2.JPG',
+      checksum: 'sha256:def',
+      fileSize: 100,
+      importedBy: 'system',
+      importRunId: 'run-fixture',
+      statusHistory: [{ reason: 'needs_photo_review' }],
+      technicalInfo: { needsPhotoReview: true },
+    };
+    const parsed = JSON.parse(
+      fs.readFileSync(path.join(dataDir, 'cco-patient-assets.json'), 'utf8')
+    );
+    parsed.items.a2 = second;
+    fs.writeFileSync(
+      path.join(dataDir, 'cco-patient-assets.json'),
+      `${JSON.stringify(parsed, null, 2)}\n`
+    );
+    invalidateDriveImportReviewCache();
+
+    const assetPath = path.join(dir, 'data', 'cco-patient-assets.json');
+    const auditLog = createAudit();
+    const store = await createCcoPatientAssetStore({ filePath: assetPath, auditLog });
+    const app = mount({
+      projectRoot: dir,
+      requireCcoAuthenticated: passAuth,
+      writeEnabled: true,
+      auditLog,
+      assetStore: store,
+    });
+
+    const previewRes = await request(
+      app,
+      'POST',
+      '/api/v1/ops/cco/drive-import-review/batches/preview',
+      {
+        assetIds: ['a1', 'a2'],
+        decision: 'approve',
+        reason: 'batch approve route',
+        reviewer: 'route-tester',
+      }
+    );
+    assert.equal(previewRes.status, 200);
+    const preview = await previewRes.json();
+    assert.equal(preview.canCommit, true);
+    assert.ok(preview.previewToken);
+
+    const confirmRes = await request(
+      app,
+      'POST',
+      '/api/v1/ops/cco/drive-import-review/batches/confirm',
+      { previewToken: preview.previewToken }
+    );
+    assert.equal(confirmRes.status, 200);
+    const confirmed = await confirmRes.json();
+    assert.equal(confirmed.assetCount, 2);
+    assert.equal(store.getAsset('a1').status, 'VISIBLE_ON_PATIENT_CARD');
+    assert.equal(store.getAsset('a2').status, 'VISIBLE_ON_PATIENT_CARD');
+    assert.equal(
+      auditLog.items.filter((e) => e.action === 'drive_import_review.decision').length,
+      2
+    );
+    assert.ok(auditLog.items.some((e) => e.action === 'drive_import_review.batch_committed'));
+  });
+});
+
+test('batch preview route returns 409 for mixed batch', async () => {
+  await withFixture(async (dir) => {
+    const dataDir = path.join(dir, 'data');
+    const parsed = JSON.parse(
+      fs.readFileSync(path.join(dataDir, 'cco-patient-assets.json'), 'utf8')
+    );
+    parsed.items.a2 = {
+      ...parsed.items.a1,
+      id: 'a2',
+      patientId: 'cliento_other',
+      sourceRecordId: 'drive-fixture-2',
+      originalDriveFileId: 'drive-fixture-2',
+      originalFileName: 'IMG_2.JPG',
+      storageKey: '2025/foo/IMG_2.JPG',
+      checksum: 'sha256:def',
+    };
+    fs.writeFileSync(
+      path.join(dataDir, 'cco-patient-assets.json'),
+      `${JSON.stringify(parsed, null, 2)}\n`
+    );
+    invalidateDriveImportReviewCache();
+
+    const assetPath = path.join(dir, 'data', 'cco-patient-assets.json');
+    const store = await createCcoPatientAssetStore({
+      filePath: assetPath,
+      auditLog: createAudit(),
+    });
+    const app = mount({
+      projectRoot: dir,
+      requireCcoAuthenticated: passAuth,
+      writeEnabled: true,
+      auditLog: createAudit(),
+      assetStore: store,
+    });
+
+    const res = await request(app, 'POST', '/api/v1/ops/cco/drive-import-review/batches/preview', {
+      assetIds: ['a1', 'a2'],
+      decision: 'approve',
+      reason: 'mixed batch',
+      reviewer: 'route-tester',
+    });
+    assert.equal(res.status, 409);
+    const body = await res.json();
+    assert.equal(body.error, 'batch_not_homogeneous');
+  });
+});
+
+test('batch routes not mounted when write disabled', async () => {
+  await withFixture(async (dir) => {
+    const app = mount({ projectRoot: dir, requireCcoAuthenticated: passAuth, writeEnabled: false });
+    const res = await request(app, 'POST', '/api/v1/ops/cco/drive-import-review/batches/preview', {
+      assetIds: ['a1'],
+      decision: 'approve',
+      reason: 'should fail',
+      reviewer: 'route-tester',
+    });
+    assert.equal(res.status, 404);
+  });
+});

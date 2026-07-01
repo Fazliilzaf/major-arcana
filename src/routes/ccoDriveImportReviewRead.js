@@ -7,6 +7,10 @@ const {
   applyDriveImportReviewDecision,
   CANARY_TRACK,
 } = require('../ops/ccoDriveImportReviewWriteService');
+const {
+  previewDriveImportReviewBatch,
+  confirmDriveImportReviewBatch,
+} = require('../ops/ccoDriveImportReviewBatchService');
 const { getTrackSummary, loadState } = require('../ops/ccoOperatorCanary');
 
 function createCcoDriveImportReviewReadRouter({
@@ -123,6 +127,66 @@ function createCcoDriveImportReviewReadRouter({
         }
       }
     );
+
+    router.post('/cco/drive-import-review/batches/preview', express.json(), async (req, res) => {
+      try {
+        const { assetStore } = await resolveStores();
+        if (!assetStore) {
+          return res.status(503).json({ error: 'asset_store_unavailable' });
+        }
+        const result = await previewDriveImportReviewBatch({
+          assetStore,
+          projectRoot: root,
+          config,
+          body: req.body || {},
+          actor: {
+            role: req.headers['x-cco-role'] || 'operator',
+            userId:
+              String(req.body?.reviewer || req.headers['x-cco-user'] || '').trim() ||
+              req.headers['x-cco-role'] ||
+              'operator',
+          },
+        });
+        return res.json(result);
+      } catch (err) {
+        console.error('[cco/drive-import-review/batches/preview]', err);
+        return res.status(err.statusCode || 500).json({
+          error: err.message,
+          detail: err.detail || null,
+        });
+      }
+    });
+
+    router.post('/cco/drive-import-review/batches/confirm', express.json(), async (req, res) => {
+      try {
+        const { assetStore } = await resolveStores();
+        if (!assetStore) {
+          return res.status(503).json({ error: 'asset_store_unavailable' });
+        }
+        const result = await confirmDriveImportReviewBatch({
+          assetStore,
+          projectRoot: root,
+          config,
+          auditLog,
+          resolvePatientExists,
+          body: req.body || {},
+          actor: {
+            role: req.headers['x-cco-role'] || 'operator',
+            userId:
+              String(req.body?.reviewer || req.headers['x-cco-user'] || '').trim() ||
+              req.headers['x-cco-role'] ||
+              'operator',
+          },
+        });
+        return res.json(result);
+      } catch (err) {
+        console.error('[cco/drive-import-review/batches/confirm]', err);
+        return res.status(err.statusCode || 500).json({
+          error: err.message,
+          detail: err.detail || null,
+        });
+      }
+    });
   }
 
   router.get('/cco/drive-import-review/canary-status', (req, res) => {
