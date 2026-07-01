@@ -6,6 +6,7 @@ const {
   invalidateDriveImportReviewCache,
   isDriveNeedsReviewAsset,
   loadCustomerDirectory,
+  loadPatientMasterBucket,
 } = require('./ccoDriveImportReviewReadService');
 const {
   validateWriteBody,
@@ -13,7 +14,7 @@ const {
   snapshotDriveImmutable,
   assertDriveImmutableUnchanged,
   assertNoDriveLinkInAsset,
-  assertPatientInDirectory,
+  assertPatientInRegistry,
   resolveApprovedCategory,
 } = require('./ccoDriveImportReviewWriteValidation');
 
@@ -95,10 +96,13 @@ function recordDriveCanary(patch, { projectRoot, maxDecisions, enabled }) {
   return recordCanaryDecision(CANARY_TRACK, patch, { projectRoot, maxDecisions });
 }
 
-function loadDirectory(projectRoot) {
+function loadPatientRegistry(projectRoot) {
   const root = projectRoot || path.join(__dirname, '../..');
   const dataDir = process.env.ARCANA_STATE_ROOT || path.join(root, 'data');
-  return loadCustomerDirectory(dataDir);
+  return {
+    directory: loadCustomerDirectory(dataDir),
+    masterBucket: loadPatientMasterBucket(dataDir),
+  };
 }
 
 async function maybePatchCategory(assetStore, assetId, body, asset, ctx) {
@@ -145,8 +149,8 @@ async function applyDriveImportReviewApprove(assetStore, assetId, body, ctx) {
     throw e;
   }
 
-  const directory = loadDirectory(ctx.projectRoot);
-  assertPatientInDirectory(asset.patientId, directory);
+  const registry = loadPatientRegistry(ctx.projectRoot);
+  assertPatientInRegistry(asset.patientId, registry);
 
   const immutableBefore = snapshotDriveImmutable(asset);
   const before = snapshotAsset(asset);
@@ -208,8 +212,8 @@ async function applyDriveImportReviewReassign(assetStore, assetId, body, ctx) {
   assertNoDriveLinkInAsset(asset);
 
   const targetPatientId = requireTargetPatientId(body);
-  const directory = loadDirectory(ctx.projectRoot);
-  assertPatientInDirectory(targetPatientId, directory);
+  const registry = loadPatientRegistry(ctx.projectRoot);
+  assertPatientInRegistry(targetPatientId, registry);
 
   const immutableBefore = snapshotDriveImmutable(asset);
   const before = snapshotAsset(asset);

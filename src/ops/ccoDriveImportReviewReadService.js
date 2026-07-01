@@ -59,6 +59,17 @@ function resolveCustomersPath(dataRoot) {
   return path.join(dataRoot, 'cco-customers.json');
 }
 
+function resolvePatientMasterPath(dataRoot) {
+  const candidates = [
+    process.env.ARCANA_CCO_PATIENT_MASTER_STORE_PATH,
+    path.join(dataRoot, 'cco-patient-master.json'),
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return path.join(dataRoot, 'cco-patient-master.json');
+}
+
 function loadCustomerDirectory(dataRoot) {
   const customersPath = resolveCustomersPath(dataRoot);
   if (!fs.existsSync(customersPath)) return {};
@@ -70,17 +81,62 @@ function loadCustomerDirectory(dataRoot) {
   }
 }
 
-function resolvePatientLabel(patientId, directory) {
+function loadPatientMasterBucket(dataRoot, tenantId = 'hair_tp') {
+  const masterPath = resolvePatientMasterPath(dataRoot);
+  if (!fs.existsSync(masterPath)) return null;
+  try {
+    const raw = JSON.parse(fs.readFileSync(masterPath, 'utf8'));
+    return raw?.tenants?.[tenantId] || null;
+  } catch {
+    return null;
+  }
+}
+
+function patientExistsInRegistry(patientId, { directory = {}, masterBucket = null } = {}) {
+  const pid = normalizeText(patientId);
+  if (!pid || pid === 'unknown') return false;
+  if (directory[pid]) return true;
+  if (!masterBucket) return false;
+  if (masterBucket._indexes?.patientById?.[pid] !== undefined) return true;
+  const patients = Array.isArray(masterBucket.patients) ? masterBucket.patients : [];
+  return patients.some((row) => {
+    const candidates = [row?.id, row?.clientoId, row?.meridiqId, row?.ccoId, row?.masterPatientId];
+    return candidates.some((value) => normalizeText(value) === pid);
+  });
+}
+
+function resolvePatientLabel(patientId, directory, masterBucket = null) {
   const pid = normalizeText(patientId);
   if (!pid) return null;
   const row = directory[pid] || null;
-  const name =
+  const nameFromDirectory =
     normalizeText(row?.displayName) ||
     normalizeText(row?.name) ||
     [normalizeText(row?.firstName), normalizeText(row?.lastName)].filter(Boolean).join(' ');
+  if (nameFromDirectory) {
+    return { patientId: pid, patientLabel: nameFromDirectory };
+  }
+  if (masterBucket) {
+    const idx = masterBucket._indexes?.patientById?.[pid];
+    const fromIndex =
+      Number.isInteger(idx) && masterBucket.patients?.[idx] ? masterBucket.patients[idx] : null;
+    const masterRow =
+      fromIndex ||
+      masterBucket.patients?.find((p) =>
+        [p?.id, p?.clientoId, p?.meridiqId, p?.ccoId].some((v) => normalizeText(v) === pid)
+      ) ||
+      null;
+    const masterName =
+      normalizeText(masterRow?.displayName) ||
+      normalizeText(masterRow?.name) ||
+      [normalizeText(masterRow?.firstName), normalizeText(masterRow?.lastName)]
+        .filter(Boolean)
+        .join(' ');
+    if (masterName) return { patientId: pid, patientLabel: masterName };
+  }
   return {
     patientId: pid,
-    patientLabel: name || pid,
+    patientLabel: pid,
   };
 }
 
@@ -144,9 +200,9 @@ function buildCustomerCardHref(patientId) {
   return `/major-arcana-preview/?view=customers&patientId=${encodeURIComponent(pid)}`;
 }
 
-function mapItemForUi(asset, directory) {
+function mapItemForUi(asset, directory, masterBucket = null) {
   const matchGround = deriveMatchGround(asset);
-  const patient = resolvePatientLabel(asset.patientId, directory);
+  const patient = resolvePatientLabel(asset.patientId, directory, masterBucket);
   return {
     assetId: asset.id,
     driveFileId: asset.originalDriveFileId || null,
@@ -229,9 +285,10 @@ function buildIndex(dataRoot) {
 
   const raw = JSON.parse(fs.readFileSync(assetsPath, 'utf8'));
   const directory = loadCustomerDirectory(dataRoot);
+  const masterBucket = loadPatientMasterBucket(dataRoot);
   const items = Object.values(raw.items || {})
     .filter(isDriveNeedsReviewAsset)
-    .map((asset) => mapItemForUi(asset, directory));
+    .map((asset) => mapItemForUi(asset, directory, masterBucket));
 
   const facets = {
     years: {},
@@ -327,6 +384,8 @@ module.exports = {
   mediaKind,
   mapItemForUi,
   loadCustomerDirectory,
+  loadPatientMasterBucket,
+  patientExistsInRegistry,
   loadSummary,
   listQueue,
   invalidateDriveImportReviewCache,

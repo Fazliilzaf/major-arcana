@@ -224,6 +224,6 @@ services:
         value: "25"
       # Drive Import Review R2 — single-asset decisions (canary-gated)
       - key: ENABLE_DRIVE_IMPORT_REVIEW_WRITE
-        value: "false"
+        value: "true"
       - key: DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS
         value: "25"

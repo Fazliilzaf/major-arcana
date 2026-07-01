@@ -233,6 +233,61 @@ test('drive import write blocked when feature flag off', async () => {
   fs.rmSync(projectRoot, { recursive: true, force: true });
 });
 
+test('drive import approve accepts patient id from master store when not in customer directory', async () => {
+  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dir-write-master-'));
+  const assetPath = path.join(projectRoot, 'data', 'cco-patient-assets.json');
+  fs.mkdirSync(path.dirname(assetPath), { recursive: true });
+  fs.writeFileSync(
+    path.join(projectRoot, 'data', 'cco-customers.json'),
+    `${JSON.stringify({ tenants: { hair_tp: { customerState: { directory: {} } } } }, null, 2)}\n`
+  );
+  fs.writeFileSync(
+    path.join(projectRoot, 'data', 'cco-patient-master.json'),
+    `${JSON.stringify(
+      {
+        tenants: {
+          hair_tp: {
+            patients: [{ id: 'cliento_abc123', displayName: 'Master Patient' }],
+            _indexes: { patientById: { cliento_abc123: 0 } },
+          },
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
+  const auditLog = createAudit();
+  const store = await createCcoPatientAssetStore({ filePath: assetPath, auditLog });
+  const asset = await store.addAsset({
+    patientId: 'cliento_abc123',
+    sourceSystem: 'drive_import',
+    sourceRecordId: 'drive-m',
+    originalDriveFileId: 'd1',
+    originalDrivePath: 'Hair TP Clinic 2025/x.pdf',
+    originalFileName: 'x.pdf',
+    storageProvider: 'local',
+    storageKey: '2025/x.pdf',
+    checksum: 'sha256:zzz',
+    fileSize: 50,
+    mimeType: 'application/pdf',
+    category: 'other',
+    importedBy: 'system',
+    importRunId: 'run-1',
+  });
+  await store.transitionStatus(asset.id, 'NEEDS_REVIEW');
+  const config = { enableDriveImportReviewWrite: true, driveImportReviewCanaryMax: 25 };
+
+  const result = await applyDriveImportReviewApprove(
+    store,
+    asset.id,
+    { decision: 'approve', reason: 'master registry ok', reviewer: 'tester' },
+    { projectRoot, config, auditLog, actor: { role: 'operator', userId: 'tester' } }
+  );
+  assert.equal(result.decision, 'approve');
+  assert.equal(store.getAsset(asset.id).status, 'VISIBLE_ON_PATIENT_CARD');
+  fs.rmSync(projectRoot, { recursive: true, force: true });
+});
+
 test('drive import approve rejects unknown patient in directory', async () => {
   const { projectRoot, store, assetId, auditLog, config } = await makeFixture();
   await assert.rejects(
