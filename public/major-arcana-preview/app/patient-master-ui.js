@@ -8875,6 +8875,24 @@
     `;
   }
 
+  function renderCustomerPortalSharePreview(customerPortalUrl) {
+    if (!customerPortalUrl) return '';
+    const messageHtml = escapeHtml(buildCustomerPortalShareMessage(customerPortalUrl)).replace(
+      /\n/g,
+      '<br>'
+    );
+    return `
+      <div class="patient-master-offer-next-step" data-customer-portal-share-preview>
+        <div class="patient-master-offer-meta-badges">
+          <span class="patient-master-status-badge is-accent">Kundmeddelande</span>
+          <span class="patient-master-status-badge">Förhandsgranska innan kopiering</span>
+        </div>
+        <p class="patient-master-muted">Detta skickas inte automatiskt. Personal granskar texten och kopierar den manuellt.</p>
+        <p class="patient-master-muted" data-customer-portal-share-preview-text>${messageHtml}</p>
+      </div>
+    `;
+  }
+
   function offerPortalActivityLabel(source) {
     const normalized = normalizeText(source);
     if (normalized === 'customer_offer_document_pdf') return 'PDF öppnad';
@@ -9294,6 +9312,7 @@
           ${renderOfferStatusMeta(linkedOffer)}
           ${renderOfferNextStep(linkedOffer, customerPortalUrl, customerPortalLinkSource)}
           ${renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl)}
+          ${renderCustomerPortalSharePreview(customerPortalUrl)}
           ${renderOfferPortalActivity(linkedOffer)}
           ${renderOfferFollowupSignal(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
