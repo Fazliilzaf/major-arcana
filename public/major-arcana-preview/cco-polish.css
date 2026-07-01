@@ -5260,6 +5260,41 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   color: #9a2f5c;
 }
 
+.patient-master-offer-followup {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(223, 212, 203, 0.58);
+  background: linear-gradient(135deg, rgba(250, 246, 241, 0.9), rgba(255, 255, 255, 0.72));
+  color: #5c5348;
+}
+
+.patient-master-offer-followup span {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.patient-master-offer-followup strong {
+  font-size: 0.84rem;
+  line-height: 1.35;
+  font-weight: 720;
+}
+
+.patient-master-offer-followup.is-waiting {
+  border-color: rgba(73, 126, 184, 0.28);
+  background: linear-gradient(135deg, rgba(232, 242, 255, 0.86), rgba(255, 255, 255, 0.72));
+  color: #315d8a;
+}
+
+.patient-master-offer-followup.is-action {
+  border-color: rgba(215, 79, 132, 0.28);
+  background: linear-gradient(135deg, rgba(253, 238, 244, 0.9), rgba(255, 255, 255, 0.72));
+  color: #8f2e59;
+}
+
 .patient-master-offer-template {
   display: flex;
   flex-direction: column;
