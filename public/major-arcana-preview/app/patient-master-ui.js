@@ -8892,6 +8892,125 @@
     `;
   }
 
+  const CUSTOMER_PORTAL_SHARE_CHECKS = [
+    {
+      key: 'portal-reviewed',
+      label: 'Jag har granskat portalen',
+    },
+    {
+      key: 'plan-reviewed',
+      label: 'Bilder, zoner och pris stämmer',
+    },
+    {
+      key: 'message-reviewed',
+      label: 'Kundmeddelandet är granskat',
+    },
+  ];
+
+  function customerPortalShareChecklistStorageKey(linkedOffer) {
+    const stableId =
+      normalizeText(linkedOffer?.esignToken) ||
+      normalizeText(linkedOffer?.offerDocumentId) ||
+      normalizeText(runtime.selectedPatientId);
+    return stableId ? `arcana:customer-portal-share-checklist:${stableId}` : '';
+  }
+
+  function buildCustomerPortalShareChecklistSignature(
+    linkedOffer,
+    customerPortalUrl,
+    planEntry,
+    photos
+  ) {
+    if (!linkedOffer || !customerPortalUrl) return '';
+    const readiness = buildCustomerPortalReadinessItems(
+      linkedOffer,
+      planEntry,
+      photos,
+      customerPortalUrl
+    ).map((item) => ({
+      key: item.key,
+      ready: Boolean(item.ready),
+      detail: item.detail,
+    }));
+    return JSON.stringify({
+      portalUrl: customerPortalUrl,
+      readiness,
+      message: buildCustomerPortalShareMessage(customerPortalUrl, runtime.detail?.card),
+    });
+  }
+
+  function readCustomerPortalShareChecklist(linkedOffer, signature = '') {
+    const storageKey = customerPortalShareChecklistStorageKey(linkedOffer);
+    if (!storageKey) return {};
+    try {
+      const saved = JSON.parse(window.localStorage?.getItem(storageKey) || '{}') || {};
+      if (saved && typeof saved === 'object' && 'values' in saved) {
+        if (signature && saved.signature !== signature) return {};
+        return saved.values || {};
+      }
+      return saved;
+    } catch {
+      return {};
+    }
+  }
+
+  function writeCustomerPortalShareChecklist(linkedOffer, values, signature = '') {
+    const storageKey = customerPortalShareChecklistStorageKey(linkedOffer);
+    if (!storageKey) return;
+    window.localStorage?.setItem(
+      storageKey,
+      JSON.stringify(signature ? { signature, values: values || {} } : values || {})
+    );
+  }
+
+  function isCustomerPortalShareChecklistComplete(linkedOffer, signature = '') {
+    const values = readCustomerPortalShareChecklist(linkedOffer, signature);
+    return CUSTOMER_PORTAL_SHARE_CHECKS.every((item) => values[item.key]);
+  }
+
+  function syncCustomerPortalShareActionState(scope, allChecked) {
+    const actionScope = scope?.closest('.patient-master-offer-box') || document;
+    actionScope.querySelectorAll('[data-customer-portal-share-gated="true"]').forEach((button) => {
+      button.disabled = !allChecked;
+      button.classList.toggle('is-disabled', !allChecked);
+      button.title = allChecked
+        ? ''
+        : 'Bocka av delningschecken innan länken eller meddelandet kopieras.';
+    });
+  }
+
+  function renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos) {
+    if (!linkedOffer || !customerPortalUrl) return '';
+    const signature = buildCustomerPortalShareChecklistSignature(
+      linkedOffer,
+      customerPortalUrl,
+      planEntry,
+      photos
+    );
+    const values = readCustomerPortalShareChecklist(linkedOffer, signature);
+    const checkedCount = CUSTOMER_PORTAL_SHARE_CHECKS.filter((item) => values[item.key]).length;
+    const allChecked = checkedCount === CUSTOMER_PORTAL_SHARE_CHECKS.length;
+    const storageKey = customerPortalShareChecklistStorageKey(linkedOffer);
+    return `
+      <div class="patient-master-offer-next-step" data-customer-portal-share-checklist data-customer-portal-share-checklist-key="${escapeHtml(storageKey)}" data-customer-portal-share-checklist-signature="${escapeHtml(signature)}">
+        <div class="patient-master-offer-meta-badges">
+          <span class="patient-master-status-badge${allChecked ? ' is-accent' : ''}" data-customer-portal-share-checklist-count>Delningscheck ${checkedCount}/${CUSTOMER_PORTAL_SHARE_CHECKS.length}</span>
+          <span class="patient-master-status-badge" data-customer-portal-share-checklist-status>${allChecked ? 'Klar att dela manuellt' : 'Bocka av innan du skickar'}</span>
+        </div>
+        <div class="patient-master-offer-meta-badges" data-customer-portal-share-checklist-items>
+          ${CUSTOMER_PORTAL_SHARE_CHECKS.map(
+            (item) => `
+              <label class="patient-master-status-badge${values[item.key] ? ' is-accent' : ''}">
+                <input type="checkbox" data-customer-portal-share-check="${escapeHtml(item.key)}"${values[item.key] ? ' checked' : ''}>
+                ${escapeHtml(item.label)}
+              </label>
+            `
+          ).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function offerPortalActivityLabel(source) {
     const normalized = normalizeText(source);
     if (normalized === 'customer_offer_document_pdf') return 'PDF öppnad';
@@ -9287,6 +9406,19 @@
     const customerPortalUrl = getCustomerPortalUrl(linkedOffer);
     const customerPortalPreviewUrl = buildCustomerPortalPreviewUrlFromOffer(linkedOffer);
     const customerPortalLinkSource = getCustomerPortalLinkSource(linkedOffer, customerPortalUrl);
+    const customerPortalShareSignature = buildCustomerPortalShareChecklistSignature(
+      linkedOffer,
+      customerPortalUrl,
+      planEntry,
+      photos
+    );
+    const shareChecklistComplete = isCustomerPortalShareChecklistComplete(
+      linkedOffer,
+      customerPortalShareSignature
+    );
+    const shareGateAttrs = shareChecklistComplete
+      ? ''
+      : ' disabled title="Bocka av delningschecken innan länken eller meddelandet kopieras."';
     const canSendForSign = linkedOffer && linkedOffer.quoteStatus !== 'accepted';
     const canAccept =
       linkedOffer && linkedOffer.quoteStatus === 'sent' && linkedOffer.quoteStatus !== 'accepted';
@@ -9312,6 +9444,7 @@
           ${renderOfferNextStep(linkedOffer, customerPortalUrl, customerPortalLinkSource)}
           ${renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl)}
           ${renderCustomerPortalSharePreview(customerPortalUrl)}
+          ${renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos)}
           ${renderOfferPortalActivity(linkedOffer)}
           ${renderOfferFollowupSignal(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
@@ -9351,12 +9484,12 @@
             }
             ${
               customerPortalUrl
-                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Kopiera portallänk</button>`
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-share-gated="true" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}"${shareGateAttrs}>Kopiera portallänk</button>`
                 : ''
             }
             ${
               customerPortalUrl
-                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-message" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Kopiera kundmeddelande</button>`
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-message" data-customer-portal-share-gated="true" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}"${shareGateAttrs}>Kopiera kundmeddelande</button>`
                 : ''
             }
             ${
@@ -13030,6 +13163,50 @@
     });
 
     document.addEventListener('change', (event) => {
+      const shareCheck = event.target.closest('[data-customer-portal-share-check]');
+      if (shareCheck && runtime.mode === 'register') {
+        const checklist = shareCheck.closest('[data-customer-portal-share-checklist]');
+        const storageKey = normalizeText(checklist?.dataset.customerPortalShareChecklistKey);
+        const signature = normalizeText(checklist?.dataset.customerPortalShareChecklistSignature);
+        const inputs = Array.from(
+          checklist?.querySelectorAll('[data-customer-portal-share-check]') || []
+        );
+        const values = {};
+        inputs.forEach((input) => {
+          values[input.dataset.customerPortalShareCheck] = Boolean(input.checked);
+          input
+            .closest('.patient-master-status-badge')
+            ?.classList.toggle('is-accent', input.checked);
+        });
+        if (storageKey) {
+          window.localStorage?.setItem(
+            storageKey,
+            JSON.stringify(signature ? { signature, values } : values)
+          );
+        }
+        const checkedCount = inputs.filter((input) => input.checked).length;
+        const allChecked = checkedCount === CUSTOMER_PORTAL_SHARE_CHECKS.length;
+        const countEl = checklist?.querySelector('[data-customer-portal-share-checklist-count]');
+        const statusEl = checklist?.querySelector('[data-customer-portal-share-checklist-status]');
+        if (countEl) {
+          countEl.textContent = `Delningscheck ${checkedCount}/${CUSTOMER_PORTAL_SHARE_CHECKS.length}`;
+          countEl.classList.toggle('is-accent', allChecked);
+        }
+        if (statusEl) {
+          statusEl.textContent = allChecked
+            ? 'Klar att dela manuellt'
+            : 'Bocka av innan du skickar';
+        }
+        syncCustomerPortalShareActionState(checklist, allChecked);
+        setStatus(
+          allChecked
+            ? 'Delningscheck klar. Granska en sista gång innan du skickar.'
+            : 'Delningscheck uppdaterad.',
+          'success'
+        );
+        return;
+      }
+
       const cameraInput = event.target.closest('[data-patient-photo-camera]');
       const galleryInput = event.target.closest('[data-patient-photo-gallery]');
       const uploadInput =

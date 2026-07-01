@@ -7,7 +7,20 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
-const { bookingMondayWindow } = require('../helpers/bookingTestDates');
+const { addUtcDays, bookingMondayWindow, toDateOnly } = require('../helpers/bookingTestDates');
+
+function nextCancellationPolicyTestWindow() {
+  let cursor = addUtcDays(new Date(), 2);
+  for (let i = 0; i < 3; i += 1) {
+    const weekday = cursor.getUTCDay();
+    if (weekday >= 1 && weekday <= 5) {
+      const dateOnly = toDateOnly(cursor);
+      return { fromDate: dateOnly, toDate: dateOnly };
+    }
+    cursor = addUtcDays(cursor, 1);
+  }
+  throw new Error('Could not find weekday within cancellation-policy test window.');
+}
 
 test('setBookingPolicySettings affects availability and reservation enforcement', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-booking-policy-runtime-'));
@@ -88,7 +101,7 @@ test('setBookingPolicySettings tightens cancellation policy at runtime', async (
     const store = await createCcoBookingEngineStore({
       filePath: path.join(tempDir, 'booking-engine.json'),
     });
-    const { fromDate, toDate } = bookingMondayWindow({ minDaysAhead: 2 });
+    const { fromDate, toDate } = nextCancellationPolicyTestWindow();
     const availability = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
       fromDate,
@@ -97,11 +110,7 @@ test('setBookingPolicySettings tightens cancellation policy at runtime', async (
       srvIds: 'consultation-physical',
     });
     assert.ok(availability.length >= 1);
-    const slot = {
-      ...availability[0],
-      startsAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-      endsAt: new Date(Date.now() + 48 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
-    };
+    const slot = availability[0];
 
     await store.reserveSlots({
       tenantId: 'hair-tp-clinic',
