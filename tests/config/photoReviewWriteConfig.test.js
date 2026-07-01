@@ -37,3 +37,20 @@ test('enableImportReviewWrite on when canary master + import flag', () => {
   assert.equal(config.enableImportReviewWrite, true);
   assert.equal(config.importReviewCanaryMax, 25);
 });
+
+test('enableDriveImportReviewWrite requires operator canary master flag', () => {
+  process.env.ENABLE_CCO_OPERATOR_CANARY = 'false';
+  process.env.ENABLE_DRIVE_IMPORT_REVIEW_WRITE = 'true';
+  delete require.cache[require.resolve('../../src/config.js')];
+  const { config } = require('../../src/config.js');
+  assert.equal(config.enableDriveImportReviewWrite, false);
+});
+
+test('enableDriveImportReviewWrite on when canary master + drive flag', () => {
+  process.env.ENABLE_CCO_OPERATOR_CANARY = 'true';
+  process.env.ENABLE_DRIVE_IMPORT_REVIEW_WRITE = 'true';
+  delete require.cache[require.resolve('../../src/config.js')];
+  const { config } = require('../../src/config.js');
+  assert.equal(config.enableDriveImportReviewWrite, true);
+  assert.equal(config.driveImportReviewCanaryMax, 25);
+});

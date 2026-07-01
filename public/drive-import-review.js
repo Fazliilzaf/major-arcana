@@ -1,4 +1,4 @@
-/* global document, fetch, URLSearchParams */
+/* global document, fetch, URLSearchParams, window */
 'use strict';
 
 (() => {
@@ -10,6 +10,8 @@
   let offset = 0;
   const limit = 50;
   let busy = false;
+  let selectedAssetId = null;
+  let writeEnabled = false;
 
   const filters = {
     year: 'all',
@@ -29,24 +31,31 @@
       .replace(/"/g, '&quot;');
   }
 
-  async function api(path) {
+  async function api(path, options = {}) {
     const res = await fetch(`${API}${path}`, {
       credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
+        'Content-Type': 'application/json',
         'x-cco-role': 'operator',
+        ...(options.headers || {}),
       },
+      ...options,
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || res.statusText);
     return body;
   }
 
+  function selectedItem() {
+    return queue.find((item) => item.assetId === selectedAssetId) || null;
+  }
+
   function renderShell() {
     const root = document.getElementById('dir-root');
     root.innerHTML = `
       <header>
-        <h1>Drive Import Review · R1</h1>
+        <h1>Drive Import Review</h1>
         <p class="dir-muted" data-subtitle>Laddar…</p>
       </header>
       <div class="dir-banner" data-mode-banner>
@@ -55,6 +64,22 @@
       </div>
       <div data-summary class="dir-metrics"></div>
       <section class="dir-filters" data-filters></section>
+      <section class="dir-review-panel" data-review-panel hidden>
+        <h2>Granska en fil</h2>
+        <p class="dir-muted" data-review-meta>—</p>
+        <div class="dir-review-grid">
+          <label>Granskare
+            <input type="text" data-reviewer placeholder="ditt namn / user-id" />
+          </label>
+          <label>Orsak / kommentar
+            <input type="text" data-reason placeholder="minst 3 tecken" />
+          </label>
+          <label data-reassign-wrap hidden>Patient-ID (reassign)
+            <input type="text" data-target-patient placeholder="cliento_…" />
+          </label>
+        </div>
+        <div class="dir-review-actions" data-review-actions></div>
+      </section>
       <div class="dir-toolbar">
         <p class="dir-muted" data-queue-meta>—</p>
         <div>
@@ -95,6 +120,21 @@
         loadQueue().catch(showError);
       }
     });
+  }
+
+  function renderModeBanner() {
+    const banner = document.querySelector('[data-mode-banner]');
+    if (!banner) return;
+    if (writeEnabled) {
+      banner.innerHTML = `
+        <strong>R2 CANARY — en fil i taget</strong>
+        <p>Approve / reassign / ignorera / markera dubblett. Audit-logg per beslut. Filen flyttas eller raderas aldrig.</p>`;
+    } else {
+      banner.innerHTML = `
+        <strong>READ-ONLY</strong>
+        <p>Ingen statusändring · ingen flytt · ingen radering · ingen auto-koppling · ingen batch-action.</p>
+        <p class="dir-muted">Aktivera ENABLE_CCO_OPERATOR_CANARY + ENABLE_DRIVE_IMPORT_REVIEW_WRITE för beslut.</p>`;
+    }
   }
 
   function facetOptions(map, labelAll) {
@@ -168,12 +208,96 @@
     const el = document.querySelector('[data-summary]');
     const subtitle = document.querySelector('[data-subtitle]');
     if (!el || !summary) return;
-    subtitle.textContent = `NEEDS_REVIEW · drive_import · ${summary.totalNeedsReview?.toLocaleString('sv-SE') || 0} filer`;
+    subtitle.textContent = `NEEDS_REVIEW · drive_import · ${summary.totalNeedsReview?.toLocaleString('sv-SE') || 0} filer · ${writeEnabled ? 'R2 canary' : 'R1 read-only'}`;
+    const canaryRemaining = summary.canary?.decisionsRemaining;
     el.innerHTML = `
       <div class="dir-metric"><strong>${summary.totalNeedsReview?.toLocaleString('sv-SE') || 0}</strong><span>Totalt NEEDS_REVIEW</span></div>
       <div class="dir-metric"><strong>${summary.facets?.mediaKinds?.image?.toLocaleString('sv-SE') || 0}</strong><span>Bilder</span></div>
       <div class="dir-metric"><strong>${summary.facets?.mediaKinds?.document?.toLocaleString('sv-SE') || 0}</strong><span>Dokument</span></div>
-      <div class="dir-metric"><strong>R1</strong><span>Read-only</span></div>`;
+      <div class="dir-metric"><strong>${writeEnabled ? 'R2' : 'R1'}</strong><span>${writeEnabled ? `Canary kvar: ${canaryRemaining ?? '—'}` : 'Read-only'}</span></div>`;
+  }
+
+  function renderReviewPanel() {
+    const panel = document.querySelector('[data-review-panel]');
+    const meta = document.querySelector('[data-review-meta]');
+    const actions = document.querySelector('[data-review-actions]');
+    const reassignWrap = document.querySelector('[data-reassign-wrap]');
+    if (!panel || !actions) return;
+
+    if (!writeEnabled) {
+      panel.hidden = true;
+      return;
+    }
+
+    const item = selectedItem();
+    if (!item) {
+      panel.hidden = true;
+      return;
+    }
+
+    panel.hidden = false;
+    reassignWrap.hidden = false;
+    meta.innerHTML = `
+      <strong>${escapeHtml(item.fileName || item.assetId)}</strong>
+      · ${escapeHtml(item.suggestedPatientLabel || '—')}
+      <span class="mono">${escapeHtml(item.suggestedPatientId || '')}</span>
+      · ${escapeHtml(item.drivePath || '')}`;
+
+    actions.innerHTML = `
+      <button type="button" class="dir-btn dir-btn-primary" data-decide="approve">Godkänn föreslagen patient</button>
+      <button type="button" class="dir-btn" data-decide="reassign">Flytta till annan patient</button>
+      <button type="button" class="dir-btn dir-btn-warn" data-decide="reject">Ignorera</button>
+      <button type="button" class="dir-btn dir-btn-warn" data-decide="mark_duplicate">Markera dubblett</button>`;
+
+    actions.querySelectorAll('[data-decide]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        submitDecision(btn.getAttribute('data-decide')).catch(showError);
+      });
+    });
+  }
+
+  async function submitDecision(decision) {
+    const item = selectedItem();
+    if (!item || busy) return;
+
+    const reviewer = document.querySelector('[data-reviewer]')?.value?.trim() || '';
+    const reason = document.querySelector('[data-reason]')?.value?.trim() || '';
+    const targetPatient = document.querySelector('[data-target-patient]')?.value?.trim() || '';
+
+    if (reviewer.length < 2) throw new Error('Granskare krävs (minst 2 tecken).');
+    if (reason.length < 3) throw new Error('Orsak krävs (minst 3 tecken).');
+
+    const body = { decision, reason, reviewer };
+    if (decision === 'approve' && item.suggestedPatientId) {
+      body.patientId = item.suggestedPatientId;
+    }
+    if (decision === 'reassign') {
+      if (!targetPatient) throw new Error('Patient-ID krävs för reassign.');
+      body.patientId = targetPatient;
+    }
+    if (decision === 'reject' || decision === 'mark_duplicate') {
+      const label = decision === 'mark_duplicate' ? 'markera som dubblett' : 'ignorera';
+      if (!window.confirm(`Bekräfta ${label} för ${item.fileName || item.assetId}?`)) return;
+    }
+
+    busy = true;
+    renderRows();
+    try {
+      await api(`/assets/${encodeURIComponent(item.assetId)}/decide`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      selectedAssetId = null;
+      summary = await api('/summary');
+      renderSummary();
+      renderModeBanner();
+      await loadQueue();
+      clearError();
+    } finally {
+      busy = false;
+      renderReviewPanel();
+      renderRows();
+    }
   }
 
   function renderRows() {
@@ -190,7 +314,7 @@
       tbody.innerHTML = queue
         .map(
           (item) => `
-        <tr>
+        <tr data-asset-id="${escapeHtml(item.assetId)}" class="${item.assetId === selectedAssetId ? 'dir-row-selected' : ''}">
           <td>${escapeHtml(item.fileName || '—')}</td>
           <td><span class="dir-chip">${escapeHtml(item.fileType || '—')}</span></td>
           <td>${escapeHtml(item.date || '—')}</td>
@@ -217,6 +341,17 @@
         </tr>`
         )
         .join('');
+
+      if (writeEnabled) {
+        tbody.querySelectorAll('tr[data-asset-id]').forEach((row) => {
+          row.addEventListener('click', (ev) => {
+            if (ev.target.closest('a')) return;
+            selectedAssetId = row.getAttribute('data-asset-id');
+            renderRows();
+            renderReviewPanel();
+          });
+        });
+      }
     }
 
     const from = queueTotal ? offset + 1 : 0;
@@ -224,6 +359,7 @@
     meta.textContent = `Visar ${from}–${to} av ${queueTotal.toLocaleString('sv-SE')}`;
     prev.disabled = offset <= 0 || busy;
     next.disabled = offset + limit >= queueTotal || busy;
+    renderReviewPanel();
   }
 
   function showError(err) {
@@ -231,6 +367,13 @@
     if (!el) return;
     el.hidden = false;
     el.textContent = err?.message || String(err);
+  }
+
+  function clearError() {
+    const el = document.querySelector('[data-error]');
+    if (!el) return;
+    el.hidden = true;
+    el.textContent = '';
   }
 
   function buildQuery() {
@@ -254,6 +397,7 @@
     const body = await api(`/queue${buildQuery()}`);
     queue = body.items || [];
     queueTotal = body.total || 0;
+    writeEnabled = body.writeEnabled === true;
     busy = false;
     renderRows();
   }
@@ -261,6 +405,8 @@
   async function boot() {
     renderShell();
     summary = await api('/summary');
+    writeEnabled = summary.writeEnabled === true;
+    renderModeBanner();
     renderSummary();
     renderFilters();
     await loadQueue();
