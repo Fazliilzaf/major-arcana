@@ -137,6 +137,19 @@ test('ORD-42: personal-vy räknas inte men kundens signeringssida registrerar of
       const afterStaffPayload = await afterStaff.json();
       assert.equal(afterStaffPayload.commercialCase.quoteOpenCount, 0);
 
+      const staffPreview = await fetch(
+        `${baseUrl}/cco-commercial/customer-offer-portal/preview?token=tok-1`
+      );
+      assert.equal(staffPreview.status, 200);
+      const staffPreviewHtml = await staffPreview.text();
+      assert.match(staffPreviewHtml, /"staffPreview":true/);
+
+      const afterStaffPreview = await fetch(
+        `${baseUrl}/cco-commercial/patient-case?patientId=patient-1`
+      );
+      const afterStaffPreviewPayload = await afterStaffPreview.json();
+      assert.equal(afterStaffPreviewPayload.commercialCase.quoteOpenCount, 0);
+
       const publicView = await fetch(`${baseUrl}/cco-commercial/offer-sign-page?token=tok-1`);
       assert.equal(publicView.status, 200);
 

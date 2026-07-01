@@ -218,7 +218,7 @@ async function resolveCustomerPortalTreatmentAgreement(
 
 function buildCustomerOfferPortalContext(
   commercialCase = {},
-  { token = '', origin = '', treatmentAgreement = null } = {}
+  { token = '', origin = '', treatmentAgreement = null, staffPreview = false } = {}
 ) {
   const quoteStatus = normalizeText(commercialCase.quoteStatus) || 'draft';
   const esignStatus = normalizeText(commercialCase.esignStatus) || 'draft';
@@ -308,6 +308,7 @@ function buildCustomerOfferPortalContext(
     portalPhotos,
     treatmentAgreement,
     portalTrust,
+    staffPreview: staffPreview === true,
   };
 }
 
@@ -1069,6 +1070,45 @@ function createCcoCommercialRouter({
     }
   });
 
+  async function renderCustomerOfferPortalResponse(req, res, match, token, options = {}) {
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const treatmentAgreement = await resolveCustomerPortalTreatmentAgreement(
+      match,
+      treatmentAgreementStore
+    );
+    const html = await buildCustomerOfferPortalHtml(match, {
+      token,
+      origin,
+      treatmentAgreement,
+      staffPreview: options.staffPreview === true,
+    });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'private, max-age=60');
+    return res.send(html);
+  }
+
+  router.get(
+    '/cco-commercial/customer-offer-portal/preview',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        const token = normalizeText(req.query.token);
+        if (!token) return res.status(400).send('token saknas.');
+        const match = commercialStore.findCaseByEsignToken
+          ? await commercialStore.findCaseByEsignToken(token)
+          : null;
+        if (!match) return res.status(404).send('Kundportal hittades inte.');
+        return await renderCustomerOfferPortalResponse(req, res, match, token, {
+          staffPreview: true,
+        });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).send('Kunde inte visa kundportal.');
+      }
+    }
+  );
+
   router.get('/cco-commercial/customer-offer-portal', async (req, res) => {
     try {
       const token = normalizeText(req.query.token);
@@ -1079,19 +1119,7 @@ function createCcoCommercialRouter({
       if (!match) return res.status(404).send('Kundportal hittades inte.');
       const openResult = await recordCustomerQuoteOpen(match, 'customer_offer_portal');
       const liveCase = openResult?.commercialCase || match;
-      const origin = `${req.protocol}://${req.get('host')}`;
-      const treatmentAgreement = await resolveCustomerPortalTreatmentAgreement(
-        liveCase,
-        treatmentAgreementStore
-      );
-      const html = await buildCustomerOfferPortalHtml(liveCase, {
-        token,
-        origin,
-        treatmentAgreement,
-      });
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'private, max-age=60');
-      return res.send(html);
+      return await renderCustomerOfferPortalResponse(req, res, liveCase, token);
     } catch (error) {
       console.error(error);
       return res.status(500).send('Kunde inte visa kundportal.');

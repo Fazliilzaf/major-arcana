@@ -8708,6 +8708,11 @@
     return `/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(linkedOffer.esignToken)}`;
   }
 
+  function buildCustomerPortalPreviewUrlFromOffer(linkedOffer) {
+    if (!linkedOffer?.esignToken) return '';
+    return `/api/v1/cco-commercial/customer-offer-portal/preview?token=${encodeURIComponent(linkedOffer.esignToken)}`;
+  }
+
   function getCustomerPortalUrl(linkedOffer) {
     const deterministicUrl = buildCustomerPortalUrlFromOffer(linkedOffer);
     const runtimeUrl = String(runtime.customerPortalUrl || '').trim();
@@ -9263,6 +9268,7 @@
         ? `/api/v1/cco-commercial/offer-document.doc?patientId=${encodeURIComponent(runtime.selectedPatientId)}&documentId=${encodeURIComponent(linkedOffer.offerDocumentId)}`
         : runtime.offerDocumentWordUrl || '';
     const customerPortalUrl = getCustomerPortalUrl(linkedOffer);
+    const customerPortalPreviewUrl = buildCustomerPortalPreviewUrlFromOffer(linkedOffer);
     const customerPortalLinkSource = getCustomerPortalLinkSource(linkedOffer, customerPortalUrl);
     const canSendForSign = linkedOffer && linkedOffer.quoteStatus !== 'accepted';
     const canAccept =
@@ -9313,6 +9319,11 @@
             ${
               canSendForSign
                 ? `<button type="button" class="customers-utility-button" data-patient-action="send-offer-for-sign">Skicka för signering</button>`
+                : ''
+            }
+            ${
+              customerPortalUrl
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalPreviewUrl || customerPortalUrl)}" target="_blank" rel="noopener" data-customer-portal-preview="staff">Förhandsgranska kundportal</a>`
                 : ''
             }
             ${
