@@ -475,6 +475,100 @@
       html[data-customer-offer-context='live'] .portal-status-panel {
         display: grid;
       }
+      .portal-next-action {
+        display: none;
+        gap: 0.82rem;
+        margin: 0 0 var(--gap);
+        padding: 1rem;
+        border-radius: var(--panel-radius);
+        background:
+          radial-gradient(circle at 12% 0%, rgba(176, 53, 110, 0.15), transparent 42%),
+          radial-gradient(circle at 88% 18%, rgba(101, 75, 152, 0.13), transparent 44%),
+          var(--card-bg);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+      }
+      html[data-customer-offer-context='live'] .portal-next-action.is-visible {
+        display: grid;
+      }
+      .portal-next-action__kicker {
+        display: inline-flex;
+        width: max-content;
+        align-items: center;
+        gap: 0.36rem;
+        padding: 0.24rem 0.6rem;
+        border-radius: var(--r-pill);
+        background: rgba(176, 53, 110, 0.09);
+        color: var(--accent);
+        font-size: 0.6rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .portal-next-action__title {
+        margin: 0;
+        color: var(--text-primary);
+        font-family: 'Cormorant Garamond', 'Georgia', serif;
+        font-size: 1.28rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        line-height: 1.1;
+      }
+      .portal-next-action__copy {
+        margin: -0.4rem 0 0;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        line-height: 1.52;
+      }
+      .portal-next-action__meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+      .portal-next-action__meta-item {
+        padding: 0.55rem 0.62rem;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.76);
+        border: 1px solid rgba(223, 212, 203, 0.64);
+      }
+      .portal-next-action__meta-item span {
+        display: block;
+        color: var(--text-tertiary);
+        font-size: 0.56rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .portal-next-action__meta-item strong {
+        display: block;
+        margin-top: 0.16rem;
+        color: var(--text-primary);
+        font-size: 0.72rem;
+        font-weight: 850;
+      }
+      .portal-next-action__button {
+        min-height: 44px;
+        border: 0;
+        border-radius: var(--r-pill);
+        background: linear-gradient(135deg, var(--accent), var(--violet));
+        color: #fff;
+        box-shadow: 0 15px 34px -20px rgba(176, 53, 110, 0.75);
+        font-size: 0.82rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .portal-next-action__button:disabled {
+        cursor: not-allowed;
+        opacity: 0.72;
+        background: linear-gradient(135deg, rgba(167, 145, 125, 0.5), rgba(109, 99, 84, 0.5));
+        box-shadow: none;
+      }
+      .portal-next-action__hint {
+        margin: -0.2rem 0 0;
+        color: var(--text-tertiary);
+        font-size: 0.68rem;
+        line-height: 1.42;
+      }
       .portal-files-panel {
         display: none;
         gap: 0.55rem;
@@ -2466,6 +2560,34 @@
         </div>
       </div>
 
+      <section class="portal-next-action" data-portal-next-action hidden aria-live="polite">
+        <div class="portal-next-action__kicker" data-next-action-kicker>Nästa steg</div>
+        <h2 class="portal-next-action__title" data-next-action-title>Läs igenom din offert</h2>
+        <p class="portal-next-action__copy" data-next-action-copy>
+          Börja med bildunderlaget, zonerna och priset. Signering öppnar när flödet är redo.
+        </p>
+        <div class="portal-next-action__meta">
+          <div class="portal-next-action__meta-item">
+            <span>Status</span>
+            <strong data-next-action-status>Väntar</strong>
+          </div>
+          <div class="portal-next-action__meta-item">
+            <span>Betänketid</span>
+            <strong data-next-action-cooling>Kontrolleras</strong>
+          </div>
+          <div class="portal-next-action__meta-item">
+            <span>Underlag</span>
+            <strong data-next-action-evidence>Offert</strong>
+          </div>
+        </div>
+        <button class="portal-next-action__button" type="button" data-next-action-button disabled>
+          Läs offerten
+        </button>
+        <p class="portal-next-action__hint" data-next-action-hint>
+          Kliniken sparar underlagen säkert. Du kan läsa allt här och ladda ner PDF vid behov.
+        </p>
+      </section>
+
       <!-- TIDSLINJE -->
       <div class="timeline-card" data-unlock="1" data-tease-label="🔒 Låses upp när offert skickas">
         <div class="tl-title">Förväntad hårväxt · Månad 1–12</div>
@@ -3831,6 +3953,106 @@
         panel.classList.add('is-visible');
       }
 
+      function resolvePortalNextAction(contextInput) {
+        var context = asObject(contextInput);
+        var cooling = asObject(context.coolingOff);
+        var quoteStatus = safeText(context.quoteStatus) || 'draft';
+        var esignStatus = safeText(context.esignStatus) || 'draft';
+        var offerSignUrl = safeText(context.offerSignUrl);
+        var offerDocumentPdfUrl = safeText(context.offerDocumentPdfUrl);
+        var offerDocumentUrl = safeText(context.offerDocumentUrl);
+        var accepted = quoteStatus === 'accepted' || esignStatus === 'accepted';
+        var coolingActive = Boolean(cooling.active);
+        var coolingEndsAt = safeText(cooling.endsAt || cooling.coolingOffEndsAt).slice(0, 10);
+        var files = Array.isArray(context.portalFiles) ? context.portalFiles.filter(Boolean) : [];
+        var photos = Array.isArray(context.portalPhotos)
+          ? context.portalPhotos.filter(Boolean)
+          : [];
+        var evidenceCount = files.length + photos.length;
+        var action = {
+          kicker: 'Nästa steg',
+          title: 'Läs igenom din offert',
+          copy: 'Börja med bildunderlaget, zonerna och priset. Signering öppnar när flödet är redo.',
+          status: portalStatusLabel(quoteStatus, 'Väntar'),
+          cooling: coolingActive ? coolingEndsAt || 'Pågår' : 'Ingen aktiv spärr',
+          evidence: evidenceCount ? evidenceCount + ' underlag' : 'Offert',
+          buttonLabel: 'Läs offerten',
+          buttonUrl: offerDocumentPdfUrl || offerDocumentUrl || '',
+          disabled: !(offerDocumentPdfUrl || offerDocumentUrl),
+          hint: 'Kliniken sparar underlagen säkert. Du kan läsa allt här och ladda ner PDF vid behov.',
+        };
+
+        if (accepted) {
+          action.title = 'Offerten är signerad';
+          action.copy =
+            'Din bekräftelse är mottagen. Kliniken förbereder nästa säkra steg i flödet.';
+          action.status = 'Signerad';
+          action.buttonLabel = 'Öppna offert-PDF';
+          action.buttonUrl = offerDocumentPdfUrl || offerDocumentUrl || '';
+          action.disabled = !action.buttonUrl;
+          action.hint = 'Avtal och samtycke hanteras i nästa steg enligt klinikens arbetsflöde.';
+          return action;
+        }
+
+        if (coolingActive) {
+          action.kicker = 'Betänketid pågår';
+          action.title = 'Läs igenom allt i lugn och ro';
+          action.copy = coolingEndsAt
+            ? 'Signering öppnar efter betänketiden ' +
+              coolingEndsAt +
+              '. Under tiden kan du läsa offert, plan och bildunderlag.'
+            : 'Signering öppnar efter betänketiden. Under tiden kan du läsa offert, plan och bildunderlag.';
+          action.buttonLabel = offerDocumentPdfUrl
+            ? 'Ladda ner offert-PDF'
+            : 'Öppna offertunderlag';
+          action.buttonUrl = offerDocumentPdfUrl || offerDocumentUrl || '';
+          action.disabled = !action.buttonUrl;
+          action.hint = 'Det här är bara läsläge tills betänketiden är klar.';
+          return action;
+        }
+
+        if (quoteStatus === 'sent' && offerSignUrl) {
+          action.kicker = 'Redo';
+          action.title = 'Redo att signera?';
+          action.copy =
+            'När du har läst offert, zoner, pris och bildunderlag kan du öppna säker signering.';
+          action.status = 'Redo för signering';
+          action.buttonLabel = 'Öppna säker signering';
+          action.buttonUrl = offerSignUrl;
+          action.disabled = false;
+          action.hint =
+            'Signeringen öppnas i ett säkert flöde. Du kan komma tillbaka till portalen efteråt.';
+          return action;
+        }
+
+        return action;
+      }
+
+      function renderPortalNextAction(contextInput) {
+        var panel = document.querySelector('[data-portal-next-action]');
+        var button = document.querySelector('[data-next-action-button]');
+        if (!panel || !button) return;
+        var action = resolvePortalNextAction(contextInput);
+        setPortalText('[data-next-action-kicker]', action.kicker);
+        setPortalText('[data-next-action-title]', action.title);
+        setPortalText('[data-next-action-copy]', action.copy);
+        setPortalText('[data-next-action-status]', action.status);
+        setPortalText('[data-next-action-cooling]', action.cooling);
+        setPortalText('[data-next-action-evidence]', action.evidence);
+        setPortalText('[data-next-action-hint]', action.hint);
+        button.textContent = action.buttonLabel;
+        button.disabled = Boolean(action.disabled);
+        if (action.buttonUrl && !action.disabled) {
+          button.onclick = function () {
+            window.location.href = action.buttonUrl;
+          };
+        } else {
+          button.onclick = null;
+        }
+        panel.hidden = false;
+        panel.classList.add('is-visible');
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -3895,6 +4117,9 @@
           coolingActive ? coolingEndsAt || 'Pågår' : 'Ingen aktiv spärr'
         );
         setPortalText('[data-portal-next-step]', nextStep);
+        if (hasLiveContext) {
+          renderPortalNextAction(context);
+        }
 
         var signButton = document.getElementById('bankidBtn');
         if (signButton && offerSignUrl && !accepted && !coolingActive) {

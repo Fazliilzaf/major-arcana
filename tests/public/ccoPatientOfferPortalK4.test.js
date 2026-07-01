@@ -108,3 +108,15 @@ test('customer offer portal renders K14 live plan evidence from photos and zones
   assert.match(source, /window\.ARCANA_CUSTOMER_OFFER_PLAN \|\| DEMO_OFFER_PLAN/);
   assert.match(source, /context\.portalPhotos/);
 });
+
+test('customer offer portal renders K15 live next action CTA', () => {
+  const source = readPortal();
+  assert.match(source, /data-portal-next-action/);
+  assert.match(source, /data-next-action-button/);
+  assert.match(source, /function resolvePortalNextAction\(contextInput\)/);
+  assert.match(source, /function renderPortalNextAction\(contextInput\)/);
+  assert.match(source, /Redo att signera\?/);
+  assert.match(source, /Läs igenom allt i lugn och ro/);
+  assert.match(source, /Offerten är signerad/);
+  assert.match(source, /renderPortalNextAction\(context\)/);
+});
