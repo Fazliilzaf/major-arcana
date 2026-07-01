@@ -570,6 +570,101 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
+      .portal-plan-evidence {
+        display: none;
+        gap: 0.78rem;
+        margin: 0 0 var(--gap);
+      }
+      html[data-customer-offer-context='live'] .portal-plan-evidence.is-visible {
+        display: grid;
+      }
+      .plan-evidence-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.85rem;
+      }
+      .plan-evidence-copy {
+        margin: 0.22rem 0 0;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        line-height: 1.5;
+      }
+      .plan-evidence-chip {
+        flex-shrink: 0;
+        padding: 0.34rem 0.62rem;
+        border-radius: var(--r-pill);
+        background: linear-gradient(135deg, rgba(176, 53, 110, 0.12), rgba(101, 75, 152, 0.12));
+        color: var(--accent);
+        font-size: 0.66rem;
+        font-weight: 850;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .plan-evidence-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+      .plan-evidence-metric {
+        padding: 0.62rem 0.7rem;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(223, 212, 203, 0.7);
+      }
+      .plan-evidence-metric span {
+        display: block;
+        color: var(--text-tertiary);
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .plan-evidence-metric strong {
+        display: block;
+        margin-top: 0.18rem;
+        color: var(--text-primary);
+        font-size: 0.92rem;
+        font-weight: 900;
+      }
+      .plan-evidence-zones {
+        display: grid;
+        gap: 0.52rem;
+      }
+      .plan-evidence-zone {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.4rem 0.75rem;
+        align-items: center;
+        padding: 0.64rem 0.72rem;
+        border-radius: 18px;
+        background: var(--fill-control);
+        border: var(--card-border);
+      }
+      .plan-evidence-zone strong {
+        font-size: 0.78rem;
+      }
+      .plan-evidence-zone small {
+        color: var(--text-muted);
+        font-size: 0.66rem;
+      }
+      .plan-evidence-zone .zone-num {
+        font-size: 1rem;
+        text-align: right;
+      }
+      .plan-evidence-zone-bar {
+        grid-column: 1 / -1;
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(167, 145, 125, 0.13);
+      }
+      .plan-evidence-zone-bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), rgba(101, 75, 152, 0.75));
+      }
       .portal-status-row {
         display: flex;
         justify-content: space-between;
@@ -2573,6 +2668,34 @@
         <div class="portal-photo-grid" data-portal-photos-list></div>
       </div>
 
+      <div class="card portal-plan-evidence" data-portal-plan-evidence hidden>
+        <div class="plan-evidence-head">
+          <div>
+            <div class="card-title">Plan från ritningarna</div>
+            <p class="plan-evidence-copy">
+              Sammanfattningen kopplar konsultationsbilderna till zonerna, hårsäckarna och priset i
+              offerten.
+            </p>
+          </div>
+          <span class="plan-evidence-chip" data-plan-evidence-photo-count>Ritade bilder</span>
+        </div>
+        <div class="plan-evidence-metrics">
+          <div class="plan-evidence-metric">
+            <span>Totalt</span>
+            <strong data-plan-evidence-total-grafts>—</strong>
+          </div>
+          <div class="plan-evidence-metric">
+            <span>Pris</span>
+            <strong data-plan-evidence-price>—</strong>
+          </div>
+          <div class="plan-evidence-metric">
+            <span>Metod</span>
+            <strong data-plan-evidence-method>—</strong>
+          </div>
+        </div>
+        <div class="plan-evidence-zones" data-plan-evidence-zones></div>
+      </div>
+
       <div class="card" data-unlock="1" data-tease-label="🔒 Låses upp när offert skickas">
         <div class="ai-badge">AI-genererad planering</div>
         <div class="card-title">Planerade zoner · <span data-offer-method>DHI</span>-metoden</div>
@@ -3638,6 +3761,76 @@
         }
       }
 
+      function resolveOfferPlanTotals(planInput) {
+        var plan = asObject(planInput);
+        var grafts = asObject(plan.grafts);
+        var zones = Array.isArray(grafts.zones) ? grafts.zones.filter(Boolean) : [];
+        var total =
+          safeText(grafts.total) ||
+          String(
+            zones.reduce(function (sum, zone) {
+              var parsed = Number(normalizeGraftNumber(asObject(zone).grafts));
+              return Number.isFinite(parsed) ? sum + parsed : sum;
+            }, 0) || ''
+          );
+        return {
+          plan: plan,
+          zones: zones,
+          total: total,
+          totalNumber: Math.max(1, Number(normalizeGraftNumber(total)) || 1),
+          method: safeText(plan.method) || 'DHI',
+          price: asObject(plan.price),
+        };
+      }
+
+      function renderPlanEvidence(planInput, photosInput) {
+        var panel = document.querySelector('[data-portal-plan-evidence]');
+        var zonesList = document.querySelector('[data-plan-evidence-zones]');
+        if (!panel || !zonesList) return;
+        var resolved = resolveOfferPlanTotals(planInput);
+        var zones = resolved.zones;
+        if (!zones.length && !resolved.total) return;
+        var photos = Array.isArray(photosInput) ? photosInput.filter(Boolean) : [];
+        setText(
+          '[data-plan-evidence-photo-count]',
+          photos.length
+            ? photos.length + ' bild' + (photos.length === 1 ? '' : 'er')
+            : 'Planunderlag'
+        );
+        setText('[data-plan-evidence-total-grafts]', formatGrafts(resolved.total) + ' hårsäckar');
+        setText(
+          '[data-plan-evidence-price]',
+          safeText(resolved.price.quotedAmount) || 'Enligt offert'
+        );
+        setText('[data-plan-evidence-method]', resolved.method);
+        zonesList.innerHTML = zones
+          .map(function (zone) {
+            var item = asObject(zone);
+            var graftNumber = Number(normalizeGraftNumber(item.grafts)) || 0;
+            var width = Math.max(
+              8,
+              Math.min(100, Math.round((graftNumber / resolved.totalNumber) * 100))
+            );
+            var label = safeText(item.label || item.key || 'Zon');
+            return (
+              '<div class="plan-evidence-zone ' +
+              zoneClass(item.key, item.label) +
+              '"><div><strong>' +
+              escapeHtml(label) +
+              '</strong><br /><small>Från ritad behandlingsplan</small></div><div class="zone-num">' +
+              escapeHtml(formatGrafts(item.grafts)) +
+              '</div><div class="plan-evidence-zone-bar"><span style="width:' +
+              width +
+              '%;background:' +
+              zoneColor(item.key, item.label) +
+              '"></span></div></div>'
+            );
+          })
+          .join('');
+        panel.hidden = false;
+        panel.classList.add('is-visible');
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -3728,6 +3921,12 @@
 
         renderPortalFiles(context.portalFiles);
         renderPortalPhotos(context.portalPhotos);
+        if (hasLiveContext) {
+          renderPlanEvidence(
+            window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN,
+            context.portalPhotos
+          );
+        }
       }
 
       renderOfferPlanToPortal(window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);
