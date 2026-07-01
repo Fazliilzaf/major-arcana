@@ -323,6 +323,12 @@ test('offer-from-plan creates commercial case and html document', async () => {
       assert.match(portalHtml, /"kind":"offer_pdf"/);
       assert.match(portalHtml, /"kind":"consultation_photo"/);
       assert.match(portalHtml, /"portalPhotos":\[/);
+      assert.match(portalHtml, /"lastPortalUpdateLabel":"\d{4}-\d{2}-\d{2}"/);
+      assert.match(portalHtml, /"portalTrust":\{/);
+      assert.match(portalHtml, /"statusLabel":"Live"/);
+      assert.match(portalHtml, /"evidenceLabel":"4 säkra underlag"/);
+      assert.match(portalHtml, /"sharingLabel":"Endast klinik \+ kund"/);
+      assert.match(portalHtml, /Portalen har öppnats 2 gånger/);
       assert.match(portalHtml, /"treatmentAgreement":\{/);
       assert.match(portalHtml, /"phase":"bookable"/);
       assert.match(portalHtml, /"consentSigned":true/);
