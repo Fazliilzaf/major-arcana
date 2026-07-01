@@ -2251,6 +2251,96 @@
         font-size: 0.64rem;
         line-height: 1.42;
       }
+      .portal-trust-log {
+        display: none;
+        gap: 0.72rem;
+        margin-top: 0.72rem;
+        padding: 0.88rem;
+        border-radius: var(--card-radius);
+        background:
+          radial-gradient(circle at 88% 0%, rgba(47, 111, 84, 0.12), transparent 42%),
+          rgba(255, 252, 248, 0.96);
+        border: 1px solid rgba(47, 111, 84, 0.14);
+        box-shadow: var(--card-shadow);
+      }
+      html[data-customer-offer-context='live'] .portal-trust-log.is-visible {
+        display: grid;
+      }
+      .portal-trust-log__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+      .portal-trust-log__eyebrow {
+        display: inline-flex;
+        width: max-content;
+        padding: 0.2rem 0.54rem;
+        border-radius: var(--r-pill);
+        background: rgba(47, 111, 84, 0.1);
+        color: var(--success);
+        font-size: 0.55rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .portal-trust-log h3 {
+        margin: 0.34rem 0 0;
+        color: var(--text-primary);
+        font-family: 'Cormorant Garamond', 'Georgia', serif;
+        font-size: 1.12rem;
+        font-weight: 650;
+        line-height: 1.08;
+      }
+      .portal-trust-log__badge {
+        padding: 0.18rem 0.5rem;
+        border-radius: var(--r-pill);
+        background: rgba(101, 75, 152, 0.1);
+        color: var(--violet);
+        font-size: 0.55rem;
+        font-weight: 850;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .portal-trust-log__copy {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        line-height: 1.48;
+      }
+      .portal-trust-log__items {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+      .portal-trust-log__item {
+        padding: 0.55rem;
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(223, 212, 203, 0.62);
+      }
+      .portal-trust-log__item span {
+        display: block;
+        color: var(--text-tertiary);
+        font-size: 0.55rem;
+        font-weight: 780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .portal-trust-log__item strong {
+        display: block;
+        margin-top: 0.16rem;
+        color: var(--text-primary);
+        font-size: 0.68rem;
+        font-weight: 840;
+      }
+      .portal-trust-log__hint {
+        margin: -0.08rem 0 0;
+        color: var(--text-tertiary);
+        font-size: 0.64rem;
+        line-height: 1.42;
+      }
 
       /* STICKY SIGN BAR */
       .sticky-sign {
@@ -4182,6 +4272,40 @@
           Kunden ser bara klinikens säkra kontaktväg. Intern delegering till personal syns inte här.
         </p>
       </section>
+      <section class="portal-trust-log" data-portal-trust-log hidden aria-live="polite">
+        <div class="portal-trust-log__head">
+          <div>
+            <span class="portal-trust-log__eyebrow" data-portal-trust-eyebrow>Trygghetslogg</span>
+            <h3 data-portal-trust-title>Din portal är säkrad</h3>
+          </div>
+          <div class="portal-trust-log__badge" data-portal-trust-badge>Live</div>
+        </div>
+        <p class="portal-trust-log__copy" data-portal-trust-copy>
+          Offert, bilder och dokument ligger kvar i portalen så du slipper lösa länkar.
+        </p>
+        <div class="portal-trust-log__items">
+          <div class="portal-trust-log__item">
+            <span>Senast uppdaterad</span>
+            <strong data-portal-trust-updated>Via kliniken</strong>
+          </div>
+          <div class="portal-trust-log__item">
+            <span>Åtkomst</span>
+            <strong data-portal-trust-access>Token-skyddad</strong>
+          </div>
+          <div class="portal-trust-log__item">
+            <span>Underlag</span>
+            <strong data-portal-trust-evidence>Samlat här</strong>
+          </div>
+          <div class="portal-trust-log__item">
+            <span>Delning</span>
+            <strong data-portal-trust-sharing>Endast klinik + kund</strong>
+          </div>
+        </div>
+        <p class="portal-trust-log__hint" data-portal-trust-hint>
+          Portalen visar status och underlag. Personal granskar fortsatt allt i CCO innan journal
+          eller nästa steg uppdateras.
+        </p>
+      </section>
     </main>
 
     <div class="sticky-sign" id="stickySign">
@@ -5093,6 +5217,66 @@
         panel.classList.add('is-visible');
       }
 
+      function resolvePortalTrustLog(contextInput) {
+        var context = asObject(contextInput);
+        var trust = asObject(context.portalTrust || context.trustLog || context.audit);
+        var files = Array.isArray(context.portalFiles) ? context.portalFiles.filter(Boolean) : [];
+        var photos = Array.isArray(context.portalPhotos)
+          ? context.portalPhotos.filter(Boolean)
+          : [];
+        var evidenceCount = files.length + photos.length;
+        var lastUpdated =
+          safeText(trust.lastUpdatedLabel) ||
+          safeText(context.lastPortalUpdateLabel) ||
+          safeText(context.updatedAt).slice(0, 10) ||
+          safeText(context.quoteSentAt).slice(0, 10) ||
+          'Via kliniken';
+        var expires =
+          safeText(trust.expiresLabel) ||
+          safeText(context.portalExpiresAt).slice(0, 10) ||
+          safeText(context.tokenExpiresAt).slice(0, 10);
+        var access = expires ? 'Aktiv till ' + expires : 'Token-skyddad';
+        var evidence = evidenceCount
+          ? evidenceCount + ' säkra underlag'
+          : safeText(trust.evidenceLabel) || 'Samlat här';
+        var sharing =
+          safeText(trust.sharingLabel) ||
+          (context.staffVisible === true ? 'Klinik + behörig personal' : 'Endast klinik + kund');
+
+        return {
+          eyebrow: 'Trygghetslogg',
+          title: 'Din portal är säkrad',
+          badge: safeText(trust.statusLabel) || 'Live',
+          copy:
+            safeText(trust.copy) ||
+            'Offert, bilder och dokument ligger kvar i portalen så du slipper lösa länkar.',
+          lastUpdated,
+          access,
+          evidence,
+          sharing,
+          hint:
+            safeText(trust.hint) ||
+            'Portalen visar status och underlag. Personal granskar fortsatt allt i CCO innan journal eller nästa steg uppdateras.',
+        };
+      }
+
+      function renderPortalTrustLog(contextInput) {
+        var panel = document.querySelector('[data-portal-trust-log]');
+        if (!panel) return;
+        var readout = resolvePortalTrustLog(contextInput);
+        setPortalText('[data-portal-trust-eyebrow]', readout.eyebrow);
+        setPortalText('[data-portal-trust-title]', readout.title);
+        setPortalText('[data-portal-trust-badge]', readout.badge);
+        setPortalText('[data-portal-trust-copy]', readout.copy);
+        setPortalText('[data-portal-trust-updated]', readout.lastUpdated);
+        setPortalText('[data-portal-trust-access]', readout.access);
+        setPortalText('[data-portal-trust-evidence]', readout.evidence);
+        setPortalText('[data-portal-trust-sharing]', readout.sharing);
+        setPortalText('[data-portal-trust-hint]', readout.hint);
+        panel.hidden = false;
+        panel.classList.add('is-visible');
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -5163,6 +5347,7 @@
           renderOperationDayPanel(context, window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);
           renderAftercarePanel(context);
           renderSecureContactPanel(context);
+          renderPortalTrustLog(context);
         }
 
         var signButton = document.getElementById('bankidBtn');

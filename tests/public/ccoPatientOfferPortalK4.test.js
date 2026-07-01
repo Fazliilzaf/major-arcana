@@ -170,3 +170,17 @@ test('customer offer portal renders K19 secure contact readout without send acti
   assert.match(source, /Intern delegering till personal syns inte här/);
   assert.match(source, /renderSecureContactPanel\(context\)/);
 });
+
+test('customer offer portal renders K20 trust log from live context without writes', () => {
+  const source = readPortal();
+  assert.match(source, /data-portal-trust-log/);
+  assert.match(source, /data-portal-trust-updated/);
+  assert.match(source, /data-portal-trust-access/);
+  assert.match(source, /data-portal-trust-evidence/);
+  assert.match(source, /function resolvePortalTrustLog\(contextInput\)/);
+  assert.match(source, /function renderPortalTrustLog\(contextInput\)/);
+  assert.match(source, /Offert, bilder och dokument ligger kvar i portalen/);
+  assert.match(source, /Token-skyddad/);
+  assert.match(source, /Personal granskar fortsatt allt i CCO innan journal/);
+  assert.match(source, /renderPortalTrustLog\(context\)/);
+});
