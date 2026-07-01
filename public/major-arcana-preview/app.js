@@ -1092,6 +1092,7 @@
   const studioPreviewButton = document.querySelector("[data-studio-preview]");
   const studioSaveDraftButton = document.querySelector("[data-studio-save-draft]");
   const studioDeleteButton = document.querySelector("[data-studio-delete]");
+  const studioReopenButton = document.querySelector("[data-studio-reopen]");
   const studioFeedback = document.querySelector("[data-studio-feedback]");
   const studioPreviewActionButton = document.querySelector(".studio-secondary-button-preview");
   const studioLaterActionButton = document.querySelector(".studio-secondary-button-later");
@@ -14038,6 +14039,7 @@
   const {
     updateRuntimeThread,
     patchStudioThreadAfterSend,
+    patchStudioThreadAfterReopen,
     isHandledRuntimeThread,
     suggestHandledOutcome,
   } = PREVIEW_THREAD_OPS.createThreadStateOps({
@@ -14292,6 +14294,7 @@
     handleRuntimeRestoreAction,
     handleRuntimeDeleteAction,
     handleRuntimeHandledAction,
+    handleReopenConversation,
     handleStudioDelete,
     handleStudioMarkHandled,
     handleStudioPreview,
@@ -14319,6 +14322,7 @@
       scheduleReminderSelect,
       scheduleTimeInput,
       studioDeleteButton,
+      studioReopenButton,
       studioShell,
       studioComposeSubjectInput,
       studioComposeToInput,
@@ -14379,6 +14383,7 @@
       normalizeText,
       normalizeWorkspaceState,
       patchStudioThreadAfterSend,
+      patchStudioThreadAfterReopen,
       recordDraftFeedbackFireAndForget,
       refreshWorkspaceBootstrapForSelectedThread,
       renderBookingSurface,
@@ -14505,6 +14510,7 @@
       scheduleOpenButtons,
       scheduleSaveButton,
       studioDeleteButton,
+      studioReopenButton,
       studioDoneActionButton,
       studioComposeFromSelect,
       studioComposeSubjectInput,
@@ -14598,6 +14604,7 @@
       handleMailboxAdminSave,
       handleStudioDelete,
       handleStudioMarkHandled,
+      handleReopenConversation,
       handleStudioPreview,
       handleStudioSaveDraft,
       handleStudioSend,

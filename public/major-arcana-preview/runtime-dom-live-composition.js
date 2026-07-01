@@ -1836,6 +1836,7 @@
         });
       }
       paintRuntimeShell("all");
+      syncThreadActionButtonsForThread(getSelectedRuntimeThread());
     }
 
     function getRuntimeThreadHydrationMailboxIds(thread, fallbackMailboxIds = []) {
@@ -3110,6 +3111,7 @@
             })
             .finally(() => {
               paintRuntimeShell("focus");
+              syncThreadActionButtonsForThread(getSelectedRuntimeThread());
             });
         }, BOOTSTRAP_THREAD_SELECT_DEBOUNCE_MS);
       }

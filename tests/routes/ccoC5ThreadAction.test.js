@@ -23,6 +23,39 @@ async function withServer(app, run) {
   }
 }
 
+const KNOWN_MESSAGES = [
+  {
+    mailboxConversationId: 'conv-c5-handled',
+    senderEmail: 'kund-c5@test.se',
+    folderType: 'inbox',
+    sentAt: '2025-01-01T10:00:00.000Z',
+  },
+  {
+    mailboxConversationId: 'conv-c5-later',
+    senderEmail: 'kund-c5@test.se',
+    folderType: 'inbox',
+    sentAt: '2025-01-01T10:00:00.000Z',
+  },
+  {
+    mailboxConversationId: 'conv-c5-reopen',
+    senderEmail: 'kund-c5@test.se',
+    folderType: 'inbox',
+    sentAt: '2025-01-01T10:00:00.000Z',
+  },
+  {
+    mailboxConversationId: 'conv-c5-later-default',
+    senderEmail: 'kund-c5@test.se',
+    folderType: 'inbox',
+    sentAt: '2025-01-01T10:00:00.000Z',
+  },
+  {
+    mailboxConversationId: 'conv-c5-wrong-customer',
+    senderEmail: 'annan-kund@test.se',
+    folderType: 'inbox',
+    sentAt: '2025-01-01T10:00:00.000Z',
+  },
+];
+
 async function createFixture() {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-c5-action-'));
   const auditEvents = [];
@@ -31,9 +64,8 @@ async function createFixture() {
     filePath: path.join(tempDir, 'conv-state.json'),
   });
 
-  // Minimal mailboxTruthStore stub: action endpoint checks listMessages exists
   const mailboxTruthStore = {
-    listMessages: () => [],
+    listMessages: () => KNOWN_MESSAGES,
   };
 
   const authStore = {
@@ -274,6 +306,98 @@ test('C5: Senare utan explicit followUpDueAt defaultar till nu+24h', async () =>
     assert.ok(
       dueMs >= expectedMin && dueMs <= expectedMax,
       `followUpDueAt (${savedState.followUpDueAt}) ska vara ca 24h framåt`
+    );
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('C5: returnerar 404 för okänd konversationsnyckel (handled)', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/cco/runtime/conversation/okand-konversation-xyz/action`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'handled', customerId: 'kund-c5@test.se' }),
+      });
+      assert.equal(res.status, 404);
+      const body = await res.json();
+      assert.equal(body.error, 'conversation_not_found');
+    });
+    assert.equal(
+      fixture.auditEvents.some((e) => e.action?.startsWith('cco.conversation.')),
+      false,
+      'inget audit-event ska skapas för okänd konversation'
+    );
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('C5: returnerar 404 för okänd konversationsnyckel (reopen)', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/cco/runtime/conversation/okand-konversation-xyz/action`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'reopen', customerId: 'kund-c5@test.se' }),
+      });
+      assert.equal(res.status, 404);
+      const body = await res.json();
+      assert.equal(body.error, 'conversation_not_found');
+    });
+    assert.equal(
+      fixture.auditEvents.some((e) => e.action?.startsWith('cco.conversation.')),
+      false,
+      'inget audit-event ska skapas för okänd konversation'
+    );
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('C5: returnerar 409 när customerId inte matchar konversationens kund (handled)', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-wrong-customer/action`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'handled', customerId: 'fel-kund@test.se' }),
+      });
+      assert.equal(res.status, 409);
+      const body = await res.json();
+      assert.equal(body.error, 'customer_mismatch');
+    });
+    assert.equal(
+      fixture.auditEvents.some((e) => e.action?.startsWith('cco.conversation.')),
+      false,
+      'inget audit-event ska skapas vid customerId-mismatch'
+    );
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('C5: returnerar 409 när customerId inte matchar konversationens kund (reopen)', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-wrong-customer/action`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'reopen', customerId: 'fel-kund@test.se' }),
+      });
+      assert.equal(res.status, 409);
+      const body = await res.json();
+      assert.equal(body.error, 'customer_mismatch');
+    });
+    assert.equal(
+      fixture.auditEvents.some((e) => e.action?.startsWith('cco.conversation.')),
+      false,
+      'inget audit-event ska skapas vid customerId-mismatch'
     );
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
