@@ -5233,6 +5233,13 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   color: #2e5a47;
 }
 
+.patient-master-offer-next-step .patient-master-status-badge input[type="checkbox"] {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin: 0 0.35rem 0 0;
+  accent-color: #4a8268;
+}
+
 .patient-master-offer-activity {
   display: flex;
   flex-wrap: wrap;
