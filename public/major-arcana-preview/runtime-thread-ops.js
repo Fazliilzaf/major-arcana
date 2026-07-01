@@ -29,9 +29,17 @@
 
     function patchStudioThreadAfterSend(thread, draftBody, sendResult = null) {
       try {
-        const draftKey = thread?.id ? "cco.studio.draft." + String(thread.id).trim().toLowerCase().replace(/[^a-z0-9._@:-]/g, "_") : "";
+        const draftKey = thread?.id
+          ? "cco.studio.draft." +
+            String(thread.id)
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9._@:-]/g, "_")
+          : "";
         if (draftKey) window.localStorage.removeItem(draftKey);
-      } catch (_e) { /* ignore */ }
+      } catch (_e) {
+        /* ignore */
+      }
       const recordedAt = new Date().toISOString();
       const senderLabel = titleCaseMailbox(
         asText(
@@ -158,6 +166,34 @@
       });
     }
 
+    function patchStudioThreadAfterReopen(thread) {
+      const recordedAt = new Date().toISOString();
+      return updateRuntimeThread(thread.id, (current) => {
+        current.statusLabel = "Ohanterad";
+        current.waitingLabel = "Behöver svar";
+        current.nextActionLabel = "Svara kunden";
+        current.nextActionSummary = "Tråden återöppnades manuellt.";
+        current.tags = Array.from(
+          new Set(
+            asArray(current.tags)
+              .filter((t) => t !== "later" && t !== "followup")
+              .concat(["act-now"])
+          )
+        );
+        current.raw = {
+          ...current.raw,
+          isUnanswered: true,
+          needsReplyStatus: "needs_reply",
+          waitingOn: "owner",
+          followUpDueAt: null,
+          lastActionTakenLabel: "Återöppnad",
+          lastActionTakenAt: recordedAt,
+        };
+        current.cards = buildRuntimeSummaryCards(current.raw, current);
+        return current;
+      });
+    }
+
     function isHandledRuntimeThread(thread) {
       const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
       const statusLabel = normalizeKey(thread?.statusLabel || "");
@@ -181,6 +217,7 @@
       patchStudioThreadAfterSend,
       patchStudioThreadAfterReplyLater,
       patchStudioThreadAfterHandled,
+      patchStudioThreadAfterReopen,
       isHandledRuntimeThread,
       suggestHandledOutcome,
     };

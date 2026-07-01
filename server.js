@@ -13072,6 +13072,7 @@ process.once('SIGTERM', () => {
       ccoMailTemplateStore,
       clientoBookingStore,
       defaultTenantId: 'cco',
+      authStore,
     })
   );
 

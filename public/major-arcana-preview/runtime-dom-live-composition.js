@@ -53,6 +53,7 @@
       scheduleSaveButton,
       studioDeleteButton,
       studioDoneActionButton,
+      studioReopenButton,
       studioComposeFromSelect,
       studioComposeSubjectInput,
       studioComposeToInput,
@@ -163,6 +164,7 @@
       handleMailboxAdminSave,
       handleStudioDelete,
       handleStudioMarkHandled,
+      handleReopenConversation,
       handleStudioPreview,
       handleStudioSaveDraft,
       handleStudioSend,
@@ -3038,6 +3040,31 @@
       });
     }
 
+    function syncThreadActionButtonsForThread(thread) {
+      if (!studioReopenButton) return;
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+      const statusLabel = normalizeKey(thread?.statusLabel || "");
+      const needsReplyStatus = normalizeKey(raw.needsReplyStatus || "");
+      const showReopen =
+        !!thread &&
+        (needsReplyStatus === "handled" ||
+          statusLabel === "hanterad" ||
+          statusLabel === "parkerad");
+      studioReopenButton.hidden = !showReopen;
+      const badgeEl = windowObject.document?.querySelector?.("[data-thread-status-badge]") ?? null;
+      if (badgeEl) {
+        if (showReopen && thread) {
+          badgeEl.textContent = statusLabel === "parkerad" ? "Parkerad" : "Hanterad";
+          badgeEl.dataset.threadStatus = statusLabel === "parkerad" ? "snoozed" : "handled";
+          badgeEl.hidden = false;
+        } else {
+          badgeEl.hidden = true;
+          badgeEl.textContent = "";
+          delete badgeEl.dataset.threadStatus;
+        }
+      }
+    }
+
     function selectRuntimeThread(threadId, { reloadBootstrap = true } = {}) {
       const selectedThreadTruthBefore = summarizeSelectedRuntimeThreadTruthForDiagnostics();
       const selectedThreadBefore = summarizeRuntimeOpenFlowThread(getSelectedRuntimeThread());
@@ -3059,6 +3086,7 @@
       ensureRuntimeOpenFlowDiagnostics().lastSelection = selectionEntry;
       recordRuntimeOpenFlowEvent("select_thread", selectionEntry);
       paintRuntimeShell("focus");
+      syncThreadActionButtonsForThread(getSelectedRuntimeThread());
       captureRuntimeReentrySnapshot("runtime_thread_selected");
       const selectedCard = Array.from(
         queueHistoryList?.querySelectorAll("[data-runtime-thread]") || []
@@ -4439,6 +4467,18 @@
         });
       }
 
+      if (studioReopenButton) {
+        studioReopenButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const thread = getSelectedRuntimeThread();
+          if (thread) {
+            void handleReopenConversation(thread, { closeStudio: false }).then(() => {
+              syncThreadActionButtonsForThread(getSelectedRuntimeThread());
+            });
+          }
+        });
+      }
+
       const noteJournalConfirmEl =
         windowObject.document?.querySelector?.("[data-note-journal-confirm]") ?? null;
       const noteJournalConfirmCheckbox =
@@ -5421,6 +5461,7 @@
       selectRuntimeThread,
       setActiveRuntimeLane,
       setConversationHistoryOpen,
+      syncThreadActionButtonsForThread,
     });
   }
 
