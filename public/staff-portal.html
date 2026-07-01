@@ -1753,6 +1753,127 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* ── Konversationer C1 (read-only) ────────────────────────── */
+      .conv-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .conv-section-header {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text3);
+        padding: 4px 0 6px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 4px;
+      }
+      .conv-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .conv-row {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 11px 13px;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .conv-row.unread {
+        border-left: 3px solid var(--accent);
+      }
+      .conv-row-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .conv-row-top {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 3px;
+      }
+      .conv-subject {
+        font-weight: 600;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+      }
+      .conv-time {
+        font-size: 11px;
+        color: var(--text3);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .conv-preview {
+        font-size: 12px;
+        color: var(--text2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 5px;
+      }
+      .conv-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .conv-lane {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .conv-lane.act-now {
+        background: rgba(187, 71, 121, 0.12);
+        color: var(--accent);
+      }
+      .conv-lane.review {
+        background: rgba(74, 123, 168, 0.12);
+        color: var(--info);
+      }
+      .conv-lane.later {
+        background: rgba(138, 129, 116, 0.1);
+        color: var(--text3);
+      }
+      .conv-lane.all {
+        background: rgba(43, 37, 31, 0.07);
+        color: var(--text3);
+      }
+      .conv-customer {
+        font-size: 11px;
+        color: var(--text2);
+      }
+      .conv-customer.confirmed {
+        color: var(--sage);
+      }
+      .conv-customer.suggested {
+        color: var(--amber);
+      }
+      .conv-customer.conflict {
+        color: var(--danger);
+      }
+      .conv-customer.none {
+        color: var(--text3);
+      }
+      @media (max-width: 640px) {
+        .conv-row-top {
+          flex-wrap: wrap;
+        }
+        .conv-time {
+          width: 100%;
+          order: 3;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2059,6 +2180,14 @@
             ⚠ Checklistan sparas med tidsstämpel och kan ej raderas — audit trail. Godkännande av
             ordination sker alltid av legitimerad läkare i systemet.
           </p>
+
+          <!-- Konversationer C1 -->
+          <div class="section-title">Konversationer</div>
+          <div class="safety-notice">
+            ✉️ Read-only inkorg. Inga svar skickas och ingen journal ändras härifrån. Kundmatch
+            visas men görs inte automatiskt — bekräftad koppling kräver manuell granskning.
+          </div>
+          <div id="liveConversationListNurse" class="live-panel"></div>
 
           <div class="section-title">OLS &amp; personalhandbok</div>
           <div id="liveQmsHandbookNurse" class="live-panel"></div>
@@ -2411,6 +2540,14 @@
               <button class="btn">Kundkort</button>
             </div>
           </div>
+
+          <!-- Konversationer C1 -->
+          <div class="section-title">Konversationer</div>
+          <div class="safety-notice">
+            ✉️ Read-only inkorg. Inga svar skickas och ingen journal ändras härifrån. Kundmatch
+            visas men görs inte automatiskt — bekräftad koppling kräver manuell granskning.
+          </div>
+          <div id="liveConversationListAdmin" class="live-panel"></div>
 
           <!-- QMS Avvikelser -->
           <div class="section-title">QMS · Avvikelserapporter</div>
@@ -4472,6 +4609,121 @@
         }
       }
 
+      /* ── Konversationer C1 (read-only worklist consumer) ────────── */
+
+      function renderConvRow(row) {
+        const lane = String(row.lane || 'all');
+        // buildConsumerModel nests fields: state.hasUnreadInbound, timing.*, mailbox.*, customer.*
+        const isUnread = row.state?.hasUnreadInbound === true;
+        const subject = escapeHtml(String(row.subject || '(utan ämne)'));
+        const preview = escapeHtml(String(row.preview || ''));
+        const rawTime =
+          row.timing?.latestMessageAt ||
+          row.timing?.lastInboundAt ||
+          row.timing?.lastOutboundAt ||
+          '';
+        const time = rawTime ? formatDateTime(rawTime) : '';
+
+        const identity = row.customer?.identity || row.customerIdentity || null;
+        const canonicalId = String(identity?.canonicalCustomerId || '').trim();
+        const customerLabel = escapeHtml(
+          String(row.customer?.name || row.customer?.email || row.presentation?.primaryLabel || '')
+        );
+        let matchHtml = '<span class="conv-customer none">Ingen kundkoppling</span>';
+        if (canonicalId) {
+          matchHtml = `<span class="conv-customer confirmed">✓ ${customerLabel || escapeHtml(canonicalId)}</span>`;
+        } else if (identity && (identity.customerEmail || identity.customerKey)) {
+          matchHtml = `<span class="conv-customer suggested">? ${customerLabel || 'Föreslagen'}</span>`;
+        }
+
+        const laneLabels = {
+          'act-now': 'Agera nu',
+          review: 'Granskning',
+          later: 'Senare',
+          all: 'Övrig',
+        };
+        const laneLabel = laneLabels[lane] || escapeHtml(lane);
+        const mailboxId = row.mailbox?.mailboxId || row.mailbox?.mailboxAddress || '';
+        const mailboxHtml = mailboxId
+          ? `<span class="conv-customer">${escapeHtml(mailboxId)}</span>`
+          : '';
+
+        return `<div class="conv-row${isUnread ? ' unread' : ''}">
+          <div class="conv-row-body">
+            <div class="conv-row-top">
+              <div class="conv-subject">${subject}</div>
+              ${time ? `<div class="conv-time">${escapeHtml(time)}</div>` : ''}
+            </div>
+            ${preview ? `<div class="conv-preview">${preview}</div>` : ''}
+            <div class="conv-meta">
+              <span class="conv-lane ${escapeHtml(lane)}">${escapeHtml(laneLabel)}</span>
+              ${matchHtml}
+              ${mailboxHtml}
+            </div>
+          </div>
+        </div>`;
+      }
+
+      async function loadConversations() {
+        if (!_liveMode) return;
+        const data = await apiFetch('/api/v1/cco/runtime/worklist/consumer?limit=40');
+
+        const containerNurse = document.getElementById('liveConversationListNurse');
+        const containerAdmin = document.getElementById('liveConversationListAdmin');
+        const containers = [containerNurse, containerAdmin].filter(Boolean);
+        if (!containers.length) return;
+
+        if (!data || !data.ok || !Array.isArray(data.rows)) {
+          const msg =
+            '<div class="live-note">Konversationslistan är inte tillgänglig just nu. Mailbox-ingestion kan sakna konfiguration.</div>';
+          containers.forEach((c) => {
+            c.innerHTML = msg;
+          });
+          return;
+        }
+
+        const rows = data.rows;
+        const actnow = rows.filter((r) => r.lane === 'act-now');
+        const review = rows.filter((r) => r.lane === 'review');
+        const later = rows.filter((r) => r.lane === 'later');
+        const other = rows.filter((r) => !['act-now', 'review', 'later'].includes(r.lane));
+        // state.hasUnreadInbound is the correct consumer field from buildConsumerModel
+        const unreadCount = rows.filter((r) => r.state?.hasUnreadInbound === true).length;
+
+        document.querySelectorAll('[data-live-badge="conversations"]').forEach((badge) => {
+          badge.textContent = unreadCount;
+          badge.style.display = unreadCount > 0 ? '' : 'none';
+        });
+
+        if (!rows.length) {
+          const msg = '<div class="live-note">Inga aktiva konversationer i inkorgen.</div>';
+          containers.forEach((c) => {
+            c.innerHTML = msg;
+          });
+          return;
+        }
+
+        const buildSection = (label, sectionRows) =>
+          sectionRows.length
+            ? `<div>
+                <div class="conv-section-header">${escapeHtml(label)}</div>
+                <div class="conv-list">${sectionRows.map(renderConvRow).join('')}</div>
+               </div>`
+            : '';
+
+        const html = `<div class="live-note">Read-only · ${rows.length} konversationer · ${actnow.length} agera nu · ${review.length} granskning · ${later.length} senare · ${unreadCount} olästa</div>
+          <div class="conv-sections">
+            ${buildSection('Agera nu', actnow)}
+            ${buildSection('Granskning', review)}
+            ${buildSection('Senare (parkerade)', later)}
+            ${buildSection('Övriga', other)}
+          </div>`;
+
+        containers.forEach((c) => {
+          c.innerHTML = html;
+        });
+      }
+
       async function loadDelegatedInbox() {
         if (!_liveMode) return;
         const data = await apiFetch('/api/v1/staff/delegated-inbox?limit=12');
@@ -4894,6 +5146,7 @@
             loadAudit(),
             loadDelegations(),
             loadQmsHandbook(),
+            loadConversations(),
           ]);
           applyDeepLink();
         }
@@ -4914,6 +5167,12 @@
             { id: 'mine', icon: '📋', label: 'Mina uppgifter', liveBadge: 'tasks' },
             { id: 'followups', icon: '🩺', label: 'Uppföljningar', liveBadge: 'followups' },
             { id: 'cases', icon: '👤', label: 'Mina kunder' },
+            {
+              id: 'conversations',
+              icon: '✉️',
+              label: 'Konversationer',
+              liveBadge: 'conversations',
+            },
             { section: 'Dokument' },
             { id: 'deleg', icon: '📄', label: 'Delegering' },
             { section: 'Kvalitet' },
@@ -4954,6 +5213,12 @@
             },
             { id: 'overview', icon: '🏥', label: 'Kliniköversikt' },
             { id: 'staff', icon: '👥', label: 'Personalöversikt' },
+            {
+              id: 'conversations',
+              icon: '✉️',
+              label: 'Konversationer',
+              liveBadge: 'conversations',
+            },
             { section: 'Ärenden' },
             { id: 'all-cases', icon: '📁', label: 'Alla ärenden' },
             { section: 'Dokument' },
@@ -5002,6 +5267,8 @@
         allcases: 'all-cases',
         catalog: 'catalog',
         audit: 'audit',
+        conversations: 'conversations',
+        konversationer: 'conversations',
       };
 
       const PANEL_ROLE = {
@@ -5043,6 +5310,7 @@
         catalog: '#view-admin .doc-row',
         'qms-admin': '#liveQmsHandbookAdmin',
         audit: '#liveAuditList',
+        conversations: '#liveConversationListNurse',
       };
 
       function roleFromSession(rawRole) {
@@ -5140,7 +5408,12 @@
                   doctor: '#liveNotificationInboxDoctor',
                   admin: '#liveNotificationInboxAdmin',
                 }[currentRole] || PANEL_TARGET[panel]
-              : PANEL_TARGET[panel];
+              : panel === 'conversations'
+                ? {
+                    nurse: '#liveConversationListNurse',
+                    admin: '#liveConversationListAdmin',
+                  }[currentRole] || PANEL_TARGET[panel]
+                : PANEL_TARGET[panel];
         const panelTarget = panelSelector ? document.querySelector(panelSelector) : null;
         const target = hashTarget || panelTarget;
         if (!target) return false;

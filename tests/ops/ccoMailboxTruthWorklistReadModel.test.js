@@ -14,7 +14,7 @@ test('toCanonicalMailboxConversationKey prefers mailboxConversationId with mailb
       mailboxConversationId: 'Clinic@Demo.SE:thread-42',
       conversationId: 'other',
     }),
-    'clinic@demo.se:thread-42',
+    'clinic@demo.se:thread-42'
   );
 });
 
@@ -24,7 +24,7 @@ test('toCanonicalMailboxConversationKey uses conversationId when mailboxConversa
       mailboxId: 'a@b.co',
       conversationId: 'orphan-id',
     }),
-    'a@b.co:orphan-id',
+    'a@b.co:orphan-id'
   );
 });
 
@@ -34,7 +34,7 @@ test('toCanonicalMailboxConversationKey falls back to mailboxId + graph messageI
       mailboxId: 'Box@Clinic.SE',
       messageId: 'graph-msg-7',
     }),
-    'box@clinic.se:graph:graph-msg-7',
+    'box@clinic.se:graph:graph-msg-7'
   );
 });
 
@@ -50,7 +50,7 @@ test('isOutOfScopeDraftReview true only for drafts-only queue posture', () => {
       hasUnreadInbound: false,
       needsReply: false,
     }),
-    true,
+    true
   );
   assert.equal(
     isOutOfScopeDraftReview({
@@ -58,7 +58,7 @@ test('isOutOfScopeDraftReview true only for drafts-only queue posture', () => {
       hasUnreadInbound: true,
       needsReply: false,
     }),
-    false,
+    false
   );
   assert.equal(
     isOutOfScopeDraftReview({
@@ -66,7 +66,7 @@ test('isOutOfScopeDraftReview true only for drafts-only queue posture', () => {
       hasUnreadInbound: false,
       needsReply: true,
     }),
-    false,
+    false
   );
   assert.equal(isOutOfScopeDraftReview({ hasDrafts: false }), false);
 });
@@ -148,7 +148,9 @@ test('worklist read model keeps human replies actionable even after automated re
 });
 
 test('applyIngestionLedgerProjection bumps lane to review for unmatched ingestion', () => {
-  const { applyIngestionLedgerProjection } = require('../../src/ops/ccoMailboxTruthWorklistReadModel');
+  const {
+    applyIngestionLedgerProjection,
+  } = require('../../src/ops/ccoMailboxTruthWorklistReadModel');
   const conversationKey = 'contact@hairtpclinic.com:thread-1';
   const projected = applyIngestionLedgerProjection({
     rollupRows: [
@@ -173,4 +175,67 @@ test('applyIngestionLedgerProjection bumps lane to review for unmatched ingestio
   });
   assert.equal(projected[0].lane, 'review');
   assert.equal(projected[0].ingestion.hasUnmatched, true);
+});
+
+test('buildConsumerModel row-shape: nested preview/timing/state/mailbox/customer (C1 field contract)', () => {
+  const model = createCcoMailboxTruthWorklistReadModel({
+    store: {
+      listMessages() {
+        return [
+          {
+            mailboxId: 'info@hairtpclinic.com',
+            mailboxAddress: 'info@hairtpclinic.com',
+            userPrincipalName: 'info@hairtpclinic.com',
+            mailboxConversationId: 'info@hairtpclinic.com:conv-c1',
+            conversationId: 'conv-c1',
+            graphMessageId: 'msg-c1-1',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Fråga om behandling',
+            latestPreview: 'Hej, jag undrar om FUE',
+            from: { address: 'patient@example.com', name: 'Anna Svensson' },
+            receivedAt: '2026-07-01T10:00:00.000Z',
+            customerName: 'Anna Svensson',
+            customerEmail: 'patient@example.com',
+          },
+        ];
+      },
+    },
+  });
+
+  const consumer = model.buildConsumerModel({ mailboxIds: ['info@hairtpclinic.com'] });
+  assert.equal(consumer.rows.length, 1);
+  const row = consumer.rows[0];
+
+  // preview lives at row.preview (not row.latestPreview)
+  assert.ok('preview' in row, 'row.preview must exist');
+  assert.equal(typeof row.preview, 'string');
+
+  // timing is nested
+  assert.ok(row.timing && typeof row.timing === 'object', 'row.timing must be an object');
+  assert.ok('latestMessageAt' in row.timing, 'row.timing.latestMessageAt must exist');
+  assert.ok('lastInboundAt' in row.timing, 'row.timing.lastInboundAt must exist');
+  assert.ok('lastOutboundAt' in row.timing, 'row.timing.lastOutboundAt must exist');
+
+  // state is nested
+  assert.ok(row.state && typeof row.state === 'object', 'row.state must be an object');
+  assert.ok('hasUnreadInbound' in row.state, 'row.state.hasUnreadInbound must exist');
+  assert.equal(row.state.hasUnreadInbound, true);
+
+  // mailbox is nested
+  assert.ok(row.mailbox && typeof row.mailbox === 'object', 'row.mailbox must be an object');
+  assert.ok(
+    row.mailbox.mailboxId || row.mailbox.mailboxAddress,
+    'row.mailbox.mailboxId or mailboxAddress must be set'
+  );
+
+  // customer is nested
+  assert.ok(row.customer && typeof row.customer === 'object', 'row.customer must be an object');
+  assert.ok(
+    'name' in row.customer && 'email' in row.customer,
+    'row.customer must have name and email'
+  );
+  assert.equal(row.customer.email, 'patient@example.com');
+  assert.equal(row.customer.name, 'Anna Svensson');
 });
