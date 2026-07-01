@@ -16,7 +16,7 @@ const path = require('node:path');
 const BASE = (
   process.env.BASE ||
   process.env.ARCANA_PROD_URL ||
-  'https://arcana.hairtpclinic.se'
+  'https://arcana.hairtpclinic.com'
 ).replace(/\/+$/, '');
 
 function record(name, pass, detail = '') {
@@ -83,6 +83,19 @@ async function main() {
     token = getToken();
   } catch (err) {
     fail('DIR-04 auth token', err.message);
+    const decideProbe = await fetch(
+      `${BASE}/api/v1/ops/cco/drive-import-review/assets/__probe__/decide`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision: 'reject', reason: 'probe', reviewer: 'probe' }),
+      }
+    );
+    record(
+      'DIR-04b decide route probe (no auth)',
+      decideProbe.status === 401,
+      `HTTP ${decideProbe.status} (401=write route mounted, 404=write AV)`
+    );
     console.log('\n--- Summary ---');
     console.log('Auth saknas — kör med giltig ARCANA_SMOKE_BEARER_TOKEN eller owner .env');
     process.exit(hardFail ? 1 : 0);

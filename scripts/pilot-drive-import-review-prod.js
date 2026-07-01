@@ -20,7 +20,7 @@ const path = require('node:path');
 const BASE = (
   process.env.BASE ||
   process.env.ARCANA_PROD_URL ||
-  'https://arcana.hairtpclinic.se'
+  'https://arcana.hairtpclinic.com'
 ).replace(/\/+$/, '');
 const REVIEWER = String(process.env.DRIVE_IMPORT_REVIEW_PILOT_REVIEWER || 'drive-pilot').trim();
 const EXECUTE = process.argv.includes('--execute');
