@@ -9571,22 +9571,22 @@
             }
             ${
               customerPortalUrl
-                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalPreviewUrl || customerPortalUrl)}" target="_blank" rel="noopener" data-customer-portal-preview="staff">Förhandsgranska kundportal</a>`
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalPreviewUrl || customerPortalUrl)}" target="_blank" rel="noopener" data-customer-portal-preview="staff" data-customer-portal-link-kind="staff-preview" title="Personalpreview. Skicka inte denna länk till kund.">Förhandsgranska kundportal</a>`
                 : ''
             }
             ${
               customerPortalUrl
-                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalUrl)}" target="_blank" rel="noopener" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Öppna kundportal</a>`
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalUrl)}" target="_blank" rel="noopener" data-customer-portal-link-kind="customer" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}" title="Kundens säkra portallänk.">Öppna kundportal</a>`
                 : ''
             }
             ${
               customerPortalUrl
-                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-share-gated="true" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}"${shareGateAttrs}>Kopiera portallänk</button>`
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-share-gated="true" data-customer-portal-link-kind="customer" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}"${shareGateAttrs}>Kopiera portallänk</button>`
                 : ''
             }
             ${
               customerPortalUrl
-                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-message" data-customer-portal-share-gated="true" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}"${shareGateAttrs}>Kopiera kundmeddelande</button>`
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-message" data-customer-portal-share-gated="true" data-customer-portal-link-kind="customer" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}"${shareGateAttrs}>Kopiera kundmeddelande</button>`
                 : ''
             }
             ${
