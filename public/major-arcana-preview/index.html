@@ -10643,6 +10643,58 @@ Hör av dig om du har några frågor.</textarea
                         </svg>
                       </span>
                     </button>
+
+                    <button
+                      class="note-destination note-destination--journal-draft"
+                      type="button"
+                      data-note-key="journalutkast"
+                      data-note-target="Journalutkast"
+                      aria-pressed="false"
+                    >
+                      <span
+                        class="note-destination-icon note-destination-icon-journal"
+                        aria-hidden="true"
+                        >📋</span
+                      >
+                      <span class="note-destination-copy">
+                        <strong>Journalutkast</strong>
+                        <small>Kräver bekräftelse</small>
+                      </span>
+                      <span class="note-destination-check" aria-hidden="true">
+                        <svg viewBox="0 0 16 16">
+                          <path
+                            d="m3.4 8.1 3 3L12.8 4.8"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.6"
+                          />
+                        </svg>
+                      </span>
+                    </button>
+                  </div>
+
+                  <div
+                    class="note-journal-confirm"
+                    data-note-journal-confirm
+                    hidden
+                    role="group"
+                    aria-label="Bekräftelse krävs"
+                  >
+                    <p class="note-journal-confirm__warning">
+                      ⚠️ Journalutkast sparas <strong>inte</strong> automatiskt i journalen. Du
+                      skapar ett utkast — ingen signering, inget live-skick.
+                    </p>
+                    <label class="note-journal-confirm__label">
+                      <input
+                        type="checkbox"
+                        data-note-journal-confirm-checkbox
+                        aria-required="true"
+                      />
+                      Jag förstår att detta är ett utkast som kräver separat godkännande innan det
+                      sparas i journalen.
+                    </label>
                   </div>
 
                   <div class="note-live-card">

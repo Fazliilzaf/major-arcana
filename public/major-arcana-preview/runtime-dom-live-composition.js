@@ -4439,10 +4439,22 @@
         });
       }
 
+      const noteJournalConfirmEl =
+        windowObject.document?.querySelector?.("[data-note-journal-confirm]") ?? null;
+      const noteJournalConfirmCheckbox =
+        windowObject.document?.querySelector?.("[data-note-journal-confirm-checkbox]") ?? null;
+
       destinationButtons.forEach((button) => {
         button.addEventListener("click", () => {
           syncCurrentNoteDraftFromForm();
           renderNoteDestination(button.dataset.noteKey);
+          const isJournal = button.dataset.noteKey === "journalutkast";
+          if (noteJournalConfirmEl) {
+            noteJournalConfirmEl.hidden = !isJournal;
+          }
+          if (!isJournal && noteJournalConfirmCheckbox) {
+            noteJournalConfirmCheckbox.checked = false;
+          }
         });
       });
 

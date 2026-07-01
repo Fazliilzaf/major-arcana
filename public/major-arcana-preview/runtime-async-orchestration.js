@@ -565,17 +565,37 @@
           },
         });
 
+        const isJournalDraft = activeKey === "journalutkast";
+        if (isJournalDraft) {
+          const confirmCheckbox = document.querySelector("[data-note-journal-confirm-checkbox]");
+          if (!confirmCheckbox || !confirmCheckbox.checked) {
+            setFeedback(
+              noteFeedback,
+              "error",
+              "Bekräfta att du förstår att detta är ett utkast innan du sparar."
+            );
+            state.note.saving = false;
+            setButtonBusy(noteSaveButton, false, "Spara anteckning");
+            return;
+          }
+        }
+
+        const noteBody = {
+          destinationKey: activeKey,
+          destinationLabel: targetLabel?.textContent,
+          text: draft.text,
+          tags: draft.tags,
+          priority: mapPriorityValue(draft.priority),
+          visibility: mapVisibilityValue(draft.visibility),
+          templateKey: draft.templateKey,
+        };
+        if (isJournalDraft) {
+          noteBody.journalDraftConfirmed = true;
+        }
+
         const payload = await apiRequest("/api/v1/cco-workspace/notes", {
           method: "POST",
-          body: {
-            destinationKey: activeKey,
-            destinationLabel: targetLabel?.textContent,
-            text: draft.text,
-            tags: draft.tags,
-            priority: mapPriorityValue(draft.priority),
-            visibility: mapVisibilityValue(draft.visibility),
-            templateKey: draft.templateKey,
-          },
+          body: noteBody,
         });
         state.booking.patient360 =
           payload.patient360 && typeof payload.patient360 === "object"

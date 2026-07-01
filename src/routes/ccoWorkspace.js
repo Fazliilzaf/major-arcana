@@ -68,6 +68,7 @@ const NOTE_VISIBILITY_RULES = {
   sla: ['team', 'all_operators'],
   intern: ['internal', 'team'],
   uppfoljning: ['team', 'all_operators'],
+  journalutkast: ['internal'],
 };
 
 function asArray(value) {
@@ -82,6 +83,7 @@ const NOTE_LABELS = {
   sla: 'SLA / eskalering',
   intern: 'Intern',
   uppfoljning: 'Uppföljning',
+  journalutkast: 'Journalutkast',
 };
 
 const SCHEDULE_OPTIONS = {
@@ -1175,6 +1177,14 @@ function createCcoWorkspaceRouter({
       const context = await getRequestContext(req);
       assertWorkspaceConversationContext(context);
       const destinationKey = normalizeKey(req.body?.destinationKey);
+
+      if (destinationKey === 'journalutkast' && req.body?.journalDraftConfirmed !== true) {
+        const err = new Error(
+          'Journalutkast kräver explicit bekräftelse. Skicka journalDraftConfirmed: true.'
+        );
+        err.statusCode = 400;
+        throw err;
+      }
       const destinationLabel =
         NOTE_LABELS[destinationKey] || normalizeText(req.body?.destinationLabel);
       const visibility = assertAllowedVisibility(destinationKey, req.body?.visibility);
@@ -1204,6 +1214,8 @@ function createCcoWorkspaceRouter({
         targetId: saved.noteId,
         metadata: {
           workspaceId: context.workspaceId,
+          conversationId: context.conversationId,
+          customerId: context.customerId,
           destinationKey,
           visibility,
           priority: saved.priority,

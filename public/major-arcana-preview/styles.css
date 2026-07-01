@@ -7092,6 +7092,58 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.94);
   }
 
+  .note-destination--journal-draft {
+    border-color: rgba(200, 130, 30, 0.32);
+  }
+
+  .note-destination--journal-draft.is-active {
+    background: linear-gradient(
+      180deg,
+      rgba(254, 248, 238, 0.98) 0%,
+      rgba(251, 240, 218, 0.92) 100%
+    );
+    border-color: rgba(200, 130, 30, 0.52);
+  }
+
+  .note-destination--journal-draft.is-active .note-destination-check {
+    background: #c8821e;
+    color: #fff;
+    box-shadow:
+      0 6px 12px rgba(200, 130, 30, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  .note-journal-confirm {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(200, 130, 30, 0.48);
+    background: rgba(254, 248, 238, 0.94);
+  }
+
+  .note-journal-confirm__warning {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #7a4b0a;
+    margin: 0 0 8px;
+  }
+
+  .note-journal-confirm__label {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #5c3a08;
+    cursor: pointer;
+  }
+
+  .note-journal-confirm__label input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: #c8821e;
+  }
+
   .note-live-card,
   .note-data-card,
   .note-link-card {
