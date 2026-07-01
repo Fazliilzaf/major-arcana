@@ -32,7 +32,8 @@ test('patient master offer panel renders K34 final share readiness gate', () => 
   assert.match(source, /data-customer-portal-readiness-blockers/);
   assert.match(source, /Delning låst/);
   assert.match(source, /Slutkontroll redo/);
-  assert.match(source, /Delning låst\. Saknas: \$\{shareGateBlockers\.join\(' · '\)\}/);
+  assert.match(source, /const shareGateBlockerText = shareGateBlockers\.join\(' · '\)/);
+  assert.match(source, /Delning låst\. Saknas: \$\{shareGateBlockerText\}/);
   assert.match(
     source,
     /syncCustomerPortalShareActionState\(checklist, allChecked && readinessBlockers\.length === 0\)/
