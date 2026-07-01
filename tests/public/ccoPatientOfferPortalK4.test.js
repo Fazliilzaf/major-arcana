@@ -184,3 +184,14 @@ test('customer offer portal renders K20 trust log from live context without writ
   assert.match(source, /Personal granskar fortsatt allt i CCO innan journal/);
   assert.match(source, /renderPortalTrustLog\(context\)/);
 });
+
+test('customer offer portal renders K26 staff preview banner without customer-open side effects', () => {
+  const source = readPortal();
+  assert.match(source, /data-staff-preview-banner/);
+  assert.match(source, /Personal-förhandsgranskning/);
+  assert.match(source, /Ingen kundöppning registreras/);
+  assert.match(source, /function renderStaffPreviewBanner\(contextInput\)/);
+  assert.match(source, /staffPreview === true/);
+  assert.match(source, /document\.documentElement\.dataset\.staffPreview/);
+  assert.match(source, /renderStaffPreviewBanner\(context\)/);
+});

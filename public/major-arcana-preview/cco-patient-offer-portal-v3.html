@@ -2948,6 +2948,40 @@
         border-color: rgba(255, 255, 255, 0.5);
       }
 
+      .staff-preview-banner {
+        display: none;
+        width: min(var(--max-w), calc(100vw - 2 * var(--pad-x)));
+        margin: 0.55rem auto 0;
+        padding: 0.72rem 0.85rem;
+        border-radius: var(--r-lg);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 241, 236, 0.9)),
+          radial-gradient(circle at 0% 0%, rgba(176, 53, 110, 0.16), transparent 42%);
+        border: 1px solid rgba(176, 53, 110, 0.18);
+        box-shadow: var(--sh-md);
+        color: var(--text-secondary);
+        font-size: 0.74rem;
+        line-height: 1.45;
+      }
+      html[data-staff-preview='true'] .staff-preview-banner {
+        display: grid;
+        gap: 0.18rem;
+      }
+      .staff-preview-banner strong {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--accent);
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      .staff-preview-banner span {
+        color: var(--text-secondary);
+        font-weight: 650;
+      }
+
       @media (min-width: 768px) {
         :root {
           --max-w: min(940px, calc(100vw - 3rem));
@@ -2968,6 +3002,10 @@
           top: 4.05rem;
           justify-content: center;
           padding-inline: max(var(--pad-x), calc((100vw - var(--max-w)) / 2));
+        }
+
+        .staff-preview-banner {
+          width: min(var(--max-w), calc(100vw - 3rem));
         }
 
         .page {
@@ -3077,6 +3115,7 @@
         .locked-card,
         .contact-card,
         .secure-contact-panel,
+        .staff-preview-banner,
         .section-heading,
         .photos-locked,
         .booking-card {
@@ -3116,6 +3155,14 @@
       </button>
       <div class="avatar" aria-label="Adam Karlsson">AK</div>
     </header>
+
+    <aside class="staff-preview-banner" data-staff-preview-banner hidden aria-live="polite">
+      <strong>Personal-förhandsgranskning</strong>
+      <span>
+        Detta är klinikens preview. Ingen kundöppning registreras och länken ska inte skickas till
+        kund.
+      </span>
+    </aside>
 
     <!-- Stegväljare för prototypgranskning -->
     <div class="stage-bar" role="group" aria-label="Välj steg i portalen">
@@ -5277,9 +5324,18 @@
         panel.classList.add('is-visible');
       }
 
+      function renderStaffPreviewBanner(contextInput) {
+        var banner = document.querySelector('[data-staff-preview-banner]');
+        var isStaffPreview = asObject(contextInput).staffPreview === true;
+        document.documentElement.dataset.staffPreview = isStaffPreview ? 'true' : 'false';
+        if (!banner) return;
+        banner.hidden = !isStaffPreview;
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
+        renderStaffPreviewBanner(context);
         if (hasLiveContext) {
           document.documentElement.dataset.customerOfferContext = 'live';
         }
