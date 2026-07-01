@@ -8995,6 +8995,58 @@
     `;
   }
 
+  function getCustomerPortalShareBlockers(
+    linkedOffer,
+    customerPortalUrl,
+    planEntry,
+    photos,
+    values = {}
+  ) {
+    if (!linkedOffer || !customerPortalUrl) return ['Portal/tokenlänk'];
+    const readinessMissing = buildCustomerPortalReadinessItems(
+      linkedOffer,
+      planEntry,
+      photos,
+      customerPortalUrl
+    )
+      .filter((item) => !item.ready)
+      .map((item) => item.label);
+    const checklistMissing = CUSTOMER_PORTAL_SHARE_CHECKS.filter((item) => !values[item.key]).map(
+      (item) => item.label
+    );
+    return [...readinessMissing, ...checklistMissing];
+  }
+
+  function renderCustomerPortalFinalShareReadiness(
+    linkedOffer,
+    customerPortalUrl,
+    planEntry,
+    photos,
+    values = {}
+  ) {
+    if (!linkedOffer || !customerPortalUrl) return '';
+    const blockers = getCustomerPortalShareBlockers(
+      linkedOffer,
+      customerPortalUrl,
+      planEntry,
+      photos,
+      values
+    );
+    const ready = blockers.length === 0;
+    return `
+      <div class="patient-master-final-share-readiness${ready ? ' is-ready' : ''}" data-customer-portal-final-share-readiness>
+        <span class="patient-master-status-badge${ready ? ' is-accent' : ''}">${ready ? 'Slutkontroll redo' : 'Delning låst'}</span>
+        <span class="patient-master-final-share-readiness-text" data-customer-portal-final-share-readiness-text>
+          ${
+            ready
+              ? 'Allt är granskat. Kopiera portallänk eller kundmeddelande manuellt.'
+              : `Saknas: ${escapeHtml(blockers.join(' · '))}`
+          }
+        </span>
+      </div>
+    `;
+  }
+
   function renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos) {
     if (!linkedOffer || !customerPortalUrl) return '';
     const signature = buildCustomerPortalShareChecklistSignature(
@@ -9007,8 +9059,16 @@
     const checkedCount = CUSTOMER_PORTAL_SHARE_CHECKS.filter((item) => values[item.key]).length;
     const allChecked = checkedCount === CUSTOMER_PORTAL_SHARE_CHECKS.length;
     const storageKey = customerPortalShareChecklistStorageKey(linkedOffer);
+    const readinessBlockers = buildCustomerPortalReadinessItems(
+      linkedOffer,
+      planEntry,
+      photos,
+      customerPortalUrl
+    )
+      .filter((item) => !item.ready)
+      .map((item) => item.label);
     return `
-      <div class="patient-master-offer-next-step" data-customer-portal-share-checklist data-customer-portal-share-checklist-key="${escapeHtml(storageKey)}" data-customer-portal-share-checklist-signature="${escapeHtml(signature)}">
+      <div class="patient-master-offer-next-step" data-customer-portal-share-checklist data-customer-portal-share-checklist-key="${escapeHtml(storageKey)}" data-customer-portal-share-checklist-signature="${escapeHtml(signature)}" data-customer-portal-readiness-blockers="${escapeHtml(readinessBlockers.join(' · '))}">
         <div class="patient-master-offer-meta-badges">
           <span class="patient-master-status-badge${allChecked ? ' is-accent' : ''}" data-customer-portal-share-checklist-count>Delningscheck ${checkedCount}/${CUSTOMER_PORTAL_SHARE_CHECKS.length}</span>
           <span class="patient-master-status-badge" data-customer-portal-share-checklist-status>${allChecked ? 'Klar att dela manuellt' : 'Bocka av innan du skickar'}</span>
@@ -9024,6 +9084,13 @@
           ).join('')}
         </div>
         ${renderCustomerPortalShareDecision(values)}
+        ${renderCustomerPortalFinalShareReadiness(
+          linkedOffer,
+          customerPortalUrl,
+          planEntry,
+          photos,
+          values
+        )}
       </div>
     `;
   }
@@ -9433,9 +9500,22 @@
       linkedOffer,
       customerPortalShareSignature
     );
-    const shareGateAttrs = shareChecklistComplete
-      ? ''
-      : ' disabled title="Bocka av delningschecken innan länken eller meddelandet kopieras."';
+    const shareChecklistValues = readCustomerPortalShareChecklist(
+      linkedOffer,
+      customerPortalShareSignature
+    );
+    const shareGateBlockers = getCustomerPortalShareBlockers(
+      linkedOffer,
+      customerPortalUrl,
+      planEntry,
+      photos,
+      shareChecklistValues
+    );
+    const shareGateTitle = shareGateBlockers.length
+      ? `Delning låst. Saknas: ${shareGateBlockers.join(' · ')}`
+      : '';
+    const shareReady = shareChecklistComplete && shareGateBlockers.length === 0;
+    const shareGateAttrs = shareReady ? '' : ` disabled title="${escapeHtml(shareGateTitle)}"`;
     const canSendForSign = linkedOffer && linkedOffer.quoteStatus !== 'accepted';
     const canAccept =
       linkedOffer && linkedOffer.quoteStatus === 'sent' && linkedOffer.quoteStatus !== 'accepted';
@@ -13203,9 +13283,19 @@
         }
         const checkedCount = inputs.filter((input) => input.checked).length;
         const allChecked = checkedCount === CUSTOMER_PORTAL_SHARE_CHECKS.length;
+        const readinessBlockers = normalizeText(checklist?.dataset.customerPortalReadinessBlockers)
+          .split(' · ')
+          .map((item) => item.trim())
+          .filter(Boolean);
         const countEl = checklist?.querySelector('[data-customer-portal-share-checklist-count]');
         const statusEl = checklist?.querySelector('[data-customer-portal-share-checklist-status]');
         const decisionEl = checklist?.querySelector('[data-customer-portal-share-decision]');
+        const finalReadinessEl = checklist?.querySelector(
+          '[data-customer-portal-final-share-readiness]'
+        );
+        const finalReadinessTextEl = checklist?.querySelector(
+          '[data-customer-portal-final-share-readiness-text]'
+        );
         if (countEl) {
           countEl.textContent = `Delningscheck ${checkedCount}/${CUSTOMER_PORTAL_SHARE_CHECKS.length}`;
           countEl.classList.toggle('is-accent', allChecked);
@@ -13224,7 +13314,26 @@
             ? 'Redo att dela: portallänk och kundmeddelande är upplåsta. Om offert, pris, zoner eller meddelande ändras nollställs delningschecken automatiskt.'
             : `Väntar på: ${missing.join(' · ')}. Portallänk och kundmeddelande är låsta tills allt är granskat.`;
         }
-        syncCustomerPortalShareActionState(checklist, allChecked);
+        if (finalReadinessEl) {
+          const finalReady = allChecked && readinessBlockers.length === 0;
+          finalReadinessEl.classList.toggle('is-ready', finalReady);
+          finalReadinessEl
+            .querySelector('.patient-master-status-badge')
+            ?.classList.toggle('is-accent', finalReady);
+          const badge = finalReadinessEl.querySelector('.patient-master-status-badge');
+          if (badge) badge.textContent = finalReady ? 'Slutkontroll redo' : 'Delning låst';
+        }
+        if (finalReadinessTextEl) {
+          const checklistMissing = CUSTOMER_PORTAL_SHARE_CHECKS.filter(
+            (item) => !values[item.key]
+          ).map((item) => item.label);
+          const missing = [...readinessBlockers, ...checklistMissing];
+          finalReadinessTextEl.textContent =
+            missing.length === 0
+              ? 'Allt är granskat. Kopiera portallänk eller kundmeddelande manuellt.'
+              : `Saknas: ${missing.join(' · ')}`;
+        }
+        syncCustomerPortalShareActionState(checklist, allChecked && readinessBlockers.length === 0);
         setStatus(
           allChecked
             ? 'Delningscheck klar. Granska en sista gång innan du skickar.'

@@ -27,7 +27,14 @@ test('patient master offer panel gates K31 share copy actions until checklist is
     source,
     /const shareChecklistComplete = isCustomerPortalShareChecklistComplete\(\s*linkedOffer,\s*customerPortalShareSignature\s*\)/
   );
-  assert.match(source, /const shareGateAttrs = shareChecklistComplete/);
+  assert.match(
+    source,
+    /const shareReady = shareChecklistComplete && shareGateBlockers\.length === 0/
+  );
+  assert.match(source, /const shareGateAttrs = shareReady/);
   assert.match(source, /Bocka av delningschecken innan länken eller meddelandet kopieras/);
-  assert.match(source, /syncCustomerPortalShareActionState\(checklist, allChecked\)/);
+  assert.match(
+    source,
+    /syncCustomerPortalShareActionState\(checklist, allChecked && readinessBlockers\.length === 0\)/
+  );
 });

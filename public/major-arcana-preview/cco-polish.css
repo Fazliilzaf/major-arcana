@@ -5254,6 +5254,33 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   color: #2e5a47;
 }
 
+.patient-master-final-share-readiness {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+  padding: 0.5rem 0.55rem;
+  border-radius: 0.65rem;
+  background: rgba(255, 247, 237, 0.72);
+  border: 1px solid rgba(211, 141, 66, 0.24);
+}
+
+.patient-master-final-share-readiness.is-ready {
+  background: rgba(74, 130, 104, 0.1);
+  border-color: rgba(74, 130, 104, 0.22);
+}
+
+.patient-master-final-share-readiness-text {
+  color: #5c5348;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.patient-master-final-share-readiness.is-ready .patient-master-final-share-readiness-text {
+  color: #2e5a47;
+}
+
 .patient-master-plan-photo-actions .customers-utility-button[disabled],
 .patient-master-plan-photo-actions .customers-utility-button.is-disabled {
   opacity: 0.55;
