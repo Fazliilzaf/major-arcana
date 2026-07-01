@@ -2425,3 +2425,23 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* ===== C3 · Deep-link fallback ===== */
+/* Visas i konversationsvyn när ?conv= sattes men tråden inte kunde hittas. */
+.c3-thread-not-found-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fef3cd;
+  border-left: 3px solid #c8821e;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #5a3e00;
+  margin: 8px 12px 0;
+}
+.c3-thread-not-found-banner::before {
+  content: "⚠";
+  font-size: 14px;
+  flex-shrink: 0;
+}
