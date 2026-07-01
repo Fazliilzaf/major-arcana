@@ -72,3 +72,13 @@ test('customer offer portal wires K9 token-protected document downloads', () => 
   assert.match(source, /Ladda ner offert-PDF/);
   assert.match(source, /Öppna offertunderlag/);
 });
+
+test('customer offer portal renders K10 live evidence file list', () => {
+  const source = readPortal();
+  assert.match(source, /data-portal-files-panel/);
+  assert.match(source, /data-portal-files-list/);
+  assert.match(source, /function renderPortalFiles\(filesInput\)/);
+  assert.match(source, /portal-file-link/);
+  assert.match(source, /Mina underlag/);
+  assert.match(source, /renderPortalFiles\(context\.portalFiles\)/);
+});
