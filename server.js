@@ -13303,6 +13303,7 @@ process.once('SIGTERM', () => {
       config,
       requireAuth: auth.requireAuth,
       journalStore: ccoJournalStore,
+      mailboxTruthStore: ccoMailboxTruthStore,
       mailIngestionStore: ccoMailIngestionStore,
       commDraftStore: app.locals?.ccoCommDraftStore || null,
       sendActionStore: ccoSendActionStore,

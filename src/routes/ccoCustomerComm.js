@@ -14,6 +14,7 @@ function createCcoCustomerCommRouter({
   config,
   requireAuth,
   journalStore = null,
+  mailboxTruthStore = null,
   mailIngestionStore = null,
   commDraftStore = null,
   sendActionStore = null,
@@ -52,6 +53,7 @@ function createCcoCustomerCommRouter({
     if (!threadStorePromise) {
       threadStorePromise = createCcoConversationThreadStore({
         filePath: threadStorePath(),
+        mailboxTruthStore,
         mailIngestionStore,
         commDraftStore,
         sendActionsList: sendActionStore?.listSends
