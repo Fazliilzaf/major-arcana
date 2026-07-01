@@ -4439,10 +4439,10 @@
         });
       }
 
-      const noteJournalConfirmEl = documentObject.querySelector("[data-note-journal-confirm]");
-      const noteJournalConfirmCheckbox = documentObject.querySelector(
-        "[data-note-journal-confirm-checkbox]"
-      );
+      const noteJournalConfirmEl =
+        windowObject.document?.querySelector?.("[data-note-journal-confirm]") ?? null;
+      const noteJournalConfirmCheckbox =
+        windowObject.document?.querySelector?.("[data-note-journal-confirm-checkbox]") ?? null;
 
       destinationButtons.forEach((button) => {
         button.addEventListener("click", () => {
