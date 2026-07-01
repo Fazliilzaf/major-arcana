@@ -8708,6 +8708,11 @@
     return `/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(linkedOffer.esignToken)}`;
   }
 
+  function buildCustomerPortalPreviewUrlFromOffer(linkedOffer) {
+    if (!linkedOffer?.esignToken) return '';
+    return `/api/v1/cco-commercial/customer-offer-portal/preview?token=${encodeURIComponent(linkedOffer.esignToken)}`;
+  }
+
   function getCustomerPortalUrl(linkedOffer) {
     const deterministicUrl = buildCustomerPortalUrlFromOffer(linkedOffer);
     const runtimeUrl = String(runtime.customerPortalUrl || '').trim();
@@ -8866,6 +8871,23 @@
           <span class="patient-master-status-badge${nextAction.tone ? ` ${nextAction.tone}` : ''}">${escapeHtml(nextAction.label)}</span>
           <span class="patient-master-status-badge">${escapeHtml(nextAction.detail)}</span>
         </div>
+      </div>
+    `;
+  }
+
+  function renderCustomerPortalSharePreview(customerPortalUrl) {
+    if (!customerPortalUrl) return '';
+    const messageHtml = escapeHtml(
+      buildCustomerPortalShareMessage(customerPortalUrl, runtime.detail?.card)
+    ).replace(/\n/g, '<br>');
+    return `
+      <div class="patient-master-offer-next-step" data-customer-portal-share-preview>
+        <div class="patient-master-offer-meta-badges">
+          <span class="patient-master-status-badge is-accent">Kundmeddelande</span>
+          <span class="patient-master-status-badge">Förhandsgranska innan kopiering</span>
+        </div>
+        <p class="patient-master-muted">Detta skickas inte automatiskt. Personal granskar texten och kopierar den manuellt.</p>
+        <p class="patient-master-muted" data-customer-portal-share-preview-text>${messageHtml}</p>
       </div>
     `;
   }
@@ -9263,6 +9285,7 @@
         ? `/api/v1/cco-commercial/offer-document.doc?patientId=${encodeURIComponent(runtime.selectedPatientId)}&documentId=${encodeURIComponent(linkedOffer.offerDocumentId)}`
         : runtime.offerDocumentWordUrl || '';
     const customerPortalUrl = getCustomerPortalUrl(linkedOffer);
+    const customerPortalPreviewUrl = buildCustomerPortalPreviewUrlFromOffer(linkedOffer);
     const customerPortalLinkSource = getCustomerPortalLinkSource(linkedOffer, customerPortalUrl);
     const canSendForSign = linkedOffer && linkedOffer.quoteStatus !== 'accepted';
     const canAccept =
@@ -9288,6 +9311,7 @@
           ${renderOfferStatusMeta(linkedOffer)}
           ${renderOfferNextStep(linkedOffer, customerPortalUrl, customerPortalLinkSource)}
           ${renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl)}
+          ${renderCustomerPortalSharePreview(customerPortalUrl)}
           ${renderOfferPortalActivity(linkedOffer)}
           ${renderOfferFollowupSignal(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
@@ -9317,12 +9341,22 @@
             }
             ${
               customerPortalUrl
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalPreviewUrl || customerPortalUrl)}" target="_blank" rel="noopener" data-customer-portal-preview="staff">Förhandsgranska kundportal</a>`
+                : ''
+            }
+            ${
+              customerPortalUrl
                 ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalUrl)}" target="_blank" rel="noopener" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Öppna kundportal</a>`
                 : ''
             }
             ${
               customerPortalUrl
                 ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Kopiera portallänk</button>`
+                : ''
+            }
+            ${
+              customerPortalUrl
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-message" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Kopiera kundmeddelande</button>`
                 : ''
             }
             ${
@@ -11851,6 +11885,47 @@
     }
   }
 
+  function getCustomerPortalGreetingName(card) {
+    const displayName = displayNameForList(card);
+    if (!displayName || displayName === 'Namn saknas') return '';
+    return displayName.split(/\s+/).filter(Boolean)[0] || '';
+  }
+
+  function buildCustomerPortalShareMessage(url, card = runtime.detail?.card) {
+    const absoluteUrl = new URL(url, window.location.origin).toString();
+    const greetingName = getCustomerPortalGreetingName(card);
+    return [
+      greetingName ? `Hej ${greetingName},` : 'Hej,',
+      '',
+      'Din personliga kundportal är nu redo. Där kan du läsa din offert, se behandlingsplanen och gå vidare med signering när betänketiden är uppfylld.',
+      '',
+      absoluteUrl,
+      '',
+      'Vänliga hälsningar,',
+      'Hair TP Clinic',
+    ].join('\n');
+  }
+
+  async function copyCustomerPortalShareMessage(url) {
+    const rawUrl = normalizeText(url);
+    if (!rawUrl) {
+      setStatus('Ingen kundportallänk att kopiera.', 'error');
+      return;
+    }
+    const message = buildCustomerPortalShareMessage(rawUrl, runtime.detail?.card);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(message);
+      } else {
+        window.prompt('Kopiera kundmeddelandet:', message);
+        return;
+      }
+      setStatus('Kundmeddelande kopierat. Granska innan du skickar.', 'success');
+    } catch {
+      setStatus('Kunde inte kopiera kundmeddelandet.', 'error');
+    }
+  }
+
   function closePatientQrOverlay() {
     document.querySelector('.patient-master-qr-overlay')?.remove();
   }
@@ -12867,6 +12942,8 @@
           void acceptOffer(actionButton.dataset.patientForceOffer === '1');
         } else if (actionButton.dataset.patientAction === 'copy-customer-portal-link') {
           void copyCustomerPortalLink(actionButton.dataset.customerPortalUrl);
+        } else if (actionButton.dataset.patientAction === 'copy-customer-portal-message') {
+          void copyCustomerPortalShareMessage(actionButton.dataset.customerPortalUrl);
         } else if (actionButton.dataset.patientAction === 'send-patient-info') {
           void sendPatientInfo();
         } else if (actionButton.dataset.patientAction === 'create-agreement-from-offer') {
