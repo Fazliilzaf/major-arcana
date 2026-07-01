@@ -5259,6 +5259,7 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0;
   margin-top: 0.45rem;
   padding: 0.5rem 0.55rem;
   border-radius: 0.65rem;
@@ -5272,9 +5273,13 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
 }
 
 .patient-master-final-share-readiness-text {
+  flex: 1 1 14rem;
+  min-width: 0;
   color: #5c5348;
   font-size: 0.78rem;
   font-weight: 650;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .patient-master-final-share-readiness.is-ready .patient-master-final-share-readiness-text {
@@ -5778,6 +5783,16 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .patient-master-final-share-readiness {
+    align-items: flex-start;
+  }
+
+  .patient-master-final-share-readiness .patient-master-status-badge {
+    flex: 0 0 auto;
   }
 }
 
