@@ -8748,8 +8748,8 @@
     return 'Kundaktivitet';
   }
 
-  function renderOfferPortalActivity(linkedOffer) {
-    if (!linkedOffer) return '';
+  function getOfferPortalActivitySummary(linkedOffer) {
+    if (!linkedOffer) return null;
     const quoteOpens = asArray(linkedOffer.quoteOpens);
     const eventOpens = asArray(linkedOffer.events)
       .filter((event) => normalizeText(event?.type) === 'offer_opened')
@@ -8775,11 +8775,59 @@
       ? `${latestLabel} · ${formatV9ListDateTime(latestTime)}`
       : 'Ingen kundöppning registrerad ännu';
 
+    return {
+      openCount,
+      latestLabel,
+      latestTime,
+      countLabel,
+      detail,
+    };
+  }
+
+  function renderOfferPortalActivity(linkedOffer) {
+    const activity = getOfferPortalActivitySummary(linkedOffer);
+    if (!activity) return '';
+
     return `
       <div class="patient-master-offer-activity" aria-label="Kundportalaktivitet">
         <span class="patient-master-status-badge is-accent">Kundportalaktivitet</span>
-        <span class="patient-master-status-badge">${escapeHtml(countLabel)}</span>
-        <span class="patient-master-status-badge">${escapeHtml(detail)}</span>
+        <span class="patient-master-status-badge">${escapeHtml(activity.countLabel)}</span>
+        <span class="patient-master-status-badge">${escapeHtml(activity.detail)}</span>
+      </div>
+    `;
+  }
+
+  function renderOfferFollowupSignal(linkedOffer) {
+    if (!linkedOffer) return '';
+    const quoteStatus = linkedOffer.quoteStatus || 'draft';
+    const esignStatus = linkedOffer.esignStatus || 'draft';
+    const signedAt = linkedOffer.quoteAcceptedAt || linkedOffer.customerAcceptedAt;
+    if (quoteStatus === 'accepted' || esignStatus === 'accepted' || signedAt) return '';
+    if (quoteStatus !== 'sent') return '';
+
+    const activity = getOfferPortalActivitySummary(linkedOffer);
+    const coolingActive =
+      linkedOffer.coolingOffEndsAt && Date.parse(linkedOffer.coolingOffEndsAt) > Date.now();
+    let label = 'Väntar på kund';
+    let message = 'Kunden har inte öppnat portalen ännu. Avvakta eller följ upp försiktigt.';
+    let tone = '';
+
+    if (activity?.openCount > 0 && coolingActive) {
+      label = 'Läst under betänketid';
+      message = `Kunden har öppnat underlag. Följ upp efter betänketiden ${String(
+        linkedOffer.coolingOffEndsAt
+      ).slice(0, 10)}.`;
+      tone = 'is-waiting';
+    } else if (activity?.openCount > 0) {
+      label = 'Följ upp nu';
+      message = 'Kunden har öppnat underlag men inte signerat. Prioritera en mjuk uppföljning.';
+      tone = 'is-action';
+    }
+
+    return `
+      <div class="patient-master-offer-followup ${tone}" aria-label="Offertuppföljning">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(message)}</strong>
       </div>
     `;
   }
@@ -9110,6 +9158,7 @@
           ${renderOfferStatusMeta(linkedOffer)}
           ${renderOfferNextStep(linkedOffer, customerPortalUrl)}
           ${renderOfferPortalActivity(linkedOffer)}
+          ${renderOfferFollowupSignal(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
           <div class="patient-master-plan-photo-actions">
             <button type="button" class="customers-utility-button" data-patient-action="create-offer-from-plan" data-patient-entry-id="${escapeHtml(planEntry.entryId)}">
