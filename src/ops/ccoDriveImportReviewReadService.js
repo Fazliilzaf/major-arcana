@@ -221,6 +221,21 @@ function isDriveNeedsReviewAsset(asset) {
   );
 }
 
+function isLegacyDriveDuplicateAsset(asset) {
+  if (!asset || normalizeText(asset.sourceSystem) !== 'drive_import') return false;
+  if (asset.status === 'DUPLICATE') return false;
+  if (asset.status !== 'REJECTED') return false;
+  const info = asset.technicalInfo || {};
+  return info.markedDuplicate === true || normalizeText(asset.reviewReason) === 'marked_duplicate';
+}
+
+function countLegacyDriveDuplicates(dataRoot) {
+  const assetsPath = resolveAssetsPath(dataRoot);
+  if (!fs.existsSync(assetsPath)) return 0;
+  const raw = JSON.parse(fs.readFileSync(assetsPath, 'utf8'));
+  return Object.values(raw.items || {}).filter(isLegacyDriveDuplicateAsset).length;
+}
+
 function buildCustomerCardHref(patientId) {
   const pid = normalizeText(patientId);
   if (!pid) return null;
@@ -351,6 +366,7 @@ function loadSummary(dataRoot, { writeEnabled = false } = {}) {
     writeEnabled,
     readOnly: !writeEnabled,
     totalNeedsReview: idx.total,
+    legacyRejectedDuplicates: countLegacyDriveDuplicates(dataRoot),
     assetsPath: idx.assetsPath,
     loadedAt: idx.loadedAt,
     facets: idx.facets,
@@ -418,4 +434,6 @@ module.exports = {
   listQueue,
   invalidateDriveImportReviewCache,
   isDriveNeedsReviewAsset,
+  isLegacyDriveDuplicateAsset,
+  countLegacyDriveDuplicates,
 };

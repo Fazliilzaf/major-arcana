@@ -16,32 +16,32 @@
 
 ## 1. Fields
 
-| # | Field | Type | Required | Beskrivning | Valid värden |
-|--:|---|---|:-:|---|---|
-| 1 | `id` | string (UUID v4) | Y | Stable asset-id (primary key) | UUID |
-| 2 | `patientId` | string | Y (vid `addAsset`) | Patient detta asset tillhör. Får vara `'unknown'` vid `LINK_ONLY_BLOCKER`/`NEEDS_REVIEW`. Krävs för `VISIBLE_ON_PATIENT_CARD`. | tenant-scoped patient-id |
-| 3 | `encounterId` | string \| null | N | Encounter/journal-entry-id om kopplad | tenant-scoped encounter-id |
-| 4 | `sourceSystem` | enum | Y (vid `addAsset`) | Källsystem | `drive`, `meridiq`, `old_cco`, `cco_camera`, `upload` |
-| 5 | `sourceRecordId` | string \| null | N | ID i källsystem (file-id, drive-id, m.m.) | fritt |
-| 6 | `originalDriveFileId` | string \| null | N | **Provenance** — Drive file-id om kommit från Drive | fritt |
-| 7 | `originalDrivePath` | string \| null | N | **Provenance** — Drive-folder-path | fritt |
-| 8 | `originalFileName` | string \| null | N | Originalfilnamn | fritt |
-| 9 | `storageProvider` | enum \| null | Y (för verified+) | Var binären ligger | `s3`, `local`, `encrypted-fs` |
-| 10 | `storageKey` | string \| null | Y (för VISIBLE) | Nyckel i secure storage | fritt |
-| 11 | `thumbnailKey` | string \| null | N | Thumbnail-nyckel om genererad | fritt |
-| 12 | `checksum` | string \| null | Y (för VISIBLE) | SHA-256 av binärinnehåll, prefix `sha256:` | `sha256:<hex>` |
-| 13 | `fileSize` | number (bytes) | Y (för VISIBLE) | Filstorlek i bytes (>0) | int >= 0 |
-| 14 | `mimeType` | string \| null | Y (för VISIBLE) | MIME-typ | t.ex. `application/pdf`, `image/jpeg` |
-| 15 | `category` | enum \| null | Y (vid `addAsset`) | Asset-kategori | `journal`, `photo_before`, `photo_during`, `photo_after`, `consent`, `agreement`, `form`, `aisia_report`, `other` |
-| 16 | `documentDate` | string (ISO date) \| null | N | Datum på dokument | `YYYY-MM-DD` |
-| 17 | `importedAt` | string (ISO datetime) | Y (auto) | När asset hamnade i store | ISO 8601 |
-| 18 | `importedBy` | string \| null | N | user-id eller `'system'` | fritt |
-| 19 | `importRunId` | string \| null | N | FK till `cco-asset-import-runs.id` | UUID |
-| 20 | `confidence` | enum \| null | N | Patient-link-confidence | `high`, `medium`, `low` |
-| 21 | `status` | enum | Y (auto) | State-machine-status (se §2) | se §2 |
-| 22 | `auditRequired` | boolean | N | Markeras om audit-review krävs | true/false |
-| 23 | `isJournalRelevant` | boolean | N | Räknas in i journal-coverage | true/false |
-| 24 | `isPatientVisible` | boolean | N | Om patienten själv kan se den i sin portal | true/false |
+|   # | Field                 | Type                      |      Required      | Beskrivning                                                                                                                    | Valid värden                                                                                                      |
+| --: | --------------------- | ------------------------- | :----------------: | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+|   1 | `id`                  | string (UUID v4)          |         Y          | Stable asset-id (primary key)                                                                                                  | UUID                                                                                                              |
+|   2 | `patientId`           | string                    | Y (vid `addAsset`) | Patient detta asset tillhör. Får vara `'unknown'` vid `LINK_ONLY_BLOCKER`/`NEEDS_REVIEW`. Krävs för `VISIBLE_ON_PATIENT_CARD`. | tenant-scoped patient-id                                                                                          |
+|   3 | `encounterId`         | string \| null            |         N          | Encounter/journal-entry-id om kopplad                                                                                          | tenant-scoped encounter-id                                                                                        |
+|   4 | `sourceSystem`        | enum                      | Y (vid `addAsset`) | Källsystem                                                                                                                     | `drive`, `meridiq`, `old_cco`, `cco_camera`, `upload`                                                             |
+|   5 | `sourceRecordId`      | string \| null            |         N          | ID i källsystem (file-id, drive-id, m.m.)                                                                                      | fritt                                                                                                             |
+|   6 | `originalDriveFileId` | string \| null            |         N          | **Provenance** — Drive file-id om kommit från Drive                                                                            | fritt                                                                                                             |
+|   7 | `originalDrivePath`   | string \| null            |         N          | **Provenance** — Drive-folder-path                                                                                             | fritt                                                                                                             |
+|   8 | `originalFileName`    | string \| null            |         N          | Originalfilnamn                                                                                                                | fritt                                                                                                             |
+|   9 | `storageProvider`     | enum \| null              | Y (för verified+)  | Var binären ligger                                                                                                             | `s3`, `local`, `encrypted-fs`                                                                                     |
+|  10 | `storageKey`          | string \| null            |  Y (för VISIBLE)   | Nyckel i secure storage                                                                                                        | fritt                                                                                                             |
+|  11 | `thumbnailKey`        | string \| null            |         N          | Thumbnail-nyckel om genererad                                                                                                  | fritt                                                                                                             |
+|  12 | `checksum`            | string \| null            |  Y (för VISIBLE)   | SHA-256 av binärinnehåll, prefix `sha256:`                                                                                     | `sha256:<hex>`                                                                                                    |
+|  13 | `fileSize`            | number (bytes)            |  Y (för VISIBLE)   | Filstorlek i bytes (>0)                                                                                                        | int >= 0                                                                                                          |
+|  14 | `mimeType`            | string \| null            |  Y (för VISIBLE)   | MIME-typ                                                                                                                       | t.ex. `application/pdf`, `image/jpeg`                                                                             |
+|  15 | `category`            | enum \| null              | Y (vid `addAsset`) | Asset-kategori                                                                                                                 | `journal`, `photo_before`, `photo_during`, `photo_after`, `consent`, `agreement`, `form`, `aisia_report`, `other` |
+|  16 | `documentDate`        | string (ISO date) \| null |         N          | Datum på dokument                                                                                                              | `YYYY-MM-DD`                                                                                                      |
+|  17 | `importedAt`          | string (ISO datetime)     |      Y (auto)      | När asset hamnade i store                                                                                                      | ISO 8601                                                                                                          |
+|  18 | `importedBy`          | string \| null            |         N          | user-id eller `'system'`                                                                                                       | fritt                                                                                                             |
+|  19 | `importRunId`         | string \| null            |         N          | FK till `cco-asset-import-runs.id`                                                                                             | UUID                                                                                                              |
+|  20 | `confidence`          | enum \| null              |         N          | Patient-link-confidence                                                                                                        | `high`, `medium`, `low`                                                                                           |
+|  21 | `status`              | enum                      |      Y (auto)      | State-machine-status (se §2)                                                                                                   | se §2                                                                                                             |
+|  22 | `auditRequired`       | boolean                   |         N          | Markeras om audit-review krävs                                                                                                 | true/false                                                                                                        |
+|  23 | `isJournalRelevant`   | boolean                   |         N          | Räknas in i journal-coverage                                                                                                   | true/false                                                                                                        |
+|  24 | `isPatientVisible`    | boolean                   |         N          | Om patienten själv kan se den i sin portal                                                                                     | true/false                                                                                                        |
 
 > **PII-policy:** Inga patientnamn / personnummer / email / telefon i något fält
 > eller i audit-payload. Bara IDs och enum-värden. `originalFileName` kan
@@ -86,29 +86,30 @@
 
 ### Allowed transitions
 
-| From | To | Notering |
-|---|---|---|
-| `DISCOVERED` | `IMPORTING` | Start av download |
-| `DISCOVERED` | `NEEDS_REVIEW` | Osäker classification eller patient-match vid discover |
-| `DISCOVERED` | `DUPLICATE` | Checksum-match med befintligt asset |
-| `DISCOVERED` | `FAILED_IMPORT` | Discover-fel |
-| `DISCOVERED` | `LINK_ONLY_BLOCKER` | Ingen binär tillgänglig från källa — **P0-blocker** |
-| `IMPORTING` | `IMPORTED_TO_CCO` | Binär kopierad + checksum lagrad |
-| `IMPORTING` | `FAILED_IMPORT` | Copy- eller checksum-fel |
-| `IMPORTED_TO_CCO` | `VERIFIED_IN_CCO` | Re-read + checksum-jämförelse OK |
-| `IMPORTED_TO_CCO` | `FAILED_IMPORT` | Verify-fel |
-| `VERIFIED_IN_CCO` | `VISIBLE_ON_PATIENT_CARD` | UI-render-verifiering OK + alla VISIBLE-guard-fält finns (se §3) |
-| `VERIFIED_IN_CCO` | `NEEDS_REVIEW` | Senare upptäckt anomali |
-| `VISIBLE_ON_PATIENT_CARD` | `NEEDS_REVIEW` | Återkalla synlighet vid anomali |
-| `VISIBLE_ON_PATIENT_CARD` | `REJECTED` | Soft-delete från patient-card |
-| `NEEDS_REVIEW` | `VERIFIED_IN_CCO` | Staff approve via review-queue |
-| `NEEDS_REVIEW` | `REJECTED` | Staff reject |
-| `DUPLICATE` | `REJECTED` | Soft-delete av dubblettposten |
-| `REJECTED` | — | **Terminal** (soft-delete, raderas inte fysiskt) |
-| `FAILED_IMPORT` | `DISCOVERED` | Retry |
-| `FAILED_IMPORT` | `IMPORTING` | Retry direkt till import |
-| `LINK_ONLY_BLOCKER` | `DISCOVERED` | Unblock — binär nu tillgänglig |
-| `LINK_ONLY_BLOCKER` | `IMPORTING` | Unblock + retry direkt |
+| From                      | To                        | Notering                                                         |
+| ------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| `DISCOVERED`              | `IMPORTING`               | Start av download                                                |
+| `DISCOVERED`              | `NEEDS_REVIEW`            | Osäker classification eller patient-match vid discover           |
+| `DISCOVERED`              | `DUPLICATE`               | Checksum-match med befintligt asset                              |
+| `DISCOVERED`              | `FAILED_IMPORT`           | Discover-fel                                                     |
+| `DISCOVERED`              | `LINK_ONLY_BLOCKER`       | Ingen binär tillgänglig från källa — **P0-blocker**              |
+| `IMPORTING`               | `IMPORTED_TO_CCO`         | Binär kopierad + checksum lagrad                                 |
+| `IMPORTING`               | `FAILED_IMPORT`           | Copy- eller checksum-fel                                         |
+| `IMPORTED_TO_CCO`         | `VERIFIED_IN_CCO`         | Re-read + checksum-jämförelse OK                                 |
+| `IMPORTED_TO_CCO`         | `FAILED_IMPORT`           | Verify-fel                                                       |
+| `VERIFIED_IN_CCO`         | `VISIBLE_ON_PATIENT_CARD` | UI-render-verifiering OK + alla VISIBLE-guard-fält finns (se §3) |
+| `VERIFIED_IN_CCO`         | `NEEDS_REVIEW`            | Senare upptäckt anomali                                          |
+| `VISIBLE_ON_PATIENT_CARD` | `NEEDS_REVIEW`            | Återkalla synlighet vid anomali                                  |
+| `VISIBLE_ON_PATIENT_CARD` | `REJECTED`                | Soft-delete från patient-card                                    |
+| `NEEDS_REVIEW`            | `VERIFIED_IN_CCO`         | Staff approve via review-queue                                   |
+| `NEEDS_REVIEW`            | `REJECTED`                | Staff reject                                                     |
+| `NEEDS_REVIEW`            | `DUPLICATE`               | Staff markera dubblett (drive/photo review)                      |
+| `DUPLICATE`               | `REJECTED`                | Soft-delete av dubblettposten                                    |
+| `REJECTED`                | —                         | **Terminal** (soft-delete, raderas inte fysiskt)                 |
+| `FAILED_IMPORT`           | `DISCOVERED`              | Retry                                                            |
+| `FAILED_IMPORT`           | `IMPORTING`               | Retry direkt till import                                         |
+| `LINK_ONLY_BLOCKER`       | `DISCOVERED`              | Unblock — binär nu tillgänglig                                   |
+| `LINK_ONLY_BLOCKER`       | `IMPORTING`               | Unblock + retry direkt                                           |
 
 > Övergångar utöver dessa är **förbjudna** och kastas av
 > `transitionStatus()`.
@@ -151,10 +152,10 @@ Operatören löser blockern genom att:
 
 ## 5. Soft-delete vs hard-delete
 
-| Operation | Slutstatus | Tillåten för |
-|---|---|---|
-| `softDeleteAsset(id, { reason, actor, target })` | `REJECTED` (default), `DUPLICATE` eller `NEEDS_REVIEW` | All clinical journalrelevant data — **default** |
-| `hardDeleteAsset(id, { technicalReason, actor })` | (raden raderas) | **Endast** icke-kliniskt-verifierade tekniska fel + audit |
+| Operation                                         | Slutstatus                                             | Tillåten för                                              |
+| ------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------- |
+| `softDeleteAsset(id, { reason, actor, target })`  | `REJECTED` (default), `DUPLICATE` eller `NEEDS_REVIEW` | All clinical journalrelevant data — **default**           |
+| `hardDeleteAsset(id, { technicalReason, actor })` | (raden raderas)                                        | **Endast** icke-kliniskt-verifierade tekniska fel + audit |
 
 **Hard-delete-guard:** `hardDeleteAsset()` kastar om
 `isJournalRelevant === true` och `status in { VERIFIED_IN_CCO,
@@ -209,13 +210,13 @@ Fler exempel: `examples/cco-patient-assets.example.json`.
 Alla nedan emittas via `ccoAuditLog`. **Detail-payload innehåller bara
 IDs och enums — aldrig PII**.
 
-| Event | Trigger |
-|---|---|
-| `asset.imported` | `addAsset()` lyckas |
-| `asset.status_changed` | `transitionStatus()` lyckas |
-| `asset.link_only_blocker_flagged` | `markAsLinkOnlyBlocker()` |
-| `asset.linked_to_patient` | `markAsVisibleOnPatientCard()` eller `linkAssetToPatient()` |
-| `asset.linked_to_encounter` | `linkAssetToEncounter()` |
-| `asset.checksum_verified` | `recordChecksumVerified()` |
-| `asset.read` | `listAssetsForPatient/Encounter()` |
-| `asset.hard_deleted` | `hardDeleteAsset()` |
+| Event                             | Trigger                                                     |
+| --------------------------------- | ----------------------------------------------------------- |
+| `asset.imported`                  | `addAsset()` lyckas                                         |
+| `asset.status_changed`            | `transitionStatus()` lyckas                                 |
+| `asset.link_only_blocker_flagged` | `markAsLinkOnlyBlocker()`                                   |
+| `asset.linked_to_patient`         | `markAsVisibleOnPatientCard()` eller `linkAssetToPatient()` |
+| `asset.linked_to_encounter`       | `linkAssetToEncounter()`                                    |
+| `asset.checksum_verified`         | `recordChecksumVerified()`                                  |
+| `asset.read`                      | `listAssetsForPatient/Encounter()`                          |
+| `asset.hard_deleted`              | `hardDeleteAsset()`                                         |

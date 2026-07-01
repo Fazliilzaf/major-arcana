@@ -249,6 +249,31 @@ test('drive-import-review reject returns 200 and REJECTED status', async () => {
   });
 });
 
+test('drive-import-review mark_duplicate returns 200 and DUPLICATE status', async () => {
+  await withFixture(async (dir) => {
+    const assetPath = path.join(dir, 'data', 'cco-patient-assets.json');
+    const auditLog = createAudit();
+    const store = await createCcoPatientAssetStore({ filePath: assetPath, auditLog });
+    const app = mount({
+      projectRoot: dir,
+      requireCcoAuthenticated: passAuth,
+      writeEnabled: true,
+      auditLog,
+      assetStore: store,
+    });
+    const res = await request(app, 'POST', '/api/v1/ops/cco/drive-import-review/assets/a1/decide', {
+      decision: 'mark_duplicate',
+      reason: 'duplicate checksum elsewhere',
+      reviewer: 'route-tester',
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.decision, 'mark_duplicate');
+    assert.equal(body.asset.status, 'DUPLICATE');
+    assert.equal(store.getAsset('a1').status, 'DUPLICATE');
+  });
+});
+
 test('anonymous POST decide is rejected (401)', async () => {
   await withFixture(async (dir) => {
     const app = mount({ projectRoot: dir, requireCcoAuthenticated: denyAuth, writeEnabled: true });

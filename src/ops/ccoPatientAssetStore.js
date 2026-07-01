@@ -61,7 +61,7 @@ const STATUS_TRANSITIONS = Object.freeze({
   IMPORTED_TO_CCO: Object.freeze(['VERIFIED_IN_CCO', 'FAILED_IMPORT']),
   VERIFIED_IN_CCO: Object.freeze(['VISIBLE_ON_PATIENT_CARD', 'NEEDS_REVIEW']),
   VISIBLE_ON_PATIENT_CARD: Object.freeze(['NEEDS_REVIEW', 'REJECTED']),
-  NEEDS_REVIEW: Object.freeze(['VERIFIED_IN_CCO', 'REJECTED']),
+  NEEDS_REVIEW: Object.freeze(['VERIFIED_IN_CCO', 'REJECTED', 'DUPLICATE']),
   DUPLICATE: Object.freeze(['REJECTED', 'NEEDS_REVIEW', 'VERIFIED_IN_CCO']),
   REJECTED: Object.freeze([]), // terminal
   FAILED_IMPORT: Object.freeze(['DISCOVERED', 'IMPORTING']), // retry

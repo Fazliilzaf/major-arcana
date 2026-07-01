@@ -332,12 +332,13 @@ async function applyDriveImportReviewReject(
     );
   }
 
-  const rejected = await assetStore.transitionStatus(assetId, 'REJECTED', {
+  const targetStatus = duplicate ? 'DUPLICATE' : 'REJECTED';
+  const updated = await assetStore.transitionStatus(assetId, targetStatus, {
     actor: { ...ctx.actor, userId: validated.reviewer },
     reason: validated.reason,
   });
-  assertDriveImmutableUnchanged(immutableBefore, snapshotDriveImmutable(rejected));
-  const after = snapshotAsset(rejected);
+  assertDriveImmutableUnchanged(immutableBefore, snapshotDriveImmutable(updated));
+  const after = snapshotAsset(updated);
 
   appendDriveReviewAudit(ctx.auditLog, {
     actor: { ...ctx.actor, userId: validated.reviewer },
@@ -347,18 +348,15 @@ async function applyDriveImportReviewReject(
     decision: expectedDecision,
     extra: {
       markedDuplicate: duplicate,
-      storageKeyUnchanged: rejected.storageKey === immutableBefore.storageKey,
+      storageKeyUnchanged: updated.storageKey === immutableBefore.storageKey,
     },
   });
 
-  const canary = recordDriveCanary(
-    { rejected: 1, excluded: duplicate ? 1 : 0 },
-    {
-      projectRoot: ctx.projectRoot,
-      maxDecisions: ctx.config?.driveImportReviewCanaryMax,
-      enabled: ctx.config?.enableDriveImportReviewWrite,
-    }
-  );
+  const canary = recordDriveCanary(duplicate ? { excluded: 1 } : { rejected: 1 }, {
+    projectRoot: ctx.projectRoot,
+    maxDecisions: ctx.config?.driveImportReviewCanaryMax,
+    enabled: ctx.config?.enableDriveImportReviewWrite,
+  });
 
   invalidateDriveImportReviewCache();
   return { decision: expectedDecision, asset: after, canary };

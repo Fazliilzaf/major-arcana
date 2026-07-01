@@ -374,6 +374,17 @@ test('transitionStatus: invalid transition DISCOVERED -> VISIBLE_ON_PATIENT_CARD
   }
 });
 
+test('transitionStatus: NEEDS_REVIEW → DUPLICATE tillåten', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    const a = await buildAssetAtStatus(store, 'NEEDS_REVIEW');
+    const updated = await store.transitionStatus(a.id, 'DUPLICATE', { reason: 'duplicate' });
+    assert.equal(updated.status, 'DUPLICATE');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
 test('transitionStatus: REJECTED är terminal — alla transitions kastar', async () => {
   const { tmp, store } = await makeStore();
   try {
