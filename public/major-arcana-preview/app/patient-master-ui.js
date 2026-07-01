@@ -8885,6 +8885,7 @@
         <div class="patient-master-offer-meta-badges">
           <span class="patient-master-status-badge is-accent">Kundmeddelande</span>
           <span class="patient-master-status-badge">Förhandsgranska innan kopiering</span>
+          <span class="patient-master-status-badge" data-customer-portal-link-kind="customer">Kundlänk</span>
         </div>
         <p class="patient-master-muted">Detta skickas inte automatiskt. Personal granskar texten och kopierar den manuellt.</p>
         <p class="patient-master-muted" data-customer-portal-share-preview-text>${messageHtml}</p>
