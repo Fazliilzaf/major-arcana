@@ -8737,6 +8737,53 @@
     `;
   }
 
+  function offerPortalActivityLabel(source) {
+    const normalized = normalizeText(source);
+    if (normalized === 'customer_offer_document_pdf') return 'PDF öppnad';
+    if (normalized === 'customer_offer_document') return 'Offert öppnad';
+    if (normalized === 'customer_offer_portal') return 'Portal öppnad';
+    if (normalized === 'customer_offer_photo') return 'Bild öppnad';
+    if (normalized === 'offer_sign_page') return 'Signeringssida öppnad';
+    if (normalized === 'offer_mail_pixel') return 'E-post öppnad';
+    return 'Kundaktivitet';
+  }
+
+  function renderOfferPortalActivity(linkedOffer) {
+    if (!linkedOffer) return '';
+    const quoteOpens = asArray(linkedOffer.quoteOpens);
+    const eventOpens = asArray(linkedOffer.events)
+      .filter((event) => normalizeText(event?.type) === 'offer_opened')
+      .map((event) => ({
+        ts: event.createdAt,
+        source: event.detail,
+      }));
+    const opens = (quoteOpens.length ? quoteOpens : eventOpens)
+      .map((open) => ({
+        ts: normalizeText(open?.ts || open?.createdAt),
+        source: normalizeText(open?.source || open?.detail),
+      }))
+      .filter((open) => open.ts || open.source);
+    const openCount = Number(linkedOffer.quoteOpenCount || opens.length || 0);
+    const latestOpen = opens
+      .slice()
+      .sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))[0];
+    const latestSource = latestOpen?.source || 'customer_offer_view';
+    const latestLabel = offerPortalActivityLabel(latestSource);
+    const latestTime = latestOpen?.ts || linkedOffer.quoteOpenedAt;
+    const countLabel = openCount === 1 ? '1 öppning' : `${openCount} öppningar`;
+    const detail = latestTime
+      ? `${latestLabel} · ${formatV9ListDateTime(latestTime)}`
+      : 'Ingen kundöppning registrerad ännu';
+
+    return `
+      <div class="patient-master-offer-activity" aria-label="Kundportalaktivitet">
+        <span class="patient-master-status-badge is-accent">Kundportalaktivitet</span>
+        <span class="patient-master-status-badge">${escapeHtml(countLabel)}</span>
+        <span class="patient-master-status-badge">${escapeHtml(detail)}</span>
+      </div>
+    `;
+  }
+
   let offerWizardEntryId = '';
   let offerWizardStep = 1;
   let offerWizardPreviewHtml = '';
@@ -9062,6 +9109,7 @@
           }
           ${renderOfferStatusMeta(linkedOffer)}
           ${renderOfferNextStep(linkedOffer, customerPortalUrl)}
+          ${renderOfferPortalActivity(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
           <div class="patient-master-plan-photo-actions">
             <button type="button" class="customers-utility-button" data-patient-action="create-offer-from-plan" data-patient-entry-id="${escapeHtml(planEntry.entryId)}">

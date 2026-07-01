@@ -5233,6 +5233,33 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   color: #2e5a47;
 }
 
+.patient-master-offer-activity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(223, 212, 203, 0.45);
+}
+
+.patient-master-offer-activity .patient-master-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  background: rgba(245, 239, 230, 0.9);
+  color: #5c5348;
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.patient-master-offer-activity .patient-master-status-badge.is-accent {
+  background: rgba(215, 79, 132, 0.12);
+  color: #9a2f5c;
+}
+
 .patient-master-offer-template {
   display: flex;
   flex-direction: column;
