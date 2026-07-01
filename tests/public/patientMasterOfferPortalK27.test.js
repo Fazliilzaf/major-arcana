@@ -18,7 +18,10 @@ test('patient master offer panel exposes K27 copy-only customer portal share mes
 
   assert.match(source, /data-patient-action="copy-customer-portal-message"/);
   assert.match(source, /Kopiera kundmeddelande/);
-  assert.match(source, /function buildCustomerPortalShareMessage\(url\)/);
+  assert.match(
+    source,
+    /function buildCustomerPortalShareMessage\(url, card = runtime\.detail\?\.card\)/
+  );
   assert.match(source, /Din personliga kundportal är nu redo/);
   assert.match(source, /Granska innan du skickar/);
   assert.match(

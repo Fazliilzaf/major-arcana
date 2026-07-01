@@ -8877,10 +8877,9 @@
 
   function renderCustomerPortalSharePreview(customerPortalUrl) {
     if (!customerPortalUrl) return '';
-    const messageHtml = escapeHtml(buildCustomerPortalShareMessage(customerPortalUrl)).replace(
-      /\n/g,
-      '<br>'
-    );
+    const messageHtml = escapeHtml(
+      buildCustomerPortalShareMessage(customerPortalUrl, runtime.detail?.card)
+    ).replace(/\n/g, '<br>');
     return `
       <div class="patient-master-offer-next-step" data-customer-portal-share-preview>
         <div class="patient-master-offer-meta-badges">
@@ -11886,10 +11885,17 @@
     }
   }
 
-  function buildCustomerPortalShareMessage(url) {
+  function getCustomerPortalGreetingName(card) {
+    const displayName = displayNameForList(card);
+    if (!displayName || displayName === 'Namn saknas') return '';
+    return displayName.split(/\s+/).filter(Boolean)[0] || '';
+  }
+
+  function buildCustomerPortalShareMessage(url, card = runtime.detail?.card) {
     const absoluteUrl = new URL(url, window.location.origin).toString();
+    const greetingName = getCustomerPortalGreetingName(card);
     return [
-      'Hej,',
+      greetingName ? `Hej ${greetingName},` : 'Hej,',
       '',
       'Din personliga kundportal är nu redo. Där kan du läsa din offert, se behandlingsplanen och gå vidare med signering när betänketiden är uppfylld.',
       '',
@@ -11906,7 +11912,7 @@
       setStatus('Ingen kundportallänk att kopiera.', 'error');
       return;
     }
-    const message = buildCustomerPortalShareMessage(rawUrl);
+    const message = buildCustomerPortalShareMessage(rawUrl, runtime.detail?.card);
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(message);
