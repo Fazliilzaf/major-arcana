@@ -64,6 +64,24 @@ async function createFixture() {
       return { buffer: Buffer.from('original-photo'), mimeType: 'image/jpeg' };
     },
   };
+  const treatmentAgreementStore = {
+    async getPatientAgreement({ patientId }) {
+      if (patientId !== 'patient-1') return null;
+      return {
+        tenantId: 'tenant-a',
+        patientId: 'patient-1',
+        agreementStatus: 'bookable',
+        deliveryMode: 'distans',
+        signedAt: '2026-07-01T08:00:00.000Z',
+        customerSignedName: 'Kund',
+        consent: {
+          signed: true,
+          signedAt: '2026-07-01T08:00:00.000Z',
+          signedBy: 'Kund',
+        },
+      };
+    },
+  };
   const app = express();
   app.use(express.json({ limit: '2mb' }));
   app.use(
@@ -73,6 +91,7 @@ async function createFixture() {
       journalStore,
       journalPhotoStore,
       offerDocumentStore,
+      treatmentAgreementStore,
       authStore: {
         async addAuditEvent() {
           return true;
@@ -92,7 +111,14 @@ async function createFixture() {
       renderHtmlToPdfBuffer: async () => Buffer.from(`%PDF-1.4\n${'mock offer pdf '.repeat(80)}\n`),
     })
   );
-  return { app, tempDir, commercialStore, journalStore, journalPhotoStore };
+  return {
+    app,
+    tempDir,
+    commercialStore,
+    journalStore,
+    journalPhotoStore,
+    treatmentAgreementStore,
+  };
 }
 
 test('buildOfferDocumentHtml includes plan fields and patient name', () => {
@@ -297,6 +323,9 @@ test('offer-from-plan creates commercial case and html document', async () => {
       assert.match(portalHtml, /"kind":"offer_pdf"/);
       assert.match(portalHtml, /"kind":"consultation_photo"/);
       assert.match(portalHtml, /"portalPhotos":\[/);
+      assert.match(portalHtml, /"treatmentAgreement":\{/);
+      assert.match(portalHtml, /"phase":"bookable"/);
+      assert.match(portalHtml, /"consentSigned":true/);
       assert.match(portalHtml, /"photoId":"photo-1"/);
       assert.match(portalHtml, /"caption":"Konsultationsbild från behandlingsplanen"/);
       assert.match(portalHtml, /offer-photo\?token=/);

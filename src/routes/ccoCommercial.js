@@ -35,6 +35,7 @@ const {
   buildOfferSignPageHtml,
   getCoolingOffMeta,
 } = require('../ops/ccoOfferEsign');
+const { buildTreatmentAgreementReadout } = require('../ops/ccoTreatmentAgreementStore');
 const { renderHtmlToPdfBuffer: defaultRenderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
 const { syncPatient360FromCommercialCase } = require('../ops/ccoPatient360Bridge');
 
@@ -156,7 +157,31 @@ async function loadCustomerOfferPortalHtml() {
   return cachedCustomerOfferPortalHtml;
 }
 
-function buildCustomerOfferPortalContext(commercialCase = {}, { token = '', origin = '' } = {}) {
+async function resolveCustomerPortalTreatmentAgreement(
+  commercialCase = {},
+  treatmentAgreementStore = null
+) {
+  if (!treatmentAgreementStore?.getPatientAgreement) return null;
+  const tenantId = normalizeText(commercialCase.tenantId);
+  const patientId =
+    normalizeText(commercialCase.linkedPatientId) ||
+    normalizeText(commercialCase.customerId) ||
+    normalizeText(commercialCase.patientId);
+  if (!tenantId || !patientId) return null;
+  try {
+    const agreement = await treatmentAgreementStore.getPatientAgreement({ tenantId, patientId });
+    if (!agreement) return null;
+    return buildTreatmentAgreementReadout(agreement);
+  } catch (err) {
+    console.warn('[cco-commercial/customer-offer-portal] kunde inte läsa behandlingsavtal', err);
+    return null;
+  }
+}
+
+function buildCustomerOfferPortalContext(
+  commercialCase = {},
+  { token = '', origin = '', treatmentAgreement = null } = {}
+) {
   const quoteStatus = normalizeText(commercialCase.quoteStatus) || 'draft';
   const esignStatus = normalizeText(commercialCase.esignStatus) || 'draft';
   const coolingOff = getCoolingOffMeta(commercialCase);
@@ -239,6 +264,7 @@ function buildCustomerOfferPortalContext(commercialCase = {}, { token = '', orig
     offerDocumentPdfUrl: documentPdfUrl,
     portalFiles,
     portalPhotos,
+    treatmentAgreement,
   };
 }
 
@@ -1010,7 +1036,15 @@ function createCcoCommercialRouter({
       if (!match) return res.status(404).send('Kundportal hittades inte.');
       await recordCustomerQuoteOpen(match, 'customer_offer_portal');
       const origin = `${req.protocol}://${req.get('host')}`;
-      const html = await buildCustomerOfferPortalHtml(match, { token, origin });
+      const treatmentAgreement = await resolveCustomerPortalTreatmentAgreement(
+        match,
+        treatmentAgreementStore
+      );
+      const html = await buildCustomerOfferPortalHtml(match, {
+        token,
+        origin,
+        treatmentAgreement,
+      });
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 'private, max-age=60');
       return res.send(html);
