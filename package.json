@@ -112,6 +112,7 @@
     "verify:drive-import-review-prod": "node ./scripts/verify-drive-import-review-prod.js",
     "apply:drive-import-review-prod": "node ./scripts/apply-drive-import-review-prod.js",
     "pilot:drive-import-review-prod": "node ./scripts/pilot-drive-import-review-prod.js",
+    "pilot:drive-import-review-batch-prod": "node ./scripts/pilot-drive-import-review-batch-prod.js",
     "photo-review:batch-status": "node ./scripts/photo-review-batch-status.js",
     "import-review:batch-status": "node ./scripts/import-review-batch-status.js",
     "migration-tracks:batch-status": "node ./scripts/migration-tracks-batch-status.js",
