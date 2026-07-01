@@ -9125,6 +9125,86 @@
     `;
   }
 
+  function renderCustomerPortalLiveVerification(
+    linkedOffer,
+    customerPortalUrl,
+    planEntry,
+    photos,
+    values = {}
+  ) {
+    if (!linkedOffer || !customerPortalUrl) return '';
+    const readinessItems = buildCustomerPortalReadinessItems(
+      linkedOffer,
+      planEntry,
+      photos,
+      customerPortalUrl
+    );
+    const liveItems = [
+      {
+        key: 'portal-preview',
+        label: 'Portalpreview',
+        ready: Boolean(values['portal-reviewed']),
+        detail: values['portal-reviewed'] ? 'Granskad av personal' : 'Öppna och granska',
+      },
+      {
+        key: 'customer-link',
+        label: 'Kundlänk',
+        ready: Boolean(customerPortalUrl),
+        detail: customerPortalUrl ? 'Tokenlänk finns' : 'Saknar token',
+      },
+      ...readinessItems
+        .filter((item) => item.key !== 'portal-link')
+        .map((item) => ({
+          key: item.key,
+          label:
+            item.key === 'offer-document'
+              ? 'Offertdokument'
+              : item.key === 'grafts'
+                ? 'Hårsäckar/zoner'
+                : item.key === 'photos'
+                  ? 'Konsultationsbilder'
+                  : item.label,
+          ready: Boolean(item.ready),
+          detail: item.detail,
+        })),
+      {
+        key: 'customer-message',
+        label: 'Kundmeddelande',
+        ready: Boolean(values['message-reviewed']),
+        detail: values['message-reviewed'] ? 'Granskat' : 'Väntar på granskning',
+      },
+    ];
+    const readyCount = liveItems.filter((item) => item.ready).length;
+    const allReady = readyCount === liveItems.length;
+    const missing = liveItems.filter((item) => !item.ready).map((item) => item.label);
+    return `
+      <div class="patient-master-live-verification${allReady ? ' is-ready' : ''}" data-customer-portal-live-verification>
+        <div class="patient-master-offer-meta-badges">
+          <span class="patient-master-status-badge${allReady ? ' is-accent' : ''}" data-customer-portal-live-verification-count>Livekontroll ${readyCount}/${liveItems.length}</span>
+          <span class="patient-master-status-badge">${allReady ? 'Redo att delas' : 'Kvar innan delning'}</span>
+        </div>
+        <div class="patient-master-live-verification-items" data-customer-portal-live-verification-items>
+          ${liveItems
+            .map(
+              (item) => `
+                <span class="patient-master-status-badge patient-master-live-verification-item${item.ready ? ' is-accent is-ready' : ''}" data-customer-portal-live-verification-item="${escapeHtml(item.key)}">
+                  ${escapeHtml(item.label)} · ${escapeHtml(item.detail)}
+                </span>
+              `
+            )
+            .join('')}
+        </div>
+        <p class="patient-master-muted patient-master-live-verification-summary" data-customer-portal-live-verification-summary>
+          ${
+            allReady
+              ? 'Livekontroll klar: portal, offert, pris, zoner, bilder och meddelande är verifierade innan kunddelning.'
+              : `Livekontroll kvar: ${escapeHtml(missing.join(' · '))}.`
+          }
+        </p>
+      </div>
+    `;
+  }
+
   function offerPortalActivityLabel(source) {
     const normalized = normalizeText(source);
     if (normalized === 'customer_offer_document_pdf') return 'PDF öppnad';
@@ -9576,6 +9656,13 @@
           ${renderCustomerPortalSharePreview(customerPortalUrl)}
           ${renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos)}
           ${renderCustomerPortalFinalQaStatus(
+            linkedOffer,
+            customerPortalUrl,
+            planEntry,
+            photos,
+            shareChecklistValues
+          )}
+          ${renderCustomerPortalLiveVerification(
             linkedOffer,
             customerPortalUrl,
             planEntry,

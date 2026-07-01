@@ -5286,6 +5286,37 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   color: #2e5a47;
 }
 
+.patient-master-live-verification {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+  padding: 0.55rem;
+  border-radius: 0.75rem;
+  background:
+    radial-gradient(circle at 12% 15%, rgba(216, 69, 140, 0.08), transparent 36%),
+    rgba(250, 246, 241, 0.76);
+  border: 1px solid rgba(223, 212, 203, 0.45);
+}
+
+.patient-master-live-verification.is-ready {
+  background:
+    radial-gradient(circle at 12% 15%, rgba(74, 130, 104, 0.1), transparent 36%),
+    rgba(250, 246, 241, 0.84);
+  border-color: rgba(74, 130, 104, 0.22);
+}
+
+.patient-master-live-verification-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.patient-master-live-verification-summary {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .patient-master-plan-photo-actions .customers-utility-button[disabled],
 .patient-master-plan-photo-actions .customers-utility-button.is-disabled {
   opacity: 0.55;
