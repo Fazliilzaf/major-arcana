@@ -141,6 +141,44 @@ function buildCustomerOfferPortalPlan(commercialCase = {}) {
   };
 }
 
+function latestIsoTimestamp(...values) {
+  return (
+    values
+      .map((value) => normalizeText(value))
+      .filter(Boolean)
+      .sort((a, b) => Date.parse(b) - Date.parse(a))[0] || ''
+  );
+}
+
+function buildCustomerOfferPortalTrust(commercialCase = {}, { evidenceCount = 0 } = {}) {
+  const quoteOpens = Array.isArray(commercialCase.quoteOpens) ? commercialCase.quoteOpens : [];
+  const latestOpen = quoteOpens
+    .map((open) => normalizeText(open?.ts))
+    .filter(Boolean)
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+  const lastUpdated = latestIsoTimestamp(
+    latestOpen,
+    commercialCase.updatedAt,
+    commercialCase.quoteAcceptedAt,
+    commercialCase.quoteSentAt,
+    commercialCase.createdAt
+  );
+  const openCount = Number(commercialCase.quoteOpenCount || quoteOpens.length || 0);
+  return {
+    statusLabel: 'Live',
+    lastUpdatedLabel: lastUpdated ? lastUpdated.slice(0, 10) : 'Via kliniken',
+    evidenceLabel: evidenceCount
+      ? `${evidenceCount} säkra underlag`
+      : 'Offert och underlag samlat här',
+    sharingLabel: 'Endast klinik + kund',
+    copy: 'Offert, ritade bilder och dokument visas från samma säkra CCO-flöde.',
+    hint:
+      openCount > 1
+        ? `Portalen har öppnats ${openCount} gånger. Personal granskar fortsatt allt i CCO innan journal eller nästa steg uppdateras.`
+        : 'Portalen visar status och underlag. Personal granskar fortsatt allt i CCO innan journal eller nästa steg uppdateras.',
+  };
+}
+
 let cachedCustomerOfferPortalHtml = null;
 
 async function loadCustomerOfferPortalHtml() {
@@ -248,11 +286,15 @@ function buildCustomerOfferPortalContext(
       };
     })
     .filter(Boolean);
+  const evidenceCount = portalFiles.length + portalPhotos.length;
+  const portalTrust = buildCustomerOfferPortalTrust(commercialCase, { evidenceCount });
   return {
     schemaVersion: 'customer-offer-portal-context.v1',
     quoteStatus,
     esignStatus,
     coolingOff,
+    updatedAt: normalizeText(commercialCase.updatedAt),
+    lastPortalUpdateLabel: portalTrust.lastUpdatedLabel,
     quoteSentAt: normalizeText(commercialCase.quoteSentAt),
     quoteAcceptedAt: normalizeText(commercialCase.quoteAcceptedAt),
     customerSignedName: normalizeText(commercialCase.customerSignedName),
@@ -265,6 +307,7 @@ function buildCustomerOfferPortalContext(
     portalFiles,
     portalPhotos,
     treatmentAgreement,
+    portalTrust,
   };
 }
 
@@ -1034,13 +1077,14 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match) return res.status(404).send('Kundportal hittades inte.');
-      await recordCustomerQuoteOpen(match, 'customer_offer_portal');
+      const openResult = await recordCustomerQuoteOpen(match, 'customer_offer_portal');
+      const liveCase = openResult?.commercialCase || match;
       const origin = `${req.protocol}://${req.get('host')}`;
       const treatmentAgreement = await resolveCustomerPortalTreatmentAgreement(
-        match,
+        liveCase,
         treatmentAgreementStore
       );
-      const html = await buildCustomerOfferPortalHtml(match, {
+      const html = await buildCustomerOfferPortalHtml(liveCase, {
         token,
         origin,
         treatmentAgreement,
