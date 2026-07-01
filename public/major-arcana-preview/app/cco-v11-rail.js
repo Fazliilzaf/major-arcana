@@ -1078,6 +1078,28 @@
   }
 
   /**
+   * P2 · Konversationstrådar (C2) — skeleton-placeholder injiceras i HTML-strängen;
+   * faktiska trådar hämtas asynkront av patient-master-ui.js (hydrateC2ThreadsPanel).
+   * @param {string} customerId
+   * @returns {string} HTML
+   */
+  function renderC2ThreadsPlaceholder(customerId) {
+    return (
+      '<section class="v11-rail__c2threads" data-v11-rail-section="Konversationstrådar"' +
+      ' data-c2-threads-placeholder data-customer-id="' +
+      esc(customerId) +
+      '" aria-label="Konversationstrådar (C2)">' +
+      '<header class="v11-rail__comm-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="violet">KONVERSATIONSTRÅDAR</div>' +
+      '</header>' +
+      '<div class="v11-rail__empty" role="status" data-c2-threads-loading>' +
+      '<div class="v11-rail__empty-title">Hämtar konversationer…</div>' +
+      '</div>' +
+      '</section>'
+    );
+  }
+
+  /**
    * P · Communication (KEEP) — V11-presentation av kommunikationslogg (mejl/SMS/
    * samtal). Loggraderna är display-only (som legacy); "Svarstudio"-actionen
    * bär befintlig data-v9-quick="reply" — ingen ny handler. Tom lista → explicit
@@ -1396,6 +1418,22 @@
     // P · Communication (KEEP) — kommunikationslogg, bevarar reply-action
     if (typeof adapters.buildCommunicationFromState === 'function') {
       out += renderCommunication(adapters.buildCommunicationFromState(card, ctx.occasionTimeline));
+    }
+
+    // P2 · Konversationstrådar (C2) — read-only per-kund trådar från ccoConversationThreadStore
+    // Renderar en placeholder; patient-master-ui.js hydraterar asynkront via
+    // GET /api/v1/cco-customers/:id/conversation-threads. Inga writes, inget live-send.
+    var c2Cid = String(
+      card.patientId ||
+        card.id ||
+        card.customerId ||
+        bcard.patientId ||
+        bcard.id ||
+        bcard.customerId ||
+        ''
+    ).trim();
+    if (c2Cid) {
+      out += renderC2ThreadsPlaceholder(c2Cid);
     }
 
     // Q · Economy (KEEP) — ekonomi-nyckeltal (display-only)

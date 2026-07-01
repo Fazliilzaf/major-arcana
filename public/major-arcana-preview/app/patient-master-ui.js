@@ -2134,6 +2134,7 @@
       void hydrateJournalPhotoElements(rail);
       void hydratePatientFileImages(rail);
       void hydrateGkMediaElements(rail);
+      void hydrateC2ThreadsPanel(rail);
       return true;
     }
     const referensMasterDetail = usesReferensMasterDetail();
@@ -8182,6 +8183,241 @@
       attributeFilter: ['class', 'hidden'],
       childList: true,
       subtree: true,
+    });
+  }
+
+  // ─── C2 · Konversationstrådar per kund ────────────────────────────────────
+  // Hydraterar placeholder-sektionen som cco-v11-rail.js renderar (P2).
+  // Hämtar GET /api/v1/cco-customers/:id/conversation-threads (read-only).
+  // Inga writes, inget live-send, ingen journal.
+
+  function c2EscHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function c2FormatTs(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso.slice(0, 10) || '';
+      const now = new Date();
+      const diffMs = now - d;
+      const diffH = diffMs / 3600000;
+      if (diffH < 1) return Math.max(1, Math.round(diffMs / 60000)) + ' min';
+      if (diffH < 24) return Math.round(diffH) + ' h';
+      const diffD = Math.round(diffH / 24);
+      if (diffD < 7) return diffD + ' d';
+      return d.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
+    } catch {
+      return '';
+    }
+  }
+
+  var C2_KIND_LABELS = {
+    incoming_mail: { label: 'Inkommande', cls: 'in', icon: '✉' },
+    outgoing_mail: { label: 'Utgående', cls: 'out', icon: '✉' },
+    system_mail: { label: 'System', cls: 'system', icon: '🤖' },
+    internal_note: { label: 'Anteckning', cls: 'internal', icon: '📝' },
+    comm_draft: { label: 'Utkast', cls: 'draft', icon: '✏️' },
+    comm_draft_needs_approval: { label: 'Godkänn', cls: 'needs-approval', icon: '⚡' },
+    comm_sent: { label: 'Skickat', cls: 'sent', icon: '✓' },
+    form_sent: { label: 'Formulär', cls: 'sent', icon: '📋' },
+    consent_sent: { label: 'Samtycke', cls: 'sent', icon: '✅' },
+    file_sent: { label: 'Fil', cls: 'sent', icon: '📎' },
+  };
+
+  var C2_FILTERS = [
+    { key: 'all', label: 'Alla' },
+    { key: 'incoming', label: 'In' },
+    { key: 'outgoing', label: 'Ut' },
+    { key: 'drafts', label: 'Utkast' },
+    { key: 'needs_approval', label: 'Godkänn' },
+    { key: 'sent', label: 'Skickat' },
+    { key: 'internal', label: 'Intern' },
+    { key: 'unanswered', label: 'Obesvarad' },
+    { key: 'snoozed', label: 'Snoozad' },
+    { key: 'handled', label: 'Hanterad' },
+  ];
+
+  function c2ClientFilter(threads, filter) {
+    if (!filter || filter === 'all') return threads;
+    const fn = {
+      incoming: (t) => t.kind === 'incoming_mail',
+      outgoing: (t) => t.kind === 'outgoing_mail' || t.kind === 'comm_sent',
+      drafts: (t) => t.kind === 'comm_draft' || t.kind === 'comm_draft_needs_approval',
+      needs_approval: (t) =>
+        t.kind === 'comm_draft_needs_approval' || t.draftStatus === 'needs_approval',
+      sent: (t) =>
+        t.kind === 'comm_sent' || t.threadStatus === 'sent' || t.threadStatus === 'queued',
+      internal: (t) => t.kind === 'internal_note' || t.direction === 'internal',
+      unanswered: (t) => t.unanswered === true,
+      snoozed: (t) => Boolean(t.snoozedUntil),
+      handled: (t) => t.handled === true,
+    }[filter];
+    return fn ? threads.filter(fn) : threads;
+  }
+
+  function c2RenderRow(thread, customerId) {
+    var k = C2_KIND_LABELS[thread.kind] || { label: thread.kind || '?', cls: '', icon: '•' };
+    var isUnread = thread.threadStatus === 'unread';
+    var subject = c2EscHtml(thread.subject || '(utan ämne)');
+    var preview = c2EscHtml(thread.preview || '');
+    var time = c2FormatTs(thread.ts);
+    var mailbox = c2EscHtml(thread.mailboxBadge || thread.mailboxId || '');
+
+    var statusHtml = '';
+    if (thread.unanswered) {
+      statusHtml += '<span class="v11-rail__c2-status unanswered">Obesvarad</span>';
+    } else if (thread.snoozedUntil) {
+      statusHtml += '<span class="v11-rail__c2-status snoozed">Snoozad</span>';
+    } else if (thread.handled) {
+      statusHtml += '<span class="v11-rail__c2-status handled">Klar</span>';
+    } else if (isUnread) {
+      statusHtml += '<span class="v11-rail__c2-status unread">Oläst</span>';
+    }
+
+    // Build conversation link when conversationId available (C0: link to thread)
+    var linkHtml = '';
+    if (thread.conversationId) {
+      var convUrl = '?view=conversations&conv=' + encodeURIComponent(thread.conversationId);
+      linkHtml =
+        '<a class="v11-rail__c2-link" href="' +
+        c2EscHtml(convUrl) +
+        '" title="Öppna i Konversationer">Visa →</a>';
+    }
+
+    return (
+      '<div class="v11-rail__c2-row' +
+      (isUnread ? ' is-unread' : '') +
+      '">' +
+      '<span class="v11-rail__c2-icon" aria-hidden="true">' +
+      k.icon +
+      '</span>' +
+      '<div class="v11-rail__c2-main">' +
+      '<div class="v11-rail__c2-row-top">' +
+      '<span class="v11-rail__c2-subject">' +
+      subject +
+      '</span>' +
+      (time ? '<span class="v11-rail__c2-time">' + time + '</span>' : '') +
+      '</div>' +
+      (preview ? '<div class="v11-rail__c2-preview">' + preview + '</div>' : '') +
+      '<div class="v11-rail__c2-badges">' +
+      '<span class="v11-rail__c2-kind ' +
+      c2EscHtml(k.cls) +
+      '">' +
+      c2EscHtml(k.label) +
+      '</span>' +
+      statusHtml +
+      (mailbox ? '<span class="v11-rail__c2-mailbox">' + mailbox + '</span>' : '') +
+      linkHtml +
+      '</div>' +
+      '</div>' +
+      '</div>'
+    );
+  }
+
+  function c2RenderThreadsList(threads, customerId) {
+    if (!threads || !threads.length) {
+      return (
+        '<div class="v11-rail__empty" role="status">' +
+        '<div class="v11-rail__empty-title">Inga konversationer</div>' +
+        '</div>'
+      );
+    }
+    return (
+      '<div class="v11-rail__c2-list" data-c2-threads-list>' +
+      threads.map((t) => c2RenderRow(t, customerId)).join('') +
+      '</div>'
+    );
+  }
+
+  function c2RenderContent(data, activeFilter, customerId) {
+    var counts = data.counts || {};
+    var allThreads = data.threads || [];
+    var total = Number(counts.all || allThreads.length) || 0;
+
+    // Filter chips — only show filters where count > 0 (or 'all')
+    var chipsHtml = C2_FILTERS.filter(function (f) {
+      if (f.key === 'all') return true;
+      return Number(counts[f.key] || 0) > 0;
+    })
+      .map(function (f) {
+        var cnt = f.key === 'all' ? total : Number(counts[f.key] || 0);
+        var isActive = f.key === activeFilter;
+        return (
+          '<button type="button" class="v11-rail__c2-chip' +
+          (isActive ? ' is-active' : '') +
+          '" data-c2-filter="' +
+          c2EscHtml(f.key) +
+          '">' +
+          c2EscHtml(f.label) +
+          (cnt ? ' <span class="v11-rail__c2-chip-count">' + cnt + '</span>' : '') +
+          '</button>'
+        );
+      })
+      .join('');
+
+    var visibleThreads = c2ClientFilter(allThreads, activeFilter);
+
+    return (
+      '<header class="v11-rail__comm-head">' +
+      '<div class="v11-rail__kicker" data-v11-rail-kicker="violet">KONVERSATIONSTRÅDAR</div>' +
+      (total ? '<span class="v11-rail__comm-count">' + total + '</span>' : '') +
+      '</header>' +
+      (chipsHtml
+        ? '<div class="v11-rail__c2-filters" role="group" aria-label="Filter">' +
+          chipsHtml +
+          '</div>'
+        : '') +
+      c2RenderThreadsList(visibleThreads, customerId)
+    );
+  }
+
+  async function hydrateC2ThreadsPanel(root) {
+    var placeholder = (root || document).querySelector('[data-c2-threads-placeholder]');
+    if (!placeholder) return;
+    var customerId = (placeholder.dataset || {}).customerId || '';
+    if (!customerId) return;
+
+    var allData = null;
+    try {
+      allData = await apiRequest(
+        '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/conversation-threads'
+      );
+    } catch {
+      var loadingEl = placeholder.querySelector('[data-c2-threads-loading]');
+      if (loadingEl) {
+        loadingEl.innerHTML =
+          '<div class="v11-rail__empty-title">Konversationer ej tillgängliga</div>';
+      }
+      return;
+    }
+
+    var activeFilter = 'all';
+    placeholder.innerHTML = c2RenderContent(allData, activeFilter, customerId);
+
+    placeholder.addEventListener('click', function (e) {
+      var chip = e.target && e.target.closest && e.target.closest('[data-c2-filter]');
+      if (!chip) return;
+      activeFilter = chip.dataset.c2Filter || 'all';
+      var listEl = placeholder.querySelector('[data-c2-threads-list]');
+      var emptyEl = placeholder.querySelector('.v11-rail__empty:not([data-c2-threads-loading])');
+      var visibleThreads = c2ClientFilter(allData.threads || [], activeFilter);
+      var newListHtml = c2RenderThreadsList(visibleThreads, customerId);
+      if (listEl) {
+        listEl.outerHTML = newListHtml;
+      } else if (emptyEl) {
+        emptyEl.outerHTML = newListHtml;
+      } else {
+        placeholder.insertAdjacentHTML('beforeend', newListHtml);
+      }
+      placeholder.querySelectorAll('[data-c2-filter]').forEach(function (c) {
+        c.classList.toggle('is-active', c.dataset.c2Filter === activeFilter);
+      });
     });
   }
 
