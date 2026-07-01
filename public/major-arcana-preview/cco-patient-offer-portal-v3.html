@@ -1830,6 +1830,146 @@
         font-size: 0.66rem;
         line-height: 1.42;
       }
+      .aftercare-panel {
+        display: none;
+        gap: 0.86rem;
+        margin: 0 0 var(--gap);
+        padding: 1rem;
+        border-radius: var(--panel-radius);
+        background:
+          radial-gradient(circle at 10% 12%, rgba(176, 53, 110, 0.11), transparent 42%),
+          radial-gradient(circle at 92% 4%, rgba(107, 83, 171, 0.13), transparent 44%),
+          rgba(255, 252, 248, 0.97);
+        border: 1px solid rgba(176, 53, 110, 0.14);
+        box-shadow: var(--card-shadow);
+      }
+      html[data-customer-offer-context='live'] .aftercare-panel.is-visible {
+        display: grid;
+      }
+      .aftercare-panel__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.8rem;
+      }
+      .aftercare-panel__eyebrow {
+        display: inline-flex;
+        width: max-content;
+        padding: 0.22rem 0.58rem;
+        border-radius: var(--r-pill);
+        background: rgba(176, 53, 110, 0.1);
+        color: var(--accent);
+        font-size: 0.56rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .aftercare-panel h2 {
+        margin: 0.38rem 0 0;
+        color: var(--text-primary);
+        font-family: 'Cormorant Garamond', 'Georgia', serif;
+        font-size: 1.32rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        line-height: 1.08;
+      }
+      .aftercare-panel__status {
+        min-width: 7.2rem;
+        padding: 0.52rem 0.62rem;
+        border-radius: var(--card-radius);
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(223, 212, 203, 0.68);
+        color: var(--text-secondary);
+        font-size: 0.66rem;
+        font-weight: 750;
+        line-height: 1.35;
+        text-align: right;
+      }
+      .aftercare-panel__copy {
+        margin: -0.22rem 0 0;
+        color: var(--text-secondary);
+        font-size: 0.78rem;
+        line-height: 1.52;
+      }
+      .aftercare-steps {
+        display: grid;
+        gap: 0.52rem;
+      }
+      .aftercare-step {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.62rem;
+        padding: 0.68rem;
+        border-radius: var(--card-radius);
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(223, 212, 203, 0.68);
+      }
+      .aftercare-step[data-state='done'] {
+        border-color: rgba(47, 111, 84, 0.25);
+        background: rgba(237, 248, 241, 0.72);
+      }
+      .aftercare-step[data-state='active'] {
+        border-color: rgba(107, 83, 171, 0.24);
+        background: rgba(246, 242, 255, 0.72);
+      }
+      .aftercare-step__icon {
+        display: grid;
+        width: 1.92rem;
+        height: 1.92rem;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(167, 145, 125, 0.12);
+        color: var(--text-tertiary);
+        font-size: 0.8rem;
+        font-weight: 900;
+      }
+      .aftercare-step[data-state='done'] .aftercare-step__icon {
+        background: rgba(47, 111, 84, 0.13);
+        color: var(--success);
+      }
+      .aftercare-step[data-state='active'] .aftercare-step__icon {
+        background: linear-gradient(135deg, var(--violet), var(--accent));
+        color: #fff;
+      }
+      .aftercare-step__body strong {
+        display: block;
+        color: var(--text-primary);
+        font-size: 0.76rem;
+        font-weight: 850;
+      }
+      .aftercare-step__body span {
+        display: block;
+        margin-top: 0.12rem;
+        color: var(--text-secondary);
+        font-size: 0.66rem;
+        line-height: 1.38;
+      }
+      .aftercare-step__status {
+        padding: 0.16rem 0.48rem;
+        border-radius: var(--r-pill);
+        background: rgba(109, 99, 84, 0.09);
+        color: var(--text-secondary);
+        font-size: 0.55rem;
+        font-weight: 850;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .aftercare-step[data-state='done'] .aftercare-step__status {
+        background: rgba(47, 111, 84, 0.1);
+        color: var(--success);
+      }
+      .aftercare-step[data-state='active'] .aftercare-step__status {
+        background: rgba(107, 83, 171, 0.1);
+        color: var(--violet);
+      }
+      .aftercare-panel__hint {
+        margin: -0.12rem 0 0;
+        color: var(--text-tertiary);
+        font-size: 0.66rem;
+        line-height: 1.42;
+      }
       .mode-row {
         display: flex;
         align-items: center;
@@ -2564,17 +2704,21 @@
       }
 
       @media (max-width: 420px) {
-        .operation-day-panel__top {
+        .operation-day-panel__top,
+        .aftercare-panel__head {
           display: grid;
         }
-        .operation-day-panel__date {
+        .operation-day-panel__date,
+        .aftercare-panel__status {
           min-width: 0;
           text-align: left;
         }
-        .operation-day-check {
+        .operation-day-check,
+        .aftercare-step {
           grid-template-columns: auto minmax(0, 1fr);
         }
-        .operation-day-check__status {
+        .operation-day-check__status,
+        .aftercare-step__status {
           grid-column: 2;
           width: max-content;
         }
@@ -2913,6 +3057,24 @@
         <p class="operation-day-panel__hint" data-operation-day-hint>
           Friskförsäkran skrivs på operationsdagen. Inget journalinnehåll skapas automatiskt från
           portalen.
+        </p>
+      </section>
+
+      <section class="aftercare-panel" data-aftercare-panel hidden aria-live="polite">
+        <div class="aftercare-panel__head">
+          <div>
+            <span class="aftercare-panel__eyebrow" data-aftercare-eyebrow>Efter operation</span>
+            <h2 data-aftercare-title>Eftervård och uppföljning</h2>
+          </div>
+          <div class="aftercare-panel__status" data-aftercare-status>Öppnas efter behandlingen</div>
+        </div>
+        <p class="aftercare-panel__copy" data-aftercare-copy>
+          Efter operationen samlas instruktioner, bildinlämning och uppföljningar här.
+        </p>
+        <div class="aftercare-steps" data-aftercare-steps></div>
+        <p class="aftercare-panel__hint" data-aftercare-hint>
+          Portalen guidar kunden, men personalen granskar alltid uppföljningar innan journal eller
+          beslut uppdateras.
         </p>
       </section>
 
@@ -4634,6 +4796,122 @@
         panel.classList.add('is-visible');
       }
 
+      function resolveAftercareReadiness(contextInput) {
+        var context = asObject(contextInput);
+        var aftercare = asObject(context.aftercare || context.aftercarePlan);
+        var operationDone =
+          context.operationCompleted === true ||
+          context.treatmentCompleted === true ||
+          isPortalDone(context.operationStatus) ||
+          isPortalDone(context.treatmentStatus);
+        var instructionsReady =
+          isPortalDone(aftercare.instructionsStatus) ||
+          isPortalDone(context.aftercareInstructionsStatus) ||
+          Array.isArray(context.portalFiles);
+        var photoUploadReady =
+          aftercare.photoUploadOpen === true ||
+          context.aftercarePhotoUploadOpen === true ||
+          isPortalDone(aftercare.photoUploadStatus);
+        var followupReady =
+          isPortalDone(aftercare.followupStatus) ||
+          isPortalDone(context.followupStatus) ||
+          Array.isArray(context.followups);
+        var contactReady =
+          aftercare.contactOpen === true ||
+          context.aftercareContactOpen === true ||
+          isPortalDone(context.conversationStatus);
+        var active =
+          operationDone || aftercare.active === true || context.aftercareUnlocked === true;
+
+        return {
+          active,
+          eyebrow: active ? 'Efter operation' : 'Kommande trygghetszon',
+          title: active ? 'Eftervård och uppföljning' : 'Eftervården låses upp senare',
+          status: operationDone ? 'Operation registrerad' : active ? 'Eftervård aktiv' : 'Låst',
+          copy: active
+            ? 'Här samlas instruktioner, bildinlämning och uppföljningar efter behandlingen.'
+            : 'När behandlingen är genomförd öppnar kliniken eftervård, bildinlämning och uppföljningar här.',
+          hint: followupReady
+            ? 'Uppföljningar visas i portalen. Personal granskar allt innan journal eller beslut uppdateras.'
+            : 'Portalen guidar kunden, men personalen granskar alltid uppföljningar innan journal eller beslut uppdateras.',
+          steps: [
+            {
+              title: 'Eftervårdsråd',
+              copy: instructionsReady
+                ? 'Instruktioner och underlag finns samlade i portalen.'
+                : active
+                  ? 'Kliniken lägger upp rätt eftervårdsinformation när behandlingen är klar.'
+                  : 'Öppnas efter operationen.',
+              state: instructionsReady ? 'done' : active ? 'active' : 'locked',
+              icon: instructionsReady ? '✓' : '1',
+              status: instructionsReady ? 'Klar' : active ? 'Nästa' : 'Låst',
+            },
+            {
+              title: 'Bildinlämning',
+              copy: photoUploadReady
+                ? 'Kunden kan skicka uppföljningsbilder när kliniken öppnat steget.'
+                : active
+                  ? 'Kliniken öppnar bildinlämning när rätt uppföljningsperiod startar.'
+                  : 'Väntar på behandlingsdagen.',
+              state: photoUploadReady ? 'active' : active ? 'active' : 'locked',
+              icon: '2',
+              status: photoUploadReady ? 'Öppen' : active ? 'Planerad' : 'Låst',
+            },
+            {
+              title: 'Uppföljningar',
+              copy: followupReady
+                ? '4, 6 och 12 månaders uppföljning kan följas här.'
+                : active
+                  ? 'Kliniken planerar uppföljningar och visar dem när de är redo.'
+                  : 'Visas efter operationen.',
+              state: followupReady ? 'active' : active ? 'active' : 'locked',
+              icon: '3',
+              status: followupReady ? 'Aktiv' : active ? 'Planerad' : 'Låst',
+            },
+            {
+              title: 'Trygg kontaktväg',
+              copy: contactReady
+                ? 'Meddelanden går via klinikens säkra CCO-flöde.'
+                : 'Kunden behöver inte hantera lösa länkar eller osäkra underlag.',
+              state: contactReady ? 'done' : active ? 'active' : 'locked',
+              icon: contactReady ? '✓' : '4',
+              status: contactReady ? 'Klar' : active ? 'Tryggt' : 'Låst',
+            },
+          ],
+        };
+      }
+
+      function renderAftercarePanel(contextInput) {
+        var panel = document.querySelector('[data-aftercare-panel]');
+        var list = document.querySelector('[data-aftercare-steps]');
+        if (!panel || !list) return;
+        var readout = resolveAftercareReadiness(contextInput);
+        setPortalText('[data-aftercare-eyebrow]', readout.eyebrow);
+        setPortalText('[data-aftercare-title]', readout.title);
+        setPortalText('[data-aftercare-status]', readout.status);
+        setPortalText('[data-aftercare-copy]', readout.copy);
+        setPortalText('[data-aftercare-hint]', readout.hint);
+        list.innerHTML = readout.steps
+          .map(function (step) {
+            return (
+              '<div class="aftercare-step" data-state="' +
+              escapeHtml(step.state) +
+              '"><div class="aftercare-step__icon">' +
+              escapeHtml(step.icon) +
+              '</div><div class="aftercare-step__body"><strong>' +
+              escapeHtml(step.title) +
+              '</strong><span>' +
+              escapeHtml(step.copy) +
+              '</span></div><div class="aftercare-step__status">' +
+              escapeHtml(step.status) +
+              '</div></div>'
+            );
+          })
+          .join('');
+        panel.hidden = false;
+        panel.classList.add('is-visible');
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -4702,6 +4980,7 @@
           renderPortalNextAction(context);
           renderPortalJourneyGates(context);
           renderOperationDayPanel(context, window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);
+          renderAftercarePanel(context);
         }
 
         var signButton = document.getElementById('bankidBtn');
