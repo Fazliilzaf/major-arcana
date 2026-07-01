@@ -338,6 +338,8 @@ test('finalizeRuntimeLoad renderar om efter bootstrap så fokus och intel läser
     'loadQueueHistory',
     'loadBootstrap',
     'console',
+    'syncThreadActionButtonsForThread',
+    'getSelectedRuntimeThread',
     `${functionSource}; return finalizeRuntimeLoad;`
   )(
     () => {},
@@ -351,7 +353,9 @@ test('finalizeRuntimeLoad renderar om efter bootstrap så fokus och intel läser
     async (options) => {
       loadBootstrapCalls.push(options);
     },
-    console
+    console,
+    () => {},
+    () => null
   );
 
   await finalizeRuntimeLoad({

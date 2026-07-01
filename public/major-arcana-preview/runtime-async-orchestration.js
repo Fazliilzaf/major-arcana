@@ -1511,6 +1511,7 @@
       handleRuntimeRestoreAction,
       handleRuntimeDeleteAction,
       handleRuntimeHandledAction,
+      handleReopenConversation,
       handleStudioDelete,
       handleStudioMarkHandled,
       handleStudioPreview,

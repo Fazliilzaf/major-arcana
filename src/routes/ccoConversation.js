@@ -777,6 +777,30 @@ function createCcoConversationRouter({
         );
         const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
 
+        // Verifiera att konversationen finns och att customerId matchar — gäller alla actions
+        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        if (sorted.length === 0) {
+          return res.status(404).json({
+            ok: false,
+            error: 'conversation_not_found',
+            detail: 'Ingen konversation hittades för angivet konversationsnyckel',
+          });
+        }
+        const firstInboundMsg =
+          sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
+        const conversationCustomerId = (
+          normalizeText(asObject(asObject(firstInboundMsg).from).emailAddress?.address) ||
+          normalizeText(asObject(firstInboundMsg).senderEmail) ||
+          normalizeText(asObject(firstInboundMsg).fromAddress)
+        ).toLowerCase();
+        if (conversationCustomerId && customerId !== conversationCustomerId) {
+          return res.status(409).json({
+            ok: false,
+            error: 'customer_mismatch',
+            detail: 'customerId matchar inte konversationens kund',
+          });
+        }
+
         // Reopen → supersede existing state
         if (action === 'reopen') {
           if (typeof ccoConversationStateStore.supersedeConversationState !== 'function') {
@@ -804,7 +828,6 @@ function createCcoConversationRouter({
 
         // Hitta första meddelandet i tråden för att lista
         // underlying mailbox/conversation IDs
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
         const firstMessage = asObject(sorted[0] || {});
         const underlyingMailboxIds = sorted
           .map((m) => normalizeText(asObject(m).mailboxId))
