@@ -9337,6 +9337,11 @@
                 : ''
             }
             ${
+              customerPortalUrl
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-message" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Kopiera kundmeddelande</button>`
+                : ''
+            }
+            ${
               canAccept
                 ? `<button type="button" class="customers-utility-button" data-patient-action="accept-offer"${coolingActive ? ' data-patient-force-offer="1"' : ''}>${
                     coolingActive ? 'Acceptera (override betänketid)' : 'Kund accepterar'
@@ -11862,6 +11867,40 @@
     }
   }
 
+  function buildCustomerPortalShareMessage(url) {
+    const absoluteUrl = new URL(url, window.location.origin).toString();
+    return [
+      'Hej,',
+      '',
+      'Din personliga kundportal är nu redo. Där kan du läsa din offert, se behandlingsplanen och gå vidare med signering när betänketiden är uppfylld.',
+      '',
+      absoluteUrl,
+      '',
+      'Vänliga hälsningar,',
+      'Hair TP Clinic',
+    ].join('\n');
+  }
+
+  async function copyCustomerPortalShareMessage(url) {
+    const rawUrl = normalizeText(url);
+    if (!rawUrl) {
+      setStatus('Ingen kundportallänk att kopiera.', 'error');
+      return;
+    }
+    const message = buildCustomerPortalShareMessage(rawUrl);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(message);
+      } else {
+        window.prompt('Kopiera kundmeddelandet:', message);
+        return;
+      }
+      setStatus('Kundmeddelande kopierat. Granska innan du skickar.', 'success');
+    } catch {
+      setStatus('Kunde inte kopiera kundmeddelandet.', 'error');
+    }
+  }
+
   function closePatientQrOverlay() {
     document.querySelector('.patient-master-qr-overlay')?.remove();
   }
@@ -12878,6 +12917,8 @@
           void acceptOffer(actionButton.dataset.patientForceOffer === '1');
         } else if (actionButton.dataset.patientAction === 'copy-customer-portal-link') {
           void copyCustomerPortalLink(actionButton.dataset.customerPortalUrl);
+        } else if (actionButton.dataset.patientAction === 'copy-customer-portal-message') {
+          void copyCustomerPortalShareMessage(actionButton.dataset.customerPortalUrl);
         } else if (actionButton.dataset.patientAction === 'send-patient-info') {
           void sendPatientInfo();
         } else if (actionButton.dataset.patientAction === 'create-agreement-from-offer') {
