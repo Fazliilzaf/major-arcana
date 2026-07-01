@@ -35,6 +35,24 @@ body {
   background: rgba(77, 163, 255, 0.08);
 }
 
+.dir-auth-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(143, 163, 191, 0.35);
+  border-radius: 8px;
+  background: rgba(143, 163, 191, 0.08);
+}
+
+.dir-auth-panel p {
+  margin: 0.25rem 0 0;
+  color: var(--dir-muted);
+}
+
 .dir-metrics {
   display: flex;
   flex-wrap: wrap;

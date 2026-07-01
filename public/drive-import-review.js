@@ -12,6 +12,7 @@
   let busy = false;
   let selectedAssetId = null;
   let writeEnabled = false;
+  let authSession = null;
 
   const filters = {
     year: 'all',
@@ -32,12 +33,15 @@
   }
 
   async function api(path, options = {}) {
+    const auth = window.ArcanaReviewAuth;
+    const baseHeaders = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    };
     const res = await fetch(`${API}${path}`, {
       credentials: 'same-origin',
       headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'x-cco-role': 'operator',
+        ...(auth?.authHeaders ? auth.authHeaders(baseHeaders) : baseHeaders),
         ...(options.headers || {}),
       },
       ...options,
@@ -58,6 +62,7 @@
         <h1>Drive Import Review</h1>
         <p class="dir-muted" data-subtitle>Laddar…</p>
       </header>
+      <section class="dir-auth-panel" data-auth-panel hidden></section>
       <div class="dir-banner" data-mode-banner>
         <strong>READ-ONLY</strong>
         <p>Ingen statusändring · ingen flytt · ingen radering · ingen auto-koppling · ingen batch-action.</p>
@@ -120,6 +125,45 @@
         loadQueue().catch(showError);
       }
     });
+  }
+
+  function renderAuthPanel() {
+    const panel = document.querySelector('[data-auth-panel]');
+    if (!panel) return;
+    if (!authSession) {
+      panel.hidden = true;
+      return;
+    }
+    if (!authSession.authenticated) {
+      panel.hidden = false;
+      panel.innerHTML = `
+        <strong>Inloggning krävs</strong>
+        <p>${escapeHtml(authSession.message || 'Logga in via admin för att öppna review-vyn.')}</p>
+        <a class="dir-btn dir-btn-primary" href="${escapeHtml(authSession.loginUrl || '/admin')}">Logga in via admin</a>`;
+      return;
+    }
+    const user = authSession.user || {};
+    const label =
+      user.displayName || user.name || user.email || user.userId || user.id || 'Inloggad operatör';
+    const role = user.role || (Array.isArray(user.roles) ? user.roles.join(', ') : '');
+    panel.hidden = false;
+    panel.innerHTML = `
+      <strong>Inloggad</strong>
+      <p>${escapeHtml(label)}${role ? ` · ${escapeHtml(role)}` : ''}</p>`;
+  }
+
+  async function requireReviewAuth() {
+    const auth = window.ArcanaReviewAuth;
+    if (!auth?.getSession) {
+      authSession = { authenticated: true, user: { displayName: 'Session' } };
+      renderAuthPanel();
+      return;
+    }
+    authSession = await auth.getSession();
+    renderAuthPanel();
+    if (!authSession.authenticated) {
+      throw new Error(authSession.message || 'Logga in via admin för att öppna review-vyn.');
+    }
   }
 
   function renderModeBanner() {
@@ -404,6 +448,7 @@
 
   async function boot() {
     renderShell();
+    await requireReviewAuth();
     summary = await api('/summary');
     writeEnabled = summary.writeEnabled === true;
     renderModeBanner();
