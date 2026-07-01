@@ -92,7 +92,7 @@ async function createFixture() {
       renderHtmlToPdfBuffer: async () => Buffer.from(`%PDF-1.4\n${'mock offer pdf '.repeat(80)}\n`),
     })
   );
-  return { app, tempDir, journalStore, journalPhotoStore };
+  return { app, tempDir, commercialStore, journalStore, journalPhotoStore };
 }
 
 test('buildOfferDocumentHtml includes plan fields and patient name', () => {
@@ -296,6 +296,9 @@ test('offer-from-plan creates commercial case and html document', async () => {
       assert.match(portalHtml, /"kind":"offer_document"/);
       assert.match(portalHtml, /"kind":"offer_pdf"/);
       assert.match(portalHtml, /"kind":"consultation_photo"/);
+      assert.match(portalHtml, /"portalPhotos":\[/);
+      assert.match(portalHtml, /"photoId":"photo-1"/);
+      assert.match(portalHtml, /"caption":"Konsultationsbild från behandlingsplanen"/);
       assert.match(portalHtml, /offer-photo\?token=/);
       assert.match(portalHtml, /photoId=photo-1/);
       assert.match(portalHtml, /"customerName":"Kund"/);
@@ -334,6 +337,18 @@ test('offer-from-plan creates commercial case and html document', async () => {
         variant: 'original',
         photoId: 'photo-1',
       });
+      const commercialCaseAfterPhoto = await fixture.commercialStore.getPatientRegisterCase({
+        tenantId: 'tenant-a',
+        patientId: 'patient-1',
+      });
+      assert.ok(
+        commercialCaseAfterPhoto.quoteOpens.some((open) => open.source === 'customer_offer_photo')
+      );
+      assert.ok(
+        commercialCaseAfterPhoto.events.some(
+          (event) => event.type === 'offer_opened' && event.detail === 'customer_offer_photo'
+        )
+      );
 
       const forbiddenPhotoResponse = await fetch(
         `${baseUrl}/cco-commercial/offer-photo?token=${encodeURIComponent(token)}&photoId=photo-outside-offer`

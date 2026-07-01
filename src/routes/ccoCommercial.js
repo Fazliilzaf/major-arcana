@@ -201,6 +201,28 @@ function buildCustomerOfferPortalContext(commercialCase = {}, { token = '', orig
       };
     }),
   ].filter((item) => item?.href);
+  const portalPhotos = listOfferPhotoAttachments(commercialCase)
+    .map((item, index) => {
+      const photoId = normalizeText(item.photoId);
+      const href =
+        tokenParam && origin && photoId
+          ? `${origin}/api/v1/cco-commercial/offer-photo?token=${tokenParam}&photoId=${encodeURIComponent(photoId)}${
+              item.annotatedPreviewAvailable ? '&variant=annotated' : ''
+            }`
+          : '';
+      if (!href) return null;
+      return {
+        photoId,
+        label: normalizeText(item.label) || `Konsultationsbild ${index + 1}`,
+        href,
+        hasAnnotation: Boolean(item.hasAnnotation || item.annotatedPreviewAvailable),
+        annotatedPreviewAvailable: Boolean(item.annotatedPreviewAvailable),
+        caption: item.annotatedPreviewAvailable
+          ? 'Ritad behandlingsplan från konsultationen'
+          : 'Konsultationsbild från behandlingsplanen',
+      };
+    })
+    .filter(Boolean);
   return {
     schemaVersion: 'customer-offer-portal-context.v1',
     quoteStatus,
@@ -216,6 +238,7 @@ function buildCustomerOfferPortalContext(commercialCase = {}, { token = '', orig
     offerDocumentUrl: documentUrl,
     offerDocumentPdfUrl: documentPdfUrl,
     portalFiles,
+    portalPhotos,
   };
 }
 
@@ -1031,6 +1054,7 @@ function createCcoCommercialRouter({
       const attachments = listOfferPhotoAttachments(match);
       const entry = attachments.find((a) => normalizeText(a.photoId) === photoId);
       if (!entry) return res.status(403).send('Bild ej tillgänglig i denna offert.');
+      await recordCustomerQuoteOpen(match, 'customer_offer_photo');
       const patientId = normalizeText(snapshot.patientId) || normalizeText(match.customerId);
       const tenantId = normalizeText(match.tenantId);
       let payload = null;

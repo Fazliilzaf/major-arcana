@@ -510,6 +510,66 @@
         letter-spacing: 0.05em;
         text-transform: uppercase;
       }
+      .portal-photos-panel {
+        display: none;
+        gap: 0.72rem;
+        margin: 0 0 var(--gap);
+      }
+      html[data-customer-offer-context='live'] .portal-photos-panel.is-visible {
+        display: grid;
+      }
+      .portal-photo-intro {
+        margin: -0.15rem 0 0.15rem;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        line-height: 1.55;
+      }
+      .portal-photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+        gap: 0.72rem;
+      }
+      .portal-photo-card {
+        display: grid;
+        gap: 0.42rem;
+        padding: 0.52rem;
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at 12% 10%, rgba(176, 53, 110, 0.14), transparent 42%),
+          rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(223, 212, 203, 0.7);
+        color: var(--text-primary);
+        text-decoration: none;
+        box-shadow: 0 18px 36px -26px rgba(60, 45, 35, 0.38);
+      }
+      .portal-photo-card img {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        border-radius: 17px;
+        border: 1px solid rgba(255, 255, 255, 0.76);
+        background: linear-gradient(135deg, rgba(176, 53, 110, 0.09), rgba(101, 75, 152, 0.1));
+      }
+      .portal-photo-card strong {
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+      .portal-photo-card small {
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        line-height: 1.35;
+      }
+      .portal-photo-badge {
+        justify-self: start;
+        padding: 0.2rem 0.55rem;
+        border-radius: var(--r-pill);
+        background: rgba(176, 53, 110, 0.1);
+        color: var(--accent);
+        font-size: 0.62rem;
+        font-weight: 850;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
       .portal-status-row {
         display: flex;
         justify-content: space-between;
@@ -2505,6 +2565,14 @@
         <div data-portal-files-list></div>
       </div>
 
+      <div class="card portal-photos-panel" data-portal-photos-panel hidden>
+        <div class="card-title">Ritade konsultationsbilder</div>
+        <p class="portal-photo-intro">
+          Bilderna kommer från konsultationens behandlingsplan och öppnas via säkra länkar.
+        </p>
+        <div class="portal-photo-grid" data-portal-photos-list></div>
+      </div>
+
       <div class="card" data-unlock="1" data-tease-label="🔒 Låses upp när offert skickas">
         <div class="ai-badge">AI-genererad planering</div>
         <div class="card-title">Planerade zoner · <span data-offer-method>DHI</span>-metoden</div>
@@ -3534,6 +3602,42 @@
         }
       }
 
+      function renderPortalPhotos(photosInput) {
+        var photos = Array.isArray(photosInput) ? photosInput.filter(Boolean) : [];
+        var panel = document.querySelector('[data-portal-photos-panel]');
+        var list = document.querySelector('[data-portal-photos-list]');
+        if (!panel || !list || !photos.length) return;
+        list.innerHTML = photos
+          .map(function (photo) {
+            var item = asObject(photo);
+            var href = safeText(item.href);
+            var label = safeText(item.label) || 'Konsultationsbild';
+            var caption = safeText(item.caption) || 'Ritad behandlingsplan från konsultationen';
+            var badge = item.hasAnnotation ? 'Ritad bild' : 'Bild';
+            if (!href) return '';
+            return (
+              '<a class="portal-photo-card" href="' +
+              escapeHtml(href) +
+              '" target="_blank" rel="noopener"><img src="' +
+              escapeHtml(href) +
+              '" alt="' +
+              escapeHtml(label) +
+              '" loading="lazy" /><span class="portal-photo-badge">' +
+              escapeHtml(badge) +
+              '</span><strong>' +
+              escapeHtml(label) +
+              '</strong><small>' +
+              escapeHtml(caption) +
+              '</small></a>'
+            );
+          })
+          .join('');
+        if (list.innerHTML) {
+          panel.hidden = false;
+          panel.classList.add('is-visible');
+        }
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -3623,6 +3727,7 @@
         }
 
         renderPortalFiles(context.portalFiles);
+        renderPortalPhotos(context.portalPhotos);
       }
 
       renderOfferPlanToPortal(window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);
