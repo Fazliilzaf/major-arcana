@@ -8915,24 +8915,56 @@
     return stableId ? `arcana:customer-portal-share-checklist:${stableId}` : '';
   }
 
-  function readCustomerPortalShareChecklist(linkedOffer) {
+  function buildCustomerPortalShareChecklistSignature(
+    linkedOffer,
+    customerPortalUrl,
+    planEntry,
+    photos
+  ) {
+    if (!linkedOffer || !customerPortalUrl) return '';
+    const readiness = buildCustomerPortalReadinessItems(
+      linkedOffer,
+      planEntry,
+      photos,
+      customerPortalUrl
+    ).map((item) => ({
+      key: item.key,
+      ready: Boolean(item.ready),
+      detail: item.detail,
+    }));
+    return JSON.stringify({
+      portalUrl: customerPortalUrl,
+      readiness,
+      message: buildCustomerPortalShareMessage(customerPortalUrl, runtime.detail?.card),
+    });
+  }
+
+  function readCustomerPortalShareChecklist(linkedOffer, signature = '') {
     const storageKey = customerPortalShareChecklistStorageKey(linkedOffer);
     if (!storageKey) return {};
     try {
-      return JSON.parse(window.localStorage?.getItem(storageKey) || '{}') || {};
+      const saved = JSON.parse(window.localStorage?.getItem(storageKey) || '{}') || {};
+      if (saved && typeof saved === 'object' && 'values' in saved) {
+        if (signature && saved.signature !== signature) return {};
+        return saved.values || {};
+      }
+      return saved;
     } catch {
       return {};
     }
   }
 
-  function writeCustomerPortalShareChecklist(linkedOffer, values) {
+  function writeCustomerPortalShareChecklist(linkedOffer, values, signature = '') {
     const storageKey = customerPortalShareChecklistStorageKey(linkedOffer);
     if (!storageKey) return;
-    window.localStorage?.setItem(storageKey, JSON.stringify(values || {}));
+    window.localStorage?.setItem(
+      storageKey,
+      JSON.stringify(signature ? { signature, values: values || {} } : values || {})
+    );
   }
 
-  function isCustomerPortalShareChecklistComplete(linkedOffer) {
-    const values = readCustomerPortalShareChecklist(linkedOffer);
+  function isCustomerPortalShareChecklistComplete(linkedOffer, signature = '') {
+    const values = readCustomerPortalShareChecklist(linkedOffer, signature);
     return CUSTOMER_PORTAL_SHARE_CHECKS.every((item) => values[item.key]);
   }
 
@@ -8947,14 +8979,20 @@
     });
   }
 
-  function renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl) {
+  function renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos) {
     if (!linkedOffer || !customerPortalUrl) return '';
-    const values = readCustomerPortalShareChecklist(linkedOffer);
+    const signature = buildCustomerPortalShareChecklistSignature(
+      linkedOffer,
+      customerPortalUrl,
+      planEntry,
+      photos
+    );
+    const values = readCustomerPortalShareChecklist(linkedOffer, signature);
     const checkedCount = CUSTOMER_PORTAL_SHARE_CHECKS.filter((item) => values[item.key]).length;
     const allChecked = checkedCount === CUSTOMER_PORTAL_SHARE_CHECKS.length;
     const storageKey = customerPortalShareChecklistStorageKey(linkedOffer);
     return `
-      <div class="patient-master-offer-next-step" data-customer-portal-share-checklist data-customer-portal-share-checklist-key="${escapeHtml(storageKey)}">
+      <div class="patient-master-offer-next-step" data-customer-portal-share-checklist data-customer-portal-share-checklist-key="${escapeHtml(storageKey)}" data-customer-portal-share-checklist-signature="${escapeHtml(signature)}">
         <div class="patient-master-offer-meta-badges">
           <span class="patient-master-status-badge${allChecked ? ' is-accent' : ''}" data-customer-portal-share-checklist-count>Delningscheck ${checkedCount}/${CUSTOMER_PORTAL_SHARE_CHECKS.length}</span>
           <span class="patient-master-status-badge" data-customer-portal-share-checklist-status>${allChecked ? 'Klar att dela manuellt' : 'Bocka av innan du skickar'}</span>
@@ -9368,7 +9406,16 @@
     const customerPortalUrl = getCustomerPortalUrl(linkedOffer);
     const customerPortalPreviewUrl = buildCustomerPortalPreviewUrlFromOffer(linkedOffer);
     const customerPortalLinkSource = getCustomerPortalLinkSource(linkedOffer, customerPortalUrl);
-    const shareChecklistComplete = isCustomerPortalShareChecklistComplete(linkedOffer);
+    const customerPortalShareSignature = buildCustomerPortalShareChecklistSignature(
+      linkedOffer,
+      customerPortalUrl,
+      planEntry,
+      photos
+    );
+    const shareChecklistComplete = isCustomerPortalShareChecklistComplete(
+      linkedOffer,
+      customerPortalShareSignature
+    );
     const shareGateAttrs = shareChecklistComplete
       ? ''
       : ' disabled title="Bocka av delningschecken innan länken eller meddelandet kopieras."';
@@ -9397,7 +9444,7 @@
           ${renderOfferNextStep(linkedOffer, customerPortalUrl, customerPortalLinkSource)}
           ${renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl)}
           ${renderCustomerPortalSharePreview(customerPortalUrl)}
-          ${renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl)}
+          ${renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos)}
           ${renderOfferPortalActivity(linkedOffer)}
           ${renderOfferFollowupSignal(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
@@ -13120,6 +13167,7 @@
       if (shareCheck && runtime.mode === 'register') {
         const checklist = shareCheck.closest('[data-customer-portal-share-checklist]');
         const storageKey = normalizeText(checklist?.dataset.customerPortalShareChecklistKey);
+        const signature = normalizeText(checklist?.dataset.customerPortalShareChecklistSignature);
         const inputs = Array.from(
           checklist?.querySelectorAll('[data-customer-portal-share-check]') || []
         );
@@ -13131,7 +13179,10 @@
             ?.classList.toggle('is-accent', input.checked);
         });
         if (storageKey) {
-          window.localStorage?.setItem(storageKey, JSON.stringify(values));
+          window.localStorage?.setItem(
+            storageKey,
+            JSON.stringify(signature ? { signature, values } : values)
+          );
         }
         const checkedCount = inputs.filter((input) => input.checked).length;
         const allChecked = checkedCount === CUSTOMER_PORTAL_SHARE_CHECKS.length;

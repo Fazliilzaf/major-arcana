@@ -25,7 +25,11 @@ test('patient master offer panel renders K30 manual share checklist without back
     source,
     /Delningscheck \$\{checkedCount\}\/\$\{CUSTOMER_PORTAL_SHARE_CHECKS\.length\}/
   );
-  assert.match(source, /window\.localStorage\?\.setItem\(storageKey, JSON\.stringify\(values\)\)/);
-  assert.match(source, /renderCustomerPortalShareChecklist\(linkedOffer, customerPortalUrl\)/);
+  assert.match(source, /window\.localStorage\?\.setItem\(/);
+  assert.match(source, /JSON\.stringify\(signature \? \{ signature, values \} : values\)/);
+  assert.match(
+    source,
+    /renderCustomerPortalShareChecklist\(linkedOffer, customerPortalUrl, planEntry, photos\)/
+  );
   assert.doesNotMatch(source, /data-patient-action="send-customer-portal-message"/);
 });

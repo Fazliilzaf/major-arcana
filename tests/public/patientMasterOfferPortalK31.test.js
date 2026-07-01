@@ -16,13 +16,16 @@ const sourcePath = path.join(
 test('patient master offer panel gates K31 share copy actions until checklist is complete', () => {
   const source = fs.readFileSync(sourcePath, 'utf8');
 
-  assert.match(source, /function isCustomerPortalShareChecklistComplete\(linkedOffer\)/);
+  assert.match(
+    source,
+    /function isCustomerPortalShareChecklistComplete\(linkedOffer, signature = ''\)/
+  );
   assert.match(source, /CUSTOMER_PORTAL_SHARE_CHECKS\.every\(\(item\) => values\[item\.key\]\)/);
   assert.match(source, /function syncCustomerPortalShareActionState\(scope, allChecked\)/);
   assert.match(source, /data-customer-portal-share-gated="true"/);
   assert.match(
     source,
-    /const shareChecklistComplete = isCustomerPortalShareChecklistComplete\(linkedOffer\)/
+    /const shareChecklistComplete = isCustomerPortalShareChecklistComplete\(\s*linkedOffer,\s*customerPortalShareSignature\s*\)/
   );
   assert.match(source, /const shareGateAttrs = shareChecklistComplete/);
   assert.match(source, /Bocka av delningschecken innan länken eller meddelandet kopieras/);
