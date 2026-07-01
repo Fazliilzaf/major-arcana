@@ -13,32 +13,53 @@ Scriptet ändrar **inte** batch-logik eller UI.
 
 ## Krav
 
-| Krav         | Env / flagga                                                                |
-| ------------ | --------------------------------------------------------------------------- |
-| Prod URL     | `ARCANA_PROD_URL` (eller `BASE`) — **obligatorisk**, ingen localhost        |
-| Auth         | `ARCANA_SMOKE_BEARER_TOKEN` eller owner `.env` via `get-prod-auth-token.js` |
-| Reviewer     | `--reviewer` eller `DRIVE_IMPORT_REVIEW_BATCH_REVIEWER`                     |
-| Write/canary | `ENABLE_DRIVE_IMPORT_REVIEW_WRITE=true` på prod                             |
+| Krav         | Env / flagga                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| Prod URL     | `ARCANA_PROD_URL` (eller `BASE`) — **obligatorisk**, ingen localhost                         |
+| Auth         | `ARCANA_SMOKE_BEARER_TOKEN` eller owner `.env` — **obligatorisk i alla lägen inkl. dry-run** |
+| Reviewer     | `--reviewer` eller `DRIVE_IMPORT_REVIEW_BATCH_REVIEWER` — **obligatorisk**                   |
+| Write/canary | `ENABLE_DRIVE_IMPORT_REVIEW_WRITE=true` på prod                                              |
 
 ## Säkerhetsflöde
 
 ```bash
-# 1. Plan only (default)
+# 1. Plan only (default) — ingen preview/confirm
 ARCANA_PROD_URL=https://arcana.hairtpclinic.com \
+ARCANA_SMOKE_BEARER_TOKEN=… \
 DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=operator.name \
   npm run pilot:drive-import-review-batch-prod
 
 # 2. Preview (skriver preview-token på server, ingen asset-statusändring)
-ARCANA_PROD_URL=… DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=… \
+ARCANA_PROD_URL=… ARCANA_SMOKE_BEARER_TOKEN=… DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=… \
   npm run pilot:drive-import-review-batch-prod -- --preview
 
 # 3. Confirm (kräver explicit --confirm)
-ARCANA_PROD_URL=… DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=… \
+ARCANA_PROD_URL=… ARCANA_SMOKE_BEARER_TOKEN=… DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=… \
   npm run pilot:drive-import-review-batch-prod -- --preview --confirm
 
 # Eller confirm med sparat token
-npm run pilot:drive-import-review-batch-prod -- \
+ARCANA_PROD_URL=… ARCANA_SMOKE_BEARER_TOKEN=… \
+  npm run pilot:drive-import-review-batch-prod -- \
   --confirm --preview-token=<uuid> --reviewer=operator.name
+```
+
+## Efter merge (#468)
+
+1. **Invänta Codex-review** — mergea inte förrän CI är grön och review klar.
+2. **Dry-run** (default) — granska homogen batch + queue/canary före.
+3. **Preview + confirm** — 2–3 homogena filer: `--preview --confirm` (eller separata steg).
+4. **Verifiera summary** — queue −N, status OK, canary +N, `storageKeyChanged Δ = 0`.
+5. **Ingen batch-UI** — fortsatt en-fil-UI tills separat uppgift.
+
+```bash
+# Steg 2–3 efter merge (exempel size=2)
+ARCANA_PROD_URL=https://arcana.hairtpclinic.com \
+ARCANA_SMOKE_BEARER_TOKEN=… \
+DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=operator.name \
+  npm run pilot:drive-import-review-batch-prod
+
+ARCANA_PROD_URL=… ARCANA_SMOKE_BEARER_TOKEN=… DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=… \
+  npm run pilot:drive-import-review-batch-prod -- --size 2 --preview --confirm
 ```
 
 ## Flaggor
