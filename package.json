@@ -194,6 +194,7 @@
     "verify:staff-portal-entrypoints": "node ./scripts/verify-staff-portal-entrypoints.js",
     "verify:staff-portal-responsive-local": "node ./scripts/verify-staff-portal-responsive-local.js",
     "verify:customer-portal-responsive-local": "node ./scripts/verify-customer-portal-responsive-local.js",
+    "verify:customer-portal-local-links": "node ./scripts/verify-customer-portal-local-links.js",
     "verify:u2-4-field-prep-prod": "node ./scripts/verify-u2-4-field-prep-prod.js",
     "provision:nurse-staff-prod": "node ./scripts/provision-nurse-staff-prod.js",
     "verify:staff-mobile-tap-prod": "node ./scripts/verify-staff-mobile-tap-prod.js",
