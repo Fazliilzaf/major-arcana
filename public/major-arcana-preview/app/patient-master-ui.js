@@ -8280,14 +8280,16 @@
       statusHtml += '<span class="v11-rail__c2-status unread">Oläst</span>';
     }
 
-    // Build conversation link when conversationId available (C0: link to thread)
+    // C3: deep-link till rätt tråd + kund i konversationsshellen
     var linkHtml = '';
     if (thread.conversationId) {
-      var convUrl = '?view=conversations&conv=' + encodeURIComponent(thread.conversationId);
+      var convParams = 'view=conversations&conv=' + encodeURIComponent(thread.conversationId);
+      if (customerId) convParams += '&customerId=' + encodeURIComponent(customerId);
+      var convUrl = '?' + convParams;
       linkHtml =
         '<a class="v11-rail__c2-link" href="' +
         c2EscHtml(convUrl) +
-        '" title="Öppna i Konversationer">Visa →</a>';
+        '" title="Öppna tråden i Konversationer">Visa →</a>';
     }
 
     return (

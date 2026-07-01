@@ -5165,11 +5165,16 @@
     ) || "";
     const wantsShowcase = params.get("showcase") === "1";
     const portalCustomerKey = wantsShowcase ? rawPortalKey : "";
+    // C3: deep-link från kundkortets konversationstrådar — ?conv= och ?customerId=
+    const c3Conv = (params.get("conv") || "").trim();
+    const c3CustomerId = (params.get("customerId") || "").trim();
     return {
       view: requestedView,
       automationSection:
         normalizeKey(params.get("automationSection") || params.get("section")) || "",
       portalCustomerKey,
+      conv: c3Conv,
+      customerId: c3CustomerId,
     };
   }
 
@@ -43270,6 +43275,30 @@
     initializeWorkspaceSurface();
     if (initialShellViewState.view !== "conversations") {
       setAppView(initialShellViewState.view);
+    }
+    // C3: öppna rätt tråd + kund när URL innehåller ?conv= (deep-link från kundkortet)
+    if (
+      initialShellViewState.conv &&
+      resolveShellView(initialShellViewState.view) === "conversations"
+    ) {
+      const pendingConvId = initialShellViewState.conv;
+      selectRuntimeThread(pendingConvId, { reloadBootstrap: true });
+      // Fallback: visa "Tråd ej hittad" om tråden saknas efter bootstrap
+      setTimeout(function () {
+        const selectedId = getSelectedQueueHistoryConversationId();
+        if (!runtimeConversationIdsMatch(selectedId, pendingConvId)) {
+          const convSection = document.querySelector('[data-shell-view="conversations"]');
+          if (convSection && !convSection.querySelector("[data-c3-not-found]")) {
+            const banner = document.createElement("div");
+            banner.dataset.c3NotFound = "1";
+            banner.setAttribute("role", "alert");
+            banner.className = "c3-thread-not-found-banner";
+            banner.textContent =
+              "Tråd ej hittad. Konversationen kunde inte hittas i inkorgen.";
+            convSection.prepend(banner);
+          }
+        }
+      }, 8000);
     }
     if (initialShellViewState.portalCustomerKey) {
       state.portalRuntime.initialRouteCustomerKey = initialShellViewState.portalCustomerKey;
