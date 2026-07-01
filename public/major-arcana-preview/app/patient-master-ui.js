@@ -9512,11 +9512,14 @@
       photos,
       shareChecklistValues
     );
+    const shareGateBlockerText = shareGateBlockers.join(' · ');
     const shareGateTitle = shareGateBlockers.length
-      ? `Delning låst. Saknas: ${shareGateBlockers.join(' · ')}`
+      ? `Delning låst. Saknas: ${shareGateBlockerText}`
       : '';
     const shareReady = shareChecklistComplete && shareGateBlockers.length === 0;
-    const shareGateAttrs = shareReady ? '' : ` disabled title="${escapeHtml(shareGateTitle)}"`;
+    const shareGateAttrs = shareReady
+      ? ''
+      : ` disabled title="${escapeHtml(shareGateTitle)}" data-customer-portal-share-blockers="${escapeHtml(shareGateBlockerText)}"`;
     const canSendForSign = linkedOffer && linkedOffer.quoteStatus !== 'accepted';
     const canAccept =
       linkedOffer && linkedOffer.quoteStatus === 'sent' && linkedOffer.quoteStatus !== 'accepted';
