@@ -3463,8 +3463,14 @@ function createMonitorRouter({
           return res.status(503).json({ error: 'clientoBookingStore saknas.' });
         }
 
-        const { composeClinicMetrics } = require('../ops/clinicPerformance');
-        const bookings = clientoBookingStore.listAllBookings({ tenantId });
+        const {
+          composeClinicMetrics,
+          collectClinicPerformanceBookings,
+        } = require('../ops/clinicPerformance');
+        const bookings = collectClinicPerformanceBookings({
+          clientoBookingStore,
+          tenantId,
+        });
 
         // Intäkt via CFO-finance-buildern — läsande, best-effort. Hellre null än
         // gissad siffra om finance-lagret inte kan byggas.

@@ -1,7 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { composeClinicMetrics, periodLabel } = require('../../src/ops/clinicPerformance');
+const {
+  composeClinicMetrics,
+  periodLabel,
+  bookingTenantCandidates,
+  collectClinicPerformanceBookings,
+} = require('../../src/ops/clinicPerformance');
 
 // Fast referens-nu: 15 juni 2026 (UTC) → månadsfönster juni.
 const NOW = new Date(Date.UTC(2026, 5, 15));
@@ -13,6 +18,43 @@ function booking(startsAt, status = 'completed') {
 test('periodLabel ger svenskt månadsnamn + år', () => {
   assert.equal(periodLabel(new Date(Date.UTC(2026, 5, 1))), 'juni 2026');
   assert.equal(periodLabel(new Date(Date.UTC(2026, 4, 1))), 'maj 2026');
+});
+
+test('bookingTenantCandidates inkluderar Hair TP-aliaser men inte andra tenants', () => {
+  assert.deepEqual(bookingTenantCandidates('hair-tp-clinic'), [
+    'hair-tp-clinic',
+    'hair_tp_clinic',
+    'hair_tp',
+    'hairtp-clinic',
+    'hairtpclinic',
+  ]);
+  assert.deepEqual(bookingTenantCandidates('curatiio-clinic'), [
+    'curatiio-clinic',
+    'curatiio_clinic',
+  ]);
+});
+
+test('collectClinicPerformanceBookings slår ihop alias-tenants och dedupar samma bokning', () => {
+  const bookingA = { bookingId: 'b1', customerEmail: 'a@b.se', startsAt: '2026-06-02T09:00:00Z' };
+  const bookingADupe = {
+    bookingId: 'b1',
+    customerEmail: 'a@b.se',
+    startsAt: '2026-06-02T09:00:00Z',
+  };
+  const bookingB = { bookingId: 'b2', customerEmail: 'c@d.se', startsAt: '2026-06-03T09:00:00Z' };
+  const store = {
+    listAllBookings({ tenantId }) {
+      if (tenantId === 'hair-tp-clinic') return [bookingA];
+      if (tenantId === 'hair_tp') return [bookingADupe, bookingB];
+      return [];
+    },
+  };
+  const rows = collectClinicPerformanceBookings({
+    clientoBookingStore: store,
+    tenantId: 'hair-tp-clinic',
+  });
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map((row) => row.bookingId).sort(), ['b1', 'b2']);
 });
 
 test('räknar bokningar denna månad och ignorerar andra månader', () => {

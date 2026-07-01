@@ -38,6 +38,60 @@ function safeNum(n) {
   return typeof n === 'number' && Number.isFinite(n) ? n : null;
 }
 
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeEmail(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+function isHairTpTenantFamily(tenantId = '') {
+  const normalized = normalizeText(tenantId).toLowerCase();
+  if (!normalized) return false;
+  return (
+    normalized.includes('hairtp') ||
+    normalized.includes('hair-tp') ||
+    normalized.includes('hair_tp')
+  );
+}
+
+function bookingTenantCandidates(tenantId = '') {
+  const base = normalizeText(tenantId);
+  const rows = [base];
+  if (base.includes('-')) rows.push(base.replace(/-/g, '_'));
+  if (base.includes('_')) rows.push(base.replace(/_/g, '-'));
+  if (isHairTpTenantFamily(base)) {
+    rows.push('hair-tp-clinic', 'hair_tp', 'hairtp-clinic', 'hairtpclinic');
+  }
+  return [...new Set(rows.filter(Boolean))];
+}
+
+function bookingDedupeKey(booking = {}) {
+  const bookingId = normalizeText(booking.bookingId || booking.id);
+  if (bookingId) return `id:${bookingId}`;
+  const email = normalizeEmail(booking.customerEmail);
+  const startsAt = normalizeText(booking.startsAt);
+  const status = normalizeText(booking.status);
+  return `fallback:${email}::${startsAt}::${status}`;
+}
+
+function collectClinicPerformanceBookings({ clientoBookingStore = null, tenantId = '' } = {}) {
+  if (!clientoBookingStore || typeof clientoBookingStore.listAllBookings !== 'function') return [];
+  const seen = new Set();
+  const merged = [];
+  for (const candidate of bookingTenantCandidates(tenantId)) {
+    const batch = clientoBookingStore.listAllBookings({ tenantId: candidate }) || [];
+    for (const booking of Array.isArray(batch) ? batch : []) {
+      const key = bookingDedupeKey(booking);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(booking);
+    }
+  }
+  return merged;
+}
+
 /**
  * @param {object} args
  * @param {Array} [args.bookings]              raw bookings (need `startsAt` + `status`)
@@ -116,4 +170,9 @@ function composeClinicMetrics({
   };
 }
 
-module.exports = { composeClinicMetrics, periodLabel };
+module.exports = {
+  composeClinicMetrics,
+  periodLabel,
+  bookingTenantCandidates,
+  collectClinicPerformanceBookings,
+};
