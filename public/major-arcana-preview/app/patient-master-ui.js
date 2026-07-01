@@ -8812,6 +8812,31 @@
     ];
   }
 
+  function getCustomerPortalReadinessAction(items, customerPortalUrl) {
+    const missing = items.find((item) => !item.ready);
+    if (!missing) {
+      return {
+        tone: 'is-accent',
+        label: 'Nästa: dela kundportalen',
+        detail: customerPortalUrl
+          ? 'Öppna eller kopiera portallänken och följ kundens aktivitet.'
+          : 'Portalen är redo när tokenlänken finns.',
+      };
+    }
+    const actions = {
+      'portal-link': 'Skicka offerten för signering så portaltoken skapas.',
+      'offer-document': 'Skapa eller uppdatera offertunderlaget från behandlingsplanen.',
+      price: 'Sätt priset innan portalen delas med kund.',
+      grafts: 'Fyll zoner och hårsäckar i planen innan utskick.',
+      photos: 'Koppla ritade konsultationsbilder till offerten.',
+    };
+    return {
+      tone: '',
+      label: `Nästa: ${missing.label}`,
+      detail: actions[missing.key] || missing.detail,
+    };
+  }
+
   function renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl) {
     if (!linkedOffer) return '';
     const items = buildCustomerPortalReadinessItems(
@@ -8822,6 +8847,7 @@
     );
     const readyCount = items.filter((item) => item.ready).length;
     const allReady = readyCount === items.length;
+    const nextAction = getCustomerPortalReadinessAction(items, customerPortalUrl);
     return `
       <div class="patient-master-offer-next-step" data-customer-portal-readiness>
         <div class="patient-master-offer-meta-badges">
@@ -8835,6 +8861,10 @@
                 `<span class="patient-master-status-badge${item.ready ? ' is-accent' : ''}" data-customer-portal-readiness-item="${escapeHtml(item.key)}">${escapeHtml(item.label)} · ${escapeHtml(item.detail)}</span>`
             )
             .join('')}
+        </div>
+        <div class="patient-master-offer-meta-badges" data-customer-portal-readiness-action>
+          <span class="patient-master-status-badge${nextAction.tone ? ` ${nextAction.tone}` : ''}">${escapeHtml(nextAction.label)}</span>
+          <span class="patient-master-status-badge">${escapeHtml(nextAction.detail)}</span>
         </div>
       </div>
     `;
