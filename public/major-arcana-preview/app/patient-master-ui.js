@@ -8703,7 +8703,29 @@
     return `<p class="patient-master-muted">${escapeHtml(bits.join(' · '))}</p>`;
   }
 
-  function renderOfferNextStep(linkedOffer, customerPortalUrl) {
+  function buildCustomerPortalUrlFromOffer(linkedOffer) {
+    if (!linkedOffer?.esignToken) return '';
+    return `/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(linkedOffer.esignToken)}`;
+  }
+
+  function getCustomerPortalUrl(linkedOffer) {
+    const deterministicUrl = buildCustomerPortalUrlFromOffer(linkedOffer);
+    const runtimeUrl = String(runtime.customerPortalUrl || '').trim();
+    const token = linkedOffer?.esignToken ? encodeURIComponent(linkedOffer.esignToken) : '';
+    if (runtimeUrl && token && runtimeUrl.includes(`token=${token}`)) {
+      return runtimeUrl;
+    }
+    return deterministicUrl;
+  }
+
+  function getCustomerPortalLinkSource(linkedOffer, customerPortalUrl) {
+    if (!linkedOffer || !customerPortalUrl) return 'saknas';
+    return String(runtime.customerPortalUrl || '').trim() === customerPortalUrl
+      ? 'från utskick'
+      : 'från offerttoken';
+  }
+
+  function renderOfferNextStep(linkedOffer, customerPortalUrl, customerPortalLinkSource = '') {
     if (!linkedOffer) return '';
     const quoteStatus = linkedOffer.quoteStatus || 'draft';
     const esignStatus = linkedOffer.esignStatus || 'draft';
@@ -8730,7 +8752,7 @@
       <div class="patient-master-offer-next-step">
         <div class="patient-master-offer-meta-badges">
           <span class="patient-master-status-badge${tone ? ` ${tone}` : ''}">${escapeHtml(nextStep)}</span>
-          <span class="patient-master-status-badge">Portal ${customerPortalUrl ? 'klar' : 'saknas'}</span>
+          <span class="patient-master-status-badge">Portal ${customerPortalUrl ? 'klar' : 'saknas'}${customerPortalLinkSource ? ` · ${escapeHtml(customerPortalLinkSource)}` : ''}</span>
           <span class="patient-master-status-badge">Signering ${escapeHtml(esignStatus)}</span>
         </div>
       </div>
@@ -9129,11 +9151,8 @@
       linkedOffer?.offerDocumentId && runtime.selectedPatientId
         ? `/api/v1/cco-commercial/offer-document.doc?patientId=${encodeURIComponent(runtime.selectedPatientId)}&documentId=${encodeURIComponent(linkedOffer.offerDocumentId)}`
         : runtime.offerDocumentWordUrl || '';
-    const customerPortalUrl =
-      runtime.customerPortalUrl ||
-      (linkedOffer?.esignToken
-        ? `/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(linkedOffer.esignToken)}`
-        : '');
+    const customerPortalUrl = getCustomerPortalUrl(linkedOffer);
+    const customerPortalLinkSource = getCustomerPortalLinkSource(linkedOffer, customerPortalUrl);
     const canSendForSign = linkedOffer && linkedOffer.quoteStatus !== 'accepted';
     const canAccept =
       linkedOffer && linkedOffer.quoteStatus === 'sent' && linkedOffer.quoteStatus !== 'accepted';
@@ -9156,7 +9175,7 @@
               : `<p class="patient-master-muted">Skapa offert från planen när bilder är markerade och planen är klar.</p>`
           }
           ${renderOfferStatusMeta(linkedOffer)}
-          ${renderOfferNextStep(linkedOffer, customerPortalUrl)}
+          ${renderOfferNextStep(linkedOffer, customerPortalUrl, customerPortalLinkSource)}
           ${renderOfferPortalActivity(linkedOffer)}
           ${renderOfferFollowupSignal(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
@@ -9186,12 +9205,12 @@
             }
             ${
               customerPortalUrl
-                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalUrl)}" target="_blank" rel="noopener">Öppna kundportal</a>`
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(customerPortalUrl)}" target="_blank" rel="noopener" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Öppna kundportal</a>`
                 : ''
             }
             ${
               customerPortalUrl
-                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-url="${escapeHtml(customerPortalUrl)}">Kopiera portallänk</button>`
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Kopiera portallänk</button>`
                 : ''
             }
             ${

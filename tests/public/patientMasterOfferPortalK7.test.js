@@ -13,12 +13,23 @@ const polishCssPath = path.join(repoRoot, 'public/major-arcana-preview/cco-polis
 test('patient master offer panel renders K7 status and next-step controls', () => {
   const source = fs.readFileSync(patientMasterUiPath, 'utf8');
 
-  assert.match(source, /function renderOfferNextStep\(linkedOffer, customerPortalUrl\)/);
+  assert.match(
+    source,
+    /function renderOfferNextStep\(linkedOffer, customerPortalUrl, customerPortalLinkSource = ''\)/
+  );
   assert.match(source, /Nästa: skapa behandlingsavtal och samtycke från accepterad offert\./);
   assert.match(source, /Kunden kan läsa portalen nu\. Signering öppnar efter betänketiden/);
-  assert.match(source, /Portal \$\{customerPortalUrl \? 'klar' : 'saknas'\}/);
+  assert.match(
+    source,
+    /Portal \$\{customerPortalUrl \? 'klar' : 'saknas'\}\$\{customerPortalLinkSource/
+  );
   assert.match(source, /Signering \$\{escapeHtml\(esignStatus\)\}/);
+  assert.match(
+    source,
+    /renderOfferNextStep\(linkedOffer, customerPortalUrl, customerPortalLinkSource\)/
+  );
   assert.match(source, /data-patient-action="copy-customer-portal-link"/);
+  assert.match(source, /data-customer-portal-source/);
   assert.match(source, /Kopiera portallänk/);
   assert.match(source, /function copyCustomerPortalLink\(url\)/);
   assert.match(source, /new URL\(rawUrl, window\.location\.origin\)\.toString\(\)/);
