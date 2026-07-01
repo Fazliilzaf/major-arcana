@@ -7,6 +7,8 @@ const {
   isDriveNeedsReviewAsset,
   loadCustomerDirectory,
   loadPatientMasterBucket,
+  loadAllPatientMasterBuckets,
+  patientExistsInRegistry,
 } = require('./ccoDriveImportReviewReadService');
 const {
   validateWriteBody,
@@ -14,7 +16,6 @@ const {
   snapshotDriveImmutable,
   assertDriveImmutableUnchanged,
   assertNoDriveLinkInAsset,
-  assertPatientInRegistry,
   resolveApprovedCategory,
 } = require('./ccoDriveImportReviewWriteValidation');
 
@@ -96,12 +97,26 @@ function recordDriveCanary(patch, { projectRoot, maxDecisions, enabled }) {
   return recordCanaryDecision(CANARY_TRACK, patch, { projectRoot, maxDecisions });
 }
 
+async function assertPatientKnown(patientId, ctx) {
+  const registry = loadPatientRegistry(ctx.projectRoot);
+  if (patientExistsInRegistry(patientId, registry)) return;
+  if (typeof ctx.resolvePatientExists === 'function') {
+    const ok = await ctx.resolvePatientExists(patientId);
+    if (ok) return;
+  }
+  const e = new Error('patient_not_in_directory');
+  e.statusCode = 409;
+  e.detail = { patientId };
+  throw e;
+}
+
 function loadPatientRegistry(projectRoot) {
   const root = projectRoot || path.join(__dirname, '../..');
   const dataDir = process.env.ARCANA_STATE_ROOT || path.join(root, 'data');
   return {
     directory: loadCustomerDirectory(dataDir),
     masterBucket: loadPatientMasterBucket(dataDir),
+    masterBuckets: loadAllPatientMasterBuckets(dataDir),
   };
 }
 
@@ -149,8 +164,7 @@ async function applyDriveImportReviewApprove(assetStore, assetId, body, ctx) {
     throw e;
   }
 
-  const registry = loadPatientRegistry(ctx.projectRoot);
-  assertPatientInRegistry(asset.patientId, registry);
+  await assertPatientKnown(asset.patientId, ctx);
 
   const immutableBefore = snapshotDriveImmutable(asset);
   const before = snapshotAsset(asset);
@@ -212,8 +226,7 @@ async function applyDriveImportReviewReassign(assetStore, assetId, body, ctx) {
   assertNoDriveLinkInAsset(asset);
 
   const targetPatientId = requireTargetPatientId(body);
-  const registry = loadPatientRegistry(ctx.projectRoot);
-  assertPatientInRegistry(targetPatientId, registry);
+  await assertPatientKnown(targetPatientId, ctx);
 
   const immutableBefore = snapshotDriveImmutable(asset);
   const before = snapshotAsset(asset);
@@ -344,6 +357,7 @@ async function applyDriveImportReviewDecision({
   assetId,
   body,
   actor,
+  resolvePatientExists = null,
 }) {
   assertWriteEnabled(config);
   assertCanaryAllows(CANARY_TRACK, {
@@ -353,7 +367,7 @@ async function applyDriveImportReviewDecision({
   });
 
   const validated = validateWriteBody(body, actor);
-  const ctx = { projectRoot, config, auditLog, actor };
+  const ctx = { projectRoot, config, auditLog, actor, resolvePatientExists };
 
   if (validated.decision === 'approve') {
     return applyDriveImportReviewApprove(assetStore, assetId, body, ctx);

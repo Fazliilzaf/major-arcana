@@ -10279,6 +10279,25 @@ try {
       projectRoot: __dirname,
       config,
       resolveStores: ensureAssetStores,
+      resolvePatientExists: async (patientId) => {
+        const store = app.locals.ccoPatientMasterStore;
+        if (!store?.getPatient) return false;
+        const tenantCandidates = [
+          config.defaultTenantId,
+          'hair_tp',
+          'hair-tp-clinic',
+          'hairtpclinic',
+        ].filter(Boolean);
+        for (const tenantId of tenantCandidates) {
+          try {
+            const patient = await store.getPatient({ tenantId, patientId });
+            if (patient) return true;
+          } catch {
+            /* try next tenant */
+          }
+        }
+        return false;
+      },
       auditLog: ccoAuditLog,
       requireCcoAuthenticated,
       attachRole,
