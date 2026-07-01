@@ -1,0 +1,188 @@
+:root {
+  color-scheme: light dark;
+  --dir-bg: #0f1419;
+  --dir-panel: #1a2332;
+  --dir-border: #2d3a4d;
+  --dir-text: #e7edf5;
+  --dir-muted: #8fa3bf;
+  --dir-accent: #4da3ff;
+  --dir-warn: #f5a623;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--dir-bg);
+  color: var(--dir-text);
+}
+
+.dir-shell {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2.5rem;
+}
+
+.dir-banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(77, 163, 255, 0.35);
+  border-radius: 8px;
+  background: rgba(77, 163, 255, 0.08);
+}
+
+.dir-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.dir-metric {
+  min-width: 120px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--dir-border);
+  border-radius: 8px;
+  background: var(--dir-panel);
+}
+
+.dir-metric strong {
+  display: block;
+  font-size: 1.25rem;
+}
+
+.dir-metric span {
+  font-size: 0.8rem;
+  color: var(--dir-muted);
+}
+
+.dir-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--dir-border);
+  border-radius: 10px;
+  background: var(--dir-panel);
+}
+
+.dir-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--dir-muted);
+}
+
+.dir-filters input,
+.dir-filters select {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--dir-border);
+  border-radius: 6px;
+  background: #0f1419;
+  color: var(--dir-text);
+}
+
+.dir-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--dir-border);
+  border-radius: 10px;
+  background: var(--dir-panel);
+}
+
+.dir-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.dir-table th,
+.dir-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--dir-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.dir-table th {
+  position: sticky;
+  top: 0;
+  background: #152030;
+  color: var(--dir-muted);
+  font-weight: 600;
+}
+
+.dir-table tr:hover td {
+  background: rgba(77, 163, 255, 0.05);
+}
+
+.dir-table .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.dir-table .path {
+  max-width: 280px;
+  word-break: break-word;
+}
+
+.dir-chip {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--dir-border);
+  font-size: 0.75rem;
+}
+
+.dir-link {
+  color: var(--dir-accent);
+  text-decoration: none;
+}
+
+.dir-link:hover {
+  text-decoration: underline;
+}
+
+.dir-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.75rem 0;
+}
+
+.dir-btn {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--dir-border);
+  border-radius: 6px;
+  background: #152030;
+  color: var(--dir-text);
+  cursor: pointer;
+}
+
+.dir-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dir-muted {
+  color: var(--dir-muted);
+}
+
+.dir-error {
+  color: #ff6b6b;
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .dir-table .hide-sm {
+    display: none;
+  }
+}

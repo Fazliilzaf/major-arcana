@@ -10271,6 +10271,20 @@ try {
   console.log(
     `[cco-import-review] import write=${config.enableImportReviewWrite ? 'CANARY' : 'READ-ONLY'}`
   );
+
+  const { createCcoDriveImportReviewReadRouter } = require('./src/routes/ccoDriveImportReviewRead');
+  app.use(
+    '/api/v1/ops',
+    createCcoDriveImportReviewReadRouter({
+      projectRoot: __dirname,
+      requireCcoAuthenticated,
+      attachRole,
+      requirePermission,
+    })
+  );
+  console.log(
+    '[cco-drive-import-review] monterad READ-ONLY: GET /api/v1/ops/cco/drive-import-review/*'
+  );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
 }
