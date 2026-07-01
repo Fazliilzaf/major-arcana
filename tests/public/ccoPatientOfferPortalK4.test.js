@@ -120,3 +120,16 @@ test('customer offer portal renders K15 live next action CTA', () => {
   assert.match(source, /Offerten är signerad/);
   assert.match(source, /renderPortalNextAction\(context\)/);
 });
+
+test('customer offer portal renders K16 live journey gates', () => {
+  const source = readPortal();
+  assert.match(source, /data-portal-journey-gates/);
+  assert.match(source, /data-portal-journey-gates-list/);
+  assert.match(source, /function resolvePortalJourneyGates\(contextInput\)/);
+  assert.match(source, /function renderPortalJourneyGates\(contextInput\)/);
+  assert.match(source, /Avtal och behandlingssamtycke/);
+  assert.match(source, /Friskförsäkran på operationsdagen/);
+  assert.match(source, /Fotosamtycke/);
+  assert.match(source, /VIP-bokning och operationstid/);
+  assert.match(source, /renderPortalJourneyGates\(context\)/);
+});

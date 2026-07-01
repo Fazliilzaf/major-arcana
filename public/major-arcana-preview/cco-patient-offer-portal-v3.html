@@ -569,6 +569,136 @@
         font-size: 0.68rem;
         line-height: 1.42;
       }
+      .portal-journey-gates {
+        display: none;
+        gap: 0.82rem;
+        margin: 0 0 var(--gap);
+        padding: 1rem;
+        border-radius: var(--panel-radius);
+        background:
+          radial-gradient(circle at 4% 10%, rgba(211, 156, 52, 0.12), transparent 38%),
+          radial-gradient(circle at 96% 12%, rgba(176, 53, 110, 0.13), transparent 42%),
+          rgba(255, 252, 248, 0.94);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+      }
+      html[data-customer-offer-context='live'] .portal-journey-gates.is-visible {
+        display: grid;
+      }
+      .portal-journey-gates__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.85rem;
+      }
+      .portal-journey-gates__head h2 {
+        margin: 0;
+        color: var(--text-primary);
+        font-family: 'Cormorant Garamond', 'Georgia', serif;
+        font-size: 1.24rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      .portal-journey-gates__head p {
+        margin: 0.22rem 0 0;
+        color: var(--text-secondary);
+        font-size: 0.76rem;
+        line-height: 1.5;
+      }
+      .portal-journey-gates__badge {
+        flex: 0 0 auto;
+        padding: 0.25rem 0.62rem;
+        border-radius: var(--r-pill);
+        background: rgba(47, 111, 84, 0.1);
+        color: var(--success);
+        font-size: 0.58rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .portal-journey-gates__list {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .portal-journey-step {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.68rem;
+        padding: 0.7rem;
+        border-radius: var(--card-radius);
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(223, 212, 203, 0.68);
+      }
+      .portal-journey-step[data-state='done'] {
+        border-color: rgba(47, 111, 84, 0.28);
+        background: rgba(237, 248, 241, 0.72);
+      }
+      .portal-journey-step[data-state='active'] {
+        border-color: rgba(176, 53, 110, 0.28);
+        background: rgba(255, 244, 249, 0.76);
+      }
+      .portal-journey-step[data-state='locked'] {
+        opacity: 0.74;
+      }
+      .portal-journey-step__dot {
+        display: grid;
+        width: 2rem;
+        height: 2rem;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(167, 145, 125, 0.14);
+        color: var(--text-tertiary);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+      .portal-journey-step[data-state='done'] .portal-journey-step__dot {
+        background: rgba(47, 111, 84, 0.14);
+        color: var(--success);
+      }
+      .portal-journey-step[data-state='active'] .portal-journey-step__dot {
+        background: linear-gradient(135deg, var(--accent), var(--violet));
+        color: #fff;
+        box-shadow: 0 12px 30px -18px rgba(176, 53, 110, 0.72);
+      }
+      .portal-journey-step__body strong {
+        display: block;
+        color: var(--text-primary);
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+      .portal-journey-step__body span {
+        display: block;
+        margin-top: 0.15rem;
+        color: var(--text-secondary);
+        font-size: 0.68rem;
+        line-height: 1.38;
+      }
+      .portal-journey-step__status {
+        padding: 0.18rem 0.52rem;
+        border-radius: var(--r-pill);
+        background: rgba(109, 99, 84, 0.09);
+        color: var(--text-secondary);
+        font-size: 0.56rem;
+        font-weight: 850;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .portal-journey-step[data-state='done'] .portal-journey-step__status {
+        background: rgba(47, 111, 84, 0.1);
+        color: var(--success);
+      }
+      .portal-journey-step[data-state='active'] .portal-journey-step__status {
+        background: rgba(176, 53, 110, 0.1);
+        color: var(--accent);
+      }
+      .portal-journey-gates__note {
+        margin: -0.08rem 0 0;
+        color: var(--text-tertiary);
+        font-size: 0.67rem;
+        line-height: 1.42;
+      }
       .portal-files-panel {
         display: none;
         gap: 0.55rem;
@@ -2588,6 +2718,24 @@
         </p>
       </section>
 
+      <section class="portal-journey-gates" data-portal-journey-gates hidden aria-live="polite">
+        <div class="portal-journey-gates__head">
+          <div>
+            <h2>Min trygga resa</h2>
+            <p>
+              Här ser du vad som är klart, vad som väntar och vad som öppnas först när kliniken har
+              godkänt nästa steg.
+            </p>
+          </div>
+          <span class="portal-journey-gates__badge">Live status</span>
+        </div>
+        <div class="portal-journey-gates__list" data-portal-journey-gates-list></div>
+        <p class="portal-journey-gates__note">
+          Friskförsäkran skrivs på operationsdagen. Fotosamtycke är separat och frivilligt. Kliniken
+          låser upp nästa steg när underlagen är redo.
+        </p>
+      </section>
+
       <!-- TIDSLINJE -->
       <div class="timeline-card" data-unlock="1" data-tease-label="🔒 Låses upp när offert skickas">
         <div class="tl-title">Förväntad hårväxt · Månad 1–12</div>
@@ -4053,6 +4201,140 @@
         panel.classList.add('is-visible');
       }
 
+      function isPortalDone(value) {
+        if (value === true) return true;
+        var normalized = safeText(value).toLowerCase();
+        return [
+          'accepted',
+          'bookable',
+          'complete',
+          'completed',
+          'done',
+          'granted',
+          'ok',
+          'signed',
+          'true',
+        ].includes(normalized);
+      }
+
+      function resolvePortalJourneyGates(contextInput) {
+        var context = asObject(contextInput);
+        var agreement = asObject(context.treatmentAgreement || context.agreement);
+        var photoConsent = asObject(context.photoConsent);
+        var fitnessCertificate = asObject(context.fitnessCertificate);
+        var quoteAccepted =
+          safeText(context.quoteStatus) === 'accepted' ||
+          safeText(context.esignStatus) === 'accepted';
+        var quoteSent = safeText(context.quoteStatus) === 'sent' || Boolean(context.offerSignUrl);
+        var agreementDone =
+          agreement.bookable === true ||
+          agreement.consentSigned === true ||
+          isPortalDone(agreement.phase) ||
+          isPortalDone(agreement.status) ||
+          isPortalDone(context.agreementStatus);
+        var agreementActive = quoteAccepted && !agreementDone;
+        var fitnessDone =
+          isPortalDone(context.fitnessSigned) ||
+          isPortalDone(fitnessCertificate.signed) ||
+          isPortalDone(fitnessCertificate.status);
+        var photoDone =
+          isPortalDone(photoConsent.signed) ||
+          isPortalDone(photoConsent.status) ||
+          isPortalDone(context.photoConsentSigned);
+        var vipUrl =
+          safeText(context.vipBookingUrl) ||
+          safeText(context.operationBookingUrl) ||
+          safeText(context.bookingUrl);
+        var operationBooked =
+          context.operationBooked === true ||
+          isPortalDone(context.operationBookingStatus) ||
+          isPortalDone(context.bookingStatus);
+
+        return [
+          {
+            title: 'Offert och behandlingsplan',
+            copy: quoteAccepted
+              ? 'Offerten är signerad och sparad i portalen.'
+              : quoteSent
+                ? 'Läs offert, ritade bilder, zoner och pris innan signering.'
+                : 'Kliniken förbereder offertunderlaget.',
+            state: quoteAccepted ? 'done' : quoteSent ? 'active' : 'locked',
+            icon: quoteAccepted ? '✓' : '1',
+            status: quoteAccepted ? 'Klar' : quoteSent ? 'Pågår' : 'Låst',
+          },
+          {
+            title: 'Avtal och behandlingssamtycke',
+            copy: agreementDone
+              ? 'Avtal och samtycke är signerat och bokningsflödet kan fortsätta.'
+              : agreementActive
+                ? 'Nästa steg efter offertsignering. Kliniken skickar när underlaget är redo.'
+                : 'Öppnas först efter signerad offert.',
+            state: agreementDone ? 'done' : agreementActive ? 'active' : 'locked',
+            icon: agreementDone ? '✓' : '2',
+            status: agreementDone ? 'Klar' : agreementActive ? 'Nästa' : 'Låst',
+          },
+          {
+            title: 'Friskförsäkran på operationsdagen',
+            copy: fitnessDone
+              ? 'Friskförsäkran är registrerad för operationsdagen.'
+              : agreementDone
+                ? 'Skrivs på samma dag som hårtransplantationen innan behandlingen startar.'
+                : 'Väntar tills avtal och samtycke är klart.',
+            state: fitnessDone ? 'done' : agreementDone ? 'active' : 'locked',
+            icon: fitnessDone ? '✓' : '3',
+            status: fitnessDone ? 'Klar' : agreementDone ? 'Operationsdag' : 'Låst',
+          },
+          {
+            title: 'Fotosamtycke',
+            copy: photoDone
+              ? 'Fotosamtycke är registrerat.'
+              : agreementDone
+                ? 'Frivilligt steg för bildpublicering. Journalbilder hanteras separat.'
+                : 'Visas när behandlingsflödet är aktivt.',
+            state: photoDone ? 'done' : agreementDone ? 'active' : 'locked',
+            icon: photoDone ? '✓' : '4',
+            status: photoDone ? 'Klar' : agreementDone ? 'Frivilligt' : 'Låst',
+          },
+          {
+            title: 'VIP-bokning och operationstid',
+            copy: operationBooked
+              ? 'Operationstid är bokad och bekräftad.'
+              : vipUrl && agreementDone
+                ? 'Bokningslänken är upplåst när avtalet är bokningsbart.'
+                : 'Låses upp när kliniken har godkänt bokningsunderlaget.',
+            state: operationBooked ? 'done' : vipUrl && agreementDone ? 'active' : 'locked',
+            icon: operationBooked ? '✓' : '5',
+            status: operationBooked ? 'Bokad' : vipUrl && agreementDone ? 'Öppen' : 'Låst',
+          },
+        ];
+      }
+
+      function renderPortalJourneyGates(contextInput) {
+        var panel = document.querySelector('[data-portal-journey-gates]');
+        var list = document.querySelector('[data-portal-journey-gates-list]');
+        if (!panel || !list) return;
+        var steps = resolvePortalJourneyGates(contextInput);
+        list.innerHTML = steps
+          .map(function (step) {
+            return (
+              '<div class="portal-journey-step" data-state="' +
+              escapeHtml(step.state) +
+              '"><div class="portal-journey-step__dot">' +
+              escapeHtml(step.icon) +
+              '</div><div class="portal-journey-step__body"><strong>' +
+              escapeHtml(step.title) +
+              '</strong><span>' +
+              escapeHtml(step.copy) +
+              '</span></div><div class="portal-journey-step__status">' +
+              escapeHtml(step.status) +
+              '</div></div>'
+            );
+          })
+          .join('');
+        panel.hidden = false;
+        panel.classList.add('is-visible');
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -4119,6 +4401,7 @@
         setPortalText('[data-portal-next-step]', nextStep);
         if (hasLiveContext) {
           renderPortalNextAction(context);
+          renderPortalJourneyGates(context);
         }
 
         var signButton = document.getElementById('bankidBtn');
