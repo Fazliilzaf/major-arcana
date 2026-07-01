@@ -13511,6 +13511,7 @@ process.once('SIGTERM', () => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       runtimeState,
+      clientoBookingStore,
     })
   );
 

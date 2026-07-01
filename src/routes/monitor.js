@@ -946,6 +946,7 @@ function createMonitorRouter({
   requireAuth,
   requireRole,
   runtimeState,
+  clientoBookingStore = null,
 }) {
   const router = express.Router();
 
@@ -3442,6 +3443,80 @@ function createMonitorRouter({
         }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte beräkna readiness.' });
+      }
+    }
+  );
+
+  // GET /monitor/clinic-performance — read-only KPI-snapshot för CEO-appen
+  // (Clinic Performance v0.2a). Komponerar ClinicMetrics-shapen ur befintliga
+  // stores: bokningar/no-show (clientoBookingStore) + intäkt (CFO-finance).
+  // ÄRLIG PARTIAL LIVE: beläggning/kanalfördelning/trend är ännu inte live och
+  // returneras null/utelämnade — aldrig gissade.
+  router.get(
+    '/monitor/clinic-performance',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        const tenantId = req.auth.tenantId;
+        if (!clientoBookingStore) {
+          return res.status(503).json({ error: 'clientoBookingStore saknas.' });
+        }
+
+        const { composeClinicMetrics } = require('../ops/clinicPerformance');
+        const bookings = clientoBookingStore.listAllBookings({ tenantId });
+
+        // Intäkt via CFO-finance-buildern — läsande, best-effort. Hellre null än
+        // gissad siffra om finance-lagret inte kan byggas.
+        let financeDashboard = null;
+        try {
+          const { buildFinanceDashboard } = require('../cfo/cfoFinanceDashboardBuilder');
+          const locals = req.app.locals || {};
+          financeDashboard = await buildFinanceDashboard({
+            stores: {
+              fortnoxStore: locals.cfoFortnoxStore,
+              swishStore: locals.ccoSwishStore,
+              commercialStore: locals.ccoCommercialStore,
+              receiptStore: locals.cfoReceiptStore,
+              expenseStore: locals.cfoExpenseStore,
+              ruleStore: locals.cfoExpenseRuleStore,
+              vendorStore: locals.cfoFinanceVendorStore,
+              recurringStore: locals.cfoRecurringExpenseStore,
+              reviewStore: locals.cfoFinanceReviewStore,
+              monthlyCloseStore: locals.cfoFinanceMonthlyCloseStore,
+              fortnoxInvoiceLister: locals.cfoFortnoxInvoiceLister,
+            },
+            tenantId,
+          });
+        } catch (financeErr) {
+          financeDashboard = null; // ärligt: revenue blir null istället för gissad
+        }
+
+        const metrics = composeClinicMetrics({
+          bookings,
+          financeDashboard,
+          now: new Date(),
+          tenantId,
+        });
+
+        // Läsande audit-event (best-effort, blockerar aldrig svaret).
+        try {
+          await authStore?.addAuditEvent?.({
+            tenantId,
+            actorUserId: req.auth.userId,
+            action: 'monitor.clinic_performance.read',
+            outcome: 'success',
+            targetType: 'clinic_performance',
+            targetId: tenantId,
+          });
+        } catch (_auditErr) {
+          /* audit är best-effort */
+        }
+
+        return res.json(metrics);
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte beräkna clinic performance.' });
       }
     }
   );
