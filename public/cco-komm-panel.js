@@ -1340,10 +1340,19 @@
       övrigt: 'Övrigt',
     };
 
-    // Öppna bild/dokument via befintlig säkrad filöppning (server-endpoint
-    // som strömmar från Drive) — ALDRIG en direkt Drive-länk.
-    function securePatientFileUrl(fileId) {
-      return '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(fileId);
+    // Öppna bild/dokument via befintlig säkrad server-endpoint — ALDRIG en
+    // direkt Drive-länk. Native CCO-assets serveras via asset-download-routen
+    // (samma URL som kundkortets assetToPatientFile().viewUrl); migration-
+    // index-filer via /cco-patient-master/file.
+    function secureOpenRefUrl(openRef) {
+      if (!openRef) return null;
+      if (openRef.kind === 'patient_asset' && openRef.assetId) {
+        return '/api/v1/cco/assets/' + encodeURIComponent(openRef.assetId) + '/download?inline=1';
+      }
+      if (openRef.kind === 'patient_file' && openRef.fileId) {
+        return '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(openRef.fileId);
+      }
+      return null;
     }
 
     function renderList(events, totalCount) {
@@ -1393,15 +1402,15 @@
             },
             'Öppna konversation'
           );
-        } else if (openRef && openRef.fileId) {
+        } else if (openRef && secureOpenRefUrl(openRef)) {
           action = el(
             'a',
             {
               class: 'cco-komm-timeline-link',
-              href: securePatientFileUrl(openRef.fileId),
+              href: secureOpenRefUrl(openRef),
               target: '_blank',
               rel: 'noopener',
-              dataset: { fileId: openRef.fileId },
+              dataset: { assetId: openRef.assetId || '', fileId: openRef.fileId || '' },
             },
             ev.displayType === 'bild' ? 'Öppna bild' : 'Öppna dokument'
           );

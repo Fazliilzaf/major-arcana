@@ -182,7 +182,10 @@ test('C6 route: GET /cco-customers/:id/unified-timeline surfaces only VISIBLE as
     const assetEvents = (body.events || []).filter((e) => e.source === 'asset');
     assert.equal(assetEvents.length, 1, 'only VISIBLE_ON_PATIENT_CARD asset surfaces');
     assert.equal(assetEvents[0].meta.assetId, 'visible-doc');
-    assert.deepEqual(assetEvents[0].meta.openRef, { kind: 'patient_file', fileId: 'visible-doc' });
+    assert.deepEqual(assetEvents[0].meta.openRef, {
+      kind: 'patient_asset',
+      assetId: 'visible-doc',
+    });
 
     const mail = (body.events || []).find((e) => e.kind === 'incoming_mail');
     assert.ok(mail, 'mail event present');

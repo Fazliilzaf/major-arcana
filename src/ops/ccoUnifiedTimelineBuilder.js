@@ -320,10 +320,12 @@ async function buildUnifiedTimeline({
             status: a.status,
             encounterId: a.encounterId || null,
             patientCardSection: a.patientCardSection || null,
-            // Bild/dokument öppnas via befintlig säkrad filöppning, ALDRIG
-            // direkt Drive-länk. Frontend bygger /cco-patient-master/file
-            // ?fileId=... av openRef.fileId (samma kontrakt som kundkortet).
-            openRef: a.id ? { kind: 'patient_file', fileId: a.id } : null,
+            // Bild/dokument öppnas via befintlig säkrad asset-endpoint
+            // (/api/v1/cco/assets/:assetId/download?inline=1 — samma URL som
+            // assetToPatientFile().viewUrl), ALDRIG direkt Drive-länk och
+            // ALDRIG migration-index-routen (som bara löser fileId, inte
+            // native asset-id).
+            openRef: a.id ? { kind: 'patient_asset', assetId: a.id } : null,
           },
           source: 'asset',
           entityId: a.id,

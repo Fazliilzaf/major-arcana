@@ -128,7 +128,8 @@ test('C6: VISIBLE_ON_PATIENT_CARD-asset visas som dokument/bild med säkrad open
   assert.equal(doc.displayType, 'dokument');
 
   for (const ev of assetEvents) {
-    assert.deepEqual(ev.meta.openRef, { kind: 'patient_file', fileId: ev.meta.assetId });
+    // Native asset-kontrakt (ej migration-index fileId).
+    assert.deepEqual(ev.meta.openRef, { kind: 'patient_asset', assetId: ev.meta.assetId });
     // Ingen rå Drive-länk får finnas någonstans i eventet.
     const serialized = JSON.stringify(ev);
     assert.ok(!/drive\.google\.com/i.test(serialized), 'ingen direkt Drive-länk');
