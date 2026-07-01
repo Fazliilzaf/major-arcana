@@ -66,6 +66,7 @@
       normalizeStudioBusyState,
       normalizeText,
       patchStudioThreadAfterSend,
+      patchStudioThreadAfterReopen,
       recordDraftFeedbackFireAndForget,
       refreshWorkspaceBootstrapForSelectedThread,
       renderFocusHistorySection,
@@ -1078,6 +1079,41 @@
         await persistHandledConversationAction(thread, { closeStudio: true });
       } catch (error) {
         setStudioFeedback(asText(error?.message, "Kunde inte markera tråden som klar."), "error");
+      }
+    }
+
+    async function handleReopenConversation(thread, { closeStudio = false } = {}) {
+      if (!thread) return false;
+      const customerId =
+        (typeof getRuntimeCustomerEmail === "function" ? getRuntimeCustomerEmail(thread) : "") ||
+        asText(thread.customerEmail || thread.id);
+      if (!customerId) {
+        setStudioFeedback("Saknar kund-id för att återöppna tråden.", "error");
+        return false;
+      }
+      const key = normalizeKey(thread.id);
+      if (!key) {
+        setStudioFeedback("Saknar konversationsnyckel för att återöppna.", "error");
+        return false;
+      }
+      const previous = { ...thread };
+      try {
+        await apiRequest(`/api/v1/cco/runtime/conversation/${key}/action`, {
+          method: "POST",
+          body: { action: "reopen", customerId },
+        });
+        patchStudioThreadAfterReopen(thread);
+        if (closeStudio) {
+          setStudioFeedback("Tråden återöppnades.", "success");
+          setStudioOpen(false);
+          setContextCollapsed(false);
+        }
+        return true;
+      } catch (err) {
+        // Rollback: tråden ändrades inte optimistiskt, ingen rollback behövs
+        void previous;
+        setStudioFeedback(asText(err?.message, "Kunde inte återöppna tråden."), "error");
+        return false;
       }
     }
 

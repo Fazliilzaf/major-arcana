@@ -231,6 +231,11 @@ function toSummarizeInputMessage(m) {
   };
 }
 
+async function safeAuditConversation(authStore, event) {
+  if (!authStore || typeof authStore.addAuditEvent !== 'function') return;
+  await authStore.addAuditEvent(event);
+}
+
 function createCcoConversationRouter({
   ccoMailboxTruthStore,
   requireAuth,
@@ -246,6 +251,7 @@ function createCcoConversationRouter({
   ccoMailTemplateStore = null,
   clientoBookingStore = null,
   defaultTenantId = 'cco',
+  authStore = null,
 } = {}) {
   const router = express.Router();
   const authMiddleware =
@@ -757,7 +763,19 @@ function createCcoConversationRouter({
             detail: 'action måste vara handled | reply_later | reopen',
           });
         }
+        const customerId = normalizeText(body.customerId).toLowerCase();
+        if (!customerId) {
+          return res.status(400).json({
+            ok: false,
+            error: 'missing_customer_id',
+            detail: 'customerId krävs för att skydda mot fel kund',
+          });
+        }
         const note = normalizeText(body.note).slice(0, 260);
+        const actorUserId = normalizeText(
+          req?.user?.id || req?.user?.userId || req?.session?.userId
+        );
+        const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
 
         // Reopen → supersede existing state
         if (action === 'reopen') {
@@ -768,6 +786,18 @@ function createCcoConversationRouter({
             tenantId: defaultTenantId,
             canonicalConversationKey: key,
             supersededReason: 'manual_clear',
+          });
+          await safeAuditConversation(authStore, {
+            action: 'cco.conversation.reopen',
+            tenantId: defaultTenantId,
+            metadata: {
+              conversationKey: key,
+              customerId,
+              action,
+              actorUserId: actorUserId || null,
+              actorEmail: actorEmail || null,
+              actionAt: new Date().toISOString(),
+            },
           });
           return res.json({ ok: true, action, conversationKey: key, state: result || null });
         }
@@ -801,12 +831,7 @@ function createCcoConversationRouter({
         const needsReplyStatusOverride = action === 'handled' ? 'handled' : 'needs_reply';
         const nextActionLabel = action === 'handled' ? 'Markerad som klar' : 'Påminnelse senare';
 
-        // Identifiera operatör från req.session/auth
-        const actorUserId = normalizeText(
-          req?.user?.id || req?.user?.userId || req?.session?.userId
-        );
-        const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
-
+        const actionAt = new Date().toISOString();
         const result = await ccoConversationStateStore.writeConversationState({
           tenantId: defaultTenantId,
           canonicalConversationKey: key,
@@ -821,9 +846,22 @@ function createCcoConversationRouter({
           waitingOn: action === 'reply_later' ? 'customer' : null,
           nextActionLabel,
           nextActionSummary: note || null,
-          actionAt: new Date().toISOString(),
+          actionAt,
           actionByUserId: actorUserId || null,
           actionByEmail: actorEmail || null,
+        });
+        await safeAuditConversation(authStore, {
+          action: `cco.conversation.${action}`,
+          tenantId: defaultTenantId,
+          metadata: {
+            conversationKey: key,
+            customerId,
+            action,
+            followUpDueAt: followUpDueAt || null,
+            actorUserId: actorUserId || null,
+            actorEmail: actorEmail || null,
+            actionAt,
+          },
         });
         return res.json({
           ok: true,
@@ -913,13 +951,11 @@ function createCcoConversationRouter({
             .json({ ok: false, error: 'sync_in_flight', detail: 'En sync pågår redan.' });
         }
         if (!graphReadConnector) {
-          return res
-            .status(503)
-            .json({
-              ok: false,
-              error: 'graph_read_unavailable',
-              detail: 'ARCANA_GRAPH_READ_ENABLED måste vara true.',
-            });
+          return res.status(503).json({
+            ok: false,
+            error: 'graph_read_unavailable',
+            detail: 'ARCANA_GRAPH_READ_ENABLED måste vara true.',
+          });
         }
         if (!ccoMailboxTruthStore) {
           return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });

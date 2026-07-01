@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 const RUNTIME_DOM_PATH = path.join(
   __dirname,
   '..',
@@ -176,10 +169,7 @@ test('applyReplyLaterToThread skriver via backend, lägger optimistisk runtime-p
   assert.equal(requestCalls[0][1].id, 'thread-2');
   assert.equal(requestCalls[0][2].body.followUpDueAt, '2026-04-17T07:00:00.000Z');
   assert.equal(requestCalls[0][2].body.nextActionLabel, 'Återuppta senare');
-  assert.equal(
-    requestCalls[0][2].body.nextActionSummary,
-    'Tråden är parkerad till Imorgon 09:00.'
-  );
+  assert.equal(requestCalls[0][2].body.nextActionSummary, 'Tråden är parkerad till Imorgon 09:00.');
   assert.equal(focusStatusLine.textContent, 'Tråden parkerades till Imorgon 09:00.');
   assert.equal(auxStatusCalls.length, 1);
   assert.deepEqual(optimisticPatchCalls, ['thread-2']);
@@ -188,7 +178,10 @@ test('applyReplyLaterToThread skriver via backend, lägger optimistisk runtime-p
 
 test('refreshConversationActionRuntimeProjection använder live runtime-reload med reconcile när live är aktivt', async () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
-  const functionSource = extractFunctionSource(source, 'refreshConversationActionRuntimeProjection');
+  const functionSource = extractFunctionSource(
+    source,
+    'refreshConversationActionRuntimeProjection'
+  );
 
   const loadLiveRuntimeCalls = [];
   const bootstrapReasons = [];
@@ -260,7 +253,10 @@ test('refreshConversationActionRuntimeProjection använder live runtime-reload m
 
 test('refreshConversationActionRuntimeProjection faller tillbaka till workspace bootstrap när live runtime inte ska laddas om', async () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
-  const functionSource = extractFunctionSource(source, 'refreshConversationActionRuntimeProjection');
+  const functionSource = extractFunctionSource(
+    source,
+    'refreshConversationActionRuntimeProjection'
+  );
 
   const loadLiveRuntimeCalls = [];
   const bootstrapReasons = [];
@@ -391,6 +387,7 @@ test('selectRuntimeThread renderar om igen efter bootstrap så högerpanelen int
     'loadBootstrap',
     'windowObject',
     'BOOTSTRAP_THREAD_SELECT_DEBOUNCE_MS',
+    'syncThreadActionButtonsForThread',
     `
       let bootstrapThreadSelectTimer = 0;
       ${functionSource}
@@ -408,7 +405,11 @@ test('selectRuntimeThread renderar om igen efter bootstrap så högerpanelen int
     () => {},
     () => renderCalls.push('render'),
     () => {},
-    { querySelectorAll() { return []; } },
+    {
+      querySelectorAll() {
+        return [];
+      },
+    },
     () => ({ catch() {} }),
     async (options) => {
       bootstrapCalls.push(options);
@@ -421,7 +422,8 @@ test('selectRuntimeThread renderar om igen efter bootstrap så högerpanelen int
       },
       Element: class Element {},
     },
-    200
+    200,
+    () => {}
   );
 
   selectRuntimeThread('thread-2', { reloadBootstrap: true });
