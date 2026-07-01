@@ -475,6 +475,41 @@
       html[data-customer-offer-context='live'] .portal-status-panel {
         display: grid;
       }
+      .portal-files-panel {
+        display: none;
+        gap: 0.55rem;
+        margin: 0 0 var(--gap);
+      }
+      html[data-customer-offer-context='live'] .portal-files-panel.is-visible {
+        display: grid;
+      }
+      .portal-file-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.72rem 0.85rem;
+        border-radius: var(--card-radius);
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(223, 212, 203, 0.64);
+        color: var(--text-primary);
+        text-decoration: none;
+        box-shadow: 0 10px 24px -18px rgba(60, 45, 35, 0.3);
+      }
+      .portal-file-link span:first-child {
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+      .portal-file-link span:last-child {
+        padding: 0.18rem 0.52rem;
+        border-radius: var(--r-pill);
+        background: rgba(176, 53, 110, 0.08);
+        color: var(--accent);
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
       .portal-status-row {
         display: flex;
         justify-content: space-between;
@@ -2465,6 +2500,11 @@
 
       <div class="section-heading" data-unlock="1" data-tease-label="">Din offert</div>
 
+      <div class="card portal-files-panel" data-portal-files-panel hidden>
+        <div class="card-title">Mina underlag</div>
+        <div data-portal-files-list></div>
+      </div>
+
       <div class="card" data-unlock="1" data-tease-label="🔒 Låses upp när offert skickas">
         <div class="ai-badge">AI-genererad planering</div>
         <div class="card-title">Planerade zoner · <span data-offer-method>DHI</span>-metoden</div>
@@ -3465,6 +3505,35 @@
         return fallback || value || 'Väntar';
       }
 
+      function renderPortalFiles(filesInput) {
+        var files = Array.isArray(filesInput) ? filesInput.filter(Boolean) : [];
+        var panel = document.querySelector('[data-portal-files-panel]');
+        var list = document.querySelector('[data-portal-files-list]');
+        if (!panel || !list || !files.length) return;
+        list.innerHTML = files
+          .map(function (file) {
+            var item = asObject(file);
+            var href = safeText(item.href);
+            var label = safeText(item.label) || 'Underlag';
+            var format = safeText(item.format) || 'Öppna';
+            if (!href) return '';
+            return (
+              '<a class="portal-file-link" href="' +
+              escapeHtml(href) +
+              '" target="_blank" rel="noopener"><span>' +
+              escapeHtml(label) +
+              '</span><span>' +
+              escapeHtml(format) +
+              '</span></a>'
+            );
+          })
+          .join('');
+        if (list.innerHTML) {
+          panel.hidden = false;
+          panel.classList.add('is-visible');
+        }
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -3552,6 +3621,8 @@
           documentLink.href = offerDocumentUrl;
           documentLink.hidden = false;
         }
+
+        renderPortalFiles(context.portalFiles);
       }
 
       renderOfferPlanToPortal(window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);

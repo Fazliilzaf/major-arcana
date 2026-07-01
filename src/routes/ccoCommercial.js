@@ -160,6 +160,47 @@ function buildCustomerOfferPortalContext(commercialCase = {}, { token = '', orig
   const quoteStatus = normalizeText(commercialCase.quoteStatus) || 'draft';
   const esignStatus = normalizeText(commercialCase.esignStatus) || 'draft';
   const coolingOff = getCoolingOffMeta(commercialCase);
+  const tokenParam = token ? encodeURIComponent(token) : '';
+  const documentUrl =
+    tokenParam && origin && commercialCase.offerDocumentId
+      ? `${origin}/api/v1/cco-commercial/customer-offer-document?token=${tokenParam}`
+      : '';
+  const documentPdfUrl =
+    tokenParam && origin && commercialCase.offerDocumentId
+      ? `${origin}/api/v1/cco-commercial/customer-offer-document.pdf?token=${tokenParam}`
+      : '';
+  const portalFiles = [
+    documentUrl
+      ? {
+          kind: 'offer_document',
+          label: 'Offertunderlag',
+          href: documentUrl,
+          format: 'HTML',
+        }
+      : null,
+    documentPdfUrl
+      ? {
+          kind: 'offer_pdf',
+          label: 'Offert som PDF',
+          href: documentPdfUrl,
+          format: 'PDF',
+        }
+      : null,
+    ...listOfferPhotoAttachments(commercialCase).map((item, index) => {
+      const photoId = normalizeText(item.photoId);
+      return {
+        kind: 'consultation_photo',
+        label: normalizeText(item.label) || `Konsultationsbild ${index + 1}`,
+        href:
+          tokenParam && origin && photoId
+            ? `${origin}/api/v1/cco-commercial/offer-photo?token=${tokenParam}&photoId=${encodeURIComponent(photoId)}${
+                item.annotatedPreviewAvailable ? '&variant=annotated' : ''
+              }`
+            : '',
+        format: item.annotatedPreviewAvailable ? 'Ritad bild' : 'Bild',
+      };
+    }),
+  ].filter((item) => item?.href);
   return {
     schemaVersion: 'customer-offer-portal-context.v1',
     quoteStatus,
@@ -169,17 +210,12 @@ function buildCustomerOfferPortalContext(commercialCase = {}, { token = '', orig
     quoteAcceptedAt: normalizeText(commercialCase.quoteAcceptedAt),
     customerSignedName: normalizeText(commercialCase.customerSignedName),
     offerSignUrl:
-      token && origin
-        ? `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(token)}`
+      tokenParam && origin
+        ? `${origin}/api/v1/cco-commercial/offer-sign-page?token=${tokenParam}`
         : '',
-    offerDocumentUrl:
-      token && origin && commercialCase.offerDocumentId
-        ? `${origin}/api/v1/cco-commercial/customer-offer-document?token=${encodeURIComponent(token)}`
-        : '',
-    offerDocumentPdfUrl:
-      token && origin && commercialCase.offerDocumentId
-        ? `${origin}/api/v1/cco-commercial/customer-offer-document.pdf?token=${encodeURIComponent(token)}`
-        : '',
+    offerDocumentUrl: documentUrl,
+    offerDocumentPdfUrl: documentPdfUrl,
+    portalFiles,
   };
 }
 

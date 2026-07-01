@@ -292,6 +292,12 @@ test('offer-from-plan creates commercial case and html document', async () => {
       assert.match(portalHtml, /"offerSignUrl":"http:\/\/127\.0\.0\.1:/);
       assert.match(portalHtml, /"offerDocumentUrl":"http:\/\/127\.0\.0\.1:/);
       assert.match(portalHtml, /"offerDocumentPdfUrl":"http:\/\/127\.0\.0\.1:/);
+      assert.match(portalHtml, /"portalFiles":\[/);
+      assert.match(portalHtml, /"kind":"offer_document"/);
+      assert.match(portalHtml, /"kind":"offer_pdf"/);
+      assert.match(portalHtml, /"kind":"consultation_photo"/);
+      assert.match(portalHtml, /offer-photo\?token=/);
+      assert.match(portalHtml, /photoId=photo-1/);
       assert.match(portalHtml, /"customerName":"Kund"/);
       assert.match(portalHtml, /"total":"3500"/);
       assert.match(portalHtml, /"quotedAmount":"75 000 kr"/);
