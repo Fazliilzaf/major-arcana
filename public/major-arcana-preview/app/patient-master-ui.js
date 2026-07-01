@@ -9096,6 +9096,35 @@
     `;
   }
 
+  function renderCustomerPortalFinalQaStatus(
+    linkedOffer,
+    customerPortalUrl,
+    planEntry,
+    photos,
+    values = {}
+  ) {
+    if (!linkedOffer || !customerPortalUrl) return '';
+    const readinessItems = buildCustomerPortalReadinessItems(
+      linkedOffer,
+      planEntry,
+      photos,
+      customerPortalUrl
+    );
+    const systemReady = readinessItems.filter((item) => item.ready).length;
+    const manualReady = CUSTOMER_PORTAL_SHARE_CHECKS.filter((item) => values[item.key]).length;
+    const total = readinessItems.length + CUSTOMER_PORTAL_SHARE_CHECKS.length;
+    const readyCount = systemReady + manualReady;
+    const ready = readyCount === total;
+    return `
+      <div class="patient-master-final-share-readiness${ready ? ' is-ready' : ''}" data-customer-portal-final-qa-status>
+        <span class="patient-master-status-badge${ready ? ' is-accent' : ''}">QA ${readyCount}/${total}</span>
+        <span class="patient-master-final-share-readiness-text">
+          ${ready ? 'Slutlig portal-QA klar.' : 'Portal-QA pågår: systemberedskap + personalcheck.'}
+        </span>
+      </div>
+    `;
+  }
+
   function offerPortalActivityLabel(source) {
     const normalized = normalizeText(source);
     if (normalized === 'customer_offer_document_pdf') return 'PDF öppnad';
@@ -9546,6 +9575,13 @@
           ${renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl)}
           ${renderCustomerPortalSharePreview(customerPortalUrl)}
           ${renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos)}
+          ${renderCustomerPortalFinalQaStatus(
+            linkedOffer,
+            customerPortalUrl,
+            planEntry,
+            photos,
+            shareChecklistValues
+          )}
           ${renderOfferPortalActivity(linkedOffer)}
           ${renderOfferFollowupSignal(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
