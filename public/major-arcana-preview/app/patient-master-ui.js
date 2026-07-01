@@ -8979,6 +8979,22 @@
     });
   }
 
+  function renderCustomerPortalShareDecision(values = {}) {
+    const missing = CUSTOMER_PORTAL_SHARE_CHECKS.filter((item) => !values[item.key]).map(
+      (item) => item.label
+    );
+    const ready = missing.length === 0;
+    return `
+      <p class="patient-master-muted patient-master-share-decision${ready ? ' is-ready' : ''}" data-customer-portal-share-decision>
+        ${
+          ready
+            ? 'Redo att dela: portallänk och kundmeddelande är upplåsta. Om offert, pris, zoner eller meddelande ändras nollställs delningschecken automatiskt.'
+            : `Väntar på: ${escapeHtml(missing.join(' · '))}. Portallänk och kundmeddelande är låsta tills allt är granskat.`
+        }
+      </p>
+    `;
+  }
+
   function renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos) {
     if (!linkedOffer || !customerPortalUrl) return '';
     const signature = buildCustomerPortalShareChecklistSignature(
@@ -9007,6 +9023,7 @@
             `
           ).join('')}
         </div>
+        ${renderCustomerPortalShareDecision(values)}
       </div>
     `;
   }
@@ -13188,6 +13205,7 @@
         const allChecked = checkedCount === CUSTOMER_PORTAL_SHARE_CHECKS.length;
         const countEl = checklist?.querySelector('[data-customer-portal-share-checklist-count]');
         const statusEl = checklist?.querySelector('[data-customer-portal-share-checklist-status]');
+        const decisionEl = checklist?.querySelector('[data-customer-portal-share-decision]');
         if (countEl) {
           countEl.textContent = `Delningscheck ${checkedCount}/${CUSTOMER_PORTAL_SHARE_CHECKS.length}`;
           countEl.classList.toggle('is-accent', allChecked);
@@ -13196,6 +13214,15 @@
           statusEl.textContent = allChecked
             ? 'Klar att dela manuellt'
             : 'Bocka av innan du skickar';
+        }
+        if (decisionEl) {
+          const missing = CUSTOMER_PORTAL_SHARE_CHECKS.filter((item) => !values[item.key]).map(
+            (item) => item.label
+          );
+          decisionEl.classList.toggle('is-ready', allChecked);
+          decisionEl.textContent = allChecked
+            ? 'Redo att dela: portallänk och kundmeddelande är upplåsta. Om offert, pris, zoner eller meddelande ändras nollställs delningschecken automatiskt.'
+            : `Väntar på: ${missing.join(' · ')}. Portallänk och kundmeddelande är låsta tills allt är granskat.`;
         }
         syncCustomerPortalShareActionState(checklist, allChecked);
         setStatus(
