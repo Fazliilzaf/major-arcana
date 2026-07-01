@@ -8759,6 +8759,87 @@
     `;
   }
 
+  function buildCustomerPortalReadinessItems(linkedOffer, planEntry, photos, customerPortalUrl) {
+    const fields =
+      planEntry?.fields && typeof planEntry.fields === 'object' ? planEntry.fields : {};
+    const zones = Array.isArray(fields.zones) ? fields.zones.filter(Boolean) : [];
+    const graftsTotal =
+      normalizeText(linkedOffer?.offerPlan?.grafts?.total) ||
+      normalizeText(fields.graftsTotal) ||
+      normalizeText(linkedOffer?.graftsTotal);
+    const quotedAmount =
+      normalizeText(linkedOffer?.offerPlan?.price?.quotedAmount) ||
+      normalizeText(linkedOffer?.quotedAmount);
+    const photoCount = asArray(photos).length;
+    return [
+      {
+        key: 'portal-link',
+        label: 'Kundportal',
+        ready: Boolean(customerPortalUrl),
+        detail: customerPortalUrl ? 'Tokenlänk klar' : 'Saknar tokenlänk',
+      },
+      {
+        key: 'offer-document',
+        label: 'Offertunderlag',
+        ready: Boolean(linkedOffer?.offerDocumentId),
+        detail: linkedOffer?.offerDocumentId ? 'Dokument skapat' : 'Skapa offert från plan',
+      },
+      {
+        key: 'price',
+        label: 'Pris',
+        ready: Boolean(quotedAmount),
+        detail: quotedAmount || 'Pris ej satt',
+      },
+      {
+        key: 'grafts',
+        label: 'Hårsäckar',
+        ready: Boolean(graftsTotal || zones.length),
+        detail: graftsTotal
+          ? `${graftsTotal} totalt`
+          : zones.length
+            ? `${zones.length} zoner`
+            : 'Plan saknas',
+      },
+      {
+        key: 'photos',
+        label: 'Bilder',
+        ready: photoCount > 0,
+        detail:
+          photoCount > 0
+            ? `${photoCount} bild${photoCount === 1 ? '' : 'er'} kopplade`
+            : 'Inga konsultationsbilder',
+      },
+    ];
+  }
+
+  function renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl) {
+    if (!linkedOffer) return '';
+    const items = buildCustomerPortalReadinessItems(
+      linkedOffer,
+      planEntry,
+      photos,
+      customerPortalUrl
+    );
+    const readyCount = items.filter((item) => item.ready).length;
+    const allReady = readyCount === items.length;
+    return `
+      <div class="patient-master-offer-next-step" data-customer-portal-readiness>
+        <div class="patient-master-offer-meta-badges">
+          <span class="patient-master-status-badge${allReady ? ' is-accent' : ''}">Portalberedskap ${readyCount}/${items.length}</span>
+          <span class="patient-master-status-badge">${allReady ? 'Redo att dela med kund' : 'Granska innan utskick'}</span>
+        </div>
+        <div class="patient-master-offer-meta-badges" data-customer-portal-readiness-items>
+          ${items
+            .map(
+              (item) =>
+                `<span class="patient-master-status-badge${item.ready ? ' is-accent' : ''}" data-customer-portal-readiness-item="${escapeHtml(item.key)}">${escapeHtml(item.label)} · ${escapeHtml(item.detail)}</span>`
+            )
+            .join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function offerPortalActivityLabel(source) {
     const normalized = normalizeText(source);
     if (normalized === 'customer_offer_document_pdf') return 'PDF öppnad';
@@ -9176,6 +9257,7 @@
           }
           ${renderOfferStatusMeta(linkedOffer)}
           ${renderOfferNextStep(linkedOffer, customerPortalUrl, customerPortalLinkSource)}
+          ${renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl)}
           ${renderOfferPortalActivity(linkedOffer)}
           ${renderOfferFollowupSignal(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
