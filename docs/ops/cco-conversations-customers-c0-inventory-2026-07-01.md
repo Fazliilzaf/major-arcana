@@ -161,6 +161,72 @@ Regel: `confirmed` får visas på kundkortet. `suggested` får visas som försla
 - Mail från flera mailboxar kan skapa dubbletter om dedupe inte används konsekvent.
 - Audit-läsning har tidigare haft auth-gap; actions måste ändå audit-loggas.
 
+## C0.1 - tillägg innan Cloud bygger C1
+
+Detta tillägg kompletterar C0 efter kodgranskning. Cloud får inte starta C1 från bara v2-shellens visuella struktur; den operativa inkorgen, legacy-ytor och flera filter/state-kontrakt lever parallellt.
+
+### Blockerande förtydliganden
+
+| Område          | Kod/API                                                                                                                                    | Beslut för C1                                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Operativ inkorg | `GET /api/v1/cco/runtime/worklist/consumer` i `src/routes/capabilities.js` och legacy runtime-loader                                       | C1 ska läsa worklist/consumer som operativ read-only inkorg, inte bara tolka `cco-conversations-v2-shell.js` som datakälla.   |
+| Legacy-yta      | `public/konversationer.html`, `public/konversationer-bottom-actions.js`, `public/cco-komm-panel.js`                                        | Ska kartas som parallell legacy-yta. C1 får inte bryta dessa länkar eller anta att v2 är enda ingången.                       |
+| Legacy actions  | `/cco/handled`, `/cco/reply-later`, `/cco/send`, `/cco/delete` i `src/routes/capabilities.js`                                              | Risk för dubbel implementation mot `/cco/runtime/conversation/:key/action`. C1 ska vara read-only; C5 får samordna write-väg. |
+| Segment/filter  | `data-v3-segment`, inbox-tabs, `analyzeInbox.js`, `ccoConversationThreadStore`                                                             | C1 måste dokumentera vilken filtertaxonomi som visas och vilken som är backend-state. Ingen ny lane-taxonomi utan mapping.    |
+| Senare          | `reply_later` i `ccoConversationStateStore` / runtime action                                                                               | Senare betyder parkerad tråd/follow-up-state, inte draft-kö.                                                                  |
+| Skickat         | `GET /api/v1/cco-comm/drafts?status=queued,approved,needs_approval`                                                                        | Skickat-v3 ska inte skapa `sent`; faktiskt live-sent är owner-låst tills separat beslut.                                      |
+| Kundkort idag   | `buildCommunicationMessages(patient)` i `src/routes/ccoPatientMaster.js`                                                                   | Kundkortets nuvarande kommunikation byggs från patient-master-data. C2 får byta datakälla först när kontraktet är verifierat. |
+| Notiser         | `/api/v1/cco-notifications/{feed,mark-read,types,push-subscriptions,sms-config,cron-jobs,sent-log}` + `GET /api/v1/staff/notifications`    | Notiser är mer än taxonomi. C1 ska inte blanda notisfeed med konversationslane utan explicit mapping.                         |
+| RBAC            | runtime conversation-routes, mail ingestion, bulk/triage/reopen                                                                            | Permission-mapping måste vara explicit innan writes. `mail.read`, owner-only ingestion och bulk/reopen ska inte gissas.       |
+| Merge/GDPR      | `/cco/customers/identity/merge`, `/cco-patient-master/merge`, `/reconciliation/merge/*`, `/patient/gdpr-export`, `/patient/gdpr-anonymize` | C2 får inte bygga kundbindning utan att känna till merge-spåren och GDPR-export/anonymisering.                                |
+
+### Filter och lane-taxonomi som ska hållas isär
+
+| Lager                       | Värden/ytor                                                                                                          | Kommentar                                                           |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| V3-segment                  | `alla`, `obesvarade`, `sla`, `mina` via `data-v3-segment`                                                            | Frontend-vy ovanpå trådlistan.                                      |
+| Inbox-tabs                  | `alla`, `olästa`, `bokning`, `VIP`                                                                                   | Tabbar i shell/legacy-yta; ska inte blandas ihop med backend lanes. |
+| AnalyzeInbox lanes          | `action_now`, `booking_ready`, `medical_review`, `admin_low`, `waiting_reply`                                        | AI/klassificeringslager från `src/capabilities/analyzeInbox.js`.    |
+| Conversation thread filters | `incoming`, `outgoing`, `drafts`, `needs_approval`, `sent`, `internal`, `unanswered`, `system`, `snoozed`, `handled` | Kundkort/C2-filter från `ccoConversationThreadStore`.               |
+
+### Stores som ska ingå i C1/C2-kartan
+
+- `src/ops/ccoHistoryStore.js`
+- `src/ops/ccoSendActionStore.js`
+- `src/ops/ccoCustomerJourneyStore.js`
+- `src/ops/ccoCustomerStore.js`
+- `src/ops/ccoNotificationFeedStore.js`
+- `src/ops/ccoNotificationReadStore.js`
+- `src/ops/ccoAmbiguousMailEnrichmentReviewStore.js`
+
+### Actions som saknades i första C0-tabellen
+
+| Action              | Kod/selector                               | C1/C2-notering                                                              |
+| ------------------- | ------------------------------------------ | --------------------------------------------------------------------------- |
+| Kalender            | `data-v2-action="calendar"` / bottom-bar   | Kan vara inert i vissa ytor; ska redovisas som action, inte byggas om i C1. |
+| Context rail-flikar | Översikt / Historik / Ekonomi              | Read-only kontext; kräver verifierad patientbindning.                       |
+| V3 segment          | `data-v3-segment`                          | Filter ovanpå lanes.                                                        |
+| Inbox-tabs          | olästa / bokning / VIP                     | Separat från backend lane.                                                  |
+| Quick reply         | `data-v3-qr-save`, `data-v3-qr-studio`     | Save/draft ska vara gated; ingen live-send.                                 |
+| Bulk                | assign / snooze / handled / triage / clear | Får först bli preview/confirm i senare fas.                                 |
+| Reopen              | `action: "reopen"` i runtime action API    | Backend finns; UI och permission ska kartas innan write.                    |
+| AI quick-pills      | Skicka direkt                              | Ska förbli låst tills owner aktiverar live-send.                            |
+
+### Nice-to-have att känna till
+
+- `ccoInboxAgent` / `AnalyzeInbox` är separat AI-scope från tråd-utkast.
+- `/cco/macros` och `/cco/runtime/mail-templates` är två relaterade men olika lager.
+- `/cco/runtime/stream` (SSE), shadow/calibration-routes och `/cco-next` är parallella ytor, inte C1-mål.
+- `cco-konversationer-v3.html` är design-preview/syskon-yta bredvid inbäddad shell.
+- Makron, Dokument och Showcase finns som v3-nav-syskon men ska inte dras in i C1.
+
+### Cross-references
+
+- `docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md`
+- `docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md`
+- `docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md`
+- `.cursor/rules/cco-microsoft-mail-ingestion.mdc`
+
 ## Integrationsplan Konversationer -> Kunder
 
 ### C1 - Read-only mailtråd till CCO-konversationer
@@ -241,11 +307,11 @@ Mål: aktivera Graph-send först efter torrkörning.
 ## Nästa föreslagna prompt till Cloud efter C0
 
 ```text
-Bygg inte nytt från minnet. Använd C0-dokumentet:
+Bygg inte nytt från minnet. Använd C0-dokumentet inklusive C0.1-tillägget:
 docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md
 
 Starta med C1:
-- read-only konversationslista från befintlig mailbox truth / ingestion
+- read-only konversationslista från befintlig runtime worklist consumer / mailbox truth / ingestion
 - visa kundmatch-status
 - inga writes
 - inget live-send
@@ -253,4 +319,6 @@ Starta med C1:
 - inga nya dokument
 - desktop/iPad/mobil
 - följ CCO-designen
+- blanda inte Senare (`reply_later`) med Skickat/draft-kö
+- bygg inte C2 mot ny kundkortsdatasource förrän C0.1:s nuvarande `buildCommunicationMessages(patient)`-läge är beaktat
 ```
