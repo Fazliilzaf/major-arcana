@@ -8931,6 +8931,22 @@
     window.localStorage?.setItem(storageKey, JSON.stringify(values || {}));
   }
 
+  function isCustomerPortalShareChecklistComplete(linkedOffer) {
+    const values = readCustomerPortalShareChecklist(linkedOffer);
+    return CUSTOMER_PORTAL_SHARE_CHECKS.every((item) => values[item.key]);
+  }
+
+  function syncCustomerPortalShareActionState(scope, allChecked) {
+    const actionScope = scope?.closest('.patient-master-offer-box') || document;
+    actionScope.querySelectorAll('[data-customer-portal-share-gated="true"]').forEach((button) => {
+      button.disabled = !allChecked;
+      button.classList.toggle('is-disabled', !allChecked);
+      button.title = allChecked
+        ? ''
+        : 'Bocka av delningschecken innan länken eller meddelandet kopieras.';
+    });
+  }
+
   function renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl) {
     if (!linkedOffer || !customerPortalUrl) return '';
     const values = readCustomerPortalShareChecklist(linkedOffer);
@@ -9352,6 +9368,10 @@
     const customerPortalUrl = getCustomerPortalUrl(linkedOffer);
     const customerPortalPreviewUrl = buildCustomerPortalPreviewUrlFromOffer(linkedOffer);
     const customerPortalLinkSource = getCustomerPortalLinkSource(linkedOffer, customerPortalUrl);
+    const shareChecklistComplete = isCustomerPortalShareChecklistComplete(linkedOffer);
+    const shareGateAttrs = shareChecklistComplete
+      ? ''
+      : ' disabled title="Bocka av delningschecken innan länken eller meddelandet kopieras."';
     const canSendForSign = linkedOffer && linkedOffer.quoteStatus !== 'accepted';
     const canAccept =
       linkedOffer && linkedOffer.quoteStatus === 'sent' && linkedOffer.quoteStatus !== 'accepted';
@@ -9417,12 +9437,12 @@
             }
             ${
               customerPortalUrl
-                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Kopiera portallänk</button>`
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-link" data-customer-portal-share-gated="true" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}"${shareGateAttrs}>Kopiera portallänk</button>`
                 : ''
             }
             ${
               customerPortalUrl
-                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-message" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}">Kopiera kundmeddelande</button>`
+                ? `<button type="button" class="customers-utility-button" data-patient-action="copy-customer-portal-message" data-customer-portal-share-gated="true" data-customer-portal-url="${escapeHtml(customerPortalUrl)}" data-customer-portal-source="${escapeHtml(customerPortalLinkSource)}"${shareGateAttrs}>Kopiera kundmeddelande</button>`
                 : ''
             }
             ${
@@ -13126,6 +13146,7 @@
             ? 'Klar att dela manuellt'
             : 'Bocka av innan du skickar';
         }
+        syncCustomerPortalShareActionState(checklist, allChecked);
         setStatus(
           allChecked
             ? 'Delningscheck klar. Granska en sista gång innan du skickar.'

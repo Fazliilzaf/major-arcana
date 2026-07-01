@@ -5240,6 +5240,13 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   accent-color: #4a8268;
 }
 
+.patient-master-plan-photo-actions .customers-utility-button[disabled],
+.patient-master-plan-photo-actions .customers-utility-button.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: saturate(0.75);
+}
+
 .patient-master-offer-activity {
   display: flex;
   flex-wrap: wrap;
