@@ -9602,6 +9602,15 @@
             }
           </div>
           ${
+            customerPortalUrl
+              ? `<p class="patient-master-muted patient-master-share-action-hint${shareReady ? ' is-ready' : ''}" data-customer-portal-share-action-hint>${
+                  shareReady
+                    ? 'Kundportalen är slutgranskad. Kopiera portallänk eller kundmeddelande manuellt.'
+                    : `Delning låst: ${escapeHtml(shareGateBlockerText)}`
+                }</p>`
+              : ''
+          }
+          ${
             runtime.offerSignUrl
               ? `<p class="patient-master-muted">Signeringssida: <a href="${escapeHtml(runtime.offerSignUrl)}" target="_blank" rel="noopener">${escapeHtml(runtime.offerSignUrl)}</a></p>`
               : linkedOffer?.esignStatus === 'sent' && linkedOffer?.esignToken
