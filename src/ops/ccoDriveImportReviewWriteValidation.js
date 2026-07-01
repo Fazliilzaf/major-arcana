@@ -1,6 +1,6 @@
 'use strict';
 
-const VALID_DECISIONS = new Set(['approve', 'reassign', 'reject', 'mark_duplicate']);
+const { patientExistsInRegistry } = require('./ccoDriveImportReviewReadService');
 const VALID_DOCUMENT_CATEGORIES = new Set([
   'journal',
   'consent',
@@ -89,13 +89,18 @@ function requireTargetPatientId(body) {
   return patientId;
 }
 
+const VALID_DECISIONS = new Set(['approve', 'reassign', 'reject', 'mark_duplicate']);
+
+function assertPatientInRegistry(patientId, { directory = {}, masterBucket = null } = {}) {
+  if (patientExistsInRegistry(patientId, { directory, masterBucket })) return;
+  const e = new Error('patient_not_in_directory');
+  e.statusCode = 409;
+  e.detail = { patientId };
+  throw e;
+}
+
 function assertPatientInDirectory(patientId, directory) {
-  if (!directory?.[patientId]) {
-    const e = new Error('patient_not_in_directory');
-    e.statusCode = 409;
-    e.detail = { patientId };
-    throw e;
-  }
+  assertPatientInRegistry(patientId, { directory });
 }
 
 function resolveApprovedCategory(body, asset) {
@@ -133,6 +138,7 @@ module.exports = {
   assertDriveImmutableUnchanged,
   assertNoDriveLinkInAsset,
   assertSingleAssetDecision,
+  assertPatientInRegistry,
   assertPatientInDirectory,
   resolveApprovedCategory,
   validateWriteBody,

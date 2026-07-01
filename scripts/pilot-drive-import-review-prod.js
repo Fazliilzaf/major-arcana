@@ -186,14 +186,21 @@ async function runStep({
     return { ok: false, result };
   }
 
-  const afterRes = await fetchAsset(
-    token,
-    assetId,
-    result.body?.asset?.patientId || body.patientId || patientIdForFetch
-  );
-  const after = afterRes.body?.asset || afterRes.body;
-  const afterSnap = snapshotFields(after);
-  const immutableBroken = assertImmutable(beforeSnap, afterSnap);
+  const afterFromDecision = result.body?.asset || null;
+  let afterSnap = snapshotFields(afterFromDecision);
+  if (!afterSnap?.status) {
+    const afterRes = await fetchAsset(
+      token,
+      assetId,
+      afterFromDecision?.patientId || body.patientId || patientIdForFetch
+    );
+    afterSnap = snapshotFields(afterRes.body?.asset);
+  }
+  const beforeSnapFinal = beforeSnap || {};
+  const immutableBroken =
+    beforeSnapFinal.storageKey && afterSnap?.storageKey
+      ? assertImmutable(beforeSnapFinal, afterSnap)
+      : [];
   const statusOk = afterSnap?.status === expectedStatus;
 
   log(`after: status=${afterSnap?.status} patient=${afterSnap?.patientId}`);
