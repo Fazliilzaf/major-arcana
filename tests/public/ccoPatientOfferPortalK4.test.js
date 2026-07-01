@@ -82,3 +82,14 @@ test('customer offer portal renders K10 live evidence file list', () => {
   assert.match(source, /Mina underlag/);
   assert.match(source, /renderPortalFiles\(context\.portalFiles\)/);
 });
+
+test('customer offer portal renders K13 live consultation photo gallery', () => {
+  const source = readPortal();
+  assert.match(source, /data-portal-photos-panel/);
+  assert.match(source, /data-portal-photos-list/);
+  assert.match(source, /function renderPortalPhotos\(photosInput\)/);
+  assert.match(source, /portal-photo-card/);
+  assert.match(source, /Ritade konsultationsbilder/);
+  assert.match(source, /Bilderna kommer från konsultationens behandlingsplan/);
+  assert.match(source, /renderPortalPhotos\(context\.portalPhotos\)/);
+});
