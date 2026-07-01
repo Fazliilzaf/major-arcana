@@ -1690,6 +1690,146 @@
         margin-top: 0.05rem;
         opacity: 0.6;
       }
+      .operation-day-panel {
+        display: none;
+        gap: 0.88rem;
+        margin: 0 0 var(--gap);
+        padding: 1rem;
+        border-radius: var(--panel-radius);
+        background:
+          radial-gradient(circle at 8% 0%, rgba(47, 111, 84, 0.14), transparent 42%),
+          radial-gradient(circle at 94% 18%, rgba(211, 156, 52, 0.15), transparent 42%),
+          rgba(255, 252, 248, 0.96);
+        border: 1px solid rgba(47, 111, 84, 0.16);
+        box-shadow: var(--card-shadow);
+      }
+      html[data-customer-offer-context='live'] .operation-day-panel.is-visible {
+        display: grid;
+      }
+      .operation-day-panel__top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.8rem;
+      }
+      .operation-day-panel__eyebrow {
+        display: inline-flex;
+        width: max-content;
+        padding: 0.22rem 0.58rem;
+        border-radius: var(--r-pill);
+        background: rgba(47, 111, 84, 0.1);
+        color: var(--success);
+        font-size: 0.56rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .operation-day-panel h2 {
+        margin: 0.38rem 0 0;
+        color: var(--text-primary);
+        font-family: 'Cormorant Garamond', 'Georgia', serif;
+        font-size: 1.32rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        line-height: 1.08;
+      }
+      .operation-day-panel__date {
+        min-width: 7.6rem;
+        padding: 0.52rem 0.62rem;
+        border-radius: var(--card-radius);
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(223, 212, 203, 0.68);
+        color: var(--text-secondary);
+        font-size: 0.66rem;
+        font-weight: 750;
+        line-height: 1.35;
+        text-align: right;
+      }
+      .operation-day-panel__copy {
+        margin: -0.22rem 0 0;
+        color: var(--text-secondary);
+        font-size: 0.78rem;
+        line-height: 1.52;
+      }
+      .operation-day-checks {
+        display: grid;
+        gap: 0.52rem;
+      }
+      .operation-day-check {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.62rem;
+        padding: 0.68rem;
+        border-radius: var(--card-radius);
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(223, 212, 203, 0.68);
+      }
+      .operation-day-check[data-state='done'] {
+        border-color: rgba(47, 111, 84, 0.25);
+        background: rgba(237, 248, 241, 0.72);
+      }
+      .operation-day-check[data-state='active'] {
+        border-color: rgba(176, 53, 110, 0.25);
+        background: rgba(255, 244, 249, 0.74);
+      }
+      .operation-day-check__icon {
+        display: grid;
+        width: 1.92rem;
+        height: 1.92rem;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(167, 145, 125, 0.12);
+        color: var(--text-tertiary);
+        font-size: 0.8rem;
+        font-weight: 900;
+      }
+      .operation-day-check[data-state='done'] .operation-day-check__icon {
+        background: rgba(47, 111, 84, 0.13);
+        color: var(--success);
+      }
+      .operation-day-check[data-state='active'] .operation-day-check__icon {
+        background: linear-gradient(135deg, var(--accent), var(--violet));
+        color: #fff;
+      }
+      .operation-day-check__body strong {
+        display: block;
+        color: var(--text-primary);
+        font-size: 0.76rem;
+        font-weight: 850;
+      }
+      .operation-day-check__body span {
+        display: block;
+        margin-top: 0.12rem;
+        color: var(--text-secondary);
+        font-size: 0.66rem;
+        line-height: 1.38;
+      }
+      .operation-day-check__status {
+        padding: 0.16rem 0.48rem;
+        border-radius: var(--r-pill);
+        background: rgba(109, 99, 84, 0.09);
+        color: var(--text-secondary);
+        font-size: 0.55rem;
+        font-weight: 850;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .operation-day-check[data-state='done'] .operation-day-check__status {
+        background: rgba(47, 111, 84, 0.1);
+        color: var(--success);
+      }
+      .operation-day-check[data-state='active'] .operation-day-check__status {
+        background: rgba(176, 53, 110, 0.1);
+        color: var(--accent);
+      }
+      .operation-day-panel__hint {
+        margin: -0.12rem 0 0;
+        color: var(--text-tertiary);
+        font-size: 0.66rem;
+        line-height: 1.42;
+      }
       .mode-row {
         display: flex;
         align-items: center;
@@ -2423,6 +2563,23 @@
         z-index: 5;
       }
 
+      @media (max-width: 420px) {
+        .operation-day-panel__top {
+          display: grid;
+        }
+        .operation-day-panel__date {
+          min-width: 0;
+          text-align: left;
+        }
+        .operation-day-check {
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+        .operation-day-check__status {
+          grid-column: 2;
+          width: max-content;
+        }
+      }
+
       /* Stegväljare (prototypgranskning) */
       .stage-bar {
         position: sticky;
@@ -2733,6 +2890,29 @@
         <p class="portal-journey-gates__note">
           Friskförsäkran skrivs på operationsdagen. Fotosamtycke är separat och frivilligt. Kliniken
           låser upp nästa steg när underlagen är redo.
+        </p>
+      </section>
+
+      <section class="operation-day-panel" data-operation-day-panel hidden aria-live="polite">
+        <div class="operation-day-panel__top">
+          <div>
+            <span class="operation-day-panel__eyebrow" data-operation-day-eyebrow
+              >Operationsdag</span
+            >
+            <h2 data-operation-day-title>Inför operationsdagen</h2>
+          </div>
+          <div class="operation-day-panel__date" data-operation-day-date>
+            Datum visas när kliniken har bokat tiden
+          </div>
+        </div>
+        <p class="operation-day-panel__copy" data-operation-day-copy>
+          När avtal och samtycke är klart visar portalen vad som återstår samma dag som
+          behandlingen.
+        </p>
+        <div class="operation-day-checks" data-operation-day-checks></div>
+        <p class="operation-day-panel__hint" data-operation-day-hint>
+          Friskförsäkran skrivs på operationsdagen. Inget journalinnehåll skapas automatiskt från
+          portalen.
         </p>
       </section>
 
@@ -4335,6 +4515,125 @@
         panel.classList.add('is-visible');
       }
 
+      function resolveOperationDayReadiness(contextInput, planInput) {
+        var context = asObject(contextInput);
+        var plan = asObject(planInput);
+        var agreement = asObject(context.treatmentAgreement || context.agreement);
+        var fitnessCertificate = asObject(context.fitnessCertificate);
+        var photoConsent = asObject(context.photoConsent);
+        var agreementDone =
+          agreement.bookable === true ||
+          agreement.consentSigned === true ||
+          isPortalDone(agreement.phase) ||
+          isPortalDone(agreement.status) ||
+          isPortalDone(context.agreementStatus);
+        var fitnessDone =
+          isPortalDone(context.fitnessSigned) ||
+          isPortalDone(fitnessCertificate.signed) ||
+          isPortalDone(fitnessCertificate.status);
+        var operationBooked =
+          context.operationBooked === true ||
+          isPortalDone(context.operationBookingStatus) ||
+          isPortalDone(context.bookingStatus);
+        var photoDone =
+          isPortalDone(photoConsent.signed) ||
+          isPortalDone(photoConsent.status) ||
+          isPortalDone(context.photoConsentSigned);
+        var dateLabel =
+          safeText(context.operationDateLabel) ||
+          safeText(plan.operationDateLabel) ||
+          'Datum visas när kliniken har bokat tiden';
+        var active = agreementDone || operationBooked || fitnessDone;
+
+        return {
+          active,
+          title: active ? 'Inför operationsdagen' : 'Operationsdagen låses upp senare',
+          eyebrow: operationBooked ? 'Bokad operation' : active ? 'Operationsdag' : 'Kommande steg',
+          dateLabel,
+          copy: active
+            ? 'Här samlas det kunden behöver göra och känna till samma dag som behandlingen.'
+            : 'När avtal och samtycke är klart visar portalen förberedelser och dagssteg.',
+          hint: fitnessDone
+            ? 'Friskförsäkran är registrerad. Kliniken fortsätter med operationsdagens vanliga kontroll.'
+            : 'Friskförsäkran skrivs på operationsdagen. Inget journalinnehåll skapas automatiskt från portalen.',
+          checks: [
+            {
+              title: 'Avtal och samtycke',
+              copy: agreementDone
+                ? 'Klart inför bokning och operationsplanering.'
+                : 'Måste vara klart innan operationsdagen öppnas i portalen.',
+              state: agreementDone ? 'done' : 'locked',
+              icon: agreementDone ? '✓' : '1',
+              status: agreementDone ? 'Klar' : 'Låst',
+            },
+            {
+              title: 'Friskförsäkran samma dag',
+              copy: fitnessDone
+                ? 'Signerad och registrerad för operationsdagen.'
+                : active
+                  ? 'Fylls i och signeras på plats samma dag som hårtransplantationen.'
+                  : 'Väntar tills avtal och samtycke är klart.',
+              state: fitnessDone ? 'done' : active ? 'active' : 'locked',
+              icon: fitnessDone ? '✓' : '2',
+              status: fitnessDone ? 'Klar' : active ? 'Dagssteg' : 'Låst',
+            },
+            {
+              title: 'Praktiska förberedelser',
+              copy: operationBooked
+                ? 'Tid, plats och dagsinformation är kopplad till portalen.'
+                : active
+                  ? 'Kliniken bekräftar tid, plats och instruktioner innan behandlingen.'
+                  : 'Visas när bokningsunderlaget är redo.',
+              state: operationBooked ? 'done' : active ? 'active' : 'locked',
+              icon: operationBooked ? '✓' : '3',
+              status: operationBooked ? 'Bokad' : active ? 'Nästa' : 'Låst',
+            },
+            {
+              title: 'Fotosamtycke',
+              copy: photoDone
+                ? 'Fotosamtycke är registrerat.'
+                : active
+                  ? 'Frivilligt och separat från journalbilder och behandlingsavtal.'
+                  : 'Öppnas först när behandlingsflödet är aktivt.',
+              state: photoDone ? 'done' : active ? 'active' : 'locked',
+              icon: photoDone ? '✓' : '4',
+              status: photoDone ? 'Klar' : active ? 'Valfritt' : 'Låst',
+            },
+          ],
+        };
+      }
+
+      function renderOperationDayPanel(contextInput, planInput) {
+        var panel = document.querySelector('[data-operation-day-panel]');
+        var list = document.querySelector('[data-operation-day-checks]');
+        if (!panel || !list) return;
+        var readout = resolveOperationDayReadiness(contextInput, planInput);
+        setPortalText('[data-operation-day-eyebrow]', readout.eyebrow);
+        setPortalText('[data-operation-day-title]', readout.title);
+        setPortalText('[data-operation-day-date]', readout.dateLabel);
+        setPortalText('[data-operation-day-copy]', readout.copy);
+        setPortalText('[data-operation-day-hint]', readout.hint);
+        list.innerHTML = readout.checks
+          .map(function (check) {
+            return (
+              '<div class="operation-day-check" data-state="' +
+              escapeHtml(check.state) +
+              '"><div class="operation-day-check__icon">' +
+              escapeHtml(check.icon) +
+              '</div><div class="operation-day-check__body"><strong>' +
+              escapeHtml(check.title) +
+              '</strong><span>' +
+              escapeHtml(check.copy) +
+              '</span></div><div class="operation-day-check__status">' +
+              escapeHtml(check.status) +
+              '</div></div>'
+            );
+          })
+          .join('');
+        panel.hidden = false;
+        panel.classList.add('is-visible');
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -4402,6 +4701,7 @@
         if (hasLiveContext) {
           renderPortalNextAction(context);
           renderPortalJourneyGates(context);
+          renderOperationDayPanel(context, window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);
         }
 
         var signButton = document.getElementById('bankidBtn');

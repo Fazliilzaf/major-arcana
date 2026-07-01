@@ -133,3 +133,15 @@ test('customer offer portal renders K16 live journey gates', () => {
   assert.match(source, /VIP-bokning och operationstid/);
   assert.match(source, /renderPortalJourneyGates\(context\)/);
 });
+
+test('customer offer portal renders K17 operation day readiness panel', () => {
+  const source = readPortal();
+  assert.match(source, /data-operation-day-panel/);
+  assert.match(source, /data-operation-day-checks/);
+  assert.match(source, /function resolveOperationDayReadiness\(contextInput, planInput\)/);
+  assert.match(source, /function renderOperationDayPanel\(contextInput, planInput\)/);
+  assert.match(source, /Friskförsäkran samma dag/);
+  assert.match(source, /Fylls i och signeras på plats samma dag som hårtransplantationen/);
+  assert.match(source, /Inget journalinnehåll skapas automatiskt från portalen/);
+  assert.match(source, /renderOperationDayPanel\(context, window\.ARCANA_CUSTOMER_OFFER_PLAN/);
+});
