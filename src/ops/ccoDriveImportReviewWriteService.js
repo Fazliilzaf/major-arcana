@@ -97,16 +97,31 @@ function recordDriveCanary(patch, { projectRoot, maxDecisions, enabled }) {
   return recordCanaryDecision(CANARY_TRACK, patch, { projectRoot, maxDecisions });
 }
 
-async function assertPatientKnown(patientId, ctx) {
+async function assertPatientKnown(patientId, ctx, { assetStore = null } = {}) {
+  const pid = String(patientId || '').trim();
+  if (!pid || pid === 'unknown') {
+    const e = new Error('patient_not_in_directory');
+    e.statusCode = 409;
+    e.detail = { patientId: pid || null };
+    throw e;
+  }
+
   const registry = loadPatientRegistry(ctx.projectRoot);
-  if (patientExistsInRegistry(patientId, registry)) return;
+  if (patientExistsInRegistry(pid, registry)) return;
+
   if (typeof ctx.resolvePatientExists === 'function') {
-    const ok = await ctx.resolvePatientExists(patientId);
+    const ok = await ctx.resolvePatientExists(pid);
     if (ok) return;
   }
+
+  if (assetStore && typeof assetStore.listAssetsForPatient === 'function') {
+    const linked = assetStore.listAssetsForPatient(pid, {}, { actor: ctx.actor || {} }) || [];
+    if (linked.length > 0) return;
+  }
+
   const e = new Error('patient_not_in_directory');
   e.statusCode = 409;
-  e.detail = { patientId };
+  e.detail = { patientId: pid };
   throw e;
 }
 
@@ -164,7 +179,7 @@ async function applyDriveImportReviewApprove(assetStore, assetId, body, ctx) {
     throw e;
   }
 
-  await assertPatientKnown(asset.patientId, ctx);
+  await assertPatientKnown(asset.patientId, ctx, { assetStore });
 
   const immutableBefore = snapshotDriveImmutable(asset);
   const before = snapshotAsset(asset);
@@ -226,7 +241,7 @@ async function applyDriveImportReviewReassign(assetStore, assetId, body, ctx) {
   assertNoDriveLinkInAsset(asset);
 
   const targetPatientId = requireTargetPatientId(body);
-  await assertPatientKnown(targetPatientId, ctx);
+  await assertPatientKnown(targetPatientId, ctx, { assetStore });
 
   const immutableBefore = snapshotDriveImmutable(asset);
   const before = snapshotAsset(asset);
