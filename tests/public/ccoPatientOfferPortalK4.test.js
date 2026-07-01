@@ -158,3 +158,15 @@ test('customer offer portal renders K18 aftercare and follow-up readiness panel'
   assert.match(source, /personalen granskar alltid uppföljningar innan journal/);
   assert.match(source, /renderAftercarePanel\(context\)/);
 });
+
+test('customer offer portal renders K19 secure contact readout without send action', () => {
+  const source = readPortal();
+  assert.match(source, /data-secure-contact-panel/);
+  assert.match(source, /data-secure-contact-owner/);
+  assert.match(source, /data-secure-contact-thread/);
+  assert.match(source, /function resolveSecureContactReadout\(contextInput\)/);
+  assert.match(source, /function renderSecureContactPanel\(contextInput\)/);
+  assert.match(source, /Frågor om offert, operation och eftervård samlas/);
+  assert.match(source, /Intern delegering till personal syns inte här/);
+  assert.match(source, /renderSecureContactPanel\(context\)/);
+});

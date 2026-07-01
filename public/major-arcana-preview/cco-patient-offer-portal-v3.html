@@ -2161,6 +2161,96 @@
         display: block;
         margin-top: 0.08rem;
       }
+      .secure-contact-panel {
+        display: none;
+        gap: 0.72rem;
+        margin-top: 0.72rem;
+        padding: 0.88rem;
+        border-radius: var(--card-radius);
+        background:
+          radial-gradient(circle at 12% 0%, rgba(176, 53, 110, 0.11), transparent 42%),
+          rgba(255, 252, 248, 0.96);
+        border: 1px solid rgba(176, 53, 110, 0.13);
+        box-shadow: var(--card-shadow);
+      }
+      html[data-customer-offer-context='live'] .secure-contact-panel.is-visible {
+        display: grid;
+      }
+      .secure-contact-panel__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .secure-contact-panel__eyebrow {
+        display: inline-flex;
+        width: max-content;
+        padding: 0.2rem 0.54rem;
+        border-radius: var(--r-pill);
+        background: rgba(176, 53, 110, 0.1);
+        color: var(--accent);
+        font-size: 0.55rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .secure-contact-panel h3 {
+        margin: 0.34rem 0 0;
+        color: var(--text-primary);
+        font-family: 'Cormorant Garamond', 'Georgia', serif;
+        font-size: 1.12rem;
+        font-weight: 650;
+        line-height: 1.08;
+      }
+      .secure-contact-panel__status {
+        padding: 0.18rem 0.5rem;
+        border-radius: var(--r-pill);
+        background: rgba(47, 111, 84, 0.1);
+        color: var(--success);
+        font-size: 0.55rem;
+        font-weight: 850;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .secure-contact-panel__copy {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        line-height: 1.48;
+      }
+      .secure-contact-panel__meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+      .secure-contact-panel__meta-item {
+        padding: 0.55rem;
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(223, 212, 203, 0.62);
+      }
+      .secure-contact-panel__meta-item span {
+        display: block;
+        color: var(--text-tertiary);
+        font-size: 0.55rem;
+        font-weight: 780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .secure-contact-panel__meta-item strong {
+        display: block;
+        margin-top: 0.16rem;
+        color: var(--text-primary);
+        font-size: 0.68rem;
+        font-weight: 840;
+      }
+      .secure-contact-panel__hint {
+        margin: -0.08rem 0 0;
+        color: var(--text-tertiary);
+        font-size: 0.64rem;
+        line-height: 1.42;
+      }
 
       /* STICKY SIGN BAR */
       .sticky-sign {
@@ -2806,6 +2896,9 @@
         .contact-card {
           grid-column: 1 / -1;
         }
+        .secure-contact-panel {
+          grid-column: 1 / -1;
+        }
 
         .journey {
           overflow: visible;
@@ -2872,6 +2965,9 @@
         .contact-card {
           grid-column: 1 / -1;
         }
+        .secure-contact-panel {
+          grid-column: 1 / -1;
+        }
 
         .bottom-nav {
           width: min(680px, calc(100vw - 2rem));
@@ -2890,6 +2986,7 @@
         .betatid-card,
         .locked-card,
         .contact-card,
+        .secure-contact-panel,
         .section-heading,
         .photos-locked,
         .booking-card {
@@ -4054,6 +4151,37 @@
           <span class="contact-via">Öppnar SMS</span>
         </div>
       </div>
+      <section class="secure-contact-panel" data-secure-contact-panel hidden aria-live="polite">
+        <div class="secure-contact-panel__head">
+          <div>
+            <span class="secure-contact-panel__eyebrow" data-secure-contact-eyebrow
+              >Säker kontakt</span
+            >
+            <h3 data-secure-contact-title>Din CCO-tråd</h3>
+          </div>
+          <div class="secure-contact-panel__status" data-secure-contact-status>Live</div>
+        </div>
+        <p class="secure-contact-panel__copy" data-secure-contact-copy>
+          Frågor om offert, operation och eftervård samlas i klinikens säkra CCO-flöde.
+        </p>
+        <div class="secure-contact-panel__meta">
+          <div class="secure-contact-panel__meta-item">
+            <span>Ansvarig kanal</span>
+            <strong data-secure-contact-owner>Hair TP Clinic</strong>
+          </div>
+          <div class="secure-contact-panel__meta-item">
+            <span>Trådstatus</span>
+            <strong data-secure-contact-thread>Väntar på kund</strong>
+          </div>
+          <div class="secure-contact-panel__meta-item">
+            <span>Nästa svar</span>
+            <strong data-secure-contact-next>Via CCO</strong>
+          </div>
+        </div>
+        <p class="secure-contact-panel__hint" data-secure-contact-hint>
+          Kunden ser bara klinikens säkra kontaktväg. Intern delegering till personal syns inte här.
+        </p>
+      </section>
     </main>
 
     <div class="sticky-sign" id="stickySign">
@@ -4912,6 +5040,59 @@
         panel.classList.add('is-visible');
       }
 
+      function resolveSecureContactReadout(contextInput) {
+        var context = asObject(contextInput);
+        var contact = asObject(context.secureContact || context.contact);
+        var thread = asObject(context.conversationThread || context.thread);
+        var owner =
+          safeText(contact.channelName) ||
+          safeText(contact.ownerLabel) ||
+          safeText(context.assignedCareTeam) ||
+          'Hair TP Clinic';
+        var threadStatus =
+          safeText(thread.statusLabel) ||
+          safeText(contact.threadStatusLabel) ||
+          portalStatusLabel(safeText(thread.status || context.conversationStatus), 'Aktiv');
+        var nextReply =
+          safeText(contact.nextReplyLabel) ||
+          safeText(thread.nextReplyLabel) ||
+          safeText(context.nextReplyLabel) ||
+          'Via CCO';
+        var hasAssignedStaff =
+          safeText(contact.assignedStaffName) || safeText(context.assignedStaffName);
+        var customerVisibleStaff = contact.showStaffName === true || context.showStaffName === true;
+        var title = customerVisibleStaff && hasAssignedStaff ? hasAssignedStaff : 'Din CCO-tråd';
+
+        return {
+          eyebrow: 'Säker kontakt',
+          title,
+          status: threadStatus,
+          owner,
+          threadStatus,
+          nextReply,
+          copy: 'Frågor om offert, operation och eftervård samlas i klinikens säkra CCO-flöde.',
+          hint: customerVisibleStaff
+            ? 'Kliniken visar ansvarig kontakt när det är relevant. Intern delegering och journalarbete hanteras fortsatt i CCO.'
+            : 'Kunden ser bara klinikens säkra kontaktväg. Intern delegering till personal syns inte här.',
+        };
+      }
+
+      function renderSecureContactPanel(contextInput) {
+        var panel = document.querySelector('[data-secure-contact-panel]');
+        if (!panel) return;
+        var readout = resolveSecureContactReadout(contextInput);
+        setPortalText('[data-secure-contact-eyebrow]', readout.eyebrow);
+        setPortalText('[data-secure-contact-title]', readout.title);
+        setPortalText('[data-secure-contact-status]', readout.status);
+        setPortalText('[data-secure-contact-copy]', readout.copy);
+        setPortalText('[data-secure-contact-owner]', readout.owner);
+        setPortalText('[data-secure-contact-thread]', readout.threadStatus);
+        setPortalText('[data-secure-contact-next]', readout.nextReply);
+        setPortalText('[data-secure-contact-hint]', readout.hint);
+        panel.hidden = false;
+        panel.classList.add('is-visible');
+      }
+
       function applyCustomerOfferContext(contextInput) {
         var context = asObject(contextInput);
         var hasLiveContext = Object.keys(context).length > 0;
@@ -4981,6 +5162,7 @@
           renderPortalJourneyGates(context);
           renderOperationDayPanel(context, window.ARCANA_CUSTOMER_OFFER_PLAN || DEMO_OFFER_PLAN);
           renderAftercarePanel(context);
+          renderSecureContactPanel(context);
         }
 
         var signButton = document.getElementById('bankidBtn');
