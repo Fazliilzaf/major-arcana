@@ -39,6 +39,13 @@ async function withServer(app, run) {
   }
 }
 
+function readInjectedPortalValue(html, globalName) {
+  const pattern = new RegExp(`window\\.${globalName}=([^;]+);`);
+  const match = html.match(pattern);
+  assert.ok(match, `${globalName} ska injiceras i kundportalen`);
+  return JSON.parse(match[1]);
+}
+
 async function createFixture() {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-route-'));
   const commercialStore = await createCcoCommercialStore({
@@ -345,6 +352,42 @@ test('offer-from-plan creates commercial case and html document', async () => {
         portalHtml,
         /renderOfferPlanToPortal\(window\.ARCANA_CUSTOMER_OFFER_PLAN \|\| DEMO_OFFER_PLAN\)/
       );
+      const injectedPlan = readInjectedPortalValue(portalHtml, 'ARCANA_CUSTOMER_OFFER_PLAN');
+      const injectedContext = readInjectedPortalValue(portalHtml, 'ARCANA_CUSTOMER_OFFER_CONTEXT');
+      assert.equal(injectedPlan.schemaVersion, 'offer-plan.v1');
+      assert.equal(injectedPlan.method, 'DHI');
+      assert.equal(injectedPlan.grafts.total, '3500');
+      assert.deepEqual(
+        injectedPlan.grafts.zones.map((zone) => [zone.label, zone.grafts]),
+        [
+          ['Hårlinje', '500'],
+          ['Mitt', '1000'],
+          ['Krona', '2000'],
+        ]
+      );
+      assert.equal(injectedPlan.price.quotedAmount, '75 000 kr');
+      assert.equal(injectedPlan.price.depositAmount, '15 000 kr');
+      assert.equal(injectedContext.schemaVersion, 'customer-offer-portal-context.v1');
+      assert.equal(injectedContext.staffPreview, false);
+      assert.equal(
+        injectedContext.offerDocumentUrl.includes('/customer-offer-document?token='),
+        true
+      );
+      assert.equal(
+        injectedContext.offerDocumentPdfUrl.includes('/customer-offer-document.pdf?token='),
+        true
+      );
+      assert.deepEqual(
+        injectedContext.portalFiles.map((file) => file.kind),
+        ['offer_document', 'offer_pdf', 'consultation_photo']
+      );
+      assert.equal(injectedContext.portalPhotos.length, 1);
+      assert.equal(injectedContext.portalPhotos[0].photoId, 'photo-1');
+      assert.equal(injectedContext.portalPhotos[0].href.includes('/offer-photo?token='), true);
+      assert.equal(injectedContext.portalPhotos[0].href.includes('photoId=photo-1'), true);
+      assert.equal(injectedContext.treatmentAgreement.phase, 'bookable');
+      assert.equal(injectedContext.treatmentAgreement.consentSigned, true);
+      assert.equal(injectedContext.portalTrust.evidenceLabel, '4 säkra underlag');
 
       const signUrl = new URL(sentPayload.offerSignUrl);
       const token = signUrl.searchParams.get('token');
