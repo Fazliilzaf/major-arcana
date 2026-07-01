@@ -18,6 +18,7 @@ function createCcoCustomerCommRouter({
   mailIngestionStore = null,
   commDraftStore = null,
   sendActionStore = null,
+  resolvePatientAssetStore = null,
   auditLog = null,
 }) {
   const router = express.Router();
@@ -107,6 +108,14 @@ function createCcoCustomerCommRouter({
         const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 80));
         const journeyStore = await getJourneyStore();
         const threadStore = await getThreadStore();
+        let assetStore = null;
+        if (typeof resolvePatientAssetStore === 'function') {
+          try {
+            assetStore = await resolvePatientAssetStore();
+          } catch {
+            assetStore = null;
+          }
+        }
         const payload = await buildUnifiedTimeline({
           customerId,
           tenantId,
@@ -115,6 +124,7 @@ function createCcoCustomerCommRouter({
           journalStore,
           journeyStore,
           threadStore,
+          assetStore,
         });
         return res.json(payload);
       } catch (error) {

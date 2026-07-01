@@ -1004,6 +1004,46 @@
   color: var(--cco-text-tertiary);
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* Tydlig typ-chip per rad (mail/bild/dokument/journal/…). */
+.cco-komm-timeline-type {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--cco-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--cco-color-border, rgba(0, 0, 0, 0.12));
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+  flex: none;
+}
+/* Länk-affordans: mail → konversation, fil → säkrad filöppning. */
+.cco-komm-timeline-link {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--cco-color-accent, #2563eb);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  flex: none;
+}
+.cco-komm-timeline-link:hover {
+  text-decoration: underline;
+}
+@media (max-width: 640px) {
+  .cco-komm-timeline-link {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
 }
 
 /* ─── Sprint 9 — Svarstudio sök + batch-bar ───────────────────────── */

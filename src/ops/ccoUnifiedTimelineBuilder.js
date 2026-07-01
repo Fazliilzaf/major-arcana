@@ -102,6 +102,43 @@ function categoryForKind(kind) {
   return 'other';
 }
 
+// Endast assets med denna status får visas på kundkortet/tidslinjen.
+// Osäkra Drive-filer (NEEDS_REVIEW) och allt annat filtreras bort i byggaren
+// själv — defense-in-depth, oberoende av hur assetStore anropas.
+const ASSET_VISIBLE_STATUS = 'VISIBLE_ON_PATIENT_CARD';
+
+// Kommunikationskinds som är riktig e-post (används för mail → konversationslänk).
+const MAIL_KINDS = new Set([
+  'incoming_mail',
+  'outgoing_mail',
+  'comm_draft',
+  'comm_draft_needs_approval',
+  'comm_draft_approved',
+  'comm_draft_queued',
+  'comm_sent',
+  'comm_failed',
+  'comm_cancelled',
+]);
+
+const SEND_KINDS = new Set(['form_sent', 'consent_sent', 'file_sent']);
+
+// Tydlig typ per rad (spec C6): mail, anteckning, utskick, journal, bokning,
+// kundresa, bild, dokument, avtal.
+function displayTypeForEvent(event) {
+  const { kind, category, meta } = event;
+  if (MAIL_KINDS.has(kind)) return 'mail';
+  if (kind === 'internal_note') return 'anteckning';
+  if (SEND_KINDS.has(kind)) return 'utskick';
+  if (category === 'journal') return 'journal';
+  if (category === 'bookings') return 'bokning';
+  if (category === 'journey') return 'kundresa';
+  if (kind === 'asset_uploaded') {
+    return String(meta?.category || '').startsWith('photo_') ? 'bild' : 'dokument';
+  }
+  if (kind === 'agreement_signed' || kind === 'legacy_agreement_imported') return 'avtal';
+  return 'övrigt';
+}
+
 function maskEmail(email = '') {
   const s = String(email || '');
   if (!s.includes('@')) return s ? s.slice(0, 2) + '***' : '';
@@ -132,6 +169,7 @@ async function buildUnifiedTimeline({
     try {
       const { threads } = await threadStore.buildThreadsForCustomer(customerId, { tenantId });
       for (const t of threads) {
+        const isMail = MAIL_KINDS.has(t.kind);
         events.push({
           ts: t.ts || null,
           kind: t.kind,
@@ -145,6 +183,9 @@ async function buildUnifiedTimeline({
             journeyStep: t.journeyStep || null,
             status: t.threadStatus || null,
             systemMail: !!t.systemMail,
+            // Mail → länka tillbaka till konversationstråden i CCO-inkorgen.
+            conversationKey: isMail ? t.threadId || t.conversationId || null : null,
+            mailboxId: isMail ? t.mailboxId || null : null,
           },
           source: 'thread',
           entityId: t.threadId,
@@ -255,6 +296,9 @@ async function buildUnifiedTimeline({
           ? lister(customerId, {}, { actor: { role: 'system' } }) || []
           : lister({ patientId: customerId, tenantId, limit: 50 }) || [];
       for (const a of assets) {
+        // SÄKERHET (spec C6): endast VISIBLE_ON_PATIENT_CARD får visas.
+        // Osäkra Drive-filer (NEEDS_REVIEW) och alla andra statusar hoppas över.
+        if (a.status !== ASSET_VISIBLE_STATUS) continue;
         const label = assetDisplayLabel(a, {
           fallback:
             a.category === 'journal'
@@ -276,6 +320,10 @@ async function buildUnifiedTimeline({
             status: a.status,
             encounterId: a.encounterId || null,
             patientCardSection: a.patientCardSection || null,
+            // Bild/dokument öppnas via befintlig säkrad filöppning, ALDRIG
+            // direkt Drive-länk. Frontend bygger /cco-patient-master/file
+            // ?fileId=... av openRef.fileId (samma kontrakt som kundkortet).
+            openRef: a.id ? { kind: 'patient_file', fileId: a.id } : null,
           },
           source: 'asset',
           entityId: a.id,
@@ -341,7 +389,12 @@ async function buildUnifiedTimeline({
     }
   }
 
-  // ─── Sort by ts desc ──
+  // ─── Tydlig typ per rad (spec C6) ──
+  for (const e of events) {
+    e.displayType = displayTypeForEvent(e);
+  }
+
+  // ─── Sort by ts desc (faktisk timestamp) ──
   events.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
 
   // ─── Filter ──
@@ -375,4 +428,6 @@ module.exports = {
   EVENT_KIND_ICONS,
   EVENT_CATEGORIES,
   categoryForKind,
+  displayTypeForEvent,
+  ASSET_VISIBLE_STATUS,
 };

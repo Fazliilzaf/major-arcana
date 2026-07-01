@@ -13308,6 +13308,7 @@ process.once('SIGTERM', () => {
       mailIngestionStore: ccoMailIngestionStore,
       commDraftStore: app.locals?.ccoCommDraftStore || null,
       sendActionStore: ccoSendActionStore,
+      resolvePatientAssetStore: resolveSharedPatientAssetStore,
       auditLog: ccoAuditLog,
     })
   );
