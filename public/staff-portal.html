@@ -4613,15 +4613,22 @@
 
       function renderConvRow(row) {
         const lane = String(row.lane || 'all');
-        const isUnread = row.hasUnreadInbound === true;
+        // buildConsumerModel nests fields: state.hasUnreadInbound, timing.*, mailbox.*, customer.*
+        const isUnread = row.state?.hasUnreadInbound === true;
         const subject = escapeHtml(String(row.subject || '(utan ämne)'));
-        const preview = escapeHtml(String(row.latestPreview || ''));
-        const rawTime = row.latestMessageAt || row.lastInboundAt || row.lastOutboundAt || '';
+        const preview = escapeHtml(String(row.preview || ''));
+        const rawTime =
+          row.timing?.latestMessageAt ||
+          row.timing?.lastInboundAt ||
+          row.timing?.lastOutboundAt ||
+          '';
         const time = rawTime ? formatDateTime(rawTime) : '';
 
-        const identity = row.customerIdentity || null;
+        const identity = row.customer?.identity || row.customerIdentity || null;
         const canonicalId = String(identity?.canonicalCustomerId || '').trim();
-        const customerLabel = escapeHtml(String(row.customerName || row.customerEmail || ''));
+        const customerLabel = escapeHtml(
+          String(row.customer?.name || row.customer?.email || row.presentation?.primaryLabel || '')
+        );
         let matchHtml = '<span class="conv-customer none">Ingen kundkoppling</span>';
         if (canonicalId) {
           matchHtml = `<span class="conv-customer confirmed">✓ ${customerLabel || escapeHtml(canonicalId)}</span>`;
@@ -4636,8 +4643,9 @@
           all: 'Övrig',
         };
         const laneLabel = laneLabels[lane] || escapeHtml(lane);
-        const mailboxHtml = row.mailboxId
-          ? `<span class="conv-customer">${escapeHtml(String(row.mailboxId))}</span>`
+        const mailboxId = row.mailbox?.mailboxId || row.mailbox?.mailboxAddress || '';
+        const mailboxHtml = mailboxId
+          ? `<span class="conv-customer">${escapeHtml(mailboxId)}</span>`
           : '';
 
         return `<div class="conv-row${isUnread ? ' unread' : ''}">
@@ -4679,7 +4687,8 @@
         const review = rows.filter((r) => r.lane === 'review');
         const later = rows.filter((r) => r.lane === 'later');
         const other = rows.filter((r) => !['act-now', 'review', 'later'].includes(r.lane));
-        const unreadCount = rows.filter((r) => r.hasUnreadInbound).length;
+        // state.hasUnreadInbound is the correct consumer field from buildConsumerModel
+        const unreadCount = rows.filter((r) => r.state?.hasUnreadInbound === true).length;
 
         document.querySelectorAll('[data-live-badge="conversations"]').forEach((badge) => {
           badge.textContent = unreadCount;
