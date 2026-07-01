@@ -202,6 +202,7 @@ async function applyDriveImportReviewApprove(assetStore, assetId, body, ctx) {
     reason: validated.reason,
     decision: 'approve',
     extra: {
+      ...(ctx.batchId ? { batchId: ctx.batchId } : {}),
       checksumOk: visible.checksum === immutableBefore.checksum,
       storageKeyUnchanged: visible.storageKey === immutableBefore.storageKey,
       driveMetadataUnchanged:
@@ -271,6 +272,7 @@ async function applyDriveImportReviewReassign(assetStore, assetId, body, ctx) {
     reason: validated.reason,
     decision: 'reassign',
     extra: {
+      ...(ctx.batchId ? { batchId: ctx.batchId } : {}),
       previousPatientId: before.patientId,
       newPatientId: after.patientId,
       storageKeyUnchanged: visible.storageKey === immutableBefore.storageKey,
@@ -347,6 +349,7 @@ async function applyDriveImportReviewReject(
     reason: validated.reason,
     decision: expectedDecision,
     extra: {
+      ...(ctx.batchId ? { batchId: ctx.batchId } : {}),
       markedDuplicate: duplicate,
       storageKeyUnchanged: updated.storageKey === immutableBefore.storageKey,
     },
