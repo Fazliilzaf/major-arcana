@@ -155,7 +155,7 @@ test('drive import reassign changes patient and becomes visible', async () => {
   fs.rmSync(projectRoot, { recursive: true, force: true });
 });
 
-test('drive import reject and mark_duplicate end in REJECTED without mutating storage', async () => {
+test('drive import reject ends in REJECTED; mark_duplicate ends in DUPLICATE without mutating storage', async () => {
   const { projectRoot, store, assetId, auditLog, config } = await makeFixture();
   const before = store.getAsset(assetId);
 
@@ -208,7 +208,7 @@ test('drive import reject and mark_duplicate end in REJECTED without mutating st
     { duplicate: true }
   );
   assert.equal(dup.decision, 'mark_duplicate');
-  assert.equal(store2.getAsset(asset2.id).status, 'REJECTED');
+  assert.equal(store2.getAsset(asset2.id).status, 'DUPLICATE');
   assert.equal(audit2.items.at(-1).detail.markedDuplicate, true);
 
   fs.rmSync(projectRoot, { recursive: true, force: true });

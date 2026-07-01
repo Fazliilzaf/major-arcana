@@ -13,6 +13,7 @@ const {
   loadSummary,
   listQueue,
   invalidateDriveImportReviewCache,
+  isLegacyDriveDuplicateAsset,
 } = require('../../src/ops/ccoDriveImportReviewReadService');
 
 function withTempAssets(items, run) {
@@ -79,6 +80,55 @@ test('loadSummary counts drive_import NEEDS_REVIEW only', () => {
       assert.equal(summary.totalNeedsReview, 1);
       assert.equal(summary.writeEnabled, false);
       assert.equal(summary.facets.mediaKinds.image, 1);
+    }
+  );
+});
+
+test('isLegacyDriveDuplicateAsset detects R2 REJECTED duplicates', () => {
+  assert.equal(
+    isLegacyDriveDuplicateAsset({
+      status: 'REJECTED',
+      sourceSystem: 'drive_import',
+      technicalInfo: { markedDuplicate: true },
+    }),
+    true
+  );
+  assert.equal(
+    isLegacyDriveDuplicateAsset({
+      status: 'DUPLICATE',
+      sourceSystem: 'drive_import',
+      technicalInfo: { markedDuplicate: true },
+    }),
+    false
+  );
+});
+
+test('loadSummary reports legacyRejectedDuplicates separately from queue', () => {
+  withTempAssets(
+    {
+      legacy: {
+        id: 'legacy',
+        status: 'REJECTED',
+        sourceSystem: 'drive_import',
+        reviewReason: 'marked_duplicate',
+        patientId: 'cliento_1',
+      },
+      open: {
+        id: 'open',
+        status: 'NEEDS_REVIEW',
+        sourceSystem: 'drive_import',
+        patientId: 'cliento_2',
+        originalFileName: 'doc.pdf',
+        mimeType: 'application/pdf',
+        category: 'other',
+        confidence: 'high',
+        originalDrivePath: 'Hair TP Clinic 2025/doc.pdf',
+      },
+    },
+    (dir) => {
+      const summary = loadSummary(dir);
+      assert.equal(summary.totalNeedsReview, 1);
+      assert.equal(summary.legacyRejectedDuplicates, 1);
     }
   );
 });
