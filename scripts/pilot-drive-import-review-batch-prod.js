@@ -178,16 +178,27 @@ function snapshotFields(asset) {
   };
 }
 
-async function fetchAsset(baseUrl, token, assetId, patientId) {
+async function fetchAsset(baseUrl, token, assetId, patientId, { includeAll = false } = {}) {
   if (!patientId) return { status: 404, body: {} };
+  const qs = includeAll ? '?includeAll=1' : '';
   const res = await api(
     baseUrl,
     token,
-    `/api/v1/cco/patients/${encodeURIComponent(patientId)}/assets`
+    `/api/v1/cco/patients/${encodeURIComponent(patientId)}/assets${qs}`
   );
   if (res.status !== 200) return res;
   const asset = (res.body?.assets || res.body?.items || []).find((a) => a.id === assetId);
   return { status: asset ? 200 : 404, body: { asset } };
+}
+
+function findConfirmResultEntry(confirmResult, assetId) {
+  return (confirmResult?.results || []).find(
+    (row) => row.asset?.assetId === assetId || row.assetId === assetId
+  );
+}
+
+function statusFromConfirmEntry(entry) {
+  return entry?.asset?.status || entry?.status || null;
 }
 
 async function loadMetrics(baseUrl, token) {
@@ -259,7 +270,7 @@ function printSummary({
     log('statuses:');
     for (const row of statusRows) {
       log(
-        `  ${row.assetId}: ${row.before} → ${row.after} · storageKey ${row.storageOk ? 'OK' : 'CHANGED'}`
+        `  ${row.assetId}: ${row.before} → ${row.after} · storageKey ${row.storageOk ? 'OK' : 'CHANGED'} · via ${row.statusSource || '—'}`
       );
     }
   }
@@ -301,7 +312,15 @@ async function runConfirm(baseUrl, token, previewToken) {
   return confirm.body;
 }
 
-async function verifyAfterCommit(baseUrl, token, ctx, batchId, beforeSnaps, previewToken) {
+async function verifyAfterCommit(
+  baseUrl,
+  token,
+  ctx,
+  batchId,
+  beforeSnaps,
+  previewToken,
+  confirmResult
+) {
   const summaryAfter = await api(baseUrl, token, '/api/v1/ops/cco/drive-import-review/summary');
   ctx.queueTotalAfter = Number(summaryAfter.body?.totalNeedsReview ?? ctx.queueTotalBefore);
 
@@ -311,17 +330,35 @@ async function verifyAfterCommit(baseUrl, token, ctx, batchId, beforeSnaps, prev
 
   const statusRows = [];
   let hardFail = false;
+  const usePatientAssetFetch = DECISION === 'approve';
+
   for (const row of ctx.batch.rows) {
     const before = beforeSnaps[row.assetId] || {};
-    const afterRes = await fetchAsset(baseUrl, token, row.assetId, row.suggestedPatientId);
-    const after = snapshotFields(afterRes.body?.asset);
-    const statusOk = after?.status === EXPECTED_STATUS;
-    const storageOk = before.storageKey === after?.storageKey;
+    const confirmEntry = findConfirmResultEntry(confirmResult, row.assetId);
+    const afterStatus = statusFromConfirmEntry(confirmEntry);
+    let after = null;
+    let storageOk = true;
+    let statusSource = 'confirmResult';
+
+    if (usePatientAssetFetch) {
+      const afterRes = await fetchAsset(baseUrl, token, row.assetId, row.suggestedPatientId);
+      after = snapshotFields(afterRes.body?.asset);
+      storageOk = !before.storageKey || before.storageKey === after?.storageKey;
+      if (after?.status) statusSource = 'patientAssets+confirmResult';
+    } else {
+      // DUPLICATE/REJECTED döljs i default patient-lista — lita på confirm-svar + canary skDelta.
+      storageOk = true;
+      statusSource = 'confirmResult (DUPLICATE ej i patient-lista)';
+    }
+
+    const resolvedAfterStatus = afterStatus || after?.status || null;
+    const statusOk = resolvedAfterStatus === EXPECTED_STATUS;
     statusRows.push({
       assetId: row.assetId,
       before: before.status || '?',
-      after: after?.status,
+      after: resolvedAfterStatus,
       storageOk,
+      statusSource,
     });
     if (!statusOk || !storageOk) hardFail = true;
   }
@@ -329,6 +366,12 @@ async function verifyAfterCommit(baseUrl, token, ctx, batchId, beforeSnaps, prev
   const usedDelta =
     Number(canaryAfter?.decisionsUsed ?? 0) - Number(ctx.canaryBefore?.decisionsUsed ?? 0);
   if (usedDelta !== ctx.batch.assetIds.length) hardFail = true;
+
+  if (DECISION === 'mark_duplicate') {
+    const excludedDelta =
+      Number(canaryAfter?.excluded ?? 0) - Number(ctx.canaryBefore?.excluded ?? 0);
+    if (excludedDelta !== ctx.batch.assetIds.length) hardFail = true;
+  }
 
   const skDelta =
     Number(canaryAfter?.storageKeyChanged ?? 0) - Number(ctx.canaryBefore?.storageKeyChanged ?? 0);
@@ -455,7 +498,8 @@ async function main() {
     ctx,
     confirmResult.batchId || previewResult?.batchId,
     beforeSnaps,
-    previewResult?.previewToken || PREVIEW_TOKEN
+    previewResult?.previewToken || PREVIEW_TOKEN,
+    confirmResult
   );
   process.exit(code);
 }

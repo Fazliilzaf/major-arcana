@@ -84,6 +84,8 @@ Scriptet skriver:
 
 Audit-läsning via `GET /cco-audit` kan ge 403 utan separat auth-fix — då används queue/canary-delta som bevis.
 
+**`mark_duplicate`:** status verifieras via `confirmResult.results` (inte patientkortets default-lista, som döljer `DUPLICATE`).
+
 ## Relaterat
 
 - En-fil-pilot: `npm run pilot:drive-import-review-prod`
