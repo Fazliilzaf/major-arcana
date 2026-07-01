@@ -259,31 +259,44 @@ function buildIndex(dataRoot) {
   return indexCache;
 }
 
-function loadSummary(dataRoot) {
+function loadSummary(dataRoot, { writeEnabled = false } = {}) {
   const idx = buildIndex(dataRoot);
   return {
     generatedAt: new Date().toISOString(),
-    phase: 'R1_readonly',
-    writeEnabled: false,
+    phase: writeEnabled ? 'R2_canary' : 'R1_readonly',
+    writeEnabled,
+    readOnly: !writeEnabled,
     totalNeedsReview: idx.total,
     assetsPath: idx.assetsPath,
     loadedAt: idx.loadedAt,
     facets: idx.facets,
-    rules: [
-      'Read-only — ingen statusändring',
-      'Ingen flytt, radering eller auto-koppling',
-      'Ingen batch-action',
-      'Öppna kundkort är en länk — skriver ingen data',
-    ],
+    rules: writeEnabled
+      ? [
+          'Canary — en fil i taget',
+          'Approve / reassign / reject / markera dubblett',
+          'Audit-logg per beslut',
+          'Ingen fil flyttas, skrivs om eller raderas',
+          'Drive-metadata bevaras',
+          'Ingen batch-action',
+        ]
+      : [
+          'Read-only — ingen statusändring',
+          'Ingen flytt, radering eller auto-koppling',
+          'Ingen batch-action',
+          'Öppna kundkort är en länk — skriver ingen data',
+        ],
   };
 }
 
-function listQueue(dataRoot, filters = {}) {
+function listQueue(dataRoot, filters = {}, { writeEnabled = false } = {}) {
   const idx = buildIndex(dataRoot);
   const limit = Math.min(200, Math.max(1, Number(filters.limit) || 50));
   const offset = Math.max(0, Number(filters.offset) || 0);
   const filtered = idx.items.filter((item) => matchesFilters(item, filters));
-  const slice = filtered.slice(offset, offset + limit);
+  const slice = filtered.slice(offset, offset + limit).map((item) => ({
+    ...item,
+    readOnly: !writeEnabled,
+  }));
   return {
     total: filtered.length,
     offset,
@@ -298,8 +311,8 @@ function listQueue(dataRoot, filters = {}) {
       q: filters.q || '',
     },
     items: slice,
-    writeEnabled: false,
-    readOnly: true,
+    writeEnabled,
+    readOnly: !writeEnabled,
   };
 }
 
@@ -313,6 +326,7 @@ module.exports = {
   deriveMatchGround,
   mediaKind,
   mapItemForUi,
+  loadCustomerDirectory,
   loadSummary,
   listQueue,
   invalidateDriveImportReviewCache,

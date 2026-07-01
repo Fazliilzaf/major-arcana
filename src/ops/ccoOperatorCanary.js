@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const TRACKS = ['photo', 'import', 'mail'];
+const TRACKS = ['photo', 'import', 'mail', 'drive_import'];
 
 function defaultState() {
   return {
@@ -12,6 +12,7 @@ function defaultState() {
     photo: emptyTrack(),
     import: emptyTrack(),
     mail: emptyTrack(),
+    drive_import: emptyTrack(),
   };
 }
 
@@ -152,6 +153,7 @@ function buildCanaryStatusPayload({
       photo: config?.photoReviewCanaryMax ?? 25,
       import: config?.importReviewCanaryMax ?? 25,
       mail: config?.mailReviewCanaryMax ?? 25,
+      drive_import: config?.driveImportReviewCanaryMax ?? 25,
     },
     photo: {
       writeEnabled: config?.enablePhotoReviewWrite === true,
