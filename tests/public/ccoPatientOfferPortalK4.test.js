@@ -145,3 +145,16 @@ test('customer offer portal renders K17 operation day readiness panel', () => {
   assert.match(source, /Inget journalinnehåll skapas automatiskt från portalen/);
   assert.match(source, /renderOperationDayPanel\(context, window\.ARCANA_CUSTOMER_OFFER_PLAN/);
 });
+
+test('customer offer portal renders K18 aftercare and follow-up readiness panel', () => {
+  const source = readPortal();
+  assert.match(source, /data-aftercare-panel/);
+  assert.match(source, /data-aftercare-steps/);
+  assert.match(source, /function resolveAftercareReadiness\(contextInput\)/);
+  assert.match(source, /function renderAftercarePanel\(contextInput\)/);
+  assert.match(source, /Eftervård och uppföljning/);
+  assert.match(source, /Bildinlämning/);
+  assert.match(source, /4, 6 och 12 månaders uppföljning/);
+  assert.match(source, /personalen granskar alltid uppföljningar innan journal/);
+  assert.match(source, /renderAftercarePanel\(context\)/);
+});
