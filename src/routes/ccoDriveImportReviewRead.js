@@ -13,6 +13,7 @@ function createCcoDriveImportReviewReadRouter({
   projectRoot,
   config = null,
   resolveStores = null,
+  resolvePatientExists = null,
   auditLog = null,
   requireCcoAuthenticated,
   attachRole,
@@ -101,6 +102,7 @@ function createCcoDriveImportReviewReadRouter({
             projectRoot: root,
             config,
             auditLog,
+            resolvePatientExists,
             assetId: String(req.params.assetId || '').trim(),
             body: req.body || {},
             actor: {

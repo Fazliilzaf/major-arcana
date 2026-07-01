@@ -86,23 +86,50 @@ function loadPatientMasterBucket(dataRoot, tenantId = 'hair_tp') {
   if (!fs.existsSync(masterPath)) return null;
   try {
     const raw = JSON.parse(fs.readFileSync(masterPath, 'utf8'));
-    return raw?.tenants?.[tenantId] || null;
+    const tenants = raw?.tenants || {};
+    if (tenants[tenantId]) return tenants[tenantId];
+    for (const key of ['hair_tp', 'hair-tp-clinic', 'hairtpclinic']) {
+      if (tenants[key]) return tenants[key];
+    }
+    const first = Object.values(tenants)[0];
+    return first || null;
   } catch {
     return null;
   }
 }
 
-function patientExistsInRegistry(patientId, { directory = {}, masterBucket = null } = {}) {
-  const pid = normalizeText(patientId);
-  if (!pid || pid === 'unknown') return false;
-  if (directory[pid]) return true;
+function loadAllPatientMasterBuckets(dataRoot) {
+  const masterPath = resolvePatientMasterPath(dataRoot);
+  if (!fs.existsSync(masterPath)) return [];
+  try {
+    const raw = JSON.parse(fs.readFileSync(masterPath, 'utf8'));
+    return Object.values(raw?.tenants || {});
+  } catch {
+    return [];
+  }
+}
+
+function patientExistsInMasterBucket(patientId, masterBucket) {
   if (!masterBucket) return false;
+  const pid = normalizeText(patientId);
+  if (!pid) return false;
   if (masterBucket._indexes?.patientById?.[pid] !== undefined) return true;
   const patients = Array.isArray(masterBucket.patients) ? masterBucket.patients : [];
   return patients.some((row) => {
     const candidates = [row?.id, row?.clientoId, row?.meridiqId, row?.ccoId, row?.masterPatientId];
     return candidates.some((value) => normalizeText(value) === pid);
   });
+}
+
+function patientExistsInRegistry(
+  patientId,
+  { directory = {}, masterBucket = null, masterBuckets = null } = {}
+) {
+  const pid = normalizeText(patientId);
+  if (!pid || pid === 'unknown') return false;
+  if (directory[pid]) return true;
+  const buckets = masterBuckets || (masterBucket ? [masterBucket] : []);
+  return buckets.some((bucket) => patientExistsInMasterBucket(pid, bucket));
 }
 
 function resolvePatientLabel(patientId, directory, masterBucket = null) {
@@ -385,6 +412,7 @@ module.exports = {
   mapItemForUi,
   loadCustomerDirectory,
   loadPatientMasterBucket,
+  loadAllPatientMasterBuckets,
   patientExistsInRegistry,
   loadSummary,
   listQueue,
