@@ -93,3 +93,18 @@ test('customer offer portal renders K13 live consultation photo gallery', () => 
   assert.match(source, /Bilderna kommer från konsultationens behandlingsplan/);
   assert.match(source, /renderPortalPhotos\(context\.portalPhotos\)/);
 });
+
+test('customer offer portal renders K14 live plan evidence from photos and zones', () => {
+  const source = readPortal();
+  assert.match(source, /data-portal-plan-evidence/);
+  assert.match(source, /Plan från ritningarna/);
+  assert.match(source, /data-plan-evidence-total-grafts/);
+  assert.match(source, /data-plan-evidence-price/);
+  assert.match(source, /data-plan-evidence-method/);
+  assert.match(source, /data-plan-evidence-zones/);
+  assert.match(source, /function renderPlanEvidence\(planInput, photosInput\)/);
+  assert.match(source, /resolveOfferPlanTotals\(planInput\)/);
+  assert.match(source, /renderPlanEvidence\(/);
+  assert.match(source, /window\.ARCANA_CUSTOMER_OFFER_PLAN \|\| DEMO_OFFER_PLAN/);
+  assert.match(source, /context\.portalPhotos/);
+});
