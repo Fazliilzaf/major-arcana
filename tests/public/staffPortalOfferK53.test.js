@@ -54,3 +54,23 @@ test('K55 staff portal exposes a stuck-offer work mode', () => {
   assert.match(source, /Öppnad för/);
   assert.match(source, /Skickad för/);
 });
+
+test('K56 staff portal surfaces backend SLA/priority in the stuck work mode', () => {
+  const source = read(staffPortalPath);
+
+  // Prioritet per rad — SLA-tier från backend (item.slaTier) driver radpillen.
+  assert.match(source, /item\.slaTier/);
+  assert.match(source, /SLA: Kritisk/);
+  assert.match(source, /SLA: Hög/);
+  assert.match(source, /SLA: Förhöjd/);
+
+  // Triagemåtten i arbetsläget kommer från backend-fälten.
+  assert.match(source, /SLA akut/);
+  assert.match(source, /Följ upp idag/);
+  assert.match(source, /Äldst fastnad/);
+  assert.match(source, /data-owner-offer-stuck-metrics/);
+
+  // SLA-sammanfattningen läses från stuckSlaSummary (offertöversikten/backend).
+  assert.match(source, /data\.stuckSlaSummary/);
+  assert.match(source, /Fastnade SLA:/);
+});
