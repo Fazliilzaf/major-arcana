@@ -383,6 +383,12 @@ function createCcoConversationRouter({
   openaiModel = '',
   graphSendConnector = null,
   graphReadConnector = null,
+  // E1 steg 1 — shadow/dry-run. När true körs hela reply-flödet (validering,
+  // mottagar- och metadata-upplösning) men själva Graph-sändningen hoppas över:
+  // endpointen returnerar det som SKULLE skickats (wouldSend) och loggar det,
+  // utan att röra graphSendConnector. Säkert att slå på i skarp miljö — inget
+  // mejl går ut. Skarpt utskick kräver fortfarande shadow=false + connector.
+  shadowSendEnabled = false,
   runtimeStreamRouter = null,
   mailboxIdsForSync = [],
   syncLookbackDays = 14,
@@ -811,7 +817,12 @@ function createCcoConversationRouter({
     express.json({ limit: '64kb' }),
     async (req, res) => {
       try {
-        if (!graphSendConnector || typeof graphSendConnector.sendReply !== 'function') {
+        const shadowMode = shadowSendEnabled === true;
+        // I shadow-läge behövs ingen connector — vi skickar aldrig skarpt.
+        if (
+          !shadowMode &&
+          (!graphSendConnector || typeof graphSendConnector.sendReply !== 'function')
+        ) {
           return res.status(503).json({
             ok: false,
             error: 'graph_send_unavailable',
@@ -866,6 +877,36 @@ function createCcoConversationRouter({
           normalizeText(asObject(asObject(target.from).emailAddress).address) ||
           normalizeText(target.senderEmail) ||
           normalizeText(target.fromAddress);
+
+        // E1 steg 1 — shadow/dry-run: allt är upplöst och validerat, men vi
+        // skickar INTE. Returnera exakt det som skulle skickats och logga det.
+        if (shadowMode) {
+          const wouldSend = {
+            mailboxId: senderMailboxId,
+            conversationId: conversationId || null,
+            replyToMessageId,
+            recipient: customerEmail || null,
+            subject: normalizeText(target.subject) || null,
+            bodyPreview: body.slice(0, 200),
+            bodyLength: body.length,
+            htmlProvided: Boolean(bodyHtml),
+          };
+          console.info(
+            '[cco-reply] SHADOW dry-run — inget mejl skickat',
+            JSON.stringify({ conversationKey: key, ...wouldSend })
+          );
+          return res.json({
+            ok: true,
+            mode: 'shadow',
+            sent: false,
+            conversationKey: key,
+            replyToMessageId,
+            mailboxId: senderMailboxId,
+            recipient: customerEmail || null,
+            wouldSend,
+          });
+        }
+
         const result = await graphSendConnector.sendReply({
           mailboxId: senderMailboxId,
           sourceMailboxId: senderMailboxId,
@@ -878,6 +919,8 @@ function createCcoConversationRouter({
         });
         return res.json({
           ok: true,
+          mode: 'live',
+          sent: true,
           conversationKey: key,
           replyToMessageId,
           mailboxId: senderMailboxId,
@@ -1627,12 +1670,16 @@ function createCcoConversationRouter({
         model: openai && openaiModel ? openaiModel : null,
         status: openai && openaiModel ? 'aktiv' : 'fallback',
       };
+      const liveSendReady = Boolean(
+        graphSendConnector && typeof graphSendConnector.sendReply === 'function'
+      );
       const send = {
-        enabled: Boolean(graphSendConnector && typeof graphSendConnector.sendReply === 'function'),
+        // enabled = skarp sändning möjlig. Shadow räknas inte som skarpt.
+        enabled: liveSendReady,
+        shadow: shadowSendEnabled === true,
+        mode: shadowSendEnabled === true ? 'shadow' : liveSendReady ? 'live' : 'off',
         status:
-          graphSendConnector && typeof graphSendConnector.sendReply === 'function'
-            ? 'aktiv'
-            : 'avstängd',
+          shadowSendEnabled === true ? 'shadow (dry-run)' : liveSendReady ? 'aktiv' : 'avstängd',
       };
       const sync = {
         enabled: Boolean(graphReadConnector),
