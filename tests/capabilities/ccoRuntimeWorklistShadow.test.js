@@ -9,6 +9,7 @@ const { createCapabilitiesRouter } = require('../../src/routes/capabilities');
 const { createCapabilityAnalysisStore } = require('../../src/capabilities/analysisStore');
 const { createAuthStore } = require('../../src/security/authStore');
 const { createCcoMailboxTruthStore } = require('../../src/ops/ccoMailboxTruthStore');
+const { createCcoMailboxTruthShardedStore } = require('../../src/ops/ccoMailboxTruthShardedStore');
 const { createCcoCustomerStore } = require('../../src/ops/ccoCustomerStore');
 
 async function withServer(app, run) {
@@ -1475,6 +1476,95 @@ test('runtime worklist consumer route exposes limited truth-driven rows while ke
         'not_comparable_no_legacy_baseline'
       );
       assert.equal(payload.shadowGuardrail.aggregate.classificationCounts.mapping_gap || 0, 0);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('runtime worklist consumer preloads sharded mailbox truth before building rows', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-worklist-consumer-sharded-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const capabilityAnalysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'analysis.json'),
+  });
+  const shardDir = path.join(tempDir, 'truth-shards');
+  const writerStore = await createCcoMailboxTruthShardedStore({
+    baseDir: shardDir,
+    legacyFilePath: path.join(tempDir, 'missing-legacy-truth.json'),
+    lazyPreload: true,
+  });
+
+  try {
+    await seedFolder(writerStore, {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      messages: [
+        inboxMessage({
+          mailboxId: 'contact@hairtpclinic.com',
+          conversationId: 'conv-cold-shard',
+          graphMessageId: 'msg-cold-shard',
+          subject: 'Kall shard ska synas',
+          preview: 'Det här mailet finns på disk men sharden är kall.',
+          receivedAt: '2026-04-03T10:00:00.000Z',
+          isRead: false,
+        }),
+      ],
+    });
+
+    const ccoMailboxTruthStore = await createCcoMailboxTruthShardedStore({
+      baseDir: shardDir,
+      legacyFilePath: path.join(tempDir, 'missing-legacy-truth.json'),
+      lazyPreload: true,
+    });
+    assert.equal(
+      ccoMailboxTruthStore.listMessages({
+        mailboxIds: ['contact@hairtpclinic.com'],
+        folderTypes: ['inbox'],
+      }).length,
+      0,
+      'sanity: en ny lazy sharded store startar utan laddade mailboxar'
+    );
+
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore,
+        capabilityAnalysisStore,
+        ccoMailboxTruthStore,
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/worklist/consumer?mailboxIds=contact@hairtpclinic.com&limit=20`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+
+      assert.equal(payload.ok, true);
+      assert.equal(payload.summary.rowCount, 1);
+      assert.equal(payload.rows[0].conversation.conversationId, 'conv-cold-shard');
+      assert.equal(payload.rows[0].mailbox.mailboxId, 'contact@hairtpclinic.com');
+      assert.equal(payload.rows[0].state.needsReply, true);
+      assert.deepEqual(ccoMailboxTruthStore.listLoadedMailboxes(), ['contact@hairtpclinic.com']);
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
