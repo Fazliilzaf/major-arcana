@@ -34,6 +34,18 @@ function periodLabel(date) {
   return `${MONTHS_SV[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
+function endOfUtcDayExclusive(date) {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1);
+}
+
+function previousMonthSameDayEndExclusive(date) {
+  const targetYear = date.getUTCMonth() === 0 ? date.getUTCFullYear() - 1 : date.getUTCFullYear();
+  const targetMonth = date.getUTCMonth() === 0 ? 11 : date.getUTCMonth() - 1;
+  const lastDayInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const clampedDay = Math.min(date.getUTCDate(), lastDayInTargetMonth);
+  return Date.UTC(targetYear, targetMonth, clampedDay + 1);
+}
+
 function safeNum(n) {
   return typeof n === 'number' && Number.isFinite(n) ? n : null;
 }
@@ -256,11 +268,14 @@ function composeClinicMetrics({
 } = {}) {
   const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
   const prevMonthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1);
-  const nextMonthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
   const monthStartDate = new Date(monthStart);
   const prevMonthStartDate = new Date(prevMonthStart);
+  const currentPeriodEndExclusive = endOfUtcDayExclusive(now);
+  const previousComparableEndExclusive = previousMonthSameDayEndExclusive(now);
 
-  // Bokningar denna månad och föregående månad (per startsAt) + no-show inom samma fönster.
+  // Same-day framing: "hittills i månaden t.o.m. dagens kalenderdag" jämförs
+  // med "föregående månad t.o.m. samma kalenderdag". Det undviker att tidig
+  // månad ser artificiellt svag ut bara för att vi jämför med en hel månad.
   let bookingsCurrent = 0;
   let bookingsPrevious = 0;
   let noShowCurrent = 0;
@@ -270,13 +285,13 @@ function composeClinicMetrics({
   for (const b of Array.isArray(bookings) ? bookings : []) {
     const t = b && b.startsAt ? Date.parse(b.startsAt) : NaN;
     if (!Number.isFinite(t)) continue;
-    if (t >= monthStart && t < nextMonthStart) {
+    if (t >= monthStart && t < currentPeriodEndExclusive) {
       bookingsCurrent += 1;
       if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoverageCurrent = false;
       if (b.status === 'no_show') noShowCurrent += 1;
       continue;
     }
-    if (t >= prevMonthStart && t < monthStart) {
+    if (t >= prevMonthStart && t < previousComparableEndExclusive) {
       bookingsPrevious += 1;
       if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoveragePrevious = false;
       if (b.status === 'no_show') noShowPrevious += 1;
@@ -324,6 +339,8 @@ function composeClinicMetrics({
       'revenueSek.previous',
       'avgOrderValueSek.previous',
     ],
+    dataNote:
+      'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad.',
     avgOrderValueNote:
       'Proxy: intäkt betald denna månad ÷ bokningar denna månad (bokningsdata saknar pris per bokning).',
   };

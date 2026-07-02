@@ -74,6 +74,10 @@ function buildApp(overrides = {}) {
 }
 
 test('monitor clinic-performance använder booking engine när cliento är tom', async () => {
+  const todayUtc = new Date();
+  const startsAtToday = new Date(
+    Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate(), 9, 0, 0)
+  ).toISOString();
   const app = buildApp({
     clientoBookingStore: {
       listAllBookings() {
@@ -89,7 +93,7 @@ test('monitor clinic-performance använder booking engine när cliento är tom',
             customerEmail: 'a@b.se',
             status: 'confirmed',
             slot: {
-              startsAt: '2026-07-10T09:00:00Z',
+              startsAt: startsAtToday,
               serviceId: 'followup-transplant',
               serviceLabel: 'Uppföljning hårtransplantation',
               resourceLabel: 'Fazli Krasniqi',
