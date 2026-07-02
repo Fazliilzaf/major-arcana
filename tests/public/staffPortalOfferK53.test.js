@@ -74,3 +74,15 @@ test('K56 staff portal surfaces backend SLA/priority in the stuck work mode', ()
   assert.match(source, /data\.stuckSlaSummary/);
   assert.match(source, /Fastnade SLA:/);
 });
+
+test('K57 staff portal shows responsible owner for stuck offers', () => {
+  const source = read(staffPortalPath);
+
+  assert.match(source, /ownerOfferResponsible/);
+  assert.match(source, /data-owner-offer-owner/);
+  assert.match(source, /Ansvarig:/);
+  assert.match(source, /Saknar ansvarig/);
+  assert.match(source, /saknar ansvarig/);
+  assert.match(source, /offerOwnerName/);
+  assert.match(source, /offerOwnerUserId/);
+});
