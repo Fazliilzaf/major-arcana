@@ -46,6 +46,10 @@ function normalizeEmail(value) {
   return normalizeText(value).toLowerCase();
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function isHairTpTenantFamily(tenantId = '') {
   const normalized = normalizeText(tenantId).toLowerCase();
   if (!normalized) return false;
@@ -76,20 +80,164 @@ function bookingDedupeKey(booking = {}) {
   return `fallback:${email}::${startsAt}::${status}`;
 }
 
-function collectClinicPerformanceBookings({ clientoBookingStore = null, tenantId = '' } = {}) {
-  if (!clientoBookingStore || typeof clientoBookingStore.listAllBookings !== 'function') return [];
-  const seen = new Set();
-  const merged = [];
+function buildClinicPerformanceRow({
+  bookingId = '',
+  customerEmail = '',
+  startsAt = '',
+  status = '',
+  source = '',
+  serviceId = '',
+  serviceLabel = '',
+  resourceLabel = '',
+} = {}) {
+  const normalizedStartsAt = normalizeText(startsAt);
+  if (!normalizedStartsAt) return null;
+  const normalizedStatus = normalizeText(status).toLowerCase();
+  if (!normalizedStatus || normalizedStatus === 'cancelled') return null;
+  return {
+    bookingId: normalizeText(bookingId),
+    customerEmail: normalizeEmail(customerEmail),
+    startsAt: normalizedStartsAt,
+    status: normalizedStatus,
+    source: normalizeText(source),
+    serviceId: normalizeText(serviceId),
+    serviceLabel: normalizeText(serviceLabel),
+    resourceLabel: normalizeText(resourceLabel),
+  };
+}
+
+function clinicPerformanceRowDedupeKey(row = {}) {
+  const email = normalizeEmail(row.customerEmail);
+  const startsAt = normalizeText(row.startsAt);
+  const resource = normalizeText(row.resourceLabel).toLowerCase();
+  if (email && startsAt) {
+    return `slot:${email}::${startsAt}::${resource}`;
+  }
+  const bookingId = normalizeText(row.bookingId);
+  if (bookingId) return `booking:${bookingId}`;
+  return `fallback:${startsAt}::${resource}`;
+}
+
+function bookingSourceSupportsNoShow(row = {}) {
+  const source = normalizeText(row.source).toLowerCase();
+  // cliento is the only source that can currently carry explicit no_show state.
+  // Missing source is treated as test/legacy input and remains no-show-capable.
+  return !source || source === 'cliento';
+}
+
+function collectFromBookingEngineStore({ bookingEngineStore = null, tenantId = '' } = {}) {
+  if (!bookingEngineStore || typeof bookingEngineStore.listBookingsForEnrichment !== 'function') {
+    return [];
+  }
+  const rows = [];
   for (const candidate of bookingTenantCandidates(tenantId)) {
-    const batch = clientoBookingStore.listAllBookings({ tenantId: candidate }) || [];
-    for (const booking of Array.isArray(batch) ? batch : []) {
-      const key = bookingDedupeKey(booking);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      merged.push(booking);
+    const batch = bookingEngineStore.listBookingsForEnrichment(candidate) || [];
+    for (const booking of asArray(batch)) {
+      if (normalizeText(booking.status).toLowerCase() !== 'confirmed') continue;
+      const slot = booking && booking.slot && typeof booking.slot === 'object' ? booking.slot : {};
+      const row = buildClinicPerformanceRow({
+        bookingId: booking.bookingId,
+        customerEmail: booking.customerEmail,
+        startsAt: slot.startsAt,
+        status: booking.status,
+        source: 'cco_booking_engine',
+        serviceId: slot.serviceId,
+        serviceLabel: slot.serviceLabel,
+        resourceLabel: slot.resourceLabel,
+      });
+      if (row) rows.push(row);
     }
   }
-  return merged;
+  return rows;
+}
+
+function collectFromTreatmentEncounterStore({
+  treatmentEncounterStore = null,
+  tenantId = '',
+} = {}) {
+  if (
+    !treatmentEncounterStore ||
+    typeof treatmentEncounterStore.listEncountersForEnrichment !== 'function'
+  ) {
+    return [];
+  }
+  const allowedStatuses = new Set(['confirmed', 'checked_in', 'in_progress', 'completed']);
+  const rows = [];
+  for (const candidate of bookingTenantCandidates(tenantId)) {
+    const batch = treatmentEncounterStore.listEncountersForEnrichment(candidate) || [];
+    for (const encounter of asArray(batch)) {
+      const status = normalizeText(encounter.status).toLowerCase();
+      if (!allowedStatuses.has(status)) continue;
+      const row = buildClinicPerformanceRow({
+        bookingId: encounter.bookingId || encounter.encounterId,
+        customerEmail: encounter.customerEmail,
+        startsAt: encounter.startsAt,
+        status,
+        source: 'cco_treatment_encounter',
+        serviceId: encounter.serviceId,
+        serviceLabel: encounter.serviceLabel || encounter.encounterType,
+        resourceLabel: encounter.resourceLabel,
+      });
+      if (row) rows.push(row);
+    }
+  }
+  return rows;
+}
+
+function collectFromClientoBookingStore({ clientoBookingStore = null, tenantId = '' } = {}) {
+  if (!clientoBookingStore || typeof clientoBookingStore.listAllBookings !== 'function') return [];
+  const rows = [];
+  for (const candidate of bookingTenantCandidates(tenantId)) {
+    const batch = clientoBookingStore.listAllBookings({ tenantId: candidate }) || [];
+    for (const booking of asArray(batch)) {
+      const row = buildClinicPerformanceRow({
+        bookingId: booking.bookingId,
+        customerEmail: booking.customerEmail,
+        startsAt: booking.startsAt,
+        status: booking.status || 'confirmed',
+        source: 'cliento',
+        serviceLabel: booking.serviceLabel,
+        resourceLabel: booking.staffName,
+      });
+      if (row) rows.push(row);
+    }
+  }
+  return rows;
+}
+
+function collectClinicPerformanceBookings({
+  clientoBookingStore = null,
+  bookingEngineStore = null,
+  treatmentEncounterStore = null,
+  tenantId = '',
+} = {}) {
+  const sourceRank = {
+    cco_treatment_encounter: 40,
+    cco_booking_engine: 30,
+    cliento: 10,
+  };
+  const byKey = new Map();
+  const batches = [
+    ...collectFromTreatmentEncounterStore({ treatmentEncounterStore, tenantId }),
+    ...collectFromBookingEngineStore({ bookingEngineStore, tenantId }),
+    ...collectFromClientoBookingStore({ clientoBookingStore, tenantId }),
+  ];
+  for (const row of batches) {
+    const key = clinicPerformanceRowDedupeKey(row);
+    const existing = byKey.get(key);
+    if (!existing || (sourceRank[row.source] || 0) > (sourceRank[existing.source] || 0)) {
+      byKey.set(key, row);
+    }
+  }
+  return [...byKey.values()].map((row) => ({
+    bookingId: row.bookingId,
+    customerEmail: row.customerEmail,
+    startsAt: row.startsAt,
+    status: row.status,
+    source: row.source,
+    serviceLabel: row.serviceLabel,
+    resourceLabel: row.resourceLabel,
+  }));
 }
 
 /**
@@ -117,23 +265,33 @@ function composeClinicMetrics({
   let bookingsPrevious = 0;
   let noShowCurrent = 0;
   let noShowPrevious = 0;
+  let noShowHasLiveCoverageCurrent = true;
+  let noShowHasLiveCoveragePrevious = true;
   for (const b of Array.isArray(bookings) ? bookings : []) {
     const t = b && b.startsAt ? Date.parse(b.startsAt) : NaN;
     if (!Number.isFinite(t)) continue;
     if (t >= monthStart && t < nextMonthStart) {
       bookingsCurrent += 1;
+      if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoverageCurrent = false;
       if (b.status === 'no_show') noShowCurrent += 1;
       continue;
     }
     if (t >= prevMonthStart && t < monthStart) {
       bookingsPrevious += 1;
+      if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoveragePrevious = false;
       if (b.status === 'no_show') noShowPrevious += 1;
     }
   }
-  const noShowRateCurrent =
-    bookingsCurrent > 0 ? Number((noShowCurrent / bookingsCurrent).toFixed(4)) : 0;
-  const noShowRatePrevious =
-    bookingsPrevious > 0 ? Number((noShowPrevious / bookingsPrevious).toFixed(4)) : 0;
+  const noShowRateCurrent = noShowHasLiveCoverageCurrent
+    ? bookingsCurrent > 0
+      ? Number((noShowCurrent / bookingsCurrent).toFixed(4))
+      : 0
+    : null;
+  const noShowRatePrevious = noShowHasLiveCoveragePrevious
+    ? bookingsPrevious > 0
+      ? Number((noShowPrevious / bookingsPrevious).toFixed(4))
+      : 0
+    : null;
 
   // Intäkt betald denna månad ur finance-dashboarden (null om ej tillgänglig).
   const revenueCurrent =
@@ -162,6 +320,7 @@ function composeClinicMetrics({
     notLiveYet: [
       'utilizationRate',
       'channelSplit',
+      ...(noShowRateCurrent === null || noShowRatePrevious === null ? ['noShowRate'] : []),
       'revenueSek.previous',
       'avgOrderValueSek.previous',
     ],

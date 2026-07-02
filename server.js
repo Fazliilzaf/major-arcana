@@ -13515,6 +13515,8 @@ process.once('SIGTERM', () => {
       requireRole: auth.requireRole,
       runtimeState,
       clientoBookingStore,
+      bookingEngineStore: ccoBookingEngineStore,
+      treatmentEncounterStore: ccoTreatmentEncounterStore,
     })
   );
 
