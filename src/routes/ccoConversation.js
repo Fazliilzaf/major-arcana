@@ -389,6 +389,13 @@ function createCcoConversationRouter({
   // utan att röra graphSendConnector. Säkert att slå på i skarp miljö — inget
   // mejl går ut. Skarpt utskick kräver fortfarande shadow=false + connector.
   shadowSendEnabled = false,
+  // E1 steg 2 — skarpt utskick omdirigerat till en ägar-testadress. När satt
+  // (och shadow är av) sker en RIKTIG Graph-sändning, men mottagaren tvingas
+  // till denna adress oavsett kundens adress. Ingen riktig kund kan nås i det
+  // här läget — det är till för att verifiera skarp sändning end-to-end mot en
+  // adress ägaren själv kontrollerar. Full live till kund kräver att detta är
+  // tomt (och separat GO).
+  sendTestRecipient = '',
   runtimeStreamRouter = null,
   mailboxIdsForSync = [],
   syncLookbackDays = 14,
@@ -907,6 +914,17 @@ function createCcoConversationRouter({
           });
         }
 
+        // E1 steg 2 — test-redirect: riktig sändning men tvingad mottagare till
+        // ägar-testadressen. Kunden nås aldrig; ämnet märks så det syns i
+        // testinkorgen vem svaret egentligen var avsett för.
+        const testRecipient = normalizeText(sendTestRecipient);
+        const redirectToTest = Boolean(testRecipient);
+        const subject = normalizeText(target.subject);
+        const sendSubject = redirectToTest
+          ? `[ARCANA TEST → ${customerEmail || 'okänd mottagare'}] ${subject}`.trim()
+          : subject;
+        const recipient = redirectToTest ? testRecipient : customerEmail;
+
         const result = await graphSendConnector.sendReply({
           mailboxId: senderMailboxId,
           sourceMailboxId: senderMailboxId,
@@ -914,17 +932,29 @@ function createCcoConversationRouter({
           replyToMessageId,
           body,
           bodyHtml: bodyHtml || undefined,
-          subject: normalizeText(target.subject),
-          to: customerEmail ? [customerEmail] : [],
+          subject: sendSubject,
+          to: recipient ? [recipient] : [],
         });
+        if (redirectToTest) {
+          console.info(
+            '[cco-reply] LIVE_TEST — skarpt utskick omdirigerat till testadress',
+            JSON.stringify({
+              conversationKey: key,
+              testRecipient,
+              intendedRecipient: customerEmail || null,
+            })
+          );
+        }
         return res.json({
           ok: true,
-          mode: 'live',
+          mode: redirectToTest ? 'live_test' : 'live',
           sent: true,
+          testRedirect: redirectToTest,
           conversationKey: key,
           replyToMessageId,
           mailboxId: senderMailboxId,
-          recipient: customerEmail || null,
+          recipient: recipient || null,
+          intendedRecipient: redirectToTest ? customerEmail || null : undefined,
           sendResult: result || null,
         });
       } catch (err) {
@@ -1673,13 +1703,30 @@ function createCcoConversationRouter({
       const liveSendReady = Boolean(
         graphSendConnector && typeof graphSendConnector.sendReply === 'function'
       );
+      const testRedirectActive =
+        shadowSendEnabled !== true && liveSendReady && Boolean(normalizeText(sendTestRecipient));
+      const sendMode =
+        shadowSendEnabled === true
+          ? 'shadow'
+          : !liveSendReady
+            ? 'off'
+            : testRedirectActive
+              ? 'live_test'
+              : 'live';
       const send = {
         // enabled = skarp sändning möjlig. Shadow räknas inte som skarpt.
         enabled: liveSendReady,
         shadow: shadowSendEnabled === true,
-        mode: shadowSendEnabled === true ? 'shadow' : liveSendReady ? 'live' : 'off',
+        testRedirect: testRedirectActive,
+        mode: sendMode,
         status:
-          shadowSendEnabled === true ? 'shadow (dry-run)' : liveSendReady ? 'aktiv' : 'avstängd',
+          sendMode === 'shadow'
+            ? 'shadow (dry-run)'
+            : sendMode === 'live_test'
+              ? 'live (test-redirect)'
+              : sendMode === 'live'
+                ? 'aktiv'
+                : 'avstängd',
       };
       const sync = {
         enabled: Boolean(graphReadConnector),
