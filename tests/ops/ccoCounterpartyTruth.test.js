@@ -11,9 +11,7 @@ const {
 const {
   createCcoMailboxTruthWorklistReadModel,
 } = require('../../src/ops/ccoMailboxTruthWorklistReadModel');
-const {
-  createCcoMailboxTruthReadAdapter,
-} = require('../../src/ops/ccoMailboxTruthReadAdapter');
+const { createCcoMailboxTruthReadAdapter } = require('../../src/ops/ccoMailboxTruthReadAdapter');
 
 test('extractEmail trims casing and picks first address-like token', () => {
   assert.equal(extractEmail('  Foo@Bar.COM  '), 'foo@bar.com');
@@ -132,7 +130,12 @@ test('worklist read model bär vidare identity-envelope utan ny härledning', ()
               },
             },
             hardConflictSignals: [
-              { type: 'email', left: 'patient@example.com', right: 'patient@example.com', reason: 'match' },
+              {
+                type: 'email',
+                left: 'patient@example.com',
+                right: 'patient@example.com',
+                reason: 'match',
+              },
             ],
             mergeReviewDecisionsByPairId: {
               'pair-identity-1': { decision: 'dismissed' },
@@ -164,12 +167,18 @@ test('worklist read model bär vidare identity-envelope utan ny härledning', ()
   assert.equal(readModel.rows.length, 1);
   assert.equal(readModel.rows[0].customerIdentity?.canonicalCustomerId, 'cust-identity-1');
   assert.equal(readModel.rows[0].hardConflictSignals?.length, 1);
-  assert.equal(readModel.rows[0].mergeReviewDecisionsByPairId?.['pair-identity-1']?.decision, 'dismissed');
+  assert.equal(
+    readModel.rows[0].mergeReviewDecisionsByPairId?.['pair-identity-1']?.decision,
+    'dismissed'
+  );
   assert.equal(readModel.rows[0].identityProvenance?.source, 'backend');
   assert.equal(consumer.rows[0].customerIdentity?.canonicalCustomerId, 'cust-identity-1');
   assert.equal(consumer.rows[0].customer.identity?.canonicalCustomerId, 'cust-identity-1');
   assert.equal(consumer.rows[0].hardConflictSignals?.length, 1);
-  assert.equal(consumer.rows[0].mergeReviewDecisionsByPairId?.['pair-identity-1']?.decision, 'dismissed');
+  assert.equal(
+    consumer.rows[0].mergeReviewDecisionsByPairId?.['pair-identity-1']?.decision,
+    'dismissed'
+  );
   assert.equal(consumer.rows[0].identityProvenance?.source, 'backend');
 });
 
@@ -306,18 +315,10 @@ test('worklist read model backfyller säker identity från etablerad customer-st
   });
 
   const readModel = model.buildReadModel({
-    mailboxIds: [
-      'kons@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-    ],
+    mailboxIds: ['kons@hairtpclinic.com', 'contact@hairtpclinic.com', 'fazli@hairtpclinic.com'],
   });
   const consumer = model.buildConsumerModel({
-    mailboxIds: [
-      'kons@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-    ],
+    mailboxIds: ['kons@hairtpclinic.com', 'contact@hairtpclinic.com', 'fazli@hairtpclinic.com'],
   });
   const rowsByConversationId = new Map(readModel.rows.map((row) => [row.conversationId, row]));
   const consumerRowsByConversationId = new Map(
@@ -327,15 +328,21 @@ test('worklist read model backfyller säker identity från etablerad customer-st
   assert.equal(readModel.summary.rowCount, 3);
   assert.equal(readModel.summary.identityCount, 1);
   assert.equal(consumer.summary.identityCount, 1);
-  assert.equal(rowsByConversationId.get('conv-strong')?.customerIdentity?.canonicalCustomerId, 'cust-strong-1');
-  assert.equal(consumerRowsByConversationId.get('conv-strong')?.customerIdentity?.canonicalCustomerId, 'cust-strong-1');
+  assert.equal(
+    rowsByConversationId.get('conv-strong')?.customerIdentity?.canonicalCustomerId,
+    'cust-strong-1'
+  );
+  assert.equal(
+    consumerRowsByConversationId.get('conv-strong')?.customerIdentity?.canonicalCustomerId,
+    'cust-strong-1'
+  );
   assert.equal(rowsByConversationId.get('conv-weak')?.customerIdentity, null);
   assert.equal(consumerRowsByConversationId.get('conv-weak')?.customerIdentity, null);
   assert.equal(rowsByConversationId.get('conv-null')?.customerIdentity, null);
   assert.equal(consumerRowsByConversationId.get('conv-null')?.customerIdentity, null);
 });
 
-test('worklist consumer keeps safe-merge rows separated across mailbox boundaries so each inbox keeps its own mailbox ownership', () => {
+test('C8: worklist consumer rolls the same confirmed customer up across mailbox boundaries into one operational row', () => {
   const model = createCcoMailboxTruthWorklistReadModel({
     store: {
       listMessages() {
@@ -422,43 +429,43 @@ test('worklist consumer keeps safe-merge rows separated across mailbox boundarie
   });
 
   const readModel = model.buildReadModel({
-    mailboxIds: [
-      'egzona@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-    ],
+    mailboxIds: ['egzona@hairtpclinic.com', 'contact@hairtpclinic.com', 'fazli@hairtpclinic.com'],
   });
   const consumer = model.buildConsumerModel({
-    mailboxIds: [
-      'egzona@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-    ],
+    mailboxIds: ['egzona@hairtpclinic.com', 'contact@hairtpclinic.com', 'fazli@hairtpclinic.com'],
   });
 
+  // Read-modellen är pre-rollup: 3 råa rader.
   assert.equal(readModel.summary.rowCount, 3);
   assert.equal(consumer.summary.rawRowCount, 3);
-  assert.equal(consumer.summary.rowCount, 3);
-  assert.equal(consumer.summary.rollupRowCount, 3);
-  assert.equal(consumer.summary.rollupReductionCount, 0);
+  // C8: cust-safe-1:s två mailbox-rader rollas upp till EN operativ kundrad;
+  // den tredje (annan person, ingen bekräftad identitet) står kvar separat.
+  assert.equal(consumer.summary.rowCount, 2);
+  assert.equal(consumer.summary.rollupRowCount, 2);
+  assert.equal(consumer.summary.rollupReductionCount, 1);
 
-  const byId = new Map(consumer.rows.map((row) => [row.id, row]));
-  const egzonaRow = byId.get('egzona@hairtpclinic.com:conv-safe-1');
-  const contactRow = byId.get('contact@hairtpclinic.com:conv-safe-2');
-  assert.ok(egzonaRow, 'Förväntade en separat egzona-rad för inkommande mailbox.');
-  assert.ok(contactRow, 'Förväntade en separat contact-rad för inkommande mailbox.');
-  assert.equal(egzonaRow.mailbox.mailboxId, 'egzona@hairtpclinic.com');
-  assert.equal(egzonaRow.mailbox.ownershipMailbox, 'egzona@hairtpclinic.com');
-  assert.equal(contactRow.mailbox.mailboxId, 'contact@hairtpclinic.com');
-  assert.equal(contactRow.mailbox.ownershipMailbox, 'contact@hairtpclinic.com');
-  assert.equal(egzonaRow.rollup?.enabled, false);
-  assert.equal(contactRow.rollup?.enabled, false);
-  assert.equal(egzonaRow.customerIdentity?.canonicalCustomerId, 'cust-safe-1');
-  assert.equal(contactRow.customerIdentity?.canonicalCustomerId, 'cust-safe-1');
+  const rolledCustomerRow = consumer.rows.find(
+    (row) => row.customerIdentity?.canonicalCustomerId === 'cust-safe-1'
+  );
+  assert.ok(rolledCustomerRow, 'Förväntade en samlad kundrad för cust-safe-1.');
+  assert.equal(rolledCustomerRow.rollup?.enabled, true, 'kundraden ska vara en rollup');
+  assert.equal(rolledCustomerRow.rollup?.mailboxCount, 2, 'samlar två mailboxar');
+  assert.deepEqual(
+    [...rolledCustomerRow.rollup.underlyingMailboxIds].sort(),
+    ['contact@hairtpclinic.com', 'egzona@hairtpclinic.com'],
+    'mailbox-trail visar båda klinikadresserna'
+  );
+  assert.deepEqual(
+    [...rolledCustomerRow.rollup.inboundMailboxIds].sort(),
+    ['contact@hairtpclinic.com', 'egzona@hairtpclinic.com'],
+    'kunden har mailat till båda adresserna'
+  );
 
-  const separateRow = byId.get('fazli@hairtpclinic.com:conv-separate');
-  assert.ok(separateRow, 'Förväntade en separat rad utan safe merge.');
-  assert.equal(separateRow.rollup?.enabled, false);
+  const separateRow = consumer.rows.find(
+    (row) => row.customerIdentity?.canonicalCustomerId !== 'cust-safe-1'
+  );
+  assert.ok(separateRow, 'Förväntade en separat rad för den andra personen.');
+  assert.equal(separateRow.rollup?.enabled, false, 'olika person mergas inte in');
   assert.equal(separateRow.rollup?.count, 1);
 });
 
