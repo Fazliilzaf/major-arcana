@@ -1571,6 +1571,90 @@ test('runtime worklist consumer preloads sharded mailbox truth before building r
   }
 });
 
+test('runtime worklist consumer does not cache an empty cold response over later mailbox truth', async () => {
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-worklist-consumer-empty-cache-')
+  );
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const capabilityAnalysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'analysis.json'),
+  });
+  const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
+    filePath: path.join(tempDir, 'cco-mailbox-truth.json'),
+  });
+  const mailboxId = 'contact@hairtpclinic.com';
+  const consumerPath = `/api/v1/cco/runtime/worklist/consumer?mailboxIds=${encodeURIComponent(mailboxId)}&limit=37`;
+
+  try {
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore,
+        capabilityAnalysisStore,
+        ccoMailboxTruthStore,
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const emptyResponse = await fetch(`${baseUrl}${consumerPath}`);
+      assert.equal(emptyResponse.status, 200);
+      assert.equal(emptyResponse.headers.get('x-cco-worklist-cache'), 'miss');
+      const emptyPayload = await emptyResponse.json();
+      assert.equal(emptyPayload.summary.rowCount, 0);
+      assert.equal(emptyPayload.rows.length, 0);
+
+      await seedFolder(ccoMailboxTruthStore, {
+        mailboxId,
+        folderType: 'inbox',
+        messages: [
+          inboxMessage({
+            mailboxId,
+            conversationId: 'conv-c11-cache-live',
+            graphMessageId: 'msg-c11-cache-live',
+            subject: 'Tom cache får inte dölja live-mail',
+            preview: 'Det här ska synas på andra anropet.',
+            receivedAt: '2026-04-04T10:00:00.000Z',
+            isRead: false,
+          }),
+        ],
+      });
+
+      const liveResponse = await fetch(`${baseUrl}${consumerPath}`);
+      assert.equal(liveResponse.status, 200);
+      assert.equal(liveResponse.headers.get('x-cco-worklist-cache'), 'miss');
+      const livePayload = await liveResponse.json();
+      assert.equal(livePayload.summary.rowCount, 1);
+      assert.equal(livePayload.rows[0].conversation.conversationId, 'conv-c11-cache-live');
+
+      const cachedLiveResponse = await fetch(`${baseUrl}${consumerPath}`);
+      assert.equal(cachedLiveResponse.status, 200);
+      assert.equal(cachedLiveResponse.headers.get('x-cco-worklist-cache'), 'hit');
+      const cachedLivePayload = await cachedLiveResponse.json();
+      assert.equal(cachedLivePayload.summary.rowCount, 1);
+      assert.equal(cachedLivePayload.rows[0].conversation.conversationId, 'conv-c11-cache-live');
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('runtime worklist consumer readout exposes an internal preview surface without presenting itself as the primary queue', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-worklist-consumer-readout-'));
   const authStore = await createAuthStore({
