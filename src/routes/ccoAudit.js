@@ -20,6 +20,17 @@ function createCcoAuditRouter({ ccoAuditLog, attachRole, requireAnyRole }) {
 
   // POST /api/v1/cco-audit — interna systemet kan logga
   router.post('/cco-audit', attachRole, express.json({ limit: '8kb' }), (req, res) => {
+    // F2 (audit-gap): audit-loggen får inte kunna förgiftas av oautentiserade
+    // anrop. Kräv en upplöst, icke-anonym roll (autentiserad staff eller det
+    // interna systemet). Anonyma writes avvisas — annars kan vem som helst
+    // injicera falska audit-poster.
+    const role = req.cco?.role || 'anonymous';
+    if (!role || role === 'anonymous') {
+      return res.status(403).json({
+        error: 'forbidden',
+        detail: 'Audit-write kräver autentiserad roll.',
+      });
+    }
     const entry = ccoAuditLog.append({
       ...req.body,
       actor: {
