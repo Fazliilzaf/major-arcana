@@ -75,3 +75,79 @@ test('POST /cco-audit loggar med actor.role och returnerar traceId', async () =>
     assert.equal(log.appended[0].actor.role, 'system');
   });
 });
+
+// ── F2: audit-gap regression — verifiera gating med RIKTIG ccoRbac-middleware ──
+
+const {
+  attachRole: realAttachRole,
+  requireAnyRole: realRequireAnyRole,
+} = require('../../src/security/ccoRbac');
+
+async function withRealRbacServer(ccoAuditLog, run) {
+  const app = express();
+  app.use(
+    '/api/v1',
+    createCcoAuditRouter({
+      ccoAuditLog,
+      attachRole: realAttachRole,
+      requireAnyRole: realRequireAnyRole,
+    })
+  );
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const baseUrl = `http://127.0.0.1:${server.address().port}/api/v1`;
+  try {
+    await run(baseUrl);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+test('F2: GET /cco-audit — endast owner/revisor läser (regression)', async () => {
+  await withRealRbacServer(makeAuditLog(), async (baseUrl) => {
+    // owner + revisor → 200
+    for (const role of ['owner', 'revisor']) {
+      const res = await fetch(`${baseUrl}/cco-audit`, { headers: { 'x-cco-role': role } });
+      assert.equal(res.status, 200, `${role} ska få läsa audit`);
+    }
+    // operator / konsult / personal → 403
+    for (const role of ['operator', 'konsult', 'personal']) {
+      const res = await fetch(`${baseUrl}/cco-audit`, { headers: { 'x-cco-role': role } });
+      assert.equal(res.status, 403, `${role} ska nekas audit-läsning`);
+    }
+  });
+});
+
+test('F2: GET /cco-audit utan roll (anonym) → 403 (läs-gap stängt)', async () => {
+  await withRealRbacServer(makeAuditLog(), async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco-audit`);
+    assert.equal(res.status, 403, 'anonym ska aldrig kunna läsa audit-loggen');
+  });
+});
+
+test('F2: POST /cco-audit anonym → 403 (audit kan inte förgiftas)', async () => {
+  const log = makeAuditLog();
+  await withRealRbacServer(log, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco-audit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'fejkad.audit' }),
+    });
+    assert.equal(res.status, 403, 'anonym write ska avvisas');
+    assert.equal(log.appended.length, 0, 'ingen audit-post får skrivas av anonym');
+  });
+});
+
+test('F2: POST /cco-audit med autentiserad roll → 200 (telemetri fungerar)', async () => {
+  const log = makeAuditLog();
+  await withRealRbacServer(log, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco-audit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
+      body: JSON.stringify({ action: 'studio.event' }),
+    });
+    assert.equal(res.status, 200);
+    assert.equal(log.appended.length, 1);
+    assert.equal(log.appended[0].actor.role, 'operator');
+  });
+});
