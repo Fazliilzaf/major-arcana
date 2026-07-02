@@ -8022,6 +8022,22 @@ async function resolveWorklistCustomerState({
   return null;
 }
 
+async function preloadMailboxTruthStoreForWorklist({
+  ccoMailboxTruthStore = null,
+  mailboxIds = [],
+} = {}) {
+  if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.ensureMailboxLoaded !== 'function') {
+    return;
+  }
+  for (const mailboxId of normalizeMailboxIdList(mailboxIds, 50)) {
+    try {
+      await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+    } catch {
+      /* optional shard */
+    }
+  }
+}
+
 async function buildWorklistShadowContext({
   tenantId = '',
   capabilityAnalysisStore = null,
@@ -8035,6 +8051,10 @@ async function buildWorklistShadowContext({
     tenantId,
     customerState,
     ccoCustomerStore,
+  });
+  await preloadMailboxTruthStoreForWorklist({
+    ccoMailboxTruthStore,
+    mailboxIds,
   });
   const shadow = createCcoMailboxTruthWorklistShadow({
     store: ccoMailboxTruthStore,
