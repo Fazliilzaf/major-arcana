@@ -786,6 +786,32 @@
         font-weight: 800;
         padding: 9px 10px;
       }
+      .offer-sla-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .offer-sla-card {
+        border: 1px solid rgba(185, 74, 74, 0.12);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.76);
+        padding: 9px 10px;
+      }
+      .offer-sla-label {
+        color: var(--text3);
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .offer-sla-value {
+        color: var(--danger);
+        font-size: 15px;
+        font-weight: 950;
+        line-height: 1.1;
+        margin-top: 3px;
+      }
       .offer-stuck-context {
         margin-top: 9px;
         border-left: 3px solid rgba(185, 74, 74, 0.58);
@@ -5057,6 +5083,35 @@
         };
       }
 
+      function ownerOfferStuckPriority(item) {
+        if ((item?.bucket || '') !== 'stuck') {
+          return { level: 'normal', label: 'Normal', tone: 'neutral', days: 0, sortKey: 0 };
+        }
+        const openedDays = ownerOfferDaysSince(item.quoteOpenedAt);
+        const sentDays = ownerOfferDaysSince(item.quoteSentAt);
+        const openedUnsigned = Number(item.quoteOpenCount || 0) > 0 && openedDays !== null;
+        const days = openedUnsigned ? openedDays : sentDays || 0;
+        const sortKey = (openedUnsigned ? 1000 : 500) + days;
+        if ((openedUnsigned && days >= 7) || (!openedUnsigned && days >= 14)) {
+          return { level: 'critical', label: 'SLA akut', tone: 'danger', days, sortKey };
+        }
+        if ((openedUnsigned && days >= 3) || (!openedUnsigned && days >= 7)) {
+          return { level: 'due', label: 'Följ upp idag', tone: 'amber', days, sortKey };
+        }
+        return { level: 'watch', label: 'Bevaka', tone: 'info', days, sortKey };
+      }
+
+      function sortOwnerOfferRowsForWork(rows, filter = _ownerOfferFilter) {
+        const source = Array.isArray(rows) ? [...rows] : [];
+        if (filter !== 'stuck') return source;
+        return source.sort((a, b) => {
+          const aPriority = ownerOfferStuckPriority(a);
+          const bPriority = ownerOfferStuckPriority(b);
+          if (bPriority.sortKey !== aPriority.sortKey) return bPriority.sortKey - aPriority.sortKey;
+          return String(a.customerName || '').localeCompare(String(b.customerName || ''), 'sv');
+        });
+      }
+
       function renderOwnerOfferStuckWorkmode(rows) {
         const stuckRows = rows.filter((item) => item.bucket === 'stuck');
         if (_ownerOfferFilter !== 'stuck' || !stuckRows.length) return '';
@@ -5064,6 +5119,10 @@
           (item) => Number(item.quoteOpenCount || 0) > 0
         ).length;
         const neverOpened = stuckRows.length - openedUnsigned;
+        const priorities = stuckRows.map(ownerOfferStuckPriority);
+        const critical = priorities.filter((item) => item.level === 'critical').length;
+        const due = priorities.filter((item) => item.level === 'due').length;
+        const oldest = priorities.reduce((max, item) => Math.max(max, Number(item.days || 0)), 0);
         return `<div class="offer-workmode" data-owner-offer-stuck-workmode>
           <div class="offer-workmode-head">
             <div>
@@ -5071,6 +5130,11 @@
               <div class="offer-workmode-copy">${openedUnsigned} öppnade utan signering · ${neverOpened} ej öppnade. Börja med äldsta öppning/skickdatum och verifiera underlaget innan kundkontakt.</div>
             </div>
             <div class="offer-workmode-count">${stuckRows.length}</div>
+          </div>
+          <div class="offer-sla-strip" data-owner-offer-sla-summary>
+            <div class="offer-sla-card"><div class="offer-sla-label">SLA akut</div><div class="offer-sla-value">${critical}</div></div>
+            <div class="offer-sla-card"><div class="offer-sla-label">Följ upp idag</div><div class="offer-sla-value">${due}</div></div>
+            <div class="offer-sla-card"><div class="offer-sla-label">Äldst fastnad</div><div class="offer-sla-value">${oldest} d</div></div>
           </div>
           <div class="offer-workmode-steps">
             <div class="offer-workmode-step">1. Kontrollera pris, zoner och bilder</div>
@@ -5124,7 +5188,8 @@
           item.bucket === 'stuck'
             ? (() => {
                 const info = ownerOfferStuckReason(item);
-                return `<div class="offer-stuck-context" data-owner-offer-stuck-context><strong>${escapeHtml(info.reason)}</strong><br />Nästa: ${escapeHtml(info.next)}</div>`;
+                const priority = ownerOfferStuckPriority(item);
+                return `<div class="offer-stuck-context" data-owner-offer-stuck-context data-owner-offer-priority="${escapeHtml(priority.level)}"><strong>${escapeHtml(info.reason)}</strong><br />Prioritet: ${escapeHtml(priority.label)} · ${Number(priority.days || 0)} dagar · Nästa: ${escapeHtml(info.next)}</div>`;
               })()
             : '';
         return `<div class="case-card" data-owner-offer-row="${escapeHtml(item.commercialCaseId || patientId || '')}">
@@ -5133,6 +5198,14 @@
             <div class="item-meta">Offert: ${escapeHtml(ownerOfferAmount(item.quotedAmount))} · Skickad ${escapeHtml(sentAt)} · Betänketid till ${escapeHtml(coolingAt)}</div>
             <div class="pill-row">
               <span class="pill ${escapeHtml(tone)}">${escapeHtml(label)}</span>
+              ${
+                item.bucket === 'stuck'
+                  ? (() => {
+                      const priority = ownerOfferStuckPriority(item);
+                      return `<span class="pill ${escapeHtml(priority.tone)}" data-owner-offer-priority-pill>${escapeHtml(priority.label)}</span>`;
+                    })()
+                  : ''
+              }
               <span class="pill neutral">Öppnad ${Number(item.quoteOpenCount || 0)} gång${Number(item.quoteOpenCount || 0) === 1 ? '' : 'er'}</span>
               <span class="pill info">Senast öppnad: ${escapeHtml(openedAt)}</span>
               <span class="pill neutral">Delad: ${escapeHtml(sharedAt)}</span>
@@ -5148,7 +5221,7 @@
         const totals = data?.totals || {};
         const buckets = data?.buckets || {};
         const rows = ownerOfferRowsFromBuckets(buckets);
-        const filteredRows = filterOwnerOfferRows(rows).slice(0, 12);
+        const filteredRows = sortOwnerOfferRowsForWork(filterOwnerOfferRows(rows)).slice(0, 12);
         const active =
           Number(totals.waitingCustomer || 0) +
           Number(totals.readyToSign || 0) +

@@ -54,3 +54,18 @@ test('K55 staff portal exposes a stuck-offer work mode', () => {
   assert.match(source, /Öppnad för/);
   assert.match(source, /Skickad för/);
 });
+
+test('K56 staff portal prioritizes stuck offers with SLA signals', () => {
+  const source = read(staffPortalPath);
+
+  assert.match(source, /ownerOfferStuckPriority/);
+  assert.match(source, /sortOwnerOfferRowsForWork/);
+  assert.match(source, /data-owner-offer-sla-summary/);
+  assert.match(source, /data-owner-offer-priority-pill/);
+  assert.match(source, /data-owner-offer-priority/);
+  assert.match(source, /SLA akut/);
+  assert.match(source, /Följ upp idag/);
+  assert.match(source, /Äldst fastnad/);
+  assert.match(source, /Prioritet:/);
+  assert.match(source, /sortKey/);
+});
