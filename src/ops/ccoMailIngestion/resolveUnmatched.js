@@ -114,11 +114,7 @@ async function dismissRawMessages({
   return { dismissed };
 }
 
-async function suggestPatientForEmail({
-  patientMasterStore,
-  tenantId = '',
-  email = '',
-} = {}) {
+async function suggestPatientForEmail({ patientMasterStore, tenantId = '', email = '' } = {}) {
   const normalizedEmail = normalizeEmail(email);
   if (!patientMasterStore || !normalizedEmail || isNonPatientCounterpartyEmail(normalizedEmail)) {
     return { patient: null, method: null, confidence: 0 };
@@ -176,6 +172,9 @@ async function runUnmatchedResolutionSweep({
     dismissed: 0,
     linked: 0,
     enriched: 0,
+    // B2: heuristiska namn-gissningar auto-bindas aldrig — de räknas som
+    // suggested och lämnas i review-kön för mänskligt beslut.
+    suggested: 0,
     closedWithoutPatient: 0,
     remaining: 0,
     groups: [],
@@ -249,18 +248,28 @@ async function runUnmatchedResolutionSweep({
       continue;
     }
 
-    groupResult.patientId = suggestion.patient.id;
     groupResult.method = suggestion.method;
 
-    if (!dryRun && autoEnrichPatientEmails && suggestion.method === 'name_from_email') {
-      await patientMasterStore.upsertPatient({
-        id: suggestion.patient.id,
-        tenantId,
-        emails: [...asArray(suggestion.patient.emails), group.email],
-        primaryEmail: suggestion.patient.primaryEmail || group.email,
-      });
-      result.enriched += 1;
+    // B2 (conflict → review, aldrig auto-bind): endast en BEKRÄFTAD match —
+    // verifierad exakt e-postträff — får auto-bindas. En heuristisk namn-
+    // gissning (name_from_email, konfidens 0.8) är ett FÖRSLAG och får aldrig
+    // bli en permanent patientkoppling utan mänskligt beslut. Den lämnas i
+    // review-kön (remaining) som suggested. Ingen patient-enrichment sker
+    // heller på en gissning (annars muterar vi patientdata på osäker match).
+    const isConfirmedMatch =
+      suggestion.method === 'exact_email' && Number(suggestion.confidence) >= 1;
+    if (!isConfirmedMatch) {
+      groupResult.action = 'suggested';
+      groupResult.patientId = null;
+      groupResult.suggestedPatientId = suggestion.patient.id;
+      groupResult.suggestedMethod = suggestion.method;
+      groupResult.suggestedConfidence = Number(suggestion.confidence) || 0;
+      result.suggested += group.count;
+      result.groups.push(groupResult);
+      continue;
     }
+
+    groupResult.patientId = suggestion.patient.id;
 
     if (!dryRun) {
       for (const rawMessageId of group.rawMessageIds) {
