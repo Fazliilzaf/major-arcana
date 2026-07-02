@@ -13012,21 +13012,10 @@ process.once('SIGTERM', () => {
   });
   app.use('/api/v1', ccoRuntimeStreamRouter);
 
-  // Default mailboxar för manuell sync — använd MAILBOX_ALLOWLIST om satt,
-  // annars HairTP-defaults (alla 6 mailboxar). Behåller fallback i sync med
-  // bootstrapRunner.resolveMailboxIds() så vi alltid täcker hela kontot.
-  const allowlistSyncMailboxIds = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
-    .split(/[\s,]+/)
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-  const hairTpFallbackMailboxIds = [
-    'contact@hairtpclinic.com',
-    'info@hairtpclinic.com',
-    'kons@hairtpclinic.com',
-    'egzona@hairtpclinic.com',
-    'fazli@hairtpclinic.com',
-    'marknad@hairtpclinic.com',
-  ];
+  // Default mailboxar för manuell sync (A1) — CCO läser in curated kund-
+  // konversations-allowlist som default; ARCANA_MAILBOX_ALLOWLIST (env) och
+  // scheduler-history överstyr. Se src/ops/ccoMailboxAllowlist.js.
+  const { resolveIngestMailboxAllowlist } = require('./src/ops/ccoMailboxAllowlist');
   const schedulerCcoHistoryMailboxIds = Array.isArray(config.schedulerCcoHistoryMailboxIds)
     ? config.schedulerCcoHistoryMailboxIds
         .map((s) =>
@@ -13036,18 +13025,11 @@ process.once('SIGTERM', () => {
         )
         .filter(Boolean)
     : [];
-  const defaultSyncMailboxIds =
-    allowlistSyncMailboxIds.length > 0
-      ? allowlistSyncMailboxIds
-      : schedulerCcoHistoryMailboxIds.length > 0
-        ? schedulerCcoHistoryMailboxIds
-        : hairTpFallbackMailboxIds;
-  const defaultSyncMailboxSource =
-    allowlistSyncMailboxIds.length > 0
-      ? 'ARCANA_MAILBOX_ALLOWLIST'
-      : schedulerCcoHistoryMailboxIds.length > 0
-        ? 'ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_IDS'
-        : 'hardcoded_hairTpFallbackMailboxIds';
+  const { mailboxIds: defaultSyncMailboxIds, source: defaultSyncMailboxSource } =
+    resolveIngestMailboxAllowlist({
+      envAllowlist: process.env.ARCANA_MAILBOX_ALLOWLIST,
+      schedulerHistoryMailboxIds: schedulerCcoHistoryMailboxIds,
+    });
   console.log(
     '[server] defaultSyncMailboxIds for /cco/runtime/sync:',
     defaultSyncMailboxIds,
