@@ -44,6 +44,13 @@ const PERMISSIONS = {
 
   // Conversations / mail
   'mail.read': ['owner', 'operator', 'konsult'],
+  // mail.write: mutera delad inkorg-triage-state på en tråd (Klar/Senare/
+  // Återöppna) samt interna trådnotiser. Medvetet konservativt satt till
+  // owner+operator — samma nivå som de andra state-muterande mail-ops
+  // (mail.delete, mail.assign). konsult behåller läsning (mail.read) och
+  // kan utkasta/skicka svar (mail.send), men triage-state på delade trådar
+  // är owner+operator tills owner beslutar annat (se readiness-checklistan).
+  'mail.write': ['owner', 'operator'],
   'mail.send': ['owner', 'operator', 'konsult'],
   // mail.live_send: owner-only grind för faktiskt utskick (queued → sent).
   // Skrivs aldrig live i denna build — rutten är ändå hårt blockerad.
@@ -169,12 +176,12 @@ const PERMISSIONS = {
   // qms.read           : läsa QMS-checklistor, handbok, avvikelser (all personal)
   // qms.write          : hantera avvikelser, stänga ärenden (owner + operator)
   // staff.manage       : tilldela personal till ärenden, se personalöversikt (owner)
-  'ordination.view':    ['owner', 'operator', 'konsult'],
+  'ordination.view': ['owner', 'operator', 'konsult'],
   'ordination.approve': ['owner', 'konsult'],
-  'delegation.read':    ['owner', 'operator', 'konsult', 'personal'],
-  'qms.read':           ['owner', 'operator', 'konsult', 'personal'],
-  'qms.write':          ['owner', 'operator'],
-  'staff.manage':       ['owner'],
+  'delegation.read': ['owner', 'operator', 'konsult', 'personal'],
+  'qms.read': ['owner', 'operator', 'konsult', 'personal'],
+  'qms.write': ['owner', 'operator'],
+  'staff.manage': ['owner'],
 };
 
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
