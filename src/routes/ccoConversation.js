@@ -22,6 +22,7 @@
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
+const { requirePermission } = require('../security/ccoRbac');
 
 // Heuristisk fallback om OpenAI inte är konfigurerad — säker, generisk
 function buildHeuristicDraft({ customerName, latestInboundBody, ownerName }) {
@@ -257,218 +258,233 @@ function createCcoConversationRouter({
   const authMiddleware =
     typeof requireAuth === 'function' ? requireAuth : (_req, _res, next) => next();
 
-  router.get('/cco/runtime/conversation/:key/messages', authMiddleware, (req, res) => {
-    try {
-      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+  router.get(
+    '/cco/runtime/conversation/:key/messages',
+    authMiddleware,
+    requirePermission('mail.read'),
+    (req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) {
+          return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        }
+        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const messages = sorted.map((m) => {
+          const safe = asObject(m);
+          const from = deriveFromName(safe);
+          return {
+            id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
+            from,
+            initials: deriveInitials(from),
+            dir: deriveDir(safe.folderType),
+            time: deriveTime(safe),
+            body: deriveBody(safe),
+            subject: normalizeText(safe.subject) || null,
+            mailboxId: normalizeText(safe.mailboxId) || null,
+            folderType: normalizeText(safe.folderType) || null,
+          };
+        });
+        return res.json({
+          ok: true,
+          conversationKey: key,
+          messageCount: messages.length,
+          messages,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
       }
-      const key = normalizeText(req.params.key);
-      if (!key) {
-        return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-      }
-      const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
-      const messages = sorted.map((m) => {
-        const safe = asObject(m);
-        const from = deriveFromName(safe);
-        return {
-          id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
-          from,
-          initials: deriveInitials(from),
-          dir: deriveDir(safe.folderType),
-          time: deriveTime(safe),
-          body: deriveBody(safe),
-          subject: normalizeText(safe.subject) || null,
-          mailboxId: normalizeText(safe.mailboxId) || null,
-          folderType: normalizeText(safe.folderType) || null,
-        };
-      });
-      return res.json({
-        ok: true,
-        conversationKey: key,
-        messageCount: messages.length,
-        messages,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        ok: false,
-        error: 'internal_error',
-        detail: String((err && err.message) || err),
-      });
     }
-  });
+  );
 
   // ----- AI-summary + nextBestAction -----
   // GET /cco/runtime/conversation/:key/summary
   // Kör SummarizeThread-capabilityn på trådens meddelanden och returnerar
   // headline + bullets + nextBestAction + sentiment + intent. Frontend kan
   // använda detta för att fylla AI-summary-blocket samt risk/nästa-steg.
-  router.get('/cco/runtime/conversation/:key/summary', authMiddleware, async (req, res) => {
-    try {
-      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-      }
-      const key = normalizeText(req.params.key);
-      if (!key) {
-        return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-      }
-      const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
-      if (sorted.length === 0) {
+  router.get(
+    '/cco/runtime/conversation/:key/summary',
+    authMiddleware,
+    requirePermission('mail.read'),
+    async (req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) {
+          return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        }
+        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        if (sorted.length === 0) {
+          return res.json({
+            ok: true,
+            conversationKey: key,
+            summary: null,
+            note: 'no_messages',
+          });
+        }
+        // Härled customerName + subject från första inkommande meddelandet
+        const firstInbound =
+          sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
+        const customerName = deriveFromName(firstInbound);
+        const subject = normalizeText(asObject(firstInbound).subject) || '';
+
+        const inputMessages = sorted.map(toSummarizeInputMessage);
+
+        const result = await runSummarizeThreadCapability({
+          channel: 'admin',
+          tenantId: normalizeText(req.tenantId) || 'cco',
+          // OpenAI passas in om servern har en konfigurerad client; annars
+          // faller capabilityn tillbaka på heuristiken automatiskt.
+          openai: openai || null,
+          openaiModel: normalizeText(openaiModel) || '',
+          input: {
+            conversationId: key,
+            customerName,
+            subject,
+            messages: inputMessages,
+          },
+        });
+        const data = asObject(result?.data);
+        const nba = asObject(data.nextBestAction);
+        const primary = asObject(nba.primaryAction);
+        // Bygg en kort risk-text baserat på sentiment + intent + anomalies
+        const sentimentLabel = normalizeText(asObject(data.sentiment).label);
+        const intentLabel = normalizeText(asObject(data.intent).label);
+        const anomalies = Array.isArray(data.anomalies) ? data.anomalies : [];
+        const riskParts = [];
+        if (sentimentLabel && sentimentLabel.toLowerCase() !== 'neutral') {
+          riskParts.push(`Stämning: ${sentimentLabel}`);
+        }
+        if (intentLabel && intentLabel.toLowerCase() !== 'oklart') {
+          riskParts.push(`Avsikt: ${intentLabel}`);
+        }
+        if (anomalies.length > 0) {
+          riskParts.push(
+            `${anomalies.length} avvikelse${anomalies.length === 1 ? '' : 'r'} upptäckta`
+          );
+        }
+        const risk = riskParts.length > 0 ? riskParts.join(' · ') : '';
+        // nextStep = primaryButton + ev. första-reasoning som förklaring
+        const nextStepLabel = normalizeText(primary.primaryButton) || normalizeText(primary.label);
+        const reasoning = Array.isArray(primary.reasoning) ? primary.reasoning : [];
+        const nextStep = nextStepLabel
+          ? reasoning.length > 0
+            ? `${nextStepLabel} — ${reasoning[0]}`
+            : nextStepLabel
+          : '';
         return res.json({
           ok: true,
           conversationKey: key,
-          summary: null,
-          note: 'no_messages',
+          summary: {
+            headline: normalizeText(data.headline),
+            bullets: Array.isArray(data.bullets) ? data.bullets.filter(Boolean) : [],
+            risk,
+            nextStep,
+            sentiment: data.sentiment || null,
+            intent: data.intent || null,
+            primaryAction: primary || null,
+            secondaryActions: Array.isArray(nba.secondaryActions) ? nba.secondaryActions : [],
+            source: normalizeText(data.source) || 'heuristic',
+            generatedAt: normalizeText(data.generatedAt),
+          },
+          warnings: Array.isArray(result?.warnings) ? result.warnings : [],
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
         });
       }
-      // Härled customerName + subject från första inkommande meddelandet
-      const firstInbound =
-        sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
-      const customerName = deriveFromName(firstInbound);
-      const subject = normalizeText(asObject(firstInbound).subject) || '';
-
-      const inputMessages = sorted.map(toSummarizeInputMessage);
-
-      const result = await runSummarizeThreadCapability({
-        channel: 'admin',
-        tenantId: normalizeText(req.tenantId) || 'cco',
-        // OpenAI passas in om servern har en konfigurerad client; annars
-        // faller capabilityn tillbaka på heuristiken automatiskt.
-        openai: openai || null,
-        openaiModel: normalizeText(openaiModel) || '',
-        input: {
-          conversationId: key,
-          customerName,
-          subject,
-          messages: inputMessages,
-        },
-      });
-      const data = asObject(result?.data);
-      const nba = asObject(data.nextBestAction);
-      const primary = asObject(nba.primaryAction);
-      // Bygg en kort risk-text baserat på sentiment + intent + anomalies
-      const sentimentLabel = normalizeText(asObject(data.sentiment).label);
-      const intentLabel = normalizeText(asObject(data.intent).label);
-      const anomalies = Array.isArray(data.anomalies) ? data.anomalies : [];
-      const riskParts = [];
-      if (sentimentLabel && sentimentLabel.toLowerCase() !== 'neutral') {
-        riskParts.push(`Stämning: ${sentimentLabel}`);
-      }
-      if (intentLabel && intentLabel.toLowerCase() !== 'oklart') {
-        riskParts.push(`Avsikt: ${intentLabel}`);
-      }
-      if (anomalies.length > 0) {
-        riskParts.push(
-          `${anomalies.length} avvikelse${anomalies.length === 1 ? '' : 'r'} upptäckta`
-        );
-      }
-      const risk = riskParts.length > 0 ? riskParts.join(' · ') : '';
-      // nextStep = primaryButton + ev. första-reasoning som förklaring
-      const nextStepLabel = normalizeText(primary.primaryButton) || normalizeText(primary.label);
-      const reasoning = Array.isArray(primary.reasoning) ? primary.reasoning : [];
-      const nextStep = nextStepLabel
-        ? reasoning.length > 0
-          ? `${nextStepLabel} — ${reasoning[0]}`
-          : nextStepLabel
-        : '';
-      return res.json({
-        ok: true,
-        conversationKey: key,
-        summary: {
-          headline: normalizeText(data.headline),
-          bullets: Array.isArray(data.bullets) ? data.bullets.filter(Boolean) : [],
-          risk,
-          nextStep,
-          sentiment: data.sentiment || null,
-          intent: data.intent || null,
-          primaryAction: primary || null,
-          secondaryActions: Array.isArray(nba.secondaryActions) ? nba.secondaryActions : [],
-          source: normalizeText(data.source) || 'heuristic',
-          generatedAt: normalizeText(data.generatedAt),
-        },
-        warnings: Array.isArray(result?.warnings) ? result.warnings : [],
-      });
-    } catch (err) {
-      return res.status(500).json({
-        ok: false,
-        error: 'internal_error',
-        detail: String((err && err.message) || err),
-      });
     }
-  });
+  );
 
   // ----- Cliento-bokningar: kund-historik + föreslagna lediga tider -----
   // GET /cco/runtime/conversation/:key/bookings  → { existingBookings, suggestedSlots }
-  router.get('/cco/runtime/conversation/:key/bookings', authMiddleware, (req, res) => {
-    try {
-      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-      }
-      const key = normalizeText(req.params.key);
-      if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-      const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
-      const firstInbound =
-        sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0] || {};
-      const customerEmail =
-        normalizeText(asObject(asObject(firstInbound).from).emailAddress?.address) ||
-        normalizeText(firstInbound.senderEmail) ||
-        normalizeText(firstInbound.fromAddress) ||
-        '';
-      let existingBookings = [];
-      if (
-        clientoBookingStore &&
-        typeof clientoBookingStore.getBookingsForCustomer === 'function' &&
-        customerEmail
-      ) {
-        existingBookings =
-          clientoBookingStore.getBookingsForCustomer({
-            tenantId: defaultTenantId,
-            customerEmail,
-          }) || [];
-      }
-      const suggestedSlots = generateSuggestedSlots({
-        existingBookings,
-        count: 6,
-        slotMinutes: 30,
-      }).map((s) => ({
-        ...s,
-        label: describeSlotSv(s.startsAt),
-      }));
-      // Sortera existerande bokningar — kommande först (status='upcoming' eller startsAt > now)
-      const nowMs = Date.now();
-      const sortedBookings = [...existingBookings]
-        .map((b) => ({
-          bookingId: normalizeText(b.bookingId),
-          startsAt: normalizeText(b.startsAt),
-          durationMinutes: Number(b.durationMinutes) || null,
-          service: normalizeText(b.service) || normalizeText(b.serviceType) || null,
-          staff: normalizeText(b.staff) || normalizeText(b.staffName) || null,
-          status: normalizeText(b.status) || 'unknown',
-          label: describeSlotSv(b.startsAt),
-          isUpcoming: b.startsAt && Date.parse(b.startsAt) > nowMs && b.status !== 'cancelled',
-        }))
-        .sort((a, b) => {
-          // upcoming först (asc), sen past (desc)
-          if (a.isUpcoming && !b.isUpcoming) return -1;
-          if (!a.isUpcoming && b.isUpcoming) return 1;
-          return String(a.isUpcoming ? a.startsAt : b.startsAt).localeCompare(
-            String(a.isUpcoming ? b.startsAt : a.startsAt)
-          );
+  router.get(
+    '/cco/runtime/conversation/:key/bookings',
+    authMiddleware,
+    requirePermission('mail.read'),
+    (req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const firstInbound =
+          sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0] || {};
+        const customerEmail =
+          normalizeText(asObject(asObject(firstInbound).from).emailAddress?.address) ||
+          normalizeText(firstInbound.senderEmail) ||
+          normalizeText(firstInbound.fromAddress) ||
+          '';
+        let existingBookings = [];
+        if (
+          clientoBookingStore &&
+          typeof clientoBookingStore.getBookingsForCustomer === 'function' &&
+          customerEmail
+        ) {
+          existingBookings =
+            clientoBookingStore.getBookingsForCustomer({
+              tenantId: defaultTenantId,
+              customerEmail,
+            }) || [];
+        }
+        const suggestedSlots = generateSuggestedSlots({
+          existingBookings,
+          count: 6,
+          slotMinutes: 30,
+        }).map((s) => ({
+          ...s,
+          label: describeSlotSv(s.startsAt),
+        }));
+        // Sortera existerande bokningar — kommande först (status='upcoming' eller startsAt > now)
+        const nowMs = Date.now();
+        const sortedBookings = [...existingBookings]
+          .map((b) => ({
+            bookingId: normalizeText(b.bookingId),
+            startsAt: normalizeText(b.startsAt),
+            durationMinutes: Number(b.durationMinutes) || null,
+            service: normalizeText(b.service) || normalizeText(b.serviceType) || null,
+            staff: normalizeText(b.staff) || normalizeText(b.staffName) || null,
+            status: normalizeText(b.status) || 'unknown',
+            label: describeSlotSv(b.startsAt),
+            isUpcoming: b.startsAt && Date.parse(b.startsAt) > nowMs && b.status !== 'cancelled',
+          }))
+          .sort((a, b) => {
+            // upcoming först (asc), sen past (desc)
+            if (a.isUpcoming && !b.isUpcoming) return -1;
+            if (!a.isUpcoming && b.isUpcoming) return 1;
+            return String(a.isUpcoming ? a.startsAt : b.startsAt).localeCompare(
+              String(a.isUpcoming ? b.startsAt : a.startsAt)
+            );
+          });
+        return res.json({
+          ok: true,
+          conversationKey: key,
+          customerEmail: customerEmail || null,
+          existingBookings: sortedBookings,
+          suggestedSlots,
         });
-      return res.json({
-        ok: true,
-        conversationKey: key,
-        customerEmail: customerEmail || null,
-        existingBookings: sortedBookings,
-        suggestedSlots,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        ok: false,
-        error: 'internal_error',
-        detail: String((err && err.message) || err),
-      });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
+      }
     }
-  });
+  );
 
   // ----- Generera bekräftelse-utkast med vald tid -----
   // POST /cco/runtime/conversation/:key/booking-confirm  body: { slot: ISO }
@@ -476,6 +492,9 @@ function createCcoConversationRouter({
   router.post(
     '/cco/runtime/conversation/:key/booking-confirm',
     authMiddleware,
+    // Compose-only: läser tråden + genererar bekräftelsetext via AI, persisterar
+    // inget state → mail.read räcker (samma nivå som övriga läs/utkast-hjälpare).
+    requirePermission('mail.read'),
     express.json({ limit: '8kb' }),
     async (req, res) => {
       try {
@@ -557,6 +576,9 @@ function createCcoConversationRouter({
   router.post(
     '/cco/runtime/conversation/:key/draft',
     authMiddleware,
+    // Compose-only: läser tråden + genererar AI-utkast, persisterar inget
+    // state (utkast sparas separat via ccoCommDraft) → mail.read räcker.
+    requirePermission('mail.read'),
     express.json({ limit: '8kb' }),
     async (req, res) => {
       try {
@@ -643,6 +665,10 @@ function createCcoConversationRouter({
   router.post(
     '/cco/runtime/conversation/:key/reply',
     authMiddleware,
+    // Faktisk Graph-live-send. Owner-only grind (mail.live_send). Detta AKTIVERAR
+    // inget utskick — connector-grinden (graphSendConnector/ARCANA_GRAPH_SEND_ENABLED)
+    // är kvar och blockerar fortfarande; RBAC skärper bara vem som ens får försöka.
+    requirePermission('mail.live_send'),
     express.json({ limit: '64kb' }),
     async (req, res) => {
       try {
@@ -738,6 +764,8 @@ function createCcoConversationRouter({
   router.post(
     '/cco/runtime/conversation/:key/action',
     authMiddleware,
+    // Klar/Senare/Återöppna muterar delad trådstatus → mail.write (owner+operator).
+    requirePermission('mail.write'),
     express.json({ limit: '32kb' }),
     async (req, res) => {
       try {
@@ -905,26 +933,36 @@ function createCcoConversationRouter({
   // ----- Anteckningar (interna, per tråd) -----
   // GET  /cco/runtime/conversation/:key/notes        → lista nyaste först
   // POST /cco/runtime/conversation/:key/notes { body }  → lägg till anteckning
-  router.get('/cco/runtime/conversation/:key/notes', authMiddleware, (req, res) => {
-    try {
-      if (!ccoConversationNotesStore || typeof ccoConversationNotesStore.listNotes !== 'function') {
-        return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
+  router.get(
+    '/cco/runtime/conversation/:key/notes',
+    authMiddleware,
+    requirePermission('mail.read'),
+    (req, res) => {
+      try {
+        if (
+          !ccoConversationNotesStore ||
+          typeof ccoConversationNotesStore.listNotes !== 'function'
+        ) {
+          return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        const notes = ccoConversationNotesStore.listNotes({ conversationKey: key });
+        return res.json({ ok: true, conversationKey: key, count: notes.length, notes });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
       }
-      const key = normalizeText(req.params.key);
-      if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-      const notes = ccoConversationNotesStore.listNotes({ conversationKey: key });
-      return res.json({ ok: true, conversationKey: key, count: notes.length, notes });
-    } catch (err) {
-      return res.status(500).json({
-        ok: false,
-        error: 'internal_error',
-        detail: String((err && err.message) || err),
-      });
     }
-  });
+  );
   router.post(
     '/cco/runtime/conversation/:key/notes',
     authMiddleware,
+    // Intern trådnotis persisteras → mail.write (owner+operator).
+    requirePermission('mail.write'),
     express.json({ limit: '8kb' }),
     async (req, res) => {
       try {

@@ -104,7 +104,7 @@ test('C5: Klar → sparar handled-status och audit-loggar actor + customerId', a
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-handled/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({
           action: 'handled',
           customerId: 'kund-c5@test.se',
@@ -143,7 +143,7 @@ test('C5: Senare → sparar snoozed/followUpDueAt och audit-loggar', async () =>
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-later/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({
           action: 'reply_later',
           customerId: 'kund-c5@test.se',
@@ -197,7 +197,7 @@ test('C5: Reopen → supersederar befintligt state och audit-loggar', async () =
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-reopen/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({
           action: 'reopen',
           customerId: 'kund-c5@test.se',
@@ -232,7 +232,7 @@ test('C5: returnerar 400 när customerId saknas (skyddar mot fel kund)', async (
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-nocustomer/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({
           action: 'handled',
           // customerId saknas
@@ -261,7 +261,7 @@ test('C5: returnerar 400 för okänd action (skyddar mot felaktig tråd-mutation
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-badaction/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({
           action: 'delete_everything',
           customerId: 'kund-c5@test.se',
@@ -284,7 +284,7 @@ test('C5: Senare utan explicit followUpDueAt defaultar till nu+24h', async () =>
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-later-default/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({
           action: 'reply_later',
           customerId: 'kund-c5@test.se',
@@ -318,7 +318,7 @@ test('C5: returnerar 404 för okänd konversationsnyckel (handled)', async () =>
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/okand-konversation-xyz/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({ action: 'handled', customerId: 'kund-c5@test.se' }),
       });
       assert.equal(res.status, 404);
@@ -341,7 +341,7 @@ test('C5: returnerar 404 för okänd konversationsnyckel (reopen)', async () => 
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/okand-konversation-xyz/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({ action: 'reopen', customerId: 'kund-c5@test.se' }),
       });
       assert.equal(res.status, 404);
@@ -364,7 +364,7 @@ test('C5: returnerar 409 när customerId inte matchar konversationens kund (hand
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-wrong-customer/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({ action: 'handled', customerId: 'fel-kund@test.se' }),
       });
       assert.equal(res.status, 409);
@@ -387,7 +387,7 @@ test('C5: returnerar 409 när customerId inte matchar konversationens kund (reop
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-c5-wrong-customer/action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({ action: 'reopen', customerId: 'fel-kund@test.se' }),
       });
       assert.equal(res.status, 409);
