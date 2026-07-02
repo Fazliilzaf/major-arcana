@@ -2381,6 +2381,14 @@
           normalizeText(mailbox.mailboxId) ||
           normalizeText(rollup.primaryMailboxId) ||
           LIVE_MAILBOX_IDS[0];
+        const mailboxTrail = [
+          mailboxAddress,
+          ...(Array.isArray(rollup.inboundMailboxIds) ? rollup.inboundMailboxIds : []),
+          ...(Array.isArray(rollup.underlyingMailboxIds) ? rollup.underlyingMailboxIds : []),
+        ]
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+          .filter((item, index, all) => all.indexOf(item) === index);
         const source = compactMailbox(mailboxAddress);
         const tags = [];
         if (state.hasUnreadInbound || state.needsReply)
@@ -2403,6 +2411,7 @@
           when: formatWhen(timing.latestMessageAt || timing.lastInboundAt),
           source,
           mailboxAddress,
+          mailboxTrail,
           tags,
           unread: state.hasUnreadInbound || state.needsReply,
           lane: row.lane || 'all',
@@ -2448,6 +2457,130 @@
         if (actNowCount) actNowCount.textContent = String(unread);
       }
 
+      function setThreadHeader(thread, messageCount = null) {
+        const kicker = document.querySelector('.thread-header-kicker');
+        const title = document.querySelector('.thread-header-main h2');
+        const statusBar = document.querySelector('.thread-status-bar');
+        if (kicker) {
+          kicker.innerHTML = `<span class="thread-header-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 4h16v16H4z" stroke-linecap="round" stroke-linejoin="round" /><path d="M4 4l8 8 8-8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>Konversation${messageCount === null ? '' : ` · ${messageCount} meddelanden`}`;
+        }
+        if (title)
+          title.textContent = `${thread.subj || 'Konversation'} · ${thread.from || 'Okänd kund'}`;
+        if (statusBar) {
+          const mailboxTrail =
+            Array.isArray(thread.mailboxTrail) && thread.mailboxTrail.length
+              ? thread.mailboxTrail
+              : [thread.mailboxAddress || LIVE_MAILBOX_IDS[0]];
+          statusBar.innerHTML = `
+            <span class="status-pill status-pill--source"><span class="dot"></span>${escapeHtml(mailboxTrail[0])}</span>
+            <span class="status-pill status-pill--info"><span class="dot"></span>Mailbox-spår: ${escapeHtml(mailboxTrail.join(' · '))}</span>
+            ${
+              thread.unread
+                ? '<span class="status-pill status-pill--warning"><span class="dot"></span>Behöver svar</span>'
+                : '<span class="status-pill status-pill--info"><span class="dot"></span>Ingen oläst signal</span>'
+            }
+          `;
+        }
+      }
+
+      function messageDayLabel(value) {
+        const iso = normalizeText(value);
+        if (!iso) return '';
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleDateString('sv-SE', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'short',
+        });
+      }
+
+      function messageTimeLabel(value) {
+        const iso = normalizeText(value);
+        if (!iso) return '';
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return iso;
+        return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+      }
+
+      function renderThreadMessages(thread, messages) {
+        const mount = document.getElementById('messages');
+        if (!mount) return;
+        setThreadHeader(thread, messages.length);
+        if (!messages.length) {
+          mount.innerHTML =
+            '<div class="msg-day">Live tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:linear-gradient(180deg,#c8e8e0,#88c8b8)">CC</div><div><div class="msg-bubble">Inga meddelanden kunde visas för den här tråden ännu.</div><div class="msg-meta">CCO · live-data</div></div></div>';
+          return;
+        }
+        let previousDay = '';
+        mount.innerHTML = messages
+          .map((message) => {
+            const dir = normalizeText(message.dir) === 'outgoing' ? 'outgoing' : 'incoming';
+            const day = messageDayLabel(message.time);
+            const dayDivider =
+              day && day !== previousDay ? `<div class="msg-day">${escapeHtml(day)}</div>` : '';
+            if (day) previousDay = day;
+            const mailbox =
+              normalizeText(message.mailboxId) || thread.mailboxAddress || LIVE_MAILBOX_IDS[0];
+            const from =
+              normalizeText(message.from) || (dir === 'outgoing' ? 'Hair TP Clinic' : thread.from);
+            const initials = normalizeText(message.initials) || initialsFromName(from);
+            const avatarBg =
+              dir === 'outgoing'
+                ? 'linear-gradient(180deg,#c5d8a8,#92b86e)'
+                : avatarBackground(from || thread.from);
+            return `
+              ${dayDivider}
+              <div class="msg is-${dir}">
+                <div class="msg-av" style="background:${escapeHtml(avatarBg)}">${escapeHtml(initials)}</div>
+                <div>
+                  <div class="msg-bubble">${escapeHtml(message.body || '')}</div>
+                  <div class="msg-meta">${escapeHtml(from)} · ${escapeHtml(messageTimeLabel(message.time))} · ${escapeHtml(mailbox)}</div>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      function renderThreadLoading(thread) {
+        const mount = document.getElementById('messages');
+        if (!mount) return;
+        setThreadHeader(thread, null);
+        mount.innerHTML = `<div class="msg-day">Live tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Laddar riktiga meddelanden från CCO...</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
+      }
+
+      async function openConversationThread(thread) {
+        if (!thread?.conversationKey || !thread.live || window.location.protocol === 'file:') {
+          setThreadHeader(thread || { subj: 'Konversation', from: 'Demo' }, null);
+          return;
+        }
+        renderThreadLoading(thread);
+        try {
+          const response = await fetch(
+            `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages`,
+            {
+              credentials: 'include',
+              headers: { Accept: 'application/json' },
+            }
+          );
+          if (!response.ok) {
+            throw new Error(
+              response.status === 401 ? 'login_required' : `messages_${response.status}`
+            );
+          }
+          const payload = await response.json();
+          const messages = Array.isArray(payload?.messages) ? payload.messages : [];
+          renderThreadMessages(thread, messages);
+        } catch (error) {
+          console.warn('[cco-live-thread] meddelanden kunde inte laddas', error);
+          const mount = document.getElementById('messages');
+          if (mount) {
+            mount.innerHTML = `<div class="msg-day">Live tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Kunde inte ladda riktiga meddelanden. Kontrollera inloggning och att tråden finns i CCO.</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
+          }
+        }
+      }
+
       function renderInboxThreads(threads, { activeTab = 'alla', activeLane = currentLane } = {}) {
         const list = document.getElementById('inboxList');
         if (!list) return;
@@ -2463,7 +2596,7 @@
         list.innerHTML = visibleThreads
           .map(
             (t, index) => `
-  <div class="thread ${t.active || index === 0 ? 'active' : ''} ${t.unread ? 'thread-unread' : ''}" data-source="${escapeHtml(t.source)}" data-lane="${escapeHtml(t.lane || 'all')}" data-conversation-key="${escapeHtml(t.conversationKey || '')}" data-live="${t.live ? 'true' : 'false'}">
+  <div class="thread ${t.active || index === 0 ? 'active' : ''} ${t.unread ? 'thread-unread' : ''}" data-source="${escapeHtml(t.source)}" data-lane="${escapeHtml(t.lane || 'all')}" data-thread-id="${escapeHtml(t.id)}" data-conversation-key="${escapeHtml(t.conversationKey || '')}" data-live="${t.live ? 'true' : 'false'}">
     <div class="thread-av" style="background:${escapeHtml(t.bg)}">${escapeHtml(t.init)}</div>
     <div class="thread-body">
       <div class="thread-from">${escapeHtml(t.from)} <span class="when">${escapeHtml(t.when)}</span></div>
@@ -2485,6 +2618,12 @@
               .querySelectorAll('.thread.active')
               .forEach((o) => o.classList.remove('active'));
             t.classList.add('active');
+            const threadId = t.dataset.threadId;
+            const conversationKey = t.dataset.conversationKey;
+            const selected = visibleThreads.find(
+              (thread) => thread.id === threadId || thread.conversationKey === conversationKey
+            );
+            openConversationThread(selected);
           })
         );
       }
@@ -2513,6 +2652,8 @@
             activeTab: currentInboxTab,
             activeLane: currentLane,
           });
+          const firstThread = currentThreads.find((thread) => thread.conversationKey);
+          if (firstThread) openConversationThread(firstThread);
           if (rows.length && window.CCOPolish?.showToast) {
             window.CCOPolish.showToast(`Live inkorg: ${rows.length} trådar från kons@`, 'success');
           }
