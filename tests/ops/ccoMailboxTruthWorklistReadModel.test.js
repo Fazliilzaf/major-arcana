@@ -147,6 +147,100 @@ test('worklist read model keeps human replies actionable even after automated re
   assert.equal(consumer.rows[0].state.messageClassification, 'actionable');
 });
 
+test('worklist consumer visar besvarade kundtrådar i Alla utan needsReply', () => {
+  const model = createCcoMailboxTruthWorklistReadModel({
+    store: {
+      listMessages() {
+        return [
+          {
+            mailboxId: 'contact@hairtpclinic.com',
+            mailboxAddress: 'contact@hairtpclinic.com',
+            userPrincipalName: 'contact@hairtpclinic.com',
+            mailboxConversationId: 'contact@hairtpclinic.com:conv-answered',
+            conversationId: 'conv-answered',
+            graphMessageId: 'msg-answered-in',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: true,
+            subject: 'Fråga om konsultation',
+            bodyPreview: 'Hej, jag vill boka konsultation.',
+            from: {
+              address: 'patient@example.com',
+              name: 'Patient Example',
+            },
+            receivedAt: '2026-07-01T09:00:00.000Z',
+          },
+          {
+            mailboxId: 'contact@hairtpclinic.com',
+            mailboxAddress: 'contact@hairtpclinic.com',
+            userPrincipalName: 'contact@hairtpclinic.com',
+            mailboxConversationId: 'contact@hairtpclinic.com:conv-answered',
+            conversationId: 'conv-answered',
+            graphMessageId: 'msg-answered-out',
+            folderType: 'sent',
+            direction: 'outbound',
+            isRead: true,
+            subject: 'Sv: Fråga om konsultation',
+            bodyPreview: 'Hej, tack. Här är tider för konsultation.',
+            toRecipients: [{ emailAddress: { address: 'patient@example.com' } }],
+            sentAt: '2026-07-01T10:00:00.000Z',
+          },
+        ];
+      },
+    },
+  });
+
+  const readModel = model.buildReadModel({
+    mailboxIds: ['contact@hairtpclinic.com'],
+  });
+  const consumer = model.buildConsumerModel({
+    mailboxIds: ['contact@hairtpclinic.com'],
+  });
+
+  assert.equal(readModel.rows.length, 1);
+  assert.equal(readModel.summary.rowCount, 1);
+  assert.equal(readModel.summary.needsReplyCount, 0);
+  assert.equal(consumer.rows.length, 1);
+  assert.equal(consumer.summary.rowCount, 1);
+  assert.equal(consumer.summary.needsReplyCount, 0);
+  assert.equal(consumer.rows[0].lane, 'all');
+  assert.equal(consumer.rows[0].state.needsReply, false);
+  assert.equal(consumer.rows[0].customer.email, 'patient@example.com');
+});
+
+test('worklist consumer fyller inte inkorgen med sent-only kliniktrådar', () => {
+  const model = createCcoMailboxTruthWorklistReadModel({
+    store: {
+      listMessages() {
+        return [
+          {
+            mailboxId: 'contact@hairtpclinic.com',
+            mailboxAddress: 'contact@hairtpclinic.com',
+            userPrincipalName: 'contact@hairtpclinic.com',
+            mailboxConversationId: 'contact@hairtpclinic.com:conv-sent-only',
+            conversationId: 'conv-sent-only',
+            graphMessageId: 'msg-sent-only',
+            folderType: 'sent',
+            direction: 'outbound',
+            isRead: true,
+            subject: 'Utskick utan inkommande svar',
+            bodyPreview: 'Hej, här kommer information.',
+            toRecipients: [{ emailAddress: { address: 'patient@example.com' } }],
+            sentAt: '2026-07-01T10:00:00.000Z',
+          },
+        ];
+      },
+    },
+  });
+
+  const consumer = model.buildConsumerModel({
+    mailboxIds: ['contact@hairtpclinic.com'],
+  });
+
+  assert.equal(consumer.rows.length, 0);
+  assert.equal(consumer.summary.rowCount, 0);
+});
+
 test('applyIngestionLedgerProjection bumps lane to review for unmatched ingestion', () => {
   const {
     applyIngestionLedgerProjection,

@@ -1112,12 +1112,16 @@ function createCcoMailboxTruthWorklistReadModel({
           (!isSystemMail || entry.hasUnreadInbound || entry.hasDrafts);
         const outOfScopeDraftReview =
           activeCandidate && isOutOfScopeDraftReview({ ...entry, needsReply });
+        const visibleConversationCandidate =
+          !deletedOnly && !isSystemMail && (entry.hasInbox || entry.hasDrafts);
         let lane = null;
         if (activeCandidate) {
           if (outOfScopeDraftReview) lane = 'review';
           else if (!isSystemMail && entry.hasUnreadInbound && hoursSinceInbound >= 24)
             lane = 'act-now';
           else lane = 'all';
+        } else if (visibleConversationCandidate) {
+          lane = 'all';
         }
 
         return {
@@ -1128,12 +1132,13 @@ function createCcoMailboxTruthWorklistReadModel({
           needsReply,
           hoursSinceInbound,
           activeCandidate,
+          visibleConversationCandidate,
           outOfScopeDraftReview,
           parityScope: outOfScopeDraftReview ? 'out_of_scope_draft_review' : 'in_scope',
           lane,
         };
       })
-      .filter((entry) => entry.activeCandidate)
+      .filter((entry) => entry.visibleConversationCandidate)
       .sort((left, right) =>
         String(right.latestMessageAt || '').localeCompare(String(left.latestMessageAt || ''))
       )
