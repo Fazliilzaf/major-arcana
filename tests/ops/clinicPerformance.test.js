@@ -57,6 +57,102 @@ test('collectClinicPerformanceBookings slår ihop alias-tenants och dedupar samm
   assert.deepEqual(rows.map((row) => row.bookingId).sort(), ['b1', 'b2']);
 });
 
+test('collectClinicPerformanceBookings använder booking-engine som live-sanning när cliento är tom', () => {
+  const engineStore = {
+    listBookingsForEnrichment(tenantId) {
+      if (tenantId !== 'hair-tp-clinic') return [];
+      return [
+        {
+          bookingId: 'eng-1',
+          customerEmail: 'a@b.se',
+          status: 'confirmed',
+          slot: {
+            startsAt: '2026-06-11T09:00:00Z',
+            serviceId: 'followup-transplant',
+            serviceLabel: 'Uppföljning hårtransplantation',
+            resourceLabel: 'Fazli Krasniqi',
+          },
+        },
+      ];
+    },
+  };
+  const rows = collectClinicPerformanceBookings({
+    clientoBookingStore: {
+      listAllBookings() {
+        return [];
+      },
+    },
+    bookingEngineStore: engineStore,
+    tenantId: 'hair-tp-clinic',
+  });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].bookingId, 'eng-1');
+  assert.equal(rows[0].source, 'cco_booking_engine');
+});
+
+test('collectClinicPerformanceBookings prioriterar encounter/engine över cliento för samma bokningstid', () => {
+  const engineStore = {
+    listBookingsForEnrichment(tenantId) {
+      if (tenantId !== 'hair-tp-clinic') return [];
+      return [
+        {
+          bookingId: 'shared-1',
+          customerEmail: 'a@b.se',
+          status: 'confirmed',
+          slot: {
+            startsAt: '2026-06-11T09:00:00Z',
+            serviceId: 'followup-transplant',
+            serviceLabel: 'Uppföljning hårtransplantation',
+            resourceLabel: 'Fazli Krasniqi',
+          },
+        },
+      ];
+    },
+  };
+  const encounterStore = {
+    listEncountersForEnrichment(tenantId) {
+      if (tenantId !== 'hair-tp-clinic') return [];
+      return [
+        {
+          encounterId: 'enc-1',
+          bookingId: 'shared-1',
+          customerEmail: 'a@b.se',
+          startsAt: '2026-06-11T09:00:00Z',
+          status: 'completed',
+          serviceId: 'followup-transplant',
+          serviceLabel: 'Uppföljning hårtransplantation',
+          resourceLabel: 'Fazli Krasniqi',
+        },
+      ];
+    },
+  };
+  const clientoStore = {
+    listAllBookings({ tenantId }) {
+      if (tenantId !== 'hair-tp-clinic') return [];
+      return [
+        {
+          bookingId: 'cliento-1',
+          customerEmail: 'a@b.se',
+          startsAt: '2026-06-11T09:00:00Z',
+          status: 'completed',
+          serviceLabel: 'Uppföljning hårtransplantation',
+          staffName: 'Fazli Krasniqi',
+        },
+      ];
+    },
+  };
+  const rows = collectClinicPerformanceBookings({
+    clientoBookingStore: clientoStore,
+    bookingEngineStore: engineStore,
+    treatmentEncounterStore: encounterStore,
+    tenantId: 'hair-tp-clinic',
+  });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].bookingId, 'shared-1');
+  assert.equal(rows[0].source, 'cco_treatment_encounter');
+  assert.equal(rows[0].status, 'completed');
+});
+
 test('räknar bokningar denna månad och ignorerar andra månader', () => {
   const bookings = [
     booking('2026-06-02T09:00:00Z'),
