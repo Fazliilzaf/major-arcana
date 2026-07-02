@@ -22,6 +22,13 @@ const PAYMENT_STATUSES = Object.freeze([
 ]);
 const QUOTE_OPEN_DEBOUNCE_MS = 30 * 1000;
 
+// K56 — SLA-trösklar för fastnade offerter (dagar sedan offerten skickades).
+// Fastnad-kvalificeringen (>7 dagar utan svar, eller öppnad men >3 dagar utan
+// åtgärd) sätts i buildCommercialOwnerOfferOverview; trösklarna nedan graderar
+// hur akut en redan fastnad offert är.
+const STUCK_SLA_CRITICAL_DAYS = 14;
+const STUCK_SLA_HIGH_DAYS = 10;
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -794,6 +801,40 @@ function isCommercialCaseSigned(commercialCase = {}) {
   );
 }
 
+// K56 — härled prioritet/SLA för en offert som redan bedömts som fastnad.
+// Graderar hur akut den är (slaTier) och ger en stabil sorteringsnyckel
+// (priorityScore, högre = mer akut). Öppnade-men-orörda offerter (kunden har
+// visat intresse men avstannat) prioriteras något högre än de som aldrig fått
+// svar, vid samma ålder.
+function deriveStuckSlaSignal({
+  sentMs,
+  latestOpenMs,
+  openCount = 0,
+  openedButStuck = false,
+  nowMs = Date.now(),
+} = {}) {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const daysSinceSent = Number.isFinite(sentMs)
+    ? Math.max(0, Math.floor((nowMs - sentMs) / dayMs))
+    : null;
+  const daysSinceLastOpen =
+    openCount > 0 && Number.isFinite(latestOpenMs)
+      ? Math.max(0, Math.floor((nowMs - latestOpenMs) / dayMs))
+      : null;
+  const stuckReason = openedButStuck ? 'opened_no_action' : 'awaiting_first_response';
+  const ageDays = daysSinceSent ?? 0;
+  const slaTier =
+    ageDays >= STUCK_SLA_CRITICAL_DAYS
+      ? 'critical'
+      : ageDays >= STUCK_SLA_HIGH_DAYS
+        ? 'high'
+        : 'elevated';
+  const tierWeight = { critical: 300, high: 200, elevated: 100 };
+  const priorityScore =
+    tierWeight[slaTier] + (stuckReason === 'opened_no_action' ? 30 : 0) + Math.min(ageDays, 60);
+  return { stuckReason, slaTier, daysSinceSent, daysSinceLastOpen, priorityScore };
+}
+
 function buildCommercialOwnerOfferOverview(cases = [], { nowMs = Date.now() } = {}) {
   const buckets = {
     waitingCustomer: [],
@@ -837,7 +878,14 @@ function buildCommercialOwnerOfferOverview(cases = [], { nowMs = Date.now() } = 
     }
     if (quoteStatus === 'sent') {
       if (waitingTooLong || openedButStuck) {
-        buckets.stuck.push({ ...row, bucket: 'stuck' });
+        const slaSignal = deriveStuckSlaSignal({
+          sentMs,
+          latestOpenMs,
+          openCount,
+          openedButStuck,
+          nowMs,
+        });
+        buckets.stuck.push({ ...row, bucket: 'stuck', ...slaSignal });
       } else if (openCount > 0 && (!Number.isFinite(coolingEndsMs) || coolingEndsMs <= nowMs)) {
         buckets.readyToSign.push({ ...row, bucket: 'readyToSign' });
       } else {
@@ -845,6 +893,25 @@ function buildCommercialOwnerOfferOverview(cases = [], { nowMs = Date.now() } = 
       }
     }
   });
+
+  // K56 — prioritetsordning: mest akuta fastnade offerter först. Sortera på
+  // priorityScore (SLA-tier + intent + ålder), sedan ålder, sedan namn för
+  // deterministisk ordning.
+  buckets.stuck.sort(
+    (a, b) =>
+      b.priorityScore - a.priorityScore ||
+      (b.daysSinceSent || 0) - (a.daysSinceSent || 0) ||
+      String(a.customerName || '').localeCompare(String(b.customerName || ''), 'sv')
+  );
+
+  const stuckSlaSummary = buckets.stuck.reduce(
+    (acc, item) => {
+      if (acc[item.slaTier] === undefined) acc[item.slaTier] = 0;
+      acc[item.slaTier] += 1;
+      return acc;
+    },
+    { critical: 0, high: 0, elevated: 0 }
+  );
 
   return {
     generatedAt: new Date(nowMs).toISOString(),
@@ -854,6 +921,7 @@ function buildCommercialOwnerOfferOverview(cases = [], { nowMs = Date.now() } = 
       signed: buckets.signed.length,
       stuck: buckets.stuck.length,
     },
+    stuckSlaSummary,
     buckets,
   };
 }
@@ -887,5 +955,6 @@ module.exports = {
   buildQuoteOpenTimelineEvents,
   buildCommercialCaseReadout,
   buildCommercialOwnerOfferOverview,
+  deriveStuckSlaSignal,
   createCcoCommercialStore,
 };

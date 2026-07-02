@@ -5064,6 +5064,14 @@
           (item) => Number(item.quoteOpenCount || 0) > 0
         ).length;
         const neverOpened = stuckRows.length - openedUnsigned;
+        // K56 — triagemått från backend-fälten (slaTier, daysSinceSent). Raderna
+        // levereras redan prioritetssorterade från offertöversikten.
+        const slaAkut = stuckRows.filter((item) => item.slaTier === 'critical').length;
+        const foljUppIdag = stuckRows.filter((item) => item.slaTier === 'high').length;
+        const oldestDays = stuckRows.reduce((max, item) => {
+          const days = Number(item.daysSinceSent);
+          return Number.isFinite(days) && days > max ? days : max;
+        }, 0);
         return `<div class="offer-workmode" data-owner-offer-stuck-workmode>
           <div class="offer-workmode-head">
             <div>
@@ -5071,6 +5079,11 @@
               <div class="offer-workmode-copy">${openedUnsigned} öppnade utan signering · ${neverOpened} ej öppnade. Börja med äldsta öppning/skickdatum och verifiera underlaget innan kundkontakt.</div>
             </div>
             <div class="offer-workmode-count">${stuckRows.length}</div>
+          </div>
+          <div class="qms-grid" style="margin-top:10px" data-owner-offer-stuck-metrics>
+            ${ownerFollowupMetric('SLA akut', slaAkut, 'danger', null)}
+            ${ownerFollowupMetric('Följ upp idag', foljUppIdag, 'amber', null)}
+            ${ownerFollowupMetric('Äldst fastnad (dgr)', oldestDays, 'info', null)}
           </div>
           <div class="offer-workmode-steps">
             <div class="offer-workmode-step">1. Kontrollera pris, zoner och bilder</div>
@@ -5120,6 +5133,17 @@
         const openedAt = item.quoteOpenedAt ? formatDateTime(item.quoteOpenedAt) : 'Ej öppnad';
         const sentAt = item.quoteSentAt ? formatDateTime(item.quoteSentAt) : 'Ej skickad';
         const coolingAt = item.coolingOffEndsAt ? formatDateTime(item.coolingOffEndsAt) : 'Saknas';
+        // K56 — prioritet per rad: SLA-tier kommer från offertöversikten (backend).
+        const slaToneMap = { critical: 'danger', high: 'amber', elevated: 'info' };
+        const slaLabelMap = {
+          critical: 'SLA: Kritisk',
+          high: 'SLA: Hög',
+          elevated: 'SLA: Förhöjd',
+        };
+        const slaPill =
+          item.bucket === 'stuck' && item.slaTier
+            ? `<span class="pill ${escapeHtml(slaToneMap[item.slaTier] || 'neutral')}">${escapeHtml(slaLabelMap[item.slaTier] || 'SLA')}</span>`
+            : '';
         const stuckContext =
           item.bucket === 'stuck'
             ? (() => {
@@ -5133,6 +5157,7 @@
             <div class="item-meta">Offert: ${escapeHtml(ownerOfferAmount(item.quotedAmount))} · Skickad ${escapeHtml(sentAt)} · Betänketid till ${escapeHtml(coolingAt)}</div>
             <div class="pill-row">
               <span class="pill ${escapeHtml(tone)}">${escapeHtml(label)}</span>
+              ${slaPill}
               <span class="pill neutral">Öppnad ${Number(item.quoteOpenCount || 0)} gång${Number(item.quoteOpenCount || 0) === 1 ? '' : 'er'}</span>
               <span class="pill info">Senast öppnad: ${escapeHtml(openedAt)}</span>
               <span class="pill neutral">Delad: ${escapeHtml(sharedAt)}</span>
@@ -5157,7 +5182,15 @@
           badge.textContent = active;
           badge.style.display = active > 0 ? '' : 'none';
         });
+        // K56 — SLA-sammanfattning från backend (stuckSlaSummary). rows/filtrering
+        // kommer från K54/K55; SLA-graderingen driver notisraden nedan.
+        const stuckSla = data.stuckSlaSummary || {};
+        const stuckSlaNote =
+          Number(totals.stuck || 0) > 0
+            ? `<div class="live-note">Fastnade SLA: ${Number(stuckSla.critical || 0)} kritisk · ${Number(stuckSla.high || 0)} hög · ${Number(stuckSla.elevated || 0)} förhöjd. Mest akut visas först.</div>`
+            : '';
         container.innerHTML = `<div class="live-note">Live offertöversikt: ${Number(totals.waitingCustomer || 0)} väntar kund · ${Number(totals.readyToSign || 0)} redo att signera · ${Number(totals.signed || 0)} signerade · ${Number(totals.stuck || 0)} fastnade.</div>
+          ${stuckSlaNote}
           <div class="qms-grid" style="margin-top:10px">
             ${ownerFollowupMetric('Väntar kund', totals.waitingCustomer, 'amber', null)}
             ${ownerFollowupMetric('Redo att signera', totals.readyToSign, 'violet', null)}
