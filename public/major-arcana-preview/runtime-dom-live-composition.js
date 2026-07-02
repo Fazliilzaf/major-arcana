@@ -305,7 +305,17 @@
     }
 
     async function fetchTruthPrimaryWorklistConsumer(href) {
-      const path = asText(href);
+      let path = asText(href);
+      const refreshNonce = asText(state.runtime?.mailSyncStatus?.refreshNonce);
+      if (path && refreshNonce) {
+        try {
+          const url = new URL(path, windowObject.location?.origin || "https://arcana.local");
+          url.searchParams.set("_mailSync", refreshNonce);
+          path = `${url.pathname}${url.search}`;
+        } catch (_error) {
+          path += `${path.includes("?") ? "&" : "?"}_mailSync=${encodeURIComponent(refreshNonce)}`;
+        }
+      }
       const policy = window.ArcanaCcoData?.policy?.WORKLIST || { staleTime: 45000, gcTime: 180000 };
       if (window.ArcanaCcoData?.fetch && path) {
         return window.ArcanaCcoData.fetch(`worklist-consumer:${path}`, () => apiRequest(path), {
@@ -314,6 +324,97 @@
         });
       }
       return apiRequest(path);
+    }
+
+    function resolveRuntimeSyncMailboxIds() {
+      const requestedMailboxIds = asArray(getRequestedRuntimeMailboxIds?.())
+        .map((value) =>
+          typeof canonicalizeRuntimeMailboxId === "function"
+            ? canonicalizeRuntimeMailboxId(value)
+            : normalizeMailboxId(value)
+        )
+        .filter(Boolean);
+      if (typeof getTruthPrimaryWorklistMailboxIds === "function") {
+        const truthIds = getTruthPrimaryWorklistMailboxIds({ mailboxIds: requestedMailboxIds });
+        if (asArray(truthIds).length) return asArray(truthIds);
+      }
+      return requestedMailboxIds;
+    }
+
+    function runtimeMailSyncErrorMessage(error) {
+      const statusCode = Number(error?.statusCode || error?.status || 0);
+      const rawMessage = asText(error?.message, String(error || ""));
+      const normalized = normalizeKey(rawMessage);
+      if (statusCode === 401 || statusCode === 403 || normalized.includes("inloggning")) {
+        return "Du är inte inloggad i CCO. Logga in i admin och försök hämta mail igen.";
+      }
+      if (statusCode === 503 && normalized.includes("graph_read_unavailable")) {
+        return "Microsoft READ är av i Render. Sätt ARCANA_GRAPH_READ_ENABLED=true och Graph-credentials innan inkorgen kan fyllas.";
+      }
+      if (statusCode === 503) {
+        return "Mailkopplingen är inte redo på servern. Kontrollera Graph READ och mailbox truth-store.";
+      }
+      return rawMessage || "Kunde inte starta mail-sync.";
+    }
+
+    async function handleRuntimeMailboxSync() {
+      const mailboxIds = resolveRuntimeSyncMailboxIds();
+      state.runtime.mailSyncStatus = {
+        loading: true,
+        message: "Hämtar mail från Microsoft Graph…",
+        startedAt: new Date().toISOString(),
+        mailboxIds,
+      };
+      paintRuntimeShell("queue");
+      try {
+        const payload = await apiRequest("/api/v1/cco/runtime/sync", {
+          method: "POST",
+          body: {
+            mailboxIds,
+            lookbackDays: 14,
+          },
+        });
+        const refreshNonce = `${Date.now()}`;
+        state.runtime.mailSyncStatus = {
+          loading: false,
+          ok: true,
+          message:
+            "Mail-sync startad. CCO uppdaterar arbetslistan när Microsoft-körningen är klar.",
+          startedAt: asText(payload?.startedAt, new Date().toISOString()),
+          mailboxIds: asArray(payload?.mailboxIds).length ? payload.mailboxIds : mailboxIds,
+          refreshNonce,
+        };
+        state.runtime.backgroundSyncActive = true;
+        paintRuntimeShell("queue");
+        windowObject.setTimeout?.(() => {
+          state.runtime.mailSyncStatus = {
+            ...state.runtime.mailSyncStatus,
+            refreshNonce: `${Date.now()}`,
+          };
+          loadLiveRuntime({
+            requestedMailboxIds: mailboxIds,
+            forceReload: true,
+            resetHistoryOnChange: false,
+          }).catch((error) => {
+            state.runtime.mailSyncStatus = {
+              loading: false,
+              error: true,
+              message: runtimeMailSyncErrorMessage(error),
+              refreshNonce: `${Date.now()}`,
+            };
+            paintRuntimeShell("queue");
+          });
+        }, 2500);
+      } catch (error) {
+        state.runtime.mailSyncStatus = {
+          loading: false,
+          error: true,
+          message: runtimeMailSyncErrorMessage(error),
+          mailboxIds,
+          refreshNonce: `${Date.now()}`,
+        };
+        paintRuntimeShell("queue");
+      }
     }
 
     function resolveTruthPrimaryEnrichmentLegacyData(truthPrimaryPayload) {
@@ -4263,6 +4364,20 @@
         button.addEventListener("click", () => {
           applyLaterOption(button.dataset.laterOption);
         });
+      });
+
+      windowObject.document?.addEventListener?.("click", (event) => {
+        const target = event?.target;
+        const ElementCtor = windowObject.Element;
+        const syncButton =
+          target && typeof ElementCtor === "function" && target instanceof ElementCtor
+            ? target.closest("[data-runtime-sync-mail]")
+            : null;
+        if (!syncButton) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (syncButton.disabled || state.runtime?.mailSyncStatus?.loading === true) return;
+        void handleRuntimeMailboxSync();
       });
 
       if (studioLaterActionButton) {
