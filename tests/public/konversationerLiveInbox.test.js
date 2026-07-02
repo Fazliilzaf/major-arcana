@@ -59,6 +59,28 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   );
 });
 
+test('konversationer exposes selected live thread as Svarstudio context', () => {
+  const html = readHtml();
+
+  assert.match(html, /window\.CCOLiveConversationContext\s*=/);
+  assert.match(html, /getContext\(\)\s*\{/);
+  assert.match(html, /function buildSvarstudioLiveContext\(thread, messages\)/);
+  assert.match(html, /selectedLiveThread/);
+  assert.match(html, /selectedLiveMessages/);
+  assert.match(html, /latestMessages:\s*normalizedMessages\.slice\(-6\)/);
+  assert.match(html, /conversationKey:\s*thread\.conversationKey/);
+  assert.match(html, /mailboxTrail/);
+  assert.match(html, /window\.dispatchEvent\(new CustomEvent\('cco:live-conversation-context'/);
+  assert.match(html, /setSvarstudioLiveContext\(thread, messages\)/);
+});
+
+test('top Svarstudio button uses same action hook as bottom bar', () => {
+  const html = readHtml();
+
+  assert.match(html, /<button class="nav-btn nav-btn--ai" type="button" data-action="svarstudio">/);
+  assert.match(html, /\.nav-btn:not\(\[data-action\]\)/);
+});
+
 test('konversationer live inbox script parses', () => {
   const html = readHtml();
   assert.doesNotThrow(() => new Function(liveScript(html)));

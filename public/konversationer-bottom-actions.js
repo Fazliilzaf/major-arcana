@@ -46,6 +46,20 @@
     return document.body.dataset.activeCustomerId || window.__activeCustomerId || 'CUST-DEMO-002';
   }
 
+  function getLiveConversationContext() {
+    try {
+      if (typeof window.CCOLiveConversationContext?.getContext !== 'function') return null;
+      const context = window.CCOLiveConversationContext.getContext();
+      return context && context.conversationKey ? context : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function openSvarstudioForSelectedThread(presetContext) {
+    return openSvarstudio(presetContext || getLiveConversationContext());
+  }
+
   async function auditStudioEvent(eventKind, detail) {
     try {
       await fetch('/api/v1/cco-audit', {
@@ -215,12 +229,17 @@
 
   // ─── SVARSTUDIO — workbench layout ───────────────────────────────────
   async function openSvarstudio(presetContext) {
-    const customerId = activeCustomerId();
-    auditStudioEvent('studio.opened', { customerId });
+    const liveContext = presetContext || getLiveConversationContext();
+    const customerId = liveContext?.customerId || activeCustomerId();
+    auditStudioEvent('studio.opened', {
+      customerId,
+      conversationKey: liveContext?.conversationKey,
+      source: liveContext?.source,
+    });
     const mailboxes = await loadMailboxes();
 
     // Demo-kontext (i prod: hämtas från thread-store + customer-store)
-    const ctx = presetContext || {
+    const ctx = liveContext || {
       customerName: 'GetAccept',
       customerSub: 'Återbesök väntar · Behöver åtgärd',
       avatar: 'G',
@@ -267,13 +286,13 @@
       '.\n\nJag återkommer med en tydlig bekräftelse och det du behöver inför besöket.' +
       '\n\nHör gärna av dig om något behöver justeras.';
     const state = {
-      mailboxId: mailboxes[0]?.id || 'contact',
+      mailboxId: ctx.mailboxId || mailboxes[0]?.id || 'contact',
       signatureId: 'fazli',
       track: null,
       tone: null,
       refine: null,
       template: null,
-      subject: 'Re: ' + (ctx.customerName || 'konversation'),
+      subject: ctx.subject || 'Re: ' + (ctx.customerName || 'konversation'),
       body: applySignatureToBody(initialBody, 'fazli'),
       draftId: null,
     };
@@ -441,6 +460,32 @@
         ctx.threadSnippet || '',
       ]),
     ]);
+    if (Array.isArray(ctx.latestMessages) && ctx.latestMessages.length) {
+      threadBlock.appendChild(
+        el(
+          'div',
+          {
+            class: 'wb-thread-snippet',
+            style: 'margin-top:8px;display:flex;flex-direction:column;gap:6px',
+          },
+          ctx.latestMessages
+            .slice(-3)
+            .map((message) =>
+              el('div', {}, [
+                el(
+                  'div',
+                  { class: 'wb-thread-snippet-from' },
+                  (message.from || 'Okänd') +
+                    ' · ' +
+                    (message.time || '') +
+                    (message.mailboxId ? ' · ' + message.mailboxId : '')
+                ),
+                message.body || '',
+              ])
+            )
+        )
+      );
+    }
     main.appendChild(threadBlock);
 
     // Reply-block
@@ -1372,7 +1417,7 @@
     document.querySelectorAll('[data-action]').forEach((btn) => {
       const action = btn.dataset.action;
       btn.addEventListener('click', () => {
-        if (action === 'svarstudio') openSvarstudio();
+        if (action === 'svarstudio') openSvarstudioForSelectedThread();
         else if (action === 'smart-anteckning') openSmartAnteckning();
         else if (action === 'bokningsyta') openBokningsyta();
         else if (action === 'kalender') openKalender();
@@ -1384,7 +1429,7 @@
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
-        openSvarstudio();
+        openSvarstudioForSelectedThread();
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         openSmartAnteckning();
