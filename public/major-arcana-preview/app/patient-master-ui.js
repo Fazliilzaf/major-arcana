@@ -9675,9 +9675,9 @@
       tone = 'is-waiting';
       actionState = 'opened_waiting_cooling';
     } else if (activity?.openCount > 0) {
-      label = 'Följ upp i konversation';
+      label = 'Följ upp nu';
       message =
-        'Kunden har öppnat portalen men inte signerat. Följ upp via konversation eller staff-vy.';
+        'Kunden har öppnat underlag men inte signerat. Kunden har öppnat portalen men inte signerat. Följ upp via konversation eller staff-vy.';
       tone = 'is-action';
       actionState = 'opened_unsigned';
     }
