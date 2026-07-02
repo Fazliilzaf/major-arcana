@@ -1954,10 +1954,12 @@
         <div class="inbox-kicker">Inkorg</div>
         <h2 class="inbox-h2">12 olästa · 47 totalt</h2>
         <div class="inbox-tabs">
-          <button class="inbox-tab active">Alla<span class="count">47</span></button>
-          <button class="inbox-tab">Olästa<span class="count">12</span></button>
-          <button class="inbox-tab">Bokning<span class="count">8</span></button>
-          <button class="inbox-tab">VIP<span class="count">3</span></button>
+          <button class="inbox-tab active" data-tab="alla">
+            Alla<span class="count">47</span>
+          </button>
+          <button class="inbox-tab" data-tab="olasta">Olästa<span class="count">12</span></button>
+          <button class="inbox-tab" data-tab="bokning">Bokning<span class="count">8</span></button>
+          <button class="inbox-tab" data-tab="vip">VIP<span class="count">3</span></button>
         </div>
         <div class="inbox-list" id="inboxList"></div>
       </aside>
@@ -2180,7 +2182,7 @@
     </div>
 
     <script>
-      const THREADS = [
+      const DEMO_THREADS = [
         {
           from: 'Anna Karlsson',
           init: 'AK',
@@ -2289,31 +2291,253 @@
         },
       ];
 
-      document.getElementById('inboxList').innerHTML = THREADS.map(
-        (t) => `
-  <div class="thread ${t.active ? 'active' : ''} ${t.unread ? 'thread-unread' : ''}" data-source="${t.source}">
-    <div class="thread-av" style="background:${t.bg}">${t.init}</div>
+      const LIVE_MAILBOX_IDS = ['kons@hairtpclinic.com'];
+      const LIVE_WORKLIST_URL =
+        '/api/v1/cco/runtime/worklist/consumer?mailboxIds=' +
+        encodeURIComponent(LIVE_MAILBOX_IDS.join(',')) +
+        '&limit=50';
+      const AVATAR_BACKGROUNDS = [
+        'linear-gradient(180deg,#d8c1f0,#b48ad6)',
+        'linear-gradient(180deg,#c5d8a8,#92b86e)',
+        'linear-gradient(180deg,#ffe3b8,#e8a04e)',
+        'linear-gradient(180deg,#b8d4e8,#7aa8d4)',
+        'linear-gradient(180deg,#f4d4f0,#d48ac8)',
+        'linear-gradient(180deg,#c8e8e0,#88c8b8)',
+        'linear-gradient(180deg,#f0c8c8,#d48484)',
+        'linear-gradient(180deg,#f4e8c8,#d4b870)',
+      ];
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function normalizeText(value) {
+        return String(value ?? '').trim();
+      }
+
+      function initialsFromName(name) {
+        const parts = normalizeText(name).split(/\s+/).filter(Boolean);
+        if (!parts.length) return '??';
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+
+      function avatarBackground(seed) {
+        const text = normalizeText(seed) || 'cco';
+        let hash = 0;
+        for (let i = 0; i < text.length; i += 1) hash = (hash + text.charCodeAt(i)) % 997;
+        return AVATAR_BACKGROUNDS[hash % AVATAR_BACKGROUNDS.length];
+      }
+
+      function compactMailbox(mailbox = '') {
+        const value = normalizeText(mailbox).toLowerCase();
+        if (!value) return 'kons';
+        return value.split('@')[0] || value;
+      }
+
+      function formatWhen(value) {
+        const iso = normalizeText(value);
+        if (!iso) return '';
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return '';
+        const now = new Date();
+        const sameDay =
+          date.getFullYear() === now.getFullYear() &&
+          date.getMonth() === now.getMonth() &&
+          date.getDate() === now.getDate();
+        if (sameDay) {
+          return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        }
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const isYesterday =
+          date.getFullYear() === yesterday.getFullYear() &&
+          date.getMonth() === yesterday.getMonth() &&
+          date.getDate() === yesterday.getDate();
+        if (isYesterday) return 'igår';
+        return date
+          .toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+          .replace('.', '');
+      }
+
+      function normalizeLiveThread(row = {}, index = 0) {
+        const customer = row.customer || {};
+        const mailbox = row.mailbox || {};
+        const timing = row.timing || {};
+        const state = row.state || {};
+        const conversation = row.conversation || {};
+        const rollup = row.rollup || {};
+        const name =
+          normalizeText(row.presentation?.primaryLabel) ||
+          normalizeText(customer.name) ||
+          normalizeText(customer.email) ||
+          'Okänd kund';
+        const mailboxAddress =
+          normalizeText(mailbox.mailboxAddress) ||
+          normalizeText(mailbox.mailboxId) ||
+          normalizeText(rollup.primaryMailboxId) ||
+          LIVE_MAILBOX_IDS[0];
+        const source = compactMailbox(mailboxAddress);
+        const tags = [];
+        if (state.hasUnreadInbound || state.needsReply)
+          tags.push({ kind: 'urgent', label: 'OLÄST' });
+        if (String(row.lane || '').includes('book'))
+          tags.push({ kind: 'booking', label: 'Bokning' });
+        if (row.customerIdentity?.vip || row.customer?.identity?.vip)
+          tags.push({ kind: 'vip', label: 'VIP' });
+        if (rollup.enabled && Number(rollup.mailboxCount || 0) > 1) {
+          tags.push({ kind: 'ai', label: `${rollup.mailboxCount} mailboxar` });
+        }
+        return {
+          id: normalizeText(row.id) || normalizeText(conversation.key) || `live-${index}`,
+          conversationKey: normalizeText(conversation.key) || normalizeText(row.id),
+          from: name,
+          init: initialsFromName(name),
+          bg: avatarBackground(name || source),
+          subj: normalizeText(row.subject) || '(utan ämne)',
+          preview: normalizeText(row.preview) || normalizeText(row.queueExplanatoryLine) || '',
+          when: formatWhen(timing.latestMessageAt || timing.lastInboundAt),
+          source,
+          mailboxAddress,
+          tags,
+          unread: state.hasUnreadInbound || state.needsReply,
+          lane: row.lane || 'all',
+          live: true,
+          active: index === 0,
+        };
+      }
+
+      function threadMatchesTab(thread, tabId) {
+        if (tabId === 'olasta') return thread.unread === true;
+        if (tabId === 'bokning') {
+          return (
+            thread.tags?.some((tag) => tag.kind === 'booking') || /bok|booking/i.test(thread.subj)
+          );
+        }
+        if (tabId === 'vip') return thread.tags?.some((tag) => tag.kind === 'vip');
+        return true;
+      }
+
+      function threadMatchesLane(thread, laneId) {
+        if (!laneId || laneId === 'all') return true;
+        if (laneId === 'act-now')
+          return thread.unread === true || /act-now|review/i.test(thread.lane || '');
+        return String(thread.lane || '').toLowerCase() === String(laneId).toLowerCase();
+      }
+
+      function updateInboxCounts(threads) {
+        const all = threads.length;
+        const unread = threads.filter((thread) => thread.unread).length;
+        const booking = threads.filter((thread) => threadMatchesTab(thread, 'bokning')).length;
+        const vip = threads.filter((thread) => threadMatchesTab(thread, 'vip')).length;
+        const heading = document.querySelector('.inbox-h2');
+        if (heading) heading.textContent = `${unread} olästa · ${all} totalt`;
+        const tabCounts = { alla: all, olasta: unread, bokning: booking, vip };
+        document.querySelectorAll('.inbox-tab').forEach((button) => {
+          const tab = button.dataset.tab || 'alla';
+          const count = button.querySelector('.count');
+          if (count) count.textContent = String(tabCounts[tab] ?? 0);
+        });
+        const allLaneCount = document.querySelector('.lane-row[data-lane="all"] .ct');
+        if (allLaneCount) allLaneCount.textContent = String(all);
+        const actNowCount = document.querySelector('.lane-row[data-lane="act-now"] .ct');
+        if (actNowCount) actNowCount.textContent = String(unread);
+      }
+
+      function renderInboxThreads(threads, { activeTab = 'alla', activeLane = currentLane } = {}) {
+        const list = document.getElementById('inboxList');
+        if (!list) return;
+        const visibleThreads = threads.filter(
+          (thread) => threadMatchesTab(thread, activeTab) && threadMatchesLane(thread, activeLane)
+        );
+        updateInboxCounts(threads);
+        if (!visibleThreads.length) {
+          list.innerHTML =
+            '<div class="thread" style="cursor:default"><div class="thread-body"><div class="thread-from">Inga konversationer</div><div class="thread-preview">Ingen tråd matchar detta filter ännu.</div></div></div>';
+          return;
+        }
+        list.innerHTML = visibleThreads
+          .map(
+            (t, index) => `
+  <div class="thread ${t.active || index === 0 ? 'active' : ''} ${t.unread ? 'thread-unread' : ''}" data-source="${escapeHtml(t.source)}" data-lane="${escapeHtml(t.lane || 'all')}" data-conversation-key="${escapeHtml(t.conversationKey || '')}" data-live="${t.live ? 'true' : 'false'}">
+    <div class="thread-av" style="background:${escapeHtml(t.bg)}">${escapeHtml(t.init)}</div>
     <div class="thread-body">
-      <div class="thread-from">${t.from} <span class="when">${t.when}</span></div>
-      <div class="thread-subj">${t.subj}</div>
-      <div class="thread-preview">${t.preview}</div>
-      ${t.tags ? `<div class="thread-tags">${t.tags.map((tag) => `<span class="thread-tag thread-tag--${tag.kind}">${tag.label}</span>`).join('')}</div>` : ''}
+      <div class="thread-from">${escapeHtml(t.from)} <span class="when">${escapeHtml(t.when)}</span></div>
+      <div class="thread-subj">${escapeHtml(t.subj)}</div>
+      <div class="thread-preview">${escapeHtml(t.preview)}</div>
+      <div class="thread-tags">
+        <span class="thread-tag thread-tag--booking">${escapeHtml(t.mailboxAddress || t.source)}</span>
+        ${t.tags ? t.tags.map((tag) => `<span class="thread-tag thread-tag--${escapeHtml(tag.kind)}">${escapeHtml(tag.label)}</span>`).join('') : ''}
+      </div>
     </div>
   </div>
 `
-      ).join('');
+          )
+          .join('');
 
-      document.querySelectorAll('.thread').forEach((t) =>
-        t.addEventListener('click', () => {
-          document.querySelectorAll('.thread.active').forEach((o) => o.classList.remove('active'));
-          t.classList.add('active');
-        })
-      );
+        document.querySelectorAll('.thread').forEach((t) =>
+          t.addEventListener('click', () => {
+            document
+              .querySelectorAll('.thread.active')
+              .forEach((o) => o.classList.remove('active'));
+            t.classList.add('active');
+          })
+        );
+      }
+
+      let currentThreads = DEMO_THREADS;
+      let currentInboxTab = 'alla';
+      let currentLane = 'all';
+      renderInboxThreads(currentThreads);
+
+      async function loadLiveInbox() {
+        if (window.location.protocol === 'file:') return;
+        try {
+          const response = await fetch(LIVE_WORKLIST_URL, {
+            credentials: 'include',
+            headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) {
+            throw new Error(
+              response.status === 401 ? 'login_required' : `worklist_${response.status}`
+            );
+          }
+          const payload = await response.json();
+          const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+          currentThreads = rows.map(normalizeLiveThread);
+          renderInboxThreads(currentThreads, {
+            activeTab: currentInboxTab,
+            activeLane: currentLane,
+          });
+          if (rows.length && window.CCOPolish?.showToast) {
+            window.CCOPolish.showToast(`Live inkorg: ${rows.length} trådar från kons@`, 'success');
+          }
+        } catch (error) {
+          console.warn('[cco-live-inbox] worklist kunde inte laddas', error);
+          if (window.CCOPolish?.showToast) {
+            window.CCOPolish.showToast(
+              'Live inkorg kunde inte laddas — visar demo tills inloggning/data finns.',
+              'warning'
+            );
+          }
+        }
+      }
+
+      loadLiveInbox();
 
       document.querySelectorAll('.inbox-tab').forEach((t) =>
         t.addEventListener('click', () => {
           document.querySelectorAll('.inbox-tab').forEach((o) => o.classList.remove('active'));
           t.classList.add('active');
+          currentInboxTab = t.dataset.tab || 'alla';
+          renderInboxThreads(currentThreads, {
+            activeTab: currentInboxTab,
+            activeLane: currentLane,
+          });
         })
       );
 
@@ -2348,16 +2572,10 @@
               'info'
             );
           }
-          // Här skulle vi anropa backend för att filtrera tråden — wireshape:
-          // fetch(`/api/v1/cco-conversations?lane=${lane}`).then(...)
-          document.querySelectorAll('.thread-card, .thread-row').forEach((t) => {
-            if (lane === 'all') {
-              t.style.display = '';
-              return;
-            }
-            // Demo: visa bara om data-lane matchar (placeholder)
-            const tLane = t.dataset.lane;
-            t.style.display = !tLane || tLane === lane ? '' : 'none';
+          currentLane = lane || 'all';
+          renderInboxThreads(currentThreads, {
+            activeTab: currentInboxTab,
+            activeLane: currentLane,
           });
         })
       );
