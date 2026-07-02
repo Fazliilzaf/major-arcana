@@ -5004,6 +5004,8 @@
           item.customerName,
           item.patientId,
           item.commercialCaseId,
+          item.offerOwnerName,
+          item.offerOwnerUserId,
           item.lastPortalSharedBy,
           item.quoteSentAt,
           item.quoteOpenedAt,
@@ -5057,6 +5059,21 @@
         };
       }
 
+      function ownerOfferResponsible(item) {
+        const explicit =
+          staffDisplayName(item.offerOwnerName) ||
+          staffDisplayName(item.offerOwnerUserId) ||
+          item.offerOwnerName ||
+          item.offerOwnerUserId;
+        const fallback = staffDisplayName(item.lastPortalSharedBy) || item.lastPortalSharedBy;
+        const label = explicit || fallback || '';
+        return {
+          label: label || 'Saknar ansvarig',
+          source: explicit ? 'explicit' : fallback ? 'last_portal_share' : 'unassigned',
+          missing: !label,
+        };
+      }
+
       function renderOwnerOfferStuckWorkmode(rows) {
         const stuckRows = rows.filter((item) => item.bucket === 'stuck');
         if (_ownerOfferFilter !== 'stuck' || !stuckRows.length) return '';
@@ -5064,11 +5081,12 @@
           (item) => Number(item.quoteOpenCount || 0) > 0
         ).length;
         const neverOpened = stuckRows.length - openedUnsigned;
+        const missingOwner = stuckRows.filter((item) => ownerOfferResponsible(item).missing).length;
         return `<div class="offer-workmode" data-owner-offer-stuck-workmode>
           <div class="offer-workmode-head">
             <div>
               <div class="offer-workmode-title">Fastnade offerter · arbetsläge</div>
-              <div class="offer-workmode-copy">${openedUnsigned} öppnade utan signering · ${neverOpened} ej öppnade. Börja med äldsta öppning/skickdatum och verifiera underlaget innan kundkontakt.</div>
+              <div class="offer-workmode-copy">${openedUnsigned} öppnade utan signering · ${neverOpened} ej öppnade · ${missingOwner} saknar ansvarig. Börja med äldsta öppning/skickdatum och verifiera underlaget innan kundkontakt.</div>
             </div>
             <div class="offer-workmode-count">${stuckRows.length}</div>
           </div>
@@ -5120,11 +5138,12 @@
         const openedAt = item.quoteOpenedAt ? formatDateTime(item.quoteOpenedAt) : 'Ej öppnad';
         const sentAt = item.quoteSentAt ? formatDateTime(item.quoteSentAt) : 'Ej skickad';
         const coolingAt = item.coolingOffEndsAt ? formatDateTime(item.coolingOffEndsAt) : 'Saknas';
+        const responsible = ownerOfferResponsible(item);
         const stuckContext =
           item.bucket === 'stuck'
             ? (() => {
                 const info = ownerOfferStuckReason(item);
-                return `<div class="offer-stuck-context" data-owner-offer-stuck-context><strong>${escapeHtml(info.reason)}</strong><br />Nästa: ${escapeHtml(info.next)}</div>`;
+                return `<div class="offer-stuck-context" data-owner-offer-stuck-context><strong>${escapeHtml(info.reason)}</strong><br />Ansvarig: ${escapeHtml(responsible.label)} · Nästa: ${escapeHtml(info.next)}</div>`;
               })()
             : '';
         return `<div class="case-card" data-owner-offer-row="${escapeHtml(item.commercialCaseId || patientId || '')}">
@@ -5137,6 +5156,7 @@
               <span class="pill info">Senast öppnad: ${escapeHtml(openedAt)}</span>
               <span class="pill neutral">Delad: ${escapeHtml(sharedAt)}</span>
               <span class="pill neutral">Av: ${escapeHtml(sharedBy)}</span>
+              <span class="pill ${responsible.missing ? 'danger' : 'info'}" data-owner-offer-owner>Ansvarig: ${escapeHtml(responsible.label)}</span>
             </div>
             ${stuckContext}
           </div>

@@ -54,3 +54,15 @@ test('K55 staff portal exposes a stuck-offer work mode', () => {
   assert.match(source, /Öppnad för/);
   assert.match(source, /Skickad för/);
 });
+
+test('K57 staff portal shows responsible owner for stuck offers', () => {
+  const source = read(staffPortalPath);
+
+  assert.match(source, /ownerOfferResponsible/);
+  assert.match(source, /data-owner-offer-owner/);
+  assert.match(source, /Ansvarig:/);
+  assert.match(source, /Saknar ansvarig/);
+  assert.match(source, /saknar ansvarig/);
+  assert.match(source, /offerOwnerName/);
+  assert.match(source, /offerOwnerUserId/);
+});

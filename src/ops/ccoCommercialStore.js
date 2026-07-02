@@ -528,6 +528,8 @@ function normalizeCommercialCase(input = {}, existing = {}) {
     dueDateIso: normalizeText(safe.dueDateIso || previous.dueDateIso),
     notes: normalizeText(safe.notes || previous.notes),
     nextStep: normalizeText(safe.nextStep || previous.nextStep),
+    offerOwnerUserId: normalizeText(safe.offerOwnerUserId || previous.offerOwnerUserId),
+    offerOwnerName: normalizeText(safe.offerOwnerName || previous.offerOwnerName),
     linkedOperationCaseId: normalizeText(
       safe.linkedOperationCaseId || previous.linkedOperationCaseId
     ),
@@ -821,6 +823,19 @@ function buildCommercialOwnerOfferOverview(cases = [], { nowMs = Date.now() } = 
       commercialCaseId: normalizeText(commercialCase.commercialCaseId),
       patientId: normalizeText(commercialCase.customerId),
       customerName: normalizeText(commercialCase.customerName) || 'Kund',
+      offerOwnerUserId:
+        normalizeText(commercialCase.offerOwnerUserId) ||
+        normalizeText(commercialCase.lastPortalSharedBy),
+      offerOwnerName:
+        normalizeText(commercialCase.offerOwnerName) ||
+        normalizeText(commercialCase.lastPortalSharedBy),
+      offerOwnerSource: normalizeText(
+        commercialCase.offerOwnerName || commercialCase.offerOwnerUserId
+      )
+        ? 'explicit'
+        : normalizeText(commercialCase.lastPortalSharedBy)
+          ? 'last_portal_share'
+          : 'unassigned',
       quoteStatus,
       quotedAmount: normalizeText(commercialCase.quotedAmount),
       quoteSentAt: sentAt,

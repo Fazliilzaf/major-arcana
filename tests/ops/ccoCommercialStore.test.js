@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const {
+  buildCommercialOwnerOfferOverview,
   buildQuoteOpenTimelineEvents,
   buildCommercialCaseReadout,
   createCcoCommercialStore,
@@ -89,6 +90,57 @@ test('cco commercial readout skickar redo commercial direkt mot bokningshandoff'
   assert.equal(readout.operatorActions[0]?.label, 'Bokningshandoff');
   assert.equal(readout.operatorActions[1]?.surfaceAction, 'note_open');
   assert.equal(readout.operatorActions[1]?.label, 'Bekräfta klartecken');
+});
+
+test('K57: owner offer overview exponerar ansvarig per fastnad offert', () => {
+  const nowMs = Date.parse('2026-07-02T10:00:00.000Z');
+  const overview = buildCommercialOwnerOfferOverview(
+    [
+      {
+        commercialCaseId: 'case-owned',
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-1',
+        customerId: 'patient-1',
+        customerName: 'Anna',
+        quoteStatus: 'sent',
+        quoteSentAt: '2026-06-20T10:00:00.000Z',
+        offerOwnerUserId: 'operator-1',
+        offerOwnerName: 'Sara Sjuksköterska',
+      },
+      {
+        commercialCaseId: 'case-share-fallback',
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-2',
+        customerId: 'patient-2',
+        customerName: 'Bertil',
+        quoteStatus: 'sent',
+        quoteSentAt: '2026-06-20T10:00:00.000Z',
+        lastPortalSharedBy: 'Fazli',
+      },
+      {
+        commercialCaseId: 'case-unassigned',
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-3',
+        customerId: 'patient-3',
+        customerName: 'Cecilia',
+        quoteStatus: 'sent',
+        quoteSentAt: '2026-06-20T10:00:00.000Z',
+      },
+    ],
+    { nowMs }
+  );
+
+  const byId = Object.fromEntries(overview.buckets.stuck.map((row) => [row.commercialCaseId, row]));
+  assert.equal(byId['case-owned'].offerOwnerName, 'Sara Sjuksköterska');
+  assert.equal(byId['case-owned'].offerOwnerUserId, 'operator-1');
+  assert.equal(byId['case-owned'].offerOwnerSource, 'explicit');
+  assert.equal(byId['case-share-fallback'].offerOwnerName, 'Fazli');
+  assert.equal(byId['case-share-fallback'].offerOwnerSource, 'last_portal_share');
+  assert.equal(byId['case-unassigned'].offerOwnerName, '');
+  assert.equal(byId['case-unassigned'].offerOwnerSource, 'unassigned');
 });
 
 test('ORD-42: recordQuoteOpen räknar kundöppningar och debounce:ar dubbelträff', async () => {
