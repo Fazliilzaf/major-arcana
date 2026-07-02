@@ -82,4 +82,3 @@ De tre web-/agent-repona (Next.js/TS) och CEO-agenten följer samma princip:
 `.cursor/rules/` först — sedan riktad sökning. CEO-agenten (`arcana-ceo-agent`)
 körs live på Render; verifiering av providers (OpenAI/Anthropic) i Studio görs i
 den appen efter inloggning + via Render-loggar, inte härifrån.
-</content>
