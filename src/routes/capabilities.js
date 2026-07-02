@@ -161,16 +161,26 @@ function readWorklistConsumerResponseCache(cacheKey = '') {
     worklistConsumerResponseCache.delete(safeKey);
     return null;
   }
-  return entry.payload && typeof entry.payload === 'object' ? entry.payload : null;
+  const payload = entry.payload && typeof entry.payload === 'object' ? entry.payload : null;
+  if (!isCacheableWorklistConsumerResponsePayload(payload)) {
+    worklistConsumerResponseCache.delete(safeKey);
+    return null;
+  }
+  return payload;
 }
 
 function writeWorklistConsumerResponseCache(cacheKey = '', payload = null) {
   const safeKey = normalizeText(cacheKey);
-  if (!safeKey || !payload || typeof payload !== 'object') return;
+  if (!safeKey || !isCacheableWorklistConsumerResponsePayload(payload)) return;
   worklistConsumerResponseCache.set(safeKey, {
     at: Date.now(),
     payload,
   });
+}
+
+function isCacheableWorklistConsumerResponsePayload(payload = null) {
+  if (!payload || typeof payload !== 'object') return false;
+  return asArray(payload.rows).length > 0;
 }
 
 function clearAnalyzeInboxGraphSnapshotCache() {
