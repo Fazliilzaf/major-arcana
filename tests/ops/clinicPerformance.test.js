@@ -211,12 +211,16 @@ test('no-show-rate beräknas för både aktuell och föregående månad', () => 
   assert.equal(m.noShowRate.previous, 0.5);
 });
 
-test('intäkt hämtas ur finance-dashboarden; AOV = intäkt/bokningar', () => {
+test('intäkt hämtas ur finance-dashboarden; AOV = intäkt/bokningar; previous följer same-day-perioden', () => {
   const bookings = [booking('2026-06-02T09:00:00Z'), booking('2026-06-03T09:00:00Z')];
-  const financeDashboard = { invoices: { totalPaidThisMonthSek: 20000 } };
+  const financeDashboard = {
+    invoices: { totalPaidThisMonthSek: 20000, totalPaidPreviousComparablePeriodSek: 9000 },
+  };
   const m = composeClinicMetrics({ bookings, financeDashboard, now: NOW });
   assert.equal(m.revenueSek.current, 20000);
+  assert.equal(m.revenueSek.previous, 9000);
   assert.equal(m.avgOrderValueSek.current, 10000); // 20000 / 2
+  assert.equal(m.avgOrderValueSek.previous, null); // saknar bokningar i previous-fönstret i just detta test
 });
 
 test('ärlig partiell live: bel./kanal/revenue-trend fabriceras aldrig', () => {
@@ -235,6 +239,23 @@ test('ärlig partiell live: bel./kanal/revenue-trend fabriceras aldrig', () => {
   // Luckorna deklareras explicit.
   assert.ok(Array.isArray(m.notLiveYet) && m.notLiveYet.includes('utilizationRate'));
   assert.ok(m.notLiveYet.includes('revenueSek.previous'));
+});
+
+test('AOV previous beräknas när både previous-intäkt och previous-bokningar finns', () => {
+  const bookings = [
+    booking('2026-06-02T09:00:00Z'),
+    booking('2026-06-04T09:00:00Z'),
+    booking('2026-05-04T09:00:00Z'),
+    booking('2026-05-05T09:00:00Z'),
+  ];
+  const financeDashboard = {
+    invoices: { totalPaidThisMonthSek: 20000, totalPaidPreviousComparablePeriodSek: 12000 },
+  };
+  const m = composeClinicMetrics({ bookings, financeDashboard, now: NOW });
+  assert.equal(m.revenueSek.previous, 12000);
+  assert.equal(m.avgOrderValueSek.previous, 6000);
+  assert.ok(!m.notLiveYet.includes('revenueSek.previous'));
+  assert.ok(!m.notLiveYet.includes('avgOrderValueSek.previous'));
 });
 
 test('no-show-rate blir null när live-källan saknar no-show-sanning', () => {

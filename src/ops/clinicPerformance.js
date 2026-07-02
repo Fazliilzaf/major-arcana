@@ -313,12 +313,20 @@ function composeClinicMetrics({
     financeDashboard && financeDashboard.invoices
       ? safeNum(financeDashboard.invoices.totalPaidThisMonthSek)
       : null;
+  const revenuePrevious =
+    financeDashboard && financeDashboard.invoices
+      ? safeNum(financeDashboard.invoices.totalPaidPreviousComparablePeriodSek)
+      : null;
 
   // Snittordervärde: proxy = intäkt denna månad ÷ bokningar denna månad.
   // Inte exakt pris per bokning (bokningsdata saknar pris) — null om vi saknar del.
   const avgOrderValueCurrent =
     revenueCurrent !== null && bookingsCurrent > 0
       ? Math.round(revenueCurrent / bookingsCurrent)
+      : null;
+  const avgOrderValuePrevious =
+    revenuePrevious !== null && bookingsPrevious > 0
+      ? Math.round(revenuePrevious / bookingsPrevious)
       : null;
 
   return {
@@ -327,17 +335,17 @@ function composeClinicMetrics({
     previousPeriod: periodLabel(prevMonthStartDate),
     source: 'live',
     bookings: { current: bookingsCurrent, previous: bookingsPrevious },
-    revenueSek: { current: revenueCurrent, previous: null },
+    revenueSek: { current: revenueCurrent, previous: revenuePrevious },
     noShowRate: { current: noShowRateCurrent, previous: noShowRatePrevious },
     utilizationRate: { current: null, previous: null },
-    avgOrderValueSek: { current: avgOrderValueCurrent, previous: null },
+    avgOrderValueSek: { current: avgOrderValueCurrent, previous: avgOrderValuePrevious },
     // channelSplit medvetet utelämnad — ingen ren kanalkälla ännu (v0.2b).
     notLiveYet: [
       'utilizationRate',
       'channelSplit',
       ...(noShowRateCurrent === null || noShowRatePrevious === null ? ['noShowRate'] : []),
-      'revenueSek.previous',
-      'avgOrderValueSek.previous',
+      ...(revenuePrevious === null ? ['revenueSek.previous'] : []),
+      ...(avgOrderValuePrevious === null ? ['avgOrderValueSek.previous'] : []),
     ],
     dataNote:
       'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad.',
