@@ -61,7 +61,7 @@ services:
       - key: ARCANA_STAFF_JOURNAL_OPEN_ACCESS
         value: "false"
       - key: ARCANA_GRAPH_READ_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_GRAPH_SEND_ENABLED
         value: "true"
       - key: ARCANA_GRAPH_TENANT_ID
@@ -77,9 +77,9 @@ services:
       - key: ARCANA_GRAPH_USER_SCOPE
         value: all
       - key: ARCANA_GRAPH_READ_DEFAULT_ALLOWLIST
-        sync: false
+        value: kons@hairtpclinic.com
       - key: ARCANA_MAILBOX_ALLOWLIST
-        sync: false
+        value: kons@hairtpclinic.com
       - key: ARCANA_GRAPH_SEND_ALLOWLIST
         sync: false
       - key: OPENAI_API_KEY
