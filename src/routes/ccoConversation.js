@@ -884,6 +884,10 @@ function createCcoConversationRouter({
           normalizeText(asObject(asObject(target.from).emailAddress).address) ||
           normalizeText(target.senderEmail) ||
           normalizeText(target.fromAddress);
+        const actorUserId = normalizeText(
+          req?.user?.id || req?.user?.userId || req?.session?.userId
+        );
+        const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
 
         // E1 steg 1 — shadow/dry-run: allt är upplöst och validerat, men vi
         // skickar INTE. Returnera exakt det som skulle skickats och logga det.
@@ -902,6 +906,22 @@ function createCcoConversationRouter({
             '[cco-reply] SHADOW dry-run — inget mejl skickat',
             JSON.stringify({ conversationKey: key, ...wouldSend })
           );
+          await safeAuditConversation(authStore, {
+            action: 'cco.conversation.reply_shadow',
+            tenantId: defaultTenantId,
+            metadata: {
+              conversationKey: key,
+              mailboxId: senderMailboxId,
+              intendedRecipient: customerEmail || null,
+              subject: normalizeText(target.subject) || null,
+              mode: 'shadow',
+              sent: false,
+              replyToMessageId,
+              actorUserId: actorUserId || null,
+              actorEmail: actorEmail || null,
+              sentAt: new Date().toISOString(),
+            },
+          });
           return res.json({
             ok: true,
             mode: 'shadow',
@@ -945,6 +965,29 @@ function createCcoConversationRouter({
             })
           );
         }
+        const sentAt = new Date().toISOString();
+        await safeAuditConversation(authStore, {
+          action: redirectToTest
+            ? 'cco.conversation.reply_test_send'
+            : 'cco.conversation.reply_sent',
+          tenantId: defaultTenantId,
+          metadata: {
+            conversationKey: key,
+            mailboxId: senderMailboxId,
+            recipient: recipient || null,
+            // tråd/kund-koppling: intendedRecipient = den verkliga kunden även
+            // när utskicket omdirigerats till testadressen.
+            intendedRecipient: redirectToTest ? customerEmail || null : recipient || null,
+            testRedirect: redirectToTest,
+            subject: sendSubject || null,
+            mode: redirectToTest ? 'live_test' : 'live',
+            sent: true,
+            replyToMessageId,
+            actorUserId: actorUserId || null,
+            actorEmail: actorEmail || null,
+            sentAt,
+          },
+        });
         return res.json({
           ok: true,
           mode: redirectToTest ? 'live_test' : 'live',
