@@ -8,7 +8,8 @@ const {
   collectClinicPerformanceBookings,
 } = require('../../src/ops/clinicPerformance');
 
-// Fast referens-nu: 15 juni 2026 (UTC) → månadsfönster juni.
+// Fast referens-nu: 15 juni 2026 (UTC) → same-day-framing t.o.m. 15 juni,
+// jämfört med 1–15 maj.
 const NOW = new Date(Date.UTC(2026, 5, 15));
 
 function booking(startsAt, status = 'completed') {
@@ -153,11 +154,13 @@ test('collectClinicPerformanceBookings prioriterar encounter/engine över client
   assert.equal(rows[0].status, 'completed');
 });
 
-test('räknar bokningar denna månad och ignorerar andra månader', () => {
+test('räknar bokningar t.o.m. dagens kalenderdag och jämför med samma dag föregående månad', () => {
   const bookings = [
     booking('2026-06-02T09:00:00Z'),
-    booking('2026-06-20T09:00:00Z'),
+    booking('2026-06-15T16:00:00Z'),
+    booking('2026-06-20T09:00:00Z'), // senare i månaden — exkluderas nu
     booking('2026-05-30T09:00:00Z'), // föregående månad
+    booking('2026-05-10T09:00:00Z'), // föregående månad, inom same-day-fönstret
     booking('2026-07-01T09:00:00Z'), // nästa månad — exkluderas
     { status: 'completed' }, // saknar startsAt — hoppas över
   ];
@@ -166,6 +169,30 @@ test('räknar bokningar denna månad och ignorerar andra månader', () => {
   assert.equal(m.bookings.previous, 1);
   assert.equal(m.period, 'juni 2026');
   assert.equal(m.previousPeriod, 'maj 2026');
+  assert.match(m.dataNote, /samma kalenderdag/i);
+});
+
+test('exkluderar föregående månad efter samma kalenderdag', () => {
+  const bookings = [
+    booking('2026-05-14T09:00:00Z'),
+    booking('2026-05-15T23:59:00Z'),
+    booking('2026-05-16T00:00:00Z'), // efter same-day-cutoff
+  ];
+  const m = composeClinicMetrics({ bookings, now: NOW });
+  assert.equal(m.bookings.current, 0);
+  assert.equal(m.bookings.previous, 2);
+});
+
+test('clamp: 31:a jämförs mot sista dagen i kortare föregående månad', () => {
+  const edgeNow = new Date(Date.UTC(2026, 2, 31, 10, 0, 0)); // 31 mars 2026
+  const bookings = [
+    booking('2026-02-28T09:00:00Z'),
+    booking('2026-03-31T09:00:00Z'),
+    booking('2026-03-31T18:00:00Z'), // samma dag räknas, hel kalenderdag
+  ];
+  const m = composeClinicMetrics({ bookings, now: edgeNow });
+  assert.equal(m.bookings.previous, 1);
+  assert.equal(m.bookings.current, 2);
 });
 
 test('no-show-rate beräknas för både aktuell och föregående månad', () => {
