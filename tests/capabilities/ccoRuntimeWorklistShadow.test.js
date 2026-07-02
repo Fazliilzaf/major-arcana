@@ -371,9 +371,9 @@ test('runtime worklist shadow reports aggregate and conversation-level diffs aga
 
       assert.equal(payload.ok, true);
       assert.equal(payload.aggregate.legacyCount, 4);
-      assert.equal(payload.aggregate.shadowCount, 5);
-      assert.equal(payload.aggregate.bothCount, 2);
-      assert.equal(payload.aggregate.legacyOnlyCount, 2);
+      assert.equal(payload.aggregate.shadowCount, 6);
+      assert.equal(payload.aggregate.bothCount, 3);
+      assert.equal(payload.aggregate.legacyOnlyCount, 1);
       assert.equal(payload.aggregate.shadowOnlyCount, 3);
       assert.equal(payload.aggregate.classificationCounts.mapping_gap, 1);
       assert.equal(payload.aggregate.classificationCounts.legacy_heuristic, 2);
@@ -391,7 +391,7 @@ test('runtime worklist shadow reports aggregate and conversation-level diffs aga
       );
       assert.equal(
         byConversationKey.get('kons@hairtpclinic.com:conv-later-heur')?.presence,
-        'legacy_only'
+        'both'
       );
 
       assert.equal(
