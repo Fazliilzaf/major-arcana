@@ -5286,6 +5286,68 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   color: #2e5a47;
 }
 
+.patient-master-portal-evidence,
+.patient-master-portal-preview-summary {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+  padding: 0.55rem;
+  border-radius: 0.75rem;
+  background:
+    radial-gradient(circle at 10% 12%, rgba(215, 79, 132, 0.08), transparent 34%),
+    rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(223, 212, 203, 0.46);
+}
+
+.patient-master-portal-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.patient-master-portal-evidence-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+  color: #5c5348;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.patient-master-portal-preview-summary dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.patient-master-portal-preview-summary dl > div {
+  min-width: 0;
+  padding: 0.5rem 0.55rem;
+  border-radius: 0.65rem;
+  background: rgba(250, 246, 241, 0.72);
+  border: 1px solid rgba(223, 212, 203, 0.38);
+}
+
+.patient-master-portal-preview-summary dt {
+  margin: 0 0 0.15rem;
+  color: #9a2f5c;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.patient-master-portal-preview-summary dd {
+  margin: 0;
+  color: #2f2924;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .patient-master-live-verification {
   display: flex;
   flex-direction: column;
@@ -5824,6 +5886,14 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
 
   .patient-master-final-share-readiness .patient-master-status-badge {
     flex: 0 0 auto;
+  }
+
+  .patient-master-portal-evidence {
+    align-items: flex-start;
+  }
+
+  .patient-master-portal-preview-summary dl {
+    grid-template-columns: 1fr;
   }
 }
 

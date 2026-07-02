@@ -9055,6 +9055,127 @@
     ];
   }
 
+  function getCustomerPortalEvidenceDate(linkedOffer) {
+    const offerPlan =
+      linkedOffer?.offerPlan && typeof linkedOffer.offerPlan === 'object'
+        ? linkedOffer.offerPlan
+        : {};
+    return (
+      normalizeText(offerPlan.informationDeliveredAt) ||
+      normalizeText(linkedOffer?.quoteSentAt) ||
+      normalizeText(linkedOffer?.sentAt) ||
+      normalizeText(linkedOffer?.createdAt)
+    );
+  }
+
+  function summarizeCustomerPortalZones(linkedOffer, planEntry) {
+    const fields =
+      planEntry?.fields && typeof planEntry.fields === 'object' ? planEntry.fields : {};
+    const offerPlan =
+      linkedOffer?.offerPlan && typeof linkedOffer.offerPlan === 'object'
+        ? linkedOffer.offerPlan
+        : {};
+    const planGrafts =
+      offerPlan.grafts && typeof offerPlan.grafts === 'object' ? offerPlan.grafts : {};
+    const zones = Array.isArray(planGrafts.zones)
+      ? planGrafts.zones
+      : Array.isArray(fields.zones)
+        ? fields.zones
+        : [];
+    const zoneLabels = zones
+      .map((zone) => {
+        if (typeof zone === 'string') return normalizeText(zone);
+        const label = normalizeText(zone?.label || zone?.key);
+        const grafts = normalizeText(zone?.grafts || zone?.graftCount || zone?.count);
+        return label && grafts ? `${label} ${grafts}` : label || grafts;
+      })
+      .filter(Boolean);
+    const total =
+      normalizeText(planGrafts.total) ||
+      normalizeText(fields.graftsTotal) ||
+      normalizeText(linkedOffer?.graftsTotal);
+    return {
+      total,
+      labels: zoneLabels,
+      summary: total
+        ? `${total} hårsäckar${zoneLabels.length ? ` · ${zoneLabels.join(' · ')}` : ''}`
+        : zoneLabels.length
+          ? zoneLabels.join(' · ')
+          : '',
+    };
+  }
+
+  function summarizeCustomerPortalPhotos(photos) {
+    const rows = asArray(photos);
+    const annotatedCount = rows.filter(
+      (photo) => photo.hasAnnotation || photo.annotatedPreviewAvailable
+    ).length;
+    return {
+      count: rows.length,
+      annotatedCount,
+      summary: rows.length
+        ? `${rows.length} bild${rows.length === 1 ? '' : 'er'} · ${annotatedCount} ritad${annotatedCount === 1 ? '' : 'e'}`
+        : 'Inga konsultationsbilder kopplade',
+    };
+  }
+
+  function renderCustomerPortalEvidencePanel(linkedOffer) {
+    if (!linkedOffer) return '';
+    const evidenceDate = getCustomerPortalEvidenceDate(linkedOffer);
+    const coolingEndsAt = normalizeText(linkedOffer.coolingOffEndsAt).slice(0, 10);
+    return `
+      <div class="patient-master-portal-evidence" data-customer-portal-k8-evidence>
+        <span class="patient-master-status-badge is-accent">Betänketidens start</span>
+        <span class="patient-master-portal-evidence-text" data-customer-portal-info-sent-at>
+          ${
+            evidenceDate
+              ? `Info/offert skickad ${escapeHtml(evidenceDate.slice(0, 10))}`
+              : 'Info/offert skickad datum saknas'
+          }
+        </span>
+        ${
+          coolingEndsAt
+            ? `<span class="patient-master-status-badge">Signering från ${escapeHtml(coolingEndsAt)}</span>`
+            : ''
+        }
+      </div>
+    `;
+  }
+
+  function renderCustomerPortalStaffPreviewSummary(
+    linkedOffer,
+    customerPortalUrl,
+    planEntry,
+    photos
+  ) {
+    if (!linkedOffer) return '';
+    const evidenceDate = getCustomerPortalEvidenceDate(linkedOffer);
+    const zones = summarizeCustomerPortalZones(linkedOffer, planEntry);
+    const photoSummary = summarizeCustomerPortalPhotos(photos);
+    const offerPlan =
+      linkedOffer.offerPlan && typeof linkedOffer.offerPlan === 'object'
+        ? linkedOffer.offerPlan
+        : {};
+    const price = offerPlan.price && typeof offerPlan.price === 'object' ? offerPlan.price : {};
+    const quotedAmount =
+      normalizeText(price.quotedAmount) || normalizeText(linkedOffer.quotedAmount) || 'Pris saknas';
+    const portalStatus = customerPortalUrl ? 'Portal/token finns' : 'Portal/token saknas';
+    return `
+      <div class="patient-master-portal-preview-summary" data-customer-portal-k9-preview-summary>
+        <div class="patient-master-offer-meta-badges">
+          <span class="patient-master-status-badge is-accent">Staff preview</span>
+          <span class="patient-master-status-badge">${escapeHtml(portalStatus)}</span>
+        </div>
+        <dl>
+          <div><dt>Pris</dt><dd>${escapeHtml(quotedAmount)}</dd></div>
+          <div><dt>Hårsäckar/zoner</dt><dd>${escapeHtml(zones.summary || 'Zonplan saknas')}</dd></div>
+          <div><dt>Konsultationsbilder</dt><dd>${escapeHtml(photoSummary.summary)}</dd></div>
+          <div><dt>Startdatum</dt><dd>${escapeHtml(evidenceDate ? `Info/offert skickad ${evidenceDate.slice(0, 10)}` : 'Datum saknas')}</dd></div>
+        </dl>
+      </div>
+    `;
+  }
+
   function getCustomerPortalReadinessAction(items, customerPortalUrl) {
     const missing = items.find((item) => !item.ready);
     if (!missing) {
@@ -9890,6 +10011,13 @@
           }
           ${renderOfferStatusMeta(linkedOffer)}
           ${renderOfferNextStep(linkedOffer, customerPortalUrl, customerPortalLinkSource)}
+          ${renderCustomerPortalEvidencePanel(linkedOffer)}
+          ${renderCustomerPortalStaffPreviewSummary(
+            linkedOffer,
+            customerPortalUrl,
+            planEntry,
+            photos
+          )}
           ${renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl)}
           ${renderCustomerPortalSharePreview(customerPortalUrl)}
           ${renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos)}
