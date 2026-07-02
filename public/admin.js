@@ -49,8 +49,8 @@
   });
   const ADMIN_PRIMARY_PATH = '/admin';
   const CCO_PRIMARY_PATH = '/admin';
-  const CCO_PREVIEW_PRIMARY_PATH = '/major-arcana-preview/';
-  const CCO_PREVIEW_EMBED_SRC = '/major-arcana-preview/?embed=admin';
+  const CCO_PREVIEW_PRIMARY_PATH = '/konversationer.html';
+  const CCO_PREVIEW_EMBED_SRC = '/konversationer.html';
   const AUTH_RETURN_TO_QUERY_PARAM = 'next';
   const INITIAL_ADMIN_HASH = String(window.location.hash || '')
     .trim()
