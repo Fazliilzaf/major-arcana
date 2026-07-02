@@ -5,6 +5,7 @@ const {
   resolveCounterpartyIdentity,
 } = require('../ccoCounterpartyTruth');
 const { buildPipedrivePatientLookup } = require('../ccoPatientMasterStore');
+const { phoneMatchKey } = require('../../../scripts/migration/lib/migrationUtils');
 const { isNonPatientCounterpartyEmail } = require('./nonPatientRules');
 const { FILTER_VERSION, MATCH_VERSION, PROCESSOR_VERSION } = require('./constants');
 
@@ -99,9 +100,20 @@ function resolveCounterpartyEmail(rawMessage = {}) {
   return normalizeEmail(counterparty.email || rawMessage.fromEmail);
 }
 
+// B1: telefonnummer på ett meddelande (om kanalen/enrichment ger det). Mail
+// bär inget nummer idag → returnerar '' och telefonmatchen förblir vilande.
+// SMS/enrichment kan sätta counterpartyPhone/fromPhone/senderPhone.
+function resolveCounterpartyPhone(rawMessage = {}) {
+  const safe = rawMessage && typeof rawMessage === 'object' ? rawMessage : {};
+  return normalizeText(
+    safe.counterpartyPhone || safe.fromPhone || safe.senderPhone || safe.contactPhone
+  );
+}
+
 function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
   const counterpartyEmail = resolveCounterpartyEmail(rawMessage);
-  if (!counterpartyEmail) {
+  const counterpartyPhone = resolveCounterpartyPhone(rawMessage);
+  if (!counterpartyEmail && !counterpartyPhone) {
     return {
       status: 'UNMATCHED',
       confidence: 0,
@@ -112,33 +124,74 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
   }
 
   const lookup = buildPipedrivePatientLookup(patientDirectory);
-  const emailMatches = asArray(lookup.byEmail.get(counterpartyEmail));
-  if (emailMatches.length === 1) {
-    const patient = emailMatches[0];
-    return {
-      status: 'MATCHED',
-      confidence: 0.95,
-      patientId: patient.id || patient.patientId,
-      reason: 'exact_email_match',
-      counterpartyEmail,
-      candidate: patient,
-      candidates: [patient],
-    };
-  }
-  if (emailMatches.length > 1) {
-    return {
-      status: 'NEEDS_REVIEW',
-      confidence: 0.45,
-      patientId: null,
-      reason: 'multiple_email_matches',
-      counterpartyEmail,
-      candidates: emailMatches.map((patient) => ({
+
+  // 1. Exakt e-post = confirmed (befintlig tröskel, oförändrad).
+  if (counterpartyEmail) {
+    const emailMatches = asArray(lookup.byEmail.get(counterpartyEmail));
+    if (emailMatches.length === 1) {
+      const patient = emailMatches[0];
+      return {
+        status: 'MATCHED',
+        confidence: 0.95,
         patientId: patient.id || patient.patientId,
-        method: 'email',
+        reason: 'exact_email_match',
+        counterpartyEmail,
+        candidate: patient,
+        candidates: [patient],
+      };
+    }
+    if (emailMatches.length > 1) {
+      return {
+        status: 'NEEDS_REVIEW',
         confidence: 0.45,
-        email: counterpartyEmail,
-      })),
-    };
+        patientId: null,
+        reason: 'multiple_email_matches',
+        counterpartyEmail,
+        candidates: emailMatches.map((patient) => ({
+          patientId: patient.id || patient.patientId,
+          method: 'email',
+          confidence: 0.45,
+          email: counterpartyEmail,
+        })),
+      };
+    }
+  }
+
+  // 2. B1: exakt telefon mot verifierat patient-nr = confirmed. Namn/heuristik
+  //    blir aldrig confirmed här (endast exakt e-post eller exakt telefon).
+  //    Guardad — körs bara när ett nummer finns på meddelandet.
+  if (counterpartyPhone) {
+    const phoneKey = phoneMatchKey(counterpartyPhone);
+    const phoneMatches = phoneKey ? asArray(lookup.byPhone.get(phoneKey)) : [];
+    if (phoneMatches.length === 1) {
+      const patient = phoneMatches[0];
+      return {
+        status: 'MATCHED',
+        confidence: 0.95,
+        patientId: patient.id || patient.patientId,
+        reason: 'exact_phone_match',
+        counterpartyEmail: counterpartyEmail || null,
+        counterpartyPhone,
+        candidate: patient,
+        candidates: [patient],
+      };
+    }
+    if (phoneMatches.length > 1) {
+      return {
+        status: 'NEEDS_REVIEW',
+        confidence: 0.45,
+        patientId: null,
+        reason: 'multiple_phone_matches',
+        counterpartyEmail: counterpartyEmail || null,
+        counterpartyPhone,
+        candidates: phoneMatches.map((patient) => ({
+          patientId: patient.id || patient.patientId,
+          method: 'phone',
+          confidence: 0.45,
+          phone: counterpartyPhone,
+        })),
+      };
+    }
   }
 
   return {
@@ -146,7 +199,8 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
     confidence: 0,
     patientId: null,
     reason: 'no_directory_match',
-    counterpartyEmail,
+    counterpartyEmail: counterpartyEmail || null,
+    counterpartyPhone: counterpartyPhone || null,
     candidates: [],
   };
 }
