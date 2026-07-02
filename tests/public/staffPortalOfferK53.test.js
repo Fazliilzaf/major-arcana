@@ -39,3 +39,18 @@ test('K54 staff portal filters owner offer list by status and search', () => {
   assert.match(source, /data-owner-offer-search/);
   assert.match(source, /Inga offerter matchar filtret just nu/);
 });
+
+test('K55 staff portal exposes a stuck-offer work mode', () => {
+  const source = read(staffPortalPath);
+
+  assert.match(source, /ownerOfferStuckReason/);
+  assert.match(source, /renderOwnerOfferStuckWorkmode/);
+  assert.match(source, /data-owner-offer-stuck-workmode/);
+  assert.match(source, /Fastnade offerter · arbetsläge/);
+  assert.match(source, /Kontrollera pris, zoner och bilder/);
+  assert.match(source, /Följ upp i konversation/);
+  assert.match(source, /Notera beslut innan ny delning/);
+  assert.match(source, /data-owner-offer-stuck-context/);
+  assert.match(source, /Öppnad för/);
+  assert.match(source, /Skickad för/);
+});
