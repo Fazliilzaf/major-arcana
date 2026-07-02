@@ -13046,6 +13046,8 @@ process.once('SIGTERM', () => {
       openaiModel: config.openaiModel,
       graphSendConnector,
       graphReadConnector,
+      // E1 steg 1 — shadow/dry-run för reply-sändning (inget mejl går ut).
+      shadowSendEnabled: String(process.env.ARCANA_MAIL_SHADOW_SEND || '').toLowerCase() === 'true',
       runtimeStreamRouter: ccoRuntimeStreamRouter,
       mailboxIdsForSync: defaultSyncMailboxIds,
       syncLookbackDays: Number(process.env.ARCANA_CCO_SYNC_LOOKBACK_DAYS) || 14,
