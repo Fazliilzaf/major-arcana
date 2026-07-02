@@ -19,6 +19,7 @@
  *   • Inga personliga uppgifter (ID:n) exponeras utöver vad som redan finns i worklist.
  */
 
+const crypto = require('crypto');
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
@@ -214,6 +215,144 @@ function fetchSortedConversationMessages(store, key) {
   const all = store.listMessages({});
   const matches = all.filter((m) => normalizeText(asObject(m).mailboxConversationId) === key);
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+}
+
+// ── D1: bulk preview→confirm ────────────────────────────────────────────────
+// Systemmail/brus-avsändare får aldrig bulk-behandlas (och ska inte påverka
+// needsReply). Samma taxonomi som ccoConversationThreadStore.
+const BULK_SYSTEM_SENDER_PATTERN =
+  /^(no.?reply|donot.?reply|bounce|postmaster|mailer-daemon|notifications?|auto.?reply|marketing|newsletter)@/i;
+
+function deriveConversationCustomerEmail(msg) {
+  const m = asObject(msg);
+  return (
+    normalizeText(asObject(m.from).emailAddress?.address) ||
+    normalizeText(m.senderEmail) ||
+    normalizeText(m.fromAddress)
+  ).toLowerCase();
+}
+
+// En tråd är bulk-behörig endast om den har en BEKRÄFTAD kanonisk kundidentitet
+// (matchStatus MATCHED). conflict/suggested/unmatched saknar detta och blockas.
+function threadHasConfirmedIdentity(sorted) {
+  return sorted.some((m) => {
+    const identity = asObject(asObject(m).customerIdentity || asObject(m).identity);
+    const matchStatus = normalizeText(
+      asObject(identity.identityProvenance).matchStatus
+    ).toUpperCase();
+    return Boolean(normalizeText(identity.canonicalCustomerId)) && matchStatus === 'MATCHED';
+  });
+}
+
+// Ren utvärdering (INGEN mutation): returnerar exakt vad som skulle påverkas +
+// varningar per tråd. Används av både preview och confirm (confirm re-validerar
+// alltid — klienten litas aldrig på).
+function evaluateConversationBulkItem(store, item, action) {
+  const conversationKey = normalizeText(asObject(item).conversationKey);
+  const customerId = normalizeText(asObject(item).customerId).toLowerCase();
+  const row = {
+    conversationKey: conversationKey || null,
+    customerId: customerId || null,
+    action,
+    mailbox: null,
+    customerName: null,
+    eligible: false,
+    warnings: [],
+  };
+  if (!conversationKey) {
+    row.warnings.push('missing_conversation_key');
+    return row;
+  }
+  if (!customerId) {
+    row.warnings.push('missing_customer_id');
+    return row;
+  }
+  const sorted = fetchSortedConversationMessages(store, conversationKey);
+  if (sorted.length === 0) {
+    row.warnings.push('conversation_not_found');
+    return row;
+  }
+  const firstMsg = sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
+  row.mailbox = normalizeText(asObject(firstMsg).mailboxId).toLowerCase() || null;
+  row.customerName = deriveFromName(firstMsg) || null;
+  const conversationCustomerId = deriveConversationCustomerEmail(firstMsg);
+  if (BULK_SYSTEM_SENDER_PATTERN.test(conversationCustomerId)) {
+    row.warnings.push('system_mail');
+    return row;
+  }
+  if (conversationCustomerId && customerId !== conversationCustomerId) {
+    row.warnings.push('customer_mismatch');
+    return row;
+  }
+  if (!threadHasConfirmedIdentity(sorted)) {
+    // conflict / suggested / unmatched → aldrig bulk
+    row.warnings.push('unconfirmed_identity');
+    return row;
+  }
+  row.eligible = true;
+  return row;
+}
+
+// Delad state-mutation för en enskild tråd (återanvänds av bulk-confirm).
+// Auditar INTE — anroparen loggar (bulk loggar en batch-post).
+async function applyConversationActionState({
+  ccoConversationStateStore,
+  tenantId,
+  key,
+  action,
+  note = '',
+  followUpDueAt = null,
+  sorted = [],
+  actorUserId = '',
+  actorEmail = '',
+}) {
+  if (action === 'reopen') {
+    if (typeof ccoConversationStateStore.supersedeConversationState !== 'function') {
+      throw new Error('supersede_unavailable');
+    }
+    const state = await ccoConversationStateStore.supersedeConversationState({
+      tenantId,
+      canonicalConversationKey: key,
+      supersededReason: 'manual_clear',
+    });
+    return { state: state || null, actionAt: new Date().toISOString(), followUpDueAt: null };
+  }
+  const firstMessage = asObject(sorted[0] || {});
+  const underlyingMailboxIds = sorted
+    .map((m) => normalizeText(asObject(m).mailboxId))
+    .filter(Boolean);
+  const underlyingConversationIds = sorted
+    .map((m) => normalizeText(asObject(m).conversationId))
+    .filter(Boolean);
+  const primaryConversationId =
+    normalizeText(firstMessage.conversationId) || normalizeText(firstMessage.mailboxConversationId);
+  let resolvedFollowUp = null;
+  if (action === 'reply_later') {
+    resolvedFollowUp =
+      followUpDueAt && !Number.isNaN(Date.parse(followUpDueAt))
+        ? new Date(Date.parse(followUpDueAt)).toISOString()
+        : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  }
+  const actionAt = new Date().toISOString();
+  const state = await ccoConversationStateStore.writeConversationState({
+    tenantId,
+    canonicalConversationKey: key,
+    canonicalConversationSource: 'mailbox_conversation_fallback',
+    canonicalConversationType: 'conversationKey',
+    primaryConversationId: primaryConversationId || null,
+    underlyingConversationIds: [...new Set(underlyingConversationIds)],
+    underlyingMailboxIds: [...new Set(underlyingMailboxIds.map((id) => id.toLowerCase()))],
+    actionState: action,
+    needsReplyStatusOverride: action === 'handled' ? 'handled' : 'needs_reply',
+    followUpDueAt: resolvedFollowUp,
+    waitingOn: action === 'reply_later' ? 'customer' : null,
+    nextActionLabel: action === 'handled' ? 'Markerad som klar' : 'Påminnelse senare',
+    nextActionSummary: note || null,
+    actionAt,
+    actionByUserId: actorUserId || null,
+    actionByEmail: actorEmail || null,
+  });
+  return { state: state || null, actionAt, followUpDueAt: resolvedFollowUp };
 }
 
 // Mappa lagrade meddelanden → SummarizeThread input-shape
@@ -930,6 +1069,194 @@ function createCcoConversationRouter({
     }
   );
 
+  // ----- Bulk: preview → confirm (D1) -----
+  // Bulk-actions får ALDRIG mutera direkt. Först /bulk/preview (read-only) som
+  // visar exakt vilka trådar som påverkas + varningar, sedan /bulk/confirm som
+  // muterar först efter explicit confirm=true. Confirm re-validerar alltid varje
+  // tråd (klienten litas aldrig på). Conflict/suggested/unmatched + systemmail
+  // blockas. RBAC: mail.write (#496).
+  const MAX_BULK_ITEMS = 200;
+
+  function parseBulkRequest(body) {
+    const safe = asObject(body);
+    const action = normalizeText(safe.action).toLowerCase();
+    const items = Array.isArray(safe.items) ? safe.items : [];
+    return { action, items };
+  }
+
+  router.post(
+    '/cco/runtime/conversation/bulk/preview',
+    authMiddleware,
+    requirePermission('mail.write'),
+    express.json({ limit: '128kb' }),
+    (req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const { action, items } = parseBulkRequest(req.body);
+        if (!['handled', 'reply_later', 'reopen'].includes(action)) {
+          return res.status(400).json({ ok: false, error: 'invalid_action' });
+        }
+        if (items.length === 0) {
+          return res.status(400).json({ ok: false, error: 'no_items' });
+        }
+        if (items.length > MAX_BULK_ITEMS) {
+          return res.status(400).json({ ok: false, error: 'too_many_items', max: MAX_BULK_ITEMS });
+        }
+        const rows = items.map((item) =>
+          evaluateConversationBulkItem(ccoMailboxTruthStore, item, action)
+        );
+        const eligible = rows.filter((r) => r.eligible);
+        const batchId = crypto.randomUUID();
+        // Preview muterar INGET state.
+        return res.json({
+          ok: true,
+          batchId,
+          action,
+          summary: {
+            requested: rows.length,
+            eligible: eligible.length,
+            ineligible: rows.length - eligible.length,
+          },
+          items: rows,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'bulk_preview_failed',
+          detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+
+  router.post(
+    '/cco/runtime/conversation/bulk/confirm',
+    authMiddleware,
+    requirePermission('mail.write'),
+    express.json({ limit: '128kb' }),
+    async (req, res) => {
+      try {
+        if (
+          !ccoConversationStateStore ||
+          typeof ccoConversationStateStore.writeConversationState !== 'function'
+        ) {
+          return res.status(503).json({ ok: false, error: 'conversation_state_store_unavailable' });
+        }
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const { action, items } = parseBulkRequest(req.body);
+        const body = asObject(req.body);
+        const batchId = normalizeText(body.batchId);
+        if (!['handled', 'reply_later', 'reopen'].includes(action)) {
+          return res.status(400).json({ ok: false, error: 'invalid_action' });
+        }
+        if (body.confirm !== true) {
+          return res.status(400).json({
+            ok: false,
+            error: 'confirmation_required',
+            detail: 'confirm måste vara true för att bulk-mutation ska köras',
+          });
+        }
+        if (!batchId) {
+          return res.status(400).json({ ok: false, error: 'missing_batch_id' });
+        }
+        if (items.length === 0) {
+          return res.status(400).json({ ok: false, error: 'no_items' });
+        }
+        if (items.length > MAX_BULK_ITEMS) {
+          return res.status(400).json({ ok: false, error: 'too_many_items', max: MAX_BULK_ITEMS });
+        }
+        const actorUserId = normalizeText(
+          req?.user?.id || req?.user?.userId || req?.session?.userId
+        );
+        const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
+        const note = normalizeText(body.note).slice(0, 260);
+        const followUpDueAt = normalizeText(body.followUpDueAt);
+
+        const applied = [];
+        const skipped = [];
+        const failed = [];
+        for (const item of items) {
+          // Re-validera varje tråd — confirm litar aldrig på klientens preview.
+          const evaluation = evaluateConversationBulkItem(ccoMailboxTruthStore, item, action);
+          if (!evaluation.eligible) {
+            skipped.push({
+              conversationKey: evaluation.conversationKey,
+              warnings: evaluation.warnings,
+            });
+            continue;
+          }
+          try {
+            const sorted = fetchSortedConversationMessages(
+              ccoMailboxTruthStore,
+              evaluation.conversationKey
+            );
+            await applyConversationActionState({
+              ccoConversationStateStore,
+              tenantId: defaultTenantId,
+              key: evaluation.conversationKey,
+              action,
+              note,
+              followUpDueAt,
+              sorted,
+              actorUserId,
+              actorEmail,
+            });
+            applied.push(evaluation.conversationKey);
+          } catch (mutationErr) {
+            // Partial failure: en tråds fel stoppar inte övriga.
+            failed.push({
+              conversationKey: evaluation.conversationKey,
+              error: String((mutationErr && mutationErr.message) || mutationErr),
+            });
+          }
+        }
+
+        // En audit-post per batch (inte per tråd).
+        await safeAuditConversation(authStore, {
+          action: `cco.conversation.bulk_${action}`,
+          tenantId: defaultTenantId,
+          metadata: {
+            batchId,
+            action,
+            actorUserId: actorUserId || null,
+            actorEmail: actorEmail || null,
+            requestedCount: items.length,
+            appliedCount: applied.length,
+            skippedCount: skipped.length,
+            failedCount: failed.length,
+            affectedThreadIds: applied,
+            actionAt: new Date().toISOString(),
+          },
+        });
+
+        return res.json({
+          ok: true,
+          batchId,
+          action,
+          summary: {
+            requested: items.length,
+            applied: applied.length,
+            skipped: skipped.length,
+            failed: failed.length,
+          },
+          applied,
+          skipped,
+          failed,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'bulk_confirm_failed',
+          detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+
   // ----- Anteckningar (interna, per tråd) -----
   // GET  /cco/runtime/conversation/:key/notes        → lista nyaste först
   // POST /cco/runtime/conversation/:key/notes { body }  → lägg till anteckning
@@ -1390,4 +1717,8 @@ function createCcoConversationRouter({
   return router;
 }
 
-module.exports = { createCcoConversationRouter };
+module.exports = {
+  createCcoConversationRouter,
+  // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
+  evaluateConversationBulkItem,
+};
