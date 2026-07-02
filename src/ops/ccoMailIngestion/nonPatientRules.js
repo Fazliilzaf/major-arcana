@@ -26,6 +26,12 @@ const NON_PATIENT_DOMAIN_SUFFIXES = Object.freeze([
   'skanska.se',
   'castellum.se',
   'info.hairtpclinic.se',
+  // A2 — leverantörs-/notisdomäner (patienter mailar aldrig från dessa).
+  // OBS: gmail.com/googlemail.com läggs medvetet INTE till — patient-domäner.
+  'facebookmail.com',
+  'fortnox.se',
+  'loopia.se',
+  'google.com',
 ]);
 
 const NON_PATIENT_LOCAL_PREFIXES = Object.freeze([
@@ -44,6 +50,14 @@ const NON_PATIENT_LOCAL_PREFIXES = Object.freeze([
   'help',
   'sms',
   'microsoftexchange',
+  // A2 — notis-/automat-prefix.
+  'donotreply',
+  'bounce',
+  'bounces',
+  'auto-reply',
+  'autoreply',
+  'newsletter',
+  'nyhetsbrev',
 ]);
 
 function isNonPatientCounterpartyEmail(email = '') {
@@ -56,13 +70,18 @@ function isNonPatientCounterpartyEmail(email = '') {
   if (domain.endsWith('hairtpclinic.com')) return true;
   if (domain === 'googlemail.com' && localPart === 'mailer-daemon') return true;
 
-  if (NON_PATIENT_DOMAIN_SUFFIXES.some((suffix) => domain === suffix || domain.endsWith(`.${suffix}`))) {
+  if (
+    NON_PATIENT_DOMAIN_SUFFIXES.some((suffix) => domain === suffix || domain.endsWith(`.${suffix}`))
+  ) {
     return true;
   }
 
   if (
     NON_PATIENT_LOCAL_PREFIXES.some(
-      (prefix) => localPart === prefix || localPart.startsWith(`${prefix}+`) || localPart.startsWith(`${prefix}.`)
+      (prefix) =>
+        localPart === prefix ||
+        localPart.startsWith(`${prefix}+`) ||
+        localPart.startsWith(`${prefix}.`)
     )
   ) {
     return true;

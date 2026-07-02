@@ -48,7 +48,50 @@ const WEAK_SYSTEM_MAIL_PATTERNS = Object.freeze([
   'forfaller snart',
 ]);
 
-const AUTOMATED_SENDER_PATTERN = /(?:^|\s)(?:no-reply|noreply|do-not-reply|mailer-daemon|postmaster)@/i;
+const AUTOMATED_SENDER_PATTERN =
+  /(?:^|\s)(?:no-reply|noreply|do-not-reply|mailer-daemon|postmaster)@/i;
+
+// A2 — rena notis-/automatavsändare som ALLTID är system/brus oavsett innehåll
+// (till skillnad från den bredare nonPatientRules-listan, där företagsdomäner
+// kan innehålla riktiga personer). Håll i synk med nonPatientRules.js.
+// OBS: gmail.com/googlemail.com finns MEDVETET inte här — patient-domäner.
+const SYSTEM_NOTIFICATION_DOMAINS = Object.freeze([
+  'facebookmail.com',
+  'fortnox.se',
+  'loopia.se',
+  'google.com',
+]);
+const SYSTEM_NOTIFICATION_PREFIXES = Object.freeze([
+  'no-reply',
+  'noreply',
+  'do-not-reply',
+  'donotreply',
+  'bounce',
+  'bounces',
+  'auto-reply',
+  'autoreply',
+  'newsletter',
+  'nyhetsbrev',
+  'mailer-daemon',
+  'postmaster',
+  'notifications',
+  'notification',
+]);
+
+function isSystemNotificationSender(sender = '') {
+  const email = normalizeText(sender).toLowerCase();
+  const at = email.indexOf('@');
+  if (at < 0) return false;
+  const localPart = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (!domain) return false;
+  if (SYSTEM_NOTIFICATION_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`))) {
+    return true;
+  }
+  return SYSTEM_NOTIFICATION_PREFIXES.some(
+    (p) => localPart === p || localPart.startsWith(`${p}+`) || localPart.startsWith(`${p}.`)
+  );
+}
 
 const BILLING_AUTOMATION_CONTEXT =
   /\b(betal|betalning|forfall|forfaller|forfaller snart|förfaller|autogiro|stripe|klarna|paypal|invoice due|amount due|totalbelopp|obetald|past due)\b/i;
@@ -80,9 +123,7 @@ function matchesWeakSystemMail(haystack = '') {
 }
 
 function normalizeMessageClassification(value = '') {
-  return normalizeText(value).toLowerCase() === 'system_mail'
-    ? 'system_mail'
-    : 'actionable';
+  return normalizeText(value).toLowerCase() === 'system_mail' ? 'system_mail' : 'actionable';
 }
 
 function classifyConversationMessage({
@@ -91,6 +132,14 @@ function classifyConversationMessage({
   sender = '',
   intent = 'unclear',
 } = {}) {
+  // A2: rena notis-/leverantörsavsändare (Facebook/Fortnox/Loopia/Google, samt
+  // no-reply/bounce/newsletter-prefix) är ALLTID system/brus — före human-
+  // inquiry-gaten, så att t.ex. en facebookmail-notis inte råkar bli actionable
+  // bara för att den innehåller ett ord som "pris".
+  if (isSystemNotificationSender(sender)) {
+    return 'system_mail';
+  }
+
   const haystack = [subject, inboundPreview, sender]
     .map((item) => normalizeForMatch(item))
     .filter(Boolean)
@@ -116,6 +165,7 @@ function classifyConversationMessage({
 module.exports = {
   ACTIONABLE_SYSTEM_INTENTS,
   classifyConversationMessage,
+  isSystemNotificationSender,
   matchesWeakSystemMail,
   normalizeMessageClassification,
 };
