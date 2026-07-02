@@ -680,6 +680,59 @@
         gap: 6px;
         margin-top: 8px;
       }
+      .offer-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 12px;
+        padding: 10px;
+        border: 1px solid rgba(43, 37, 31, 0.08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.42);
+      }
+      .offer-filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .offer-filter-chip {
+        min-height: 32px;
+        border-radius: 999px;
+        border: 1px solid rgba(43, 37, 31, 0.1);
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text2);
+        cursor: pointer;
+        font-size: 10.5px;
+        font-weight: 850;
+        padding: 6px 10px;
+      }
+      .offer-filter-chip[aria-pressed='true'] {
+        color: var(--accent);
+        border-color: rgba(187, 71, 121, 0.26);
+        background: linear-gradient(135deg, rgba(187, 71, 121, 0.14), rgba(255, 255, 255, 0.9));
+        box-shadow: 0 5px 14px rgba(187, 71, 121, 0.12);
+      }
+      .offer-filter-search {
+        min-height: 32px;
+        width: min(260px, 100%);
+        border: 1px solid rgba(43, 37, 31, 0.1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--brand);
+        font: inherit;
+        font-size: 11px;
+        font-weight: 750;
+        padding: 7px 12px;
+        outline: none;
+      }
+      .offer-filter-summary {
+        margin-top: 8px;
+        color: var(--text3);
+        font-size: 10.5px;
+        font-weight: 800;
+      }
       .deep-link-row {
         display: flex;
         flex-wrap: wrap;
@@ -4866,6 +4919,78 @@
         return raw;
       }
 
+      let _ownerOfferFilter = 'active';
+      let _ownerOfferQuery = '';
+      let _ownerOfferDashboardData = null;
+
+      function ownerOfferRowsFromBuckets(buckets) {
+        const ordered = [
+          ['stuck', buckets?.stuck || []],
+          ['readyToSign', buckets?.readyToSign || []],
+          ['waitingCustomer', buckets?.waitingCustomer || []],
+          ['signed', buckets?.signed || []],
+        ];
+        return ordered.flatMap(([bucket, items]) =>
+          Array.isArray(items) ? items.map((item) => ({ ...item, bucket })) : []
+        );
+      }
+
+      function ownerOfferSearchText(item) {
+        return [
+          item.customerName,
+          item.patientId,
+          item.commercialCaseId,
+          item.lastPortalSharedBy,
+          item.quoteSentAt,
+          item.quoteOpenedAt,
+          ownerOfferAmount(item.quotedAmount),
+          ownerOfferBucketLabel(item.bucket)[1],
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+      }
+
+      function filterOwnerOfferRows(rows, filter = _ownerOfferFilter, query = _ownerOfferQuery) {
+        const normalizedQuery = String(query || '')
+          .trim()
+          .toLowerCase();
+        return rows.filter((item) => {
+          const bucket = item.bucket || 'waitingCustomer';
+          const statusMatches =
+            filter === 'all' || (filter === 'active' && bucket !== 'signed') || bucket === filter;
+          if (!statusMatches) return false;
+          if (!normalizedQuery) return true;
+          return ownerOfferSearchText(item).includes(normalizedQuery);
+        });
+      }
+
+      function renderOwnerOfferFilters(totals) {
+        const active =
+          Number(totals.waitingCustomer || 0) +
+          Number(totals.readyToSign || 0) +
+          Number(totals.stuck || 0);
+        const filters = [
+          ['active', 'Aktiva', active],
+          ['stuck', 'Fastnade', totals.stuck],
+          ['readyToSign', 'Redo', totals.readyToSign],
+          ['waitingCustomer', 'Väntar kund', totals.waitingCustomer],
+          ['signed', 'Signerade', totals.signed],
+          ['all', 'Alla', Number(totals.total || 0)],
+        ];
+        return `<div class="offer-filter-bar" data-owner-offer-filter-bar>
+          <div class="offer-filter-chips">
+            ${filters
+              .map(
+                ([key, label, count]) =>
+                  `<button type="button" class="offer-filter-chip" data-owner-offer-filter="${escapeHtml(key)}" aria-pressed="${_ownerOfferFilter === key ? 'true' : 'false'}">${escapeHtml(label)} · ${Number(count || 0)}</button>`
+              )
+              .join('')}
+          </div>
+          <input class="offer-filter-search" data-owner-offer-search type="search" value="${escapeHtml(_ownerOfferQuery)}" placeholder="Sök kund, datum, pris…" autocomplete="off" />
+        </div>`;
+      }
+
       function renderOwnerOfferRow(item) {
         const [tone, label] = ownerOfferBucketLabel(item.bucket);
         const patientId = item.patientId || '';
@@ -4896,14 +5021,11 @@
         </div>`;
       }
 
-      async function loadOwnerOfferDashboard() {
-        if (!_liveMode) return;
-        const container = document.getElementById('liveOwnerOfferDashboard');
-        if (!container) return;
-        const data = await apiFetch('/api/v1/cco-commercial/owner-offer-overview');
-        if (!data || !data.ok) return;
-        const totals = data.totals || {};
-        const buckets = data.buckets || {};
+      function renderOwnerOfferDashboard(container, data) {
+        const totals = data?.totals || {};
+        const buckets = data?.buckets || {};
+        const rows = ownerOfferRowsFromBuckets(buckets);
+        const filteredRows = filterOwnerOfferRows(rows).slice(0, 12);
         const active =
           Number(totals.waitingCustomer || 0) +
           Number(totals.readyToSign || 0) +
@@ -4912,17 +5034,6 @@
           badge.textContent = active;
           badge.style.display = active > 0 ? '' : 'none';
         });
-        const ordered = [
-          ['stuck', buckets.stuck || []],
-          ['readyToSign', buckets.readyToSign || []],
-          ['waitingCustomer', buckets.waitingCustomer || []],
-          ['signed', buckets.signed || []],
-        ];
-        const rows = ordered
-          .flatMap(([bucket, items]) =>
-            Array.isArray(items) ? items.map((item) => ({ ...item, bucket })) : []
-          )
-          .slice(0, 10);
         container.innerHTML = `<div class="live-note">Live offertöversikt: ${Number(totals.waitingCustomer || 0)} väntar kund · ${Number(totals.readyToSign || 0)} redo att signera · ${Number(totals.signed || 0)} signerade · ${Number(totals.stuck || 0)} fastnade.</div>
           <div class="qms-grid" style="margin-top:10px">
             ${ownerFollowupMetric('Väntar kund', totals.waitingCustomer, 'amber', null)}
@@ -4930,9 +5041,34 @@
             ${ownerFollowupMetric('Signerade', totals.signed, 'sage', null)}
             ${ownerFollowupMetric('Fastnade', totals.stuck, 'danger', null)}
           </div>
-          <div style="margin-top:12px">
-            ${rows.length ? rows.map(renderOwnerOfferRow).join('') : '<div class="live-note">Inga aktiva offerter hittades just nu.</div>'}
+          ${renderOwnerOfferFilters(totals)}
+          <div class="offer-filter-summary">${filteredRows.length} av ${rows.length} offerter visas · filter: ${escapeHtml(_ownerOfferFilter === 'active' ? 'Aktiva' : ownerOfferBucketLabel(_ownerOfferFilter)[1] || _ownerOfferFilter)}</div>
+          <div style="margin-top:12px" data-owner-offer-list>
+            ${filteredRows.length ? filteredRows.map(renderOwnerOfferRow).join('') : '<div class="live-note">Inga offerter matchar filtret just nu.</div>'}
           </div>`;
+        container.querySelectorAll('[data-owner-offer-filter]').forEach((button) =>
+          button.addEventListener('click', () => {
+            _ownerOfferFilter = button.getAttribute('data-owner-offer-filter') || 'active';
+            renderOwnerOfferDashboard(container, _ownerOfferDashboardData || data);
+          })
+        );
+        const search = container.querySelector('[data-owner-offer-search]');
+        if (search) {
+          search.addEventListener('input', () => {
+            _ownerOfferQuery = search.value || '';
+            renderOwnerOfferDashboard(container, _ownerOfferDashboardData || data);
+          });
+        }
+      }
+
+      async function loadOwnerOfferDashboard() {
+        if (!_liveMode) return;
+        const container = document.getElementById('liveOwnerOfferDashboard');
+        if (!container) return;
+        const data = await apiFetch('/api/v1/cco-commercial/owner-offer-overview');
+        if (!data || !data.ok) return;
+        _ownerOfferDashboardData = data;
+        renderOwnerOfferDashboard(container, data);
       }
 
       /* Hämta audit-logg och injicera i admin-view */

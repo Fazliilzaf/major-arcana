@@ -23,3 +23,19 @@ test('K53 staff portal renders owner offer list from K52 overview', () => {
   assert.match(source, /Fastnat/);
   assert.match(source, /Öppna kundkort/);
 });
+
+test('K54 staff portal filters owner offer list by status and search', () => {
+  const source = read(staffPortalPath);
+
+  assert.match(source, /_ownerOfferFilter = 'active'/);
+  assert.match(source, /renderOwnerOfferFilters/);
+  assert.match(source, /filterOwnerOfferRows/);
+  assert.match(source, /data-owner-offer-filter/);
+  assert.match(source, /\['active', 'Aktiva'/);
+  assert.match(source, /\['stuck', 'Fastnade'/);
+  assert.match(source, /\['readyToSign', 'Redo'/);
+  assert.match(source, /\['waitingCustomer', 'Väntar kund'/);
+  assert.match(source, /\['signed', 'Signerade'/);
+  assert.match(source, /data-owner-offer-search/);
+  assert.match(source, /Inga offerter matchar filtret just nu/);
+});
