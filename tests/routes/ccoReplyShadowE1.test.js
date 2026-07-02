@@ -44,6 +44,7 @@ function makeApp({
   shadowSendEnabled = false,
   graphSendConnector = null,
   sendTestRecipient = '',
+  auditEvents = null,
 } = {}) {
   const app = express();
   app.use(express.json());
@@ -54,6 +55,14 @@ function makeApp({
       graphSendConnector,
       shadowSendEnabled,
       sendTestRecipient,
+      authStore: auditEvents
+        ? {
+            async addAuditEvent(event) {
+              auditEvents.push(event);
+              return true;
+            },
+          }
+        : null,
       defaultTenantId: 'cco',
     })
   );
@@ -239,6 +248,39 @@ test('E1 steg 2: utan connector men med testadress → 503 (test-redirect kräve
     const payload = await res.json();
     assert.equal(payload.error, 'graph_send_unavailable');
   });
+});
+
+test('E1 steg 2: test-redirect skriver ett audit-event med mode och tråd/kund-koppling', async () => {
+  const auditEvents = [];
+  const connector = captureConnector();
+  const app = makeApp({ graphSendConnector: connector, sendTestRecipient: TEST_ADDR, auditEvents });
+  await withServer(app, async (baseUrl) => {
+    const res = await replyReq(baseUrl);
+    assert.equal(res.status, 200);
+  });
+  const sendAudit = auditEvents.find((e) => e.action === 'cco.conversation.reply_test_send');
+  assert.ok(sendAudit, 'ett reply_test_send audit-event ska skapas');
+  assert.equal(sendAudit.metadata.mode, 'live_test');
+  assert.equal(sendAudit.metadata.testRedirect, true);
+  assert.equal(sendAudit.metadata.recipient, TEST_ADDR);
+  assert.equal(sendAudit.metadata.intendedRecipient, 'kund@example.com');
+  assert.equal(sendAudit.metadata.mailboxId, 'contact@hairtpclinic.com');
+  assert.equal(sendAudit.metadata.conversationKey, CONV_KEY);
+});
+
+test('E1: skarp (icke-test) sändning skriver reply_sent audit-event', async () => {
+  const auditEvents = [];
+  const connector = captureConnector();
+  const app = makeApp({ graphSendConnector: connector, auditEvents });
+  await withServer(app, async (baseUrl) => {
+    const res = await replyReq(baseUrl);
+    assert.equal(res.status, 200);
+  });
+  const sendAudit = auditEvents.find((e) => e.action === 'cco.conversation.reply_sent');
+  assert.ok(sendAudit, 'ett reply_sent audit-event ska skapas i skarpt läge');
+  assert.equal(sendAudit.metadata.mode, 'live');
+  assert.equal(sendAudit.metadata.testRedirect, false);
+  assert.equal(sendAudit.metadata.recipient, 'kund@example.com');
 });
 
 test('E1 steg 2: settings/info rapporterar send.mode=live_test när testadress är satt', async () => {
