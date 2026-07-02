@@ -733,6 +733,70 @@
         font-size: 10.5px;
         font-weight: 800;
       }
+      .offer-workmode {
+        margin-top: 12px;
+        border: 1px solid rgba(185, 74, 74, 0.16);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255, 248, 245, 0.92), rgba(255, 255, 255, 0.74));
+        box-shadow: 0 8px 24px rgba(185, 74, 74, 0.08);
+        padding: 12px;
+      }
+      .offer-workmode-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .offer-workmode-title {
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--danger);
+      }
+      .offer-workmode-copy {
+        margin-top: 4px;
+        color: var(--text2);
+        font-size: 11px;
+        font-weight: 750;
+      }
+      .offer-workmode-count {
+        min-width: 42px;
+        border-radius: 999px;
+        background: rgba(185, 74, 74, 0.11);
+        color: var(--danger);
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 9px 12px;
+        text-align: center;
+      }
+      .offer-workmode-steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .offer-workmode-step {
+        border: 1px solid rgba(43, 37, 31, 0.08);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--brand);
+        font-size: 10.5px;
+        font-weight: 800;
+        padding: 9px 10px;
+      }
+      .offer-stuck-context {
+        margin-top: 9px;
+        border-left: 3px solid rgba(185, 74, 74, 0.58);
+        border-radius: 10px;
+        background: rgba(185, 74, 74, 0.055);
+        color: var(--danger);
+        font-size: 10.5px;
+        font-weight: 800;
+        line-height: 1.45;
+        padding: 8px 10px;
+      }
       .deep-link-row {
         display: flex;
         flex-wrap: wrap;
@@ -4965,6 +5029,57 @@
         });
       }
 
+      function ownerOfferDaysSince(value) {
+        const ts = Date.parse(value || '');
+        if (!Number.isFinite(ts)) return null;
+        const days = Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000));
+        return Number.isFinite(days) ? Math.max(0, days) : null;
+      }
+
+      function ownerOfferStuckReason(item) {
+        const openedDays = ownerOfferDaysSince(item.quoteOpenedAt);
+        const sentDays = ownerOfferDaysSince(item.quoteSentAt);
+        if (Number(item.quoteOpenCount || 0) > 0 && openedDays !== null && openedDays >= 3) {
+          return {
+            reason: `Öppnad för ${openedDays} dagar sedan utan signering`,
+            next: 'Följ upp i konversation och kontrollera att pris, zoner och signeringsdatum är tydliga.',
+          };
+        }
+        if (sentDays !== null && sentDays >= 7) {
+          return {
+            reason: `Skickad för ${sentDays} dagar sedan utan signering`,
+            next: 'Kontrollera om kunden öppnat portalen, därefter följ upp eller uppdatera offertunderlaget.',
+          };
+        }
+        return {
+          reason: 'Fastnad enligt offertstatus',
+          next: 'Gör manuell kontroll i kundkortet innan ny delning eller påminnelse.',
+        };
+      }
+
+      function renderOwnerOfferStuckWorkmode(rows) {
+        const stuckRows = rows.filter((item) => item.bucket === 'stuck');
+        if (_ownerOfferFilter !== 'stuck' || !stuckRows.length) return '';
+        const openedUnsigned = stuckRows.filter(
+          (item) => Number(item.quoteOpenCount || 0) > 0
+        ).length;
+        const neverOpened = stuckRows.length - openedUnsigned;
+        return `<div class="offer-workmode" data-owner-offer-stuck-workmode>
+          <div class="offer-workmode-head">
+            <div>
+              <div class="offer-workmode-title">Fastnade offerter · arbetsläge</div>
+              <div class="offer-workmode-copy">${openedUnsigned} öppnade utan signering · ${neverOpened} ej öppnade. Börja med äldsta öppning/skickdatum och verifiera underlaget innan kundkontakt.</div>
+            </div>
+            <div class="offer-workmode-count">${stuckRows.length}</div>
+          </div>
+          <div class="offer-workmode-steps">
+            <div class="offer-workmode-step">1. Kontrollera pris, zoner och bilder</div>
+            <div class="offer-workmode-step">2. Följ upp i konversation</div>
+            <div class="offer-workmode-step">3. Notera beslut innan ny delning</div>
+          </div>
+        </div>`;
+      }
+
       function renderOwnerOfferFilters(totals) {
         const active =
           Number(totals.waitingCustomer || 0) +
@@ -5005,6 +5120,13 @@
         const openedAt = item.quoteOpenedAt ? formatDateTime(item.quoteOpenedAt) : 'Ej öppnad';
         const sentAt = item.quoteSentAt ? formatDateTime(item.quoteSentAt) : 'Ej skickad';
         const coolingAt = item.coolingOffEndsAt ? formatDateTime(item.coolingOffEndsAt) : 'Saknas';
+        const stuckContext =
+          item.bucket === 'stuck'
+            ? (() => {
+                const info = ownerOfferStuckReason(item);
+                return `<div class="offer-stuck-context" data-owner-offer-stuck-context><strong>${escapeHtml(info.reason)}</strong><br />Nästa: ${escapeHtml(info.next)}</div>`;
+              })()
+            : '';
         return `<div class="case-card" data-owner-offer-row="${escapeHtml(item.commercialCaseId || patientId || '')}">
           <div class="case-card-main">
             <div class="item-title">${escapeHtml(item.customerName || 'Kund')}</div>
@@ -5016,6 +5138,7 @@
               <span class="pill neutral">Delad: ${escapeHtml(sharedAt)}</span>
               <span class="pill neutral">Av: ${escapeHtml(sharedBy)}</span>
             </div>
+            ${stuckContext}
           </div>
           <a class="btn primary" href="${escapeHtml(cardHref)}" target="_blank" rel="noopener">Öppna kundkort</a>
         </div>`;
@@ -5042,6 +5165,7 @@
             ${ownerFollowupMetric('Fastnade', totals.stuck, 'danger', null)}
           </div>
           ${renderOwnerOfferFilters(totals)}
+          ${renderOwnerOfferStuckWorkmode(rows)}
           <div class="offer-filter-summary">${filteredRows.length} av ${rows.length} offerter visas · filter: ${escapeHtml(_ownerOfferFilter === 'active' ? 'Aktiva' : ownerOfferBucketLabel(_ownerOfferFilter)[1] || _ownerOfferFilter)}</div>
           <div style="margin-top:12px" data-owner-offer-list>
             ${filteredRows.length ? filteredRows.map(renderOwnerOfferRow).join('') : '<div class="live-note">Inga offerter matchar filtret just nu.</div>'}
