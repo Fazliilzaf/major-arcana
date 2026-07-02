@@ -105,7 +105,7 @@ services:
       - key: ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS
         value: "14"
       - key: ARCANA_BOOTSTRAP_PREFERRED_MAILBOX
-        value: contact@hairtpclinic.com
+        value: kons@hairtpclinic.com
       - key: ARCANA_BOOTSTRAP_TENANT_ID
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
@@ -163,9 +163,11 @@ services:
       - key: ARCANA_MIGRATION_INDEX_PATH
         value: /var/data/arcana/migration-index.json
       # CCO inkorg: snabbare delta-sync och smalare scoped-analys (2026-05-20).
-      # 0 = avstangd (medvetet, OOM-sakerhet sedan scheduler-allowlist-laget).
+      # Kons-pilot: delta-sync ar smalt allowlistat till kons@ nedan.
       - key: ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES
-        value: "0"
+        value: "5"
+      - key: ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_IDS
+        value: kons@hairtpclinic.com
       - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_LOOKBACK_DAYS
         value: "3"
       - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER
@@ -176,7 +178,7 @@ services:
       - key: ARCANA_CCO_MAIL_INGESTION_MODE
         value: "read_only"
       - key: ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX
-        value: "contact@hairtpclinic.com"
+        value: "kons@hairtpclinic.com"
       # Graph webhooks stay off until ingestion pipeline is stable; delta + scheduler is enough.
       - key: ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED
         value: "false"
@@ -186,20 +188,19 @@ services:
         value: "50"
       - key: ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS
         value: "180000"
-      - key: ARCANA_CCO_MAIL_INGESTION_ENABLED
-        value: "false"
-      # 0 = avstangd (medvetet, OOM-sakerhet; Graph read ar av).
+      # Separat queue-jobb avstangt; truth-delta-jobbet kor en liten ingestion-batch efter ny mail.
       - key: ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES
         value: "0"
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
-      # Scheduler pausad i prod safe-mode tills kundkort/bildflode ar stabilt.
-      # Bakgrundsjobb kan slas pa kontrollerat med ARCANA_PROD_SAFE_MODE=false.
+      # Kons-pilot: bara cco_truth_delta_sync far kora i scheduler.
       - key: ARCANA_SCHEDULER_ENABLED
+        value: "true"
+      - key: ARCANA_SCHEDULER_PROD_SAFE_MODE
         value: "false"
       - key: ARCANA_SCHEDULER_JOBS
-        value: ""
+        value: cco_truth_delta_sync
       # Inga startup-jobb under stabilisering; minskar Render-restart/OOM-risk.
       - key: ARCANA_SCHEDULER_RUN_ON_STARTUP
         value: "false"
