@@ -42,6 +42,23 @@ test('konversationer inbox tabs are explicit filters for live rows', () => {
   assert.match(html, /activeLane:\s*currentLane/);
 });
 
+test('konversationer live row opens real conversation messages endpoint', () => {
+  const html = readHtml();
+
+  assert.match(html, /function openConversationThread\(thread\)/);
+  assert.match(
+    html,
+    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(thread\.conversationKey\)\}\/messages/
+  );
+  assert.match(html, /function renderThreadMessages\(thread, messages\)/);
+  assert.match(html, /data-thread-id="\$\{escapeHtml\(t\.id\)\}"/);
+  assert.match(html, /Mailbox-spår:/);
+  assert.match(
+    html,
+    /const firstThread = currentThreads\.find\(\(thread\) => thread\.conversationKey\)/
+  );
+});
+
 test('konversationer live inbox script parses', () => {
   const html = readHtml();
   assert.doesNotThrow(() => new Function(liveScript(html)));
