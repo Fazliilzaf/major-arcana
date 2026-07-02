@@ -8,6 +8,7 @@ function normalizeText(value) {
 
 const {
   DEFAULT_COOLING_OFF_DAYS,
+  HAIR_TP_COOLING_OFF_DAYS,
   resolveHairTpCoolingOffDays,
 } = require('./ccoHairTpCoolingOffPolicy');
 
@@ -256,7 +257,7 @@ function buildOfferSignPageHtml({
     <div class="betatid-icon">⏳</div>
     <div class="betatid-body">
       <div class="betatid-title">Betänketid — ${esc(String(cooling.remainingDays))} dagar kvar</div>
-      <div class="betatid-text">Enligt distansavtalslagen gäller 14 dagars betänketid. Du kan signera offerten från och med <strong>${esc(cooling.endsAt.slice(0, 10))}</strong>.</div>
+      <div class="betatid-text">Hair TP:s operativa betänketid är ${esc(String(HAIR_TP_COOLING_OFF_DAYS))} kalenderdagar från att du mottagit tjänstespecifikation, patientinformation och offertunderlag. Du kan signera offerten från och med <strong>${esc(cooling.endsAt.slice(0, 10))}</strong>.</div>
     </div>
   </div>`
     : `<div class="betatid-card ready">
