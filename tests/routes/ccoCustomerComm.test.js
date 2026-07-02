@@ -117,3 +117,104 @@ test('GET /cco-customers/:id/conversation-threads returns empty threads for unkn
     assert.equal(body.threads.length, 0);
   });
 });
+
+// ── C6: unified-timeline surfaces assets through the route with safety filter ──
+
+function makeAssetStore(assets = []) {
+  return {
+    listAssetsForPatient(_patientId, _filters, _opts) {
+      return assets;
+    },
+  };
+}
+
+test('C6 route: GET /cco-customers/:id/unified-timeline surfaces only VISIBLE assets, filters NEEDS_REVIEW', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-route-'));
+  const customerId = 'cust-timeline-1';
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+      ccoCustomerJourneyStorePath: path.join(tmp, 'journey.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([
+      {
+        mailboxId: 'contact@hairtpclinic.com',
+        graphMessageId: 'g-tl-1',
+        conversationId: 'conv-tl-1',
+        folderType: 'inbox',
+        direction: 'inbound',
+        subject: 'Tidslinjefråga',
+        bodyPreview: 'Hej',
+        fromEmail: 'patient@example.com',
+        receivedAt: '2026-06-01T09:00:00.000Z',
+        customerIdentity: { customerId, canonicalCustomerId: customerId },
+      },
+    ]),
+    mailIngestionStore: makeIngestionStore([]),
+    resolvePatientAssetStore: async () =>
+      makeAssetStore([
+        {
+          id: 'visible-doc',
+          patientId: customerId,
+          status: 'VISIBLE_ON_PATIENT_CARD',
+          category: 'document_medical',
+          documentDate: '2026-05-20T10:00:00.000Z',
+        },
+        {
+          id: 'hidden-review',
+          patientId: customerId,
+          status: 'NEEDS_REVIEW',
+          category: 'document_medical',
+          documentDate: '2026-05-21T10:00:00.000Z',
+        },
+      ]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(
+      `${baseUrl}/cco-customers/${encodeURIComponent(customerId)}/unified-timeline`
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+
+    const assetEvents = (body.events || []).filter((e) => e.source === 'asset');
+    assert.equal(assetEvents.length, 1, 'only VISIBLE_ON_PATIENT_CARD asset surfaces');
+    assert.equal(assetEvents[0].meta.assetId, 'visible-doc');
+    assert.deepEqual(assetEvents[0].meta.openRef, {
+      kind: 'patient_asset',
+      assetId: 'visible-doc',
+    });
+
+    const mail = (body.events || []).find((e) => e.kind === 'incoming_mail');
+    assert.ok(mail, 'mail event present');
+    assert.equal(mail.meta.conversationKey, 'conv-tl-1');
+
+    // Ingen direkt Drive-länk i hela payloaden.
+    assert.ok(!/drive\.google\.com/i.test(JSON.stringify(body)), 'no direct Drive link');
+  });
+});
+
+test('C6 route: unified-timeline for empty customer returns safe empty state', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-route-'));
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+      ccoCustomerJourneyStorePath: path.join(tmp, 'journey.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([]),
+    mailIngestionStore: makeIngestionStore([]),
+    resolvePatientAssetStore: async () => makeAssetStore([]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco-customers/empty-cust/unified-timeline`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.events, []);
+    assert.equal(body.counts.all, 0);
+  });
+});

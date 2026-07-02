@@ -1326,12 +1326,43 @@
       }
     }
 
-    function renderList(events) {
+    // Tydlig svensk etikett per typ (spec C6).
+    const TYPE_LABELS = {
+      mail: 'Mail',
+      anteckning: 'Anteckning',
+      utskick: 'Utskick',
+      journal: 'Journal',
+      bokning: 'Bokning',
+      kundresa: 'Kundresa',
+      bild: 'Bild',
+      dokument: 'Dokument',
+      avtal: 'Avtal',
+      övrigt: 'Övrigt',
+    };
+
+    // Öppna bild/dokument via befintlig säkrad server-endpoint — ALDRIG en
+    // direkt Drive-länk. Native CCO-assets serveras via asset-download-routen
+    // (samma URL som kundkortets assetToPatientFile().viewUrl); migration-
+    // index-filer via /cco-patient-master/file.
+    function secureOpenRefUrl(openRef) {
+      if (!openRef) return null;
+      if (openRef.kind === 'patient_asset' && openRef.assetId) {
+        return '/api/v1/cco/assets/' + encodeURIComponent(openRef.assetId) + '/download?inline=1';
+      }
+      if (openRef.kind === 'patient_file' && openRef.fileId) {
+        return '/api/v1/cco-patient-master/file?fileId=' + encodeURIComponent(openRef.fileId);
+      }
+      return null;
+    }
+
+    function renderList(events, totalCount) {
       listEl.innerHTML = '';
       if (!events || events.length === 0) {
-        listEl.appendChild(
-          el('div', { class: 'cco-komm-empty' }, 'Inga händelser för detta filter.')
-        );
+        const message =
+          totalCount === 0
+            ? 'Den här kunden har ännu inga händelser i tidslinjen.'
+            : 'Inga händelser för detta filter.';
+        listEl.appendChild(el('div', { class: 'cco-komm-empty' }, message));
         return;
       }
       let lastDate = null;
@@ -1341,16 +1372,60 @@
           listEl.appendChild(el('div', { class: 'cco-komm-timeline-date' }, dateStr));
           lastDate = dateStr;
         }
+
+        const meta = ev.meta || {};
+        const typeLabel = TYPE_LABELS[ev.displayType] || TYPE_LABELS['övrigt'];
+        const conversationKey = meta.conversationKey || null;
+        const openRef = meta.openRef || null;
+
+        // Länk-affordans: mail → konversationstråd, fil → säkrad filöppning.
+        let action = null;
+        if (conversationKey) {
+          action = el(
+            'button',
+            {
+              class: 'cco-komm-timeline-link',
+              type: 'button',
+              dataset: { conversationKey, mailboxId: meta.mailboxId || '' },
+              onclick: () => {
+                document.dispatchEvent(
+                  new CustomEvent('cco:open-conversation', {
+                    bubbles: true,
+                    detail: {
+                      conversationKey,
+                      mailboxId: meta.mailboxId || null,
+                      customerId,
+                    },
+                  })
+                );
+              },
+            },
+            'Öppna konversation'
+          );
+        } else if (openRef && secureOpenRefUrl(openRef)) {
+          action = el(
+            'a',
+            {
+              class: 'cco-komm-timeline-link',
+              href: secureOpenRefUrl(openRef),
+              target: '_blank',
+              rel: 'noopener',
+              dataset: { assetId: openRef.assetId || '', fileId: openRef.fileId || '' },
+            },
+            ev.displayType === 'bild' ? 'Öppna bild' : 'Öppna dokument'
+          );
+        }
+
         listEl.appendChild(
-          el('div', { class: 'cco-komm-timeline-event' }, [
+          el('div', { class: 'cco-komm-timeline-event', dataset: { type: ev.displayType || '' } }, [
             el('span', { class: 'cco-komm-timeline-icon' }, ev.icon || '·'),
             el('div', { class: 'cco-komm-timeline-body' }, [
               el('div', { class: 'cco-komm-timeline-title' }, [
                 ev.title || ev.kind,
-                el('span', { class: 'cco-komm-timeline-cat' }, ev.category || ''),
+                el('span', { class: 'cco-komm-timeline-type' }, typeLabel),
               ]),
               ev.summary ? el('div', { class: 'cco-komm-timeline-summary' }, ev.summary) : null,
-              el('div', { class: 'cco-komm-timeline-ts' }, fmtTimelineDate(ev.ts)),
+              el('div', { class: 'cco-komm-timeline-ts' }, [fmtTimelineDate(ev.ts), action]),
             ]),
           ])
         );
@@ -1363,7 +1438,7 @@
         const data = await fetchTimeline(customerId, opts, activeFilter);
         lastCounts = data.counts || {};
         renderTabs();
-        renderList(data.events || []);
+        renderList(data.events || [], lastCounts.all || 0);
       } catch (err) {
         listEl.innerHTML = '';
         listEl.appendChild(
