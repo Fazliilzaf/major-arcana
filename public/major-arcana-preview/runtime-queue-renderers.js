@@ -1325,6 +1325,39 @@
       return false;
     }
 
+    function buildRuntimeMailDataGateMarkup({
+      title = "Konversationer väntar på maildata",
+      message = "Koppla in mailflödet eller hämta mail från Microsoft för att fylla arbetslistan.",
+      actionLabel = "Hämta mail nu",
+      allowSync = true,
+      tone = "info",
+    } = {}) {
+      const syncStatus =
+        state.runtime?.mailSyncStatus && typeof state.runtime.mailSyncStatus === "object"
+          ? state.runtime.mailSyncStatus
+          : {};
+      const isLoading = syncStatus.loading === true;
+      const statusMessage = asText(syncStatus.message);
+      const disabledAttr = !allowSync || isLoading ? " disabled" : "";
+      const toneClass = normalizeKey(tone || "info") || "info";
+      return `<div class="queue-history-empty runtime-mail-data-gate runtime-mail-data-gate--${escapeHtml(toneClass)}" data-runtime-mail-data-gate>
+        <strong>${escapeHtml(title)}</strong>
+        <p>${escapeHtml(message)}</p>
+        ${
+          statusMessage
+            ? `<p class="runtime-mail-data-gate-status">${escapeHtml(statusMessage)}</p>`
+            : ""
+        }
+        ${
+          allowSync
+            ? `<button class="preview-mini-button runtime-mail-data-gate-action" type="button" data-runtime-sync-mail${disabledAttr}>${escapeHtml(
+                isLoading ? "Hämtar mail…" : actionLabel
+              )}</button>`
+            : ""
+        }
+      </div>`;
+    }
+
     function getScopedAftercareLaneEntries(options = {}) {
       const entries = __getAftercareLaneEntries(options);
       const scopedThreads = getQueueScopedRuntimeThreads();
@@ -5596,6 +5629,20 @@
         const activeLaneLabel =
           QUEUE_LANE_LABELS[normalizeKey(state.runtime.activeLaneId || "all")] ||
           QUEUE_LANE_LABELS.all;
+        if (!laneFiltered && !ownerFiltered && runtimeMode !== "offline_history") {
+          queueContent.innerHTML = buildRuntimeMailDataGateMarkup({
+            title: "Konversationer är tomma eftersom maildata saknas",
+            message:
+              state.runtime?.mailboxScopeWidenHint === true
+                ? "Det finns trådar i andra mejlkonton. Välj fler mejlkonton eller hämta mail igen."
+                : "CCO har ingen aktiv inkorgsdata i detta urval. Hämta mail från Microsoft för att fylla Konversationer.",
+            actionLabel: "Hämta mail nu",
+            allowSync: true,
+            tone: "empty",
+          });
+          renderSelectedThreadInlineControls(null);
+          return;
+        }
         queueContent.innerHTML = buildThreadCardMarkup(
           {
             id: "runtime-empty",
@@ -5929,22 +5976,16 @@
         if (queueTitle) {
           queueTitle.textContent = "Arbetslista (0)";
         }
-        renderQueueInlineLaneList([
-          buildUnifiedStateThread({
-            id: "runtime-auth-required",
-            customerName: "Aktiv kö ej ansluten",
-            ownerLabel: "System",
-            subject: "Öppna admin och logga in igen",
-            preview:
+        if (queueHistoryList) {
+          queueHistoryList.innerHTML = buildRuntimeMailDataGateMarkup({
+            title: "CCO-session saknas",
+            message:
               asText(state.runtime.error) ||
-              "Logga in igen i admin för att läsa aktiv kö, historikstöd och mejlkontostatus.",
-            mailboxLabel: "CCO",
-            statusLabel: "Session krävs",
-            nextActionLabel: "Logga in igen",
-            nextActionSummary:
-              "Återställ admin-sessionen för att fylla arbetskön med aktiva trådar igen.",
-          }),
-        ]);
+              "Logga in i admin igen. Utan session kan Konversationer inte läsa maildata.",
+            allowSync: false,
+            tone: "auth",
+          });
+        }
         if (typeof enforceUnifiedCardV3Sections === "function") {
           enforceUnifiedCardV3Sections(queueHistoryList);
         }
@@ -6067,8 +6108,14 @@
             queueTitle.textContent = "Arbetslista (0)";
           }
           if (queueHistoryList) {
-            queueHistoryList.innerHTML =
-              '<div class="queue-history-empty">Hämtar mejl i bakgrunden…</div>';
+            queueHistoryList.innerHTML = buildRuntimeMailDataGateMarkup({
+              title: "Hämtar mail i bakgrunden",
+              message:
+                "CCO väntar på Microsoft Graph-data. Om listan inte fylls, starta en ny mail-sync.",
+              actionLabel: "Hämta mail igen",
+              allowSync: true,
+              tone: "sync",
+            });
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
@@ -6107,23 +6154,19 @@
         if (queueTitle) {
           queueTitle.textContent = "Arbetslista (0)";
         }
-        renderQueueInlineLaneList([
-          buildUnifiedStateThread({
-            id: "runtime-unified-error",
-            customerName: state.runtime.authRequired ? "Aktiv kö ej ansluten" : "Aktiv kö pausad",
-            ownerLabel: "System",
-            subject: state.runtime.authRequired
-              ? "Öppna admin och logga in igen"
-              : "Aktiv körning otillgänglig",
-            preview: state.runtime.error,
-            mailboxLabel: "CCO",
-            statusLabel: state.runtime.authRequired ? "Session krävs" : "Otillgänglig",
-            nextActionLabel: state.runtime.authRequired ? "Logga in igen" : "Försök senare",
-            nextActionSummary: state.runtime.authRequired
-              ? "Återställ admin-sessionen för att fylla arbetskön med aktiva trådar igen."
-              : "Vänta tills aktiv körning är tillbaka eller fortsätt i offline-ytan tills dess.",
-          }),
-        ]);
+        if (queueHistoryList) {
+          queueHistoryList.innerHTML = buildRuntimeMailDataGateMarkup({
+            title: state.runtime.authRequired ? "CCO-session saknas" : "Mailkörningen är pausad",
+            message: state.runtime.authRequired
+              ? asText(state.runtime.error) ||
+                "Logga in i admin igen. Utan session kan Konversationer inte läsa maildata."
+              : asText(state.runtime.error) ||
+                "Aktiv mailkörning är inte tillgänglig. Försök hämta mail igen eller kontrollera servern.",
+            actionLabel: "Hämta mail igen",
+            allowSync: state.runtime.authRequired !== true,
+            tone: state.runtime.authRequired ? "auth" : "error",
+          });
+        }
         if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
         return;
       }
@@ -6246,17 +6289,14 @@
               )}</div>`;
             }
           } else {
-            renderQueueInlineLaneList([
-              buildUnifiedStateThread({
-                id: "runtime-unified-empty",
-                customerName: "Inga trådar i urvalet",
-                ownerLabel: "Arbetskö",
-                subject: "Mejlurvalet gav inga aktiva trådar",
-                preview: (() => {
-                  let live = "Välj fler mejlkonton eller vänta på nästa inkommande konversation.";
+            if (queueHistoryList) {
+              queueHistoryList.innerHTML = buildRuntimeMailDataGateMarkup({
+                title: "Konversationer är tomma eftersom maildata saknas",
+                message: (() => {
+                  let live =
+                    "CCO har ingen aktiv inkorgsdata i detta urval. Hämta mail från Microsoft för att fylla Konversationer.";
                   if (state.runtime?.graphReadEnabled === true) {
-                    live +=
-                      " Tom kö direkt efter testmail är ofta normalt — ge det en minut och ladda om.";
+                    live += " Om du precis skickade testmail kan Microsoft-sync ta en kort stund.";
                   }
                   if (
                     state.runtime?.graphReadEnabled === true &&
@@ -6267,13 +6307,11 @@
                   }
                   return live;
                 })(),
-                mailboxLabel: "Arbetskö",
-                statusLabel: "Ingen match",
-                nextActionLabel: "Justera urval",
-                nextActionSummary:
-                  "Utöka mejlurvalet för att fylla arbetskön med fler konversationer.",
-              }),
-            ]);
+                actionLabel: "Hämta mail nu",
+                allowSync: true,
+                tone: "empty",
+              });
+            }
           }
         } else {
           renderQueueInlineLaneList(defaultThreads);
