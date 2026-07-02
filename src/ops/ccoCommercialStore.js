@@ -51,6 +51,33 @@ function normalizeQuoteOpen(input = {}) {
   };
 }
 
+function normalizePortalShareChecklist(input = {}) {
+  const safe = asObject(input);
+  const values = asObject(safe.values || safe);
+  return Object.fromEntries(
+    Object.entries(values)
+      .map(([key, value]) => [normalizeText(key), Boolean(value)])
+      .filter(([key]) => key)
+  );
+}
+
+function normalizePortalShareEvent(input = {}) {
+  const safe = asObject(input);
+  const eventType = normalizeText(safe.eventType) || 'portal_share_event';
+  const sharedAt = normalizeText(safe.sharedAt || safe.createdAt || safe.ts) || nowIso();
+  return {
+    eventId: normalizeText(safe.eventId) || crypto.randomUUID(),
+    eventType,
+    sharedAt,
+    actorUserId: normalizeText(safe.actorUserId),
+    actorName: normalizeText(safe.actorName),
+    checklist: normalizePortalShareChecklist(safe.checklist),
+    portalUrl: normalizeText(safe.portalUrl),
+    messagePreview: normalizeText(safe.messagePreview || safe.message).slice(0, 240),
+    source: normalizeText(safe.source) || 'staff_patient_master',
+  };
+}
+
 function uniqueActions(items = []) {
   return Array.from(
     new Set(
@@ -449,6 +476,11 @@ function cloneCase(record) {
     requiredActions: [...asArray(record.requiredActions)],
     events: asArray(record.events).map((event) => ({ ...event })),
     quoteOpens: asArray(record.quoteOpens).map((open) => ({ ...open })),
+    portalShareEvents: asArray(record.portalShareEvents).map((event) => ({
+      ...event,
+      checklist: { ...asObject(event.checklist) },
+    })),
+    lastPortalShareChecklist: { ...asObject(record.lastPortalShareChecklist) },
   };
 }
 
@@ -516,6 +548,17 @@ function normalizeCommercialCase(input = {}, existing = {}) {
     quoteOpenedAt: asArray(safe.quoteOpens).length
       ? normalizeQuoteOpen(asArray(safe.quoteOpens).at(-1)).ts
       : normalizeText(previous.quoteOpenedAt),
+    portalShareEvents: asArray(safe.portalShareEvents).length
+      ? asArray(safe.portalShareEvents).map(normalizePortalShareEvent)
+      : asArray(previous.portalShareEvents).map(normalizePortalShareEvent),
+    lastPortalSharedAt: normalizeText(safe.lastPortalSharedAt || previous.lastPortalSharedAt),
+    lastPortalSharedBy: normalizeText(safe.lastPortalSharedBy || previous.lastPortalSharedBy),
+    lastPortalShareEventType: normalizeText(
+      safe.lastPortalShareEventType || previous.lastPortalShareEventType
+    ),
+    lastPortalShareChecklist: Object.keys(asObject(safe.lastPortalShareChecklist)).length
+      ? normalizePortalShareChecklist(safe.lastPortalShareChecklist)
+      : normalizePortalShareChecklist(previous.lastPortalShareChecklist),
     customerSignedName: normalizeText(safe.customerSignedName || previous.customerSignedName),
     coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
     esignToken: normalizeText(safe.esignToken || previous.esignToken),
@@ -678,6 +721,59 @@ async function createCcoCommercialStore({ filePath }) {
     };
   }
 
+  async function recordPortalShareEvent({
+    tenantId,
+    patientId,
+    actorUserId = '',
+    actorName = '',
+    eventType = 'portal_link_copied',
+    checklist = {},
+    portalUrl = '',
+    message = '',
+    source = 'staff_patient_master',
+    ts = nowIso(),
+  } = {}) {
+    const commercialCase = await getPatientRegisterCase({ tenantId, patientId });
+    if (!commercialCase) {
+      const error = new Error('Offert saknas för kunden.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const shareEvent = normalizePortalShareEvent({
+      eventType,
+      checklist,
+      portalUrl,
+      messagePreview: message,
+      source,
+      actorUserId,
+      actorName,
+      sharedAt: ts,
+    });
+    const updated = await upsertCase({
+      ...commercialCase,
+      portalShareEvents: [...asArray(commercialCase.portalShareEvents), shareEvent],
+      lastPortalSharedAt: shareEvent.sharedAt,
+      lastPortalSharedBy: shareEvent.actorName || shareEvent.actorUserId,
+      lastPortalShareEventType: shareEvent.eventType,
+      lastPortalShareChecklist: shareEvent.checklist,
+      events: [
+        ...asArray(commercialCase.events),
+        {
+          type: 'customer_portal_share_recorded',
+          label: 'Kundportal delad av personal',
+          detail: shareEvent.eventType,
+          actorUserId: shareEvent.actorUserId,
+          actorName: shareEvent.actorName,
+          createdAt: shareEvent.sharedAt,
+        },
+      ],
+    });
+    return {
+      commercialCase: updated,
+      shareEvent,
+    };
+  }
+
   return {
     getCase,
     getPatientRegisterCase,
@@ -685,7 +781,80 @@ async function createCcoCommercialStore({ filePath }) {
     listCases,
     ensureCase,
     recordQuoteOpen,
+    recordPortalShareEvent,
     upsertCase,
+  };
+}
+
+function isCommercialCaseSigned(commercialCase = {}) {
+  return (
+    normalizeText(commercialCase.quoteStatus) === 'accepted' ||
+    normalizeText(commercialCase.esignStatus) === 'accepted' ||
+    Boolean(normalizeText(commercialCase.quoteAcceptedAt))
+  );
+}
+
+function buildCommercialOwnerOfferOverview(cases = [], { nowMs = Date.now() } = {}) {
+  const buckets = {
+    waitingCustomer: [],
+    readyToSign: [],
+    signed: [],
+    stuck: [],
+  };
+  asArray(cases).forEach((commercialCase) => {
+    const quoteStatus = normalizeText(commercialCase.quoteStatus) || 'missing';
+    const openCount = Number(
+      commercialCase.quoteOpenCount || asArray(commercialCase.quoteOpens).length || 0
+    );
+    const sentAt = normalizeText(commercialCase.quoteSentAt);
+    const coolingOffEndsAt = normalizeText(commercialCase.coolingOffEndsAt);
+    const signed = isCommercialCaseSigned(commercialCase);
+    const coolingEndsMs = Date.parse(coolingOffEndsAt);
+    const sentMs = Date.parse(sentAt);
+    const latestOpenMs = Date.parse(normalizeText(commercialCase.quoteOpenedAt));
+    const waitingTooLong = Number.isFinite(sentMs) && nowMs - sentMs > 7 * 24 * 60 * 60 * 1000;
+    const openedButStuck =
+      openCount > 0 &&
+      Number.isFinite(latestOpenMs) &&
+      nowMs - latestOpenMs > 3 * 24 * 60 * 60 * 1000;
+    const row = {
+      commercialCaseId: normalizeText(commercialCase.commercialCaseId),
+      patientId: normalizeText(commercialCase.customerId),
+      customerName: normalizeText(commercialCase.customerName) || 'Kund',
+      quoteStatus,
+      quotedAmount: normalizeText(commercialCase.quotedAmount),
+      quoteSentAt: sentAt,
+      quoteOpenedAt: normalizeText(commercialCase.quoteOpenedAt),
+      quoteOpenCount: openCount,
+      coolingOffEndsAt,
+      lastPortalSharedAt: normalizeText(commercialCase.lastPortalSharedAt),
+      lastPortalSharedBy: normalizeText(commercialCase.lastPortalSharedBy),
+    };
+
+    if (signed) {
+      buckets.signed.push({ ...row, bucket: 'signed' });
+      return;
+    }
+    if (quoteStatus === 'sent') {
+      if (waitingTooLong || openedButStuck) {
+        buckets.stuck.push({ ...row, bucket: 'stuck' });
+      } else if (openCount > 0 && (!Number.isFinite(coolingEndsMs) || coolingEndsMs <= nowMs)) {
+        buckets.readyToSign.push({ ...row, bucket: 'readyToSign' });
+      } else {
+        buckets.waitingCustomer.push({ ...row, bucket: 'waitingCustomer' });
+      }
+    }
+  });
+
+  return {
+    generatedAt: new Date(nowMs).toISOString(),
+    totals: {
+      waitingCustomer: buckets.waitingCustomer.length,
+      readyToSign: buckets.readyToSign.length,
+      signed: buckets.signed.length,
+      stuck: buckets.stuck.length,
+    },
+    buckets,
   };
 }
 
@@ -717,5 +886,6 @@ module.exports = {
   PAYMENT_STATUSES,
   buildQuoteOpenTimelineEvents,
   buildCommercialCaseReadout,
+  buildCommercialOwnerOfferOverview,
   createCcoCommercialStore,
 };

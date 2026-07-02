@@ -2460,6 +2460,13 @@
           </div>
           <div id="liveOwnerFollowupDashboard" class="live-panel"></div>
 
+          <div class="section-title">Offerter · kundportal</div>
+          <div class="safety-notice">
+            💼 Read-only owner-lista för kundportal/offert: väntar kund, redo att signera, signerade
+            och fastnade. Delning, signering och kundkontakt sker i ordinarie flöden.
+          </div>
+          <div id="liveOwnerOfferDashboard" class="live-panel"></div>
+
           <div class="section-title">Kliniknotiser</div>
           <div class="safety-notice">
             🔔 Read-only owner-radar från CCO. Visar avvikelser, systemnotiser och ärenden som
@@ -4257,6 +4264,7 @@
             loadDailyWorkQueue(),
             loadStaffPriorityRadar(),
             loadOwnerFollowupDashboard(),
+            loadOwnerOfferDashboard(),
             loadOrdinationReviews(),
             loadMyCustomers(),
             loadAudit(),
@@ -4834,6 +4842,99 @@
           </div>`;
       }
 
+      function ownerOfferBucketLabel(bucket) {
+        const map = {
+          waitingCustomer: ['amber', 'Väntar kund'],
+          readyToSign: ['violet', 'Redo att signera'],
+          signed: ['sage', 'Signerad'],
+          stuck: ['danger', 'Fastnat'],
+        };
+        return map[bucket] || ['info', bucket || 'Offert'];
+      }
+
+      function ownerOfferAmount(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return 'Pris saknas';
+        const numeric = Number(raw);
+        if (Number.isFinite(numeric)) {
+          return new Intl.NumberFormat('sv-SE', {
+            style: 'currency',
+            currency: 'SEK',
+            maximumFractionDigits: 0,
+          }).format(numeric);
+        }
+        return raw;
+      }
+
+      function renderOwnerOfferRow(item) {
+        const [tone, label] = ownerOfferBucketLabel(item.bucket);
+        const patientId = item.patientId || '';
+        const cardHref = patientId
+          ? `/staff-portal?role=admin&panel=all-cases&customerId=${encodeURIComponent(patientId)}`
+          : '/staff-portal?role=admin&panel=all-cases';
+        const sharedBy =
+          staffDisplayName(item.lastPortalSharedBy) || item.lastPortalSharedBy || '—';
+        const sharedAt = item.lastPortalSharedAt
+          ? formatDateTime(item.lastPortalSharedAt)
+          : 'Ej delad';
+        const openedAt = item.quoteOpenedAt ? formatDateTime(item.quoteOpenedAt) : 'Ej öppnad';
+        const sentAt = item.quoteSentAt ? formatDateTime(item.quoteSentAt) : 'Ej skickad';
+        const coolingAt = item.coolingOffEndsAt ? formatDateTime(item.coolingOffEndsAt) : 'Saknas';
+        return `<div class="case-card" data-owner-offer-row="${escapeHtml(item.commercialCaseId || patientId || '')}">
+          <div class="case-card-main">
+            <div class="item-title">${escapeHtml(item.customerName || 'Kund')}</div>
+            <div class="item-meta">Offert: ${escapeHtml(ownerOfferAmount(item.quotedAmount))} · Skickad ${escapeHtml(sentAt)} · Betänketid till ${escapeHtml(coolingAt)}</div>
+            <div class="pill-row">
+              <span class="pill ${escapeHtml(tone)}">${escapeHtml(label)}</span>
+              <span class="pill neutral">Öppnad ${Number(item.quoteOpenCount || 0)} gång${Number(item.quoteOpenCount || 0) === 1 ? '' : 'er'}</span>
+              <span class="pill info">Senast öppnad: ${escapeHtml(openedAt)}</span>
+              <span class="pill neutral">Delad: ${escapeHtml(sharedAt)}</span>
+              <span class="pill neutral">Av: ${escapeHtml(sharedBy)}</span>
+            </div>
+          </div>
+          <a class="btn primary" href="${escapeHtml(cardHref)}" target="_blank" rel="noopener">Öppna kundkort</a>
+        </div>`;
+      }
+
+      async function loadOwnerOfferDashboard() {
+        if (!_liveMode) return;
+        const container = document.getElementById('liveOwnerOfferDashboard');
+        if (!container) return;
+        const data = await apiFetch('/api/v1/cco-commercial/owner-offer-overview');
+        if (!data || !data.ok) return;
+        const totals = data.totals || {};
+        const buckets = data.buckets || {};
+        const active =
+          Number(totals.waitingCustomer || 0) +
+          Number(totals.readyToSign || 0) +
+          Number(totals.stuck || 0);
+        document.querySelectorAll('[data-live-badge="owner-offers"]').forEach((badge) => {
+          badge.textContent = active;
+          badge.style.display = active > 0 ? '' : 'none';
+        });
+        const ordered = [
+          ['stuck', buckets.stuck || []],
+          ['readyToSign', buckets.readyToSign || []],
+          ['waitingCustomer', buckets.waitingCustomer || []],
+          ['signed', buckets.signed || []],
+        ];
+        const rows = ordered
+          .flatMap(([bucket, items]) =>
+            Array.isArray(items) ? items.map((item) => ({ ...item, bucket })) : []
+          )
+          .slice(0, 10);
+        container.innerHTML = `<div class="live-note">Live offertöversikt: ${Number(totals.waitingCustomer || 0)} väntar kund · ${Number(totals.readyToSign || 0)} redo att signera · ${Number(totals.signed || 0)} signerade · ${Number(totals.stuck || 0)} fastnade.</div>
+          <div class="qms-grid" style="margin-top:10px">
+            ${ownerFollowupMetric('Väntar kund', totals.waitingCustomer, 'amber', null)}
+            ${ownerFollowupMetric('Redo att signera', totals.readyToSign, 'violet', null)}
+            ${ownerFollowupMetric('Signerade', totals.signed, 'sage', null)}
+            ${ownerFollowupMetric('Fastnade', totals.stuck, 'danger', null)}
+          </div>
+          <div style="margin-top:12px">
+            ${rows.length ? rows.map(renderOwnerOfferRow).join('') : '<div class="live-note">Inga aktiva offerter hittades just nu.</div>'}
+          </div>`;
+      }
+
       /* Hämta audit-logg och injicera i admin-view */
       async function loadAudit() {
         if (!_liveMode) return;
@@ -5211,6 +5312,12 @@
               label: 'Uppföljningar',
               liveBadge: 'owner-followups',
             },
+            {
+              id: 'owner-offers',
+              icon: '💼',
+              label: 'Offerter',
+              liveBadge: 'owner-offers',
+            },
             { id: 'overview', icon: '🏥', label: 'Kliniköversikt' },
             { id: 'staff', icon: '👥', label: 'Personalöversikt' },
             {
@@ -5262,6 +5369,7 @@
         history: 'history',
         overview: 'overview',
         'owner-followups': 'owner-followups',
+        'owner-offers': 'owner-offers',
         staff: 'staff',
         'all-cases': 'all-cases',
         allcases: 'all-cases',
@@ -5284,6 +5392,7 @@
         'qms-dr': 'doctor',
         overview: 'admin',
         'owner-followups': 'admin',
+        'owner-offers': 'admin',
         staff: 'admin',
         'all-cases': 'admin',
         catalog: 'admin',
@@ -5305,6 +5414,7 @@
         'qms-dr': '#liveQmsHandbookDoctor',
         overview: '#view-admin .stats',
         'owner-followups': '#liveOwnerFollowupDashboard',
+        'owner-offers': '#liveOwnerOfferDashboard',
         staff: '#view-admin .card-list',
         'all-cases': '#liveAdminCaseList',
         catalog: '#view-admin .doc-row',
@@ -5493,6 +5603,7 @@
           loadDelegatedPhotoInbox();
           loadStaffFollowups();
           loadOwnerFollowupDashboard();
+          loadOwnerOfferDashboard();
           loadMyCustomers();
           loadQmsHandbook();
         }

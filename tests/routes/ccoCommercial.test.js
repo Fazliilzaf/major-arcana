@@ -24,6 +24,7 @@ async function withServer(app, run) {
 
 async function createFixture() {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-route-'));
+  const auditEvents = [];
   const commercialStore = await createCcoCommercialStore({
     filePath: path.join(tempDir, 'commercial.json'),
   });
@@ -43,7 +44,8 @@ async function createFixture() {
       },
       patientSystemStore,
       authStore: {
-        async addAuditEvent() {
+        async addAuditEvent(event) {
+          auditEvents.push(event);
           return true;
         },
         async getSessionContextByToken() {
@@ -60,7 +62,7 @@ async function createFixture() {
       requireRole: () => (_req, _res, next) => next(),
     })
   );
-  return { app, commercialStore, tempDir };
+  return { app, commercialStore, tempDir, auditEvents };
 }
 
 test('cco commercial route uppdaterar offert och betalning i samma Patient 360-kort', async () => {
@@ -159,6 +161,107 @@ test('ORD-42: personal-vy räknas inte men kundens signeringssida registrerar of
       const afterCustomerPayload = await afterCustomer.json();
       assert.equal(afterCustomerPayload.commercialCase.quoteOpenCount, 1);
       assert.equal(afterCustomerPayload.commercialCase.quoteOpens[0].source, 'offer_sign_page');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('K51: personalens delning av kundportal sparar audit med checklistan', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const qs =
+        'workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-51&customerName=Kund';
+      const createResponse = await fetch(`${baseUrl}/cco-commercial/case?${qs}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          quoteStatus: 'sent',
+          commercialStatus: 'quote_sent',
+          esignToken: 'tok-k51',
+        }),
+      });
+      assert.equal(createResponse.status, 200);
+
+      const shareResponse = await fetch(`${baseUrl}/cco-commercial/customer-portal/share-event`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          patientId: 'patient-51',
+          eventType: 'portal_message_copied',
+          portalUrl: 'https://arcana.hairtpclinic.com/p',
+          checklist: {
+            'portal-reviewed': true,
+            'plan-reviewed': true,
+            'message-reviewed': true,
+          },
+        }),
+      });
+      assert.equal(shareResponse.status, 200);
+      const payload = await shareResponse.json();
+      assert.equal(payload.commercialCase.lastPortalShareEventType, 'portal_message_copied');
+      assert.equal(payload.commercialCase.lastPortalSharedBy, 'preview-local');
+      assert.deepEqual(payload.commercialCase.lastPortalShareChecklist, {
+        'portal-reviewed': true,
+        'plan-reviewed': true,
+        'message-reviewed': true,
+      });
+      assert.equal(payload.commercialCase.portalShareEvents.length, 1);
+      assert.equal(
+        fixture.auditEvents.at(-1)?.action,
+        'cco.commercial.customer_portal_share_event'
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('K52: owner-översikt räknar väntar kund, redo att signera, signerade och fastnade', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const seed = async (patientId, body) => {
+        const qs = `workspaceId=major-arcana-preview&conversationId=patient-register&customerId=${patientId}&customerName=${patientId}`;
+        const response = await fetch(`${baseUrl}/cco-commercial/case?${qs}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        assert.equal(response.status, 200);
+      };
+      await seed('waiting', {
+        quoteStatus: 'sent',
+        quoteSentAt: '2099-01-01T00:00:00.000Z',
+        coolingOffEndsAt: '2099-01-03T00:00:00.000Z',
+      });
+      await seed('ready', {
+        quoteStatus: 'sent',
+        quoteSentAt: new Date().toISOString(),
+        coolingOffEndsAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+      });
+      await fixture.commercialStore.recordQuoteOpen({
+        tenantId: 'tenant-a',
+        patientId: 'ready',
+        source: 'customer_offer_portal',
+      });
+      await seed('signed', {
+        quoteStatus: 'accepted',
+        quoteAcceptedAt: '2026-01-05T00:00:00.000Z',
+      });
+      await seed('stuck', {
+        quoteStatus: 'sent',
+        quoteSentAt: '2026-01-01T00:00:00.000Z',
+      });
+
+      const overview = await fetch(`${baseUrl}/cco-commercial/owner-offer-overview`);
+      assert.equal(overview.status, 200);
+      const payload = await overview.json();
+      assert.equal(payload.totals.waitingCustomer, 1);
+      assert.equal(payload.totals.readyToSign, 1);
+      assert.equal(payload.totals.signed, 1);
+      assert.equal(payload.totals.stuck, 1);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
