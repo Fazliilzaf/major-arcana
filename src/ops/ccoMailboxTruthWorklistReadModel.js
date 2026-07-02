@@ -37,7 +37,9 @@ function normalizeIdentityCarrier(value = {}) {
     mergeReviewDecisionsByPairId: Object.keys(mergeReviewDecisionsByPairId).length
       ? cloneJson(mergeReviewDecisionsByPairId)
       : {},
-    identityProvenance: Object.keys(identityProvenance).length ? cloneJson(identityProvenance) : null,
+    identityProvenance: Object.keys(identityProvenance).length
+      ? cloneJson(identityProvenance)
+      : null,
   };
 }
 
@@ -45,8 +47,8 @@ function hasSafeCustomerIdentity(identity = {}) {
   const safeIdentity = asObject(identity);
   return Boolean(
     normalizeText(safeIdentity.canonicalCustomerId) ||
-      normalizeText(safeIdentity.canonicalContactId) ||
-      normalizeText(safeIdentity.explicitMergeGroupId)
+    normalizeText(safeIdentity.canonicalContactId) ||
+    normalizeText(safeIdentity.explicitMergeGroupId)
   );
 }
 
@@ -144,8 +146,9 @@ function buildCustomerIdentityLookup(customerState = null) {
   }
 
   function countIdentityRows(rows = []) {
-    return asArray(rows).filter((row) => hasSafeCustomerIdentity(resolveCarrier(row)?.customerIdentity))
-      .length;
+    return asArray(rows).filter((row) =>
+      hasSafeCustomerIdentity(resolveCarrier(row)?.customerIdentity)
+    ).length;
   }
 
   return {
@@ -280,12 +283,7 @@ function deriveLatestSortIso(message = {}) {
 function buildMailboxIdentityEmailSet(message = {}, mailboxId = '') {
   const safeMessage = asObject(message);
   return new Set(
-    [
-      mailboxId,
-      safeMessage.mailboxId,
-      safeMessage.mailboxAddress,
-      safeMessage.userPrincipalName,
-    ]
+    [mailboxId, safeMessage.mailboxId, safeMessage.mailboxAddress, safeMessage.userPrincipalName]
       .map((item) => extractEmail(item))
       .filter(Boolean)
   );
@@ -369,15 +367,14 @@ function countBy(items = [], getKey) {
 }
 
 function countSafeIdentityRows(rows = []) {
-  return asArray(rows).filter((row) => hasSafeCustomerIdentity(asObject(row).customerIdentity)).length;
+  return asArray(rows).filter((row) => hasSafeCustomerIdentity(asObject(row).customerIdentity))
+    .length;
 }
 
 function isOutOfScopeDraftReview(row = {}) {
   const safeRow = asObject(row);
   return (
-    safeRow.hasDrafts === true &&
-    safeRow.hasUnreadInbound !== true &&
-    safeRow.needsReply !== true
+    safeRow.hasDrafts === true && safeRow.hasUnreadInbound !== true && safeRow.needsReply !== true
   );
 }
 
@@ -413,7 +410,9 @@ function getWorklistMergeIdentityKey(row = {}) {
   if (emailFallback) {
     const mailboxScope = normalizeMailboxId(row.ownershipMailbox || row.mailboxId || '');
     return {
-      key: mailboxScope ? `customerEmail:${emailFallback}:${mailboxScope}` : `customerEmail:${emailFallback}`,
+      key: mailboxScope
+        ? `customerEmail:${emailFallback}:${mailboxScope}`
+        : `customerEmail:${emailFallback}`,
       type: 'customerEmail',
       value: emailFallback,
     };
@@ -554,17 +553,18 @@ function buildWorklistRollupRow(rows = []) {
     new Set(
       safeRows
         .map((row) =>
-          normalizeText(row?.conversation?.conversationId || row?.conversationId || row?.conversation?.key || row?.id)
+          normalizeText(
+            row?.conversation?.conversationId ||
+              row?.conversationId ||
+              row?.conversation?.key ||
+              row?.id
+          )
         )
         .filter(Boolean)
     )
   );
   const uniqueConversationKeys = Array.from(
-    new Set(
-      safeRows
-        .map((row) => normalizeText(row?.conversationKey || row?.id))
-        .filter(Boolean)
-    )
+    new Set(safeRows.map((row) => normalizeText(row?.conversationKey || row?.id)).filter(Boolean))
   );
   const rollupIdentity = getWorklistMergeIdentityKey(primaryRow) || {
     key: normalizeText(primaryRow?.conversationKey || primaryRow?.id || ''),
@@ -589,15 +589,18 @@ function buildWorklistRollupRow(rows = []) {
     (max, row) => Math.max(max, Number(row?.timing?.hoursSinceInbound || 0)),
     0
   );
-  const latestMessageAt = safeRows
-    .map((row) => normalizeText(row?.timing?.latestMessageAt || ''))
-    .sort((left, right) => right.localeCompare(left))[0] || null;
-  const lastInboundAt = safeRows
-    .map((row) => normalizeText(row?.timing?.lastInboundAt || ''))
-    .sort((left, right) => right.localeCompare(left))[0] || null;
-  const lastOutboundAt = safeRows
-    .map((row) => normalizeText(row?.timing?.lastOutboundAt || ''))
-    .sort((left, right) => right.localeCompare(left))[0] || null;
+  const latestMessageAt =
+    safeRows
+      .map((row) => normalizeText(row?.timing?.latestMessageAt || ''))
+      .sort((left, right) => right.localeCompare(left))[0] || null;
+  const lastInboundAt =
+    safeRows
+      .map((row) => normalizeText(row?.timing?.lastInboundAt || ''))
+      .sort((left, right) => right.localeCompare(left))[0] || null;
+  const lastOutboundAt =
+    safeRows
+      .map((row) => normalizeText(row?.timing?.lastOutboundAt || ''))
+      .sort((left, right) => right.localeCompare(left))[0] || null;
   const lane = safeRows.some((row) => normalizeLane(row?.lane) === 'act-now')
     ? 'act-now'
     : safeRows.some((row) => normalizeLane(row?.lane) === 'review')
@@ -632,7 +635,40 @@ function buildWorklistRollupRow(rows = []) {
     customerName ||
     (customerEmail ? humanizeCounterpartyEmail(customerEmail) || customerEmail.split('@')[0] : '');
   const provenanceDetail = uniqueMailboxLabels.join(' · ');
-  const provenanceLabel = uniqueMailboxLabels.length > 1 ? `${uniqueMailboxLabels.length} mailboxar` : '';
+  const provenanceLabel =
+    uniqueMailboxLabels.length > 1 ? `${uniqueMailboxLabels.length} mailboxar` : '';
+
+  // C8 mailbox-trail: vilka klinikadresser kunden mailat TILL (inbound-mailboxar)
+  // och senaste svar FRÅN vilken mailbox (senaste outbound-rad).
+  const rowMailboxId = (row) =>
+    normalizeMailboxId(
+      row?.mailbox?.mailboxId ||
+        row?.mailboxId ||
+        row?.mailbox?.mailboxAddress ||
+        row?.mailboxAddress ||
+        row?.mailbox?.userPrincipalName ||
+        row?.userPrincipalName
+    ) || null;
+  const inboundMailboxIds = Array.from(
+    new Set(
+      safeRows
+        .filter((row) => row?.folderPresence?.inbox === true)
+        .map(rowMailboxId)
+        .filter(Boolean)
+    )
+  );
+  const latestReplyRow =
+    safeRows
+      .filter((row) => normalizeText(row?.timing?.lastOutboundAt || ''))
+      .sort((left, right) =>
+        normalizeText(right?.timing?.lastOutboundAt || '').localeCompare(
+          normalizeText(left?.timing?.lastOutboundAt || '')
+        )
+      )[0] || null;
+  const latestReplyMailbox = latestReplyRow ? rowMailboxId(latestReplyRow) : null;
+  const latestReplyAt = latestReplyRow
+    ? normalizeText(latestReplyRow?.timing?.lastOutboundAt || '') || null
+    : null;
   return {
     ...primaryRow,
     conversationKey: effectiveConversationKey,
@@ -669,24 +705,30 @@ function buildWorklistRollupRow(rows = []) {
       threadCount: uniqueConversationIds.length,
       underlyingConversationKeys: uniqueConversationKeys,
       primaryConversationId: primaryRow?.conversationId || null,
-      primaryMailboxId: normalizeMailboxId(
-        primaryRow?.mailbox?.mailboxId ||
-          primaryRow?.mailboxId ||
-          primaryRow?.mailbox?.mailboxAddress ||
-          primaryRow?.mailboxAddress ||
-          primaryRow?.mailbox?.userPrincipalName ||
-          primaryRow?.userPrincipalName
-      ) || null,
-      primaryMailboxAddress: normalizeText(
-        primaryRow?.mailbox?.mailboxAddress ||
-          primaryRow?.mailboxAddress ||
+      primaryMailboxId:
+        normalizeMailboxId(
           primaryRow?.mailbox?.mailboxId ||
-          primaryRow?.mailboxId ||
-          primaryRow?.mailbox?.userPrincipalName ||
-          primaryRow?.userPrincipalName
-      ) || null,
+            primaryRow?.mailboxId ||
+            primaryRow?.mailbox?.mailboxAddress ||
+            primaryRow?.mailboxAddress ||
+            primaryRow?.mailbox?.userPrincipalName ||
+            primaryRow?.userPrincipalName
+        ) || null,
+      primaryMailboxAddress:
+        normalizeText(
+          primaryRow?.mailbox?.mailboxAddress ||
+            primaryRow?.mailboxAddress ||
+            primaryRow?.mailbox?.mailboxId ||
+            primaryRow?.mailboxId ||
+            primaryRow?.mailbox?.userPrincipalName ||
+            primaryRow?.userPrincipalName
+        ) || null,
       underlyingConversationIds: uniqueConversationIds,
       underlyingMailboxIds: uniqueMailboxIds,
+      // C8 mailbox-trail: adresser kunden mailat till + senaste svar-mailbox.
+      inboundMailboxIds,
+      latestReplyMailbox,
+      latestReplyAt,
       operationalSummary: {
         unreadCount,
         needsReplyCount,
@@ -722,16 +764,26 @@ function buildCustomerRollupRows(rows = []) {
     const matchingGroup = groups.find((group) => {
       const firstRow = group[0];
       const firstKey = getWorklistMergeIdentityKey(firstRow);
-      const firstMailboxScopeKey = getWorklistMailboxScopeKey(firstRow);
-      const rowMailboxScopeKey = getWorklistMailboxScopeKey(row);
-      return (
-        firstKey &&
-        firstKey.key === mergeKey.key &&
-        firstMailboxScopeKey &&
-        rowMailboxScopeKey &&
-        firstMailboxScopeKey === rowMailboxScopeKey &&
-        group.every((existingRow) => !hasWorklistHardMergeConflict(existingRow, row))
-      );
+      if (!firstKey || firstKey.key !== mergeKey.key) return false;
+      // C8: samma kund som mailar flera klinikmailboxar ska samlas till EN
+      // operativ kundrad. Bekräftad kanonisk identitet (canonicalCustomerId /
+      // canonicalContactId / explicitMergeGroupId) rollar upp över mailboxar.
+      // Osäker/email-only-match hålls mailbox-scopad — dess mergeKey innehåller
+      // redan mailbox-scope (se getWorklistMergeIdentityKey), så den kan aldrig
+      // auto-bindas över mailboxar. Hård identitetskonflikt blockeras alltid.
+      const isConfirmedIdentity = mergeKey.type !== 'customerEmail';
+      if (!isConfirmedIdentity) {
+        const firstMailboxScopeKey = getWorklistMailboxScopeKey(firstRow);
+        const rowMailboxScopeKey = getWorklistMailboxScopeKey(row);
+        if (
+          !firstMailboxScopeKey ||
+          !rowMailboxScopeKey ||
+          firstMailboxScopeKey !== rowMailboxScopeKey
+        ) {
+          return false;
+        }
+      }
+      return group.every((existingRow) => !hasWorklistHardMergeConflict(existingRow, row));
     });
     if (matchingGroup) {
       matchingGroup.push(row);
@@ -763,7 +815,9 @@ function shouldSuppressOperatorState(row = {}, operatorState = null) {
   if (!operatorState || operatorState.superseded === true) return true;
   const actionAtMs = Date.parse(normalizeText(operatorState.actionAt || ''));
   if (!Number.isFinite(actionAtMs)) return false;
-  const lastInboundMs = Date.parse(normalizeText(row?.lastInboundAt || row?.timing?.lastInboundAt || ''));
+  const lastInboundMs = Date.parse(
+    normalizeText(row?.lastInboundAt || row?.timing?.lastInboundAt || '')
+  );
   const lastOutboundMs = Date.parse(
     normalizeText(row?.lastOutboundAt || row?.timing?.lastOutboundAt || '')
   );
@@ -799,7 +853,9 @@ function applyConversationStateProjection({
   }
   const activeStateMap = conversationStateStore.getActiveStateMap({
     tenantId,
-    canonicalConversationKeys: asArray(rollupRows).map((row) => row?.conversationKey).filter(Boolean),
+    canonicalConversationKeys: asArray(rollupRows)
+      .map((row) => row?.conversationKey)
+      .filter(Boolean),
   });
   const projectedRows = [];
   for (const row of asArray(rollupRows)) {
@@ -897,34 +953,34 @@ function createCcoMailboxTruthWorklistReadModel({
       });
       if (!key) continue;
 
-        const entry =
-        grouped.get(key) || {
-          conversationKey: key,
-          conversationId: normalizeText(message.conversationId) || null,
-          mailboxConversationId: normalizeText(message.mailboxConversationId) || mailboxConversationId,
+      const entry = grouped.get(key) || {
+        conversationKey: key,
+        conversationId: normalizeText(message.conversationId) || null,
+        mailboxConversationId:
+          normalizeText(message.mailboxConversationId) || mailboxConversationId,
+        mailboxId,
+        mailboxAddress: normalizeMailboxId(message.mailboxAddress || mailboxId) || mailboxId,
+        userPrincipalName:
+          normalizeMailboxId(message.userPrincipalName || message.mailboxAddress || mailboxId) ||
           mailboxId,
-          mailboxAddress: normalizeMailboxId(message.mailboxAddress || mailboxId) || mailboxId,
-          userPrincipalName:
-            normalizeMailboxId(message.userPrincipalName || message.mailboxAddress || mailboxId) ||
-            mailboxId,
-          subject: normalizeText(message.subject) || '(utan ämne)',
-          latestPreview: null,
-          latestMessageAt: null,
-          lastInboundAt: null,
-          lastOutboundAt: null,
-          hasUnreadInbound: false,
-          hasDrafts: false,
-          hasInbox: false,
-          hasSent: false,
-          hasDeleted: false,
-          messageCount: 0,
-          customerEmail: null,
-          customerName: null,
-          customerIdentity: null,
-          hardConflictSignals: [],
-          mergeReviewDecisionsByPairId: {},
-          identityProvenance: null,
-        };
+        subject: normalizeText(message.subject) || '(utan ämne)',
+        latestPreview: null,
+        latestMessageAt: null,
+        lastInboundAt: null,
+        lastOutboundAt: null,
+        hasUnreadInbound: false,
+        hasDrafts: false,
+        hasInbox: false,
+        hasSent: false,
+        hasDeleted: false,
+        messageCount: 0,
+        customerEmail: null,
+        customerName: null,
+        customerIdentity: null,
+        hardConflictSignals: [],
+        mergeReviewDecisionsByPairId: {},
+        identityProvenance: null,
+      };
 
       const folderType = normalizeText(message.folderType).toLowerCase();
       const direction = normalizeDirection(message.direction, folderType);
@@ -1031,7 +1087,8 @@ function createCcoMailboxTruthWorklistReadModel({
 
     return Array.from(grouped.values())
       .map((entry) => {
-        const deletedOnly = entry.hasDeleted && !entry.hasInbox && !entry.hasSent && !entry.hasDrafts;
+        const deletedOnly =
+          entry.hasDeleted && !entry.hasInbox && !entry.hasSent && !entry.hasDrafts;
         const messageClassification = classifyConversationMessage({
           subject: entry.subject,
           inboundPreview: entry.latestPreview,
@@ -1045,7 +1102,8 @@ function createCcoMailboxTruthWorklistReadModel({
         const hoursSinceInbound = entry.lastInboundAt
           ? Math.max(
               0,
-              Math.round(((Date.now() - Date.parse(entry.lastInboundAt)) / (60 * 60 * 1000)) * 10) / 10
+              Math.round(((Date.now() - Date.parse(entry.lastInboundAt)) / (60 * 60 * 1000)) * 10) /
+                10
             )
           : 0;
         const activeCandidate =
@@ -1057,7 +1115,8 @@ function createCcoMailboxTruthWorklistReadModel({
         let lane = null;
         if (activeCandidate) {
           if (outOfScopeDraftReview) lane = 'review';
-          else if (!isSystemMail && entry.hasUnreadInbound && hoursSinceInbound >= 24) lane = 'act-now';
+          else if (!isSystemMail && entry.hasUnreadInbound && hoursSinceInbound >= 24)
+            lane = 'act-now';
           else lane = 'all';
         }
 
@@ -1075,7 +1134,9 @@ function createCcoMailboxTruthWorklistReadModel({
         };
       })
       .filter((entry) => entry.activeCandidate)
-      .sort((left, right) => String(right.latestMessageAt || '').localeCompare(String(left.latestMessageAt || '')))
+      .sort((left, right) =>
+        String(right.latestMessageAt || '').localeCompare(String(left.latestMessageAt || ''))
+      )
       .map((entry, index) => ({
         ...entry,
         placementIndex: index,
@@ -1094,10 +1155,7 @@ function createCcoMailboxTruthWorklistReadModel({
     return safeLimit > 0 ? rows.slice(0, safeLimit) : rows;
   }
 
-  function buildReadModel({
-    mailboxIds = [],
-    limit = 250,
-  } = {}) {
+  function buildReadModel({ mailboxIds = [], limit = 250 } = {}) {
     const inScopeRows = listWorklistRows({
       mailboxIds,
       limit,
@@ -1169,10 +1227,7 @@ function createCcoMailboxTruthWorklistReadModel({
     };
   }
 
-  function buildConsumerModel({
-    mailboxIds = [],
-    limit = 5000,
-  } = {}) {
+  function buildConsumerModel({ mailboxIds = [], limit = 5000 } = {}) {
     const n = Number(limit);
     const readLimit = n === 1000 ? 5000 : Number.isFinite(n) && n > 0 ? n : 5000;
     const readModel = buildReadModel({ mailboxIds, limit: readLimit });
@@ -1190,10 +1245,7 @@ function createCcoMailboxTruthWorklistReadModel({
     ).length;
     const tomorrowCount = rollupRows.filter((row) => {
       const followUpIso = normalizeText(row.operatorState?.followUpDueAt || '');
-      return (
-        followUpIso &&
-        getCalendarDayBucket(followUpIso, 'Europe/Stockholm') === 'tomorrow'
-      );
+      return followUpIso && getCalendarDayBucket(followUpIso, 'Europe/Stockholm') === 'tomorrow';
     }).length;
     return {
       generatedAt: new Date().toISOString(),
@@ -1211,7 +1263,10 @@ function createCcoMailboxTruthWorklistReadModel({
         rawRowCount: Number(readModel.summary?.rowCount || 0),
         rowCount: rollupRows.length,
         rollupRowCount: rollupRows.length,
-        rollupReductionCount: Math.max(0, Number(readModel.summary?.rowCount || 0) - rollupRows.length),
+        rollupReductionCount: Math.max(
+          0,
+          Number(readModel.summary?.rowCount || 0) - rollupRows.length
+        ),
         identityCount: countSafeIdentityRows(rollupRows),
         identityCoverage:
           rollupRows.length > 0
@@ -1227,65 +1282,65 @@ function createCcoMailboxTruthWorklistReadModel({
         const inlineContext = buildQueueInlineContext(row);
         const explanatoryLine = buildQueueExplanatoryLine(row);
         return {
-        id: row.conversationKey,
-        lane: row.lane || 'all',
-        placementIndex: row.placementIndex,
-        subject: row.subject,
-        preview: row.latestPreview,
-        dueBucket: buildConsumerDueBucket(row),
-        conversation: {
-          key: row.conversationKey,
-          conversationId: row.conversationId,
-          mailboxConversationId: row.mailboxConversationId,
-        },
-        mailbox: {
-          mailboxId: row.mailboxId,
-          mailboxAddress: row.mailboxAddress,
-          ownershipMailbox: row.ownershipMailbox,
-        },
-        customer: {
-          email: row.customerEmail,
-          name: row.customerName,
-          identity: row.customerIdentity,
-        },
-        customerIdentity: row.customerIdentity,
-        hardConflictSignals: row.hardConflictSignals,
-        mergeReviewDecisionsByPairId: row.mergeReviewDecisionsByPairId,
-        identityProvenance: row.identityProvenance,
-        rollup: row.rollup,
-        queueInlineContext: inlineContext || null,
-        queueExplanatoryLine: explanatoryLine || null,
-        presentation: {
-          primaryLabel: row.customerName || row.customerEmail || null,
-          inlineContext: inlineContext || null,
-          explanatoryLine: explanatoryLine || null,
-        },
-        timing: {
-          latestMessageAt: row.latestMessageAt,
-          lastInboundAt: row.lastInboundAt,
-          lastOutboundAt: row.lastOutboundAt,
-          hoursSinceInbound: row.hoursSinceInbound,
-        },
-        state: {
-          hasUnreadInbound: row.hasUnreadInbound === true,
-          needsReply: row.needsReply === true,
-          messageClassification: row.messageClassification || 'actionable',
-          messageCount: row.messageCount,
-          folderPresence: asObject(row.folderPresence),
-          operatorState: asObject(row.operatorState),
-          ingestion: asObject(row.ingestion),
-        },
-        provenance: {
-          source: 'mailbox_truth_store',
-          parityScope: 'in_scope',
+          id: row.conversationKey,
+          lane: row.lane || 'all',
+          placementIndex: row.placementIndex,
+          subject: row.subject,
+          preview: row.latestPreview,
+          dueBucket: buildConsumerDueBucket(row),
+          conversation: {
+            key: row.conversationKey,
+            conversationId: row.conversationId,
+            mailboxConversationId: row.mailboxConversationId,
+          },
+          mailbox: {
+            mailboxId: row.mailboxId,
+            mailboxAddress: row.mailboxAddress,
+            ownershipMailbox: row.ownershipMailbox,
+          },
+          customer: {
+            email: row.customerEmail,
+            name: row.customerName,
+            identity: row.customerIdentity,
+          },
+          customerIdentity: row.customerIdentity,
+          hardConflictSignals: row.hardConflictSignals,
+          mergeReviewDecisionsByPairId: row.mergeReviewDecisionsByPairId,
+          identityProvenance: row.identityProvenance,
           rollup: row.rollup,
-          ingestion: asObject(row.ingestion),
-          operatorStateSource:
-            row?.operatorState && Object.keys(asObject(row.operatorState)).length > 0
-              ? 'cco_conversation_state_store'
-              : null,
-        },
-      };
+          queueInlineContext: inlineContext || null,
+          queueExplanatoryLine: explanatoryLine || null,
+          presentation: {
+            primaryLabel: row.customerName || row.customerEmail || null,
+            inlineContext: inlineContext || null,
+            explanatoryLine: explanatoryLine || null,
+          },
+          timing: {
+            latestMessageAt: row.latestMessageAt,
+            lastInboundAt: row.lastInboundAt,
+            lastOutboundAt: row.lastOutboundAt,
+            hoursSinceInbound: row.hoursSinceInbound,
+          },
+          state: {
+            hasUnreadInbound: row.hasUnreadInbound === true,
+            needsReply: row.needsReply === true,
+            messageClassification: row.messageClassification || 'actionable',
+            messageCount: row.messageCount,
+            folderPresence: asObject(row.folderPresence),
+            operatorState: asObject(row.operatorState),
+            ingestion: asObject(row.ingestion),
+          },
+          provenance: {
+            source: 'mailbox_truth_store',
+            parityScope: 'in_scope',
+            rollup: row.rollup,
+            ingestion: asObject(row.ingestion),
+            operatorStateSource:
+              row?.operatorState && Object.keys(asObject(row.operatorState)).length > 0
+                ? 'cco_conversation_state_store'
+                : null,
+          },
+        };
       }),
     };
   }
@@ -1302,4 +1357,8 @@ module.exports = {
   applyIngestionLedgerProjection,
   isOutOfScopeDraftReview,
   toCanonicalMailboxConversationKey,
+  // Exponerade för C8-tester (multi-mailbox customer rollup).
+  buildCustomerRollupRows,
+  buildWorklistRollupRow,
+  hasWorklistHardMergeConflict,
 };
