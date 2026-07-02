@@ -210,6 +210,27 @@ test('ärlig partiell live: bel./kanal/revenue-trend fabriceras aldrig', () => {
   assert.ok(m.notLiveYet.includes('revenueSek.previous'));
 });
 
+test('no-show-rate blir null när live-källan saknar no-show-sanning', () => {
+  const bookings = [
+    {
+      startsAt: '2026-06-02T09:00:00Z',
+      status: 'completed',
+      source: 'cco_booking_engine',
+    },
+    {
+      startsAt: '2026-05-03T09:00:00Z',
+      status: 'completed',
+      source: 'cco_treatment_encounter',
+    },
+  ];
+  const m = composeClinicMetrics({ bookings, now: NOW });
+  assert.equal(m.bookings.current, 1);
+  assert.equal(m.bookings.previous, 1);
+  assert.equal(m.noShowRate.current, null);
+  assert.equal(m.noShowRate.previous, null);
+  assert.ok(m.notLiveYet.includes('noShowRate'));
+});
+
 test('ingen intäkt → revenue och AOV blir null (inte 0-gissning)', () => {
   const bookings = [booking('2026-06-02T09:00:00Z')];
   const m = composeClinicMetrics({ bookings, financeDashboard: null, now: NOW });

@@ -118,6 +118,13 @@ function clinicPerformanceRowDedupeKey(row = {}) {
   return `fallback:${startsAt}::${resource}`;
 }
 
+function bookingSourceSupportsNoShow(row = {}) {
+  const source = normalizeText(row.source).toLowerCase();
+  // cliento is the only source that can currently carry explicit no_show state.
+  // Missing source is treated as test/legacy input and remains no-show-capable.
+  return !source || source === 'cliento';
+}
+
 function collectFromBookingEngineStore({ bookingEngineStore = null, tenantId = '' } = {}) {
   if (!bookingEngineStore || typeof bookingEngineStore.listBookingsForEnrichment !== 'function') {
     return [];
@@ -258,23 +265,33 @@ function composeClinicMetrics({
   let bookingsPrevious = 0;
   let noShowCurrent = 0;
   let noShowPrevious = 0;
+  let noShowHasLiveCoverageCurrent = true;
+  let noShowHasLiveCoveragePrevious = true;
   for (const b of Array.isArray(bookings) ? bookings : []) {
     const t = b && b.startsAt ? Date.parse(b.startsAt) : NaN;
     if (!Number.isFinite(t)) continue;
     if (t >= monthStart && t < nextMonthStart) {
       bookingsCurrent += 1;
+      if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoverageCurrent = false;
       if (b.status === 'no_show') noShowCurrent += 1;
       continue;
     }
     if (t >= prevMonthStart && t < monthStart) {
       bookingsPrevious += 1;
+      if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoveragePrevious = false;
       if (b.status === 'no_show') noShowPrevious += 1;
     }
   }
-  const noShowRateCurrent =
-    bookingsCurrent > 0 ? Number((noShowCurrent / bookingsCurrent).toFixed(4)) : 0;
-  const noShowRatePrevious =
-    bookingsPrevious > 0 ? Number((noShowPrevious / bookingsPrevious).toFixed(4)) : 0;
+  const noShowRateCurrent = noShowHasLiveCoverageCurrent
+    ? bookingsCurrent > 0
+      ? Number((noShowCurrent / bookingsCurrent).toFixed(4))
+      : 0
+    : null;
+  const noShowRatePrevious = noShowHasLiveCoveragePrevious
+    ? bookingsPrevious > 0
+      ? Number((noShowPrevious / bookingsPrevious).toFixed(4))
+      : 0
+    : null;
 
   // Intäkt betald denna månad ur finance-dashboarden (null om ej tillgänglig).
   const revenueCurrent =
@@ -303,6 +320,7 @@ function composeClinicMetrics({
     notLiveYet: [
       'utilizationRate',
       'channelSplit',
+      ...(noShowRateCurrent === null || noShowRatePrevious === null ? ['noShowRate'] : []),
       'revenueSek.previous',
       'avgOrderValueSek.previous',
     ],
