@@ -9455,6 +9455,33 @@
     `;
   }
 
+  function renderCustomerPortalShareAudit(linkedOffer) {
+    if (!linkedOffer) return '';
+    const lastSharedAt = normalizeText(linkedOffer.lastPortalSharedAt);
+    const lastSharedBy = normalizeText(linkedOffer.lastPortalSharedBy) || 'personal';
+    const checklist = linkedOffer.lastPortalShareChecklist || {};
+    const checkedLabels = CUSTOMER_PORTAL_SHARE_CHECKS.filter((item) => checklist[item.key]).map(
+      (item) => item.label
+    );
+    if (!lastSharedAt) {
+      return `
+        <div class="patient-master-offer-next-step" data-customer-portal-share-audit>
+          <span class="patient-master-status-badge">Delningsaudit</span>
+          <p class="patient-master-muted">Portalen är inte delad från personalvyn ännu.</p>
+        </div>
+      `;
+    }
+    return `
+      <div class="patient-master-offer-next-step is-ready" data-customer-portal-share-audit>
+        <span class="patient-master-status-badge is-accent">Delad ${escapeHtml(formatV9ListDateTime(lastSharedAt))}</span>
+        <span class="patient-master-status-badge">Av ${escapeHtml(lastSharedBy)}</span>
+        <p class="patient-master-muted">Checklista vid delning: ${escapeHtml(
+          checkedLabels.length ? checkedLabels.join(' · ') : 'ingen checklista sparad'
+        )}</p>
+      </div>
+    `;
+  }
+
   function renderCustomerPortalFinalQaStatus(
     linkedOffer,
     customerPortalUrl,
@@ -9638,6 +9665,7 @@
     let label = 'Väntar på kund';
     let message = 'Kunden har inte öppnat portalen ännu. Avvakta eller följ upp försiktigt.';
     let tone = '';
+    let actionState = 'sent_unopened';
 
     if (activity?.openCount > 0 && coolingActive) {
       label = 'Läst under betänketid';
@@ -9645,14 +9673,17 @@
         linkedOffer.coolingOffEndsAt
       ).slice(0, 10)}.`;
       tone = 'is-waiting';
+      actionState = 'opened_waiting_cooling';
     } else if (activity?.openCount > 0) {
-      label = 'Följ upp nu';
-      message = 'Kunden har öppnat underlag men inte signerat. Prioritera en mjuk uppföljning.';
+      label = 'Följ upp i konversation';
+      message =
+        'Kunden har öppnat portalen men inte signerat. Följ upp via konversation eller staff-vy.';
       tone = 'is-action';
+      actionState = 'opened_unsigned';
     }
 
     return `
-      <div class="patient-master-offer-followup ${tone}" aria-label="Offertuppföljning">
+      <div class="patient-master-offer-followup ${tone}" aria-label="Offertuppföljning" data-customer-portal-opened-unsigned-signal="${actionState === 'opened_unsigned' ? 'true' : 'false'}" data-customer-portal-action-state="${escapeHtml(actionState)}" data-customer-portal-open-count="${escapeHtml(String(activity?.openCount || 0))}">
         <span>${escapeHtml(label)}</span>
         <strong>${escapeHtml(message)}</strong>
       </div>
@@ -10021,6 +10052,7 @@
           ${renderCustomerPortalReadiness(linkedOffer, planEntry, photos, customerPortalUrl)}
           ${renderCustomerPortalSharePreview(customerPortalUrl)}
           ${renderCustomerPortalShareChecklist(linkedOffer, customerPortalUrl, planEntry, photos)}
+          ${renderCustomerPortalShareAudit(linkedOffer)}
           ${renderCustomerPortalFinalQaStatus(
             linkedOffer,
             customerPortalUrl,
@@ -12611,6 +12643,7 @@
         window.prompt('Kopiera kundportallänken:', absoluteUrl);
         return;
       }
+      void recordCustomerPortalShareEvent('portal_link_copied', absoluteUrl);
       setStatus('Kundportallänk kopierad.', 'success');
     } catch {
       setStatus('Kunde inte kopiera kundportallänken.', 'error');
@@ -12652,9 +12685,41 @@
         window.prompt('Kopiera kundmeddelandet:', message);
         return;
       }
+      void recordCustomerPortalShareEvent('portal_message_copied', rawUrl, message);
       setStatus('Kundmeddelande kopierat. Granska innan du skickar.', 'success');
     } catch {
       setStatus('Kunde inte kopiera kundmeddelandet.', 'error');
+    }
+  }
+
+  function currentCustomerPortalShareChecklistValues() {
+    const values = {};
+    document.querySelectorAll('[data-customer-portal-share-check]').forEach((input) => {
+      const key = normalizeText(input.dataset.customerPortalShareCheck);
+      if (key) values[key] = Boolean(input.checked);
+    });
+    return values;
+  }
+
+  async function recordCustomerPortalShareEvent(eventType, portalUrl, message = '') {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId || !portalUrl) return;
+    try {
+      const payload = await apiRequest('/api/v1/cco-commercial/customer-portal/share-event', {
+        method: 'POST',
+        body: {
+          patientId,
+          eventType,
+          portalUrl: new URL(portalUrl, window.location.origin).toString(),
+          message,
+          checklist: currentCustomerPortalShareChecklistValues(),
+        },
+      });
+      if (payload?.commercialCase) {
+        runtime.commercialCase = payload.commercialCase;
+      }
+    } catch (error) {
+      console.warn('[customer-portal-share-audit] kunde inte logga delning', error);
     }
   }
 

@@ -19,6 +19,7 @@ const {
   QUOTE_STATUSES,
   PAYMENT_STATUSES,
   buildCommercialCaseReadout,
+  buildCommercialOwnerOfferOverview,
 } = require('../ops/ccoCommercialStore');
 const {
   buildOfferDefaultsFromPlan,
@@ -587,6 +588,64 @@ function createCcoCommercialRouter({
         return res.json({
           commercialCase,
           commercialReadout: commercialCase ? buildCommercialCaseReadout(commercialCase) : null,
+        });
+      })
+  );
+
+  router.get(
+    '/cco-commercial/owner-offer-overview',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (_context, actor) => {
+        const cases = commercialStore.listCases ? await commercialStore.listCases() : [];
+        const tenantCases = cases.filter((item) => item.tenantId === actor.tenantId);
+        return res.json(buildCommercialOwnerOfferOverview(tenantCases));
+      })
+  );
+
+  router.post(
+    '/cco-commercial/customer-portal/share-event',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (_context, actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        if (!commercialStore.recordPortalShareEvent) {
+          return res.status(503).json({ error: 'Kundportalaudit är inte konfigurerad.' });
+        }
+        const result = await commercialStore.recordPortalShareEvent({
+          tenantId: actor.tenantId,
+          patientId,
+          actorUserId: actor.userId,
+          actorName: normalizeText(actor.displayName || actor.email || actor.userId),
+          eventType: normalizeText(body.eventType) || 'portal_link_copied',
+          checklist: body.checklist && typeof body.checklist === 'object' ? body.checklist : {},
+          portalUrl: normalizeText(body.portalUrl),
+          message: normalizeText(body.message),
+          source: 'patient_master_offer_panel',
+        });
+        if (authStore?.addAuditEvent) {
+          await authStore.addAuditEvent({
+            tenantId: actor.tenantId,
+            actorUserId: actor.userId,
+            action: 'cco.commercial.customer_portal_share_event',
+            outcome: 'success',
+            targetType: 'cco_commercial',
+            targetId: result.commercialCase.commercialCaseId,
+            metadata: {
+              patientId,
+              eventType: result.shareEvent.eventType,
+              checklist: result.shareEvent.checklist,
+            },
+          });
+        }
+        return res.json({
+          commercialCase: result.commercialCase,
+          commercialReadout: buildCommercialCaseReadout(result.commercialCase),
+          shareEvent: result.shareEvent,
         });
       })
   );
