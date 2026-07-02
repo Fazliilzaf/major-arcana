@@ -17,33 +17,58 @@
 
 const SCHEMA_VERSION = '1.0.0';
 
-function nowIso() { return new Date().toISOString(); }
-function safeNum(n) { return typeof n === 'number' && Number.isFinite(n) ? n : 0; }
+function nowIso() {
+  return new Date().toISOString();
+}
+function safeNum(n) {
+  return typeof n === 'number' && Number.isFinite(n) ? n : 0;
+}
 
-function periodStart(period) {
-  const now = new Date();
+function previousMonthSameDayEndExclusive(dateLike) {
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike || Date.now());
+  const targetYear = d.getUTCMonth() === 0 ? d.getUTCFullYear() - 1 : d.getUTCFullYear();
+  const targetMonth = d.getUTCMonth() === 0 ? 11 : d.getUTCMonth() - 1;
+  const lastDayInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const clampedDay = Math.min(d.getUTCDate(), lastDayInTargetMonth);
+  return new Date(Date.UTC(targetYear, targetMonth, clampedDay + 1)).toISOString();
+}
+
+function periodStartUtcMonth(dateLike, monthOffset = 0) {
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike || Date.now());
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + monthOffset, 1)).toISOString();
+}
+
+function periodStart(period, dateLike = new Date()) {
+  const now = dateLike instanceof Date ? dateLike : new Date(dateLike || Date.now());
   if (period === 'today') {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     return d.toISOString();
   }
   if (period === 'week') {
-    const day = now.getDay() || 7;
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (day - 1));
+    const day = now.getUTCDay() || 7;
+    const d = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (day - 1))
+    );
     return d.toISOString();
   }
   if (period === 'month') {
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   }
   return null;
 }
 
 async function safeCall(fn, fallback = null) {
-  try { return await fn(); } catch { return fallback; }
+  try {
+    return await fn();
+  } catch {
+    return fallback;
+  }
 }
 
 async function buildFinanceDashboard({
   stores = {},
   tenantId = 'hair_tp',
+  now = new Date(),
   // CF.3 (2026-06-01): Fortnox OAuth är blockerad av Fortnox backend
   // (utvecklarportalen ger tre olika felkoder). Markera status som
   // 'blocked_integration' istället för 'not_connected' så UI visar
@@ -55,7 +80,12 @@ async function buildFinanceDashboard({
   const partial = { reasons: [] };
 
   // ── Fortnox status ─────────────────────────────────────────────
-  let fortnox = { connected: false, status: 'not_connected', lastSync: null, blockedIntegration: false };
+  const fortnox = {
+    connected: false,
+    status: 'not_connected',
+    lastSync: null,
+    blockedIntegration: false,
+  };
   if (stores.fortnoxStore?.getPublicStatus) {
     const fs = await safeCall(() => stores.fortnoxStore.getPublicStatus({ tenantId }));
     if (fs) {
@@ -75,14 +105,17 @@ async function buildFinanceDashboard({
   if (!fortnox.connected && fortnoxBlockedIntegration) {
     fortnox.status = 'blocked_integration';
     fortnox.blockedIntegration = true;
-    fortnox.blockerReason = 'Fortnox Utvecklarportal returnerar fel — OAuth-flödet kan inte slutföras. CF kör manuell expense-export tills Fortnox-felen är lösta.';
+    fortnox.blockerReason =
+      'Fortnox Utvecklarportal returnerar fel — OAuth-flödet kan inte slutföras. CF kör manuell expense-export tills Fortnox-felen är lösta.';
   }
   if (!fortnox.connected) {
-    partial.reasons.push(fortnox.blockedIntegration ? 'fortnox_blocked_integration' : 'fortnox_not_connected');
+    partial.reasons.push(
+      fortnox.blockedIntegration ? 'fortnox_blocked_integration' : 'fortnox_not_connected'
+    );
   }
 
   // ── Swish status ───────────────────────────────────────────────
-  let swish = { connected: false, status: 'not_connected' };
+  const swish = { connected: false, status: 'not_connected' };
   if (stores.swishStore?.getPublicStatus) {
     const ss = await safeCall(() => stores.swishStore.getPublicStatus({ tenantId }));
     if (ss) {
@@ -97,9 +130,10 @@ async function buildFinanceDashboard({
 
   // ── Income / outstanding / paid invoices ───────────────────────
   // Hämta från Commercial-store (om finns) + Fortnox-lister (om wireat)
-  let invoiceSummary = {
+  const invoiceSummary = {
     totalOutstandingSek: null,
     totalPaidThisMonthSek: null,
+    totalPaidPreviousComparablePeriodSek: null,
     totalPaidThisWeekSek: null,
     totalPaidTodaySek: null,
     invoiceCounts: { sent: 0, partially_paid: 0, paid: 0, overdue: 0, drafted: 0 },
@@ -114,11 +148,17 @@ async function buildFinanceDashboard({
   }
 
   if (stores.commercialStore?.listAll) {
-    const cases = await safeCall(() => stores.commercialStore.listAll(), []) || [];
-    const todayIso = periodStart('today');
-    const weekIso = periodStart('week');
-    const monthIso = periodStart('month');
-    let outstanding = 0, paidToday = 0, paidWeek = 0, paidMonth = 0;
+    const cases = (await safeCall(() => stores.commercialStore.listAll(), [])) || [];
+    const todayIso = periodStart('today', now);
+    const weekIso = periodStart('week', now);
+    const monthIso = periodStart('month', now);
+    const previousMonthIso = periodStartUtcMonth(now, -1);
+    const previousComparableEndIso = previousMonthSameDayEndExclusive(now);
+    let outstanding = 0,
+      paidToday = 0,
+      paidWeek = 0,
+      paidMonth = 0,
+      paidPreviousComparable = 0;
     for (const c of cases) {
       const invStatus = c.invoiceStatus || c.status;
       const paidAt = c.invoicePaidAt || c.paidAt;
@@ -128,9 +168,11 @@ async function buildFinanceDashboard({
         if (paidAt >= todayIso) paidToday += paid;
         if (paidAt >= weekIso) paidWeek += paid;
         if (paidAt >= monthIso) paidMonth += paid;
+        if (paidAt >= previousMonthIso && paidAt < previousComparableEndIso)
+          paidPreviousComparable += paid;
         invoiceSummary.invoiceCounts.paid += 1;
       } else if (invStatus === 'partially_paid') {
-        outstanding += (total - paid);
+        outstanding += total - paid;
         invoiceSummary.invoiceCounts.partially_paid += 1;
       } else if (invStatus === 'overdue') {
         outstanding += total;
@@ -144,6 +186,7 @@ async function buildFinanceDashboard({
     }
     invoiceSummary.totalOutstandingSek = outstanding;
     invoiceSummary.totalPaidThisMonthSek = paidMonth;
+    invoiceSummary.totalPaidPreviousComparablePeriodSek = paidPreviousComparable;
     invoiceSummary.totalPaidThisWeekSek = paidWeek;
     invoiceSummary.totalPaidTodaySek = paidToday;
     invoiceSummary.partial = !fortnox.connected; // bara säker när Fortnox sync är klar
@@ -153,10 +196,11 @@ async function buildFinanceDashboard({
   }
 
   // ── Deposits ───────────────────────────────────────────────────
-  let depositSummary = { totalDepositsHeldSek: null, depositCount: 0, partial: true };
+  const depositSummary = { totalDepositsHeldSek: null, depositCount: 0, partial: true };
   if (stores.commercialStore?.listAll) {
-    const cases = await safeCall(() => stores.commercialStore.listAll(), []) || [];
-    let held = 0, count = 0;
+    const cases = (await safeCall(() => stores.commercialStore.listAll(), [])) || [];
+    let held = 0,
+      count = 0;
     for (const c of cases) {
       if (c.depositStatus === 'paid' || c.depositPaid) {
         held += safeNum(c.depositAmountSek);
@@ -169,7 +213,14 @@ async function buildFinanceDashboard({
   }
 
   // ── Receipts summary ───────────────────────────────────────────
-  let receipts = { total: 0, needsReviewCount: 0, byStatus: {}, byCategory: {}, totalAmountSek: 0, partial: false };
+  let receipts = {
+    total: 0,
+    needsReviewCount: 0,
+    byStatus: {},
+    byCategory: {},
+    totalAmountSek: 0,
+    partial: false,
+  };
   if (stores.receiptStore?.summary) {
     const s = stores.receiptStore.summary();
     receipts = { ...receipts, ...s, partial: false };
@@ -181,16 +232,28 @@ async function buildFinanceDashboard({
   // ── Expenses summary (CF.3) ────────────────────────────────────
   // Visar månadens utgifter + per kategori + moms-summering + ready-for-export.
   // Fungerar utan Fortnox.
-  const monthStart = periodStart('month');
+  const monthStart = periodStart('month', now);
   const monthStartDate = monthStart ? monthStart.slice(0, 10) : null;
   let expenses = {
-    total: 0, unrejectedTotal: 0, needsReviewCount: 0,
-    byStatus: {}, byCategory: {}, byPaymentMethod: {}, byVatRate: {}, byFortnoxSyncStatus: {},
-    totalAmountSek: 0, totalVatSek: 0,
-    readyForExportCount: 0, readyForExportAmountSek: 0,
-    approvedAmountSek: 0, exportedAmountSek: 0, needsReviewAmountSek: 0,
+    total: 0,
+    unrejectedTotal: 0,
+    needsReviewCount: 0,
+    byStatus: {},
+    byCategory: {},
+    byPaymentMethod: {},
+    byVatRate: {},
+    byFortnoxSyncStatus: {},
+    totalAmountSek: 0,
+    totalVatSek: 0,
+    readyForExportCount: 0,
+    readyForExportAmountSek: 0,
+    approvedAmountSek: 0,
+    exportedAmountSek: 0,
+    needsReviewAmountSek: 0,
     fortnoxBlockedCount: 0,
-    monthAmountSek: 0, monthByCategory: {}, monthVatSek: 0,
+    monthAmountSek: 0,
+    monthByCategory: {},
+    monthVatSek: 0,
     partial: false,
   };
   if (stores.expenseStore?.summary) {
@@ -210,7 +273,15 @@ async function buildFinanceDashboard({
   }
 
   // ── CF.4: Rules + Suggestions summary ──────────────────────────
-  let rules = { total: 0, active: 0, inactive: 0, byCategory: {}, totalApplied: 0, totalRejected: 0, partial: false };
+  let rules = {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    byCategory: {},
+    totalApplied: 0,
+    totalRejected: 0,
+    partial: false,
+  };
   if (stores.ruleStore?.summary) {
     const s = stores.ruleStore.summary();
     rules = { ...rules, ...s, partial: false };
@@ -218,7 +289,17 @@ async function buildFinanceDashboard({
     rules.partial = true;
   }
   // ── CF.5: Vendor (finance-supplier) summary ───────────────────
-  let vendors = { total: 0, active: 0, inactive: 0, bySource: {}, byRiskFlag: {}, totalMatched: 0, totalUsed: 0, needsReviewCount: 0, partial: false };
+  let vendors = {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    bySource: {},
+    byRiskFlag: {},
+    totalMatched: 0,
+    totalUsed: 0,
+    needsReviewCount: 0,
+    partial: false,
+  };
   if (stores.vendorStore?.summary) {
     const v = stores.vendorStore.summary();
     vendors = { ...vendors, ...v, partial: false };
@@ -227,12 +308,20 @@ async function buildFinanceDashboard({
   }
   // ── CF.7: Recurring expense summary ──────────────────────────
   let recurring = {
-    total: 0, active: 0, proposed: 0, paused: 0, ended: 0,
-    byFrequency: {}, bySource: {},
+    total: 0,
+    active: 0,
+    proposed: 0,
+    paused: 0,
+    ended: 0,
+    byFrequency: {},
+    bySource: {},
     estimatedMonthlyLoadSek: 0,
-    dueNext30Count: 0, dueNext30Sek: 0,
-    overdueCount: 0, overdueAmountSek: 0,
-    unmatchedActiveCount: 0, recentlyDetected: 0,
+    dueNext30Count: 0,
+    dueNext30Sek: 0,
+    overdueCount: 0,
+    overdueAmountSek: 0,
+    unmatchedActiveCount: 0,
+    recentlyDetected: 0,
     partial: false,
   };
   if (stores.recurringStore?.summary) {
@@ -243,9 +332,13 @@ async function buildFinanceDashboard({
   }
   // ── CF.8: Review summary ──────────────────────────────────────
   let review = {
-    total: 0, byStatus: {},
-    pendingCount: 0, reviewedCount: 0, acceptedCount: 0,
-    needsCorrectionCount: 0, rejectedCount: 0,
+    total: 0,
+    byStatus: {},
+    pendingCount: 0,
+    reviewedCount: 0,
+    acceptedCount: 0,
+    needsCorrectionCount: 0,
+    rejectedCount: 0,
     latestActivityAt: null,
     partial: false,
   };
@@ -258,7 +351,10 @@ async function buildFinanceDashboard({
 
   // ── CF.9: Monthly close summary ───────────────────────────────
   let monthlyClose = {
-    total: 0, byStatus: {}, closedCount: 0, inFlightCount: 0,
+    total: 0,
+    byStatus: {},
+    closedCount: 0,
+    inFlightCount: 0,
     latestActivityAt: null,
     currentPeriod: null,
     currentStatus: 'open',
@@ -290,7 +386,9 @@ async function buildFinanceDashboard({
         monthlyClose.checklistPassing = c.passing;
         monthlyClose.checklistTotal = c.totalChecks;
       }
-    } catch { monthlyClose.partial = true; }
+    } catch {
+      monthlyClose.partial = true;
+    }
   } else {
     monthlyClose.partial = true;
   }
@@ -309,8 +407,8 @@ async function buildFinanceDashboard({
       if (e.suggestion && e.suggestion.bestMatch) {
         pendingSuggestionsCount += 1;
         const conf = Number(e.suggestion.bestMatch.confidence || 0);
-        if (conf >= 0.70) highConfidenceCount += 1;
-        else if (conf <= 0.30) lowConfidenceCount += 1;
+        if (conf >= 0.7) highConfidenceCount += 1;
+        else if (conf <= 0.3) lowConfidenceCount += 1;
         if (e.suggestion.recurring?.isRecurring) recurringDetectedCount += 1;
       }
       if (e.supplierId) {
@@ -331,27 +429,99 @@ async function buildFinanceDashboard({
 
   // ── Anomalies (lättviktig) ─────────────────────────────────────
   const anomalies = [];
-  if (invoiceSummary.invoiceCounts.overdue > 0) anomalies.push({ kind: 'overdue_invoices', count: invoiceSummary.invoiceCounts.overdue, severity: 'high' });
-  if (receipts.needsReviewCount > 0) anomalies.push({ kind: 'receipts_need_review', count: receipts.needsReviewCount, severity: 'medium' });
-  if (expenses.needsReviewCount > 0) anomalies.push({ kind: 'expenses_need_review', count: expenses.needsReviewCount, severity: 'medium' });
-  if (expenses.readyForExportCount > 0) anomalies.push({ kind: 'expenses_ready_for_export', count: expenses.readyForExportCount, severity: 'low' });
-  if (suggestions.pendingCount > 0) anomalies.push({ kind: 'expense_suggestions_pending', count: suggestions.pendingCount, severity: 'medium' });
-  if (suggestions.newSupplierCount > 0) anomalies.push({ kind: 'new_suppliers_detected', count: suggestions.newSupplierCount, severity: 'low' });
-  if (suggestions.recurringDetectedCount > 0) anomalies.push({ kind: 'recurring_expenses_detected', count: suggestions.recurringDetectedCount, severity: 'low' });
+  if (invoiceSummary.invoiceCounts.overdue > 0)
+    anomalies.push({
+      kind: 'overdue_invoices',
+      count: invoiceSummary.invoiceCounts.overdue,
+      severity: 'high',
+    });
+  if (receipts.needsReviewCount > 0)
+    anomalies.push({
+      kind: 'receipts_need_review',
+      count: receipts.needsReviewCount,
+      severity: 'medium',
+    });
+  if (expenses.needsReviewCount > 0)
+    anomalies.push({
+      kind: 'expenses_need_review',
+      count: expenses.needsReviewCount,
+      severity: 'medium',
+    });
+  if (expenses.readyForExportCount > 0)
+    anomalies.push({
+      kind: 'expenses_ready_for_export',
+      count: expenses.readyForExportCount,
+      severity: 'low',
+    });
+  if (suggestions.pendingCount > 0)
+    anomalies.push({
+      kind: 'expense_suggestions_pending',
+      count: suggestions.pendingCount,
+      severity: 'medium',
+    });
+  if (suggestions.newSupplierCount > 0)
+    anomalies.push({
+      kind: 'new_suppliers_detected',
+      count: suggestions.newSupplierCount,
+      severity: 'low',
+    });
+  if (suggestions.recurringDetectedCount > 0)
+    anomalies.push({
+      kind: 'recurring_expenses_detected',
+      count: suggestions.recurringDetectedCount,
+      severity: 'low',
+    });
   // CF.6: VAT-anomalies
-  if ((expenses.vatReviewPendingCount || 0) > 0) anomalies.push({ kind: 'vat_review_pending', count: expenses.vatReviewPendingCount, severity: 'medium' });
-  if ((expenses.reverseChargeCount || 0) > 0) anomalies.push({ kind: 'reverse_charge_expenses', count: expenses.reverseChargeCount, severity: 'low' });
-  if ((expenses.nonDeductibleCount || 0) > 0) anomalies.push({ kind: 'non_deductible_vat', count: expenses.nonDeductibleCount, severity: 'low' });
+  if ((expenses.vatReviewPendingCount || 0) > 0)
+    anomalies.push({
+      kind: 'vat_review_pending',
+      count: expenses.vatReviewPendingCount,
+      severity: 'medium',
+    });
+  if ((expenses.reverseChargeCount || 0) > 0)
+    anomalies.push({
+      kind: 'reverse_charge_expenses',
+      count: expenses.reverseChargeCount,
+      severity: 'low',
+    });
+  if ((expenses.nonDeductibleCount || 0) > 0)
+    anomalies.push({
+      kind: 'non_deductible_vat',
+      count: expenses.nonDeductibleCount,
+      severity: 'low',
+    });
   // CF.7: Recurring-anomalies
-  if ((recurring.overdueCount || 0) > 0) anomalies.push({ kind: 'recurring_overdue', count: recurring.overdueCount, severity: 'high' });
-  if ((recurring.dueNext30Count || 0) > 0) anomalies.push({ kind: 'recurring_due_30d', count: recurring.dueNext30Count, severity: 'low' });
-  if ((recurring.proposed || 0) > 0) anomalies.push({ kind: 'recurring_proposals_pending', count: recurring.proposed, severity: 'medium' });
-  if ((recurring.unmatchedActiveCount || 0) > 0) anomalies.push({ kind: 'recurring_never_matched', count: recurring.unmatchedActiveCount, severity: 'medium' });
+  if ((recurring.overdueCount || 0) > 0)
+    anomalies.push({ kind: 'recurring_overdue', count: recurring.overdueCount, severity: 'high' });
+  if ((recurring.dueNext30Count || 0) > 0)
+    anomalies.push({ kind: 'recurring_due_30d', count: recurring.dueNext30Count, severity: 'low' });
+  if ((recurring.proposed || 0) > 0)
+    anomalies.push({
+      kind: 'recurring_proposals_pending',
+      count: recurring.proposed,
+      severity: 'medium',
+    });
+  if ((recurring.unmatchedActiveCount || 0) > 0)
+    anomalies.push({
+      kind: 'recurring_never_matched',
+      count: recurring.unmatchedActiveCount,
+      severity: 'medium',
+    });
   // CF.8: Review-anomalies
-  if ((review.pendingCount || 0) > 0) anomalies.push({ kind: 'review_pending', count: review.pendingCount, severity: 'medium' });
-  if ((review.needsCorrectionCount || 0) > 0) anomalies.push({ kind: 'review_needs_correction', count: review.needsCorrectionCount, severity: 'high' });
+  if ((review.pendingCount || 0) > 0)
+    anomalies.push({ kind: 'review_pending', count: review.pendingCount, severity: 'medium' });
+  if ((review.needsCorrectionCount || 0) > 0)
+    anomalies.push({
+      kind: 'review_needs_correction',
+      count: review.needsCorrectionCount,
+      severity: 'high',
+    });
   if (fortnox.blockedIntegration) {
-    anomalies.push({ kind: 'fortnox_blocked_integration', severity: 'high', detail: fortnox.blockerReason });
+    anomalies.push({
+      kind: 'fortnox_blocked_integration',
+      severity: 'high',
+      detail: fortnox.blockerReason,
+    });
   } else if (!fortnox.connected) {
     anomalies.push({ kind: 'fortnox_not_connected', severity: 'high' });
   }
@@ -411,7 +581,8 @@ async function buildFinanceDashboard({
       totalRejected: rules.totalRejected,
       partial: rules.partial,
     },
-    vendors: { // CF.5
+    vendors: {
+      // CF.5
       total: vendors.total,
       active: vendors.active,
       inactive: vendors.inactive,
@@ -422,10 +593,10 @@ async function buildFinanceDashboard({
       needsReviewCount: vendors.needsReviewCount,
       partial: vendors.partial,
     },
-    recurring,    // CF.7
-    review,       // CF.8
+    recurring, // CF.7
+    review, // CF.8
     monthlyClose, // CF.9
-    suggestions,  // CF.4 + CF.5
+    suggestions, // CF.4 + CF.5
     anomalies,
     partial: partial.reasons.length > 0,
     partialReasons: partial.reasons,
