@@ -40,7 +40,11 @@ async function withServer(app, run) {
   }
 }
 
-function makeApp({ shadowSendEnabled = false, graphSendConnector = null } = {}) {
+function makeApp({
+  shadowSendEnabled = false,
+  graphSendConnector = null,
+  sendTestRecipient = '',
+} = {}) {
   const app = express();
   app.use(express.json());
   app.use(
@@ -49,10 +53,22 @@ function makeApp({ shadowSendEnabled = false, graphSendConnector = null } = {}) 
       ccoMailboxTruthStore: { listMessages: () => MESSAGES },
       graphSendConnector,
       shadowSendEnabled,
+      sendTestRecipient,
       defaultTenantId: 'cco',
     })
   );
   return app;
+}
+
+function captureConnector() {
+  const calls = [];
+  return {
+    calls,
+    sendReply(args) {
+      calls.push(args);
+      return { id: `sent-${calls.length}` };
+    },
+  };
 }
 
 function replyReq(baseUrl, role = 'owner', body = 'Hej, tack för ditt mejl!') {
@@ -164,5 +180,76 @@ test('E1: settings/info rapporterar send.mode=shadow och shadow=true', async () 
     assert.equal(payload.send.shadow, true);
     assert.equal(payload.send.mode, 'shadow');
     assert.equal(payload.send.enabled, false, 'shadow är inte skarp sändning');
+  });
+});
+
+// ── E1 steg 2 — skarpt utskick omdirigerat till ägar-testadress ──────────────
+
+const TEST_ADDR = 'agare-test@hairtpclinic.com';
+
+test('E1 steg 2: test-redirect skickar skarpt men tvingar mottagaren till testadressen', async () => {
+  const connector = captureConnector();
+  const app = makeApp({ graphSendConnector: connector, sendTestRecipient: TEST_ADDR });
+  await withServer(app, async (baseUrl) => {
+    const res = await replyReq(baseUrl);
+    assert.equal(res.status, 200);
+    const payload = await res.json();
+    assert.equal(payload.mode, 'live_test');
+    assert.equal(payload.sent, true);
+    assert.equal(payload.testRedirect, true);
+    assert.equal(payload.recipient, TEST_ADDR, 'mottagaren är testadressen');
+    assert.equal(
+      payload.intendedRecipient,
+      'kund@example.com',
+      'kundens adress bevaras som avsedd'
+    );
+  });
+  assert.equal(connector.calls.length, 1, 'exakt en skarp sändning');
+  assert.deepEqual(connector.calls[0].to, [TEST_ADDR], 'Graph får ENDAST testadressen');
+  assert.notEqual(
+    connector.calls[0].to[0],
+    'kund@example.com',
+    'kunden får ALDRIG mejlet i test-redirect'
+  );
+  assert.match(connector.calls[0].subject, /^\[ARCANA TEST → kund@example\.com\]/);
+});
+
+test('E1 steg 2: shadow har företräde över test-redirect (inget skickas)', async () => {
+  const connector = captureConnector();
+  const app = makeApp({
+    shadowSendEnabled: true,
+    graphSendConnector: connector,
+    sendTestRecipient: TEST_ADDR,
+  });
+  await withServer(app, async (baseUrl) => {
+    const res = await replyReq(baseUrl);
+    assert.equal(res.status, 200);
+    const payload = await res.json();
+    assert.equal(payload.mode, 'shadow');
+    assert.equal(payload.sent, false);
+  });
+  assert.equal(connector.calls.length, 0, 'shadow vinner → ingen sändning trots testadress');
+});
+
+test('E1 steg 2: utan connector men med testadress → 503 (test-redirect kräver skarp connector)', async () => {
+  const app = makeApp({ graphSendConnector: null, sendTestRecipient: TEST_ADDR });
+  await withServer(app, async (baseUrl) => {
+    const res = await replyReq(baseUrl);
+    assert.equal(res.status, 503);
+    const payload = await res.json();
+    assert.equal(payload.error, 'graph_send_unavailable');
+  });
+});
+
+test('E1 steg 2: settings/info rapporterar send.mode=live_test när testadress är satt', async () => {
+  const connector = captureConnector();
+  const app = makeApp({ graphSendConnector: connector, sendTestRecipient: TEST_ADDR });
+  await withServer(app, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco/runtime/settings/info`);
+    assert.equal(res.status, 200);
+    const payload = await res.json();
+    assert.equal(payload.send.mode, 'live_test');
+    assert.equal(payload.send.testRedirect, true);
+    assert.equal(payload.send.enabled, true);
   });
 });

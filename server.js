@@ -13048,6 +13048,8 @@ process.once('SIGTERM', () => {
       graphReadConnector,
       // E1 steg 1 — shadow/dry-run för reply-sändning (inget mejl går ut).
       shadowSendEnabled: String(process.env.ARCANA_MAIL_SHADOW_SEND || '').toLowerCase() === 'true',
+      // E1 steg 2 — skarpt utskick omdirigerat till ägar-testadress (ingen kund nås).
+      sendTestRecipient: String(process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT || '').trim(),
       runtimeStreamRouter: ccoRuntimeStreamRouter,
       mailboxIdsForSync: defaultSyncMailboxIds,
       syncLookbackDays: Number(process.env.ARCANA_CCO_SYNC_LOOKBACK_DAYS) || 14,
