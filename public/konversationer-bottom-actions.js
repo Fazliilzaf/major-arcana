@@ -64,7 +64,10 @@
 
   function canonicalHairTpMailbox(value) {
     const text = cleanText(value).toLowerCase();
-    if (/^[a-z0-9._%+-]+@hairtpclinic$/.test(text)) return text + '.com';
+    const full = text.match(/[a-z0-9._%+-]+@hairtpclinic\.com\b/);
+    if (full) return full[0];
+    const partial = text.match(/[a-z0-9._%+-]+@hairtpclinic\b/);
+    if (partial) return partial[0] + '.com';
     return text;
   }
 
@@ -75,7 +78,23 @@
   function firstEmailValue(...values) {
     for (const value of values) {
       const text = cleanText(value);
+      if (!text) continue;
       if (looksLikeEmail(text)) return text.toLowerCase();
+      const embedded = text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+      if (embedded) return embedded[0].toLowerCase();
+    }
+    return '';
+  }
+
+  function isHairTpMailboxEmail(value) {
+    const email = firstEmailValue(value) || canonicalHairTpMailbox(value);
+    return /@hairtpclinic\.com$/i.test(email);
+  }
+
+  function firstCustomerEmailValue(...values) {
+    for (const value of values) {
+      const email = firstEmailValue(value);
+      if (email && !isHairTpMailboxEmail(email)) return email;
     }
     return '';
   }
@@ -102,6 +121,18 @@
         );
       }) || null
     );
+  }
+
+  function formatMailboxOptionLabel(mailbox) {
+    const email = canonicalHairTpMailbox(
+      mailbox?.email || mailbox?.mailboxAddress || mailbox?.id || mailbox?.mailboxId
+    );
+    const rawName = cleanText(mailbox?.name);
+    const nameEmail = canonicalHairTpMailbox(rawName);
+    if (!email) return rawName;
+    if (email.endsWith('@hairtpclinic.com')) return email;
+    if (!rawName || nameEmail === email || firstEmailValue(rawName) === email) return email;
+    return `${rawName} · ${email}`;
   }
 
   function selectedThreadText(selector) {
@@ -161,7 +192,7 @@
     const latestIncoming = [...messages].reverse().find((message) => message.dir !== 'outgoing');
     const threadNode =
       document.querySelector('.thread.active') || document.querySelector('.thread');
-    const recipientEmail = firstEmailValue(
+    const recipientEmail = firstCustomerEmailValue(
       threadNode?.dataset?.customerEmail,
       threadNode?.dataset?.email,
       selectedThreadText('.wb-contact-line'),
@@ -460,13 +491,16 @@
         Array.isArray(ctx.mailboxTrail) ? ctx.mailboxTrail[0] : '',
         ctx.threadVia
       ) || mailboxes[0];
-    const recipientEmail = firstEmailValue(
+    const recipientEmail = firstCustomerEmailValue(
       ctx.email,
       ctx.customerEmail,
       ctx.replyTo,
       ctx.threadEmail,
       ctx.threadFromEmail
     );
+    const recipientMissing = !recipientEmail;
+    const recipientMissingMessage =
+      'Mottagare saknas i vald tråd. Koppla kundmail eller välj en tråd med kundadress innan svar kan skickas.';
 
     const initialBody =
       'Hej ' +
@@ -718,6 +752,8 @@
       type: 'text',
       value: recipientEmail || '',
       placeholder: recipientEmail ? '' : 'Mottagare saknas i tråddatan',
+      'aria-invalid': recipientMissing ? 'true' : null,
+      readonly: recipientMissing ? 'readonly' : null,
     });
     const mailboxSelect = el('select', {
       onchange: () => {
@@ -727,9 +763,7 @@
       },
     });
     for (const mb of mailboxes) {
-      mailboxSelect.appendChild(
-        el('option', { value: mb.id }, (mb.name || mb.id) + ' · ' + mb.email)
-      );
+      mailboxSelect.appendChild(el('option', { value: mb.id }, formatMailboxOptionLabel(mb)));
     }
     mailboxSelect.value = state.mailboxId;
     if (mailboxSelect.value !== state.mailboxId && mailboxes[0]) {
@@ -748,6 +782,18 @@
         ]),
       ])
     );
+    if (recipientMissing) {
+      replyBlock.appendChild(
+        el(
+          'div',
+          {
+            style:
+              'padding:9px 12px;background:linear-gradient(180deg,rgba(245,214,211,.82),rgba(255,244,219,.82));border:1px solid rgba(185,74,74,.28);border-radius:10px;font-size:11px;color:#8c2626;font-weight:700',
+          },
+          '⚠ ' + recipientMissingMessage
+        )
+      );
+    }
 
     // Ämne + Body
     const subjectInput = el('input', { type: 'text', value: state.subject });
@@ -930,6 +976,10 @@
 
     // ─── Footer-actions ──────────────────────────────────────────────
     async function saveDraft(targetStatus) {
+      if (recipientMissing) {
+        toast('✗ ' + recipientMissingMessage, 'err');
+        return false;
+      }
       try {
         if (!state.draftId) {
           const r = await fetch('/api/v1/cco-comm/drafts', {
@@ -997,6 +1047,10 @@
     }
 
     function showPreview() {
+      if (recipientMissing) {
+        toast('✗ ' + recipientMissingMessage, 'err');
+        return;
+      }
       auditStudioEvent('studio.preview_opened', { bodyLength: state.body.length });
       const mb = mailboxes.find((m) => m.id === state.mailboxId);
       const sig = SIGNATURES.find((s) => s.id === state.signatureId)?.label || '';
@@ -1046,6 +1100,32 @@
       });
     }
 
+    const sendButton = el(
+      'button',
+      {
+        class: 'wb-primary-cta',
+        type: 'button',
+        disabled: recipientMissing ? 'disabled' : null,
+        'aria-disabled': recipientMissing ? 'true' : null,
+        title: recipientMissing ? recipientMissingMessage : null,
+        onclick: async () => {
+          if (recipientMissing) {
+            toast('✗ ' + recipientMissingMessage, 'err');
+            return;
+          }
+          if (await saveDraft('needs_approval')) {
+            toast('▶ Skickat för godkännande');
+            m.close();
+          }
+        },
+      },
+      [el('span', {}, '▶'), 'Skicka svar']
+    );
+    if (recipientMissing) {
+      sendButton.style.opacity = '0.48';
+      sendButton.style.cursor = 'not-allowed';
+    }
+
     const m = openModal({
       title: 'Arbetsyta · Svarstudio',
       headChips: [
@@ -1057,20 +1137,7 @@
       ],
       body: workbenchGrid,
       footer: [
-        el(
-          'button',
-          {
-            class: 'wb-primary-cta',
-            type: 'button',
-            onclick: async () => {
-              if (await saveDraft('needs_approval')) {
-                toast('▶ Skickat för godkännande');
-                m.close();
-              }
-            },
-          },
-          [el('span', {}, '▶'), 'Skicka svar']
-        ),
+        sendButton,
         el(
           'button',
           { class: 'wb-secondary-cta', type: 'button', onclick: showPreview },
