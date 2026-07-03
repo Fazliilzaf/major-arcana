@@ -85,5 +85,5 @@ test('PR17: övriga paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR17: konversationer.html cache-bustar efter makron-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703u-makron/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703v-patienthub/);
 });
