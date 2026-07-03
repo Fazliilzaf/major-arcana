@@ -31,6 +31,9 @@
   // svarsflöde) med vald tråds kontext, scopar makronbiblioteket till kunden.
   // Samma origin, ingen live-send.
   const MAKRON_V3_SRC = '/major-arcana-preview/cco-makron-v3.html';
+  // PR 18 — Patient-/kunddossier (nivå 2, kundkontext bredvid tråden — inte i
+  // svarslinjen). "Vem är detta" scopad på vald tråds kund. Samma origin.
+  const PATIENT_HUB_V3_SRC = '/major-arcana-preview/cco-patient-hub-v3.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
@@ -318,6 +321,7 @@
       { key: 'senare', label: 'Lägg senare', open: () => openSenarePanel() },
       { key: 'notiser', label: 'Notiser', open: () => openNotiser() },
       { key: 'skickat', label: 'Skickat / kö', open: () => openSkickat() },
+      { key: 'patienthub', label: 'Dossier', open: () => openPatientHub() },
     ].map((t) => ({ key: t.key, label: t.label, open: t.open, active: t.key === activeKey }));
   }
 
@@ -666,6 +670,20 @@
           el('p', { class: 'wb-customer-sub' }, ctx.customerSub || ''),
         ]),
       ])
+    );
+    // PR 18 — dossier (nivå 2, "vem är detta") öppnas från kund-cardet med vald
+    // tråds kund. Kompletterar tråden, inte i svarslinjen, ingen live-send.
+    contextPanel.appendChild(
+      el(
+        'button',
+        {
+          class: 'wb-cta-btn',
+          type: 'button',
+          'data-patienthub-open': 'true',
+          onclick: () => openPatientHub(ctx),
+        },
+        '👤 Öppna dossier'
+      )
     );
     // Kontakt
     if (ctx.email) {
@@ -1749,6 +1767,42 @@
       }
     });
     openModal({ title: 'Makron', wide: true, tabs: panelTabs('makron'), body: frame });
+  }
+
+  // ─── PATIENT-HUB → dossier (nivå 2, kundkontext) ─────────────────────
+  // Öppnar patient-/kunddossiern scopad på vald tråds kund ("vem är detta").
+  // Kompletterar tråden — inte i svarslinjen, ingen live-send. Anropas från
+  // Svarstudios kontextpanel (kund-cardet) eller flik-raden.
+  function openPatientHub(presetContext) {
+    const context = presetContext || buildSmartAnteckningContext();
+    // Kundidentitet (samma källa som backend-actions) för att scopa dossiern.
+    const customerId = resolveThreadCustomerEmail(context) || context.email || '';
+    if (customerId) context.customerId = customerId;
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.email) params.set('email', context.email);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    if (customerId) params.set('cid', customerId);
+    const query = params.toString();
+    const src = PATIENT_HUB_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'Patient-dossier v3',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:patienthub:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({ title: 'Dossier', wide: true, tabs: panelTabs('patienthub'), body: frame });
   }
 
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
