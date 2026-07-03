@@ -27,6 +27,10 @@
   // PR 14 — Skickat/utkast/kö hör till utgående svarspipeline → öppnas som
   // sektion inne i Svarstudio (inte bottom action, inte vänsterfilter).
   const SKICKAT_V3_SRC = '/major-arcana-preview/cco-skickat-v3.html';
+  // PR 17 — Makron/snabbsvar (nivå 1). Öppnas från Svarstudio (utgående
+  // svarsflöde) med vald tråds kontext, scopar makronbiblioteket till kunden.
+  // Samma origin, ingen live-send.
+  const MAKRON_V3_SRC = '/major-arcana-preview/cco-makron-v3.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
@@ -309,6 +313,7 @@
       { key: 'svarstudio', label: 'Svarstudio', open: () => openSvarstudioForSelectedThread() },
       { key: 'bokning', label: 'Öppna bokning', open: () => openBokningsyta() },
       { key: 'smart', label: 'Smart anteckning', open: () => openSmartAnteckning() },
+      { key: 'makron', label: 'Makron', open: () => openMakron() },
       { key: 'kalender', label: 'Öppna kalender', open: () => openKalender() },
       { key: 'senare', label: 'Lägg senare', open: () => openSenarePanel() },
       { key: 'notiser', label: 'Notiser', open: () => openNotiser() },
@@ -894,6 +899,19 @@
         })
       );
     }
+    // PR 17 — makronbiblioteket (v3) öppnas från snabbmall-raden med vald
+    // tråds kontext. Snabbmallarna ovan är oförändrade; detta är fler makron.
+    const makronOpenBtn = el(
+      'button',
+      {
+        class: 'wb-chip',
+        type: 'button',
+        'data-makron-open': 'true',
+        onclick: () => openMakron(ctx),
+      },
+      '📚 Fler makron'
+    );
+    snabbRow.appendChild(makronOpenBtn);
     replyBlock.appendChild(
       el('div', { class: 'wb-snabbmall-row' }, [
         el('span', { class: 'wb-section-kicker' }, 'Snabbmallar'),
@@ -1699,6 +1717,38 @@
       }
     });
     openModal({ title: 'Skickat / kö', wide: true, tabs: panelTabs('skickat'), body: frame });
+  }
+
+  // ─── MAKRON → Makron v3 (snabbsvar) ──────────────────────────────────
+  // Öppnar makronbiblioteket med vald tråds kontext (kund, ämne, senaste
+  // meddelanden, mailbox). Anropas från Svarstudios snabbmall-rad eller flik-
+  // raden. Makrot infogas i Svarstudio-svaret, inget skickas externt.
+  function openMakron(presetContext) {
+    const context = presetContext || buildSmartAnteckningContext();
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.email) params.set('email', context.email);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    const query = params.toString();
+    const src = MAKRON_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'Makron v3',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:makron:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({ title: 'Makron', wide: true, tabs: panelTabs('makron'), body: frame });
   }
 
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
