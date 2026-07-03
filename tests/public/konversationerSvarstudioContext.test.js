@@ -53,21 +53,29 @@ test('Svarstudio modal maps live thread context into recipient, subject and mail
   );
   assert.match(source, /conversationKey: liveContext\?\.conversationKey/);
   assert.match(source, /source: liveContext\?\.source/);
-  assert.match(
-    source,
-    /mailboxId: ctx\.mailboxId \|\| ctx\.mailboxSource \|\| mailboxes\[0\]\?\.id \|\| 'contact'/
-  );
+  assert.match(source, /const preferredMailbox =/);
+  assert.match(source, /findMailboxOption\(/);
+  assert.match(source, /mailboxId: preferredMailbox\?\.id \|\| 'contact@hairtpclinic\.com'/);
   assert.match(
     source,
     /subject: ctx\.subject \|\| 'Re: ' \+ \(ctx\.customerName \|\| 'konversation'\)/
   );
-  assert.match(
-    source,
-    /const recipientInput = el\('input', \{ type: 'text', value: ctx\.email \|\| '' \}\)/
-  );
+  assert.match(source, /const recipientEmail = firstEmailValue\(/);
+  assert.match(source, /placeholder: recipientEmail \? '' : 'Mottagare saknas i tråddatan'/);
   assert.match(source, /const contextMailboxes = Array\.isArray\(ctx\.mailboxOptions\)/);
   assert.match(source, /\.\.\.contextMailboxes, \.\.\.storedMailboxes/);
   assert.match(source, /Array\.isArray\(ctx\.latestMessages\)/);
+});
+
+test('Svarstudio keeps form fields populated when mailbox id is partial or missing', () => {
+  const source = readActions();
+
+  assert.match(source, /function canonicalHairTpMailbox\(value\)/);
+  assert.match(source, /text \+ '\.com'/);
+  assert.match(source, /function firstEmailValue\(\.\.\.values\)/);
+  assert.match(source, /threadNode\?\.dataset\?\.customerEmail/);
+  assert.match(source, /latestIncoming\?\.email/);
+  assert.match(source, /if \(mailboxSelect\.value !== state\.mailboxId && mailboxes\[0\]\)/);
 });
 
 test('konversationer live context derives recipient and sender mailbox for Svarstudio', () => {
@@ -85,5 +93,5 @@ test('konversationer live context derives recipient and sender mailbox for Svars
 test('konversationer.html cache-busts bottom actions after Svarstudio context fix', () => {
   const html = readHtml();
 
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703c/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703d/);
 });
