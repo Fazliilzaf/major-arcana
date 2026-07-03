@@ -8,6 +8,11 @@
   const ROLE = 'owner';
   const TENANT = 'hair_tp';
 
+  // PR 4 — Smart anteckning-knappen öppnar Smart anteckning v3 (rätt/ny CCO-vy),
+  // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
+  // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
+  const SMART_ANTECKNING_V3_SRC = '/major-arcana-preview/cco-smart-anteckning-v3.html';
+
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs || {})) {
@@ -1281,362 +1286,69 @@
     });
   }
 
-  // ─── SMART ANTECKNING — 2-stegs workbench ────────────────────────────
-  function openSmartAnteckning() {
-    const customerId = activeCustomerId();
-    const modes = [
-      {
-        id: 'ai-summary',
-        icon: '✏',
-        label: 'Sammanfatta konversation',
-        sub: 'Låt systemet analysera och fylla anteckningen med tät helhetssammanfattning.',
-      },
-      {
-        id: 'ai-extract',
-        icon: '◆',
-        label: 'Extrahera viktiga detaljer',
-        sub: 'Lyft datum, tider, preferenser och vad som blockerar beslutet just nu.',
-      },
-      {
-        id: 'ai-action-items',
-        icon: '✓',
-        label: 'Identifiera åtgärder',
-        sub: 'Skapa action-orienterad anteckning för team, SLA eller uppföljning.',
-      },
-      {
-        id: 'manual',
-        icon: '✎',
-        label: 'Skapa manuell anteckning',
-        sub: 'Öppna utan AI-förifyllning.',
-      },
-    ];
-
-    const grid = el('div', { style: 'display:flex;flex-direction:column;gap:8px' });
-    for (const mode of modes) {
-      grid.appendChild(
-        el(
-          'button',
-          {
-            type: 'button',
-            style:
-              'text-align:left;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.92);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,241,232,.92));cursor:pointer;font-family:inherit;display:flex;flex-direction:column;gap:4px;box-shadow:0 6px 14px rgba(93,74,60,.1),inset 0 1px 0 rgba(255,255,255,.96);transition:transform .14s ease',
-            onmouseenter: function () {
-              this.style.transform = 'translateY(-2px)';
-            },
-            onmouseleave: function () {
-              this.style.transform = '';
-            },
-            onclick: () => openSmartAnteckningEditor(mode, customerId, m.close),
-          },
-          [
-            el('div', { style: 'display:flex;gap:8px;align-items:center' }, [
-              el('span', { style: 'font-size:14px;color:var(--accent-studio,#bb4779)' }, mode.icon),
-              el('div', { style: 'font-weight:700;font-size:13px;color:#2b251f' }, mode.label),
-            ]),
-            el(
-              'div',
-              { style: 'font-size:11.5px;color:rgba(70,60,50,.62);padding-left:22px' },
-              mode.sub
-            ),
-          ]
-        )
-      );
-    }
-    const m = openModal({
-      title: 'Smart anteckning · Välj läge',
-      body: el('div', {}, [
-        el(
-          'div',
-          {
-            style:
-              'padding:8px 12px;background:rgba(232,234,245,.86);border:1px solid rgba(74,123,168,.22);border-radius:10px;font-size:11.5px;margin-bottom:14px;color:#36507a',
-          },
-          'Aktuell kontext: ' + customerId + ' · konversation pågående'
-        ),
-        grid,
-      ]),
-    });
+  // ─── SMART ANTECKNING → v3 ───────────────────────────────────────────
+  // Bygg vald live-tråds kontext (kund, tråd, ämne, senaste meddelanden,
+  // mailbox, status/SLA) och skicka den till Smart anteckning v3.
+  function buildSmartAnteckningContext() {
+    const ctx = getLiveConversationContext() || getVisibleConversationContext() || {};
+    const customerName = cleanText(ctx.customerName) || 'Vald kund';
+    const subject = cleanText(ctx.subject)
+      .replace(/^re:\s*/i, '')
+      .trim();
+    const messages = Array.isArray(ctx.latestMessages) ? ctx.latestMessages : [];
+    const context = {
+      source: cleanText(ctx.source) || 'konversationer',
+      conversationKey: cleanText(ctx.conversationKey),
+      customerName,
+      customerSub: cleanText(ctx.customerSub) || cleanText(ctx.engagement),
+      avatar: cleanText(ctx.avatar) || customerName.slice(0, 1).toUpperCase(),
+      subject,
+      email: firstCustomerEmailValue(ctx.email),
+      mailboxId: canonicalHairTpMailbox(ctx.mailboxId),
+      status: cleanText(ctx.status),
+      sla: cleanText(ctx.sla),
+      latestMessages: messages.slice(-8).map((m) => ({
+        dir: m && m.dir === 'outgoing' ? 'outgoing' : 'incoming',
+        from: cleanText(m && m.from),
+        time: cleanText(m && m.time),
+        body: cleanText(m && (m.body || m.snippet)).slice(0, 400),
+      })),
+    };
+    if (typeof ctx.needsReply === 'boolean') context.needsReply = ctx.needsReply;
+    return context;
   }
 
-  function openSmartAnteckningEditor(mode, customerId, closeSelect) {
-    closeSelect?.();
-    const targets = [
-      { id: 'kundprofil', label: 'Kundprofil', sub: 'Allmänna kundnoter' },
-      { id: 'konversation', label: 'Konversation', sub: 'Specifikt för denna tråd' },
-      { id: 'medicinsk', label: 'Medicinsk', sub: 'Behandling och hälsa' },
-      { id: 'betalning', label: 'Betalning', sub: 'Ekonomi och faktura' },
-      { id: 'sla', label: 'SLA / eskalering', sub: 'Brådskande uppföljning' },
-      { id: 'intern', label: 'Intern', sub: 'Bara för teamet' },
-      { id: 'uppfoljning', label: 'Uppföljning', sub: 'Framtida åtgärder' },
-    ];
-    let activeTarget = 'konversation';
-
-    // ── Vänster: spara-mål ──
-    const leftCol = el('aside', { class: 'workbench-context' });
-    leftCol.appendChild(el('div', { class: 'wb-section-kicker' }, 'Var ska anteckningen sparas?'));
-    function renderTargets() {
-      leftCol.querySelectorAll('.wb-target-btn').forEach((n) => n.remove());
-      for (const t of targets) {
-        const btn = el(
-          'button',
-          {
-            type: 'button',
-            class: 'wb-target-btn',
-            style: [
-              'display:flex',
-              'flex-direction:column',
-              'gap:2px',
-              'text-align:left',
-              'padding:10px 12px',
-              'border-radius:11px',
-              'cursor:pointer',
-              'font-family:inherit',
-              'border:1px solid ' +
-                (t.id === activeTarget ? 'rgba(187,71,121,.28)' : 'rgba(187,159,122,.18)'),
-              'background:' +
-                (t.id === activeTarget
-                  ? 'linear-gradient(180deg,var(--rose-pill-top),var(--rose-pill-bottom))'
-                  : 'rgba(255,255,255,.62)'),
-              'color:' +
-                (t.id === activeTarget ? 'var(--accent-studio)' : 'var(--cco-color-brand)'),
-            ].join(';'),
-            onclick: () => {
-              activeTarget = t.id;
-              renderTargets();
-              previewEl.textContent = buildPreview();
-            },
-          },
-          [
-            el('span', { style: 'font-weight:700;font-size:12.5px' }, t.label),
-            el('span', { style: 'font-size:10.5px;color:#84756b' }, t.sub),
-          ]
+  function openSmartAnteckning() {
+    const context = buildSmartAnteckningContext();
+    // Små fält i query för direkt render; full payload (inkl. senaste
+    // meddelanden) skickas via postMessage när v3-ramen laddats.
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    const query = params.toString();
+    const src = SMART_ANTECKNING_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'Smart anteckning v3',
+      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:smart-anteckning:context', context },
+          window.location.origin
         );
-        leftCol.appendChild(btn);
+      } catch {
+        /* ignore cross-frame errors */
       }
-    }
-    renderTargets();
-
-    // ── Mitten: auto-data ──
-    const midCol = el('section', {
-      style:
-        'padding:18px 20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:rgba(255,255,255,.42)',
     });
-    midCol.appendChild(el('div', { class: 'wb-section-kicker' }, 'Auto-hämtad data'));
-    midCol.appendChild(
-      el('div', { style: 'display:flex;flex-direction:column;gap:8px' }, [
-        el(
-          'div',
-          {
-            class: 'wb-fact-cell',
-            style:
-              'background:rgba(255,255,255,.62);padding:10px 12px;border-radius:10px;border:1px solid rgba(187,159,122,.18)',
-          },
-          [
-            el('span', { class: 'wb-fact-lbl' }, 'Kund och tråd'),
-            el('span', { class: 'wb-fact-val' }, customerId + ' · konversation pågående'),
-          ]
-        ),
-        el(
-          'div',
-          {
-            class: 'wb-fact-cell',
-            style:
-              'background:rgba(255,255,255,.62);padding:10px 12px;border-radius:10px;border:1px solid rgba(187,159,122,.18)',
-          },
-          [
-            el('span', { class: 'wb-fact-lbl' }, 'Vad ärendet gäller'),
-            el('span', { class: 'wb-fact-val' }, 'Oklart (tolkas från aktiv tråd)'),
-          ]
-        ),
-        el(
-          'div',
-          {
-            class: 'wb-fact-cell',
-            style:
-              'background:rgba(255,255,255,.62);padding:10px 12px;border-radius:10px;border:1px solid rgba(187,159,122,.18)',
-          },
-          [
-            el('span', { class: 'wb-fact-lbl' }, 'Nästa steg'),
-            el('span', { class: 'wb-fact-val' }, 'Öppna tråden och ta nästa tydliga steg'),
-          ]
-        ),
-        el(
-          'div',
-          {
-            class: 'wb-fact-cell',
-            style:
-              'background:rgba(255,255,255,.62);padding:10px 12px;border-radius:10px;border:1px solid rgba(187,159,122,.18)',
-          },
-          [
-            el('span', { class: 'wb-fact-lbl' }, 'Mailbox och ansvar'),
-            el('span', { class: 'wb-fact-val' }, 'Contact · Oägd'),
-          ]
-        ),
-      ])
-    );
-    midCol.appendChild(
-      el('div', { class: 'wb-section-kicker', style: 'margin-top:6px' }, 'Auto-kopplas till')
-    );
-    midCol.appendChild(
-      el(
-        'div',
-        {
-          style:
-            'padding:10px 12px;background:linear-gradient(180deg,rgba(216,235,219,.78),rgba(184,216,197,.62));border:1px solid rgba(74,130,104,.22);border-radius:10px;font-size:11.5px;line-height:1.6;color:rgba(54,84,32,.92)',
-        },
-        '• Kund: ' +
-          customerId +
-          '\n• Ärende: konversation i tråden\n• Mejlkonto: Contact\n• Ansvar: Oägd\n• Nästa steg: nästa SLA-deadline'
-      )
-    );
-    midCol.appendChild(
-      el('div', { class: 'wb-section-kicker', style: 'margin-top:6px' }, 'Liveförhandsvisning')
-    );
-    const previewEl = el('pre', {
-      style:
-        'padding:10px 12px;background:rgba(248,243,235,.86);border-radius:10px;font:inherit;font-size:11.5px;white-space:pre-wrap;line-height:1.55;color:rgba(70,60,50,.85);min-height:80px',
-    });
-
-    function buildPreview() {
-      const sel = targets.find((t) => t.id === activeTarget);
-      return (
-        'Sparas till: ' + (sel?.label || '') + '\nKund: ' + customerId + '\nMode: ' + mode.label
-      );
-    }
-    previewEl.textContent = buildPreview();
-    midCol.appendChild(previewEl);
-
-    // ── Höger: anteckning + taggar + prio + synlighet ──
-    const rightCol = el('section', {
-      style:
-        'padding:18px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;border-left:1px solid rgba(187,159,122,.18)',
-    });
-    rightCol.appendChild(el('div', { class: 'wb-section-kicker' }, 'Snabbmallar'));
-    const noteSnabb = el('div', { class: 'wb-chips' });
-    for (const m of ['Ombokning begärd', 'Allergier/kontraindikationer', 'Betalningsplan']) {
-      noteSnabb.appendChild(chipBtn(m, { onclick: () => toast('★ Mall: ' + m) }));
-    }
-    rightCol.appendChild(noteSnabb);
-
-    rightCol.appendChild(el('div', { class: 'wb-section-kicker' }, 'Anteckning'));
-    const noteArea = el('textarea', {
-      style:
-        'width:100%;min-height:160px;padding:11px 13px;border-radius:10px;border:1px solid rgba(187,159,122,.3);font:inherit;font-size:12.5px;line-height:1.55;background:rgba(255,255,255,.92);resize:vertical',
-    });
-    if (mode.id === 'ai-summary') {
-      noteArea.value =
-        'AI-sammanfattning:\n- Kund: ' +
-        customerId +
-        '\n- Status: konversation pågående\n- Senaste händelsen: behöver svar\n- Föreslagen åtgärd: skicka svar eller skapa utkast';
-    } else if (mode.id === 'ai-extract') {
-      noteArea.value =
-        'Viktiga detaljer:\n- Datum: (auto-extraheras)\n- Tider: (auto-extraheras)\n- Preferenser: (auto-extraheras)\n- Blockerare: (auto-extraheras)';
-    } else if (mode.id === 'ai-action-items') {
-      noteArea.value =
-        'Åtgärder:\n- [ ] Bekräfta bokning före 18:00\n- [ ] Skicka friskförsäkran\n- [ ] Följ upp SLA';
-    }
-    rightCol.appendChild(noteArea);
-
-    const tagsInput = el('input', {
-      type: 'text',
-      placeholder: 'Kommaseparerade taggar…',
-      style:
-        'padding:8px 12px;border-radius:8px;border:1px solid rgba(187,159,122,.3);font:inherit;font-size:12px',
-    });
-    const priSel = el('select', {
-      style:
-        'padding:8px 12px;border-radius:8px;border:1px solid rgba(187,159,122,.3);font:inherit;font-size:12px',
-    });
-    for (const p of ['Låg', 'Medel', 'Hög']) priSel.appendChild(el('option', { value: p }, p));
-    priSel.value = 'Medel';
-    const visSel = el('select', {
-      style:
-        'padding:8px 12px;border-radius:8px;border:1px solid rgba(187,159,122,.3);font:inherit;font-size:12px',
-    });
-    for (const v of ['Team', 'Privat']) visSel.appendChild(el('option', { value: v }, v));
-    visSel.value = 'Team';
-
-    rightCol.appendChild(
-      el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:8px' }, [
-        el('label', { style: 'display:flex;flex-direction:column;gap:4px' }, [
-          el('span', { class: 'wb-section-kicker' }, 'Prioritet'),
-          priSel,
-        ]),
-        el('label', { style: 'display:flex;flex-direction:column;gap:4px' }, [
-          el('span', { class: 'wb-section-kicker' }, 'Synlighet'),
-          visSel,
-        ]),
-      ])
-    );
-    rightCol.appendChild(
-      el('label', { style: 'display:flex;flex-direction:column;gap:4px' }, [
-        el('span', { class: 'wb-section-kicker' }, 'Taggar'),
-        tagsInput,
-      ])
-    );
-
-    // ── Grid: 220px | 1fr | 320px ──
-    const grid = el(
-      'div',
-      {
-        class: 'workbench-grid',
-        style: 'grid-template-columns: 220px 1fr 320px',
-      },
-      [leftCol, midCol, rightCol]
-    );
-
-    const m = openModal({
-      title: 'Arbetsyta · Smart anteckning · ' + mode.label,
-      headChips: [
-        { label: mode.label.split(' ')[0], kind: 'neutral' },
-        { label: customerId, kind: 'engage' },
-      ],
-      body: grid,
-      footer: [
-        el(
-          'button',
-          {
-            class: 'wb-primary-cta',
-            type: 'button',
-            onclick: async () => {
-              try {
-                const r = await fetch(
-                  '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/internal-note',
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'x-cco-role': ROLE,
-                      'x-cco-tenant': TENANT,
-                    },
-                    body: JSON.stringify({
-                      body: noteArea.value,
-                      target: activeTarget,
-                      priority: priSel.value,
-                      visibility: visSel.value,
-                      tags: tagsInput.value
-                        .split(',')
-                        .map((t) => t.trim())
-                        .filter(Boolean),
-                      mode: mode.id,
-                    }),
-                  }
-                );
-                const j = await r.json();
-                if (j.ok) {
-                  toast('✓ Sparad till ' + activeTarget);
-                  m.close();
-                } else toast('✗ ' + (j.error || 'fel'), 'err');
-              } catch (e) {
-                toast('✗ ' + e.message, 'err');
-              }
-            },
-          },
-          [el('span', {}, '✓'), 'Spara anteckning']
-        ),
-        el('button', { class: 'wb-secondary-cta', type: 'button', onclick: m.close }, 'Avbryt'),
-      ],
-      workbench: true,
+    openModal({
+      title: 'Smart anteckning',
+      wide: true,
+      headChips: context.conversationKey ? [{ label: context.customerName, kind: 'neutral' }] : [],
+      body: frame,
     });
   }
 
