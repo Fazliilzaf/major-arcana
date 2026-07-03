@@ -171,7 +171,7 @@ function buildCanaryStatusPayload({
       photo: config?.photoReviewCanaryMax ?? 25,
       import: config?.importReviewCanaryMax ?? 25,
       mail: config?.mailReviewCanaryMax ?? 25,
-      drive_import: config?.driveImportReviewCanaryMax ?? 25,
+      drive_import: config?.driveImportReviewCanaryMax ?? 100,
     },
     photo: {
       writeEnabled: config?.enablePhotoReviewWrite === true,

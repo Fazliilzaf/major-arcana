@@ -52,5 +52,5 @@ test('enableDriveImportReviewWrite on when canary master + drive flag', () => {
   delete require.cache[require.resolve('../../src/config.js')];
   const { config } = require('../../src/config.js');
   assert.equal(config.enableDriveImportReviewWrite, true);
-  assert.equal(config.driveImportReviewCanaryMax, 25);
+  assert.equal(config.driveImportReviewCanaryMax, 100);
 });

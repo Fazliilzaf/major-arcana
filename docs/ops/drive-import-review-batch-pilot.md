@@ -13,12 +13,12 @@ Scriptet ändrar **inte** batch-logik eller UI.
 
 ## Krav
 
-| Krav         | Env / flagga                                                                                 |
-| ------------ | -------------------------------------------------------------------------------------------- |
-| Prod URL     | `ARCANA_PROD_URL` (eller `BASE`) — **obligatorisk**, ingen localhost                         |
-| Auth         | `ARCANA_SMOKE_BEARER_TOKEN` eller owner `.env` — **obligatorisk i alla lägen inkl. dry-run** |
-| Reviewer     | `--reviewer` eller `DRIVE_IMPORT_REVIEW_BATCH_REVIEWER` — **obligatorisk**                   |
-| Write/canary | `ENABLE_DRIVE_IMPORT_REVIEW_WRITE=true` på prod                                              |
+| Krav         | Env / flagga                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| Prod URL     | `ARCANA_PROD_URL` (eller `BASE`) — **obligatorisk**, ingen localhost                             |
+| Auth         | `ARCANA_SMOKE_BEARER_TOKEN` eller owner `.env` — **obligatorisk i alla lägen inkl. dry-run**     |
+| Reviewer     | `--reviewer` eller `DRIVE_IMPORT_REVIEW_BATCH_REVIEWER` — **obligatorisk**                       |
+| Write/canary | `ENABLE_DRIVE_IMPORT_REVIEW_WRITE=true` + `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=100` på prod |
 
 ## Säkerhetsflöde
 
@@ -88,6 +88,7 @@ Audit-läsning via `GET /cco-audit` kan ge 403 utan separat auth-fix — då anv
 
 ## Relaterat
 
+- Canary-runbook (gräns, senaste pass, post-merge): [drive-import-review-canary-runbook.md](./drive-import-review-canary-runbook.md)
 - En-fil-pilot: `npm run pilot:drive-import-review-prod`
 - Prod-verify: `npm run verify:drive-import-review-prod`
 - UI: `https://arcana.hairtpclinic.com/drive-import-review.html` (ingen batch-UI ännu)

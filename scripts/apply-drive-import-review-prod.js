@@ -7,7 +7,7 @@
  * Sätter:
  *   ENABLE_CCO_OPERATOR_CANARY=true
  *   ENABLE_DRIVE_IMPORT_REVIEW_WRITE=true
- *   DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=25
+ *   DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=100
  *
  * Usage:
  *   node scripts/apply-drive-import-review-prod.js
@@ -21,7 +21,7 @@ const { resolveRenderApiKey, fetchAllRenderEnvMap } = require('./lib/renderEnvAp
 const SERVICE_ID = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 const WRITE_ENABLED = String(process.env.DRIVE_IMPORT_REVIEW_WRITE ?? 'true').trim() !== 'false';
-const CANARY_MAX = String(process.env.DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS || '25').trim();
+const CANARY_MAX = String(process.env.DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS || '100').trim();
 
 function fail(msg) {
   console.error(`❌ ${msg}`);

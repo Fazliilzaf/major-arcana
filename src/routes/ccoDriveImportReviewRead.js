@@ -51,7 +51,7 @@ function createCcoDriveImportReviewReadRouter({
               canary: getTrackSummary(
                 state,
                 CANARY_TRACK,
-                config?.driveImportReviewCanaryMax ?? 25
+                config?.driveImportReviewCanaryMax ?? 100
               ),
             };
           })()
@@ -195,7 +195,7 @@ function createCcoDriveImportReviewReadRouter({
       return res.json({
         writeEnabled,
         canary: writeEnabled
-          ? getTrackSummary(state, CANARY_TRACK, config?.driveImportReviewCanaryMax ?? 25)
+          ? getTrackSummary(state, CANARY_TRACK, config?.driveImportReviewCanaryMax ?? 100)
           : null,
       });
     } catch (err) {

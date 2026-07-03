@@ -1237,7 +1237,7 @@ const config = {
     const master = asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false);
     return master && asBool(process.env.ENABLE_DRIVE_IMPORT_REVIEW_WRITE, false);
   })(),
-  driveImportReviewCanaryMax: asInt(process.env.DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS, 25),
+  driveImportReviewCanaryMax: asInt(process.env.DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS, 100),
   enableMailReviewCanary: (() => {
     const master = asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false);
     return master && asBool(process.env.ENABLE_MAIL_REVIEW_CANARY, false);
