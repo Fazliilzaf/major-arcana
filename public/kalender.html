@@ -5980,5 +5980,48 @@
       })();
     </script>
     <script src="/cco-kalender-bridge.js?v=20260530c" defer></script>
+    <script>
+      /* PR 10 — ta emot vald live-tråds kontext från admin#cco → Konversationer
+         ("Öppna kalender"). Scopar kalendern till trådens kund via befintlig
+         global sökning. Ingen ny design. */
+      (function () {
+        function applyContext(context) {
+          if (!context || typeof context !== 'object') return;
+          window.CCO_KALENDER_CONTEXT = context;
+          var name = String(context.customerName || '').trim();
+          var email = String(context.email || context.customerEmail || '').trim();
+          var term = name || email;
+          if (!term) return;
+          var search =
+            document.getElementById('globalSearchInput') ||
+            document.getElementById('searchOverlayInput');
+          if (search) {
+            search.value = term;
+            search.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+        // 1) URL-query (små fält) för direkt render.
+        try {
+          var q = new URLSearchParams(window.location.search);
+          if (q.get('kund') || q.get('email') || q.get('trad')) {
+            applyContext({
+              customerName: q.get('kund') || '',
+              email: q.get('email') || '',
+              conversationKey: q.get('trad') || '',
+              subject: q.get('amne') || '',
+              mailboxId: q.get('mailbox') || '',
+            });
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        // 2) postMessage (full payload inkl. senaste meddelanden), samma origin.
+        window.addEventListener('message', function (event) {
+          if (event.origin !== window.location.origin) return;
+          var data = event.data;
+          if (data && data.type === 'cco:kalender:context') applyContext(data.context);
+        });
+      })();
+    </script>
   </body>
 </html>

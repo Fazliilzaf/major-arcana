@@ -15,6 +15,9 @@
   // PR 9 — "Öppna bokning" öppnar Bokningsguide v3 (rätt/ny CCO-vy) i panel,
   // scoped till vald tråds kund. Samma origin (inte lokal fil), ingen live-send.
   const BOOKING_V3_SRC = '/major-arcana-preview/cco-booking-wizard-v3.html';
+  // PR 10 — "Öppna kalender" går till den riktiga CCO-kalenderytan (inte v8-preview),
+  // som panel med vald tråds kund. Samma origin, ingen live-send.
+  const KALENDER_SRC = '/kalender.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
@@ -1422,51 +1425,39 @@
     });
   }
 
-  // ─── KALENDER ────────────────────────────────────────────────────────
+  // ─── KALENDER → riktig CCO-kalenderyta ───────────────────────────────
   function openKalender() {
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('sv-SE', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
+    // Samma live-tråds-kontext som bokning (kund, conversationKey, ämne,
+    // mailbox, e-post, senaste meddelanden) → kalendern scopas till vald kund.
+    const context = buildSmartAnteckningContext();
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.email) params.set('email', context.email);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    const query = params.toString();
+    const src = KALENDER_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'CCO Kalender',
+      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
     });
-    const m = openModal({
-      title: '📆 Kalender — ' + dateStr,
-      body: el('div', { style: 'display:flex;flex-direction:column;gap:12px' }, [
-        el('div', { style: 'display:grid;grid-template-columns:60px 1fr;gap:8px;font-size:12px' }, [
-          el('span', { style: 'font-weight:700;color:#84756b' }, '08:00'),
-          el('span', {}, 'PRP för hår — Anna K. (Egzona)'),
-          el('span', { style: 'font-weight:700;color:#84756b' }, '09:30'),
-          el('span', {}, 'Uppföljning — Karl L. (Fazli)'),
-          el('span', { style: 'font-weight:700;color:#84756b' }, '11:00'),
-          el('span', {}, 'DHI konsultation — Sofie A. (Dr. Arya)'),
-          el('span', { style: 'font-weight:700;color:#84756b' }, '14:00'),
-          el('span', {}, 'Microneedling — Eva J. (Egzona)'),
-        ]),
-        el(
-          'div',
-          {
-            style:
-              'padding:8px 12px;background:rgba(216,235,219,.78);border-radius:8px;font-size:11px',
-          },
-          '✓ 4 bokningar idag · 0 no-shows · 1 återbesök väntar'
-        ),
-      ]),
-      footer: [
-        el(
-          'button',
-          {
-            class: 'quick-pill',
-            type: 'button',
-            onclick: () => {
-              window.open('/kalender.html', '_blank');
-              m.close();
-            },
-          },
-          '📆 Öppna full kalender'
-        ),
-        el('button', { class: 'quick-pill', type: 'button', onclick: m.close }, 'Stäng'),
-      ],
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:kalender:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({
+      title: 'Öppna kalender',
+      wide: true,
+      headChips: context.conversationKey ? [{ label: context.customerName, kind: 'neutral' }] : [],
+      body: frame,
     });
   }
 
