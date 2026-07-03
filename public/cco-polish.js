@@ -428,7 +428,7 @@
       toast.className = 'cco-toast-global';
       toast.setAttribute('role', 'status');
       toast.setAttribute('aria-live', 'polite');
-      toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translate(-50%,12px);padding:11px 22px;border-radius:999px;background:var(--cco-color-brand,#2b251f);color:white;font-size:12.5px;font-weight:700;box-shadow:0 18px 40px rgba(0,0,0,.32);opacity:0;transition:all .24s cubic-bezier(.32,1.2,.64,1);z-index:1200;letter-spacing:.04em';
+      toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translate(-50%,12px);padding:11px 22px;border-radius:999px;background:var(--cco-color-brand,#2b251f);color:white;font-size:12.5px;font-weight:700;box-shadow:0 18px 40px rgba(0,0,0,.32);opacity:0;transition:all .24s cubic-bezier(.32,1.2,.64,1);z-index:1200;letter-spacing:.04em;pointer-events:none';
       document.body.appendChild(toast);
     }
     toast.textContent = text;

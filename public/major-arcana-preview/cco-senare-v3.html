@@ -1549,6 +1549,14 @@
       async function doAction(threadId, action, followUpDueAt) {
         const t = THREADS.find((x) => x.id === threadId);
         if (!t) return false;
+        if (t.canConfirm === false) {
+          flashNotice(
+            t.confirmDisabledReason ||
+              'Välj en riktig live-tråd innan åtgärden kan bekräftas.',
+            false
+          );
+          return false;
+        }
         const body = { action };
         if (followUpDueAt) body.followUpDueAt = followUpDueAt;
         // PR 11 — backend kräver customerId (kundens inkommande mail) för att
@@ -1652,13 +1660,25 @@
         openId = id;
         document.getElementById('tvName').textContent = t.name;
         document.getElementById('tvMeta').textContent = t.wake;
+        const confirmDisabledReason =
+          t.confirmDisabledReason ||
+          'Välj en riktig live-tråd innan åtgärden kan bekräftas.';
+        const disabledAttr =
+          t.canConfirm === false
+            ? ` disabled title="${esc(confirmDisabledReason)}"`
+            : '';
+        const readonlyNotice =
+          t.canConfirm === false
+            ? `<div class="sn-notice sn-notice--err" style="display:block">${esc(confirmDisabledReason)}</div>`
+            : '';
         const banner = `<div class="tv-snooze ${t.due ? 'is-due' : ''}" id="snoozeBanner" data-thread="${t.id}">
       <div class="sn-top">${CLOCK}${esc(t.wake)}</div>
       <div class="sn-reason">${esc(t.reason)}</div>
+      ${readonlyNotice}
       <div class="sn-acts">
-        <button class="sn-btn sn-btn--primary" data-act="reopen">${CLOCK}Återuppta nu</button>
-        <button class="sn-btn" data-act="snooze">↺ Snooza om</button>
-        <button class="sn-btn" data-act="handled">✓ Klar</button>
+        <button class="sn-btn sn-btn--primary" data-act="reopen"${disabledAttr}>${CLOCK}Återuppta nu</button>
+        <button class="sn-btn" data-act="snooze"${disabledAttr}>↺ Snooza om</button>
+        <button class="sn-btn" data-act="handled"${disabledAttr}>✓ Klar</button>
       </div></div>`;
         document.getElementById('tvStream').innerHTML =
           banner +
@@ -1819,6 +1839,11 @@
             id: nextId,
             key: key,
             customerId: String(context.customerId || '') || undefined,
+            canConfirm: context.canConfirm !== false && key !== 'visible-thread',
+            confirmDisabledReason: String(
+              context.confirmDisabledReason ||
+                'Välj en riktig live-tråd innan åtgärden kan bekräftas.'
+            ),
             name: name,
             init: (name.slice(0, 2) || '?').toUpperCase(),
             avatarBg: 'linear-gradient(160deg,#c79ae6,#9a63c9)',
@@ -1849,6 +1874,11 @@
               email: q.get('email') || '',
               subject: q.get('amne') || '',
               mailboxId: q.get('mailbox') || '',
+              canConfirm: q.get('readonly') !== '1',
+              confirmDisabledReason:
+                q.get('readonly') === '1'
+                  ? 'Välj en riktig live-tråd med kundmail innan snooze kan bekräftas.'
+                  : '',
             });
           }
         } catch (e) {

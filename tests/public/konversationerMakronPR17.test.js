@@ -75,7 +75,7 @@ test('PR17: makron scopar till vald kund via befintlig makronsökning', () => {
 // ── Regler behållna ──────────────────────────────────────────────────────────
 
 test('PR17: övriga paneler orörda, ingen live-send', () => {
-  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-ny-bokning\.html'/);
+  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-booking-wizard-v3\.html'/);
   assert.match(source, /const KALENDER_SRC = '\/kalender\.html'/);
   assert.match(source, /const SENARE_V3_SRC = '\/major-arcana-preview\/cco-senare-v3\.html'/);
   assert.match(source, /const SKICKAT_V3_SRC = '\/major-arcana-preview\/cco-skickat-v3\.html'/);
@@ -85,5 +85,5 @@ test('PR17: övriga paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR17: konversationer.html cache-bustar efter makron-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703x-noshowai/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
 });
