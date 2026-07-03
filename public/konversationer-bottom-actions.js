@@ -34,6 +34,11 @@
   // PR 18 — Patient-/kunddossier (nivå 2, kundkontext bredvid tråden — inte i
   // svarslinjen). "Vem är detta" scopad på vald tråds kund. Samma origin.
   const PATIENT_HUB_V3_SRC = '/major-arcana-preview/cco-patient-hub-v3.html';
+  // PR 19 — No-show-hantering (nivå 2). Använder den nyare AI-vyn (no-show-
+  // prediction), inte den äldre listvyn — nyare CCO-vy vinner. Relevant när en
+  // bokningstråd hanteras; kopplar mot bokning/kalender. Scopad på vald tråds
+  // kund. Samma origin.
+  const NO_SHOW_V3_SRC = '/major-arcana-preview/cco-no-show-ai-v3.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
@@ -322,6 +327,7 @@
       { key: 'notiser', label: 'Notiser', open: () => openNotiser() },
       { key: 'skickat', label: 'Skickat / kö', open: () => openSkickat() },
       { key: 'patienthub', label: 'Dossier', open: () => openPatientHub() },
+      { key: 'noshow', label: 'No-show', open: () => openNoShow() },
     ].map((t) => ({ key: t.key, label: t.label, open: t.open, active: t.key === activeKey }));
   }
 
@@ -1171,6 +1177,11 @@
         },
       })
     );
+    // PR 19 — no-show-hantering (nivå 2) öppnas från bokningsraden med vald
+    // tråds kund. Kompletterar bokning/kalender, inte i svarslinjen.
+    const noShowBtn = chipBtn('🚫 No-show', { onclick: () => openNoShow(ctx) });
+    noShowBtn.setAttribute('data-noshow-open', 'true');
+    smartActions.appendChild(noShowBtn);
     smartActions.appendChild(
       chipBtn('😊 Personlig ton', {
         onclick: () => {
@@ -1803,6 +1814,41 @@
       }
     });
     openModal({ title: 'Dossier', wide: true, tabs: panelTabs('patienthub'), body: frame });
+  }
+
+  // ─── NO-SHOW → hantering (nivå 2, bokningskontext) ───────────────────
+  // Öppnar no-show-hanteringen scopad på vald tråds kund. Relevant när en
+  // bokningstråd hanteras; kopplar mot bokning/kalender. Anropas från
+  // Svarstudios smart-actions (bokningsraden) eller flik-raden. Ingen live-send.
+  function openNoShow(presetContext) {
+    const context = presetContext || buildSmartAnteckningContext();
+    const customerId = resolveThreadCustomerEmail(context) || context.email || '';
+    if (customerId) context.customerId = customerId;
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.email) params.set('email', context.email);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    if (customerId) params.set('cid', customerId);
+    const query = params.toString();
+    const src = NO_SHOW_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'No-show v3',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:noshow:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({ title: 'No-show', wide: true, tabs: panelTabs('noshow'), body: frame });
   }
 
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────

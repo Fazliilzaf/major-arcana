@@ -103,5 +103,5 @@ test('PR11: bokning/kalender/smart-anteckning v3 orörda, ingen live-send', () =
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR11: konversationer.html cache-bustar efter senare-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703v-patienthub/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703x-noshowai/);
 });
