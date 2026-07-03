@@ -77,7 +77,7 @@ async function makeFixture() {
   writeAssetsMirror(projectRoot, { [asset.id]: store.getAsset(asset.id) });
   const config = {
     enableDriveImportReviewWrite: true,
-    driveImportReviewCanaryMax: 50,
+    driveImportReviewCanaryMax: 100,
   };
   return { projectRoot, store, assetId: asset.id, auditLog, config };
 }
@@ -275,7 +275,7 @@ test('drive import approve accepts patient id from master store when not in cust
     importRunId: 'run-1',
   });
   await store.transitionStatus(asset.id, 'NEEDS_REVIEW');
-  const config = { enableDriveImportReviewWrite: true, driveImportReviewCanaryMax: 50 };
+  const config = { enableDriveImportReviewWrite: true, driveImportReviewCanaryMax: 100 };
 
   const result = await applyDriveImportReviewApprove(
     store,

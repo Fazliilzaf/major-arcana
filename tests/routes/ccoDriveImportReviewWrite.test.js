@@ -108,7 +108,7 @@ function mount({
       projectRoot,
       config: {
         enableDriveImportReviewWrite: writeEnabled,
-        driveImportReviewCanaryMax: 50,
+        driveImportReviewCanaryMax: 100,
       },
       resolveStores: async () => ({ assetStore }),
       auditLog,

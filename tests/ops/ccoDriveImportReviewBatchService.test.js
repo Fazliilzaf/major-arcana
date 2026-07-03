@@ -89,7 +89,7 @@ async function makeBatchFixture(count = 2) {
   );
   const config = {
     enableDriveImportReviewWrite: true,
-    driveImportReviewCanaryMax: 50,
+    driveImportReviewCanaryMax: 100,
   };
   return { projectRoot, store, assets, auditLog, config };
 }
