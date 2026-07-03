@@ -59,10 +59,31 @@ test('PR3: ämne faller tillbaka på senaste meddelande när subject saknas', ()
   assert.match(out, /jag undrar om PRP/);
 });
 
-test('PR3: generiskt/placeholder-kundnamn ger neutral hälsning', () => {
-  const out = buildMacroText('send_pricing', { customerName: 'Vald konversation' });
-  assert.match(out, /^Hej!/);
-  assert.doesNotMatch(out, /Hej Vald/);
+test('PR3: placeholder-kundnamn ger neutral hälsning (Vald konversation / Vald kund)', () => {
+  for (const name of ['Vald konversation', 'Vald kund', 'Okänd kund', 'kund']) {
+    const out = buildMacroText('send_pricing', { customerName: name });
+    assert.match(out, /^Hej!/, name + ' → Hej!');
+    assert.doesNotMatch(out, /Hej Vald|Hej Okänd|Hej kund/i);
+  }
+});
+
+test('PR3: generiskt ämne ("Re: konversation") faller tillbaka på senaste meddelande', () => {
+  const out = buildMacroText('confirm_booking', {
+    customerName: 'Anna',
+    subject: 'Re: konversation',
+    latestMessages: [{ body: 'Jag vill boka en tid för PRP' }],
+  });
+  assert.match(out, /Jag vill boka en tid för PRP/);
+  assert.doesNotMatch(out, /om konversation\./);
+});
+
+test('PR3: ämne = kundnamn behandlas som generiskt (fallback till meddelande)', () => {
+  const out = buildMacroText('ask_more_info', {
+    customerName: 'Björn Ek',
+    subject: 'Björn Ek',
+    latestMessages: [{ snippet: 'Undrar över priser' }],
+  });
+  assert.match(out, /Undrar över priser/);
 });
 
 test('PR3: alla fyra makron ger unik, relevant text', () => {

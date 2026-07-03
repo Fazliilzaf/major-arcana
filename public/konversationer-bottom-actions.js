@@ -394,15 +394,22 @@
   // Ren funktion — ingen DOM, ingen live-send.
   function macroFirstName(context) {
     const full = cleanText(context && context.customerName);
-    if (!full || /^(vald konversation|okänd kund|kund)$/i.test(full)) return '';
+    // Placeholder-namn (från live-/visible-fallback) räknas som "inget namn".
+    if (!full || /^(vald konversation|vald kund|okänd kund|kund)$/i.test(full)) return '';
     return full.split(/\s+/)[0];
   }
   function macroTopic(context) {
-    const raw = cleanText(context && context.subject)
+    const ctx = context || {};
+    const raw = cleanText(ctx.subject)
       .replace(/^re:\s*/i, '')
       .trim();
-    if (raw) return raw;
-    const messages = Array.isArray(context && context.latestMessages) ? context.latestMessages : [];
+    // Generiska ämnen ('Re: konversation' eller ämne = kundnamn) räknas som
+    // tomma så makrot faller tillbaka på senaste meddelandet (PR 3-avsikten).
+    const nameLower = cleanText(ctx.customerName).toLowerCase();
+    const isGeneric =
+      !raw || /^konversation(er)?$/i.test(raw) || (nameLower && raw.toLowerCase() === nameLower);
+    if (!isGeneric) return raw;
+    const messages = Array.isArray(ctx.latestMessages) ? ctx.latestMessages : [];
     for (let i = messages.length - 1; i >= 0; i -= 1) {
       const snippet = cleanText(messages[i] && (messages[i].body || messages[i].snippet));
       if (snippet) return snippet.slice(0, 60);
