@@ -33,9 +33,7 @@ test('PSIZE: panel-body har liten padding så iframen får plats', () => {
 
 test('PSIZE: alla v3-iframe-paneler fyller höjden (height:100%)', () => {
   const matches = source.match(/height:100%;border:0;border-radius:14px;background:#fff/g) || [];
-  assert.ok(
-    matches.length === 5,
-    'alla 5 paneler (smart/bokning/kalender/senare/notiser) fyller höjden'
-  );
+  // smart/bokning/kalender/senare/notiser + skickat (PR 14)
+  assert.ok(matches.length >= 5, 'alla v3-iframe-paneler fyller höjden');
   assert.doesNotMatch(source, /height:78vh/);
 });

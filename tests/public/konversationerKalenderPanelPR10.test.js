@@ -84,5 +84,5 @@ test('PR10: bokning v3 + Smart anteckning v3 + send-lås orörda, ingen live-sen
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR10: konversationer.html cache-bustar efter kalenderkoppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703q-panelsize/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703r-skickat/);
 });
