@@ -1558,6 +1558,68 @@
           }, 2000);
         });
       })();
+
+      /* PR 4 — ta emot vald live-tråds kontext från admin#cco → Konversationer.
+         Fyller befintlig kund-kontext (ctx-bar) och exponerar payloaden i sidan.
+         Ingen ny design: bara wiring av redan existerande element. */
+      (function () {
+        function initialsOf(name) {
+          const parts = String(name || '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+          const letters = parts.map((w) => w[0] || '').join('');
+          return (letters.slice(0, 2) || '–').toUpperCase();
+        }
+        function applyContext(context) {
+          if (!context || typeof context !== 'object') return;
+          window.CCO_SMART_ANTECKNING_CONTEXT = context;
+          const name = String(context.customerName || '').trim();
+          const bar = document.querySelector('.ctx-bar');
+          const nameEl = document.querySelector('.ctx-bar .ctx-name');
+          const subEl = document.querySelector('.ctx-bar .ctx-sub');
+          const avEl = document.querySelector('.ctx-bar .ctx-av');
+          if (nameEl && name) nameEl.textContent = name;
+          if (avEl && name) {
+            avEl.textContent = (String(context.avatar || '').trim() || initialsOf(name))
+              .slice(0, 2)
+              .toUpperCase();
+          }
+          if (subEl) {
+            const parts = [context.subject, context.status, context.sla, context.mailboxId]
+              .map((p) => String(p || '').trim())
+              .filter(Boolean);
+            if (parts.length) subEl.textContent = parts.join(' · ');
+          }
+          if (bar && context.conversationKey) {
+            bar.setAttribute('data-conversation-key', String(context.conversationKey));
+          }
+          // Rensa demo-journalen så noten skrivs mot vald tråd (ingen
+          // korskontaminering mellan kunder).
+          const editor = document.getElementById('noteEditor');
+          if (editor && name) editor.textContent = '';
+        }
+        // 1) URL-query (små fält) — direkt render innan postMessage hinner fram.
+        try {
+          const q = new URLSearchParams(window.location.search);
+          if (q.get('kund') || q.get('amne') || q.get('trad')) {
+            applyContext({
+              customerName: q.get('kund') || '',
+              subject: q.get('amne') || '',
+              conversationKey: q.get('trad') || '',
+              mailboxId: q.get('mailbox') || '',
+            });
+          }
+        } catch {
+          /* ignore */
+        }
+        // 2) postMessage (full payload inkl. senaste meddelanden), samma origin.
+        window.addEventListener('message', (event) => {
+          if (event.origin !== window.location.origin) return;
+          const data = event.data;
+          if (data && data.type === 'cco:smart-anteckning:context') applyContext(data.context);
+        });
+      })();
     </script>
 
     <script src="/cco-personal-demo-safe.js"></script>
