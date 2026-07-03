@@ -3946,7 +3946,8 @@
         align-items: center;
         justify-content: center;
         z-index: 9001;
-        opacity: 0;
+        /* PR 14 — alltid synlig (var hover-only → oupptäckbar; låg i vägen). */
+        opacity: 1;
         transition: opacity 0.15s ease;
         box-shadow: 0 4px 12px rgba(80, 40, 20, 0.4);
       }

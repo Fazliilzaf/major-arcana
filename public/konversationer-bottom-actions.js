@@ -24,6 +24,9 @@
   // PR 13 — Notiser är ett notiscenter (entry i badge-raden, inte trådaction).
   // Öppnar Notiser v3 som panel; tar med vald tråds kontext om en tråd är vald.
   const NOTISER_V3_SRC = '/major-arcana-preview/cco-notiser-v3.html';
+  // PR 14 — Skickat/utkast/kö hör till utgående svarspipeline → öppnas som
+  // sektion inne i Svarstudio (inte bottom action, inte vänsterfilter).
+  const SKICKAT_V3_SRC = '/major-arcana-preview/cco-skickat-v3.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
@@ -637,6 +640,22 @@
         el('div', { class: 'wb-contact-line' }, [el('span', { class: 'ico' }, '☎'), ctx.phone])
       );
     }
+    // SKICKAT / KÖ (utgående svarspipeline) — sektion inne i Svarstudio.
+    contextPanel.appendChild(
+      el('div', { class: 'wb-section' }, [
+        el('div', { class: 'wb-section-kicker' }, '📤 Utgående'),
+        el(
+          'button',
+          {
+            class: 'wb-cta-btn',
+            type: 'button',
+            'data-skickat-open': 'true',
+            onclick: () => openSkickat(ctx),
+          },
+          'Skickat / kö'
+        ),
+      ])
+    );
     // KÄLLA LÅST
     contextPanel.appendChild(
       el('div', { class: 'wb-section' }, [
@@ -1611,6 +1630,37 @@
       }
     });
     openModal({ title: 'Notiser', wide: true, body: frame });
+  }
+
+  // ─── SKICKAT / KÖ → sektion inne i Svarstudio ────────────────────────
+  // Öppnar Skickat/utkast/kö-pipelinen. Anropas från Svarstudios kontextpanel
+  // (utgående svarspipeline). Tar med Svarstudios kontext.
+  function openSkickat(presetContext) {
+    const context = presetContext || buildSmartAnteckningContext();
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.email) params.set('email', context.email);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    const query = params.toString();
+    const src = SKICKAT_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'Skickat v3',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:skickat:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({ title: 'Skickat / kö', wide: true, body: frame });
   }
 
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
