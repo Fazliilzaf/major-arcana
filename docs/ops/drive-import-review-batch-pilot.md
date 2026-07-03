@@ -18,7 +18,7 @@ Scriptet ändrar **inte** batch-logik eller UI.
 | Prod URL     | `ARCANA_PROD_URL` (eller `BASE`) — **obligatorisk**, ingen localhost                                                 |
 | Auth         | Validerad `ARCANA_SMOKE_BEARER_TOKEN` **eller** STAFF/owner `.env` (STAFF-fallback via `resolve-prod-auth-token.js`) |
 | Reviewer     | `--reviewer` eller `DRIVE_IMPORT_REVIEW_BATCH_REVIEWER` — **obligatorisk**                                           |
-| Write/canary | `ENABLE_DRIVE_IMPORT_REVIEW_WRITE=true` + `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=100` på prod                     |
+| Write/canary | `ENABLE_DRIVE_IMPORT_REVIEW_WRITE=true` + `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=200` på prod                     |
 
 ## Säkerhetsflöde
 
