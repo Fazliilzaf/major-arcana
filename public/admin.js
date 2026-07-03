@@ -4768,12 +4768,9 @@
   function setActiveSectionGroup(nextGroupId, options = {}) {
     const previousGroupId = state.activeSectionGroup;
     const groupId = resolveSectionGroupTarget(nextGroupId);
-    const enteringCco =
-      String(groupId || '').trim() === 'ccoWorkspaceSection' &&
-      String(previousGroupId || '').trim() !== 'ccoWorkspaceSection';
-    const leavingCco =
-      String(groupId || '').trim() !== 'ccoWorkspaceSection' &&
-      String(previousGroupId || '').trim() === 'ccoWorkspaceSection';
+    const isCco = String(groupId || '').trim() === 'ccoWorkspaceSection';
+    const enteringCco = isCco && String(previousGroupId || '').trim() !== 'ccoWorkspaceSection';
+    const leavingCco = !isCco && String(previousGroupId || '').trim() === 'ccoWorkspaceSection';
     runModeTransition(previousGroupId, groupId);
     state.activeSectionGroup = groupId;
     syncWorkspaceTheme(groupId);
