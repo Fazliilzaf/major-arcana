@@ -1375,7 +1375,7 @@
     const frame = el('iframe', {
       src,
       title: 'Smart anteckning v3',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
@@ -1411,7 +1411,7 @@
     const frame = el('iframe', {
       src,
       title: 'Ny bokning',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
@@ -1447,7 +1447,7 @@
     const frame = el('iframe', {
       src,
       title: 'CCO Kalender',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
@@ -1502,7 +1502,7 @@
     const frame = el('iframe', {
       src,
       title: 'Lägg senare v3',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
@@ -1598,7 +1598,7 @@
     const frame = el('iframe', {
       src,
       title: 'Notiser v3',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
