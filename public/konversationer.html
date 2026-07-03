@@ -1980,7 +1980,9 @@
           </div>
           <div class="thread-header-actions">
             <button class="nav-btn">✎ Anteckna</button>
-            <button class="nav-btn nav-btn--ai">★ Öppna Svarstudio</button>
+            <button class="nav-btn nav-btn--ai" type="button" data-action="svarstudio">
+              ★ Öppna Svarstudio
+            </button>
           </div>
         </header>
         <div class="thread-status-bar">
@@ -2412,12 +2414,125 @@
           source,
           mailboxAddress,
           mailboxTrail,
+          mailboxId: normalizeText(mailbox.mailboxId) || mailboxAddress,
+          customerId:
+            normalizeText(customer.customerId) ||
+            normalizeText(customer.id) ||
+            normalizeText(row.customerId),
+          customerEmail: normalizeText(customer.email),
+          customerPhone: normalizeText(customer.phone || customer.phoneNumber),
           tags,
           unread: state.hasUnreadInbound || state.needsReply,
           lane: row.lane || 'all',
           live: true,
           active: index === 0,
         };
+      }
+
+      let selectedLiveThread = null;
+      let selectedLiveMessages = [];
+
+      function latestLiveMessage(messages, preferredDir) {
+        const list = Array.isArray(messages) ? messages : [];
+        const filtered = preferredDir
+          ? list.filter((message) => normalizeText(message.dir) === preferredDir)
+          : list;
+        return filtered[filtered.length - 1] || list[list.length - 1] || null;
+      }
+
+      function normalizeSvarstudioMessage(message, thread) {
+        const dir = normalizeText(message?.dir) === 'outgoing' ? 'outgoing' : 'incoming';
+        const from =
+          normalizeText(message?.from) || (dir === 'outgoing' ? 'Hair TP Clinic' : thread?.from);
+        return {
+          dir,
+          from,
+          time: normalizeText(message?.time),
+          mailboxId: normalizeText(message?.mailboxId) || thread?.mailboxAddress || '',
+          subject: normalizeText(message?.subject) || thread?.subj || '',
+          body:
+            normalizeText(message?.body) ||
+            normalizeText(message?.preview) ||
+            normalizeText(message?.text) ||
+            '',
+        };
+      }
+
+      function buildSvarstudioLiveContext(thread, messages) {
+        if (!thread) return null;
+        const normalizedMessages = (Array.isArray(messages) ? messages : [])
+          .map((message) => normalizeSvarstudioMessage(message, thread))
+          .filter((message) => message.body || message.from || message.time);
+        const latest = latestLiveMessage(normalizedMessages);
+        const latestIncoming = latestLiveMessage(normalizedMessages, 'incoming') || latest;
+        const mailboxTrail =
+          Array.isArray(thread.mailboxTrail) && thread.mailboxTrail.length
+            ? thread.mailboxTrail
+            : [thread.mailboxAddress || LIVE_MAILBOX_IDS[0]];
+        const mailboxLabel = mailboxTrail[0] || LIVE_MAILBOX_IDS[0];
+        const mailboxNote =
+          mailboxTrail.length > 1
+            ? 'Kunden har skrivit till ' + mailboxTrail.join(' · ')
+            : 'Källa låst till ' + mailboxLabel;
+        const messageCount = normalizedMessages.length;
+        return {
+          source: 'konversationer-live',
+          conversationKey: thread.conversationKey,
+          customerId: thread.customerId,
+          customerName: thread.from || 'Okänd kund',
+          customerSub: `${thread.subj || 'Konversation'} · ${thread.unread ? 'Behöver svar' : 'Live-tråd'}`,
+          avatar: thread.init || (thread.from || '?').slice(0, 1),
+          email: thread.customerEmail || '',
+          phone: thread.customerPhone || '',
+          mailboxId: compactMailbox(thread.mailboxId || mailboxLabel),
+          mailboxSource: mailboxLabel,
+          mailboxSourceNote: mailboxNote,
+          mailboxTrail,
+          doNow: thread.unread ? 'Svara nu' : 'Granska tråd',
+          doNowSub: latestIncoming?.body || thread.preview || 'Vald live-tråd från CCO',
+          ctaLabel: null,
+          whyFocus: thread.subj || 'Vald konversation',
+          whyFocusSub: `Senaste aktivitet via ${latest?.mailboxId || mailboxLabel}`,
+          agent: 'CCO',
+          status: thread.unread ? 'Behöver svar' : 'Aktiv tråd',
+          sla: thread.when || 'Live',
+          priority: thread.unread ? 'Agera' : 'Normal',
+          churnRisk: 'Ej bedömd',
+          engagement: messageCount ? `${messageCount} meddelanden` : 'Live-tråd',
+          chips: [
+            { label: 'Live', ct: '1' },
+            { label: 'Meddelanden', ct: String(messageCount) },
+            { label: 'Mailbox', ct: String(mailboxTrail.length) },
+          ],
+          aiSummary: latestIncoming?.body || thread.preview || 'Ingen senaste text i tråden.',
+          nuI: thread.unread ? 'Obesvarad kundtråd' : 'Live-konversation',
+          nuISub: `Mailbox: ${mailboxTrail.join(' · ')}`,
+          nextStep: thread.unread ? 'Svara i Svarstudio' : 'Granska och spara utkast vid behov',
+          nextStepSub: 'Svarstudio använder markerad tråd, kund, ämne och mailbox.',
+          waiting: thread.unread ? 'Väntar på klinikens svar' : 'Ingen akut blockerare',
+          waitingSub: thread.preview || '',
+          threadDate: latest?.time
+            ? `${messageDayLabel(latest.time)} ${messageTimeLabel(latest.time)}`
+            : '',
+          threadFrom: latest?.from || thread.from || '',
+          threadSnippet: latestIncoming?.body || latest?.body || thread.preview || '',
+          threadVia: 'via ' + (latest?.mailboxId || mailboxLabel),
+          subject: 'Re: ' + (thread.subj || 'konversation'),
+          latestMessages: normalizedMessages.slice(-6),
+        };
+      }
+
+      window.CCOLiveConversationContext = {
+        getContext() {
+          return buildSvarstudioLiveContext(selectedLiveThread, selectedLiveMessages);
+        },
+      };
+
+      function setSvarstudioLiveContext(thread, messages) {
+        selectedLiveThread = thread || null;
+        selectedLiveMessages = Array.isArray(messages) ? messages : [];
+        const detail = window.CCOLiveConversationContext.getContext();
+        window.dispatchEvent(new CustomEvent('cco:live-conversation-context', { detail }));
       }
 
       function threadMatchesTab(thread, tabId) {
@@ -2552,9 +2667,11 @@
 
       async function openConversationThread(thread) {
         if (!thread?.conversationKey || !thread.live || window.location.protocol === 'file:') {
+          setSvarstudioLiveContext(thread || null, []);
           setThreadHeader(thread || { subj: 'Konversation', from: 'Demo' }, null);
           return;
         }
+        setSvarstudioLiveContext(thread, []);
         renderThreadLoading(thread);
         try {
           const response = await fetch(
@@ -2571,9 +2688,11 @@
           }
           const payload = await response.json();
           const messages = Array.isArray(payload?.messages) ? payload.messages : [];
+          setSvarstudioLiveContext(thread, messages);
           renderThreadMessages(thread, messages);
         } catch (error) {
           console.warn('[cco-live-thread] meddelanden kunde inte laddas', error);
+          setSvarstudioLiveContext(thread, []);
           const mount = document.getElementById('messages');
           if (mount) {
             mount.innerHTML = `<div class="msg-day">Live tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Kunde inte ladda riktiga meddelanden. Kontrollera inloggning och att tråden finns i CCO.</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
@@ -2693,12 +2812,14 @@
           setTimeout(() => t.remove(), 320);
         }, 2400);
       }
-      document.querySelectorAll('.quick-pill, .composer-send, .nav-btn').forEach((b) =>
-        b.addEventListener('click', (e) => {
-          e.preventDefault();
-          toast('✓ ' + (b.textContent.trim().replace(/^[★✓✎✉📅📎😊↻▸]+\s*/, '') || 'Utfört'));
-        })
-      );
+      document
+        .querySelectorAll('.quick-pill, .composer-send, .nav-btn:not([data-action])')
+        .forEach((b) =>
+          b.addEventListener('click', (e) => {
+            e.preventDefault();
+            toast('✓ ' + (b.textContent.trim().replace(/^[★✓✎✉📅📎😊↻▸]+\s*/, '') || 'Utfört'));
+          })
+        );
 
       // Queue-lane-filter (Sprint 2.3)
       document.querySelectorAll('.lane-row').forEach((row) =>
