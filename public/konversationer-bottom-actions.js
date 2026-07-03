@@ -21,6 +21,9 @@
   // PR 11 — "Lägg senare" öppnar Senare v3 som panel; reply_later körs FÖRST när
   // användaren bekräftar snooze-tid i panelen (inte ett-klicks-snooze). Samma origin.
   const SENARE_V3_SRC = '/major-arcana-preview/cco-senare-v3.html';
+  // PR 13 — Notiser är ett notiscenter (entry i badge-raden, inte trådaction).
+  // Öppnar Notiser v3 som panel; tar med vald tråds kontext om en tråd är vald.
+  const NOTISER_V3_SRC = '/major-arcana-preview/cco-notiser-v3.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
@@ -1372,7 +1375,7 @@
     const frame = el('iframe', {
       src,
       title: 'Smart anteckning v3',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
@@ -1408,7 +1411,7 @@
     const frame = el('iframe', {
       src,
       title: 'Ny bokning',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
@@ -1444,7 +1447,7 @@
     const frame = el('iframe', {
       src,
       title: 'CCO Kalender',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
@@ -1499,7 +1502,7 @@
     const frame = el('iframe', {
       src,
       title: 'Lägg senare v3',
-      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
       try {
@@ -1576,6 +1579,40 @@
     }
   }
 
+  // ─── NOTISER → notiscenter (panel) ───────────────────────────────────
+  // Öppnar Notiser v3. Notiscenter, inte trådaction → kräver ingen vald tråd,
+  // men tar med kontext om en live-tråd är vald (scopar notiser till kunden).
+  function openNotiser() {
+    const context = buildSmartAnteckningContext();
+    const params = new URLSearchParams();
+    const live = getLiveConversationContext();
+    if (live && live.conversationKey) {
+      if (context.customerName) params.set('kund', context.customerName);
+      if (context.email) params.set('email', context.email);
+      if (context.conversationKey) params.set('trad', context.conversationKey);
+      if (context.subject) params.set('amne', context.subject);
+      if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    }
+    const query = params.toString();
+    const src = NOTISER_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'Notiser v3',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:notiser:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({ title: 'Notiser', wide: true, body: frame });
+  }
+
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
   function wireActions() {
     document.querySelectorAll('[data-action]').forEach((btn) => {
@@ -1588,6 +1625,7 @@
         else if (action === 'klar') runConversationAction('handled');
         else if (action === 'senare') openSenarePanel();
         else if (action === 'reopen') runConversationAction('reopen');
+        else if (action === 'notiser') openNotiser();
       });
     });
     document.addEventListener('keydown', (e) => {
