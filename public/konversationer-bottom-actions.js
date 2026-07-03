@@ -34,9 +34,11 @@
   // PR 18 — Patient-/kunddossier (nivå 2, kundkontext bredvid tråden — inte i
   // svarslinjen). "Vem är detta" scopad på vald tråds kund. Samma origin.
   const PATIENT_HUB_V3_SRC = '/major-arcana-preview/cco-patient-hub-v3.html';
-  // PR 19 — No-show-hantering (nivå 2). Relevant när en bokningstråd hanteras;
-  // kopplar mot bokning/kalender. Scopad på vald tråds kund. Samma origin.
-  const NO_SHOW_V3_SRC = '/major-arcana-preview/cco-no-show-v3.html';
+  // PR 19 — No-show-hantering (nivå 2). Använder den nyare AI-vyn (no-show-
+  // prediction), inte den äldre listvyn — nyare CCO-vy vinner. Relevant när en
+  // bokningstråd hanteras; kopplar mot bokning/kalender. Scopad på vald tråds
+  // kund. Samma origin.
+  const NO_SHOW_V3_SRC = '/major-arcana-preview/cco-no-show-ai-v3.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);

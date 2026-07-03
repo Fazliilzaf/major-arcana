@@ -754,5 +754,51 @@
         </div>
       </aside>
     </div>
+    <script>
+      /* PR 19 — ta emot vald tråds kund (öppnad från No-show-knappen/fliken i
+         admin#cco → Konversationer). AI-vyn har ingen sökruta → scopar genom att
+         markera + scrolla till risk-raden som matchar kunden. Same origin, ingen
+         ny design, ingen live-send. */
+      (function () {
+        function applyContext(context) {
+          if (!context || typeof context !== 'object') return;
+          window.CCO_NOSHOW_CONTEXT = context;
+          var name = String(context.customerName || '').trim();
+          if (!name || name === 'Vald kund') return;
+          var needle = name.toLowerCase();
+          var target = null;
+          document.querySelectorAll('.risk-row').forEach(function (row) {
+            var n = row.querySelector('.name');
+            if (n && n.textContent.trim().toLowerCase().indexOf(needle) !== -1) target = row;
+          });
+          if (target) {
+            target.setAttribute('data-cco-selected', 'true');
+            target.style.outline = '2px solid var(--accent)';
+            target.style.outlineOffset = '2px';
+            target.scrollIntoView({ block: 'center' });
+          }
+        }
+        try {
+          var q = new URLSearchParams(window.location.search);
+          if (q.get('kund') || q.get('trad')) {
+            applyContext({
+              customerName: q.get('kund') || '',
+              email: q.get('email') || '',
+              conversationKey: q.get('trad') || '',
+              subject: q.get('amne') || '',
+              mailboxId: q.get('mailbox') || '',
+              customerId: q.get('cid') || '',
+            });
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        window.addEventListener('message', function (event) {
+          if (event.origin !== window.location.origin) return;
+          var data = event.data;
+          if (data && data.type === 'cco:noshow:context') applyContext(data.context);
+        });
+      })();
+    </script>
   </body>
 </html>

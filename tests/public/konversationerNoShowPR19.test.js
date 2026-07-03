@@ -13,7 +13,7 @@ const test = require('node:test');
 const repoRoot = path.resolve(__dirname, '../..');
 const actionsPath = path.join(repoRoot, 'public', 'konversationer-bottom-actions.js');
 const htmlPath = path.join(repoRoot, 'public', 'konversationer.html');
-const noShowPath = path.join(repoRoot, 'public', 'major-arcana-preview', 'cco-no-show-v3.html');
+const noShowPath = path.join(repoRoot, 'public', 'major-arcana-preview', 'cco-no-show-ai-v3.html');
 
 const source = fs.readFileSync(actionsPath, 'utf8');
 const html = fs.readFileSync(htmlPath, 'utf8');
@@ -25,8 +25,10 @@ function compact(src) {
 
 // ── No-show-knappen i Svarstudios bokningsrad ────────────────────────────────
 
-test('PR19: no-show-källa + öppnare finns', () => {
-  assert.match(source, /const NO_SHOW_V3_SRC = '\/major-arcana-preview\/cco-no-show-v3\.html'/);
+test('PR19: no-show-källa (nyare AI-vy) + öppnare finns', () => {
+  // Nyare CCO-vy vinner: AI-prediction-vyn, inte den äldre listvyn.
+  assert.match(source, /const NO_SHOW_V3_SRC = '\/major-arcana-preview\/cco-no-show-ai-v3\.html'/);
+  assert.doesNotMatch(source, /cco-no-show-v3\.html/);
   assert.match(source, /function openNoShow\(presetContext\)/);
 });
 
@@ -64,10 +66,12 @@ test('PR19: no-show-v3 lyssnar på kontext-postMessage, validerar origin', () =>
   assert.match(noShow, /window\.CCO_NOSHOW_CONTEXT = context/);
 });
 
-test('PR19: no-show scopar till vald kund via befintlig sökning', () => {
+test('PR19: no-show-ai scopar till vald kund genom att markera matchande risk-rad', () => {
+  // AI-vyn har ingen sökruta → scopar genom att markera + scrolla till raden.
   assert.match(noShow, /function applyContext\(context\)/);
-  assert.match(noShow, /querySelector\('input\[placeholder="Sök patient eller behandling…"\]'\)/);
-  assert.match(noShow, /search\.dispatchEvent\(new Event\('input', \{ bubbles: true \}\)\)/);
+  assert.match(noShow, /querySelectorAll\('\.risk-row'\)/);
+  assert.match(noShow, /row\.querySelector\('\.name'\)/);
+  assert.match(noShow, /target\.scrollIntoView\(\{ block: 'center' \}\)/);
 });
 
 // ── Regler behållna ──────────────────────────────────────────────────────────
@@ -84,5 +88,5 @@ test('PR19: nivå 1/2-paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR19: konversationer.html cache-bustar efter no-show-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703w-noshow/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703x-noshowai/);
 });
