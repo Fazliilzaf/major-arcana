@@ -62,6 +62,48 @@
       .trim();
   }
 
+  function canonicalHairTpMailbox(value) {
+    const text = cleanText(value).toLowerCase();
+    if (/^[a-z0-9._%+-]+@hairtpclinic$/.test(text)) return text + '.com';
+    return text;
+  }
+
+  function looksLikeEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanText(value));
+  }
+
+  function firstEmailValue(...values) {
+    for (const value of values) {
+      const text = cleanText(value);
+      if (looksLikeEmail(text)) return text.toLowerCase();
+    }
+    return '';
+  }
+
+  function mailboxMatchValue(value) {
+    return canonicalHairTpMailbox(value).replace(/\s+/g, '');
+  }
+
+  function findMailboxOption(mailboxes, ...candidates) {
+    const targets = candidates.map(mailboxMatchValue).filter(Boolean);
+    if (!targets.length) return null;
+    return (
+      mailboxes.find((mailbox) => {
+        const values = [mailbox?.id, mailbox?.mailboxId, mailbox?.email, mailbox?.mailboxAddress]
+          .map(mailboxMatchValue)
+          .filter(Boolean);
+        return targets.some((target) =>
+          values.some(
+            (value) =>
+              value === target ||
+              (value.includes('@') && target && value.startsWith(target + '@')) ||
+              (target.includes('@') && value && target.startsWith(value + '@'))
+          )
+        );
+      }) || null
+    );
+  }
+
   function selectedThreadText(selector) {
     return cleanText(document.querySelector(selector)?.textContent);
   }
@@ -77,11 +119,11 @@
   }
 
   function activeMailboxLabel() {
-    return (
+    return canonicalHairTpMailbox(
       selectedThreadText('.thread-status-bar .status-pill--source') ||
-      selectedThreadText('.thread.active .thread-tag--booking') ||
-      selectedThreadText('.thread .thread-tag--booking') ||
-      'contact@hairtpclinic.com'
+        selectedThreadText('.thread.active .thread-tag--booking') ||
+        selectedThreadText('.thread .thread-tag--booking') ||
+        'contact@hairtpclinic.com'
     );
   }
 
@@ -90,11 +132,13 @@
       .map((node) => {
         const meta = cleanText(node.querySelector('.msg-meta')?.textContent);
         const parts = meta.split('·').map((part) => cleanText(part));
+        const email = firstEmailValue(node.dataset.senderEmail, node.dataset.fromEmail, meta);
         return {
           dir: node.classList.contains('is-outgoing') ? 'outgoing' : 'incoming',
           from: parts[0] || '',
           time: parts[1] || '',
           mailboxId: parts[2] || activeMailboxLabel(),
+          email,
           body: cleanText(node.querySelector('.msg-bubble')?.textContent),
         };
       })
@@ -115,6 +159,15 @@
     const mailbox = activeMailboxLabel();
     const messages = visibleThreadMessages();
     const latestIncoming = [...messages].reverse().find((message) => message.dir !== 'outgoing');
+    const threadNode =
+      document.querySelector('.thread.active') || document.querySelector('.thread');
+    const recipientEmail = firstEmailValue(
+      threadNode?.dataset?.customerEmail,
+      threadNode?.dataset?.email,
+      selectedThreadText('.wb-contact-line'),
+      latestIncoming?.email,
+      latestIncoming?.from
+    );
     return {
       source: 'visible-thread',
       conversationKey:
@@ -124,7 +177,7 @@
       customerName,
       customerSub: selectedThreadText('.ctx-meta') || 'Konversation i CCO',
       avatar: selectedThreadText('.ctx-avatar') || customerName.slice(0, 1).toUpperCase(),
-      email: '',
+      email: recipientEmail,
       phone: '',
       mailboxId: mailbox,
       mailboxSource: mailbox,
@@ -382,10 +435,12 @@
           .filter(Boolean)
           .map((mailbox) => ({ id: mailbox, name: mailbox, email: mailbox }));
     const mailboxes = [...contextMailboxes, ...storedMailboxes].reduce((list, mailbox) => {
-      const id = cleanText(mailbox?.id || mailbox?.mailboxId || mailbox?.email);
-      const email = cleanText(mailbox?.email || mailbox?.mailboxAddress || id);
+      const rawId = cleanText(mailbox?.id || mailbox?.mailboxId || mailbox?.email);
+      const rawEmail = cleanText(mailbox?.email || mailbox?.mailboxAddress || rawId);
+      const email = canonicalHairTpMailbox(rawEmail || rawId);
+      const id = canonicalHairTpMailbox(rawId || email);
       if (!id || list.some((item) => item.id === id || item.email === email)) return list;
-      list.push({ id, name: cleanText(mailbox?.name) || id, email });
+      list.push({ id, name: cleanText(mailbox?.name) || email.split('@')[0] || id, email });
       return list;
     }, []);
     if (!mailboxes.length) {
@@ -396,6 +451,23 @@
       });
     }
 
+    const preferredMailbox =
+      findMailboxOption(
+        mailboxes,
+        ctx.mailboxId,
+        ctx.mailboxSource,
+        ctx.mailboxAddress,
+        Array.isArray(ctx.mailboxTrail) ? ctx.mailboxTrail[0] : '',
+        ctx.threadVia
+      ) || mailboxes[0];
+    const recipientEmail = firstEmailValue(
+      ctx.email,
+      ctx.customerEmail,
+      ctx.replyTo,
+      ctx.threadEmail,
+      ctx.threadFromEmail
+    );
+
     const initialBody =
       'Hej ' +
       (ctx.customerName || '') +
@@ -404,7 +476,7 @@
       '.\n\nJag återkommer med en tydlig bekräftelse och det du behöver inför besöket.' +
       '\n\nHör gärna av dig om något behöver justeras.';
     const state = {
-      mailboxId: ctx.mailboxId || ctx.mailboxSource || mailboxes[0]?.id || 'contact',
+      mailboxId: preferredMailbox?.id || 'contact@hairtpclinic.com',
       signatureId: 'fazli',
       track: null,
       tone: null,
@@ -642,7 +714,11 @@
     );
 
     // Till + Från-mailbox
-    const recipientInput = el('input', { type: 'text', value: ctx.email || '' });
+    const recipientInput = el('input', {
+      type: 'text',
+      value: recipientEmail || '',
+      placeholder: recipientEmail ? '' : 'Mottagare saknas i tråddatan',
+    });
     const mailboxSelect = el('select', {
       onchange: () => {
         state.mailboxId = mailboxSelect.value;
@@ -656,6 +732,10 @@
       );
     }
     mailboxSelect.value = state.mailboxId;
+    if (mailboxSelect.value !== state.mailboxId && mailboxes[0]) {
+      state.mailboxId = mailboxes[0].id;
+      mailboxSelect.value = state.mailboxId;
+    }
     replyBlock.appendChild(
       el('div', { class: 'wb-form-row' }, [
         el('label', { class: 'wb-field' }, [
