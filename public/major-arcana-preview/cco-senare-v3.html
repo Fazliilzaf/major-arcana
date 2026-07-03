@@ -1551,6 +1551,10 @@
         if (!t) return false;
         const body = { action };
         if (followUpDueAt) body.followUpDueAt = followUpDueAt;
+        // PR 11 — backend kräver customerId (kundens inkommande mail) för att
+        // undvika 409 customer_mismatch. Sätts på tråd som injiceras från
+        // Konversationer; demo-trådar utan customerId beter sig som förr.
+        if (t.customerId) body.customerId = t.customerId;
         const res = await apiFetch(`/cco/runtime/conversation/${t.key}/action`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1780,6 +1784,83 @@
       }
       ensureSideOpen();
       sideMq.addEventListener('change', ensureSideOpen);
+
+      /* PR 11 — ta emot vald live-tråds kontext från admin#cco → Konversationer
+         ("Lägg senare"). Injicerar tråden i panelens lista och öppnar den så att
+         panelens egna snooze-flöde (välj tid → Bekräfta → doAction reply_later)
+         körs mot rätt conversationKey + customerId. Ingen ny design. */
+      (function () {
+        function applyContext(context) {
+          if (!context || typeof context !== 'object') return;
+          window.CCO_SENARE_CONTEXT = context;
+          var key = String(context.conversationKey || '').trim();
+          if (!key || typeof THREADS === 'undefined') return;
+          var existing = THREADS.find(function (t) {
+            return t.key === key;
+          });
+          if (existing) {
+            if (context.customerId && !existing.customerId)
+              existing.customerId = context.customerId;
+            if (typeof openThread === 'function') openThread(existing.id);
+            return;
+          }
+          var name = String(context.customerName || '').trim() || 'Vald konversation';
+          var msgs = Array.isArray(context.latestMessages)
+            ? context.latestMessages.map(function (m) {
+                return [m && m.dir === 'outgoing' ? 'out' : 'in', String((m && m.body) || ''), ''];
+              })
+            : [];
+          if (!msgs.length) msgs = [['in', String(context.subject || 'Vald konversation'), '']];
+          var nextId =
+            THREADS.reduce(function (mx, t) {
+              return Math.max(mx, t.id);
+            }, 0) + 1;
+          var thread = {
+            id: nextId,
+            key: key,
+            customerId: String(context.customerId || '') || undefined,
+            name: name,
+            init: (name.slice(0, 2) || '?').toUpperCase(),
+            avatarBg: 'linear-gradient(160deg,#c79ae6,#9a63c9)',
+            source: 'contact',
+            sub: String(context.subject || 'Från vald konversation'),
+            snoozed: 'nu',
+            wake: 'Ej snoozad ännu',
+            due: false,
+            vip: false,
+            tags: [['due', 'Vald tråd']],
+            msgs: msgs,
+            ctx: {},
+            reason: 'Öppnad från Konversationer för att läggas senare.',
+            ai: '',
+          };
+          THREADS.unshift(thread);
+          if (typeof renderInbox === 'function') renderInbox();
+          if (typeof openThread === 'function') openThread(thread.id);
+        }
+        // 1) URL-query (små fält) för direkt render.
+        try {
+          var q = new URLSearchParams(window.location.search);
+          if (q.get('trad')) {
+            applyContext({
+              conversationKey: q.get('trad'),
+              customerId: q.get('cid') || '',
+              customerName: q.get('kund') || '',
+              email: q.get('email') || '',
+              subject: q.get('amne') || '',
+              mailboxId: q.get('mailbox') || '',
+            });
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        // 2) postMessage (full payload inkl. senaste meddelanden), samma origin.
+        window.addEventListener('message', function (event) {
+          if (event.origin !== window.location.origin) return;
+          var data = event.data;
+          if (data && data.type === 'cco:senare:context') applyContext(data.context);
+        });
+      })();
     </script>
     <script>
       (function () {

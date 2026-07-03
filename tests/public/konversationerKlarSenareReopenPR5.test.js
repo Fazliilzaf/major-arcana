@@ -42,7 +42,7 @@ test('PR5: Klar/Senare/Återöppna-knappar finns i bottom action bar', () => {
 
 test('PR5: knapparna wire:as till rätt backend-action', () => {
   assert.match(source, /action === 'klar'\) runConversationAction\('handled'\)/);
-  assert.match(source, /action === 'senare'\) runConversationAction\('reply_later'\)/);
+  assert.match(source, /action === 'senare'\) openSenarePanel\(\)/);
   assert.match(source, /action === 'reopen'\) runConversationAction\('reopen'\)/);
 });
 
@@ -148,5 +148,5 @@ test('PR5: Smart anteckning v3 används, inte gamla modalen (#544)', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR5: konversationer.html cache-bustar efter Klar/Senare/Reopen-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703m-kalender/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703n-senare/);
 });

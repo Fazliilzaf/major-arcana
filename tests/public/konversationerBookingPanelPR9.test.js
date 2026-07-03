@@ -104,5 +104,5 @@ test('PR9: Smart anteckning v3 + send-lås orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR9: konversationer.html cache-bustar efter bokningskoppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703m-kalender/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703n-senare/);
 });
