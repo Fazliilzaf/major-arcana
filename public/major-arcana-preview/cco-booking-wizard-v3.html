@@ -1887,5 +1887,64 @@
         });
       })();
     </script>
+
+    <script>
+      /* PR 9 — ta emot vald live-tråds kontext från admin#cco → Konversationer
+         ("Öppna bokning"). Scopar bokningsguiden till trådens kund. Ingen ny
+         design: använder befintlig kundsökning + kundlista. */
+      (function () {
+        function applyContext(context) {
+          if (!context || typeof context !== 'object') return;
+          window.CCO_BOOKING_CONTEXT = context;
+          var name = String(context.customerName || '').trim();
+          var email = String(context.email || context.customerEmail || '').trim();
+          // Lägg trådens kund överst i listan om den saknas, förvälj via sökning.
+          try {
+            if (Array.isArray(window.CUSTOMERS) && (name || email)) {
+              var exists = window.CUSTOMERS.some(function (c) {
+                return email && c.email && c.email.toLowerCase() === email.toLowerCase();
+              });
+              if (!exists) {
+                window.CUSTOMERS.unshift({
+                  name: name || email,
+                  email: email,
+                  sub: context.subject
+                    ? 'Från konversation · ' + context.subject
+                    : 'Från vald konversation',
+                });
+              }
+            }
+          } catch (e) {
+            /* ignore */
+          }
+          var search = document.getElementById('custSearch');
+          if (search && (name || email)) {
+            search.value = name || email;
+            search.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+        // 1) URL-query (små fält) för direkt render.
+        try {
+          var q = new URLSearchParams(window.location.search);
+          if (q.get('kund') || q.get('email') || q.get('trad')) {
+            applyContext({
+              customerName: q.get('kund') || '',
+              email: q.get('email') || '',
+              conversationKey: q.get('trad') || '',
+              subject: q.get('amne') || '',
+              mailboxId: q.get('mailbox') || '',
+            });
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        // 2) postMessage (full payload inkl. senaste meddelanden), samma origin.
+        window.addEventListener('message', function (event) {
+          if (event.origin !== window.location.origin) return;
+          var data = event.data;
+          if (data && data.type === 'cco:booking:context') applyContext(data.context);
+        });
+      })();
+    </script>
   </body>
 </html>

@@ -12,6 +12,9 @@
   // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
   // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
   const SMART_ANTECKNING_V3_SRC = '/major-arcana-preview/cco-smart-anteckning-v3.html';
+  // PR 9 — "Öppna bokning" öppnar Bokningsguide v3 (rätt/ny CCO-vy) i panel,
+  // scoped till vald tråds kund. Samma origin (inte lokal fil), ingen live-send.
+  const BOOKING_V3_SRC = '/major-arcana-preview/cco-booking-wizard-v3.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
@@ -1383,64 +1386,39 @@
     });
   }
 
-  // ─── BOKNINGSYTA ─────────────────────────────────────────────────────
+  // ─── BOKNING → Bokningsguide v3 ──────────────────────────────────────
   function openBokningsyta() {
-    const customerId = activeCustomerId();
-    const m = openModal({
-      title: '📅 Bokningsyta',
-      body: el('div', { style: 'display:flex;flex-direction:column;gap:12px' }, [
-        el(
-          'div',
-          {
-            style:
-              'padding:10px 12px;background:rgba(216,235,219,.78);border:1px solid rgba(74,130,104,.32);border-radius:10px;font-size:12px',
-          },
-          'Kopplad bokning: PRP tor 28 maj 08:00 · Egzona'
-        ),
-        el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, [
-          el(
-            'button',
-            {
-              class: 'quick-pill',
-              type: 'button',
-              onclick: () => toast('→ Boka om — välj ny tid i kalendern'),
-            },
-            '↻ Boka om'
-          ),
-          el(
-            'button',
-            { class: 'quick-pill', type: 'button', onclick: () => toast('★ Föreslå återbesök') },
-            '★ Föreslå återbesök (3 mån)'
-          ),
-          el(
-            'button',
-            {
-              class: 'quick-pill',
-              type: 'button',
-              onclick: () => {
-                window.open('/kalender.html', '_blank');
-                m.close();
-              },
-            },
-            '📆 Öppna i full kalendervy'
-          ),
-          el(
-            'button',
-            {
-              class: 'quick-pill quick-pill--success',
-              type: 'button',
-              onclick: () => toast('✓ Markerad ankommen'),
-            },
-            '✓ Markera ankommen'
-          ),
-          el(
-            'button',
-            { class: 'quick-pill', type: 'button', onclick: () => toast('⊘ No-show registrerad') },
-            '⊘ Markera no-show'
-          ),
-        ]),
-      ]),
-      footer: [el('button', { class: 'quick-pill', type: 'button', onclick: m.close }, 'Stäng')],
+    // Återanvänder samma live-tråds-kontext som Smart anteckning (kund,
+    // conversationKey, ämne, senaste meddelanden, mailbox, e-post).
+    const context = buildSmartAnteckningContext();
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.email) params.set('email', context.email);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    const query = params.toString();
+    const src = BOOKING_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'Bokningsguide v3',
+      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:booking:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({
+      title: 'Öppna bokning',
+      wide: true,
+      headChips: context.conversationKey ? [{ label: context.customerName, kind: 'neutral' }] : [],
+      body: frame,
     });
   }
 
