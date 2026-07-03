@@ -4801,7 +4801,7 @@
       focusEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    if (enteringCco) {
+    if (isCco) {
       ensureCcoPreviewEmbed();
     }
     if (leavingCco && isCcoEmbedMode()) {
