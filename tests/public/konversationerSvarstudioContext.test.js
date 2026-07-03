@@ -15,6 +15,10 @@ function readHtml() {
   return fs.readFileSync(htmlPath, 'utf8');
 }
 
+function compactSource(source) {
+  return source.replace(/\s+/g, ' ');
+}
+
 test('Svarstudio opens with selected live conversation context when available', () => {
   const source = readActions();
 
@@ -23,8 +27,8 @@ test('Svarstudio opens with selected live conversation context when available', 
   assert.match(source, /context && context\.conversationKey/);
   assert.match(source, /function openSvarstudioForSelectedThread\(presetContext\)/);
   assert.match(
-    source,
-    /openSvarstudio\(presetContext \|\| getLiveConversationContext\(\) \|\| getVisibleConversationContext\(\)\)/
+    compactSource(source),
+    /openSvarstudio\( presetContext \|\| getLiveConversationContext\(\) \|\| getVisibleConversationContext\(\) \)/
   );
   assert.match(source, /if \(action === 'svarstudio'\) openSvarstudioForSelectedThread\(\);/);
   assert.match(source, /openSvarstudioForSelectedThread\(\);/);
@@ -44,7 +48,7 @@ test('Svarstudio modal maps live thread context into recipient, subject and mail
   const source = readActions();
 
   assert.match(
-    source,
+    compactSource(source),
     /const liveContext = presetContext \|\| getLiveConversationContext\(\) \|\| getVisibleConversationContext\(\);/
   );
   assert.match(source, /conversationKey: liveContext\?\.conversationKey/);
