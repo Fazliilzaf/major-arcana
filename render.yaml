@@ -227,4 +227,4 @@ services:
       - key: ENABLE_DRIVE_IMPORT_REVIEW_WRITE
         value: "true"
       - key: DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS
-        value: "100"
+        value: "200"
