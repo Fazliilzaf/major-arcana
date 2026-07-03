@@ -148,5 +148,5 @@ test('PR5: Smart anteckning v3 används, inte gamla modalen (#544)', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR5: konversationer.html cache-bustar efter Klar/Senare/Reopen-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703l-booking/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703m-kalender/);
 });
