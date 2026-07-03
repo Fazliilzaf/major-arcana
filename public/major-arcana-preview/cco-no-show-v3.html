@@ -1521,6 +1521,43 @@
           b.setAttribute('aria-current', 'page');
         });
       })();
+
+      /* PR 19 — ta emot vald tråds kund (öppnad från No-show-knappen/fliken i
+         admin#cco → Konversationer). Scopar no-show-listan till kunden via
+         befintlig sökning. Same origin, ingen ny design, ingen live-send. */
+      (function () {
+        function applyContext(context) {
+          if (!context || typeof context !== 'object') return;
+          window.CCO_NOSHOW_CONTEXT = context;
+          var name = String(context.customerName || '').trim();
+          if (!name || name === 'Vald kund') return;
+          var search = document.querySelector('input[placeholder="Sök patient eller behandling…"]');
+          if (search) {
+            search.value = name;
+            search.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+        try {
+          var q = new URLSearchParams(window.location.search);
+          if (q.get('kund') || q.get('trad')) {
+            applyContext({
+              customerName: q.get('kund') || '',
+              email: q.get('email') || '',
+              conversationKey: q.get('trad') || '',
+              subject: q.get('amne') || '',
+              mailboxId: q.get('mailbox') || '',
+              customerId: q.get('cid') || '',
+            });
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        window.addEventListener('message', function (event) {
+          if (event.origin !== window.location.origin) return;
+          var data = event.data;
+          if (data && data.type === 'cco:noshow:context') applyContext(data.context);
+        });
+      })();
     </script>
   </body>
 </html>
