@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CCO · Ny bokning</title>
+    <style>
+      :root {
+        --cco-bg-page: #faf6f2;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+        --accent-studio: #bb4779;
+        --calendar-accent: #c8821e;
+        --calendar-accent-glow: rgba(200, 130, 30, 0.22);
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+        --panel-shell-shadow-strong:
+          0 32px 70px rgba(93, 74, 60, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        --panel-card-shadow:
+          0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --rail-fazli: #7c3aed;
+        --rail-egzona: #a37433;
+        --rail-contact: #2596a8;
+        --rail-info: #84756b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(circle at 50% 0%, rgba(255, 225, 200, 0.3), transparent 50%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .wizard {
+        width: 680px;
+        max-width: 100%;
+        border-radius: 28px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: var(--panel-shell-shadow-strong);
+        backdrop-filter: blur(14px);
+        overflow: hidden;
+        position: relative;
+      }
+      .wizard::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background:
+          radial-gradient(circle at 14% 8%, rgba(255, 255, 255, 0.5), transparent 28%),
+          radial-gradient(circle at 86% 10%, rgba(255, 228, 200, 0.4), transparent 28%);
+        pointer-events: none;
+      }
+      .wizard > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .head {
+        padding: 20px 24px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+      .head-kicker {
+        color: #84756b;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .head-kicker .m {
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: rgba(200, 130, 30, 0.14);
+        color: var(--calendar-accent);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+      .head-kicker .m svg {
+        width: 11px;
+        height: 11px;
+      }
+      .head h1 {
+        margin: 6px 0 0;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .head .close {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.5);
+        border: 0;
+        cursor: pointer;
+        color: var(--cco-text-tertiary);
+        font-size: 18px;
+      }
+
+      /* Stepper */
+      .steps {
+        display: flex;
+        gap: 8px;
+        padding: 14px 24px 18px;
+        align-items: center;
+        box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+      }
+      .step {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--cco-text-tertiary);
+        font-weight: 700;
+      }
+      .step-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid rgba(132, 117, 107, 0.18);
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--cco-text-tertiary);
+        flex-shrink: 0;
+      }
+      .step.active .step-num {
+        background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+        color: var(--calendar-accent);
+        border-color: rgba(200, 130, 30, 0.32);
+        box-shadow: 0 0 0 3px var(--calendar-accent-glow);
+      }
+      .step.active {
+        color: var(--calendar-accent);
+      }
+      .step.done .step-num {
+        background: linear-gradient(180deg, #eef7f2, #c8e0d2);
+        color: var(--cco-status-success);
+        border-color: rgba(74, 130, 104, 0.32);
+      }
+      .step.done .step-num::after {
+        content: '✓';
+      }
+      .step.done .step-num span {
+        display: none;
+      }
+      .step.done {
+        color: var(--cco-status-success);
+      }
+      .step-line {
+        flex: 0 0 16px;
+        height: 2px;
+        background: rgba(132, 117, 107, 0.18);
+        border-radius: 999px;
+      }
+      .step.done + .step-line {
+        background: var(--cco-status-success);
+        box-shadow: 0 0 6px rgba(74, 130, 104, 0.4);
+      }
+
+      .body {
+        padding: 22px 24px;
+      }
+
+      /* Steg 1: Kund-sök */
+      .field {
+        margin-bottom: 14px;
+      }
+      .field label {
+        display: block;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 6px;
+      }
+      .input {
+        width: 100%;
+        height: 42px;
+        padding: 0 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(132, 117, 107, 0.18);
+        background: rgba(255, 255, 255, 0.78);
+        font-size: 13px;
+        font-family: inherit;
+        color: var(--cco-color-brand);
+        outline: none;
+      }
+      .input:focus {
+        border-color: var(--calendar-accent);
+        box-shadow: 0 0 0 3px var(--calendar-accent-glow);
+        background: #fff;
+      }
+
+      .results {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .result {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.6);
+        transition: background 0.12s ease;
+      }
+      .result:hover {
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .result.selected {
+        border-color: var(--calendar-accent);
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.78));
+        box-shadow: 0 3px 10px var(--calendar-accent-glow);
+      }
+      .av {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: 12.5px;
+        flex-shrink: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          0 3px 8px rgba(56, 40, 28, 0.14);
+      }
+      .result-meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .result-name {
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .result-sub {
+        font-size: 11px;
+        color: var(--cco-text-secondary);
+        margin-top: 1px;
+      }
+      .result-tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        flex-shrink: 0;
+      }
+      .result-tag.vip {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+      }
+      .result-tag.new {
+        background: rgba(74, 123, 168, 0.14);
+        color: var(--cco-status-info);
+      }
+
+      /* Steg 2: Behandling */
+      .treatments {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .treatment {
+        padding: 14px 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.6);
+        border: 1.5px solid transparent;
+        cursor: pointer;
+        transition: all 0.12s ease;
+      }
+      .treatment:hover {
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .treatment.selected {
+        border-color: var(--calendar-accent);
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.78));
+        box-shadow: 0 3px 10px var(--calendar-accent-glow);
+      }
+      .treatment-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 4px;
+      }
+      .treatment-name {
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .treatment-price {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--calendar-accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .treatment-meta {
+        font-size: 10.5px;
+        color: var(--cco-text-secondary);
+      }
+      .treatment-ai {
+        margin-top: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(74, 123, 168, 0.14);
+        color: var(--cco-status-info);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+
+      /* Steg 3: Slot */
+      .slot-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .day-pick {
+        padding: 8px 4px;
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1.5px solid transparent;
+        transition: all 0.12s ease;
+      }
+      .day-pick:hover {
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .day-pick.selected {
+        border-color: var(--calendar-accent);
+        background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+        box-shadow: 0 3px 10px var(--calendar-accent-glow);
+      }
+      .day-pick .lbl {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+      }
+      .day-pick .num {
+        font-size: 16px;
+        font-weight: 800;
+        margin-top: 2px;
+      }
+      .day-pick.selected .lbl,
+      .day-pick.selected .num {
+        color: var(--calendar-accent);
+      }
+      .slots-row {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .slot {
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(132, 117, 107, 0.18);
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+      }
+      .slot:hover {
+        background: #fff;
+        border-color: var(--calendar-accent);
+      }
+      .slot.selected {
+        background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+        color: var(--calendar-accent);
+        border-color: rgba(200, 130, 30, 0.32);
+        box-shadow: 0 3px 8px var(--calendar-accent-glow);
+      }
+      .slot.ai {
+        position: relative;
+      }
+      .slot.ai::before {
+        content: '★';
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: var(--calendar-accent);
+        color: #fff;
+        font-size: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 6px var(--calendar-accent-glow);
+      }
+
+      /* Steg 4: Bekräfta */
+      .summary {
+        padding: 18px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.82));
+        border-left: 3px solid var(--calendar-accent);
+        box-shadow: 0 4px 14px var(--calendar-accent-glow);
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        gap: 8px 14px;
+        font-size: 12.5px;
+        margin-top: 10px;
+      }
+      .summary-grid dt {
+        color: var(--cco-text-tertiary);
+        font-weight: 700;
+      }
+      .summary-grid dd {
+        margin: 0;
+        font-weight: 600;
+      }
+      .summary-grid dd.big {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .options {
+        margin-top: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+      }
+      .option input {
+        accent-color: var(--calendar-accent);
+        transform: scale(1.2);
+      }
+      .option-text {
+        flex: 1;
+        font-size: 12px;
+      }
+      .option-text strong {
+        font-weight: 700;
+      }
+      .option-text small {
+        display: block;
+        color: var(--cco-text-tertiary);
+        font-size: 10.5px;
+        margin-top: 2px;
+      }
+
+      /* Footer */
+      .footer {
+        padding: 14px 24px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        background: linear-gradient(180deg, transparent, rgba(244, 238, 233, 0.86) 40%);
+        box-shadow: inset 0 1px 0 rgba(215, 202, 194, 0.5);
+      }
+      .btn {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        height: 42px;
+        padding: 0 18px;
+        border-radius: 13px;
+        font-size: 12.5px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn--back {
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--cco-text-secondary);
+        border: 1px solid rgba(132, 117, 107, 0.18);
+      }
+      .btn--next {
+        background: linear-gradient(180deg, #fff5e6, var(--calendar-accent));
+        color: #2a1d10;
+        box-shadow: 0 6px 18px var(--calendar-accent-glow);
+      }
+      .btn--confirm {
+        background: linear-gradient(180deg, #eef7f2, #6fb595);
+        color: #1f4030;
+        box-shadow: 0 6px 18px rgba(74, 130, 104, 0.22);
+      }
+
+      /* AI-hint */
+      .ai-hint {
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.82));
+        border-left: 3px solid var(--calendar-accent);
+        font-size: 11.5px;
+        line-height: 1.5;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        margin-bottom: 14px;
+      }
+      .ai-hint::before {
+        content: '★ AI ';
+        color: var(--calendar-accent);
+        font-weight: 800;
+        font-size: 9px;
+        letter-spacing: 0.14em;
+      }
+      .ai-hint strong {
+        color: var(--calendar-accent);
+      }
+    </style>
+    <link rel="stylesheet" href="/cco-polish.css" />
+    <script src="/cco-polish.js" defer></script>
+  </head>
+  <body data-stage="demo">
+    <div class="wizard">
+      <header class="head">
+        <div>
+          <div class="head-kicker">
+            <span class="m"
+              ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <rect
+                  x="3"
+                  y="5"
+                  width="18"
+                  height="16"
+                  rx="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M3 9h18M8 3v4M16 3v4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
+            Ny bokning
+          </div>
+          <h1>Boka behandling</h1>
+        </div>
+        <button class="close" onclick="history.back()">×</button>
+      </header>
+
+      <div class="steps">
+        <div class="step done">
+          <div class="step-num"><span>1</span></div>
+          Kund
+        </div>
+        <div class="step-line"></div>
+        <div class="step done">
+          <div class="step-num"><span>2</span></div>
+          Behandling
+        </div>
+        <div class="step-line"></div>
+        <div class="step active">
+          <div class="step-num">3</div>
+          Tid
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+          <div class="step-num">4</div>
+          Bekräfta
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="ai-hint">
+          <strong id="bkAiName">Anna Karlsson</strong> brukar boka
+          <strong>tor 14:30 hos Egzona</strong> (4 av 5 senaste). Föreslagna tider är markerade med
+          ★.
+        </div>
+
+        <div class="field">
+          <label>Välj dag</label>
+          <div class="slot-grid">
+            <div class="day-pick">
+              <div class="lbl">Mån</div>
+              <div class="num">25</div>
+            </div>
+            <div class="day-pick">
+              <div class="lbl">Tis</div>
+              <div class="num">26</div>
+            </div>
+            <div class="day-pick">
+              <div class="lbl">Ons</div>
+              <div class="num">27</div>
+            </div>
+            <div class="day-pick selected">
+              <div class="lbl">Tor</div>
+              <div class="num">28</div>
+            </div>
+            <div class="day-pick">
+              <div class="lbl">Fre</div>
+              <div class="num">29</div>
+            </div>
+            <div class="day-pick">
+              <div class="lbl">Lör</div>
+              <div class="num">30</div>
+            </div>
+            <div class="day-pick">
+              <div class="lbl">Sön</div>
+              <div class="num">31</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Lediga tider tor 28 maj · Egzona</label>
+          <div class="slots-row">
+            <div class="slot">08:30</div>
+            <div class="slot">09:00</div>
+            <div class="slot">10:00</div>
+            <div class="slot">11:00</div>
+            <div class="slot">13:30</div>
+            <div class="slot ai selected">14:30</div>
+            <div class="slot">15:00</div>
+            <div class="slot">16:00</div>
+            <div class="slot">16:30</div>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div
+            style="
+              color: var(--calendar-accent);
+              font-size: 9.5px;
+              font-weight: 800;
+              letter-spacing: 0.14em;
+              text-transform: uppercase;
+            "
+          >
+            ★ AI · Förslag
+          </div>
+          <dl class="summary-grid">
+            <dt>Kund</dt>
+            <dd class="big" id="bkCustName">Anna Karlsson</dd>
+            <dt>Behandling</dt>
+            <dd class="big">PRP för hår · 45 min</dd>
+            <dt>Tid</dt>
+            <dd>Tor 28 maj 14:30 – 15:15</dd>
+            <dt>Behandlare</dt>
+            <dd>Egzona Krasniqi</dd>
+            <dt>Pris</dt>
+            <dd>4 300 kr</dd>
+          </dl>
+          <div class="options">
+            <label class="option">
+              <input type="checkbox" checked />
+              <div class="option-text">
+                <strong>Skicka bekräftelse</strong
+                ><small>contact@hairtpclinic — Anna är van vid den</small>
+              </div>
+            </label>
+            <label class="option">
+              <input type="checkbox" checked />
+              <div class="option-text">
+                <strong>Skicka friskförsäkran-länk samtidigt</strong
+                ><small>★ AI: hon har ofta inte fyllt i den</small>
+              </div>
+            </label>
+            <label class="option">
+              <input type="checkbox" />
+              <div class="option-text">
+                <strong>Auto-påminnelse 24h innan</strong><small>SMS + mejl</small>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <button class="btn btn--back">‹ Tillbaka</button>
+        <button class="btn btn--next">Nästa: Bekräfta ›</button>
+      </footer>
+    </div>
+
+    <script>
+      document.querySelectorAll('.day-pick').forEach((d) =>
+        d.addEventListener('click', () => {
+          document.querySelectorAll('.day-pick').forEach((o) => o.classList.remove('selected'));
+          d.classList.add('selected');
+        })
+      );
+      document.querySelectorAll('.slot').forEach((s) =>
+        s.addEventListener('click', () => {
+          document.querySelectorAll('.slot').forEach((o) => o.classList.remove('selected'));
+          s.classList.add('selected');
+        })
+      );
+    </script>
+
+    <script>
+      /* PR 12 — ta emot vald live-tråds kontext från admin#cco → Konversationer
+   ("Öppna bokning"). Fyller befintlig kund-plats i prototypen. Same origin,
+   ingen ny design. */
+      (function () {
+        function applyContext(context) {
+          if (!context || typeof context !== 'object') return;
+          window.CCO_BOOKING_CONTEXT = context;
+          var name = String(context.customerName || '').trim();
+          if (!name) return;
+          var custName = document.getElementById('bkCustName');
+          var aiName = document.getElementById('bkAiName');
+          if (custName) custName.textContent = name;
+          if (aiName) aiName.textContent = name;
+        }
+        try {
+          var q = new URLSearchParams(window.location.search);
+          if (q.get('kund') || q.get('email') || q.get('trad')) {
+            applyContext({
+              customerName: q.get('kund') || '',
+              email: q.get('email') || '',
+              conversationKey: q.get('trad') || '',
+              subject: q.get('amne') || '',
+              mailboxId: q.get('mailbox') || '',
+            });
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        window.addEventListener('message', function (event) {
+          if (event.origin !== window.location.origin) return;
+          var data = event.data;
+          if (data && data.type === 'cco:booking:context') applyContext(data.context);
+        });
+      })();
+    </script>
+  </body>
+</html>

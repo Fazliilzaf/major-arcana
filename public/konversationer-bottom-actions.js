@@ -12,9 +12,9 @@
   // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
   // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
   const SMART_ANTECKNING_V3_SRC = '/major-arcana-preview/cco-smart-anteckning-v3.html';
-  // PR 9 — "Öppna bokning" öppnar Bokningsguide v3 (rätt/ny CCO-vy) i panel,
-  // scoped till vald tråds kund. Samma origin (inte lokal fil), ingen live-send.
-  const BOOKING_V3_SRC = '/major-arcana-preview/cco-booking-wizard-v3.html';
+  // PR 12 — "Öppna bokning" öppnar "CCO · Ny bokning"-ytan (vald prototyp,
+  // portad in i repot — samma origin, inte som lokal fil). Scoped till vald kund.
+  const BOOKING_SRC = '/major-arcana-preview/cco-ny-bokning.html';
   // PR 10 — "Öppna kalender" går till den riktiga CCO-kalenderytan (inte v8-preview),
   // som panel med vald tråds kund. Samma origin, ingen live-send.
   const KALENDER_SRC = '/kalender.html';
@@ -1392,7 +1392,7 @@
     });
   }
 
-  // ─── BOKNING → Bokningsguide v3 ──────────────────────────────────────
+  // ─── BOKNING → "CCO · Ny bokning" ────────────────────────────────────
   function openBokningsyta() {
     // Återanvänder samma live-tråds-kontext som Smart anteckning (kund,
     // conversationKey, ämne, senaste meddelanden, mailbox, e-post).
@@ -1404,10 +1404,10 @@
     if (context.subject) params.set('amne', context.subject);
     if (context.mailboxId) params.set('mailbox', context.mailboxId);
     const query = params.toString();
-    const src = BOOKING_V3_SRC + (query ? '?' + query : '');
+    const src = BOOKING_SRC + (query ? '?' + query : '');
     const frame = el('iframe', {
       src,
-      title: 'Bokningsguide v3',
+      title: 'Ny bokning',
       style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
