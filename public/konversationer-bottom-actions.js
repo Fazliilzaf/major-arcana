@@ -56,8 +56,113 @@
     }
   }
 
+  function cleanText(value) {
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function selectedThreadText(selector) {
+    return cleanText(document.querySelector(selector)?.textContent);
+  }
+
+  function activeInboxName() {
+    const node =
+      document.querySelector('.thread.active .thread-from') ||
+      document.querySelector('.thread .thread-from');
+    if (!node) return '';
+    const clone = node.cloneNode(true);
+    clone.querySelectorAll('.when').forEach((item) => item.remove());
+    return cleanText(clone.textContent);
+  }
+
+  function activeMailboxLabel() {
+    return (
+      selectedThreadText('.thread-status-bar .status-pill--source') ||
+      selectedThreadText('.thread.active .thread-tag--booking') ||
+      selectedThreadText('.thread .thread-tag--booking') ||
+      'contact@hairtpclinic.com'
+    );
+  }
+
+  function visibleThreadMessages() {
+    return Array.from(document.querySelectorAll('#messages .msg'))
+      .map((node) => {
+        const meta = cleanText(node.querySelector('.msg-meta')?.textContent);
+        const parts = meta.split('·').map((part) => cleanText(part));
+        return {
+          dir: node.classList.contains('is-outgoing') ? 'outgoing' : 'incoming',
+          from: parts[0] || '',
+          time: parts[1] || '',
+          mailboxId: parts[2] || activeMailboxLabel(),
+          body: cleanText(node.querySelector('.msg-bubble')?.textContent),
+        };
+      })
+      .filter((message) => message.body || message.from || message.time);
+  }
+
+  function getVisibleConversationContext() {
+    const customerName =
+      selectedThreadText('.ctx-name') ||
+      activeInboxName() ||
+      selectedThreadText('.thread-header-main h2').split('·').pop()?.trim() ||
+      'Vald kund';
+    const subject =
+      selectedThreadText('.thread-header-main h2') ||
+      selectedThreadText('.thread.active .thread-subj') ||
+      selectedThreadText('.thread .thread-subj') ||
+      'Konversation';
+    const mailbox = activeMailboxLabel();
+    const messages = visibleThreadMessages();
+    const latestIncoming = [...messages].reverse().find((message) => message.dir !== 'outgoing');
+    return {
+      source: 'visible-thread',
+      conversationKey:
+        document.querySelector('.thread.active')?.dataset?.conversationKey ||
+        document.querySelector('.thread')?.dataset?.conversationKey ||
+        'visible-thread',
+      customerName,
+      customerSub: selectedThreadText('.ctx-meta') || 'Konversation i CCO',
+      avatar: selectedThreadText('.ctx-avatar') || customerName.slice(0, 1).toUpperCase(),
+      email: '',
+      phone: '',
+      mailboxId: mailbox,
+      mailboxSource: mailbox,
+      mailboxSourceNote: 'Källa hämtad från vald CCO-tråd',
+      doNow: 'Svara nu',
+      doNowSub: 'Svarstudio öppnad från vald konversation',
+      ctaLabel: '',
+      whyFocus: selectedThreadText('.ai-suggest-kicker') || 'Aktiv konversation',
+      whyFocusSub:
+        selectedThreadText('.ai-suggest-body') ||
+        selectedThreadText('.thread.active .thread-preview'),
+      agent: 'CCO',
+      status: selectedThreadText('.thread-status-bar .status-pill--warning') || 'Behöver granskas',
+      sla: selectedThreadText('.risk-badge-row [data-r="followup"]') || '—',
+      priority: selectedThreadText('.risk-badge-row [data-r="high"]') || '—',
+      churnRisk: '—',
+      engagement: selectedThreadText('.ctx-meta') || '—',
+      chips: [{ label: 'Live', ct: 'CCO' }],
+      aiSummary: selectedThreadText('.ai-suggest-body') || '',
+      nuI: 'Vald tråd',
+      nuISub: subject,
+      nextStep: 'Svara nu',
+      nextStepSub: 'Utgå från meddelandena i vald tråd',
+      waiting: selectedThreadText('.thread-status-bar .status-pill--warning') || '',
+      waitingSub: '',
+      subject: 'Re: ' + subject,
+      threadDate: latestIncoming?.time || '',
+      threadFrom: latestIncoming?.from || customerName,
+      threadSnippet: latestIncoming?.body || selectedThreadText('.thread.active .thread-preview'),
+      threadVia: 'via ' + mailbox,
+      latestMessages: messages,
+    };
+  }
+
   function openSvarstudioForSelectedThread(presetContext) {
-    return openSvarstudio(presetContext || getLiveConversationContext());
+    return openSvarstudio(
+      presetContext || getLiveConversationContext() || getVisibleConversationContext()
+    );
   }
 
   async function auditStudioEvent(eventKind, detail) {
@@ -229,7 +334,8 @@
 
   // ─── SVARSTUDIO — workbench layout ───────────────────────────────────
   async function openSvarstudio(presetContext) {
-    const liveContext = presetContext || getLiveConversationContext();
+    const liveContext =
+      presetContext || getLiveConversationContext() || getVisibleConversationContext();
     const customerId = liveContext?.customerId || activeCustomerId();
     auditStudioEvent('studio.opened', {
       customerId,
@@ -238,44 +344,37 @@
     });
     const mailboxes = await loadMailboxes();
 
-    // Demo-kontext (i prod: hämtas från thread-store + customer-store)
     const ctx = liveContext || {
-      customerName: 'GetAccept',
-      customerSub: 'Återbesök väntar · Behöver åtgärd',
-      avatar: 'G',
-      email: 'reply_to_sender@getaccept.com',
-      phone: '031-88 11 66',
-      mailboxSource: 'Contact',
-      mailboxSourceNote: 'Källa låst till Contact',
+      customerName: 'Vald konversation',
+      customerSub: 'Ingen tråd vald ännu',
+      avatar: 'C',
+      email: '',
+      phone: '',
+      mailboxSource: 'CCO',
+      mailboxSourceNote: 'Välj en tråd i inkorgen',
       doNow: 'Svara nu',
-      doNowSub: 'Öppna tråden och ta nästa tydliga steg',
-      ctaLabel: 'Återuppta 1 juni 15:30',
+      doNowSub: 'Välj en tråd och öppna Svarstudio igen',
+      ctaLabel: '',
       whyFocus: 'Senaste händelsen i tråden',
-      whyFocusSub: 'SLA är passerad och konversationen är obesvarad',
+      whyFocusSub: '',
       agent: 'Oägd',
       status: 'Behöver svar',
-      sla: '1 juni 15:30',
-      priority: 'Miss',
-      churnRisk: 'Miss',
-      engagement: '84% engagemang',
-      chips: [
-        { label: 'AI', ct: '3' },
-        { label: 'Historik', ct: '1' },
-        { label: 'Preferenser', ct: '4' },
-        { label: 'Rek', ct: '3' },
-      ],
-      aiSummary: 'SLA är passerad och konversationen är obesvarad',
+      sla: '—',
+      priority: '—',
+      churnRisk: '—',
+      engagement: '—',
+      chips: [{ label: 'CCO', ct: '0' }],
+      aiSummary: '',
       nuI: 'Behöver svar',
-      nuISub: 'SLA är passerad och konversationen är obesvarad',
+      nuISub: '',
       nextStep: 'Svara nu',
-      nextStepSub: 'Öppna tråden och ta nästa tydliga steg',
-      waiting: 'Behöver åtgärd',
-      waitingSub: 'SLA är passerad och konversationen är obesvarad',
-      threadDate: '2026-05-26 10:02',
-      threadFrom: 'GetAccept',
-      threadSnippet:
-        'Hej,\n\nDokumentet FUE Behandlingsavtal hårtransplantation har undertecknats av alla parter. Se bifogad kopia av det undertecknade dokumentet.\n\nVänliga hälsningar,\nGetAccept-teamet',
-      threadVia: 'via contact@',
+      nextStepSub: '',
+      waiting: '',
+      waitingSub: '',
+      threadDate: '',
+      threadFrom: 'CCO',
+      threadSnippet: 'Välj en konversation i inkorgen.',
+      threadVia: '',
     };
 
     const initialBody =
