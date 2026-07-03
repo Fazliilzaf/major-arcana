@@ -64,10 +64,10 @@ test('Svarstudio modal maps live thread context into recipient, subject and mail
   assert.match(source, /const recipientMissing = !recipientEmail/);
   assert.match(source, /placeholder: recipientEmail \? '' : 'Mottagare saknas i tråddatan'/);
   assert.match(source, /Mottagare saknas i vald tråd/);
-  assert.match(source, /disabled: recipientMissing \? 'disabled' : null/);
-  assert.match(source, /if \(recipientMissing\) \{/);
+  assert.match(source, /let recipientBlockedReason = recipientMissing/);
+  assert.match(source, /if \(recipientBlockedReason\) \{/);
   assert.match(source, /const contextMailboxes = Array\.isArray\(ctx\.mailboxOptions\)/);
-  assert.match(source, /\.\.\.contextMailboxes, \.\.\.storedMailboxes/);
+  assert.match(source, /const mailboxes = \[\.\.\.contextMailboxes\]\.reduce/);
   assert.match(source, /Array\.isArray\(ctx\.latestMessages\)/);
 });
 
@@ -122,5 +122,5 @@ test('konversationer live context derives recipient and sender mailbox for Svars
 test('konversationer.html cache-busts bottom actions after Svarstudio context fix', () => {
   const html = readHtml();
 
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703j-actions/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703k-qa/);
 });

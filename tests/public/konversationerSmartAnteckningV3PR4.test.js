@@ -171,7 +171,10 @@ test('PR4: kontexten byggs från vald live-/visible-tråd', () => {
 
 test('PR4: send-låset (recipientMissing) är kvar och oförändrat', () => {
   assert.match(source, /const recipientMissing = !recipientEmail/);
-  assert.ok(source.includes('if (recipientMissing) {'), 'send-handlern blockerar fortfarande');
+  assert.ok(
+    source.includes('if (recipientBlockedReason) {'),
+    'send-handlern blockerar fortfarande'
+  );
   assert.ok(source.includes('recipientMissingMessage'), 'varningstext finns kvar');
 });
 
@@ -193,5 +196,5 @@ test('PR4: v3 fyller befintlig ctx-bar (kund, sub, avatar) — ingen ny design',
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR4: konversationer.html cache-bustar efter Smart anteckning v3-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703j-actions/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703k-qa/);
 });

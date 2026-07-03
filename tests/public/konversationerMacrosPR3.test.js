@@ -126,6 +126,9 @@ test('PR3: makro-klick fyller svarsfältet från vald tråd (ctx)', () => {
 
 test('PR3: send-låset (recipientMissing) är oförändrat och gäller fortfarande', () => {
   assert.match(source, /const recipientMissing = !recipientEmail/);
-  assert.ok(source.includes('if (recipientMissing) {'), 'send-handlern ska fortfarande blockera');
+  assert.ok(
+    source.includes('if (recipientBlockedReason) {'),
+    'send-handlern ska fortfarande blockera'
+  );
   assert.ok(source.includes('recipientMissingMessage'), 'varningstext finns kvar');
 });

@@ -104,6 +104,21 @@
     return '';
   }
 
+  // PR 6 — kundidentitet för Klar/Senare/Reopen. Backend matchar customerId mot
+  // trådens INKOMMANDE avsändarmail (icke-klinik). Använd trådens inkommande
+  // meddelanden (första inkommande först), inte ett härlett fält som kan ge 409.
+  function resolveThreadCustomerEmail(context) {
+    const ctx = context || {};
+    const messages = Array.isArray(ctx.latestMessages) ? ctx.latestMessages : [];
+    for (const message of messages) {
+      if (!message || message.dir === 'outgoing') continue;
+      const email = firstCustomerEmailValue(message.email, message.from);
+      if (email) return email;
+    }
+    // Fallback: kundmail på kontexten (fortf. icke-klinik).
+    return firstCustomerEmailValue(ctx.email, ctx.customerEmail, ctx.customerId);
+  }
+
   function mailboxMatchValue(value) {
     return canonicalHairTpMailbox(value).replace(/\s+/g, '');
   }
@@ -457,19 +472,6 @@
     );
   }
 
-  let _mailboxesCache = null;
-  async function loadMailboxes() {
-    if (_mailboxesCache) return _mailboxesCache;
-    try {
-      const r = await fetch('/api/v1/cco-mailboxes', { headers: { 'x-cco-role': ROLE } });
-      const j = await r.json();
-      _mailboxesCache = Array.isArray(j?.mailboxes) ? j.mailboxes : [];
-    } catch {
-      _mailboxesCache = [];
-    }
-    return _mailboxesCache;
-  }
-
   function chipBtn(label, opts) {
     opts = opts || {};
     const btn = el(
@@ -494,8 +496,6 @@
       conversationKey: liveContext?.conversationKey,
       source: liveContext?.source,
     });
-    const storedMailboxes = await loadMailboxes();
-
     const ctx = liveContext || {
       customerName: 'Vald konversation',
       customerSub: 'Ingen tråd vald ännu',
@@ -533,7 +533,9 @@
       : (Array.isArray(ctx.mailboxTrail) ? ctx.mailboxTrail : [ctx.mailboxSource || ctx.mailboxId])
           .filter(Boolean)
           .map((mailbox) => ({ id: mailbox, name: mailbox, email: mailbox }));
-    const mailboxes = [...contextMailboxes, ...storedMailboxes].reduce((list, mailbox) => {
+    // PR 6 — Från begränsas till trådens mailbox-spår (mailboxar kunden faktiskt
+    // skrivit till/berör tråden). Ingen bredare adressbok. Dedupe behålls.
+    const mailboxes = [...contextMailboxes].reduce((list, mailbox) => {
       const rawId = cleanText(mailbox?.id || mailbox?.mailboxId || mailbox?.email);
       const rawEmail = cleanText(mailbox?.email || mailbox?.mailboxAddress || rawId);
       const email = canonicalHairTpMailbox(rawEmail || rawId);
@@ -569,6 +571,17 @@
     const recipientMissing = !recipientEmail;
     const recipientMissingMessage =
       'Mottagare saknas i vald tråd. Koppla kundmail eller välj en tråd med kundadress innan svar kan skickas.';
+    const recipientClinicMessage =
+      'Klinikadress (@hairtpclinic.com) kan inte vara mottagare. Ange kundens e-postadress.';
+    // PR 6 — dynamiskt send-lås: Till kan redigeras när kundmail finns, men
+    // manuellt inskriven klinikadress (eller tom) håller "Skicka svar" låst.
+    let recipientBlockedReason = recipientMissing ? recipientMissingMessage : null;
+    function currentRecipientBlock() {
+      const value = cleanText(recipientInput.value);
+      if (!value) return recipientMissingMessage;
+      if (isHairTpMailboxEmail(value)) return recipientClinicMessage;
+      return null;
+    }
 
     const initialBody =
       'Hej ' +
@@ -831,6 +844,7 @@
       placeholder: recipientEmail ? '' : 'Mottagare saknas i tråddatan',
       'aria-invalid': recipientMissing ? 'true' : null,
       readonly: recipientMissing ? 'readonly' : null,
+      oninput: () => evaluateRecipient(),
     });
     const mailboxSelect = el('select', {
       onchange: () => {
@@ -859,17 +873,39 @@
         ]),
       ])
     );
-    if (recipientMissing) {
-      replyBlock.appendChild(
-        el(
-          'div',
-          {
-            style:
-              'padding:9px 12px;background:linear-gradient(180deg,rgba(245,214,211,.82),rgba(255,244,219,.82));border:1px solid rgba(185,74,74,.28);border-radius:10px;font-size:11px;color:#8c2626;font-weight:700',
-          },
-          '⚠ ' + recipientMissingMessage
-        )
-      );
+    // Persistent varningsruta — visas när Till är tom eller klinikadress.
+    const recipientWarning = el(
+      'div',
+      {
+        style:
+          'padding:9px 12px;background:linear-gradient(180deg,rgba(245,214,211,.82),rgba(255,244,219,.82));border:1px solid rgba(185,74,74,.28);border-radius:10px;font-size:11px;color:#8c2626;font-weight:700;display:none',
+      },
+      ''
+    );
+    replyBlock.appendChild(recipientWarning);
+
+    // Uppdaterar send-lås + varning utifrån aktuellt Till-värde.
+    function evaluateRecipient() {
+      recipientBlockedReason = currentRecipientBlock();
+      const blocked = Boolean(recipientBlockedReason);
+      recipientInput.setAttribute('aria-invalid', blocked ? 'true' : 'false');
+      recipientWarning.textContent = blocked ? '⚠ ' + recipientBlockedReason : '';
+      recipientWarning.style.display = blocked ? '' : 'none';
+      if (sendButton) {
+        if (blocked) {
+          sendButton.setAttribute('disabled', 'disabled');
+          sendButton.setAttribute('aria-disabled', 'true');
+          sendButton.setAttribute('title', recipientBlockedReason);
+          sendButton.style.opacity = '0.48';
+          sendButton.style.cursor = 'not-allowed';
+        } else {
+          sendButton.removeAttribute('disabled');
+          sendButton.setAttribute('aria-disabled', 'false');
+          sendButton.removeAttribute('title');
+          sendButton.style.opacity = '';
+          sendButton.style.cursor = '';
+        }
+      }
     }
 
     // Ämne + Body
@@ -1053,8 +1089,8 @@
 
     // ─── Footer-actions ──────────────────────────────────────────────
     async function saveDraft(targetStatus) {
-      if (recipientMissing) {
-        toast('✗ ' + recipientMissingMessage, 'err');
+      if (recipientBlockedReason) {
+        toast('✗ ' + recipientBlockedReason, 'err');
         return false;
       }
       try {
@@ -1124,8 +1160,8 @@
     }
 
     function showPreview() {
-      if (recipientMissing) {
-        toast('✗ ' + recipientMissingMessage, 'err');
+      if (recipientBlockedReason) {
+        toast('✗ ' + recipientBlockedReason, 'err');
         return;
       }
       auditStudioEvent('studio.preview_opened', { bodyLength: state.body.length });
@@ -1182,12 +1218,9 @@
       {
         class: 'wb-primary-cta',
         type: 'button',
-        disabled: recipientMissing ? 'disabled' : null,
-        'aria-disabled': recipientMissing ? 'true' : null,
-        title: recipientMissing ? recipientMissingMessage : null,
         onclick: async () => {
-          if (recipientMissing) {
-            toast('✗ ' + recipientMissingMessage, 'err');
+          if (recipientBlockedReason) {
+            toast('✗ ' + recipientBlockedReason, 'err');
             return;
           }
           if (await saveDraft('needs_approval')) {
@@ -1198,10 +1231,8 @@
       },
       [el('span', {}, '▶'), 'Skicka svar']
     );
-    if (recipientMissing) {
-      sendButton.style.opacity = '0.48';
-      sendButton.style.cursor = 'not-allowed';
-    }
+    // Synka send-lås + varning mot aktuellt Till-värde (tomt/klinik → låst).
+    evaluateRecipient();
 
     const m = openModal({
       title: 'Arbetsyta · Svarstudio',
@@ -1483,9 +1514,9 @@
       toast('Ingen live-tråd vald — välj en tråd i live-inkorgen.', 'err');
       return;
     }
-    // customerId (backend-guard mot fel kund) = kundens e-post; aldrig klinikmail.
-    const customerId =
-      firstCustomerEmailValue(ctx.email, ctx.customerId) || cleanText(ctx.customerId);
+    // customerId (backend-guard mot fel kund) = trådens inkommande kundmail;
+    // aldrig klinikmail. Samma källa som backend → undviker 409 customer_mismatch.
+    const customerId = resolveThreadCustomerEmail(ctx);
     if (!customerId) {
       toast('Kundadress saknas i tråden — kan inte utföra åtgärden säkert.', 'err');
       return;
