@@ -18,6 +18,9 @@
   // PR 10 — "Öppna kalender" går till den riktiga CCO-kalenderytan (inte v8-preview),
   // som panel med vald tråds kund. Samma origin, ingen live-send.
   const KALENDER_SRC = '/kalender.html';
+  // PR 11 — "Lägg senare" öppnar Senare v3 som panel; reply_later körs FÖRST när
+  // användaren bekräftar snooze-tid i panelen (inte ett-klicks-snooze). Samma origin.
+  const SENARE_V3_SRC = '/major-arcana-preview/cco-senare-v3.html';
 
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
@@ -1461,6 +1464,61 @@
     });
   }
 
+  // ─── LÄGG SENARE → Senare v3 (snooza vid Bekräfta) ───────────────────
+  // Öppnar Senare-panelen med vald tråd; backend-action reply_later körs FÖRST
+  // när användaren bekräftar snooze-tiden inne i panelen. Ingen ett-kliks-snooze.
+  function openSenarePanel() {
+    if (window.location.protocol === 'file:') {
+      toast('Lägg senare kräver inloggad admin#cco (inte lokal fil).', 'err');
+      return;
+    }
+    // Endast riktig live-tråd (inte demo/visible-fallback).
+    const live = getLiveConversationContext();
+    if (!live || !live.conversationKey || live.conversationKey === 'visible-thread') {
+      toast('Ingen live-tråd vald — välj en tråd i live-inkorgen.', 'err');
+      return;
+    }
+    // Samma kundidentitet som backend förväntar sig (#540/#6) så panelens
+    // reply_later inte ger 409 customer_mismatch.
+    const customerId = resolveThreadCustomerEmail(live);
+    if (!customerId) {
+      toast('Kundadress saknas i tråden — kan inte lägga senare säkert.', 'err');
+      return;
+    }
+    const context = buildSmartAnteckningContext();
+    context.customerId = customerId;
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.email) params.set('email', context.email);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    params.set('cid', customerId);
+    const query = params.toString();
+    const src = SENARE_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'Lägg senare v3',
+      style: 'width:100%;height:78vh;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:senare:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({
+      title: 'Lägg senare',
+      wide: true,
+      headChips: context.conversationKey ? [{ label: context.customerName, kind: 'neutral' }] : [],
+      body: frame,
+    });
+  }
+
   // ─── KLAR / SENARE / REOPEN ──────────────────────────────────────────
   // Muterar delad trådstatus via befintlig backend-action
   // (POST /cco/runtime/conversation/:key/action, mail.write). Påverkar bara
@@ -1528,7 +1586,7 @@
         else if (action === 'bokningsyta') openBokningsyta();
         else if (action === 'kalender') openKalender();
         else if (action === 'klar') runConversationAction('handled');
-        else if (action === 'senare') runConversationAction('reply_later');
+        else if (action === 'senare') openSenarePanel();
         else if (action === 'reopen') runConversationAction('reopen');
       });
     });

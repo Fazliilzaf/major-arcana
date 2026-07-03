@@ -50,7 +50,8 @@ test('PR8: data-action-värden (funktionen) är oförändrade', () => {
 });
 
 test('PR8: action-handlers i bottom-actions.js oförändrade', () => {
-  assert.match(actions, /action === 'senare'\) runConversationAction\('reply_later'\)/);
+  // PR 11 — "Lägg senare" öppnar Senare-panelen (reply_later körs vid Bekräfta).
+  assert.match(actions, /action === 'senare'\) openSenarePanel\(\)/);
   assert.match(actions, /action === 'klar'\) runConversationAction\('handled'\)/);
   assert.match(actions, /action === 'reopen'\) runConversationAction\('reopen'\)/);
   assert.match(actions, /action === 'bokningsyta'\) openBokningsyta\(\)/);
