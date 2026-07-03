@@ -2685,15 +2685,51 @@
           } else {
             return false;
           }
+          // PR 6 — håll lista och läsruta i takt. Om tråden fortfarande syns i
+          // aktuell flik/lane behåller vi den vald; annars öppnas nästa synliga
+          // tråd, eller läsrutan töms tydligt om ingen tråd återstår.
+          const visibleThreads = currentThreads.filter(
+            (t) => threadMatchesTab(t, currentInboxTab) && threadMatchesLane(t, currentLane)
+          );
+          const targetStillVisible = visibleThreads.includes(target);
+          const nextThread = targetStillVisible ? target : visibleThreads[0] || null;
+          currentThreads.forEach((t) => {
+            t.active = false;
+          });
+          if (nextThread) nextThread.active = true;
           renderInboxThreads(currentThreads, {
             activeTab: currentInboxTab,
             activeLane: currentLane,
           });
-          setThreadHeader(target, selectedLiveMessages.length || null);
-          setSvarstudioLiveContext(target, selectedLiveMessages);
+          if (!nextThread) {
+            clearThreadReadingPane();
+          } else if (nextThread === target) {
+            setThreadHeader(target, selectedLiveMessages.length || null);
+            setSvarstudioLiveContext(target, selectedLiveMessages);
+          } else {
+            openConversationThread(nextThread);
+          }
           return true;
         },
       };
+
+      // PR 6 — töm läsrutan tydligt när ingen tråd återstår i aktuell filtervy.
+      function clearThreadReadingPane() {
+        selectedLiveThread = null;
+        selectedLiveMessages = [];
+        const title = document.querySelector('.thread-header-main h2');
+        if (title) title.textContent = 'Ingen tråd vald';
+        const statusBar = document.querySelector('.thread-status-bar');
+        if (statusBar) {
+          statusBar.innerHTML =
+            '<span class="status-pill status-pill--info"><span class="dot"></span>Ingen tråd i denna vy</span>';
+        }
+        const mount = document.getElementById('messages');
+        if (mount) {
+          mount.innerHTML =
+            '<div class="msg-day">Konversationer</div><div class="msg is-incoming"><div class="msg-av" style="background:linear-gradient(180deg,#c8e8e0,#88c8b8)">CC</div><div><div class="msg-bubble">Ingen tråd är vald i den här vyn. Välj en annan flik eller tråd i inkorgen.</div><div class="msg-meta">CCO</div></div></div>';
+        }
+      }
 
       function threadMatchesTab(thread, tabId) {
         if (tabId === 'olasta') return thread.unread === true;
@@ -3025,6 +3061,6 @@
       );
     </script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
-    <script src="/konversationer-bottom-actions.js?v=20260703j-actions" defer></script>
+    <script src="/konversationer-bottom-actions.js?v=20260703k-qa" defer></script>
   </body>
 </html>

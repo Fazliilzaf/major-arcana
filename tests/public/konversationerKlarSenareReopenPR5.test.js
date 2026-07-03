@@ -68,8 +68,8 @@ test('PR5: åtgärd sker BARA på riktig live-tråd (inte demo/visible-fallback)
 });
 
 test('PR5: customerId härleds som kundens e-post, aldrig klinikmail (#540)', () => {
-  // firstCustomerEmailValue filtrerar bort @hairtpclinic.com.
-  assert.match(source, /firstCustomerEmailValue\(ctx\.email, ctx\.customerId\)/);
+  // resolveThreadCustomerEmail scannar trådens inkommande icke-klinikmail (PR 6).
+  assert.match(source, /const customerId = resolveThreadCustomerEmail\(ctx\)/);
   assert.match(source, /Kundadress saknas i tråden/);
 });
 
@@ -128,7 +128,7 @@ test('PR5: backend-endpoint finns och gäller mail.write med rätt actions', () 
 
 test('PR5: send-låset (recipientMissing) kvar (#540/#543)', () => {
   assert.match(source, /const recipientMissing = !recipientEmail/);
-  assert.ok(source.includes('if (recipientMissing) {'));
+  assert.ok(source.includes('if (recipientBlockedReason) {'));
 });
 
 test('PR5: makron använder fortfarande vald tråd (#543)', () => {
@@ -147,5 +147,5 @@ test('PR5: Smart anteckning v3 används, inte gamla modalen (#544)', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR5: konversationer.html cache-bustar efter Klar/Senare/Reopen-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703j-actions/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703k-qa/);
 });
