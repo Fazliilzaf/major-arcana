@@ -177,6 +177,16 @@ function deriveFromName(message) {
   return emailFallback || '(okänd avsändare)';
 }
 
+function deriveSenderEmail(message) {
+  const safe = asObject(message);
+  return (
+    normalizeText(asObject(asObject(safe.from).emailAddress).address) ||
+    normalizeText(safe.senderEmail) ||
+    normalizeText(safe.fromAddress) ||
+    normalizeText(asObject(asObject(safe.sender).emailAddress).address)
+  ).toLowerCase();
+}
+
 function deriveTime(message) {
   const safe = asObject(message);
   return (
@@ -427,15 +437,21 @@ function createCcoConversationRouter({
         const messages = sorted.map((m) => {
           const safe = asObject(m);
           const from = deriveFromName(safe);
+          const senderEmail = deriveSenderEmail(safe);
+          const mailboxId = normalizeText(safe.mailboxId) || null;
+          const mailboxAddress = normalizeText(safe.mailboxAddress) || mailboxId;
           return {
             id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
             from,
+            senderEmail: senderEmail || null,
+            fromEmail: senderEmail || null,
             initials: deriveInitials(from),
             dir: deriveDir(safe.folderType),
             time: deriveTime(safe),
             body: deriveBody(safe),
             subject: normalizeText(safe.subject) || null,
-            mailboxId: normalizeText(safe.mailboxId) || null,
+            mailboxId,
+            mailboxAddress: mailboxAddress || null,
             folderType: normalizeText(safe.folderType) || null,
           };
         });

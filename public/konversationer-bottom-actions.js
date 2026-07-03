@@ -342,7 +342,7 @@
       conversationKey: liveContext?.conversationKey,
       source: liveContext?.source,
     });
-    const mailboxes = await loadMailboxes();
+    const storedMailboxes = await loadMailboxes();
 
     const ctx = liveContext || {
       customerName: 'Vald konversation',
@@ -376,6 +376,25 @@
       threadSnippet: 'Välj en konversation i inkorgen.',
       threadVia: '',
     };
+    const contextMailboxes = Array.isArray(ctx.mailboxOptions)
+      ? ctx.mailboxOptions
+      : (Array.isArray(ctx.mailboxTrail) ? ctx.mailboxTrail : [ctx.mailboxSource || ctx.mailboxId])
+          .filter(Boolean)
+          .map((mailbox) => ({ id: mailbox, name: mailbox, email: mailbox }));
+    const mailboxes = [...contextMailboxes, ...storedMailboxes].reduce((list, mailbox) => {
+      const id = cleanText(mailbox?.id || mailbox?.mailboxId || mailbox?.email);
+      const email = cleanText(mailbox?.email || mailbox?.mailboxAddress || id);
+      if (!id || list.some((item) => item.id === id || item.email === email)) return list;
+      list.push({ id, name: cleanText(mailbox?.name) || id, email });
+      return list;
+    }, []);
+    if (!mailboxes.length) {
+      mailboxes.push({
+        id: 'contact@hairtpclinic.com',
+        name: 'contact',
+        email: 'contact@hairtpclinic.com',
+      });
+    }
 
     const initialBody =
       'Hej ' +
@@ -385,7 +404,7 @@
       '.\n\nJag återkommer med en tydlig bekräftelse och det du behöver inför besöket.' +
       '\n\nHör gärna av dig om något behöver justeras.';
     const state = {
-      mailboxId: ctx.mailboxId || mailboxes[0]?.id || 'contact',
+      mailboxId: ctx.mailboxId || ctx.mailboxSource || mailboxes[0]?.id || 'contact',
       signatureId: 'fazli',
       track: null,
       tone: null,
