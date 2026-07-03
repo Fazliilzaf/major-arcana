@@ -10,8 +10,7 @@
 
 require('dotenv').config({ quiet: true });
 
-const { execSync } = require('node:child_process');
-const path = require('node:path');
+const { resolveProdAuthToken } = require('./lib/resolve-prod-auth-token');
 
 const BASE = (
   process.env.BASE ||
@@ -25,12 +24,7 @@ function record(name, pass, detail = '') {
 }
 
 function getToken() {
-  if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
-  return execSync(`node "${path.join(__dirname, 'get-prod-auth-token.js')}" --owner`, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, ARCANA_PROD_URL: BASE },
-  }).trim();
+  return resolveProdAuthToken({ baseUrl: BASE, preferOwner: false });
 }
 
 async function api(token, route, opts = {}) {
@@ -80,7 +74,7 @@ async function main() {
 
   let token;
   try {
-    token = getToken();
+    token = await getToken();
   } catch (err) {
     fail('DIR-04 auth token', err.message);
     const decideProbe = await fetch(
@@ -97,7 +91,9 @@ async function main() {
       `HTTP ${decideProbe.status} (401=write route mounted, 404=write AV)`
     );
     console.log('\n--- Summary ---');
-    console.log('Auth saknas — kör med giltig ARCANA_SMOKE_BEARER_TOKEN eller owner .env');
+    console.log(
+      'Auth saknas — kör med giltig STAFF/owner .env eller färsk ARCANA_SMOKE_BEARER_TOKEN'
+    );
     process.exit(hardFail ? 1 : 0);
   }
 

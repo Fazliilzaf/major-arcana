@@ -33,7 +33,34 @@ Eller manuellt: uppdatera `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=100` i Rende
 
 **Avvikelse:** en batch-confirm avbröts av tillfällig prod-**502** → **delvis commit** (1 fil committad före avbrott). Ingen korruption, ingen `storageKeyChanged`, ingen filflytt.
 
-**Kvar efter pass:** `IMG_3005.JPG` (`018037ed-7813-4ba2-af96-148b22091e67`) — samma homogena grupp (`cliento_61e8e5f…`, `needs_photo_review`, hög confidence).
+**Kvar efter pass:** `IMG_3005.JPG` (`018037ed-7813-4ba2-af96-148b22091e67`) — `cliento_61e8e5f…`, `needs_photo_review`, **`confidence: medium`** → **endast manuell** granskning i UI.
+
+## Prod-auth (pilot + verify)
+
+Drive pilot/verify använder `scripts/lib/resolve-prod-auth-token.js`:
+
+1. `ARCANA_SMOKE_BEARER_TOKEN` — **endast om** `/api/v1/auth/me` svarar 200 (ignorerar utgången token i shell).
+2. **STAFF-login** via `get-prod-auth-token.js` (default).
+3. **OWNER-login** med **STAFF-reserv** om owner `.env` är gammalt (`--owner` utan `--no-fallback`).
+
+STAFF har `asset.review` — räcker för Drive review read + write/canary.
+
+```bash
+# Verify (STAFF-fallback automatiskt)
+npm run verify:drive-import-review-prod
+
+# Batch dry-run / preview / confirm
+ARCANA_PROD_URL=https://arcana.hairtpclinic.com \
+DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=operator.name \
+  npm run pilot:drive-import-review-batch-prod -- --size 3 --preview --confirm
+```
+
+**Efter auth-PR merge:**
+
+1. `npm run verify:drive-import-review-prod` — förväntat: `max=100`, `used=25`, `remaining=75`, `storageKeyChanged=0`.
+2. **IMG_3005.JPG** — manuellt i UI (`confidence=medium`, auto-batch nej).
+3. Batchar — **endast** homogena grupper med **`confidence: high`**, 2–3 filer.
+4. **Stoppa** vid 502-loop eller `storageKeyChanged > 0`.
 
 ## Efter merge (canary 100)
 

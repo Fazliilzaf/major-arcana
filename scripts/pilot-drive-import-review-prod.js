@@ -8,14 +8,14 @@
  *   npm run pilot:drive-import-review-prod -- --dry-run
  *   npm run pilot:drive-import-review-prod -- --execute
  *
- * Kräver owner-auth (.env eller ARCANA_SMOKE_BEARER_TOKEN).
+ * Kräver STAFF/owner-auth (.env) eller validerad ARCANA_SMOKE_BEARER_TOKEN.
  * Kör verify först: npm run verify:drive-import-review-prod
  */
 
 require('dotenv').config({ quiet: true });
 
-const { execSync } = require('node:child_process');
 const path = require('node:path');
+const { resolveProdAuthToken } = require('./lib/resolve-prod-auth-token');
 
 const BASE = (
   process.env.BASE ||
@@ -30,13 +30,8 @@ function log(msg) {
   console.log(msg);
 }
 
-function getToken() {
-  if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
-  return execSync(`node "${path.join(__dirname, 'get-prod-auth-token.js')}" --owner`, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, ARCANA_PROD_URL: BASE },
-  }).trim();
+async function getToken() {
+  return resolveProdAuthToken({ baseUrl: BASE, preferOwner: false });
 }
 
 async function api(token, route, opts = {}) {
@@ -227,7 +222,7 @@ async function main() {
   log(`Drive Import Review pilot @ ${BASE}`);
   log(`Mode: ${DRY_RUN ? 'DRY-RUN' : 'EXECUTE'}`);
 
-  const token = getToken();
+  const token = await getToken();
   const summary = await api(token, '/api/v1/ops/cco/drive-import-review/summary');
   if (summary.status !== 200) throw new Error(`summary HTTP ${summary.status}`);
   if (!summary.body.writeEnabled) {
