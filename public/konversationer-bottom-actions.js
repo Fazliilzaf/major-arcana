@@ -410,8 +410,12 @@
       !raw || /^konversation(er)?$/i.test(raw) || (nameLower && raw.toLowerCase() === nameLower);
     if (!isGeneric) return raw;
     const messages = Array.isArray(ctx.latestMessages) ? ctx.latestMessages : [];
+    // Använd senaste INKOMMANDE meddelandet — hoppa över utgående klinik-svar
+    // (annars tackar makrot kunden för klinikens egen text).
     for (let i = messages.length - 1; i >= 0; i -= 1) {
-      const snippet = cleanText(messages[i] && (messages[i].body || messages[i].snippet));
+      const message = messages[i];
+      if (message && message.dir === 'outgoing') continue;
+      const snippet = cleanText(message && (message.body || message.snippet));
       if (snippet) return snippet.slice(0, 60);
     }
     return 'ditt ärende';

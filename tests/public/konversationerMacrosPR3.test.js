@@ -86,6 +86,19 @@ test('PR3: ämne = kundnamn behandlas som generiskt (fallback till meddelande)',
   assert.match(out, /Undrar över priser/);
 });
 
+test('PR3: fallback använder senaste INKOMMANDE, inte utgående klinik-svar', () => {
+  const out = buildMacroText('confirm_booking', {
+    customerName: 'Anna',
+    subject: 'Re: konversation',
+    latestMessages: [
+      { dir: 'incoming', body: 'Kan jag boka PRP?' },
+      { dir: 'outgoing', body: 'Hej Anna, vi återkommer med tider' },
+    ],
+  });
+  assert.match(out, /Kan jag boka PRP\?/);
+  assert.doesNotMatch(out, /vi återkommer med tider/);
+});
+
 test('PR3: alla fyra makron ger unik, relevant text', () => {
   const ctx = { customerName: 'Anna', subject: 'bokning' };
   const bodies = ['confirm_booking', 'suggest_times', 'send_pricing', 'ask_more_info'].map((id) =>
