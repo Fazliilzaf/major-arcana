@@ -389,6 +389,58 @@
     { id: 'ask_more_info', label: 'Be om info' },
   ];
 
+  // PR 3 — makron/svarsmallar använder vald live-tråds kontext: kund
+  // (customerName), ämne (subject) och senaste meddelanden (latestMessages).
+  // Ren funktion — ingen DOM, ingen live-send.
+  function macroFirstName(context) {
+    const full = cleanText(context && context.customerName);
+    if (!full || /^(vald konversation|okänd kund|kund)$/i.test(full)) return '';
+    return full.split(/\s+/)[0];
+  }
+  function macroTopic(context) {
+    const raw = cleanText(context && context.subject)
+      .replace(/^re:\s*/i, '')
+      .trim();
+    if (raw) return raw;
+    const messages = Array.isArray(context && context.latestMessages) ? context.latestMessages : [];
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const snippet = cleanText(messages[i] && (messages[i].body || messages[i].snippet));
+      if (snippet) return snippet.slice(0, 60);
+    }
+    return 'ditt ärende';
+  }
+  function buildMacroText(templateId, context) {
+    const ctx = context || {};
+    const first = macroFirstName(ctx);
+    const greeting = first ? 'Hej ' + first + '!' : 'Hej!';
+    const topic = macroTopic(ctx);
+    const bodies = {
+      confirm_booking:
+        greeting +
+        '\n\nTack för ditt meddelande om ' +
+        topic +
+        '. Vi bekräftar din bokning och återkommer med detaljerna. Hör av dig om du har några frågor.',
+      suggest_times:
+        greeting +
+        '\n\nTack för ditt mejl gällande ' +
+        topic +
+        '. Vi har följande tider lediga – låt oss veta vilken som passar dig bäst:\n\n– \n– \n– ',
+      send_pricing:
+        greeting +
+        '\n\nTack för din förfrågan om ' +
+        topic +
+        '. Här kommer prisinformationen du efterfrågade. Säg till om du vill boka en kostnadsfri konsultation.',
+      ask_more_info:
+        greeting +
+        '\n\nTack för ditt meddelande om ' +
+        topic +
+        '. För att kunna hjälpa dig på bästa sätt behöver vi lite mer information:\n\n– \n– ',
+    };
+    return (
+      bodies[templateId] || greeting + '\n\nTack för ditt meddelande. Vi återkommer inom kort.'
+    );
+  }
+
   let _mailboxesCache = null;
   async function loadMailboxes() {
     if (_mailboxesCache) return _mailboxesCache;
@@ -734,8 +786,17 @@
         chipBtn(sm.label, {
           onclick: () => {
             state.template = sm.id;
+            // Fyll svarsfältet från vald tråds kontext (kund/ämne/senaste
+            // meddelanden). Send-låset (recipientMissing) påverkas INTE.
+            const macroText = buildMacroText(sm.id, ctx);
+            const nextBody = state.signatureId
+              ? applySignatureToBody(macroText, state.signatureId)
+              : macroText;
+            bodyArea.value = nextBody;
+            state.body = nextBody;
+            wordCount.textContent = nextBody.split(/\s+/).filter(Boolean).length + ' ord';
             auditStudioEvent('studio.template_selected', { templateId: sm.id });
-            toast('★ Mall: ' + sm.label);
+            toast('★ Mall infogad: ' + sm.label);
           },
         })
       );
