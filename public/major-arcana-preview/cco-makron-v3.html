@@ -1049,6 +1049,351 @@
         margin-left: 4px;
         vertical-align: 2px;
       }
+      /* ===== Makron reskin — No-show AI-språk (hero, rader, sidopanel, värmekarta) ===== */
+      .mk-hero {
+        position: relative;
+        overflow: hidden;
+        margin: 0.6rem 0 0.9rem;
+        padding: 1.35rem 1.5rem;
+        border-radius: var(--r-xl);
+        background: linear-gradient(135deg, rgba(252, 224, 228, 0.95), var(--accent-weak-bg));
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: 0 18px 38px rgba(176, 53, 110, 0.08);
+      }
+      .mk-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.5), transparent 42%);
+        pointer-events: none;
+      }
+      .mk-hero .kicker {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 6px;
+      }
+      .mk-hero h1 {
+        margin: 0 0 4px;
+        font-size: clamp(1.35rem, 1.1rem + 1.4vw, 1.7rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+      }
+      .mk-hero p {
+        margin: 0;
+        max-width: 66ch;
+        font-size: var(--fs-meta);
+        line-height: 1.5;
+        color: var(--text-secondary);
+      }
+      .mk-hero-actions {
+        position: absolute;
+        top: 1.35rem;
+        right: 1.5rem;
+      }
+      .mk-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+      @media (max-width: 720px) {
+        .mk-stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .mk-stat {
+        padding: 0.7rem 0.85rem;
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.66);
+        backdrop-filter: blur(6px);
+      }
+      .mk-stat .num {
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .mk-stat .lbl {
+        margin-top: 4px;
+        font-size: var(--fs-kicker);
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .mk-stat .sub {
+        margin-top: 2px;
+        font-size: var(--fs-kicker);
+        color: var(--text-secondary);
+      }
+      .mk-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 0.85rem;
+        align-items: start;
+      }
+      @media (max-width: 960px) {
+        .mk-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      .mk-panel {
+        padding: 1.25rem 1.35rem;
+        border-radius: var(--r-xl);
+        background: linear-gradient(180deg, var(--bg-surface), var(--bg-sunken));
+        box-shadow: 0 24px 50px rgba(93, 74, 60, 0.08);
+      }
+      .mk-panel h2 {
+        display: flex;
+        align-items: center;
+        margin: 0 0 0.75rem;
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .mk-panel h2 .ct {
+        margin-left: auto;
+        padding: 3px 9px;
+        border-radius: var(--r-pill);
+        font-size: 9.5px;
+        font-weight: 800;
+        background: var(--accent-weak-bg);
+        color: var(--accent);
+      }
+      /* rad (ersätter kortet) */
+      .macro {
+        display: grid;
+        grid-template-columns: 64px 1fr 72px auto;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: var(--r-md);
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        transition: transform 0.12s ease;
+      }
+      .macro:hover {
+        transform: translateX(2px);
+      }
+      .mk-count {
+        text-align: center;
+      }
+      .mk-count b {
+        display: block;
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .mk-count small {
+        display: block;
+        margin-top: 3px;
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .mk-mid .macro-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        text-transform: none;
+        color: var(--text-primary);
+      }
+      .mk-mid .mk-meta {
+        margin-top: 2px;
+        font-size: 10.5px;
+        color: var(--text-tertiary);
+      }
+      .mk-mid .macro-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 6px;
+      }
+      .mchip {
+        padding: 2px 8px;
+        border-radius: var(--r-pill);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+      .mchip--mode-violet {
+        background: var(--violet-bg);
+        color: var(--violet);
+      }
+      .mchip--mode-blue {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .mchip--mode-green {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .mchip--mode-rose,
+      .mchip--mode-gold {
+        background: var(--gold-bg);
+        color: var(--gold);
+      }
+      .mchip--tone {
+        background: rgba(180, 165, 150, 0.16);
+        color: var(--text-secondary);
+      }
+      .mchip--kanal {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .mk-hit {
+        text-align: center;
+      }
+      .mk-hit b {
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: var(--success);
+        font-variant-numeric: tabular-nums;
+      }
+      .mk-hit small {
+        display: block;
+        margin-top: 2px;
+        font-size: 8.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .macro-foot {
+        display: flex;
+        gap: 4px;
+      }
+      .macro-foot .btn {
+        padding: 7px 11px;
+        font-size: 10.5px;
+        border-radius: var(--r-pill);
+      }
+      .macro-foot .btn--primary {
+        box-shadow: 0 4px 12px rgba(176, 53, 110, 0.28);
+      }
+      .macro-empty {
+        padding: 2rem;
+        text-align: center;
+        color: var(--text-tertiary);
+        font-size: var(--fs-meta);
+      }
+      /* sidopanel */
+      .mk-use {
+        padding: 0.6rem 0.75rem;
+        margin-bottom: 0.4rem;
+        border-radius: var(--r-sm);
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .mk-use-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+      .mk-use-name {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .mk-use-val {
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .mk-use-bar {
+        height: 5px;
+        border-radius: var(--r-pill);
+        background: rgba(132, 117, 107, 0.16);
+        overflow: hidden;
+      }
+      .mk-use-bar i {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), #d98db3);
+      }
+      .mk-impact {
+        margin: 0.75rem 0;
+        padding: 1rem;
+        border-radius: var(--r-md);
+        background: linear-gradient(135deg, rgba(74, 130, 104, 0.14), rgba(74, 130, 104, 0.06));
+        border: 1px solid rgba(74, 130, 104, 0.22);
+      }
+      .mk-impact .kicker {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--success);
+      }
+      .mk-impact .big {
+        margin: 4px 0;
+        font-size: 1.6rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--success);
+      }
+      .mk-impact p {
+        margin: 0;
+        font-size: 11px;
+        line-height: 1.45;
+        color: var(--text-secondary);
+      }
+      .mk-tip {
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+      }
+      .mk-tip b {
+        color: var(--text-primary);
+      }
+      .mk-heat {
+        margin-top: 0.85rem;
+      }
+      .mk-heat h2 {
+        margin: 0 0 0.6rem;
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .mk-heat-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+      }
+      .mk-heat-cell {
+        padding: 0.85rem 0.5rem;
+        border-radius: var(--r-md);
+        text-align: center;
+      }
+      .mk-heat-cell b {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--text-primary);
+      }
+      .mk-heat-cell small {
+        display: block;
+        margin-top: 3px;
+        font-size: 9px;
+        color: var(--text-tertiary);
+      }
     </style>
   </head>
   <body>
@@ -1094,54 +1439,133 @@
         </button>
       </div>
 
-      <!-- ===== HEAD ===== -->
-      <div class="head">
-        <div class="head-main">
-          <span class="kicker">Makron</span>
-          <h1 class="h1">Makron &amp; arbetsflöden</h1>
-          <p class="subtitle">Automatisera repetitiva steg utan att lämna operatörens arbetsyta.</p>
+      <!-- ===== HERO ===== -->
+      <div class="mk-hero">
+        <div class="mk-hero-actions">
+          <button class="btn btn--primary" id="createMacro">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Skapa makro
+          </button>
         </div>
-        <button class="btn btn--primary" id="createMacro">
-          <svg
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-            aria-hidden="true"
-          >
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          Skapa makro
-        </button>
-      </div>
-
-      <!-- ===== METRIC-RAD ===== -->
-      <div class="metrics">
-        <div class="metric metric--violet">
-          <div class="m-label">Aktiva makron</div>
-          <div class="m-val tabnum" id="statActive">2</div>
-          <div class="m-meta">manuella</div>
-        </div>
-        <div class="metric metric--blue">
-          <div class="m-label">Auto-makron</div>
-          <div class="m-val tabnum" id="statAuto">1</div>
-          <div class="m-meta">körs automatiskt</div>
-        </div>
-        <div class="metric metric--green">
-          <div class="m-label">Åtgärder totalt</div>
-          <div class="m-val tabnum" id="statSteps">8</div>
-          <div class="m-meta">steg i alla makron</div>
+        <div class="kicker">★ Makron-bibliotek · snabbsvar</div>
+        <h1>Snabbsvar &amp; makron för hela teamet</h1>
+        <p>
+          Öppnas i Svarstudio och fylls automatiskt med vald tråds kund, ämne och senaste
+          meddelande. Redigera fritt innan du infogar — inget skickas automatiskt.
+        </p>
+        <div class="mk-stats">
+          <div class="mk-stat">
+            <div class="num tabnum" id="statActive">2</div>
+            <div class="lbl">Aktiva makron</div>
+            <div class="sub" id="statActiveSub">manuella</div>
+          </div>
+          <div class="mk-stat">
+            <div class="num tabnum" id="statAuto">1</div>
+            <div class="lbl">Auto-makron</div>
+            <div class="sub">körs automatiskt</div>
+          </div>
+          <div class="mk-stat">
+            <div class="num tabnum" id="statSteps">8</div>
+            <div class="lbl">Steg totalt</div>
+            <div class="sub">i alla makron</div>
+          </div>
+          <div class="mk-stat">
+            <div class="num tabnum">94%</div>
+            <div class="lbl">Träffsäkerhet</div>
+            <div class="sub">redigeras sällan efter infogning</div>
+          </div>
         </div>
       </div>
 
       <!-- ===== STATUS-BAR ===== -->
       <p id="macroStatus" class="macro-status" hidden></p>
 
-      <!-- ===== MAKRO-GRID ===== -->
-      <div class="macro-grid" id="macroGrid"></div>
+      <!-- ===== LAYOUT: bibliotek + sidopanel ===== -->
+      <div class="mk-layout">
+        <div class="mk-panel">
+          <h2>Makron-bibliotek <span class="ct" id="statCount">0 ST</span></h2>
+          <div id="macroGrid"></div>
+        </div>
+
+        <div class="mk-panel">
+          <h2>Mest använda · 7 dgr</h2>
+          <div class="mk-use">
+            <div class="mk-use-head">
+              <span class="mk-use-name">Bekräfta bokning</span><span class="mk-use-val">128</span>
+            </div>
+            <div class="mk-use-bar"><i style="width: 100%"></i></div>
+          </div>
+          <div class="mk-use">
+            <div class="mk-use-head">
+              <span class="mk-use-name">Skicka prislista</span><span class="mk-use-val">74</span>
+            </div>
+            <div class="mk-use-bar"><i style="width: 58%"></i></div>
+          </div>
+          <div class="mk-use">
+            <div class="mk-use-head">
+              <span class="mk-use-name">Föreslå tider</span><span class="mk-use-val">63</span>
+            </div>
+            <div class="mk-use-bar"><i style="width: 49%"></i></div>
+          </div>
+          <div class="mk-use">
+            <div class="mk-use-head">
+              <span class="mk-use-name">Be om mer info</span><span class="mk-use-val">52</span>
+            </div>
+            <div class="mk-use-bar"><i style="width: 41%"></i></div>
+          </div>
+          <div class="mk-impact">
+            <div class="kicker">Sparad tid · denna vecka</div>
+            <div class="big">11,8 h</div>
+            <p>
+              Om teamet kör makron enligt snittet sparas ca 12 h/vecka på repetitiva svar — tid som
+              går till patienter istället.
+            </p>
+          </div>
+          <p class="mk-tip">
+            <b>Tips:</b> makrot fylls automatiskt med vald tråds kund, ämne och senaste meddelande.
+            Auto-makron föreslår sig själva när tråden matchar deras spår.
+          </p>
+        </div>
+      </div>
+
+      <!-- ===== ANVÄNDNINGS-VÄRMEKARTA ===== -->
+      <div class="mk-heat">
+        <h2>Användning · senaste 2 veckor</h2>
+        <div class="mk-heat-grid">
+          <div class="mk-heat-cell" style="background: rgba(176, 53, 110, 0.1)">
+            <b>M</b><small>18</small>
+          </div>
+          <div class="mk-heat-cell" style="background: rgba(176, 53, 110, 0.2)">
+            <b>T</b><small>26</small>
+          </div>
+          <div class="mk-heat-cell" style="background: rgba(176, 53, 110, 0.14)">
+            <b>O</b><small>21</small>
+          </div>
+          <div class="mk-heat-cell" style="background: rgba(176, 53, 110, 0.3)">
+            <b>T</b><small>34</small>
+          </div>
+          <div class="mk-heat-cell" style="background: rgba(176, 53, 110, 0.48)">
+            <b>F</b><small>41</small>
+          </div>
+          <div class="mk-heat-cell" style="background: rgba(176, 53, 110, 0.12)">
+            <b>L</b><small>12</small>
+          </div>
+          <div class="mk-heat-cell" style="background: rgba(176, 53, 110, 0.06)">
+            <b>S</b><small>6</small>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ===== CREATE/EDIT MODAL ===== -->
@@ -1375,22 +1799,19 @@
       // ===== Render =====
       function card(m) {
         return (
-          '<article class="macro macro--' +
-          esc(m.tone) +
-          '" data-id="' +
+          '<article class="macro" data-id="' +
           esc(m.id) +
           '">' +
-          '<span class="macro-label">' +
-          esc(m.mode) +
-          '</span>' +
-          '<div class="macro-head"><h2 class="macro-title">' +
-          esc(m.title) +
-          '</h2><span class="steg-chip">' +
+          '<div class="mk-count"><b>' +
           esc(m.steg) +
-          ' steg</span></div>' +
-          '<p class="macro-desc">' +
+          '</b><small>Steg</small></div>' +
+          '<div class="mk-mid">' +
+          '<h2 class="macro-title">' +
+          esc(m.title) +
+          '</h2>' +
+          '<div class="mk-meta">' +
           esc(m.desc) +
-          '</p>' +
+          '</div>' +
           '<div class="macro-chips">' +
           '<span class="mchip mchip--mode-' +
           esc(m.tone) +
@@ -1399,9 +1820,12 @@
           '</span>' +
           '<span class="mchip mchip--tone">Standard</span>' +
           '</div>' +
+          '</div>' +
+          '<div class="mk-hit"><b>' +
+          (m.mode === 'Auto' ? 'Auto' : 'Man.') +
+          '</b><small>Typ</small></div>' +
           '<div class="macro-foot">' +
-          '<button class="btn" data-act="run">Kör</button>' +
-          '<button class="btn" data-act="open">Öppna</button>' +
+          '<button class="btn btn--primary" data-act="run">Kör</button>' +
           '<button class="btn" data-act="edit">Redigera</button>' +
           '<button class="btn btn--danger" data-act="delete">Radera</button>' +
           '</div></article>'
@@ -1428,6 +1852,7 @@
         document.getElementById('statActive').textContent = active;
         document.getElementById('statAuto').textContent = auto;
         document.getElementById('statSteps').textContent = steps;
+        document.getElementById('statCount').textContent = MACROS.length + ' ST';
       }
 
       // ===== Load from API =====
