@@ -35,7 +35,8 @@ test('PR5: Klar/Senare/Återöppna-knappar finns i bottom action bar', () => {
   assert.match(html, /data-action="senare"/);
   assert.match(html, /data-action="reopen"/);
   assert.match(html, /<span class="action-label">Klar<\/span>/);
-  assert.match(html, /<span class="action-label">Senare<\/span>/);
+  // PR 8 — copy: "Senare" → "Lägg senare" (särskilj action från vänsterpanelens filter).
+  assert.match(html, /<span class="action-label">Lägg senare<\/span>/);
   assert.match(html, /<span class="action-label">Återöppna<\/span>/);
 });
 
