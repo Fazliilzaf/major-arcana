@@ -15,7 +15,7 @@ function createAdminRouter({ sendAdminHtml }) {
 
   router.get('/admin.html', (_req, res) => sendAdminHtml(res));
 
-  router.get('/admin', (_req, res) => sendAdminHtml(res));
+  router.get(['/admin', '/admin/'], (_req, res) => sendAdminHtml(res));
 
   router.get('/admin/cmo/connectors', (_req, res) => res.redirect(302, '/admin#cmo-connectors'));
 

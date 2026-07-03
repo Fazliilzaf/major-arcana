@@ -10601,6 +10601,8 @@ function sendAdminHtml(res) {
   res.type('html').send(renderAdminHtml());
 }
 
+const { createAdminRouter } = require('./src/routes/admin');
+
 async function sendStaticPagePdf(
   req,
   res,
@@ -11009,6 +11011,10 @@ app.get('/kunder.html', (req, res) => {
   res.redirect(301, `/major-arcana-preview/?view=customers&v9=${encodeURIComponent(v9Param)}`);
 });
 
+// Admin-shell måste ligga före express.static: public/admin/ är en katalog och
+// static skulle annars redirecta /admin -> /admin/ innan #cco-vyn laddas.
+app.use(createAdminRouter({ sendAdminHtml }));
+
 app.use(
   express.static('public', {
     setHeaders: (res, filePath) => {
@@ -11080,7 +11086,6 @@ const { createExecutiveRouter } = require('./src/routes/executive');
 const { createOnboardingRouter } = require('./src/routes/onboarding');
 const { createDocsRouter } = require('./src/routes/docs');
 const { createPatientInformationRouter } = require('./src/routes/patientInformation');
-const { createAdminRouter } = require('./src/routes/admin');
 const { createDiagRouter } = require('./src/routes/diag');
 const { createConversationRouter } = require('./src/routes/conversation');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
@@ -11433,11 +11438,6 @@ app.use(
     sendStaticPagePdf,
   })
 );
-
-// ─── ADMIN-SHELL + ALIAS-REDIRECTS ───
-// Routes flyttade till src/routes/admin.js (se ORGANISATION.md §4).
-// sendAdminHtml bor kvar i server.js och injiceras.
-app.use(createAdminRouter({ sendAdminHtml }));
 
 // ─── DIAGNOSTIK (_diag) ───
 // Routes flyttade till src/routes/diag.js (se ORGANISATION.md §4).
