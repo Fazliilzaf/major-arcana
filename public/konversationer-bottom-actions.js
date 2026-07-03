@@ -1461,6 +1461,63 @@
     });
   }
 
+  // ─── KLAR / SENARE / REOPEN ──────────────────────────────────────────
+  // Muterar delad trådstatus via befintlig backend-action
+  // (POST /cco/runtime/conversation/:key/action, mail.write). Påverkar bara
+  // vald LIVE-tråd (aldrig demo/visible-fallback). Ingen live-send.
+  const CONVERSATION_ACTION_LABEL = {
+    handled: 'Markerad som klar',
+    reply_later: 'Snoozad till senare',
+    reopen: 'Återöppnad',
+  };
+
+  async function runConversationAction(action) {
+    if (!CONVERSATION_ACTION_LABEL[action]) return;
+    if (window.location.protocol === 'file:') {
+      toast('Klar/Senare/Återöppna kräver inloggad admin#cco (inte lokal fil).', 'err');
+      return;
+    }
+    // Endast riktig live-tråd — inte demo/visible-fallback.
+    const ctx = getLiveConversationContext();
+    if (!ctx || !ctx.conversationKey || ctx.conversationKey === 'visible-thread') {
+      toast('Ingen live-tråd vald — välj en tråd i live-inkorgen.', 'err');
+      return;
+    }
+    // customerId (backend-guard mot fel kund) = kundens e-post; aldrig klinikmail.
+    const customerId =
+      firstCustomerEmailValue(ctx.email, ctx.customerId) || cleanText(ctx.customerId);
+    if (!customerId) {
+      toast('Kundadress saknas i tråden — kan inte utföra åtgärden säkert.', 'err');
+      return;
+    }
+    try {
+      const response = await fetch(
+        '/cco/runtime/conversation/' + encodeURIComponent(ctx.conversationKey) + '/action',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'x-cco-role': ROLE,
+            'x-cco-tenant': TENANT,
+          },
+          body: JSON.stringify({ action, customerId }),
+        }
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload || payload.ok === false) {
+        const detail = (payload && (payload.detail || payload.error)) || response.status;
+        toast('Åtgärden misslyckades: ' + detail, 'err');
+        return;
+      }
+      window.CCOConversationActions?.applyThreadAction?.(action);
+      toast(CONVERSATION_ACTION_LABEL[action], 'ok');
+    } catch (err) {
+      toast('Åtgärden misslyckades: ' + String((err && err.message) || err), 'err');
+    }
+  }
+
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
   function wireActions() {
     document.querySelectorAll('[data-action]').forEach((btn) => {
@@ -1470,6 +1527,9 @@
         else if (action === 'smart-anteckning') openSmartAnteckning();
         else if (action === 'bokningsyta') openBokningsyta();
         else if (action === 'kalender') openKalender();
+        else if (action === 'klar') runConversationAction('handled');
+        else if (action === 'senare') runConversationAction('reply_later');
+        else if (action === 'reopen') runConversationAction('reopen');
       });
     });
     document.addEventListener('keydown', (e) => {
