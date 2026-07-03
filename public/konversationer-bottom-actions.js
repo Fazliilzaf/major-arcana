@@ -310,6 +310,9 @@
       { key: 'bokning', label: 'Öppna bokning', open: () => openBokningsyta() },
       { key: 'smart', label: 'Smart anteckning', open: () => openSmartAnteckning() },
       { key: 'kalender', label: 'Öppna kalender', open: () => openKalender() },
+      { key: 'senare', label: 'Lägg senare', open: () => openSenarePanel() },
+      { key: 'notiser', label: 'Notiser', open: () => openNotiser() },
+      { key: 'skickat', label: 'Skickat / kö', open: () => openSkickat() },
     ].map((t) => ({ key: t.key, label: t.label, open: t.open, active: t.key === activeKey }));
   }
 
@@ -1570,6 +1573,7 @@
     openModal({
       title: 'Lägg senare',
       wide: true,
+      tabs: panelTabs('senare'),
       headChips: context.conversationKey ? [{ label: context.customerName, kind: 'neutral' }] : [],
       body: frame,
     });
@@ -1663,7 +1667,7 @@
         /* ignore cross-frame errors */
       }
     });
-    openModal({ title: 'Notiser', wide: true, body: frame });
+    openModal({ title: 'Notiser', wide: true, tabs: panelTabs('notiser'), body: frame });
   }
 
   // ─── SKICKAT / KÖ → sektion inne i Svarstudio ────────────────────────
@@ -1694,7 +1698,7 @@
         /* ignore cross-frame errors */
       }
     });
-    openModal({ title: 'Skickat / kö', wide: true, body: frame });
+    openModal({ title: 'Skickat / kö', wide: true, tabs: panelTabs('skickat'), body: frame });
   }
 
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────

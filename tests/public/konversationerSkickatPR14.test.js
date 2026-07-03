@@ -40,7 +40,7 @@ test('PR14: Skickat öppnas som panel med kontext via postMessage', () => {
   assert.match(compact(source), /const src = SKICKAT_V3_SRC \+/);
   assert.match(
     compact(source),
-    /openModal\(\{ title: 'Skickat \/ kö', wide: true, body: frame \}\)/
+    /openModal\(\{ title: 'Skickat \/ kö', wide: true, tabs: panelTabs\('skickat'\), body: frame \}\)/
   );
   assert.match(
     compact(source),
@@ -77,5 +77,5 @@ test('PR14: övriga paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR14: konversationer.html cache-bustar efter skickat-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703s-tabs/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703t-alltabs/);
 });
