@@ -27,8 +27,8 @@
 
 require('dotenv').config({ quiet: true });
 
-const { execSync } = require('node:child_process');
 const path = require('node:path');
+const { resolveProdAuthToken } = require('./lib/resolve-prod-auth-token');
 
 const BATCH_MAX = 3;
 const VALID_DECISIONS = new Set(['approve', 'mark_duplicate']);
@@ -92,23 +92,15 @@ function resolveProdBaseUrl() {
   return base;
 }
 
-function resolveBearerToken(baseUrl) {
-  const fromEnv = String(process.env.ARCANA_SMOKE_BEARER_TOKEN || '').trim();
-  if (fromEnv.length >= 20) return fromEnv;
+async function resolveBearerToken(baseUrl) {
   try {
-    const token = execSync(`node "${path.join(__dirname, 'get-prod-auth-token.js')}" --owner`, {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, ARCANA_PROD_URL: baseUrl },
-    }).trim();
-    if (token.length >= 20) return token;
+    return await resolveProdAuthToken({ baseUrl, preferOwner: false });
   } catch (err) {
     const detail = err.stderr?.toString?.()?.trim() || err.message;
     fail(
-      `Saknar giltig token. Sätt ARCANA_SMOKE_BEARER_TOKEN eller owner .env för get-prod-auth-token. (${detail})`
+      `Saknar giltig token. Sätt ARCANA_SMOKE_BEARER_TOKEN (validerad) eller STAFF/owner .env. (${detail})`
     );
   }
-  fail('Saknar giltig bearer-token (ARCANA_SMOKE_BEARER_TOKEN eller owner-login).');
 }
 
 function homogeneityKey(item) {
@@ -414,7 +406,7 @@ async function verifyAfterCommit(
 
 async function main() {
   const baseUrl = resolveProdBaseUrl();
-  const token = resolveBearerToken(baseUrl);
+  const token = await resolveBearerToken(baseUrl);
 
   if (wantsConfirm && !wantsPreview && PREVIEW_TOKEN) {
     log(`Drive Import Review R3.3 batch pilot @ ${baseUrl}`);

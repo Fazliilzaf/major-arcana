@@ -3,6 +3,7 @@
  * Skriv Bearer-token till stdout för prod API.
  * Default: STAFF. --owner: OWNER med MFA (.env).
  * --force: logga alltid in även om open access är explicit på.
+ * --no-fallback: med --owner, avbryt om owner-login misslyckas (ingen STAFF-reserv).
  * --skip-if-open-access: returnera tom sträng endast om ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true i prod env.
  */
 require('dotenv').config({ quiet: true });
@@ -130,8 +131,25 @@ async function main() {
     return;
   }
 
-  const token = ownerMode ? await loginOwnerWithMfa() : await loginStaff();
-  process.stdout.write(token);
+  if (ownerMode) {
+    try {
+      process.stdout.write(await loginOwnerWithMfa());
+      return;
+    } catch (ownerErr) {
+      if (process.argv.includes('--no-fallback')) throw ownerErr;
+      try {
+        process.stderr.write(
+          `get-prod-auth-token: owner login misslyckades (${ownerErr.message || ownerErr}), försöker STAFF\n`
+        );
+        process.stdout.write(await loginStaff());
+        return;
+      } catch (_staffErr) {
+        throw ownerErr;
+      }
+    }
+  }
+
+  process.stdout.write(await loginStaff());
 }
 
 main().catch((err) => {
