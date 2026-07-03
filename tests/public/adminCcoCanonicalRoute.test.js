@@ -6,6 +6,7 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..', '..');
 const ADMIN_HTML = path.join(ROOT, 'public', 'admin.html');
 const ADMIN_JS = path.join(ROOT, 'public', 'admin.js');
+const SERVER_JS = path.join(ROOT, 'server.js');
 
 function read(file) {
   return fs.readFileSync(file, 'utf8');
@@ -35,5 +36,18 @@ test('admin CCO embed is ensured whenever ccoWorkspaceSection is active', () => 
     js,
     /if \(enteringCco\) \{\s*ensureCcoPreviewEmbed\(\);\s*\}/,
     'loading only on entering CCO can leave #cco active with a blank/about:blank iframe after auth changes'
+  );
+});
+
+test('admin shell is mounted before static public directory redirects', () => {
+  const server = read(SERVER_JS);
+  const adminMount = server.indexOf('app.use(createAdminRouter({ sendAdminHtml }))');
+  const staticMount = server.indexOf("express.static('public'");
+
+  assert.notEqual(adminMount, -1, 'server must mount createAdminRouter');
+  assert.notEqual(staticMount, -1, 'server must mount public static assets');
+  assert.ok(
+    adminMount < staticMount,
+    'admin shell must mount before express.static, otherwise public/admin/ redirects /admin -> /admin/'
   );
 });

@@ -31,12 +31,23 @@ async function loc(baseUrl, p) {
 
 test('shell-routes anropar sendAdminHtml', async () => {
   await withServer(async (baseUrl, calls) => {
-    for (const p of ['/admin', '/admin.html', '/unanswered']) {
+    for (const p of ['/admin', '/admin/', '/admin.html', '/unanswered']) {
       const res = await fetch(`${baseUrl}${p}`);
       assert.equal(res.status, 200);
       assert.match(await res.text(), /admin/);
     }
-    assert.equal(calls(), 3);
+    assert.equal(calls(), 4);
+  });
+});
+
+test('/admin och /admin/ serverar shell utan redirect', async () => {
+  await withServer(async (baseUrl) => {
+    for (const p of ['/admin', '/admin/']) {
+      const res = await fetch(`${baseUrl}${p}`, { redirect: 'manual' });
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get('location'), null);
+      assert.match(await res.text(), /admin/);
+    }
   });
 });
 
