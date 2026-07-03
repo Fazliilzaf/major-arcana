@@ -2336,9 +2336,35 @@
       }
 
       function compactMailbox(mailbox = '') {
-        const value = normalizeText(mailbox).toLowerCase();
+        const value = canonicalHairTpMailbox(mailbox);
         if (!value) return 'kons';
         return value.split('@')[0] || value;
+      }
+
+      function canonicalHairTpMailbox(value) {
+        const text = normalizeText(value).toLowerCase();
+        const full = text.match(/[a-z0-9._%+-]+@hairtpclinic\.com\b/);
+        if (full) return full[0];
+        const partial = text.match(/[a-z0-9._%+-]+@hairtpclinic\b/);
+        if (partial) return `${partial[0]}.com`;
+        return text;
+      }
+
+      function looksLikeEmail(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeText(value));
+      }
+
+      function isHairTpMailboxEmail(value) {
+        const email = firstEmailValue(value) || canonicalHairTpMailbox(value);
+        return /@hairtpclinic\.com$/i.test(email);
+      }
+
+      function firstCustomerEmailValue(...values) {
+        for (const value of values) {
+          const email = firstEmailValue(value);
+          if (email && !isHairTpMailboxEmail(email)) return email;
+        }
+        return '';
       }
 
       function formatWhen(value) {
@@ -2373,22 +2399,52 @@
         const state = row.state || {};
         const conversation = row.conversation || {};
         const rollup = row.rollup || {};
+        const customerEmail = firstCustomerEmailValue(
+          customer.email,
+          customer.emailAddress,
+          customer.primaryEmail,
+          customer.mail,
+          customer.contactEmail,
+          customer.identity?.email,
+          customer.identity?.emailAddress,
+          customer.identity?.customerEmail,
+          customer.identity?.primaryEmail,
+          row.customer?.identity?.customerEmail,
+          row.customerEmail,
+          row.counterpartyEmail,
+          row.counterparty?.email,
+          row.presentation?.secondaryLabel,
+          row.presentation?.contactLabel,
+          row.match?.email,
+          row.match?.value,
+          row.identity?.email,
+          row.identity?.emailAddress,
+          row.customerIdentity?.customerEmail,
+          row.customerIdentity?.email,
+          row.customerIdentity?.emailAddress,
+          row.email,
+          row.fromEmail,
+          row.senderEmail,
+          row.replyTo,
+          row.replyToEmail
+        );
         const name =
           normalizeText(row.presentation?.primaryLabel) ||
           normalizeText(customer.name) ||
-          normalizeText(customer.email) ||
+          customerEmail ||
           'Okänd kund';
-        const mailboxAddress =
+        const mailboxAddress = canonicalHairTpMailbox(
           normalizeText(mailbox.mailboxAddress) ||
-          normalizeText(mailbox.mailboxId) ||
-          normalizeText(rollup.primaryMailboxId) ||
-          LIVE_MAILBOX_IDS[0];
+            normalizeText(mailbox.mailboxId) ||
+            normalizeText(rollup.primaryMailboxId) ||
+            LIVE_MAILBOX_IDS[0]
+        );
         const mailboxTrail = [
           mailboxAddress,
           ...(Array.isArray(rollup.inboundMailboxIds) ? rollup.inboundMailboxIds : []),
           ...(Array.isArray(rollup.underlyingMailboxIds) ? rollup.underlyingMailboxIds : []),
         ]
-          .map((item) => normalizeText(item))
+          .map((item) => canonicalHairTpMailbox(item))
           .filter(Boolean)
           .filter((item, index, all) => all.indexOf(item) === index);
         const source = compactMailbox(mailboxAddress);
@@ -2414,12 +2470,12 @@
           source,
           mailboxAddress,
           mailboxTrail,
-          mailboxId: normalizeText(mailbox.mailboxId) || mailboxAddress,
+          mailboxId: canonicalHairTpMailbox(mailbox.mailboxId) || mailboxAddress,
           customerId:
             normalizeText(customer.customerId) ||
             normalizeText(customer.id) ||
             normalizeText(row.customerId),
-          customerEmail: normalizeText(customer.email),
+          customerEmail,
           customerPhone: normalizeText(customer.phone || customer.phoneNumber),
           tags,
           unread: state.hasUnreadInbound || state.needsReply,
@@ -2443,7 +2499,10 @@
       function firstEmailValue(...values) {
         for (const value of values) {
           const text = normalizeText(value).toLowerCase();
-          if (text && text.includes('@')) return text;
+          if (!text) continue;
+          if (looksLikeEmail(text)) return text;
+          const embedded = text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+          if (embedded) return embedded[0].toLowerCase();
         }
         return '';
       }
@@ -2453,17 +2512,30 @@
         const dir = rawDir === 'outgoing' || rawDir === 'outbound' ? 'outgoing' : 'incoming';
         const from =
           normalizeText(message?.from) || (dir === 'outgoing' ? 'Hair TP Clinic' : thread?.from);
-        const email = firstEmailValue(
+        const email = firstCustomerEmailValue(
+          message?.customerEmail,
+          message?.customer?.email,
+          message?.customer?.emailAddress,
+          message?.customer?.primaryEmail,
+          message?.counterpartyEmail,
           message?.senderEmail,
           message?.fromEmail,
           message?.fromAddress,
-          message?.email
+          message?.email,
+          message?.replyTo,
+          message?.replyToEmail,
+          message?.sender?.email,
+          message?.sender?.emailAddress,
+          message?.from?.email,
+          message?.from?.emailAddress,
+          message?.customerEmail
         );
-        const mailboxAddress =
+        const mailboxAddress = canonicalHairTpMailbox(
           normalizeText(message?.mailboxAddress) ||
-          normalizeText(message?.mailboxId) ||
-          thread?.mailboxAddress ||
-          '';
+            normalizeText(message?.mailboxId) ||
+            thread?.mailboxAddress ||
+            ''
+        );
         return {
           dir,
           from,
@@ -2488,20 +2560,23 @@
         const latest = latestLiveMessage(normalizedMessages);
         const latestIncoming = latestLiveMessage(normalizedMessages, 'incoming') || latest;
         const replyEmail =
-          firstEmailValue(thread.customerEmail, latestIncoming?.email) ||
-          firstEmailValue(...normalizedMessages.map((message) => message.email));
-        const activeMailbox =
+          firstCustomerEmailValue(thread.customerEmail, latestIncoming?.email) ||
+          firstCustomerEmailValue(...normalizedMessages.map((message) => message.email));
+        const activeMailbox = canonicalHairTpMailbox(
           normalizeText(latestIncoming?.mailboxAddress) ||
-          normalizeText(latest?.mailboxAddress) ||
-          thread.mailboxAddress ||
-          LIVE_MAILBOX_IDS[0];
+            normalizeText(latest?.mailboxAddress) ||
+            thread.mailboxAddress ||
+            LIVE_MAILBOX_IDS[0]
+        );
         const mailboxTrailBase =
           Array.isArray(thread.mailboxTrail) && thread.mailboxTrail.length
             ? thread.mailboxTrail
             : [thread.mailboxAddress || LIVE_MAILBOX_IDS[0]];
         const mailboxTrail = Array.from(
           new Set(
-            [activeMailbox, ...mailboxTrailBase].map((item) => normalizeText(item)).filter(Boolean)
+            [activeMailbox, ...mailboxTrailBase]
+              .map((item) => canonicalHairTpMailbox(item))
+              .filter(Boolean)
           )
         );
         const mailboxLabel = mailboxTrail[0] || LIVE_MAILBOX_IDS[0];
@@ -2524,9 +2599,9 @@
           mailboxSourceNote: mailboxNote,
           mailboxTrail,
           mailboxOptions: mailboxTrail.map((mailbox) => ({
-            id: mailbox,
+            id: canonicalHairTpMailbox(mailbox),
             name: compactMailbox(mailbox),
-            email: mailbox,
+            email: canonicalHairTpMailbox(mailbox),
           })),
           doNow: thread.unread ? 'Svara nu' : 'Granska tråd',
           doNowSub: latestIncoming?.body || thread.preview || 'Vald live-tråd från CCO',
@@ -2755,7 +2830,7 @@
         list.innerHTML = visibleThreads
           .map(
             (t, index) => `
-  <div class="thread ${t.active || index === 0 ? 'active' : ''} ${t.unread ? 'thread-unread' : ''}" data-source="${escapeHtml(t.source)}" data-lane="${escapeHtml(t.lane || 'all')}" data-thread-id="${escapeHtml(t.id)}" data-conversation-key="${escapeHtml(t.conversationKey || '')}" data-live="${t.live ? 'true' : 'false'}">
+  <div class="thread ${t.active || index === 0 ? 'active' : ''} ${t.unread ? 'thread-unread' : ''}" data-source="${escapeHtml(t.source)}" data-lane="${escapeHtml(t.lane || 'all')}" data-thread-id="${escapeHtml(t.id)}" data-conversation-key="${escapeHtml(t.conversationKey || '')}" data-customer-id="${escapeHtml(t.customerId || '')}" data-customer-email="${escapeHtml(t.customerEmail || '')}" data-email="${escapeHtml(t.customerEmail || '')}" data-live="${t.live ? 'true' : 'false'}">
     <div class="thread-av" style="background:${escapeHtml(t.bg)}">${escapeHtml(t.init)}</div>
     <div class="thread-body">
       <div class="thread-from">${escapeHtml(t.from)} <span class="when">${escapeHtml(t.when)}</span></div>
@@ -2893,6 +2968,6 @@
       );
     </script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
-    <script src="/konversationer-bottom-actions.js?v=20260703d" defer></script>
+    <script src="/konversationer-bottom-actions.js?v=20260703g" defer></script>
   </body>
 </html>

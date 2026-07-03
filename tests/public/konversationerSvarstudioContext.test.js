@@ -60,8 +60,12 @@ test('Svarstudio modal maps live thread context into recipient, subject and mail
     source,
     /subject: ctx\.subject \|\| 'Re: ' \+ \(ctx\.customerName \|\| 'konversation'\)/
   );
-  assert.match(source, /const recipientEmail = firstEmailValue\(/);
+  assert.match(source, /const recipientEmail = firstCustomerEmailValue\(/);
+  assert.match(source, /const recipientMissing = !recipientEmail/);
   assert.match(source, /placeholder: recipientEmail \? '' : 'Mottagare saknas i tråddatan'/);
+  assert.match(source, /Mottagare saknas i vald tråd/);
+  assert.match(source, /disabled: recipientMissing \? 'disabled' : null/);
+  assert.match(source, /if \(recipientMissing\) \{/);
   assert.match(source, /const contextMailboxes = Array\.isArray\(ctx\.mailboxOptions\)/);
   assert.match(source, /\.\.\.contextMailboxes, \.\.\.storedMailboxes/);
   assert.match(source, /Array\.isArray\(ctx\.latestMessages\)/);
@@ -71,8 +75,17 @@ test('Svarstudio keeps form fields populated when mailbox id is partial or missi
   const source = readActions();
 
   assert.match(source, /function canonicalHairTpMailbox\(value\)/);
-  assert.match(source, /text \+ '\.com'/);
+  assert.match(source, /const full = text\.match/);
+  assert.match(source, /const partial = text\.match/);
+  assert.match(source, /function looksLikeEmail\(value\)/);
+  assert.match(source, /function formatMailboxOptionLabel\(mailbox\)/);
+  assert.match(source, /email\.endsWith\('@hairtpclinic\.com'\)/);
+  assert.match(source, /formatMailboxOptionLabel\(mb\)/);
   assert.match(source, /function firstEmailValue\(\.\.\.values\)/);
+  assert.match(source, /function isHairTpMailboxEmail\(value\)/);
+  assert.match(source, /function firstCustomerEmailValue\(\.\.\.values\)/);
+  assert.match(source, /!isHairTpMailboxEmail\(email\)/);
+  assert.match(source, /const embedded = text\.match/);
   assert.match(source, /threadNode\?\.dataset\?\.customerEmail/);
   assert.match(source, /latestIncoming\?\.email/);
   assert.match(source, /if \(mailboxSelect\.value !== state\.mailboxId && mailboxes\[0\]\)/);
@@ -82,10 +95,26 @@ test('konversationer live context derives recipient and sender mailbox for Svars
   const html = readHtml();
 
   assert.match(html, /function firstEmailValue\(\.\.\.values\)/);
+  assert.match(html, /function isHairTpMailboxEmail\(value\)/);
+  assert.match(html, /function firstCustomerEmailValue\(\.\.\.values\)/);
+  assert.match(html, /!isHairTpMailboxEmail\(email\)/);
+  assert.match(html, /const embedded = text\.match/);
+  assert.match(html, /function canonicalHairTpMailbox\(value\)/);
+  assert.match(html, /const full = text\.match/);
+  assert.match(html, /const partial = text\.match/);
+  assert.match(html, /function looksLikeEmail\(value\)/);
+  assert.match(html, /looksLikeEmail\(text\)/);
   assert.match(html, /message\?\.senderEmail/);
   assert.match(html, /message\?\.fromEmail/);
+  assert.match(html, /message\?\.replyToEmail/);
+  assert.match(html, /message\?\.sender\?\.emailAddress/);
+  assert.match(html, /customer\.emailAddress/);
+  assert.match(html, /row\.customerEmail/);
+  assert.match(html, /data-customer-email/);
   assert.match(html, /const replyEmail =/);
   assert.match(html, /email: replyEmail/);
+  assert.match(html, /canonicalHairTpMailbox\(item\)/);
+  assert.match(html, /email: canonicalHairTpMailbox\(mailbox\)/);
   assert.match(html, /mailboxOptions: mailboxTrail\.map/);
   assert.match(html, /const dir = rawDir === 'outgoing' \|\| rawDir === 'outbound'/);
 });
@@ -93,5 +122,5 @@ test('konversationer live context derives recipient and sender mailbox for Svars
 test('konversationer.html cache-busts bottom actions after Svarstudio context fix', () => {
   const html = readHtml();
 
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703d/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703g/);
 });
