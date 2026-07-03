@@ -53,7 +53,10 @@ test('Svarstudio modal maps live thread context into recipient, subject and mail
   );
   assert.match(source, /conversationKey: liveContext\?\.conversationKey/);
   assert.match(source, /source: liveContext\?\.source/);
-  assert.match(source, /mailboxId: ctx\.mailboxId \|\| mailboxes\[0\]\?\.id \|\| 'contact'/);
+  assert.match(
+    source,
+    /mailboxId: ctx\.mailboxId \|\| ctx\.mailboxSource \|\| mailboxes\[0\]\?\.id \|\| 'contact'/
+  );
   assert.match(
     source,
     /subject: ctx\.subject \|\| 'Re: ' \+ \(ctx\.customerName \|\| 'konversation'\)/
@@ -62,11 +65,25 @@ test('Svarstudio modal maps live thread context into recipient, subject and mail
     source,
     /const recipientInput = el\('input', \{ type: 'text', value: ctx\.email \|\| '' \}\)/
   );
+  assert.match(source, /const contextMailboxes = Array\.isArray\(ctx\.mailboxOptions\)/);
+  assert.match(source, /\.\.\.contextMailboxes, \.\.\.storedMailboxes/);
   assert.match(source, /Array\.isArray\(ctx\.latestMessages\)/);
+});
+
+test('konversationer live context derives recipient and sender mailbox for Svarstudio', () => {
+  const html = readHtml();
+
+  assert.match(html, /function firstEmailValue\(\.\.\.values\)/);
+  assert.match(html, /message\?\.senderEmail/);
+  assert.match(html, /message\?\.fromEmail/);
+  assert.match(html, /const replyEmail =/);
+  assert.match(html, /email: replyEmail/);
+  assert.match(html, /mailboxOptions: mailboxTrail\.map/);
+  assert.match(html, /const dir = rawDir === 'outgoing' \|\| rawDir === 'outbound'/);
 });
 
 test('konversationer.html cache-busts bottom actions after Svarstudio context fix', () => {
   const html = readHtml();
 
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703b/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703c/);
 });

@@ -41,6 +41,8 @@ const MESSAGES = [
   {
     mailboxConversationId: CONV_KEY,
     senderEmail: CUSTOMER,
+    mailboxId: 'kons@hairtpclinic.com',
+    mailboxAddress: 'kons@hairtpclinic.com',
     folderType: 'inbox',
     sentAt: '2025-01-01T10:00:00.000Z',
   },
@@ -150,6 +152,9 @@ test('RBAC: konsult kan läsa tråden (200) men nekas triage-write (403)', async
       assert.equal(read.status, 200, 'konsult har mail.read');
       const readBody = await read.json();
       assert.equal(readBody.ok, true);
+      assert.equal(readBody.messages[0].senderEmail, CUSTOMER);
+      assert.equal(readBody.messages[0].fromEmail, CUSTOMER);
+      assert.equal(readBody.messages[0].mailboxAddress, 'kons@hairtpclinic.com');
 
       const write = await actionReq(baseUrl, 'konsult');
       assert.equal(write.status, 403, 'konsult saknar mail.write');

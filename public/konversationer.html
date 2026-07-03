@@ -2440,15 +2440,37 @@
         return filtered[filtered.length - 1] || list[list.length - 1] || null;
       }
 
+      function firstEmailValue(...values) {
+        for (const value of values) {
+          const text = normalizeText(value).toLowerCase();
+          if (text && text.includes('@')) return text;
+        }
+        return '';
+      }
+
       function normalizeSvarstudioMessage(message, thread) {
-        const dir = normalizeText(message?.dir) === 'outgoing' ? 'outgoing' : 'incoming';
+        const rawDir = normalizeText(message?.dir);
+        const dir = rawDir === 'outgoing' || rawDir === 'outbound' ? 'outgoing' : 'incoming';
         const from =
           normalizeText(message?.from) || (dir === 'outgoing' ? 'Hair TP Clinic' : thread?.from);
+        const email = firstEmailValue(
+          message?.senderEmail,
+          message?.fromEmail,
+          message?.fromAddress,
+          message?.email
+        );
+        const mailboxAddress =
+          normalizeText(message?.mailboxAddress) ||
+          normalizeText(message?.mailboxId) ||
+          thread?.mailboxAddress ||
+          '';
         return {
           dir,
           from,
+          email,
           time: normalizeText(message?.time),
-          mailboxId: normalizeText(message?.mailboxId) || thread?.mailboxAddress || '',
+          mailboxId: mailboxAddress,
+          mailboxAddress,
           subject: normalizeText(message?.subject) || thread?.subj || '',
           body:
             normalizeText(message?.body) ||
@@ -2465,10 +2487,23 @@
           .filter((message) => message.body || message.from || message.time);
         const latest = latestLiveMessage(normalizedMessages);
         const latestIncoming = latestLiveMessage(normalizedMessages, 'incoming') || latest;
-        const mailboxTrail =
+        const replyEmail =
+          firstEmailValue(thread.customerEmail, latestIncoming?.email) ||
+          firstEmailValue(...normalizedMessages.map((message) => message.email));
+        const activeMailbox =
+          normalizeText(latestIncoming?.mailboxAddress) ||
+          normalizeText(latest?.mailboxAddress) ||
+          thread.mailboxAddress ||
+          LIVE_MAILBOX_IDS[0];
+        const mailboxTrailBase =
           Array.isArray(thread.mailboxTrail) && thread.mailboxTrail.length
             ? thread.mailboxTrail
             : [thread.mailboxAddress || LIVE_MAILBOX_IDS[0]];
+        const mailboxTrail = Array.from(
+          new Set(
+            [activeMailbox, ...mailboxTrailBase].map((item) => normalizeText(item)).filter(Boolean)
+          )
+        );
         const mailboxLabel = mailboxTrail[0] || LIVE_MAILBOX_IDS[0];
         const mailboxNote =
           mailboxTrail.length > 1
@@ -2482,12 +2517,17 @@
           customerName: thread.from || 'Okänd kund',
           customerSub: `${thread.subj || 'Konversation'} · ${thread.unread ? 'Behöver svar' : 'Live-tråd'}`,
           avatar: thread.init || (thread.from || '?').slice(0, 1),
-          email: thread.customerEmail || '',
+          email: replyEmail,
           phone: thread.customerPhone || '',
-          mailboxId: compactMailbox(thread.mailboxId || mailboxLabel),
+          mailboxId: mailboxLabel,
           mailboxSource: mailboxLabel,
           mailboxSourceNote: mailboxNote,
           mailboxTrail,
+          mailboxOptions: mailboxTrail.map((mailbox) => ({
+            id: mailbox,
+            name: compactMailbox(mailbox),
+            email: mailbox,
+          })),
           doNow: thread.unread ? 'Svara nu' : 'Granska tråd',
           doNowSub: latestIncoming?.body || thread.preview || 'Vald live-tråd från CCO',
           ctaLabel: null,
@@ -2853,6 +2893,6 @@
       );
     </script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
-    <script src="/konversationer-bottom-actions.js?v=20260703b" defer></script>
+    <script src="/konversationer-bottom-actions.js?v=20260703c" defer></script>
   </body>
 </html>
