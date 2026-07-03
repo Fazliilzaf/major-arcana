@@ -193,5 +193,5 @@ test('PR4: v3 fyller befintlig ctx-bar (kund, sub, avatar) — ingen ny design',
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR4: konversationer.html cache-bustar efter Smart anteckning v3-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703i-smartv3/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703j-actions/);
 });

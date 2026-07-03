@@ -2097,6 +2097,15 @@
           <button class="action-btn action-btn--calendar" type="button" data-action="kalender">
             <span class="action-ico">📆</span><span class="action-label">Kalender</span>
           </button>
+          <button class="action-btn action-btn--done" type="button" data-action="klar">
+            <span class="action-ico">✓</span><span class="action-label">Klar</span>
+          </button>
+          <button class="action-btn action-btn--later" type="button" data-action="senare">
+            <span class="action-ico">⏳</span><span class="action-label">Senare</span>
+          </button>
+          <button class="action-btn action-btn--reopen" type="button" data-action="reopen">
+            <span class="action-ico">↩</span><span class="action-label">Återöppna</span>
+          </button>
         </div>
       </section>
 
@@ -2650,6 +2659,42 @@
         window.dispatchEvent(new CustomEvent('cco:live-conversation-context', { detail }));
       }
 
+      // PR 5 — Klar/Senare/Reopen. Backend-action (POST .../conversation/:key/action)
+      // körs i bottom-actions.js; här uppdateras enbart UI för vald live-tråd efter
+      // lyckad action. Ingen live-send, ingen ny design.
+      window.CCOConversationActions = {
+        // 'handled' | 'reply_later' | 'reopen' → uppdatera trådstatus + rendera om.
+        applyThreadAction(action) {
+          const active = selectedLiveThread;
+          if (!active || !active.conversationKey) return false;
+          const target =
+            currentThreads.find(
+              (t) =>
+                (t.conversationKey && t.conversationKey === active.conversationKey) ||
+                (t.id && t.id === active.id)
+            ) || active;
+          if (action === 'handled') {
+            target.threadStatus = 'handled';
+            target.unread = false;
+          } else if (action === 'reply_later') {
+            target.threadStatus = 'snoozed';
+            target.unread = false;
+          } else if (action === 'reopen') {
+            target.threadStatus = 'needs_reply';
+            target.unread = true;
+          } else {
+            return false;
+          }
+          renderInboxThreads(currentThreads, {
+            activeTab: currentInboxTab,
+            activeLane: currentLane,
+          });
+          setThreadHeader(target, selectedLiveMessages.length || null);
+          setSvarstudioLiveContext(target, selectedLiveMessages);
+          return true;
+        },
+      };
+
       function threadMatchesTab(thread, tabId) {
         if (tabId === 'olasta') return thread.unread === true;
         if (tabId === 'bokning') {
@@ -2701,14 +2746,26 @@
             Array.isArray(thread.mailboxTrail) && thread.mailboxTrail.length
               ? thread.mailboxTrail
               : [thread.mailboxAddress || LIVE_MAILBOX_IDS[0]];
+          // PR 5 — statuspill speglar Klar/Senare/Reopen (återanvänder befintliga
+          // status-pill-varianter, ingen ny design).
+          let statusSignal;
+          if (thread.threadStatus === 'handled') {
+            statusSignal =
+              '<span class="status-pill status-pill--success"><span class="dot"></span>Klar</span>';
+          } else if (thread.threadStatus === 'snoozed') {
+            statusSignal =
+              '<span class="status-pill status-pill--warning"><span class="dot"></span>Senare</span>';
+          } else if (thread.unread) {
+            statusSignal =
+              '<span class="status-pill status-pill--warning"><span class="dot"></span>Behöver svar</span>';
+          } else {
+            statusSignal =
+              '<span class="status-pill status-pill--info"><span class="dot"></span>Ingen oläst signal</span>';
+          }
           statusBar.innerHTML = `
             <span class="status-pill status-pill--source"><span class="dot"></span>${escapeHtml(mailboxTrail[0])}</span>
             <span class="status-pill status-pill--info"><span class="dot"></span>Mailbox-spår: ${escapeHtml(mailboxTrail.join(' · '))}</span>
-            ${
-              thread.unread
-                ? '<span class="status-pill status-pill--warning"><span class="dot"></span>Behöver svar</span>'
-                : '<span class="status-pill status-pill--info"><span class="dot"></span>Ingen oläst signal</span>'
-            }
+            ${statusSignal}
           `;
         }
       }
@@ -2968,6 +3025,6 @@
       );
     </script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
-    <script src="/konversationer-bottom-actions.js?v=20260703i-smartv3" defer></script>
+    <script src="/konversationer-bottom-actions.js?v=20260703j-actions" defer></script>
   </body>
 </html>
