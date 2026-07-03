@@ -29,6 +29,11 @@ test('admin CCO embed is ensured whenever ccoWorkspaceSection is active', () => 
   const js = read(ADMIN_JS);
   assert.match(
     js,
+    /function setActiveSectionGroup[\s\S]*?const isCco = String\(groupId \|\| ''\)\.trim\(\) === 'ccoWorkspaceSection';/,
+    'setActiveSectionGroup must define isCco locally before it is used'
+  );
+  assert.match(
+    js,
     /if \(isCco\) \{\s*ensureCcoPreviewEmbed\(\);\s*\}/,
     'setActiveSectionGroup must load konversationer.html even when CCO was already active'
   );
