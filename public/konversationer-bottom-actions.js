@@ -302,7 +302,18 @@
     }
   }
 
-  function openModal({ title, body, footer, wide, workbench, headChips, onClose } = {}) {
+  // PR 15 — panel-flikar i modal-headern. Låter användaren byta panel direkt
+  // (backdrop:en täcker bottenknapparna, så man kan annars inte öppna resterande).
+  function panelTabs(activeKey) {
+    return [
+      { key: 'svarstudio', label: 'Svarstudio', open: () => openSvarstudioForSelectedThread() },
+      { key: 'bokning', label: 'Öppna bokning', open: () => openBokningsyta() },
+      { key: 'smart', label: 'Smart anteckning', open: () => openSmartAnteckning() },
+      { key: 'kalender', label: 'Öppna kalender', open: () => openKalender() },
+    ].map((t) => ({ key: t.key, label: t.label, open: t.open, active: t.key === activeKey }));
+  }
+
+  function openModal({ title, body, footer, wide, workbench, headChips, tabs, onClose } = {}) {
     document.querySelectorAll('.action-modal-backdrop').forEach((n) => n.remove());
     const backdrop = el('div', {
       class: 'action-modal-backdrop',
@@ -325,6 +336,25 @@
     const head = el('div', { class: 'action-modal-head' });
     const titleSpan = el('h3', {}, title || '');
     head.appendChild(titleSpan);
+    if (tabs && tabs.length) {
+      const tabWrap = el('div', { class: 'action-modal-tabs' });
+      for (const t of tabs) {
+        tabWrap.appendChild(
+          el(
+            'button',
+            {
+              type: 'button',
+              class: 'action-modal-tab' + (t.active ? ' is-active' : ''),
+              onclick: () => {
+                if (!t.active && typeof t.open === 'function') t.open();
+              },
+            },
+            t.label
+          )
+        );
+      }
+      head.appendChild(tabWrap);
+    }
     if (headChips && headChips.length) {
       const chipWrap = el('div', { class: 'wb-head-chips' });
       for (const c of headChips) {
@@ -1267,6 +1297,7 @@
 
     const m = openModal({
       title: 'Arbetsyta · Svarstudio',
+      tabs: panelTabs('svarstudio'),
       headChips: [
         { label: 'Oklart', kind: 'neutral' },
         { label: 'VIP', kind: 'gold' },
@@ -1409,6 +1440,7 @@
     openModal({
       title: 'Smart anteckning',
       wide: true,
+      tabs: panelTabs('smart'),
       headChips: context.conversationKey ? [{ label: context.customerName, kind: 'neutral' }] : [],
       body: frame,
     });
@@ -1445,6 +1477,7 @@
     openModal({
       title: 'Öppna bokning',
       wide: true,
+      tabs: panelTabs('bokning'),
       headChips: context.conversationKey ? [{ label: context.customerName, kind: 'neutral' }] : [],
       body: frame,
     });
@@ -1481,6 +1514,7 @@
     openModal({
       title: 'Öppna kalender',
       wide: true,
+      tabs: panelTabs('kalender'),
       headChips: context.conversationKey ? [{ label: context.customerName, kind: 'neutral' }] : [],
       body: frame,
     });

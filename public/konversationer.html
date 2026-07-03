@@ -1130,6 +1130,33 @@
       .action-modal--wide .action-modal-body {
         padding: 6px;
       }
+      /* PR 15 — flik-rad i panel-headern så man kan byta panel utan att först
+         stänga (backdrop:en täcker bottenknapparna). */
+      .action-modal-tabs {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        flex: 1;
+        justify-content: center;
+      }
+      .action-modal-tab {
+        border: 0;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(187, 159, 122, 0.14);
+        color: var(--cco-text-secondary, #6b5d50);
+      }
+      .action-modal-tab:hover {
+        background: rgba(187, 159, 122, 0.24);
+      }
+      .action-modal-tab.is-active {
+        background: linear-gradient(180deg, #f4d9d9, #e6b7b7);
+        color: #8a3030;
+      }
       .action-modal-head {
         display: flex;
         justify-content: space-between;
@@ -3100,6 +3127,6 @@
       );
     </script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
-    <script src="/konversationer-bottom-actions.js?v=20260703r-skickat" defer></script>
+    <script src="/konversationer-bottom-actions.js?v=20260703s-tabs" defer></script>
   </body>
 </html>
