@@ -46,7 +46,10 @@ test('PR13: klockan wire:as till openNotiser (panel)', () => {
   assert.match(source, /function openNotiser\(\)/);
   assert.match(source, /action === 'notiser'\) openNotiser\(\)/);
   assert.match(compact(source), /const src = NOTISER_V3_SRC \+/);
-  assert.match(compact(source), /openModal\(\{ title: 'Notiser', wide: true, body: frame \}\)/);
+  assert.match(
+    compact(source),
+    /openModal\(\{ title: 'Notiser', wide: true, tabs: panelTabs\('notiser'\), body: frame \}\)/
+  );
 });
 
 test('PR13: notiscenter kräver ingen vald tråd men tar med kontext om den finns', () => {
@@ -85,5 +88,5 @@ test('PR13: bokning/kalender/senare/smart-anteckning orörda, ingen live-send', 
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR13: konversationer.html cache-bustar efter notiser-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703s-tabs/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703t-alltabs/);
 });
