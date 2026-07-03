@@ -72,10 +72,7 @@ test('PR10: kalender scopar till vald kund via befintlig global sökning', () =>
 // ── Regler behållna ──────────────────────────────────────────────────────────
 
 test('PR10: bokning v3 + Smart anteckning v3 + send-lås orörda, ingen live-send', () => {
-  assert.match(
-    source,
-    /const BOOKING_V3_SRC = '\/major-arcana-preview\/cco-booking-wizard-v3\.html'/
-  );
+  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-ny-bokning\.html'/);
   assert.match(
     source,
     /const SMART_ANTECKNING_V3_SRC = '\/major-arcana-preview\/cco-smart-anteckning-v3\.html'/
@@ -87,5 +84,5 @@ test('PR10: bokning v3 + Smart anteckning v3 + send-lås orörda, ingen live-sen
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR10: konversationer.html cache-bustar efter kalenderkoppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703n-senare/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703o-booking/);
 });

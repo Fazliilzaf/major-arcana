@@ -94,7 +94,7 @@ test('PR11: panelens reply_later POSTar customerId (annars 409 i backend)', () =
 // ── Regler behållna ──────────────────────────────────────────────────────────
 
 test('PR11: bokning/kalender/smart-anteckning v3 orörda, ingen live-send', () => {
-  assert.match(source, /const BOOKING_V3_SRC = /);
+  assert.match(source, /const BOOKING_SRC = /);
   assert.match(source, /const KALENDER_SRC = '\/kalender\.html'/);
   assert.match(source, /const SMART_ANTECKNING_V3_SRC = /);
   assert.doesNotMatch(source, /sendMail\(|graphSend|messages\/send/);
@@ -103,5 +103,5 @@ test('PR11: bokning/kalender/smart-anteckning v3 orörda, ingen live-send', () =
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR11: konversationer.html cache-bustar efter senare-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703n-senare/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703o-booking/);
 });
