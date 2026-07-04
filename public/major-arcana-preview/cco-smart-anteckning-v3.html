@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- Avsiktlig visuell ändring (kundkontext-kort + bottom action-bar) — skippa visual-regression-tripwiren. -->
+    <meta name="visual-regression" content="intentional-change" />
     <title>CCO · Smart anteckning</title>
     <style>
       :root {
@@ -101,7 +103,7 @@
         background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
         box-shadow: 0 18px 38px rgba(93, 74, 60, 0.07);
         backdrop-filter: blur(14px);
-        max-height: calc(100vh - 80px);
+        max-height: calc(100vh - 100px);
         display: flex;
         flex-direction: column;
       }
@@ -263,7 +265,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        min-height: calc(100vh - 80px);
+        min-height: calc(100vh - 100px);
       }
       .note-shell::before {
         content: '';
@@ -724,7 +726,7 @@
         display: flex;
         flex-direction: column;
         gap: 14px;
-        max-height: calc(100vh - 80px);
+        max-height: calc(100vh - 100px);
         overflow-y: auto;
       }
       .links-kicker {
@@ -854,6 +856,204 @@
         border-radius: 4px;
         margin-left: 4px;
         vertical-align: 2px;
+      }
+
+      /* ===== Kundkontext-kort (från Konversationer) — namespaced .kk- för att
+         inte krocka med vyns egna .ctx-*. Placeras överst i högerkolumnen. ===== */
+      .kk-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 15px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: 0 6px 16px -8px rgba(93, 74, 60, 0.16);
+        margin-bottom: 16px;
+      }
+      .kk-kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+      }
+      .kk-title {
+        margin: 2px 0 0;
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--cco-color-brand);
+      }
+      .kk-head {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding-bottom: 12px;
+        box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+      }
+      .kk-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          0 4px 12px rgba(56, 40, 28, 0.18);
+      }
+      .kk-name {
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .kk-meta {
+        color: var(--cco-text-tertiary);
+        font-size: 10.5px;
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .kk-grid {
+        display: grid;
+        grid-template-columns: 82px 1fr;
+        gap: 6px 10px;
+        font-size: 11px;
+        margin: 0;
+      }
+      .kk-grid dt {
+        color: var(--cco-text-tertiary);
+        font-weight: 600;
+      }
+      .kk-grid dd {
+        margin: 0;
+        color: var(--cco-color-brand);
+        font-weight: 500;
+      }
+      .kk-grid dd.kk-warn {
+        color: var(--cco-status-warning);
+        font-weight: 700;
+      }
+      .kk-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--rail-contact);
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+      .kk-ai {
+        padding: 11px 13px;
+        border-radius: 13px;
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 239, 213, 0.82));
+        border-left: 3px solid var(--cco-status-warning);
+        font-size: 11.5px;
+        line-height: 1.5;
+      }
+      .kk-ai-kicker {
+        color: var(--cco-status-warning);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        margin-bottom: 5px;
+      }
+      .kk-ai strong {
+        color: var(--cco-status-warning);
+      }
+      .kk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 12px;
+        box-shadow: inset 0 1px 0 rgba(215, 202, 194, 0.5);
+      }
+      .kk-pill {
+        flex: 1;
+        min-width: calc(50% - 6px);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 9px 10px;
+        border-radius: 999px;
+        font:
+          700 11.5px Inter,
+          sans-serif;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        background: linear-gradient(180deg, #fff, rgba(248, 241, 232, 0.9));
+        color: var(--cco-color-brand);
+        box-shadow: 0 4px 10px rgba(93, 74, 60, 0.08);
+      }
+      .kk-pill--ai {
+        flex-basis: 100%;
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.9));
+        color: var(--calendar-accent);
+      }
+      .kk-pill--success {
+        color: var(--cco-status-success);
+      }
+
+      /* ===== Bottom action-bar (samma som Senare/Konversationer) ===== */
+      .thread-bottom-actions {
+        display: flex;
+        gap: 10px;
+        position: fixed;
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        z-index: 60;
+      }
+      .thread-bottom-actions .action-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 13px 18px;
+        border-radius: 999px;
+        font:
+          700 13px Inter,
+          sans-serif;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 241, 232, 0.92));
+        color: var(--cco-color-brand);
+        min-height: 46px;
+        transition:
+          transform 0.18s cubic-bezier(0.34, 1.32, 0.64, 1),
+          box-shadow 0.18s ease;
+        box-shadow:
+          0 10px 24px rgba(93, 74, 60, 0.12),
+          0 4px 10px rgba(93, 74, 60, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96),
+          inset 0 -1px 0 rgba(187, 159, 122, 0.16);
+      }
+      .thread-bottom-actions .action-btn:hover {
+        transform: translateY(-2px);
+      }
+      .thread-bottom-actions .action-btn--studio {
+        color: var(--accent-studio);
+      }
+      .thread-bottom-actions .action-btn--booking {
+        color: var(--cco-status-success);
+      }
+      .thread-bottom-actions .action-btn--note {
+        color: var(--cco-status-info);
+      }
+      .thread-bottom-actions .action-btn--calendar {
+        color: var(--cco-status-warning);
+      }
+      .thread-bottom-actions .action-ico {
+        font-size: 15px;
+        opacity: 0.92;
+      }
+      /* plats för den fasta dockan */
+      body {
+        padding-bottom: 82px;
       }
     </style>
     <link rel="stylesheet" href="/cco-polish.css" />
@@ -1083,6 +1283,53 @@
 
       <!-- HÖGER: kopplingar -->
       <aside class="links-shell">
+        <!-- Kundkontext-kort (från Konversationer) — vald tråds kund. -->
+        <div class="kk-card">
+          <div>
+            <div class="kk-kicker">Kundkontext</div>
+            <h3 class="kk-title">Operatörsstöd</h3>
+          </div>
+          <div class="kk-head">
+            <div class="kk-avatar" style="background: linear-gradient(180deg, #d8c1f0, #b48ad6)">
+              AK
+            </div>
+            <div>
+              <div class="kk-name" id="kkName">Anna Karlsson</div>
+              <div class="kk-meta">VIP · PRP-kur 4/6 · 92% engagement</div>
+            </div>
+          </div>
+          <dl class="kk-grid">
+            <dt>Tråden</dt>
+            <dd>8 meddelanden · 3 dagar</dd>
+            <dt>Källa</dt>
+            <dd><span class="kk-dot"></span>contact@</dd>
+            <dt>Bokning</dt>
+            <dd class="kk-warn">⚠ PRP tor 28 maj 08:00</dd>
+            <dt>Saknas</dt>
+            <dd class="kk-warn">Friskförsäkran</dd>
+            <dt>Senast</dt>
+            <dd>PRP 3/6 · 5 maj</dd>
+            <dt>Intäkt</dt>
+            <dd>38 400 kr</dd>
+          </dl>
+          <div class="kk-ai">
+            <div class="kk-ai-kicker">★ AI</div>
+            <strong>Skicka friskförsäkran NU</strong> — behandling om 16 timmar och hon har inte
+            fyllt i. Föreslå även eftervårdsinfo i samma mejl.
+          </div>
+          <div class="kk-actions">
+            <button class="kk-pill kk-pill--ai" type="button" data-action="svarstudio">
+              ★ AI Skicka friskförsäkran
+            </button>
+            <button class="kk-pill" type="button" data-action="bokningsyta">
+              📅 Öppna bokning
+            </button>
+            <button class="kk-pill" type="button" data-action="patienthub">👤 Kunddossiér</button>
+            <button class="kk-pill kk-pill--success" type="button" data-action="klar">
+              ✓ Markera klar
+            </button>
+          </div>
+        </div>
         <div>
           <div class="links-kicker">Kopplade till</div>
           <h3 class="links-title">Annas resa</h3>
@@ -1622,6 +1869,52 @@
       })();
     </script>
 
+    <!-- CCO bottom action-bar (samma som Senare/Konversationer). -->
+    <div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">
+      <button class="action-btn action-btn--studio" type="button" data-action="svarstudio">
+        <span class="action-ico">✱</span><span class="action-label">Svarstudio</span>
+      </button>
+      <button class="action-btn action-btn--booking" type="button" data-action="bokningsyta">
+        <span class="action-ico">📅</span><span class="action-label">Öppna bokning</span>
+      </button>
+      <button class="action-btn action-btn--note" type="button" data-action="smart-anteckning">
+        <span class="action-ico">📄</span><span class="action-label">Smart anteckning</span>
+      </button>
+      <button class="action-btn action-btn--calendar" type="button" data-action="kalender">
+        <span class="action-ico">📆</span><span class="action-label">Öppna kalender</span>
+      </button>
+      <button class="action-btn action-btn--done" type="button" data-action="klar">
+        <span class="action-ico">✓</span><span class="action-label">Klar</span>
+      </button>
+      <button class="action-btn action-btn--later" type="button" data-action="senare">
+        <span class="action-ico">⏳</span><span class="action-label">Lägg senare</span>
+      </button>
+      <button class="action-btn action-btn--reopen" type="button" data-action="reopen">
+        <span class="action-ico">↩</span><span class="action-label">Återöppna</span>
+      </button>
+    </div>
+    <script>
+      /* Bottom action-bar + kundkontext-kortets actions → wire mot förälder-
+         admin#cco. Alla [data-action]-knappar postMess:ar sitt action; föräldern
+         (konversationer-bottom-actions.js) kör runCcoAction. Standalone = no-op. */
+      (function () {
+        document.addEventListener('click', function (e) {
+          var btn = e.target.closest('button[data-action]');
+          if (!btn) return;
+          var action = btn.dataset.action;
+          if (window.parent && window.parent !== window) {
+            try {
+              window.parent.postMessage(
+                { type: 'cco:panel:action', action: action },
+                window.location.origin
+              );
+            } catch (err) {
+              /* ignore cross-frame errors */
+            }
+          }
+        });
+      })();
+    </script>
     <script src="/cco-personal-demo-safe.js"></script>
   </body>
 </html>

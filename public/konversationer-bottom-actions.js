@@ -1918,6 +1918,8 @@
     else if (action === 'senare') openSenarePanel();
     else if (action === 'reopen') runConversationAction('reopen');
     else if (action === 'notiser') openNotiser();
+    else if (action === 'patienthub') openPatientHub();
+    else if (action === 'signaturer') openSignaturer();
     else return false;
     return true;
   }

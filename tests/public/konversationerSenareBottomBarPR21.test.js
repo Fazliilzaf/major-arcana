@@ -83,5 +83,5 @@ test('PR21: ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR21: konversationer.html cache-bustar efter senare-bar', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704c-senarebar/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704d-smartcard/);
 });
