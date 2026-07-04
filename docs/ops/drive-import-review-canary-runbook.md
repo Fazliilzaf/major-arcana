@@ -8,27 +8,26 @@ Operatörsgräns för **skrivbeslut** i Drive Import Review (`approve`, `reassig
 | ------------------------------------------ | ------------------------ | ------------------------------ |
 | `ENABLE_CCO_OPERATOR_CANARY`               | `true`                   | Master-flagga                  |
 | `ENABLE_DRIVE_IMPORT_REVIEW_WRITE`         | `true`                   | Aktiverar decide/batch på prod |
-| `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS` | **`200`** (tidigare 100) | Max antal canary-beslut totalt |
+| `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS` | **`300`** (tidigare 200) | Max antal canary-beslut totalt |
 
 Källa: `src/config.js`, `render.yaml`, `.env.example`.
 
 **Applicera på Render efter merge:**
 
 ```bash
-# Sätter env + deploy + väntar readyz (default CANARY_MAX=200)
+# Sätter env + deploy + väntar readyz (default CANARY_MAX=300)
 node scripts/apply-drive-import-review-prod.js
 ```
 
-Eller manuellt: uppdatera `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=200` i Render Dashboard → redeploy → `npm run verify:drive-import-review-prod` (DIR-09 ska visa `max=200`, `used=100`, `remaining=100` direkt efter höjning).
+Eller manuellt: uppdatera `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=300` i Render Dashboard → redeploy → `npm run verify:drive-import-review-prod` (DIR-09 ska visa `max=300`, `used=200`, `remaining=100` direkt efter höjning).
 
-## Senaste verifiering (2026-07-03) — grund för höjning 100 → 200
+## Senaste verifiering (2026-07-04) — grund för höjning 200 → 300
 
-| Mätpunkt                | Värde före höjning | Notering                                      |
-| ----------------------- | ------------------ | --------------------------------------------- |
-| **NEEDS_REVIEW**        | **218**            | Alla kvarvarande `high` confidence            |
-| **Canary**              | **100/100**        | Kvoten förbrukad — rent pass, inga avvikelser |
-| **`storageKeyChanged`** | **0**              | Inga filer flyttade/raderade                  |
-| **medium i kö**         | **0**              | Endast high-confidence kvar                   |
+| Mätpunkt                | Värde före höjning | Notering                           |
+| ----------------------- | ------------------ | ---------------------------------- |
+| **NEEDS_REVIEW**        | **118**            | Alla singletons, `high` confidence |
+| **Canary**              | **200/200**        | Rent pass, `storageKeyChanged=0`   |
+| **`storageKeyChanged`** | **0**              | —                                  |
 
 **Session 100/100 (sammanfattning):** 50 beslut i föregående pass (IMG_3005 manuell + homogena batchar 2–3) + 50 beslut i senaste pass (17 batchar) — totalt **100/100**, `storageKeyChanged=0`, inga 502-loopar.
 

@@ -110,7 +110,7 @@ async function main() {
       const max = summary.body.canary?.maxDecisions ?? 0;
       record(
         'DIR-09 canary max',
-        max === 200,
+        max === 300,
         `remaining=${summary.body.canary?.decisionsRemaining ?? '—'}`
       );
     }
