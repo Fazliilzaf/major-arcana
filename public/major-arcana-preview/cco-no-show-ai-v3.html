@@ -190,17 +190,18 @@
         display: grid;
         grid-template-columns: 60px 1fr 80px auto;
         gap: 12px;
-        padding: 12px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        margin-bottom: 8px;
+        padding: 10px 12px;
+        border-radius: 11px;
+        /* Flat list-rad som Konversationer: ingen kant/skugga, subtil bg. */
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid transparent;
+        margin-bottom: 4px;
         align-items: center;
         cursor: pointer;
-        transition: transform 0.12s ease;
+        transition: background 0.12s ease;
       }
       .risk-row:hover {
-        transform: translateX(2px);
+        background: rgba(255, 255, 255, 0.72);
       }
       .risk-pct {
         font-size: 22px;
