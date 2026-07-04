@@ -23,9 +23,9 @@ function compact(src) {
 
 test('PR27: Signaturer har kundkontext-kortet (namespaced .kk-)', () => {
   assert.match(sig, /class="kk-card"/);
-  assert.match(sig, /class="kk-kicker">Kundkontext/);
-  assert.match(sig, /class="kk-title">Operatörsstöd/);
-  assert.match(sig, /class="kk-grid"/);
+  assert.match(sig, /class="kk-meta">Kundkontext · operatörsstöd/);
+  assert.match(sig, /class="kk-chips"/);
+  assert.match(sig, /class="kk-chip/);
   assert.match(sig, /class="kk-ai"/);
 });
 

@@ -19,8 +19,7 @@ test('PR23: Senare renderar kundkontext-kortet, ÅTERUPPTAG kvar', () => {
   assert.match(senare, /class="ctx-sec">Återupptag</);
   // Kortet ersätter KUND + AI-SIGNAL.
   assert.match(senare, /class="kk-card"/);
-  assert.match(senare, /class="kk-kicker">Kundkontext/);
-  assert.match(senare, /class="kk-title">Operatörsstöd/);
+  assert.match(senare, /class="kk-meta">Kundkontext · operatörsstöd/);
   assert.doesNotMatch(senare, /class="ctx-sec">Kund</);
   assert.doesNotMatch(senare, /class="ctx-sec">AI-signal</);
 });
@@ -31,7 +30,7 @@ test('PR23: kortet fylls dynamiskt från trådens data', () => {
     /class="kk-avatar" style="background:\$\{esc\(t\.avatarBg\)\}">\$\{esc\(t\.init\)\}/
   );
   assert.match(senare, /class="kk-name">\$\{esc\(t\.name\)\}/);
-  assert.match(senare, /class="kk-grid">\$\{Object\.entries\(c\)/);
+  assert.match(senare, /class="kk-chips">\$\{Object\.entries\(c\)/);
   assert.match(senare, /class="kk-ai">.*\$\{esc\(t\.ai\)\}/s);
 });
 

@@ -24,9 +24,9 @@ function compact(src) {
 
 test('PR26: No-show har kundkontext-kortet (namespaced .kk-)', () => {
   assert.match(noshow, /class="kk-card"/);
-  assert.match(noshow, /class="kk-kicker">Kundkontext/);
-  assert.match(noshow, /class="kk-title">Operatörsstöd/);
-  assert.match(noshow, /class="kk-grid"/);
+  assert.match(noshow, /class="kk-meta">Kundkontext · operatörsstöd/);
+  assert.match(noshow, /class="kk-chips"/);
+  assert.match(noshow, /class="kk-chip/);
   assert.match(noshow, /class="kk-ai"/);
 });
 

@@ -33,9 +33,9 @@ function compact(src) {
 
 test('PR22: smart-anteckning har kundkontext-kortet (namespaced .kk-)', () => {
   assert.match(smart, /class="kk-card"/);
-  assert.match(smart, /class="kk-kicker">Kundkontext/);
-  assert.match(smart, /class="kk-title">Operatörsstöd/);
-  assert.match(smart, /class="kk-grid"/);
+  assert.match(smart, /class="kk-meta">Kundkontext · operatörsstöd/);
+  assert.match(smart, /class="kk-chips"/);
+  assert.match(smart, /class="kk-chip/);
   assert.match(smart, /class="kk-ai"/);
 });
 

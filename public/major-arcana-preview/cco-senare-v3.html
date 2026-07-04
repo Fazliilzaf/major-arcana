@@ -1276,19 +1276,6 @@
         box-shadow: var(--sh-md);
         margin-bottom: 0.6rem;
       }
-      .kk-kicker {
-        font-size: var(--fs-kicker);
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--text-tertiary);
-      }
-      .kk-title {
-        margin: 2px 0 0;
-        font-size: 0.95rem;
-        font-weight: 800;
-        color: var(--text-primary);
-      }
       .kk-head {
         display: flex;
         align-items: center;
@@ -1321,21 +1308,39 @@
         margin-top: 2px;
         font-variant-numeric: tabular-nums;
       }
-      .kk-grid {
-        display: grid;
-        grid-template-columns: 78px 1fr;
-        gap: 6px 10px;
-        font-size: 11px;
-        margin: 0;
+      /* Uppfräschat: nyckelfakta som chips (istället för spec-grid). Samma
+         varma tokens, inga nya färger. */
+      .kk-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
       }
-      .kk-grid dt {
-        color: var(--text-tertiary);
-        font-weight: 600;
+      .kk-chip {
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 4px 9px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(132, 117, 107, 0.12);
+        color: var(--text-secondary);
       }
-      .kk-grid dd {
-        margin: 0;
-        color: var(--text-primary);
-        font-weight: 500;
+      .kk-chip--vip {
+        background: linear-gradient(180deg, rgba(248, 222, 168, 1), rgba(228, 192, 122, 1));
+        color: #4e3408;
+      }
+      .kk-chip--warn {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+      .kk-chip--info {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .kk-chip--ok {
+        background: var(--success-bg);
+        color: var(--success);
       }
       .kk-ai {
         padding: 11px 13px;
@@ -1948,14 +1953,25 @@
       <div class="ctx-row"><span class="k">Vaknar</span><span class="v">${esc(t.wake.replace('Återupptas ', ''))}</span></div>
       <div class="ctx-row"><span class="k">Snoozad</span><span class="v">${esc(t.snoozed)}</span></div></div>
     <div class="kk-card">
-      <div><div class="kk-kicker">Kundkontext</div><h3 class="kk-title">Operatörsstöd</h3></div>
       <div class="kk-head">
         <div class="kk-avatar" style="background:${esc(t.avatarBg)}">${esc(t.init)}</div>
-        <div><div class="kk-name">${esc(t.name)}</div><div class="kk-meta">${esc([c.Status, c.Nästa].filter(Boolean).join(' · '))}</div></div>
+        <div><div class="kk-name">${esc(t.name)}</div><div class="kk-meta">Kundkontext · operatörsstöd</div></div>
       </div>
-      <dl class="kk-grid">${Object.entries(c)
-        .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
-        .join('')}</dl>
+      <div class="kk-chips">${Object.entries(c)
+        .map(([k, v]) => {
+          const val = String(v);
+          let cls = 'kk-chip';
+          if (k === 'Status')
+            cls += /vip/i.test(val)
+              ? ' kk-chip--vip'
+              : /risk/i.test(val)
+                ? ' kk-chip--warn'
+                : ' kk-chip--info';
+          else if (k === 'No-show') cls += ' kk-chip--warn';
+          const label = k === 'Status' ? val : `${k} · ${val}`;
+          return `<span class="${cls}">${esc(label)}</span>`;
+        })
+        .join('')}</div>
       <div class="kk-ai"><div class="kk-ai-kicker">★ AI</div>${esc(t.ai)}</div>
       <div class="kk-actions">
         <button class="kk-pill kk-pill--ai" type="button" data-action="svarstudio">★ AI Svarstudio</button>

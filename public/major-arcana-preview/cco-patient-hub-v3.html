@@ -936,19 +936,6 @@
           0 6px 16px -8px rgba(93, 74, 60, 0.16);
         margin-bottom: 16px;
       }
-      .kk-kicker {
-        font-size: var(--fs-kicker);
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--text-tertiary);
-      }
-      .kk-title {
-        margin: 2px 0 0;
-        font-size: 0.95rem;
-        font-weight: 800;
-        color: var(--text-primary);
-      }
       .kk-head {
         display: flex;
         align-items: center;
@@ -981,34 +968,48 @@
         margin-top: 2px;
         font-variant-numeric: tabular-nums;
       }
-      .kk-grid {
-        display: grid;
-        grid-template-columns: 82px 1fr;
-        gap: 6px 10px;
-        font-size: 11px;
-        margin: 0;
+      /* Uppfräschat: nyckelfakta som chips + kompakt meta-rad (istället för
+         spec-grid). Samma varma tokens, inga nya färger. */
+      .kk-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
       }
-      .kk-grid dt {
-        color: var(--text-tertiary);
-        font-weight: 600;
-      }
-      .kk-grid dd {
-        margin: 0;
-        color: var(--text-primary);
-        font-weight: 500;
-      }
-      .kk-grid dd.kk-warn {
-        color: var(--warning);
+      .kk-chip {
+        font-size: 10.5px;
         font-weight: 700;
-      }
-      .kk-dot {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
+        padding: 4px 9px;
         border-radius: 999px;
-        background: var(--info);
-        margin-right: 5px;
-        vertical-align: middle;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(132, 117, 107, 0.12);
+        color: var(--text-secondary);
+      }
+      .kk-chip--vip {
+        background: linear-gradient(180deg, rgba(248, 222, 168, 1), rgba(228, 192, 122, 1));
+        color: #4e3408;
+      }
+      .kk-chip--warn {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+      .kk-chip--info {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .kk-chip--ok {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .kk-metaline {
+        font-size: 11px;
+        color: var(--text-tertiary);
+        line-height: 1.55;
+      }
+      .kk-metaline strong {
+        color: var(--text-primary);
+        font-weight: 600;
       }
       .kk-ai {
         padding: 11px 13px;
@@ -1322,33 +1323,26 @@
         <aside class="side">
           <!-- Kundkontext-kort — Konversationers operatörsstöd, återanvänt i Dossier. -->
           <div class="kk-card">
-            <div>
-              <div class="kk-kicker">Kundkontext</div>
-              <h3 class="kk-title">Operatörsstöd</h3>
-            </div>
             <div class="kk-head">
               <div class="kk-avatar" style="background: linear-gradient(180deg, #d8c1f0, #b48ad6)">
                 AK
               </div>
               <div>
                 <div class="kk-name">Anna Karlsson</div>
-                <div class="kk-meta">VIP · PRP-kur 4/6 · 92% engagement</div>
+                <div class="kk-meta">Kundkontext · operatörsstöd</div>
               </div>
             </div>
-            <dl class="kk-grid">
-              <dt>Tråden</dt>
-              <dd>8 meddelanden · 3 dagar</dd>
-              <dt>Källa</dt>
-              <dd><span class="kk-dot"></span>contact@</dd>
-              <dt>Bokning</dt>
-              <dd class="kk-warn">⚠ PRP tor 28 maj 08:00</dd>
-              <dt>Saknas</dt>
-              <dd class="kk-warn">Friskförsäkran</dd>
-              <dt>Senast</dt>
-              <dd>PRP 3/6 · 5 maj</dd>
-              <dt>Intäkt</dt>
-              <dd>38 400 kr</dd>
-            </dl>
+            <div class="kk-chips">
+              <span class="kk-chip kk-chip--vip">★ VIP</span>
+              <span class="kk-chip kk-chip--warn">⚠ PRP tor 08:00</span>
+              <span class="kk-chip kk-chip--warn">Saknar friskförsäkran</span>
+              <span class="kk-chip kk-chip--info">Kons · contact@</span>
+              <span class="kk-chip">38 400 kr</span>
+            </div>
+            <div class="kk-metaline">
+              <strong>8 meddelanden</strong> · 3 dagar · engagemang 92%<br />
+              Senast PRP 3/6 · 5 maj
+            </div>
             <div class="kk-ai">
               <div class="kk-ai-kicker">★ AI</div>
               <strong>Skicka friskförsäkran NU</strong> — behandling om 16 timmar och hon har inte
