@@ -168,6 +168,48 @@
     );
   }
 
+  // Bilder visas i kundkortets befintliga bildgrid (gk-foto-grid) via den
+  // exponerade renderaren — samma lazy-load/lightbox som resten av kortet.
+  function buildPhotoItems(seg) {
+    return seg.images.map(function (img) {
+      var takenAt = txt(img.takenAt);
+      var thumb = txt(img.thumbnailUrl);
+      return {
+        kind: 'image',
+        name: img.fileName || 'Foto',
+        zone: '',
+        date: seg.date || (takenAt ? takenAt.slice(0, 10) : ''),
+        captureDate: takenAt ? takenAt.slice(0, 10) : '',
+        captureDateTime: takenAt,
+        documentDate: '',
+        thumb: thumb,
+        url: txt(img.openRef),
+        previewMissing: !thumb,
+        captureDateMismatch: false,
+      };
+    });
+  }
+
+  function renderImages(seg) {
+    if (!seg.images.length) return '';
+    var grid = global.__ccoReferensPhotoGrid;
+    if (typeof grid === 'function') {
+      try {
+        var html = grid(buildPhotoItems(seg), 'gk-foto-grid--journal');
+        if (html) return html;
+      } catch (e) {
+        /* faller igenom till enkla rader */
+      }
+    }
+    // Fallback om foto-griden inte finns (modulen laddad fristående).
+    return seg.images
+      .map(function (img) {
+        var rowMeta = [img.timeLabel, img.fileName].filter(Boolean).join(' · ');
+        return openRow(img.fileName || 'Bild', rowMeta, img.openRef);
+      })
+      .join('');
+  }
+
   function renderSegment(seg) {
     var pills = '';
     if (seg.visitTypeLabel) {
@@ -197,12 +239,7 @@
           '</div>'
         : '';
 
-    var imageRows = seg.images
-      .map(function (img) {
-        var rowMeta = [img.timeLabel, img.fileName].filter(Boolean).join(' · ');
-        return openRow(img.fileName || 'Bild', rowMeta, img.openRef);
-      })
-      .join('');
+    var imageGrid = renderImages(seg);
 
     var documentRows = seg.documents
       .map(function (docFile) {
@@ -213,9 +250,9 @@
 
     var bodyInner =
       reasonsHtml +
-      (imageRows ? '<div class="gk-sub">Bilder</div>' + imageRows : '') +
+      (imageGrid ? '<div class="gk-sub">Bilder</div>' + imageGrid : '') +
       (documentRows ? '<div class="gk-sub">Dokument</div>' + documentRows : '') +
-      (!imageRows && !documentRows ? '<div class="empty">Inga filer.</div>' : '');
+      (!imageGrid && !documentRows ? '<div class="empty">Inga filer.</div>' : '');
 
     return (
       '<details class="kk-besok"><summary>' +
@@ -235,8 +272,10 @@
     var body = segments.length
       ? segments.map(renderSegment).join('')
       : '<div class="empty">Inga besök/tillfällen ännu.</div>';
+    // data-sek="besok" → tar över "Besök"-platsen (och dess nav-chip) från den
+    // fil-härledda sektionen som döljs när denna hydreras med data.
     return (
-      '<details class="dossier-section" data-sek="besok-tillfallen" open>' +
+      '<details class="dossier-section" data-sek="besok" data-kk-visit-segments-section open>' +
       '<summary>Besök/tillfällen<span class="count">' +
       segments.length +
       '</span></summary><div class="dossier-section-body">' +
@@ -276,6 +315,18 @@
     });
   }
 
+  function removeNode(node) {
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+  }
+
+  // Den fil-härledda "Besök"-sektionen är fallback: dölj den först när den
+  // API-backade sektionen faktiskt har data att ta över med.
+  function removeLegacyBesok(scope) {
+    var root = scope && scope.querySelectorAll ? scope : doc;
+    if (!root || !root.querySelectorAll) return;
+    Array.prototype.forEach.call(root.querySelectorAll('[data-kk-besok-legacy]'), removeNode);
+  }
+
   // ---- Self-mount: hitta placeholder [data-kk-visit-segments], hämta & rendera ----
   function hydrate(el, opts) {
     if (!el || typeof el.getAttribute !== 'function') return;
@@ -283,17 +334,41 @@
     if (state === 'loading' || state === 'done') return;
     var pid = txt(el.getAttribute('data-patient-id'));
     if (!pid) return;
+    var doss = (el.closest && el.closest('.doss')) || doc;
     el.setAttribute('data-kk-vs-state', 'loading');
     fetchVisitSegments(pid, opts || {})
       .then(function (payload) {
-        var html = renderSectionHtml(buildViewModel(payload));
-        el.setAttribute('data-kk-vs-state', 'done');
-        el.outerHTML = html;
+        var vm = buildViewModel(payload);
+        if (!vm.segments.length) {
+          // Ingen API-data → behåll den fil-härledda "Besök" som fallback.
+          el.setAttribute('data-kk-vs-state', 'empty');
+          removeNode(el);
+          return;
+        }
+        var holder = doc.createElement('div');
+        holder.innerHTML = renderSectionHtml(vm);
+        var node = holder.firstElementChild;
+        if (!node || !el.parentNode) {
+          el.setAttribute('data-kk-vs-state', 'error');
+          removeNode(el);
+          return;
+        }
+        el.parentNode.replaceChild(node, el);
+        // API-sektionen tar över "Besök" — ta bort den fil-härledda dubbletten.
+        removeLegacyBesok(doss);
+        // Ladda besöksbilderna via kundkortets befintliga säkra foto-hydrering.
+        if (typeof global.__gkHydrateSecurePhotos === 'function') {
+          try {
+            global.__gkHydrateSecurePhotos(node);
+          } catch (e) {
+            /* bilderna kan fortfarande öppnas via länk */
+          }
+        }
       })
       .catch(function () {
-        // Kortet fungerar utan sektionen — visa en tyst tom-rad, ingen krasch.
+        // Fel → behåll legacy som fallback, ta bort placeholdern tyst.
         el.setAttribute('data-kk-vs-state', 'error');
-        el.innerHTML = '<div class="empty">Kunde inte ladda besök/tillfällen.</div>';
+        removeNode(el);
       });
   }
 

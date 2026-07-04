@@ -550,6 +550,9 @@
       '</div>'
     );
   }
+  // Exponera foto-griden så den API-backade visit-segments-sektionen kan visa
+  // besöksbilder i exakt samma bildgrid (samma lazy-load + lightbox).
+  window.__ccoReferensPhotoGrid = gkSharedPhotoGrid;
   function gkSharedMediaCountLabel(items) {
     var list = A(items);
     var images = list.filter(function (p) {
@@ -5783,20 +5786,26 @@
           );
         })
         .join('');
-      h += sec(
-        'Besök',
-        String(
-          keys.filter(function (k) {
-            return k !== 'odaterat';
-          }).length
-        ),
-        inner
-      );
+      // Fil-härledd "Besök" = fallback. Wrappas så den API-backade visit-
+      // segments-sektionen kan ta över och dölja den när riktig data laddats.
+      h +=
+        '<div data-kk-besok-legacy>' +
+        sec(
+          'Besök',
+          String(
+            keys.filter(function (k) {
+              return k !== 'odaterat';
+            }).length
+          ),
+          inner
+        ) +
+        '</div>';
     })();
 
     // Besök/tillfällen (read-only) — API-backad sektion (#594 visit-segments).
-    // Placeholder som CcoKundkortVisitSegments self-mount:ar och hydrerar; ligger
-    // som syskon till den fil-härledda "Besök"-sektionen ovan.
+    // Placeholder som CcoKundkortVisitSegments self-mount:ar och hydrerar; när
+    // den fått data ersätter den fil-härledda "Besök"-sektionen ovan (som annars
+    // står kvar som fallback).
     h +=
       '<div data-kk-visit-segments data-patient-id="' +
       esc(bcard.patientId || bcard.id || '') +

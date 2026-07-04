@@ -127,7 +127,9 @@ test('PR44: "Behöver granskning"-bucket flaggas som review, aldrig klar', () =>
 
 test('PR44: renderSectionHtml använder befintlig kundkortsdesign', () => {
   const html = VS.renderSectionHtml(VS.buildViewModel(SAMPLE));
-  assert.match(html, /data-sek="besok-tillfallen"/);
+  // Tar över "Besök"-platsen (data-sek="besok") från den fil-härledda sektionen.
+  assert.match(html, /data-sek="besok"/);
+  assert.match(html, /data-kk-visit-segments-section/);
   assert.match(html, /<span class="count">3<\/span>/);
   assert.match(html, /class="kk-besok"/);
   assert.match(html, /22 april 2024/);
@@ -135,12 +137,50 @@ test('PR44: renderSectionHtml använder befintlig kundkortsdesign', () => {
   assert.match(html, /class="pill p-warn">Osäkert/);
   assert.match(html, /class="pill p-block">Behöver granskning/);
   assert.doesNotMatch(html, /klar|Markera klar|done|slutf[oö]rd/i);
-  // Öppningsbara rader använder dossierns rad-primitiv (button data-kk-open-doc).
+  // Dokument-rader använder dossierns rad-primitiv (button data-kk-open-doc).
   assert.match(
     html,
-    /<button type="button" class="gk-med-doc" data-kk-open-doc="[^"]*assets\/a\/download[^"]*"/
+    /<button type="button" class="gk-med-doc" data-kk-open-doc="[^"]*assets\/d\/download[^"]*"/
   );
   assert.match(html, /class="gk-med-doc-open">Visa<\/span>/);
+});
+
+test('PR44: bilder använder kundkortets foto-grid när den finns', () => {
+  const prev = globalThis.__ccoReferensPhotoGrid;
+  const calls = [];
+  globalThis.__ccoReferensPhotoGrid = (items, cls) => {
+    calls.push({ items, cls });
+    return '<div class="gk-foto-grid ' + cls + '" data-stub>' + items.length + '</div>';
+  };
+  try {
+    const html = VS.renderSectionHtml(VS.buildViewModel(SAMPLE));
+    // Fotogriden anropades för bild-segmentet, med rätt items i ordning.
+    assert.ok(calls.length >= 1, 'foto-griden anropades inte');
+    assert.equal(calls[0].cls, 'gk-foto-grid--journal');
+    assert.deepEqual(
+      calls[0].items.map((i) => i.name),
+      ['A.jpg', 'B.jpg']
+    );
+    assert.equal(calls[0].items[0].kind, 'image');
+    assert.equal(calls[0].items[0].url, '/api/v1/cco/assets/a/download?inline=1');
+    assert.match(html, /class="gk-foto-grid gk-foto-grid--journal" data-stub/);
+    // Dokument ligger fortfarande som dokumentrad i samma segment.
+    assert.match(html, /class="gk-med-doc"[^>]*assets\/d\/download/);
+  } finally {
+    if (prev === undefined) delete globalThis.__ccoReferensPhotoGrid;
+    else globalThis.__ccoReferensPhotoGrid = prev;
+  }
+});
+
+test('PR44: bilder faller tillbaka till rader utan foto-grid', () => {
+  const prev = globalThis.__ccoReferensPhotoGrid;
+  delete globalThis.__ccoReferensPhotoGrid;
+  try {
+    const html = VS.renderSectionHtml(VS.buildViewModel(SAMPLE));
+    assert.match(html, /class="gk-med-doc"[^>]*assets\/a\/download/);
+  } finally {
+    if (prev !== undefined) globalThis.__ccoReferensPhotoGrid = prev;
+  }
 });
 
 test('PR44: HTML escapas (ingen injektion via filnamn)', () => {
