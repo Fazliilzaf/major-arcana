@@ -22,9 +22,9 @@ function compact(src) {
 
 test('PR29: Skickat har kundkontext-kortet (namespaced .kk-)', () => {
   assert.match(skickat, /class="kk-card"/);
-  assert.match(skickat, /class="kk-kicker">Kundkontext/);
-  assert.match(skickat, /class="kk-title">Operatörsstöd/);
-  assert.match(skickat, /class="kk-grid"/);
+  assert.match(skickat, /class="kk-meta">Kundkontext · operatörsstöd/);
+  assert.match(skickat, /class="kk-chips"/);
+  assert.match(skickat, /class="kk-chip/);
   assert.match(skickat, /class="kk-ai"/);
 });
 

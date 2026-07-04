@@ -502,19 +502,6 @@
           0 6px 16px -8px rgba(93, 74, 60, 0.16);
         margin-bottom: 16px;
       }
-      .kk-kicker {
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--cco-text-tertiary);
-      }
-      .kk-title {
-        margin: 2px 0 0;
-        font-size: 0.95rem;
-        font-weight: 800;
-        color: var(--cco-color-brand);
-      }
       .kk-head {
         display: flex;
         align-items: center;
@@ -547,34 +534,48 @@
         margin-top: 2px;
         font-variant-numeric: tabular-nums;
       }
-      .kk-grid {
-        display: grid;
-        grid-template-columns: 82px 1fr;
-        gap: 6px 10px;
-        font-size: 11px;
-        margin: 0;
+      /* Uppfräschat: nyckelfakta som chips + kompakt meta-rad (istället för
+         spec-grid). Samma varma tokens, inga nya färger. */
+      .kk-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
       }
-      .kk-grid dt {
-        color: var(--cco-text-tertiary);
-        font-weight: 600;
-      }
-      .kk-grid dd {
-        margin: 0;
-        color: var(--cco-color-brand);
-        font-weight: 500;
-      }
-      .kk-grid dd.kk-warn {
-        color: var(--cco-status-warning);
+      .kk-chip {
+        font-size: 10.5px;
         font-weight: 700;
-      }
-      .kk-dot {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
+        padding: 4px 9px;
         border-radius: 999px;
-        background: var(--cco-status-info);
-        margin-right: 5px;
-        vertical-align: middle;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(132, 117, 107, 0.12);
+        color: var(--cco-text-secondary);
+      }
+      .kk-chip--vip {
+        background: linear-gradient(180deg, rgba(248, 222, 168, 1), rgba(228, 192, 122, 1));
+        color: #4e3408;
+      }
+      .kk-chip--warn {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .kk-chip--info {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .kk-chip--ok {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .kk-metaline {
+        font-size: 11px;
+        color: var(--cco-text-tertiary);
+        line-height: 1.55;
+      }
+      .kk-metaline strong {
+        color: var(--cco-color-brand);
+        font-weight: 600;
       }
       .kk-ai {
         padding: 11px 13px;
@@ -911,33 +912,26 @@
       <aside class="panel">
         <!-- Kundkontext-kort — Konversationers operatörsstöd, återanvänt i No-show. -->
         <div class="kk-card">
-          <div>
-            <div class="kk-kicker">Kundkontext</div>
-            <h3 class="kk-title">Operatörsstöd</h3>
-          </div>
           <div class="kk-head">
             <div class="kk-avatar" style="background: linear-gradient(180deg, #f0c1c1, #d67a7a)">
               HJ
             </div>
             <div>
               <div class="kk-name">Henrik Johansson</div>
-              <div class="kk-meta">FUE 2500 · lojalitet 78 · 3 no-shows</div>
+              <div class="kk-meta">Kundkontext · operatörsstöd</div>
             </div>
           </div>
-          <dl class="kk-grid">
-            <dt>Bokning</dt>
-            <dd class="kk-warn">⚠ Idag 15:00 · FUE</dd>
-            <dt>Risk</dt>
-            <dd class="kk-warn">⚠ 87% no-show</dd>
-            <dt>Historik</dt>
-            <dd>3 no-shows · sen avbok.</dd>
-            <dt>Avstånd</dt>
-            <dd>8 km</dd>
-            <dt>Källa</dt>
-            <dd><span class="kk-dot"></span>contact@</dd>
-            <dt>Intäkt</dt>
-            <dd>1 480 kr (dagens)</dd>
-          </dl>
+          <div class="kk-chips">
+            <span class="kk-chip kk-chip--warn">⚠ 87% no-show</span>
+            <span class="kk-chip kk-chip--warn">Idag 15:00 · FUE</span>
+            <span class="kk-chip">3 no-shows</span>
+            <span class="kk-chip kk-chip--info">Kons · contact@</span>
+            <span class="kk-chip">1 480 kr</span>
+          </div>
+          <div class="kk-metaline">
+            <strong>FUE 2500</strong> · lojalitet 78 · 8 km<br />
+            Historik: 3 no-shows · sen avbokning
+          </div>
           <div class="kk-ai">
             <div class="kk-ai-kicker">★ AI</div>
             <strong>Ring Henrik nu</strong> — 87% no-show-risk för dagens 15:00. Ett samtal räddar

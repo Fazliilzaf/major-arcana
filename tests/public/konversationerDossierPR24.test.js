@@ -23,9 +23,9 @@ function compact(src) {
 
 test('PR24: Dossier har kundkontext-kortet (namespaced .kk-)', () => {
   assert.match(hub, /class="kk-card"/);
-  assert.match(hub, /class="kk-kicker">Kundkontext/);
-  assert.match(hub, /class="kk-title">Operatörsstöd/);
-  assert.match(hub, /class="kk-grid"/);
+  assert.match(hub, /class="kk-meta">Kundkontext · operatörsstöd/);
+  assert.match(hub, /class="kk-chips"/);
+  assert.match(hub, /class="kk-chip/);
   assert.match(hub, /class="kk-ai"/);
 });
 
