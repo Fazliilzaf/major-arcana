@@ -1055,6 +1055,14 @@
       body {
         padding-bottom: 68px;
       }
+      /* cco-polish injicerar flytande dev-chrome (tema-växlare + Rapportera + Ångra)
+         nere till höger på bottom:22px — de hamnade ovanpå den fasta action-baren.
+         Lyft dem ovanför baren så inget överlappar. */
+      .theme-toggle,
+      .feedback-btn,
+      .undo-btn {
+        bottom: 62px !important;
+      }
     </style>
     <link rel="stylesheet" href="/cco-polish.css" />
     <script src="/cco-polish.js" defer></script>
