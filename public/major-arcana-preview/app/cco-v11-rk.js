@@ -532,6 +532,25 @@
       );
     }
 
+    /* M½ · BESÖK/TILLFÄLLEN (read-only visit-segments API, intill Foton) */
+    var pid = txt(card.patientId || card.id);
+    var vsApi = global.CcoKundkortVisitSegments;
+    if (vsApi && pid) {
+      var visitSegments = arr(ctx.visitSegments);
+      var vsInner = visitSegments.length
+        ? vsApi.renderV11RailBesokInner(visitSegments)
+        : vsApi.renderV11RailBesokPlaceholderInner(pid);
+      var vsWhen = visitSegments.length ? String(vsApi.countDatedSegments(visitSegments)) : '…';
+      out += secOpen(
+        'photos',
+        'sec',
+        label('Besök/tillfällen', vsWhen) +
+          '<div class="v11-rk__besok-tillfallen">' +
+          vsInner +
+          '</div>'
+      );
+    }
+
     /* N · FILER */
     var fl = arr(files && files.items ? files.items : files);
     if (fl.length) {
