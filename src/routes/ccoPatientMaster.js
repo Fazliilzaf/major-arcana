@@ -48,6 +48,7 @@ const {
 } = require('../ops/ccoKunderFasAReadiness');
 const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
 const { assetToPatientFile, resolvePatientAssetIds } = require('../ops/ccoPatientAssetIdentity');
+const { buildVisitSegments } = require('../ops/ccoPatientVisitSegments');
 const { hydratePatientHealthProjection } = require('../ops/ccoPatientMasterStore');
 
 function normalizeText(value) {
@@ -716,6 +717,45 @@ function createCcoPatientMasterRouter({
           includeDriveFiles,
         });
         return res.json(payload);
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/patient/visit-segments',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId: normalizeText(req.query.patientId),
+          personnummer: normalizeText(req.query.personnummer),
+        });
+        if (!patient) {
+          return res.status(404).json({ error: 'Patienten hittades inte.' });
+        }
+
+        void auditRead(
+          req,
+          actor,
+          patient.id,
+          'cco.patient_master.patient.visit_segments.read'
+        ).catch((error) => {
+          console.error('[cco.patient_master] audit visit-segments read failed', error);
+        });
+
+        const payload = await buildPatientPayload(actor, patient, {
+          includeJournal: false,
+          includeDriveFiles: parseIncludeDriveFiles(req.query.includeDriveFiles),
+        });
+        const visitPayload = buildVisitSegments({
+          customerId: patient.id,
+          driveFiles: payload.driveFiles || [],
+        });
+        return res.json({
+          patientId: patient.id,
+          ...visitPayload,
+        });
       })
   );
 
