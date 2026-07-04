@@ -1258,9 +1258,10 @@
 
       /* ─── Sprint 18C.2 + .3: WORKBENCH MODAL (vellum-triage polish) ─── */
       .action-modal--workbench {
-        max-width: 1240px;
-        width: 96vw;
-        max-height: 94vh;
+        max-width: none;
+        width: 98vw;
+        height: 96vh;
+        max-height: 96vh;
         background: linear-gradient(180deg, rgba(252, 248, 242, 0.98), rgba(248, 242, 234, 0.94));
         border-radius: 24px;
         box-shadow:
@@ -1283,6 +1284,17 @@
       }
       .action-modal--workbench .action-modal-head {
         gap: 10px;
+        flex-wrap: wrap;
+        row-gap: 10px;
+      }
+      /* Svarstudio-headern trängde ihop titel + flikar + 5 status-chips + Dölj/×
+         på en rad så flik-raden kläms bort. Ge flikarna en egen full-breddsrad
+         under titelraden (som de andra v3-vyerna har). */
+      .action-modal--workbench .action-modal-tabs {
+        order: 9;
+        flex-basis: 100%;
+        justify-content: flex-start;
+        padding: 0;
       }
       .wb-head-chips {
         display: inline-flex;
