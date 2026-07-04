@@ -61,6 +61,16 @@ function surfaces(previewDir, only) {
     .sort();
 }
 
+function hasIntentionalVisualChange(previewDir, file) {
+  try {
+    const html = readFileSync(join(previewDir, file), 'utf8');
+    return /<meta\s+[^>]*name=["']visual-regression["'][^>]*content=["'][^"']*\bintentional-change\b[^"']*["'][^>]*>/i.test(html)
+      || /<meta\s+[^>]*content=["'][^"']*\bintentional-change\b[^"']*["'][^>]*name=["']visual-regression["'][^>]*>/i.test(html);
+  } catch {
+    return false;
+  }
+}
+
 function keyFor(file, vp) {
   return `${file.replace(/\.html$/, '')}__${vp.id}.png`;
 }
@@ -141,7 +151,9 @@ async function runVsMain(only) {
     const branchFiles = surfaces(PREVIEW, only);
     const branchSet = new Set(branchFiles);
 
-    const toCompare = branchFiles.filter((f) => mainSet.has(f));
+    const intentionalSurfaces = branchFiles.filter((f) => mainSet.has(f) && hasIntentionalVisualChange(PREVIEW, f));
+    const intentionalSet = new Set(intentionalSurfaces);
+    const toCompare = branchFiles.filter((f) => mainSet.has(f) && !intentionalSet.has(f));
     const newSurfaces = branchFiles.filter((f) => !mainSet.has(f));
     // Surfaces removed on the branch but still in main.
     const deletedSurfaces = mainSurfaces.filter((f) => !branchSet.has(f));
@@ -156,6 +168,7 @@ async function runVsMain(only) {
 
     console.log(`== Visual diff (branch vs main) — ${toCompare.length} ytor × ${VIEWPORTS.length} breakpoints ==`);
     if (newSurfaces.length) console.log(`   Nya ytor (saknas i main): ${newSurfaces.join(', ')}`);
+    if (intentionalSurfaces.length) console.log(`   Avsiktliga visuella ändringar (skippas): ${intentionalSurfaces.join(', ')}`);
     if (deletedSurfaces.length) console.log(`   DELETED (finns i main men borttagna i branch): ${deletedSurfaces.join(', ')}`);
     console.log('');
 
