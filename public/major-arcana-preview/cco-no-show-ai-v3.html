@@ -493,7 +493,8 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        padding: 15px;
+        /* Lite mer luft under pills-raden så kortet inte känns trångt. */
+        padding: 15px 15px 18px;
         border-radius: 18px;
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
         border: 1px solid rgba(180, 165, 150, 0.25);
@@ -693,7 +694,9 @@
         }
       }
       body {
-        padding-bottom: 68px;
+        /* Mer botten-reserv så kundkontext-kortets pills alltid klarar den fasta
+           action-docken vid scroll-slut (docken ~64px + luft). */
+        padding-bottom: 96px;
       }
       /* cco-polish injicerar flytande dev-chrome (tema-växlare + Rapportera + Ångra)
          nere till höger på bottom:22px — de hamnade ovanpå den fasta action-baren.
