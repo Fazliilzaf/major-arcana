@@ -147,6 +147,7 @@ test('buildVisitSegments flags documents duplicated across same-day time cluster
     result.visitSegments.map((segment) => segment.documents.map((doc) => doc.assetId)),
     [['doc-1'], ['doc-1']]
   );
+  assert.ok(result.visitSegments.every((segment) => segment.confidence === 'medium'));
 });
 
 test('buildVisitSegments puts undated files in Datum/tid saknas', () => {
@@ -164,6 +165,8 @@ test('buildVisitSegments puts undated files in Datum/tid saknas', () => {
   assert.equal(result.visitSegments.length, 1);
   assert.equal(result.visitSegments[0].label, 'Datum/tid saknas');
   assert.equal(result.visitSegments[0].date, null);
+  assert.equal(result.visitSegments[0].confidence, 'low');
+  assert.ok(result.visitSegments[0].reasons.includes('missing_visit_date'));
 });
 
 test('buildVisitSegments flags low-confidence path dates for review bucket', () => {
@@ -180,7 +183,30 @@ test('buildVisitSegments flags low-confidence path dates for review bucket', () 
 
   assert.equal(result.visitSegments.length, 1);
   assert.equal(result.visitSegments[0].label, 'Behöver granskning');
+  assert.equal(result.visitSegments[0].confidence, 'low');
   assert.ok(result.visitSegments[0].reasons.includes('inferred_from_path_or_filename'));
+});
+
+test('buildVisitSegments keeps capture/document date mismatches on resolved visit date', () => {
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'mismatch',
+        fileType: 'image',
+        fileName: 'Mismatch.jpg',
+        captureDateTime: '2024-04-22T09:14:00',
+        documentDate: '2024-04-21',
+        captureDateMismatch: true,
+        relativePath: 'Hair TP Clinic 2024/PRP 1/Mismatch.jpg',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].date, '2024-04-22');
+  assert.equal(result.visitSegments[0].label, '22 april 2024');
+  assert.equal(result.visitSegments[0].confidence, 'medium');
+  assert.ok(result.visitSegments[0].reasons.includes('capture_document_date_mismatch'));
 });
 
 test('GET /patient/visit-segments returns grouped payload', async (t) => {

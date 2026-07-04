@@ -188,7 +188,6 @@ function resolveDateConfidence(file, visitDate) {
 }
 
 function needsReviewBucket(file, visitDate) {
-  if (file?.captureDateMismatch) return true;
   const { confidence, reasons } = resolveDateConfidence(file, visitDate);
   return confidence === 'low' && reasons.includes('inferred_from_path_or_filename');
 }
@@ -251,9 +250,9 @@ function buildTimeRange(files = []) {
   return `${labels[0]}–${labels[labels.length - 1]}`;
 }
 
-function bumpConfidence(current, next) {
+function weakenConfidence(current, next) {
   const rank = { high: 3, medium: 2, low: 1 };
-  return (rank[next] || 0) > (rank[current] || 0) ? next : current;
+  return (rank[next] || 0) < (rank[current] || 0) ? next : current;
 }
 
 function mergeReasons(target, source) {
@@ -311,13 +310,13 @@ function finalizeSegment({ date, label, files, clusterIndex = 0, clusterCount = 
   for (const file of files) {
     const fileDate = resolveVisitDate(file) || date;
     const resolved = resolveDateConfidence(file, fileDate);
-    confidence = bumpConfidence(confidence, resolved.confidence);
+    confidence = weakenConfidence(confidence, resolved.confidence);
     mergeReasons(reasons, resolved.reasons);
   }
   if (clusterCount > 1) reasons.push('same_day_time_cluster');
   if (documents.some((doc) => buildDocumentEntry(doc).dateBindingUncertain)) {
     reasons.push('uncertain_document_date_binding');
-    confidence = bumpConfidence(confidence, 'medium');
+    confidence = weakenConfidence(confidence, 'medium');
   }
 
   const visitType = inferVisitTypeFromFiles(files);
@@ -407,7 +406,7 @@ function buildVisitSegments({ driveFiles = [], customerId = '' } = {}) {
       });
       if (documents.length) {
         segment.reasons.push('document_shared_across_same_day_clusters');
-        segment.confidence = bumpConfidence(segment.confidence, 'medium');
+        segment.confidence = weakenConfidence(segment.confidence, 'medium');
       }
       segments.push(segment);
     });
