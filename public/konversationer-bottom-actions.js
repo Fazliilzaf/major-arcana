@@ -319,13 +319,13 @@
   function panelTabs(activeKey) {
     return [
       { key: 'svarstudio', label: 'Svarstudio', open: () => openSvarstudioForSelectedThread() },
-      { key: 'bokning', label: 'Öppna bokning', open: () => openBokningsyta() },
-      { key: 'smart', label: 'Smart anteckning', open: () => openSmartAnteckning() },
+      { key: 'bokning', label: 'Bokning', open: () => openBokningsyta() },
+      { key: 'smart', label: 'Anteckning', open: () => openSmartAnteckning() },
       { key: 'makron', label: 'Makron', open: () => openMakron() },
-      { key: 'kalender', label: 'Öppna kalender', open: () => openKalender() },
-      { key: 'senare', label: 'Lägg senare', open: () => openSenarePanel() },
+      { key: 'kalender', label: 'Kalender', open: () => openKalender() },
+      { key: 'senare', label: 'Senare', open: () => openSenarePanel() },
       { key: 'notiser', label: 'Notiser', open: () => openNotiser() },
-      { key: 'skickat', label: 'Skickat / kö', open: () => openSkickat() },
+      { key: 'skickat', label: 'Skickat', open: () => openSkickat() },
       { key: 'patienthub', label: 'Dossier', open: () => openPatientHub() },
       { key: 'noshow', label: 'No-show', open: () => openNoShow() },
     ].map((t) => ({ key: t.key, label: t.label, open: t.open, active: t.key === activeKey }));

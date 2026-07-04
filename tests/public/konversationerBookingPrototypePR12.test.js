@@ -14,7 +14,12 @@ const test = require('node:test');
 const repoRoot = path.resolve(__dirname, '../..');
 const actionsPath = path.join(repoRoot, 'public', 'konversationer-bottom-actions.js');
 const htmlPath = path.join(repoRoot, 'public', 'konversationer.html');
-const bookingPath = path.join(repoRoot, 'public', 'major-arcana-preview', 'cco-booking-wizard-v3.html');
+const bookingPath = path.join(
+  repoRoot,
+  'public',
+  'major-arcana-preview',
+  'cco-booking-wizard-v3.html'
+);
 
 const source = fs.readFileSync(actionsPath, 'utf8');
 const html = fs.readFileSync(htmlPath, 'utf8');
@@ -91,6 +96,5 @@ test('PR12: kalender/senare/smart-anteckning v3 orörda, ingen live-send', () =>
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR12: konversationer.html cache-bustar efter bokningsbyte', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
-
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
 });

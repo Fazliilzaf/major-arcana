@@ -122,6 +122,5 @@ test('konversationer live context derives recipient and sender mailbox for Svars
 test('konversationer.html cache-busts bottom actions after Svarstudio context fix', () => {
   const html = readHtml();
 
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
-
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
 });

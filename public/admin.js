@@ -2894,18 +2894,44 @@
 
     const text = await response.text();
     let data = null;
+    let parsedJson = false;
     try {
       data = text ? JSON.parse(text) : {};
+      parsedJson = true;
     } catch {
-      data = { error: text || 'Ogiltigt svar.' };
+      // Icke-JSON-kropp (t.ex. en HTML-felsida från gateway vid 502/503/504).
+      // Läck INTE in den råa markupen i UI:t — ge ett rent, statusbaserat fel.
+      data = null;
     }
 
     if (!response.ok) {
-      const error = new Error(data?.error || `HTTP ${response.status}`);
+      const apiError =
+        parsedJson && data && typeof data.error === 'string' && data.error.trim()
+          ? data.error.trim()
+          : '';
+      const error = new Error(apiError || describeHttpError(response.status));
       error.status = response.status;
       throw error;
     }
-    return data;
+    return parsedJson && data ? data : {};
+  }
+
+  // Rent felmeddelande utifrån HTTP-status när svaret inte är JSON (t.ex. en
+  // HTML-felsida från gateway). Undviker att dumpa hela felsidan i UI:t.
+  function describeHttpError(status) {
+    if (status === 502 || status === 503 || status === 504) {
+      return `Servern svarar inte just nu (HTTP ${status}). Försök igen om en liten stund.`;
+    }
+    if (status === 401 || status === 403) {
+      return `Behörighet saknas (HTTP ${status}).`;
+    }
+    if (status === 404) {
+      return `Resursen hittades inte (HTTP ${status}).`;
+    }
+    if (status === 429) {
+      return 'För många försök. Vänta en stund och försök igen (HTTP 429).';
+    }
+    return `Något gick fel (HTTP ${status}).`;
   }
 
   function clearDashboardRealtimeRefreshTimer() {

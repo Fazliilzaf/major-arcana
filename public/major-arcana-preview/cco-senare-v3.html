@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <!-- Avsiktlig visuell ändring (uppluftad lista) — skippa visual-regression-tripwiren. -->
+    <meta name="visual-regression" content="intentional-change" />
     <title>CCO Senare — v3 responsiv</title>
     <style>
       /* CCO SENARE v3 — snoozade konversationer. SAMMA skal som Konversationer (rail→lista→tråd→kontext),
@@ -275,13 +277,13 @@
         padding: 0 var(--pad-x) 6rem;
         display: flex;
         flex-direction: column;
-        gap: 0.4rem;
+        gap: 0.6rem;
       }
       .thread {
         position: relative;
         display: flex;
-        gap: 0.65rem;
-        padding: 0.7rem 0.8rem 0.7rem 1rem;
+        gap: 0.75rem;
+        padding: 0.95rem 1rem 0.95rem 1.15rem;
         border-radius: var(--r-md);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.86));
         border: 1px solid rgba(180, 165, 150, 0.22);
@@ -292,8 +294,8 @@
         content: '';
         position: absolute;
         left: 0.35rem;
-        top: 0.7rem;
-        bottom: 0.7rem;
+        top: 0.95rem;
+        bottom: 0.95rem;
         width: 3px;
         border-radius: 2px;
         background: var(--rail, var(--rail-info));
@@ -380,7 +382,7 @@
       .t-prev {
         font-size: var(--fs-meta);
         color: var(--text-tertiary);
-        margin-top: 0.15rem;
+        margin-top: 0.28rem;
         display: -webkit-box;
         -webkit-line-clamp: 1;
         -webkit-box-orient: vertical;
@@ -389,8 +391,8 @@
       .t-tags {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.25rem;
-        margin-top: 0.35rem;
+        gap: 0.3rem;
+        margin-top: 0.5rem;
       }
       .tag {
         padding: 0.1rem 0.45rem;
@@ -427,7 +429,7 @@
         display: flex;
         align-items: center;
         gap: 0.35rem;
-        margin-top: 0.35rem;
+        margin-top: 0.5rem;
         font-size: var(--fs-kicker);
         font-weight: 800;
         color: var(--info);
@@ -1551,8 +1553,7 @@
         if (!t) return false;
         if (t.canConfirm === false) {
           flashNotice(
-            t.confirmDisabledReason ||
-              'Välj en riktig live-tråd innan åtgärden kan bekräftas.',
+            t.confirmDisabledReason || 'Välj en riktig live-tråd innan åtgärden kan bekräftas.',
             false
           );
           return false;
@@ -1661,12 +1662,9 @@
         document.getElementById('tvName').textContent = t.name;
         document.getElementById('tvMeta').textContent = t.wake;
         const confirmDisabledReason =
-          t.confirmDisabledReason ||
-          'Välj en riktig live-tråd innan åtgärden kan bekräftas.';
+          t.confirmDisabledReason || 'Välj en riktig live-tråd innan åtgärden kan bekräftas.';
         const disabledAttr =
-          t.canConfirm === false
-            ? ` disabled title="${esc(confirmDisabledReason)}"`
-            : '';
+          t.canConfirm === false ? ` disabled title="${esc(confirmDisabledReason)}"` : '';
         const readonlyNotice =
           t.canConfirm === false
             ? `<div class="sn-notice sn-notice--err" style="display:block">${esc(confirmDisabledReason)}</div>`

@@ -77,6 +77,5 @@ test('PR14: övriga paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR14: konversationer.html cache-bustar efter skickat-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
-
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
 });

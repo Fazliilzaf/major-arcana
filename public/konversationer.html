@@ -1134,28 +1134,73 @@
          stänga (backdrop:en täcker bottenknapparna). */
       .action-modal-tabs {
         display: flex;
-        gap: 4px;
-        flex-wrap: wrap;
+        gap: 14px;
+        flex-wrap: nowrap;
         flex: 1;
         justify-content: center;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 0 8px;
       }
+      .action-modal-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      /* Diskret rad: färgade namn (text, inga piller). Aktiv flik = understreck
+         i sin egen färg. Scrollar horisontellt istället för att wrappa. */
       .action-modal-tab {
         border: 0;
+        background: transparent;
         cursor: pointer;
         font-family: inherit;
         font-size: 12px;
         font-weight: 700;
-        padding: 6px 12px;
-        border-radius: 999px;
-        background: rgba(187, 159, 122, 0.14);
-        color: var(--cco-text-secondary, #6b5d50);
+        padding: 3px 1px;
+        border-radius: 0;
+        white-space: nowrap;
+        color: var(--tab-color, #6b5d50);
+        opacity: 0.66;
+        border-bottom: 2px solid transparent;
+        transition:
+          opacity 0.14s ease,
+          border-color 0.14s ease;
       }
       .action-modal-tab:hover {
-        background: rgba(187, 159, 122, 0.24);
+        opacity: 1;
       }
       .action-modal-tab.is-active {
-        background: linear-gradient(180deg, #f4d9d9, #e6b7b7);
-        color: #8a3030;
+        opacity: 1;
+        font-weight: 800;
+        border-bottom-color: currentColor;
+      }
+      .action-modal-tab:nth-child(1) {
+        --tab-color: #b0356e;
+      }
+      .action-modal-tab:nth-child(2) {
+        --tab-color: #6b31c9;
+      }
+      .action-modal-tab:nth-child(3) {
+        --tab-color: #2f6595;
+      }
+      .action-modal-tab:nth-child(4) {
+        --tab-color: #bb4779;
+      }
+      .action-modal-tab:nth-child(5) {
+        --tab-color: #c8821e;
+      }
+      .action-modal-tab:nth-child(6) {
+        --tab-color: #4a8268;
+      }
+      .action-modal-tab:nth-child(7) {
+        --tab-color: #b94a4a;
+      }
+      .action-modal-tab:nth-child(8) {
+        --tab-color: #556074;
+      }
+      .action-modal-tab:nth-child(9) {
+        --tab-color: #2f7d7d;
+      }
+      .action-modal-tab:nth-child(10) {
+        --tab-color: #9c2c62;
       }
       .action-modal-head {
         display: flex;
@@ -3127,6 +3172,6 @@
       );
     </script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
-    <script src="/konversationer-bottom-actions.js?v=20260703y-paneltargets" defer></script>
+    <script src="/konversationer-bottom-actions.js?v=20260703z-tabrow" defer></script>
   </body>
 </html>

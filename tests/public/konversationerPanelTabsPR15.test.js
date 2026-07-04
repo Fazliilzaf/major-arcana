@@ -27,12 +27,9 @@ test('PR15: panelTabs listar de öppningsbara panelerna', () => {
     source,
     /key: 'svarstudio', label: 'Svarstudio', open: \(\) => openSvarstudioForSelectedThread\(\)/
   );
-  assert.match(source, /key: 'bokning', label: 'Öppna bokning', open: \(\) => openBokningsyta\(\)/);
-  assert.match(
-    source,
-    /key: 'smart', label: 'Smart anteckning', open: \(\) => openSmartAnteckning\(\)/
-  );
-  assert.match(source, /key: 'kalender', label: 'Öppna kalender', open: \(\) => openKalender\(\)/);
+  assert.match(source, /key: 'bokning', label: 'Bokning', open: \(\) => openBokningsyta\(\)/);
+  assert.match(source, /key: 'smart', label: 'Anteckning', open: \(\) => openSmartAnteckning\(\)/);
+  assert.match(source, /key: 'kalender', label: 'Kalender', open: \(\) => openKalender\(\)/);
 });
 
 test('PR15: openModal renderar flik-raden i headern', () => {
@@ -61,6 +58,5 @@ test('PR15: flik-CSS finns (aktiv-state)', () => {
 });
 
 test('PR15: cache-bust bumpad efter flik-fix', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
-
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
 });
