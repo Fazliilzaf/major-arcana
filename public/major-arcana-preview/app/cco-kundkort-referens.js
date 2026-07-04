@@ -5794,6 +5794,14 @@
       );
     })();
 
+    // Besök/tillfällen (read-only) — API-backad sektion (#594 visit-segments).
+    // Placeholder som CcoKundkortVisitSegments self-mount:ar och hydrerar; ligger
+    // som syskon till den fil-härledda "Besök"-sektionen ovan.
+    h +=
+      '<div data-kk-visit-segments data-patient-id="' +
+      esc(bcard.patientId || bcard.id || '') +
+      '"></div>';
+
     // ===== Saknade kategorier (facit-paritet): Filer · Anteckningar · Kommunikation · Insikter =====
     var filer = driveFiles
       .filter(isReferensDocumentFile)

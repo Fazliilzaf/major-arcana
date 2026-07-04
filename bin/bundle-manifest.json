@@ -42,6 +42,7 @@
     "app/cco-facit-demo.js",
     "app/patient-master-ui.js",
     "app/cco-kundkort-referens.js",
+    "app/cco-kundkort-visit-segments.js",
     "app/cco-v9-customers-parity.js",
     "app/cco-kundkort-kkx.js",
     "app/cco-kunder-smart-next-step.js",
