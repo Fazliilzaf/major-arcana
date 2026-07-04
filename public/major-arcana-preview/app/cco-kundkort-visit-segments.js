@@ -284,6 +284,76 @@
     );
   }
 
+  // ---- STOR VY (storvy) — samma data i storvyns eget formspråk (gk-visit-card) ----
+  function renderStorvyVisitCard(seg) {
+    var tags =
+      '<span class="gk-hl gk-tag gk-tag-info">' + esc(seg.visitTypeLabel || 'Besök') + '</span>';
+    if (seg.reviewBucket) {
+      tags += '<span class="gk-hl gk-tag gk-tag-risk">Behöver granskning</span>';
+    } else if (seg.uncertain) {
+      tags += '<span class="gk-hl gk-tag gk-tag-warn">Osäkert</span>';
+    }
+    var metaBits = [];
+    if (seg.timeRange) metaBits.push(esc(seg.timeRange));
+    metaBits.push(seg.images.length + ' bild' + (seg.images.length === 1 ? '' : 'er'));
+    if (seg.documents.length) metaBits.push(seg.documents.length + ' dokument');
+    var reasons =
+      seg.uncertain && seg.reasonLabels.length
+        ? '<div class="gk-sub">Osäkerhet: ' +
+          seg.reasonLabels
+            .map(function (r) {
+              return esc(r);
+            })
+            .join(' · ') +
+          '</div>'
+        : '';
+    var grid = renderImages(seg);
+    var docs = seg.documents
+      .map(function (docFile) {
+        var m = [docFile.documentDate, docFile.type].filter(Boolean).join(' · ');
+        return openRow(docFile.fileName || 'Dokument', m, docFile.openRef);
+      })
+      .join('');
+    return (
+      '<div class="gk-visit-card"><div class="gk-visit-head"><div><b>' +
+      esc(seg.heading) +
+      '</b><span class="gk-sub">' +
+      metaBits.join(' · ') +
+      '</span></div>' +
+      tags +
+      '</div>' +
+      reasons +
+      (grid
+        ? '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder från besöket</div>' +
+          grid +
+          '</div>'
+        : '') +
+      (docs
+        ? '<div class="gk-visit-journal"><div class="gk-visit-label">Dokument</div>' +
+          docs +
+          '</div>'
+        : '') +
+      '</div>'
+    );
+  }
+
+  function renderStorvySectionHtml(viewModel) {
+    var segments = (viewModel && viewModel.segments) || [];
+    var inner = segments.length
+      ? segments.map(renderStorvyVisitCard).join('')
+      : '<div class="gk-rad"><span class="gk-sub">Inga besök/tillfällen ännu.</span></div>';
+    return (
+      '<section class="gk-sek" data-gk-section="besok" data-kk-visit-segments-storvy-section>' +
+      '<h2>Besök/tillfällen<span class="gk-pill gk-tag-info">' +
+      segments.length +
+      '</span><button type="button" class="gk-section-toggle" data-gk-toggle-section' +
+      ' aria-label="Visa eller dölj Besök/tillfällen" aria-expanded="true">Dölj</button></h2>' +
+      '<div class="gk-section-body">' +
+      inner +
+      '</div></section>'
+    );
+  }
+
   function readToken() {
     try {
       return (
@@ -334,14 +404,34 @@
     );
   }
 
-  // ---- Self-mount: hitta placeholder [data-kk-visit-segments], hämta & rendera ----
+  // Storvyns fil-härledda Besök-sektion (gk-sek data-gk-section="besok").
+  function removeLegacyStorvyBesok(scope) {
+    var root = scope && scope.querySelectorAll ? scope : doc;
+    if (!root || !root.querySelectorAll) return;
+    Array.prototype.forEach.call(
+      root.querySelectorAll('[data-kk-besok-storvy-legacy]'),
+      removeNode
+    );
+    Array.prototype.forEach.call(
+      root.querySelectorAll(
+        'section[data-gk-section="besok"]:not([data-kk-visit-segments-storvy-section])'
+      ),
+      removeNode
+    );
+  }
+
+  // ---- Self-mount: placeholder i dossiern ELLER storvyn → hämta & rendera i rätt design ----
   function hydrate(el, opts) {
     if (!el || typeof el.getAttribute !== 'function') return;
     var state = el.getAttribute('data-kk-vs-state');
     if (state === 'loading' || state === 'done') return;
     var pid = txt(el.getAttribute('data-patient-id'));
     if (!pid) return;
-    var doss = (el.closest && el.closest('.doss')) || doc;
+    var isStorvy = el.getAttribute('data-kk-visit-segments-storvy') !== null;
+    var scope =
+      (el.closest &&
+        el.closest(isStorvy ? '#kk-storvy .gk-kort, #kk-storvy, .gk-kort' : '.doss')) ||
+      doc;
     el.setAttribute('data-kk-vs-state', 'loading');
     fetchVisitSegments(pid, opts || {})
       .then(function (payload) {
@@ -353,7 +443,7 @@
           return;
         }
         var holder = doc.createElement('div');
-        holder.innerHTML = renderSectionHtml(vm);
+        holder.innerHTML = isStorvy ? renderStorvySectionHtml(vm) : renderSectionHtml(vm);
         var node = holder.firstElementChild;
         if (!node || !el.parentNode) {
           el.setAttribute('data-kk-vs-state', 'error');
@@ -362,7 +452,8 @@
         }
         el.parentNode.replaceChild(node, el);
         // API-sektionen tar över "Besök" — ta bort den fil-härledda dubbletten.
-        removeLegacyBesok(doss);
+        if (isStorvy) removeLegacyStorvyBesok(scope);
+        else removeLegacyBesok(scope);
         // Ladda besöksbilderna via kundkortets befintliga säkra foto-hydrering.
         if (typeof global.__gkHydrateSecurePhotos === 'function') {
           try {
@@ -382,7 +473,10 @@
   function scan(root) {
     var scope = root && root.querySelectorAll ? root : doc;
     if (!scope || !scope.querySelectorAll) return;
-    var nodes = scope.querySelectorAll('[data-kk-visit-segments]:not([data-kk-vs-state])');
+    var nodes = scope.querySelectorAll(
+      '[data-kk-visit-segments]:not([data-kk-vs-state]),' +
+        '[data-kk-visit-segments-storvy]:not([data-kk-vs-state])'
+    );
     Array.prototype.forEach.call(nodes, function (el) {
       hydrate(el);
     });
@@ -416,10 +510,12 @@
     buildViewModel: buildViewModel,
     buildSegmentViewModel: buildSegmentViewModel,
     renderSectionHtml: renderSectionHtml,
+    renderStorvySectionHtml: renderStorvySectionHtml,
     fetchVisitSegments: fetchVisitSegments,
     hydrate: hydrate,
     observe: observe,
     removeLegacyBesok: removeLegacyBesok,
+    removeLegacyStorvyBesok: removeLegacyStorvyBesok,
     reasonLabel: function (code) {
       return REASON_LABELS[code] || code;
     },

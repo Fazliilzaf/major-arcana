@@ -210,6 +210,44 @@ test('PR44: HTML escapas (ingen injektion via filnamn)', () => {
   assert.match(html, /&lt;img src=x/);
 });
 
+test('PR44: renderStorvySectionHtml använder STOR VY:ns formspråk (gk-visit-card)', () => {
+  const html = VS.renderStorvySectionHtml(VS.buildViewModel(SAMPLE));
+  // Storvyns sektion (gk-sek) tar över besök-platsen med sin markör.
+  assert.match(
+    html,
+    /class="gk-sek" data-gk-section="besok" data-kk-visit-segments-storvy-section/
+  );
+  assert.match(html, /<h2>Besök\/tillfällen<span class="gk-pill gk-tag-info">3<\/span>/);
+  // Ett gk-visit-card per segment.
+  assert.equal((html.match(/class="gk-visit-card"/g) || []).length, 3);
+  assert.match(html, /class="gk-visit-photos"/);
+  assert.match(html, /class="gk-visit-label">Bilder från besöket/);
+  // Osäkerhet i storvyns tag-språk, aldrig ett "klar"-läge.
+  assert.match(html, /class="gk-hl gk-tag gk-tag-warn">Osäkert/);
+  assert.match(html, /class="gk-hl gk-tag gk-tag-risk">Behöver granskning/);
+  assert.doesNotMatch(html, /klar|Markera klar|done|slutf[oö]rd/i);
+});
+
+test('PR44: removeLegacyStorvyBesok tar bort storvyns fil-Besök, inte vår egen', () => {
+  const removed = [];
+  const mk = (tag) => ({ tag, parentNode: { removeChild: () => removed.push(tag) } });
+  const legacy = mk('storvy-legacy');
+  const scope = {
+    querySelectorAll: (sel) => {
+      if (sel.indexOf('[data-kk-besok-storvy-legacy]') !== -1) return [];
+      if (
+        sel.indexOf(
+          'section[data-gk-section="besok"]:not([data-kk-visit-segments-storvy-section])'
+        ) !== -1
+      )
+        return [legacy];
+      return [];
+    },
+  };
+  VS.removeLegacyStorvyBesok(scope);
+  assert.deepEqual(removed, ['storvy-legacy']);
+});
+
 test('PR44: removeLegacyBesok tar bort legacy även när omsortering flyttat ut den', () => {
   // Simulerar dossierns .doss: legacy-Besök har flyttats UT ur wrappern av
   // omsorterings-observern, så bara <details data-sek="besok"> (utan vår markör)

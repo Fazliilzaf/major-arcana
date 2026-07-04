@@ -2528,7 +2528,16 @@
         '</b> <span class="gk-hl gk-tag gk-tag-warn">Föreslaget</span></div>';
     body += sek('Smart nästa steg', '', snsRows, 'Inga aktiva nästa steg just nu.');
     body += medicalSectionHtml;
-    body += visitRender.visitSectionHtml;
+    // Fil-härledd "Besök" = fallback i STOR VY. Wrappas så den API-backade
+    // visit-segments-sektionen (CcoKundkortVisitSegments) kan ta över och dölja
+    // den när riktig data laddats; annars står den kvar.
+    body +=
+      '<div data-kk-besok-storvy-legacy>' +
+      visitRender.visitSectionHtml +
+      '</div>' +
+      '<div data-kk-visit-segments-storvy data-patient-id="' +
+      esc(ctx.patientId || ctx.customerId || '') +
+      '"></div>';
 
     // Kommande bokningar
     var bk = A2(ctx.up)
