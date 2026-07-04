@@ -819,11 +819,12 @@
         display: grid;
         grid-template-columns: auto 1fr;
         gap: 0.75rem;
-        padding: 0.85rem 0.95rem;
-        border-radius: var(--r-lg);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.9));
-        border: 1px solid rgba(180, 165, 150, 0.25);
-        box-shadow: var(--sh-sm);
+        padding: 0.75rem 0.85rem;
+        border-radius: var(--r-md);
+        /* Flat list-rad som Konversationer: ingen kant/skugga, subtil bg. */
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid transparent;
+        box-shadow: none;
         cursor: pointer;
         font-family: inherit;
         font-size: 13.3333px;
@@ -834,12 +835,11 @@
         min-height: var(--tap);
         position: relative;
         transition:
-          transform 0.12s,
-          box-shadow 0.2s,
+          background 0.12s,
           opacity 0.2s;
       }
       .noti:hover {
-        box-shadow: var(--sh-md);
+        background: rgba(255, 255, 255, 0.72);
       }
       .noti:active {
         transform: scale(0.992);
