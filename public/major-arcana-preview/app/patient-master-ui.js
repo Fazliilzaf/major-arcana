@@ -1148,14 +1148,6 @@
     }
   }
 
-  function hydrateV11RailBesokTillfallen(rail, patientId) {
-    if (!rail || !patientId) return;
-    if (!usesV12Workspace() && !usesV11Rail()) return;
-    const hydrate = window.CcoKundkortVisitSegments?.hydrateV11RailBesokTillfallen;
-    if (typeof hydrate !== 'function') return;
-    void hydrate(rail, patientId);
-  }
-
   // JOURNEY-SPINE (Fas 5) opt-in. ?v13spine=on slår på (sticky via localStorage),
   // ?v13spine=off stänger av. Default OFF tills facit-paritet är godkänd.
   function usesV13Spine() {
@@ -2140,7 +2132,6 @@
       bindV9MockupDossierHandlers(rail, v12RailContext);
       bindV9DossierCapabilityHandlers(rail);
       ensureV9DossierDeepClosed();
-      hydrateV11RailBesokTillfallen(rail, card.patientId || runtime.selectedPatientId);
       void hydrateJournalPhotoElements(rail);
       void hydratePatientFileImages(rail);
       void hydrateGkMediaElements(rail);
@@ -11329,7 +11320,6 @@
       });
       bindV9DossierCapabilityHandlers(rail);
       ensureV9DossierDeepClosed();
-      hydrateV11RailBesokTillfallen(rail, card.patientId || runtime.selectedPatientId);
       if (typeof window.__enhanceReferensKundkort === 'function') {
         window.__enhanceReferensKundkort(rail);
       }
