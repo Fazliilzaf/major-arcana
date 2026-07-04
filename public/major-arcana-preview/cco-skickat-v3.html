@@ -792,11 +792,12 @@
         position: relative;
         display: flex;
         gap: 0.7rem;
-        padding: 0.8rem 0.9rem;
+        padding: 0.7rem 0.85rem;
         border-radius: var(--r-md);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.86));
-        border: 1px solid rgba(180, 165, 150, 0.24);
-        box-shadow: var(--sh-sm);
+        /* Flat list-rad som Konversationer: ingen kant/skugga, subtil bg. */
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid transparent;
+        box-shadow: none;
       }
       .sent-card.is-selected {
         border-color: var(--accent);

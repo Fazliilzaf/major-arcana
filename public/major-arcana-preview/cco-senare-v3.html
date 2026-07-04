@@ -292,22 +292,13 @@
         gap: 9px;
         padding: 9px 10px 9px 13px;
         border-radius: 11px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.86));
-        border: 1px solid rgba(180, 165, 150, 0.22);
-        /* Mjukare, varmare lager-skugga (som korten i Konversationer). */
-        box-shadow:
-          0 1px 2px rgba(56, 40, 28, 0.05),
-          0 6px 16px -8px rgba(93, 74, 60, 0.16);
+        /* Flat list-rad som Konversationer: ingen kant/skugga, subtil hover. */
+        background: transparent;
         cursor: pointer;
-        transition:
-          transform 0.12s ease,
-          box-shadow 0.12s ease;
+        transition: background 0.12s ease;
       }
       .thread:hover {
-        transform: translateX(2px);
-        box-shadow:
-          0 1px 2px rgba(56, 40, 28, 0.06),
-          0 12px 24px -10px rgba(93, 74, 60, 0.24);
+        background: rgba(255, 255, 255, 0.55);
       }
       .thread::before {
         content: '';
@@ -337,11 +328,10 @@
       /* Vald rad: varm rosa gradient + mjuk rosa skugga — som den valda tråden i
          Konversationer. Käll-railen (::before) syns fortfarande. */
       .thread.is-open {
-        border-color: rgba(187, 71, 121, 0.42);
         background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.85),
-          0 2px 10px rgba(187, 71, 121, 0.18);
+          0 2px 8px rgba(187, 71, 121, 0.14);
       }
       .thread.unread .t-name {
         font-weight: 800;
