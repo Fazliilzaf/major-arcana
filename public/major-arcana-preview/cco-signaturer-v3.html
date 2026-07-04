@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <!-- Avsiktlig visuell ändring (borttagen ytterram på listan) — skippa visual-regression-tripwiren. -->
+    <meta name="visual-regression" content="intentional-change" />
     <title>CCO Signaturer — v3 responsiv</title>
     <style>
       /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
@@ -415,6 +417,15 @@
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.88));
         border: 1px solid rgba(180, 165, 150, 0.25);
         box-shadow: var(--sh-md);
+      }
+      /* Ta bort den yttre ram-ytan runt förfrågningslistan — korten står direkt.
+         Detaljvyn (aside.panel) behåller sin ram. */
+      section.panel[aria-label='Signeringsförfrågningar'] {
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+        border-radius: 0;
       }
       .panel-head {
         margin-bottom: 0.7rem;
