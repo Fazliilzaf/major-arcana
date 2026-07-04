@@ -3300,13 +3300,14 @@
   function gkHydrateDriveFiles(ctx, force) {
     ctx = ctx || {};
     var pid = ctx.patientId || ctx.customerId || '';
-    if (!pid || (!force && ctx.driveFiles && ctx.driveFiles.length)) return;
+    if (!pid) return;
     window.__GK_DRIVE_CACHE = window.__GK_DRIVE_CACHE || {};
     window.__GK_DRIVE_LOADING = window.__GK_DRIVE_LOADING || {};
     if (window.__GK_DRIVE_LOADING[pid]) return;
-    function apply(files, payload) {
-      files = dedupeDriveFiles(files);
-      if (!files.length) return;
+    function apply(files, payload, visitSegments) {
+      files = dedupeDriveFiles(files || []);
+      visitSegments = A(visitSegments);
+      if (!files.length && !visitSegments.length) return;
       var nextBundle = Object.assign({}, ctx.bundle || {}, payload || {});
       if (payload && (payload.card || payload.patient)) {
         nextBundle.card = Object.assign(
@@ -3315,8 +3316,11 @@
           payload.card || payload.patient || {}
         );
       }
+      window.__GK_VISIT_SEGMENTS = window.__GK_VISIT_SEGMENTS || {};
+      if (pid) window.__GK_VISIT_SEGMENTS[pid] = visitSegments;
       var nextCtx = Object.assign({}, ctx, {
         driveFiles: files,
+        visitSegments: visitSegments,
         up: ctx.up && ctx.up.length ? ctx.up : A((payload || {}).upcomingBookings),
         hist: ctx.hist && ctx.hist.length ? ctx.hist : A((payload || {}).historyBookings),
         bundle: nextBundle,
@@ -3330,9 +3334,22 @@
           node.outerHTML = html;
         }
       );
+      if (window.CcoKundkortVisitSegments && visitSegments.length) {
+        window.CcoKundkortVisitSegments.patchBesokSection(pid, visitSegments, {
+          esc: function (s) {
+            return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+              return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+          },
+          buildDocViewRow: buildDocViewRow,
+          gkSharedPhotoGrid: gkSharedPhotoGrid,
+          empty: empty,
+        });
+      }
     }
     if (!force && window.__GK_DRIVE_CACHE[pid]) {
-      apply(window.__GK_DRIVE_CACHE[pid].driveFiles, window.__GK_DRIVE_CACHE[pid].payload);
+      var cached = window.__GK_DRIVE_CACHE[pid];
+      apply(cached.driveFiles, cached.payload, cached.visitSegments || []);
       return;
     }
     window.__GK_DRIVE_LOADING[pid] = true;
@@ -3367,8 +3384,19 @@
       })
       .then(function (payload) {
         var files = dedupeDriveFiles((payload && payload.driveFiles) || []);
-        window.__GK_DRIVE_CACHE[pid] = { driveFiles: files, payload: payload || {} };
-        apply(files, payload || {});
+        var segmentsPromise =
+          window.CcoKundkortVisitSegments &&
+          typeof window.CcoKundkortVisitSegments.fetchVisitSegments === 'function'
+            ? window.CcoKundkortVisitSegments.fetchVisitSegments(pid, __gkDriveTok)
+            : Promise.resolve([]);
+        return segmentsPromise.then(function (visitSegments) {
+          window.__GK_DRIVE_CACHE[pid] = {
+            driveFiles: files,
+            payload: payload || {},
+            visitSegments: visitSegments || [],
+          };
+          apply(files, payload || {}, visitSegments || []);
+        });
       })
       .catch(function () {
         /* Kortet fungerar fortfarande utan fallbacken. */
@@ -5554,8 +5582,31 @@
       }
     })();
 
-    // ===== Besök · tidslinje: gruppera filer/foton/journaler per BESÖKSDATUM (ej importstämpel) =====
+    // ===== Besök · tidslinje: visit-segments API (read-only) med legacy-fallback =====
     (function renderBesok() {
+      var pid = bcard.patientId || bcard.id || '';
+      var visitSegments = A(extras.visitSegments).length
+        ? extras.visitSegments
+        : (window.__GK_VISIT_SEGMENTS && pid && window.__GK_VISIT_SEGMENTS[pid]) || null;
+      if (visitSegments && visitSegments.length && window.CcoKundkortVisitSegments) {
+        var visitInner = window.CcoKundkortVisitSegments.renderBesokInnerFromVisitSegments(
+          visitSegments,
+          {
+            esc: esc,
+            buildDocViewRow: buildDocViewRow,
+            gkSharedPhotoGrid: gkSharedPhotoGrid,
+            empty: empty,
+          }
+        );
+        if (visitInner) {
+          h += sec(
+            'Besök',
+            String(window.CcoKundkortVisitSegments.countDatedSegments(visitSegments)),
+            visitInner
+          );
+          return;
+        }
+      }
       function dateKey(f) {
         var direct = String(gkSharedDateOfFile(f) || '').slice(0, 10);
         if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
@@ -6012,6 +6063,10 @@
         hist: hist,
         gateSignals: gateSignals,
         driveFiles: driveFiles,
+        visitSegments:
+          (extras && extras.visitSegments) ||
+          (window.__GK_VISIT_SEGMENTS && window.__GK_VISIT_SEGMENTS[gkCtx.patientId]) ||
+          [],
         autoDocs: autoDocs,
         bundle: bundle,
         bcard: bcard,
