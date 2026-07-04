@@ -49,7 +49,7 @@ test('PR16: klick på bottom action bar fångas i capture-fas och stoppar dubbel
 test('PR16: cache-bust bumpad efter bottom click-fixen', () => {
   // bottom-actions bumpad vidare av flik-rad-ändringen (z-tabrow); cco-polish
   // rördes inte av den och ligger kvar på click-fixens bust.
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704b-signaturer/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704c-senarebar/);
   assert.match(html, /cco-polish\.js\?v=20260703y-paneltargets/);
 });
 

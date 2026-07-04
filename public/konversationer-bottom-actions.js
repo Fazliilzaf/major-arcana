@@ -1968,6 +1968,14 @@
       } else if (e.key === 'Escape')
         document.querySelectorAll('.action-modal-backdrop').forEach((n) => n.remove());
     });
+    // Bottom action-bar inne i en embeddad v3-panel (t.ex. Senare) postMess:ar
+    // sitt data-action hit; kör samma CCO-action som bottenknapparna/flik-raden.
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || data.type !== 'cco:panel:action') return;
+      runCcoAction(data.action);
+    });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireActions);
   else wireActions();
