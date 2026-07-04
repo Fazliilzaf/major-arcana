@@ -278,7 +278,9 @@
       sla: selectedThreadText('.risk-badge-row [data-r="followup"]') || '—',
       priority: selectedThreadText('.risk-badge-row [data-r="high"]') || '—',
       churnRisk: '—',
-      engagement: selectedThreadText('.ctx-meta') || '—',
+      // Engagemangs-% ligger numera i kundkontext-kortets meta-rad (chips-redesign).
+      engagement:
+        (selectedThreadText('.ctx-metaline').match(/engagemang\s+(\d+\s*%)/i) || [])[1] || '—',
       chips: [{ label: 'Live', ct: 'CCO' }],
       aiSummary: selectedThreadText('.ai-suggest-body') || '',
       nuI: 'Vald tråd',
@@ -779,42 +781,25 @@
         el('p', { class: 'wb-section-sub' }, ctx.whyFocusSub || ''),
       ])
     );
-    // FACT-GRID
-    contextPanel.appendChild(
-      el('div', { class: 'wb-fact-grid' }, [
-        el('div', { class: 'wb-fact-cell' }, [
-          el('span', { class: 'wb-fact-lbl' }, 'Agent'),
-          el('span', { class: 'wb-fact-val' }, ctx.agent || ''),
-        ]),
-        el('div', { class: 'wb-fact-cell' }, [
-          el('span', { class: 'wb-fact-lbl' }, 'Status'),
-          el('span', { class: 'wb-fact-val' }, ctx.status || ''),
-        ]),
-        el('div', { class: 'wb-fact-cell' }, [
-          el('span', { class: 'wb-fact-lbl' }, 'SLA'),
-          el('span', { class: 'wb-fact-val' }, ctx.sla || ''),
-        ]),
-        el('div', { class: 'wb-fact-cell' }, [
-          el('span', { class: 'wb-fact-lbl' }, 'Prioritet'),
-          el('span', { class: 'wb-fact-val' }, ctx.priority || ''),
-        ]),
-      ])
-    );
-    // Risk/Engagemang
-    contextPanel.appendChild(
-      el('div', { class: 'wb-risk-row' }, [
-        el('div', { class: 'wb-fact-cell' }, [
-          el('span', { class: 'wb-fact-lbl' }, 'Churn-risk'),
-          el('span', { class: 'wb-fact-val wb-risk-val--miss' }, ctx.churnRisk || ''),
-        ]),
-        el('div', { class: 'wb-fact-cell' }, [
-          el('span', { class: 'wb-fact-lbl' }, 'Engagemang'),
-          el('span', { class: 'wb-fact-val wb-risk-val--engagement' }, ctx.engagement || ''),
-        ]),
-      ])
-    );
-    // Pills
+    // Nyckelfakta + risk som chips (samma chip-språk som kk-korten) i stället
+    // för den gamla spec-grid:en. Ingen ny komponent — återanvänder
+    // wb-context-chip med semantiska varianter för churn/engagemang.
     const pillRow = el('div', { class: 'wb-context-chips' });
+    const factChip = (label, value, mod) => {
+      if (!value) return;
+      pillRow.appendChild(
+        el('span', { class: 'wb-context-chip' + (mod ? ' wb-context-chip--' + mod : '') }, [
+          label,
+          el('span', { class: 'ct' }, value),
+        ])
+      );
+    };
+    factChip('Agent', ctx.agent);
+    factChip('Status', ctx.status);
+    factChip('SLA', ctx.sla);
+    factChip('Prioritet', ctx.priority);
+    factChip('Churn', ctx.churnRisk, 'warn');
+    factChip('Engagemang', ctx.engagement, 'info');
     for (const c of ctx.chips || []) {
       pillRow.appendChild(
         el('span', { class: 'wb-context-chip' }, [c.label, el('span', { class: 'ct' }, c.ct)])

@@ -631,6 +631,38 @@
         font-weight: 800;
         letter-spacing: -0.02em;
       }
+      /* Uppfräschad kundkontext: nyckelfakta som chips + kompakt meta-rad
+         (samma språk som kk-korten i CCO-vyerna). Ingen ny palett. */
+      .wiz-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .wiz-chip {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(132, 117, 107, 0.12);
+        color: var(--cco-text-secondary);
+      }
+      .wiz-chip--vip {
+        background: linear-gradient(180deg, rgba(248, 222, 168, 1), rgba(228, 192, 122, 1));
+        color: #4e3408;
+      }
+      .wiz-chip--info {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .wiz-metaline {
+        font-size: 11.5px;
+        color: var(--cco-text-tertiary);
+        line-height: 1.5;
+        margin-top: 8px;
+      }
       .wiz-warning {
         padding: 11px 13px;
         border-radius: 14px;
@@ -825,14 +857,12 @@
         <aside class="wiz-right">
           <div class="wiz-card">
             <div class="wiz-card-kicker">Kundkontext</div>
-            <dl class="wiz-kv">
-              <dt>Status</dt>
-              <dd>VIP · PRP-kur 4/6</dd>
-              <dt>Senaste</dt>
-              <dd>Tor 14:30 hos Egzona</dd>
-              <dt>Källa</dt>
-              <dd>contact@</dd>
-            </dl>
+            <div class="wiz-chips">
+              <span class="wiz-chip wiz-chip--vip">★ VIP</span>
+              <span class="wiz-chip">PRP-kur 4/6</span>
+              <span class="wiz-chip wiz-chip--info">Kons · contact@</span>
+            </div>
+            <div class="wiz-metaline">Senaste besök tor 14:30 hos Egzona</div>
           </div>
           <div class="summary">
             <div
