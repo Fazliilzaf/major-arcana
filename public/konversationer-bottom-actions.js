@@ -36,6 +36,10 @@
   // PR 18 — Patient-/kunddossier (nivå 2, kundkontext bredvid tråden — inte i
   // svarslinjen). "Vem är detta" scopad på vald tråds kund. Samma origin.
   const PATIENT_HUB_V3_SRC = '/major-arcana-preview/cco-patient-hub-v3.html';
+  // PR 20 — Signaturer & samtycken (BankID-signeringscentral, nivå 2). Vilka
+  // dokument väntar patienten på att signera. Scopad på vald tråds kund. Samma
+  // origin, ingen live-send.
+  const SIGNATURER_V3_SRC = '/major-arcana-preview/cco-signaturer-v3.html';
   // PR 19 — No-show-hantering (nivå 2). Använder den nyare AI-vyn (no-show-
   // prediction), inte den äldre listvyn — nyare CCO-vy vinner. Relevant när en
   // bokningstråd hanteras; kopplar mot bokning/kalender. Scopad på vald tråds
@@ -330,6 +334,7 @@
       { key: 'skickat', label: 'Skickat', open: () => openSkickat() },
       { key: 'patienthub', label: 'Dossier', open: () => openPatientHub() },
       { key: 'noshow', label: 'No-show', open: () => openNoShow() },
+      { key: 'signaturer', label: 'Signering', open: () => openSignaturer() },
     ].map((t) => ({ key: t.key, label: t.label, open: t.open, active: t.key === activeKey }));
   }
 
@@ -691,6 +696,20 @@
           onclick: () => openPatientHub(ctx),
         },
         '👤 Öppna dossier'
+      )
+    );
+    // PR 20 — signaturer & samtycken (nivå 2) öppnas från kund-cardet med vald
+    // tråds kund: vilka dokument väntar patienten på att signera. Ingen live-send.
+    contextPanel.appendChild(
+      el(
+        'button',
+        {
+          class: 'wb-cta-btn',
+          type: 'button',
+          'data-signaturer-open': 'true',
+          onclick: () => openSignaturer(ctx),
+        },
+        '✍️ Signaturer & samtycken'
       )
     );
     // Kontakt
@@ -1818,6 +1837,41 @@
       }
     });
     openModal({ title: 'Dossier', wide: true, tabs: panelTabs('patienthub'), body: frame });
+  }
+
+  // ─── SIGNATURER → BankID-signeringscentral (nivå 2, kundkontext) ─────
+  // Öppnar Signaturer & samtycken scopad på vald tråds kund (vilka dokument
+  // patienten väntar på att signera). Anropas från Svarstudios kund-card eller
+  // flik-raden. Ingen live-send.
+  function openSignaturer(presetContext) {
+    const context = presetContext || buildSmartAnteckningContext();
+    const customerId = resolveThreadCustomerEmail(context) || context.email || '';
+    if (customerId) context.customerId = customerId;
+    const params = new URLSearchParams();
+    if (context.customerName) params.set('kund', context.customerName);
+    if (context.email) params.set('email', context.email);
+    if (context.conversationKey) params.set('trad', context.conversationKey);
+    if (context.subject) params.set('amne', context.subject);
+    if (context.mailboxId) params.set('mailbox', context.mailboxId);
+    if (customerId) params.set('cid', customerId);
+    const query = params.toString();
+    const src = SIGNATURER_V3_SRC + (query ? '?' + query : '');
+    const frame = el('iframe', {
+      src,
+      title: 'Signaturer & samtycken v3',
+      style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
+    });
+    frame.addEventListener('load', () => {
+      try {
+        frame.contentWindow?.postMessage(
+          { type: 'cco:signaturer:context', context },
+          window.location.origin
+        );
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    });
+    openModal({ title: 'Signaturer', wide: true, tabs: panelTabs('signaturer'), body: frame });
   }
 
   // ─── NO-SHOW → hantering (nivå 2, bokningskontext) ───────────────────

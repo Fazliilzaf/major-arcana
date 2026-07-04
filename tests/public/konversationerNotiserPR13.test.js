@@ -88,5 +88,5 @@ test('PR13: bokning/kalender/senare/smart-anteckning orörda, ingen live-send', 
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR13: konversationer.html cache-bustar efter notiser-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704a-bokning/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704b-signaturer/);
 });
