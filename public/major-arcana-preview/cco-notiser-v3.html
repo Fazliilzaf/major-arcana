@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <!-- Avsiktlig visuell ändring (bottom action-bar) — skippa visual-regression-tripwiren. -->
+    <meta name="visual-regression" content="intentional-change" />
     <title>CCO · Notiser</title>
     <style>
       /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
@@ -1128,6 +1130,74 @@
         margin-left: 4px;
         vertical-align: 2px;
       }
+
+      /* Bottom action-bar — proportionerlig docka (samma som kund-vyerna). Döljs
+         under 601px där den mobila botnav:en tar över (ingen dubbel bar). */
+      .thread-bottom-actions {
+        display: flex;
+        gap: 8px;
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 12px;
+        z-index: 60;
+      }
+      @media (max-width: 600px) {
+        .thread-bottom-actions {
+          display: none;
+        }
+      }
+      .thread-bottom-actions .action-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font:
+          700 12px Inter,
+          sans-serif;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 241, 232, 0.92));
+        color: var(--text-primary);
+        min-height: 36px;
+        transition:
+          transform 0.18s cubic-bezier(0.34, 1.32, 0.64, 1),
+          box-shadow 0.18s ease;
+        box-shadow:
+          0 6px 16px rgba(93, 74, 60, 0.1),
+          0 2px 6px rgba(93, 74, 60, 0.07),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96),
+          inset 0 -1px 0 rgba(187, 159, 122, 0.16);
+      }
+      .thread-bottom-actions .action-btn:hover {
+        transform: translateY(-2px);
+      }
+      .thread-bottom-actions .action-btn--studio {
+        color: var(--accent);
+      }
+      .thread-bottom-actions .action-btn--booking {
+        color: var(--success);
+      }
+      .thread-bottom-actions .action-btn--note {
+        color: var(--info);
+      }
+      .thread-bottom-actions .action-btn--calendar {
+        color: var(--warning);
+      }
+      .thread-bottom-actions .action-ico {
+        font-size: 13px;
+        opacity: 0.92;
+      }
+      /* Reservera plats för den fasta baren på desktop (botnav döljs där). */
+      @media (min-width: 601px) {
+        .aux {
+          padding-bottom: 76px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1793,6 +1863,51 @@
           if (event.origin !== window.location.origin) return;
           var data = event.data;
           if (data && data.type === 'cco:notiser:context') applyContext(data.context);
+        });
+      })();
+    </script>
+    <div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">
+      <button class="action-btn action-btn--studio" type="button" data-action="svarstudio">
+        <span class="action-ico">✱</span><span class="action-label">Svarstudio</span>
+      </button>
+      <button class="action-btn action-btn--booking" type="button" data-action="bokningsyta">
+        <span class="action-ico">📅</span><span class="action-label">Öppna bokning</span>
+      </button>
+      <button class="action-btn action-btn--note" type="button" data-action="smart-anteckning">
+        <span class="action-ico">📄</span><span class="action-label">Smart anteckning</span>
+      </button>
+      <button class="action-btn action-btn--calendar" type="button" data-action="kalender">
+        <span class="action-ico">📆</span><span class="action-label">Öppna kalender</span>
+      </button>
+      <button class="action-btn action-btn--done" type="button" data-action="klar">
+        <span class="action-ico">✓</span><span class="action-label">Klar</span>
+      </button>
+      <button class="action-btn action-btn--later" type="button" data-action="senare">
+        <span class="action-ico">⏳</span><span class="action-label">Lägg senare</span>
+      </button>
+      <button class="action-btn action-btn--reopen" type="button" data-action="reopen">
+        <span class="action-ico">↩</span><span class="action-label">Återöppna</span>
+      </button>
+    </div>
+    <script>
+      /* Bottom action-bar → wire mot förälder-admin#cco. Alla [data-action]-
+         knappar postMess:ar sitt action; föräldern (konversationer-bottom-actions.js)
+         kör runCcoAction. Standalone = no-op. */
+      (function () {
+        document.addEventListener('click', function (e) {
+          var btn = e.target.closest('button[data-action]');
+          if (!btn) return;
+          var action = btn.dataset.action;
+          if (window.parent && window.parent !== window) {
+            try {
+              window.parent.postMessage(
+                { type: 'cco:panel:action', action: action },
+                window.location.origin
+              );
+            } catch (err) {
+              /* ignore cross-frame errors */
+            }
+          }
         });
       })();
     </script>
