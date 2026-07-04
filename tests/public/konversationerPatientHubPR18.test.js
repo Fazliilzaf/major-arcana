@@ -85,5 +85,5 @@ test('PR18: nivå 1-paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR18: konversationer.html cache-bustar efter patient-hub-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
 });

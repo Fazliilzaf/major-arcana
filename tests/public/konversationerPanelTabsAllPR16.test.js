@@ -18,12 +18,12 @@ const html = fs.readFileSync(path.join(repoRoot, 'public', 'konversationer.html'
 
 test('PR16: panelTabs listar alla 7 paneler', () => {
   assert.match(source, /key: 'svarstudio', label: 'Svarstudio'/);
-  assert.match(source, /key: 'bokning', label: 'Öppna bokning'/);
-  assert.match(source, /key: 'smart', label: 'Smart anteckning'/);
-  assert.match(source, /key: 'kalender', label: 'Öppna kalender'/);
-  assert.match(source, /key: 'senare', label: 'Lägg senare', open: \(\) => openSenarePanel\(\)/);
+  assert.match(source, /key: 'bokning', label: 'Bokning'/);
+  assert.match(source, /key: 'smart', label: 'Anteckning'/);
+  assert.match(source, /key: 'kalender', label: 'Kalender'/);
+  assert.match(source, /key: 'senare', label: 'Senare', open: \(\) => openSenarePanel\(\)/);
   assert.match(source, /key: 'notiser', label: 'Notiser', open: \(\) => openNotiser\(\)/);
-  assert.match(source, /key: 'skickat', label: 'Skickat \/ kö', open: \(\) => openSkickat\(\)/);
+  assert.match(source, /key: 'skickat', label: 'Skickat', open: \(\) => openSkickat\(\)/);
 });
 
 test('PR16: alla 7 paneler skickar med flik-raden', () => {
@@ -45,5 +45,5 @@ test('PR16: alla 7 paneler skickar med flik-raden', () => {
 });
 
 test('PR16: cache-bust bumpad', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
 });
