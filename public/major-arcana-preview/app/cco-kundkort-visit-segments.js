@@ -67,6 +67,12 @@
       });
   }
 
+  function fetchVisitSegmentsOrEmpty(patientId, token) {
+    return fetchVisitSegments(patientId, token).catch(function () {
+      return [];
+    });
+  }
+
   function visitTypeText(visitType) {
     return VISIT_TYPE_LABELS[String(visitType || 'unknown')] || '';
   }
@@ -236,6 +242,7 @@
     REASON_LABELS: REASON_LABELS,
     VISIT_TYPE_LABELS: VISIT_TYPE_LABELS,
     fetchVisitSegments: fetchVisitSegments,
+    fetchVisitSegmentsOrEmpty: fetchVisitSegmentsOrEmpty,
     renderBesokInnerFromVisitSegments: renderBesokInnerFromVisitSegments,
     patchBesokSection: patchBesokSection,
     countDatedSegments: countDatedSegments,

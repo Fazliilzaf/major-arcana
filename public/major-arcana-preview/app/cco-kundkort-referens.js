@@ -3386,8 +3386,8 @@
         var files = dedupeDriveFiles((payload && payload.driveFiles) || []);
         var segmentsPromise =
           window.CcoKundkortVisitSegments &&
-          typeof window.CcoKundkortVisitSegments.fetchVisitSegments === 'function'
-            ? window.CcoKundkortVisitSegments.fetchVisitSegments(pid, __gkDriveTok)
+          typeof window.CcoKundkortVisitSegments.fetchVisitSegmentsOrEmpty === 'function'
+            ? window.CcoKundkortVisitSegments.fetchVisitSegmentsOrEmpty(pid, __gkDriveTok)
             : Promise.resolve([]);
         return segmentsPromise.then(function (visitSegments) {
           window.__GK_DRIVE_CACHE[pid] = {
