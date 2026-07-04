@@ -60,14 +60,16 @@
       }
 
       .wizard {
-        width: 680px;
-        max-width: 100%;
+        width: 100%;
+        max-width: none;
         border-radius: 28px;
         background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
         box-shadow: var(--panel-shell-shadow-strong);
         backdrop-filter: blur(14px);
         overflow: hidden;
         position: relative;
+        display: flex;
+        flex-direction: column;
       }
       .wizard::before {
         content: '';
@@ -568,6 +570,127 @@
       .ai-hint strong {
         color: var(--calendar-accent);
       }
+
+      /* ===== Full-bredds 3-kolumnslayout (matchar CCO-ytan) ===== */
+      .wiz-grid {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 340px;
+        gap: 16px;
+        padding: 18px 24px 84px;
+        align-items: start;
+      }
+      @media (max-width: 1024px) {
+        .wiz-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .wiz-left,
+      .wiz-right {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .wiz-mid {
+        display: flex;
+        flex-direction: column;
+      }
+      .wiz-card {
+        padding: 15px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 241, 236, 0.82));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow:
+          0 1px 2px rgba(56, 40, 28, 0.05),
+          0 6px 16px -8px rgba(93, 74, 60, 0.16);
+      }
+      .wiz-card-kicker {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 10px;
+      }
+      .wiz-kv {
+        display: grid;
+        grid-template-columns: 84px 1fr;
+        gap: 7px 12px;
+        font-size: 12px;
+        margin: 0;
+      }
+      .wiz-kv dt {
+        color: var(--cco-text-tertiary);
+        font-weight: 700;
+      }
+      .wiz-kv dd {
+        margin: 0;
+        font-weight: 600;
+      }
+      .wiz-kv dd.big {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .wiz-warning {
+        padding: 11px 13px;
+        border-radius: 14px;
+        background: rgba(154, 100, 16, 0.12);
+        border-left: 3px solid #9a6410;
+        font-size: 11.5px;
+        line-height: 1.5;
+      }
+      .wiz-warning strong {
+        color: #9a6410;
+      }
+      /* Vertikal stepper i vänsterkolumnen */
+      .wiz-left .steps {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 15px;
+        box-shadow: none;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 241, 236, 0.82));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+      }
+      .wiz-left .step {
+        flex: none;
+      }
+      .wiz-left .step-line {
+        width: 2px;
+        height: 14px;
+        margin: 2px 0 2px 12px;
+        flex: none;
+      }
+      /* Bottom action-bar-docka (samma stil som resten) — wizard-navigering */
+      .footer {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 12px;
+        z-index: 60;
+        justify-content: center;
+        gap: 10px;
+        padding: 0;
+        background: none;
+        box-shadow: none;
+      }
+      .footer .btn {
+        flex: 1 1 0;
+        max-width: 320px;
+        height: 46px;
+        border-radius: 999px;
+        box-shadow:
+          0 6px 16px rgba(93, 74, 60, 0.1),
+          0 2px 6px rgba(93, 74, 60, 0.07),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96);
+      }
+      /* cco-polish dev-chrome ovanför dockan (samma fix som övriga vyer) */
+      .theme-toggle,
+      .feedback-btn,
+      .undo-btn {
+        bottom: 68px !important;
+      }
     </style>
     <link rel="stylesheet" href="/cco-polish.css" />
     <script src="/cco-polish.js" defer></script>
@@ -601,108 +724,141 @@
         <button class="close" onclick="history.back()">×</button>
       </header>
 
-      <div class="steps">
-        <div class="step done">
-          <div class="step-num"><span>1</span></div>
-          Kund
-        </div>
-        <div class="step-line"></div>
-        <div class="step done">
-          <div class="step-num"><span>2</span></div>
-          Behandling
-        </div>
-        <div class="step-line"></div>
-        <div class="step active">
-          <div class="step-num">3</div>
-          Tid
-        </div>
-        <div class="step-line"></div>
-        <div class="step">
-          <div class="step-num">4</div>
-          Bekräfta
-        </div>
-      </div>
-
-      <div class="body">
-        <div class="ai-hint">
-          <strong id="bkAiName">Anna Karlsson</strong> brukar boka
-          <strong>tor 14:30 hos Egzona</strong> (4 av 5 senaste). Föreslagna tider är markerade med
-          ★.
-        </div>
-
-        <div class="field">
-          <label>Välj dag</label>
-          <div class="slot-grid">
-            <div class="day-pick">
-              <div class="lbl">Mån</div>
-              <div class="num">25</div>
+      <div class="wiz-grid">
+        <!-- VÄNSTER: steg/progress + kund & behandling -->
+        <aside class="wiz-left">
+          <div class="steps">
+            <div class="step done">
+              <div class="step-num"><span>1</span></div>
+              Kund
             </div>
-            <div class="day-pick">
-              <div class="lbl">Tis</div>
-              <div class="num">26</div>
+            <div class="step-line"></div>
+            <div class="step done">
+              <div class="step-num"><span>2</span></div>
+              Behandling
             </div>
-            <div class="day-pick">
-              <div class="lbl">Ons</div>
-              <div class="num">27</div>
+            <div class="step-line"></div>
+            <div class="step active">
+              <div class="step-num">3</div>
+              Tid
             </div>
-            <div class="day-pick selected">
-              <div class="lbl">Tor</div>
-              <div class="num">28</div>
-            </div>
-            <div class="day-pick">
-              <div class="lbl">Fre</div>
-              <div class="num">29</div>
-            </div>
-            <div class="day-pick">
-              <div class="lbl">Lör</div>
-              <div class="num">30</div>
-            </div>
-            <div class="day-pick">
-              <div class="lbl">Sön</div>
-              <div class="num">31</div>
+            <div class="step-line"></div>
+            <div class="step">
+              <div class="step-num">4</div>
+              Bekräfta
             </div>
           </div>
-        </div>
-
-        <div class="field">
-          <label>Lediga tider tor 28 maj · Egzona</label>
-          <div class="slots-row">
-            <div class="slot">08:30</div>
-            <div class="slot">09:00</div>
-            <div class="slot">10:00</div>
-            <div class="slot">11:00</div>
-            <div class="slot">13:30</div>
-            <div class="slot ai selected">14:30</div>
-            <div class="slot">15:00</div>
-            <div class="slot">16:00</div>
-            <div class="slot">16:30</div>
+          <div class="wiz-card">
+            <div class="wiz-card-kicker">Kund &amp; behandling</div>
+            <dl class="wiz-kv">
+              <dt>Kund</dt>
+              <dd class="big" id="bkCustName">Anna Karlsson</dd>
+              <dt>Behandling</dt>
+              <dd class="big">PRP för hår · 45 min</dd>
+              <dt>Behandlare</dt>
+              <dd>Egzona Krasniqi</dd>
+              <dt>Pris</dt>
+              <dd>4 300 kr</dd>
+            </dl>
           </div>
-        </div>
+        </aside>
 
-        <div class="summary">
-          <div
-            style="
-              color: var(--calendar-accent);
-              font-size: 9.5px;
-              font-weight: 800;
-              letter-spacing: 0.14em;
-              text-transform: uppercase;
-            "
-          >
-            ★ AI · Förslag
+        <!-- MITTEN: aktivt formulärsteg -->
+        <section class="wiz-mid">
+          <div class="ai-hint">
+            <strong id="bkAiName">Anna Karlsson</strong> brukar boka
+            <strong>tor 14:30 hos Egzona</strong> (4 av 5 senaste). Föreslagna tider är markerade
+            med ★.
           </div>
-          <dl class="summary-grid">
-            <dt>Kund</dt>
-            <dd class="big" id="bkCustName">Anna Karlsson</dd>
-            <dt>Behandling</dt>
-            <dd class="big">PRP för hår · 45 min</dd>
-            <dt>Tid</dt>
-            <dd>Tor 28 maj 14:30 – 15:15</dd>
-            <dt>Behandlare</dt>
-            <dd>Egzona Krasniqi</dd>
-            <dt>Pris</dt>
-            <dd>4 300 kr</dd>
-          </dl>
+
+          <div class="field">
+            <label>Välj dag</label>
+            <div class="slot-grid">
+              <div class="day-pick">
+                <div class="lbl">Mån</div>
+                <div class="num">25</div>
+              </div>
+              <div class="day-pick">
+                <div class="lbl">Tis</div>
+                <div class="num">26</div>
+              </div>
+              <div class="day-pick">
+                <div class="lbl">Ons</div>
+                <div class="num">27</div>
+              </div>
+              <div class="day-pick selected">
+                <div class="lbl">Tor</div>
+                <div class="num">28</div>
+              </div>
+              <div class="day-pick">
+                <div class="lbl">Fre</div>
+                <div class="num">29</div>
+              </div>
+              <div class="day-pick">
+                <div class="lbl">Lör</div>
+                <div class="num">30</div>
+              </div>
+              <div class="day-pick">
+                <div class="lbl">Sön</div>
+                <div class="num">31</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Lediga tider tor 28 maj · Egzona</label>
+            <div class="slots-row">
+              <div class="slot">08:30</div>
+              <div class="slot">09:00</div>
+              <div class="slot">10:00</div>
+              <div class="slot">11:00</div>
+              <div class="slot">13:30</div>
+              <div class="slot ai selected">14:30</div>
+              <div class="slot">15:00</div>
+              <div class="slot">16:00</div>
+              <div class="slot">16:30</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- HÖGER: kundkontext / bokningssummering / varningar -->
+        <aside class="wiz-right">
+          <div class="wiz-card">
+            <div class="wiz-card-kicker">Kundkontext</div>
+            <dl class="wiz-kv">
+              <dt>Status</dt>
+              <dd>VIP · PRP-kur 4/6</dd>
+              <dt>Senaste</dt>
+              <dd>Tor 14:30 hos Egzona</dd>
+              <dt>Källa</dt>
+              <dd>contact@</dd>
+            </dl>
+          </div>
+          <div class="summary">
+            <div
+              style="
+                color: var(--calendar-accent);
+                font-size: 9.5px;
+                font-weight: 800;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+              "
+            >
+              ★ AI · Bokningssummering
+            </div>
+            <dl class="summary-grid">
+              <dt>Tid</dt>
+              <dd class="big">Tor 28 maj 14:30 – 15:15</dd>
+              <dt>Behandlare</dt>
+              <dd>Egzona Krasniqi</dd>
+              <dt>Pris</dt>
+              <dd>4 300 kr</dd>
+            </dl>
+          </div>
+          <div class="wiz-warning">
+            <strong>⚠ Friskförsäkran saknas</strong> — Anna har ofta inte fyllt i den. Skicka länken
+            i samma bekräftelse.
+          </div>
           <div class="options">
             <label class="option">
               <input type="checkbox" checked />
@@ -725,7 +881,7 @@
               </div>
             </label>
           </div>
-        </div>
+        </aside>
       </div>
 
       <footer class="footer">
