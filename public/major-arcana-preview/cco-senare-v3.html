@@ -26,6 +26,9 @@
         /* Rose-pill-gradient från Konversationer — vald rad. */
         --rose-pill-top: rgba(252, 233, 240, 0.98);
         --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        /* Panel-shell från Konversationer — fristående paneler (rail/lista/tråd/ctx). */
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
         --text-on-accent: #ffffff;
         --success: #2f6f54;
         --success-bg: rgba(47, 111, 84, 0.14);
@@ -955,22 +958,40 @@
         .app {
           grid-template-columns: 13rem minmax(300px, 360px) minmax(0, 1fr) 20rem;
           grid-template-areas: 'rail list thread ctx';
+          gap: 12px;
+          padding: 12px;
+          box-sizing: border-box;
+        }
+        /* Konversationers panel-uppsättning: fristående, rundade shells med gap
+           emellan (inte kant-i-kant med divider-linjer). Varje kolumn = ett kort. */
+        .z-rail,
+        .z-list,
+        .z-thread,
+        .z-ctx {
+          height: calc(100vh - 24px);
+          border-radius: 22px;
+          background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+          box-shadow:
+            0 24px 50px rgba(93, 74, 60, 0.09),
+            inset 0 1px 0 rgba(255, 255, 255, 0.55);
+          overflow: hidden;
         }
         .z-rail {
           display: flex;
           flex-direction: column;
           gap: 0.3rem;
           padding: 1rem 0.8rem;
-          background: var(--bg-rail);
-          box-shadow: inset -1px 0 0 rgba(180, 165, 150, 0.25);
+          overflow-y: auto;
+        }
+        .z-list {
+          box-shadow:
+            0 24px 50px rgba(93, 74, 60, 0.09),
+            inset 0 1px 0 rgba(255, 255, 255, 0.55);
         }
         .z-ctx {
           position: static;
           transform: none !important;
           width: auto;
-          background: var(--bg-rail);
-          box-shadow: inset 1px 0 0 rgba(180, 165, 150, 0.25);
-          height: 100vh;
           overflow-y: auto;
         }
         .ctx-back {
