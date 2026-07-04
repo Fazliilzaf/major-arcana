@@ -82,6 +82,13 @@ test('PR26: befintlig cco:noshow:context-mottagare kvar', () => {
   assert.match(noshow, /data\.type === 'cco:noshow:context'/);
 });
 
+test('PR26: cco-polish dev-chrome lyfts ovanför baren (ingen överlappning)', () => {
+  // theme-toggle + Rapportera + Ångra flyttas upp så de inte täcker action-baren.
+  const block = noshow.match(/\.theme-toggle,\s*\.feedback-btn,\s*\.undo-btn\s*\{[^}]*\}/);
+  assert.ok(block, 'chrome-lift-override saknas');
+  assert.match(block[0], /bottom:\s*62px\s*!important/);
+});
+
 test('PR26: ingen live-send', () => {
   assert.doesNotMatch(noshow, /sendMail\(|graphSend|messages\/send/);
 });
