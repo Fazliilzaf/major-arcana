@@ -218,108 +218,6 @@
     }).length;
   }
 
-  function buildV11DocRow(title, meta, url) {
-    var nm = esc(title || 'Dokument');
-    var href = String(url || '').trim();
-    if (href) {
-      return (
-        '<a class="file-row" href="' +
-        esc(href) +
-        '" title="' +
-        nm +
-        '"><span class="file-icn">📄</span><span class="file-name">' +
-        nm +
-        '</span></a>'
-      );
-    }
-    return (
-      '<div class="file-row"><span class="file-icn">📄</span><span class="file-name">' +
-      nm +
-      '</span></div>'
-    );
-  }
-
-  function buildV11PhotoGrid(items) {
-    return (
-      '<div class="photo-grid">' +
-      asArray(items)
-        .map(function (item) {
-          var bg = item.thumb || item.url || '';
-          return (
-            '<div class="photo-tile raw"' +
-            (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
-            '><span class="lbl">' +
-            esc(String(item.name || item.sortKey || 'Foto').slice(0, 12)) +
-            '</span></div>'
-          );
-        })
-        .join('') +
-      '</div>'
-    );
-  }
-
-  function getV11RailRenderHelpers() {
-    return {
-      esc: esc,
-      buildDocViewRow: function (title, meta, url) {
-        return buildV11DocRow(title, meta, url);
-      },
-      gkSharedPhotoGrid: function (items) {
-        return buildV11PhotoGrid(items);
-      },
-      empty: function (message) {
-        return (
-          '<div class="next-row"><div class="what" style="color:var(--ink-mute)">' +
-          esc(message || 'Inga besök/tillfällen.') +
-          '</div></div>'
-        );
-      },
-    };
-  }
-
-  function renderV11RailBesokPlaceholderInner(patientId) {
-    return (
-      '<div data-v11-besok-tillfallen data-patient-id="' +
-      esc(String(patientId || '').trim()) +
-      '"><div class="next-row"><div class="what" style="color:var(--ink-mute)">Laddar besök/tillfällen…</div></div></div>'
-    );
-  }
-
-  function renderV11RailBesokInner(visitSegments) {
-    return (
-      renderBesokInnerFromVisitSegments(visitSegments, getV11RailRenderHelpers()) ||
-      getV11RailRenderHelpers().empty('Inga besök/tillfällen ännu.')
-    );
-  }
-
-  function hydrateV11RailBesokTillfallen(root, patientId, token) {
-    if (!root || !root.querySelector) return Promise.resolve(false);
-    var host = root.querySelector('[data-v11-besok-tillfallen]');
-    if (!host) return Promise.resolve(false);
-    var state = host.getAttribute('data-v11-besok-state');
-    if (state === 'loading' || state === 'done') return Promise.resolve(true);
-    host.setAttribute('data-v11-besok-state', 'loading');
-    return fetchVisitSegmentsOrEmpty(patientId, token)
-      .then(function (visitSegments) {
-        host.innerHTML = renderV11RailBesokInner(visitSegments);
-        host.setAttribute('data-v11-besok-state', 'done');
-        var sec = host.closest('.sec');
-        if (sec) {
-          var whenEl = sec.querySelector('.sec-label .when');
-          if (whenEl) whenEl.textContent = String(countDatedSegments(visitSegments));
-        }
-        if (typeof global.__gkRevealDeferredPhotos === 'function') {
-          global.__gkRevealDeferredPhotos(host);
-        }
-        return true;
-      })
-      .catch(function () {
-        host.innerHTML = getV11RailRenderHelpers().empty('Kunde inte ladda besök/tillfällen.');
-        host.setAttribute('data-v11-besok-state', 'error');
-        return false;
-      });
-  }
-
   function patchBesokSection(patientId, visitSegments, helpers) {
     var root = global.document && global.document.querySelector('.kkref .doss');
     if (!root) return false;
@@ -346,10 +244,6 @@
     fetchVisitSegments: fetchVisitSegments,
     fetchVisitSegmentsOrEmpty: fetchVisitSegmentsOrEmpty,
     renderBesokInnerFromVisitSegments: renderBesokInnerFromVisitSegments,
-    getV11RailRenderHelpers: getV11RailRenderHelpers,
-    renderV11RailBesokInner: renderV11RailBesokInner,
-    renderV11RailBesokPlaceholderInner: renderV11RailBesokPlaceholderInner,
-    hydrateV11RailBesokTillfallen: hydrateV11RailBesokTillfallen,
     patchBesokSection: patchBesokSection,
     countDatedSegments: countDatedSegments,
   };

@@ -46,6 +46,14 @@ test('render() emitterar dold mount-punkt med patientId (hydreras async)', () =>
   assert.match(html, /data-v11-rk-besok-sec hidden/, 'sektionen ska börja dold');
 });
 
+test('ingen dubbel Besök/tillfällen-sektion från #600 (M½ efter Foton)', () => {
+  assert.doesNotMatch(source, /M½ · BESÖK\/TILLFÄLLEN/, 'M½-block ska vara borttaget');
+  assert.doesNotMatch(source, /v11-rk__besok-tillfallen/, 'ingen #600-wrapper');
+  assert.doesNotMatch(source, /renderV11RailBesokPlaceholderInner/, 'ingen #600-placeholder');
+  const matches = source.match(/data-v9-section-link="besok-tillfallen"/g) || [];
+  assert.equal(matches.length, 1, 'exakt en Besök/tillfällen-sektion i rail');
+});
+
 test('Besök/tillfällen har egen sektions-slug (kolliderar inte med Foton)', () => {
   const html = RailKomplett.render({ card: { id: 'pat-42' } });
   // Sektionen ska ha egen identitet, inte återanvända 'foto'.
