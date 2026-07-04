@@ -25,6 +25,7 @@ const { execSync } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const PREVIEW_DIR = path.join(ROOT, 'public/major-arcana-preview');
 const LATEST_JSON = path.join(PREVIEW_DIR, 'app.bundle.latest.json');
+const INDEX_HTML = path.join(PREVIEW_DIR, 'index.html');
 
 function expectedBundleFiles() {
   if (!fs.existsSync(LATEST_JSON)) return null;
@@ -37,6 +38,26 @@ function expectedBundleFiles() {
     return files;
   } catch {
     return null;
+  }
+}
+
+/**
+ * De bundle-filer som index.html FAKTISKT refererar (via __ARCANA_BUNDLE_URLS__
+ * + loader-fallbacks). Detta är sanningen för vad browsern laddar — om någon av
+ * dem saknas på disk 404:ar appen och faller tillbaka till scaffold-läget, även
+ * om latest.json pekar på andra (existerande) filer. ensure-bundle måste därför
+ * validera DESSA, inte bara latest.json.
+ */
+function referencedBundleFiles() {
+  try {
+    const html = fs.readFileSync(INDEX_HTML, 'utf8');
+    const files = new Set();
+    const re = /app\.bundle(?:\.staff-core|\.staff-deferred)?\.[a-f0-9]+\.min\.js/g;
+    let m;
+    while ((m = re.exec(html)) !== null) files.add(m[0]);
+    return [...files];
+  } catch {
+    return [];
   }
 }
 
@@ -54,12 +75,24 @@ function main() {
     rebuild();
     return;
   }
-  const missing = expected.filter((f) => !fs.existsSync(path.join(PREVIEW_DIR, f)));
+  // Validera BÅDE latest.json:s filer OCH de index.html faktiskt refererar. Det
+  // senare är avgörande: pekar index.html på en gammal/saknad hash (t.ex. efter
+  // build:bundle utan inject, eller en stale committad hash) 404:ar appen och
+  // visar scaffold — även om latest.json-filerna finns.
+  const referenced = referencedBundleFiles();
+  const toCheck = [...new Set([...expected, ...referenced])];
+  const missing = toCheck.filter((f) => !fs.existsSync(path.join(PREVIEW_DIR, f)));
   if (missing.length === 0) {
     return;
   }
-  console.log(`[ensure-bundle] ${missing.length} bundle-fil(er) saknas: ${missing.join(', ')}`);
+  console.log(
+    `[ensure-bundle] ${missing.length} refererad(e) bundle-fil(er) saknas: ${missing.join(', ')} — bygger + injectar om.`
+  );
   rebuild();
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { referencedBundleFiles, expectedBundleFiles };
