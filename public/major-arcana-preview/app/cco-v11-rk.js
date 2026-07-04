@@ -506,6 +506,22 @@
       );
     }
 
+    /* L2 · BESÖK / TILLFÄLLEN (visit-segments, read-only; hydreras async)
+       Placeras mellan Historik och Foton. Overifierade native-assets
+       (NEEDS_REVIEW/REJECTED/DUPLICATE) exkluderas redan vid API:t
+       (src/routes/ccoPatientMaster.js:535) → bara godkända tillfällen når hit.
+       Sektionen börjar dold; hydreringen visar den bara om det finns daterade
+       tillfällen, annars tas hela sektionen bort (ingen tom rubrik). */
+    var besokPid = txt(card.patientId || card.id || card.customerId);
+    if (besokPid) {
+      out +=
+        '<div class="sec" data-v9-section-link="foto" data-v11-rk-besok-sec hidden>' +
+        label('Besök · tillfällen') +
+        '<div class="v11-rk-besok" data-v11-rk-besok="' +
+        esc(besokPid) +
+        '"></div></div>';
+    }
+
     /* M · FOTON */
     var ph = arr(photos && photos.items ? photos.items : photos);
     if (ph.length) {
@@ -675,5 +691,151 @@
     return '<div class="v11-rk" data-v11-rk="1"><div class="v11-rk__shell">' + out + '</div></div>';
   }
 
-  global.CcoV11RailKomplett = { render: render };
+  /* ── Besök / tillfällen (visit-segments) ──────────────────────────────
+     Read-only. Återanvänder befintlig datalayer CcoKundkortVisitSegments
+     (API + REASON_LABELS/VISIT_TYPE_LABELS). Renderar i railens EGET
+     formspråk (samma klasser som Historik/Foton/Filer) — ingen ny design,
+     ingen kkref/storvy-markup. Osäkra kopplingar visas aldrig som klara:
+     confidence high → ingen badge; medium/low → amber "Kontrollera"/"Osäker". */
+  function besokLabels(kind) {
+    var api = global.CcoKundkortVisitSegments || {};
+    return (kind === 'reason' ? api.REASON_LABELS : api.VISIT_TYPE_LABELS) || {};
+  }
+  function besokVisitType(seg) {
+    return besokLabels('visit')[String(seg.visitType || 'unknown')] || '';
+  }
+  function besokReasons(seg) {
+    var map = besokLabels('reason');
+    return arr(seg.reasons)
+      .map(function (c) {
+        return map[c] || c;
+      })
+      .filter(Boolean);
+  }
+  function besokShortDate(seg) {
+    var p = txt(seg.date).split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] : txt(seg.label || seg.date || '—');
+  }
+  function renderBesokOccasion(seg) {
+    if (!seg || !seg.date) return '';
+    var vt = besokVisitType(seg);
+    var title = [vt || txt(seg.label) || 'Besök', txt(seg.timeRange)].filter(Boolean).join(' · ');
+    var imgs = arr(seg.images);
+    var docs = arr(seg.documents);
+    var counts = [];
+    if (imgs.length) counts.push(imgs.length + (imgs.length === 1 ? ' foto' : ' foton'));
+    if (docs.length) counts.push(docs.length + ' dokument');
+    var conf = txt(seg.confidence);
+    var badge =
+      conf && conf !== 'high'
+        ? '<span class="q-status warn">' + (conf === 'low' ? 'Osäker' : 'Kontrollera') + '</span>'
+        : '';
+    var reasons = besokReasons(seg);
+    var head =
+      '<div class="hist-row"><div class="book-date"><span class="d">' +
+      esc(besokShortDate(seg)) +
+      '</span></div><div><div class="book-title">' +
+      esc(title) +
+      '</div>' +
+      (counts.length ? '<div class="when">' + esc(counts.join(' · ')) + '</div>' : '') +
+      '</div>' +
+      badge +
+      '</div>';
+    var reasonLine = reasons.length
+      ? '<div class="note-row when">' + esc(reasons.join(' · ')) + '</div>'
+      : '';
+    var photoGrid = imgs.length
+      ? '<div class="photo-grid">' +
+        imgs
+          .slice(0, 6)
+          .map(function (im) {
+            var bg = txt(im.thumbnailUrl || im.openRef);
+            return (
+              '<div class="photo-tile raw"' +
+              (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+              '><span class="lbl">' +
+              esc(txt(im.timeLabel || '').slice(0, 8)) +
+              '</span></div>'
+            );
+          })
+          .join('') +
+        '</div>'
+      : '';
+    var docRows = docs
+      .map(function (d) {
+        var nm = esc(txt(d.fileName || 'Dokument'));
+        var href = txt(d.openRef);
+        var meta = [];
+        if (d.documentDate) meta.push(txt(d.documentDate));
+        if (d.type) meta.push(txt(d.type));
+        var inner =
+          '<span class="file-icn">📄</span><span class="file-name">' +
+          nm +
+          (meta.length ? ' <span class="when">' + esc(meta.join(' · ')) + '</span>' : '') +
+          '</span>';
+        return href
+          ? '<a class="file-row" href="' + esc(href) + '" title="' + nm + '">' + inner + '</a>'
+          : '<div class="file-row">' + inner + '</div>';
+      })
+      .join('');
+    return head + reasonLine + photoGrid + docRows;
+  }
+
+  function hydrateBesok(mount) {
+    if (!mount || mount.__v11rkBesokDone) return;
+    var api = global.CcoKundkortVisitSegments;
+    var pid = mount.getAttribute && mount.getAttribute('data-v11-rk-besok');
+    if (!api || typeof api.fetchVisitSegmentsOrEmpty !== 'function' || !pid) return;
+    mount.__v11rkBesokDone = true;
+    var sec = mount.closest ? mount.closest('[data-v11-rk-besok-sec]') : null;
+    function drop() {
+      if (sec && sec.parentNode) sec.parentNode.removeChild(sec);
+    }
+    api
+      .fetchVisitSegmentsOrEmpty(pid)
+      .then(function (segments) {
+        var dated = arr(segments).filter(function (s) {
+          return s && s.date;
+        });
+        if (!dated.length) return drop();
+        mount.innerHTML = dated.slice(0, 8).map(renderBesokOccasion).join('');
+        if (sec) sec.removeAttribute('hidden');
+      })
+      .catch(drop);
+  }
+
+  function observeBesok() {
+    var doc = global.document;
+    if (!doc || !global.MutationObserver || global.__v11rkBesokObserving) return;
+    global.__v11rkBesokObserving = true;
+    Array.prototype.forEach.call(doc.querySelectorAll('[data-v11-rk-besok]'), hydrateBesok);
+    var obs = new global.MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i++) {
+        var added = muts[i].addedNodes || [];
+        for (var j = 0; j < added.length; j++) {
+          var n = added[j];
+          if (!n || n.nodeType !== 1) continue;
+          if (n.matches && n.matches('[data-v11-rk-besok]')) hydrateBesok(n);
+          if (n.querySelectorAll) {
+            Array.prototype.forEach.call(n.querySelectorAll('[data-v11-rk-besok]'), hydrateBesok);
+          }
+        }
+      }
+    });
+    obs.observe(doc.documentElement || doc.body || doc, { childList: true, subtree: true });
+  }
+
+  if (global.document) {
+    if (global.document.readyState === 'loading') {
+      global.document.addEventListener('DOMContentLoaded', observeBesok, { once: true });
+    } else {
+      observeBesok();
+    }
+  }
+
+  global.CcoV11RailKomplett = {
+    render: render,
+    renderBesokOccasion: renderBesokOccasion,
+    hydrateBesok: hydrateBesok,
+  };
 })(typeof window !== 'undefined' ? window : globalThis);
