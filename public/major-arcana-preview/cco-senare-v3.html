@@ -1272,6 +1272,129 @@
           flex: 1 1 40%;
         }
       }
+
+      /* ===== Kundkontext-kort (från Konversationer) — namespaced .kk-*,
+         ersätter KUND + AI-SIGNAL i högerpanelen. ÅTERUPPTAG behålls. ===== */
+      .kk-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px;
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 241, 236, 0.84));
+        border: 1px solid rgba(180, 165, 150, 0.25);
+        box-shadow: var(--sh-md);
+        margin-bottom: 0.6rem;
+      }
+      .kk-kicker {
+        font-size: var(--fs-kicker);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+      }
+      .kk-title {
+        margin: 2px 0 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--text-primary);
+      }
+      .kk-head {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding-bottom: 12px;
+        box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+      }
+      .kk-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        flex-shrink: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          0 4px 12px rgba(56, 40, 28, 0.18);
+      }
+      .kk-name {
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .kk-meta {
+        color: var(--text-tertiary);
+        font-size: 10.5px;
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .kk-grid {
+        display: grid;
+        grid-template-columns: 78px 1fr;
+        gap: 6px 10px;
+        font-size: 11px;
+        margin: 0;
+      }
+      .kk-grid dt {
+        color: var(--text-tertiary);
+        font-weight: 600;
+      }
+      .kk-grid dd {
+        margin: 0;
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+      .kk-ai {
+        padding: 11px 13px;
+        border-radius: var(--r-md);
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 239, 213, 0.82));
+        border-left: 3px solid var(--warning);
+        font-size: 11.5px;
+        line-height: 1.5;
+      }
+      .kk-ai-kicker {
+        color: var(--warning);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        margin-bottom: 5px;
+      }
+      .kk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 12px;
+        box-shadow: inset 0 1px 0 rgba(215, 202, 194, 0.5);
+      }
+      .kk-pill {
+        flex: 1;
+        min-width: calc(50% - 6px);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 9px 10px;
+        border-radius: var(--r-pill);
+        font:
+          700 11.5px Inter,
+          sans-serif;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        background: linear-gradient(180deg, #fff, rgba(248, 241, 232, 0.9));
+        color: var(--text-primary);
+        box-shadow: 0 4px 10px rgba(93, 74, 60, 0.08);
+      }
+      .kk-pill--ai {
+        flex-basis: 100%;
+        background: linear-gradient(180deg, #fff5e6, rgba(255, 228, 200, 0.9));
+        color: var(--warning);
+      }
+      .kk-pill--success {
+        color: var(--success);
+      }
     </style>
   </head>
   <body>
@@ -1834,14 +1957,23 @@
     <div class="ctx-card"><div class="ctx-sec">Återupptag</div>
       <div class="ctx-row"><span class="k">Vaknar</span><span class="v">${esc(t.wake.replace('Återupptas ', ''))}</span></div>
       <div class="ctx-row"><span class="k">Snoozad</span><span class="v">${esc(t.snoozed)}</span></div></div>
-    <div class="ctx-card"><div class="ctx-sec">Kund</div>
-      ${Object.entries(c)
-        .map(
-          ([k, v]) =>
-            `<div class="ctx-row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`
-        )
-        .join('')}</div>
-    <div class="ctx-sec">AI-signal</div><div class="ctx-ai"><b>★ AI</b> ${esc(t.ai)}</div>`;
+    <div class="kk-card">
+      <div><div class="kk-kicker">Kundkontext</div><h3 class="kk-title">Operatörsstöd</h3></div>
+      <div class="kk-head">
+        <div class="kk-avatar" style="background:${esc(t.avatarBg)}">${esc(t.init)}</div>
+        <div><div class="kk-name">${esc(t.name)}</div><div class="kk-meta">${esc([c.Status, c.Nästa].filter(Boolean).join(' · '))}</div></div>
+      </div>
+      <dl class="kk-grid">${Object.entries(c)
+        .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
+        .join('')}</dl>
+      <div class="kk-ai"><div class="kk-ai-kicker">★ AI</div>${esc(t.ai)}</div>
+      <div class="kk-actions">
+        <button class="kk-pill kk-pill--ai" type="button" data-action="svarstudio">★ AI Svarstudio</button>
+        <button class="kk-pill" type="button" data-action="bokningsyta">📅 Öppna bokning</button>
+        <button class="kk-pill" type="button" data-action="patienthub">👤 Kunddossiér</button>
+        <button class="kk-pill kk-pill--success" type="button" data-action="klar">✓ Markera klar</button>
+      </div>
+    </div>`;
         threadZone.classList.add('has-thread');
         app.dataset.pane = 'thread';
         renderInbox();
@@ -2053,9 +2185,9 @@
          sitt data-action; föräldern (konversationer-bottom-actions.js) öppnar
          rätt panel/action. Standalone (ingen förälder) = no-op. */
       (function () {
-        var bar = document.querySelector('.thread-bottom-actions');
-        if (!bar) return;
-        bar.addEventListener('click', function (e) {
+        // Document-wide: både bottom-baren och kundkontext-kortets .kk-pill-
+        // knappar (som renderas i ctxBody) postar sitt data-action.
+        document.addEventListener('click', function (e) {
           var btn = e.target.closest('button[data-action]');
           if (!btn) return;
           var action = btn.dataset.action;
