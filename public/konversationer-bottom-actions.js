@@ -12,9 +12,11 @@
   // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
   // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
   const SMART_ANTECKNING_V3_SRC = '/major-arcana-preview/cco-smart-anteckning-v3.html';
-  // "Öppna bokning" öppnar den fulla bokningsguiden (kund → behandling → tid
-  // → bekräfta), inte den äldre enskärms-prototypen.
-  const BOOKING_SRC = '/major-arcana-preview/cco-booking-wizard-v3.html';
+  // PR 12 — "Öppna bokning" öppnar "CCO · Ny bokning"-ytan (Boka behandling-
+  // wizarden, portad in i repot — samma origin, inte som lokal fil). Scoped till
+  // vald kund. OBS: användarens uttryckliga, låsta val — INTE den äldre
+  // Bokningsguiden (cco-booking-wizard-v3). Ändra inte tillbaka.
+  const BOOKING_SRC = '/major-arcana-preview/cco-ny-bokning.html';
   // PR 10 — "Öppna kalender" går till den riktiga CCO-kalenderytan (inte v8-preview),
   // som panel med vald tråds kund. Samma origin, ingen live-send.
   const KALENDER_SRC = '/kalender.html';
@@ -1511,7 +1513,7 @@
     const src = BOOKING_SRC + (query ? '?' + query : '');
     const frame = el('iframe', {
       src,
-      title: 'Bokningsguide',
+      title: 'Ny bokning',
       style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {

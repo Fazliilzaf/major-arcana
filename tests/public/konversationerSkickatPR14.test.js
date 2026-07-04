@@ -67,7 +67,7 @@ test('PR14: skickat scopar till vald kund via befintlig sökning', () => {
 // ── Regler behållna ──────────────────────────────────────────────────────────
 
 test('PR14: övriga paneler orörda, ingen live-send', () => {
-  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-booking-wizard-v3\.html'/);
+  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-ny-bokning\.html'/);
   assert.match(source, /const KALENDER_SRC = '\/kalender\.html'/);
   assert.match(source, /const SENARE_V3_SRC = '\/major-arcana-preview\/cco-senare-v3\.html'/);
   assert.match(source, /const NOTISER_V3_SRC = '\/major-arcana-preview\/cco-notiser-v3\.html'/);
@@ -77,5 +77,5 @@ test('PR14: övriga paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR14: konversationer.html cache-bustar efter skickat-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704a-bokning/);
 });
