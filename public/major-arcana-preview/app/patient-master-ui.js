@@ -1292,6 +1292,7 @@
     journal: 'journal',
     foto: 'photos',
     photos: 'photos',
+    'besok-tillfallen': 'bookings',
     upcoming: 'bookings',
     historik: 'bookings',
     tidslinje: 'bookings',

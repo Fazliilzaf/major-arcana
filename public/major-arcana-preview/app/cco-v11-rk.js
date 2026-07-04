@@ -515,7 +515,7 @@
     var besokPid = txt(card.patientId || card.id || card.customerId);
     if (besokPid) {
       out +=
-        '<div class="sec" data-v9-section-link="foto" data-v11-rk-besok-sec hidden>' +
+        '<div class="sec" data-v9-section-link="besok-tillfallen" data-v11-rk-besok-sec hidden>' +
         label('Besök · tillfällen') +
         '<div class="v11-rk-besok" data-v11-rk-besok="' +
         esc(besokPid) +

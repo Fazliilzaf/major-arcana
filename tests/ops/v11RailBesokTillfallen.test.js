@@ -46,6 +46,26 @@ test('render() emitterar dold mount-punkt med patientId (hydreras async)', () =>
   assert.match(html, /data-v11-rk-besok-sec hidden/, 'sektionen ska börja dold');
 });
 
+test('Besök/tillfällen har egen sektions-slug (kolliderar inte med Foton)', () => {
+  const html = RailKomplett.render({ card: { id: 'pat-42' } });
+  // Sektionen ska ha egen identitet, inte återanvända 'foto'.
+  assert.match(
+    html,
+    /data-v9-section-link="besok-tillfallen"[^>]*data-v11-rk-besok-sec/,
+    'Besök/tillfällen ska ha egen slug besok-tillfallen'
+  );
+  // Slugen ska vara mappad till en storvy-modul så sektionsklick fortsatt navigerar.
+  const uiSrc = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'patient-master-ui.js'),
+    'utf8'
+  );
+  assert.match(
+    uiSrc,
+    /'besok-tillfallen':\s*'bookings'/,
+    'besok-tillfallen ska mappas i V12_RAIL_SECTION_MODULES'
+  );
+});
+
 test('återanvänder befintlig datalayer, inte bespoke fetch/kkref-markup', () => {
   assert.match(
     source,
