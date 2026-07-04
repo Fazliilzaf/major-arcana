@@ -40,10 +40,11 @@ test('PR22: smart-anteckning har kundkontext-kortet (namespaced .kk-)', () => {
 });
 
 test('PR22: kortets actions är wire:ade via data-action', () => {
+  // Attribut-baserat (robust mot prettier-radbrytning av knapp-texten).
   assert.match(smart, /class="kk-pill kk-pill--ai" type="button" data-action="svarstudio"/);
-  assert.match(smart, /data-action="bokningsyta">📅 Öppna bokning/);
-  assert.match(smart, /data-action="patienthub">👤 Kunddossiér/);
-  assert.match(smart, /data-action="klar"/);
+  assert.match(smart, /class="kk-pill" type="button" data-action="bokningsyta"/);
+  assert.match(smart, /class="kk-pill" type="button" data-action="patienthub"/);
+  assert.match(smart, /class="kk-pill kk-pill--success" type="button" data-action="klar"/);
 });
 
 // ── Bottom action-bar ────────────────────────────────────────────────────────
