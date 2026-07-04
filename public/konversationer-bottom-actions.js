@@ -12,9 +12,9 @@
   // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
   // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
   const SMART_ANTECKNING_V3_SRC = '/major-arcana-preview/cco-smart-anteckning-v3.html';
-  // PR 12 — "Öppna bokning" öppnar "CCO · Ny bokning"-ytan (vald prototyp,
-  // portad in i repot — samma origin, inte som lokal fil). Scoped till vald kund.
-  const BOOKING_SRC = '/major-arcana-preview/cco-ny-bokning.html';
+  // "Öppna bokning" öppnar den fulla bokningsguiden (kund → behandling → tid
+  // → bekräfta), inte den äldre enskärms-prototypen.
+  const BOOKING_SRC = '/major-arcana-preview/cco-booking-wizard-v3.html';
   // PR 10 — "Öppna kalender" går till den riktiga CCO-kalenderytan (inte v8-preview),
   // som panel med vald tråds kund. Samma origin, ingen live-send.
   const KALENDER_SRC = '/kalender.html';
@@ -1496,7 +1496,7 @@
     });
   }
 
-  // ─── BOKNING → "CCO · Ny bokning" ────────────────────────────────────
+  // ─── BOKNING → full Bokningsguide v3 ─────────────────────────────────
   function openBokningsyta() {
     // Återanvänder samma live-tråds-kontext som Smart anteckning (kund,
     // conversationKey, ämne, senaste meddelanden, mailbox, e-post).
@@ -1511,7 +1511,7 @@
     const src = BOOKING_SRC + (query ? '?' + query : '');
     const frame = el('iframe', {
       src,
-      title: 'Ny bokning',
+      title: 'Bokningsguide',
       style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
     frame.addEventListener('load', () => {
@@ -1578,28 +1578,30 @@
       toast('Lägg senare kräver inloggad admin#cco (inte lokal fil).', 'err');
       return;
     }
-    // Endast riktig live-tråd (inte demo/visible-fallback).
     const live = getLiveConversationContext();
-    if (!live || !live.conversationKey || live.conversationKey === 'visible-thread') {
-      toast('Ingen live-tråd vald — välj en tråd i live-inkorgen.', 'err');
-      return;
-    }
+    const context = buildSmartAnteckningContext();
     // Samma kundidentitet som backend förväntar sig (#540/#6) så panelens
     // reply_later inte ger 409 customer_mismatch.
-    const customerId = resolveThreadCustomerEmail(live);
-    if (!customerId) {
-      toast('Kundadress saknas i tråden — kan inte lägga senare säkert.', 'err');
-      return;
-    }
-    const context = buildSmartAnteckningContext();
-    context.customerId = customerId;
+    const customerId =
+      live && live.conversationKey && live.conversationKey !== 'visible-thread'
+        ? resolveThreadCustomerEmail(live)
+        : '';
+    const canConfirm = Boolean(
+      live && live.conversationKey && live.conversationKey !== 'visible-thread' && customerId
+    );
+    context.customerId = customerId || '';
+    context.canConfirm = canConfirm;
+    context.confirmDisabledReason = canConfirm
+      ? ''
+      : 'Välj en riktig live-tråd med kundmail innan snooze kan bekräftas.';
     const params = new URLSearchParams();
     if (context.customerName) params.set('kund', context.customerName);
     if (context.email) params.set('email', context.email);
     if (context.conversationKey) params.set('trad', context.conversationKey);
     if (context.subject) params.set('amne', context.subject);
     if (context.mailboxId) params.set('mailbox', context.mailboxId);
-    params.set('cid', customerId);
+    if (customerId) params.set('cid', customerId);
+    if (!canConfirm) params.set('readonly', '1');
     const query = params.toString();
     const src = SENARE_V3_SRC + (query ? '?' + query : '');
     const frame = el('iframe', {
@@ -1851,37 +1853,62 @@
     openModal({ title: 'No-show', wide: true, tabs: panelTabs('noshow'), body: frame });
   }
 
+  function runCcoAction(action) {
+    if (action === 'svarstudio') openSvarstudioForSelectedThread();
+    else if (action === 'smart-anteckning') openSmartAnteckning();
+    else if (action === 'bokningsyta') openBokningsyta();
+    else if (action === 'kalender') openKalender();
+    else if (action === 'klar') runConversationAction('handled');
+    else if (action === 'senare') openSenarePanel();
+    else if (action === 'reopen') runConversationAction('reopen');
+    else if (action === 'notiser') openNotiser();
+    else return false;
+    return true;
+  }
+
+  function actionButtonFromEvent(event) {
+    const node = event.target?.closest?.('[data-action]');
+    if (!node) return null;
+    if (
+      !node.closest('.thread-bottom-actions') &&
+      !node.closest('.risk-badge-row') &&
+      !node.classList.contains('nav-btn')
+    ) {
+      return null;
+    }
+    return node;
+  }
+
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
   function wireActions() {
-    document.querySelectorAll('[data-action]').forEach((btn) => {
-      const action = btn.dataset.action;
-      btn.addEventListener('click', () => {
-        if (action === 'svarstudio') openSvarstudioForSelectedThread();
-        else if (action === 'smart-anteckning') openSmartAnteckning();
-        else if (action === 'bokningsyta') openBokningsyta();
-        else if (action === 'kalender') openKalender();
-        else if (action === 'klar') runConversationAction('handled');
-        else if (action === 'senare') openSenarePanel();
-        else if (action === 'reopen') runConversationAction('reopen');
-        else if (action === 'notiser') openNotiser();
-      });
-    });
+    document.addEventListener(
+      'click',
+      (e) => {
+        const btn = actionButtonFromEvent(e);
+        if (!btn) return;
+        const action = btn.dataset.action;
+        if (!runCcoAction(action)) return;
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      true
+    );
     document.addEventListener('keydown', (e) => {
       const tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
-        openSvarstudioForSelectedThread();
+        runCcoAction('svarstudio');
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        openSmartAnteckning();
+        runCcoAction('smart-anteckning');
       } else if (e.key === 'b' || e.key === 'B') {
         e.preventDefault();
-        openBokningsyta();
+        runCcoAction('bokningsyta');
       } else if (e.key === 'k' || e.key === 'K') {
         e.preventDefault();
-        openKalender();
+        runCcoAction('kalender');
       } else if (e.key === 'Escape')
         document.querySelectorAll('.action-modal-backdrop').forEach((n) => n.remove());
     });

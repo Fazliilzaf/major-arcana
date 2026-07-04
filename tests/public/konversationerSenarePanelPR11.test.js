@@ -48,14 +48,14 @@ test('PR11: panelen öppnas som iframe (openModal wide) med kontext', () => {
   );
 });
 
-test('PR11: bara riktig live-tråd + kundmail (undviker 409), annars blockeras', () => {
+test('PR11: panelen öppnar även i webb/demo, men confirm låses utan live-tråd', () => {
   assert.match(source, /const live = getLiveConversationContext\(\);/);
-  assert.match(
-    compact(source),
-    /if \(!live \|\| !live\.conversationKey \|\| live\.conversationKey === 'visible-thread'\)/
-  );
-  assert.match(source, /const customerId = resolveThreadCustomerEmail\(live\)/);
-  assert.match(source, /context\.customerId = customerId/);
+  assert.match(source, /const customerId =/);
+  assert.match(source, /resolveThreadCustomerEmail\(live\)/);
+  assert.match(source, /live\.conversationKey !== 'visible-thread'/);
+  assert.match(source, /context\.canConfirm = canConfirm/);
+  assert.match(source, /context\.confirmDisabledReason = canConfirm/);
+  assert.match(source, /if \(!canConfirm\) params\.set\('readonly', '1'\)/);
   assert.match(source, /params\.set\('cid', customerId\)/);
 });
 
@@ -81,6 +81,18 @@ test('PR11: panelen injicerar vald tråd i sin lista och öppnar den', () => {
   // trådens riktiga conversationKey + customerId bärs på det injicerade objektet
   assert.match(senare, /key: key,/);
   assert.match(senare, /customerId: String\(context\.customerId \|\| ''\) \|\| undefined/);
+  assert.match(senare, /canConfirm: context\.canConfirm !== false && key !== 'visible-thread'/);
+  assert.match(senare, /confirmDisabledReason: String\(/);
+});
+
+test('PR11: panelens bekräftelse-knappar spärras i readonly-läge', () => {
+  assert.match(senare, /if \(t\.canConfirm === false\)/);
+  assert.match(senare, /flashNotice\(/);
+  assert.match(senare, /const disabledAttr =/);
+  assert.match(senare, /data-act="reopen"\$\{disabledAttr\}/);
+  assert.match(senare, /data-act="snooze"\$\{disabledAttr\}/);
+  assert.match(senare, /data-act="handled"\$\{disabledAttr\}/);
+  assert.match(senare, /canConfirm: q\.get\('readonly'\) !== '1'/);
 });
 
 test('PR11: panelens reply_later POSTar customerId (annars 409 i backend)', () => {
@@ -103,5 +115,6 @@ test('PR11: bokning/kalender/smart-anteckning v3 orörda, ingen live-send', () =
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR11: konversationer.html cache-bustar efter senare-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703x-noshowai/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
+
 });

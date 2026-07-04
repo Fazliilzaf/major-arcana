@@ -61,5 +61,6 @@ test('PR15: flik-CSS finns (aktiv-state)', () => {
 });
 
 test('PR15: cache-bust bumpad efter flik-fix', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703x-noshowai/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703y-paneltargets/);
+
 });
