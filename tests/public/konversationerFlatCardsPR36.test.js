@@ -19,7 +19,7 @@ const read = (f) =>
 const cards = [
   ['cco-senare-v3.html', '.thread'],
   ['cco-signaturer-v3.html', '.req'],
-  ['cco-notiser-v3.html', '.card'],
+  ['cco-notiser-v3.html', '.noti'],
   ['cco-skickat-v3.html', '.sent-card'],
 ];
 
