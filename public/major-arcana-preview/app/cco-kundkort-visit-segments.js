@@ -319,12 +319,19 @@
     if (node && node.parentNode) node.parentNode.removeChild(node);
   }
 
-  // Den fil-härledda "Besök"-sektionen är fallback: dölj den först när den
-  // API-backade sektionen faktiskt har data att ta över med.
+  // Den fil-härledda "Besök"-sektionen är fallback: ta bort den först när den
+  // API-backade sektionen faktiskt har data att ta över med. Dossierns
+  // omsorterings-observer kan flytta ut legacy-<details> ur [data-kk-besok-
+  // legacy]-wrappern, så vi tar bort både wrappern OCH varje kvarvarande
+  // Besök-sektion (data-sek="besok") som inte är vår egen.
   function removeLegacyBesok(scope) {
     var root = scope && scope.querySelectorAll ? scope : doc;
     if (!root || !root.querySelectorAll) return;
     Array.prototype.forEach.call(root.querySelectorAll('[data-kk-besok-legacy]'), removeNode);
+    Array.prototype.forEach.call(
+      root.querySelectorAll('details[data-sek="besok"]:not([data-kk-visit-segments-section])'),
+      removeNode
+    );
   }
 
   // ---- Self-mount: hitta placeholder [data-kk-visit-segments], hämta & rendera ----
@@ -412,6 +419,7 @@
     fetchVisitSegments: fetchVisitSegments,
     hydrate: hydrate,
     observe: observe,
+    removeLegacyBesok: removeLegacyBesok,
     reasonLabel: function (code) {
       return REASON_LABELS[code] || code;
     },

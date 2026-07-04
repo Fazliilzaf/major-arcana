@@ -210,6 +210,25 @@ test('PR44: HTML escapas (ingen injektion via filnamn)', () => {
   assert.match(html, /&lt;img src=x/);
 });
 
+test('PR44: removeLegacyBesok tar bort legacy även när omsortering flyttat ut den', () => {
+  // Simulerar dossierns .doss: legacy-Besök har flyttats UT ur wrappern av
+  // omsorterings-observern, så bara <details data-sek="besok"> (utan vår markör)
+  // finns kvar. Vår egen sektion (med markören) ska aldrig tas bort.
+  const removed = [];
+  const mk = (tag) => ({ tag, parentNode: { removeChild: () => removed.push(tag) } });
+  const legacyDetails = mk('legacy-details');
+  const scope = {
+    querySelectorAll: (sel) => {
+      if (sel.indexOf('[data-kk-besok-legacy]') !== -1) return []; // wrappern redan borta
+      if (sel.indexOf('details[data-sek="besok"]:not([data-kk-visit-segments-section])') !== -1)
+        return [legacyDetails];
+      return [];
+    },
+  };
+  VS.removeLegacyBesok(scope);
+  assert.deepEqual(removed, ['legacy-details'], 'legacy-Besök togs inte bort utan wrapper');
+});
+
 test('PR44: tom payload ger tom-tillstånd, ingen krasch', () => {
   const html = VS.renderSectionHtml(VS.buildViewModel({ patientId: 'p', visitSegments: [] }));
   assert.match(html, /Inga besök\/tillfällen ännu/);
