@@ -71,7 +71,8 @@
   // ─────────── SKIP-LINK ───────────
   function injectSkipLink() {
     if (document.querySelector('.a11y-skip')) return;
-    const main = document.querySelector('main, [role="main"], .main, .layout > main, .panel') || document.body;
+    const main =
+      document.querySelector('main, [role="main"], .main, .layout > main, .panel') || document.body;
     if (!main.id) main.id = 'main-content';
     const a = document.createElement('a');
     a.className = 'a11y-skip';
@@ -112,7 +113,9 @@
     }
 
     // Aside → role=complementary
-    document.querySelectorAll('aside:not([role])').forEach((a) => a.setAttribute('role', 'complementary'));
+    document
+      .querySelectorAll('aside:not([role])')
+      .forEach((a) => a.setAttribute('role', 'complementary'));
 
     // Toaster → role=status (live region)
     document.querySelectorAll('.toast').forEach((t) => {
@@ -202,7 +205,9 @@
     container.setAttribute('aria-rowcount', String(all.length));
     container.setAttribute('data-virtualized', 'true');
 
-    console.log(`[cco-polish] virtualized list with ${all.length} rows (rendering ${visibleCount + BUFFER * 2} at a time)`);
+    console.log(
+      `[cco-polish] virtualized list with ${all.length} rows (rendering ${visibleCount + BUFFER * 2} at a time)`
+    );
   }
 
   function activateVirtualScrolls() {
@@ -277,7 +282,9 @@
         <button class="stage-warning-close" type="button">Förstått</button>
       `;
       document.body.appendChild(warning);
-      warning.querySelector('.stage-warning-close').addEventListener('click', () => warning.remove());
+      warning
+        .querySelector('.stage-warning-close')
+        .addEventListener('click', () => warning.remove());
     }
   }
 
@@ -324,15 +331,19 @@
     const typeButtons = modal.querySelectorAll('.feedback-types button');
     let selectedType = 'bug';
     typeButtons[0].classList.add('active');
-    typeButtons.forEach((b) => b.addEventListener('click', () => {
-      typeButtons.forEach((o) => o.classList.remove('active'));
-      b.classList.add('active');
-      selectedType = b.dataset.type;
-    }));
+    typeButtons.forEach((b) =>
+      b.addEventListener('click', () => {
+        typeButtons.forEach((o) => o.classList.remove('active'));
+        b.classList.add('active');
+        selectedType = b.dataset.type;
+      })
+    );
 
     const close = () => modal.remove();
     modal.querySelector('.cancel').addEventListener('click', close);
-    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) close();
+    });
 
     modal.querySelector('.send').addEventListener('click', () => {
       const textarea = modal.querySelector('textarea');
@@ -428,7 +439,8 @@
       toast.className = 'cco-toast-global';
       toast.setAttribute('role', 'status');
       toast.setAttribute('aria-live', 'polite');
-      toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translate(-50%,12px);padding:11px 22px;border-radius:999px;background:var(--cco-color-brand,#2b251f);color:white;font-size:12.5px;font-weight:700;box-shadow:0 18px 40px rgba(0,0,0,.32);opacity:0;transition:all .24s cubic-bezier(.32,1.2,.64,1);z-index:1200;letter-spacing:.04em;pointer-events:none';
+      toast.style.cssText =
+        'position:fixed;bottom:80px;left:50%;transform:translate(-50%,12px);padding:11px 22px;border-radius:999px;background:var(--cco-color-brand,#2b251f);color:white;font-size:12.5px;font-weight:700;box-shadow:0 18px 40px rgba(0,0,0,.32);opacity:0;transition:all .24s cubic-bezier(.32,1.2,.64,1);z-index:1200;letter-spacing:.04em;pointer-events:none';
       document.body.appendChild(toast);
     }
     toast.textContent = text;
@@ -451,7 +463,8 @@
     btn.type = 'button';
     btn.title = 'Ångra senaste (Cmd+Z)';
     btn.setAttribute('aria-label', 'Ångra senaste action');
-    btn.style.cssText = 'position:fixed;bottom:22px;right:140px;padding:9px 14px;border-radius:999px;background:linear-gradient(135deg,#5a5048,#3a3028);color:white;border:none;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 12px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.18);z-index:500;display:none;align-items:center;gap:7px';
+    btn.style.cssText =
+      'position:fixed;bottom:22px;right:140px;padding:9px 14px;border-radius:999px;background:linear-gradient(135deg,#5a5048,#3a3028);color:white;border:none;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 12px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.18);z-index:500;display:none;align-items:center;gap:7px';
     btn.innerHTML = `↺ Ångra <span class="undo-count" style="background:rgba(255,255,255,.2);padding:1px 6px;border-radius:999px;font-size:10px">0</span>`;
     btn.addEventListener('click', performUndo);
     document.body.appendChild(btn);
@@ -472,10 +485,16 @@
   const CP_STORAGE_KEY = 'cco-color-priorities';
   function applyColorPriorities(on) {
     document.documentElement.setAttribute('data-color-priorities', on ? 'on' : 'off');
-    try { localStorage.setItem(CP_STORAGE_KEY, on ? 'on' : 'off'); } catch (_) {}
+    try {
+      localStorage.setItem(CP_STORAGE_KEY, on ? 'on' : 'off');
+    } catch (_) {}
   }
   function getColorPriorities() {
-    try { return localStorage.getItem(CP_STORAGE_KEY) === 'on'; } catch { return false; }
+    try {
+      return localStorage.getItem(CP_STORAGE_KEY) === 'on';
+    } catch {
+      return false;
+    }
   }
 
   // ─────────── SPRINT 5.4: BOTTOM-SHEET HELPER ───────────
@@ -504,14 +523,20 @@
         b.type = 'button';
         b.style.cssText = `flex:1;padding:12px;border-radius:12px;border:none;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;${a.primary ? 'background:linear-gradient(135deg,var(--accent-studio,#bb4779),#9e3a68);color:white;box-shadow:0 6px 14px rgba(187,71,121,.28)' : 'background:rgba(132,117,107,.14);color:rgba(70,60,50,.62)'}`;
         b.textContent = a.label;
-        b.addEventListener('click', () => { if (a.onClick) a.onClick(); else closeBottomSheet(); });
+        b.addEventListener('click', () => {
+          if (a.onClick) a.onClick();
+          else closeBottomSheet();
+        });
         actBar.appendChild(b);
       });
     }
 
     document.body.appendChild(backdrop);
     document.body.appendChild(sheet);
-    requestAnimationFrame(() => { backdrop.classList.add('show'); sheet.classList.add('show'); });
+    requestAnimationFrame(() => {
+      backdrop.classList.add('show');
+      sheet.classList.add('show');
+    });
     sheet.querySelector('.bs-close').addEventListener('click', closeBottomSheet);
     backdrop.addEventListener('click', closeBottomSheet);
   }
@@ -519,7 +544,12 @@
     document.querySelector('.cco-bottom-sheet-backdrop')?.remove();
     document.querySelector('.cco-bottom-sheet')?.remove();
   }
-  function escapeHtml(s) { return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function escapeHtml(s) {
+    return String(s || '').replace(
+      /[&<>"]/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+    );
+  }
 
   // ─────────── SPRINT 5.4: PUSH SUBSCRIPTION ───────────
   async function enablePushNotifications(userId = 'fazli') {
@@ -534,10 +564,12 @@
         return false;
       }
       const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        // applicationServerKey: ... (sätts i prod när VAPID-key finns i env)
-      }).catch(() => null);
+      const sub = await reg.pushManager
+        .subscribe({
+          userVisibleOnly: true,
+          // applicationServerKey: ... (sätts i prod när VAPID-key finns i env)
+        })
+        .catch(() => null);
       if (!sub) {
         showToast('Push subscription misslyckades (VAPID-key saknas i dev)', 'info');
         return false;
@@ -573,8 +605,10 @@
   const SHORTCUT_ACTIONS = {
     'global-search': () => {
       const search = document.querySelector('.global-search input, [type="search"]');
-      if (search) { search.focus(); search.select(); }
-      else showToast('Global sök kommer i nästa version', 'info');
+      if (search) {
+        search.focus();
+        search.select();
+      } else showToast('Global sök kommer i nästa version', 'info');
     },
     'send-mail': () => document.querySelector('.composer-send, .send, [data-send-mail]')?.click(),
     'show-shortcuts': () => showShortcutsOverlay(),
@@ -582,15 +616,17 @@
     'open-kunder': () => (window.location.href = '/major-arcana-preview/?view=customers&v9=on'),
     'open-konversationer': () => (window.location.href = '/konversationer.html'),
     'open-analytics': () => (window.location.href = '/analytics.html'),
-    'undo': () => performUndo(),
-    'feedback': () => document.querySelector('.feedback-btn')?.click(),
+    undo: () => performUndo(),
+    feedback: () => document.querySelector('.feedback-btn')?.click(),
     'theme-toggle': () => document.querySelector('.theme-toggle')?.click(),
   };
   let userShortcuts = {};
 
   async function loadUserShortcuts(userId = 'fazli') {
     try {
-      const resp = await fetch(`/api/v1/cco-users/${userId}`, { headers: { 'X-CCO-Role': 'operator' } });
+      const resp = await fetch(`/api/v1/cco-users/${userId}`, {
+        headers: { 'X-CCO-Role': 'operator' },
+      });
       if (!resp.ok) return;
       const u = await resp.json();
       userShortcuts = u.shortcuts || {};
@@ -621,12 +657,17 @@
   });
 
   function showShortcutsOverlay() {
-    const html = Object.entries(userShortcuts).map(([combo, action]) =>
-      `<div style="display:grid;grid-template-columns:120px 1fr;gap:14px;padding:8px 0;border-bottom:1px solid rgba(132,117,107,.14);font-size:12.5px">
+    const html =
+      Object.entries(userShortcuts)
+        .map(
+          ([combo, action]) =>
+            `<div style="display:grid;grid-template-columns:120px 1fr;gap:14px;padding:8px 0;border-bottom:1px solid rgba(132,117,107,.14);font-size:12.5px">
         <kbd style="font-family:SFMono-Regular,Menlo,monospace;background:rgba(132,117,107,.14);padding:3px 9px;border-radius:6px;font-size:11px;font-weight:800;text-align:center">${combo}</kbd>
-        <span style="color:#5a5048">${action.replace(/-/g,' ')}</span>
+        <span style="color:#5a5048">${action.replace(/-/g, ' ')}</span>
       </div>`
-    ).join('') || '<div style="color:#8a8174;font-size:12px;text-align:center;padding:20px">Inga kortkommandon konfigurerade än. Gå till Inställningar → Kortkommandon.</div>';
+        )
+        .join('') ||
+      '<div style="color:#8a8174;font-size:12px;text-align:center;padding:20px">Inga kortkommandon konfigurerade än. Gå till Inställningar → Kortkommandon.</div>';
     openBottomSheet({
       title: '⌘ Dina kortkommandon',
       subtitle: 'Konfigurerade i Inställningar → Kortkommandon',
@@ -637,26 +678,43 @@
 
   // Expose
   window.CCOShortcuts = {
-    register: (combo, action) => { userShortcuts[combo] = action; },
+    register: (combo, action) => {
+      userShortcuts[combo] = action;
+    },
     list: () => userShortcuts,
     actions: SHORTCUT_ACTIONS,
     showHelp: showShortcutsOverlay,
   };
 
   // ─────────── INIT ───────────
+  // Vyn är inbäddad (körs i admin#cco-modalens iframe) när den inte är
+  // toppfönstret. Då hör operatörens dev-chrome — RAPPORTERA, tema-toggle,
+  // ångra och stage-badgen — inte hemma: de tillhör den fristående
+  // dev-previewen, inte produktions-popupflödet.
+  function isEmbedded() {
+    try {
+      return window.self !== window.top;
+    } catch (e) {
+      return true; // cross-origin ⇒ vi kör i en iframe
+    }
+  }
+
   function init() {
     // Theme: applicera direkt så det inte flickrar
     applyTheme(getStoredTheme());
     applyColorPriorities(getColorPriorities());
-    loadUserShortcuts().catch(()=>{});
-    injectThemeToggle();
+    loadUserShortcuts().catch(() => {});
     injectSkipLink();
     augmentA11y();
     stampPrintDate();
     activateVirtualScrolls();
-    injectStageBadge();
-    injectFeedbackButton();
-    injectUndoButton();
+    // Dev-chrome bara i fristående preview, aldrig i det inbäddade popupflödet.
+    if (!isEmbedded()) {
+      injectThemeToggle();
+      injectStageBadge();
+      injectFeedbackButton();
+      injectUndoButton();
+    }
   }
 
   // Expose API
