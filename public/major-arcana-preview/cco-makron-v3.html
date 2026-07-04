@@ -1178,11 +1178,17 @@
         padding: 0.75rem;
         margin-bottom: 0.5rem;
         border-radius: var(--r-md);
-        background: rgba(255, 255, 255, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        transition: transform 0.12s ease;
+        /* Flat list-look (som Konversationer): ingen synlig kant, subtil bg —
+           mindre "kort på kort" i biblioteket. */
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid transparent;
+        box-shadow: none;
+        transition:
+          transform 0.12s ease,
+          background 0.12s ease;
       }
       .macro:hover {
+        background: rgba(255, 255, 255, 0.72);
         transform: translateX(2px);
       }
       .mk-count {
