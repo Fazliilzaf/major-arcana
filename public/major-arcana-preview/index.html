@@ -3690,6 +3690,18 @@
                     defer
                     src="./app/cco-kundkort-referens.js?v=ord47-v1-kundkort-cards-fix1"
                   ></script>
+                  <!-- V11/V12 facit-portar: dual-wire som egna <script> (utöver bundeln)
+                       så CcoV11RailKomplett/CcoV12Canon/CcoV12Spine alltid är definierade
+                       på ?view=customers även om app.bundle.staff-core-hashen 404:ar.
+                       Samma resiliensmönster som patient-master-ui.js/cco-kundkort-referens.js.
+                       Ordning: adapters före renderarna (CcoV11RailAdapters konsumeras vid render). -->
+                  <script
+                    defer
+                    src="./app/cco-v11-rail-adapters.js?v=v11v12-port-wiring-1"
+                  ></script>
+                  <script defer src="./app/cco-v11-rk.js?v=v11v12-port-wiring-1"></script>
+                  <script defer src="./app/cco-v12-spine.js?v=v11v12-port-wiring-1"></script>
+                  <script defer src="./app/cco-v12-canon.js?v=v11v12-port-wiring-1"></script>
                   <script
                     defer
                     src="./app/cco-v9-customers-parity.js?v=hairtp-cloud-fas456-v9"
