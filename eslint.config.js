@@ -27,6 +27,7 @@ module.exports = [
       '**/*.bundle.js',
       'public/major-arcana-preview/app.js',
       'public/major-arcana-preview/runtime-v5-layout-guard.js',
+      'public/cco-polish.js',
     ],
   },
   js.configs.recommended,
