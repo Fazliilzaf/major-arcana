@@ -79,7 +79,7 @@ test('PR13: notiser scopar till vald kund via befintlig notissökning', () => {
 // ── Regler behållna ──────────────────────────────────────────────────────────
 
 test('PR13: bokning/kalender/senare/smart-anteckning orörda, ingen live-send', () => {
-  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-booking-wizard-v3\.html'/);
+  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-ny-bokning\.html'/);
   assert.match(source, /const KALENDER_SRC = '\/kalender\.html'/);
   assert.match(source, /const SENARE_V3_SRC = '\/major-arcana-preview\/cco-senare-v3\.html'/);
   assert.doesNotMatch(source, /sendMail\(|graphSend|messages\/send/);
@@ -88,5 +88,5 @@ test('PR13: bokning/kalender/senare/smart-anteckning orörda, ingen live-send', 
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR13: konversationer.html cache-bustar efter notiser-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704a-bokning/);
 });

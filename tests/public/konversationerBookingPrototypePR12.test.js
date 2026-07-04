@@ -1,9 +1,10 @@
 'use strict';
 
-/* PR 12 — "Öppna bokning" pekar på fulla Bokningsguide v3-ytan.
- * (public/major-arcana-preview/cco-booking-wizard-v3.html) — same origin, INTE file://.
- * Öppnas som panel med vald tråds kontext via samma origin-validerade
- * postMessage-mönster. Ingen live-send.
+/* PR 12 — "Öppna bokning" pekar på "CCO · Ny bokning"-ytan (Boka behandling-
+ * wizarden, public/major-arcana-preview/cco-ny-bokning.html) — same origin, INTE
+ * file://. Detta är användarens uttryckliga, låsta val (INTE den äldre
+ * Bokningsguiden cco-booking-wizard-v3). Öppnas som panel med vald tråds kontext
+ * via samma origin-validerade postMessage-mönster. Ingen live-send.
  */
 
 const assert = require('node:assert/strict');
@@ -14,12 +15,7 @@ const test = require('node:test');
 const repoRoot = path.resolve(__dirname, '../..');
 const actionsPath = path.join(repoRoot, 'public', 'konversationer-bottom-actions.js');
 const htmlPath = path.join(repoRoot, 'public', 'konversationer.html');
-const bookingPath = path.join(
-  repoRoot,
-  'public',
-  'major-arcana-preview',
-  'cco-booking-wizard-v3.html'
-);
+const bookingPath = path.join(repoRoot, 'public', 'major-arcana-preview', 'cco-ny-bokning.html');
 
 const source = fs.readFileSync(actionsPath, 'utf8');
 const html = fs.readFileSync(htmlPath, 'utf8');
@@ -29,17 +25,20 @@ function compact(src) {
   return src.replace(/\s+/g, ' ');
 }
 
-// ── Bokningsguiden finns i repot (ingen file://) ─────────────────────────────
+// ── Boka behandling-wizarden finns i repot (ingen file://) ───────────────────
 
-test('PR12: Bokningsguide v3 finns i repot', () => {
-  assert.match(booking, /<title>CCO — Bokningsguide<\/title>/);
-  assert.match(booking, /Bokningsguide/);
+test('PR12: Ny bokning-wizarden finns i repot', () => {
+  assert.match(booking, /<title>CCO · Ny bokning<\/title>/);
+  assert.match(booking, /Boka behandling/);
 });
 
-// ── "Öppna bokning" pekar på v3-guiden ───────────────────────────────────────
+// ── "Öppna bokning" pekar på cco-ny-bokning (användarens låsta val) ──────────
 
-test('PR12: Öppna bokning pekar på cco-booking-wizard-v3.html via same-origin', () => {
-  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-booking-wizard-v3\.html'/);
+test('PR12: Öppna bokning pekar på cco-ny-bokning.html via same-origin', () => {
+  assert.match(source, /const BOOKING_SRC = '\/major-arcana-preview\/cco-ny-bokning\.html'/);
+  // BOOKING_SRC får inte peka på den äldre Bokningsguiden (kommentar-omnämnande
+  // är ok — vi kollar bara själva konstanten).
+  assert.doesNotMatch(source, /BOOKING_SRC = '[^']*cco-booking-wizard-v3/);
   assert.doesNotMatch(source, /BOOKING_V3_SRC/);
   assert.doesNotMatch(source, /file:\/\//, 'ingen file:// som mål');
   assert.match(source, /function openBokningsyta\(\)/);
@@ -48,7 +47,7 @@ test('PR12: Öppna bokning pekar på cco-booking-wizard-v3.html via same-origin'
 });
 
 test('PR12: bokning öppnas i iframe-panel (openModal wide) med kontext', () => {
-  assert.match(source, /title: 'Bokningsguide'/);
+  assert.match(source, /title: 'Ny bokning'/);
   assert.match(compact(source), /openModal\(\{ title: 'Öppna bokning', wide: true,/);
   assert.match(source, /const context = buildSmartAnteckningContext\(\);/);
   assert.match(
@@ -67,17 +66,16 @@ test('PR12: små fält (kund/email/tråd/ämne/mailbox) skickas i query', () => 
 
 // ── Prototypen tar emot kontexten (origin-validerad) ─────────────────────────
 
-test('PR12: bokningsguiden lyssnar på kontext-postMessage, validerar origin', () => {
+test('PR12: wizarden lyssnar på kontext-postMessage, validerar origin', () => {
   assert.match(booking, /cco:booking:context/);
   assert.match(booking, /event\.origin !== window\.location\.origin/);
   assert.match(booking, /window\.CCO_BOOKING_CONTEXT = context/);
 });
 
-test('PR12: bokningsguiden fyller kundsökningen med vald tråds kund', () => {
+test('PR12: wizarden fyller kund-platsen med vald tråds kund', () => {
   assert.match(booking, /function applyContext\(context\)/);
-  assert.match(booking, /getElementById\('custSearch'\)/);
-  assert.match(booking, /search\.value = name \|\| email/);
-  assert.match(booking, /window\.CUSTOMERS\.unshift/);
+  assert.match(booking, /getElementById\('bkCustName'\)/);
+  assert.match(booking, /getElementById\('bkAiName'\)/);
 });
 
 // ── Regler behållna ──────────────────────────────────────────────────────────
@@ -96,5 +94,5 @@ test('PR12: kalender/senare/smart-anteckning v3 orörda, ingen live-send', () =>
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR12: konversationer.html cache-bustar efter bokningsbyte', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260703z-tabrow/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704a-bokning/);
 });
