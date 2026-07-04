@@ -23,13 +23,14 @@ Eller manuellt: uppdatera `DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS=300` i Rende
 
 ## Senaste verifiering (2026-07-04) — grund för höjning 200 → 300
 
-| Mätpunkt                | Värde före höjning | Notering                           |
-| ----------------------- | ------------------ | ---------------------------------- |
-| **NEEDS_REVIEW**        | **118**            | Alla singletons, `high` confidence |
-| **Canary**              | **200/200**        | Rent pass, `storageKeyChanged=0`   |
-| **`storageKeyChanged`** | **0**              | —                                  |
+| Mätpunkt                | Värde före höjning | Notering                                      |
+| ----------------------- | ------------------ | --------------------------------------------- |
+| **NEEDS_REVIEW**        | **118**            | Alla kvarvarande `high` confidence singletons |
+| **Canary**              | **200/200**        | Kvoten förbrukad — rent pass, inga avvikelser |
+| **`storageKeyChanged`** | **0**              | Inga filer flyttade/raderade                  |
+| **medium i kö**         | **0**              | Endast high-confidence kvar                   |
 
-**Session 100/100 (sammanfattning):** 50 beslut i föregående pass (IMG_3005 manuell + homogena batchar 2–3) + 50 beslut i senaste pass (17 batchar) — totalt **100/100**, `storageKeyChanged=0`, inga 502-loopar.
+**Session 200/200 (sammanfattning):** resterande 16 beslut i senaste en-fil-pass godkändes via samma decide-flöde som UI (`approve` → `VISIBLE_ON_PATIENT_CARD`). Totalt **200/200**, `storageKeyChanged=0`, inga 502-loopar. Kvarvarande kö är high-confidence singletons.
 
 ## Prod-auth (pilot + verify)
 
@@ -52,15 +53,15 @@ DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=cursor-drive-review \
   npm run pilot:drive-import-review-batch-prod -- --size 3 --preview --confirm
 ```
 
-## Efter merge (canary 200)
+## Efter merge (canary 300)
 
 1. `node scripts/apply-drive-import-review-prod.js` (eller manuell Render env + redeploy).
 2. Verifiera: `env -u ARCANA_SMOKE_BEARER_TOKEN npm run verify:drive-import-review-prod`
-   - **DIR-09:** `max=200`
-   - **DIR-13:** `used=100`, `remaining=100`
+   - **DIR-09:** `max=300`
+   - **DIR-13:** `used=200`, `remaining=100`
    - **`storageKeyChanged=0`**
-3. **Fortsätt batchar:** homogena grupper, **`confidence: high`**, **2–3 filer** — se [drive-import-review-batch-pilot.md](./drive-import-review-batch-pilot.md).
-4. **Stoppa** vid 502-loop, `storageKeyChanged > 0` eller osäker matchning (medium/low, blandad patient/confidence i samma batch).
+3. **Fortsätt en-fil-granskning:** kvarvarande filer är high-confidence singletons, så använd UI/decide-flöde en fil i taget.
+4. **Stoppa** vid 502-loop, `storageKeyChanged > 0` eller osäker matchning (medium/low, mismatch mellan mappnamn/personnummer och föreslagen patient).
 5. Efter varje pass: queue minskar, `storageKeyChanged=0`, status `VISIBLE_ON_PATIENT_CARD` / `DUPLICATE` / `REJECTED`.
 
 ## Gränser (oförändrat)
@@ -71,10 +72,11 @@ DRIVE_IMPORT_REVIEW_BATCH_REVIEWER=cursor-drive-review \
 
 ## Historik
 
-| Höjning   | Datum      | Resultat före höjning                         |
-| --------- | ---------- | --------------------------------------------- |
-| 25 → 100  | 2026-07-03 | 25/25 rent, skc=0                             |
-| 100 → 200 | 2026-07-03 | 100/100 rent, queue 218, skc=0, medium 0 kvar |
+| Höjning   | Datum      | Resultat före höjning                           |
+| --------- | ---------- | ----------------------------------------------- |
+| 25 → 100  | 2026-07-03 | 25/25 rent, skc=0                               |
+| 100 → 200 | 2026-07-03 | 100/100 rent, queue 218, skc=0, medium 0 kvar   |
+| 200 → 300 | 2026-07-04 | 200/200 rent, queue 118, skc=0, high singletons |
 
 ## Relaterat
 
