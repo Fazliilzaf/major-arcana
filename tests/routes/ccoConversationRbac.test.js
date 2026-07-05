@@ -74,9 +74,15 @@ async function createFixture() {
 }
 
 function readReq(baseUrl, role) {
+  return readReqByKey(baseUrl, CONV_KEY, role);
+}
+
+function readReqByKey(baseUrl, key, role) {
   const headers = {};
   if (role) headers['x-cco-role'] = role;
-  return fetch(`${baseUrl}/cco/runtime/conversation/${CONV_KEY}/messages`, { headers });
+  return fetch(`${baseUrl}/cco/runtime/conversation/${encodeURIComponent(key)}/messages`, {
+    headers,
+  });
 }
 
 function actionReq(baseUrl, role) {
@@ -166,6 +172,24 @@ test('RBAC: konsult kan läsa tråden (200) men nekas triage-write (403)', async
       0,
       'ingen mutation/audit när read-only-roll nekas write'
     );
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: scoped worklist key resolves stored conversation messages', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const scopedKey = `kons@hairtpclinic.com:${CONV_KEY}`;
+      const read = await readReqByKey(baseUrl, scopedKey, 'operator');
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.conversationKey, scopedKey);
+      assert.equal(body.messageCount, 1);
+      assert.equal(body.messages[0].dir, 'inbound');
+    });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }

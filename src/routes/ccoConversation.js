@@ -9,8 +9,8 @@
  * returnerar bara metadata + senaste preview — denna endpoint ger alla
  * messages med body, from, time och dir så att tråd-vyn visar hela historiken.
  *
- * Datakälla: ccoMailboxTruthStore.listMessages() filtrerat på
- * mailboxConversationId (samma key som returneras som row.id i consumer-modellen).
+ * Datakälla: ccoMailboxTruthStore.listMessages() filtrerat på samma aliasfamilj som
+ * worklist-consumer använder (rå mailboxConversationId + scoped canonical key).
  *
  * Designprinciper:
  *   • Read-only — påverkar inget state.
@@ -22,6 +22,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
+const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
 const { requirePermission } = require('../security/ccoRbac');
 
@@ -222,8 +223,30 @@ function deriveInitials(name) {
 
 function fetchSortedConversationMessages(store, key) {
   if (!store || typeof store.listMessages !== 'function') return [];
+  const safeKey = normalizeText(key);
+  if (!safeKey) return [];
   const all = store.listMessages({});
-  const matches = all.filter((m) => normalizeText(asObject(m).mailboxConversationId) === key);
+  const matches = all.filter((m) => {
+    const message = asObject(m);
+    const mailboxId =
+      normalizeText(message.mailboxId) ||
+      normalizeText(message.mailboxAddress) ||
+      normalizeText(message.userPrincipalName);
+    const aliases = new Set(
+      [
+        normalizeText(message.mailboxConversationId),
+        normalizeText(message.conversationId),
+        normalizeText(message.graphMessageId),
+        toCanonicalMailboxConversationKey({
+          mailboxId,
+          conversationId: message.conversationId,
+          mailboxConversationId: message.mailboxConversationId,
+          messageId: message.graphMessageId,
+        }),
+      ].filter(Boolean)
+    );
+    return aliases.has(safeKey);
+  });
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
