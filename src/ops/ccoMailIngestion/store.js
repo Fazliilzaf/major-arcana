@@ -34,6 +34,68 @@ function cloneJson(value) {
   return value && typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : value;
 }
 
+function htmlToPlainText(input = '') {
+  let text = String(input || '');
+  text = text.replace(/<script[\s\S]*?<\/script>/gi, '');
+  text = text.replace(/<style[\s\S]*?<\/style>/gi, '');
+  text = text.replace(/<(br|hr)\s*\/?>/gi, '\n');
+  text = text.replace(/<\/(p|div|section|article|li|tr|h[1-6])>/gi, '\n');
+  text = text.replace(/<td[^>]*>/gi, '\t');
+  text = text.replace(/<[^>]+>/g, ' ');
+  text = text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+  return text
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function pickBodyHtml(message = {}) {
+  const rawJson = asObject(message.rawJson);
+  const body = asObject(message.body);
+  const rawBody = asObject(message.rawBody);
+  const uniqueBody = asObject(message.uniqueBody);
+  const rawUniqueBody = asObject(message.rawUniqueBody);
+  return (
+    normalizeText(message.bodyHtml) ||
+    normalizeText(rawJson.bodyHtml) ||
+    normalizeText(body.content) ||
+    normalizeText(rawBody.content) ||
+    normalizeText(uniqueBody.content) ||
+    normalizeText(rawUniqueBody.content)
+  );
+}
+
+function deriveTruthBodyText(truthMessage = {}) {
+  const rawJson = asObject(truthMessage.rawJson);
+  const bodyHtml = pickBodyHtml(truthMessage);
+  return (
+    normalizeText(truthMessage.bodyText) ||
+    normalizeText(rawJson.bodyText) ||
+    normalizeText(truthMessage.text) ||
+    normalizeText(rawJson.text) ||
+    htmlToPlainText(bodyHtml) ||
+    normalizeText(truthMessage.bodyPreview)
+  );
+}
+
+function shouldReplaceStoredBodyText(currentText = '', nextText = '', preview = '') {
+  const current = normalizeText(currentText);
+  const next = normalizeText(nextText);
+  if (!next) return false;
+  if (!current) return true;
+  const normalizedPreview = normalizeText(preview);
+  if (normalizedPreview && current === normalizedPreview && next !== current) return true;
+  return next.length > current.length + 20;
+}
+
 function createEmptyState() {
   return {
     modelVersion: 'cco.mail.ingestion.v1',
@@ -313,17 +375,44 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     const dedupeKey = buildDedupeKeyFromTruthMessage(truthMessage);
     const existingRawId = state.dedupeIndex[dedupeKey];
     if (existingRawId && state.mailRawMessages[existingRawId]) {
+      const existingRawMessage = state.mailRawMessages[existingRawId];
+      let enriched = false;
+      const nextBodyText = deriveTruthBodyText(truthMessage);
+      if (
+        shouldReplaceStoredBodyText(
+          existingRawMessage.bodyText,
+          nextBodyText,
+          existingRawMessage.bodyPreview || truthMessage.bodyPreview
+        )
+      ) {
+        existingRawMessage.bodyText = nextBodyText;
+        enriched = true;
+      }
+      const nextBodyHtml = pickBodyHtml(truthMessage);
+      if (nextBodyHtml) {
+        const rawJson = asObject(existingRawMessage.rawJson);
+        if (!normalizeText(rawJson.bodyHtml)) {
+          existingRawMessage.rawJson = { ...rawJson, bodyHtml: nextBodyHtml };
+          existingRawMessage.bodyHtmlStored = true;
+          enriched = true;
+        }
+      }
       const existingLedger = getLedgerByRawMessageId(existingRawId);
+      let queued = false;
       if (
         existingLedger &&
         !shouldSkipProcessing(existingLedger) &&
         !state.processingQueue.includes(existingRawId)
       ) {
         state.processingQueue.push(existingRawId);
+        queued = true;
+      }
+      if (enriched || queued) {
+        state.mailRawMessages[existingRawId] = existingRawMessage;
         await save();
       }
       return {
-        rawMessage: state.mailRawMessages[existingRawId],
+        rawMessage: existingRawMessage,
         duplicate: true,
         created: false,
         ledger: existingLedger,
@@ -359,8 +448,8 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       sentDateTime: normalizeText(truthMessage.sentAt || truthMessage.sentDateTime) || null,
       hasAttachments: truthMessage.hasAttachments === true,
       bodyPreview: normalizeText(truthMessage.bodyPreview) || '',
-      bodyText: normalizeText(truthMessage.bodyText) || normalizeText(truthMessage.bodyPreview),
-      bodyHtmlStored: false,
+      bodyText: deriveTruthBodyText(truthMessage),
+      bodyHtmlStored: Boolean(pickBodyHtml(truthMessage)),
       rawJson: cloneJson(truthMessage),
       importRunId,
       dedupeKey,

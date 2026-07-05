@@ -27,7 +27,11 @@ test('konversationer live inbox uses kons worklist consumer as first real data s
   assert.match(html, /credentials:\s*'include'/);
   assert.match(html, /headers:\s*withAdminAuthHeaders\(\{\s*Accept:\s*'application\/json'\s*\}\)/);
   assert.doesNotMatch(html, /const THREADS\s*=/, 'old demo THREADS primary source must not remain');
-  assert.match(html, /const DEMO_THREADS\s*=/, 'demo data can remain for explicit local preview only');
+  assert.match(
+    html,
+    /const DEMO_THREADS\s*=/,
+    'demo data can remain for explicit local preview only'
+  );
   assert.match(html, /const STATIC_DEMO_PREVIEW\s*=/);
   assert.match(html, /window\.location\.protocol === 'file:'/);
   assert.match(html, /get\('demo'\) === '1'/);
@@ -80,9 +84,15 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   const html = readHtml();
 
   assert.match(html, /function openConversationThread\(thread\)/);
+  assert.match(html, /messageLookupKeys/);
+  assert.match(html, /rollup\.underlyingConversationKeys/);
+  assert.match(html, /rollup\.underlyingConversationIds/);
+  assert.match(html, /memberKeys:\s*messageLookupKeys/);
+  assert.match(html, /const memberKeysParam = lookupKeys\.length/);
+  assert.match(html, /\?memberKeys=\$\{encodeURIComponent\(lookupKeys\.join\(','\)\)\}/);
   assert.match(
     html,
-    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(thread\.conversationKey\)\}\/messages/
+    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(thread\.conversationKey\)\}\/messages\$\{memberKeysParam\}/
   );
   assert.match(html, /function renderThreadMessages\(thread, messages\)/);
   assert.match(html, /data-thread-id="\$\{escapeHtml\(t\.id\)\}"/);

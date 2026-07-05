@@ -4,9 +4,16 @@ const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 
-const { buildDedupeKey, buildDedupeKeyFromTruthMessage } = require('../../src/ops/ccoMailIngestion/dedupe');
+const {
+  buildDedupeKey,
+  buildDedupeKeyFromTruthMessage,
+} = require('../../src/ops/ccoMailIngestion/dedupe');
 const { createCcoMailIngestionStore } = require('../../src/ops/ccoMailIngestion/store');
-const { processRawMessage, evaluateSourceFilter, matchPatientOrEntity } = require('../../src/ops/ccoMailIngestion/pipeline');
+const {
+  processRawMessage,
+  evaluateSourceFilter,
+  matchPatientOrEntity,
+} = require('../../src/ops/ccoMailIngestion/pipeline');
 const {
   validateClientState,
   parseNotificationMailboxEmail,
@@ -69,6 +76,78 @@ test('ingestion store dedupes raw messages by dedupeKey', async () => {
 
   assert.equal(first.created, true);
   assert.equal(second.duplicate, true);
+  await fs.unlink(filePath).catch(() => {});
+});
+
+test('saveRawMessageFromTruth derives full body text from Graph bodyHtml', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-body-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'kons@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id, mode: 'initial_sync' });
+
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'kons@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-full-body-1',
+      internetMessageId: '<full-body-1@example.com>',
+      subject: 'Kontaktformulär',
+      bodyPreview: 'Kort preview som Graph kapar...',
+      bodyHtml:
+        '<div>Första raden från kontaktformuläret.</div><div>Andra raden med fler detaljer &amp; samtycke.</div>',
+      from: { address: 'patient@example.com', name: 'Patient' },
+      receivedAt: '2026-05-26T10:00:00.000Z',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+
+  assert.equal(saved.created, true);
+  assert.match(saved.rawMessage.bodyText, /Första raden från kontaktformuläret/);
+  assert.match(saved.rawMessage.bodyText, /Andra raden med fler detaljer & samtycke/);
+  assert.notEqual(saved.rawMessage.bodyText, saved.rawMessage.bodyPreview);
+  assert.equal(saved.rawMessage.bodyHtmlStored, true);
+  await fs.unlink(filePath).catch(() => {});
+});
+
+test('duplicate truth import upgrades preview-only raw body when full body arrives later', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-body-upgrade-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'kons@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id, mode: 'initial_sync' });
+
+  const previewOnly = {
+    mailboxId: 'kons@hairtpclinic.com',
+    folderType: 'inbox',
+    graphMessageId: 'graph-full-body-2',
+    internetMessageId: '<full-body-2@example.com>',
+    subject: 'Kontaktformulär',
+    bodyPreview: 'Kort preview...',
+    from: { address: 'patient@example.com', name: 'Patient' },
+    receivedAt: '2026-05-26T10:00:00.000Z',
+  };
+  const first = await store.saveRawMessageFromTruth({
+    truthMessage: previewOnly,
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+  assert.equal(first.rawMessage.bodyText, 'Kort preview...');
+
+  const second = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      ...previewOnly,
+      bodyHtml:
+        '<p>Kort preview.</p><p>Här finns resten av mailet som saknades i första körningen.</p>',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+
+  assert.equal(second.duplicate, true);
+  assert.equal(second.rawMessage.id, first.rawMessage.id);
+  assert.match(second.rawMessage.bodyText, /resten av mailet som saknades/);
+  assert.notEqual(second.rawMessage.bodyText, 'Kort preview...');
+  assert.equal(store.getRawMessage(first.rawMessage.id).bodyHtmlStored, true);
   await fs.unlink(filePath).catch(() => {});
 });
 

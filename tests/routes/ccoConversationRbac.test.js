@@ -82,10 +82,10 @@ function readReq(baseUrl, role) {
   return readReqByKey(baseUrl, CONV_KEY, role);
 }
 
-function readReqByKey(baseUrl, key, role) {
+function readReqByKey(baseUrl, key, role, query = '') {
   const headers = {};
   if (role) headers['x-cco-role'] = role;
-  return fetch(`${baseUrl}/cco/runtime/conversation/${encodeURIComponent(key)}/messages`, {
+  return fetch(`${baseUrl}/cco/runtime/conversation/${encodeURIComponent(key)}/messages${query}`, {
     headers,
   });
 }
@@ -259,6 +259,76 @@ test('messages: raw ingestion fallback renders thread when truth alias lookup is
       assert.equal(body.messages[0].fromEmail, CUSTOMER);
       assert.equal(body.messages[0].mailboxAddress, 'kons@hairtpclinic.com');
       assert.equal(body.messages[0].body, 'Full text från ingestion-storen.');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: rollup key can resolve messages through explicit underlying aliases', async () => {
+  const fixture = await createFixture({
+    messages: [
+      {
+        mailboxConversationId: 'underlying-thread-1',
+        conversationId: 'underlying-thread-1',
+        graphMessageId: 'graph-underlying-1',
+        senderEmail: CUSTOMER,
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxAddress: 'kons@hairtpclinic.com',
+        folderType: 'inbox',
+        sentAt: '2025-01-01T10:00:00.000Z',
+        bodyText: 'Meddelandet hör till underliggande trådnyckel.',
+      },
+    ],
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReqByKey(
+        baseUrl,
+        'rollup:customer:kons',
+        'operator',
+        '?aliases=underlying-thread-1,kons%40hairtpclinic.com%3Aunderlying-thread-1'
+      );
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.conversationKey, 'rollup:customer:kons');
+      assert.equal(body.messageCount, 1);
+      assert.equal(body.messages[0].body, 'Meddelandet hör till underliggande trådnyckel.');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: raw html uniqueBody is preferred before short preview', async () => {
+  const fixture = await createFixture({
+    messages: [
+      {
+        mailboxConversationId: CONV_KEY,
+        senderEmail: CUSTOMER,
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxAddress: 'kons@hairtpclinic.com',
+        folderType: 'inbox',
+        sentAt: '2025-01-01T10:00:00.000Z',
+        bodyPreview: 'Kort preview',
+        rawJson: {
+          uniqueBody: {
+            content:
+              '<html><body><p>Full text från uniqueBody.</p><p>Rad två från kontaktformulär.</p></body></html>',
+          },
+        },
+      },
+    ],
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReq(baseUrl, 'operator');
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.match(body.messages[0].body, /Full text från uniqueBody/);
+      assert.match(body.messages[0].body, /Rad två från kontaktformulär/);
+      assert.notEqual(body.messages[0].body, 'Kort preview');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

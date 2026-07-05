@@ -208,6 +208,8 @@ function deriveBody(message) {
   const body = asObject(safe.body);
   const rawJson = asObject(safe.rawJson);
   const rawBody = asObject(rawJson.body);
+  const rawUniqueBody = asObject(rawJson.uniqueBody);
+  const uniqueBody = asObject(safe.uniqueBody);
   const mailDocument = asObject(safe.mailDocument);
   return (
     normalizeText(safe.bodyText) ||
@@ -215,13 +217,17 @@ function deriveBody(message) {
     normalizeText(safe.text) ||
     normalizeText(mailDocument.primaryBodyText) ||
     extractTextFromHtml(mailDocument.primaryBodyHtml) ||
+    normalizeText(typeof safe.body === 'string' ? safe.body : '') ||
+    normalizeText(typeof rawJson.body === 'string' ? rawJson.body : '') ||
     extractTextFromHtml(safe.bodyHtml) ||
     extractTextFromHtml(safe.body_html) ||
+    extractTextFromHtml(uniqueBody.content) ||
     extractTextFromHtml(body.content) ||
     normalizeText(rawJson.bodyText) ||
     normalizeText(rawJson.body_text) ||
     extractTextFromHtml(rawJson.bodyHtml) ||
     extractTextFromHtml(rawJson.body_html) ||
+    extractTextFromHtml(rawUniqueBody.content) ||
     extractTextFromHtml(rawBody.content) ||
     normalizeText(safe.bodyPreview) ||
     normalizeText(safe.preview) ||
@@ -229,6 +235,61 @@ function deriveBody(message) {
     normalizeText(rawJson.bodyPreview) ||
     ''
   );
+}
+
+function parseConversationAliasQuery(query = {}) {
+  const raw = query.aliases || query.alias || query.keys || query.key;
+  return Array.from(
+    new Set(
+      String(raw || '')
+        .split(',')
+        .map((item) => normalizeText(item))
+        .filter(Boolean)
+    )
+  ).slice(0, 12);
+}
+
+function parseConversationMemberKeysQuery(query = {}) {
+  return Array.from(
+    new Set(
+      [
+        ...String(query.memberKeys || '')
+          .split(',')
+          .map((item) => normalizeText(item)),
+        ...parseConversationAliasQuery(query),
+      ].filter(Boolean)
+    )
+  ).slice(0, 50);
+}
+
+function dedupeConversationMessages(messages = []) {
+  const seen = new Set();
+  return (Array.isArray(messages) ? messages : []).filter((message) => {
+    const safe = asObject(message);
+    const key =
+      normalizeText(safe.graphMessageId) ||
+      normalizeText(safe.messageId) ||
+      normalizeText(safe.rawMessageId) ||
+      normalizeText(safe.id) ||
+      [
+        normalizeText(safe.mailboxId || safe.mailboxAddress),
+        normalizeText(safe.conversationId || safe.mailboxConversationId),
+        normalizeText(safe.sentAt || safe.receivedAt),
+        normalizeText(safe.bodyPreview || safe.preview || safe.snippet).slice(0, 120),
+      ]
+        .filter(Boolean)
+        .join(':');
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function fetchSortedConversationMessagesForKeys(store, keys = []) {
+  return dedupeConversationMessages(
+    keys.flatMap((key) => fetchSortedConversationMessages(store, key))
+  ).sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
 function deriveInitials(name) {
@@ -359,6 +420,12 @@ function fetchSortedIngestionConversationMessages(store, key) {
     .map(toConversationMessageFromRaw)
     .filter((message) => buildConversationAliases(message).has(safeKey));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+}
+
+function fetchSortedIngestionConversationMessagesForKeys(store, keys = []) {
+  return dedupeConversationMessages(
+    keys.flatMap((key) => fetchSortedIngestionConversationMessages(store, key))
+  ).sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
 function buildIngestionMessageLookup(store) {
@@ -610,15 +677,13 @@ function createCcoConversationRouter({
         }
         // Rollup-rader: UI:t skickar med medlemsnycklarna (underlyingConversationKeys)
         // så hela kundtråden hämtas ur lokala truth-storen i ett svep.
-        const memberKeys = normalizeText(req.query.memberKeys)
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean)
-          .slice(0, 50);
+        // Äldre klienter/tester kan fortfarande skicka aliases; de unioneras in här.
+        const memberKeys = parseConversationMemberKeysQuery(req.query);
+        const lookupKeys = [key, ...memberKeys];
         const truthMessages = fetchSortedConversationMessages(ccoMailboxTruthStore, key, memberKeys);
         const sorted = truthMessages.length
           ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore)
-          : fetchSortedIngestionConversationMessages(mailIngestionStore, key);
+          : fetchSortedIngestionConversationMessagesForKeys(mailIngestionStore, lookupKeys);
         const messages = sorted.map((m) => {
           const safe = asObject(m);
           const from = deriveFromName(safe);
