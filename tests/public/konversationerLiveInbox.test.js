@@ -89,6 +89,12 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /messageLookupKeys/);
   assert.match(html, /rollup\.underlyingConversationKeys/);
   assert.match(html, /rollup\.underlyingConversationIds/);
+  assert.match(html, /const scopedPrimaryConversationKey\s*=/);
+  assert.match(
+    html,
+    /normalizeText\(scopedPrimaryConversationKey\)\s*\|\|\s*normalizeText\(row\.conversationKey\)/,
+    'scopad kontaktformulärnyckel från raden ska vinna över rå conversationKey'
+  );
   assert.match(html, /const primaryConversationKey\s*=/);
   assert.match(
     html,
