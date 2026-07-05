@@ -48,7 +48,7 @@ const MESSAGES = [
   },
 ];
 
-async function createFixture() {
+async function createFixture({ messages = MESSAGES, ingestionState = null } = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-rbac-'));
   const auditEvents = [];
   const conversationStateStore = await createCcoConversationStateStore({
@@ -59,7 +59,12 @@ async function createFixture() {
   app.use(
     '/api/v1',
     createCcoConversationRouter({
-      ccoMailboxTruthStore: { listMessages: () => MESSAGES },
+      ccoMailboxTruthStore: { listMessages: () => messages },
+      mailIngestionStore: ingestionState
+        ? {
+            getState: () => ingestionState,
+          }
+        : null,
       ccoConversationStateStore: conversationStateStore,
       defaultTenantId: 'cco',
       authStore: {
@@ -189,6 +194,117 @@ test('messages: scoped worklist key resolves stored conversation messages', asyn
       assert.equal(body.conversationKey, scopedKey);
       assert.equal(body.messageCount, 1);
       assert.equal(body.messages[0].dir, 'inbound');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: full body fields are preferred before preview snippets', async () => {
+  const fixture = await createFixture({
+    messages: [
+      {
+        mailboxConversationId: CONV_KEY,
+        senderEmail: CUSTOMER,
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxAddress: 'kons@hairtpclinic.com',
+        folderType: 'inbox',
+        sentAt: '2025-01-01T10:00:00.000Z',
+        bodyPreview: 'Kort preview som inte räcker',
+        bodyText: 'Hela mailet från Graph med alla rader och detaljer.',
+      },
+    ],
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReq(baseUrl, 'operator');
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.equal(body.messageCount, 1);
+      assert.equal(body.messages[0].body, 'Hela mailet från Graph med alla rader och detaljer.');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: raw ingestion fallback renders thread when truth alias lookup is empty', async () => {
+  const fixture = await createFixture({
+    messages: [],
+    ingestionState: {
+      mailRawMessages: {
+        raw_1: {
+          id: 'raw_1',
+          rawMessageId: 'raw_1',
+          graphMessageId: 'graph-1',
+          conversationId: CONV_KEY,
+          mailboxId: 'kons@hairtpclinic.com',
+          folderType: 'inbox',
+          fromEmail: CUSTOMER,
+          fromName: 'Live Kund',
+          subject: 'Live kontaktformulär',
+          bodyPreview: 'Preview',
+          bodyText: 'Full text från ingestion-storen.',
+          receivedAt: '2025-01-01T10:00:00.000Z',
+        },
+      },
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReqByKey(baseUrl, 'kons@hairtpclinic.com:conv-rbac-1', 'operator');
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.equal(body.messageCount, 1);
+      assert.equal(body.messages[0].fromEmail, CUSTOMER);
+      assert.equal(body.messages[0].mailboxAddress, 'kons@hairtpclinic.com');
+      assert.equal(body.messages[0].body, 'Full text från ingestion-storen.');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: truth preview rows are enriched with raw ingestion full body', async () => {
+  const fixture = await createFixture({
+    messages: [
+      {
+        mailboxConversationId: CONV_KEY,
+        conversationId: CONV_KEY,
+        graphMessageId: 'graph-1',
+        senderEmail: CUSTOMER,
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxAddress: 'kons@hairtpclinic.com',
+        folderType: 'inbox',
+        sentAt: '2025-01-01T10:00:00.000Z',
+        bodyPreview: 'Kort avhuggen preview...',
+      },
+    ],
+    ingestionState: {
+      mailRawMessages: {
+        raw_1: {
+          id: 'raw_1',
+          graphMessageId: 'graph-1',
+          conversationId: CONV_KEY,
+          mailboxId: 'kons@hairtpclinic.com',
+          folderType: 'inbox',
+          fromEmail: CUSTOMER,
+          fromName: 'Live Kund',
+          subject: 'Live kontaktformulär',
+          bodyPreview: 'Kort avhuggen preview...',
+          bodyText: 'Fullt mail från raw ingestion, inte bara preview.',
+          receivedAt: '2025-01-01T10:00:00.000Z',
+        },
+      },
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReq(baseUrl, 'operator');
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.equal(body.messageCount, 1);
+      assert.equal(body.messages[0].body, 'Fullt mail från raw ingestion, inte bara preview.');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
