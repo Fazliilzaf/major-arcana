@@ -27,7 +27,30 @@ test('konversationer live inbox uses kons worklist consumer as first real data s
   assert.match(html, /credentials:\s*'include'/);
   assert.match(html, /headers:\s*\{\s*Accept:\s*'application\/json'\s*\}/);
   assert.doesNotMatch(html, /const THREADS\s*=/, 'old demo THREADS primary source must not remain');
-  assert.match(html, /const DEMO_THREADS\s*=/, 'demo fallback can remain for file preview only');
+  assert.match(html, /const DEMO_THREADS\s*=/, 'demo data can remain for explicit local preview only');
+  assert.match(html, /const STATIC_DEMO_PREVIEW\s*=/);
+  assert.match(html, /window\.location\.protocol === 'file:'/);
+  assert.match(html, /get\('demo'\) === '1'/);
+  assert.match(
+    html,
+    /let currentThreads = STATIC_DEMO_PREVIEW \? DEMO_THREADS : \[\]/,
+    'web/admin must start from live-only state, not demo threads'
+  );
+  assert.doesNotMatch(
+    html,
+    /visar demo tills inloggning\/data finns/,
+    'web/admin must not silently fall back to demo when live fetch fails'
+  );
+});
+
+test('konversationer web/admin shows explicit live STOP states instead of demo fallback', () => {
+  const html = readHtml();
+
+  assert.match(html, /function renderLiveInboxStatus\(title, message, tone = 'info'\)/);
+  assert.match(html, /function renderLivePaneStatus\(title, message, tone = 'info'\)/);
+  assert.match(html, /Demo visas inte i admin\/webb/);
+  assert.match(html, /Detta är ett STOP-läge, inte demo/);
+  assert.match(html, /demo är avstängd i webb\/admin/);
 });
 
 test('konversationer inbox tabs are explicit filters for live rows', () => {
