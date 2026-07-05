@@ -203,6 +203,51 @@ function deriveTime(message) {
   );
 }
 
+function normalizeBodyText(value = '') {
+  return normalizeText(value)
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function addBodyCandidate(candidates, source, text, { previewLike = false, rank = 0 } = {}) {
+  const normalized = normalizeBodyText(text);
+  if (!normalized) return;
+  candidates.push({ source, text: normalized, previewLike, rank });
+}
+
+function pickBestBodyCandidate(candidates = [], preview = '') {
+  const normalizedPreview = normalizeBodyText(preview);
+  const seen = new Set();
+  const unique = [];
+  for (const candidate of candidates) {
+    const key = candidate.text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(candidate);
+  }
+  if (!unique.length) return '';
+  unique.sort((a, b) => {
+    const aPreviewLike =
+      a.previewLike ||
+      (normalizedPreview &&
+        a.text.length <= normalizedPreview.length + 12 &&
+        normalizedPreview.startsWith(a.text.slice(0, Math.min(24, a.text.length))));
+    const bPreviewLike =
+      b.previewLike ||
+      (normalizedPreview &&
+        b.text.length <= normalizedPreview.length + 12 &&
+        normalizedPreview.startsWith(b.text.slice(0, Math.min(24, b.text.length))));
+    if (aPreviewLike !== bPreviewLike) return aPreviewLike ? 1 : -1;
+    if (a.rank !== b.rank) return b.rank - a.rank;
+    return b.text.length - a.text.length;
+  });
+  return unique[0].text;
+}
+
 function deriveBody(message) {
   const safe = asObject(message);
   const body = asObject(safe.body);
@@ -211,30 +256,60 @@ function deriveBody(message) {
   const rawUniqueBody = asObject(rawJson.uniqueBody);
   const uniqueBody = asObject(safe.uniqueBody);
   const mailDocument = asObject(safe.mailDocument);
-  return (
-    normalizeText(safe.bodyText) ||
-    normalizeText(safe.body_text) ||
-    normalizeText(safe.text) ||
-    normalizeText(mailDocument.primaryBodyText) ||
-    extractTextFromHtml(mailDocument.primaryBodyHtml) ||
-    normalizeText(typeof safe.body === 'string' ? safe.body : '') ||
-    normalizeText(typeof rawJson.body === 'string' ? rawJson.body : '') ||
-    extractTextFromHtml(safe.bodyHtml) ||
-    extractTextFromHtml(safe.body_html) ||
-    extractTextFromHtml(uniqueBody.content) ||
-    extractTextFromHtml(body.content) ||
-    normalizeText(rawJson.bodyText) ||
-    normalizeText(rawJson.body_text) ||
-    extractTextFromHtml(rawJson.bodyHtml) ||
-    extractTextFromHtml(rawJson.body_html) ||
-    extractTextFromHtml(rawUniqueBody.content) ||
-    extractTextFromHtml(rawBody.content) ||
+  const preview =
     normalizeText(safe.bodyPreview) ||
     normalizeText(safe.preview) ||
     normalizeText(safe.snippet) ||
-    normalizeText(rawJson.bodyPreview) ||
-    ''
+    normalizeText(rawJson.bodyPreview);
+  const candidates = [];
+  addBodyCandidate(candidates, 'mailDocument.primaryBodyText', mailDocument.primaryBodyText, {
+    rank: 9,
+  });
+  addBodyCandidate(
+    candidates,
+    'mailDocument.primaryBodyHtml',
+    extractTextFromHtml(mailDocument.primaryBodyHtml),
+    { rank: 9 }
   );
+  addBodyCandidate(candidates, 'rawJson.body.content', extractTextFromHtml(rawBody.content), {
+    rank: 8,
+  });
+  addBodyCandidate(
+    candidates,
+    'rawJson.uniqueBody.content',
+    extractTextFromHtml(rawUniqueBody.content),
+    { rank: 8 }
+  );
+  addBodyCandidate(candidates, 'safe.body.content', extractTextFromHtml(body.content), {
+    rank: 7,
+  });
+  addBodyCandidate(candidates, 'safe.uniqueBody.content', extractTextFromHtml(uniqueBody.content), {
+    rank: 7,
+  });
+  addBodyCandidate(candidates, 'safe.bodyHtml', extractTextFromHtml(safe.bodyHtml), { rank: 7 });
+  addBodyCandidate(candidates, 'safe.body_html', extractTextFromHtml(safe.body_html), { rank: 7 });
+  addBodyCandidate(candidates, 'rawJson.bodyHtml', extractTextFromHtml(rawJson.bodyHtml), {
+    rank: 7,
+  });
+  addBodyCandidate(candidates, 'rawJson.body_html', extractTextFromHtml(rawJson.body_html), {
+    rank: 7,
+  });
+  addBodyCandidate(candidates, 'safe.bodyText', safe.bodyText, { rank: 5 });
+  addBodyCandidate(candidates, 'safe.body_text', safe.body_text, { rank: 5 });
+  addBodyCandidate(candidates, 'safe.text', safe.text, { rank: 5 });
+  addBodyCandidate(candidates, 'rawJson.bodyText', rawJson.bodyText, { rank: 5 });
+  addBodyCandidate(candidates, 'rawJson.body_text', rawJson.body_text, { rank: 5 });
+  addBodyCandidate(candidates, 'safe.bodyString', typeof safe.body === 'string' ? safe.body : '', {
+    rank: 4,
+  });
+  addBodyCandidate(
+    candidates,
+    'rawJson.bodyString',
+    typeof rawJson.body === 'string' ? rawJson.body : '',
+    { rank: 4 }
+  );
+  addBodyCandidate(candidates, 'preview', preview, { previewLike: true, rank: 1 });
+  return pickBestBodyCandidate(candidates, preview);
 }
 
 function parseConversationAliasQuery(query = {}) {
@@ -680,7 +755,11 @@ function createCcoConversationRouter({
         // Äldre klienter/tester kan fortfarande skicka aliases; de unioneras in här.
         const memberKeys = parseConversationMemberKeysQuery(req.query);
         const lookupKeys = [key, ...memberKeys];
-        const truthMessages = fetchSortedConversationMessages(ccoMailboxTruthStore, key, memberKeys);
+        const truthMessages = fetchSortedConversationMessages(
+          ccoMailboxTruthStore,
+          key,
+          memberKeys
+        );
         const sorted = truthMessages.length
           ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore)
           : fetchSortedIngestionConversationMessagesForKeys(mailIngestionStore, lookupKeys);

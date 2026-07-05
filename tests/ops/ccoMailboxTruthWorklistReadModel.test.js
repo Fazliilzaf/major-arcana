@@ -147,6 +147,71 @@ test('worklist read model keeps human replies actionable even after automated re
   assert.equal(consumer.rows[0].state.messageClassification, 'actionable');
 });
 
+test('worklist read model splits website contact forms by embedded customer email', () => {
+  const model = createCcoMailboxTruthWorklistReadModel({
+    store: {
+      listMessages() {
+        return [
+          {
+            mailboxId: 'kons@hairtpclinic.com',
+            mailboxAddress: 'kons@hairtpclinic.com',
+            userPrincipalName: 'kons@hairtpclinic.com',
+            mailboxConversationId: 'kons@hairtpclinic.com:wp-form-sudarshan',
+            conversationId: 'wp-form-sudarshan',
+            graphMessageId: 'wp-msg-sudarshan',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Sudarshan Kontaktformulär',
+            bodyPreview:
+              'Från: Sudarshan E-post: sudarshan@example.com Telefon: 0701112233 Hur kan vi hjälpa dig?',
+            bodyText:
+              'Från: Sudarshan E-post: sudarshan@example.com Telefon: 0701112233 Hur kan vi hjälpa dig?',
+            from: {
+              address: 'wordpress@hairtpclinic.se',
+              name: 'WordPress',
+            },
+            receivedAt: '2026-07-05T10:00:00.000Z',
+          },
+          {
+            mailboxId: 'kons@hairtpclinic.com',
+            mailboxAddress: 'kons@hairtpclinic.com',
+            userPrincipalName: 'kons@hairtpclinic.com',
+            mailboxConversationId: 'kons@hairtpclinic.com:wp-form-blend',
+            conversationId: 'wp-form-blend',
+            graphMessageId: 'wp-msg-blend',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Blend Bytyci Kontaktformulär',
+            bodyPreview:
+              'Från: Blend Bytyci E-post: blend@example.com Telefon: 0704445566 Hur kan vi hjälpa dig?',
+            bodyText:
+              'Från: Blend Bytyci E-post: blend@example.com Telefon: 0704445566 Hur kan vi hjälpa dig?',
+            from: {
+              address: 'wordpress@hairtpclinic.se',
+              name: 'WordPress',
+            },
+            receivedAt: '2026-07-05T11:00:00.000Z',
+          },
+        ];
+      },
+    },
+  });
+
+  const consumer = model.buildConsumerModel({
+    mailboxIds: ['kons@hairtpclinic.com'],
+  });
+
+  assert.equal(consumer.rows.length, 2);
+  const emails = consumer.rows.map((row) => row.customer.email).sort();
+  assert.deepEqual(emails, ['blend@example.com', 'sudarshan@example.com']);
+  assert.equal(
+    consumer.rows.some((row) => row.customer.email === 'wordpress@hairtpclinic.se'),
+    false
+  );
+});
+
 test('worklist consumer visar besvarade kundtrådar i Alla utan needsReply', () => {
   const model = createCcoMailboxTruthWorklistReadModel({
     store: {

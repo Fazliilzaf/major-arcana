@@ -4,6 +4,7 @@ const {
   resolveCounterpartyDisplayName,
   resolveCounterpartyIdentity,
 } = require('./ccoCounterpartyTruth');
+const { resolveContactFormIdentity } = require('./ccoContactFormIdentity');
 const { classifyConversationMessage } = require('../intelligence/messageClassification');
 
 function normalizeText(value) {
@@ -341,6 +342,21 @@ function deriveCounterparty(message = {}, mailboxId = '') {
         name: outbound.name,
         rawName: outbound.rawName,
         fallbackLabel: outbound.fallbackLabel,
+      };
+    }
+  }
+  if (direction === 'inbound' || folderType === 'inbox') {
+    const contactFormIdentity = resolveContactFormIdentity(safeMessage);
+    if (contactFormIdentity?.email) {
+      const displayName =
+        normalizeText(contactFormIdentity.name) ||
+        humanizeCounterpartyEmail(contactFormIdentity.email) ||
+        contactFormIdentity.email;
+      return {
+        email: contactFormIdentity.email,
+        name: displayName,
+        rawName: normalizeText(contactFormIdentity.name) || null,
+        fallbackLabel: displayName,
       };
     }
   }
