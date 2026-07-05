@@ -4,7 +4,10 @@ const {
   resolveCounterpartyDisplayName,
   resolveCounterpartyIdentity,
 } = require('./ccoCounterpartyTruth');
-const { resolveContactFormIdentity } = require('./ccoContactFormIdentity');
+const {
+  resolveContactFormIdentity,
+  scopeContactFormConversationKey,
+} = require('./ccoContactFormIdentity');
 const { classifyConversationMessage } = require('../intelligence/messageClassification');
 
 function normalizeText(value) {
@@ -269,6 +272,39 @@ function toCanonicalMailboxConversationKey({
   if (safeConversationId) return normalizeScopedValue(safeConversationId);
   if (safeMailboxId && safeMessageId) return `${safeMailboxId}:graph:${safeMessageId}`;
   return '';
+}
+
+function deriveBaseConversationKey(message = {}) {
+  const safeMessage = asObject(message);
+  const mailboxId = normalizeMailboxId(
+    safeMessage.mailboxId || safeMessage.mailboxAddress || safeMessage.userPrincipalName
+  );
+  const mailboxConversationId =
+    normalizeText(safeMessage.mailboxConversationId) ||
+    normalizeText(safeMessage.conversationId) ||
+    normalizeText(safeMessage.graphMessageId);
+  if (!mailboxId || !mailboxConversationId) return '';
+  return toCanonicalMailboxConversationKey({
+    mailboxId,
+    conversationId: safeMessage.conversationId,
+    mailboxConversationId,
+    messageId: safeMessage.graphMessageId,
+  });
+}
+
+function collectContactFormEmailsByBaseKey(messages = []) {
+  const byBaseKey = new Map();
+  for (const rawMessage of asArray(messages)) {
+    const message = asObject(rawMessage);
+    const baseKey = deriveBaseConversationKey(message);
+    if (!baseKey) continue;
+    const identity = resolveContactFormIdentity(message);
+    if (!identity?.email) continue;
+    const existing = byBaseKey.get(baseKey) || new Set();
+    existing.add(identity.email);
+    byBaseKey.set(baseKey, existing);
+  }
+  return byBaseKey;
 }
 
 function deriveLatestSortIso(message = {}) {
@@ -950,6 +986,7 @@ function createCcoMailboxTruthWorklistReadModel({
       folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
     });
     const grouped = new Map();
+    const contactFormEmailsByBaseKey = collectContactFormEmailsByBaseKey(messages);
 
     for (const rawMessage of messages) {
       const message = asObject(rawMessage);
@@ -961,12 +998,17 @@ function createCcoMailboxTruthWorklistReadModel({
         normalizeText(message.conversationId) ||
         normalizeText(message.graphMessageId);
       if (!mailboxId || !mailboxConversationId) continue;
-      const key = toCanonicalMailboxConversationKey({
+      const baseKey = toCanonicalMailboxConversationKey({
         mailboxId,
         conversationId: message.conversationId,
         mailboxConversationId,
         messageId: message.graphMessageId,
       });
+      const key = scopeContactFormConversationKey(
+        baseKey,
+        message,
+        contactFormEmailsByBaseKey.get(baseKey)
+      );
       if (!key) continue;
 
       const entry = grouped.get(key) || {
