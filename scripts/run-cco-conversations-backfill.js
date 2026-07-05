@@ -87,6 +87,44 @@ function summarizeWorklist(payload) {
   };
 }
 
+/* Exempelrader för bevisrapporten — ENBART metadatafält (conversationKey,
+ * brevlåda, senaste inkommande, needsReply, kundmatch-status). Ämnen och
+ * brödtext skrivs aldrig ut. */
+function sampleWorklistRows(payload, limit = 5) {
+  const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+  return rows
+    .slice()
+    .sort((a, b) =>
+      String(b?.lastInboundAt || b?.timing?.lastInboundAt || '').localeCompare(
+        String(a?.lastInboundAt || a?.timing?.lastInboundAt || '')
+      )
+    )
+    .slice(0, Math.max(0, limit))
+    .map((row) => ({
+      conversationKey: String(row?.conversationKey || row?.id || ''),
+      mailboxId: String(row?.mailboxId || row?.ownershipMailbox || ''),
+      lastInboundAt: String(row?.lastInboundAt || row?.timing?.lastInboundAt || '') || null,
+      needsReply: row?.needsReply === true || row?.status === 'needs_reply',
+      customerMatch:
+        String(
+          row?.customerMatchStatus ||
+            row?.ingestion?.matchStatus ||
+            (row?.customerId || row?.customer?.id ? 'MATCHED' : '')
+        ) || 'UNKNOWN',
+    }));
+}
+
+/* Säkert stopp: räknar konsekutiva misslyckade truth-rundor. Rate-limit (429)
+ * väger tyngre än övriga fel. abortAfter nås → STOP i stället för evig loop. */
+function nextStopState(state, { failed = false, statusCode = 0 } = {}) {
+  const prev = state || { consecutiveFailures: 0, rateLimited: false, abort: false };
+  if (!failed) return { consecutiveFailures: 0, rateLimited: false, abort: false };
+  const consecutiveFailures = prev.consecutiveFailures + 1;
+  const rateLimited = Number(statusCode) === 429 || prev.rateLimited === true;
+  const abortAfter = rateLimited ? 2 : 3;
+  return { consecutiveFailures, rateLimited, abort: consecutiveFailures >= abortAfter };
+}
+
 /* ── HTTP mot prod (samma mönster som run-mailbox-truth-backfill-prod.js) ── */
 
 async function fetchJson(path, { method = 'GET', token = '', body = null, retries = 5 } = {}) {
@@ -150,6 +188,7 @@ async function ensureInboxTruth(token) {
   console.log(`[1/4] Truth inbox: ${inbox.materialized}/${inbox.total}`);
   if (inbox.complete) return inbox;
 
+  let stopState = nextStopState(null, {});
   for (let round = 1; round <= maxRounds; round += 1) {
     console.log(`  -- truth-runda ${round} (inbox) --`);
     try {
@@ -165,8 +204,25 @@ async function ensureInboxTruth(token) {
           folderTypes: ['inbox'],
         },
       });
+      stopState = nextStopState(stopState, {});
     } catch (error) {
-      console.warn(`  runda ${round} misslyckades: ${error.message || error}`);
+      stopState = nextStopState(stopState, {
+        failed: true,
+        statusCode: Number(error.statusCode) || 0,
+      });
+      console.warn(
+        `  runda ${round} misslyckades (${error.statusCode || 'nät'}): ${error.message || error}` +
+          (stopState.rateLimited ? ' [rate-limit]' : '')
+      );
+      if (stopState.abort) {
+        throw new Error(
+          `STOP: ${stopState.consecutiveFailures} konsekutiva truth-fel` +
+            (stopState.rateLimited ? ' (Graph rate-limit)' : '') +
+            ' — avbryter säkert. Redan materialiserad truth-data är kvar; omkörning är idempotent.'
+        );
+      }
+      await sleep(stopState.rateLimited ? retryDelayMs * 3 : retryDelayMs);
+      continue;
     }
     const after = await fetchJson(
       `/api/v1/cco/runtime/history/status?mailboxId=${encodeURIComponent(mailboxEmail)}`,
@@ -177,7 +233,7 @@ async function ensureInboxTruth(token) {
     if (inbox.complete) return inbox;
     await sleep(5000);
   }
-  throw new Error('Truth-backfill (inbox) nådde max rundor utan komplett täckning');
+  throw new Error('STOP: truth-backfill (inbox) nådde max rundor utan komplett täckning');
 }
 
 /* ── Fas 2+3: ingestion-backfill + jobbföljning ── */
@@ -211,33 +267,60 @@ async function runIngestionBackfill(token) {
   throw new Error('Ingestion-backfill blev inte klar inom polling-fönstret');
 }
 
-/* ── Fas 4: verifiera Konversationer-ytan ── */
+/* ── Fas 4: verifiera Konversationer-ytan (samma endpoint som admin#cco läser) ── */
 
-async function verifyWorklist(token) {
-  const payload = await fetchJson(
+async function fetchWorklist(token) {
+  return fetchJson(
     `/api/v1/cco/runtime/worklist/consumer?mailboxId=${encodeURIComponent(mailboxEmail)}`,
     { token }
   );
-  const summary = summarizeWorklist(payload);
-  console.log(
-    `[4/4] Worklist (${mailboxEmail}): ${summary.rowCount} trådar, needsReply=${summary.needsReply}`
-  );
-  if (!summary.ok || summary.rowCount === 0) {
-    throw new Error(
-      'Worklist är tom efter backfill — kontrollera truth-täckning och pipeline-review-kön.'
-    );
-  }
-  return summary;
 }
 
 async function main() {
   console.log(`== CCO Konversationer-backfill (${mailboxEmail}) mot ${base} ==`);
   const token = await resolveOwnerToken();
+
+  // Bevis: worklist-läget FÖRE backfill (samma endpoint som Konversationer-UI:t).
+  const before = summarizeWorklist(await fetchWorklist(token));
+  console.log(`[0/4] Worklist före: ${before.rowCount} trådar, needsReply=${before.needsReply}`);
+
   await ensureInboxTruth(token);
   const jobSummary = await runIngestionBackfill(token);
-  const worklist = await verifyWorklist(token);
-  console.log('== Klart ==');
-  console.log(JSON.stringify({ mailboxEmail, ingestion: jobSummary, worklist }, null, 2));
+
+  const afterPayload = await fetchWorklist(token);
+  const after = summarizeWorklist(afterPayload);
+  const samples = sampleWorklistRows(afterPayload, 5);
+  console.log(
+    `[4/4] Worklist efter: ${after.rowCount} trådar (före: ${before.rowCount}), needsReply=${after.needsReply}`
+  );
+  for (const row of samples) {
+    console.log(
+      `  · ${row.conversationKey} | ${row.mailboxId} | inkommande=${row.lastInboundAt} | ` +
+        `needsReply=${row.needsReply} | kundmatch=${row.customerMatch}`
+    );
+  }
+
+  const verdict = after.ok && after.rowCount > 0 ? 'PASS' : 'STOP';
+  console.log(`== ${verdict} ==`);
+  console.log(
+    JSON.stringify(
+      {
+        verdict,
+        mailboxEmail,
+        worklistBefore: { rowCount: before.rowCount, needsReply: before.needsReply },
+        worklistAfter: { rowCount: after.rowCount, needsReply: after.needsReply },
+        ingestion: jobSummary,
+        samples,
+      },
+      null,
+      2
+    )
+  );
+  if (verdict !== 'PASS') {
+    throw new Error(
+      'STOP: worklist är tom efter backfill — kontrollera truth-täckning och pipeline-review-kön.'
+    );
+  }
 }
 
 if (require.main === module) {
@@ -252,4 +335,6 @@ module.exports = {
   pickBackfillJob,
   summarizeBackfillJob,
   summarizeWorklist,
+  sampleWorklistRows,
+  nextStopState,
 };

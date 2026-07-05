@@ -102,3 +102,69 @@ test('summarizeWorklist räknar trådar + needsReply ur consumer-svaret', () => 
   assert.equal(empty.ok, false);
   assert.equal(empty.rowCount, 0);
 });
+
+const {
+  sampleWorklistRows,
+  nextStopState,
+} = require('../../scripts/run-cco-conversations-backfill.js');
+
+test('sampleWorklistRows ger bevisfält utan ämne/brödtext, sorterat på senaste inkommande', () => {
+  const rows = sampleWorklistRows(
+    {
+      rows: [
+        {
+          conversationKey: 'kons:conv-old',
+          mailboxId: 'kons@hairtpclinic.com',
+          lastInboundAt: '2026-01-01T08:00:00Z',
+          needsReply: false,
+          subject: 'HEMLIGT ÄMNE',
+          bodyPreview: 'HEMLIG TEXT',
+        },
+        {
+          conversationKey: 'kons:conv-new',
+          mailboxId: 'kons@hairtpclinic.com',
+          lastInboundAt: '2026-06-01T10:00:00Z',
+          needsReply: true,
+          ingestion: { matchStatus: 'NEEDS_REVIEW' },
+        },
+      ],
+    },
+    5
+  );
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].conversationKey, 'kons:conv-new', 'senaste inkommande först');
+  assert.equal(rows[0].needsReply, true);
+  assert.equal(rows[0].customerMatch, 'NEEDS_REVIEW');
+  assert.equal(rows[1].customerMatch, 'UNKNOWN');
+  // Integritet: inga ämnen/brödtexter i bevisraderna.
+  const serialized = JSON.stringify(rows);
+  assert.ok(!serialized.includes('HEMLIGT'), 'ämne får inte läcka');
+  assert.ok(!serialized.includes('HEMLIG TEXT'), 'brödtext får inte läcka');
+});
+
+test('sampleWorklistRows markerar kundbunden rad som MATCHED', () => {
+  const rows = sampleWorklistRows({
+    rows: [{ conversationKey: 'k', customerId: 'cust-1', lastInboundAt: '2026-06-01T00:00:00Z' }],
+  });
+  assert.equal(rows[0].customerMatch, 'MATCHED');
+});
+
+test('nextStopState: 3 konsekutiva fel → abort; lyckad runda nollställer', () => {
+  let s = nextStopState(null, {});
+  s = nextStopState(s, { failed: true });
+  s = nextStopState(s, { failed: true });
+  assert.equal(s.abort, false, 'två fel räcker inte utan rate-limit');
+  s = nextStopState(s, { failed: true });
+  assert.equal(s.abort, true, 'tre konsekutiva fel → säkert stopp');
+  // Lyckad runda nollställer streaken.
+  s = nextStopState(s, {});
+  assert.deepEqual(s, { consecutiveFailures: 0, rateLimited: false, abort: false });
+});
+
+test('nextStopState: rate-limit (429) sänker tröskeln till 2', () => {
+  let s = nextStopState(null, { failed: true, statusCode: 429 });
+  assert.equal(s.rateLimited, true);
+  assert.equal(s.abort, false);
+  s = nextStopState(s, { failed: true });
+  assert.equal(s.abort, true, 'två fel varav ett 429 → stopp');
+});
