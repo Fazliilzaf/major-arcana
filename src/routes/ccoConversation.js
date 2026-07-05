@@ -384,15 +384,17 @@ function buildConversationLookupScopes(keys = []) {
       };
     })
     .filter(Boolean);
-  const primaryScope = scopes[0];
-  if (!primaryScope?.contactEmail || !primaryScope.baseKey) return scopes;
+  const contactEmailByBaseKey = new Map();
+  for (const scope of scopes) {
+    if (scope.baseKey && scope.contactEmail && !contactEmailByBaseKey.has(scope.baseKey)) {
+      contactEmailByBaseKey.set(scope.baseKey, scope.contactEmail);
+    }
+  }
+  if (contactEmailByBaseKey.size === 0) return scopes;
   return scopes.map((scope) => {
-    if (
-      scope.baseKey === primaryScope.baseKey &&
-      !scope.contactEmail &&
-      scope.requestedKey !== primaryScope.requestedKey
-    ) {
-      return { ...scope, contactEmail: primaryScope.contactEmail };
+    const scopedContactEmail = contactEmailByBaseKey.get(scope.baseKey);
+    if (scopedContactEmail && !scope.contactEmail) {
+      return { ...scope, contactEmail: scopedContactEmail };
     }
     return scope;
   });

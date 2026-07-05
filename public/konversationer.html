@@ -2650,7 +2650,12 @@
           .map((item) => normalizeText(item))
           .filter(Boolean)
           .filter((item, index, all) => all.indexOf(item) === index);
+        const scopedPrimaryConversationKey = rawLookupKeys.find((key) => {
+          const scope = parseScopedContactFormKey(key);
+          return scope.scoped && scope.baseKey && scope.email;
+        });
         const primaryConversationKey =
+          normalizeText(scopedPrimaryConversationKey) ||
           normalizeText(row.conversationKey) ||
           normalizeText(row.id) ||
           normalizeText(conversation.key) ||

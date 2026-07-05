@@ -145,6 +145,17 @@ test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden'
     ['cf-blend-in', 'cf-blend-out'],
     'rå shared WordPress-/Graph-nyckel får inte bredda en scoped kontaktformulärstråd'
   );
+
+  const sortedWithRawPrimaryAndScopedMember = fetchSortedConversationMessages(
+    contactFormStore,
+    sharedBaseKey,
+    [scopedBlendKey]
+  );
+  assert.deepEqual(
+    sortedWithRawPrimaryAndScopedMember.map((message) => message.graphMessageId),
+    ['cf-blend-in', 'cf-blend-out'],
+    'även rå primärnyckel ska ärva scope från scoped memberKey och inte visa andra kontaktformulär'
+  );
 });
 
 test('tom/ogiltig nyckel ger tom lista', () => {
