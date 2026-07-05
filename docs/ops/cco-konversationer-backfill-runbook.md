@@ -31,6 +31,19 @@ Microsoft Graph (READ)
 
 ## Körning (en brevlåda i taget, start `kons@hairtpclinic.com`)
 
+Prod-safe kräver en smal carveout för mail-ingestion-lagret:
+
+```env
+ARCANA_CCO_MAIL_INGESTION_PROD_SAFE_ENABLED=true
+ARCANA_CCO_MAIL_INGESTION_MODE=read_only
+```
+
+Detta slår **inte** av global prod-safe och öppnar inte live-send. Det gör bara
+att CCO mail-ingestion-store + read-only queue kan spara/processa råmail från
+truth-lagret. Utan flaggan syns `/cco/mail-ingestion/status` som
+`disabled: true`, `reason: "prod_safe_mode"` och backfillen kan inte fylla
+Konversationer.
+
 ```bash
 # Default host är https://arcana.hairtpclinic.com (den riktiga ytan) och
 # default brevlåda är kons@. Explicit env-var rekommenderas ändå vid drift:
@@ -54,6 +67,11 @@ Skriptet kör fyra faser och skriver PASS/STOP + JSON-bevis:
 4. **Bevis mot UI-endpointen:** `worklist/consumer` före/efter — antal trådar,
    needsReply, exempelrader (conversationKey, brevlåda, senaste inkommande,
    needsReply, kundmatch-status; **aldrig ämnen/brödtext**).
+
+PASS kräver mer än att worklisten inte är tom: skriptet kräver även nytt
+pipeline-bevis (`rowCount` ökar, eller ingestion rapporterar `processed`,
+`saved` eller `duplicates`). Om worklisten redan hade en gammal rad men
+ingestion ger `saved=0 processed=0 duplicates=0` blir utfallet **STOP**.
 
 ## Säkert stopp
 

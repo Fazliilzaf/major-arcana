@@ -11782,7 +11782,11 @@ process.once('SIGTERM', () => {
 
 (async () => {
   const prodSafeMode = config.isProduction && process.env.ARCANA_PROD_SAFE_MODE !== 'false';
-  if (prodSafeMode) {
+  const ccoMailIngestionProdSafeEnabled =
+    prodSafeMode &&
+    config.ccoMailIngestionProdSafeEnabled === true &&
+    config.ccoMailIngestionMode === 'read_only';
+  if (prodSafeMode && !ccoMailIngestionProdSafeEnabled) {
     config.ccoMailIngestionEnabled = false;
   }
 
@@ -12067,7 +12071,7 @@ process.once('SIGTERM', () => {
     createConfiguredCcoMailboxTruthStore(config)
   );
   const ccoMailIngestionStore = await startupStep('ccoMailIngestionStore', () =>
-    prodSafeMode
+    prodSafeMode && !ccoMailIngestionProdSafeEnabled
       ? createDisabledCcoMailIngestionStore('prod_safe_mode')
       : createCcoMailIngestionStore({
           filePath: config.ccoMailIngestionStorePath,

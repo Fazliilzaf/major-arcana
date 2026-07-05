@@ -175,6 +175,10 @@ services:
       # CCO Mail Ingestion Pipeline (read-only default; webhooks off until subscription created).
       - key: ARCANA_CCO_MAIL_INGESTION_ENABLED
         value: "true"
+      # Narrow prod-safe carveout: enable only the read-only CCO ingestion store/queue.
+      # Global ARCANA_PROD_SAFE_MODE stays on; live-send remains gated separately.
+      - key: ARCANA_CCO_MAIL_INGESTION_PROD_SAFE_ENABLED
+        value: "true"
       - key: ARCANA_CCO_MAIL_INGESTION_MODE
         value: "read_only"
       - key: ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX

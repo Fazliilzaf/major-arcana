@@ -105,6 +105,7 @@ test('summarizeWorklist räknar trådar + needsReply ur consumer-svaret', () => 
 
 const {
   sampleWorklistRows,
+  buildBackfillVerdict,
   nextStopState,
 } = require('../../scripts/run-cco-conversations-backfill.js');
 
@@ -147,6 +148,43 @@ test('sampleWorklistRows markerar kundbunden rad som MATCHED', () => {
     rows: [{ conversationKey: 'k', customerId: 'cust-1', lastInboundAt: '2026-06-01T00:00:00Z' }],
   });
   assert.equal(rows[0].customerMatch, 'MATCHED');
+});
+
+test('buildBackfillVerdict stoppar när worklist fanns men ingestion gav noll bevis', () => {
+  const verdict = buildBackfillVerdict({
+    before: { ok: true, rowCount: 1 },
+    after: { ok: true, rowCount: 1 },
+    ingestion: { saved: 0, processed: 0, duplicates: 0, failed: 0 },
+  });
+  assert.equal(verdict.verdict, 'STOP');
+  assert.equal(verdict.reason, 'no_new_pipeline_evidence');
+});
+
+test('buildBackfillVerdict kräver worklist och accepterar processade/dubbletter som bevis', () => {
+  assert.equal(
+    buildBackfillVerdict({
+      before: { ok: true, rowCount: 0 },
+      after: { ok: true, rowCount: 0 },
+      ingestion: { processed: 1 },
+    }).reason,
+    'worklist_empty'
+  );
+  assert.equal(
+    buildBackfillVerdict({
+      before: { ok: true, rowCount: 1 },
+      after: { ok: true, rowCount: 1 },
+      ingestion: { duplicates: 5 },
+    }).verdict,
+    'PASS'
+  );
+  assert.equal(
+    buildBackfillVerdict({
+      before: { ok: true, rowCount: 1 },
+      after: { ok: true, rowCount: 2 },
+      ingestion: { processed: 0, duplicates: 0 },
+    }).verdict,
+    'PASS'
+  );
 });
 
 test('nextStopState: 3 konsekutiva fel → abort; lyckad runda nollställer', () => {
