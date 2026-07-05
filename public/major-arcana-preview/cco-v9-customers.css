@@ -6817,6 +6817,27 @@ html[data-v9-enabled="on"] .v9-mockup-dossier .v9-dossier-scroll {
   margin-bottom: 0;
 }
 
+/* V11/V12 kundkort i dominant rail använder samma scrollkedja som legacykortet:
+   ytterboxen klipper shellen, men railens egen innehållsyta ska äga scrollen. */
+html[data-v9-enabled="on"]
+  .customers-rail--dominant
+  [data-patient-master-rail]
+  .patient-master-card.v11-rail,
+html[data-v9-enabled="on"] .customers-rail--dominant [data-patient-master-rail] .v12-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+html[data-v9-enabled="on"] .customers-rail--dominant .v11-rail__scroll,
+html[data-v9-enabled="on"] .customers-rail--dominant .v12-workspace__zones {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .v9-dossier-deep {
   position: absolute;
   inset: 0;
