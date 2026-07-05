@@ -374,21 +374,25 @@ function fetchSortedConversationMessagesForKeys(store, keys = []) {
 function deriveBodyHtml(message) {
   const safe = asObject(message);
   const body = asObject(safe.body);
+  const uniqueBody = asObject(safe.uniqueBody);
   const rawJson = asObject(safe.rawJson);
   const rawBody = asObject(rawJson.body);
+  const rawUniqueBody = asObject(rawJson.uniqueBody);
   const mailDocument = asObject(safe.mailDocument);
+  const htmlContent = (candidate) =>
+    normalizeText(candidate.contentType).toLowerCase() === 'html'
+      ? normalizeText(candidate.content)
+      : '';
   const html =
     normalizeText(safe.bodyHtml) ||
     normalizeText(safe.body_html) ||
     normalizeText(mailDocument.primaryBodyHtml) ||
-    (normalizeText(body.contentType).toLowerCase() === 'html'
-      ? normalizeText(body.content)
-      : '') ||
+    htmlContent(body) ||
+    htmlContent(uniqueBody) ||
     normalizeText(rawJson.bodyHtml) ||
     normalizeText(rawJson.body_html) ||
-    (normalizeText(rawBody.contentType).toLowerCase() === 'html'
-      ? normalizeText(rawBody.content)
-      : '');
+    htmlContent(rawBody) ||
+    htmlContent(rawUniqueBody);
   return html || '';
 }
 

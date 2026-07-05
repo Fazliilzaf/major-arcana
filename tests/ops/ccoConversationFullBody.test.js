@@ -66,3 +66,15 @@ test('messages-svaret exponerar bodyHtml-fältet', () => {
   );
   assert.match(src, /bodyHtml: deriveBodyHtml\(safe\) \|\| null/, 'endpoint ska skicka bodyHtml');
 });
+
+test('deriveBodyHtml läser även uniqueBody (Graph) och rawJson.uniqueBody', () => {
+  assert.equal(
+    deriveBodyHtml({ uniqueBody: { contentType: 'html', content: '<p>U</p>' } }),
+    '<p>U</p>'
+  );
+  assert.equal(
+    deriveBodyHtml({ rawJson: { uniqueBody: { contentType: 'HTML', content: '<p>RU</p>' } } }),
+    '<p>RU</p>'
+  );
+  assert.equal(deriveBodyHtml({ uniqueBody: { contentType: 'text', content: 'txt' } }), '');
+});
