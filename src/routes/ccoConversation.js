@@ -366,9 +366,15 @@ function dedupeConversationMessages(messages = []) {
 }
 
 function fetchSortedConversationMessagesForKeys(store, keys = []) {
-  return dedupeConversationMessages(
-    keys.flatMap((key) => fetchSortedConversationMessages(store, key))
-  ).sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+  const safeKeys = Array.from(
+    new Set(
+      asArray(keys)
+        .map((key) => normalizeText(key))
+        .filter(Boolean)
+    )
+  );
+  if (!safeKeys.length) return [];
+  return fetchSortedConversationMessages(store, safeKeys[0], safeKeys.slice(1));
 }
 
 function buildConversationLookupScopes(keys = []) {
@@ -520,9 +526,24 @@ function fetchSortedIngestionConversationMessages(store, key) {
 }
 
 function fetchSortedIngestionConversationMessagesForKeys(store, keys = []) {
-  return dedupeConversationMessages(
-    keys.flatMap((key) => fetchSortedIngestionConversationMessages(store, key))
-  ).sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+  if (!store || typeof store.getState !== 'function') return [];
+  const safeKeys = Array.from(
+    new Set(
+      asArray(keys)
+        .map((key) => normalizeText(key))
+        .filter(Boolean)
+    )
+  );
+  const scopes = buildConversationLookupScopes(safeKeys);
+  if (!scopes.length) return [];
+  const state = asObject(store.getState());
+  const rawMessages = Object.values(asObject(state.mailRawMessages));
+  const matches = rawMessages
+    .map(toConversationMessageFromRaw)
+    .filter((message) => conversationMessageMatchesScopes(message, scopes));
+  return dedupeConversationMessages(matches).sort((a, b) =>
+    String(deriveTime(a)).localeCompare(String(deriveTime(b)))
+  );
 }
 
 function buildIngestionMessageLookup(store) {
@@ -538,6 +559,40 @@ function buildIngestionMessageLookup(store) {
   return lookup;
 }
 
+function bodyTextLooksLikePreview(text = '', preview = '') {
+  const safeText = normalizeBodyText(text);
+  const safePreview = normalizeBodyText(preview);
+  if (!safeText || !safePreview) return false;
+  if (safeText.length > safePreview.length + 12) return false;
+  return safePreview.startsWith(safeText.slice(0, Math.min(24, safeText.length)));
+}
+
+function chooseRicherBodyText(existing = '', candidate = '', preview = '') {
+  const safeExisting = normalizeBodyText(existing);
+  const safeCandidate = normalizeBodyText(candidate);
+  if (!safeExisting) return safeCandidate;
+  if (!safeCandidate) return safeExisting;
+
+  const existingPreviewLike = bodyTextLooksLikePreview(safeExisting, preview);
+  const candidatePreviewLike = bodyTextLooksLikePreview(safeCandidate, preview);
+  if (existingPreviewLike !== candidatePreviewLike) {
+    return existingPreviewLike ? safeCandidate : safeExisting;
+  }
+  if (safeCandidate.length > safeExisting.length + 24) return safeCandidate;
+  return safeExisting;
+}
+
+function chooseRicherHtml(existing = '', candidate = '') {
+  const safeExisting = normalizeText(existing);
+  const safeCandidate = normalizeText(candidate);
+  if (!safeExisting) return safeCandidate;
+  if (!safeCandidate) return safeExisting;
+  const existingTextLength = normalizeBodyText(extractTextFromHtml(safeExisting)).length;
+  const candidateTextLength = normalizeBodyText(extractTextFromHtml(safeCandidate)).length;
+  if (candidateTextLength > existingTextLength + 24) return safeCandidate;
+  return safeExisting;
+}
+
 function enrichConversationMessagesWithIngestion(messages, store) {
   const lookup = buildIngestionMessageLookup(store);
   if (!lookup.size) return messages;
@@ -546,13 +601,21 @@ function enrichConversationMessagesWithIngestion(messages, store) {
       .map((alias) => lookup.get(alias))
       .find(Boolean);
     if (!raw) return message;
+    const preview =
+      normalizeText(message.bodyPreview) ||
+      normalizeText(message.preview) ||
+      normalizeText(message.snippet) ||
+      normalizeText(raw.bodyPreview) ||
+      normalizeText(raw.preview) ||
+      normalizeText(raw.snippet);
+    const mergedBodyText = chooseRicherBodyText(deriveBody(message), deriveBody(raw), preview);
     return {
       ...message,
-      bodyText: normalizeText(message.bodyText) || normalizeText(raw.bodyText),
-      body_text: normalizeText(message.body_text) || normalizeText(raw.body_text),
-      bodyHtml: normalizeText(message.bodyHtml) || normalizeText(raw.bodyHtml),
-      body_html: normalizeText(message.body_html) || normalizeText(raw.body_html),
-      text: normalizeText(message.text) || normalizeText(raw.text),
+      bodyText: mergedBodyText || chooseRicherBodyText(message.bodyText, raw.bodyText, preview),
+      body_text: chooseRicherBodyText(message.body_text, raw.body_text, preview),
+      bodyHtml: chooseRicherHtml(message.bodyHtml, raw.bodyHtml),
+      body_html: chooseRicherHtml(message.body_html, raw.body_html),
+      text: chooseRicherBodyText(message.text, raw.text, preview),
       rawJson: Object.keys(asObject(message.rawJson)).length ? message.rawJson : raw.rawJson,
       mailDocument: Object.keys(asObject(message.mailDocument)).length
         ? message.mailDocument
@@ -2225,6 +2288,9 @@ module.exports = {
   createCcoConversationRouter,
   // Exponerad för tester: rollup-medveten trådhämtning ur lokala truth-storen.
   fetchSortedConversationMessages,
+  fetchSortedConversationMessagesForKeys,
+  fetchSortedIngestionConversationMessagesForKeys,
+  enrichConversationMessagesWithIngestion,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
   evaluateConversationBulkItem,
 };

@@ -12,7 +12,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { fetchSortedConversationMessages } = require('../../src/routes/ccoConversation');
+const {
+  enrichConversationMessagesWithIngestion,
+  fetchSortedConversationMessages,
+  fetchSortedConversationMessagesForKeys,
+  fetchSortedIngestionConversationMessagesForKeys,
+} = require('../../src/routes/ccoConversation');
 const { toContactFormScopedConversationKey } = require('../../src/ops/ccoContactFormIdentity');
 
 const MESSAGES = [
@@ -156,6 +161,114 @@ test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden'
     ['cf-blend-in', 'cf-blend-out'],
     'även rå primärnyckel ska ärva scope från scoped memberKey och inte visa andra kontaktformulär'
   );
+
+  const sortedViaHelper = fetchSortedConversationMessagesForKeys(contactFormStore, [
+    scopedBlendKey,
+    sharedBaseKey,
+  ]);
+  assert.deepEqual(
+    sortedViaHelper.map((message) => message.graphMessageId),
+    ['cf-blend-in', 'cf-blend-out'],
+    'multi-key-helpern får inte flat-mappa den råa shared-nyckeln och dra in andra kunder'
+  );
+});
+
+test('kontaktformulär: ingestion-helper ärver scoped key och breddar inte shared WordPress-tråd', () => {
+  const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
+  const scopedBlendKey = toContactFormScopedConversationKey(sharedBaseKey, 'blend@example.com');
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        sudarshan: {
+          id: 'cf-sudarshan',
+          graphMessageId: 'cf-sudarshan',
+          mailboxId: 'kons@hairtpclinic.com',
+          mailboxConversationId: sharedBaseKey,
+          conversationId: 'wp-shared-thread',
+          folderType: 'inbox',
+          direction: 'inbound',
+          receivedAt: '2026-07-05T10:00:00.000Z',
+          subject: 'Kontaktformulär',
+          bodyText:
+            'Från: Sudarshan E-post: sudarshan@example.com Telefon: 0701112233 Hur kan vi hjälpa dig?',
+          fromEmail: 'wordpress@hairtpclinic.se',
+          fromName: 'WordPress',
+        },
+        blend: {
+          id: 'cf-blend-in',
+          graphMessageId: 'cf-blend-in',
+          mailboxId: 'kons@hairtpclinic.com',
+          mailboxConversationId: sharedBaseKey,
+          conversationId: 'wp-shared-thread',
+          folderType: 'inbox',
+          direction: 'inbound',
+          receivedAt: '2026-07-05T11:00:00.000Z',
+          subject: 'Kontaktformulär',
+          bodyText:
+            'Från: Blend Bytyci E-post: blend@example.com Telefon: 0704445566 Hur kan vi hjälpa dig?',
+          fromEmail: 'wordpress@hairtpclinic.se',
+          fromName: 'WordPress',
+        },
+      },
+    }),
+  };
+
+  const sorted = fetchSortedIngestionConversationMessagesForKeys(ingestionStore, [
+    scopedBlendKey,
+    sharedBaseKey,
+  ]);
+
+  assert.deepEqual(
+    sorted.map((message) => message.graphMessageId),
+    ['cf-blend-in'],
+    'raw ingestion-fallback ska också hålla kvar scoped kontaktformulär per kund'
+  );
+});
+
+test('truth-preview berikas med full ingestion-body när raw store har hela mailet', () => {
+  const preview = 'Från: Blend Bytyci E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig?';
+  const truthMessages = [
+    {
+      graphMessageId: 'cf-blend-full',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxConversationId: 'kons@hairtpclinic.com:conv-full',
+      conversationId: 'conv-full',
+      folderType: 'inbox',
+      receivedAt: '2026-07-05T11:00:00.000Z',
+      bodyPreview: preview,
+      bodyText: preview,
+      from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+    },
+  ];
+  const fullBody = [
+    preview,
+    'Jag känner mig redo att boka konsultation och vill veta vilka tider som finns nästa vecka.',
+    'GDPR: Medgavs. Jag godkänner att mina personuppgifter behandlas.',
+  ].join(' ');
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        blend: {
+          id: 'cf-blend-full',
+          graphMessageId: 'cf-blend-full',
+          mailboxId: 'kons@hairtpclinic.com',
+          mailboxConversationId: 'kons@hairtpclinic.com:conv-full',
+          conversationId: 'conv-full',
+          folderType: 'inbox',
+          receivedAt: '2026-07-05T11:00:00.000Z',
+          bodyPreview: preview,
+          bodyText: fullBody,
+          fromEmail: 'wordpress@hairtpclinic.se',
+          fromName: 'WordPress',
+        },
+      },
+    }),
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion(truthMessages, ingestionStore);
+
+  assert.match(enriched.bodyText, /Jag känner mig redo att boka konsultation/);
+  assert.ok(enriched.bodyText.length > preview.length + 40);
 });
 
 test('tom/ogiltig nyckel ger tom lista', () => {
