@@ -25,6 +25,7 @@ const { runSummarizeThreadCapability } = require('../capabilities/summarizeThrea
 const { extractTextFromHtml } = require('../ops/ccoMailContentParser');
 const {
   messageMatchesContactFormScope,
+  normalizeEmail,
   parseContactFormScopedConversationKey,
 } = require('../ops/ccoContactFormIdentity');
 const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWorklistReadModel');
@@ -341,6 +342,18 @@ function parseConversationMemberKeysQuery(query = {}) {
   ).slice(0, 50);
 }
 
+function parseConversationContactScopeQuery(query = {}) {
+  const email = normalizeEmail(
+    query.customerEmail ||
+      query.contactEmail ||
+      query.counterpartyEmail ||
+      query.email ||
+      query.customer_email ||
+      ''
+  );
+  return email ? { contactEmail: email } : {};
+}
+
 function dedupeConversationMessages(messages = []) {
   const seen = new Set();
   return (Array.isArray(messages) ? messages : []).filter((message) => {
@@ -365,7 +378,7 @@ function dedupeConversationMessages(messages = []) {
   });
 }
 
-function fetchSortedConversationMessagesForKeys(store, keys = []) {
+function fetchSortedConversationMessagesForKeys(store, keys = [], options = {}) {
   const safeKeys = Array.from(
     new Set(
       asArray(keys)
@@ -374,10 +387,14 @@ function fetchSortedConversationMessagesForKeys(store, keys = []) {
     )
   );
   if (!safeKeys.length) return [];
-  return fetchSortedConversationMessages(store, safeKeys[0], safeKeys.slice(1));
+  return fetchSortedConversationMessages(store, safeKeys[0], safeKeys.slice(1), options);
 }
 
-function buildConversationLookupScopes(keys = []) {
+function buildConversationLookupScopes(keys = [], options = {}) {
+  const safeOptions = asObject(options);
+  const fallbackContactEmail = normalizeEmail(
+    safeOptions.contactEmail || safeOptions.customerEmail || safeOptions.email
+  );
   const scopes = asArray(keys)
     .map((rawKey) => {
       const requestedKey = normalizeText(rawKey);
@@ -396,11 +413,14 @@ function buildConversationLookupScopes(keys = []) {
       contactEmailByBaseKey.set(scope.baseKey, scope.contactEmail);
     }
   }
-  if (contactEmailByBaseKey.size === 0) return scopes;
+  if (contactEmailByBaseKey.size === 0 && !fallbackContactEmail) return scopes;
   return scopes.map((scope) => {
     const scopedContactEmail = contactEmailByBaseKey.get(scope.baseKey);
     if (scopedContactEmail && !scope.contactEmail) {
       return { ...scope, contactEmail: scopedContactEmail };
+    }
+    if (fallbackContactEmail && !scope.contactEmail) {
+      return { ...scope, contactEmail: fallbackContactEmail };
     }
     return scope;
   });
@@ -433,10 +453,10 @@ function deriveInitials(name) {
  * primärnyckel — enkelnyckel gav "0 meddelanden"/halva tråden. memberKeys
  * (rollup.underlyingConversationKeys från UI:t) unioneras därför in utöver
  * alias-matchningen. Läser enbart lokala truth-storen. */
-function fetchSortedConversationMessages(store, key, memberKeys = []) {
+function fetchSortedConversationMessages(store, key, memberKeys = [], options = {}) {
   if (!store || typeof store.listMessages !== 'function') return [];
   const safeMemberKeys = Array.isArray(memberKeys) ? memberKeys : [];
-  const scopes = buildConversationLookupScopes([key, ...safeMemberKeys]);
+  const scopes = buildConversationLookupScopes([key, ...safeMemberKeys], options);
   if (!scopes.length) return [];
   const all = store.listMessages({});
   const matches = all.filter((m) => conversationMessageMatchesScopes(asObject(m), scopes));
@@ -513,9 +533,9 @@ function toConversationMessageFromRaw(raw = {}) {
   };
 }
 
-function fetchSortedIngestionConversationMessages(store, key) {
+function fetchSortedIngestionConversationMessages(store, key, options = {}) {
   if (!store || typeof store.getState !== 'function') return [];
-  const scopes = buildConversationLookupScopes([key]);
+  const scopes = buildConversationLookupScopes([key], options);
   if (!scopes.length) return [];
   const state = asObject(store.getState());
   const rawMessages = Object.values(asObject(state.mailRawMessages));
@@ -525,7 +545,7 @@ function fetchSortedIngestionConversationMessages(store, key) {
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
-function fetchSortedIngestionConversationMessagesForKeys(store, keys = []) {
+function fetchSortedIngestionConversationMessagesForKeys(store, keys = [], options = {}) {
   if (!store || typeof store.getState !== 'function') return [];
   const safeKeys = Array.from(
     new Set(
@@ -534,7 +554,7 @@ function fetchSortedIngestionConversationMessagesForKeys(store, keys = []) {
         .filter(Boolean)
     )
   );
-  const scopes = buildConversationLookupScopes(safeKeys);
+  const scopes = buildConversationLookupScopes(safeKeys, options);
   if (!scopes.length) return [];
   const state = asObject(store.getState());
   const rawMessages = Object.values(asObject(state.mailRawMessages));
@@ -840,14 +860,20 @@ function createCcoConversationRouter({
         // Äldre klienter/tester kan fortfarande skicka aliases; de unioneras in här.
         const memberKeys = parseConversationMemberKeysQuery(req.query);
         const lookupKeys = [key, ...memberKeys];
+        const contactScope = parseConversationContactScopeQuery(req.query);
         const truthMessages = fetchSortedConversationMessages(
           ccoMailboxTruthStore,
           key,
-          memberKeys
+          memberKeys,
+          contactScope
         );
         const sorted = truthMessages.length
           ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore)
-          : fetchSortedIngestionConversationMessagesForKeys(mailIngestionStore, lookupKeys);
+          : fetchSortedIngestionConversationMessagesForKeys(
+              mailIngestionStore,
+              lookupKeys,
+              contactScope
+            );
         const messages = sorted.map((m) => {
           const safe = asObject(m);
           const from = deriveFromName(safe);
