@@ -2606,6 +2606,15 @@
         return {
           id: normalizeText(row.id) || normalizeText(conversation.key) || `live-${index}`,
           conversationKey: normalizeText(conversation.key) || normalizeText(row.id),
+          // Rollup-medlemmar: alla underliggande Graph-konversationer bakom raden.
+          // Skickas till messages-endpointen så HELA kundtråden hämtas (inte bara
+          // primärnyckeln, som gav "0 meddelanden"/halva tråden för rollups).
+          memberKeys: Array.isArray(rollup.underlyingConversationKeys)
+            ? rollup.underlyingConversationKeys
+                .map((k) => normalizeText(k))
+                .filter(Boolean)
+                .slice(0, 50)
+            : [],
           from: name,
           init: initialsFromName(name),
           bg: avatarBackground(name || source),
@@ -3018,8 +3027,12 @@
         setSvarstudioLiveContext(thread, []);
         renderThreadLoading(thread);
         try {
+          const memberKeysParam =
+            Array.isArray(thread.memberKeys) && thread.memberKeys.length
+              ? `?memberKeys=${encodeURIComponent(thread.memberKeys.join(','))}`
+              : '';
           const response = await fetch(
-            `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages`,
+            `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages${memberKeysParam}`,
             {
               credentials: 'include',
               headers: withAdminAuthHeaders({ Accept: 'application/json' }),

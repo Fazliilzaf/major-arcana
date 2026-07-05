@@ -243,10 +243,17 @@ function deriveInitials(name) {
     .toUpperCase();
 }
 
-function fetchSortedConversationMessages(store, key) {
+/* Rollup-rader (kund med flera Graph-konversationer) bär en identitets-/
+ * primärnyckel — enkelnyckel gav "0 meddelanden"/halva tråden. memberKeys
+ * (rollup.underlyingConversationKeys från UI:t) unioneras därför in utöver
+ * alias-matchningen. Läser enbart lokala truth-storen. */
+function fetchSortedConversationMessages(store, key, memberKeys = []) {
   if (!store || typeof store.listMessages !== 'function') return [];
-  const safeKey = normalizeText(key);
-  if (!safeKey) return [];
+  const safeMemberKeys = Array.isArray(memberKeys) ? memberKeys : [];
+  const targetKeys = new Set(
+    [key, ...safeMemberKeys].map((item) => normalizeText(item)).filter(Boolean)
+  );
+  if (targetKeys.size === 0) return [];
   const all = store.listMessages({});
   const matches = all.filter((m) => {
     const message = asObject(m);
@@ -254,20 +261,20 @@ function fetchSortedConversationMessages(store, key) {
       normalizeText(message.mailboxId) ||
       normalizeText(message.mailboxAddress) ||
       normalizeText(message.userPrincipalName);
-    const aliases = new Set(
-      [
-        normalizeText(message.mailboxConversationId),
-        normalizeText(message.conversationId),
-        normalizeText(message.graphMessageId),
+    const aliases = [
+      normalizeText(message.mailboxConversationId),
+      normalizeText(message.conversationId),
+      normalizeText(message.graphMessageId),
+      normalizeText(
         toCanonicalMailboxConversationKey({
           mailboxId,
           conversationId: message.conversationId,
           mailboxConversationId: message.mailboxConversationId,
           messageId: message.graphMessageId,
-        }),
-      ].filter(Boolean)
-    );
-    return aliases.has(safeKey);
+        })
+      ),
+    ].filter(Boolean);
+    return aliases.some((alias) => targetKeys.has(alias));
   });
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
@@ -601,7 +608,14 @@ function createCcoConversationRouter({
         if (!key) {
           return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
         }
-        const truthMessages = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        // Rollup-rader: UI:t skickar med medlemsnycklarna (underlyingConversationKeys)
+        // så hela kundtråden hämtas ur lokala truth-storen i ett svep.
+        const memberKeys = normalizeText(req.query.memberKeys)
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .slice(0, 50);
+        const truthMessages = fetchSortedConversationMessages(ccoMailboxTruthStore, key, memberKeys);
         const sorted = truthMessages.length
           ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore)
           : fetchSortedIngestionConversationMessages(mailIngestionStore, key);
@@ -2043,6 +2057,8 @@ function createCcoConversationRouter({
 
 module.exports = {
   createCcoConversationRouter,
+  // Exponerad för tester: rollup-medveten trådhämtning ur lokala truth-storen.
+  fetchSortedConversationMessages,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
   evaluateConversationBulkItem,
 };
