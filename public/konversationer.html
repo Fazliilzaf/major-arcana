@@ -3067,10 +3067,55 @@
         );
       }
 
-      let currentThreads = DEMO_THREADS;
+      const STATIC_DEMO_PREVIEW =
+        window.location.protocol === 'file:' ||
+        new URLSearchParams(window.location.search).get('demo') === '1';
+      let currentThreads = STATIC_DEMO_PREVIEW ? DEMO_THREADS : [];
       let currentInboxTab = 'alla';
       let currentLane = 'all';
-      renderInboxThreads(currentThreads);
+
+      function renderLiveInboxStatus(title, message, tone = 'info') {
+        const list = document.getElementById('inboxList');
+        if (list) {
+          list.innerHTML = `<div class="thread thread-live-status thread-live-status--${escapeHtml(tone)}" style="cursor:default"><div class="thread-body"><div class="thread-from">${escapeHtml(title)}</div><div class="thread-preview">${escapeHtml(message)}</div></div></div>`;
+        }
+        const heading = document.querySelector('.inbox-h2');
+        if (heading) heading.textContent = '0 olästa · 0 totalt';
+        document.querySelectorAll('.inbox-tab .count, .lane-row .ct').forEach((node) => {
+          node.textContent = '0';
+        });
+      }
+
+      function renderLivePaneStatus(title, message, tone = 'info') {
+        selectedLiveThread = null;
+        selectedLiveMessages = [];
+        const headerTitle = document.querySelector('.thread-header-main h2');
+        if (headerTitle) headerTitle.textContent = title;
+        const kicker = document.querySelector('.thread-header-kicker');
+        if (kicker) {
+          kicker.innerHTML =
+            '<span class="thread-header-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 4h16v16H4z" stroke-linecap="round" stroke-linejoin="round" /><path d="M4 4l8 8 8-8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>Konversationer · live';
+        }
+        const statusBar = document.querySelector('.thread-status-bar');
+        if (statusBar) {
+          statusBar.innerHTML = `<span class="status-pill status-pill--${tone === 'error' ? 'warning' : 'info'}"><span class="dot"></span>${escapeHtml(message)}</span>`;
+        }
+        const mount = document.getElementById('messages');
+        if (mount) {
+          mount.innerHTML = `<div class="msg-day">Live inkorg</div><div class="msg is-incoming"><div class="msg-av" style="background:linear-gradient(180deg,#c8e8e0,#88c8b8)">CC</div><div><div class="msg-bubble">${escapeHtml(message)}</div><div class="msg-meta">kons@hairtpclinic.com</div></div></div>`;
+        }
+        const ctxName = document.querySelector('.ctx-name');
+        if (ctxName) ctxName.textContent = title;
+        const ctxMeta = document.querySelector('.ctx-meta');
+        if (ctxMeta) ctxMeta.textContent = message;
+      }
+
+      if (STATIC_DEMO_PREVIEW) {
+        renderInboxThreads(currentThreads);
+      } else {
+        renderLiveInboxStatus('Laddar live-inkorg', 'Hämtar riktiga trådar från kons@hairtpclinic.com...');
+        renderLivePaneStatus('Laddar Konversationer', 'Hämtar riktiga trådar från CCO-pipelinen.');
+      }
 
       async function loadLiveInbox() {
         if (window.location.protocol === 'file:') return;
@@ -3087,6 +3132,17 @@
           const payload = await response.json();
           const rows = Array.isArray(payload?.rows) ? payload.rows : [];
           currentThreads = rows.map(normalizeLiveThread);
+          if (!currentThreads.length) {
+            renderInboxThreads(currentThreads, {
+              activeTab: currentInboxTab,
+              activeLane: currentLane,
+            });
+            renderLivePaneStatus(
+              'Live-inkorgen är tom',
+              'Inga trådar returnerades från kons@hairtpclinic.com. Detta är ett STOP-läge, inte demo.'
+            );
+            return;
+          }
           renderInboxThreads(currentThreads, {
             activeTab: currentInboxTab,
             activeLane: currentLane,
@@ -3098,9 +3154,20 @@
           }
         } catch (error) {
           console.warn('[cco-live-inbox] worklist kunde inte laddas', error);
+          currentThreads = [];
+          renderLiveInboxStatus(
+            'Live inkorg kunde inte laddas',
+            'Kontrollera inloggning och CCO-worklist. Demo visas inte i admin/webb.',
+            'error'
+          );
+          renderLivePaneStatus(
+            'Live inkorg kunde inte laddas',
+            'Kontrollera inloggning och CCO-worklist. Demo visas inte i admin/webb.',
+            'error'
+          );
           if (window.CCOPolish?.showToast) {
             window.CCOPolish.showToast(
-              'Live inkorg kunde inte laddas — visar demo tills inloggning/data finns.',
+              'Live inkorg kunde inte laddas — demo är avstängd i webb/admin.',
               'warning'
             );
           }
