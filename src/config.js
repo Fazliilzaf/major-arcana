@@ -277,6 +277,12 @@ const config = {
     fileName: 'cco-mail-ingestion.json',
   }),
   ccoMailIngestionEnabled: asBool(process.env.ARCANA_CCO_MAIL_INGESTION_ENABLED, true),
+  // Production safe mode keeps broad write paths off. This narrow flag allows only the
+  // CCO mail-ingestion store/queue to run in read_only mode for the kons@ pilot.
+  ccoMailIngestionProdSafeEnabled: asBool(
+    process.env.ARCANA_CCO_MAIL_INGESTION_PROD_SAFE_ENABLED,
+    false
+  ),
   ccoMailIngestionMode: asNonEmptyString(process.env.ARCANA_CCO_MAIL_INGESTION_MODE, 'read_only'),
   ccoMailIngestionDefaultMailbox: asNonEmptyString(
     process.env.ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX,

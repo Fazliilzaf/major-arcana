@@ -117,6 +117,42 @@ function sampleWorklistRows(payload, limit = 5) {
     }));
 }
 
+function buildBackfillVerdict({ before, after, ingestion }) {
+  const beforeRows = Number(before?.rowCount || 0);
+  const afterRows = Number(after?.rowCount || 0);
+  const processed = Number(ingestion?.processed || 0);
+  const duplicates = Number(ingestion?.duplicates || 0);
+  const saved = Number(ingestion?.saved || 0);
+  const failed = Number(ingestion?.failed || 0);
+  const hasPipelineEvidence =
+    afterRows > beforeRows || processed > 0 || duplicates > 0 || saved > 0;
+
+  if (after?.ok !== true || afterRows <= 0) {
+    return {
+      verdict: 'STOP',
+      reason: 'worklist_empty',
+      message: 'STOP: worklist är tom efter backfill.',
+    };
+  }
+  if (failed > 0) {
+    return {
+      verdict: 'STOP',
+      reason: 'ingestion_failed_rows',
+      message: `STOP: ingestion rapporterade ${failed} failed rows.`,
+    };
+  }
+  if (!hasPipelineEvidence) {
+    return {
+      verdict: 'STOP',
+      reason: 'no_new_pipeline_evidence',
+      message:
+        'STOP: worklist har rader, men backfill gav inga nya/processade/dubblettade mail. ' +
+        'Kontrollera att CCO mail-ingestion-store inte är disabled i prod-safe.',
+    };
+  }
+  return { verdict: 'PASS', reason: 'pipeline_evidence', message: 'PASS' };
+}
+
 /* Säkert stopp: räknar konsekutiva misslyckade truth-rundor. Rate-limit (429)
  * väger tyngre än övriga fel. abortAfter nås → STOP i stället för evig loop. */
 function nextStopState(state, { failed = false, statusCode = 0 } = {}) {
@@ -303,12 +339,13 @@ async function main() {
     );
   }
 
-  const verdict = after.ok && after.rowCount > 0 ? 'PASS' : 'STOP';
-  console.log(`== ${verdict} ==`);
+  const verdict = buildBackfillVerdict({ before, after, ingestion: jobSummary });
+  console.log(`== ${verdict.verdict} ==`);
   console.log(
     JSON.stringify(
       {
-        verdict,
+        verdict: verdict.verdict,
+        reason: verdict.reason,
         mailboxEmail,
         worklistBefore: { rowCount: before.rowCount, needsReply: before.needsReply },
         worklistAfter: { rowCount: after.rowCount, needsReply: after.needsReply },
@@ -319,10 +356,8 @@ async function main() {
       2
     )
   );
-  if (verdict !== 'PASS') {
-    throw new Error(
-      'STOP: worklist är tom efter backfill — kontrollera truth-täckning och pipeline-review-kön.'
-    );
+  if (verdict.verdict !== 'PASS') {
+    throw new Error(verdict.message);
   }
 }
 
@@ -340,5 +375,6 @@ module.exports = {
   summarizeBackfillJob,
   summarizeWorklist,
   sampleWorklistRows,
+  buildBackfillVerdict,
   nextStopState,
 };
