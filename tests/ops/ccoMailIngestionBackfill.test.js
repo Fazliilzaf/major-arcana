@@ -200,3 +200,101 @@ test('utan injicerad allowlist faller routern tillbaka på curated default (kons
     );
   });
 });
+
+test('e2e: seedat kons@-mail i truth → backfill-jobb → raw + pipeline-ledger (read_only)', async () => {
+  const os = require('node:os');
+  const path = require('node:path');
+  const fsp = require('node:fs/promises');
+  const { createCcoMailboxTruthStore } = require('../../src/ops/ccoMailboxTruthStore');
+  const { createCcoMailIngestionStore } = require('../../src/ops/ccoMailIngestion/store');
+  const {
+    createCcoMailIngestionSyncService,
+  } = require('../../src/ops/ccoMailIngestion/syncService');
+
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'arcana-conv-backfill-'));
+  const truthStore = await createCcoMailboxTruthStore({ filePath: path.join(dir, 'truth.json') });
+  const ingestionStore = await createCcoMailIngestionStore({
+    filePath: path.join(dir, 'ingestion.json'),
+  });
+
+  // Seed: ett historiskt inkommande kundmail i kons@-inboxen (truth-lagret).
+  const account = { mailboxId: 'kons@hairtpclinic.com', mailboxAddress: 'kons@hairtpclinic.com' };
+  const run = await truthStore.startBackfillRun({ account });
+  await truthStore.recordFolderPage({
+    runId: run.runId,
+    account,
+    folder: { folderType: 'inbox' },
+    messages: [
+      {
+        graphMessageId: 'kons-hist-1',
+        internetMessageId: '<kons-hist-1@example.com>',
+        conversationId: 'conv-kons-1',
+        folderType: 'inbox',
+        subject: 'Fråga om hårtransplantation',
+        bodyPreview: 'Hej, jag undrar över pris och lediga tider.',
+        direction: 'inbound',
+        receivedAt: '2026-03-10T09:15:00.000Z',
+        from: { address: 'kund@example.com', name: 'Intresserad Kund' },
+        toRecipients: ['kons@hairtpclinic.com'],
+        isRead: true,
+      },
+    ],
+    complete: true,
+  });
+  await truthStore.finishBackfillRun(run.runId, { status: 'completed' });
+
+  // Riktig syncService + worker (ingen Graph-connector → ingen delta, bara truth→ingest).
+  const syncService = createCcoMailIngestionSyncService({
+    config: { defaultTenant: 'hair-tp-clinic' },
+    graphReadConnector: null,
+    ingestionStore,
+    truthStore,
+    patientDirectoryProvider: async () => [],
+    logger: { error: () => {}, log: () => {} },
+  });
+  const worker = createCcoMailIngestionWorker({
+    config: { ccoMailIngestionQueueBatchSize: 10 },
+    ingestionStore,
+    syncService,
+    logger: { error: () => {}, log: () => {} },
+  });
+
+  const job = worker.enqueueBackfillJob({ mailboxEmail: 'kons@hairtpclinic.com' });
+  let done = null;
+  for (let i = 0; i < 200; i += 1) {
+    done = worker.getJob(job.id);
+    if (done && (done.status === 'completed' || done.status === 'failed')) break;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.equal(
+    done?.status,
+    'completed',
+    `backfill ska slutföras (${done?.error || done?.status})`
+  );
+  assert.equal(done.importResult.totalFetched, 1, 'truth-mailet ska hämtas');
+  assert.equal(done.importResult.totalSaved, 1, 'truth-mailet ska sparas som raw');
+
+  // Pipeline-ledger: mailet har processats (inte kvar i kö) med en pipeline-status.
+  const state = ingestionStore.getState();
+  const ledgers = Object.values(state.mailProcessingLedger || {});
+  assert.equal(ledgers.length, 1, 'exakt en ledger-post');
+  assert.ok(
+    ['MATCHED', 'UNMATCHED', 'NEEDS_REVIEW', 'FILTERED', 'SECURITY_REVIEW'].includes(
+      ledgers[0].status
+    ),
+    `ledger ska ha pipeline-status (fick: ${ledgers[0].status})`
+  );
+  assert.equal(ingestionStore.getQueueLength({ mailboxEmail: 'kons@hairtpclinic.com' }), 0);
+
+  // Idempotens: körs backfillen igen dedupe:as mailet.
+  const job2 = worker.enqueueBackfillJob({ mailboxEmail: 'kons@hairtpclinic.com' });
+  let done2 = null;
+  for (let i = 0; i < 200; i += 1) {
+    done2 = worker.getJob(job2.id);
+    if (done2 && (done2.status === 'completed' || done2.status === 'failed')) break;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.equal(done2?.status, 'completed');
+  assert.equal(done2.importResult.totalDuplicates, 1, 'omkörning ska dedupe:a, inte duplicera');
+  assert.equal(done2.importResult.totalSaved, 0);
+});
