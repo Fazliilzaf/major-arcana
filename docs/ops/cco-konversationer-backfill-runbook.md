@@ -32,9 +32,16 @@ Microsoft Graph (READ)
 ## Körning (en brevlåda i taget, start `kons@hairtpclinic.com`)
 
 ```bash
-node scripts/run-cco-conversations-backfill.js                       # kons@ (default)
+# Default host är https://arcana.hairtpclinic.com (den riktiga ytan) och
+# default brevlåda är kons@. Explicit env-var rekommenderas ändå vid drift:
+ARCANA_PROD_URL=https://arcana.hairtpclinic.com \
+node scripts/run-cco-conversations-backfill.js
+
+# Nästa brevlåda (först efter ägar-GO):
 ARCANA_MAILBOX=info@hairtpclinic.com node scripts/run-cco-conversations-backfill.js
 ```
+
+> Obs: `.se`-hosten används inte för Konversationer-drift — kör alltid mot `.com`.
 
 Skriptet kör fyra faser och skriver PASS/STOP + JSON-bevis:
 
