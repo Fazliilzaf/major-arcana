@@ -41,7 +41,13 @@ test('UI: HTML renderas endast i sandboxad iframe med escapad srcdoc', () => {
   );
   // Sandbox utan allow-scripts/allow-same-origin — kund-HTML kan aldrig köra
   // kod eller nå appens cookies/API:er.
-  assert.match(html, /sandbox=""\s+referrerpolicy="no-referrer"/, 'iframe ska ha tom sandbox');
+  // allow-popups krävs för att mail-länkar (base target=_blank) ska fungera;
+  // inget annat får släppas igenom.
+  assert.match(
+    html,
+    /sandbox="allow-popups allow-popups-to-escape-sandbox"\s+referrerpolicy="no-referrer"/,
+    'iframe ska ha exakt popup-sandbox'
+  );
   assert.ok(!/sandbox="[^"]*allow-scripts/.test(html), 'allow-scripts får aldrig läggas till');
   assert.ok(
     !/sandbox="[^"]*allow-same-origin/.test(html),
