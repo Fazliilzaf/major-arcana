@@ -25,7 +25,7 @@ test('konversationer live inbox uses kons worklist consumer as first real data s
   assert.match(html, /const LIVE_MAILBOX_IDS = \['kons@hairtpclinic\.com'\]/);
   assert.match(html, /\/api\/v1\/cco\/runtime\/worklist\/consumer\?mailboxIds=/);
   assert.match(html, /credentials:\s*'include'/);
-  assert.match(html, /headers:\s*\{\s*Accept:\s*'application\/json'\s*\}/);
+  assert.match(html, /headers:\s*withAdminAuthHeaders\(\{\s*Accept:\s*'application\/json'\s*\}\)/);
   assert.doesNotMatch(html, /const THREADS\s*=/, 'old demo THREADS primary source must not remain');
   assert.match(html, /const DEMO_THREADS\s*=/, 'demo data can remain for explicit local preview only');
   assert.match(html, /const STATIC_DEMO_PREVIEW\s*=/);
@@ -41,6 +41,17 @@ test('konversationer live inbox uses kons worklist consumer as first real data s
     /visar demo tills inloggning\/data finns/,
     'web/admin must not silently fall back to demo when live fetch fails'
   );
+});
+
+test('konversationer live inbox reuses admin Bearer token for CCO API calls', () => {
+  const html = readHtml();
+
+  assert.match(html, /function adminAuthToken\(\)/);
+  assert.match(html, /getItem\('ARCANA_ADMIN_TOKEN'\)/);
+  assert.match(html, /function withAdminAuthHeaders\(headers = \{\}\)/);
+  assert.match(html, /next\.Authorization = 'Bearer ' \+ token/);
+  assert.match(html, /window\.CCOConversationAuth = \{/);
+  assert.match(html, /headers:\s*withAdminAuthHeaders\(\{\s*Accept:\s*'application\/json'\s*\}\)/);
 });
 
 test('konversationer web/admin shows explicit live STOP states instead of demo fallback', () => {

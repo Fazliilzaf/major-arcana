@@ -8,6 +8,24 @@
   const ROLE = 'owner';
   const TENANT = 'hair_tp';
 
+  function adminAuthHeaders(headers = {}) {
+    if (window.CCOConversationAuth?.headers) {
+      return window.CCOConversationAuth.headers(headers);
+    }
+    let token = '';
+    try {
+      token =
+        window.localStorage?.getItem('ARCANA_ADMIN_TOKEN') ||
+        window.sessionStorage?.getItem('ARCANA_ADMIN_TOKEN') ||
+        '';
+    } catch {
+      token = '';
+    }
+    const next = { ...headers };
+    if (token && token !== '__preview_local__') next.Authorization = 'Bearer ' + token;
+    return next;
+  }
+
   // PR 4 — Smart anteckning-knappen öppnar Smart anteckning v3 (rätt/ny CCO-vy),
   // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
   // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
@@ -308,7 +326,11 @@
     try {
       await fetch('/api/v1/cco-audit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-cco-role': ROLE, 'x-cco-tenant': TENANT },
+        headers: adminAuthHeaders({
+          'Content-Type': 'application/json',
+          'x-cco-role': ROLE,
+          'x-cco-tenant': TENANT,
+        }),
         body: JSON.stringify({
           kind: eventKind,
           tenantId: TENANT,
@@ -1214,11 +1236,11 @@
         if (!state.draftId) {
           const r = await fetch('/api/v1/cco-comm/drafts', {
             method: 'POST',
-            headers: {
+            headers: adminAuthHeaders({
               'Content-Type': 'application/json',
               'x-cco-role': ROLE,
               'x-cco-tenant': TENANT,
-            },
+            }),
             body: JSON.stringify({
               customerId,
               templateId: state.template || 'manual_reply',
@@ -1243,11 +1265,11 @@
         } else {
           await fetch('/api/v1/cco-comm/drafts/' + encodeURIComponent(state.draftId), {
             method: 'PATCH',
-            headers: {
+            headers: adminAuthHeaders({
               'Content-Type': 'application/json',
               'x-cco-role': ROLE,
               'x-cco-tenant': TENANT,
-            },
+            }),
             body: JSON.stringify({ subject: state.subject, body: state.body }),
           });
           auditStudioEvent('studio.draft_edited', { draftId: state.draftId });
@@ -1257,11 +1279,11 @@
             '/api/v1/cco-comm/drafts/' + encodeURIComponent(state.draftId) + '/transition',
             {
               method: 'POST',
-              headers: {
+              headers: adminAuthHeaders({
                 'Content-Type': 'application/json',
                 'x-cco-role': ROLE,
                 'x-cco-tenant': TENANT,
-              },
+              }),
               body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio' }),
             }
           );
@@ -1665,16 +1687,16 @@
     }
     try {
       const response = await fetch(
-        '/cco/runtime/conversation/' + encodeURIComponent(ctx.conversationKey) + '/action',
+        '/api/v1/cco/runtime/conversation/' + encodeURIComponent(ctx.conversationKey) + '/action',
         {
           method: 'POST',
           credentials: 'include',
-          headers: {
+          headers: adminAuthHeaders({
             'Content-Type': 'application/json',
             Accept: 'application/json',
             'x-cco-role': ROLE,
             'x-cco-tenant': TENANT,
-          },
+          }),
           body: JSON.stringify({ action, customerId }),
         }
       );

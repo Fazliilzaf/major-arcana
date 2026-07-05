@@ -3,7 +3,7 @@
 /* PR 5 — Klar/Senare/Reopen-UI i admin#cco → Konversationer.
  *
  * Knapparna påverkar vald LIVE-tråd via befintlig backend-action
- * (POST /cco/runtime/conversation/:key/action, mail.write). UI uppdateras efter
+ * (POST /api/v1/cco/runtime/conversation/:key/action, mail.write). UI uppdateras efter
  * lyckad action (handled/reply_later/reopen). #540/#543/#544-regler behålls:
  * Till blir aldrig klinikmail, Skicka låst om mottagare saknas, makron använder
  * vald tråd, Smart anteckning v3 (inte gamla modalen).
@@ -52,11 +52,18 @@ test('PR5: action POSTar till rätt endpoint med action + customerId', () => {
   assert.match(source, /async function runConversationAction\(action\)/);
   assert.match(
     compact(source),
-    /'\/cco\/runtime\/conversation\/' \+ encodeURIComponent\(ctx\.conversationKey\) \+ '\/action'/
+    /'\/api\/v1\/cco\/runtime\/conversation\/' \+ encodeURIComponent\(ctx\.conversationKey\) \+ '\/action'/
   );
   assert.match(source, /method: 'POST'/);
   assert.match(source, /credentials: 'include'/);
   assert.match(source, /body: JSON\.stringify\(\{ action, customerId \}\)/);
+});
+
+test('PR5: action POST använder samma admin Bearer-token som live-inkorgen', () => {
+  assert.match(source, /function adminAuthHeaders\(headers = \{\}\)/);
+  assert.match(source, /window\.CCOConversationAuth\?\.headers/);
+  assert.match(source, /getItem\('ARCANA_ADMIN_TOKEN'\)/);
+  assert.match(compact(source), /headers: adminAuthHeaders\(\{ 'Content-Type': 'application\/json', Accept: 'application\/json'/);
 });
 
 test('PR5: åtgärd sker BARA på riktig live-tråd (inte demo/visible-fallback)', () => {
