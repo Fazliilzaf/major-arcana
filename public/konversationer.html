@@ -1301,14 +1301,22 @@
         flex-wrap: wrap;
         row-gap: 10px;
       }
-      /* Svarstudio-headern trängde ihop titel + flikar + 5 status-chips + Dölj/×
-         på en rad så flik-raden kläms bort. Ge flikarna en egen full-breddsrad
-         under titelraden (som de andra v3-vyerna har). */
+      /* Flikraden ska ha SAMMA position i Svarstudio som i övriga vyer:
+         på titelraden, centrerad. Det som skiljer Svarstudio är status-chipsen
+         (Oklart/VIP/%/risk/SLA) — de får därför flytta till en egen rad under,
+         istället för att knuffa ner flikarna. Flikarna scrollar horisontellt
+         vid trängsel (nowrap + overflow-x i basregeln) och wrappar aldrig. */
       .action-modal--workbench .action-modal-tabs {
+        order: 0;
+        flex: 1 1 auto;
+        min-width: 0;
+        justify-content: center;
+        padding: 0 8px;
+      }
+      .action-modal--workbench .wb-head-chips {
         order: 9;
         flex-basis: 100%;
         justify-content: flex-start;
-        padding: 0;
       }
       .wb-head-chips {
         display: inline-flex;
