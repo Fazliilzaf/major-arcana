@@ -211,7 +211,14 @@ test('messages: full body fields are preferred before preview snippets', async (
         folderType: 'inbox',
         sentAt: '2025-01-01T10:00:00.000Z',
         bodyPreview: 'Kort preview som inte räcker',
-        bodyText: 'Hela mailet från Graph med alla rader och detaljer.',
+        bodyText: 'Kort preview som inte räcker',
+        rawJson: {
+          body: {
+            contentType: 'html',
+            content:
+              '<p>Hela mailet från Graph med alla rader och detaljer.</p><p>Rad två ska också visas.</p>',
+          },
+        },
       },
     ],
   });
@@ -221,7 +228,9 @@ test('messages: full body fields are preferred before preview snippets', async (
       assert.equal(read.status, 200);
       const body = await read.json();
       assert.equal(body.messageCount, 1);
-      assert.equal(body.messages[0].body, 'Hela mailet från Graph med alla rader och detaljer.');
+      assert.match(body.messages[0].body, /Hela mailet från Graph med alla rader och detaljer/);
+      assert.match(body.messages[0].body, /Rad två ska också visas/);
+      assert.notEqual(body.messages[0].body, 'Kort preview som inte räcker');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

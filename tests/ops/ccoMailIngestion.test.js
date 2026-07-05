@@ -218,6 +218,35 @@ test('matchPatientOrEntity matches sent-mail counterparty recipient', () => {
   assert.equal(result.counterpartyEmail, 'patient@example.com');
 });
 
+test('matchPatientOrEntity uses embedded contact-form email before website sender', () => {
+  const result = matchPatientOrEntity(
+    {
+      mailboxId: 'kons@hairtpclinic.com',
+      folderType: 'inbox',
+      fromEmail: 'wordpress@hairtpclinic.se',
+      fromName: 'WordPress',
+      subject: 'Blend Bytyci Kontaktformulär',
+      bodyPreview:
+        'Från: Blend Bytyci E-post: blend@example.com Telefon: 0704445566 Hur kan vi hjälpa dig?',
+      bodyText:
+        'Från: Blend Bytyci E-post: blend@example.com Telefon: 0704445566 Hur kan vi hjälpa dig?',
+    },
+    {
+      patientDirectory: [
+        {
+          id: 'patient-blend',
+          primaryEmail: 'blend@example.com',
+          emails: ['blend@example.com'],
+        },
+      ],
+    }
+  );
+
+  assert.equal(result.status, 'MATCHED');
+  assert.equal(result.patientId, 'patient-blend');
+  assert.equal(result.counterpartyEmail, 'blend@example.com');
+});
+
 test('linkPatientToMessage marks UNMATCHED ledger as MATCHED', async () => {
   const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-link-${Date.now()}.json`);
   const store = await createCcoMailIngestionStore({ filePath });

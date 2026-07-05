@@ -4,6 +4,7 @@ const {
   normalizeCounterpartyDirection,
   resolveCounterpartyIdentity,
 } = require('../ccoCounterpartyTruth');
+const { resolveContactFormIdentity } = require('../ccoContactFormIdentity');
 const { buildPipedrivePatientLookup } = require('../ccoPatientMasterStore');
 const { phoneMatchKey } = require('../../../scripts/migration/lib/migrationUtils');
 const { isNonPatientCounterpartyEmail } = require('./nonPatientRules');
@@ -86,6 +87,10 @@ function resolveCounterpartyEmail(rawMessage = {}) {
       : folderType === 'inbox' || folderType === 'deleted'
         ? 'inbound'
         : normalizeCounterpartyDirection(rawMessage.direction);
+  if (direction === 'inbound') {
+    const contactFormIdentity = resolveContactFormIdentity(rawMessage);
+    if (contactFormIdentity?.email) return normalizeEmail(contactFormIdentity.email);
+  }
   const counterparty = resolveCounterpartyIdentity(
     {
       from: { address: rawMessage.fromEmail, name: rawMessage.fromName },
