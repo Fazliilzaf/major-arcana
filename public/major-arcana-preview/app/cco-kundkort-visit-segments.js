@@ -24,6 +24,7 @@
     missing_visit_date: 'Datum saknas',
     capture_document_date_mismatch: 'Foto- och dokumentdatum skiljer',
     date_without_time_metadata: 'Datum utan tid',
+    occasion_context_only: 'Datum från tillfälle, saknar tid',
     inferred_from_path_or_filename: 'Datum gissat från filnamn/sökväg',
     same_day_time_cluster: 'Flera besök samma dag (tidskluster)',
     uncertain_document_date_binding: 'Osäker dokumentkoppling',

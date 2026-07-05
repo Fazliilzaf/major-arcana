@@ -174,10 +174,23 @@ function resolveDateConfidence(file, visitDate) {
     return { confidence: reasons.length ? 'medium' : 'high', reasons };
   }
   if (source.includes('documentDate') || isIsoDate(file?.documentDate)) {
+    const docOnlyWithoutTime =
+      !isImageLikeFile(file) &&
+      !resolveTakenAt(file) &&
+      !normalizeTimelineDateTime(file?.captureDateTime);
+    if (docOnlyWithoutTime) {
+      if (!reasons.includes('date_without_time_metadata')) {
+        reasons.push('date_without_time_metadata');
+      }
+      return { confidence: 'medium', reasons };
+    }
     return { confidence: reasons.length ? 'medium' : 'high', reasons };
   }
   if (file?.occasionContext?.timelineKey === visitDate) {
-    return { confidence: reasons.length ? 'medium' : 'medium', reasons };
+    if (!reasons.includes('occasion_context_only')) {
+      reasons.push('occasion_context_only');
+    }
+    return { confidence: 'medium', reasons };
   }
   if (resolveSortKey(file).endsWith('T00:00:00')) {
     reasons.push('date_without_time_metadata');
@@ -261,6 +274,20 @@ function mergeReasons(target, source) {
   }
 }
 
+/** medium/low segments must never ship with an empty reasons array. */
+function ensureSegmentReasons(
+  confidence,
+  reasons,
+  { images = [], documents = [], timeRange = '' } = {}
+) {
+  if (confidence === 'high' || reasons.length > 0) return;
+  if (images.length === 0 && documents.length > 0 && !normalizeText(timeRange)) {
+    reasons.push('date_without_time_metadata');
+    return;
+  }
+  reasons.push('occasion_context_only');
+}
+
 function buildImageEntry(file) {
   const takenAt = resolveTakenAt(file);
   const assetId = normalizeText(file?.assetId || file?.id) || null;
@@ -321,6 +348,7 @@ function finalizeSegment({ date, label, files, clusterIndex = 0, clusterCount = 
 
   const visitType = inferVisitTypeFromFiles(files);
   const timeRange = buildTimeRange(images);
+  ensureSegmentReasons(confidence, reasons, { images, documents, timeRange });
 
   return {
     date: date || null,
