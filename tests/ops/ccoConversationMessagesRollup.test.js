@@ -13,6 +13,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { fetchSortedConversationMessages } = require('../../src/routes/ccoConversation');
+const { toContactFormScopedConversationKey } = require('../../src/ops/ccoContactFormIdentity');
 
 const MESSAGES = [
   {
@@ -81,6 +82,59 @@ test('identitetsnyckel utan medlemmar ger tom lista — men MED medlemmar hittas
   assert.equal(withMembers.length, 3, 'medlemsnycklarna räddar hela tråden');
 });
 
+test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden', () => {
+  const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
+  const scopedBlendKey = toContactFormScopedConversationKey(sharedBaseKey, 'blend@example.com');
+  const contactFormStore = {
+    listMessages: () => [
+      {
+        graphMessageId: 'cf-sudarshan',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-07-05T10:00:00.000Z',
+        subject: 'Kontaktformulär',
+        bodyText:
+          'Från: Sudarshan E-post: sudarshan@example.com Telefon: 0701112233 Hur kan vi hjälpa dig?',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+      {
+        graphMessageId: 'cf-blend-in',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-07-05T11:00:00.000Z',
+        subject: 'Kontaktformulär',
+        bodyText:
+          'Från: Blend Bytyci E-post: blend@example.com Telefon: 0704445566 Hur kan vi hjälpa dig?',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+      {
+        graphMessageId: 'cf-blend-out',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'sent',
+        direction: 'outbound',
+        sentAt: '2026-07-05T12:00:00.000Z',
+        subject: 'Re: Kontaktformulär',
+        from: { address: 'kons@hairtpclinic.com', name: 'Kons' },
+        toRecipients: [{ emailAddress: { address: 'blend@example.com' } }],
+      },
+    ],
+  };
+
+  const sorted = fetchSortedConversationMessages(contactFormStore, scopedBlendKey);
+
+  assert.deepEqual(
+    sorted.map((message) => message.graphMessageId),
+    ['cf-blend-in', 'cf-blend-out']
+  );
+});
 
 test('tom/ogiltig nyckel ger tom lista', () => {
   assert.deepEqual(fetchSortedConversationMessages(store, ''), []);

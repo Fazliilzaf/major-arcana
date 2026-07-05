@@ -23,6 +23,10 @@ const crypto = require('crypto');
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
 const { extractTextFromHtml } = require('../ops/ccoMailContentParser');
+const {
+  messageMatchesContactFormScope,
+  parseContactFormScopedConversationKey,
+} = require('../ops/ccoContactFormIdentity');
 const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
 const { requirePermission } = require('../security/ccoRbac');
@@ -367,6 +371,32 @@ function fetchSortedConversationMessagesForKeys(store, keys = []) {
   ).sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
+function buildConversationLookupScopes(keys = []) {
+  return asArray(keys)
+    .map((rawKey) => {
+      const requestedKey = normalizeText(rawKey);
+      if (!requestedKey) return null;
+      const scopedKey = parseContactFormScopedConversationKey(requestedKey);
+      return {
+        requestedKey,
+        baseKey: normalizeText(scopedKey.baseKey || requestedKey),
+        contactEmail: normalizeText(scopedKey.email).toLowerCase(),
+      };
+    })
+    .filter(Boolean);
+}
+
+function conversationMessageMatchesScopes(message = {}, scopes = []) {
+  if (!scopes.length) return false;
+  const aliases = buildConversationAliases(message);
+  return scopes.some((scope) => {
+    const aliasMatches = aliases.has(scope.requestedKey) || aliases.has(scope.baseKey);
+    if (!aliasMatches) return false;
+    if (!scope.contactEmail) return true;
+    return messageMatchesContactFormScope(message, scope.contactEmail);
+  });
+}
+
 function deriveInitials(name) {
   const parts = String(name || '')
     .split(/\s+/)
@@ -386,32 +416,10 @@ function deriveInitials(name) {
 function fetchSortedConversationMessages(store, key, memberKeys = []) {
   if (!store || typeof store.listMessages !== 'function') return [];
   const safeMemberKeys = Array.isArray(memberKeys) ? memberKeys : [];
-  const targetKeys = new Set(
-    [key, ...safeMemberKeys].map((item) => normalizeText(item)).filter(Boolean)
-  );
-  if (targetKeys.size === 0) return [];
+  const scopes = buildConversationLookupScopes([key, ...safeMemberKeys]);
+  if (!scopes.length) return [];
   const all = store.listMessages({});
-  const matches = all.filter((m) => {
-    const message = asObject(m);
-    const mailboxId =
-      normalizeText(message.mailboxId) ||
-      normalizeText(message.mailboxAddress) ||
-      normalizeText(message.userPrincipalName);
-    const aliases = [
-      normalizeText(message.mailboxConversationId),
-      normalizeText(message.conversationId),
-      normalizeText(message.graphMessageId),
-      normalizeText(
-        toCanonicalMailboxConversationKey({
-          mailboxId,
-          conversationId: message.conversationId,
-          mailboxConversationId: message.mailboxConversationId,
-          messageId: message.graphMessageId,
-        })
-      ),
-    ].filter(Boolean);
-    return aliases.some((alias) => targetKeys.has(alias));
-  });
+  const matches = all.filter((m) => conversationMessageMatchesScopes(asObject(m), scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
@@ -487,13 +495,13 @@ function toConversationMessageFromRaw(raw = {}) {
 
 function fetchSortedIngestionConversationMessages(store, key) {
   if (!store || typeof store.getState !== 'function') return [];
-  const safeKey = normalizeText(key);
-  if (!safeKey) return [];
+  const scopes = buildConversationLookupScopes([key]);
+  if (!scopes.length) return [];
   const state = asObject(store.getState());
   const rawMessages = Object.values(asObject(state.mailRawMessages));
   const matches = rawMessages
     .map(toConversationMessageFromRaw)
-    .filter((message) => buildConversationAliases(message).has(safeKey));
+    .filter((message) => conversationMessageMatchesScopes(message, scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 

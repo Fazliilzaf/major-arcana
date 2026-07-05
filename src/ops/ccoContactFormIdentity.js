@@ -126,11 +126,126 @@ function resolveContactFormIdentity(message = {}) {
   };
 }
 
+const CONTACT_FORM_SCOPE_SEPARATOR = '::contact-form:';
+
+function toContactFormScopedConversationKey(baseKey = '', email = '') {
+  const safeBaseKey = normalizeText(baseKey);
+  const safeEmail = normalizeEmail(email);
+  if (!safeBaseKey || !safeEmail || isClinicEmail(safeEmail)) return safeBaseKey;
+  return `${safeBaseKey}${CONTACT_FORM_SCOPE_SEPARATOR}${encodeURIComponent(safeEmail)}`;
+}
+
+function parseContactFormScopedConversationKey(key = '') {
+  const safeKey = normalizeText(key);
+  const separatorIndex = safeKey.lastIndexOf(CONTACT_FORM_SCOPE_SEPARATOR);
+  if (separatorIndex < 0) {
+    return { scoped: false, baseKey: safeKey, email: '' };
+  }
+  const baseKey = safeKey.slice(0, separatorIndex);
+  const rawEmail = safeKey.slice(separatorIndex + CONTACT_FORM_SCOPE_SEPARATOR.length);
+  let email = '';
+  try {
+    email = normalizeEmail(decodeURIComponent(rawEmail));
+  } catch (_err) {
+    email = normalizeEmail(rawEmail);
+  }
+  return { scoped: true, baseKey, email: isClinicEmail(email) ? '' : email };
+}
+
+function collectEmailCandidates(value, output = []) {
+  if (!value) return output;
+  if (typeof value === 'string') {
+    const matches = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+    for (const raw of matches) output.push(stripAngleAddress(raw));
+    return output;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectEmailCandidates(item, output);
+    return output;
+  }
+  if (typeof value === 'object') {
+    const safe = asObject(value);
+    const direct = [
+      safe.address,
+      safe.email,
+      safe.mail,
+      safe.userPrincipalName,
+      safe.emailAddress && asObject(safe.emailAddress).address,
+    ];
+    for (const item of direct) collectEmailCandidates(item, output);
+  }
+  return output;
+}
+
+function collectParticipantEmails(message = {}) {
+  const safe = asObject(message);
+  const rawJson = asObject(safe.rawJson);
+  const fields = [
+    safe.from,
+    safe.sender,
+    safe.fromEmail,
+    safe.senderEmail,
+    safe.fromAddress,
+    safe.to,
+    safe.toRecipients,
+    safe.ccRecipients,
+    safe.bccRecipients,
+    safe.replyToRecipients,
+    safe.recipients,
+    rawJson.from,
+    rawJson.sender,
+    rawJson.to,
+    rawJson.toRecipients,
+    rawJson.ccRecipients,
+    rawJson.bccRecipients,
+    rawJson.replyTo,
+    rawJson.replyToRecipients,
+  ];
+  const emails = [];
+  for (const field of fields) collectEmailCandidates(field, emails);
+  return Array.from(
+    new Set(emails.map(normalizeEmail).filter((email) => email && !isClinicEmail(email)))
+  );
+}
+
+function resolveContactFormConversationEmail(message = {}, allowedEmails = null) {
+  const contactFormIdentity = resolveContactFormIdentity(message);
+  if (contactFormIdentity?.email) return contactFormIdentity.email;
+  const allowedSet =
+    allowedEmails instanceof Set
+      ? allowedEmails
+      : Array.isArray(allowedEmails)
+        ? new Set(allowedEmails.map(normalizeEmail).filter(Boolean))
+        : null;
+  if (!allowedSet || allowedSet.size === 0) return '';
+  return collectParticipantEmails(message).find((email) => allowedSet.has(email)) || '';
+}
+
+function scopeContactFormConversationKey(baseKey = '', message = {}, allowedEmails = null) {
+  const email = resolveContactFormConversationEmail(message, allowedEmails);
+  return email ? toContactFormScopedConversationKey(baseKey, email) : normalizeText(baseKey);
+}
+
+function messageMatchesContactFormScope(message = {}, email = '') {
+  const safeEmail = normalizeEmail(email);
+  if (!safeEmail) return true;
+  const contactFormIdentity = resolveContactFormIdentity(message);
+  if (contactFormIdentity?.email) return normalizeEmail(contactFormIdentity.email) === safeEmail;
+  return collectParticipantEmails(message).includes(safeEmail);
+}
+
 module.exports = {
   collectMessageText,
+  collectParticipantEmails,
   extractContactFormEmail,
   extractContactFormName,
   isClinicEmail,
   looksLikeContactFormMessage,
+  messageMatchesContactFormScope,
+  normalizeEmail,
+  parseContactFormScopedConversationKey,
   resolveContactFormIdentity,
+  resolveContactFormConversationEmail,
+  scopeContactFormConversationKey,
+  toContactFormScopedConversationKey,
 };
