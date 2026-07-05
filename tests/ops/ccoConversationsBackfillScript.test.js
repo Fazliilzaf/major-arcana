@@ -168,3 +168,22 @@ test('nextStopState: rate-limit (429) sänker tröskeln till 2', () => {
   s = nextStopState(s, { failed: true });
   assert.equal(s.abort, true, 'två fel varav ett 429 → stopp');
 });
+
+test('default prod-host är .com — den riktiga ytan (aldrig .se som default)', () => {
+  const { DEFAULT_PROD_URL } = require('../../scripts/run-cco-conversations-backfill.js');
+  assert.equal(DEFAULT_PROD_URL, 'https://arcana.hairtpclinic.com');
+  const source = require('node:fs').readFileSync(
+    require('node:path').join(
+      __dirname,
+      '..',
+      '..',
+      'scripts',
+      'run-cco-conversations-backfill.js'
+    ),
+    'utf8'
+  );
+  assert.ok(
+    !source.includes('hairtpclinic.se'),
+    '.se-hosten får inte förekomma i Konversationer-driftskriptet'
+  );
+});

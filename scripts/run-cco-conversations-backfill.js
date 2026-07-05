@@ -16,7 +16,7 @@
  * Read-only: ingen send-väg berörs. Idempotent: dedupe gör omkörning säker.
  *
  * Env:
- *   ARCANA_PROD_URL   (default https://arcana.hairtpclinic.se)
+ *   ARCANA_PROD_URL   (default https://arcana.hairtpclinic.com — den riktiga ytan)
  *   ARCANA_MAILBOX    (default kons@hairtpclinic.com)
  *   ARCANA_BACKFILL_MAX_ROUNDS / _MAX_PAGES / _PAGE_SIZE / _RETRY_MS
  *   ARCANA_INGEST_POLL_MS (default 15000) / ARCANA_INGEST_MAX_POLLS (default 240)
@@ -26,7 +26,10 @@
 
 require('dotenv').config({ quiet: true });
 
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+// Default = .com — den riktiga produktionsytan (ägar-beslut 2026-07-05).
+// .se-hosten får ALDRIG vara default här; överstyr medvetet via ARCANA_PROD_URL.
+const DEFAULT_PROD_URL = 'https://arcana.hairtpclinic.com';
+const base = (process.env.ARCANA_PROD_URL || DEFAULT_PROD_URL).replace(/\/+$/, '');
 const mailboxEmail = (process.env.ARCANA_MAILBOX || 'kons@hairtpclinic.com').toLowerCase();
 const maxRounds = Number(process.env.ARCANA_BACKFILL_MAX_ROUNDS || 300);
 const maxPagesPerFolder = Number(process.env.ARCANA_BACKFILL_MAX_PAGES || 3);
@@ -331,6 +334,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  DEFAULT_PROD_URL,
   inboxCoverage,
   pickBackfillJob,
   summarizeBackfillJob,
