@@ -372,7 +372,7 @@ function fetchSortedConversationMessagesForKeys(store, keys = []) {
 }
 
 function buildConversationLookupScopes(keys = []) {
-  return asArray(keys)
+  const scopes = asArray(keys)
     .map((rawKey) => {
       const requestedKey = normalizeText(rawKey);
       if (!requestedKey) return null;
@@ -384,6 +384,18 @@ function buildConversationLookupScopes(keys = []) {
       };
     })
     .filter(Boolean);
+  const primaryScope = scopes[0];
+  if (!primaryScope?.contactEmail || !primaryScope.baseKey) return scopes;
+  return scopes.map((scope) => {
+    if (
+      scope.baseKey === primaryScope.baseKey &&
+      !scope.contactEmail &&
+      scope.requestedKey !== primaryScope.requestedKey
+    ) {
+      return { ...scope, contactEmail: primaryScope.contactEmail };
+    }
+    return scope;
+  });
 }
 
 function conversationMessageMatchesScopes(message = {}, scopes = []) {
