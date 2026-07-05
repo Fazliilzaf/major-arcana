@@ -144,6 +144,92 @@ function sampleWorklistRows(payload, limit = 5) {
     }));
 }
 
+function rowConversationKey(row) {
+  return String(row?.conversation?.key || row?.conversationKey || row?.id || '');
+}
+
+function sampleMessageTime(message) {
+  return String(
+    message?.time ||
+      message?.receivedDateTime ||
+      message?.sentDateTime ||
+      message?.createdDateTime ||
+      message?.dateTime ||
+      message?.timestamp ||
+      ''
+  );
+}
+
+function isInboundMessage(message) {
+  const dir = String(
+    message?.dir || message?.direction || message?.messageDirection || ''
+  ).toLowerCase();
+  if (dir) return dir === 'inbound' || dir === 'incoming';
+  const folder = String(message?.folderType || '').toLowerCase();
+  return folder === 'inbox';
+}
+
+function latestInboundTimeFromMessages(payload) {
+  const messages = Array.isArray(payload?.messages)
+    ? payload.messages
+    : Array.isArray(payload?.items)
+      ? payload.items
+      : [];
+  return (
+    messages
+      .filter(isInboundMessage)
+      .map(sampleMessageTime)
+      .filter(Boolean)
+      .sort()
+      .pop() || null
+  );
+}
+
+function candidateMessageKeysForRow(row) {
+  const keys = [
+    rowConversationKey(row),
+    row?.conversation?.mailboxConversationId,
+    ...(Array.isArray(row?.rollup?.underlyingConversationKeys)
+      ? row.rollup.underlyingConversationKeys
+      : []),
+    ...(Array.isArray(row?.provenance?.rollup?.underlyingConversationKeys)
+      ? row.provenance.rollup.underlyingConversationKeys
+      : []),
+  ]
+    .map((key) => String(key || ''))
+    .filter(Boolean);
+  return [...new Set(keys)];
+}
+
+/* Worklist-rollups can carry null timing even when their underlying threads have
+ * message times. This read-only enrichment only fills lastInboundAt for proof
+ * samples; it never copies subject/preview/body into the report. */
+async function enrichSampleRowsWithMessageTimes(samples, payload, fetchMessages) {
+  if (typeof fetchMessages !== 'function') return samples;
+  const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+  const rowByKey = new Map(rows.map((row) => [rowConversationKey(row), row]));
+  const enriched = [];
+  for (const sample of samples || []) {
+    if (sample?.lastInboundAt) {
+      enriched.push(sample);
+      continue;
+    }
+    const row = rowByKey.get(String(sample?.conversationKey || '')) || {};
+    let lastInboundAt = null;
+    for (const key of candidateMessageKeysForRow(row)) {
+      try {
+        const messagesPayload = await fetchMessages(key);
+        lastInboundAt = latestInboundTimeFromMessages(messagesPayload);
+      } catch {
+        lastInboundAt = null;
+      }
+      if (lastInboundAt) break;
+    }
+    enriched.push({ ...sample, lastInboundAt });
+  }
+  return enriched;
+}
+
 function buildBackfillVerdict({ before, after, ingestion }) {
   const beforeRows = Number(before?.rowCount || 0);
   const afterRows = Number(after?.rowCount || 0);
@@ -342,6 +428,13 @@ async function fetchWorklist(token) {
   );
 }
 
+async function fetchConversationMessages(token, conversationKey) {
+  return fetchJson(
+    `/api/v1/cco/runtime/conversation/${encodeURIComponent(conversationKey)}/messages`,
+    { token }
+  );
+}
+
 async function main() {
   console.log(`== CCO Konversationer-backfill (${mailboxEmail}) mot ${base} ==`);
   const token = await resolveOwnerToken();
@@ -355,7 +448,11 @@ async function main() {
 
   const afterPayload = await fetchWorklist(token);
   const after = summarizeWorklist(afterPayload);
-  const samples = sampleWorklistRows(afterPayload, 5);
+  const samples = await enrichSampleRowsWithMessageTimes(
+    sampleWorklistRows(afterPayload, 5),
+    afterPayload,
+    (conversationKey) => fetchConversationMessages(token, conversationKey)
+  );
   console.log(
     `[4/4] Worklist efter: ${after.rowCount} trådar (före: ${before.rowCount}), needsReply=${after.needsReply}`
   );
@@ -402,6 +499,9 @@ module.exports = {
   summarizeBackfillJob,
   summarizeWorklist,
   sampleWorklistRows,
+  latestInboundTimeFromMessages,
+  candidateMessageKeysForRow,
+  enrichSampleRowsWithMessageTimes,
   buildBackfillVerdict,
   nextStopState,
 };
