@@ -307,3 +307,151 @@ test('drive import approve rejects unknown patient in directory', async () => {
   );
   fs.rmSync(projectRoot, { recursive: true, force: true });
 });
+
+test('drive import approve rejects wrong_patient_asset_binding when patientId mismatches asset', async () => {
+  const { projectRoot, store, assetId, auditLog, config } = await makeFixture();
+
+  await assert.rejects(
+    () =>
+      applyDriveImportReviewApprove(
+        store,
+        assetId,
+        {
+          decision: 'approve',
+          reason: 'fel patientkontext',
+          reviewer: 'tester',
+          patientId: 'pat-b',
+        },
+        { projectRoot, config, auditLog, actor: { role: 'operator', userId: 'tester' } }
+      ),
+    (err) => {
+      assert.equal(err.message, 'wrong_patient_asset_binding');
+      assert.equal(err.statusCode, 409);
+      assert.equal(err.detail.assetPatientId, 'pat-a');
+      assert.equal(err.detail.requestedPatientId, 'pat-b');
+      return true;
+    }
+  );
+
+  assert.equal(store.getAsset(assetId).status, 'NEEDS_REVIEW');
+  fs.rmSync(projectRoot, { recursive: true, force: true });
+});
+
+test('drive import approve rejects wrong_patient_asset_binding via expectedPatientId', async () => {
+  const { projectRoot, store, assetId, auditLog, config } = await makeFixture();
+
+  await assert.rejects(
+    () =>
+      applyDriveImportReviewApprove(
+        store,
+        assetId,
+        {
+          decision: 'approve',
+          reason: 'fel patientkontext',
+          reviewer: 'tester',
+          expectedPatientId: 'pat-b',
+        },
+        { projectRoot, config, auditLog, actor: { role: 'operator', userId: 'tester' } }
+      ),
+    /wrong_patient_asset_binding/
+  );
+
+  assert.equal(store.getAsset(assetId).status, 'NEEDS_REVIEW');
+  fs.rmSync(projectRoot, { recursive: true, force: true });
+});
+
+test('drive import approve blocked without checksum stays NEEDS_REVIEW', async () => {
+  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dir-write-no-checksum-'));
+  writeCustomers(projectRoot, ['pat-a']);
+  const assetPath = path.join(projectRoot, 'data', 'cco-patient-assets.json');
+  fs.mkdirSync(path.dirname(assetPath), { recursive: true });
+  const auditLog = createAudit();
+  const store = await createCcoPatientAssetStore({ filePath: assetPath, auditLog });
+  const asset = await store.addAsset({
+    patientId: 'pat-a',
+    sourceSystem: 'drive_import',
+    sourceRecordId: 'drive-nc',
+    originalDriveFileId: 'drive-nc-1',
+    originalDrivePath: 'Hair TP Clinic 2025/foo/IMG_NC.JPG',
+    originalFileName: 'IMG_NC.JPG',
+    storageProvider: 'local',
+    storageKey: '2025/foo/IMG_NC.JPG',
+    checksum: null,
+    fileSize: 1200,
+    mimeType: 'image/jpeg',
+    category: 'photo_before',
+    confidence: 'high',
+    importedBy: 'system',
+    importRunId: 'run-1',
+  });
+  await store.transitionStatus(asset.id, 'NEEDS_REVIEW', { reason: 'needs_photo_review' });
+  writeAssetsMirror(projectRoot, { [asset.id]: store.getAsset(asset.id) });
+  const config = { enableDriveImportReviewWrite: true, driveImportReviewCanaryMax: 100 };
+
+  await assert.rejects(
+    () =>
+      applyDriveImportReviewApprove(
+        store,
+        asset.id,
+        {
+          decision: 'approve',
+          reason: 'saknar checksum',
+          reviewer: 'tester',
+          patientId: 'pat-a',
+        },
+        { projectRoot, config, auditLog, actor: { role: 'operator', userId: 'tester' } }
+      ),
+    /approve_blocked_missing:.*checksum/
+  );
+
+  assert.equal(store.getAsset(asset.id).status, 'NEEDS_REVIEW');
+  fs.rmSync(projectRoot, { recursive: true, force: true });
+});
+
+test('drive import approve blocked without storageKey stays NEEDS_REVIEW', async () => {
+  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dir-write-no-storage-'));
+  writeCustomers(projectRoot, ['pat-a']);
+  const assetPath = path.join(projectRoot, 'data', 'cco-patient-assets.json');
+  fs.mkdirSync(path.dirname(assetPath), { recursive: true });
+  const auditLog = createAudit();
+  const store = await createCcoPatientAssetStore({ filePath: assetPath, auditLog });
+  const asset = await store.addAsset({
+    patientId: 'pat-a',
+    sourceSystem: 'drive_import',
+    sourceRecordId: 'drive-ns',
+    originalDriveFileId: 'drive-ns-1',
+    originalDrivePath: 'Hair TP Clinic 2025/foo/IMG_NS.JPG',
+    originalFileName: 'IMG_NS.JPG',
+    storageProvider: 'local',
+    storageKey: 'pending-no-binary',
+    checksum: 'sha256:abc123',
+    fileSize: 0,
+    mimeType: 'image/jpeg',
+    category: 'photo_before',
+    confidence: 'high',
+    importedBy: 'system',
+    importRunId: 'run-1',
+  });
+  await store.transitionStatus(asset.id, 'NEEDS_REVIEW', { reason: 'needs_photo_review' });
+  writeAssetsMirror(projectRoot, { [asset.id]: store.getAsset(asset.id) });
+  const config = { enableDriveImportReviewWrite: true, driveImportReviewCanaryMax: 100 };
+
+  await assert.rejects(
+    () =>
+      applyDriveImportReviewApprove(
+        store,
+        asset.id,
+        {
+          decision: 'approve',
+          reason: 'saknar storageKey',
+          reviewer: 'tester',
+          patientId: 'pat-a',
+        },
+        { projectRoot, config, auditLog, actor: { role: 'operator', userId: 'tester' } }
+      ),
+    /approve_blocked_missing:.*storageKey/
+  );
+
+  assert.equal(store.getAsset(asset.id).status, 'NEEDS_REVIEW');
+  fs.rmSync(projectRoot, { recursive: true, force: true });
+});
