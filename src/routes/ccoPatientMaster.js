@@ -48,6 +48,7 @@ const {
 } = require('../ops/ccoKunderFasAReadiness');
 const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
 const { assetToPatientFile, resolvePatientAssetIds } = require('../ops/ccoPatientAssetIdentity');
+const { gateMigrationIndexFiles } = require('../ops/ccoPatientMasterMigrationIndexGate');
 const { buildVisitSegments } = require('../ops/ccoPatientVisitSegments');
 const { hydratePatientHealthProjection } = require('../ops/ccoPatientMasterStore');
 
@@ -511,6 +512,7 @@ function createCcoPatientMasterRouter({
       };
     });
     let nativeAssetFiles = [];
+    const nativeAssets = [];
     if (includeDriveFiles && typeof resolvePatientAssetStore === 'function') {
       const assetStore = await resolvePatientAssetStore();
       if (assetStore?.listAssetsForPatient) {
@@ -522,7 +524,6 @@ function createCcoPatientMasterRouter({
           assetStore,
         });
         const seen = new Set();
-        const nativeAssets = [];
         for (const id of patientIds) {
           const rows = assetStore.listAssetsForPatient(id, {}, { actor: { role: 'system' } }) || [];
           for (const row of rows) {
@@ -537,12 +538,12 @@ function createCcoPatientMasterRouter({
       }
     }
 
+    const gatedIndex = gateMigrationIndexFiles({
+      indexFiles: enrichedDriveFiles,
+      nativeAssets,
+    });
     const pilotConfig = resolvePilotConfig(config || {});
-    const hasNativeImages = nativeAssetFiles.some(isImageLikeFile);
-    const visibleIndexFiles = hasNativeImages
-      ? enrichedDriveFiles.filter((file) => !isImageLikeFile(file))
-      : enrichedDriveFiles;
-    let filesForUi = [...nativeAssetFiles, ...visibleIndexFiles];
+    let filesForUi = [...nativeAssetFiles, ...gatedIndex.files];
     let nativePilotMeta = null;
     if (pilotConfig.enabled && typeof resolvePatientAssetStore === 'function') {
       const assetStore = await resolvePatientAssetStore();

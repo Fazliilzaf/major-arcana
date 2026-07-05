@@ -163,6 +163,17 @@ function resolveDateConfidence(file, visitDate) {
     reasons.push('missing_visit_date');
     return { confidence: 'low', reasons };
   }
+  if (
+    file?.renderAsClear === false ||
+    file?.assetStatus === 'MIGRATION_INDEX_UNVERIFIED' ||
+    file?.migrationIndexBinding === 'unlinked' ||
+    file?.migrationIndexBinding === 'native_unverified'
+  ) {
+    if (!reasons.includes('migration_index_unverified')) {
+      reasons.push('migration_index_unverified');
+    }
+    return { confidence: 'medium', reasons };
+  }
   if (file?.captureDateMismatch) {
     reasons.push('capture_document_date_mismatch');
   }
