@@ -225,3 +225,60 @@ test('default prod-host är .com — den riktiga ytan (aldrig .se som default)',
     '.se-hosten får inte förekomma i Konversationer-driftskriptet'
   );
 });
+
+test('sampleWorklistRows läser consumer-modellens NÄSTLADE radform (v1)', () => {
+  // Exakt form från ccoMailboxTruthWorklistReadModel.buildConsumerModel.
+  const rows = sampleWorklistRows({
+    rows: [
+      {
+        id: 'kons@hairtpclinic.com:conv:abc',
+        subject: 'HEMLIGT ÄMNE',
+        preview: 'HEMLIG BRÖDTEXT',
+        conversation: { key: 'kons@hairtpclinic.com:conv:abc', conversationId: 'c-abc' },
+        mailbox: {
+          mailboxId: 'kons@hairtpclinic.com',
+          mailboxAddress: 'kons@hairtpclinic.com',
+          ownershipMailbox: 'kons',
+        },
+        customer: { email: 'kund@example.com', name: 'Kund Kundsson' },
+        timing: { lastInboundAt: '2026-07-01T09:00:00Z', latestMessageAt: '2026-07-01T09:00:00Z' },
+        state: {
+          needsReply: true,
+          ingestion: { dominantStatus: 'NEEDS_REVIEW', needsReview: true, messageCount: 3 },
+        },
+      },
+      {
+        id: 'kons@hairtpclinic.com:conv:def',
+        conversation: { key: 'kons@hairtpclinic.com:conv:def' },
+        mailbox: { mailboxId: 'kons@hairtpclinic.com' },
+        customer: { email: 'annan@example.com' },
+        timing: { lastInboundAt: null, latestMessageAt: '2026-06-20T12:00:00Z' },
+        state: { needsReply: false, ingestion: { dominantStatus: 'MATCHED' } },
+      },
+    ],
+  });
+  assert.equal(rows[0].conversationKey, 'kons@hairtpclinic.com:conv:abc');
+  assert.equal(
+    rows[0].mailboxId,
+    'kons@hairtpclinic.com',
+    'mailbox från nästlade mailbox-objektet'
+  );
+  assert.equal(rows[0].lastInboundAt, '2026-07-01T09:00:00Z', 'tid från timing-objektet');
+  assert.equal(rows[0].needsReply, true, 'needsReply från state-objektet');
+  assert.equal(rows[0].customerMatch, 'NEEDS_REVIEW', 'match från state.ingestion.dominantStatus');
+  // Rad utan lastInboundAt faller tillbaka på latestMessageAt.
+  assert.equal(rows[1].lastInboundAt, '2026-06-20T12:00:00Z');
+  assert.equal(rows[1].customerMatch, 'MATCHED');
+  // Integritet: ämne/preview läcker aldrig.
+  const s = JSON.stringify(rows);
+  assert.ok(!s.includes('HEMLIGT') && !s.includes('HEMLIG BRÖDTEXT'));
+});
+
+test('summarizeWorklist räknar needsReply även i nästlad state-form', () => {
+  const summary = summarizeWorklist({
+    ok: true,
+    rows: [{ state: { needsReply: true } }, { state: { needsReply: false } }, { needsReply: true }],
+  });
+  assert.equal(summary.rowCount, 3);
+  assert.equal(summary.needsReply, 2);
+});

@@ -80,7 +80,8 @@ function summarizeBackfillJob(job) {
 function summarizeWorklist(payload) {
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
   const needsReply = rows.filter(
-    (row) => row?.needsReply === true || row?.status === 'needs_reply'
+    (row) =>
+      row?.needsReply === true || row?.state?.needsReply === true || row?.status === 'needs_reply'
   ).length;
   return {
     ok: payload?.ok === true,
@@ -92,27 +93,53 @@ function summarizeWorklist(payload) {
 
 /* Exempelrader för bevisrapporten — ENBART metadatafält (conversationKey,
  * brevlåda, senaste inkommande, needsReply, kundmatch-status). Ämnen och
- * brödtext skrivs aldrig ut. */
+ * brödtext skrivs aldrig ut.
+ *
+ * Consumer-modellens rader är NÄSTLADE (cco.worklist.consumer.v1):
+ *   conversation.key · mailbox.{mailboxId,mailboxAddress,ownershipMailbox}
+ *   timing.{lastInboundAt,latestMessageAt} · state.needsReply
+ *   state.ingestion.dominantStatus (MATCHED/NEEDS_REVIEW/UNMATCHED/SECURITY_REVIEW)
+ * Platta fallbacks behålls för äldre/andra radformer. */
+function sampleRowTime(row) {
+  return String(
+    row?.timing?.lastInboundAt ||
+      row?.lastInboundAt ||
+      row?.timing?.latestMessageAt ||
+      row?.latestMessageAt ||
+      ''
+  );
+}
+
 function sampleWorklistRows(payload, limit = 5) {
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
   return rows
     .slice()
-    .sort((a, b) =>
-      String(b?.lastInboundAt || b?.timing?.lastInboundAt || '').localeCompare(
-        String(a?.lastInboundAt || a?.timing?.lastInboundAt || '')
-      )
-    )
+    .sort((a, b) => sampleRowTime(b).localeCompare(sampleRowTime(a)))
     .slice(0, Math.max(0, limit))
     .map((row) => ({
-      conversationKey: String(row?.conversationKey || row?.id || ''),
-      mailboxId: String(row?.mailboxId || row?.ownershipMailbox || ''),
-      lastInboundAt: String(row?.lastInboundAt || row?.timing?.lastInboundAt || '') || null,
-      needsReply: row?.needsReply === true || row?.status === 'needs_reply',
+      conversationKey: String(row?.conversation?.key || row?.conversationKey || row?.id || ''),
+      mailboxId: String(
+        row?.mailbox?.mailboxId ||
+          row?.mailbox?.mailboxAddress ||
+          row?.mailbox?.ownershipMailbox ||
+          row?.mailboxId ||
+          row?.ownershipMailbox ||
+          ''
+      ),
+      lastInboundAt: sampleRowTime(row) || null,
+      needsReply:
+        row?.state?.needsReply === true ||
+        row?.needsReply === true ||
+        row?.status === 'needs_reply',
       customerMatch:
         String(
-          row?.customerMatchStatus ||
+          row?.state?.ingestion?.dominantStatus ||
+            row?.ingestion?.dominantStatus ||
+            row?.customerMatchStatus ||
             row?.ingestion?.matchStatus ||
-            (row?.customerId || row?.customer?.id ? 'MATCHED' : '')
+            (row?.customer?.email || row?.customer?.name || row?.customerId || row?.customer?.id
+              ? 'MATCHED'
+              : '')
         ) || 'UNKNOWN',
     }));
 }
