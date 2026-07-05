@@ -57,7 +57,9 @@ function createCcoMailIngestionWorker({
 
   function listJobs({ limit = 20 } = {}) {
     return Array.from(jobs.values())
-      .sort((left, right) => String(right.startedAt || '').localeCompare(String(left.startedAt || '')))
+      .sort((left, right) =>
+        String(right.startedAt || '').localeCompare(String(left.startedAt || ''))
+      )
       .slice(0, Math.max(1, Number(limit) || 20));
   }
 
@@ -163,11 +165,7 @@ function createCcoMailIngestionWorker({
     }
   }
 
-  function enqueueProcessDrain({
-    mailboxEmail = '',
-    mode = 'read_only',
-    maxBatches = 500,
-  } = {}) {
+  function enqueueProcessDrain({ mailboxEmail = '', mode = 'read_only', maxBatches = 500 } = {}) {
     const normalized = normalizeEmail(mailboxEmail);
     const jobId = `${normalized}:drain:${Date.now()}`;
     const job = {
@@ -219,11 +217,92 @@ function createCcoMailIngestionWorker({
     return job;
   }
 
+  /**
+   * Historisk backfill (Konversationer Fas 1): kedjar full import
+   * (delta + ingest av ALL truth-historik, sinceIso=null) med process-drain
+   * genom befintliga pipelinen (allowlist/brusfilter/dedupe/kundmatchning/
+   * conflict-review/needsReply). Ett jobb, en status.
+   *
+   * mode är HÅRDLÅST till read_only — backfill får aldrig trigga live-
+   * sideeffekter oavsett vad anroparen skickar.
+   */
+  function enqueueBackfillJob({ mailboxEmail = '', maxBatches = 500, createdBy = 'system' } = {}) {
+    const normalized = normalizeEmail(mailboxEmail);
+    const jobId = `${normalized}:backfill:${Date.now()}`;
+    const job = {
+      id: jobId,
+      mailboxEmail: normalized,
+      mode: 'read_only',
+      trigger: 'historical_backfill',
+      status: 'queued',
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+      phase: 'import',
+      importResult: null,
+      totalProcessed: 0,
+      totalFailed: 0,
+      batches: 0,
+      error: null,
+    };
+    jobs.set(jobId, job);
+
+    setImmediate(async () => {
+      job.status = 'running';
+      jobs.set(jobId, job);
+      try {
+        await ensureQueueIntegrity({ mailboxEmail: normalized });
+        const importResult = await syncService.runMailboxImport({
+          mailboxEmail: normalized,
+          mode: 'read_only',
+          trigger: 'historical_backfill',
+          createdBy,
+        });
+        job.importResult = {
+          skipped: importResult?.skipped === true,
+          totalFetched: Number(importResult?.ingestResult?.totalFetched || 0),
+          totalSaved: Number(importResult?.ingestResult?.totalSaved || 0),
+          totalDuplicates: Number(importResult?.ingestResult?.totalDuplicates || 0),
+        };
+        job.phase = 'process';
+        jobs.set(jobId, job);
+
+        const batchSize = Number(config.ccoMailIngestionQueueBatchSize || 75);
+        for (let i = 0; i < maxBatches; i += 1) {
+          const batch = await runProcessBatch({
+            mailboxEmail: normalized,
+            mode: 'read_only',
+            maxMessages: batchSize,
+          });
+          job.batches += 1;
+          job.totalProcessed += Number(batch.processed || 0);
+          job.totalFailed += Number(batch.failed || 0);
+          jobs.set(jobId, job);
+          const remaining = ingestionStore.getQueueLength({ mailboxEmail: normalized });
+          if (remaining <= 0) break;
+          if (Number(batch.processed || 0) === 0 && Number(batch.failed || 0) === 0) break;
+        }
+        job.phase = 'done';
+        job.status = 'completed';
+        job.finishedAt = new Date().toISOString();
+        jobs.set(jobId, job);
+      } catch (error) {
+        job.status = 'failed';
+        job.error = normalizeText(error?.message) || 'backfill_failed';
+        job.finishedAt = new Date().toISOString();
+        jobs.set(jobId, job);
+        logger?.error?.('[mail-ingestion-worker] backfill job failed', error);
+      }
+    });
+
+    return job;
+  }
+
   return {
     reconcileStuckImportRuns,
     ensureQueueIntegrity,
     enqueueImportJob,
     enqueueProcessDrain,
+    enqueueBackfillJob,
     runImportJob,
     runProcessBatch,
     getJob,
