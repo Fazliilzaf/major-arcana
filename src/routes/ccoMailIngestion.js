@@ -3,7 +3,11 @@
 const express = require('express');
 const { ROLE_OWNER } = require('../security/roles');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
-const { runUnmatchedResolutionSweep, summarizeReviewGroups } = require('../ops/ccoMailIngestion/resolveUnmatched');
+const {
+  runUnmatchedResolutionSweep,
+  summarizeReviewGroups,
+} = require('../ops/ccoMailIngestion/resolveUnmatched');
+const { resolveIngestMailboxAllowlist } = require('../ops/ccoMailboxAllowlist');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -31,9 +35,34 @@ function createCcoMailIngestionRouter({
   ingestionWorker,
   graphNotifications,
   patientMasterStore = null,
+  mailboxAllowlist = null,
   logger = console,
 }) {
   const router = express.Router();
+
+  // Konversationer Fas 1 — ingest-endpoints gate:as mot mailbox-allowlisten
+  // (curated default / ARCANA_MAILBOX_ALLOWLIST). Ingestion får aldrig startas
+  // mot en icke-allowlistad brevlåda.
+  const allowlistedMailboxes = new Set(
+    (Array.isArray(mailboxAllowlist) && mailboxAllowlist.length > 0
+      ? mailboxAllowlist
+      : resolveIngestMailboxAllowlist({
+          envAllowlist: process.env.ARCANA_MAILBOX_ALLOWLIST,
+          schedulerHistoryMailboxIds: config?.schedulerCcoHistoryMailboxIds,
+        }).mailboxIds
+    ).map((email) => normalizeEmail(email))
+  );
+
+  function assertAllowlistedMailbox(mailboxEmail) {
+    if (allowlistedMailboxes.has(normalizeEmail(mailboxEmail))) return;
+    const error = new Error(
+      `Brevlådan ${mailboxEmail} är inte allowlistad för CCO-ingestion. ` +
+        'Lägg till den via ARCANA_MAILBOX_ALLOWLIST om den ska ingå.'
+    );
+    error.statusCode = 403;
+    error.metadata = { mailboxEmail, allowlisted: [...allowlistedMailboxes] };
+    throw error;
+  }
 
   async function handle(req, res, run) {
     try {
@@ -61,20 +90,26 @@ function createCcoMailIngestionRouter({
         mode: config.ccoMailIngestionMode || 'read_only',
         webhookEnabled: config.graphChangeNotificationsEnabled === true,
         webhookUrl: graphNotifications?.buildWebhookUrl?.(config) || null,
+        allowlistedMailboxes: [...allowlistedMailboxes],
+        jobs: ingestionWorker?.listJobs?.() || [],
         dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
       });
     })
   );
 
-  router.get('/cco/mail-ingestion/dashboard/readout', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async () => {
-      const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
-      const dashboard = ingestionStore.buildDashboardSummary({ mailboxEmail });
-      const needsReview = ingestionStore.listNeedsReview({ mailboxEmail, limit: 25 });
-      const unmatched = ingestionStore.listReviewQueue
-        ? ingestionStore.listReviewQueue({ mailboxEmail, statuses: ['UNMATCHED'], limit: 25 })
-        : [];
-      const html = `<!doctype html>
+  router.get(
+    '/cco/mail-ingestion/dashboard/readout',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
+        const dashboard = ingestionStore.buildDashboardSummary({ mailboxEmail });
+        const needsReview = ingestionStore.listNeedsReview({ mailboxEmail, limit: 25 });
+        const unmatched = ingestionStore.listReviewQueue
+          ? ingestionStore.listReviewQueue({ mailboxEmail, statuses: ['UNMATCHED'], limit: 25 })
+          : [];
+        const html = `<!doctype html>
 <html lang="sv"><head><meta charset="utf-8"><title>CCO Mail Ingestion</title>
 <style>body{font-family:system-ui,sans-serif;margin:24px;max-width:960px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px;text-align:left}code{background:#f5f5f5;padding:2px 4px}.note{background:#f7f7f7;padding:12px;border-radius:8px;margin:12px 0}</style>
 </head><body>
@@ -120,132 +155,167 @@ ${unmatched
   .join('')}
 </tbody></table>
 </body></html>`;
-      res.setHeader('content-type', 'text/html; charset=utf-8');
-      return res.send(html);
-    })
+        res.setHeader('content-type', 'text/html; charset=utf-8');
+        return res.send(html);
+      })
   );
 
-  router.get('/cco/mail-ingestion/review-queue/summary', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async () => {
-      const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
-      const rows = ingestionStore.listReviewQueue({
-        mailboxEmail,
-        statuses: ['UNMATCHED'],
-        limit: 10000,
-      });
-      const groups = summarizeReviewGroups(rows);
-      return res.json({
-        ok: true,
-        mailboxEmail: mailboxEmail || null,
-        totalUnmatched: rows.length,
-        uniqueCounterparties: groups.length,
-        nonPatientCount: groups.filter((item) => item.nonPatient).reduce((sum, item) => sum + item.count, 0),
-        patientLikeCount: groups.filter((item) => !item.nonPatient).reduce((sum, item) => sum + item.count, 0),
-        groups: groups.slice(0, 100),
-      });
-    })
-  );
-
-  router.post('/cco/mail-ingestion/resolve-unmatched-sweep', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
-      if (!mailboxEmail) {
-        return res.status(400).json({ error: 'mailboxEmail krävs.' });
-      }
-      const dryRun = req.body?.dryRun === true;
-      const result = await runUnmatchedResolutionSweep({
-        ingestionStore,
-        patientMasterStore,
-        tenantId: config.defaultTenantId || config.defaultTenant || 'hair-tp-clinic',
-        mailboxEmail,
-        actorUserId: actor.userId || actor.email || 'owner',
-        autoEnrichPatientEmails: req.body?.autoEnrichPatientEmails !== false,
-        dryRun,
-      });
-      if (!dryRun && ingestionWorker && Number(result.linked || 0) + Number(result.dismissed || 0) > 0) {
-        await ingestionStore.requestReprocessUnmatched({
+  router.get(
+    '/cco/mail-ingestion/review-queue/summary',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
+        const rows = ingestionStore.listReviewQueue({
           mailboxEmail,
-          includeOldMatchVersion: false,
+          statuses: ['UNMATCHED'],
+          limit: 10000,
         });
-      }
-      return res.json({
-        ok: true,
-        dryRun,
-        result,
-        dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
-      });
-    })
+        const groups = summarizeReviewGroups(rows);
+        return res.json({
+          ok: true,
+          mailboxEmail: mailboxEmail || null,
+          totalUnmatched: rows.length,
+          uniqueCounterparties: groups.length,
+          nonPatientCount: groups
+            .filter((item) => item.nonPatient)
+            .reduce((sum, item) => sum + item.count, 0),
+          patientLikeCount: groups
+            .filter((item) => !item.nonPatient)
+            .reduce((sum, item) => sum + item.count, 0),
+          groups: groups.slice(0, 100),
+        });
+      })
   );
 
-  router.get('/cco/mail-ingestion/review-queue', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async () => {
-      const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
-      const status = normalizeText(req.query.status || 'all').toLowerCase();
-      const limit = Number(req.query.limit || 50);
-      const statuses =
-        status === 'unmatched'
-          ? ['UNMATCHED']
-          : status === 'needs_review'
-            ? ['NEEDS_REVIEW', 'SECURITY_REVIEW']
-            : ['UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'];
-      const rows = ingestionStore.listReviewQueue({ mailboxEmail, statuses, limit });
-      return res.json({
-        ok: true,
-        mailboxEmail: mailboxEmail || null,
-        status,
-        count: rows.length,
-        rows,
-      });
-    })
-  );
-
-  router.patch('/cco/mail-ingestion/link-patient', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      const rawMessageId = normalizeText(req.body?.rawMessageId);
-      const patientId = normalizeText(req.body?.patientId);
-      if (!rawMessageId || !patientId) {
-        return res.status(400).json({ error: 'rawMessageId och patientId krävs.' });
-      }
-      const result = await ingestionStore.linkPatientToMessage({
-        rawMessageId,
-        patientId,
-        actorUserId: actor.userId || actor.email || 'owner',
-      });
-      return res.json({ ok: true, result });
-    })
-  );
-
-  router.post('/cco/mail-ingestion/reprocess-unmatched', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async () => {
-      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
-      if (!mailboxEmail) {
-        return res.status(400).json({ error: 'mailboxEmail krävs.' });
-      }
-      const result = await ingestionStore.requestReprocessUnmatched({
-        mailboxEmail,
-        includeOldMatchVersion: req.body?.includeOldMatchVersion !== false,
-      });
-      if (ingestionWorker && Number(result.requeued || 0) > 0) {
-        ingestionWorker.enqueueProcessDrain({
+  router.post(
+    '/cco/mail-ingestion/resolve-unmatched-sweep',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const mailboxEmail = normalizeEmail(
+          req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
+        );
+        if (!mailboxEmail) {
+          return res.status(400).json({ error: 'mailboxEmail krävs.' });
+        }
+        const dryRun = req.body?.dryRun === true;
+        const result = await runUnmatchedResolutionSweep({
+          ingestionStore,
+          patientMasterStore,
+          tenantId: config.defaultTenantId || config.defaultTenant || 'hair-tp-clinic',
           mailboxEmail,
-          mode: config.ccoMailIngestionMode || 'read_only',
+          actorUserId: actor.userId || actor.email || 'owner',
+          autoEnrichPatientEmails: req.body?.autoEnrichPatientEmails !== false,
+          dryRun,
         });
-      }
-      return res.json({
-        ok: true,
-        mailboxEmail,
-        ...result,
-        dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
-      });
-    })
+        if (
+          !dryRun &&
+          ingestionWorker &&
+          Number(result.linked || 0) + Number(result.dismissed || 0) > 0
+        ) {
+          await ingestionStore.requestReprocessUnmatched({
+            mailboxEmail,
+            includeOldMatchVersion: false,
+          });
+        }
+        return res.json({
+          ok: true,
+          dryRun,
+          result,
+          dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
+        });
+      })
+  );
+
+  router.get(
+    '/cco/mail-ingestion/review-queue',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
+        const status = normalizeText(req.query.status || 'all').toLowerCase();
+        const limit = Number(req.query.limit || 50);
+        const statuses =
+          status === 'unmatched'
+            ? ['UNMATCHED']
+            : status === 'needs_review'
+              ? ['NEEDS_REVIEW', 'SECURITY_REVIEW']
+              : ['UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'];
+        const rows = ingestionStore.listReviewQueue({ mailboxEmail, statuses, limit });
+        return res.json({
+          ok: true,
+          mailboxEmail: mailboxEmail || null,
+          status,
+          count: rows.length,
+          rows,
+        });
+      })
+  );
+
+  router.patch(
+    '/cco/mail-ingestion/link-patient',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const rawMessageId = normalizeText(req.body?.rawMessageId);
+        const patientId = normalizeText(req.body?.patientId);
+        if (!rawMessageId || !patientId) {
+          return res.status(400).json({ error: 'rawMessageId och patientId krävs.' });
+        }
+        const result = await ingestionStore.linkPatientToMessage({
+          rawMessageId,
+          patientId,
+          actorUserId: actor.userId || actor.email || 'owner',
+        });
+        return res.json({ ok: true, result });
+      })
+  );
+
+  router.post(
+    '/cco/mail-ingestion/reprocess-unmatched',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const mailboxEmail = normalizeEmail(
+          req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
+        );
+        if (!mailboxEmail) {
+          return res.status(400).json({ error: 'mailboxEmail krävs.' });
+        }
+        const result = await ingestionStore.requestReprocessUnmatched({
+          mailboxEmail,
+          includeOldMatchVersion: req.body?.includeOldMatchVersion !== false,
+        });
+        if (ingestionWorker && Number(result.requeued || 0) > 0) {
+          ingestionWorker.enqueueProcessDrain({
+            mailboxEmail,
+            mode: config.ccoMailIngestionMode || 'read_only',
+          });
+        }
+        return res.json({
+          ok: true,
+          mailboxEmail,
+          ...result,
+          dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
+        });
+      })
   );
 
   router.post('/cco/mail-ingestion/sync', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
     handle(req, res, async (actor) => {
-      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
+      const mailboxEmail = normalizeEmail(
+        req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
+      );
       if (!mailboxEmail) {
         return res.status(400).json({ error: 'mailboxEmail krävs.' });
       }
+      assertAllowlistedMailbox(mailboxEmail);
       const mode = normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only';
       const asyncMode = req.body?.async !== false;
       if (asyncMode && ingestionWorker) {
@@ -275,46 +345,101 @@ ${unmatched
     })
   );
 
-  router.post('/cco/mail-ingestion/process', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async () => {
-      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
-      if (!mailboxEmail) {
-        return res.status(400).json({ error: 'mailboxEmail krävs.' });
-      }
-      if (!ingestionWorker) {
-        return res.status(503).json({ error: 'Mail ingestion worker saknas.' });
-      }
-      const result = await ingestionWorker.runProcessBatch({
-        mailboxEmail,
-        mode: normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only',
-        maxMessages: Number(req.body?.maxMessages || config.ccoMailIngestionQueueBatchSize || 75),
-      });
-      return res.json({ ok: true, result, dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }) });
-    })
+  router.post(
+    '/cco/mail-ingestion/process',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const mailboxEmail = normalizeEmail(
+          req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
+        );
+        if (!mailboxEmail) {
+          return res.status(400).json({ error: 'mailboxEmail krävs.' });
+        }
+        assertAllowlistedMailbox(mailboxEmail);
+        if (!ingestionWorker) {
+          return res.status(503).json({ error: 'Mail ingestion worker saknas.' });
+        }
+        const result = await ingestionWorker.runProcessBatch({
+          mailboxEmail,
+          mode: normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only',
+          maxMessages: Number(req.body?.maxMessages || config.ccoMailIngestionQueueBatchSize || 75),
+        });
+        return res.json({
+          ok: true,
+          result,
+          dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
+        });
+      })
   );
 
-  router.post('/cco/mail-ingestion/process-all', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async () => {
-      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
-      if (!mailboxEmail || !ingestionWorker) {
-        return res.status(400).json({ error: 'mailboxEmail krävs och worker måste finnas.' });
-      }
-      const mode = normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only';
-      await ingestionWorker.ensureQueueIntegrity({ mailboxEmail });
-      const job = ingestionWorker.enqueueProcessDrain({
-        mailboxEmail,
-        mode,
-        maxBatches: Number(req.body?.maxBatches || 500),
-      });
-      return res.status(202).json({
-        ok: true,
-        accepted: true,
-        jobId: job.id,
-        mailboxEmail,
-        queueLength: ingestionStore.buildDashboardSummary({ mailboxEmail }).queueLength,
-        message: 'Processing körs i bakgrunden tills kön är tom.',
-      });
-    })
+  router.post(
+    '/cco/mail-ingestion/process-all',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const mailboxEmail = normalizeEmail(
+          req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
+        );
+        if (!mailboxEmail || !ingestionWorker) {
+          return res.status(400).json({ error: 'mailboxEmail krävs och worker måste finnas.' });
+        }
+        assertAllowlistedMailbox(mailboxEmail);
+        const mode = normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only';
+        await ingestionWorker.ensureQueueIntegrity({ mailboxEmail });
+        const job = ingestionWorker.enqueueProcessDrain({
+          mailboxEmail,
+          mode,
+          maxBatches: Number(req.body?.maxBatches || 500),
+        });
+        return res.status(202).json({
+          ok: true,
+          accepted: true,
+          jobId: job.id,
+          mailboxEmail,
+          queueLength: ingestionStore.buildDashboardSummary({ mailboxEmail }).queueLength,
+          message: 'Processing körs i bakgrunden tills kön är tom.',
+        });
+      })
+  );
+
+  /* Konversationer Fas 1 — historisk backfill (read-only).
+   * Kedjar full import (delta + ingest av all truth-historik) med process-
+   * drain genom befintliga pipelinen (brusfilter/dedupe/kundmatchning/
+   * conflict-review/needsReply). mode hårdlåses till read_only i workern —
+   * ett ev. mode i request-body ignoreras. Allowlist-gated. */
+  router.post(
+    '/cco/mail-ingestion/backfill',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const mailboxEmail = normalizeEmail(
+          req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
+        );
+        if (!mailboxEmail) {
+          return res.status(400).json({ error: 'mailboxEmail krävs.' });
+        }
+        assertAllowlistedMailbox(mailboxEmail);
+        if (!ingestionWorker || typeof ingestionWorker.enqueueBackfillJob !== 'function') {
+          return res.status(503).json({ error: 'Mail ingestion worker saknas.' });
+        }
+        const job = ingestionWorker.enqueueBackfillJob({
+          mailboxEmail,
+          maxBatches: Number(req.body?.maxBatches || 500),
+          createdBy: actor.userId || actor.email || 'owner',
+        });
+        return res.status(202).json({
+          ok: true,
+          accepted: true,
+          jobId: job.id,
+          mailboxEmail,
+          mode: 'read_only',
+          message: 'Historisk backfill körs i bakgrunden (import + processning, read-only).',
+        });
+      })
   );
 
   router.post('/cco/mail-ingestion/reset', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
@@ -332,18 +457,26 @@ ${unmatched
     })
   );
 
-  router.post('/cco/mail-ingestion/subscriptions/ensure', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async () => {
-      if (!config.graphChangeNotificationsEnabled) {
-        return res.status(503).json({ error: 'Graph change notifications är avstängda i config.' });
-      }
-      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
-      const subscription = await graphNotifications.createInboxSubscription({
-        mailboxEmail,
-        graphUserId: mailboxEmail,
-      });
-      return res.json({ ok: true, subscription });
-    })
+  router.post(
+    '/cco/mail-ingestion/subscriptions/ensure',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        if (!config.graphChangeNotificationsEnabled) {
+          return res
+            .status(503)
+            .json({ error: 'Graph change notifications är avstängda i config.' });
+        }
+        const mailboxEmail = normalizeEmail(
+          req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
+        );
+        const subscription = await graphNotifications.createInboxSubscription({
+          mailboxEmail,
+          graphUserId: mailboxEmail,
+        });
+        return res.json({ ok: true, subscription });
+      })
   );
 
   router.all('/cco/mail-ingestion/graph/webhook', async (req, res) => {

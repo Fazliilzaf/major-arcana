@@ -13657,6 +13657,9 @@ process.once('SIGTERM', () => {
       ingestionWorker: ccoMailIngestionWorker,
       graphNotifications: ccoGraphChangeNotifications,
       patientMasterStore: ccoPatientMasterStore,
+      // Konversationer Fas 1 — samma allowlist som /cco/runtime/sync gate:ar
+      // nu även ingest-endpoints (sync/process/process-all/backfill).
+      mailboxAllowlist: defaultSyncMailboxIds,
       logger: console,
     })
   );
