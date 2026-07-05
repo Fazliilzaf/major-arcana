@@ -1172,7 +1172,9 @@
         border-radius: 0;
         white-space: nowrap;
         color: var(--tab-color, #6b5d50);
-        opacity: 0.66;
+        /* Kontrast: full opacitet — 0.66 gav 2,0–3,3:1 mot krämvit header
+           (WCAG kräver 4,5). Aktiv flik särskiljs av understreck + vikt. */
+        opacity: 1;
         border-bottom: 2px solid transparent;
         transition:
           opacity 0.14s ease,
@@ -1199,10 +1201,12 @@
         --tab-color: #bb4779;
       }
       .action-modal-tab:nth-child(5) {
-        --tab-color: #c8821e;
+        /* Kontrast: #c8821e nådde bara 2,9:1 — fördjupad amber (4,65:1). */
+        --tab-color: #9c6210;
       }
       .action-modal-tab:nth-child(6) {
-        --tab-color: #4a8268;
+        /* Kontrast: #4a8268 nådde bara 4,1:1 — fördjupad grön (5,4:1). */
+        --tab-color: #3d6e58;
       }
       .action-modal-tab:nth-child(7) {
         --tab-color: #b94a4a;
@@ -1211,7 +1215,8 @@
         --tab-color: #556074;
       }
       .action-modal-tab:nth-child(9) {
-        --tab-color: #2f7d7d;
+        /* Kontrast: #2f7d7d nådde bara 4,45:1 — fördjupad teal (5,7:1). */
+        --tab-color: #286b6b;
       }
       .action-modal-tab:nth-child(10) {
         --tab-color: #9c2c62;
