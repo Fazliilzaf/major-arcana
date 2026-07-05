@@ -2442,6 +2442,30 @@
         return String(value ?? '').trim();
       }
 
+      function adminAuthToken() {
+        try {
+          return (
+            window.localStorage?.getItem('ARCANA_ADMIN_TOKEN') ||
+            window.sessionStorage?.getItem('ARCANA_ADMIN_TOKEN') ||
+            ''
+          );
+        } catch {
+          return '';
+        }
+      }
+
+      function withAdminAuthHeaders(headers = {}) {
+        const token = normalizeText(adminAuthToken());
+        const next = { ...headers };
+        if (token && token !== '__preview_local__') next.Authorization = 'Bearer ' + token;
+        return next;
+      }
+
+      window.CCOConversationAuth = {
+        token: adminAuthToken,
+        headers: withAdminAuthHeaders,
+      };
+
       function initialsFromName(name) {
         const parts = normalizeText(name).split(/\s+/).filter(Boolean);
         if (!parts.length) return '??';
@@ -2998,7 +3022,7 @@
             `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages`,
             {
               credentials: 'include',
-              headers: { Accept: 'application/json' },
+              headers: withAdminAuthHeaders({ Accept: 'application/json' }),
             }
           );
           if (!response.ok) {
@@ -3122,7 +3146,7 @@
         try {
           const response = await fetch(LIVE_WORKLIST_URL, {
             credentials: 'include',
-            headers: { Accept: 'application/json' },
+            headers: withAdminAuthHeaders({ Accept: 'application/json' }),
           });
           if (!response.ok) {
             throw new Error(
