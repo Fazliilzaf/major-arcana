@@ -22,6 +22,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
+const { extractTextFromHtml } = require('../ops/ccoMailContentParser');
 const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
 const { requirePermission } = require('../security/ccoRbac');
@@ -151,6 +152,10 @@ function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function deriveDir(folderType) {
   const ft = String(folderType || '').toLowerCase();
   if (ft === 'sent' || ft.includes('sent')) return 'outbound';
@@ -200,11 +205,28 @@ function deriveTime(message) {
 
 function deriveBody(message) {
   const safe = asObject(message);
+  const body = asObject(safe.body);
+  const rawJson = asObject(safe.rawJson);
+  const rawBody = asObject(rawJson.body);
+  const mailDocument = asObject(safe.mailDocument);
   return (
+    normalizeText(safe.bodyText) ||
+    normalizeText(safe.body_text) ||
+    normalizeText(safe.text) ||
+    normalizeText(mailDocument.primaryBodyText) ||
+    extractTextFromHtml(mailDocument.primaryBodyHtml) ||
+    extractTextFromHtml(safe.bodyHtml) ||
+    extractTextFromHtml(safe.body_html) ||
+    extractTextFromHtml(body.content) ||
+    normalizeText(rawJson.bodyText) ||
+    normalizeText(rawJson.body_text) ||
+    extractTextFromHtml(rawJson.bodyHtml) ||
+    extractTextFromHtml(rawJson.body_html) ||
+    extractTextFromHtml(rawBody.content) ||
     normalizeText(safe.bodyPreview) ||
     normalizeText(safe.preview) ||
     normalizeText(safe.snippet) ||
-    normalizeText(asObject(safe.body).content) ||
+    normalizeText(rawJson.bodyPreview) ||
     ''
   );
 }
@@ -248,6 +270,128 @@ function fetchSortedConversationMessages(store, key) {
     return aliases.has(safeKey);
   });
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+}
+
+function buildConversationAliases(message = {}) {
+  const safe = asObject(message);
+  const mailboxId =
+    normalizeText(safe.mailboxId) ||
+    normalizeText(safe.mailboxAddress) ||
+    normalizeText(safe.userPrincipalName);
+  return new Set(
+    [
+      normalizeText(safe.mailboxConversationId),
+      normalizeText(safe.conversationId),
+      normalizeText(safe.graphMessageId),
+      normalizeText(safe.immutableGraphId),
+      normalizeText(safe.messageId),
+      normalizeText(safe.rawMessageId),
+      toCanonicalMailboxConversationKey({
+        mailboxId,
+        conversationId: safe.conversationId,
+        mailboxConversationId: safe.mailboxConversationId,
+        messageId: safe.graphMessageId || safe.messageId || safe.rawMessageId,
+      }),
+    ].filter(Boolean)
+  );
+}
+
+function toConversationMessageFromRaw(raw = {}) {
+  const safe = asObject(raw);
+  const rawJson = asObject(safe.rawJson);
+  const fromEmail =
+    normalizeText(safe.fromEmail) ||
+    normalizeText(safe.fromAddress) ||
+    normalizeText(asObject(safe.from).address) ||
+    normalizeText(asObject(asObject(rawJson.from).emailAddress).address);
+  const fromName =
+    normalizeText(safe.fromName) ||
+    normalizeText(asObject(safe.from).name) ||
+    normalizeText(asObject(asObject(rawJson.from).emailAddress).name) ||
+    fromEmail;
+  const toAddresses = Array.isArray(safe.toAddresses) ? safe.toAddresses : safe.to || [];
+  return {
+    ...safe,
+    graphMessageId:
+      normalizeText(safe.graphMessageId) ||
+      normalizeText(safe.messageId) ||
+      normalizeText(safe.rawMessageId) ||
+      normalizeText(safe.id),
+    messageId:
+      normalizeText(safe.messageId) || normalizeText(safe.rawMessageId) || normalizeText(safe.id),
+    mailboxConversationId:
+      normalizeText(safe.mailboxConversationId) || normalizeText(safe.conversationId),
+    mailboxAddress: normalizeText(safe.mailboxAddress) || normalizeText(safe.mailboxId),
+    folderType: normalizeText(safe.folderType) || 'unknown',
+    senderEmail: fromEmail,
+    fromAddress: fromEmail,
+    from: { name: fromName, address: fromEmail },
+    sentAt:
+      normalizeText(safe.sentAt) ||
+      normalizeText(safe.sentDateTime) ||
+      normalizeText(safe.receivedAt) ||
+      normalizeText(safe.receivedDateTime) ||
+      normalizeText(safe.persistedAt),
+    receivedAt:
+      normalizeText(safe.receivedAt) ||
+      normalizeText(safe.receivedDateTime) ||
+      normalizeText(safe.persistedAt),
+    toRecipients: asArray(toAddresses)
+      .map((address) => ({ address: normalizeText(address) }))
+      .filter((item) => item.address),
+  };
+}
+
+function fetchSortedIngestionConversationMessages(store, key) {
+  if (!store || typeof store.getState !== 'function') return [];
+  const safeKey = normalizeText(key);
+  if (!safeKey) return [];
+  const state = asObject(store.getState());
+  const rawMessages = Object.values(asObject(state.mailRawMessages));
+  const matches = rawMessages
+    .map(toConversationMessageFromRaw)
+    .filter((message) => buildConversationAliases(message).has(safeKey));
+  return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+}
+
+function buildIngestionMessageLookup(store) {
+  if (!store || typeof store.getState !== 'function') return new Map();
+  const state = asObject(store.getState());
+  const lookup = new Map();
+  Object.values(asObject(state.mailRawMessages)).forEach((raw) => {
+    const message = toConversationMessageFromRaw(raw);
+    buildConversationAliases(message).forEach((alias) => {
+      if (alias && !lookup.has(alias)) lookup.set(alias, message);
+    });
+  });
+  return lookup;
+}
+
+function enrichConversationMessagesWithIngestion(messages, store) {
+  const lookup = buildIngestionMessageLookup(store);
+  if (!lookup.size) return messages;
+  return messages.map((message) => {
+    const raw = [...buildConversationAliases(message)]
+      .map((alias) => lookup.get(alias))
+      .find(Boolean);
+    if (!raw) return message;
+    return {
+      ...message,
+      bodyText: normalizeText(message.bodyText) || normalizeText(raw.bodyText),
+      body_text: normalizeText(message.body_text) || normalizeText(raw.body_text),
+      bodyHtml: normalizeText(message.bodyHtml) || normalizeText(raw.bodyHtml),
+      body_html: normalizeText(message.body_html) || normalizeText(raw.body_html),
+      text: normalizeText(message.text) || normalizeText(raw.text),
+      rawJson: Object.keys(asObject(message.rawJson)).length ? message.rawJson : raw.rawJson,
+      mailDocument: Object.keys(asObject(message.mailDocument)).length
+        ? message.mailDocument
+        : raw.mailDocument,
+      body: Object.keys(asObject(message.body)).length ? message.body : raw.body,
+      bodyPreview: normalizeText(message.bodyPreview) || normalizeText(raw.bodyPreview),
+      preview: normalizeText(message.preview) || normalizeText(raw.preview),
+      snippet: normalizeText(message.snippet) || normalizeText(raw.snippet),
+    };
+  });
 }
 
 // ── D1: bulk preview→confirm ────────────────────────────────────────────────
@@ -411,6 +555,7 @@ async function safeAuditConversation(authStore, event) {
 
 function createCcoConversationRouter({
   ccoMailboxTruthStore,
+  mailIngestionStore = null,
   requireAuth,
   openai = null,
   openaiModel = '',
@@ -456,7 +601,10 @@ function createCcoConversationRouter({
         if (!key) {
           return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
         }
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const truthMessages = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const sorted = truthMessages.length
+          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore)
+          : fetchSortedIngestionConversationMessages(mailIngestionStore, key);
         const messages = sorted.map((m) => {
           const safe = asObject(m);
           const from = deriveFromName(safe);

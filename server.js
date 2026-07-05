@@ -13045,6 +13045,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoConversationRouter({
       ccoMailboxTruthStore,
+      mailIngestionStore: ccoMailIngestionStore,
       requireAuth: auth.requireAuth,
       openai,
       openaiModel: config.openaiModel,
