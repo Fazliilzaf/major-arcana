@@ -367,6 +367,31 @@ function fetchSortedConversationMessagesForKeys(store, keys = []) {
   ).sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
+/* Full HTML-kropp för trådvyn (loggor/signaturer/formatering). Renderas i UI:t
+ * ENDAST i sandboxad iframe (inga scripts, ingen same-origin) — aldrig direkt
+ * i sidans DOM. Läser lokala fält (truth bodyHtml, mailDocument, ingestion-raw);
+ * tom sträng när bara text/preview finns lokalt. */
+function deriveBodyHtml(message) {
+  const safe = asObject(message);
+  const body = asObject(safe.body);
+  const rawJson = asObject(safe.rawJson);
+  const rawBody = asObject(rawJson.body);
+  const mailDocument = asObject(safe.mailDocument);
+  const html =
+    normalizeText(safe.bodyHtml) ||
+    normalizeText(safe.body_html) ||
+    normalizeText(mailDocument.primaryBodyHtml) ||
+    (normalizeText(body.contentType).toLowerCase() === 'html'
+      ? normalizeText(body.content)
+      : '') ||
+    normalizeText(rawJson.bodyHtml) ||
+    normalizeText(rawJson.body_html) ||
+    (normalizeText(rawBody.contentType).toLowerCase() === 'html'
+      ? normalizeText(rawBody.content)
+      : '');
+  return html || '';
+}
+
 function deriveInitials(name) {
   const parts = String(name || '')
     .split(/\s+/)
@@ -778,6 +803,7 @@ function createCcoConversationRouter({
             dir: deriveDir(safe.folderType),
             time: deriveTime(safe),
             body: deriveBody(safe),
+            bodyHtml: deriveBodyHtml(safe) || null,
             subject: normalizeText(safe.subject) || null,
             mailboxId,
             mailboxAddress: mailboxAddress || null,
@@ -2201,6 +2227,8 @@ function createCcoConversationRouter({
 
 module.exports = {
   createCcoConversationRouter,
+  // Exponerad för tester: HTML-kropp för sandboxad trådrendering.
+  deriveBodyHtml,
   // Exponerad för tester: rollup-medveten trådhämtning ur lokala truth-storen.
   fetchSortedConversationMessages,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
