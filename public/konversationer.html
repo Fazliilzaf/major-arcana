@@ -3107,11 +3107,19 @@
             .filter((item) => item !== normalizeText(thread.conversationKey))
             .filter((item, index, all) => all.indexOf(item) === index)
             .slice(0, 50);
-          const memberKeysParam = lookupKeys.length
-            ? `?memberKeys=${encodeURIComponent(lookupKeys.join(','))}`
-            : '';
+          const params = new URLSearchParams();
+          if (lookupKeys.length) params.set('memberKeys', lookupKeys.join(','));
+          const scopedCustomerEmail = firstCustomerEmailValue(
+            thread.customerEmail,
+            thread.email,
+            thread.fromEmail,
+            thread.senderEmail,
+            thread.replyToEmail
+          );
+          if (scopedCustomerEmail) params.set('customerEmail', scopedCustomerEmail);
+          const queryString = params.toString() ? `?${params.toString()}` : '';
           const response = await fetch(
-            `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages${memberKeysParam}`,
+            `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages${queryString}`,
             {
               credentials: 'include',
               headers: withAdminAuthHeaders({ Accept: 'application/json' }),

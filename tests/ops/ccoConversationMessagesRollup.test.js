@@ -162,6 +162,18 @@ test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden'
     'även rå primärnyckel ska ärva scope från scoped memberKey och inte visa andra kontaktformulär'
   );
 
+  const sortedWithRawPrimaryAndCustomerEmail = fetchSortedConversationMessages(
+    contactFormStore,
+    sharedBaseKey,
+    [],
+    { contactEmail: 'blend@example.com' }
+  );
+  assert.deepEqual(
+    sortedWithRawPrimaryAndCustomerEmail.map((message) => message.graphMessageId),
+    ['cf-blend-in', 'cf-blend-out'],
+    'prod-rader med rå shared key måste scopa på kundens e-post från worklisten'
+  );
+
   const sortedViaHelper = fetchSortedConversationMessagesForKeys(contactFormStore, [
     scopedBlendKey,
     sharedBaseKey,
@@ -222,6 +234,17 @@ test('kontaktformulär: ingestion-helper ärver scoped key och breddar inte shar
     sorted.map((message) => message.graphMessageId),
     ['cf-blend-in'],
     'raw ingestion-fallback ska också hålla kvar scoped kontaktformulär per kund'
+  );
+
+  const sortedByCustomerEmail = fetchSortedIngestionConversationMessagesForKeys(
+    ingestionStore,
+    [sharedBaseKey],
+    { contactEmail: 'blend@example.com' }
+  );
+  assert.deepEqual(
+    sortedByCustomerEmail.map((message) => message.graphMessageId),
+    ['cf-blend-in'],
+    'ingestion-fallbacken måste också kunna scopa rå shared key med customerEmail-queryn'
   );
 });
 

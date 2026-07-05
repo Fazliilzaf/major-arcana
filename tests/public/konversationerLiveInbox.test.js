@@ -100,11 +100,17 @@ test('konversationer live row opens real conversation messages endpoint', () => 
     html,
     /memberKeys:\s*scopedMemberKeysForThread\(primaryConversationKey,\s*messageLookupKeys\)\.slice\(\s*0,\s*50\s*\)/
   );
-  assert.match(html, /const memberKeysParam = lookupKeys\.length/);
-  assert.match(html, /\?memberKeys=\$\{encodeURIComponent\(lookupKeys\.join\(','\)\)\}/);
+  assert.match(html, /const params = new URLSearchParams\(\)/);
+  assert.match(html, /params\.set\('memberKeys', lookupKeys\.join\(','\)\)/);
+  assert.match(html, /const scopedCustomerEmail = firstCustomerEmailValue\(/);
+  assert.match(html, /params\.set\('customerEmail', scopedCustomerEmail\)/);
   assert.match(
     html,
-    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(thread\.conversationKey\)\}\/messages\$\{memberKeysParam\}/
+    /const queryString = params\.toString\(\) \? `\?\$\{params\.toString\(\)\}` : ''/
+  );
+  assert.match(
+    html,
+    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(thread\.conversationKey\)\}\/messages\$\{queryString\}/
   );
   assert.match(html, /function renderThreadMessages\(thread, messages\)/);
   assert.match(html, /data-thread-id="\$\{escapeHtml\(t\.id\)\}"/);
