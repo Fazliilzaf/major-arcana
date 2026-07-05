@@ -84,10 +84,16 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   const html = readHtml();
 
   assert.match(html, /function openConversationThread\(thread\)/);
+  assert.match(html, /function parseScopedContactFormKey\(value\)/);
+  assert.match(html, /function scopedMemberKeysForThread\(primaryKey, keys = \[\]\)/);
   assert.match(html, /messageLookupKeys/);
   assert.match(html, /rollup\.underlyingConversationKeys/);
   assert.match(html, /rollup\.underlyingConversationIds/);
-  assert.match(html, /memberKeys:\s*messageLookupKeys/);
+  assert.match(html, /const primaryConversationKey\s*=/);
+  assert.match(
+    html,
+    /memberKeys:\s*scopedMemberKeysForThread\(primaryConversationKey,\s*messageLookupKeys\)\.slice\(\s*0,\s*50\s*\)/
+  );
   assert.match(html, /const memberKeysParam = lookupKeys\.length/);
   assert.match(html, /\?memberKeys=\$\{encodeURIComponent\(lookupKeys\.join\(','\)\)\}/);
   assert.match(

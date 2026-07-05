@@ -2504,6 +2504,41 @@
         return /@hairtpclinic\.com$/i.test(email);
       }
 
+      function parseScopedContactFormKey(value) {
+        const key = normalizeText(value);
+        const marker = '::contact-form:';
+        const index = key.lastIndexOf(marker);
+        if (index < 0) return { scoped: false, baseKey: key, email: '' };
+        const baseKey = key.slice(0, index);
+        const encodedEmail = key.slice(index + marker.length);
+        let email = encodedEmail;
+        try {
+          email = decodeURIComponent(encodedEmail);
+        } catch {
+          email = encodedEmail;
+        }
+        return {
+          scoped: true,
+          baseKey: normalizeText(baseKey),
+          email: normalizeText(email).toLowerCase(),
+        };
+      }
+
+      function scopedMemberKeysForThread(primaryKey, keys = []) {
+        const safePrimary = normalizeText(primaryKey);
+        const primaryScope = parseScopedContactFormKey(safePrimary);
+        return keys
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+          .filter((item, index, all) => all.indexOf(item) === index)
+          .filter((item) => item !== safePrimary)
+          .filter((item) => {
+            if (!primaryScope.scoped || !primaryScope.baseKey || !primaryScope.email) return true;
+            const memberScope = parseScopedContactFormKey(item);
+            return memberScope.scoped || memberScope.baseKey !== primaryScope.baseKey;
+          });
+      }
+
       function firstCustomerEmailValue(...values) {
         for (const value of values) {
           const email = firstEmailValue(value);
@@ -2615,6 +2650,12 @@
           .map((item) => normalizeText(item))
           .filter(Boolean)
           .filter((item, index, all) => all.indexOf(item) === index);
+        const primaryConversationKey =
+          normalizeText(row.conversationKey) ||
+          normalizeText(row.id) ||
+          normalizeText(conversation.key) ||
+          normalizeText(row.mailboxConversationId) ||
+          normalizeText(row.conversationId);
         const source = compactMailbox(mailboxAddress);
         const tags = [];
         if (state.hasUnreadInbound || state.needsReply)
@@ -2627,14 +2668,15 @@
           tags.push({ kind: 'ai', label: `${rollup.mailboxCount} mailboxar` });
         }
         return {
-          id: normalizeText(row.id) || normalizeText(conversation.key) || `live-${index}`,
-          conversationKey: normalizeText(conversation.key) || normalizeText(row.id),
+          id: normalizeText(row.id) || primaryConversationKey || `live-${index}`,
+          conversationKey: primaryConversationKey,
           // Alla kända Graph-/mailbox-nycklar bakom raden. Skickas som memberKeys
           // till messages-endpointen så hela kundtråden hämtas, även när worklisten
           // visar en rollup/scopad nyckel som inte exakt matchar lagrad message-key.
-          memberKeys: messageLookupKeys
-            .filter((item) => item !== normalizeText(conversation.key))
-            .slice(0, 50),
+          memberKeys: scopedMemberKeysForThread(primaryConversationKey, messageLookupKeys).slice(
+            0,
+            50
+          ),
           from: name,
           init: initialsFromName(name),
           bg: avatarBackground(name || source),
