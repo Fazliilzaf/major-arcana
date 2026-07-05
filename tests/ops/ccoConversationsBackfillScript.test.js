@@ -105,6 +105,9 @@ test('summarizeWorklist räknar trådar + needsReply ur consumer-svaret', () => 
 
 const {
   sampleWorklistRows,
+  latestInboundTimeFromMessages,
+  candidateMessageKeysForRow,
+  enrichSampleRowsWithMessageTimes,
   buildBackfillVerdict,
   nextStopState,
 } = require('../../scripts/run-cco-conversations-backfill.js');
@@ -281,4 +284,54 @@ test('summarizeWorklist räknar needsReply även i nästlad state-form', () => {
   });
   assert.equal(summary.rowCount, 3);
   assert.equal(summary.needsReply, 2);
+});
+
+test('latestInboundTimeFromMessages använder bara inkommande metadata', () => {
+  const latest = latestInboundTimeFromMessages({
+    messages: [
+      { dir: 'outbound', time: '2026-07-02T12:00:00Z', body: 'HEMLIGT SVAR' },
+      { dir: 'inbound', time: '2026-07-01T09:00:00Z', body: 'HEMLIG FRÅGA' },
+      { folderType: 'inbox', time: '2026-07-03T10:00:00Z', subject: 'HEMLIGT ÄMNE' },
+    ],
+  });
+  assert.equal(latest, '2026-07-03T10:00:00Z');
+});
+
+test('candidateMessageKeysForRow inkluderar rollupens underliggande trådar utan dubletter', () => {
+  const keys = candidateMessageKeysForRow({
+    conversation: { key: 'rollup-key', mailboxConversationId: 'thread-1' },
+    rollup: { underlyingConversationKeys: ['thread-1', 'thread-2'] },
+  });
+  assert.deepEqual(keys, ['rollup-key', 'thread-1', 'thread-2']);
+});
+
+test('enrichSampleRowsWithMessageTimes fyller null-tid från underliggande tråd utan textläckage', async () => {
+  const payload = {
+    rows: [
+      {
+        id: 'rollup-key',
+        conversation: { key: 'rollup-key' },
+        mailbox: { mailboxId: 'kons@hairtpclinic.com' },
+        timing: { lastInboundAt: null, latestMessageAt: null },
+        state: { needsReply: true, ingestion: { dominantStatus: 'MATCHED' } },
+        rollup: { underlyingConversationKeys: ['thread-empty', 'thread-hit'] },
+        subject: 'HEMLIGT ÄMNE',
+        preview: 'HEMLIG PREVIEW',
+      },
+    ],
+  };
+  const samples = sampleWorklistRows(payload);
+  const enriched = await enrichSampleRowsWithMessageTimes(samples, payload, async (key) => {
+    if (key === 'thread-hit') {
+      return {
+        messages: [{ dir: 'inbound', time: '2026-05-19T18:09:19.000Z', body: 'HEMLIG BODY' }],
+      };
+    }
+    return { messages: [] };
+  });
+
+  assert.equal(enriched[0].lastInboundAt, '2026-05-19T18:09:19.000Z');
+  const serialized = JSON.stringify(enriched);
+  assert.ok(!serialized.includes('HEMLIGT'));
+  assert.ok(!serialized.includes('HEMLIG BODY'));
 });
