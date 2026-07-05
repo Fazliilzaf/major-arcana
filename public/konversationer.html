@@ -2592,6 +2592,29 @@
           .map((item) => canonicalHairTpMailbox(item))
           .filter(Boolean)
           .filter((item, index, all) => all.indexOf(item) === index);
+        const rawLookupKeys = [
+          normalizeText(conversation.key),
+          normalizeText(row.conversationKey),
+          normalizeText(row.id),
+          normalizeText(row.mailboxConversationId),
+          normalizeText(row.conversationId),
+          ...(Array.isArray(rollup.underlyingConversationKeys)
+            ? rollup.underlyingConversationKeys
+            : []),
+          ...(Array.isArray(rollup.underlyingConversationIds)
+            ? rollup.underlyingConversationIds
+            : []),
+        ].filter(Boolean);
+        const messageLookupKeys = rawLookupKeys
+          .flatMap((key) => {
+            const safeKey = normalizeText(key);
+            if (!safeKey) return [];
+            const scoped = mailboxTrail.map((mailbox) => `${mailbox}:${safeKey}`);
+            return [safeKey, ...scoped];
+          })
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+          .filter((item, index, all) => all.indexOf(item) === index);
         const source = compactMailbox(mailboxAddress);
         const tags = [];
         if (state.hasUnreadInbound || state.needsReply)
@@ -2606,15 +2629,12 @@
         return {
           id: normalizeText(row.id) || normalizeText(conversation.key) || `live-${index}`,
           conversationKey: normalizeText(conversation.key) || normalizeText(row.id),
-          // Rollup-medlemmar: alla underliggande Graph-konversationer bakom raden.
-          // Skickas till messages-endpointen så HELA kundtråden hämtas (inte bara
-          // primärnyckeln, som gav "0 meddelanden"/halva tråden för rollups).
-          memberKeys: Array.isArray(rollup.underlyingConversationKeys)
-            ? rollup.underlyingConversationKeys
-                .map((k) => normalizeText(k))
-                .filter(Boolean)
-                .slice(0, 50)
-            : [],
+          // Alla kända Graph-/mailbox-nycklar bakom raden. Skickas som memberKeys
+          // till messages-endpointen så hela kundtråden hämtas, även när worklisten
+          // visar en rollup/scopad nyckel som inte exakt matchar lagrad message-key.
+          memberKeys: messageLookupKeys
+            .filter((item) => item !== normalizeText(conversation.key))
+            .slice(0, 50),
           from: name,
           init: initialsFromName(name),
           bg: avatarBackground(name || source),
@@ -2624,6 +2644,7 @@
           source,
           mailboxAddress,
           mailboxTrail,
+          messageLookupKeys,
           mailboxId: canonicalHairTpMailbox(mailbox.mailboxId) || mailboxAddress,
           customerId:
             normalizeText(customer.customerId) ||
@@ -3027,10 +3048,21 @@
         setSvarstudioLiveContext(thread, []);
         renderThreadLoading(thread);
         try {
-          const memberKeysParam =
+          const lookupKeys = (
             Array.isArray(thread.memberKeys) && thread.memberKeys.length
-              ? `?memberKeys=${encodeURIComponent(thread.memberKeys.join(','))}`
-              : '';
+              ? thread.memberKeys
+              : Array.isArray(thread.messageLookupKeys)
+                ? thread.messageLookupKeys
+                : []
+          )
+            .map((item) => normalizeText(item))
+            .filter(Boolean)
+            .filter((item) => item !== normalizeText(thread.conversationKey))
+            .filter((item, index, all) => all.indexOf(item) === index)
+            .slice(0, 50);
+          const memberKeysParam = lookupKeys.length
+            ? `?memberKeys=${encodeURIComponent(lookupKeys.join(','))}`
+            : '';
           const response = await fetch(
             `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages${memberKeysParam}`,
             {
@@ -3150,7 +3182,10 @@
       if (STATIC_DEMO_PREVIEW) {
         renderInboxThreads(currentThreads);
       } else {
-        renderLiveInboxStatus('Laddar live-inkorg', 'Hämtar riktiga trådar från kons@hairtpclinic.com...');
+        renderLiveInboxStatus(
+          'Laddar live-inkorg',
+          'Hämtar riktiga trådar från kons@hairtpclinic.com...'
+        );
         renderLivePaneStatus('Laddar Konversationer', 'Hämtar riktiga trådar från CCO-pipelinen.');
       }
 
