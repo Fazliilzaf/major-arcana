@@ -187,6 +187,108 @@ test('buildVisitSegments flags low-confidence path dates for review bucket', () 
   assert.ok(result.visitSegments[0].reasons.includes('inferred_from_path_or_filename'));
 });
 
+test('buildVisitSegments: prod docs-only medium segment always has at least one reason', () => {
+  const result = buildVisitSegments({
+    customerId: '1ce8b444-3526-4604-ab25-c1888db635ae',
+    driveFiles: [
+      {
+        id: '2dea24fc-e073-42f4-927f-4623d9d5f2da',
+        assetId: '2dea24fc-e073-42f4-927f-4623d9d5f2da',
+        source: 'patient_asset',
+        fileType: 'journal_pdf',
+        fileName: 'okänt datum · Dokument',
+        documentDate: '2026-05-31',
+        timelineDateSource: 'patient_asset.documentDate',
+        occasionContext: {
+          timelineKey: '2026-05-31',
+          date: '2026-05-31',
+          source: 'patient_asset.timeline',
+        },
+        relativePath: 'Hair TP Clinic 2026/FUE Operation 1/journal.pdf',
+        viewUrl: '/api/v1/cco/assets/2dea24fc-e073-42f4-927f-4623d9d5f2da/download?inline=1',
+      },
+      {
+        id: '72da68c3-1f65-4d85-ba1a-f932afdde010',
+        assetId: '72da68c3-1f65-4d85-ba1a-f932afdde010',
+        source: 'patient_asset',
+        fileType: 'journal_pdf',
+        fileName: 'okänt datum · FUE Operation 1 · Journal · journal',
+        documentDate: '2026-05-31',
+        occasionContext: {
+          timelineKey: '2026-05-31',
+          date: '2026-05-31',
+          source: 'patient_asset.timeline',
+        },
+        relativePath: 'Hair TP Clinic 2026/FUE Operation 1/Journal.pdf',
+        viewUrl: '/api/v1/cco/assets/72da68c3-1f65-4d85-ba1a-f932afdde010/download?inline=1',
+      },
+    ],
+  });
+
+  const segment = result.visitSegments.find((row) => row.date === '2026-05-31');
+  assert.ok(segment, 'daterat docs-only segment ska finnas');
+  assert.equal(segment.confidence, 'medium');
+  assert.ok(segment.reasons.length >= 1, 'medium får inte ha tom reasons[]');
+  assert.ok(
+    segment.reasons.some((reason) =>
+      ['date_without_time_metadata', 'occasion_context_only'].includes(reason)
+    )
+  );
+  assert.equal(segment.images.length, 0);
+  assert.equal(segment.documents.length, 2);
+  assert.equal(segment.timeRange, '');
+});
+
+test('buildVisitSegments: all medium/low segments include at least one reason', () => {
+  const fixtures = [
+    {
+      driveFiles: [
+        {
+          id: 'weak',
+          fileType: 'document_pdf',
+          fileName: '1713770400-export.pdf',
+          relativePath: 'Hair TP Clinic 2024/1713770400-export.pdf',
+        },
+      ],
+    },
+    {
+      driveFiles: [
+        {
+          id: 'unknown',
+          fileType: 'document_pdf',
+          fileName: 'Okänd.pdf',
+          relativePath: 'Hair TP Clinic 2024/Okänd.pdf',
+        },
+      ],
+    },
+    {
+      driveFiles: [
+        {
+          id: 'mismatch',
+          fileType: 'image',
+          fileName: 'Mismatch.jpg',
+          captureDateTime: '2024-04-22T09:14:00',
+          documentDate: '2024-04-21',
+          captureDateMismatch: true,
+          relativePath: 'Hair TP Clinic 2024/PRP 1/Mismatch.jpg',
+        },
+      ],
+    },
+  ];
+
+  for (const fixture of fixtures) {
+    const result = buildVisitSegments(fixture);
+    for (const segment of result.visitSegments) {
+      if (segment.confidence === 'medium' || segment.confidence === 'low') {
+        assert.ok(
+          segment.reasons.length >= 1,
+          `${segment.label} (${segment.confidence}) saknar reason`
+        );
+      }
+    }
+  }
+});
+
 test('buildVisitSegments keeps capture/document date mismatches on resolved visit date', () => {
   const result = buildVisitSegments({
     driveFiles: [
