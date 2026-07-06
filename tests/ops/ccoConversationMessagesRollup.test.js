@@ -21,6 +21,7 @@ const {
   fetchSortedIngestionConversationMessagesForKeys,
   parseConversationContactScopeQuery,
   rewriteMailCidImageSources,
+  deriveBody,
 } = require('../../src/routes/ccoConversation');
 const {
   toContactFormReferenceScopedConversationKey,
@@ -495,6 +496,65 @@ test('rich mail html och bilagor exponeras utan rå contentBytes', () => {
   assert.equal(attachments[0].name, 'logo.png');
   assert.equal(attachments[0].contentType, 'image/png');
   assert.equal(attachments[0].contentBytes, undefined);
+});
+
+test('full bodyText vinner över kortare Graph-body när båda finns', () => {
+  const preview = 'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hej';
+  const fullBody = `${preview}, jag har fyllt i formuläret och vill gärna bli kontaktad om hårtransplantation.
+
+Medgivande: Jag godkänner att mina personuppgifter behandlas i syfte att kontakta mig.
+
+--
+Epost-meddelandet skickades från Hair TP Clinic kontaktformulär.
+Med vänliga hälsningar,
+Hair TP Clinic`;
+  const message = {
+    bodyPreview: preview,
+    body: {
+      contentType: 'text',
+      content: `${preview}, jag har fyllt i formuläret...`,
+    },
+    bodyText: fullBody,
+  };
+
+  assert.equal(deriveBody(message), fullBody);
+});
+
+test('enriched raw bodyText ersätter kortare truth-body i trådvy', () => {
+  const truthMessage = {
+    graphMessageId: 'graph-short-body',
+    mailboxId: 'kons@hairtpclinic.com',
+    conversationId: 'conv-short-body',
+    mailboxConversationId: 'kons@hairtpclinic.com:conv-short-body',
+    folderType: 'inbox',
+    bodyPreview: 'Hej, jag vill boka konsultation',
+    body: {
+      contentType: 'text',
+      content: 'Hej, jag vill boka konsultation...',
+    },
+  };
+  const rawMessage = {
+    graphMessageId: 'graph-short-body',
+    mailboxId: 'kons@hairtpclinic.com',
+    conversationId: 'conv-short-body',
+    mailboxConversationId: 'kons@hairtpclinic.com:conv-short-body',
+    folderType: 'inbox',
+    bodyText:
+      'Hej, jag vill boka konsultation i Göteborg. Jag har flera frågor om pris, tider och eftervård.\n\nMed vänliga hälsningar,\nKund',
+  };
+  const store = {
+    getState() {
+      return {
+        mailRawMessages: {
+          raw1: rawMessage,
+        },
+      };
+    },
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion([truthMessage], store);
+
+  assert.equal(deriveBody(enriched), rawMessage.bodyText);
 });
 
 test('inline-assets från canonical mail document exponeras som säkra bilagor', () => {

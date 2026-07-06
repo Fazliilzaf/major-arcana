@@ -2990,11 +2990,7 @@
           mailboxId: mailboxAddress,
           mailboxAddress,
           subject: normalizeText(message?.subject) || thread?.subj || '',
-          body:
-            normalizeText(message?.body) ||
-            normalizeText(message?.preview) ||
-            normalizeText(message?.text) ||
-            '',
+          body: messageBodyText(message),
         };
       }
 
@@ -3324,6 +3320,46 @@
         return '';
       }
 
+      function bodyTextLooksLikePreview(text = '', preview = '') {
+        const safeText = normalizeText(text);
+        const safePreview = normalizeText(preview);
+        if (!safeText || !safePreview) return false;
+        if (safeText.length > safePreview.length + 12) return false;
+        return safePreview.startsWith(safeText.slice(0, Math.min(24, safeText.length)));
+      }
+
+      function mailTextValue(value) {
+        return typeof value === 'object' ? objectMailContent(value) : normalizeText(value);
+      }
+
+      function chooseRicherMailText(existing = '', candidate = '', preview = '') {
+        const safeExisting = mailTextValue(existing);
+        const safeCandidate = mailTextValue(candidate);
+        if (!safeExisting) return safeCandidate;
+        if (!safeCandidate) return safeExisting;
+        const existingPreviewLike = bodyTextLooksLikePreview(safeExisting, preview);
+        const candidatePreviewLike = bodyTextLooksLikePreview(safeCandidate, preview);
+        if (existingPreviewLike !== candidatePreviewLike) {
+          return existingPreviewLike ? safeCandidate : safeExisting;
+        }
+        if (safeCandidate.length > safeExisting.length + 24) return safeCandidate;
+        return safeExisting;
+      }
+
+      function messageBodyText(message) {
+        const preview = firstMailText(message?.bodyPreview, message?.preview, message?.snippet);
+        return [
+          message?.bodyText,
+          message?.body_text,
+          message?.text,
+          message?.fullText,
+          message?.body,
+          message?.bodyPreview,
+          message?.preview,
+          message?.snippet,
+        ].reduce((best, candidate) => chooseRicherMailText(best, candidate, preview), '');
+      }
+
       function messageBodyHtml(message) {
         const body = message && typeof message.body === 'object' ? message.body : null;
         const uniqueBody =
@@ -3344,16 +3380,7 @@
       function renderMessageBody(message) {
         const html = sanitizeMailHtmlForDisplay(messageBodyHtml(message));
         if (html) return html;
-        const text = firstMailText(
-          message?.body,
-          message?.bodyText,
-          message?.body_text,
-          message?.text,
-          message?.fullText,
-          message?.bodyPreview,
-          message?.preview,
-          message?.snippet
-        );
+        const text = messageBodyText(message);
         return escapeHtml(text).replace(/\n/g, '<br>');
       }
 

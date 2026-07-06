@@ -250,7 +250,10 @@ function pickBestBodyCandidate(candidates = [], preview = '') {
     if (a.rank !== b.rank) return b.rank - a.rank;
     return b.text.length - a.text.length;
   });
-  return unique[0].text;
+  return unique.reduce(
+    (best, candidate) => chooseRicherBodyText(best, candidate.text, normalizedPreview),
+    ''
+  );
 }
 
 function deriveBody(message) {
@@ -1387,6 +1390,12 @@ function createCcoConversationRouter({
           const mailboxAddress = normalizeText(safe.mailboxAddress) || mailboxId;
           const attachments = collectConversationAttachments(safe);
           const bodyHtml = rewriteMailCidImageSources(deriveBodyHtml(safe), attachments);
+          const bodyText = deriveBody(safe);
+          const bodyPreview =
+            normalizeText(safe.bodyPreview) ||
+            normalizeText(safe.preview) ||
+            normalizeText(safe.snippet) ||
+            normalizeText(asObject(safe.rawJson).bodyPreview);
           return {
             id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
             from,
@@ -1395,8 +1404,15 @@ function createCcoConversationRouter({
             initials: deriveInitials(from),
             dir: deriveDir(safe.folderType),
             time: deriveTime(safe),
-            body: deriveBody(safe),
+            body: bodyText,
+            bodyText,
+            body_text: bodyText,
+            text: bodyText,
             bodyHtml: bodyHtml || null,
+            body_html: bodyHtml || null,
+            html: bodyHtml || null,
+            bodyPreview: bodyPreview || null,
+            preview: bodyPreview || null,
             subject: normalizeText(safe.subject) || null,
             mailboxId,
             mailboxAddress: mailboxAddress || null,
@@ -2829,6 +2845,7 @@ module.exports = {
   enrichConversationMessagesWithIngestion,
   parseConversationContactScopeQuery,
   rewriteMailCidImageSources,
+  deriveBody,
   deriveBodyHtml,
   collectConversationAttachments,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).

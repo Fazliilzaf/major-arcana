@@ -157,6 +157,11 @@ test('konversationer renders full mail html and attachments safely', () => {
     /querySelectorAll\('script,style,iframe,object,embed,form,meta,link,base,input,button'\)/
   );
   assert.match(html, /function messageBodyHtml\(message\)/);
+  assert.match(html, /function messageBodyText\(message\)/);
+  assert.match(
+    html,
+    /function chooseRicherMailText\(existing = '', candidate = '', preview = ''\)/
+  );
   assert.match(html, /function messageHasRichBody\(message\)/);
   assert.match(html, /function renderMessageBody\(message\)/);
   assert.match(html, /message\?\.bodyHtml/);
@@ -164,6 +169,8 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /message\?\.html/);
   assert.match(html, /message\?\.body_text/);
   assert.match(html, /message\?\.bodyPreview/);
+  assert.match(html, /const text = messageBodyText\(message\)/);
+  assert.match(html, /body: messageBodyText\(message\)/);
   assert.match(html, /function renderMessageAttachments\(message\)/);
   assert.match(html, /attachment\.inlineUrl/);
   assert.match(html, /attachment\.openUrl/);
