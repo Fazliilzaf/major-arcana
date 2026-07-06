@@ -182,9 +182,7 @@ function createRouter() {
         return {
           enabled: true,
           started: true,
-          jobs: [
-            { id: 'alert_probe', running: false },
-          ],
+          jobs: [{ id: 'alert_probe', running: false }],
         };
       },
     },
@@ -242,7 +240,8 @@ test('dashboard owner stream emits status snapshots', async () => {
 
     const envelope = await readSseUntil(
       response.body,
-      (event) => event?.event === 'status' && Number(event?.data?.availability?.sampledRequests || 0) > 0,
+      (event) =>
+        event?.event === 'status' && Number(event?.data?.availability?.sampledRequests || 0) > 0,
       { timeoutMs: 3000 }
     );
 
@@ -305,5 +304,58 @@ test('dashboard owner stream emits only same-tenant audit events', async () => {
     assert.equal(envelope.event, 'audit');
     assert.equal(envelope.data.id, 'evt-right-tenant');
     assert.equal(envelope.data.tenantId, 'tenant-a');
+  });
+});
+
+test('dashboard owner stream drops *.read audits (ingen självmatande refresh-loop)', async () => {
+  const app = express();
+  app.use('/api/v1', createRouter());
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/v1/dashboard/owner/stream`, {
+      headers: { authorization: 'Bearer test-token' },
+    });
+    assert.equal(response.status, 200);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+
+    // Läs-audit (*.read) ska ALDRIG nå strömmen — annars trigger den en refresh
+    // vars läsanrop skriver samma .read-audit = självmatande 429-storm.
+    publishRuntimeEvent('audit.event', {
+      id: 'evt-read',
+      tenantId: 'tenant-a',
+      action: 'incidents.list.read',
+      outcome: 'success',
+      targetType: 'incidents',
+      targetId: 'x',
+      metadata: {},
+      ts: new Date().toISOString(),
+    });
+    // Riktig mutation som sentinel — den SKA nå strömmen.
+    publishRuntimeEvent('audit.event', {
+      id: 'evt-mutation',
+      tenantId: 'tenant-a',
+      action: 'incident.acknowledge',
+      outcome: 'success',
+      targetType: 'incident',
+      targetId: 'y',
+      metadata: {},
+      ts: new Date().toISOString(),
+    });
+
+    const seenActions = [];
+    const envelope = await readSseUntil(
+      response.body,
+      (event) => {
+        if (event?.event === 'audit') seenActions.push(event?.data?.action);
+        return event?.event === 'audit' && event?.data?.id === 'evt-mutation';
+      },
+      { timeoutMs: 3000 }
+    );
+
+    assert.equal(envelope.data.id, 'evt-mutation');
+    assert.ok(
+      !seenActions.includes('incidents.list.read'),
+      'läs-audit får inte broadcastas över live-strömmen'
+    );
   });
 });

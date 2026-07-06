@@ -10,6 +10,10 @@
   const TOAST_AUTO_DISMISS_MS = 6000;
   const DASHBOARD_STREAM_RETRY_MIN_MS = 1500;
   const DASHBOARD_STREAM_RETRY_MAX_MS = 15000;
+  // Nollställ backoff först när strömmen varit ansluten så länge (bevisat stabil),
+  // inte direkt vid 200 — annars nollställer en accept-then-drop-flap backoffen
+  // varje gång och reconnect-loopen fastnar på golvet.
+  const DASHBOARD_STREAM_STABILITY_MS = 30000;
   const DASHBOARD_STREAM_REFRESH_DEBOUNCE_MS = 1200;
   const OVERVIEW_MONITOR_CACHE_MS = 60000;
   const OVERVIEW_MONITOR_DEBOUNCE_MS = 200;
@@ -2967,8 +2971,12 @@
       .trim()
       .toLowerCase();
     if (!normalized) return false;
-    if (normalized === 'dashboard.owner.read') return false;
-    if (normalized === 'audit.events.read') return false;
+    // Läs-audits (*.read) får ALDRIG trigga en refresh. Annars matar varje
+    // läsning (incidents.list.read, tenant_config.read, dashboard.owner.read,
+    // audit.events.read …) en ny refresh vars läsanrop skriver samma .read-
+    // audit → självmatande läs-storm som spränger rate-limiten (429). Endast
+    // riktiga mutationer ska uppdatera live-dashboarden.
+    if (normalized.endsWith('.read')) return false;
     return true;
   }
 
@@ -3076,10 +3084,12 @@
         Number(state.dashboardStreamRetryMs) || DASHBOARD_STREAM_RETRY_MIN_MS
       )
     );
+    // Jitter bryter lockstep-reconnect (thundering herd) mellan flikar/klienter.
+    const jitteredMs = delayMs + Math.floor(Math.random() * delayMs * 0.5);
     state.dashboardStreamReconnectTimer = setTimeout(() => {
       state.dashboardStreamReconnectTimer = null;
       ensureDashboardStreamConnected();
-    }, delayMs);
+    }, jitteredMs);
     state.dashboardStreamRetryMs = Math.min(
       DASHBOARD_STREAM_RETRY_MAX_MS,
       Math.round(delayMs * 1.8)
@@ -3089,6 +3099,7 @@
   async function openDashboardStream(runId, streamKey) {
     const controller = new AbortController();
     state.dashboardStreamController = controller;
+    let stabilityTimer = null;
 
     try {
       const response = await fetch(`${API_BASE}/dashboard/owner/stream`, {
@@ -3112,7 +3123,14 @@
         throw new Error('Dashboard stream saknar läsbar body.');
       }
 
-      state.dashboardStreamRetryMs = DASHBOARD_STREAM_RETRY_MIN_MS;
+      // Nollställ backoff först efter ett stabilitetsfönster (inte direkt vid 200),
+      // så en accept-then-drop-flap eskalerar backoffen mot 15s-taket i stället
+      // för att fastna på 1,5s-golvet.
+      stabilityTimer = setTimeout(() => {
+        if (runId === state.dashboardStreamRunId) {
+          state.dashboardStreamRetryMs = DASHBOARD_STREAM_RETRY_MIN_MS;
+        }
+      }, DASHBOARD_STREAM_STABILITY_MS);
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -3140,6 +3158,7 @@
         console.warn('[admin] dashboard stream disconnected', error?.message || error);
       }
     } finally {
+      if (stabilityTimer) clearTimeout(stabilityTimer);
       if (state.dashboardStreamController === controller) {
         state.dashboardStreamController = null;
       }
