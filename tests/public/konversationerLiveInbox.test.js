@@ -79,7 +79,7 @@ test('konversationer inbox surfaces the exact worklist failure status instead of
   assert.match(html, /HTTP 503/);
   assert.match(html, /HTTP 500/);
   assert.match(html, /Nätverksfel — nådde inte CCO-worklist/);
-  assert.match(html, /const detail = describeWorklistFailure\(failureStatus\)/);
+  assert.match(html, /const detail = failureReason \|\| describeWorklistFailure\(failureStatus\)/);
   // STOP-strängarna får inte tappas bort av diagnostiken.
   assert.match(html, /Demo visas inte i admin\/webb/);
   assert.match(html, /Detta är ett STOP-läge, inte demo/);
@@ -104,6 +104,21 @@ test('konversationer inbox retries transient failures and recovers when the admi
     html,
     /window\.addEventListener\('storage', \(event\) => \{[\s\S]*event\.key === 'ARCANA_ADMIN_TOKEN'[\s\S]*loadLiveInbox\(\)/
   );
+});
+
+test('konversationer inbox distinguishes a true network failure from a non-JSON 2xx response', () => {
+  const html = readHtml();
+
+  // Status 0 kan betyda två helt olika saker — vi måste kunna skilja dem.
+  assert.match(html, /let failureReason = ''/);
+  // (a) fetch kastar: bevara browserns felnamn/-meddelande.
+  assert.match(html, /Nätverksfel — nådde inte CCO-worklist \(\$\{/);
+  assert.match(html, /networkError\?\.name \|\| 'NetworkError'/);
+  // (b) 2xx utan giltig JSON: fånga status + content-type.
+  assert.match(html, /Servern svarade utan giltig JSON \(HTTP \$\{/);
+  assert.match(html, /response\.headers\.get\('content-type'\)/);
+  // felReason vinner över den generiska statustexten.
+  assert.match(html, /const detail = failureReason \|\| describeWorklistFailure\(failureStatus\)/);
 });
 
 test('konversationer inbox tabs are explicit filters for live rows', () => {
