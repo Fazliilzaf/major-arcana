@@ -211,8 +211,11 @@ test('konversationer renders full mail html and attachments safely', () => {
     html,
     /function chooseRicherMailText\(existing = '', candidate = '', preview = ''\)/
   );
-  assert.match(html, /function messageHasRichBody\(message\)/);
-  assert.match(html, /function renderMessageBody\(message\)/);
+  assert.match(html, /function renderMessageBubbleInner\(message\)/);
+  assert.match(html, /const html = sanitizeMailHtmlForDisplay\(messageBodyHtml\(message\)\);/);
+  assert.match(html, /iframe/);
+  assert.match(html, /sandbox="allow-popups allow-popups-to-escape-sandbox"/);
+  assert.match(html, /srcdoc="\$\{escapeHtml\(doc\)\}"/);
   assert.match(html, /message\?\.bodyHtml/);
   assert.match(html, /message\?\.body_html/);
   assert.match(html, /message\?\.html/);
@@ -224,7 +227,7 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /rawUniqueBody/);
   assert.match(html, /message\?\.body_text/);
   assert.match(html, /message\?\.bodyPreview/);
-  assert.match(html, /const text = messageBodyText\(message\)/);
+  assert.match(html, /messageBodyText\(message\)\)\.replace\(\/\\n\/g, '<br>'\)/);
   assert.match(html, /body: messageBodyText\(message\)/);
   assert.match(html, /function renderMessageAttachments\(message\)/);
   assert.match(html, /attachment\.inlineUrl/);
@@ -232,7 +235,8 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /attachment\.downloadUrl/);
   assert.match(html, /msg-attachment-preview/);
   assert.match(html, /target="_blank"/);
-  assert.match(html, /msg-bubble-rich/);
+  assert.match(html, /msg-bubble--html msg-bubble-rich/);
+  assert.match(html, /\$\{renderMessageBubbleInner\(message\)\}[\s\S]*\$\{renderMessageAttachments\(message\)\}/);
   assert.match(html, /msg-attachments/);
 });
 

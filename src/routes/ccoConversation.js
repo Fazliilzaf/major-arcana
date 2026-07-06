@@ -2838,6 +2838,8 @@ function createCcoConversationRouter({
 
 module.exports = {
   createCcoConversationRouter,
+  // Exponerad för tester: HTML-kropp för sandboxad trådrendering.
+  deriveBodyHtml,
   // Exponerad för tester: rollup-medveten trådhämtning ur lokala truth-storen.
   fetchSortedConversationMessages,
   fetchSortedConversationMessagesForKeys,

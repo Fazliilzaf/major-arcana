@@ -565,6 +565,19 @@
           inset 0 1px 0 rgba(255, 255, 255, 0.4),
           0 3px 8px rgba(56, 40, 28, 0.16);
       }
+      .msg-bubble.msg-bubble--html {
+        padding: 0;
+        overflow: hidden;
+        width: min(720px, 100%);
+      }
+      .msg-html-frame {
+        display: block;
+        width: 100%;
+        height: 360px;
+        border: 0;
+        background: #fff;
+        border-radius: inherit;
+      }
       .msg-bubble {
         padding: 11px 13px;
         border-radius: 18px;
@@ -3358,6 +3371,24 @@
         }
       }
 
+      // Fullt mail (loggor/signaturer/bilder) — HTML renderas ENDAST i sandboxad
+      // iframe (sandbox utan allow-scripts/allow-same-origin ⇒ ingen XSS-yta,
+      // ingen cookie-åtkomst). Saknas HTML lokalt visas texten som förut.
+      function renderMessageBubbleInner(message) {
+        const html = sanitizeMailHtmlForDisplay(messageBodyHtml(message));
+        if (!html) {
+          return `<div class="msg-bubble">${escapeHtml(messageBodyText(message)).replace(/\n/g, '<br>')}</div>`;
+        }
+        const doc =
+          '<!doctype html><html><head><meta charset="utf-8">' +
+          '<base target="_blank">' +
+          '<style>body{margin:0;padding:10px 12px;font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#2b251f;background:transparent;word-break:break-word}img{max-width:100%;height:auto}</style>' +
+          '</head><body>' +
+          html +
+          '</body></html>';
+        return `<div class="msg-bubble msg-bubble--html msg-bubble-rich"><iframe class="msg-html-frame" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" loading="lazy" srcdoc="${escapeHtml(doc)}" title="Mailinnehåll"></iframe></div>`;
+      }
+
       function messageDayLabel(value) {
         const iso = normalizeText(value);
         if (!iso) return '';
@@ -3523,17 +3554,6 @@
         );
       }
 
-      function messageHasRichBody(message) {
-        return Boolean(messageBodyHtml(message));
-      }
-
-      function renderMessageBody(message) {
-        const html = sanitizeMailHtmlForDisplay(messageBodyHtml(message));
-        if (html) return html;
-        const text = messageBodyText(message);
-        return escapeHtml(text).replace(/\n/g, '<br>');
-      }
-
       function formatAttachmentSize(size) {
         const value = Number(size || 0);
         if (!Number.isFinite(value) || value <= 0) return '';
@@ -3609,7 +3629,7 @@
               <div class="msg is-${dir}">
                 <div class="msg-av" style="background:${escapeHtml(avatarBg)}">${escapeHtml(initials)}</div>
                 <div>
-                  <div class="msg-bubble ${messageHasRichBody(message) ? 'msg-bubble-rich' : ''}">${renderMessageBody(message)}</div>
+                  ${renderMessageBubbleInner(message)}
                   ${renderMessageAttachments(message)}
                   <div class="msg-meta">${escapeHtml(from)} · ${escapeHtml(messageTimeLabel(message.time))} · ${escapeHtml(mailbox)}</div>
                 </div>
