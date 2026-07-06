@@ -2369,6 +2369,7 @@
         </div>
 
         <div
+          id="ctxAiRecommendation"
           style="
             padding: 11px 13px;
             border-radius: 13px;
@@ -3375,6 +3376,56 @@
         }
       }
 
+      // Höger kund-panel speglar den VALDA tråden med riktig data. Fabricerade
+      // demo-fält (VIP, kundvärde, PRP, friskförsäkran-AI) döljs tills de har en
+      // riktig kund-/CRM-källa — admin/webb visar aldrig påhittad klinisk eller
+      // ekonomisk data. Utan tråd (init/tom/fel) rensas fälten helt.
+      function renderThreadContextPanel(thread, messageCount = null) {
+        const ai = document.getElementById('ctxAiRecommendation');
+        if (ai) ai.style.display = 'none';
+        const aiBtn = document.querySelector('.ctx-actions .quick-pill--ai');
+        if (aiBtn) aiBtn.style.display = 'none';
+        const chips = document.querySelector('.ctx-chips');
+        const metaline = document.querySelector('.ctx-metaline');
+        if (!thread) {
+          if (chips) chips.innerHTML = '';
+          if (metaline) metaline.innerHTML = '';
+          return;
+        }
+        const name = normalizeText(thread.from) || 'Okänd kund';
+        const email = normalizeText(thread.customerEmail);
+        const phone = normalizeText(thread.customerPhone);
+        const mailbox = normalizeText(thread.mailboxAddress) || LIVE_MAILBOX_IDS[0];
+        const avatar = document.querySelector('.ctx-avatar');
+        if (avatar) {
+          avatar.textContent = normalizeText(thread.init) || name.slice(0, 1).toUpperCase() || '?';
+          if (thread.bg) avatar.style.background = thread.bg;
+        }
+        const ctxName = document.querySelector('.ctx-name');
+        if (ctxName) ctxName.textContent = name;
+        const ctxMeta = document.querySelector('.ctx-meta');
+        if (ctxMeta) ctxMeta.textContent = email || mailbox || 'Kundkontext';
+        if (chips) {
+          const items = [`<span class="ctx-chip ctx-chip--info">${escapeHtml(mailbox)}</span>`];
+          if (Number.isFinite(messageCount)) {
+            items.push(`<span class="ctx-chip">${messageCount} meddelanden</span>`);
+          }
+          if (thread.unread) {
+            items.push('<span class="ctx-chip ctx-chip--warn">Behöver svar</span>');
+          }
+          if (email) items.push(`<span class="ctx-chip">${escapeHtml(email)}</span>`);
+          if (phone) items.push(`<span class="ctx-chip">${escapeHtml(phone)}</span>`);
+          chips.innerHTML = items.join('');
+        }
+        if (metaline) {
+          const when = normalizeText(thread.when);
+          const countText = Number.isFinite(messageCount)
+            ? `<strong>${messageCount} meddelanden</strong>`
+            : '<strong>Tråd</strong>';
+          metaline.innerHTML = countText + (when ? ` · ${escapeHtml(when)}` : '');
+        }
+      }
+
       // Fullt mail (loggor/signaturer/bilder) — HTML renderas ENDAST i sandboxad
       // iframe (sandbox utan allow-scripts/allow-same-origin ⇒ ingen XSS-yta,
       // ingen cookie-åtkomst). Saknas HTML lokalt visas texten som förut.
@@ -3658,6 +3709,7 @@
         }
         setSvarstudioLiveContext(thread, []);
         renderThreadLoading(thread);
+        renderThreadContextPanel(thread, null);
         try {
           const rawLookupKeys = (
             Array.isArray(thread.memberKeys) && thread.memberKeys.length
@@ -3706,6 +3758,7 @@
           const messages = Array.isArray(payload?.messages) ? payload.messages : [];
           setSvarstudioLiveContext(thread, messages);
           renderThreadMessages(thread, messages);
+          renderThreadContextPanel(thread, messages.length);
         } catch (error) {
           console.warn('[cco-live-thread] meddelanden kunde inte laddas', error);
           setSvarstudioLiveContext(thread, []);
@@ -3814,6 +3867,9 @@
           'Hämtar CCO-trådar från kons@hairtpclinic.com...'
         );
         renderLivePaneStatus('Laddar Konversationer', 'Hämtar CCO-trådar från CCO-pipelinen.');
+        // Dölj fabricerade demo-fält i kund-panelen direkt (aldrig påhittad data
+        // i admin/webb) — de fylls med riktig data när en tråd öppnas.
+        renderThreadContextPanel(null);
       }
 
       // Diagnostik: worklist-consumern kan svara med olika statuskoder som förr

@@ -344,6 +344,25 @@ test('konversationer defines every helper used by the live worklist render path'
   }
 });
 
+test('konversationer wires the customer context panel to the selected live thread', () => {
+  const html = readHtml();
+  const script = liveScript(html);
+
+  // Panelen fylls med RIKTIG tråd-data, inte statisk demo (Anna Karlsson).
+  assert.match(script, /function renderThreadContextPanel\(thread, messageCount = null\)/);
+  assert.match(script, /\.ctx-name/);
+  assert.match(script, /normalizeText\(thread\.from\) \|\| 'Okänd kund'/);
+  assert.match(script, /renderThreadContextPanel\(thread, messages\.length\)/);
+  assert.match(script, /renderThreadContextPanel\(thread, null\)/);
+  // Fabricerade demo-fält utan livekälla döljs (ingen påhittad klinisk/ekonomisk data).
+  assert.match(html, /id="ctxAiRecommendation"/);
+  assert.match(script, /getElementById\('ctxAiRecommendation'\)[\s\S]*display = 'none'/);
+  assert.match(script, /\.quick-pill--ai'\)[\s\S]*display = 'none'/);
+  // Utan tråd (init/tom/fel) rensas fälten helt istället för att visa demo.
+  assert.match(script, /if \(!thread\) \{[\s\S]*chips\.innerHTML = ''[\s\S]*return;/);
+  assert.match(script, /renderThreadContextPanel\(null\)/);
+});
+
 test('konversationer live inbox script parses', () => {
   const html = readHtml();
   assert.doesNotThrow(() => new Function(liveScript(html)));
