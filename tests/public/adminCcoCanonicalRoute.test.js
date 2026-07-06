@@ -44,6 +44,24 @@ test('admin CCO embed is ensured whenever ccoWorkspaceSection is active', () => 
   );
 });
 
+test('konversationer.html embed is served no-store so deploys are not cached stale', () => {
+  const server = read(SERVER_JS);
+  // Den inbäddade CCO-ytan får en egen no-store-gren i express.static före den
+  // generiska HTML-grenen, annars serveras gammal JS efter en deploy.
+  assert.match(
+    server,
+    /\/\\\/konversationer\\\.html\$\/i\.test\(safe\)[\s\S]*?no-store, no-cache, must-revalidate/,
+    'konversationer.html must get a no-store Cache-Control branch'
+  );
+  const konvBranch = server.indexOf('/\\/konversationer\\.html$/i.test(safe)');
+  const genericHtmlBranch = server.indexOf('/\\.html?$/i.test(safe)');
+  assert.ok(konvBranch !== -1, 'konversationer.html cache branch must exist');
+  assert.ok(
+    konvBranch < genericHtmlBranch,
+    'konversationer.html branch must precede the generic .html branch to win'
+  );
+});
+
 test('admin shell is mounted before static public directory redirects', () => {
   const server = read(SERVER_JS);
   const adminMount = server.indexOf('app.use(createAdminRouter({ sendAdminHtml }))');

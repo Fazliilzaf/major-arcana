@@ -11038,6 +11038,10 @@ app.use(
         res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
       } else if (/\.(js|css)$/i.test(safe)) {
         res.setHeader('Cache-Control', 'public, max-age=600, stale-while-revalidate=3600');
+      } else if (/\/konversationer\.html$/i.test(safe)) {
+        // Inbäddad i admin#cco via iframe. no-store så en ny deploy syns direkt
+        // utan att tömma cachen — annars serveras gammal JS efter deploy.
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       } else if (/\.html?$/i.test(safe)) {
         res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
       }
