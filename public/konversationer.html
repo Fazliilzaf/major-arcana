@@ -574,6 +574,61 @@
         font-size: 12.5px;
         line-height: 1.5;
       }
+      .msg-bubble-rich {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .msg-bubble-rich p {
+        margin: 0 0 8px;
+      }
+      .msg-bubble-rich p:last-child {
+        margin-bottom: 0;
+      }
+      .msg-bubble-rich img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 10px;
+      }
+      .msg-bubble-rich table {
+        max-width: 100%;
+        width: auto;
+        border-collapse: collapse;
+      }
+      .msg-bubble-rich a {
+        color: var(--rail-contact);
+        font-weight: 700;
+      }
+      .msg-attachments {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 7px;
+      }
+      .msg-attachment {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        max-width: 240px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(112, 89, 65, 0.16);
+        color: var(--cco-text-secondary);
+        font-size: 10px;
+        font-weight: 750;
+        box-shadow: 0 3px 8px rgba(56, 40, 28, 0.08);
+      }
+      .msg-attachment span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .msg-attachment small {
+        color: var(--cco-text-tertiary);
+        font-size: 9px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
       .msg.is-outgoing .msg-bubble {
         background: linear-gradient(180deg, #fff5e6, #ffe3b8);
         color: #2a1d10;
@@ -2506,9 +2561,27 @@
 
       function parseScopedContactFormKey(value) {
         const key = normalizeText(value);
+        const referenceMarker = '::contact-form-ref:';
+        const referenceIndex = key.lastIndexOf(referenceMarker);
+        if (referenceIndex >= 0) {
+          const baseKey = key.slice(0, referenceIndex);
+          const encodedReference = key.slice(referenceIndex + referenceMarker.length);
+          let reference = encodedReference;
+          try {
+            reference = decodeURIComponent(encodedReference);
+          } catch {
+            reference = encodedReference;
+          }
+          return {
+            scoped: true,
+            baseKey: normalizeText(baseKey),
+            email: '',
+            reference: normalizeText(reference).toLowerCase(),
+          };
+        }
         const marker = '::contact-form:';
         const index = key.lastIndexOf(marker);
-        if (index < 0) return { scoped: false, baseKey: key, email: '' };
+        if (index < 0) return { scoped: false, baseKey: key, email: '', reference: '' };
         const baseKey = key.slice(0, index);
         const encodedEmail = key.slice(index + marker.length);
         let email = encodedEmail;
@@ -2521,6 +2594,7 @@
           scoped: true,
           baseKey: normalizeText(baseKey),
           email: normalizeText(email).toLowerCase(),
+          reference: '',
         };
       }
 
@@ -2533,7 +2607,12 @@
           .filter((item, index, all) => all.indexOf(item) === index)
           .filter((item) => item !== safePrimary)
           .filter((item) => {
-            if (!primaryScope.scoped || !primaryScope.baseKey || !primaryScope.email) return true;
+            if (
+              !primaryScope.scoped ||
+              !primaryScope.baseKey ||
+              (!primaryScope.email && !primaryScope.reference)
+            )
+              return true;
             const memberScope = parseScopedContactFormKey(item);
             return memberScope.scoped || memberScope.baseKey !== primaryScope.baseKey;
           });
@@ -2652,7 +2731,7 @@
           .filter((item, index, all) => all.indexOf(item) === index);
         const scopedPrimaryConversationKey = rawLookupKeys.find((key) => {
           const scope = parseScopedContactFormKey(key);
-          return scope.scoped && scope.baseKey && scope.email;
+          return scope.scoped && scope.baseKey && (scope.email || scope.reference);
         });
         const primaryConversationKey =
           normalizeText(scopedPrimaryConversationKey) ||
@@ -2661,6 +2740,7 @@
           normalizeText(conversation.key) ||
           normalizeText(row.mailboxConversationId) ||
           normalizeText(row.conversationId);
+        const primaryScope = parseScopedContactFormKey(primaryConversationKey);
         const source = compactMailbox(mailboxAddress);
         const tags = [];
         if (state.hasUnreadInbound || state.needsReply)
@@ -2698,6 +2778,7 @@
             normalizeText(customer.id) ||
             normalizeText(row.customerId),
           customerEmail,
+          contactReference: primaryScope.reference || '',
           customerPhone: normalizeText(customer.phone || customer.phoneNumber),
           tags,
           unread: state.hasUnreadInbound || state.needsReply,
@@ -3039,6 +3120,83 @@
         return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
       }
 
+      function isAllowedMailUrl(value, { image = false } = {}) {
+        const url = normalizeText(value);
+        if (!url) return false;
+        if (image && /^cid:/i.test(url)) return true;
+        if (image && /^data:image\//i.test(url)) return true;
+        try {
+          const parsed = new URL(url, window.location.href);
+          return ['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol);
+        } catch {
+          return false;
+        }
+      }
+
+      function sanitizeMailHtmlForDisplay(html) {
+        const source = normalizeText(html);
+        if (!source || typeof DOMParser === 'undefined') return '';
+        const doc = new DOMParser().parseFromString(source, 'text/html');
+        doc
+          .querySelectorAll('script,style,iframe,object,embed,form,meta,link,base,input,button')
+          .forEach((node) => node.remove());
+        doc.body.querySelectorAll('*').forEach((node) => {
+          [...node.attributes].forEach((attr) => {
+            const name = attr.name.toLowerCase();
+            const value = attr.value || '';
+            if (name.startsWith('on')) {
+              node.removeAttribute(attr.name);
+              return;
+            }
+            if (name === 'href' && !isAllowedMailUrl(value)) {
+              node.removeAttribute(attr.name);
+              return;
+            }
+            if (name === 'src' && !isAllowedMailUrl(value, { image: true })) {
+              node.removeAttribute(attr.name);
+              return;
+            }
+            if (name === 'srcset' || name === 'formaction') {
+              node.removeAttribute(attr.name);
+            }
+          });
+        });
+        doc.body.querySelectorAll('a[href]').forEach((link) => {
+          link.setAttribute('target', '_blank');
+          link.setAttribute('rel', 'noopener noreferrer');
+        });
+        return doc.body.innerHTML;
+      }
+
+      function renderMessageBody(message) {
+        const html = sanitizeMailHtmlForDisplay(message?.bodyHtml || message?.body_html);
+        if (html) return html;
+        const text = normalizeText(message?.body || message?.bodyText || message?.text || '');
+        return escapeHtml(text).replace(/\n/g, '<br>');
+      }
+
+      function formatAttachmentSize(size) {
+        const value = Number(size || 0);
+        if (!Number.isFinite(value) || value <= 0) return '';
+        if (value >= 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+        if (value >= 1024) return `${Math.round(value / 1024)} kB`;
+        return `${value} B`;
+      }
+
+      function renderMessageAttachments(message) {
+        const attachments = Array.isArray(message?.attachments) ? message.attachments : [];
+        const visible = attachments.filter((attachment) => normalizeText(attachment?.name));
+        if (!visible.length) return '';
+        return `<div class="msg-attachments">${visible
+          .map((attachment) => {
+            const size = formatAttachmentSize(attachment.size);
+            const type = normalizeText(attachment.contentType);
+            const meta = [size, type].filter(Boolean).join(' · ');
+            return `<div class="msg-attachment" title="${escapeHtml(meta || attachment.name)}">📎 <span>${escapeHtml(attachment.name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}</div>`;
+          })
+          .join('')}</div>`;
+      }
+
       function renderThreadMessages(thread, messages) {
         const mount = document.getElementById('messages');
         if (!mount) return;
@@ -3051,7 +3209,11 @@
         let previousDay = '';
         mount.innerHTML = messages
           .map((message) => {
-            const dir = normalizeText(message.dir) === 'outgoing' ? 'outgoing' : 'incoming';
+            const rawDir = normalizeText(message.dir);
+            const dir =
+              rawDir === 'outgoing' || rawDir === 'outbound' || rawDir === 'sent'
+                ? 'outgoing'
+                : 'incoming';
             const day = messageDayLabel(message.time);
             const dayDivider =
               day && day !== previousDay ? `<div class="msg-day">${escapeHtml(day)}</div>` : '';
@@ -3070,7 +3232,8 @@
               <div class="msg is-${dir}">
                 <div class="msg-av" style="background:${escapeHtml(avatarBg)}">${escapeHtml(initials)}</div>
                 <div>
-                  <div class="msg-bubble">${escapeHtml(message.body || '')}</div>
+                  <div class="msg-bubble ${message.bodyHtml || message.body_html ? 'msg-bubble-rich' : ''}">${renderMessageBody(message)}</div>
+                  ${renderMessageAttachments(message)}
                   <div class="msg-meta">${escapeHtml(from)} · ${escapeHtml(messageTimeLabel(message.time))} · ${escapeHtml(mailbox)}</div>
                 </div>
               </div>
@@ -3117,6 +3280,13 @@
             thread.replyToEmail
           );
           if (scopedCustomerEmail) params.set('customerEmail', scopedCustomerEmail);
+          const threadScope = parseScopedContactFormKey(thread.conversationKey);
+          const scopedContactReference = normalizeText(
+            thread.contactReference || threadScope.reference
+          );
+          if (!scopedCustomerEmail && scopedContactReference) {
+            params.set('contactReference', scopedContactReference);
+          }
           const queryString = params.toString() ? `?${params.toString()}` : '';
           const response = await fetch(
             `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages${queryString}`,

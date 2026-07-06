@@ -13,10 +13,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  collectConversationAttachments,
+  deriveBodyHtml,
   enrichConversationMessagesWithIngestion,
   fetchSortedConversationMessages,
   fetchSortedConversationMessagesForKeys,
   fetchSortedIngestionConversationMessagesForKeys,
+  parseConversationContactScopeQuery,
 } = require('../../src/routes/ccoConversation');
 const {
   toContactFormReferenceScopedConversationKey,
@@ -329,6 +332,63 @@ test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt for
     ['cf-sudarshan'],
     'rå primärnyckel ska ärva reference-scope från scoped memberKey'
   );
+
+  const sortedWithRawPrimaryAndContactReference = fetchSortedConversationMessages(
+    contactFormStore,
+    sharedBaseKey,
+    [],
+    { contactReference: 'Sudarshan' }
+  );
+  assert.deepEqual(
+    sortedWithRawPrimaryAndContactReference.map((message) => message.graphMessageId),
+    ['cf-sudarshan'],
+    'prod-rader med rå shared key måste kunna scopa på kontaktreferens när kundmail saknas'
+  );
+});
+
+test('contact scope query normaliserar e-post och kontaktreferens', () => {
+  assert.deepEqual(parseConversationContactScopeQuery({ contactReference: ' Sudarshan ' }), {
+    contactReference: 'sudarshan',
+  });
+  assert.deepEqual(
+    parseConversationContactScopeQuery({
+      customerEmail: ' Blend@Example.com ',
+      contactReference: ' Blend Bytyci ',
+    }),
+    {
+      contactEmail: 'blend@example.com',
+      contactReference: 'blend bytyci',
+    }
+  );
+});
+
+test('rich mail html och bilagor exponeras utan rå contentBytes', () => {
+  const message = {
+    bodyPreview: 'Hej',
+    rawJson: {
+      body: {
+        contentType: 'html',
+        content: '<p>Hej</p><img src="cid:logo"><script>bad()</script>',
+      },
+      attachments: [
+        {
+          id: 'a1',
+          name: 'logo.png',
+          contentType: 'image/png',
+          size: 1234,
+          isInline: true,
+          contentBytes: 'SECRET',
+        },
+      ],
+    },
+  };
+
+  assert.match(deriveBodyHtml(message), /<p>Hej<\/p>/);
+  const attachments = collectConversationAttachments(message);
+  assert.equal(attachments.length, 1);
+  assert.equal(attachments[0].name, 'logo.png');
+  assert.equal(attachments[0].contentType, 'image/png');
+  assert.equal(attachments[0].contentBytes, undefined);
 });
 
 test('truth-preview berikas med full ingestion-body när raw store har hela mailet', () => {
@@ -364,6 +424,15 @@ test('truth-preview berikas med full ingestion-body när raw store har hela mail
           receivedAt: '2026-07-05T11:00:00.000Z',
           bodyPreview: preview,
           bodyText: fullBody,
+          attachments: [
+            {
+              id: 'att-1',
+              name: 'remiss.pdf',
+              contentType: 'application/pdf',
+              size: 4096,
+              contentBytes: 'nope',
+            },
+          ],
           fromEmail: 'wordpress@hairtpclinic.se',
           fromName: 'WordPress',
         },
@@ -375,6 +444,7 @@ test('truth-preview berikas med full ingestion-body när raw store har hela mail
 
   assert.match(enriched.bodyText, /Jag känner mig redo att boka konsultation/);
   assert.ok(enriched.bodyText.length > preview.length + 40);
+  assert.equal(enriched.attachments[0].name, 'remiss.pdf');
 });
 
 test('tom/ogiltig nyckel ger tom lista', () => {

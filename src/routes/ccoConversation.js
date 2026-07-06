@@ -317,6 +317,86 @@ function deriveBody(message) {
   return pickBestBodyCandidate(candidates, preview);
 }
 
+function deriveBodyHtml(message) {
+  const safe = asObject(message);
+  const body = asObject(safe.body);
+  const uniqueBody = asObject(safe.uniqueBody);
+  const rawJson = asObject(safe.rawJson);
+  const rawBody = asObject(rawJson.body);
+  const rawUniqueBody = asObject(rawJson.uniqueBody);
+  const mailDocument = asObject(safe.mailDocument);
+  const candidates = [
+    mailDocument.primaryBodyHtml,
+    safe.bodyHtml,
+    safe.body_html,
+    rawJson.bodyHtml,
+    rawJson.body_html,
+    body.contentType && /html/i.test(String(body.contentType)) ? body.content : '',
+    uniqueBody.contentType && /html/i.test(String(uniqueBody.contentType))
+      ? uniqueBody.content
+      : '',
+    rawBody.contentType && /html/i.test(String(rawBody.contentType)) ? rawBody.content : '',
+    rawUniqueBody.contentType && /html/i.test(String(rawUniqueBody.contentType))
+      ? rawUniqueBody.content
+      : '',
+  ];
+  return candidates.reduce((best, candidate) => chooseRicherHtml(best, candidate), '');
+}
+
+function normalizeConversationAttachment(attachment = {}) {
+  const safe = asObject(attachment);
+  const id =
+    normalizeText(safe.id) ||
+    normalizeText(safe.attachmentId) ||
+    normalizeText(safe.contentId) ||
+    normalizeText(safe.name);
+  const rawName = normalizeText(safe.name) || normalizeText(safe.fileName);
+  if (!id && !rawName) return null;
+  const name = rawName || 'Bilaga';
+  const sizeValue = Number(safe.size || safe.contentLength || safe.length || 0);
+  return {
+    id: id || name,
+    attachmentId: normalizeText(safe.attachmentId) || id || null,
+    name,
+    contentType: normalizeText(safe.contentType) || normalizeText(safe.mimeType) || null,
+    size: Number.isFinite(sizeValue) && sizeValue > 0 ? sizeValue : null,
+    isInline: Boolean(safe.isInline || safe.inline),
+    contentId: normalizeText(safe.contentId) || null,
+    contentLocation: normalizeText(safe.contentLocation) || null,
+  };
+}
+
+function collectConversationAttachments(message = {}) {
+  const safe = asObject(message);
+  const rawJson = asObject(safe.rawJson);
+  const mailDocument = asObject(safe.mailDocument);
+  const candidates = [
+    ...asArray(safe.attachments),
+    ...asArray(safe.fileAttachments),
+    ...asArray(mailDocument.attachments),
+    ...asArray(rawJson.attachments),
+    ...asArray(rawJson.fileAttachments),
+  ];
+  const seen = new Set();
+  return candidates
+    .map(normalizeConversationAttachment)
+    .filter(Boolean)
+    .filter((attachment) => {
+      const key = [
+        normalizeText(attachment.id),
+        normalizeText(attachment.contentId),
+        normalizeText(attachment.name),
+      ]
+        .filter(Boolean)
+        .join(':')
+        .toLowerCase();
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
 function parseConversationAliasQuery(query = {}) {
   const raw = query.aliases || query.alias || query.keys || query.key;
   return Array.from(
@@ -351,7 +431,18 @@ function parseConversationContactScopeQuery(query = {}) {
       query.customer_email ||
       ''
   );
-  return email ? { contactEmail: email } : {};
+  const reference = normalizeText(
+    query.contactReference ||
+      query.customerReference ||
+      query.reference ||
+      query.contactName ||
+      query.customerName ||
+      ''
+  ).toLowerCase();
+  return {
+    ...(email ? { contactEmail: email } : {}),
+    ...(reference ? { contactReference: reference } : {}),
+  };
 }
 
 function dedupeConversationMessages(messages = []) {
@@ -661,6 +752,7 @@ function enrichConversationMessagesWithIngestion(messages, store) {
       bodyHtml: chooseRicherHtml(message.bodyHtml, raw.bodyHtml),
       body_html: chooseRicherHtml(message.body_html, raw.body_html),
       text: chooseRicherBodyText(message.text, raw.text, preview),
+      attachments: asArray(message.attachments).length ? message.attachments : raw.attachments,
       rawJson: Object.keys(asObject(message.rawJson)).length ? message.rawJson : raw.rawJson,
       mailDocument: Object.keys(asObject(message.mailDocument)).length
         ? message.mailDocument
@@ -905,6 +997,7 @@ function createCcoConversationRouter({
           const senderEmail = deriveSenderEmail(safe);
           const mailboxId = normalizeText(safe.mailboxId) || null;
           const mailboxAddress = normalizeText(safe.mailboxAddress) || mailboxId;
+          const attachments = collectConversationAttachments(safe);
           return {
             id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
             from,
@@ -914,10 +1007,13 @@ function createCcoConversationRouter({
             dir: deriveDir(safe.folderType),
             time: deriveTime(safe),
             body: deriveBody(safe),
+            bodyHtml: deriveBodyHtml(safe) || null,
             subject: normalizeText(safe.subject) || null,
             mailboxId,
             mailboxAddress: mailboxAddress || null,
             folderType: normalizeText(safe.folderType) || null,
+            hasAttachments: attachments.length > 0,
+            attachments,
           };
         });
         return res.json({
@@ -2342,6 +2438,9 @@ module.exports = {
   fetchSortedConversationMessagesForKeys,
   fetchSortedIngestionConversationMessagesForKeys,
   enrichConversationMessagesWithIngestion,
+  parseConversationContactScopeQuery,
+  deriveBodyHtml,
+  collectConversationAttachments,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
   evaluateConversationBulkItem,
 };
