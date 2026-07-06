@@ -102,6 +102,16 @@ function extractContactFormEmail(message = {}) {
 
 function extractContactFormName(message = {}) {
   if (!looksLikeContactFormMessage(message)) return '';
+  const safe = asObject(message);
+  const subject = normalizeText(safe.subject);
+  const subjectMatch = subject.match(/^(.{2,90}?)\s+(?:kontaktformul[aä]r|contact\s*form)\b/i);
+  if (subjectMatch) {
+    const subjectName = normalizeText(subjectMatch[1])
+      .replace(/^(?:re|sv|fw|fwd)\s*[:：]\s*/i, '')
+      .replace(/[<>]/g, '')
+      .trim();
+    if (subjectName && !/@/.test(subjectName)) return subjectName;
+  }
   const text = collectMessageText(message).replace(/\s+/g, ' ').trim();
   const patterns = [
     /(?:från|from)\s*[:：]\s*(.{2,90}?)\s+(?:e-?post(?:adress)?|email|mail)\s*[:：]/i,

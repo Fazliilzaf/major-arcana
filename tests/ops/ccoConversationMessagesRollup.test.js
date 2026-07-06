@@ -346,6 +346,50 @@ test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt for
   );
 });
 
+test('kontaktformulär utan e-post: ämnesrad räcker för reference-scope när body är mager', () => {
+  const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
+  const scopedSudarshanKey = toContactFormReferenceScopedConversationKey(
+    sharedBaseKey,
+    'Sudarshan'
+  );
+  const contactFormStore = {
+    listMessages: () => [
+      {
+        graphMessageId: 'cf-obaida-preview',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-10-14T05:11:00.000Z',
+        subject: 'Obaida Ali Kontaktformulär',
+        bodyPreview: 'Från: Obaida Ali E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig?',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+      {
+        graphMessageId: 'cf-sudarshan-preview',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-11-21T13:00:00.000Z',
+        subject: 'Sudarshan Kontaktformulär',
+        bodyPreview: 'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig?',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+    ],
+  };
+
+  const sorted = fetchSortedConversationMessages(contactFormStore, scopedSudarshanKey);
+
+  assert.deepEqual(
+    sorted.map((message) => message.graphMessageId),
+    ['cf-sudarshan-preview'],
+    'selected kontaktformulär-rad får inte bli tom bara för att Graph bara gav preview/subject'
+  );
+});
+
 test('contact scope query normaliserar e-post och kontaktreferens', () => {
   assert.deepEqual(parseConversationContactScopeQuery({ contactReference: ' Sudarshan ' }), {
     contactReference: 'sudarshan',
@@ -389,6 +433,43 @@ test('rich mail html och bilagor exponeras utan rå contentBytes', () => {
   assert.equal(attachments[0].name, 'logo.png');
   assert.equal(attachments[0].contentType, 'image/png');
   assert.equal(attachments[0].contentBytes, undefined);
+});
+
+test('inline-assets från canonical mail document exponeras som säkra bilagor', () => {
+  const attachments = collectConversationAttachments({
+    mailDocument: {
+      inlineAssets: [
+        {
+          assetId: 'inline-logo-1',
+          filename: 'logo.png',
+          mimeType: 'image/png',
+          disposition: 'inline',
+          contentId: 'logo@hairtp',
+          render: { safe: true, state: 'attachment_content_available' },
+          download: { available: false, state: 'inline_only' },
+          contentBytes: 'SECRET',
+        },
+      ],
+      attachments: [
+        {
+          assetId: 'file-1',
+          filename: 'bilaga.pdf',
+          mimeType: 'application/pdf',
+          size: 1000,
+          download: { available: true, state: 'metadata_only' },
+          contentBytes: 'SECRET',
+        },
+      ],
+    },
+  });
+
+  assert.equal(attachments.length, 2);
+  assert.equal(attachments[0].name, 'bilaga.pdf');
+  assert.equal(attachments[1].name, 'logo.png');
+  assert.equal(attachments[1].isInline, true);
+  assert.equal(attachments[1].contentId, 'logo@hairtp');
+  assert.equal(attachments[1].render.safe, true);
+  assert.equal(attachments[1].contentBytes, undefined);
 });
 
 test('truth-preview berikas med full ingestion-body när raw store har hela mailet', () => {

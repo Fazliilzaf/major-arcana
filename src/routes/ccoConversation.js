@@ -347,10 +347,14 @@ function normalizeConversationAttachment(attachment = {}) {
   const safe = asObject(attachment);
   const id =
     normalizeText(safe.id) ||
+    normalizeText(safe.assetId) ||
+    normalizeText(safe.mailAssetId) ||
     normalizeText(safe.attachmentId) ||
     normalizeText(safe.contentId) ||
-    normalizeText(safe.name);
-  const rawName = normalizeText(safe.name) || normalizeText(safe.fileName);
+    normalizeText(safe.name) ||
+    normalizeText(safe.filename);
+  const rawName =
+    normalizeText(safe.name) || normalizeText(safe.fileName) || normalizeText(safe.filename);
   if (!id && !rawName) return null;
   const name = rawName || 'Bilaga';
   const sizeValue = Number(safe.size || safe.contentLength || safe.length || 0);
@@ -360,9 +364,24 @@ function normalizeConversationAttachment(attachment = {}) {
     name,
     contentType: normalizeText(safe.contentType) || normalizeText(safe.mimeType) || null,
     size: Number.isFinite(sizeValue) && sizeValue > 0 ? sizeValue : null,
-    isInline: Boolean(safe.isInline || safe.inline),
+    isInline: Boolean(safe.isInline || safe.inline || safe.disposition === 'inline'),
     contentId: normalizeText(safe.contentId) || null,
     contentLocation: normalizeText(safe.contentLocation) || null,
+    family: normalizeText(safe.family) || normalizeText(safe.disposition) || null,
+    render:
+      safe.render && typeof safe.render === 'object'
+        ? {
+            safe: safe.render.safe === true,
+            state: normalizeText(safe.render.state) || null,
+          }
+        : null,
+    download:
+      safe.download && typeof safe.download === 'object'
+        ? {
+            available: safe.download.available === true,
+            state: normalizeText(safe.download.state) || null,
+          }
+        : null,
   };
 }
 
@@ -374,6 +393,8 @@ function collectConversationAttachments(message = {}) {
     ...asArray(safe.attachments),
     ...asArray(safe.fileAttachments),
     ...asArray(mailDocument.attachments),
+    ...asArray(mailDocument.inlineAssets),
+    ...asArray(mailDocument.assets),
     ...asArray(rawJson.attachments),
     ...asArray(rawJson.fileAttachments),
   ];
