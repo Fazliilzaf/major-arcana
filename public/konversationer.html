@@ -3836,19 +3836,42 @@
         if (window.location.protocol === 'file:') return;
         clearTimeout(liveInboxRetryTimer);
         let failureStatus = 0;
+        let failureReason = '';
         try {
-          const response = await fetch(LIVE_WORKLIST_URL, {
-            credentials: 'include',
-            headers: withAdminAuthHeaders({ Accept: 'application/json' }),
-          });
+          let response;
+          try {
+            response = await fetch(LIVE_WORKLIST_URL, {
+              credentials: 'include',
+              headers: withAdminAuthHeaders({ Accept: 'application/json' }),
+            });
+          } catch (networkError) {
+            // Fetchen nådde aldrig servern (DNS/TLS/timeout/bruten anslutning).
+            // Bevara browserns exakta felnamn så infra-fel kan skiljas från
+            // JSON-fel i nästa felsökningssteg.
+            failureReason = `Nätverksfel — nådde inte CCO-worklist (${
+              networkError?.name || 'NetworkError'
+            }: ${networkError?.message || 'okänt'}).`;
+            throw networkError;
+          }
           if (!response.ok) {
             failureStatus = response.status;
             throw new Error(
               response.status === 401 ? 'login_required' : `worklist_${response.status}`
             );
           }
+          let payload;
+          try {
+            payload = await response.json();
+          } catch (parseError) {
+            // 2xx men ingen giltig JSON → något serverar fel innehåll
+            // (HTML/redirect) för API-vägen. Fånga status + content-type så vi
+            // ser exakt vad som returneras.
+            failureReason = `Servern svarade utan giltig JSON (HTTP ${
+              response.status
+            }, content-type: ${response.headers.get('content-type') || 'okänd'}).`;
+            throw parseError;
+          }
           liveInboxAttempt = 0;
-          const payload = await response.json();
           const rows = Array.isArray(payload?.rows) ? payload.rows : [];
           currentThreads = rows.map(normalizeLiveThread);
           if (!currentThreads.length) {
@@ -3874,10 +3897,10 @@
         } catch (error) {
           console.warn('[cco-live-inbox] worklist kunde inte laddas', error);
           currentThreads = [];
-          const detail = describeWorklistFailure(failureStatus);
+          const detail = failureReason || describeWorklistFailure(failureStatus);
           // Övergående lägen: token ännu inte skriven av admin-skalet (401),
-          // pipeline ej redo (503) eller nätverksglapp (0) — försök igen med
-          // backoff. Permanenta lägen (403/500) visas direkt som fel.
+          // pipeline ej redo (503) eller nätverks-/JSON-glapp (0) — försök igen
+          // med backoff. Permanenta lägen (403/500) visas direkt som fel.
           const retriable = failureStatus === 0 || failureStatus === 401 || failureStatus === 503;
           if (retriable && liveInboxAttempt < LIVE_INBOX_MAX_ATTEMPTS) {
             liveInboxAttempt += 1;
