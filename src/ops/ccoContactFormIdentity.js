@@ -102,6 +102,16 @@ function extractContactFormEmail(message = {}) {
 
 function extractContactFormName(message = {}) {
   if (!looksLikeContactFormMessage(message)) return '';
+  const safe = asObject(message);
+  const subject = normalizeText(safe.subject);
+  const subjectMatch = subject.match(/^(.{2,90}?)\s+(?:kontaktformul[aä]r|contact\s*form)\b/i);
+  if (subjectMatch) {
+    const subjectName = normalizeText(subjectMatch[1])
+      .replace(/^(?:re|sv|fw|fwd)\s*[:：]\s*/i, '')
+      .replace(/[<>]/g, '')
+      .trim();
+    if (subjectName && !/@/.test(subjectName)) return subjectName;
+  }
   const text = collectMessageText(message).replace(/\s+/g, ' ').trim();
   const patterns = [
     /(?:från|from)\s*[:：]\s*(.{2,90}?)\s+(?:e-?post(?:adress)?|email|mail)\s*[:：]/i,
@@ -117,6 +127,13 @@ function extractContactFormName(message = {}) {
   return '';
 }
 
+function extractContactFormPhone(message = {}) {
+  if (!looksLikeContactFormMessage(message)) return '';
+  const text = collectMessageText(message).replace(/\s+/g, ' ').trim();
+  const match = text.match(/(?:telefon|phone|tel)\s*[:：]\s*([+\d][+\d\s().-]{4,40})/i);
+  return normalizeText(match && match[1]).replace(/\s+/g, ' ');
+}
+
 function resolveContactFormIdentity(message = {}) {
   const email = extractContactFormEmail(message);
   if (!email) return null;
@@ -126,11 +143,216 @@ function resolveContactFormIdentity(message = {}) {
   };
 }
 
+function normalizeContactFormReference(value = '') {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/\[[^\]]+\]/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/[^a-z0-9åäöéèüñ+]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 160);
+}
+
+function buildContactFormReference({ name = '', phone = '' } = {}) {
+  const safeName = normalizeContactFormReference(name);
+  const safePhone = normalizeContactFormReference(phone);
+  return [safeName, safePhone].filter(Boolean).join('--');
+}
+
+function resolveContactFormScopeIdentity(message = {}) {
+  if (!looksLikeContactFormMessage(message)) return null;
+  const email = extractContactFormEmail(message);
+  const name = extractContactFormName(message);
+  const phone = extractContactFormPhone(message);
+  const reference = buildContactFormReference({ name, phone });
+  if (!email && !reference) return null;
+  return {
+    email: email || '',
+    name: name || null,
+    phone: phone || null,
+    reference,
+  };
+}
+
+const CONTACT_FORM_SCOPE_SEPARATOR = '::contact-form:';
+const CONTACT_FORM_REFERENCE_SCOPE_SEPARATOR = '::contact-form-ref:';
+
+function toContactFormScopedConversationKey(baseKey = '', email = '') {
+  const safeBaseKey = normalizeText(baseKey);
+  const safeEmail = normalizeEmail(email);
+  if (!safeBaseKey || !safeEmail || isClinicEmail(safeEmail)) return safeBaseKey;
+  return `${safeBaseKey}${CONTACT_FORM_SCOPE_SEPARATOR}${encodeURIComponent(safeEmail)}`;
+}
+
+function toContactFormReferenceScopedConversationKey(baseKey = '', reference = '') {
+  const safeBaseKey = normalizeText(baseKey);
+  const safeReference = normalizeContactFormReference(reference);
+  if (!safeBaseKey || !safeReference) return safeBaseKey;
+  return `${safeBaseKey}${CONTACT_FORM_REFERENCE_SCOPE_SEPARATOR}${encodeURIComponent(safeReference)}`;
+}
+
+function parseContactFormScopedConversationKey(key = '') {
+  const safeKey = normalizeText(key);
+  const referenceSeparatorIndex = safeKey.lastIndexOf(CONTACT_FORM_REFERENCE_SCOPE_SEPARATOR);
+  if (referenceSeparatorIndex >= 0) {
+    const baseKey = safeKey.slice(0, referenceSeparatorIndex);
+    const rawReference = safeKey.slice(
+      referenceSeparatorIndex + CONTACT_FORM_REFERENCE_SCOPE_SEPARATOR.length
+    );
+    let reference = '';
+    try {
+      reference = normalizeContactFormReference(decodeURIComponent(rawReference));
+    } catch (_err) {
+      reference = normalizeContactFormReference(rawReference);
+    }
+    return { scoped: true, baseKey, email: '', reference, scopeType: 'reference' };
+  }
+  const separatorIndex = safeKey.lastIndexOf(CONTACT_FORM_SCOPE_SEPARATOR);
+  if (separatorIndex < 0) {
+    return { scoped: false, baseKey: safeKey, email: '', reference: '', scopeType: '' };
+  }
+  const baseKey = safeKey.slice(0, separatorIndex);
+  const rawEmail = safeKey.slice(separatorIndex + CONTACT_FORM_SCOPE_SEPARATOR.length);
+  let email = '';
+  try {
+    email = normalizeEmail(decodeURIComponent(rawEmail));
+  } catch (_err) {
+    email = normalizeEmail(rawEmail);
+  }
+  return {
+    scoped: true,
+    baseKey,
+    email: isClinicEmail(email) ? '' : email,
+    reference: '',
+    scopeType: 'email',
+  };
+}
+
+function collectEmailCandidates(value, output = []) {
+  if (!value) return output;
+  if (typeof value === 'string') {
+    const matches = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+    for (const raw of matches) output.push(stripAngleAddress(raw));
+    return output;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectEmailCandidates(item, output);
+    return output;
+  }
+  if (typeof value === 'object') {
+    const safe = asObject(value);
+    const direct = [
+      safe.address,
+      safe.email,
+      safe.mail,
+      safe.userPrincipalName,
+      safe.emailAddress && asObject(safe.emailAddress).address,
+    ];
+    for (const item of direct) collectEmailCandidates(item, output);
+  }
+  return output;
+}
+
+function collectParticipantEmails(message = {}) {
+  const safe = asObject(message);
+  const rawJson = asObject(safe.rawJson);
+  const fields = [
+    safe.from,
+    safe.sender,
+    safe.fromEmail,
+    safe.senderEmail,
+    safe.fromAddress,
+    safe.to,
+    safe.toRecipients,
+    safe.ccRecipients,
+    safe.bccRecipients,
+    safe.replyToRecipients,
+    safe.recipients,
+    rawJson.from,
+    rawJson.sender,
+    rawJson.to,
+    rawJson.toRecipients,
+    rawJson.ccRecipients,
+    rawJson.bccRecipients,
+    rawJson.replyTo,
+    rawJson.replyToRecipients,
+  ];
+  const emails = [];
+  for (const field of fields) collectEmailCandidates(field, emails);
+  return Array.from(
+    new Set(emails.map(normalizeEmail).filter((email) => email && !isClinicEmail(email)))
+  );
+}
+
+function resolveContactFormConversationEmail(message = {}, allowedEmails = null) {
+  const contactFormIdentity = resolveContactFormIdentity(message);
+  if (contactFormIdentity?.email) return contactFormIdentity.email;
+  const allowedSet =
+    allowedEmails instanceof Set
+      ? allowedEmails
+      : Array.isArray(allowedEmails)
+        ? new Set(allowedEmails.map(normalizeEmail).filter(Boolean))
+        : null;
+  if (!allowedSet || allowedSet.size === 0) return '';
+  return collectParticipantEmails(message).find((email) => allowedSet.has(email)) || '';
+}
+
+function scopeContactFormConversationKey(baseKey = '', message = {}, allowedEmails = null) {
+  const email = resolveContactFormConversationEmail(message, allowedEmails);
+  if (email) return toContactFormScopedConversationKey(baseKey, email);
+  const scopeIdentity = resolveContactFormScopeIdentity(message);
+  if (scopeIdentity?.reference) {
+    return toContactFormReferenceScopedConversationKey(baseKey, scopeIdentity.reference);
+  }
+  return normalizeText(baseKey);
+}
+
+function contactFormReferencesMatch(candidate = '', expected = '') {
+  const safeCandidate = normalizeContactFormReference(candidate);
+  const safeExpected = normalizeContactFormReference(expected);
+  if (!safeCandidate || !safeExpected) return false;
+  if (safeCandidate === safeExpected) return true;
+  const hasPhoneSuffix = (longer, shorter) => {
+    if (!longer.startsWith(`${shorter}-`)) return false;
+    const suffix = longer.slice(shorter.length + 1);
+    return /\d{4,}/.test(suffix);
+  };
+  return hasPhoneSuffix(safeCandidate, safeExpected) || hasPhoneSuffix(safeExpected, safeCandidate);
+}
+
+function messageMatchesContactFormScope(message = {}, scope = '') {
+  const safeScope = asObject(scope);
+  const safeEmail = normalizeEmail(typeof scope === 'string' ? scope : safeScope.email);
+  const safeReference = normalizeContactFormReference(
+    typeof scope === 'string' ? '' : safeScope.reference
+  );
+  if (!safeEmail && !safeReference) return true;
+  const contactFormIdentity = resolveContactFormIdentity(message);
+  if (contactFormIdentity?.email && safeEmail) {
+    return normalizeEmail(contactFormIdentity.email) === safeEmail;
+  }
+  if (safeEmail) return collectParticipantEmails(message).includes(safeEmail);
+  const scopeIdentity = resolveContactFormScopeIdentity(message);
+  return contactFormReferencesMatch(scopeIdentity?.reference, safeReference);
+}
+
 module.exports = {
   collectMessageText,
+  collectParticipantEmails,
+  contactFormReferencesMatch,
   extractContactFormEmail,
   extractContactFormName,
+  extractContactFormPhone,
   isClinicEmail,
   looksLikeContactFormMessage,
+  messageMatchesContactFormScope,
+  normalizeEmail,
+  normalizeContactFormReference,
+  parseContactFormScopedConversationKey,
   resolveContactFormIdentity,
+  resolveContactFormConversationEmail,
+  resolveContactFormScopeIdentity,
+  scopeContactFormConversationKey,
+  toContactFormReferenceScopedConversationKey,
+  toContactFormScopedConversationKey,
 };

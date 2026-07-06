@@ -84,15 +84,80 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   const html = readHtml();
 
   assert.match(html, /function openConversationThread\(thread\)/);
-  assert.match(html, /messageLookupKeys/);
-  assert.match(html, /rollup\.underlyingConversationKeys/);
-  assert.match(html, /rollup\.underlyingConversationIds/);
-  assert.match(html, /memberKeys:\s*messageLookupKeys/);
-  assert.match(html, /const memberKeysParam = lookupKeys\.length/);
-  assert.match(html, /\?memberKeys=\$\{encodeURIComponent\(lookupKeys\.join\(','\)\)\}/);
+  assert.match(html, /function parseScopedContactFormKey\(value\)/);
+  assert.match(html, /function scopedMemberKeysForThread\(primaryKey, keys = \[\]\)/);
+  assert.match(html, /function scopedLookupKeysForOpenThread\(thread, keys = \[\]\)/);
+  assert.match(html, /::contact-form-ref:/);
+  assert.match(html, /function toContactFormScopedKey\(baseKey = '', email = ''\)/);
+  assert.match(html, /if \(memberScope\.scoped\) \{/);
+  assert.match(html, /memberScope\.email === primaryScope\.email/);
+  assert.match(html, /memberScope\.reference === primaryScope\.reference/);
+  assert.match(html, /return toContactFormScopedKey\(item, primaryScope\.email\)/);
+  assert.match(html, /return toContactFormReferenceScopedKey\(item, primaryScope\.reference\)/);
   assert.match(
     html,
-    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(thread\.conversationKey\)\}\/messages\$\{memberKeysParam\}/
+    /const baseConversationKey = normalizeText\(\s*threadScope\.baseKey \|\| safeThread\.conversationKey\s*\)/
+  );
+  assert.match(
+    html,
+    /toContactFormScopedKey\(\s*baseConversationKey,\s*scopedCustomerEmail \|\| threadScope\.email\s*\)/
+  );
+  assert.match(
+    html,
+    /toContactFormReferenceScopedKey\(baseConversationKey, scopedContactReference\)/
+  );
+  assert.match(html, /messageLookupKeys/);
+  assert.match(html, /const messageIdentityKeys = \[/);
+  assert.match(html, /conversation\.underlyingMessageIds/);
+  assert.match(html, /conversation\.underlyingGraphMessageIds/);
+  assert.match(html, /rollup\.underlyingMessageIds/);
+  assert.match(html, /rollup\.underlyingGraphMessageIds/);
+  assert.match(html, /rollup\.underlyingConversationKeys/);
+  assert.match(html, /rollup\.underlyingConversationIds/);
+  assert.match(html, /const scopedPrimaryConversationKey\s*=/);
+  assert.match(html, /const contactFormThread = looksLikeContactFormThread\(row\)/);
+  assert.match(html, /const primaryConversationKeyBase\s*=/);
+  assert.match(
+    html,
+    /\(contactFormThread \? normalizeText\(messageIdentityKeys\[0\]\) : ''\)/,
+    'kontaktformulär ska öppnas via exakt message-id innan rå conversationKey används'
+  );
+  assert.match(html, /function normalizeContactFormReference\(value = ''\)/);
+  assert.match(html, /function toContactFormReferenceScopedKey\(baseKey = '', reference = ''\)/);
+  assert.match(
+    html,
+    /toContactFormReferenceScopedKey\(primaryConversationKeyBase, contactReference\)/
+  );
+  assert.match(html, /const primaryConversationKey\s*=/);
+  assert.match(
+    html,
+    /memberKeys:\s*scopedMemberKeysForThread\(primaryConversationKey,\s*messageLookupKeys\)\.slice\(\s*0,\s*50\s*\)/
+  );
+  assert.match(html, /const params = new URLSearchParams\(\)/);
+  assert.match(html, /const rawLookupKeys = \(/);
+  assert.match(
+    html,
+    /const lookupKeys = scopedLookupKeysForOpenThread\(thread, rawLookupKeys\)\.slice\(0, 50\)/
+  );
+  assert.match(html, /params\.set\('memberKeys', lookupKeys\.join\(','\)\)/);
+  assert.match(html, /const scopedCustomerEmail = firstCustomerEmailValue\(/);
+  assert.match(html, /params\.set\('customerEmail', scopedCustomerEmail\)/);
+  assert.match(html, /function looksLikeContactFormThread\(row = \{\}\)/);
+  assert.match(
+    html,
+    /function contactFormReferenceForThread\(\s*row = \{\},\s*name = '',\s*customerEmail = '',\s*primaryScope = \{\}\s*\)/
+  );
+  assert.match(html, /const contactReference = contactFormReferenceForThread\(/);
+  assert.match(html, /contactReference,/);
+  assert.match(html, /const scopedContactReference = normalizeText\(/);
+  assert.match(html, /params\.set\('contactReference', scopedContactReference\)/);
+  assert.match(
+    html,
+    /const queryString = params\.toString\(\) \? `\?\$\{params\.toString\(\)\}` : ''/
+  );
+  assert.match(
+    html,
+    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(thread\.conversationKey\)\}\/messages\$\{queryString\}/
   );
   assert.match(html, /function renderThreadMessages\(thread, messages\)/);
   assert.match(html, /data-thread-id="\$\{escapeHtml\(t\.id\)\}"/);
@@ -101,6 +166,78 @@ test('konversationer live row opens real conversation messages endpoint', () => 
     html,
     /const firstThread = currentThreads\.find\(\(thread\) => thread\.conversationKey\)/
   );
+});
+
+test('kontaktformulär utan kundmail scopas från formulärtexten, inte generisk rubrik', () => {
+  const html = readHtml();
+
+  assert.match(html, /function contactFormTextSources\(row = \{\}, name = ''\)/);
+  assert.match(html, /function extractContactFormNameFromText\(value = ''\)/);
+  assert.match(html, /function extractContactFormPhoneFromText\(value = ''\)/);
+  assert.match(html, /function contactFormReferenceFromText\(value = ''\)/);
+  assert.match(
+    html,
+    /const safeName = normalizeContactFormReference\(name\);[\s\S]*const safePhone = normalizeContactFormReference\(phone\);[\s\S]*\.join\('--'\)/,
+    'frontend scope måste matcha backendens namn--telefon-format'
+  );
+  assert.match(
+    html,
+    /row\.preview,[\s\S]*row\.bodyPreview,[\s\S]*row\.queueExplanatoryLine/,
+    'kontaktformulär måste läsa preview/bodyPreview före fallback-rubrik'
+  );
+  assert.match(
+    html,
+    /\(\?:från\|from\)\\s\*\[:：\]\\s\*\(\.\{2,90\}\?\)/,
+    'namnet ska kunna hämtas ur "Från: Namn E-post: ..."'
+  );
+  assert.match(
+    html,
+    /kontaktformul\[aä\]r\|contact\\s\*form\|ok\[aä\]nd kund/,
+    'generiska kontaktformulär-rubriker ska inte bli scope'
+  );
+});
+
+test('konversationer renders full mail html and attachments safely', () => {
+  const html = readHtml();
+
+  assert.match(html, /function sanitizeMailHtmlForDisplay\(html\)/);
+  assert.match(
+    html,
+    /querySelectorAll\('script,style,iframe,object,embed,form,meta,link,base,input,button'\)/
+  );
+  assert.match(html, /function messageBodyHtml\(message\)/);
+  assert.match(html, /function messageBodyText\(message\)/);
+  assert.match(
+    html,
+    /function chooseRicherMailText\(existing = '', candidate = '', preview = ''\)/
+  );
+  assert.match(html, /function renderMessageBubbleInner\(message\)/);
+  assert.match(html, /const html = sanitizeMailHtmlForDisplay\(messageBodyHtml\(message\)\);/);
+  assert.match(html, /iframe/);
+  assert.match(html, /sandbox="allow-popups allow-popups-to-escape-sandbox"/);
+  assert.match(html, /srcdoc="\$\{escapeHtml\(doc\)\}"/);
+  assert.match(html, /message\?\.bodyHtml/);
+  assert.match(html, /message\?\.body_html/);
+  assert.match(html, /message\?\.html/);
+  assert.match(html, /mailDocument\?\.primaryBodyText/);
+  assert.match(html, /mailDocument\?\.primaryBodyHtml/);
+  assert.match(html, /rawJson\?\.bodyText/);
+  assert.match(html, /rawJson\?\.bodyHtml/);
+  assert.match(html, /rawBody/);
+  assert.match(html, /rawUniqueBody/);
+  assert.match(html, /message\?\.body_text/);
+  assert.match(html, /message\?\.bodyPreview/);
+  assert.match(html, /messageBodyText\(message\)\)\.replace\(\/\\n\/g, '<br>'\)/);
+  assert.match(html, /body: messageBodyText\(message\)/);
+  assert.match(html, /function renderMessageAttachments\(message\)/);
+  assert.match(html, /attachment\.inlineUrl/);
+  assert.match(html, /attachment\.openUrl/);
+  assert.match(html, /attachment\.downloadUrl/);
+  assert.match(html, /msg-attachment-preview/);
+  assert.match(html, /target="_blank"/);
+  assert.match(html, /msg-bubble--html msg-bubble-rich/);
+  assert.match(html, /\$\{renderMessageBubbleInner\(message\)\}[\s\S]*\$\{renderMessageAttachments\(message\)\}/);
+  assert.match(html, /msg-attachments/);
 });
 
 test('konversationer exposes selected live thread as Svarstudio context', () => {

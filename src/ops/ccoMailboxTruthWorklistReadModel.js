@@ -4,7 +4,13 @@ const {
   resolveCounterpartyDisplayName,
   resolveCounterpartyIdentity,
 } = require('./ccoCounterpartyTruth');
-const { resolveContactFormIdentity } = require('./ccoContactFormIdentity');
+const {
+  isClinicEmail,
+  parseContactFormScopedConversationKey,
+  resolveContactFormIdentity,
+  resolveContactFormScopeIdentity,
+  scopeContactFormConversationKey,
+} = require('./ccoContactFormIdentity');
 const { classifyConversationMessage } = require('../intelligence/messageClassification');
 
 function normalizeText(value) {
@@ -13,6 +19,10 @@ function normalizeText(value) {
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function uniqueNormalizedTexts(values = []) {
+  return Array.from(new Set(asArray(values).map(normalizeText).filter(Boolean)));
 }
 
 function asObject(value) {
@@ -271,6 +281,39 @@ function toCanonicalMailboxConversationKey({
   return '';
 }
 
+function deriveBaseConversationKey(message = {}) {
+  const safeMessage = asObject(message);
+  const mailboxId = normalizeMailboxId(
+    safeMessage.mailboxId || safeMessage.mailboxAddress || safeMessage.userPrincipalName
+  );
+  const mailboxConversationId =
+    normalizeText(safeMessage.mailboxConversationId) ||
+    normalizeText(safeMessage.conversationId) ||
+    normalizeText(safeMessage.graphMessageId);
+  if (!mailboxId || !mailboxConversationId) return '';
+  return toCanonicalMailboxConversationKey({
+    mailboxId,
+    conversationId: safeMessage.conversationId,
+    mailboxConversationId,
+    messageId: safeMessage.graphMessageId,
+  });
+}
+
+function collectContactFormEmailsByBaseKey(messages = []) {
+  const byBaseKey = new Map();
+  for (const rawMessage of asArray(messages)) {
+    const message = asObject(rawMessage);
+    const baseKey = deriveBaseConversationKey(message);
+    if (!baseKey) continue;
+    const identity = resolveContactFormIdentity(message);
+    if (!identity?.email) continue;
+    const existing = byBaseKey.get(baseKey) || new Set();
+    existing.add(identity.email);
+    byBaseKey.set(baseKey, existing);
+  }
+  return byBaseKey;
+}
+
 function deriveLatestSortIso(message = {}) {
   return (
     toIso(message.lastModifiedAt) ||
@@ -346,14 +389,14 @@ function deriveCounterparty(message = {}, mailboxId = '') {
     }
   }
   if (direction === 'inbound' || folderType === 'inbox') {
-    const contactFormIdentity = resolveContactFormIdentity(safeMessage);
-    if (contactFormIdentity?.email) {
+    const contactFormIdentity = resolveContactFormScopeIdentity(safeMessage);
+    if (contactFormIdentity?.email || contactFormIdentity?.name) {
       const displayName =
         normalizeText(contactFormIdentity.name) ||
-        humanizeCounterpartyEmail(contactFormIdentity.email) ||
+        (contactFormIdentity.email ? humanizeCounterpartyEmail(contactFormIdentity.email) : '') ||
         contactFormIdentity.email;
       return {
-        email: contactFormIdentity.email,
+        email: contactFormIdentity.email || null,
         name: displayName,
         rawName: normalizeText(contactFormIdentity.name) || null,
         fallbackLabel: displayName,
@@ -385,6 +428,29 @@ function countBy(items = [], getKey) {
 function countSafeIdentityRows(rows = []) {
   return asArray(rows).filter((row) => hasSafeCustomerIdentity(asObject(row).customerIdentity))
     .length;
+}
+
+function isContactFormScopedWorklistRow(row = {}) {
+  const safeRow = asObject(row);
+  const key = normalizeText(safeRow.conversationKey || safeRow.id || '');
+  if (!key) return false;
+  return parseContactFormScopedConversationKey(key).scoped === true;
+}
+
+function isUnsafeContactFormCustomerEmail(email = '') {
+  const normalized = extractEmail(email) || normalizeText(email).toLowerCase();
+  return !normalized || isClinicEmail(normalized) || normalized.includes('wordpress');
+}
+
+function pickWorklistCustomerEmail(row = {}, candidates = []) {
+  const contactFormScoped = isContactFormScopedWorklistRow(row);
+  for (const candidate of asArray(candidates)) {
+    const email = extractEmail(candidate);
+    if (!email) continue;
+    if (contactFormScoped && isUnsafeContactFormCustomerEmail(email)) continue;
+    return email;
+  }
+  return '';
 }
 
 function isOutOfScopeDraftReview(row = {}) {
@@ -419,10 +485,11 @@ function getWorklistMergeIdentityKey(row = {}) {
       value: chosen.value,
     };
   }
-  const emailFallback =
-    extractEmail(row.customerEmail) ||
-    extractEmail(row.customer?.email) ||
-    extractEmail(identity.customerEmail);
+  const emailFallback = pickWorklistCustomerEmail(row, [
+    row.customerEmail,
+    row.customer?.email,
+    identity.customerEmail,
+  ]);
   if (emailFallback) {
     const mailboxScope = normalizeMailboxId(row.ownershipMailbox || row.mailboxId || '');
     return {
@@ -582,6 +649,20 @@ function buildWorklistRollupRow(rows = []) {
   const uniqueConversationKeys = Array.from(
     new Set(safeRows.map((row) => normalizeText(row?.conversationKey || row?.id)).filter(Boolean))
   );
+  const uniqueMessageIds = uniqueNormalizedTexts(
+    safeRows.flatMap((row) => [
+      row?.latestMessageId,
+      row?.messageId,
+      ...(Array.isArray(row?.underlyingMessageIds) ? row.underlyingMessageIds : []),
+    ])
+  );
+  const uniqueGraphMessageIds = uniqueNormalizedTexts(
+    safeRows.flatMap((row) => [
+      row?.latestGraphMessageId,
+      row?.graphMessageId,
+      ...(Array.isArray(row?.underlyingGraphMessageIds) ? row.underlyingGraphMessageIds : []),
+    ])
+  );
   const rollupIdentity = getWorklistMergeIdentityKey(primaryRow) || {
     key: normalizeText(primaryRow?.conversationKey || primaryRow?.id || ''),
     type: 'conversationKey',
@@ -639,13 +720,13 @@ function buildWorklistRollupRow(rows = []) {
     normalizeText(primaryRow?.counterpartyLabel) ||
     normalizeText(primaryRow?.identity?.customerName) ||
     '';
-  const customerEmail =
-    normalizeText(primaryRow?.customerEmail) ||
-    normalizeText(primaryRow?.senderEmail) ||
-    normalizeText(primaryRow?.fromEmail) ||
-    normalizeText(primaryRow?.from?.address) ||
-    normalizeText(primaryRow?.from?.emailAddress?.address) ||
-    '';
+  const customerEmail = pickWorklistCustomerEmail(primaryRow, [
+    primaryRow?.customerEmail,
+    primaryRow?.senderEmail,
+    primaryRow?.fromEmail,
+    primaryRow?.from?.address,
+    primaryRow?.from?.emailAddress?.address,
+  ]);
   // Sista fallback: humanize email-delen (john.doe@x → "John Doe"), annars användarnamn
   const customerNameWithFallback =
     customerName ||
@@ -690,6 +771,10 @@ function buildWorklistRollupRow(rows = []) {
     conversationKey: effectiveConversationKey,
     conversationId: primaryRow?.conversationId || uniqueConversationIds[0] || null,
     mailboxConversationId: primaryRow?.mailboxConversationId || uniqueConversationIds[0] || null,
+    latestMessageId: primaryRow?.latestMessageId || uniqueMessageIds[0] || null,
+    latestGraphMessageId: primaryRow?.latestGraphMessageId || uniqueGraphMessageIds[0] || null,
+    underlyingMessageIds: uniqueMessageIds,
+    underlyingGraphMessageIds: uniqueGraphMessageIds,
     subject,
     latestPreview: preview,
     latestMessageAt,
@@ -720,7 +805,11 @@ function buildWorklistRollupRow(rows = []) {
       mailboxCount: uniqueMailboxIds.length,
       threadCount: uniqueConversationIds.length,
       underlyingConversationKeys: uniqueConversationKeys,
+      underlyingMessageIds: uniqueMessageIds,
+      underlyingGraphMessageIds: uniqueGraphMessageIds,
       primaryConversationId: primaryRow?.conversationId || null,
+      primaryMessageId: primaryRow?.latestMessageId || uniqueMessageIds[0] || null,
+      primaryGraphMessageId: primaryRow?.latestGraphMessageId || uniqueGraphMessageIds[0] || null,
       primaryMailboxId:
         normalizeMailboxId(
           primaryRow?.mailbox?.mailboxId ||
@@ -950,6 +1039,7 @@ function createCcoMailboxTruthWorklistReadModel({
       folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
     });
     const grouped = new Map();
+    const contactFormEmailsByBaseKey = collectContactFormEmailsByBaseKey(messages);
 
     for (const rawMessage of messages) {
       const message = asObject(rawMessage);
@@ -961,12 +1051,17 @@ function createCcoMailboxTruthWorklistReadModel({
         normalizeText(message.conversationId) ||
         normalizeText(message.graphMessageId);
       if (!mailboxId || !mailboxConversationId) continue;
-      const key = toCanonicalMailboxConversationKey({
+      const baseKey = toCanonicalMailboxConversationKey({
         mailboxId,
         conversationId: message.conversationId,
         mailboxConversationId,
         messageId: message.graphMessageId,
       });
+      const key = scopeContactFormConversationKey(
+        baseKey,
+        message,
+        contactFormEmailsByBaseKey.get(baseKey)
+      );
       if (!key) continue;
 
       const entry = grouped.get(key) || {
@@ -996,12 +1091,20 @@ function createCcoMailboxTruthWorklistReadModel({
         hardConflictSignals: [],
         mergeReviewDecisionsByPairId: {},
         identityProvenance: null,
+        latestMessageId: null,
+        latestGraphMessageId: null,
+        underlyingMessageIds: [],
+        underlyingGraphMessageIds: [],
       };
 
       const folderType = normalizeText(message.folderType).toLowerCase();
       const direction = normalizeDirection(message.direction, folderType);
       const sortIso = deriveLatestSortIso(message);
+      const messageId = normalizeText(message.messageId || message.id || message.internetMessageId);
+      const graphMessageId = normalizeText(message.graphMessageId);
       entry.messageCount += 1;
+      if (messageId) entry.underlyingMessageIds.push(messageId);
+      if (graphMessageId) entry.underlyingGraphMessageIds.push(graphMessageId);
       if (folderType === 'inbox') entry.hasInbox = true;
       if (folderType === 'sent') entry.hasSent = true;
       if (folderType === 'drafts') entry.hasDrafts = true;
@@ -1026,6 +1129,8 @@ function createCcoMailboxTruthWorklistReadModel({
         entry.latestMessageAt = sortIso;
         entry.subject = normalizeText(message.subject) || entry.subject;
         entry.latestPreview = normalizeText(message.bodyPreview) || entry.latestPreview;
+        entry.latestMessageId = messageId || graphMessageId || entry.latestMessageId;
+        entry.latestGraphMessageId = graphMessageId || entry.latestGraphMessageId;
       }
       if (!entry.customerEmail) {
         const counterparty = deriveCounterparty(message, mailboxId);
@@ -1036,6 +1141,7 @@ function createCcoMailboxTruthWorklistReadModel({
       // är satt, eftersom customerName kan vara null även när email finns.
       // Testa alla legacy-fält (senderEmail/senderName/counterpartyEmail/from.address).
       if (!entry.customerName || !entry.customerEmail) {
+        const contactFormIdentity = resolveContactFormScopeIdentity(message);
         const flatEmail =
           normalizeText(message?.senderEmail) ||
           normalizeText(message?.counterpartyEmail) ||
@@ -1051,10 +1157,17 @@ function createCcoMailboxTruthWorklistReadModel({
           normalizeText(message?.from?.emailAddress?.name) ||
           normalizeText(message?.sender?.emailAddress?.name) ||
           '';
-        if (!entry.customerEmail && flatEmail) {
+        if (
+          !entry.customerEmail &&
+          flatEmail &&
+          !(contactFormIdentity && isClinicEmail(flatEmail))
+        ) {
           entry.customerEmail = flatEmail.toLowerCase();
         }
-        if (!entry.customerName && flatName) {
+        if (!entry.customerName && contactFormIdentity?.name) {
+          entry.customerName = contactFormIdentity.name;
+        }
+        if (!entry.customerName && flatName && !contactFormIdentity?.name) {
           entry.customerName = flatName;
         }
         // Sista utvägen: om vi har email men ingen name, humanize email.
@@ -1142,6 +1255,8 @@ function createCcoMailboxTruthWorklistReadModel({
 
         return {
           ...entry,
+          underlyingMessageIds: uniqueNormalizedTexts(entry.underlyingMessageIds),
+          underlyingGraphMessageIds: uniqueNormalizedTexts(entry.underlyingGraphMessageIds),
           ownershipMailbox: entry.mailboxId,
           deletedOnly,
           messageClassification,
@@ -1232,6 +1347,10 @@ function createCcoMailboxTruthWorklistReadModel({
         lane: row.lane || 'all',
         placementIndex: row.placementIndex,
         messageCount: row.messageCount,
+        latestMessageId: row.latestMessageId || null,
+        latestGraphMessageId: row.latestGraphMessageId || null,
+        underlyingMessageIds: row.underlyingMessageIds || [],
+        underlyingGraphMessageIds: row.underlyingGraphMessageIds || [],
         customerEmail: row.customerEmail,
         customerName: row.customerName,
         customerIdentity: row.customerIdentity,
@@ -1313,6 +1432,12 @@ function createCcoMailboxTruthWorklistReadModel({
             key: row.conversationKey,
             conversationId: row.conversationId,
             mailboxConversationId: row.mailboxConversationId,
+            messageId: row.latestMessageId || null,
+            graphMessageId: row.latestGraphMessageId || null,
+            latestMessageId: row.latestMessageId || null,
+            latestGraphMessageId: row.latestGraphMessageId || null,
+            underlyingMessageIds: row.underlyingMessageIds || [],
+            underlyingGraphMessageIds: row.underlyingGraphMessageIds || [],
           },
           mailbox: {
             mailboxId: row.mailboxId,

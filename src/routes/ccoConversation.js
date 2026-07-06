@@ -23,6 +23,11 @@ const crypto = require('crypto');
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
 const { extractTextFromHtml } = require('../ops/ccoMailContentParser');
+const {
+  messageMatchesContactFormScope,
+  normalizeEmail,
+  parseContactFormScopedConversationKey,
+} = require('../ops/ccoContactFormIdentity');
 const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
 const { requirePermission } = require('../security/ccoRbac');
@@ -245,7 +250,10 @@ function pickBestBodyCandidate(candidates = [], preview = '') {
     if (a.rank !== b.rank) return b.rank - a.rank;
     return b.text.length - a.text.length;
   });
-  return unique[0].text;
+  return unique.reduce(
+    (best, candidate) => chooseRicherBodyText(best, candidate.text, normalizedPreview),
+    ''
+  );
 }
 
 function deriveBody(message) {
@@ -312,6 +320,265 @@ function deriveBody(message) {
   return pickBestBodyCandidate(candidates, preview);
 }
 
+function deriveBodyHtml(message) {
+  const safe = asObject(message);
+  const body = asObject(safe.body);
+  const uniqueBody = asObject(safe.uniqueBody);
+  const rawJson = asObject(safe.rawJson);
+  const rawBody = asObject(rawJson.body);
+  const rawUniqueBody = asObject(rawJson.uniqueBody);
+  const mailDocument = asObject(safe.mailDocument);
+  const candidates = [
+    mailDocument.primaryBodyHtml,
+    safe.bodyHtml,
+    safe.body_html,
+    rawJson.bodyHtml,
+    rawJson.body_html,
+    body.contentType && /html/i.test(String(body.contentType)) ? body.content : '',
+    uniqueBody.contentType && /html/i.test(String(uniqueBody.contentType))
+      ? uniqueBody.content
+      : '',
+    rawBody.contentType && /html/i.test(String(rawBody.contentType)) ? rawBody.content : '',
+    rawUniqueBody.contentType && /html/i.test(String(rawUniqueBody.contentType))
+      ? rawUniqueBody.content
+      : '',
+  ];
+  return candidates.reduce((best, candidate) => chooseRicherHtml(best, candidate), '');
+}
+
+function firstNormalizedText(...values) {
+  return values.map((value) => normalizeText(value)).find(Boolean) || '';
+}
+
+function buildMailAssetContentUrl({
+  mailboxId = '',
+  messageId = '',
+  attachmentId = '',
+  fileName = '',
+  mode = 'open',
+}) {
+  const safeMailboxId = normalizeText(mailboxId);
+  const safeMessageId = normalizeText(messageId);
+  const safeAttachmentId = normalizeText(attachmentId);
+  if (!safeMailboxId || !safeMessageId || !safeAttachmentId) return '';
+  const query = [
+    ['mailboxId', safeMailboxId],
+    ['messageId', safeMessageId],
+    ['attachmentId', safeAttachmentId],
+    ['mode', mode],
+    ['fileName', normalizeText(fileName)],
+  ]
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
+  return `/api/v1/cco/runtime/mail-asset/content?${query}`;
+}
+
+function normalizeConversationAttachment(attachment = {}, message = {}) {
+  const safe = asObject(attachment);
+  const context = asObject(message);
+  const rawJson = asObject(context.rawJson);
+  const mailDocument = asObject(context.mailDocument);
+  const id =
+    normalizeText(safe.id) ||
+    normalizeText(safe.assetId) ||
+    normalizeText(safe.mailAssetId) ||
+    normalizeText(safe.attachmentId) ||
+    normalizeText(safe.contentId) ||
+    normalizeText(safe.name) ||
+    normalizeText(safe.filename);
+  const rawName =
+    normalizeText(safe.name) || normalizeText(safe.fileName) || normalizeText(safe.filename);
+  if (!id && !rawName) return null;
+  const name = rawName || 'Bilaga';
+  const sizeValue = Number(safe.size || safe.contentLength || safe.length || 0);
+  const attachmentId =
+    normalizeText(safe.attachmentId) ||
+    normalizeText(safe.id) ||
+    normalizeText(safe.assetId) ||
+    normalizeText(safe.mailAssetId) ||
+    normalizeText(safe.contentId) ||
+    id;
+  const mailboxId = firstNormalizedText(
+    safe.mailboxId,
+    context.mailboxId,
+    context.mailboxAddress,
+    mailDocument.mailboxId,
+    mailDocument.mailboxAddress,
+    rawJson.mailboxId,
+    rawJson.mailboxAddress
+  );
+  const messageId = firstNormalizedText(
+    safe.messageId,
+    safe.graphMessageId,
+    context.graphMessageId,
+    context.messageId,
+    context.rawMessageId,
+    context.id,
+    mailDocument.messageId,
+    mailDocument.graphMessageId,
+    mailDocument.id,
+    rawJson.id,
+    rawJson.messageId,
+    rawJson.graphMessageId,
+    rawJson.internetMessageId
+  );
+  const openUrl =
+    normalizeText(safe.openUrl) ||
+    normalizeText(safe.url) ||
+    normalizeText(safe.href) ||
+    normalizeText(safe.contentUrl) ||
+    normalizeText(asObject(safe.render).url) ||
+    buildMailAssetContentUrl({ mailboxId, messageId, attachmentId, fileName: name, mode: 'open' });
+  const downloadUrl =
+    normalizeText(safe.downloadUrl) ||
+    normalizeText(asObject(safe.download).url) ||
+    normalizeText(asObject(safe.download).href) ||
+    buildMailAssetContentUrl({
+      mailboxId,
+      messageId,
+      attachmentId,
+      fileName: name,
+      mode: 'download',
+    });
+  const contentType = normalizeText(safe.contentType) || normalizeText(safe.mimeType) || null;
+  const isInline = Boolean(safe.isInline || safe.inline || safe.disposition === 'inline');
+  return {
+    id: id || name,
+    attachmentId: attachmentId || null,
+    name,
+    contentType,
+    size: Number.isFinite(sizeValue) && sizeValue > 0 ? sizeValue : null,
+    isInline,
+    contentId: normalizeText(safe.contentId) || null,
+    contentLocation: normalizeText(safe.contentLocation) || null,
+    openUrl: openUrl || null,
+    downloadUrl: downloadUrl || null,
+    inlineUrl:
+      /^image\//i.test(contentType || '') && (isInline || openUrl) ? openUrl || null : null,
+    family: normalizeText(safe.family) || normalizeText(safe.disposition) || null,
+    render:
+      safe.render && typeof safe.render === 'object'
+        ? {
+            safe: safe.render.safe === true,
+            state: normalizeText(safe.render.state) || null,
+          }
+        : null,
+    download:
+      safe.download && typeof safe.download === 'object'
+        ? {
+            available: safe.download.available === true,
+            state: normalizeText(safe.download.state) || null,
+          }
+        : null,
+  };
+}
+
+function collectConversationAttachments(message = {}) {
+  const safe = asObject(message);
+  const rawJson = asObject(safe.rawJson);
+  const mailDocument = asObject(safe.mailDocument);
+  const candidates = [
+    ...asArray(safe.attachments),
+    ...asArray(safe.fileAttachments),
+    ...asArray(mailDocument.attachments),
+    ...asArray(mailDocument.inlineAssets),
+    ...asArray(mailDocument.assets),
+    ...asArray(rawJson.attachments),
+    ...asArray(rawJson.fileAttachments),
+  ];
+  const seen = new Set();
+  return candidates
+    .map((attachment) => normalizeConversationAttachment(attachment, safe))
+    .filter(Boolean)
+    .filter((attachment) => {
+      const key = [
+        normalizeText(attachment.id),
+        normalizeText(attachment.contentId),
+        normalizeText(attachment.name),
+      ]
+        .filter(Boolean)
+        .join(':')
+        .toLowerCase();
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function mergeConversationAttachments(...messages) {
+  const seen = new Set();
+  const merged = [];
+  messages.forEach((message) => {
+    collectConversationAttachments(message).forEach((attachment) => {
+      const key = [
+        normalizeText(attachment.attachmentId),
+        normalizeText(attachment.id),
+        normalizeText(attachment.contentId),
+        normalizeText(attachment.name),
+      ]
+        .filter(Boolean)
+        .join(':')
+        .toLowerCase();
+      if (key && seen.has(key)) return;
+      if (key) seen.add(key);
+      merged.push(attachment);
+    });
+  });
+  return merged;
+}
+
+function normalizeContentId(value = '') {
+  const raw = normalizeText(value).replace(/^cid:/i, '').replace(/^<|>$/g, '').trim();
+  if (!raw) return '';
+  try {
+    return decodeURIComponent(raw).toLowerCase();
+  } catch (_err) {
+    return raw.toLowerCase();
+  }
+}
+
+function buildInlineAttachmentUrlMap(attachments = []) {
+  const map = new Map();
+  asArray(attachments).forEach((attachment) => {
+    const safe = asObject(attachment);
+    const url =
+      normalizeText(safe.inlineUrl) ||
+      normalizeText(safe.openUrl) ||
+      normalizeText(safe.url) ||
+      normalizeText(safe.href);
+    if (!url) return;
+    [safe.contentId, safe.id, safe.attachmentId, safe.name]
+      .map(normalizeContentId)
+      .filter(Boolean)
+      .forEach((key) => {
+        if (!map.has(key)) map.set(key, url);
+      });
+  });
+  return map;
+}
+
+function rewriteMailCidImageSources(html = '', attachments = []) {
+  const safeHtml = normalizeText(html);
+  if (!safeHtml || !/cid:/i.test(safeHtml)) return safeHtml;
+  const cidMap = buildInlineAttachmentUrlMap(attachments);
+  if (!cidMap.size) return safeHtml;
+  return safeHtml
+    .replace(/\b(src\s*=\s*)(["'])cid:([^"']+)\2/gi, (match, prefix, quote, rawCid) => {
+      const url = cidMap.get(normalizeContentId(rawCid));
+      return url ? `${prefix}${quote}${url}${quote}` : match;
+    })
+    .replace(/url\(\s*(['"]?)cid:([^)'"\\]+)\1\s*\)/gi, (match, _quote, rawCid) => {
+      const url = cidMap.get(normalizeContentId(rawCid));
+      return url ? `url("${url}")` : match;
+    });
+}
+
+function objectHasKeys(value) {
+  return Object.keys(asObject(value)).length > 0;
+}
+
 function parseConversationAliasQuery(query = {}) {
   const raw = query.aliases || query.alias || query.keys || query.key;
   return Array.from(
@@ -335,6 +602,29 @@ function parseConversationMemberKeysQuery(query = {}) {
       ].filter(Boolean)
     )
   ).slice(0, 50);
+}
+
+function parseConversationContactScopeQuery(query = {}) {
+  const email = normalizeEmail(
+    query.customerEmail ||
+      query.contactEmail ||
+      query.counterpartyEmail ||
+      query.email ||
+      query.customer_email ||
+      ''
+  );
+  const reference = normalizeText(
+    query.contactReference ||
+      query.customerReference ||
+      query.reference ||
+      query.contactName ||
+      query.customerName ||
+      ''
+  ).toLowerCase();
+  return {
+    ...(email ? { contactEmail: email } : {}),
+    ...(reference ? { contactReference: reference } : {}),
+  };
 }
 
 function dedupeConversationMessages(messages = []) {
@@ -361,39 +651,99 @@ function dedupeConversationMessages(messages = []) {
   });
 }
 
-function fetchSortedConversationMessagesForKeys(store, keys = []) {
-  return dedupeConversationMessages(
-    keys.flatMap((key) => fetchSortedConversationMessages(store, key))
-  ).sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+function fetchSortedConversationMessagesForKeys(store, keys = [], options = {}) {
+  const safeKeys = Array.from(
+    new Set(
+      asArray(keys)
+        .map((key) => normalizeText(key))
+        .filter(Boolean)
+    )
+  );
+  if (!safeKeys.length) return [];
+  return fetchSortedConversationMessages(store, safeKeys[0], safeKeys.slice(1), options);
 }
 
-/* Full HTML-kropp för trådvyn (loggor/signaturer/formatering). Renderas i UI:t
- * ENDAST i sandboxad iframe (inga scripts, ingen same-origin) — aldrig direkt
- * i sidans DOM. Läser lokala fält (truth bodyHtml, mailDocument, ingestion-raw);
- * tom sträng när bara text/preview finns lokalt. */
-function deriveBodyHtml(message) {
-  const safe = asObject(message);
-  const body = asObject(safe.body);
-  const uniqueBody = asObject(safe.uniqueBody);
-  const rawJson = asObject(safe.rawJson);
-  const rawBody = asObject(rawJson.body);
-  const rawUniqueBody = asObject(rawJson.uniqueBody);
-  const mailDocument = asObject(safe.mailDocument);
-  const htmlContent = (candidate) =>
-    normalizeText(candidate.contentType).toLowerCase() === 'html'
-      ? normalizeText(candidate.content)
-      : '';
-  const html =
-    normalizeText(safe.bodyHtml) ||
-    normalizeText(safe.body_html) ||
-    normalizeText(mailDocument.primaryBodyHtml) ||
-    htmlContent(body) ||
-    htmlContent(uniqueBody) ||
-    normalizeText(rawJson.bodyHtml) ||
-    normalizeText(rawJson.body_html) ||
-    htmlContent(rawBody) ||
-    htmlContent(rawUniqueBody);
-  return html || '';
+function buildConversationLookupScopes(keys = [], options = {}) {
+  const safeOptions = asObject(options);
+  const fallbackContactEmail = normalizeEmail(
+    safeOptions.contactEmail || safeOptions.customerEmail || safeOptions.email
+  );
+  const fallbackContactReference = normalizeText(
+    safeOptions.contactReference || safeOptions.customerReference || safeOptions.reference
+  ).toLowerCase();
+  const scopes = asArray(keys)
+    .map((rawKey) => {
+      const requestedKey = normalizeText(rawKey);
+      if (!requestedKey) return null;
+      const scopedKey = parseContactFormScopedConversationKey(requestedKey);
+      return {
+        requestedKey,
+        baseKey: normalizeText(scopedKey.baseKey || requestedKey),
+        contactEmail: normalizeText(scopedKey.email).toLowerCase(),
+        contactReference: normalizeText(scopedKey.reference).toLowerCase(),
+      };
+    })
+    .filter(Boolean);
+  const contactEmailByBaseKey = new Map();
+  const contactReferenceByBaseKey = new Map();
+  for (const scope of scopes) {
+    if (scope.baseKey && scope.contactEmail && !contactEmailByBaseKey.has(scope.baseKey)) {
+      contactEmailByBaseKey.set(scope.baseKey, scope.contactEmail);
+    }
+    if (scope.baseKey && scope.contactReference && !contactReferenceByBaseKey.has(scope.baseKey)) {
+      contactReferenceByBaseKey.set(scope.baseKey, scope.contactReference);
+    }
+  }
+  const primaryScope = scopes[0] || {};
+  const primaryContactEmail = normalizeText(primaryScope.contactEmail).toLowerCase();
+  const primaryContactReference = normalizeText(primaryScope.contactReference).toLowerCase();
+  if (
+    contactEmailByBaseKey.size === 0 &&
+    contactReferenceByBaseKey.size === 0 &&
+    !primaryContactEmail &&
+    !primaryContactReference &&
+    !fallbackContactEmail &&
+    !fallbackContactReference
+  ) {
+    return scopes;
+  }
+  return scopes.map((scope) => {
+    const scopedContactEmail = contactEmailByBaseKey.get(scope.baseKey);
+    const scopedContactReference = contactReferenceByBaseKey.get(scope.baseKey);
+    if (scopedContactEmail && !scope.contactEmail) {
+      return { ...scope, contactEmail: scopedContactEmail };
+    }
+    if (scopedContactReference && !scope.contactEmail && !scope.contactReference) {
+      return { ...scope, contactReference: scopedContactReference };
+    }
+    if (primaryContactEmail && !scope.contactEmail) {
+      return { ...scope, contactEmail: primaryContactEmail };
+    }
+    if (primaryContactReference && !scope.contactEmail && !scope.contactReference) {
+      return { ...scope, contactReference: primaryContactReference };
+    }
+    if (fallbackContactEmail && !scope.contactEmail) {
+      return { ...scope, contactEmail: fallbackContactEmail };
+    }
+    if (fallbackContactReference && !scope.contactEmail && !scope.contactReference) {
+      return { ...scope, contactReference: fallbackContactReference };
+    }
+    return scope;
+  });
+}
+
+function conversationMessageMatchesScopes(message = {}, scopes = []) {
+  if (!scopes.length) return false;
+  const aliases = buildConversationAliases(message);
+  return scopes.some((scope) => {
+    const aliasMatches = aliases.has(scope.requestedKey) || aliases.has(scope.baseKey);
+    if (!aliasMatches) return false;
+    if (!scope.contactEmail && !scope.contactReference) return true;
+    return messageMatchesContactFormScope(message, {
+      email: scope.contactEmail,
+      reference: scope.contactReference,
+    });
+  });
 }
 
 function deriveInitials(name) {
@@ -412,57 +762,74 @@ function deriveInitials(name) {
  * primärnyckel — enkelnyckel gav "0 meddelanden"/halva tråden. memberKeys
  * (rollup.underlyingConversationKeys från UI:t) unioneras därför in utöver
  * alias-matchningen. Läser enbart lokala truth-storen. */
-function fetchSortedConversationMessages(store, key, memberKeys = []) {
+function fetchSortedConversationMessages(store, key, memberKeys = [], options = {}) {
   if (!store || typeof store.listMessages !== 'function') return [];
   const safeMemberKeys = Array.isArray(memberKeys) ? memberKeys : [];
-  const targetKeys = new Set(
-    [key, ...safeMemberKeys].map((item) => normalizeText(item)).filter(Boolean)
-  );
-  if (targetKeys.size === 0) return [];
+  const scopes = buildConversationLookupScopes([key, ...safeMemberKeys], options);
+  if (!scopes.length) return [];
   const all = store.listMessages({});
-  const matches = all.filter((m) => {
-    const message = asObject(m);
-    const mailboxId =
-      normalizeText(message.mailboxId) ||
-      normalizeText(message.mailboxAddress) ||
-      normalizeText(message.userPrincipalName);
-    const aliases = [
-      normalizeText(message.mailboxConversationId),
-      normalizeText(message.conversationId),
-      normalizeText(message.graphMessageId),
-      normalizeText(
-        toCanonicalMailboxConversationKey({
-          mailboxId,
-          conversationId: message.conversationId,
-          mailboxConversationId: message.mailboxConversationId,
-          messageId: message.graphMessageId,
-        })
-      ),
-    ].filter(Boolean);
-    return aliases.some((alias) => targetKeys.has(alias));
-  });
+  const matches = all.filter((m) => conversationMessageMatchesScopes(asObject(m), scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
 function buildConversationAliases(message = {}) {
   const safe = asObject(message);
-  const mailboxId =
-    normalizeText(safe.mailboxId) ||
-    normalizeText(safe.mailboxAddress) ||
-    normalizeText(safe.userPrincipalName);
+  const rawJson = asObject(safe.rawJson);
+  const mailDocument = asObject(safe.mailDocument);
+  const mailboxId = firstNormalizedText(
+    safe.mailboxId,
+    safe.mailboxAddress,
+    safe.userPrincipalName,
+    mailDocument.mailboxId,
+    mailDocument.mailboxAddress,
+    rawJson.mailboxId,
+    rawJson.mailboxAddress,
+    rawJson.userPrincipalName
+  );
+  const conversationId = firstNormalizedText(
+    safe.conversationId,
+    mailDocument.conversationId,
+    rawJson.conversationId
+  );
+  const mailboxConversationId = firstNormalizedText(
+    safe.mailboxConversationId,
+    mailDocument.mailboxConversationId,
+    rawJson.mailboxConversationId
+  );
+  const graphMessageId = firstNormalizedText(
+    safe.graphMessageId,
+    safe.immutableGraphId,
+    safe.messageId,
+    safe.rawMessageId,
+    safe.id,
+    mailDocument.graphMessageId,
+    mailDocument.messageId,
+    mailDocument.internetMessageId,
+    mailDocument.id,
+    rawJson.graphMessageId,
+    rawJson.immutableGraphId,
+    rawJson.immutableId,
+    rawJson.messageId,
+    rawJson.rawMessageId,
+    rawJson.internetMessageId,
+    rawJson.id
+  );
   return new Set(
     [
-      normalizeText(safe.mailboxConversationId),
-      normalizeText(safe.conversationId),
+      mailboxConversationId,
+      conversationId,
+      graphMessageId,
       normalizeText(safe.graphMessageId),
       normalizeText(safe.immutableGraphId),
       normalizeText(safe.messageId),
       normalizeText(safe.rawMessageId),
+      normalizeText(rawJson.id),
+      normalizeText(rawJson.internetMessageId),
       toCanonicalMailboxConversationKey({
         mailboxId,
-        conversationId: safe.conversationId,
-        mailboxConversationId: safe.mailboxConversationId,
-        messageId: safe.graphMessageId || safe.messageId || safe.rawMessageId,
+        conversationId,
+        mailboxConversationId,
+        messageId: graphMessageId,
       }),
     ].filter(Boolean)
   );
@@ -471,6 +838,7 @@ function buildConversationAliases(message = {}) {
 function toConversationMessageFromRaw(raw = {}) {
   const safe = asObject(raw);
   const rawJson = asObject(safe.rawJson);
+  const mailDocument = asObject(safe.mailDocument);
   const fromEmail =
     normalizeText(safe.fromEmail) ||
     normalizeText(safe.fromAddress) ||
@@ -481,19 +849,58 @@ function toConversationMessageFromRaw(raw = {}) {
     normalizeText(asObject(safe.from).name) ||
     normalizeText(asObject(asObject(rawJson.from).emailAddress).name) ||
     fromEmail;
-  const toAddresses = Array.isArray(safe.toAddresses) ? safe.toAddresses : safe.to || [];
+  const toAddresses = Array.isArray(safe.toAddresses)
+    ? safe.toAddresses
+    : safe.to || rawJson.toRecipients || [];
+  const mailboxId = firstNormalizedText(
+    safe.mailboxId,
+    safe.mailboxAddress,
+    safe.userPrincipalName,
+    mailDocument.mailboxId,
+    mailDocument.mailboxAddress,
+    rawJson.mailboxId,
+    rawJson.mailboxAddress,
+    rawJson.userPrincipalName
+  );
+  const conversationId = firstNormalizedText(
+    safe.conversationId,
+    mailDocument.conversationId,
+    rawJson.conversationId
+  );
+  const graphMessageId = firstNormalizedText(
+    safe.graphMessageId,
+    safe.immutableGraphId,
+    safe.messageId,
+    safe.rawMessageId,
+    safe.id,
+    mailDocument.graphMessageId,
+    mailDocument.messageId,
+    mailDocument.internetMessageId,
+    mailDocument.id,
+    rawJson.graphMessageId,
+    rawJson.immutableGraphId,
+    rawJson.immutableId,
+    rawJson.messageId,
+    rawJson.rawMessageId,
+    rawJson.internetMessageId,
+    rawJson.id
+  );
+  const mailboxConversationId = firstNormalizedText(
+    safe.mailboxConversationId,
+    mailDocument.mailboxConversationId,
+    rawJson.mailboxConversationId,
+    conversationId
+  );
+  const bodyText = deriveBody(safe);
+  const bodyHtml = deriveBodyHtml(safe);
   return {
     ...safe,
-    graphMessageId:
-      normalizeText(safe.graphMessageId) ||
-      normalizeText(safe.messageId) ||
-      normalizeText(safe.rawMessageId) ||
-      normalizeText(safe.id),
-    messageId:
-      normalizeText(safe.messageId) || normalizeText(safe.rawMessageId) || normalizeText(safe.id),
-    mailboxConversationId:
-      normalizeText(safe.mailboxConversationId) || normalizeText(safe.conversationId),
-    mailboxAddress: normalizeText(safe.mailboxAddress) || normalizeText(safe.mailboxId),
+    graphMessageId,
+    messageId: graphMessageId,
+    conversationId,
+    mailboxConversationId,
+    mailboxId,
+    mailboxAddress: firstNormalizedText(safe.mailboxAddress, safe.mailboxId, mailboxId),
     folderType: normalizeText(safe.folderType) || 'unknown',
     senderEmail: fromEmail,
     fromAddress: fromEmail,
@@ -507,37 +914,67 @@ function toConversationMessageFromRaw(raw = {}) {
     receivedAt:
       normalizeText(safe.receivedAt) ||
       normalizeText(safe.receivedDateTime) ||
+      normalizeText(rawJson.receivedDateTime) ||
       normalizeText(safe.persistedAt),
+    bodyText,
+    body_text: bodyText,
+    text: bodyText,
+    bodyHtml: bodyHtml || null,
+    body_html: bodyHtml || null,
+    html: bodyHtml || null,
+    attachments: collectConversationAttachments(safe),
     toRecipients: asArray(toAddresses)
-      .map((address) => ({ address: normalizeText(address) }))
+      .map((address) => {
+        const item = asObject(address);
+        return {
+          address:
+            normalizeText(address) ||
+            normalizeText(item.address) ||
+            normalizeText(asObject(item.emailAddress).address),
+        };
+      })
       .filter((item) => item.address),
   };
 }
 
-function fetchSortedIngestionConversationMessages(store, key) {
+function fetchSortedIngestionConversationMessages(store, key, options = {}) {
   if (!store || typeof store.getState !== 'function') return [];
-  const safeKey = normalizeText(key);
-  if (!safeKey) return [];
+  const scopes = buildConversationLookupScopes([key], options);
+  if (!scopes.length) return [];
   const state = asObject(store.getState());
   const rawMessages = Object.values(asObject(state.mailRawMessages));
   const matches = rawMessages
     .map(toConversationMessageFromRaw)
-    .filter((message) => buildConversationAliases(message).has(safeKey));
+    .filter((message) => conversationMessageMatchesScopes(message, scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
-function fetchSortedIngestionConversationMessagesForKeys(store, keys = []) {
-  return dedupeConversationMessages(
-    keys.flatMap((key) => fetchSortedIngestionConversationMessages(store, key))
-  ).sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+function fetchSortedIngestionConversationMessagesForKeys(store, keys = [], options = {}) {
+  if (!store || typeof store.getState !== 'function') return [];
+  const safeKeys = Array.from(
+    new Set(
+      asArray(keys)
+        .map((key) => normalizeText(key))
+        .filter(Boolean)
+    )
+  );
+  const scopes = buildConversationLookupScopes(safeKeys, options);
+  if (!scopes.length) return [];
+  const state = asObject(store.getState());
+  const rawMessages = Object.values(asObject(state.mailRawMessages));
+  const matches = rawMessages
+    .map(toConversationMessageFromRaw)
+    .filter((message) => conversationMessageMatchesScopes(message, scopes));
+  return dedupeConversationMessages(matches).sort((a, b) =>
+    String(deriveTime(a)).localeCompare(String(deriveTime(b)))
+  );
 }
 
 function buildIngestionMessageLookup(store) {
   if (!store || typeof store.getState !== 'function') return new Map();
   const state = asObject(store.getState());
   const lookup = new Map();
-  Object.values(asObject(state.mailRawMessages)).forEach((raw) => {
-    const message = toConversationMessageFromRaw(raw);
+  getIngestionConversationMessages(store).forEach((message) => {
     buildConversationAliases(message).forEach((alias) => {
       if (alias && !lookup.has(alias)) lookup.set(alias, message);
     });
@@ -545,26 +982,173 @@ function buildIngestionMessageLookup(store) {
   return lookup;
 }
 
-function enrichConversationMessagesWithIngestion(messages, store) {
+function getIngestionConversationMessages(store) {
+  if (!store || typeof store.getState !== 'function') return [];
+  const state = asObject(store.getState());
+  return Object.values(asObject(state.mailRawMessages)).map(toConversationMessageFromRaw);
+}
+
+function bodyTextLooksLikePreview(text = '', preview = '') {
+  const safeText = normalizeBodyText(text);
+  const safePreview = normalizeBodyText(preview);
+  if (!safeText || !safePreview) return false;
+  if (safeText.length > safePreview.length + 12) return false;
+  return safePreview.startsWith(safeText.slice(0, Math.min(24, safeText.length)));
+}
+
+function chooseRicherBodyText(existing = '', candidate = '', preview = '') {
+  const safeExisting = normalizeBodyText(existing);
+  const safeCandidate = normalizeBodyText(candidate);
+  if (!safeExisting) return safeCandidate;
+  if (!safeCandidate) return safeExisting;
+
+  const existingPreviewLike = bodyTextLooksLikePreview(safeExisting, preview);
+  const candidatePreviewLike = bodyTextLooksLikePreview(safeCandidate, preview);
+  if (existingPreviewLike !== candidatePreviewLike) {
+    return existingPreviewLike ? safeCandidate : safeExisting;
+  }
+  if (safeCandidate.length > safeExisting.length + 24) return safeCandidate;
+  return safeExisting;
+}
+
+function chooseRicherHtml(existing = '', candidate = '') {
+  const safeExisting = normalizeText(existing);
+  const safeCandidate = normalizeText(candidate);
+  if (!safeExisting) return safeCandidate;
+  if (!safeCandidate) return safeExisting;
+  const existingTextLength = normalizeBodyText(extractTextFromHtml(safeExisting)).length;
+  const candidateTextLength = normalizeBodyText(extractTextFromHtml(safeCandidate)).length;
+  if (candidateTextLength > existingTextLength + 24) return safeCandidate;
+  return safeExisting;
+}
+
+function deriveMailboxForMatch(message = {}) {
+  const safe = asObject(message);
+  const rawJson = asObject(safe.rawJson);
+  const mailDocument = asObject(safe.mailDocument);
+  return normalizeEmail(
+    safe.mailboxId ||
+      safe.mailboxAddress ||
+      safe.userPrincipalName ||
+      mailDocument.mailboxId ||
+      mailDocument.mailboxAddress ||
+      rawJson.mailboxId ||
+      rawJson.mailboxAddress ||
+      rawJson.userPrincipalName
+  );
+}
+
+function bodyTextsOverlapForFallback(left = '', right = '') {
+  const a = normalizeBodyText(left);
+  const b = normalizeBodyText(right);
+  if (!a || !b) return false;
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length <= b.length ? b : a;
+  const probe = shorter.slice(0, Math.min(96, Math.max(32, shorter.length)));
+  return probe.length >= 24 && longer.includes(probe);
+}
+
+function deriveScopedIngestionFallbackScope(options = {}) {
+  const safe = asObject(options);
+  const email = normalizeEmail(safe.contactEmail || safe.email || safe.customerEmail);
+  const reference = normalizeText(safe.contactReference || safe.reference);
+  if (!email && !reference) return null;
+  return { email, reference };
+}
+
+function findScopedIngestionFallback(message = {}, rawMessages = [], options = {}) {
+  const scope = deriveScopedIngestionFallbackScope(options);
+  if (!scope) return null;
+  const mailbox = deriveMailboxForMatch(message);
+  const messageBody = deriveBody(message);
+  const preview =
+    normalizeText(message.bodyPreview) ||
+    normalizeText(message.preview) ||
+    normalizeText(message.snippet) ||
+    messageBody;
+  const subject = normalizeText(message.subject);
+  const time = normalizeText(deriveTime(message));
+  const candidates = rawMessages
+    .filter((raw) => {
+      const rawMailbox = deriveMailboxForMatch(raw);
+      if (mailbox && rawMailbox && rawMailbox !== mailbox) return false;
+      if (!messageMatchesContactFormScope(raw, scope)) return false;
+      const rawBody = deriveBody(raw);
+      const rawSubject = normalizeText(raw.subject);
+      const rawTime = normalizeText(deriveTime(raw));
+      return (
+        bodyTextsOverlapForFallback(messageBody, rawBody) ||
+        bodyTextsOverlapForFallback(preview, rawBody) ||
+        (subject && rawSubject && subject === rawSubject) ||
+        (time && rawTime && time === rawTime)
+      );
+    })
+    .map((raw) => ({
+      raw,
+      score:
+        normalizeBodyText(deriveBody(raw)).length +
+        (normalizeText(deriveTime(raw)) === time ? 1000 : 0) +
+        (normalizeText(raw.subject) === subject ? 500 : 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+  return candidates[0]?.raw || null;
+}
+
+function enrichConversationMessagesWithIngestion(messages, store, options = {}) {
   const lookup = buildIngestionMessageLookup(store);
-  if (!lookup.size) return messages;
+  const rawMessages = getIngestionConversationMessages(store);
+  if (!lookup.size && !rawMessages.length) return messages;
+  const fallbackScope = deriveScopedIngestionFallbackScope(options);
   return messages.map((message) => {
-    const raw = [...buildConversationAliases(message)]
+    const rawFromAlias = [...buildConversationAliases(message)]
       .map((alias) => lookup.get(alias))
-      .find(Boolean);
+      .find((candidate) => {
+        if (!candidate) return false;
+        if (!fallbackScope) return true;
+        return messageMatchesContactFormScope(candidate, fallbackScope);
+      });
+    const raw = rawFromAlias || findScopedIngestionFallback(message, rawMessages, options);
     if (!raw) return message;
+    const preview =
+      normalizeText(message.bodyPreview) ||
+      normalizeText(message.preview) ||
+      normalizeText(message.snippet) ||
+      normalizeText(raw.bodyPreview) ||
+      normalizeText(raw.preview) ||
+      normalizeText(raw.snippet);
+    const messageBodyText = deriveBody(message);
+    const rawBodyText = deriveBody(raw);
+    const mergedBodyText = chooseRicherBodyText(messageBodyText, rawBodyText, preview);
+    const messageBodyHtml = deriveBodyHtml(message);
+    const rawBodyHtml = deriveBodyHtml(raw);
+    const mergedBodyHtml = chooseRicherHtml(messageBodyHtml, rawBodyHtml);
+    const mergedAttachments = mergeConversationAttachments(message, raw);
+    const rawLooksRicher =
+      (rawBodyText && mergedBodyText === rawBodyText && rawBodyText !== messageBodyText) ||
+      (rawBodyHtml && mergedBodyHtml === rawBodyHtml && rawBodyHtml !== messageBodyHtml);
     return {
       ...message,
-      bodyText: normalizeText(message.bodyText) || normalizeText(raw.bodyText),
-      body_text: normalizeText(message.body_text) || normalizeText(raw.body_text),
-      bodyHtml: normalizeText(message.bodyHtml) || normalizeText(raw.bodyHtml),
-      body_html: normalizeText(message.body_html) || normalizeText(raw.body_html),
-      text: normalizeText(message.text) || normalizeText(raw.text),
-      rawJson: Object.keys(asObject(message.rawJson)).length ? message.rawJson : raw.rawJson,
-      mailDocument: Object.keys(asObject(message.mailDocument)).length
-        ? message.mailDocument
-        : raw.mailDocument,
-      body: Object.keys(asObject(message.body)).length ? message.body : raw.body,
+      bodyText: mergedBodyText || chooseRicherBodyText(message.bodyText, raw.bodyText, preview),
+      body_text: mergedBodyText || chooseRicherBodyText(message.body_text, raw.body_text, preview),
+      bodyHtml: mergedBodyHtml || null,
+      body_html: mergedBodyHtml || null,
+      html:
+        mergedBodyHtml ||
+        chooseRicherHtml(normalizeText(message.html), normalizeText(raw.html)) ||
+        null,
+      text: mergedBodyText || chooseRicherBodyText(message.text, raw.text, preview),
+      attachments: mergedAttachments,
+      rawJson: rawLooksRicher || !objectHasKeys(message.rawJson) ? raw.rawJson : message.rawJson,
+      mailDocument:
+        rawLooksRicher || !objectHasKeys(message.mailDocument)
+          ? raw.mailDocument
+          : message.mailDocument,
+      body:
+        rawLooksRicher && objectHasKeys(raw.body)
+          ? raw.body
+          : objectHasKeys(message.body)
+            ? message.body
+            : raw.body,
       bodyPreview: normalizeText(message.bodyPreview) || normalizeText(raw.bodyPreview),
       preview: normalizeText(message.preview) || normalizeText(raw.preview),
       snippet: normalizeText(message.snippet) || normalizeText(raw.snippet),
@@ -784,20 +1368,34 @@ function createCcoConversationRouter({
         // Äldre klienter/tester kan fortfarande skicka aliases; de unioneras in här.
         const memberKeys = parseConversationMemberKeysQuery(req.query);
         const lookupKeys = [key, ...memberKeys];
+        const contactScope = parseConversationContactScopeQuery(req.query);
         const truthMessages = fetchSortedConversationMessages(
           ccoMailboxTruthStore,
           key,
-          memberKeys
+          memberKeys,
+          contactScope
         );
         const sorted = truthMessages.length
-          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore)
-          : fetchSortedIngestionConversationMessagesForKeys(mailIngestionStore, lookupKeys);
+          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore, contactScope)
+          : fetchSortedIngestionConversationMessagesForKeys(
+              mailIngestionStore,
+              lookupKeys,
+              contactScope
+            );
         const messages = sorted.map((m) => {
           const safe = asObject(m);
           const from = deriveFromName(safe);
           const senderEmail = deriveSenderEmail(safe);
           const mailboxId = normalizeText(safe.mailboxId) || null;
           const mailboxAddress = normalizeText(safe.mailboxAddress) || mailboxId;
+          const attachments = collectConversationAttachments(safe);
+          const bodyHtml = rewriteMailCidImageSources(deriveBodyHtml(safe), attachments);
+          const bodyText = deriveBody(safe);
+          const bodyPreview =
+            normalizeText(safe.bodyPreview) ||
+            normalizeText(safe.preview) ||
+            normalizeText(safe.snippet) ||
+            normalizeText(asObject(safe.rawJson).bodyPreview);
           return {
             id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
             from,
@@ -806,12 +1404,21 @@ function createCcoConversationRouter({
             initials: deriveInitials(from),
             dir: deriveDir(safe.folderType),
             time: deriveTime(safe),
-            body: deriveBody(safe),
-            bodyHtml: deriveBodyHtml(safe) || null,
+            body: bodyText,
+            bodyText,
+            body_text: bodyText,
+            text: bodyText,
+            bodyHtml: bodyHtml || null,
+            body_html: bodyHtml || null,
+            html: bodyHtml || null,
+            bodyPreview: bodyPreview || null,
+            preview: bodyPreview || null,
             subject: normalizeText(safe.subject) || null,
             mailboxId,
             mailboxAddress: mailboxAddress || null,
             folderType: normalizeText(safe.folderType) || null,
+            hasAttachments: attachments.length > 0,
+            attachments,
           };
         });
         return res.json({
@@ -2235,6 +2842,14 @@ module.exports = {
   deriveBodyHtml,
   // Exponerad för tester: rollup-medveten trådhämtning ur lokala truth-storen.
   fetchSortedConversationMessages,
+  fetchSortedConversationMessagesForKeys,
+  fetchSortedIngestionConversationMessagesForKeys,
+  enrichConversationMessagesWithIngestion,
+  parseConversationContactScopeQuery,
+  rewriteMailCidImageSources,
+  deriveBody,
+  deriveBodyHtml,
+  collectConversationAttachments,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
   evaluateConversationBulkItem,
 };
