@@ -164,7 +164,7 @@ function resolveContactFormScopeIdentity(message = {}) {
   const email = extractContactFormEmail(message);
   const name = extractContactFormName(message);
   const phone = extractContactFormPhone(message);
-  const reference = email ? '' : buildContactFormReference({ name, phone });
+  const reference = buildContactFormReference({ name, phone });
   if (!email && !reference) return null;
   return {
     email: email || '',
@@ -307,6 +307,19 @@ function scopeContactFormConversationKey(baseKey = '', message = {}, allowedEmai
   return normalizeText(baseKey);
 }
 
+function contactFormReferencesMatch(candidate = '', expected = '') {
+  const safeCandidate = normalizeContactFormReference(candidate);
+  const safeExpected = normalizeContactFormReference(expected);
+  if (!safeCandidate || !safeExpected) return false;
+  if (safeCandidate === safeExpected) return true;
+  const hasPhoneSuffix = (longer, shorter) => {
+    if (!longer.startsWith(`${shorter}-`)) return false;
+    const suffix = longer.slice(shorter.length + 1);
+    return /\d{4,}/.test(suffix);
+  };
+  return hasPhoneSuffix(safeCandidate, safeExpected) || hasPhoneSuffix(safeExpected, safeCandidate);
+}
+
 function messageMatchesContactFormScope(message = {}, scope = '') {
   const safeScope = asObject(scope);
   const safeEmail = normalizeEmail(typeof scope === 'string' ? scope : safeScope.email);
@@ -315,15 +328,18 @@ function messageMatchesContactFormScope(message = {}, scope = '') {
   );
   if (!safeEmail && !safeReference) return true;
   const contactFormIdentity = resolveContactFormIdentity(message);
-  if (contactFormIdentity?.email) return normalizeEmail(contactFormIdentity.email) === safeEmail;
+  if (contactFormIdentity?.email && safeEmail) {
+    return normalizeEmail(contactFormIdentity.email) === safeEmail;
+  }
   if (safeEmail) return collectParticipantEmails(message).includes(safeEmail);
   const scopeIdentity = resolveContactFormScopeIdentity(message);
-  return normalizeContactFormReference(scopeIdentity?.reference) === safeReference;
+  return contactFormReferencesMatch(scopeIdentity?.reference, safeReference);
 }
 
 module.exports = {
   collectMessageText,
   collectParticipantEmails,
+  contactFormReferencesMatch,
   extractContactFormEmail,
   extractContactFormName,
   extractContactFormPhone,

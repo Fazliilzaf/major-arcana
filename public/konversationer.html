@@ -2716,6 +2716,13 @@
         return `${key}::contact-form-ref:${encodeURIComponent(ref)}`;
       }
 
+      function toContactFormScopedKey(baseKey = '', email = '') {
+        const key = normalizeText(baseKey);
+        const safeEmail = normalizeEmail(email);
+        if (!key || !safeEmail || isHairTpMailboxEmail(safeEmail)) return key;
+        return `${key}::contact-form:${encodeURIComponent(safeEmail)}`;
+      }
+
       function scopedMemberKeysForThread(primaryKey, keys = []) {
         const safePrimary = normalizeText(primaryKey);
         const primaryScope = parseScopedContactFormKey(safePrimary);
@@ -2724,20 +2731,27 @@
           .filter(Boolean)
           .filter((item, index, all) => all.indexOf(item) === index)
           .filter((item) => item !== safePrimary)
-          .filter((item) => {
+          .map((item) => {
             if (
               !primaryScope.scoped ||
               !primaryScope.baseKey ||
               (!primaryScope.email && !primaryScope.reference)
             )
-              return true;
+              return item;
             const memberScope = parseScopedContactFormKey(item);
-            if (memberScope.baseKey !== primaryScope.baseKey) return true;
-            if (!memberScope.scoped) return false;
-            if (primaryScope.email) return memberScope.email === primaryScope.email;
-            if (primaryScope.reference) return memberScope.reference === primaryScope.reference;
-            return false;
-          });
+            if (memberScope.scoped) {
+              if (primaryScope.email && memberScope.email === primaryScope.email) return item;
+              if (primaryScope.reference && memberScope.reference === primaryScope.reference)
+                return item;
+              return '';
+            }
+            if (primaryScope.email) return toContactFormScopedKey(item, primaryScope.email);
+            if (primaryScope.reference)
+              return toContactFormReferenceScopedKey(item, primaryScope.reference);
+            return item;
+          })
+          .filter(Boolean)
+          .filter((item, index, all) => all.indexOf(item) === index);
       }
 
       function looksLikeContactFormThread(row = {}) {

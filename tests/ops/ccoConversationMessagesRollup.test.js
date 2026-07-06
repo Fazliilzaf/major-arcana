@@ -409,6 +409,54 @@ test('kontaktformulär utan e-post: message-id som bas visar bara vald formulär
   );
 });
 
+test('kontaktformulär reference-scope matchar namn även när meddelandet har telefon eller e-post', () => {
+  const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
+  const scopedSudarshanMessageKey = toContactFormReferenceScopedConversationKey(
+    'cf-sudarshan',
+    'Sudarshan'
+  );
+  const contactFormStore = {
+    listMessages: () => [
+      {
+        graphMessageId: 'cf-sudarshan',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-11-21T13:00:00.000Z',
+        subject: 'Sudarshan Kontaktformulär',
+        bodyText:
+          'Från: Sudarshan E-post: sudarshan@example.com Telefon: 0701112233 Hur kan vi hjälpa dig? Hej, jag behöver hjälp.',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+      {
+        graphMessageId: 'cf-sundquist',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-11-21T14:00:00.000Z',
+        subject: 'Sundquist Kontaktformulär',
+        bodyText:
+          'Från: Sundquist E-post: sundquist@example.com Telefon: 0709998877 Hur kan vi hjälpa dig? Hej, tack för hjälpen.',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+    ],
+  };
+
+  const sorted = fetchSortedConversationMessages(contactFormStore, scopedSudarshanMessageKey, [
+    sharedBaseKey,
+  ]);
+
+  assert.deepEqual(
+    sorted.map((message) => message.graphMessageId),
+    ['cf-sudarshan'],
+    'namn-scope från listan ska matcha full kontaktformulär-identitet men inte andra formulär'
+  );
+});
+
 test('kontaktformulär utan e-post: ämnesrad räcker för reference-scope när body är mager', () => {
   const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
   const scopedSudarshanKey = toContactFormReferenceScopedConversationKey(
