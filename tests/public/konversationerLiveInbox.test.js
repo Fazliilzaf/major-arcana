@@ -87,10 +87,12 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /function parseScopedContactFormKey\(value\)/);
   assert.match(html, /function scopedMemberKeysForThread\(primaryKey, keys = \[\]\)/);
   assert.match(html, /::contact-form-ref:/);
-  assert.match(html, /if \(memberScope\.baseKey !== primaryScope\.baseKey\) return true/);
-  assert.match(html, /if \(!memberScope\.scoped\) return false/);
+  assert.match(html, /function toContactFormScopedKey\(baseKey = '', email = ''\)/);
+  assert.match(html, /if \(memberScope\.scoped\) \{/);
   assert.match(html, /memberScope\.email === primaryScope\.email/);
   assert.match(html, /memberScope\.reference === primaryScope\.reference/);
+  assert.match(html, /return toContactFormScopedKey\(item, primaryScope\.email\)/);
+  assert.match(html, /return toContactFormReferenceScopedKey\(item, primaryScope\.reference\)/);
   assert.match(html, /messageLookupKeys/);
   assert.match(html, /const messageIdentityKeys = \[/);
   assert.match(html, /conversation\.underlyingMessageIds/);
