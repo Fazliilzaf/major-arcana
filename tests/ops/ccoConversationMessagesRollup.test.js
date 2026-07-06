@@ -18,7 +18,10 @@ const {
   fetchSortedConversationMessagesForKeys,
   fetchSortedIngestionConversationMessagesForKeys,
 } = require('../../src/routes/ccoConversation');
-const { toContactFormScopedConversationKey } = require('../../src/ops/ccoContactFormIdentity');
+const {
+  toContactFormReferenceScopedConversationKey,
+  toContactFormScopedConversationKey,
+} = require('../../src/ops/ccoContactFormIdentity');
 
 const MESSAGES = [
   {
@@ -245,6 +248,86 @@ test('kontaktformulär: ingestion-helper ärver scoped key och breddar inte shar
     sortedByCustomerEmail.map((message) => message.graphMessageId),
     ['cf-blend-in'],
     'ingestion-fallbacken måste också kunna scopa rå shared key med customerEmail-queryn'
+  );
+});
+
+test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt formulärnamn', () => {
+  const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
+  const scopedSudarshanKey = toContactFormReferenceScopedConversationKey(
+    sharedBaseKey,
+    'Sudarshan'
+  );
+  const contactFormStore = {
+    listMessages: () => [
+      {
+        graphMessageId: 'cf-obaida',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-10-14T05:11:00.000Z',
+        subject: 'Kontaktformulär',
+        bodyText:
+          'Från: Obaida Ali E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hårtransplantation GDPR.',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+      {
+        graphMessageId: 'cf-sudarshan',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-11-21T13:00:00.000Z',
+        subject: 'Sudarshan Kontaktformulär',
+        bodyText:
+          'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hej, jag behöver hjälp.',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+      {
+        graphMessageId: 'cf-blend',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-12-04T12:31:00.000Z',
+        subject: 'Blend Bytyci Kontaktformulär',
+        bodyText:
+          'Från: Blend Bytyci E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Jag vill boka.',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+    ],
+  };
+
+  const sorted = fetchSortedConversationMessages(contactFormStore, scopedSudarshanKey);
+
+  assert.deepEqual(
+    sorted.map((message) => message.graphMessageId),
+    ['cf-sudarshan']
+  );
+
+  const sortedWithRawSharedMemberKey = fetchSortedConversationMessages(
+    contactFormStore,
+    scopedSudarshanKey,
+    [sharedBaseKey]
+  );
+  assert.deepEqual(
+    sortedWithRawSharedMemberKey.map((message) => message.graphMessageId),
+    ['cf-sudarshan'],
+    'rå shared WordPress-/Graph-nyckel får inte bredda en reference-scopad kontaktformulärstråd'
+  );
+
+  const sortedWithRawPrimaryAndScopedMember = fetchSortedConversationMessages(
+    contactFormStore,
+    sharedBaseKey,
+    [scopedSudarshanKey]
+  );
+  assert.deepEqual(
+    sortedWithRawPrimaryAndScopedMember.map((message) => message.graphMessageId),
+    ['cf-sudarshan'],
+    'rå primärnyckel ska ärva reference-scope från scoped memberKey'
   );
 });
 
