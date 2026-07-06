@@ -2754,6 +2754,36 @@
           .filter((item, index, all) => all.indexOf(item) === index);
       }
 
+      function scopedLookupKeysForOpenThread(thread, keys = []) {
+        const safeThread = thread || {};
+        const threadScope = parseScopedContactFormKey(safeThread.conversationKey);
+        const baseConversationKey = normalizeText(
+          threadScope.baseKey || safeThread.conversationKey
+        );
+        const scopedCustomerEmail = firstCustomerEmailValue(
+          safeThread.customerEmail,
+          safeThread.email,
+          safeThread.fromEmail,
+          safeThread.senderEmail,
+          safeThread.replyToEmail
+        );
+        const scopedContactReference = normalizeContactFormReference(
+          safeThread.contactReference || threadScope.reference
+        );
+        const hasEmailScope = Boolean(scopedCustomerEmail || threadScope.email);
+        const hasReferenceScope = Boolean(!hasEmailScope && scopedContactReference);
+        const scopedPrimaryKey =
+          hasEmailScope || hasReferenceScope
+            ? hasEmailScope
+              ? toContactFormScopedKey(
+                  baseConversationKey,
+                  scopedCustomerEmail || threadScope.email
+                )
+              : toContactFormReferenceScopedKey(baseConversationKey, scopedContactReference)
+            : baseConversationKey;
+        return scopedMemberKeysForThread(scopedPrimaryKey, keys);
+      }
+
       function looksLikeContactFormThread(row = {}) {
         const text = [
           row.subject,
@@ -3121,7 +3151,7 @@
           conversationKey: thread.conversationKey,
           customerId: thread.customerId,
           customerName: thread.from || 'Okänd kund',
-          customerSub: `${thread.subj || 'Konversation'} · ${thread.unread ? 'Behöver svar' : 'Live-tråd'}`,
+          customerSub: `${thread.subj || 'Konversation'} · ${thread.unread ? 'Behöver svar' : 'CCO-tråd'}`,
           avatar: thread.init || (thread.from || '?').slice(0, 1),
           email: replyEmail,
           phone: thread.customerPhone || '',
@@ -3135,23 +3165,23 @@
             email: canonicalHairTpMailbox(mailbox),
           })),
           doNow: thread.unread ? 'Svara nu' : 'Granska tråd',
-          doNowSub: latestIncoming?.body || thread.preview || 'Vald live-tråd från CCO',
+          doNowSub: latestIncoming?.body || thread.preview || 'Vald CCO-tråd',
           ctaLabel: null,
           whyFocus: thread.subj || 'Vald konversation',
           whyFocusSub: `Senaste aktivitet via ${latest?.mailboxId || mailboxLabel}`,
           agent: 'CCO',
           status: thread.unread ? 'Behöver svar' : 'Aktiv tråd',
-          sla: thread.when || 'Live',
+          sla: thread.when || 'CCO',
           priority: thread.unread ? 'Agera' : 'Normal',
           churnRisk: 'Ej bedömd',
-          engagement: messageCount ? `${messageCount} meddelanden` : 'Live-tråd',
+          engagement: messageCount ? `${messageCount} meddelanden` : 'CCO-tråd',
           chips: [
-            { label: 'Live', ct: '1' },
+            { label: 'CCO', ct: '1' },
             { label: 'Meddelanden', ct: String(messageCount) },
             { label: 'Mailbox', ct: String(mailboxTrail.length) },
           ],
           aiSummary: latestIncoming?.body || thread.preview || 'Ingen senaste text i tråden.',
-          nuI: thread.unread ? 'Obesvarad kundtråd' : 'Live-konversation',
+          nuI: thread.unread ? 'Obesvarad kundtråd' : 'CCO-konversation',
           nuISub: `Mailbox: ${mailboxTrail.join(' · ')}`,
           nextStep: thread.unread ? 'Svara i Svarstudio' : 'Granska och spara utkast vid behov',
           nextStepSub: 'Svarstudio använder markerad tråd, kund, ämne och mailbox.',
@@ -3437,11 +3467,28 @@
 
       function messageBodyText(message) {
         const preview = firstMailText(message?.bodyPreview, message?.preview, message?.snippet);
+        const rawJson = message && typeof message.rawJson === 'object' ? message.rawJson : null;
+        const mailDocument =
+          message && typeof message.mailDocument === 'object' ? message.mailDocument : null;
+        const rawBody = rawJson && typeof rawJson.body === 'object' ? rawJson.body : null;
+        const rawUniqueBody =
+          rawJson && typeof rawJson.uniqueBody === 'object' ? rawJson.uniqueBody : null;
+        const body = message && typeof message.body === 'object' ? message.body : null;
+        const uniqueBody =
+          message && typeof message.uniqueBody === 'object' ? message.uniqueBody : null;
         return [
+          mailDocument?.primaryBodyText,
+          mailDocument?.bodyText,
+          rawJson?.bodyText,
+          rawJson?.body_text,
           message?.bodyText,
           message?.body_text,
           message?.text,
           message?.fullText,
+          rawBody,
+          rawUniqueBody,
+          body,
+          uniqueBody,
           message?.body,
           message?.bodyPreview,
           message?.preview,
@@ -3453,10 +3500,24 @@
         const body = message && typeof message.body === 'object' ? message.body : null;
         const uniqueBody =
           message && typeof message.uniqueBody === 'object' ? message.uniqueBody : null;
+        const rawJson = message && typeof message.rawJson === 'object' ? message.rawJson : null;
+        const rawBody = rawJson && typeof rawJson.body === 'object' ? rawJson.body : null;
+        const rawUniqueBody =
+          rawJson && typeof rawJson.uniqueBody === 'object' ? rawJson.uniqueBody : null;
+        const mailDocument =
+          message && typeof message.mailDocument === 'object' ? message.mailDocument : null;
         return firstMailText(
+          mailDocument?.primaryBodyHtml,
+          mailDocument?.bodyHtml,
           message?.bodyHtml,
           message?.body_html,
           message?.html,
+          rawJson?.bodyHtml,
+          rawJson?.body_html,
+          rawBody && /html/i.test(String(rawBody.contentType || '')) ? rawBody.content : '',
+          rawUniqueBody && /html/i.test(String(rawUniqueBody.contentType || ''))
+            ? rawUniqueBody.content
+            : '',
           body && /html/i.test(String(body.contentType || '')) ? body.content : '',
           uniqueBody && /html/i.test(String(uniqueBody.contentType || '')) ? uniqueBody.content : ''
         );
@@ -3519,7 +3580,7 @@
         setThreadHeader(thread, messages.length);
         if (!messages.length) {
           mount.innerHTML =
-            '<div class="msg-day">Live tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:linear-gradient(180deg,#c8e8e0,#88c8b8)">CC</div><div><div class="msg-bubble">Inga meddelanden kunde visas för den här tråden ännu.</div><div class="msg-meta">CCO · live-data</div></div></div>';
+            '<div class="msg-day">CCO-tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:linear-gradient(180deg,#c8e8e0,#88c8b8)">CC</div><div><div class="msg-bubble">Inga meddelanden kunde visas för den här tråden ännu.</div><div class="msg-meta">CCO · synkad data</div></div></div>';
           return;
         }
         let previousDay = '';
@@ -3562,7 +3623,7 @@
         const mount = document.getElementById('messages');
         if (!mount) return;
         setThreadHeader(thread, null);
-        mount.innerHTML = `<div class="msg-day">Live tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Laddar riktiga meddelanden från CCO...</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
+        mount.innerHTML = `<div class="msg-day">CCO-tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Laddar meddelanden från CCO-pipelinen...</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
       }
 
       async function openConversationThread(thread) {
@@ -3574,7 +3635,7 @@
         setSvarstudioLiveContext(thread, []);
         renderThreadLoading(thread);
         try {
-          const lookupKeys = (
+          const rawLookupKeys = (
             Array.isArray(thread.memberKeys) && thread.memberKeys.length
               ? thread.memberKeys
               : Array.isArray(thread.messageLookupKeys)
@@ -3586,6 +3647,7 @@
             .filter((item) => item !== normalizeText(thread.conversationKey))
             .filter((item, index, all) => all.indexOf(item) === index)
             .slice(0, 50);
+          const lookupKeys = scopedLookupKeysForOpenThread(thread, rawLookupKeys).slice(0, 50);
           const params = new URLSearchParams();
           if (lookupKeys.length) params.set('memberKeys', lookupKeys.join(','));
           const scopedCustomerEmail = firstCustomerEmailValue(
@@ -3625,7 +3687,7 @@
           setSvarstudioLiveContext(thread, []);
           const mount = document.getElementById('messages');
           if (mount) {
-            mount.innerHTML = `<div class="msg-day">Live tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Kunde inte ladda riktiga meddelanden. Kontrollera inloggning och att tråden finns i CCO.</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
+            mount.innerHTML = `<div class="msg-day">CCO-tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Kunde inte ladda meddelanden. Kontrollera inloggning och att tråden finns i CCO.</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
           }
         }
       }
@@ -3704,7 +3766,7 @@
         const kicker = document.querySelector('.thread-header-kicker');
         if (kicker) {
           kicker.innerHTML =
-            '<span class="thread-header-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 4h16v16H4z" stroke-linecap="round" stroke-linejoin="round" /><path d="M4 4l8 8 8-8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>Konversationer · live';
+            '<span class="thread-header-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 4h16v16H4z" stroke-linecap="round" stroke-linejoin="round" /><path d="M4 4l8 8 8-8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>Konversationer · CCO';
         }
         const statusBar = document.querySelector('.thread-status-bar');
         if (statusBar) {
@@ -3712,7 +3774,7 @@
         }
         const mount = document.getElementById('messages');
         if (mount) {
-          mount.innerHTML = `<div class="msg-day">Live inkorg</div><div class="msg is-incoming"><div class="msg-av" style="background:linear-gradient(180deg,#c8e8e0,#88c8b8)">CC</div><div><div class="msg-bubble">${escapeHtml(message)}</div><div class="msg-meta">kons@hairtpclinic.com</div></div></div>`;
+          mount.innerHTML = `<div class="msg-day">CCO-inkorg</div><div class="msg is-incoming"><div class="msg-av" style="background:linear-gradient(180deg,#c8e8e0,#88c8b8)">CC</div><div><div class="msg-bubble">${escapeHtml(message)}</div><div class="msg-meta">kons@hairtpclinic.com</div></div></div>`;
         }
         const ctxName = document.querySelector('.ctx-name');
         if (ctxName) ctxName.textContent = title;
@@ -3724,10 +3786,10 @@
         renderInboxThreads(currentThreads);
       } else {
         renderLiveInboxStatus(
-          'Laddar live-inkorg',
-          'Hämtar riktiga trådar från kons@hairtpclinic.com...'
+          'Laddar CCO-inkorg',
+          'Hämtar CCO-trådar från kons@hairtpclinic.com...'
         );
-        renderLivePaneStatus('Laddar Konversationer', 'Hämtar riktiga trådar från CCO-pipelinen.');
+        renderLivePaneStatus('Laddar Konversationer', 'Hämtar CCO-trådar från CCO-pipelinen.');
       }
 
       async function loadLiveInbox() {
@@ -3751,7 +3813,7 @@
               activeLane: currentLane,
             });
             renderLivePaneStatus(
-              'Live-inkorgen är tom',
+              'CCO-inkorgen är tom',
               'Inga trådar returnerades från kons@hairtpclinic.com. Detta är ett STOP-läge, inte demo.'
             );
             return;
@@ -3763,24 +3825,24 @@
           const firstThread = currentThreads.find((thread) => thread.conversationKey);
           if (firstThread) openConversationThread(firstThread);
           if (rows.length && window.CCOPolish?.showToast) {
-            window.CCOPolish.showToast(`Live inkorg: ${rows.length} trådar från kons@`, 'success');
+            window.CCOPolish.showToast(`CCO-inkorg: ${rows.length} trådar från kons@`, 'success');
           }
         } catch (error) {
           console.warn('[cco-live-inbox] worklist kunde inte laddas', error);
           currentThreads = [];
           renderLiveInboxStatus(
-            'Live inkorg kunde inte laddas',
+            'CCO-inkorg kunde inte laddas',
             'Kontrollera inloggning och CCO-worklist. Demo visas inte i admin/webb.',
             'error'
           );
           renderLivePaneStatus(
-            'Live inkorg kunde inte laddas',
+            'CCO-inkorg kunde inte laddas',
             'Kontrollera inloggning och CCO-worklist. Demo visas inte i admin/webb.',
             'error'
           );
           if (window.CCOPolish?.showToast) {
             window.CCOPolish.showToast(
-              'Live inkorg kunde inte laddas — demo är avstängd i webb/admin.',
+              'CCO-inkorg kunde inte laddas — demo är avstängd i webb/admin.',
               'warning'
             );
           }
