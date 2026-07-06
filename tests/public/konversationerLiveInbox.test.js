@@ -86,6 +86,7 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /function openConversationThread\(thread\)/);
   assert.match(html, /function parseScopedContactFormKey\(value\)/);
   assert.match(html, /function scopedMemberKeysForThread\(primaryKey, keys = \[\]\)/);
+  assert.match(html, /::contact-form-ref:/);
   assert.match(html, /messageLookupKeys/);
   assert.match(html, /rollup\.underlyingConversationKeys/);
   assert.match(html, /rollup\.underlyingConversationIds/);
@@ -104,6 +105,9 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /params\.set\('memberKeys', lookupKeys\.join\(','\)\)/);
   assert.match(html, /const scopedCustomerEmail = firstCustomerEmailValue\(/);
   assert.match(html, /params\.set\('customerEmail', scopedCustomerEmail\)/);
+  assert.match(html, /contactReference:\s*primaryScope\.reference \|\| ''/);
+  assert.match(html, /const scopedContactReference = normalizeText\(/);
+  assert.match(html, /params\.set\('contactReference', scopedContactReference\)/);
   assert.match(
     html,
     /const queryString = params\.toString\(\) \? `\?\$\{params\.toString\(\)\}` : ''/
@@ -119,6 +123,21 @@ test('konversationer live row opens real conversation messages endpoint', () => 
     html,
     /const firstThread = currentThreads\.find\(\(thread\) => thread\.conversationKey\)/
   );
+});
+
+test('konversationer renders full mail html and attachments safely', () => {
+  const html = readHtml();
+
+  assert.match(html, /function sanitizeMailHtmlForDisplay\(html\)/);
+  assert.match(
+    html,
+    /querySelectorAll\('script,style,iframe,object,embed,form,meta,link,base,input,button'\)/
+  );
+  assert.match(html, /function renderMessageBody\(message\)/);
+  assert.match(html, /message\?\.bodyHtml \|\| message\?\.body_html/);
+  assert.match(html, /function renderMessageAttachments\(message\)/);
+  assert.match(html, /msg-bubble-rich/);
+  assert.match(html, /msg-attachments/);
 });
 
 test('konversationer exposes selected live thread as Svarstudio context', () => {
