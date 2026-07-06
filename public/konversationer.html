@@ -2603,6 +2603,10 @@
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeText(value));
       }
 
+      function normalizeEmail(value) {
+        return normalizeText(value).toLowerCase();
+      }
+
       function isHairTpMailboxEmail(value) {
         const email = firstEmailValue(value) || canonicalHairTpMailbox(value);
         return /@hairtpclinic\.com$/i.test(email);

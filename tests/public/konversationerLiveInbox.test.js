@@ -318,6 +318,32 @@ test('top Svarstudio button uses same action hook as bottom bar', () => {
   assert.match(html, /\.nav-btn:not\(\[data-action\]\)/);
 });
 
+test('konversationer defines every helper used by the live worklist render path', () => {
+  const html = readHtml();
+  const script = liveScript(html);
+  // Regression: normalizeEmail anropades i toContactFormScopedKey men var aldrig
+  // definierad → ReferenceError krossade inkorgen så fort worklisten gav rader.
+  // Parse-testet fångar inte runtime-ReferenceError, så vi låser definitionen.
+  assert.match(script, /function normalizeEmail\(/, 'normalizeEmail måste vara definierad');
+  // Varje lokalt anropad hjälpfunktion i scope-nyckel-bygget måste finnas.
+  for (const fn of [
+    'normalizeText',
+    'normalizeEmail',
+    'normalizeContactFormReference',
+    'isHairTpMailboxEmail',
+    'parseScopedContactFormKey',
+    'toContactFormScopedKey',
+    'toContactFormReferenceScopedKey',
+    'scopedMemberKeysForThread',
+  ]) {
+    assert.match(
+      script,
+      new RegExp(`function ${fn}\\(`),
+      `${fn} måste vara definierad (annars ReferenceError vid rendering av rader)`
+    );
+  }
+});
+
 test('konversationer live inbox script parses', () => {
   const html = readHtml();
   assert.doesNotThrow(() => new Function(liveScript(html)));
