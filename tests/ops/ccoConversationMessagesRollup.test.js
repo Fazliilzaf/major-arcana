@@ -346,6 +346,67 @@ test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt for
   );
 });
 
+test('kontaktformulär utan e-post: message-id som bas visar bara vald formulärrad', () => {
+  const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
+  const scopedSudarshanMessageKey = toContactFormReferenceScopedConversationKey(
+    'cf-sudarshan',
+    'Sudarshan'
+  );
+  const contactFormStore = {
+    listMessages: () => [
+      {
+        graphMessageId: 'cf-obaida',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-10-14T05:11:00.000Z',
+        subject: 'Obaida Ali Kontaktformulär',
+        bodyText:
+          'Från: Obaida Ali E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hårtransplantation GDPR.',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+      {
+        graphMessageId: 'cf-sudarshan',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-11-21T13:00:00.000Z',
+        subject: 'Sudarshan Kontaktformulär',
+        bodyText:
+          'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hej, jag behöver hjälp.',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+      {
+        graphMessageId: 'cf-blend',
+        mailboxId: 'kons@hairtpclinic.com',
+        mailboxConversationId: sharedBaseKey,
+        conversationId: 'wp-shared-thread',
+        folderType: 'inbox',
+        direction: 'inbound',
+        receivedAt: '2026-12-04T12:31:00.000Z',
+        subject: 'Blend Bytyci Kontaktformulär',
+        bodyText:
+          'Från: Blend Bytyci E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Jag vill boka.',
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+    ],
+  };
+
+  const sorted = fetchSortedConversationMessages(contactFormStore, scopedSudarshanMessageKey, [
+    sharedBaseKey,
+  ]);
+
+  assert.deepEqual(
+    sorted.map((message) => message.graphMessageId),
+    ['cf-sudarshan'],
+    'vald kontaktformulär-rads graphMessageId får inte breddas till hela WordPress-tråden'
+  );
+});
+
 test('kontaktformulär utan e-post: ämnesrad räcker för reference-scope när body är mager', () => {
   const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
   const scopedSudarshanKey = toContactFormReferenceScopedConversationKey(
@@ -526,6 +587,111 @@ test('truth-preview berikas med full ingestion-body när raw store har hela mail
   assert.match(enriched.bodyText, /Jag känner mig redo att boka konsultation/);
   assert.ok(enriched.bodyText.length > preview.length + 40);
   assert.equal(enriched.attachments[0].name, 'remiss.pdf');
+});
+
+test('nested Graph-raw body/html matchar truth-preview via rawJson.id', () => {
+  const preview = 'Kort preview från Graph';
+  const truthMessages = [
+    {
+      graphMessageId: 'graph-nested-1',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxConversationId: 'kons@hairtpclinic.com:conv-nested',
+      conversationId: 'conv-nested',
+      folderType: 'inbox',
+      receivedAt: '2026-07-05T12:00:00.000Z',
+      bodyPreview: preview,
+      bodyText: preview,
+      from: { address: 'kund@example.com' },
+    },
+  ];
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        nested: {
+          mailboxId: 'kons@hairtpclinic.com',
+          rawJson: {
+            id: 'graph-nested-1',
+            conversationId: 'conv-nested',
+            receivedDateTime: '2026-07-05T12:00:00.000Z',
+            bodyPreview: preview,
+            body: {
+              contentType: 'html',
+              content:
+                '<div><p>Kort preview från Graph</p><p>Fullt mail med signatur, logotyp och hela kundens fråga.</p></div>',
+            },
+            from: {
+              emailAddress: { address: 'kund@example.com', name: 'Kund Exempel' },
+            },
+          },
+        },
+      },
+    }),
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion(truthMessages, ingestionStore);
+
+  assert.match(enriched.bodyText, /Fullt mail med signatur/);
+  assert.match(enriched.bodyHtml, /Fullt mail med signatur/);
+  assert.ok(enriched.bodyText.length > preview.length + 30);
+});
+
+test('bilagor får öppnings- och nedladdningslänkar utan contentBytes', () => {
+  const [attachment] = collectConversationAttachments({
+    mailboxId: 'kons@hairtpclinic.com',
+    graphMessageId: 'graph-asset-1',
+    attachments: [
+      {
+        id: 'att-logo-1',
+        name: 'logo.png',
+        contentType: 'image/png',
+        size: 512,
+        isInline: true,
+        contentBytes: 'SECRET',
+      },
+    ],
+  });
+
+  assert.equal(attachment.name, 'logo.png');
+  assert.match(attachment.openUrl, /\/api\/v1\/cco\/runtime\/mail-asset\/content\?/);
+  assert.match(attachment.openUrl, /mailboxId=kons%40hairtpclinic\.com/);
+  assert.match(attachment.openUrl, /messageId=graph-asset-1/);
+  assert.match(attachment.openUrl, /attachmentId=att-logo-1/);
+  assert.match(attachment.downloadUrl, /mode=download/);
+  assert.equal(attachment.inlineUrl, attachment.openUrl);
+  assert.equal(attachment.contentBytes, undefined);
+});
+
+test('enrichment merge:ar truth- och raw-bilagor i samma tråd', () => {
+  const truthMessages = [
+    {
+      graphMessageId: 'graph-merge-1',
+      mailboxId: 'kons@hairtpclinic.com',
+      conversationId: 'conv-merge',
+      mailboxConversationId: 'kons@hairtpclinic.com:conv-merge',
+      bodyText: 'Kort',
+      attachments: [{ id: 'truth-att', name: 'truth.pdf', contentType: 'application/pdf' }],
+    },
+  ];
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        raw: {
+          graphMessageId: 'graph-merge-1',
+          mailboxId: 'kons@hairtpclinic.com',
+          conversationId: 'conv-merge',
+          bodyText: 'Kort men med hela texten från raw-store som är längre.',
+          attachments: [{ id: 'raw-att', name: 'raw.jpg', contentType: 'image/jpeg' }],
+        },
+      },
+    }),
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion(truthMessages, ingestionStore);
+
+  assert.deepEqual(enriched.attachments.map((attachment) => attachment.name).sort(), [
+    'raw.jpg',
+    'truth.pdf',
+  ]);
 });
 
 test('tom/ogiltig nyckel ger tom lista', () => {

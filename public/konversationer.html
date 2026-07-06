@@ -617,6 +617,15 @@
         font-size: 10px;
         font-weight: 750;
         box-shadow: 0 3px 8px rgba(56, 40, 28, 0.08);
+        text-decoration: none;
+      }
+      .msg-attachment[href] {
+        cursor: pointer;
+      }
+      .msg-attachment[href]:hover,
+      .msg-attachment-preview[href]:hover {
+        border-color: rgba(35, 133, 153, 0.35);
+        color: var(--rail-contact);
       }
       .msg-attachment span {
         overflow: hidden;
@@ -628,6 +637,33 @@
         font-size: 9px;
         font-weight: 700;
         white-space: nowrap;
+      }
+      .msg-attachment-preview {
+        width: 116px;
+        min-height: 94px;
+        padding: 6px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(112, 89, 65, 0.16);
+        color: var(--cco-text-secondary);
+        display: grid;
+        gap: 5px;
+        text-decoration: none;
+        box-shadow: 0 3px 8px rgba(56, 40, 28, 0.08);
+      }
+      .msg-attachment-preview img {
+        width: 100%;
+        height: 68px;
+        object-fit: cover;
+        border-radius: 10px;
+        background: rgba(112, 89, 65, 0.08);
+      }
+      .msg-attachment-preview span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 10px;
+        font-weight: 750;
       }
       .msg.is-outgoing .msg-bubble {
         background: linear-gradient(180deg, #fff5e6, #ffe3b8);
@@ -2598,6 +2634,23 @@
         };
       }
 
+      function normalizeContactFormReference(value = '') {
+        return normalizeText(value)
+          .toLowerCase()
+          .replace(/\[[^\]]+\]/g, '')
+          .replace(/<[^>]+>/g, '')
+          .replace(/[^a-z0-9åäöéèüñ+]+/gi, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 160);
+      }
+
+      function toContactFormReferenceScopedKey(baseKey = '', reference = '') {
+        const key = normalizeText(baseKey);
+        const ref = normalizeContactFormReference(reference);
+        if (!key || !ref) return key;
+        return `${key}::contact-form-ref:${encodeURIComponent(ref)}`;
+      }
+
       function scopedMemberKeysForThread(primaryKey, keys = []) {
         const safePrimary = normalizeText(primaryKey);
         const primaryScope = parseScopedContactFormKey(safePrimary);
@@ -2655,7 +2708,7 @@
           normalizeText(row.customer?.name) ||
           normalizeText(name);
         if (!candidate || firstEmailValue(candidate) || isHairTpMailboxEmail(candidate)) return '';
-        return candidate;
+        return normalizeContactFormReference(candidate);
       }
 
       function firstCustomerEmailValue(...values) {
@@ -2746,7 +2799,35 @@
           .map((item) => canonicalHairTpMailbox(item))
           .filter(Boolean)
           .filter((item, index, all) => all.indexOf(item) === index);
-        const rawLookupKeys = [
+        const messageIdentityKeys = [
+          normalizeText(row.graphMessageId),
+          normalizeText(row.messageId),
+          normalizeText(row.rawMessageId),
+          normalizeText(row.latestMessageId),
+          normalizeText(row.lastMessageId),
+          normalizeText(conversation.graphMessageId),
+          normalizeText(conversation.messageId),
+          normalizeText(conversation.latestMessageId),
+          normalizeText(conversation.latestGraphMessageId),
+          normalizeText(rollup.primaryMessageId),
+          normalizeText(rollup.primaryGraphMessageId),
+          normalizeText(rollup.latestMessageId),
+          normalizeText(rollup.latestGraphMessageId),
+          ...(Array.isArray(conversation.underlyingMessageIds)
+            ? conversation.underlyingMessageIds
+            : []),
+          ...(Array.isArray(conversation.underlyingGraphMessageIds)
+            ? conversation.underlyingGraphMessageIds
+            : []),
+          ...(Array.isArray(rollup.underlyingMessageIds) ? rollup.underlyingMessageIds : []),
+          ...(Array.isArray(rollup.underlyingGraphMessageIds)
+            ? rollup.underlyingGraphMessageIds
+            : []),
+        ]
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+          .filter((item, index, all) => all.indexOf(item) === index);
+        const conversationLookupKeys = [
           normalizeText(conversation.key),
           normalizeText(row.conversationKey),
           normalizeText(row.id),
@@ -2758,7 +2839,18 @@
           ...(Array.isArray(rollup.underlyingConversationIds)
             ? rollup.underlyingConversationIds
             : []),
-        ].filter(Boolean);
+        ]
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+          .filter((item, index, all) => all.indexOf(item) === index);
+        const contactFormThread = looksLikeContactFormThread(row);
+        const rawLookupKeys = [
+          ...(contactFormThread ? messageIdentityKeys : []),
+          ...conversationLookupKeys,
+          ...(!contactFormThread ? messageIdentityKeys : []),
+        ]
+          .filter(Boolean)
+          .filter((item, index, all) => all.indexOf(item) === index);
         const messageLookupKeys = rawLookupKeys
           .flatMap((key) => {
             const safeKey = normalizeText(key);
@@ -2773,20 +2865,25 @@
           const scope = parseScopedContactFormKey(key);
           return scope.scoped && scope.baseKey && (scope.email || scope.reference);
         });
-        const primaryConversationKey =
+        const primaryConversationKeyBase =
           normalizeText(scopedPrimaryConversationKey) ||
+          (contactFormThread ? normalizeText(messageIdentityKeys[0]) : '') ||
           normalizeText(row.conversationKey) ||
           normalizeText(row.id) ||
           normalizeText(conversation.key) ||
           normalizeText(row.mailboxConversationId) ||
           normalizeText(row.conversationId);
-        const primaryScope = parseScopedContactFormKey(primaryConversationKey);
+        const primaryScope = parseScopedContactFormKey(primaryConversationKeyBase);
         const contactReference = contactFormReferenceForThread(
           row,
           name,
           customerEmail,
           primaryScope
         );
+        const primaryConversationKey =
+          !customerEmail && contactReference && contactFormThread && !primaryScope.scoped
+            ? toContactFormReferenceScopedKey(primaryConversationKeyBase, contactReference)
+            : primaryConversationKeyBase;
         const source = compactMailbox(mailboxAddress);
         const tags = [];
         if (state.hasUnreadInbound || state.needsReply)
@@ -3214,10 +3311,49 @@
         return doc.body.innerHTML;
       }
 
+      function objectMailContent(value) {
+        if (!value || typeof value !== 'object') return '';
+        return normalizeText(value.content || value.text || value.value || value.html || '');
+      }
+
+      function firstMailText(...values) {
+        for (const value of values) {
+          const text = typeof value === 'object' ? objectMailContent(value) : normalizeText(value);
+          if (text) return text;
+        }
+        return '';
+      }
+
+      function messageBodyHtml(message) {
+        const body = message && typeof message.body === 'object' ? message.body : null;
+        const uniqueBody =
+          message && typeof message.uniqueBody === 'object' ? message.uniqueBody : null;
+        return firstMailText(
+          message?.bodyHtml,
+          message?.body_html,
+          message?.html,
+          body && /html/i.test(String(body.contentType || '')) ? body.content : '',
+          uniqueBody && /html/i.test(String(uniqueBody.contentType || '')) ? uniqueBody.content : ''
+        );
+      }
+
+      function messageHasRichBody(message) {
+        return Boolean(messageBodyHtml(message));
+      }
+
       function renderMessageBody(message) {
-        const html = sanitizeMailHtmlForDisplay(message?.bodyHtml || message?.body_html);
+        const html = sanitizeMailHtmlForDisplay(messageBodyHtml(message));
         if (html) return html;
-        const text = normalizeText(message?.body || message?.bodyText || message?.text || '');
+        const text = firstMailText(
+          message?.body,
+          message?.bodyText,
+          message?.body_text,
+          message?.text,
+          message?.fullText,
+          message?.bodyPreview,
+          message?.preview,
+          message?.snippet
+        );
         return escapeHtml(text).replace(/\n/g, '<br>');
       }
 
@@ -3238,7 +3374,25 @@
             const size = formatAttachmentSize(attachment.size);
             const type = normalizeText(attachment.contentType);
             const meta = [size, type].filter(Boolean).join(' · ');
-            return `<div class="msg-attachment" title="${escapeHtml(meta || attachment.name)}">📎 <span>${escapeHtml(attachment.name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}</div>`;
+            const name = normalizeText(attachment.name);
+            const url = firstMailText(
+              attachment.inlineUrl,
+              attachment.openUrl,
+              attachment.downloadUrl,
+              attachment.url,
+              attachment.href
+            );
+            const imageLike =
+              /^image\//i.test(type) || /\.(png|jpe?g|gif|webp|svg)$/i.test(name || '');
+            const safeUrl = isAllowedMailUrl(url, { image: imageLike }) ? url : '';
+            if (imageLike && safeUrl) {
+              return `<a class="msg-attachment-preview" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}"><img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(name)}"><span>${escapeHtml(name)}</span></a>`;
+            }
+            const inner = `📎 <span>${escapeHtml(name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}`;
+            if (safeUrl) {
+              return `<a class="msg-attachment" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}">${inner}</a>`;
+            }
+            return `<div class="msg-attachment" title="${escapeHtml(meta || name)}">${inner}</div>`;
           })
           .join('')}</div>`;
       }
@@ -3278,7 +3432,7 @@
               <div class="msg is-${dir}">
                 <div class="msg-av" style="background:${escapeHtml(avatarBg)}">${escapeHtml(initials)}</div>
                 <div>
-                  <div class="msg-bubble ${message.bodyHtml || message.body_html ? 'msg-bubble-rich' : ''}">${renderMessageBody(message)}</div>
+                  <div class="msg-bubble ${messageHasRichBody(message) ? 'msg-bubble-rich' : ''}">${renderMessageBody(message)}</div>
                   ${renderMessageAttachments(message)}
                   <div class="msg-meta">${escapeHtml(from)} · ${escapeHtml(messageTimeLabel(message.time))} · ${escapeHtml(mailbox)}</div>
                 </div>

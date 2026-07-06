@@ -210,6 +210,18 @@ test('worklist read model splits website contact forms by embedded customer emai
     consumer.rows.some((row) => row.customer.email === 'wordpress@hairtpclinic.se'),
     false
   );
+  const sudarshan = consumer.rows.find((row) => row.customer.name === 'Sudarshan');
+  const blend = consumer.rows.find((row) => row.customer.name === 'Blend Bytyci');
+  assert.ok(sudarshan, 'Sudarshan row should be present');
+  assert.ok(blend, 'Blend row should be present');
+  assert.equal(sudarshan.conversation.latestGraphMessageId, 'wp-msg-sudarshan');
+  assert.deepEqual(sudarshan.conversation.underlyingGraphMessageIds, ['wp-msg-sudarshan']);
+  assert.equal(sudarshan.rollup.primaryGraphMessageId, 'wp-msg-sudarshan');
+  assert.deepEqual(sudarshan.rollup.underlyingGraphMessageIds, ['wp-msg-sudarshan']);
+  assert.equal(blend.conversation.latestGraphMessageId, 'wp-msg-blend');
+  assert.deepEqual(blend.conversation.underlyingGraphMessageIds, ['wp-msg-blend']);
+  assert.equal(blend.rollup.primaryGraphMessageId, 'wp-msg-blend');
+  assert.deepEqual(blend.rollup.underlyingGraphMessageIds, ['wp-msg-blend']);
 });
 
 test('worklist read model splits website contact forms even when Graph conversation id is shared', () => {

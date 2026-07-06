@@ -92,13 +92,26 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /memberScope\.email === primaryScope\.email/);
   assert.match(html, /memberScope\.reference === primaryScope\.reference/);
   assert.match(html, /messageLookupKeys/);
+  assert.match(html, /const messageIdentityKeys = \[/);
+  assert.match(html, /conversation\.underlyingMessageIds/);
+  assert.match(html, /conversation\.underlyingGraphMessageIds/);
+  assert.match(html, /rollup\.underlyingMessageIds/);
+  assert.match(html, /rollup\.underlyingGraphMessageIds/);
   assert.match(html, /rollup\.underlyingConversationKeys/);
   assert.match(html, /rollup\.underlyingConversationIds/);
   assert.match(html, /const scopedPrimaryConversationKey\s*=/);
+  assert.match(html, /const contactFormThread = looksLikeContactFormThread\(row\)/);
+  assert.match(html, /const primaryConversationKeyBase\s*=/);
   assert.match(
     html,
-    /normalizeText\(scopedPrimaryConversationKey\)\s*\|\|\s*normalizeText\(row\.conversationKey\)/,
-    'scopad kontaktformulärnyckel från raden ska vinna över rå conversationKey'
+    /\(contactFormThread \? normalizeText\(messageIdentityKeys\[0\]\) : ''\)/,
+    'kontaktformulär ska öppnas via exakt message-id innan rå conversationKey används'
+  );
+  assert.match(html, /function normalizeContactFormReference\(value = ''\)/);
+  assert.match(html, /function toContactFormReferenceScopedKey\(baseKey = '', reference = ''\)/);
+  assert.match(
+    html,
+    /toContactFormReferenceScopedKey\(primaryConversationKeyBase, contactReference\)/
   );
   assert.match(html, /const primaryConversationKey\s*=/);
   assert.match(
@@ -143,9 +156,20 @@ test('konversationer renders full mail html and attachments safely', () => {
     html,
     /querySelectorAll\('script,style,iframe,object,embed,form,meta,link,base,input,button'\)/
   );
+  assert.match(html, /function messageBodyHtml\(message\)/);
+  assert.match(html, /function messageHasRichBody\(message\)/);
   assert.match(html, /function renderMessageBody\(message\)/);
-  assert.match(html, /message\?\.bodyHtml \|\| message\?\.body_html/);
+  assert.match(html, /message\?\.bodyHtml/);
+  assert.match(html, /message\?\.body_html/);
+  assert.match(html, /message\?\.html/);
+  assert.match(html, /message\?\.body_text/);
+  assert.match(html, /message\?\.bodyPreview/);
   assert.match(html, /function renderMessageAttachments\(message\)/);
+  assert.match(html, /attachment\.inlineUrl/);
+  assert.match(html, /attachment\.openUrl/);
+  assert.match(html, /attachment\.downloadUrl/);
+  assert.match(html, /msg-attachment-preview/);
+  assert.match(html, /target="_blank"/);
   assert.match(html, /msg-bubble-rich/);
   assert.match(html, /msg-attachments/);
 });

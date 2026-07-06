@@ -343,8 +343,39 @@ function deriveBodyHtml(message) {
   return candidates.reduce((best, candidate) => chooseRicherHtml(best, candidate), '');
 }
 
-function normalizeConversationAttachment(attachment = {}) {
+function firstNormalizedText(...values) {
+  return values.map((value) => normalizeText(value)).find(Boolean) || '';
+}
+
+function buildMailAssetContentUrl({
+  mailboxId = '',
+  messageId = '',
+  attachmentId = '',
+  fileName = '',
+  mode = 'open',
+}) {
+  const safeMailboxId = normalizeText(mailboxId);
+  const safeMessageId = normalizeText(messageId);
+  const safeAttachmentId = normalizeText(attachmentId);
+  if (!safeMailboxId || !safeMessageId || !safeAttachmentId) return '';
+  const query = [
+    ['mailboxId', safeMailboxId],
+    ['messageId', safeMessageId],
+    ['attachmentId', safeAttachmentId],
+    ['mode', mode],
+    ['fileName', normalizeText(fileName)],
+  ]
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
+  return `/api/v1/cco/runtime/mail-asset/content?${query}`;
+}
+
+function normalizeConversationAttachment(attachment = {}, message = {}) {
   const safe = asObject(attachment);
+  const context = asObject(message);
+  const rawJson = asObject(context.rawJson);
+  const mailDocument = asObject(context.mailDocument);
   const id =
     normalizeText(safe.id) ||
     normalizeText(safe.assetId) ||
@@ -358,15 +389,70 @@ function normalizeConversationAttachment(attachment = {}) {
   if (!id && !rawName) return null;
   const name = rawName || 'Bilaga';
   const sizeValue = Number(safe.size || safe.contentLength || safe.length || 0);
+  const attachmentId =
+    normalizeText(safe.attachmentId) ||
+    normalizeText(safe.id) ||
+    normalizeText(safe.assetId) ||
+    normalizeText(safe.mailAssetId) ||
+    normalizeText(safe.contentId) ||
+    id;
+  const mailboxId = firstNormalizedText(
+    safe.mailboxId,
+    context.mailboxId,
+    context.mailboxAddress,
+    mailDocument.mailboxId,
+    mailDocument.mailboxAddress,
+    rawJson.mailboxId,
+    rawJson.mailboxAddress
+  );
+  const messageId = firstNormalizedText(
+    safe.messageId,
+    safe.graphMessageId,
+    context.graphMessageId,
+    context.messageId,
+    context.rawMessageId,
+    context.id,
+    mailDocument.messageId,
+    mailDocument.graphMessageId,
+    mailDocument.id,
+    rawJson.id,
+    rawJson.messageId,
+    rawJson.graphMessageId,
+    rawJson.internetMessageId
+  );
+  const openUrl =
+    normalizeText(safe.openUrl) ||
+    normalizeText(safe.url) ||
+    normalizeText(safe.href) ||
+    normalizeText(safe.contentUrl) ||
+    normalizeText(asObject(safe.render).url) ||
+    buildMailAssetContentUrl({ mailboxId, messageId, attachmentId, fileName: name, mode: 'open' });
+  const downloadUrl =
+    normalizeText(safe.downloadUrl) ||
+    normalizeText(asObject(safe.download).url) ||
+    normalizeText(asObject(safe.download).href) ||
+    buildMailAssetContentUrl({
+      mailboxId,
+      messageId,
+      attachmentId,
+      fileName: name,
+      mode: 'download',
+    });
+  const contentType = normalizeText(safe.contentType) || normalizeText(safe.mimeType) || null;
+  const isInline = Boolean(safe.isInline || safe.inline || safe.disposition === 'inline');
   return {
     id: id || name,
-    attachmentId: normalizeText(safe.attachmentId) || id || null,
+    attachmentId: attachmentId || null,
     name,
-    contentType: normalizeText(safe.contentType) || normalizeText(safe.mimeType) || null,
+    contentType,
     size: Number.isFinite(sizeValue) && sizeValue > 0 ? sizeValue : null,
-    isInline: Boolean(safe.isInline || safe.inline || safe.disposition === 'inline'),
+    isInline,
     contentId: normalizeText(safe.contentId) || null,
     contentLocation: normalizeText(safe.contentLocation) || null,
+    openUrl: openUrl || null,
+    downloadUrl: downloadUrl || null,
+    inlineUrl:
+      /^image\//i.test(contentType || '') && (isInline || openUrl) ? openUrl || null : null,
     family: normalizeText(safe.family) || normalizeText(safe.disposition) || null,
     render:
       safe.render && typeof safe.render === 'object'
@@ -400,7 +486,7 @@ function collectConversationAttachments(message = {}) {
   ];
   const seen = new Set();
   return candidates
-    .map(normalizeConversationAttachment)
+    .map((attachment) => normalizeConversationAttachment(attachment, safe))
     .filter(Boolean)
     .filter((attachment) => {
       const key = [
@@ -416,6 +502,32 @@ function collectConversationAttachments(message = {}) {
       seen.add(key);
       return true;
     });
+}
+
+function mergeConversationAttachments(...messages) {
+  const seen = new Set();
+  const merged = [];
+  messages.forEach((message) => {
+    collectConversationAttachments(message).forEach((attachment) => {
+      const key = [
+        normalizeText(attachment.attachmentId),
+        normalizeText(attachment.id),
+        normalizeText(attachment.contentId),
+        normalizeText(attachment.name),
+      ]
+        .filter(Boolean)
+        .join(':')
+        .toLowerCase();
+      if (key && seen.has(key)) return;
+      if (key) seen.add(key);
+      merged.push(attachment);
+    });
+  });
+  return merged;
+}
+
+function objectHasKeys(value) {
+  return Object.keys(asObject(value)).length > 0;
 }
 
 function parseConversationAliasQuery(query = {}) {
@@ -533,9 +645,14 @@ function buildConversationLookupScopes(keys = [], options = {}) {
       contactReferenceByBaseKey.set(scope.baseKey, scope.contactReference);
     }
   }
+  const primaryScope = scopes[0] || {};
+  const primaryContactEmail = normalizeText(primaryScope.contactEmail).toLowerCase();
+  const primaryContactReference = normalizeText(primaryScope.contactReference).toLowerCase();
   if (
     contactEmailByBaseKey.size === 0 &&
     contactReferenceByBaseKey.size === 0 &&
+    !primaryContactEmail &&
+    !primaryContactReference &&
     !fallbackContactEmail &&
     !fallbackContactReference
   ) {
@@ -549,6 +666,12 @@ function buildConversationLookupScopes(keys = [], options = {}) {
     }
     if (scopedContactReference && !scope.contactEmail && !scope.contactReference) {
       return { ...scope, contactReference: scopedContactReference };
+    }
+    if (primaryContactEmail && !scope.contactEmail) {
+      return { ...scope, contactEmail: primaryContactEmail };
+    }
+    if (primaryContactReference && !scope.contactEmail && !scope.contactReference) {
+      return { ...scope, contactReference: primaryContactReference };
     }
     if (fallbackContactEmail && !scope.contactEmail) {
       return { ...scope, contactEmail: fallbackContactEmail };
@@ -602,23 +725,62 @@ function fetchSortedConversationMessages(store, key, memberKeys = [], options = 
 
 function buildConversationAliases(message = {}) {
   const safe = asObject(message);
-  const mailboxId =
-    normalizeText(safe.mailboxId) ||
-    normalizeText(safe.mailboxAddress) ||
-    normalizeText(safe.userPrincipalName);
+  const rawJson = asObject(safe.rawJson);
+  const mailDocument = asObject(safe.mailDocument);
+  const mailboxId = firstNormalizedText(
+    safe.mailboxId,
+    safe.mailboxAddress,
+    safe.userPrincipalName,
+    mailDocument.mailboxId,
+    mailDocument.mailboxAddress,
+    rawJson.mailboxId,
+    rawJson.mailboxAddress,
+    rawJson.userPrincipalName
+  );
+  const conversationId = firstNormalizedText(
+    safe.conversationId,
+    mailDocument.conversationId,
+    rawJson.conversationId
+  );
+  const mailboxConversationId = firstNormalizedText(
+    safe.mailboxConversationId,
+    mailDocument.mailboxConversationId,
+    rawJson.mailboxConversationId
+  );
+  const graphMessageId = firstNormalizedText(
+    safe.graphMessageId,
+    safe.immutableGraphId,
+    safe.messageId,
+    safe.rawMessageId,
+    safe.id,
+    mailDocument.graphMessageId,
+    mailDocument.messageId,
+    mailDocument.internetMessageId,
+    mailDocument.id,
+    rawJson.graphMessageId,
+    rawJson.immutableGraphId,
+    rawJson.immutableId,
+    rawJson.messageId,
+    rawJson.rawMessageId,
+    rawJson.internetMessageId,
+    rawJson.id
+  );
   return new Set(
     [
-      normalizeText(safe.mailboxConversationId),
-      normalizeText(safe.conversationId),
+      mailboxConversationId,
+      conversationId,
+      graphMessageId,
       normalizeText(safe.graphMessageId),
       normalizeText(safe.immutableGraphId),
       normalizeText(safe.messageId),
       normalizeText(safe.rawMessageId),
+      normalizeText(rawJson.id),
+      normalizeText(rawJson.internetMessageId),
       toCanonicalMailboxConversationKey({
         mailboxId,
-        conversationId: safe.conversationId,
-        mailboxConversationId: safe.mailboxConversationId,
-        messageId: safe.graphMessageId || safe.messageId || safe.rawMessageId,
+        conversationId,
+        mailboxConversationId,
+        messageId: graphMessageId,
       }),
     ].filter(Boolean)
   );
@@ -627,6 +789,7 @@ function buildConversationAliases(message = {}) {
 function toConversationMessageFromRaw(raw = {}) {
   const safe = asObject(raw);
   const rawJson = asObject(safe.rawJson);
+  const mailDocument = asObject(safe.mailDocument);
   const fromEmail =
     normalizeText(safe.fromEmail) ||
     normalizeText(safe.fromAddress) ||
@@ -637,19 +800,58 @@ function toConversationMessageFromRaw(raw = {}) {
     normalizeText(asObject(safe.from).name) ||
     normalizeText(asObject(asObject(rawJson.from).emailAddress).name) ||
     fromEmail;
-  const toAddresses = Array.isArray(safe.toAddresses) ? safe.toAddresses : safe.to || [];
+  const toAddresses = Array.isArray(safe.toAddresses)
+    ? safe.toAddresses
+    : safe.to || rawJson.toRecipients || [];
+  const mailboxId = firstNormalizedText(
+    safe.mailboxId,
+    safe.mailboxAddress,
+    safe.userPrincipalName,
+    mailDocument.mailboxId,
+    mailDocument.mailboxAddress,
+    rawJson.mailboxId,
+    rawJson.mailboxAddress,
+    rawJson.userPrincipalName
+  );
+  const conversationId = firstNormalizedText(
+    safe.conversationId,
+    mailDocument.conversationId,
+    rawJson.conversationId
+  );
+  const graphMessageId = firstNormalizedText(
+    safe.graphMessageId,
+    safe.immutableGraphId,
+    safe.messageId,
+    safe.rawMessageId,
+    safe.id,
+    mailDocument.graphMessageId,
+    mailDocument.messageId,
+    mailDocument.internetMessageId,
+    mailDocument.id,
+    rawJson.graphMessageId,
+    rawJson.immutableGraphId,
+    rawJson.immutableId,
+    rawJson.messageId,
+    rawJson.rawMessageId,
+    rawJson.internetMessageId,
+    rawJson.id
+  );
+  const mailboxConversationId = firstNormalizedText(
+    safe.mailboxConversationId,
+    mailDocument.mailboxConversationId,
+    rawJson.mailboxConversationId,
+    conversationId
+  );
+  const bodyText = deriveBody(safe);
+  const bodyHtml = deriveBodyHtml(safe);
   return {
     ...safe,
-    graphMessageId:
-      normalizeText(safe.graphMessageId) ||
-      normalizeText(safe.messageId) ||
-      normalizeText(safe.rawMessageId) ||
-      normalizeText(safe.id),
-    messageId:
-      normalizeText(safe.messageId) || normalizeText(safe.rawMessageId) || normalizeText(safe.id),
-    mailboxConversationId:
-      normalizeText(safe.mailboxConversationId) || normalizeText(safe.conversationId),
-    mailboxAddress: normalizeText(safe.mailboxAddress) || normalizeText(safe.mailboxId),
+    graphMessageId,
+    messageId: graphMessageId,
+    conversationId,
+    mailboxConversationId,
+    mailboxId,
+    mailboxAddress: firstNormalizedText(safe.mailboxAddress, safe.mailboxId, mailboxId),
     folderType: normalizeText(safe.folderType) || 'unknown',
     senderEmail: fromEmail,
     fromAddress: fromEmail,
@@ -663,9 +865,25 @@ function toConversationMessageFromRaw(raw = {}) {
     receivedAt:
       normalizeText(safe.receivedAt) ||
       normalizeText(safe.receivedDateTime) ||
+      normalizeText(rawJson.receivedDateTime) ||
       normalizeText(safe.persistedAt),
+    bodyText,
+    body_text: bodyText,
+    text: bodyText,
+    bodyHtml: bodyHtml || null,
+    body_html: bodyHtml || null,
+    html: bodyHtml || null,
+    attachments: collectConversationAttachments(safe),
     toRecipients: asArray(toAddresses)
-      .map((address) => ({ address: normalizeText(address) }))
+      .map((address) => {
+        const item = asObject(address);
+        return {
+          address:
+            normalizeText(address) ||
+            normalizeText(item.address) ||
+            normalizeText(asObject(item.emailAddress).address),
+        };
+      })
       .filter((item) => item.address),
   };
 }
@@ -765,20 +983,39 @@ function enrichConversationMessagesWithIngestion(messages, store) {
       normalizeText(raw.bodyPreview) ||
       normalizeText(raw.preview) ||
       normalizeText(raw.snippet);
-    const mergedBodyText = chooseRicherBodyText(deriveBody(message), deriveBody(raw), preview);
+    const messageBodyText = deriveBody(message);
+    const rawBodyText = deriveBody(raw);
+    const mergedBodyText = chooseRicherBodyText(messageBodyText, rawBodyText, preview);
+    const messageBodyHtml = deriveBodyHtml(message);
+    const rawBodyHtml = deriveBodyHtml(raw);
+    const mergedBodyHtml = chooseRicherHtml(messageBodyHtml, rawBodyHtml);
+    const mergedAttachments = mergeConversationAttachments(message, raw);
+    const rawLooksRicher =
+      (rawBodyText && mergedBodyText === rawBodyText && rawBodyText !== messageBodyText) ||
+      (rawBodyHtml && mergedBodyHtml === rawBodyHtml && rawBodyHtml !== messageBodyHtml);
     return {
       ...message,
       bodyText: mergedBodyText || chooseRicherBodyText(message.bodyText, raw.bodyText, preview),
-      body_text: chooseRicherBodyText(message.body_text, raw.body_text, preview),
-      bodyHtml: chooseRicherHtml(message.bodyHtml, raw.bodyHtml),
-      body_html: chooseRicherHtml(message.body_html, raw.body_html),
-      text: chooseRicherBodyText(message.text, raw.text, preview),
-      attachments: asArray(message.attachments).length ? message.attachments : raw.attachments,
-      rawJson: Object.keys(asObject(message.rawJson)).length ? message.rawJson : raw.rawJson,
-      mailDocument: Object.keys(asObject(message.mailDocument)).length
-        ? message.mailDocument
-        : raw.mailDocument,
-      body: Object.keys(asObject(message.body)).length ? message.body : raw.body,
+      body_text: mergedBodyText || chooseRicherBodyText(message.body_text, raw.body_text, preview),
+      bodyHtml: mergedBodyHtml || null,
+      body_html: mergedBodyHtml || null,
+      html:
+        mergedBodyHtml ||
+        chooseRicherHtml(normalizeText(message.html), normalizeText(raw.html)) ||
+        null,
+      text: mergedBodyText || chooseRicherBodyText(message.text, raw.text, preview),
+      attachments: mergedAttachments,
+      rawJson: rawLooksRicher || !objectHasKeys(message.rawJson) ? raw.rawJson : message.rawJson,
+      mailDocument:
+        rawLooksRicher || !objectHasKeys(message.mailDocument)
+          ? raw.mailDocument
+          : message.mailDocument,
+      body:
+        rawLooksRicher && objectHasKeys(raw.body)
+          ? raw.body
+          : objectHasKeys(message.body)
+            ? message.body
+            : raw.body,
       bodyPreview: normalizeText(message.bodyPreview) || normalizeText(raw.bodyPreview),
       preview: normalizeText(message.preview) || normalizeText(raw.preview),
       snippet: normalizeText(message.snippet) || normalizeText(raw.snippet),
