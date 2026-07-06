@@ -14,16 +14,22 @@ const path = require('node:path');
 
 const { deriveBodyHtml } = require('../../src/routes/ccoConversation');
 
-test('deriveBodyHtml prioriterar truth bodyHtml, sedan mailDocument, sedan Graph-body(html)', () => {
-  assert.equal(
-    deriveBodyHtml({ bodyHtml: '<p>A</p>', mailDocument: { primaryBodyHtml: '<p>B</p>' } }),
-    '<p>A</p>'
-  );
+test('deriveBodyHtml hittar HTML i varje lokal källa (rikaste kandidaten vinner)', () => {
+  // Efter #640 väljer chooseRicherHtml den RIKASTE kandidaten, inte första i
+  // en fast ordning. Låser att varje källa ensam ger sin HTML, och att en
+  // rikare kandidat vinner över en kortare.
+  assert.equal(deriveBodyHtml({ bodyHtml: '<p>A</p>' }), '<p>A</p>');
   assert.equal(deriveBodyHtml({ mailDocument: { primaryBodyHtml: '<p>B</p>' } }), '<p>B</p>');
   assert.equal(deriveBodyHtml({ body: { contentType: 'HTML', content: '<p>C</p>' } }), '<p>C</p>');
   assert.equal(
     deriveBodyHtml({ rawJson: { body: { contentType: 'html', content: '<p>D</p>' } } }),
     '<p>D</p>'
+  );
+  const richer = '<div><img src="cid:logo"><p>Signatur med logga och längre innehåll</p></div>';
+  assert.equal(
+    deriveBodyHtml({ bodyHtml: '<p>kort</p>', mailDocument: { primaryBodyHtml: richer } }),
+    richer,
+    'rikare HTML (bilder/längd) ska vinna'
   );
 });
 
@@ -64,7 +70,14 @@ test('messages-svaret exponerar bodyHtml-fältet', () => {
     path.join(__dirname, '..', '..', 'src', 'routes', 'ccoConversation.js'),
     'utf8'
   );
-  assert.match(src, /bodyHtml: deriveBodyHtml\(safe\) \|\| null/, 'endpoint ska skicka bodyHtml');
+  // Efter #640: bodyHtml byggs via deriveBodyHtml + cid-omskrivning och
+  // exponeras som bodyHtml || null i messages-svaret.
+  assert.match(
+    src,
+    /rewriteMailCidImageSources\(deriveBodyHtml\(safe\)/,
+    'endpoint ska härleda bodyHtml med cid-omskrivning'
+  );
+  assert.match(src, /bodyHtml: bodyHtml \|\| null/, 'endpoint ska skicka bodyHtml || null');
 });
 
 test('deriveBodyHtml läser även uniqueBody (Graph) och rawJson.uniqueBody', () => {
