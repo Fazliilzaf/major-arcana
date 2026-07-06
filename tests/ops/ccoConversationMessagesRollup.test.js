@@ -20,6 +20,7 @@ const {
   fetchSortedConversationMessagesForKeys,
   fetchSortedIngestionConversationMessagesForKeys,
   parseConversationContactScopeQuery,
+  rewriteMailCidImageSources,
 } = require('../../src/routes/ccoConversation');
 const {
   toContactFormReferenceScopedConversationKey,
@@ -633,6 +634,100 @@ test('nested Graph-raw body/html matchar truth-preview via rawJson.id', () => {
   assert.match(enriched.bodyText, /Fullt mail med signatur/);
   assert.match(enriched.bodyHtml, /Fullt mail med signatur/);
   assert.ok(enriched.bodyText.length > preview.length + 30);
+});
+
+test('kontaktformulär-preview berikas från scoped raw-store även när Graph-id saknar alias', () => {
+  const preview =
+    'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hi, I am a foreigner residing in Umea, Sweden.';
+  const truthMessages = [
+    {
+      graphMessageId: 'cf-sudarshan-preview-only',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxConversationId: 'kons@hairtpclinic.com:contact-form',
+      conversationId: 'contact-form',
+      folderType: 'inbox',
+      receivedAt: '2026-10-14T05:11:00.000Z',
+      subject: 'Sudarshan Kontaktformulär',
+      bodyPreview: preview,
+      bodyText: preview,
+      from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+    },
+  ];
+  const sudarshanFullBody = [
+    preview,
+    'I recently have had a hair transplant abroad. Its been about 5 months now.',
+    'I am experiencing redness and would like advice about aftercare and next steps.',
+    'GDPR: Medgavs. Jag godkänner att mina personuppgifter behandlas.',
+  ].join(' ');
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        obaida: {
+          graphMessageId: 'cf-obaida-full',
+          mailboxId: 'kons@hairtpclinic.com',
+          mailboxConversationId: 'kons@hairtpclinic.com:contact-form',
+          conversationId: 'contact-form',
+          folderType: 'inbox',
+          receivedAt: '2026-10-14T05:11:00.000Z',
+          subject: 'Obaida Ali Kontaktformulär',
+          bodyText:
+            'Från: Obaida Ali E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hårtransplantation GDPR: Medgavs.',
+          fromEmail: 'wordpress@hairtpclinic.se',
+        },
+        sudarshan: {
+          graphMessageId: 'raw-sudarshan-full',
+          mailboxId: 'kons@hairtpclinic.com',
+          mailboxConversationId: 'kons@hairtpclinic.com:contact-form',
+          conversationId: 'contact-form',
+          folderType: 'inbox',
+          receivedAt: '2026-10-14T05:11:00.000Z',
+          subject: 'Sudarshan Kontaktformulär',
+          bodyPreview: preview,
+          bodyText: sudarshanFullBody,
+          fromEmail: 'wordpress@hairtpclinic.se',
+        },
+      },
+    }),
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion(truthMessages, ingestionStore, {
+    contactReference: 'sudarshan',
+  });
+
+  assert.match(enriched.bodyText, /Its been about 5 months now/);
+  assert.match(enriched.bodyText, /I am experiencing redness/);
+  assert.doesNotMatch(enriched.bodyText, /Obaida Ali/);
+  assert.ok(enriched.bodyText.length > preview.length + 100);
+});
+
+test('cid-inlinebilder skrivs om till säkra attachment-URL:er', () => {
+  const message = {
+    mailboxId: 'kons@hairtpclinic.com',
+    graphMessageId: 'graph-inline-logo',
+    rawJson: {
+      body: {
+        contentType: 'html',
+        content: '<div><img src="cid:logo@hairtp"><p>Med vänliga hälsningar</p></div>',
+      },
+      attachments: [
+        {
+          id: 'att-logo',
+          name: 'logo.png',
+          contentType: 'image/png',
+          isInline: true,
+          contentId: 'logo@hairtp',
+          contentBytes: 'SECRET',
+        },
+      ],
+    },
+  };
+  const attachments = collectConversationAttachments(message);
+  const html = rewriteMailCidImageSources(deriveBodyHtml(message), attachments);
+
+  assert.doesNotMatch(html, /cid:logo@hairtp/);
+  assert.match(html, /\/api\/v1\/cco\/runtime\/mail-asset\/content\?/);
+  assert.match(html, /attachmentId=att-logo/);
+  assert.match(html, /messageId=graph-inline-logo/);
 });
 
 test('bilagor får öppnings- och nedladdningslänkar utan contentBytes', () => {

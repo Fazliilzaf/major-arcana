@@ -526,6 +526,52 @@ function mergeConversationAttachments(...messages) {
   return merged;
 }
 
+function normalizeContentId(value = '') {
+  const raw = normalizeText(value).replace(/^cid:/i, '').replace(/^<|>$/g, '').trim();
+  if (!raw) return '';
+  try {
+    return decodeURIComponent(raw).toLowerCase();
+  } catch (_err) {
+    return raw.toLowerCase();
+  }
+}
+
+function buildInlineAttachmentUrlMap(attachments = []) {
+  const map = new Map();
+  asArray(attachments).forEach((attachment) => {
+    const safe = asObject(attachment);
+    const url =
+      normalizeText(safe.inlineUrl) ||
+      normalizeText(safe.openUrl) ||
+      normalizeText(safe.url) ||
+      normalizeText(safe.href);
+    if (!url) return;
+    [safe.contentId, safe.id, safe.attachmentId, safe.name]
+      .map(normalizeContentId)
+      .filter(Boolean)
+      .forEach((key) => {
+        if (!map.has(key)) map.set(key, url);
+      });
+  });
+  return map;
+}
+
+function rewriteMailCidImageSources(html = '', attachments = []) {
+  const safeHtml = normalizeText(html);
+  if (!safeHtml || !/cid:/i.test(safeHtml)) return safeHtml;
+  const cidMap = buildInlineAttachmentUrlMap(attachments);
+  if (!cidMap.size) return safeHtml;
+  return safeHtml
+    .replace(/\b(src\s*=\s*)(["'])cid:([^"']+)\2/gi, (match, prefix, quote, rawCid) => {
+      const url = cidMap.get(normalizeContentId(rawCid));
+      return url ? `${prefix}${quote}${url}${quote}` : match;
+    })
+    .replace(/url\(\s*(['"]?)cid:([^)'"\\]+)\1\s*\)/gi, (match, _quote, rawCid) => {
+      const url = cidMap.get(normalizeContentId(rawCid));
+      return url ? `url("${url}")` : match;
+    });
+}
+
 function objectHasKeys(value) {
   return Object.keys(asObject(value)).length > 0;
 }
@@ -925,13 +971,18 @@ function buildIngestionMessageLookup(store) {
   if (!store || typeof store.getState !== 'function') return new Map();
   const state = asObject(store.getState());
   const lookup = new Map();
-  Object.values(asObject(state.mailRawMessages)).forEach((raw) => {
-    const message = toConversationMessageFromRaw(raw);
+  getIngestionConversationMessages(store).forEach((message) => {
     buildConversationAliases(message).forEach((alias) => {
       if (alias && !lookup.has(alias)) lookup.set(alias, message);
     });
   });
   return lookup;
+}
+
+function getIngestionConversationMessages(store) {
+  if (!store || typeof store.getState !== 'function') return [];
+  const state = asObject(store.getState());
+  return Object.values(asObject(state.mailRawMessages)).map(toConversationMessageFromRaw);
 }
 
 function bodyTextLooksLikePreview(text = '', preview = '') {
@@ -968,13 +1019,92 @@ function chooseRicherHtml(existing = '', candidate = '') {
   return safeExisting;
 }
 
-function enrichConversationMessagesWithIngestion(messages, store) {
+function deriveMailboxForMatch(message = {}) {
+  const safe = asObject(message);
+  const rawJson = asObject(safe.rawJson);
+  const mailDocument = asObject(safe.mailDocument);
+  return normalizeEmail(
+    safe.mailboxId ||
+      safe.mailboxAddress ||
+      safe.userPrincipalName ||
+      mailDocument.mailboxId ||
+      mailDocument.mailboxAddress ||
+      rawJson.mailboxId ||
+      rawJson.mailboxAddress ||
+      rawJson.userPrincipalName
+  );
+}
+
+function bodyTextsOverlapForFallback(left = '', right = '') {
+  const a = normalizeBodyText(left);
+  const b = normalizeBodyText(right);
+  if (!a || !b) return false;
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length <= b.length ? b : a;
+  const probe = shorter.slice(0, Math.min(96, Math.max(32, shorter.length)));
+  return probe.length >= 24 && longer.includes(probe);
+}
+
+function deriveScopedIngestionFallbackScope(options = {}) {
+  const safe = asObject(options);
+  const email = normalizeEmail(safe.contactEmail || safe.email || safe.customerEmail);
+  const reference = normalizeText(safe.contactReference || safe.reference);
+  if (!email && !reference) return null;
+  return { email, reference };
+}
+
+function findScopedIngestionFallback(message = {}, rawMessages = [], options = {}) {
+  const scope = deriveScopedIngestionFallbackScope(options);
+  if (!scope) return null;
+  const mailbox = deriveMailboxForMatch(message);
+  const messageBody = deriveBody(message);
+  const preview =
+    normalizeText(message.bodyPreview) ||
+    normalizeText(message.preview) ||
+    normalizeText(message.snippet) ||
+    messageBody;
+  const subject = normalizeText(message.subject);
+  const time = normalizeText(deriveTime(message));
+  const candidates = rawMessages
+    .filter((raw) => {
+      const rawMailbox = deriveMailboxForMatch(raw);
+      if (mailbox && rawMailbox && rawMailbox !== mailbox) return false;
+      if (!messageMatchesContactFormScope(raw, scope)) return false;
+      const rawBody = deriveBody(raw);
+      const rawSubject = normalizeText(raw.subject);
+      const rawTime = normalizeText(deriveTime(raw));
+      return (
+        bodyTextsOverlapForFallback(messageBody, rawBody) ||
+        bodyTextsOverlapForFallback(preview, rawBody) ||
+        (subject && rawSubject && subject === rawSubject) ||
+        (time && rawTime && time === rawTime)
+      );
+    })
+    .map((raw) => ({
+      raw,
+      score:
+        normalizeBodyText(deriveBody(raw)).length +
+        (normalizeText(deriveTime(raw)) === time ? 1000 : 0) +
+        (normalizeText(raw.subject) === subject ? 500 : 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+  return candidates[0]?.raw || null;
+}
+
+function enrichConversationMessagesWithIngestion(messages, store, options = {}) {
   const lookup = buildIngestionMessageLookup(store);
-  if (!lookup.size) return messages;
+  const rawMessages = getIngestionConversationMessages(store);
+  if (!lookup.size && !rawMessages.length) return messages;
+  const fallbackScope = deriveScopedIngestionFallbackScope(options);
   return messages.map((message) => {
-    const raw = [...buildConversationAliases(message)]
+    const rawFromAlias = [...buildConversationAliases(message)]
       .map((alias) => lookup.get(alias))
-      .find(Boolean);
+      .find((candidate) => {
+        if (!candidate) return false;
+        if (!fallbackScope) return true;
+        return messageMatchesContactFormScope(candidate, fallbackScope);
+      });
+    const raw = rawFromAlias || findScopedIngestionFallback(message, rawMessages, options);
     if (!raw) return message;
     const preview =
       normalizeText(message.bodyPreview) ||
@@ -1243,7 +1373,7 @@ function createCcoConversationRouter({
           contactScope
         );
         const sorted = truthMessages.length
-          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore)
+          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore, contactScope)
           : fetchSortedIngestionConversationMessagesForKeys(
               mailIngestionStore,
               lookupKeys,
@@ -1256,6 +1386,7 @@ function createCcoConversationRouter({
           const mailboxId = normalizeText(safe.mailboxId) || null;
           const mailboxAddress = normalizeText(safe.mailboxAddress) || mailboxId;
           const attachments = collectConversationAttachments(safe);
+          const bodyHtml = rewriteMailCidImageSources(deriveBodyHtml(safe), attachments);
           return {
             id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
             from,
@@ -1265,7 +1396,7 @@ function createCcoConversationRouter({
             dir: deriveDir(safe.folderType),
             time: deriveTime(safe),
             body: deriveBody(safe),
-            bodyHtml: deriveBodyHtml(safe) || null,
+            bodyHtml: bodyHtml || null,
             subject: normalizeText(safe.subject) || null,
             mailboxId,
             mailboxAddress: mailboxAddress || null,
@@ -2697,6 +2828,7 @@ module.exports = {
   fetchSortedIngestionConversationMessagesForKeys,
   enrichConversationMessagesWithIngestion,
   parseConversationContactScopeQuery,
+  rewriteMailCidImageSources,
   deriveBodyHtml,
   collectConversationAttachments,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
