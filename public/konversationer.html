@@ -3812,18 +3812,42 @@
         renderLivePaneStatus('Laddar Konversationer', 'Hämtar CCO-trådar från CCO-pipelinen.');
       }
 
+      // Diagnostik: worklist-consumern kan svara med olika statuskoder som förr
+      // alla kollapsade till en generisk "kunde inte laddas". Vi visar den exakta
+      // orsaken så fel kan pekas ut utan DevTools, och skiljer övergående lägen
+      // (token ännu inte satt / pipeline ej redo) från permanenta (fel roll).
+      function describeWorklistFailure(status) {
+        if (status === 401)
+          return 'Inloggning krävs (HTTP 401) — admin-token saknas eller är utgången.';
+        if (status === 403)
+          return 'Åtkomst nekad (HTTP 403) — inloggad roll/tenant saknar behörighet till kons@.';
+        if (status === 503)
+          return 'Worklist-data ej tillgänglig ännu (HTTP 503) — pipelinen har inga rader för kons@.';
+        if (status === 500) return 'Serverfel (HTTP 500) — worklist-consumer kunde inte byggas.';
+        if (status > 0) return `Oväntat svar (HTTP ${status}) från CCO-worklist.`;
+        return 'Nätverksfel — nådde inte CCO-worklist.';
+      }
+
+      const LIVE_INBOX_MAX_ATTEMPTS = 5;
+      let liveInboxAttempt = 0;
+      let liveInboxRetryTimer = null;
+
       async function loadLiveInbox() {
         if (window.location.protocol === 'file:') return;
+        clearTimeout(liveInboxRetryTimer);
+        let failureStatus = 0;
         try {
           const response = await fetch(LIVE_WORKLIST_URL, {
             credentials: 'include',
             headers: withAdminAuthHeaders({ Accept: 'application/json' }),
           });
           if (!response.ok) {
+            failureStatus = response.status;
             throw new Error(
               response.status === 401 ? 'login_required' : `worklist_${response.status}`
             );
           }
+          liveInboxAttempt = 0;
           const payload = await response.json();
           const rows = Array.isArray(payload?.rows) ? payload.rows : [];
           currentThreads = rows.map(normalizeLiveThread);
@@ -3850,24 +3874,41 @@
         } catch (error) {
           console.warn('[cco-live-inbox] worklist kunde inte laddas', error);
           currentThreads = [];
-          renderLiveInboxStatus(
-            'CCO-inkorg kunde inte laddas',
-            'Kontrollera inloggning och CCO-worklist. Demo visas inte i admin/webb.',
-            'error'
-          );
-          renderLivePaneStatus(
-            'CCO-inkorg kunde inte laddas',
-            'Kontrollera inloggning och CCO-worklist. Demo visas inte i admin/webb.',
-            'error'
-          );
+          const detail = describeWorklistFailure(failureStatus);
+          // Övergående lägen: token ännu inte skriven av admin-skalet (401),
+          // pipeline ej redo (503) eller nätverksglapp (0) — försök igen med
+          // backoff. Permanenta lägen (403/500) visas direkt som fel.
+          const retriable = failureStatus === 0 || failureStatus === 401 || failureStatus === 503;
+          if (retriable && liveInboxAttempt < LIVE_INBOX_MAX_ATTEMPTS) {
+            liveInboxAttempt += 1;
+            const waitMs = Math.min(4000, 400 * 2 ** (liveInboxAttempt - 1));
+            const retryNote = `${detail} Försöker igen (${liveInboxAttempt}/${LIVE_INBOX_MAX_ATTEMPTS})…`;
+            renderLiveInboxStatus('Laddar CCO-inkorg', retryNote, 'info');
+            renderLivePaneStatus('Laddar CCO-inkorg', retryNote);
+            liveInboxRetryTimer = setTimeout(loadLiveInbox, waitMs);
+            return;
+          }
+          const message = `${detail} Demo visas inte i admin/webb.`;
+          renderLiveInboxStatus('CCO-inkorg kunde inte laddas', message, 'error');
+          renderLivePaneStatus('CCO-inkorg kunde inte laddas', message, 'error');
           if (window.CCOPolish?.showToast) {
             window.CCOPolish.showToast(
-              'CCO-inkorg kunde inte laddas — demo är avstängd i webb/admin.',
+              `CCO-inkorg kunde inte laddas (${detail}) — demo är avstängd i webb/admin.`,
               'warning'
             );
           }
         }
       }
+
+      // När admin-skalet skriver ARCANA_ADMIN_TOKEN efter inloggning (ett annat
+      // dokument än denna iframe) återhämtar vi inkorgen automatiskt utan
+      // sidladdning. storage-event fyras endast i andra dokument än skrivaren.
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'ARCANA_ADMIN_TOKEN' && normalizeText(event.newValue)) {
+          liveInboxAttempt = 0;
+          loadLiveInbox();
+        }
+      });
 
       loadLiveInbox();
 
