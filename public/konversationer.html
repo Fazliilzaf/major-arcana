@@ -2614,8 +2614,48 @@
             )
               return true;
             const memberScope = parseScopedContactFormKey(item);
-            return memberScope.scoped || memberScope.baseKey !== primaryScope.baseKey;
+            if (memberScope.baseKey !== primaryScope.baseKey) return true;
+            if (!memberScope.scoped) return false;
+            if (primaryScope.email) return memberScope.email === primaryScope.email;
+            if (primaryScope.reference) return memberScope.reference === primaryScope.reference;
+            return false;
           });
+      }
+
+      function looksLikeContactFormThread(row = {}) {
+        const text = [
+          row.subject,
+          row.preview,
+          row.queueExplanatoryLine,
+          row.presentation?.primaryLabel,
+          row.presentation?.secondaryLabel,
+          row.presentation?.contactLabel,
+          row.presentation?.explanatoryLine,
+        ]
+          .map((item) => normalizeText(item).toLowerCase())
+          .filter(Boolean)
+          .join(' ');
+        return (
+          /kontaktformul[aä]r|contact\s*form/.test(text) ||
+          (/e-?post\s*[:：]/.test(text) && /telefon\s*[:：]/.test(text)) ||
+          /hur kan vi hj[aä]lpa dig/.test(text)
+        );
+      }
+
+      function contactFormReferenceForThread(
+        row = {},
+        name = '',
+        customerEmail = '',
+        primaryScope = {}
+      ) {
+        if (primaryScope.reference) return primaryScope.reference;
+        if (customerEmail || !looksLikeContactFormThread(row)) return '';
+        const candidate =
+          normalizeText(row.presentation?.primaryLabel) ||
+          normalizeText(row.customer?.name) ||
+          normalizeText(name);
+        if (!candidate || firstEmailValue(candidate) || isHairTpMailboxEmail(candidate)) return '';
+        return candidate;
       }
 
       function firstCustomerEmailValue(...values) {
@@ -2741,6 +2781,12 @@
           normalizeText(row.mailboxConversationId) ||
           normalizeText(row.conversationId);
         const primaryScope = parseScopedContactFormKey(primaryConversationKey);
+        const contactReference = contactFormReferenceForThread(
+          row,
+          name,
+          customerEmail,
+          primaryScope
+        );
         const source = compactMailbox(mailboxAddress);
         const tags = [];
         if (state.hasUnreadInbound || state.needsReply)
@@ -2778,7 +2824,7 @@
             normalizeText(customer.id) ||
             normalizeText(row.customerId),
           customerEmail,
-          contactReference: primaryScope.reference || '',
+          contactReference,
           customerPhone: normalizeText(customer.phone || customer.phoneNumber),
           tags,
           unread: state.hasUnreadInbound || state.needsReply,

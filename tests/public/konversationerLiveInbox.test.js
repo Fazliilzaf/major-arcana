@@ -87,6 +87,10 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /function parseScopedContactFormKey\(value\)/);
   assert.match(html, /function scopedMemberKeysForThread\(primaryKey, keys = \[\]\)/);
   assert.match(html, /::contact-form-ref:/);
+  assert.match(html, /if \(memberScope\.baseKey !== primaryScope\.baseKey\) return true/);
+  assert.match(html, /if \(!memberScope\.scoped\) return false/);
+  assert.match(html, /memberScope\.email === primaryScope\.email/);
+  assert.match(html, /memberScope\.reference === primaryScope\.reference/);
   assert.match(html, /messageLookupKeys/);
   assert.match(html, /rollup\.underlyingConversationKeys/);
   assert.match(html, /rollup\.underlyingConversationIds/);
@@ -105,7 +109,13 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /params\.set\('memberKeys', lookupKeys\.join\(','\)\)/);
   assert.match(html, /const scopedCustomerEmail = firstCustomerEmailValue\(/);
   assert.match(html, /params\.set\('customerEmail', scopedCustomerEmail\)/);
-  assert.match(html, /contactReference:\s*primaryScope\.reference \|\| ''/);
+  assert.match(html, /function looksLikeContactFormThread\(row = \{\}\)/);
+  assert.match(
+    html,
+    /function contactFormReferenceForThread\(\s*row = \{\},\s*name = '',\s*customerEmail = '',\s*primaryScope = \{\}\s*\)/
+  );
+  assert.match(html, /const contactReference = contactFormReferenceForThread\(/);
+  assert.match(html, /contactReference,/);
   assert.match(html, /const scopedContactReference = normalizeText\(/);
   assert.match(html, /params\.set\('contactReference', scopedContactReference\)/);
   assert.match(
