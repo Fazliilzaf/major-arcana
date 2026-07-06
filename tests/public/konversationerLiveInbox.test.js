@@ -68,6 +68,44 @@ test('konversationer web/admin shows explicit live STOP states instead of demo f
   assert.match(html, /demo är avstängd i webb\/admin/);
 });
 
+test('konversationer inbox surfaces the exact worklist failure status instead of a generic error', () => {
+  const html = readHtml();
+
+  assert.match(html, /function describeWorklistFailure\(status\)/);
+  // Varje statuskod pekar på ett eget spår (auth / roll / data / server) och
+  // måste synas i UI:t så fel kan diagnosticeras utan DevTools.
+  assert.match(html, /HTTP 401/);
+  assert.match(html, /HTTP 403/);
+  assert.match(html, /HTTP 503/);
+  assert.match(html, /HTTP 500/);
+  assert.match(html, /Nätverksfel — nådde inte CCO-worklist/);
+  assert.match(html, /const detail = describeWorklistFailure\(failureStatus\)/);
+  // STOP-strängarna får inte tappas bort av diagnostiken.
+  assert.match(html, /Demo visas inte i admin\/webb/);
+  assert.match(html, /Detta är ett STOP-läge, inte demo/);
+  assert.match(html, /demo är avstängd i webb\/admin/);
+});
+
+test('konversationer inbox retries transient failures and recovers when the admin token arrives', () => {
+  const html = readHtml();
+
+  // Övergående lägen (token ej satt än / pipeline ej redo / nätverksglapp)
+  // ska försökas igen med backoff; permanenta (403/500) visas direkt.
+  assert.match(html, /const LIVE_INBOX_MAX_ATTEMPTS = 5/);
+  assert.match(
+    html,
+    /const retriable =\s*failureStatus === 0 \|\| failureStatus === 401 \|\| failureStatus === 503/
+  );
+  assert.match(html, /const waitMs = Math\.min\(4000, 400 \* 2 \*\* \(liveInboxAttempt - 1\)\)/);
+  assert.match(html, /liveInboxRetryTimer = setTimeout\(loadLiveInbox, waitMs\)/);
+  // Admin-skalet skriver token i ett annat dokument — iframe:n lyssnar och
+  // laddar om utan sidladdning.
+  assert.match(
+    html,
+    /window\.addEventListener\('storage', \(event\) => \{[\s\S]*event\.key === 'ARCANA_ADMIN_TOKEN'[\s\S]*loadLiveInbox\(\)/
+  );
+});
+
 test('konversationer inbox tabs are explicit filters for live rows', () => {
   const html = readHtml();
 
@@ -236,7 +274,10 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /msg-attachment-preview/);
   assert.match(html, /target="_blank"/);
   assert.match(html, /msg-bubble--html msg-bubble-rich/);
-  assert.match(html, /\$\{renderMessageBubbleInner\(message\)\}[\s\S]*\$\{renderMessageAttachments\(message\)\}/);
+  assert.match(
+    html,
+    /\$\{renderMessageBubbleInner\(message\)\}[\s\S]*\$\{renderMessageAttachments\(message\)\}/
+  );
   assert.match(html, /msg-attachments/);
 });
 
