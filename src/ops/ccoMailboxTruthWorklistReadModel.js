@@ -6,6 +6,7 @@ const {
 } = require('./ccoCounterpartyTruth');
 const {
   isClinicEmail,
+  parseContactFormScopedConversationKey,
   resolveContactFormIdentity,
   resolveContactFormScopeIdentity,
   scopeContactFormConversationKey,
@@ -425,6 +426,29 @@ function countSafeIdentityRows(rows = []) {
     .length;
 }
 
+function isContactFormScopedWorklistRow(row = {}) {
+  const safeRow = asObject(row);
+  const key = normalizeText(safeRow.conversationKey || safeRow.id || '');
+  if (!key) return false;
+  return parseContactFormScopedConversationKey(key).scoped === true;
+}
+
+function isUnsafeContactFormCustomerEmail(email = '') {
+  const normalized = extractEmail(email) || normalizeText(email).toLowerCase();
+  return !normalized || isClinicEmail(normalized) || normalized.includes('wordpress');
+}
+
+function pickWorklistCustomerEmail(row = {}, candidates = []) {
+  const contactFormScoped = isContactFormScopedWorklistRow(row);
+  for (const candidate of asArray(candidates)) {
+    const email = extractEmail(candidate);
+    if (!email) continue;
+    if (contactFormScoped && isUnsafeContactFormCustomerEmail(email)) continue;
+    return email;
+  }
+  return '';
+}
+
 function isOutOfScopeDraftReview(row = {}) {
   const safeRow = asObject(row);
   return (
@@ -457,10 +481,11 @@ function getWorklistMergeIdentityKey(row = {}) {
       value: chosen.value,
     };
   }
-  const emailFallback =
-    extractEmail(row.customerEmail) ||
-    extractEmail(row.customer?.email) ||
-    extractEmail(identity.customerEmail);
+  const emailFallback = pickWorklistCustomerEmail(row, [
+    row.customerEmail,
+    row.customer?.email,
+    identity.customerEmail,
+  ]);
   if (emailFallback) {
     const mailboxScope = normalizeMailboxId(row.ownershipMailbox || row.mailboxId || '');
     return {
@@ -677,13 +702,13 @@ function buildWorklistRollupRow(rows = []) {
     normalizeText(primaryRow?.counterpartyLabel) ||
     normalizeText(primaryRow?.identity?.customerName) ||
     '';
-  const customerEmail =
-    normalizeText(primaryRow?.customerEmail) ||
-    normalizeText(primaryRow?.senderEmail) ||
-    normalizeText(primaryRow?.fromEmail) ||
-    normalizeText(primaryRow?.from?.address) ||
-    normalizeText(primaryRow?.from?.emailAddress?.address) ||
-    '';
+  const customerEmail = pickWorklistCustomerEmail(primaryRow, [
+    primaryRow?.customerEmail,
+    primaryRow?.senderEmail,
+    primaryRow?.fromEmail,
+    primaryRow?.from?.address,
+    primaryRow?.from?.emailAddress?.address,
+  ]);
   // Sista fallback: humanize email-delen (john.doe@x → "John Doe"), annars användarnamn
   const customerNameWithFallback =
     customerName ||
