@@ -17,7 +17,10 @@ test('admin#cco embeds canonical konversationer.html surface', () => {
   const js = read(ADMIN_JS);
 
   assert.match(html, /id="ccoPreviewEmbedFrame"/);
-  assert.match(html, /data-src="\/konversationer\.html"/);
+  // Iframe-URL:en bär build-id som query så varje deploy ger en ny URL —
+  // annars serverar CDN/browser gammal konversationer.html efter deploy.
+  // __ARCANA_UI_BUILD__ ersätts med aktuell build vid rendering av admin.html.
+  assert.match(html, /data-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__"/);
   assert.doesNotMatch(html, /data-src="\/major-arcana-preview/);
 
   assert.match(js, /const CCO_PREVIEW_PRIMARY_PATH = '\/konversationer\.html';/);
