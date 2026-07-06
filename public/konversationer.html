@@ -2644,6 +2644,71 @@
           .slice(0, 160);
       }
 
+      function contactFormTextSources(row = {}, name = '') {
+        return [
+          row.preview,
+          row.bodyPreview,
+          row.queueExplanatoryLine,
+          row.presentation?.secondaryLabel,
+          row.presentation?.contactLabel,
+          row.presentation?.explanatoryLine,
+          row.presentation?.primaryLabel,
+          row.subject,
+          row.customer?.name,
+          name,
+        ]
+          .map((item) => normalizeText(item))
+          .filter(Boolean);
+      }
+
+      function cleanContactFormName(value = '') {
+        return normalizeText(value)
+          .replace(/\[[^\]]+\]/g, '')
+          .replace(/<[^>]+>/g, '')
+          .replace(/\s+/g, ' ')
+          .replace(/^(?:re|sv|fw|fwd)\s*[:：]\s*/i, '')
+          .trim();
+      }
+
+      function isGenericContactFormName(value = '') {
+        const text = normalizeText(value).toLowerCase();
+        return (
+          !text ||
+          /@/.test(text) ||
+          /kontaktformul[aä]r|contact\s*form|ok[aä]nd kund|hair\s*tp|clinic|webbplats|wordpress/.test(
+            text
+          )
+        );
+      }
+
+      function extractContactFormNameFromText(value = '') {
+        const text = normalizeText(value).replace(/\s+/g, ' ');
+        const patterns = [
+          /(?:från|from)\s*[:：]\s*(.{2,90}?)(?=\s+(?:e-?post(?:adress)?|email|mail|telefon|phone|tel|hur kan vi hj[aä]lpa dig)\s*[:：]?|$)/i,
+          /(?:namn|name)\s*[:：]\s*(.{2,90}?)(?=\s+(?:e-?post(?:adress)?|email|mail|telefon|phone|tel)\s*[:：]?|$)/i,
+          /^(.{2,90}?)\s+(?:kontaktformul[aä]r|contact\s*form)\b/i,
+        ];
+        for (const pattern of patterns) {
+          const name = cleanContactFormName((text.match(pattern) || [])[1] || '');
+          if (name && !isGenericContactFormName(name)) return name;
+        }
+        return '';
+      }
+
+      function extractContactFormPhoneFromText(value = '') {
+        const text = normalizeText(value).replace(/\s+/g, ' ');
+        const match = text.match(/(?:telefon|phone|tel)\s*[:：]\s*([+\d][+\d\s().-]{4,40})/i);
+        return normalizeText(match && match[1]).replace(/\s+/g, ' ');
+      }
+
+      function contactFormReferenceFromText(value = '') {
+        const name = extractContactFormNameFromText(value);
+        const phone = extractContactFormPhoneFromText(value);
+        const safeName = normalizeContactFormReference(name);
+        const safePhone = normalizeContactFormReference(phone);
+        return [safeName, safePhone].filter(Boolean).join('--');
+      }
+
       function toContactFormReferenceScopedKey(baseKey = '', reference = '') {
         const key = normalizeText(baseKey);
         const ref = normalizeContactFormReference(reference);
@@ -2703,11 +2768,21 @@
       ) {
         if (primaryScope.reference) return primaryScope.reference;
         if (customerEmail || !looksLikeContactFormThread(row)) return '';
+        for (const source of contactFormTextSources(row, name)) {
+          const reference = contactFormReferenceFromText(source);
+          if (reference) return reference;
+        }
         const candidate =
-          normalizeText(row.presentation?.primaryLabel) ||
-          normalizeText(row.customer?.name) ||
-          normalizeText(name);
-        if (!candidate || firstEmailValue(candidate) || isHairTpMailboxEmail(candidate)) return '';
+          cleanContactFormName(row.presentation?.primaryLabel) ||
+          cleanContactFormName(row.customer?.name) ||
+          cleanContactFormName(name);
+        if (
+          !candidate ||
+          isGenericContactFormName(candidate) ||
+          firstEmailValue(candidate) ||
+          isHairTpMailboxEmail(candidate)
+        )
+          return '';
         return normalizeContactFormReference(candidate);
       }
 

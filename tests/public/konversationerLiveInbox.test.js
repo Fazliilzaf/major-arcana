@@ -148,6 +148,35 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   );
 });
 
+test('kontaktformulär utan kundmail scopas från formulärtexten, inte generisk rubrik', () => {
+  const html = readHtml();
+
+  assert.match(html, /function contactFormTextSources\(row = \{\}, name = ''\)/);
+  assert.match(html, /function extractContactFormNameFromText\(value = ''\)/);
+  assert.match(html, /function extractContactFormPhoneFromText\(value = ''\)/);
+  assert.match(html, /function contactFormReferenceFromText\(value = ''\)/);
+  assert.match(
+    html,
+    /const safeName = normalizeContactFormReference\(name\);[\s\S]*const safePhone = normalizeContactFormReference\(phone\);[\s\S]*\.join\('--'\)/,
+    'frontend scope måste matcha backendens namn--telefon-format'
+  );
+  assert.match(
+    html,
+    /row\.preview,[\s\S]*row\.bodyPreview,[\s\S]*row\.queueExplanatoryLine/,
+    'kontaktformulär måste läsa preview/bodyPreview före fallback-rubrik'
+  );
+  assert.match(
+    html,
+    /\(\?:från\|from\)\\s\*\[:：\]\\s\*\(\.\{2,90\}\?\)/,
+    'namnet ska kunna hämtas ur "Från: Namn E-post: ..."'
+  );
+  assert.match(
+    html,
+    /kontaktformul\[aä\]r\|contact\\s\*form\|ok\[aä\]nd kund/,
+    'generiska kontaktformulär-rubriker ska inte bli scope'
+  );
+});
+
 test('konversationer renders full mail html and attachments safely', () => {
   const html = readHtml();
 
