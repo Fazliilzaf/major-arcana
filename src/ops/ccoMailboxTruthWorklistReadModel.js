@@ -21,6 +21,10 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function uniqueNormalizedTexts(values = []) {
+  return Array.from(new Set(asArray(values).map(normalizeText).filter(Boolean)));
+}
+
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
@@ -645,6 +649,20 @@ function buildWorklistRollupRow(rows = []) {
   const uniqueConversationKeys = Array.from(
     new Set(safeRows.map((row) => normalizeText(row?.conversationKey || row?.id)).filter(Boolean))
   );
+  const uniqueMessageIds = uniqueNormalizedTexts(
+    safeRows.flatMap((row) => [
+      row?.latestMessageId,
+      row?.messageId,
+      ...(Array.isArray(row?.underlyingMessageIds) ? row.underlyingMessageIds : []),
+    ])
+  );
+  const uniqueGraphMessageIds = uniqueNormalizedTexts(
+    safeRows.flatMap((row) => [
+      row?.latestGraphMessageId,
+      row?.graphMessageId,
+      ...(Array.isArray(row?.underlyingGraphMessageIds) ? row.underlyingGraphMessageIds : []),
+    ])
+  );
   const rollupIdentity = getWorklistMergeIdentityKey(primaryRow) || {
     key: normalizeText(primaryRow?.conversationKey || primaryRow?.id || ''),
     type: 'conversationKey',
@@ -753,6 +771,10 @@ function buildWorklistRollupRow(rows = []) {
     conversationKey: effectiveConversationKey,
     conversationId: primaryRow?.conversationId || uniqueConversationIds[0] || null,
     mailboxConversationId: primaryRow?.mailboxConversationId || uniqueConversationIds[0] || null,
+    latestMessageId: primaryRow?.latestMessageId || uniqueMessageIds[0] || null,
+    latestGraphMessageId: primaryRow?.latestGraphMessageId || uniqueGraphMessageIds[0] || null,
+    underlyingMessageIds: uniqueMessageIds,
+    underlyingGraphMessageIds: uniqueGraphMessageIds,
     subject,
     latestPreview: preview,
     latestMessageAt,
@@ -783,7 +805,11 @@ function buildWorklistRollupRow(rows = []) {
       mailboxCount: uniqueMailboxIds.length,
       threadCount: uniqueConversationIds.length,
       underlyingConversationKeys: uniqueConversationKeys,
+      underlyingMessageIds: uniqueMessageIds,
+      underlyingGraphMessageIds: uniqueGraphMessageIds,
       primaryConversationId: primaryRow?.conversationId || null,
+      primaryMessageId: primaryRow?.latestMessageId || uniqueMessageIds[0] || null,
+      primaryGraphMessageId: primaryRow?.latestGraphMessageId || uniqueGraphMessageIds[0] || null,
       primaryMailboxId:
         normalizeMailboxId(
           primaryRow?.mailbox?.mailboxId ||
@@ -1065,12 +1091,20 @@ function createCcoMailboxTruthWorklistReadModel({
         hardConflictSignals: [],
         mergeReviewDecisionsByPairId: {},
         identityProvenance: null,
+        latestMessageId: null,
+        latestGraphMessageId: null,
+        underlyingMessageIds: [],
+        underlyingGraphMessageIds: [],
       };
 
       const folderType = normalizeText(message.folderType).toLowerCase();
       const direction = normalizeDirection(message.direction, folderType);
       const sortIso = deriveLatestSortIso(message);
+      const messageId = normalizeText(message.messageId || message.id || message.internetMessageId);
+      const graphMessageId = normalizeText(message.graphMessageId);
       entry.messageCount += 1;
+      if (messageId) entry.underlyingMessageIds.push(messageId);
+      if (graphMessageId) entry.underlyingGraphMessageIds.push(graphMessageId);
       if (folderType === 'inbox') entry.hasInbox = true;
       if (folderType === 'sent') entry.hasSent = true;
       if (folderType === 'drafts') entry.hasDrafts = true;
@@ -1095,6 +1129,8 @@ function createCcoMailboxTruthWorklistReadModel({
         entry.latestMessageAt = sortIso;
         entry.subject = normalizeText(message.subject) || entry.subject;
         entry.latestPreview = normalizeText(message.bodyPreview) || entry.latestPreview;
+        entry.latestMessageId = messageId || graphMessageId || entry.latestMessageId;
+        entry.latestGraphMessageId = graphMessageId || entry.latestGraphMessageId;
       }
       if (!entry.customerEmail) {
         const counterparty = deriveCounterparty(message, mailboxId);
@@ -1219,6 +1255,8 @@ function createCcoMailboxTruthWorklistReadModel({
 
         return {
           ...entry,
+          underlyingMessageIds: uniqueNormalizedTexts(entry.underlyingMessageIds),
+          underlyingGraphMessageIds: uniqueNormalizedTexts(entry.underlyingGraphMessageIds),
           ownershipMailbox: entry.mailboxId,
           deletedOnly,
           messageClassification,
@@ -1309,6 +1347,10 @@ function createCcoMailboxTruthWorklistReadModel({
         lane: row.lane || 'all',
         placementIndex: row.placementIndex,
         messageCount: row.messageCount,
+        latestMessageId: row.latestMessageId || null,
+        latestGraphMessageId: row.latestGraphMessageId || null,
+        underlyingMessageIds: row.underlyingMessageIds || [],
+        underlyingGraphMessageIds: row.underlyingGraphMessageIds || [],
         customerEmail: row.customerEmail,
         customerName: row.customerName,
         customerIdentity: row.customerIdentity,
@@ -1390,6 +1432,12 @@ function createCcoMailboxTruthWorklistReadModel({
             key: row.conversationKey,
             conversationId: row.conversationId,
             mailboxConversationId: row.mailboxConversationId,
+            messageId: row.latestMessageId || null,
+            graphMessageId: row.latestGraphMessageId || null,
+            latestMessageId: row.latestMessageId || null,
+            latestGraphMessageId: row.latestGraphMessageId || null,
+            underlyingMessageIds: row.underlyingMessageIds || [],
+            underlyingGraphMessageIds: row.underlyingGraphMessageIds || [],
           },
           mailbox: {
             mailboxId: row.mailboxId,
