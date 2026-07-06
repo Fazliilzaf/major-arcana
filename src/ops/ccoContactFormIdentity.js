@@ -117,6 +117,13 @@ function extractContactFormName(message = {}) {
   return '';
 }
 
+function extractContactFormPhone(message = {}) {
+  if (!looksLikeContactFormMessage(message)) return '';
+  const text = collectMessageText(message).replace(/\s+/g, ' ').trim();
+  const match = text.match(/(?:telefon|phone|tel)\s*[:：]\s*([+\d][+\d\s().-]{4,40})/i);
+  return normalizeText(match && match[1]).replace(/\s+/g, ' ');
+}
+
 function resolveContactFormIdentity(message = {}) {
   const email = extractContactFormEmail(message);
   if (!email) return null;
@@ -126,7 +133,39 @@ function resolveContactFormIdentity(message = {}) {
   };
 }
 
+function normalizeContactFormReference(value = '') {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/\[[^\]]+\]/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/[^a-z0-9åäöéèüñ+]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 160);
+}
+
+function buildContactFormReference({ name = '', phone = '' } = {}) {
+  const safeName = normalizeContactFormReference(name);
+  const safePhone = normalizeContactFormReference(phone);
+  return [safeName, safePhone].filter(Boolean).join('--');
+}
+
+function resolveContactFormScopeIdentity(message = {}) {
+  if (!looksLikeContactFormMessage(message)) return null;
+  const email = extractContactFormEmail(message);
+  const name = extractContactFormName(message);
+  const phone = extractContactFormPhone(message);
+  const reference = email ? '' : buildContactFormReference({ name, phone });
+  if (!email && !reference) return null;
+  return {
+    email: email || '',
+    name: name || null,
+    phone: phone || null,
+    reference,
+  };
+}
+
 const CONTACT_FORM_SCOPE_SEPARATOR = '::contact-form:';
+const CONTACT_FORM_REFERENCE_SCOPE_SEPARATOR = '::contact-form-ref:';
 
 function toContactFormScopedConversationKey(baseKey = '', email = '') {
   const safeBaseKey = normalizeText(baseKey);
@@ -135,11 +174,32 @@ function toContactFormScopedConversationKey(baseKey = '', email = '') {
   return `${safeBaseKey}${CONTACT_FORM_SCOPE_SEPARATOR}${encodeURIComponent(safeEmail)}`;
 }
 
+function toContactFormReferenceScopedConversationKey(baseKey = '', reference = '') {
+  const safeBaseKey = normalizeText(baseKey);
+  const safeReference = normalizeContactFormReference(reference);
+  if (!safeBaseKey || !safeReference) return safeBaseKey;
+  return `${safeBaseKey}${CONTACT_FORM_REFERENCE_SCOPE_SEPARATOR}${encodeURIComponent(safeReference)}`;
+}
+
 function parseContactFormScopedConversationKey(key = '') {
   const safeKey = normalizeText(key);
+  const referenceSeparatorIndex = safeKey.lastIndexOf(CONTACT_FORM_REFERENCE_SCOPE_SEPARATOR);
+  if (referenceSeparatorIndex >= 0) {
+    const baseKey = safeKey.slice(0, referenceSeparatorIndex);
+    const rawReference = safeKey.slice(
+      referenceSeparatorIndex + CONTACT_FORM_REFERENCE_SCOPE_SEPARATOR.length
+    );
+    let reference = '';
+    try {
+      reference = normalizeContactFormReference(decodeURIComponent(rawReference));
+    } catch (_err) {
+      reference = normalizeContactFormReference(rawReference);
+    }
+    return { scoped: true, baseKey, email: '', reference, scopeType: 'reference' };
+  }
   const separatorIndex = safeKey.lastIndexOf(CONTACT_FORM_SCOPE_SEPARATOR);
   if (separatorIndex < 0) {
-    return { scoped: false, baseKey: safeKey, email: '' };
+    return { scoped: false, baseKey: safeKey, email: '', reference: '', scopeType: '' };
   }
   const baseKey = safeKey.slice(0, separatorIndex);
   const rawEmail = safeKey.slice(separatorIndex + CONTACT_FORM_SCOPE_SEPARATOR.length);
@@ -149,7 +209,13 @@ function parseContactFormScopedConversationKey(key = '') {
   } catch (_err) {
     email = normalizeEmail(rawEmail);
   }
-  return { scoped: true, baseKey, email: isClinicEmail(email) ? '' : email };
+  return {
+    scoped: true,
+    baseKey,
+    email: isClinicEmail(email) ? '' : email,
+    reference: '',
+    scopeType: 'email',
+  };
 }
 
 function collectEmailCandidates(value, output = []) {
@@ -223,15 +289,26 @@ function resolveContactFormConversationEmail(message = {}, allowedEmails = null)
 
 function scopeContactFormConversationKey(baseKey = '', message = {}, allowedEmails = null) {
   const email = resolveContactFormConversationEmail(message, allowedEmails);
-  return email ? toContactFormScopedConversationKey(baseKey, email) : normalizeText(baseKey);
+  if (email) return toContactFormScopedConversationKey(baseKey, email);
+  const scopeIdentity = resolveContactFormScopeIdentity(message);
+  if (scopeIdentity?.reference) {
+    return toContactFormReferenceScopedConversationKey(baseKey, scopeIdentity.reference);
+  }
+  return normalizeText(baseKey);
 }
 
-function messageMatchesContactFormScope(message = {}, email = '') {
-  const safeEmail = normalizeEmail(email);
-  if (!safeEmail) return true;
+function messageMatchesContactFormScope(message = {}, scope = '') {
+  const safeScope = asObject(scope);
+  const safeEmail = normalizeEmail(typeof scope === 'string' ? scope : safeScope.email);
+  const safeReference = normalizeContactFormReference(
+    typeof scope === 'string' ? '' : safeScope.reference
+  );
+  if (!safeEmail && !safeReference) return true;
   const contactFormIdentity = resolveContactFormIdentity(message);
   if (contactFormIdentity?.email) return normalizeEmail(contactFormIdentity.email) === safeEmail;
-  return collectParticipantEmails(message).includes(safeEmail);
+  if (safeEmail) return collectParticipantEmails(message).includes(safeEmail);
+  const scopeIdentity = resolveContactFormScopeIdentity(message);
+  return normalizeContactFormReference(scopeIdentity?.reference) === safeReference;
 }
 
 module.exports = {
@@ -239,13 +316,17 @@ module.exports = {
   collectParticipantEmails,
   extractContactFormEmail,
   extractContactFormName,
+  extractContactFormPhone,
   isClinicEmail,
   looksLikeContactFormMessage,
   messageMatchesContactFormScope,
   normalizeEmail,
+  normalizeContactFormReference,
   parseContactFormScopedConversationKey,
   resolveContactFormIdentity,
   resolveContactFormConversationEmail,
+  resolveContactFormScopeIdentity,
   scopeContactFormConversationKey,
+  toContactFormReferenceScopedConversationKey,
   toContactFormScopedConversationKey,
 };

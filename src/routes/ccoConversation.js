@@ -395,6 +395,9 @@ function buildConversationLookupScopes(keys = [], options = {}) {
   const fallbackContactEmail = normalizeEmail(
     safeOptions.contactEmail || safeOptions.customerEmail || safeOptions.email
   );
+  const fallbackContactReference = normalizeText(
+    safeOptions.contactReference || safeOptions.customerReference || safeOptions.reference
+  ).toLowerCase();
   const scopes = asArray(keys)
     .map((rawKey) => {
       const requestedKey = normalizeText(rawKey);
@@ -404,23 +407,42 @@ function buildConversationLookupScopes(keys = [], options = {}) {
         requestedKey,
         baseKey: normalizeText(scopedKey.baseKey || requestedKey),
         contactEmail: normalizeText(scopedKey.email).toLowerCase(),
+        contactReference: normalizeText(scopedKey.reference).toLowerCase(),
       };
     })
     .filter(Boolean);
   const contactEmailByBaseKey = new Map();
+  const contactReferenceByBaseKey = new Map();
   for (const scope of scopes) {
     if (scope.baseKey && scope.contactEmail && !contactEmailByBaseKey.has(scope.baseKey)) {
       contactEmailByBaseKey.set(scope.baseKey, scope.contactEmail);
     }
+    if (scope.baseKey && scope.contactReference && !contactReferenceByBaseKey.has(scope.baseKey)) {
+      contactReferenceByBaseKey.set(scope.baseKey, scope.contactReference);
+    }
   }
-  if (contactEmailByBaseKey.size === 0 && !fallbackContactEmail) return scopes;
+  if (
+    contactEmailByBaseKey.size === 0 &&
+    contactReferenceByBaseKey.size === 0 &&
+    !fallbackContactEmail &&
+    !fallbackContactReference
+  ) {
+    return scopes;
+  }
   return scopes.map((scope) => {
     const scopedContactEmail = contactEmailByBaseKey.get(scope.baseKey);
+    const scopedContactReference = contactReferenceByBaseKey.get(scope.baseKey);
     if (scopedContactEmail && !scope.contactEmail) {
       return { ...scope, contactEmail: scopedContactEmail };
     }
+    if (scopedContactReference && !scope.contactEmail && !scope.contactReference) {
+      return { ...scope, contactReference: scopedContactReference };
+    }
     if (fallbackContactEmail && !scope.contactEmail) {
       return { ...scope, contactEmail: fallbackContactEmail };
+    }
+    if (fallbackContactReference && !scope.contactEmail && !scope.contactReference) {
+      return { ...scope, contactReference: fallbackContactReference };
     }
     return scope;
   });
@@ -432,8 +454,11 @@ function conversationMessageMatchesScopes(message = {}, scopes = []) {
   return scopes.some((scope) => {
     const aliasMatches = aliases.has(scope.requestedKey) || aliases.has(scope.baseKey);
     if (!aliasMatches) return false;
-    if (!scope.contactEmail) return true;
-    return messageMatchesContactFormScope(message, scope.contactEmail);
+    if (!scope.contactEmail && !scope.contactReference) return true;
+    return messageMatchesContactFormScope(message, {
+      email: scope.contactEmail,
+      reference: scope.contactReference,
+    });
   });
 }
 

@@ -271,6 +271,69 @@ test('worklist read model splits website contact forms even when Graph conversat
   );
 });
 
+test('worklist read model splits placeholder contact forms by submitted name when email is missing', () => {
+  const sharedMailboxConversationId = 'kons@hairtpclinic.com:wp-shared-thread';
+  const model = createCcoMailboxTruthWorklistReadModel({
+    store: {
+      listMessages() {
+        return [
+          {
+            mailboxId: 'kons@hairtpclinic.com',
+            mailboxAddress: 'kons@hairtpclinic.com',
+            userPrincipalName: 'kons@hairtpclinic.com',
+            mailboxConversationId: sharedMailboxConversationId,
+            conversationId: 'wp-shared-thread',
+            graphMessageId: 'wp-msg-sudarshan',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Sudarshan Kontaktformulär',
+            bodyText:
+              'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hej, jag behöver hjälp.',
+            from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+            receivedAt: '2026-07-05T10:00:00.000Z',
+          },
+          {
+            mailboxId: 'kons@hairtpclinic.com',
+            mailboxAddress: 'kons@hairtpclinic.com',
+            userPrincipalName: 'kons@hairtpclinic.com',
+            mailboxConversationId: sharedMailboxConversationId,
+            conversationId: 'wp-shared-thread',
+            graphMessageId: 'wp-msg-blend',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Blend Bytyci Kontaktformulär',
+            bodyText:
+              'Från: Blend Bytyci E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Jag vill boka tid.',
+            from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+            receivedAt: '2026-07-05T11:00:00.000Z',
+          },
+        ];
+      },
+    },
+  });
+
+  const consumer = model.buildConsumerModel({
+    mailboxIds: ['kons@hairtpclinic.com'],
+  });
+
+  assert.equal(consumer.rows.length, 2);
+  assert.deepEqual(consumer.rows.map((row) => row.customer.name).sort(), [
+    'Blend Bytyci',
+    'Sudarshan',
+  ]);
+  assert.equal(new Set(consumer.rows.map((row) => row.id)).size, 2);
+  assert.equal(
+    consumer.rows.every((row) => row.id.includes('::contact-form-ref:')),
+    true
+  );
+  assert.equal(
+    consumer.rows.some((row) => row.customer.email === 'wordpress@hairtpclinic.se'),
+    false
+  );
+});
+
 test('worklist consumer visar besvarade kundtrådar i Alla utan needsReply', () => {
   const model = createCcoMailboxTruthWorklistReadModel({
     store: {

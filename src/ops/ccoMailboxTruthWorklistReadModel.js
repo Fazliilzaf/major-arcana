@@ -5,7 +5,9 @@ const {
   resolveCounterpartyIdentity,
 } = require('./ccoCounterpartyTruth');
 const {
+  isClinicEmail,
   resolveContactFormIdentity,
+  resolveContactFormScopeIdentity,
   scopeContactFormConversationKey,
 } = require('./ccoContactFormIdentity');
 const { classifyConversationMessage } = require('../intelligence/messageClassification');
@@ -382,14 +384,14 @@ function deriveCounterparty(message = {}, mailboxId = '') {
     }
   }
   if (direction === 'inbound' || folderType === 'inbox') {
-    const contactFormIdentity = resolveContactFormIdentity(safeMessage);
-    if (contactFormIdentity?.email) {
+    const contactFormIdentity = resolveContactFormScopeIdentity(safeMessage);
+    if (contactFormIdentity?.email || contactFormIdentity?.name) {
       const displayName =
         normalizeText(contactFormIdentity.name) ||
-        humanizeCounterpartyEmail(contactFormIdentity.email) ||
+        (contactFormIdentity.email ? humanizeCounterpartyEmail(contactFormIdentity.email) : '') ||
         contactFormIdentity.email;
       return {
-        email: contactFormIdentity.email,
+        email: contactFormIdentity.email || null,
         name: displayName,
         rawName: normalizeText(contactFormIdentity.name) || null,
         fallbackLabel: displayName,
@@ -1078,6 +1080,7 @@ function createCcoMailboxTruthWorklistReadModel({
       // är satt, eftersom customerName kan vara null även när email finns.
       // Testa alla legacy-fält (senderEmail/senderName/counterpartyEmail/from.address).
       if (!entry.customerName || !entry.customerEmail) {
+        const contactFormIdentity = resolveContactFormScopeIdentity(message);
         const flatEmail =
           normalizeText(message?.senderEmail) ||
           normalizeText(message?.counterpartyEmail) ||
@@ -1093,10 +1096,17 @@ function createCcoMailboxTruthWorklistReadModel({
           normalizeText(message?.from?.emailAddress?.name) ||
           normalizeText(message?.sender?.emailAddress?.name) ||
           '';
-        if (!entry.customerEmail && flatEmail) {
+        if (
+          !entry.customerEmail &&
+          flatEmail &&
+          !(contactFormIdentity && isClinicEmail(flatEmail))
+        ) {
           entry.customerEmail = flatEmail.toLowerCase();
         }
-        if (!entry.customerName && flatName) {
+        if (!entry.customerName && contactFormIdentity?.name) {
+          entry.customerName = contactFormIdentity.name;
+        }
+        if (!entry.customerName && flatName && !contactFormIdentity?.name) {
           entry.customerName = flatName;
         }
         // Sista utvägen: om vi har email men ingen name, humanize email.
