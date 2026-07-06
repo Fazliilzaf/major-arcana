@@ -2754,6 +2754,36 @@
           .filter((item, index, all) => all.indexOf(item) === index);
       }
 
+      function scopedLookupKeysForOpenThread(thread, keys = []) {
+        const safeThread = thread || {};
+        const threadScope = parseScopedContactFormKey(safeThread.conversationKey);
+        const baseConversationKey = normalizeText(
+          threadScope.baseKey || safeThread.conversationKey
+        );
+        const scopedCustomerEmail = firstCustomerEmailValue(
+          safeThread.customerEmail,
+          safeThread.email,
+          safeThread.fromEmail,
+          safeThread.senderEmail,
+          safeThread.replyToEmail
+        );
+        const scopedContactReference = normalizeContactFormReference(
+          safeThread.contactReference || threadScope.reference
+        );
+        const hasEmailScope = Boolean(scopedCustomerEmail || threadScope.email);
+        const hasReferenceScope = Boolean(!hasEmailScope && scopedContactReference);
+        const scopedPrimaryKey =
+          hasEmailScope || hasReferenceScope
+            ? hasEmailScope
+              ? toContactFormScopedKey(
+                  baseConversationKey,
+                  scopedCustomerEmail || threadScope.email
+                )
+              : toContactFormReferenceScopedKey(baseConversationKey, scopedContactReference)
+            : baseConversationKey;
+        return scopedMemberKeysForThread(scopedPrimaryKey, keys);
+      }
+
       function looksLikeContactFormThread(row = {}) {
         const text = [
           row.subject,
@@ -3437,11 +3467,28 @@
 
       function messageBodyText(message) {
         const preview = firstMailText(message?.bodyPreview, message?.preview, message?.snippet);
+        const rawJson = message && typeof message.rawJson === 'object' ? message.rawJson : null;
+        const mailDocument =
+          message && typeof message.mailDocument === 'object' ? message.mailDocument : null;
+        const rawBody = rawJson && typeof rawJson.body === 'object' ? rawJson.body : null;
+        const rawUniqueBody =
+          rawJson && typeof rawJson.uniqueBody === 'object' ? rawJson.uniqueBody : null;
+        const body = message && typeof message.body === 'object' ? message.body : null;
+        const uniqueBody =
+          message && typeof message.uniqueBody === 'object' ? message.uniqueBody : null;
         return [
+          mailDocument?.primaryBodyText,
+          mailDocument?.bodyText,
+          rawJson?.bodyText,
+          rawJson?.body_text,
           message?.bodyText,
           message?.body_text,
           message?.text,
           message?.fullText,
+          rawBody,
+          rawUniqueBody,
+          body,
+          uniqueBody,
           message?.body,
           message?.bodyPreview,
           message?.preview,
@@ -3453,10 +3500,24 @@
         const body = message && typeof message.body === 'object' ? message.body : null;
         const uniqueBody =
           message && typeof message.uniqueBody === 'object' ? message.uniqueBody : null;
+        const rawJson = message && typeof message.rawJson === 'object' ? message.rawJson : null;
+        const rawBody = rawJson && typeof rawJson.body === 'object' ? rawJson.body : null;
+        const rawUniqueBody =
+          rawJson && typeof rawJson.uniqueBody === 'object' ? rawJson.uniqueBody : null;
+        const mailDocument =
+          message && typeof message.mailDocument === 'object' ? message.mailDocument : null;
         return firstMailText(
+          mailDocument?.primaryBodyHtml,
+          mailDocument?.bodyHtml,
           message?.bodyHtml,
           message?.body_html,
           message?.html,
+          rawJson?.bodyHtml,
+          rawJson?.body_html,
+          rawBody && /html/i.test(String(rawBody.contentType || '')) ? rawBody.content : '',
+          rawUniqueBody && /html/i.test(String(rawUniqueBody.contentType || ''))
+            ? rawUniqueBody.content
+            : '',
           body && /html/i.test(String(body.contentType || '')) ? body.content : '',
           uniqueBody && /html/i.test(String(uniqueBody.contentType || '')) ? uniqueBody.content : ''
         );
@@ -3574,7 +3635,7 @@
         setSvarstudioLiveContext(thread, []);
         renderThreadLoading(thread);
         try {
-          const lookupKeys = (
+          const rawLookupKeys = (
             Array.isArray(thread.memberKeys) && thread.memberKeys.length
               ? thread.memberKeys
               : Array.isArray(thread.messageLookupKeys)
@@ -3586,6 +3647,7 @@
             .filter((item) => item !== normalizeText(thread.conversationKey))
             .filter((item, index, all) => all.indexOf(item) === index)
             .slice(0, 50);
+          const lookupKeys = scopedLookupKeysForOpenThread(thread, rawLookupKeys).slice(0, 50);
           const params = new URLSearchParams();
           if (lookupKeys.length) params.set('memberKeys', lookupKeys.join(','));
           const scopedCustomerEmail = firstCustomerEmailValue(

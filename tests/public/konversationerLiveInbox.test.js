@@ -86,6 +86,7 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /function openConversationThread\(thread\)/);
   assert.match(html, /function parseScopedContactFormKey\(value\)/);
   assert.match(html, /function scopedMemberKeysForThread\(primaryKey, keys = \[\]\)/);
+  assert.match(html, /function scopedLookupKeysForOpenThread\(thread, keys = \[\]\)/);
   assert.match(html, /::contact-form-ref:/);
   assert.match(html, /function toContactFormScopedKey\(baseKey = '', email = ''\)/);
   assert.match(html, /if \(memberScope\.scoped\) \{/);
@@ -93,6 +94,18 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   assert.match(html, /memberScope\.reference === primaryScope\.reference/);
   assert.match(html, /return toContactFormScopedKey\(item, primaryScope\.email\)/);
   assert.match(html, /return toContactFormReferenceScopedKey\(item, primaryScope\.reference\)/);
+  assert.match(
+    html,
+    /const baseConversationKey = normalizeText\(\s*threadScope\.baseKey \|\| safeThread\.conversationKey\s*\)/
+  );
+  assert.match(
+    html,
+    /toContactFormScopedKey\(\s*baseConversationKey,\s*scopedCustomerEmail \|\| threadScope\.email\s*\)/
+  );
+  assert.match(
+    html,
+    /toContactFormReferenceScopedKey\(baseConversationKey, scopedContactReference\)/
+  );
   assert.match(html, /messageLookupKeys/);
   assert.match(html, /const messageIdentityKeys = \[/);
   assert.match(html, /conversation\.underlyingMessageIds/);
@@ -121,6 +134,11 @@ test('konversationer live row opens real conversation messages endpoint', () => 
     /memberKeys:\s*scopedMemberKeysForThread\(primaryConversationKey,\s*messageLookupKeys\)\.slice\(\s*0,\s*50\s*\)/
   );
   assert.match(html, /const params = new URLSearchParams\(\)/);
+  assert.match(html, /const rawLookupKeys = \(/);
+  assert.match(
+    html,
+    /const lookupKeys = scopedLookupKeysForOpenThread\(thread, rawLookupKeys\)\.slice\(0, 50\)/
+  );
   assert.match(html, /params\.set\('memberKeys', lookupKeys\.join\(','\)\)/);
   assert.match(html, /const scopedCustomerEmail = firstCustomerEmailValue\(/);
   assert.match(html, /params\.set\('customerEmail', scopedCustomerEmail\)/);
@@ -198,6 +216,12 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /message\?\.bodyHtml/);
   assert.match(html, /message\?\.body_html/);
   assert.match(html, /message\?\.html/);
+  assert.match(html, /mailDocument\?\.primaryBodyText/);
+  assert.match(html, /mailDocument\?\.primaryBodyHtml/);
+  assert.match(html, /rawJson\?\.bodyText/);
+  assert.match(html, /rawJson\?\.bodyHtml/);
+  assert.match(html, /rawBody/);
+  assert.match(html, /rawUniqueBody/);
   assert.match(html, /message\?\.body_text/);
   assert.match(html, /message\?\.bodyPreview/);
   assert.match(html, /const text = messageBodyText\(message\)/);
