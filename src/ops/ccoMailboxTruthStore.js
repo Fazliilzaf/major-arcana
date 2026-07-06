@@ -265,18 +265,46 @@ function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
       graphMessageId,
     });
 
-  // SLIMMA — rå body-text tas aldrig in i truth-store. Rik HTML med inline-
-  // assets behålls däremot som reparationshint för CCO:s läsyta.
-  // bodyPreview cap:as till 500 tecken (räcker för worklist-preview).
+  // FULL MAIL LOKALT (Mac Mail-modell): hela mailet lagras i truth-store så
+  // CCO:s läsyta visar allt (text, signatur, loggor, bilder) utan live-hämtning.
+  // Vi extraherar en full plain-text OCH full HTML ur alla källor och cap:ar
+  // varje fält generöst mot runaway (skyddar V8:s JSON.stringify-storlek). De rå
+  // Graph-objekten (body/uniqueBody/mailDocument) släpps eftersom text/HTML redan
+  // extraherats; bilagornas metadata i rest behålls oförändrad.
+  const MAX_BODY_CHARS = 200000;
   const { body, uniqueBody, body_text, body_html, mailDocument, ...rest } = safeMessage;
-  if (rest.bodyPreview && typeof rest.bodyPreview === 'string' && rest.bodyPreview.length > 500) {
-    rest.bodyPreview = rest.bodyPreview.slice(0, 500);
+  const graphBody = asObject(body);
+  const graphUnique = asObject(uniqueBody);
+  const safeDoc = asObject(mailDocument);
+  const isHtmlPart = (part) => part && /html/i.test(String(part.contentType || ''));
+
+  const fullBodyHtml = normalizeText(
+    safeMessage.bodyHtml ||
+      body_html ||
+      safeDoc.primaryBodyHtml ||
+      (isHtmlPart(graphBody) ? graphBody.content : '') ||
+      (isHtmlPart(graphUnique) ? graphUnique.content : '')
+  );
+  const fullBodyText = normalizeText(
+    safeMessage.bodyText ||
+      body_text ||
+      safeDoc.primaryBodyText ||
+      (graphBody && !isHtmlPart(graphBody) ? graphBody.content : '') ||
+      (graphUnique && !isHtmlPart(graphUnique) ? graphUnique.content : '') ||
+      rest.bodyPreview
+  );
+
+  if (fullBodyText) {
+    rest.bodyText = fullBodyText.slice(0, MAX_BODY_CHARS);
   }
-  const richBodyHtml = normalizeText(safeMessage.bodyHtml || safeMessage.body_html);
-  if (/<img\b|cid:|data:image\/|<table\b/i.test(richBodyHtml)) {
-    rest.bodyHtml = richBodyHtml;
+  if (fullBodyHtml) {
+    rest.bodyHtml = fullBodyHtml.slice(0, MAX_BODY_CHARS);
   } else {
     delete rest.bodyHtml;
+  }
+  // bodyPreview hålls kort för worklist-listan (hela texten bor i bodyText).
+  if (rest.bodyPreview && typeof rest.bodyPreview === 'string' && rest.bodyPreview.length > 500) {
+    rest.bodyPreview = rest.bodyPreview.slice(0, 500);
   }
 
   return {
@@ -1254,4 +1282,5 @@ async function createCcoMailboxTruthStore({
 
 module.exports = {
   createCcoMailboxTruthStore,
+  hydrateStoredMessage,
 };
