@@ -473,17 +473,17 @@
     {
       id: 'fazli',
       label: 'Fazli',
-      text: 'Med vänliga hälsningar,\n\nDr. Fazli · Medical Director\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · www.hairtpclinic.com',
+      text: 'Bästa hälsningar,\n\nFazli Krasniqi\nHårspecialist | Hårtransplantationer & PRP-injektioner\nHair TP Clinic\n031-88 11 66 · contact@hairtpclinic.com\nVasaplatsen 2, 411 34 Göteborg\nhairtpclinic.com',
     },
     {
       id: 'egzona',
       label: 'Egzona',
-      text: 'Med vänliga hälsningar,\n\nEgzona M. · Customer Lead\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · www.hairtpclinic.com',
+      text: 'Bästa hälsningar,\n\nEgzona Krasniqi\nHårspecialist | Hårtransplantationer & PRP-injektioner\nHair TP Clinic\n031-88 11 66 · contact@hairtpclinic.com\nVasaplatsen 2, 411 34 Göteborg\nhairtpclinic.com',
     },
     {
       id: 'contact',
       label: 'Kontakt',
-      text: 'Med vänliga hälsningar,\n\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · contact@hairtpclinic.com',
+      text: 'Bästa hälsningar,\n\nHair TP Clinic\nHårtransplantationer & PRP-injektioner\n031-88 11 66 · contact@hairtpclinic.com\nVasaplatsen 2, 411 34 Göteborg\nhairtpclinic.com',
     },
   ];
 
