@@ -16,9 +16,31 @@
  */
 
 const express = require('express');
+const fsp = require('node:fs/promises');
+const nodePath = require('node:path');
+const nodeCrypto = require('node:crypto');
 const { attachRole, requirePermission, roleHasPermission } = require('../security/ccoRbac');
 const { containsJournalLikeContent } = require('../ops/ccoJournalAiGuard');
 const { createExecutionGateway } = require('../gateway/executionGateway');
+
+// Bilagor på utkast (Svarstudio, steg 1b). Bytes lagras på persistent disk; ingen
+// live-send. Storleks-/typgräns skyddar disken och läsytan.
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+  'text/csv',
+]);
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -352,6 +374,162 @@ function createCcoCommDraftRouter({
             tenantId: text(req.query?.tenantId) || null,
           });
       return res.json({ drafts });
+    }
+  );
+
+  // ── Bilage-routes (steg 1b): upload / serve / delete. Ingen live-send. ──
+  const multer = require('multer');
+  const attachmentUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_ATTACHMENT_BYTES },
+  });
+  function uploadSingleFile(req, res, next) {
+    attachmentUpload.single('file')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'Filen är för stor (max 15 MB).' });
+        }
+        return res.status(400).json({ error: err.message });
+      }
+      return next();
+    });
+  }
+  function attachmentsRoot() {
+    return nodePath.resolve(config.stateRoot || './data', 'cco-comm-attachments');
+  }
+  // Skydd mot path-traversal: en lagrad sökväg måste ligga under bilage-roten.
+  function isPathInsideAttachmentsRoot(storagePath) {
+    const resolved = nodePath.resolve(String(storagePath || ''));
+    const root = attachmentsRoot();
+    return resolved === root || resolved.startsWith(root + nodePath.sep);
+  }
+  function safeDraftAttachmentSegment(value) {
+    const safe = text(value);
+    if (!safe || safe === '.' || safe === '..' || safe.includes('/') || safe.includes('\\')) {
+      const e = new Error('draft not found');
+      e.statusCode = 404;
+      throw e;
+    }
+    return safe;
+  }
+  function assertDraftAcceptsAttachment(store, draftId, tenantId) {
+    const draft = store.getDraft(draftId, { tenantId });
+    if (!draft) {
+      const e = new Error('draft not found');
+      e.statusCode = 404;
+      throw e;
+    }
+    if (['sent', 'cancelled'].includes(draft.status)) {
+      const e = new Error('draft is ' + draft.status + ', cannot edit');
+      e.statusCode = 409;
+      throw e;
+    }
+    return draft;
+  }
+
+  // POST — ladda upp en bilaga till ett utkast (multipart field: file).
+  router.post(
+    '/cco-comm/drafts/:draftId/attachments',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.send'),
+    uploadSingleFile,
+    async (req, res) => {
+      let storagePath = null;
+      try {
+        const store = await ensureStore();
+        const tenantId = text(req.auth?.tenantId) || null;
+        const draftId = safeDraftAttachmentSegment(req.params.draftId);
+        if (!req.file) {
+          return res.status(400).json({ error: 'file krävs (multipart/form-data field: file).' });
+        }
+        const contentType = text(req.file.mimetype).toLowerCase();
+        if (!ALLOWED_ATTACHMENT_TYPES.has(contentType)) {
+          return res.status(415).json({ error: 'Otillåten filtyp.', contentType });
+        }
+        assertDraftAcceptsAttachment(store, draftId, tenantId);
+        const attachmentId = nodeCrypto.randomUUID();
+        const sha256 = nodeCrypto.createHash('sha256').update(req.file.buffer).digest('hex');
+        const dir = nodePath.join(attachmentsRoot(), draftId);
+        await fsp.mkdir(dir, { recursive: true });
+        storagePath = nodePath.join(dir, attachmentId);
+        await fsp.writeFile(storagePath, req.file.buffer);
+        const result = await store.addDraftAttachment(
+          draftId,
+          {
+            attachmentId,
+            name: text(req.file.originalname) || 'Bilaga',
+            contentType,
+            size: req.file.size,
+            storagePath,
+            sha256,
+          },
+          { actor: actorOf(req), tenantId }
+        );
+        return res.status(201).json({ attachment: result.attachment });
+      } catch (error) {
+        // Storen avvisade (fel tenant/sent/cancelled) → städa den skrivna filen.
+        if (storagePath) await fsp.rm(storagePath, { force: true }).catch(() => {});
+        return res.status(error.statusCode || 400).json({ error: error.message });
+      }
+    }
+  );
+
+  // GET — servera bilagans bytes (inline, eller ?download=1 för nedladdning).
+  router.get(
+    '/cco-comm/drafts/:draftId/attachments/:attachmentId/content',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.read'),
+    async (req, res) => {
+      try {
+        const store = await ensureStore();
+        const att = store.getDraftAttachment(
+          text(req.params.draftId),
+          text(req.params.attachmentId),
+          { tenantId: text(req.auth?.tenantId) || null }
+        );
+        if (!att || !att.storagePath || !isPathInsideAttachmentsRoot(att.storagePath)) {
+          return res.status(404).json({ error: 'attachment not found' });
+        }
+        const buffer = await fsp.readFile(nodePath.resolve(att.storagePath)).catch(() => null);
+        if (!buffer) return res.status(404).json({ error: 'attachment not found' });
+        const disposition = text(req.query.download) === '1' ? 'attachment' : 'inline';
+        res.setHeader('Content-Type', att.contentType || 'application/octet-stream');
+        res.setHeader(
+          'Content-Disposition',
+          `${disposition}; filename*=UTF-8''${encodeURIComponent(att.name || 'bilaga')}`
+        );
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        return res.send(buffer);
+      } catch (error) {
+        return res.status(error.statusCode || 404).json({ error: error.message });
+      }
+    }
+  );
+
+  // DELETE — ta bort en bilaga (metadata + fil).
+  router.delete(
+    '/cco-comm/drafts/:draftId/attachments/:attachmentId',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.send'),
+    async (req, res) => {
+      try {
+        const store = await ensureStore();
+        const { removed } = await store.removeDraftAttachment(
+          text(req.params.draftId),
+          text(req.params.attachmentId),
+          { actor: actorOf(req), tenantId: text(req.auth?.tenantId) || null }
+        );
+        if (removed?.storagePath && isPathInsideAttachmentsRoot(removed.storagePath)) {
+          await fsp.rm(nodePath.resolve(removed.storagePath), { force: true }).catch(() => {});
+        }
+        return res.json({ ok: true });
+      } catch (error) {
+        return res.status(error.statusCode || 400).json({ error: error.message });
+      }
     }
   );
 
