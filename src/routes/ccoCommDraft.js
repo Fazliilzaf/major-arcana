@@ -80,6 +80,7 @@ function createCcoCommDraftRouter({
   config = {},
   requireAuth,
   commDraftStore = null,
+  recipientAllowlistStore = null,
   executionGateway = null,
   openai = null,
   auditLog = null,
@@ -103,6 +104,31 @@ function createCcoCommDraftRouter({
     storeRef = await createCcoCommDraftStore({ filePath: storePath(), auditLog });
     if (appLocals && !appLocals.ccoCommDraftStore) appLocals.ccoCommDraftStore = storeRef;
     return storeRef;
+  }
+
+  let allowlistRef = recipientAllowlistStore;
+  function allowlistPath() {
+    return (
+      config.ccoRecipientAllowlistStorePath ||
+      `${config.stateRoot || './data'}/cco-recipient-allowlist.json`
+    );
+  }
+  async function ensureAllowlistStore() {
+    if (allowlistRef) return allowlistRef;
+    const {
+      createCcoRecipientAllowlistStore,
+    } = require('../ops/ccoRecipientAllowlistStore');
+    allowlistRef = await createCcoRecipientAllowlistStore({ filePath: allowlistPath(), auditLog });
+    if (appLocals && !appLocals.ccoRecipientAllowlistStore) {
+      appLocals.ccoRecipientAllowlistStore = allowlistRef;
+    }
+    return allowlistRef;
+  }
+
+  // Live Graph-send-flagga (default av). 2c läser den bara för att HÅRT BLOCKERA
+  // — inget skickas här oavsett värde; själva send-vägen kopplas in först i 2d.
+  function graphSendEnabled() {
+    return String(process.env.ARCANA_GRAPH_SEND_ENABLED || '').toLowerCase() === 'true';
   }
 
   function actorOf(req) {
@@ -530,6 +556,99 @@ function createCcoCommDraftRouter({
       } catch (error) {
         return res.status(error.statusCode || 400).json({ error: error.message });
       }
+    }
+  );
+
+  // ── POST /cco-comm/drafts/:draftId/send-preview — dry-run (steg 2c) ──
+  // Bygger förhandsvisningen av mailet ("så här skulle det skickas") och kör
+  // säkerhetskontrollerna, men SKICKAR ALDRIG. Kräver approved-utkast, verifierar
+  // mottagaren mot mottagar-allowlisten (2a), och är HÅRT BLOCKERAD när
+  // ARCANA_GRAPH_SEND_ENABLED är av (403). Faktisk Graph-send kopplas in i 2d.
+  router.post(
+    '/cco-comm/drafts/:draftId/send-preview',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.send'),
+    jsonParser,
+    async (req, res) => {
+      const { maskAddress } = require('../ops/ccoRecipientAllowlistStore');
+      const draftId = text(req.params.draftId);
+      const to = text(req.body?.to).toLowerCase();
+      const senderMailbox = text(req.body?.senderMailbox) || null;
+
+      const store = await ensureStore();
+      const draft = store.getDraft(draftId, { tenantId: text(req.auth?.tenantId) || null });
+      if (!draft) return res.status(404).json({ error: 'draft not found' });
+
+      const tenantId = draft.tenantId || text(req.auth?.tenantId) || null;
+
+      function audit(result, detail) {
+        auditLog?.append?.({
+          action: 'communication.draft.send_preview',
+          actor: actorOf(req),
+          target: { kind: 'comm_draft', id: draftId, tenantId },
+          result,
+          detail: { recipientMasked: maskAddress(to), ...detail },
+        });
+      }
+
+      // Bara godkända utkast får förhandsvisas för send — samma port som send.
+      if (draft.status !== 'approved') {
+        audit('error', { reason: 'not_approved', status: draft.status });
+        return res
+          .status(409)
+          .json({ error: 'send-preview kräver approved utkast.', status: draft.status });
+      }
+
+      // Mottagaradress måste finnas och vara rimlig.
+      const { isPlausibleEmail } = require('../ops/ccoRecipientAllowlistStore');
+      if (!isPlausibleEmail(to)) {
+        audit('error', { reason: 'invalid_recipient' });
+        return res.status(400).json({ error: 'giltig mottagaradress (to) krävs.' });
+      }
+
+      // Mottagaren måste vara aktivt allowlistad (2a) för denna tenant.
+      const allowlist = await ensureAllowlistStore();
+      if (!allowlist.isAllowed(tenantId, to)) {
+        audit('error', { reason: 'recipient_not_allowlisted' });
+        return res.status(403).json({
+          decision: 'blocked',
+          reason: 'recipient_not_allowlisted',
+          error: 'Mottagaren är inte på allowlisten för utgående mail.',
+        });
+      }
+
+      // Payloaden som ETT framtida utskick skulle bygga — ingen send sker här.
+      const preview = {
+        from: senderMailbox,
+        to,
+        subject: draft.subject || '',
+        bodyPreview: (draft.body || '').slice(0, 2000),
+        bodyLength: (draft.body || '').length,
+        channel: draft.channel,
+        attachments: (draft.attachments || []).map((a) => ({
+          name: a.name,
+          contentType: a.contentType,
+          size: a.size,
+        })),
+      };
+
+      // HÅRT BLOCK: med flaggan av (default) returneras 403 men med preview så
+      // operatören ser exakt vad som skulle skickas. Inget lämnar systemet.
+      if (!graphSendEnabled()) {
+        audit('ok', { dryRun: true, blocked: true, reason: 'send_disabled' });
+        return res.status(403).json({
+          decision: 'blocked',
+          reason: 'send_disabled',
+          dryRun: true,
+          sent: false,
+          preview,
+        });
+      }
+
+      // Flaggan på: 2c förhandsvisar ändå bara — faktisk send är 2d:s ansvar.
+      audit('ok', { dryRun: true, blocked: false });
+      return res.json({ decision: 'preview_ok', dryRun: true, sent: false, preview });
     }
   );
 
