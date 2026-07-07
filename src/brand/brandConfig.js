@@ -25,7 +25,7 @@ const BRANDS = Object.freeze({
     },
     contact: {
       email: 'contact@hairtpclinic.com',
-      phone: '+46318811166',
+      phone: '+4631881166',
       phoneDisplay: '031 88 11 66',
       address: 'Vasaplatsen 2, 411 34 Göteborg',
     },
@@ -67,7 +67,7 @@ const BRANDS = Object.freeze({
     },
     contact: {
       email: 'info@curatiio.com',
-      phone: '+46318811166',
+      phone: '+4631881166',
       phoneDisplay: '031 88 11 66',
       address: 'Vasaplatsen 2, 411 34 Göteborg',
     },
