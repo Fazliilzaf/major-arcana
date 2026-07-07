@@ -25,7 +25,7 @@ async function withServer(app, run) {
   }
 }
 
-async function createFixture() {
+async function createFixture({ recipientAllowlistStore = null } = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-allowlist-'));
   const auditEvents = [];
   const app = express();
@@ -41,6 +41,7 @@ async function createFixture() {
         };
         next();
       },
+      recipientAllowlistStore,
       auditLog: { append: (e) => auditEvents.push(e) },
     })
   );
@@ -139,6 +140,25 @@ test('DELETE (owner) tar bort → borta ur default-listan', async () => {
   });
 });
 
+test('DELETE hanterar procenttecken i adress utan dubbel-decode', async () => {
+  const { app } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    await j(baseUrl, 'POST', '/cco-comm/recipient-allowlist', {
+      role: 'owner',
+      body: { address: 'foo%bar@mail.se' },
+    });
+    const del = await j(
+      baseUrl,
+      'DELETE',
+      `/cco-comm/recipient-allowlist/${encodeURIComponent('foo%bar@mail.se')}`,
+      { role: 'owner' }
+    );
+    assert.equal(del.status, 200);
+    assert.equal(del.json.removed, true);
+    assert.equal(del.json.recipient.addressMasked, 'fo***@mail.se');
+  });
+});
+
 test('DELETE av icke-owner nekas (403)', async () => {
   const { app } = await createFixture();
   await withServer(app, async (baseUrl) => {
@@ -153,6 +173,39 @@ test('DELETE av icke-owner nekas (403)', async () => {
       { role: 'operator' }
     );
     assert.equal(del.status, 403);
+  });
+});
+
+test('interna allowlist-fel returnerar 500, inte klient-400', async () => {
+  const failingStore = {
+    listRecipients: () => {
+      throw new Error('store offline');
+    },
+    addRecipient: async () => {
+      throw new Error('disk offline');
+    },
+    removeRecipient: async () => {
+      throw new Error('disk offline');
+    },
+  };
+  const { app } = await createFixture({ recipientAllowlistStore: failingStore });
+  await withServer(app, async (baseUrl) => {
+    const list = await j(baseUrl, 'GET', '/cco-comm/recipient-allowlist', { role: 'owner' });
+    assert.equal(list.status, 500);
+
+    const add = await j(baseUrl, 'POST', '/cco-comm/recipient-allowlist', {
+      role: 'owner',
+      body: { address: 'anna@mail.se' },
+    });
+    assert.equal(add.status, 500);
+
+    const del = await j(
+      baseUrl,
+      'DELETE',
+      `/cco-comm/recipient-allowlist/${encodeURIComponent('anna@mail.se')}`,
+      { role: 'owner' }
+    );
+    assert.equal(del.status, 500);
   });
 });
 

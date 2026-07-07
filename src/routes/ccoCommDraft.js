@@ -903,7 +903,7 @@ function createCcoCommDraftRouter({
         });
         return res.status(201).json({ recipient });
       } catch (error) {
-        return res.status(error.statusCode || 400).json({ error: error.message });
+        return res.status(error.statusCode || 500).json({ error: error.message });
       }
     }
   );
@@ -918,13 +918,13 @@ function createCcoCommDraftRouter({
       try {
         const allowlist = await ensureAllowlistStore();
         const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
-        const address = text(decodeURIComponent(req.params.address || ''));
+        const address = text(req.params.address || '');
         const recipient = await allowlist.removeRecipient(tenantId, address, {
           actor: actorOf(req),
         });
         return res.json({ removed: !!recipient, recipient: recipient || null });
       } catch (error) {
-        return res.status(error.statusCode || 400).json({ error: error.message });
+        return res.status(error.statusCode || 500).json({ error: error.message });
       }
     }
   );
