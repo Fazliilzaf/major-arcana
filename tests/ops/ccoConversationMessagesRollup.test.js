@@ -832,6 +832,42 @@ test('kontaktformulär-preview berikas från scoped raw-store även när Graph-i
   assert.ok(enriched.bodyText.length > preview.length + 100);
 });
 
+test('mailbox-hint scopar truth-läsningen till trådens shard (ingen hela-storen-svep)', () => {
+  // Kontaktformulär-nyckel utan mailbox-prefix. Utan hint → listMessages({}) läser
+  // ALLA shards (combine+sort av hela storen) per trådöppning = sekunders latens.
+  // Med klientens mailbox-hint ska bara trådens shard begäras.
+  const listCalls = [];
+  const store = {
+    listMessages(options = {}) {
+      listCalls.push(options);
+      const wants = Array.isArray(options.mailboxIds) ? options.mailboxIds : null;
+      if (wants && !wants.includes('kons@hairtpclinic.com')) return [];
+      return [
+        {
+          mailboxId: 'kons@hairtpclinic.com',
+          mailboxConversationId: 'contact-form-xyz',
+          conversationId: 'contact-form-xyz',
+          graphMessageId: 'm1',
+          folderType: 'inbox',
+          receivedAt: '2026-07-05T10:00:00.000Z',
+          bodyPreview: 'hej',
+        },
+      ];
+    },
+  };
+  const key = 'contact-form-xyz';
+
+  const scoped = fetchSortedConversationMessages(store, key, [], {
+    mailboxHints: ['kons@hairtpclinic.com'],
+  });
+  assert.equal(scoped.length, 1);
+  assert.deepEqual(listCalls[0].mailboxIds, ['kons@hairtpclinic.com']);
+
+  // Utan hint (och utan prefix i nyckeln) faller vi tillbaka till hela storen.
+  fetchSortedConversationMessages(store, key, [], {});
+  assert.equal(listCalls[1].mailboxIds, undefined);
+});
+
 test('ingestion-berikning scopas till trådens mailbox (ingen hela-korpus-svep)', () => {
   // Perf-scoping: enrichment läser bara trådens mailbox-shard, inte hela storen.
   // Ett råmeddelande i EN ANNAN mailbox får aldrig berika tråden (och skannas
