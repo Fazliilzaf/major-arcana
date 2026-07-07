@@ -780,6 +780,20 @@ function createCcoCommDraftRouter({
             error: 'Avsändar-brevlådan är inte allowlistad för send.',
           });
         }
+        // 6) Bilagor: om utkastet har bilagor men adaptern inte stödjer dem,
+        // blockera FÖRE queue/send (422) så utkastet aldrig går ut ofullständigt
+        // och inte heller felaktigt markeras failed. (B1: text-only live-send.)
+        if (
+          (draft.attachments || []).length > 0 &&
+          graphSendAdapter.supportsAttachments === false
+        ) {
+          audit('error', { reason: 'attachments_not_supported' });
+          return res.status(422).json({
+            decision: 'blocked',
+            reason: 'attachments_not_supported',
+            error: 'Live-utskick stödjer ännu inte bilagor. Utkastet lämnas orört (approved).',
+          });
+        }
 
         // Alla grindar passerade → queue:a och skicka via adaptern.
         const payload = {
