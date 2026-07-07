@@ -112,6 +112,28 @@ function normalizeDraft(input = {}, existing = {}) {
     sentAt: normalizeText(safe.sentAt || ex.sentAt) || null,
     failureReason: normalizeText(safe.failureReason || ex.failureReason) || null,
     cancelledReason: normalizeText(safe.cancelledReason || ex.cancelledReason) || null,
+    // Bilagor som förberetts på utkastet (Svarstudio). Endast metadata lagras här;
+    // bytes ligger på persistent disk och refereras via storagePath. Ingen live-send.
+    attachments: Array.isArray(safe.attachments)
+      ? safe.attachments.map(normalizeAttachment)
+      : Array.isArray(ex.attachments)
+        ? ex.attachments.map(normalizeAttachment)
+        : [],
+  };
+}
+
+function normalizeAttachment(input = {}) {
+  const safe = input && typeof input === 'object' ? input : {};
+  const size = Number(safe.size);
+  return {
+    attachmentId: normalizeText(safe.attachmentId) || crypto.randomUUID(),
+    name: normalizeText(safe.name) || 'Bilaga',
+    contentType: normalizeText(safe.contentType) || 'application/octet-stream',
+    size: Number.isFinite(size) && size >= 0 ? Math.round(size) : 0,
+    storagePath: normalizeText(safe.storagePath) || null,
+    sha256: normalizeText(safe.sha256) || null,
+    uploadedBy: normalizeText(safe.uploadedBy) || null,
+    uploadedAt: normalizeText(safe.uploadedAt) || nowIso(),
   };
 }
 
@@ -234,6 +256,77 @@ async function createCcoCommDraftStore({ filePath, auditLog = null } = {}) {
     });
   }
 
+  // Lägg till en förberedd bilaga på utkastet (metadata; bytes ligger på disk).
+  // Endast tillåtet på redigerbara utkast (inte sent/cancelled). Ingen live-send.
+  async function addDraftAttachment(
+    draftId,
+    attachment = {},
+    { actor = {}, tenantId = null } = {}
+  ) {
+    return withDraftLock(draftId, async () => {
+      const ex = resolveScoped(draftId, tenantId);
+      if (['sent', 'cancelled'].includes(ex.status)) {
+        const e = new Error('draft is ' + ex.status + ', cannot edit');
+        e.statusCode = 409;
+        throw e;
+      }
+      const normalized = normalizeAttachment({
+        ...attachment,
+        uploadedBy: actor.userId || attachment.uploadedBy || null,
+      });
+      const attachments = [...(ex.attachments || []), normalized];
+      const next = normalizeDraft({ ...ex, attachments }, ex);
+      next.status = ex.status;
+      state.drafts[draftId] = next;
+      await save();
+      logAudit(auditLog, 'communication.draft.attachment_added', next, actor, 'ok', {
+        attachmentId: normalized.attachmentId,
+        name: normalized.name,
+        size: normalized.size,
+        contentType: normalized.contentType,
+      });
+      return { draft: { ...next }, attachment: normalized };
+    });
+  }
+
+  async function removeDraftAttachment(
+    draftId,
+    attachmentId,
+    { actor = {}, tenantId = null } = {}
+  ) {
+    return withDraftLock(draftId, async () => {
+      const ex = resolveScoped(draftId, tenantId);
+      if (['sent', 'cancelled'].includes(ex.status)) {
+        const e = new Error('draft is ' + ex.status + ', cannot edit');
+        e.statusCode = 409;
+        throw e;
+      }
+      const safeId = normalizeText(attachmentId);
+      const removed = (ex.attachments || []).find((a) => a.attachmentId === safeId);
+      if (!removed) {
+        const e = new Error('attachment not found');
+        e.statusCode = 404;
+        throw e;
+      }
+      const attachments = (ex.attachments || []).filter((a) => a.attachmentId !== safeId);
+      const next = normalizeDraft({ ...ex, attachments }, ex);
+      next.status = ex.status;
+      state.drafts[draftId] = next;
+      await save();
+      logAudit(auditLog, 'communication.draft.attachment_removed', next, actor, 'ok', {
+        attachmentId: safeId,
+        name: removed.name,
+      });
+      return { draft: { ...next }, removed };
+    });
+  }
+
+  function getDraftAttachment(draftId, attachmentId, { tenantId = null } = {}) {
+    const ex = resolveScoped(draftId, tenantId);
+    const safeId = normalizeText(attachmentId);
+    return (ex.attachments || []).find((a) => a.attachmentId === safeId) || null;
+  }
+
   async function transitionStatus(
     draftId,
     newStatus,
@@ -337,6 +430,9 @@ async function createCcoCommDraftStore({ filePath, auditLog = null } = {}) {
     createDraft,
     updateDraft,
     transitionStatus,
+    addDraftAttachment,
+    removeDraftAttachment,
+    getDraftAttachment,
     getDraft,
     listForCustomer,
     listByStatus,
