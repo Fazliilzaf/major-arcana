@@ -9,8 +9,8 @@
  *   - AI-generering går genom execution-gateway (input-risk → agent-run →
  *     output-risk → policy-floor) och den journal-skyddade OpenAI-klienten;
  *     journalinnehåll redigeras bort (inget __aiContext-bypass).
- *   - LIVE-UTSKICK (→ sent) är hårt blockerat: kräver mail.live_send (endast
- *     owner) OCH är ändå avstängt — ingen auto-send i denna build.
+ *   - LIVE-UTSKICK (→ sent) kräver mail.live_send (endast owner), featureflag,
+ *     allowlists och en uttryckligt injicerad send-adapter.
  *
  * Speglar router-mönstret i src/routes/ccoCustomerComm.js.
  */
@@ -795,18 +795,16 @@ function createCcoCommDraftRouter({
           })),
         };
 
+        const queuedDraft = await store.transitionStatus(draftId, 'queued', {
+          actor: actorOf(req),
+          tenantId,
+        });
+
+        let result;
         try {
-          await store.transitionStatus(draftId, 'queued', { actor: actorOf(req), tenantId });
-          const result = await graphSendAdapter.sendMail(payload);
-          const sentDraft = await store.transitionStatus(draftId, 'sent', {
-            actor: actorOf(req),
-            tenantId,
-          });
-          const providerMessageId = result?.messageId || result?.id || null;
-          audit('ok', { sent: true, providerMessageId });
-          return res.json({ decision: 'sent', sent: true, draft: sentDraft, providerMessageId });
+          result = await graphSendAdapter.sendMail(payload);
         } catch (sendError) {
-          // Send misslyckades → markera failed (best-effort) och rapportera.
+          // Leverantören hann inte bekräfta send → markera failed (best-effort).
           try {
             await store.transitionStatus(draftId, 'failed', {
               actor: actorOf(req),
@@ -824,6 +822,33 @@ function createCcoCommDraftRouter({
             decision: 'failed',
             sent: false,
             error: 'Utskicket misslyckades hos leverantören.',
+          });
+        }
+
+        const providerMessageId = result?.messageId || result?.id || null;
+        try {
+          const sentDraft = await store.transitionStatus(draftId, 'sent', {
+            actor: actorOf(req),
+            tenantId,
+          });
+          audit('ok', { sent: true, providerMessageId });
+          return res.json({ decision: 'sent', sent: true, draft: sentDraft, providerMessageId });
+        } catch (persistError) {
+          // Adaptern har redan bekräftat utskick. Markera aldrig failed här,
+          // annars kan nästa försök dubbelskicka ett mail som faktiskt gick iväg.
+          const latestDraft = store.getDraft(draftId, { tenantId }) || queuedDraft;
+          audit('error', {
+            reason: 'sent_persist_failed',
+            sent: true,
+            providerMessageId,
+            message: String(persistError?.message || persistError).slice(0, 200),
+          });
+          return res.status(202).json({
+            decision: 'sent_persist_failed',
+            sent: true,
+            draft: latestDraft,
+            providerMessageId,
+            warning: 'Utskicket skickades, men sent-status kunde inte sparas.',
           });
         }
       } catch (error) {

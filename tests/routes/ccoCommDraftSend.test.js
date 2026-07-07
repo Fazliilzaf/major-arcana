@@ -14,6 +14,7 @@ const http = require('node:http');
 const express = require('express');
 
 const { createCcoCommDraftRouter } = require('../../src/routes/ccoCommDraft');
+const { createCcoCommDraftStore } = require('../../src/ops/ccoCommDraftStore');
 const {
   createCcoRecipientAllowlistStore,
 } = require('../../src/ops/ccoRecipientAllowlistStore');
@@ -40,10 +41,22 @@ function fakeAdapter() {
   };
 }
 
-async function createFixture({ adapter = undefined, seedRecipient = 'anna@mail.se' } = {}) {
+async function createFixture({
+  adapter = undefined,
+  seedRecipient = 'anna@mail.se',
+  draftStoreFactory = null,
+} = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-send-'));
   const auditEvents = [];
   const auditLog = { append: (e) => auditEvents.push(e) };
+  let commDraftStore = null;
+  if (draftStoreFactory) {
+    const baseStore = await createCcoCommDraftStore({
+      filePath: path.join(tempDir, 'cco-comm-draft.json'),
+      auditLog,
+    });
+    commDraftStore = await draftStoreFactory(baseStore);
+  }
   const allowlist = await createCcoRecipientAllowlistStore({
     filePath: path.join(tempDir, 'cco-recipient-allowlist.json'),
     auditLog,
@@ -64,13 +77,13 @@ async function createFixture({ adapter = undefined, seedRecipient = 'anna@mail.s
         };
         next();
       },
-      commDraftStore: null,
+      commDraftStore,
       recipientAllowlistStore: allowlist,
       graphSendAdapter: adapter,
       auditLog,
     })
   );
-  return { app, tempDir, auditEvents };
+  return { app, tempDir, auditEvents, commDraftStore };
 }
 
 function j(baseUrl, method, route, { role = 'operator', user, body } = {}) {
@@ -278,6 +291,59 @@ test('adaptern kastar → draft = failed, 502', async () => {
         assert.equal(res.json.sent, false);
         const after = await j(baseUrl, 'GET', `/cco-comm/drafts/${draftId}`, { role: 'owner' });
         assert.equal(after.json.draft.status, 'failed');
+      })
+  );
+});
+
+test('adapter bekräftar send men sent-status kan inte sparas → aldrig failed', async () => {
+  const adapter = fakeAdapter();
+  const transitions = [];
+  const { app, auditEvents } = await createFixture({
+    adapter,
+    draftStoreFactory: (baseStore) => ({
+      ...baseStore,
+      transitionStatus: async (draftId, status, options) => {
+        transitions.push(status);
+        if (status === 'sent') {
+          const e = new Error('disk full after provider accepted send');
+          e.statusCode = 507;
+          throw e;
+        }
+        return baseStore.transitionStatus(draftId, status, options);
+      },
+    }),
+  });
+
+  await withSendEnv(
+    { ARCANA_GRAPH_SEND_ENABLED: 'true', ARCANA_GRAPH_SEND_ALLOWLIST: 'kons@hairtp.se' },
+    () =>
+      withServer(app, async (baseUrl) => {
+        const draftId = await newApprovedDraft(baseUrl);
+        const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send`, {
+          role: 'owner',
+          body: { to: 'anna@mail.se', senderMailbox: 'kons@hairtp.se' },
+        });
+
+        assert.equal(res.status, 202);
+        assert.equal(res.json.decision, 'sent_persist_failed');
+        assert.equal(res.json.sent, true);
+        assert.equal(res.json.providerMessageId, 'provider-msg-1');
+        assert.equal(res.json.draft.status, 'queued');
+        assert.equal(adapter.calls.length, 1);
+        assert.equal(transitions.includes('failed'), false);
+
+        const after = await j(baseUrl, 'GET', `/cco-comm/drafts/${draftId}`, { role: 'owner' });
+        assert.equal(after.json.draft.status, 'queued');
+        assert.equal(
+          auditEvents.some(
+            (event) =>
+              event.action === 'communication.draft.send' &&
+              event.result === 'error' &&
+              event.detail?.reason === 'sent_persist_failed' &&
+              event.detail?.sent === true
+          ),
+          true
+        );
       })
   );
 });
