@@ -135,7 +135,7 @@ test('PR6: manuellt inskriven klinikadress håller Skicka låst', () => {
   assert.match(source, /function currentRecipientBlock\(\)/);
   assert.match(source, /if \(isHairTpMailboxEmail\(value\)\) return recipientClinicMessage/);
   assert.match(source, /if \(!value\) return recipientMissingMessage/);
-  assert.match(source, /oninput: \(\) => evaluateRecipient\(\)/);
+  assert.match(source, /oninput: \(\) => \{\s*evaluateRecipient\(\);/);
   assert.match(source, /function evaluateRecipient\(\)/);
   // send-lås är dynamiskt (inte bara initial recipientMissing)
   assert.match(source, /recipientBlockedReason = currentRecipientBlock\(\)/);

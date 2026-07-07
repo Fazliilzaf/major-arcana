@@ -1886,6 +1886,63 @@
         color: var(--cco-status-success);
         font-weight: 700;
       }
+      /* Inline live-preview "Så här blir mailet" (artifact-design) */
+      .wb-live-preview {
+        margin-top: 4px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 249, 247, 0.94));
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        box-shadow:
+          0 1px 2px rgba(56, 40, 28, 0.05),
+          0 4px 10px rgba(56, 40, 28, 0.07);
+        padding: 11px 13px;
+      }
+      .wb-lp-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .wb-lp-title {
+        font:
+          800 9.5px Inter,
+          sans-serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+      }
+      .wb-lp-live {
+        margin-left: auto;
+        font:
+          800 10px Inter,
+          sans-serif;
+        color: var(--accent-studio);
+      }
+      .wb-lp-hdr {
+        font-size: 11px;
+        line-height: 1.65;
+        color: var(--cco-text-secondary);
+      }
+      .wb-lp-hdr b {
+        display: inline-block;
+        width: 34px;
+        color: var(--cco-text-tertiary);
+        font-weight: 700;
+      }
+      .wb-lp-from {
+        color: var(--rail-egzona);
+        font-weight: 700;
+      }
+      .wb-lp-body {
+        margin: 8px 0 0;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(120, 105, 90, 0.16);
+        font: inherit;
+        font-size: 12px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        color: var(--cco-color-brand);
+      }
       .wb-chip-row-sect {
         display: flex;
         gap: 10px;

@@ -945,6 +945,7 @@
             bodyArea.value = nextBody;
             state.body = nextBody;
             wordCount.textContent = nextBody.split(/\s+/).filter(Boolean).length + ' ord';
+            renderLivePreview();
             auditStudioEvent('studio.template_selected', { templateId: sm.id });
             toast('★ Mall infogad: ' + sm.label);
           },
@@ -978,13 +979,17 @@
       placeholder: recipientEmail ? '' : 'Mottagare saknas i tråddatan',
       'aria-invalid': recipientMissing ? 'true' : null,
       readonly: recipientMissing ? 'readonly' : null,
-      oninput: () => evaluateRecipient(),
+      oninput: () => {
+        evaluateRecipient();
+        renderLivePreview();
+      },
     });
     const mailboxSelect = el('select', {
       onchange: () => {
         state.mailboxId = mailboxSelect.value;
         auditStudioEvent('studio.mailbox_selected', { mailboxId: state.mailboxId });
         updateMetaLine();
+        renderLivePreview();
       },
     });
     for (const mb of mailboxes) {
@@ -1046,6 +1051,7 @@
     const subjectInput = el('input', { type: 'text', value: state.subject });
     subjectInput.addEventListener('input', (e) => {
       state.subject = e.target.value;
+      renderLivePreview();
     });
     replyBlock.appendChild(
       el('label', { class: 'wb-field' }, [
@@ -1059,6 +1065,7 @@
     bodyArea.addEventListener('input', (e) => {
       state.body = e.target.value;
       wordCount.textContent = e.target.value.split(/\s+/).filter(Boolean).length + ' ord';
+      renderLivePreview();
     });
     replyBlock.appendChild(
       el('label', { class: 'wb-field' }, [
@@ -1074,6 +1081,34 @@
         el('span', { class: 'wb-policy-ok' }, 'Policy OK'),
       ])
     );
+
+    // Inline live-preview "Så här blir mailet" — speglar det som komponeras.
+    // Rent presentationslager: läser state/mailbox/mottagare, rör inte sändkedjan.
+    const lpTo = el('span', { class: 'wb-lp-val' }, '');
+    const lpFrom = el('span', { class: 'wb-lp-val wb-lp-from' }, '');
+    const lpSubject = el('span', { class: 'wb-lp-val' }, '');
+    const lpBody = el('pre', { class: 'wb-lp-body' }, '');
+    function renderLivePreview() {
+      const mb = mailboxes.find((m) => m.id === state.mailboxId);
+      lpTo.textContent = cleanText(recipientInput.value) || '—';
+      lpFrom.textContent = (mb && (mb.email || mb.name)) || state.mailboxId || '—';
+      lpSubject.textContent = state.subject || '—';
+      lpBody.textContent = state.body || 'Börja skriva, eller infoga en mall ovan…';
+    }
+    const livePreview = el('div', { class: 'wb-live-preview' }, [
+      el('div', { class: 'wb-lp-head' }, [
+        el('span', { class: 'wb-lp-title' }, 'Så här blir mailet'),
+        el('span', { class: 'wb-lp-live' }, '● Uppdateras live'),
+      ]),
+      el('div', { class: 'wb-lp-hdr' }, [
+        el('div', {}, [el('b', {}, 'Till'), lpTo]),
+        el('div', {}, [el('b', {}, 'Från'), lpFrom]),
+        el('div', {}, [el('b', {}, 'Ämne'), lpSubject]),
+      ]),
+      lpBody,
+    ]);
+    renderLivePreview();
+    replyBlock.appendChild(livePreview);
 
     // Signatur
     function makeChipSection(items, getActive, onPick, eventKind) {
@@ -1105,6 +1140,7 @@
         bodyArea.value = applySignatureToBody(bodyArea.value, v);
         state.body = bodyArea.value;
         wordCount.textContent = bodyArea.value.split(/\s+/).filter(Boolean).length + ' ord';
+        renderLivePreview();
       },
       'studio.signature_selected'
     );
