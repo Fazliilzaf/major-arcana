@@ -9,9 +9,13 @@
         --cco-bg-page: #faf6f2;
         --cco-bg-surface: #fff;
         --cco-bg-surface-sunken: #f5efe6;
-        --cco-color-brand: #2b251f;
-        --cco-text-secondary: rgba(70, 60, 50, 0.62);
-        --cco-text-tertiary: #8a8174;
+        --cco-color-brand: #1d1e24;
+        /* Steg 1 av omjusteringen mot preview-systemet (Kundregistret): lyft den
+           uttvättade texten till preview-tonerna för klart högre kontrast/läsbarhet.
+           Sekundär var rgba(...,0.62) (blek) → solid --copy-warm-soft; tertiär
+           #8a8174 → mörkare --copy-warm-label. Samma palett som resten av appen. */
+        --cco-text-secondary: #5d6470;
+        --cco-text-tertiary: #6a717d;
         --cco-status-success: #4a8268;
         --cco-status-success-bg: rgba(74, 130, 104, 0.14);
         --cco-status-warning: #c8821e;
@@ -3718,7 +3722,8 @@
 
       function attachmentIsImage(attachment) {
         const type = normalizeText(attachment?.contentType);
-        const name = normalizeText(attachment?.name) || attachmentFilenameFromUrl(attachmentUrl(attachment));
+        const name =
+          normalizeText(attachment?.name) || attachmentFilenameFromUrl(attachmentUrl(attachment));
         return /^image\//i.test(type) || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(name);
       }
 
