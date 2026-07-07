@@ -717,7 +717,8 @@ function collapseDuplicateMessages(messages = []) {
     const messageId = deriveInternetMessageId(message).toLowerCase();
     const signature = duplicateContentSignature(message);
     const occurrence = {
-      time: message.time || null,
+      // Ankomsttid (receivedAt) för spåret — inte sentAt. Faller tillbaka till time.
+      time: message.receivedAt || message.time || null,
       mailboxAddress: message.mailboxAddress || message.mailboxId || null,
       folderType: message.folderType || null,
     };
@@ -1594,6 +1595,9 @@ function createCcoConversationRouter({
             preview: bodyPreview || null,
             subject: normalizeText(safe.subject) || null,
             internetMessageId: deriveInternetMessageId(safe) || null,
+            // Faktisk ankomsttid (när mailet landade i inkorgen) för dubblett-
+            // spåret — skiljer sig från time/sentAt (när formuläret skickade).
+            receivedAt: normalizeText(safe.receivedAt) || null,
             mailboxId,
             mailboxAddress: mailboxAddress || null,
             folderType: normalizeText(safe.folderType) || null,
