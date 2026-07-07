@@ -580,7 +580,11 @@
         width: 100%;
         height: 360px;
         border: 0;
-        background: #fff;
+        /* Transparent så .msg-bubble:s panel-kort-ton lyser igenom (iframens
+           srcdoc-body är också transparent). Ger HTML-mail samma bakgrundston som
+           text-bubblorna i stället för en avvikande vit ruta. Panel-tonen är nära
+           vit, så mörk mailtext/signaturer förblir läsbara. */
+        background: transparent;
         border-radius: inherit;
       }
       .msg-bubble {
@@ -3753,6 +3757,8 @@
           const scopedMailbox = normalizeText(thread.mailboxAddress || thread.mailboxId);
           if (scopedMailbox) params.set('mailboxId', scopedMailbox);
           const queryString = params.toString() ? `?${params.toString()}` : '';
+          const fetchStartedAt =
+            typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
           const response = await fetch(
             `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages${queryString}`,
             {
@@ -3766,6 +3772,31 @@
             );
           }
           const payload = await response.json();
+          // Diagnostik: total (fetch inkl. nätverk) vs server-tid (payload.timings).
+          // Skillnaden ≈ nätverk + JSON. Visar var trådöppnings-latensen sitter.
+          try {
+            const totalMs = Math.round(
+              (typeof performance !== 'undefined' && performance.now
+                ? performance.now()
+                : Date.now()) - fetchStartedAt
+            );
+            const t = payload && payload.timings ? payload.timings : null;
+            if (t) {
+              const serverMs = Math.round(Number(t.totalMs) || 0);
+              console.log(
+                `[cco-timing] ${thread.conversationKey} · total=${totalMs}ms server=${serverMs}ms ` +
+                  `nät≈${Math.max(0, totalMs - serverMs)}ms ` +
+                  `(truth=${t.truthMs}ms enrich=${t.enrichMs}ms map=${t.mapMs}ms, ` +
+                  `truthCount=${t.truthCount}${t.usedIngestionFallback ? ', ingestion-fallback' : ''})`
+              );
+            } else {
+              console.log(
+                `[cco-timing] ${thread.conversationKey} · total=${totalMs}ms (ingen server-timing)`
+              );
+            }
+          } catch {
+            /* diagnostik får aldrig störa rendering */
+          }
           const messages = Array.isArray(payload?.messages) ? payload.messages : [];
           setSvarstudioLiveContext(thread, messages);
           renderThreadMessages(thread, messages);
