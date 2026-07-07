@@ -128,19 +128,25 @@ function createDashboardRouter({
           typeof templateStore?.summarizeIncidents === 'function' &&
           typeof templateStore?.listIncidents === 'function';
 
-        const [tenantConfig, templates, riskSummary, recentAuditEvents, incidentSummary, incidentOpen] =
-          await Promise.all([
-            tenantConfigStore.getTenantConfig(tenantId),
-            templateStore.listTemplates({ tenantId }),
-            templateStore.summarizeRisk({ tenantId, minRiskLevel }),
-            authStore.listAuditEvents({ tenantId, limit: auditLimit }),
-            supportsIncidents
-              ? templateStore.summarizeIncidents({ tenantId })
-              : Promise.resolve(null),
-            supportsIncidents
-              ? templateStore.listIncidents({ tenantId, status: 'open', limit: 10 })
-              : Promise.resolve([]),
-          ]);
+        const [
+          tenantConfig,
+          templates,
+          riskSummary,
+          recentAuditEvents,
+          incidentSummary,
+          incidentOpen,
+        ] = await Promise.all([
+          tenantConfigStore.getTenantConfig(tenantId),
+          templateStore.listTemplates({ tenantId }),
+          templateStore.summarizeRisk({ tenantId, minRiskLevel }),
+          authStore.listAuditEvents({ tenantId, limit: auditLimit }),
+          supportsIncidents
+            ? templateStore.summarizeIncidents({ tenantId })
+            : Promise.resolve(null),
+          supportsIncidents
+            ? templateStore.listIncidents({ tenantId, status: 'open', limit: 10 })
+            : Promise.resolve([]),
+        ]);
 
         const byCategory = buildCategoryCounter();
         let templatesWithActiveVersion = 0;
@@ -254,6 +260,17 @@ function createDashboardRouter({
         if (closed) return;
         const event = envelope?.payload;
         if (!event || event.tenantId !== tenantId) return;
+        // Fan:a ALDRIG ut läs-audits (*.read) över live-strömmen. De speglar
+        // ingen dashboard-mutation och triggade förr en självmatande refresh-
+        // loop hos klienten (varje läsning → refresh → nya läs-audits → …) som
+        // sprängde läs-rate-limiten (429-storm). Defense-in-depth oavsett
+        // klientversion.
+        if (
+          String(event.action || '')
+            .toLowerCase()
+            .endsWith('.read')
+        )
+          return;
         try {
           writeSseEvent(res, {
             event: 'audit',

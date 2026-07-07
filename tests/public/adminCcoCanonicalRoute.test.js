@@ -65,6 +65,26 @@ test('konversationer.html embed is served no-store so deploys are not cached sta
   );
 });
 
+test('admin dashboard stops the self-feeding *.read audit refresh loop', () => {
+  const js = read(ADMIN_JS);
+
+  // Läs-audits får aldrig trigga en refresh (annars 429-storm).
+  assert.match(
+    js,
+    /function shouldRefreshFromAuditAction[\s\S]*?normalized\.endsWith\('\.read'\)\s*\)\s*return false/,
+    'shouldRefreshFromAuditAction måste blockera alla *.read-actions'
+  );
+  // SSE-backoffen får inte nollställas direkt vid 200 — bara efter ett stabilitetsfönster.
+  assert.match(js, /DASHBOARD_STREAM_STABILITY_MS/);
+  assert.match(
+    js,
+    /stabilityTimer = setTimeout\(\(\) => \{[\s\S]*?dashboardStreamRetryMs = DASHBOARD_STREAM_RETRY_MIN_MS/,
+    'backoff ska nollställas i ett stabilitetsfönster, inte direkt vid open'
+  );
+  // Jitter mot thundering herd.
+  assert.match(js, /jitteredMs = delayMs \+ Math\.floor\(Math\.random\(\) \* delayMs \* 0\.5\)/);
+});
+
 test('admin shell is mounted before static public directory redirects', () => {
   const server = read(SERVER_JS);
   const adminMount = server.indexOf('app.use(createAdminRouter({ sendAdminHtml }))');
