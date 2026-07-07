@@ -53,6 +53,28 @@ test('utan Message-ID fälls identiskt innehåll/tid/mailbox ihop via signatur',
   assert.equal(collapsed[0].duplicateCount, 2);
 });
 
+test('tre formulär-sändningar med OLIKA Message-ID men identiskt innehåll fälls ihop', () => {
+  // Det verkliga Sami-fallet: WordPress gör tre separata sändningar → tre olika
+  // Message-ID, men samma avsändare/ämne/kropp och samma minut. Ska bli ett.
+  const base = {
+    from: 'Sami Bonyadi',
+    dir: 'incoming',
+    subject: 'Sami Bonyadi Kontaktformulär',
+    bodyText: 'Jag tappar mycket hår pga mina dåliga gener. Medgavs: Jag godkänner.',
+    mailboxAddress: 'kons@hairtpclinic.com',
+    folderType: 'inbox',
+  };
+  const messages = [
+    { ...base, internetMessageId: '<cf-1@info.hairtpclinic.se>', time: '2026-04-14T12:11:01.000Z' },
+    { ...base, internetMessageId: '<cf-2@info.hairtpclinic.se>', time: '2026-04-14T12:11:02.000Z' },
+    { ...base, internetMessageId: '<cf-3@info.hairtpclinic.se>', time: '2026-04-14T12:11:03.000Z' },
+  ];
+
+  const collapsed = collapseDuplicateMessages(messages);
+  assert.equal(collapsed.length, 1, 'olika Message-ID men identiskt innehåll ska bli ett');
+  assert.equal(collapsed[0].duplicateCount, 3);
+});
+
 test('äkta separata mail (olika Message-ID) fälls INTE ihop', () => {
   const messages = [
     {
