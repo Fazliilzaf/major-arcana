@@ -35,13 +35,16 @@ test('add → isAllowed true; list visar aktiv post', async () => {
     actor: { role: 'operator', userId: 'u1' },
     note: 'patient',
   });
-  assert.equal(entry.address, 'anna@mail.se'); // normaliserad
+  assert.equal(entry.address, undefined); // rå adress exponeras inte i svar
+  assert.equal(entry.addressHash, undefined);
   assert.equal(entry.active, true);
   assert.equal(entry.addressMasked, 'an***@mail.se');
   assert.equal(store.isAllowed('hairtpclinic', 'anna@mail.se'), true);
   assert.equal(store.isAllowed('hairtpclinic', 'ANNA@mail.se'), true); // case-insensitiv
   const list = store.listRecipients('hairtpclinic');
   assert.equal(list.length, 1);
+  assert.equal(list[0].address, undefined);
+  assert.equal(list[0].addressMasked, 'an***@mail.se');
 });
 
 test('ogiltig adress avvisas (400), inget lagras', async () => {
@@ -99,11 +102,33 @@ test('mutationer loggas i audit; rå adress läcker aldrig till audit-detalj', a
   }
 });
 
+test('rå adress lagras på disk för exakt matchning, men inte i list/add-svar', async () => {
+  const { store, filePath } = await newStore(fakeAudit());
+  const added = await store.addRecipient('t', 'Anna@Mail.SE', { actor: {} });
+  const listed = store.listRecipients('t')[0];
+  const raw = await fs.readFile(filePath, 'utf8');
+  assert.ok(raw.includes('"address": "anna@mail.se"'), 'rå adress behövs bara i persistent store');
+  assert.equal(added.address, undefined);
+  assert.equal(listed.address, undefined);
+  assert.equal(added.addressMasked, 'an***@mail.se');
+  assert.equal(listed.addressMasked, 'an***@mail.se');
+});
+
 test('isAllowed är fail-closed på ogiltig/ tom input', async () => {
   const { store } = await newStore(fakeAudit());
   assert.equal(store.isAllowed('', 'p@x.se'), false);
   assert.equal(store.isAllowed('t', ''), false);
   assert.equal(store.isAllowed('t', 'skräp'), false);
+});
+
+test('remove av ogiltig adress avvisas (400), utan audit-noop', async () => {
+  const audit = fakeAudit();
+  const { store } = await newStore(audit);
+  await assert.rejects(
+    () => store.removeRecipient('t', 'skräp', { actor: {} }),
+    (e) => e.statusCode === 400
+  );
+  assert.equal(audit.events.length, 0);
 });
 
 test('persisteras till disk och läses tillbaka av en ny store-instans', async () => {
@@ -122,6 +147,19 @@ test('samtidiga add på samma tenant serialiseras (ingen lost update)', async ()
     )
   );
   assert.equal(store.listRecipients('t').length, 5);
+});
+
+test('samtidiga add över olika tenants tappar inga updates i gemensam fil', async () => {
+  const { store, filePath } = await newStore(fakeAudit());
+  await Promise.all(
+    Array.from({ length: 12 }, (_, i) =>
+      store.addRecipient(`tenant-${i}`, `patient${i}@x.se`, { actor: {} })
+    )
+  );
+  const reopened = await createCcoRecipientAllowlistStore({ filePath, auditLog: fakeAudit() });
+  for (let i = 0; i < 12; i += 1) {
+    assert.equal(reopened.isAllowed(`tenant-${i}`, `patient${i}@x.se`), true);
+  }
 });
 
 test('hjälpfunktioner: isPlausibleEmail / maskAddress', () => {

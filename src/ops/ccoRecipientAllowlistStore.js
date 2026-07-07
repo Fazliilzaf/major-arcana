@@ -74,7 +74,6 @@ function emptyState() {
 
 function cloneEntry(entry = {}) {
   return {
-    address: entry.address,
     addressMasked: entry.addressMasked,
     active: !!entry.active,
     note: entry.note || null,
@@ -104,9 +103,17 @@ async function createCcoRecipientAllowlistStore({ filePath, auditLog = null } = 
   const state = await readJson(filePath, emptyState());
   if (!state.tenants || typeof state.tenants !== 'object') state.tenants = {};
 
+  // Alla tenants delar samma JSON-fil. Per-tenant-mutexen skyddar mutationerna,
+  // men själva filskrivningen måste köas globalt så en sen rename från tenant A
+  // inte skriver över en nyare snapshot från tenant B.
+  let saveQueue = Promise.resolve();
   async function save() {
-    state.updatedAt = nowIso();
-    await writeJsonAtomic(filePath, state);
+    const run = saveQueue.then(async () => {
+      state.updatedAt = nowIso();
+      await writeJsonAtomic(filePath, state);
+    });
+    saveQueue = run.catch(() => {});
+    await run;
   }
 
   // Per-tenant async-mutex: serialiserar read-modify-write så två samtidiga
@@ -183,6 +190,11 @@ async function createCcoRecipientAllowlistStore({ filePath, auditLog = null } = 
   async function removeRecipient(tenantId, address, { actor = {} } = {}) {
     const t = normalizeText(tenantId);
     if (!t) throw new Error('tenantId krävs.');
+    if (!isPlausibleEmail(address)) {
+      const e = new Error('ogiltig mottagaradress');
+      e.statusCode = 400;
+      throw e;
+    }
     const key = normalizeAddress(address);
     return withTenantLock(t, async () => {
       const entries = bucket(t);
@@ -234,8 +246,8 @@ async function createCcoRecipientAllowlistStore({ filePath, auditLog = null } = 
     const entries = state.tenants[t]?.entries || {};
     return Object.values(entries)
       .filter((e) => (includeInactive ? true : e.active))
-      .map(cloneEntry)
-      .sort((a, b) => (a.address < b.address ? -1 : a.address > b.address ? 1 : 0));
+      .sort((a, b) => (a.address < b.address ? -1 : a.address > b.address ? 1 : 0))
+      .map(cloneEntry);
   }
 
   return {
