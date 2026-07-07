@@ -498,19 +498,18 @@
         box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
         flex-wrap: wrap;
       }
+      /* Läspanel-header-pill = exakt v9 .cr-status (Kundregistrets status-pill). */
       .status-pill {
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        padding: 4px 10px;
+        padding: 3px 9px;
         border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.84);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
-        font-size: 10.5px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(247, 241, 236, 0.75));
+        font-size: 10px;
         font-weight: 700;
-        box-shadow:
-          0 2px 6px rgba(56, 40, 28, 0.06),
-          inset 0 1px 0 rgba(255, 255, 255, 0.88);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
         white-space: nowrap;
       }
       .status-pill .dot {
@@ -1161,6 +1160,8 @@
         margin-left: auto;
         margin-right: 14px;
       }
+      /* Topp-badges = v9-pill-definition (kant + inre highlight) ovanpå status-
+         tinten, så de läser som tydliga Kundregister-pills. */
       .risk-badge {
         display: inline-flex;
         align-items: center;
@@ -1171,6 +1172,8 @@
         font-weight: 800;
         letter-spacing: 0.04em;
         text-transform: uppercase;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
       }
       /* PR 13 — Notiser-klocka (notiscenter-entry) i badge-raden. */
       .cco-notis-bell {
