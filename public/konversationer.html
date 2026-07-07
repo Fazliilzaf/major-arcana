@@ -568,7 +568,12 @@
       .msg-bubble.msg-bubble--html {
         padding: 0;
         overflow: hidden;
-        width: min(720px, 100%);
+        /* Bredden var tänkt att bli 720px, men "100%" kollapsar i flex/shrink-
+           to-fit-kontexten till iframens inbyggda ~300px → HTML-mail (signatur/
+           loggor) renderades smalt medan ren-text-bubblor fyllde ~80%. En definit
+           vw-term gör att den avsedda 720px faktiskt tillämpas, så HTML-bubblorna
+           blir lika breda som textbubblorna. Skalar ner på smala fönster. */
+        width: min(720px, 62vw);
       }
       .msg-html-frame {
         display: block;
