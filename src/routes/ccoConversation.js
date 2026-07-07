@@ -960,12 +960,33 @@ function toConversationMessageFromRaw(raw = {}) {
   };
 }
 
+// Läs råmeddelanden UTAN att djup-klona hela ingestion-staten. store.getState()
+// klonar hela storen (varje råmeddelande bär rawJson = hela mailkroppen) per
+// anrop — på den heta messages-vägen räckte det för att spika heapen > RAM och
+// trigga OOM. Föredra den icke-klonande listRawMessages() när den finns; faller
+// tillbaka till getState() för äldre store-instanser (t.ex. i test).
+function readIngestionRawMessages(store) {
+  if (!store) return [];
+  if (typeof store.listRawMessages === 'function') {
+    return asArray(store.listRawMessages());
+  }
+  if (typeof store.getState === 'function') {
+    return Object.values(asObject(asObject(store.getState()).mailRawMessages));
+  }
+  return [];
+}
+
+function storeCanReadIngestion(store) {
+  return Boolean(
+    store && (typeof store.listRawMessages === 'function' || typeof store.getState === 'function')
+  );
+}
+
 function fetchSortedIngestionConversationMessages(store, key, options = {}) {
-  if (!store || typeof store.getState !== 'function') return [];
+  if (!storeCanReadIngestion(store)) return [];
   const scopes = buildConversationLookupScopes([key], options);
   if (!scopes.length) return [];
-  const state = asObject(store.getState());
-  const rawMessages = Object.values(asObject(state.mailRawMessages));
+  const rawMessages = readIngestionRawMessages(store);
   const matches = rawMessages
     .map(toConversationMessageFromRaw)
     .filter((message) => conversationMessageMatchesScopes(message, scopes));
@@ -973,7 +994,7 @@ function fetchSortedIngestionConversationMessages(store, key, options = {}) {
 }
 
 function fetchSortedIngestionConversationMessagesForKeys(store, keys = [], options = {}) {
-  if (!store || typeof store.getState !== 'function') return [];
+  if (!storeCanReadIngestion(store)) return [];
   const safeKeys = Array.from(
     new Set(
       asArray(keys)
@@ -983,8 +1004,7 @@ function fetchSortedIngestionConversationMessagesForKeys(store, keys = [], optio
   );
   const scopes = buildConversationLookupScopes(safeKeys, options);
   if (!scopes.length) return [];
-  const state = asObject(store.getState());
-  const rawMessages = Object.values(asObject(state.mailRawMessages));
+  const rawMessages = readIngestionRawMessages(store);
   const matches = rawMessages
     .map(toConversationMessageFromRaw)
     .filter((message) => conversationMessageMatchesScopes(message, scopes));
@@ -994,8 +1014,7 @@ function fetchSortedIngestionConversationMessagesForKeys(store, keys = [], optio
 }
 
 function buildIngestionMessageLookup(store) {
-  if (!store || typeof store.getState !== 'function') return new Map();
-  const state = asObject(store.getState());
+  if (!storeCanReadIngestion(store)) return new Map();
   const lookup = new Map();
   getIngestionConversationMessages(store).forEach((message) => {
     buildConversationAliases(message).forEach((alias) => {
@@ -1006,9 +1025,8 @@ function buildIngestionMessageLookup(store) {
 }
 
 function getIngestionConversationMessages(store) {
-  if (!store || typeof store.getState !== 'function') return [];
-  const state = asObject(store.getState());
-  return Object.values(asObject(state.mailRawMessages)).map(toConversationMessageFromRaw);
+  if (!storeCanReadIngestion(store)) return [];
+  return readIngestionRawMessages(store).map(toConversationMessageFromRaw);
 }
 
 function bodyTextLooksLikePreview(text = '', preview = '') {
@@ -2546,23 +2564,42 @@ function createCcoConversationRouter({
       if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
         return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
       }
-      const all = ccoMailboxTruthStore.listMessages({});
+      // Iterera per mailbox så bara EN shard materialiseras åt gången, i stället
+      // för att bygga + sortera en array av HELA storen (listMessages({})). Skalar
+      // med antal konton utan minnesspik. Faller tillbaka till allt om mailbox-
+      // listan inte kan härledas. Counts/latest är oförändrade.
+      const report =
+        typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
+          ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: [] })
+          : null;
+      const mailboxIds = report
+        ? asArray(report.accountReports)
+            .map((account) => normalizeText(account.mailboxId))
+            .filter(Boolean)
+        : [];
+      const scopeList = mailboxIds.length ? mailboxIds.map((id) => ({ mailboxIds: [id] })) : [{}];
       const byMailbox = {};
-      for (const raw of all) {
-        const m = asObject(raw);
-        const mb = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'unknown';
-        if (!byMailbox[mb]) byMailbox[mb] = { mailboxId: mb, count: 0, latestAt: null };
-        byMailbox[mb].count += 1;
-        const tIso =
-          normalizeText(m.sentAt) || normalizeText(m.receivedAt) || normalizeText(m.lastModifiedAt);
-        if (tIso) {
-          const cur = byMailbox[mb].latestAt ? Date.parse(byMailbox[mb].latestAt) : 0;
-          if (Date.parse(tIso) > cur) byMailbox[mb].latestAt = tIso;
+      let totalMessages = 0;
+      for (const scope of scopeList) {
+        for (const raw of ccoMailboxTruthStore.listMessages(scope)) {
+          const m = asObject(raw);
+          const mb = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'unknown';
+          if (!byMailbox[mb]) byMailbox[mb] = { mailboxId: mb, count: 0, latestAt: null };
+          byMailbox[mb].count += 1;
+          totalMessages += 1;
+          const tIso =
+            normalizeText(m.sentAt) ||
+            normalizeText(m.receivedAt) ||
+            normalizeText(m.lastModifiedAt);
+          if (tIso) {
+            const cur = byMailbox[mb].latestAt ? Date.parse(byMailbox[mb].latestAt) : 0;
+            if (Date.parse(tIso) > cur) byMailbox[mb].latestAt = tIso;
+          }
         }
       }
       return res.json({
         ok: true,
-        totalMessages: all.length,
+        totalMessages,
         mailboxes: Object.values(byMailbox).sort((a, b) => b.count - a.count),
         generatedAt: new Date().toISOString(),
         graphReadEnabled: process.env.ARCANA_GRAPH_READ_ENABLED === 'true',
