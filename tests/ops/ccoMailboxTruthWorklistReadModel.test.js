@@ -5,6 +5,7 @@ const {
   toCanonicalMailboxConversationKey,
   isOutOfScopeDraftReview,
   createCcoMailboxTruthWorklistReadModel,
+  resolveWorklistEvidenceFields,
 } = require('../../src/ops/ccoMailboxTruthWorklistReadModel');
 
 test('toCanonicalMailboxConversationKey prefers mailboxConversationId with mailbox prefix normalization', () => {
@@ -613,4 +614,41 @@ test('buildConsumerModel row-shape: nested preview/timing/state/mailbox/customer
   );
   assert.equal(row.customer.email, 'patient@example.com');
   assert.equal(row.customer.name, 'Anna Svensson');
+
+  // top-level evidence fields for reporting/backfill samples
+  assert.equal(row.conversationKey, row.id);
+  assert.equal(row.mailboxId, 'info@hairtpclinic.com');
+  assert.equal(row.lastInboundAt, row.timing.lastInboundAt);
+  assert.equal(row.evidenceComplete, true);
+});
+
+test('resolveWorklistEvidenceFields prefers nested consumer evidence over stale flat fallbacks', () => {
+  const evidence = resolveWorklistEvidenceFields({
+    id: 'legacy-row-id',
+    mailboxId: 'legacy@hairtpclinic.com',
+    lastInboundAt: '2026-01-01T08:00:00.000Z',
+    customerMatchStatus: 'UNMATCHED',
+    conversation: {
+      key: 'kons@hairtpclinic.com:conv-nested',
+    },
+    mailbox: {
+      mailboxId: 'kons@hairtpclinic.com',
+    },
+    timing: {
+      lastInboundAt: '2026-07-02T10:30:00.000Z',
+    },
+    state: {
+      needsReply: true,
+      ingestion: {
+        dominantStatus: 'MATCHED',
+      },
+    },
+  });
+
+  assert.equal(evidence.conversationKey, 'kons@hairtpclinic.com:conv-nested');
+  assert.equal(evidence.mailboxId, 'kons@hairtpclinic.com');
+  assert.equal(evidence.lastInboundAt, '2026-07-02T10:30:00.000Z');
+  assert.equal(evidence.needsReply, true);
+  assert.equal(evidence.customerMatch, 'MATCHED');
+  assert.equal(evidence.evidenceComplete, true);
 });

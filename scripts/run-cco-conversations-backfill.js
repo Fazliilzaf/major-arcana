@@ -26,6 +26,8 @@
 
 require('dotenv').config({ quiet: true });
 
+const { resolveWorklistEvidenceFields } = require('../src/ops/ccoMailboxTruthWorklistReadModel');
+
 // Default = .com — den riktiga produktionsytan (ägar-beslut 2026-07-05).
 // .se-hosten får ALDRIG vara default här; överstyr medvetet via ARCANA_PROD_URL.
 const DEFAULT_PROD_URL = 'https://arcana.hairtpclinic.com';
@@ -100,48 +102,13 @@ function summarizeWorklist(payload) {
  *   timing.{lastInboundAt,latestMessageAt} · state.needsReply
  *   state.ingestion.dominantStatus (MATCHED/NEEDS_REVIEW/UNMATCHED/SECURITY_REVIEW)
  * Platta fallbacks behålls för äldre/andra radformer. */
-function sampleRowTime(row) {
-  return String(
-    row?.timing?.lastInboundAt ||
-      row?.lastInboundAt ||
-      row?.timing?.latestMessageAt ||
-      row?.latestMessageAt ||
-      ''
-  );
-}
-
 function sampleWorklistRows(payload, limit = 5) {
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
   return rows
     .slice()
-    .sort((a, b) => sampleRowTime(b).localeCompare(sampleRowTime(a)))
-    .slice(0, Math.max(0, limit))
-    .map((row) => ({
-      conversationKey: String(row?.conversation?.key || row?.conversationKey || row?.id || ''),
-      mailboxId: String(
-        row?.mailbox?.mailboxId ||
-          row?.mailbox?.mailboxAddress ||
-          row?.mailbox?.ownershipMailbox ||
-          row?.mailboxId ||
-          row?.ownershipMailbox ||
-          ''
-      ),
-      lastInboundAt: sampleRowTime(row) || null,
-      needsReply:
-        row?.state?.needsReply === true ||
-        row?.needsReply === true ||
-        row?.status === 'needs_reply',
-      customerMatch:
-        String(
-          row?.state?.ingestion?.dominantStatus ||
-            row?.ingestion?.dominantStatus ||
-            row?.customerMatchStatus ||
-            row?.ingestion?.matchStatus ||
-            (row?.customer?.email || row?.customer?.name || row?.customerId || row?.customer?.id
-              ? 'MATCHED'
-              : '')
-        ) || 'UNKNOWN',
-    }));
+    .map((row) => resolveWorklistEvidenceFields(row))
+    .sort((a, b) => String(b.lastInboundAt || '').localeCompare(String(a.lastInboundAt || '')))
+    .slice(0, Math.max(0, limit));
 }
 
 function rowConversationKey(row) {
@@ -176,12 +143,7 @@ function latestInboundTimeFromMessages(payload) {
       ? payload.items
       : [];
   return (
-    messages
-      .filter(isInboundMessage)
-      .map(sampleMessageTime)
-      .filter(Boolean)
-      .sort()
-      .pop() || null
+    messages.filter(isInboundMessage).map(sampleMessageTime).filter(Boolean).sort().pop() || null
   );
 }
 

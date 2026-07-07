@@ -683,20 +683,20 @@ function buildWorklistRollupRow(rows = []) {
   const draftsCount = safeRows.filter((row) => row?.folderPresence?.drafts === true).length;
   const deletedCount = safeRows.filter((row) => row?.folderPresence?.deleted === true).length;
   const maxHoursSinceInbound = safeRows.reduce(
-    (max, row) => Math.max(max, Number(row?.timing?.hoursSinceInbound || 0)),
+    (max, row) => Math.max(max, Number(readWorklistTimingField(row, 'hoursSinceInbound') || 0)),
     0
   );
   const latestMessageAt =
     safeRows
-      .map((row) => normalizeText(row?.timing?.latestMessageAt || ''))
+      .map((row) => readWorklistTimingField(row, 'latestMessageAt'))
       .sort((left, right) => right.localeCompare(left))[0] || null;
   const lastInboundAt =
     safeRows
-      .map((row) => normalizeText(row?.timing?.lastInboundAt || ''))
+      .map((row) => readWorklistTimingField(row, 'lastInboundAt'))
       .sort((left, right) => right.localeCompare(left))[0] || null;
   const lastOutboundAt =
     safeRows
-      .map((row) => normalizeText(row?.timing?.lastOutboundAt || ''))
+      .map((row) => readWorklistTimingField(row, 'lastOutboundAt'))
       .sort((left, right) => right.localeCompare(left))[0] || null;
   const lane = safeRows.some((row) => normalizeLane(row?.lane) === 'act-now')
     ? 'act-now'
@@ -756,15 +756,15 @@ function buildWorklistRollupRow(rows = []) {
   );
   const latestReplyRow =
     safeRows
-      .filter((row) => normalizeText(row?.timing?.lastOutboundAt || ''))
+      .filter((row) => readWorklistTimingField(row, 'lastOutboundAt'))
       .sort((left, right) =>
-        normalizeText(right?.timing?.lastOutboundAt || '').localeCompare(
-          normalizeText(left?.timing?.lastOutboundAt || '')
+        readWorklistTimingField(right, 'lastOutboundAt').localeCompare(
+          readWorklistTimingField(left, 'lastOutboundAt')
         )
       )[0] || null;
   const latestReplyMailbox = latestReplyRow ? rowMailboxId(latestReplyRow) : null;
   const latestReplyAt = latestReplyRow
-    ? normalizeText(latestReplyRow?.timing?.lastOutboundAt || '') || null
+    ? readWorklistTimingField(latestReplyRow, 'lastOutboundAt') || null
     : null;
   return {
     ...primaryRow,
@@ -1019,6 +1019,72 @@ function applyIngestionLedgerProjection({
       ingestion,
     };
   });
+}
+
+function readWorklistTimingField(row = {}, field = '') {
+  const safeField = normalizeText(field);
+  if (!safeField) return '';
+  return normalizeText(row?.[safeField] || row?.timing?.[safeField] || '');
+}
+
+function resolveWorklistEvidenceFields(row = {}) {
+  const safe = asObject(row);
+  const mailbox = asObject(safe.mailbox);
+  const timing = asObject(safe.timing);
+  const conversation = asObject(safe.conversation);
+  const state = asObject(safe.state);
+  const nestedIngestion = asObject(state.ingestion);
+  const flatIngestion = asObject(safe.ingestion);
+  const customer = asObject(safe.customer);
+
+  const conversationKey =
+    normalizeText(safe.conversationKey) ||
+    normalizeText(conversation.key) ||
+    normalizeText(conversation.conversationKey) ||
+    normalizeText(safe.id);
+
+  const mailboxId =
+    normalizeText(mailbox.mailboxId) ||
+    normalizeText(mailbox.mailboxAddress) ||
+    normalizeText(mailbox.ownershipMailbox) ||
+    normalizeText(safe.mailboxId) ||
+    normalizeText(safe.ownershipMailbox);
+
+  const lastInboundAt =
+    normalizeText(timing.lastInboundAt) ||
+    normalizeText(safe.lastInboundAt) ||
+    normalizeText(timing.latestMessageAt) ||
+    normalizeText(safe.latestMessageAt) ||
+    null;
+
+  const needsReply =
+    safe.needsReply === true ||
+    state.needsReply === true ||
+    normalizeText(safe.status) === 'needs_reply';
+  const hasCustomerIdentity = Boolean(
+    normalizeText(safe.customerId) ||
+    normalizeText(customer.id) ||
+    normalizeText(customer.email) ||
+    normalizeText(customer.name)
+  );
+
+  const customerMatch =
+    normalizeText(nestedIngestion.dominantStatus) ||
+    normalizeText(flatIngestion.dominantStatus) ||
+    normalizeText(safe.customerMatchStatus) ||
+    normalizeText(nestedIngestion.matchStatus) ||
+    normalizeText(flatIngestion.matchStatus) ||
+    (hasCustomerIdentity ? 'MATCHED' : '') ||
+    'UNKNOWN';
+
+  return {
+    conversationKey,
+    mailboxId,
+    lastInboundAt,
+    needsReply,
+    customerMatch,
+    evidenceComplete: Boolean(conversationKey && mailboxId && lastInboundAt),
+  };
 }
 
 function createCcoMailboxTruthWorklistReadModel({
@@ -1421,7 +1487,7 @@ function createCcoMailboxTruthWorklistReadModel({
       rows: rollupRows.map((row) => {
         const inlineContext = buildQueueInlineContext(row);
         const explanatoryLine = buildQueueExplanatoryLine(row);
-        return {
+        const consumerRow = {
           id: row.conversationKey,
           lane: row.lane || 'all',
           placementIndex: row.placementIndex,
@@ -1487,6 +1553,10 @@ function createCcoMailboxTruthWorklistReadModel({
                 : null,
           },
         };
+        return {
+          ...consumerRow,
+          ...resolveWorklistEvidenceFields(consumerRow),
+        };
       }),
     };
   }
@@ -1503,6 +1573,7 @@ module.exports = {
   applyIngestionLedgerProjection,
   isOutOfScopeDraftReview,
   toCanonicalMailboxConversationKey,
+  resolveWorklistEvidenceFields,
   // Exponerade för C8-tester (multi-mailbox customer rollup).
   buildCustomerRollupRows,
   buildWorklistRollupRow,

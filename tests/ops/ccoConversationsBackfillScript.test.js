@@ -153,6 +153,35 @@ test('sampleWorklistRows markerar kundbunden rad som MATCHED', () => {
   assert.equal(rows[0].customerMatch, 'MATCHED');
 });
 
+test('sampleWorklistRows plockar mailboxId och lastInboundAt från consumer-nästlad shape', () => {
+  const rows = sampleWorklistRows({
+    rows: [
+      {
+        id: 'kons@hairtpclinic.com:conv-1',
+        conversation: { key: 'kons@hairtpclinic.com:conv-1' },
+        mailbox: {
+          mailboxId: 'kons@hairtpclinic.com',
+          ownershipMailbox: 'kons@hairtpclinic.com',
+        },
+        timing: { lastInboundAt: '2026-06-04T14:30:00.000Z' },
+        state: { needsReply: true, ingestion: { matchStatus: 'MATCHED' } },
+        subject: 'Hemligt ämne',
+        preview: 'Hemlig preview',
+      },
+    ],
+  });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].conversationKey, 'kons@hairtpclinic.com:conv-1');
+  assert.equal(rows[0].mailboxId, 'kons@hairtpclinic.com');
+  assert.equal(rows[0].lastInboundAt, '2026-06-04T14:30:00.000Z');
+  assert.equal(rows[0].needsReply, true);
+  assert.equal(rows[0].customerMatch, 'MATCHED');
+  assert.equal(rows[0].evidenceComplete, true);
+  const serialized = JSON.stringify(rows);
+  assert.ok(!serialized.includes('Hemligt'), 'ämne får inte läcka');
+  assert.ok(!serialized.includes('Hemlig preview'), 'preview får inte läcka');
+});
+
 test('buildBackfillVerdict stoppar när worklist fanns men ingestion gav noll bevis', () => {
   const verdict = buildBackfillVerdict({
     before: { ok: true, rowCount: 1 },
