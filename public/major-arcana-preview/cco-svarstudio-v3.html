@@ -327,31 +327,32 @@
         height: 0.4rem;
         border-radius: 999px;
       }
+      /* Status-färger = v9 Kundregistrets .cr-status-facit (cco-v9-customers.css) */
       .pill--success {
-        color: var(--success);
+        color: #4a8268; /* grön */
       }
       .pill--success .dot {
-        background: var(--success);
+        background: #4a8268;
       }
       .pill--warning {
-        color: var(--warning);
+        color: #c8821e; /* amber */
       }
       .pill--warning .dot {
-        background: var(--warning);
+        background: #c8821e;
       }
       .pill--info {
-        color: var(--info);
+        color: #4a7ba8; /* blå */
       }
       .pill--info .dot {
-        background: var(--info);
+        background: #4a7ba8;
       }
       .pill--vip {
         background: linear-gradient(180deg, #fdeef4, #f6cfdc);
-        color: var(--accent);
-        border-color: rgba(176, 53, 110, 0.32);
+        color: #bb4779; /* studio-rosa */
+        border-color: rgba(187, 71, 121, 0.32);
       }
       .pill--vip .dot {
-        background: var(--accent);
+        background: #bb4779;
       }
 
       /* knappar */
@@ -394,18 +395,16 @@
         padding: 1rem;
         border-radius: var(--r-lg);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
-        /* Kundregistret-facit (.customer-row): vit kant som smälter in — inte taupe-ruta */
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(180, 165, 150, 0.25);
         box-shadow: var(--sh-md);
         transition:
           transform 0.12s ease,
           box-shadow 0.12s ease,
-          background 0.12s ease;
+          border-color 0.12s ease;
       }
       .card:hover {
-        /* som Kundregistret: hoveret lyfter ytan + skuggan, ritar ingen rosa kant */
         box-shadow: var(--sh-lg);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 247, 242, 0.9));
+        border-color: rgba(176, 53, 110, 0.25);
       }
       .card:active {
         transform: scale(0.99);
@@ -423,7 +422,7 @@
         padding: 1.1rem;
         border-radius: var(--r-xl);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.88));
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(180, 165, 150, 0.25);
         box-shadow: var(--sh-md);
       }
       .panel-head {
@@ -810,7 +809,7 @@
         width: 100%;
         max-width: var(--maxw);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 241, 236, 0.95));
-        border: 1px solid rgba(255, 255, 255, 0.55);
+        border: 1px solid rgba(180, 165, 150, 0.3);
         border-radius: var(--r-xl);
         box-shadow: var(--sh-lg);
         display: flex;
@@ -853,17 +852,18 @@
         font-weight: 800;
         letter-spacing: 0.02em;
       }
+      /* Topp-status-pills: samma v9-facit-färger (grön/amber/rosa/blå) */
       .sp--intent {
         background: var(--info-bg);
-        color: var(--info);
+        color: #4a7ba8; /* blå */
       }
       .sp--prio {
         background: var(--warning-bg);
-        color: var(--warning);
+        color: #c8821e; /* amber */
       }
       .sp--vip {
         background: var(--accent-weak);
-        color: var(--accent);
+        color: #bb4779; /* studio-rosa */
       }
       .sp--ai {
         background: var(--violet-bg);
