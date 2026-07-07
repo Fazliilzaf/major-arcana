@@ -1194,3 +1194,101 @@
 .v11-rk [data-v9-section-link] {
   cursor: pointer;
 }
+
+/* Live-embedding: facitmockupen ar 424px, men prod-railen ska nyttja kundytan. */
+@media (min-width: 1024px) {
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    ) {
+    --v11-rk-live-rail-width: clamp(520px, 43vw, 660px);
+  }
+
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v10-facit-app-grid],
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open] {
+    grid-template-columns: 200px minmax(0, 1fr) var(--v11-rk-live-rail-width) !important;
+  }
+
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v10-facit-app-grid]
+    .customers-rail.intel-shell,
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v10-facit-app-grid][data-v9-dossier-open]
+    .customers-rail--dominant {
+    width: 100% !important;
+    max-width: var(--v11-rk-live-rail-width) !important;
+  }
+
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail.customers-rail--dominant {
+    padding: 0 !important;
+  }
+
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail--dominant
+    .v11-rail__scroll {
+    padding: 0 !important;
+  }
+
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail--dominant
+    [data-patient-master-rail]
+    .patient-master-card.v11-rail,
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail--dominant
+    [data-patient-master-rail]
+    .v11-rk {
+    width: 100%;
+    --shell-bg: linear-gradient(180deg, #fcf9f5 0%, #f3ede7 100%);
+    --card-bg: linear-gradient(180deg, #fff 0%, #f7f1ec 100%);
+  }
+
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail--dominant
+    [data-patient-master-rail]
+    .patient-master-card.v11-rail {
+    padding: 0 !important;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail--dominant
+    [data-patient-master-rail]
+    .v11-rk__shell {
+    max-width: none;
+    margin-inline: 0;
+  }
+}
