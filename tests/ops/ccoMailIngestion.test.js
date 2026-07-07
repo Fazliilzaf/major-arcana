@@ -79,6 +79,39 @@ test('ingestion store dedupes raw messages by dedupeKey', async () => {
   await fs.unlink(filePath).catch(() => {});
 });
 
+test('listRawMessages returns raw messages without deep-cloning the whole store (OOM-skydd)', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-listraw-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id, mode: 'initial_sync' });
+
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-listraw-1',
+      internetMessageId: '<listraw-1@example.com>',
+      subject: 'Kontaktformulär',
+      bodyPreview: 'Hej',
+      from: { address: 'patient@example.com', name: 'Patient' },
+      receivedAt: '2026-05-26T10:00:00.000Z',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+
+  assert.equal(typeof store.listRawMessages, 'function');
+  const listed = store.listRawMessages();
+  assert.equal(Array.isArray(listed), true);
+  assert.equal(listed.length, 1);
+  // Identitet (===) mot den lagrade posten bevisar att accessorn INTE djup-klonar
+  // hela staten per anrop — det var klonandet i getState() som spikade heapen och
+  // triggade OOM (4GB) på den heta messages-vägen. getState() klonar fortfarande.
+  assert.strictEqual(listed[0], store.getRawMessage(saved.rawMessage.id));
+  assert.notStrictEqual(store.getState().mailRawMessages[saved.rawMessage.id], listed[0]);
+  await fs.unlink(filePath).catch(() => {});
+});
+
 test('saveRawMessageFromTruth derives full body text from Graph bodyHtml', async () => {
   const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-body-${Date.now()}.json`);
   const store = await createCcoMailIngestionStore({ filePath });

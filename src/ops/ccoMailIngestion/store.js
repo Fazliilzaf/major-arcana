@@ -1130,6 +1130,12 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     listUnmatchedMessages,
     listAmbiguousMatches,
     listMailboxStats,
+    // Icke-klonande läs-accessor för råmeddelanden. getState() nedan djup-klonar
+    // HELA ingestion-staten (varje råmeddelande bär rawJson = hela mailkroppen)
+    // per anrop — på messages-vägen (enrichment/fallback) räckte samtidiga klick
+    // för att spika heapen > tillgängligt RAM och trigga OOM (4GB-kraschen).
+    // Läsvägar som bara behöver iterera råmeddelanden ska använda denna i stället.
+    listRawMessages: () => Object.values(state.mailRawMessages || {}),
     getState: () => cloneJson(state),
   };
 }
