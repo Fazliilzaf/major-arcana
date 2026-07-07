@@ -668,6 +668,60 @@ function dedupeConversationMessages(messages = []) {
   });
 }
 
+function deriveInternetMessageId(message = {}) {
+  const safe = asObject(message);
+  return (
+    normalizeText(safe.internetMessageId) ||
+    normalizeText(asObject(safe.rawJson).internetMessageId) ||
+    normalizeText(asObject(safe.mailDocument).internetMessageId)
+  );
+}
+
+// Signatur för att fälla ihop identiska KOPIOR av samma mail: samma RFC Message-ID,
+// eller — när det saknas — samma mailbox/riktning/minut/ämne/kropp. Skiljer äkta
+// separata mail (olika Message-ID/innehåll) från dubbletter som levererats eller
+// lagrats flera gånger (t.ex. kontaktformulär som skickar samma notis i flera ex).
+function duplicateCollapseSignature(message = {}) {
+  const safe = asObject(message);
+  const messageId = deriveInternetMessageId(safe);
+  if (messageId) return `mid:${messageId.toLowerCase()}`;
+  const parts = [
+    normalizeEmail(safe.mailboxAddress || safe.mailboxId),
+    normalizeText(safe.dir),
+    normalizeText(safe.time || safe.receivedAt || safe.sentAt).slice(0, 16),
+    normalizeText(safe.subject).toLowerCase(),
+    normalizeBodyText(safe.bodyText || safe.body || safe.bodyPreview).slice(0, 400),
+  ].filter(Boolean);
+  return parts.length ? `sig:${parts.join('|')}` : '';
+}
+
+// Fäller ihop identiska kopior till ETT meddelande men bevarar spåret: duplicateCount
+// (hur många gånger) + duplicates[] (när/var/vilken folder per kopia). Klienten visar
+// en diskret markering. Ordningen bevaras — första förekomsten representerar gruppen.
+function collapseDuplicateMessages(messages = []) {
+  const bySignature = new Map();
+  const result = [];
+  for (const raw of asArray(messages)) {
+    const message = asObject(raw);
+    const signature = duplicateCollapseSignature(message);
+    const occurrence = {
+      time: message.time || null,
+      mailboxAddress: message.mailboxAddress || message.mailboxId || null,
+      folderType: message.folderType || null,
+    };
+    if (signature && bySignature.has(signature)) {
+      const rep = bySignature.get(signature);
+      rep.duplicateCount += 1;
+      rep.duplicates.push(occurrence);
+      continue;
+    }
+    const rep = { ...message, duplicateCount: 1, duplicates: [occurrence] };
+    if (signature) bySignature.set(signature, rep);
+    result.push(rep);
+  }
+  return result;
+}
+
 function fetchSortedConversationMessagesForKeys(store, keys = [], options = {}) {
   const safeKeys = Array.from(
     new Set(
@@ -1518,6 +1572,7 @@ function createCcoConversationRouter({
             bodyPreview: bodyPreview || null,
             preview: bodyPreview || null,
             subject: normalizeText(safe.subject) || null,
+            internetMessageId: deriveInternetMessageId(safe) || null,
             mailboxId,
             mailboxAddress: mailboxAddress || null,
             folderType: normalizeText(safe.folderType) || null,
@@ -1525,13 +1580,18 @@ function createCcoConversationRouter({
             attachments,
           };
         });
+        // Fäll ihop identiska kopior (samma mail levererat/lagrat flera gånger) till
+        // ett meddelande. Varje behållet meddelande bär duplicateCount + duplicates[]
+        // så klienten kan markera "mottogs N ggr" med när/var. Äkta separata mail
+        // (olika Message-ID/innehåll) rörs inte.
+        const collapsedMessages = collapseDuplicateMessages(messages);
         const tMap = process.hrtime.bigint();
         const toMs = (a, b) => Math.round((Number(b - a) / 1e6) * 10) / 10;
         return res.json({
           ok: true,
           conversationKey: key,
-          messageCount: messages.length,
-          messages,
+          messageCount: collapsedMessages.length,
+          messages: collapsedMessages,
           timings: {
             truthMs: toMs(tStart, tTruth),
             enrichMs: toMs(tTruth, tEnrich),
@@ -2982,6 +3042,8 @@ module.exports = {
   rewriteMailCidImageSources,
   deriveBody,
   collectConversationAttachments,
+  // Exponerad för tester: fäller ihop identiska mailkopior (dubbletter) till ett.
+  collapseDuplicateMessages,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
   evaluateConversationBulkItem,
 };
