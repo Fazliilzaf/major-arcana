@@ -13309,13 +13309,18 @@ process.once('SIGTERM', () => {
   );
 
   // Svarstudio v2 (P2): utkast-CRUD + gateway-styrd AI-generering.
-  // Live-utskick (→ sent) är hårt blockerat (owner-mandat); se router.
+  // Live-utskick (→ sent) sker bara via den dedikerade /send-routen bakom alla
+  // grindar (owner + flagga + approved + allowlists). graphSendConnector (rad
+  // ~12591) är null om inte ARCANA_GRAPH_SEND_ENABLED=true + Graph-creds satts,
+  // så adaptern blir null och routern svarar 503 no_adapter tills dess.
+  const { createCcoGraphSendAdapter } = require('./src/infra/ccoGraphSendAdapter');
   app.use(
     '/api/v1',
     createCcoCommDraftRouter({
       config,
       requireAuth: auth.requireAuth,
       commDraftStore: app.locals?.ccoCommDraftStore || null,
+      graphSendAdapter: graphSendConnector ? createCcoGraphSendAdapter(graphSendConnector) : null,
       executionGateway,
       openai,
       auditLog: ccoAuditLog,
