@@ -3696,9 +3696,29 @@
         return `${value} B`;
       }
 
+      function attachmentUrl(attachment) {
+        return firstMailText(
+          attachment?.inlineUrl,
+          attachment?.openUrl,
+          attachment?.downloadUrl,
+          attachment?.url,
+          attachment?.href
+        );
+      }
+
+      function attachmentFilenameFromUrl(url) {
+        const fromUrl = normalizeText((url.split('/').pop() || '').split('?')[0]);
+        if (!fromUrl || !/\.\w{2,5}$/.test(fromUrl)) return '';
+        try {
+          return decodeURIComponent(fromUrl);
+        } catch {
+          return fromUrl;
+        }
+      }
+
       function attachmentIsImage(attachment) {
         const type = normalizeText(attachment?.contentType);
-        const name = normalizeText(attachment?.name);
+        const name = normalizeText(attachment?.name) || attachmentFilenameFromUrl(attachmentUrl(attachment));
         return /^image\//i.test(type) || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(name);
       }
 
@@ -3708,21 +3728,8 @@
       function attachmentDisplayName(attachment) {
         const name = normalizeText(attachment?.name);
         if (name) return name;
-        const url = firstMailText(
-          attachment?.inlineUrl,
-          attachment?.openUrl,
-          attachment?.downloadUrl,
-          attachment?.url,
-          attachment?.href
-        );
-        const fromUrl = normalizeText((url.split('/').pop() || '').split('?')[0]);
-        if (fromUrl && /\.\w{2,5}$/.test(fromUrl)) {
-          try {
-            return decodeURIComponent(fromUrl);
-          } catch {
-            return fromUrl;
-          }
-        }
+        const fromUrl = attachmentFilenameFromUrl(attachmentUrl(attachment));
+        if (fromUrl) return fromUrl;
         return attachmentIsImage(attachment) ? 'Bild' : 'Bilaga';
       }
 
@@ -3738,18 +3745,13 @@
         const header = `<div class="msg-attachments-head">${escapeHtml(summary.join(' · '))}</div>`;
         const chips = attachments
           .map((attachment) => {
-            const size = formatAttachmentSize(attachment.size);
-            const type = normalizeText(attachment.contentType);
+            const item = attachment && typeof attachment === 'object' ? attachment : {};
+            const size = formatAttachmentSize(item.size);
+            const type = normalizeText(item.contentType);
             const meta = [size, type].filter(Boolean).join(' · ');
-            const name = attachmentDisplayName(attachment);
-            const url = firstMailText(
-              attachment.inlineUrl,
-              attachment.openUrl,
-              attachment.downloadUrl,
-              attachment.url,
-              attachment.href
-            );
-            const imageLike = attachmentIsImage(attachment);
+            const name = attachmentDisplayName(item);
+            const url = attachmentUrl(item);
+            const imageLike = attachmentIsImage(item);
             const safeUrl = isAllowedMailUrl(url, { image: imageLike }) ? url : '';
             if (imageLike && safeUrl) {
               return `<a class="msg-attachment-preview" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}"><img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(name)}" loading="lazy"><span>${escapeHtml(name)}</span></a>`;
