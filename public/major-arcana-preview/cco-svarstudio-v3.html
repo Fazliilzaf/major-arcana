@@ -1116,6 +1116,70 @@
         flex-wrap: wrap;
         font-size: var(--fs-meta);
       }
+      /* 1c: bifoga-kontroll + bilage-chips */
+      .attach-block {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+      .attach-hint {
+        font-size: var(--fs-meta);
+        color: var(--text-tertiary);
+      }
+      .attach-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        width: 100%;
+      }
+      .attach-list:empty {
+        display: none;
+      }
+      .attach-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        max-width: 260px;
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        background: var(--bg-surface);
+        border: 1px solid rgba(120, 105, 90, 0.18);
+        font-size: var(--fs-meta);
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+      .attach-chip.is-uploading {
+        opacity: 0.6;
+      }
+      .attach-chip img {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        object-fit: cover;
+      }
+      .attach-chip .attach-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .attach-chip .attach-remove {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        color: var(--text-tertiary);
+        font-weight: 800;
+        line-height: 1;
+        padding: 0 2px;
+      }
+      .attach-chip .attach-remove:hover {
+        color: var(--accent);
+      }
+      .editor.is-dragover {
+        outline: 2px dashed var(--accent);
+        outline-offset: 2px;
+      }
       .wordcount {
         color: var(--text-tertiary);
         font-weight: 700;
@@ -1863,6 +1927,22 @@
               <span class="policy policy--ok" id="policyPill" aria-live="polite">Policy OK</span>
             </div>
 
+            <!-- 1c: bifoga fil/bild till utkastet (ingen live-send) -->
+            <div class="attach-block">
+              <input
+                type="file"
+                id="attachInput"
+                multiple
+                hidden
+                accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+              />
+              <button type="button" class="btn" id="actAttach">📎 Bifoga fil/bild</button>
+              <span class="attach-hint" id="attachHint"
+                >Dra-släpp filer i svarsrutan eller klistra in en skärmbild</span
+              >
+              <div class="attach-list" id="attachList" aria-live="polite"></div>
+            </div>
+
             <div class="field-row">
               <div class="field">
                 <label>Signatur</label>
@@ -2455,6 +2535,9 @@
         S.usedToolKeys = new Set();
         S.draftId = null;
         S.draftStatus = null;
+        // Nollställ bilagor så en kunds förberedda bilagor aldrig läcker till nästa tråd.
+        S.attachments = [];
+        if (typeof renderAttachChips === 'function') renderAttachChips();
         $('toolNote').classList.remove('is-used');
         // nollställ Smart anteckning-state så en kunds utkast aldrig läcker till nästa tråd
         N.mode = null;
@@ -2572,7 +2655,8 @@
           body: JSON.stringify(payload),
         });
         const d = await r.json().catch(() => ({}));
-        S.draftId = d.draft?.id;
+        // Backend returnerar draft.draftId; äldre/mock kan ge draft.id.
+        S.draftId = d.draft?.draftId || d.draft?.id || null;
         S.draftStatus = d.draft?.status;
         return { ok: r.ok, ...d };
       }
@@ -2589,6 +2673,155 @@
         });
         return r.json();
       }
+
+      /* ===================== 1c: BIFOGA (utkast-bilagor) ===================== */
+      // Förbereder bilagor på utkastet via 1b-endpoints. INGEN live-send.
+      S.attachments = S.attachments || [];
+
+      async function ensureDraftId() {
+        if (S.draftId) return S.draftId;
+        await createDraft();
+        return S.draftId;
+      }
+
+      function fmtBytes(bytes) {
+        const n = Number(bytes) || 0;
+        if (n < 1024) return n + ' B';
+        if (n < 1024 * 1024) return Math.round(n / 1024) + ' kB';
+        return (n / 1024 / 1024).toFixed(1) + ' MB';
+      }
+      const isImageType = (t) => /^image\//i.test(String(t || ''));
+
+      function attachmentContentUrl(att) {
+        if (!att.attachmentId || !S.draftId) return '';
+        return `${API}/cco-comm/drafts/${encodeURIComponent(S.draftId)}/attachments/${encodeURIComponent(att.attachmentId)}/content`;
+      }
+
+      function renderAttachChips() {
+        const list = $('attachList');
+        if (!list) return;
+        list.innerHTML = S.attachments
+          .map((a) => {
+            const thumb =
+              isImageType(a.contentType) && !a.uploading
+                ? `<img src="${esc(attachmentContentUrl(a))}" alt="" />`
+                : '📎';
+            const rm = a.uploading
+              ? ''
+              : `<button type="button" class="attach-remove" data-att="${esc(a.attachmentId)}" title="Ta bort">×</button>`;
+            return `<span class="attach-chip${a.uploading ? ' is-uploading' : ''}">${thumb}<span class="attach-name">${esc(a.name)}</span><span class="attach-size">${esc(fmtBytes(a.size))}</span>${rm}</span>`;
+          })
+          .join('');
+      }
+
+      async function uploadOneAttachment(file) {
+        if (!file) return;
+        const draftId = await ensureDraftId();
+        if (!draftId) {
+          flashNotice('sendNotice', 'notice--block', 'Kunde inte skapa utkast för bilagan.');
+          return;
+        }
+        const placeholder = {
+          name: file.name || 'Bilaga',
+          size: file.size,
+          contentType: file.type,
+          uploading: true,
+        };
+        S.attachments.push(placeholder);
+        renderAttachChips();
+        try {
+          const form = new FormData();
+          form.append('file', file, file.name || 'bilaga');
+          const r = await apiFetch(`/cco-comm/drafts/${encodeURIComponent(draftId)}/attachments`, {
+            method: 'POST',
+            body: form,
+          });
+          const d = await r.json().catch(() => ({}));
+          const i = S.attachments.indexOf(placeholder);
+          if (r.ok && d.attachment) {
+            if (i >= 0) S.attachments[i] = d.attachment;
+          } else {
+            if (i >= 0) S.attachments.splice(i, 1);
+            flashNotice(
+              'sendNotice',
+              'notice--block',
+              d.error || 'Bilagan kunde inte laddas upp.'
+            );
+          }
+        } catch (_e) {
+          const i = S.attachments.indexOf(placeholder);
+          if (i >= 0) S.attachments.splice(i, 1);
+          flashNotice('sendNotice', 'notice--block', 'Bilagan kunde inte laddas upp.');
+        }
+        renderAttachChips();
+      }
+
+      async function uploadFiles(files) {
+        for (const f of Array.from(files || [])) {
+          // eslint-disable-next-line no-await-in-loop
+          await uploadOneAttachment(f);
+        }
+      }
+
+      async function removeAttachment(attId) {
+        if (!attId || !S.draftId) return;
+        try {
+          await apiFetch(
+            `/cco-comm/drafts/${encodeURIComponent(S.draftId)}/attachments/${encodeURIComponent(attId)}`,
+            { method: 'DELETE' }
+          );
+        } catch (_e) {
+          /* tyst — chip tas bort lokalt ändå */
+        }
+        S.attachments = S.attachments.filter((a) => a.attachmentId !== attId);
+        renderAttachChips();
+      }
+
+      (function wireAttachments() {
+        const btn = $('actAttach');
+        const input = $('attachInput');
+        const editor = $('editor');
+        const list = $('attachList');
+        if (btn && input) btn.addEventListener('click', () => input.click());
+        if (input)
+          input.addEventListener('change', () => {
+            uploadFiles(input.files);
+            input.value = '';
+          });
+        if (list)
+          list.addEventListener('click', (e) => {
+            const rm = e.target.closest('.attach-remove');
+            if (rm) removeAttachment(rm.getAttribute('data-att'));
+          });
+        if (editor) {
+          editor.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            editor.classList.add('is-dragover');
+          });
+          editor.addEventListener('dragleave', () => editor.classList.remove('is-dragover'));
+          editor.addEventListener('drop', (e) => {
+            e.preventDefault();
+            editor.classList.remove('is-dragover');
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+              uploadFiles(e.dataTransfer.files);
+            }
+          });
+          editor.addEventListener('paste', (e) => {
+            const items = (e.clipboardData && e.clipboardData.items) || [];
+            const imgs = [];
+            for (const it of items) {
+              if (it.kind === 'file' && isImageType(it.type)) {
+                const f = it.getAsFile();
+                if (f) imgs.push(f);
+              }
+            }
+            if (imgs.length) {
+              e.preventDefault();
+              uploadFiles(imgs);
+            }
+          });
+        }
+      })();
 
       /* ===================== SVARSTUDIO EVENT-WIRING ===================== */
       function selectInGroup(rowId, attr, val) {
@@ -2834,13 +3067,21 @@
         );
         S.sending = false;
       });
-      $('actPreview').addEventListener('click', () =>
+      $('actPreview').addEventListener('click', () => {
+        // "Så här blir mailet": mottagare, ämne, brödtext-längd och bilagor.
+        const to = S.thread.customerEmail || S.thread.customerName || 'mottagare';
+        const from = S.composeMailboxId === 'egzona' ? 'Egzona · kons@' : 'Fazli · info@';
+        const words = (($('editor').value || '').trim().match(/\S+/g) || []).length;
+        const ready = S.attachments.filter((a) => !a.uploading);
+        const attPart = ready.length
+          ? ` · ${ready.length} bilaga${ready.length === 1 ? '' : 'or'} (${ready.map((a) => a.name).join(', ')})`
+          : ' · inga bilagor';
         flashNotice(
           'sendNotice',
           'notice--ok',
-          'Förhandsvisning: svaret ser korrekt ut för ' + S.thread.customerName + '.'
-        )
-      );
+          `Förhandsvisning — Till: ${to} · Från: ${from} · Ämne: ${S.thread.intent || '(inget)'} · ${words} ord${attPart}`
+        );
+      });
       $('actLater').addEventListener('click', () => {
         // /api/v1/cco/reply-later
         flashNotice(
