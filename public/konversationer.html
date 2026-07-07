@@ -633,6 +633,20 @@
         gap: 6px;
         margin-top: 7px;
       }
+      /* Tydlig "här finns bilagor/bilder"-etikett ovanför chipsen. */
+      .msg-attachments-head {
+        flex-basis: 100%;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: var(--cco-text-secondary);
+        margin-bottom: 1px;
+      }
+      /* Bilaga som inte kan öppnas just nu (t.ex. Graph-läsning av) — syns ändå. */
+      .msg-attachment--unavailable {
+        opacity: 0.62;
+        cursor: default;
+      }
       .msg-attachment {
         display: inline-flex;
         align-items: center;
@@ -3682,16 +3696,52 @@
         return `${value} B`;
       }
 
+      function attachmentIsImage(attachment) {
+        const type = normalizeText(attachment?.contentType);
+        const name = normalizeText(attachment?.name);
+        return /^image\//i.test(type) || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(name);
+      }
+
+      // Namn saknas ibland i metadatan. Härled ett vettigt namn ur URL:en, annars
+      // en generisk etikett — så en bilaga ALDRIG tappas bort (man ska alltid se
+      // att det finns en bilaga/bild).
+      function attachmentDisplayName(attachment) {
+        const name = normalizeText(attachment?.name);
+        if (name) return name;
+        const url = firstMailText(
+          attachment?.inlineUrl,
+          attachment?.openUrl,
+          attachment?.downloadUrl,
+          attachment?.url,
+          attachment?.href
+        );
+        const fromUrl = normalizeText((url.split('/').pop() || '').split('?')[0]);
+        if (fromUrl && /\.\w{2,5}$/.test(fromUrl)) {
+          try {
+            return decodeURIComponent(fromUrl);
+          } catch {
+            return fromUrl;
+          }
+        }
+        return attachmentIsImage(attachment) ? 'Bild' : 'Bilaga';
+      }
+
       function renderMessageAttachments(message) {
         const attachments = Array.isArray(message?.attachments) ? message.attachments : [];
-        const visible = attachments.filter((attachment) => normalizeText(attachment?.name));
-        if (!visible.length) return '';
-        return `<div class="msg-attachments">${visible
+        if (!attachments.length) return '';
+        const total = attachments.length;
+        const imageCount = attachments.filter(attachmentIsImage).length;
+        const summary = [`📎 ${total} ${total === 1 ? 'bilaga' : 'bilagor'}`];
+        if (imageCount > 0) {
+          summary.push(`🖼 ${imageCount} ${imageCount === 1 ? 'bild' : 'bilder'}`);
+        }
+        const header = `<div class="msg-attachments-head">${escapeHtml(summary.join(' · '))}</div>`;
+        const chips = attachments
           .map((attachment) => {
             const size = formatAttachmentSize(attachment.size);
             const type = normalizeText(attachment.contentType);
             const meta = [size, type].filter(Boolean).join(' · ');
-            const name = normalizeText(attachment.name);
+            const name = attachmentDisplayName(attachment);
             const url = firstMailText(
               attachment.inlineUrl,
               attachment.openUrl,
@@ -3699,19 +3749,21 @@
               attachment.url,
               attachment.href
             );
-            const imageLike =
-              /^image\//i.test(type) || /\.(png|jpe?g|gif|webp|svg)$/i.test(name || '');
+            const imageLike = attachmentIsImage(attachment);
             const safeUrl = isAllowedMailUrl(url, { image: imageLike }) ? url : '';
             if (imageLike && safeUrl) {
-              return `<a class="msg-attachment-preview" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}"><img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(name)}"><span>${escapeHtml(name)}</span></a>`;
+              return `<a class="msg-attachment-preview" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}"><img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(name)}" loading="lazy"><span>${escapeHtml(name)}</span></a>`;
             }
-            const inner = `📎 <span>${escapeHtml(name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}`;
+            const inner = `${imageLike ? '🖼' : '📎'} <span>${escapeHtml(name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}`;
             if (safeUrl) {
               return `<a class="msg-attachment" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}">${inner}</a>`;
             }
-            return `<div class="msg-attachment" title="${escapeHtml(meta || name)}">${inner}</div>`;
+            // Ingen nedladdningsbar URL (t.ex. Graph-läsning av): visa ändå att
+            // bilagan finns, som en icke-klickbar chip.
+            return `<div class="msg-attachment msg-attachment--unavailable" title="${escapeHtml(meta || name)} · går inte att öppna just nu">${inner}</div>`;
           })
-          .join('')}</div>`;
+          .join('');
+        return `<div class="msg-attachments">${header}${chips}</div>`;
       }
 
       function renderThreadMessages(thread, messages) {
