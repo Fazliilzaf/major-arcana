@@ -15,6 +15,37 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+// Hela brödtexten sparas som ren text (capad). Text är billigt — det som spikade
+// minnet i #646 var att lagra HELA rik-HTML:en inkl. inbäddade base64-bilder, inte
+// textinnehållet. Cap:en håller shard-filerna små även med många konton.
+const MAX_STORED_BODY_TEXT_CHARS = 16000;
+
+// Minimal HTML→text (self-contained, ingen cross-modul-koppling i write-path).
+// För ren-text-mail (Graph contentType text) är innehållet redan text och passerar
+// nästan oförändrat; för HTML strippas taggar och vanliga entiteter avkodas.
+function htmlToPlainTextForStore(input = '') {
+  let text = String(input || '');
+  text = text.replace(/<script[\s\S]*?<\/script>/gi, '');
+  text = text.replace(/<style[\s\S]*?<\/style>/gi, '');
+  text = text.replace(/<(br|hr)\s*\/?>/gi, '\n');
+  text = text.replace(/<\/(p|div|section|article|li|tr|h[1-6])>/gi, '\n');
+  text = text.replace(/<td[^>]*>/gi, '\t');
+  text = text.replace(/<[^>]+>/g, ' ');
+  text = text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+  return text
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
@@ -277,6 +308,17 @@ function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
     rest.bodyHtml = richBodyHtml;
   } else {
     delete rest.bodyHtml;
+  }
+
+  // Bevara HELA brödtexten som ren text (capad). Utan detta tappade inkommande
+  // ren-text-mail (kontaktformulär) allt utom Graphs ~255-teckens bodyPreview —
+  // "halva mailet" i CCO-läsytan. Svar med signatur/logga överlevde bara för att
+  // deras HTML matchar img/table-grinden ovan. Text är billigt (ingen base64-
+  // inline-bild), till skillnad från rik-HTML:en som spikade minnet i #646.
+  const fullBodyText = normalizeText(safeMessage.bodyText) || htmlToPlainTextForStore(richBodyHtml);
+  const cappedPreview = normalizeText(rest.bodyPreview);
+  if (fullBodyText && fullBodyText.length > cappedPreview.length) {
+    rest.bodyText = fullBodyText.slice(0, MAX_STORED_BODY_TEXT_CHARS);
   }
 
   return {
