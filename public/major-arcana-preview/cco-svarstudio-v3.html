@@ -2536,8 +2536,8 @@
         S.draftId = null;
         S.draftStatus = null;
         // Nollställ bilagor så en kunds förberedda bilagor aldrig läcker till nästa tråd.
-        S.attachments = [];
-        if (typeof renderAttachChips === 'function') renderAttachChips();
+        if (typeof resetAttachments === 'function') resetAttachments();
+        else S.attachments = [];
         $('toolNote').classList.remove('is-used');
         // nollställ Smart anteckning-state så en kunds utkast aldrig läcker till nästa tråd
         N.mode = null;
@@ -2692,9 +2692,29 @@
       }
       const isImageType = (t) => /^image\//i.test(String(t || ''));
 
-      function attachmentContentUrl(att) {
-        if (!att.attachmentId || !S.draftId) return '';
-        return `${API}/cco-comm/drafts/${encodeURIComponent(S.draftId)}/attachments/${encodeURIComponent(att.attachmentId)}/content`;
+      function revokeAttachmentPreview(att) {
+        if (!att || !att.previewUrl || typeof URL === 'undefined' || !URL.revokeObjectURL) return;
+        try {
+          URL.revokeObjectURL(att.previewUrl);
+        } catch (_e) {
+          /* blob-preview cleanup ska aldrig störa operatören */
+        }
+      }
+
+      function resetAttachments() {
+        (S.attachments || []).forEach(revokeAttachmentPreview);
+        S.attachments = [];
+        renderAttachChips();
+      }
+
+      function createAttachmentPreviewUrl(file) {
+        if (!file || !isImageType(file.type)) return '';
+        if (typeof URL === 'undefined' || !URL.createObjectURL) return '';
+        try {
+          return URL.createObjectURL(file);
+        } catch (_e) {
+          return '';
+        }
       }
 
       function renderAttachChips() {
@@ -2703,8 +2723,8 @@
         list.innerHTML = S.attachments
           .map((a) => {
             const thumb =
-              isImageType(a.contentType) && !a.uploading
-                ? `<img src="${esc(attachmentContentUrl(a))}" alt="" />`
+              isImageType(a.contentType) && a.previewUrl
+                ? `<img src="${esc(a.previewUrl)}" alt="" />`
                 : '📎';
             const rm = a.uploading
               ? ''
@@ -2725,6 +2745,7 @@
           name: file.name || 'Bilaga',
           size: file.size,
           contentType: file.type,
+          previewUrl: createAttachmentPreviewUrl(file),
           uploading: true,
         };
         S.attachments.push(placeholder);
@@ -2739,8 +2760,14 @@
           const d = await r.json().catch(() => ({}));
           const i = S.attachments.indexOf(placeholder);
           if (r.ok && d.attachment) {
-            if (i >= 0) S.attachments[i] = d.attachment;
+            if (i >= 0) {
+              S.attachments[i] = {
+                ...d.attachment,
+                previewUrl: placeholder.previewUrl || '',
+              };
+            }
           } else {
+            revokeAttachmentPreview(placeholder);
             if (i >= 0) S.attachments.splice(i, 1);
             flashNotice(
               'sendNotice',
@@ -2750,6 +2777,7 @@
           }
         } catch (_e) {
           const i = S.attachments.indexOf(placeholder);
+          revokeAttachmentPreview(placeholder);
           if (i >= 0) S.attachments.splice(i, 1);
           flashNotice('sendNotice', 'notice--block', 'Bilagan kunde inte laddas upp.');
         }
@@ -2773,6 +2801,8 @@
         } catch (_e) {
           /* tyst — chip tas bort lokalt ändå */
         }
+        const removed = S.attachments.find((a) => a.attachmentId === attId);
+        revokeAttachmentPreview(removed);
         S.attachments = S.attachments.filter((a) => a.attachmentId !== attId);
         renderAttachChips();
       }
