@@ -53,6 +53,81 @@ test('utan Message-ID fälls identiskt innehåll/tid/mailbox ihop via signatur',
   assert.equal(collapsed[0].duplicateCount, 2);
 });
 
+test('tre formulär-sändningar med OLIKA Message-ID men identiskt innehåll fälls ihop', () => {
+  // Det verkliga Sami-fallet: WordPress gör tre separata sändningar → tre olika
+  // Message-ID, men samma avsändare/ämne/kropp och samma minut. Ska bli ett.
+  const base = {
+    from: 'Sami Bonyadi',
+    dir: 'incoming',
+    subject: 'Sami Bonyadi Kontaktformulär',
+    bodyText: 'Jag tappar mycket hår pga mina dåliga gener. Medgavs: Jag godkänner.',
+    mailboxAddress: 'kons@hairtpclinic.com',
+    folderType: 'inbox',
+  };
+  const messages = [
+    { ...base, internetMessageId: '<cf-1@info.hairtpclinic.se>', time: '2026-04-14T12:11:01.000Z' },
+    { ...base, internetMessageId: '<cf-2@info.hairtpclinic.se>', time: '2026-04-14T12:11:02.000Z' },
+    { ...base, internetMessageId: '<cf-3@info.hairtpclinic.se>', time: '2026-04-14T12:11:03.000Z' },
+  ];
+
+  const collapsed = collapseDuplicateMessages(messages);
+  assert.equal(collapsed.length, 1, 'olika Message-ID men identiskt innehåll ska bli ett');
+  assert.equal(collapsed[0].duplicateCount, 3);
+});
+
+test('två mail som är lika i början men skiljer sig senare fälls INTE ihop (missa ingen patientinfo)', () => {
+  const shared = 'A'.repeat(500); // längre än 400 → tidigare trunkering hade slagit ihop dem
+  const messages = [
+    {
+      from: 'Patient X',
+      dir: 'incoming',
+      subject: 'Kontaktformulär',
+      bodyText: `${shared} Jag vill boka tid nästa vecka.`,
+      internetMessageId: '<x-1@x>',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      time: '2026-04-14T12:11:00.000Z',
+    },
+    {
+      from: 'Patient X',
+      dir: 'incoming',
+      subject: 'Kontaktformulär',
+      bodyText: `${shared} OBS: jag är allergisk mot lidokain.`,
+      internetMessageId: '<x-2@x>',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      time: '2026-04-14T12:11:00.000Z',
+    },
+  ];
+  const collapsed = collapseDuplicateMessages(messages);
+  assert.equal(collapsed.length, 2, 'olika slut (viktig info) får inte slås ihop');
+});
+
+test('preview-only-rader med olika Message-ID fälls INTE ihop via innehållssignatur', () => {
+  const messages = [
+    {
+      from: 'Patient X',
+      dir: 'incoming',
+      subject: 'Kontaktformulär',
+      bodyText: 'Samma korta preview från Graph.',
+      bodyPreview: 'Samma korta preview från Graph.',
+      internetMessageId: '<preview-1@x>',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      time: '2026-04-14T12:11:00.000Z',
+    },
+    {
+      from: 'Patient X',
+      dir: 'incoming',
+      subject: 'Kontaktformulär',
+      bodyText: 'Samma korta preview från Graph.',
+      bodyPreview: 'Samma korta preview från Graph.',
+      internetMessageId: '<preview-2@x>',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      time: '2026-04-14T12:11:00.000Z',
+    },
+  ];
+  const collapsed = collapseDuplicateMessages(messages);
+  assert.equal(collapsed.length, 2, 'preview-only får inte räknas som full kroppsidentitet');
+});
+
 test('äkta separata mail (olika Message-ID) fälls INTE ihop', () => {
   const messages = [
     {
