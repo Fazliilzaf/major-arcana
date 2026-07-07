@@ -57,6 +57,7 @@ Se `.cursor/rules/check-before-code.mdc`.
 ## For this project
 
 - This repo is the source of truth for the new CCO-next app.
+- For CCO inbox/mail work, read `docs/cco-active-index.md` and `docs/cco-mail-foundation-status.md` before planning; the status doc carries the current source map, OOM/#650 baseline, and locked drift rules.
 - Ignore Arcana wrapper/integration unless explicitly requested.
 - Prioritize:
   - information architecture

@@ -47,6 +47,7 @@ const { buildCanonicalMailThreadDocument } = require('../ops/ccoMailThreadHydrat
 const { createCcoMailboxTruthReadAdapter } = require('../ops/ccoMailboxTruthReadAdapter');
 const {
   createCcoMailboxTruthWorklistReadModel,
+  resolveWorklistEvidenceFields,
 } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { createCcoMailboxTruthWorklistShadow } = require('../ops/ccoMailboxTruthWorklistShadow');
 
@@ -8309,9 +8310,10 @@ function buildWorklistConsumerRowCards(rows = []) {
   }
   return items
     .map((item) => {
+      const evidence = resolveWorklistEvidenceFields(item);
       const stateBits = [];
       if (item?.state?.hasUnreadInbound === true) stateBits.push('Unread inbound');
-      if (item?.state?.needsReply === true) stateBits.push('Needs reply');
+      if (evidence.needsReply === true) stateBits.push('Needs reply');
       if (item?.state?.folderPresence?.inbox === true) stateBits.push('Inbox');
       if (item?.state?.folderPresence?.sent === true) stateBits.push('Sent');
       if (item?.state?.folderPresence?.drafts === true) stateBits.push('Drafts');
@@ -8350,7 +8352,9 @@ function buildWorklistConsumerRowCards(rows = []) {
       return `<article class="result-card">
         <div class="result-head">
           <span class="result-type">Truth-rad · ${escapeHtml(normalizeText(item?.lane) || 'all')}</span>
-          <span class="result-time">${escapeHtml(formatReadoutDateTimeSv(item?.timing?.latestMessageAt))}</span>
+          <span class="result-time">${escapeHtml(
+            formatReadoutDateTimeSv(evidence.lastInboundAt || item?.timing?.latestMessageAt)
+          )}</span>
         </div>
         <h4>${escapeHtml(normalizeText(item?.subject) || '(utan ämne)')}</h4>
         <p class="result-summary">${escapeHtml(
@@ -8359,9 +8363,10 @@ function buildWorklistConsumerRowCards(rows = []) {
         ${rollupMarkup}
         <p class="result-meta">${escapeHtml(
           [
-            normalizeText(item?.mailbox?.mailboxId),
+            `Mailbox: ${evidence.mailboxId || 'okänd'}`,
+            `Senaste inkommande: ${formatReadoutDateTimeSv(evidence.lastInboundAt) || 'saknas'}`,
             normalizeText(item?.customer?.email || item?.customer?.name),
-            normalizeText(item?.conversation?.key),
+            evidence.conversationKey ? `Konversation: ${evidence.conversationKey}` : '',
           ]
             .filter(Boolean)
             .join(' · ')

@@ -613,4 +613,10 @@ test('buildConsumerModel row-shape: nested preview/timing/state/mailbox/customer
   );
   assert.equal(row.customer.email, 'patient@example.com');
   assert.equal(row.customer.name, 'Anna Svensson');
+
+  // top-level evidence fields for reporting/backfill samples
+  assert.equal(row.conversationKey, row.id);
+  assert.equal(row.mailboxId, 'info@hairtpclinic.com');
+  assert.equal(row.lastInboundAt, row.timing.lastInboundAt);
+  assert.equal(row.evidenceComplete, true);
 });

@@ -79,7 +79,7 @@ if [[ "${READY_POLLS}" -lt 1 ]]; then
   READY_POLLS=1
 fi
 for _ in $(seq 1 "${READY_POLLS}"); do
-  if curl -sf "http://localhost:${PORT}/readyz" >/dev/null 2>&1; then
+  if curl -sf "http://localhost:${PORT}/readyz" 2>/dev/null | grep -q '"ready"[[:space:]]*:[[:space:]]*true'; then
     READY=1
     break
   fi
