@@ -604,6 +604,23 @@ function parseConversationMemberKeysQuery(query = {}) {
   ).slice(0, 50);
 }
 
+// Mailbox-hint från klienten (trådens mailboxAddress/mailboxId). Används för att
+// scopa truth-läsningen när konversationsnyckeln inte bär mailbox-prefix — annars
+// läses ALLA shards per trådöppning (combine+sort av hela storen), vilket ger
+// sekunders latens ("Laddar från CCO-pipelinen").
+function parseConversationMailboxHintQuery(query = {}) {
+  const safeQuery = asObject(query);
+  const raw = safeQuery.mailboxId || safeQuery.mailbox || safeQuery.mailboxAddress || '';
+  return Array.from(
+    new Set(
+      String(raw)
+        .split(',')
+        .map((item) => normalizeEmail(item))
+        .filter(Boolean)
+    )
+  ).slice(0, 10);
+}
+
 function parseConversationContactScopeQuery(query = {}) {
   const email = normalizeEmail(
     query.customerEmail ||
@@ -788,8 +805,15 @@ function fetchSortedConversationMessages(store, key, memberKeys = [], options = 
   const scopes = buildConversationLookupScopes([key, ...safeMemberKeys], options);
   if (!scopes.length) return [];
   // Scopa till trådens mailbox(ar) så bara relevant shard laddas — inte hela
-  // storen. Utan träff (t.ex. bara rå id-nycklar) faller vi tillbaka till allt.
-  const mailboxIds = deriveMailboxIdsFromLookupKeys([key, ...safeMemberKeys]);
+  // storen. Nycklarna ger inte alltid ett mailbox-prefix (kontaktformulär/rollup);
+  // då används klientens mailbox-hint (options.mailboxHints). Unionen är alltid en
+  // delmängd av trådens egna mailboxar, så inga legitima meddelanden tappas. Utan
+  // både prefix OCH hint faller vi tillbaka till allt (oförändrat beteende).
+  const keyMailboxIds = deriveMailboxIdsFromLookupKeys([key, ...safeMemberKeys]);
+  const hintMailboxIds = asArray(asObject(options).mailboxHints)
+    .map((item) => normalizeEmail(item))
+    .filter(Boolean);
+  const mailboxIds = Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
   const all = store.listMessages(mailboxIds.length ? { mailboxIds } : {});
   const matches = all.filter((m) => conversationMessageMatchesScopes(asObject(m), scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
@@ -1439,11 +1463,15 @@ function createCcoConversationRouter({
         const memberKeys = parseConversationMemberKeysQuery(req.query);
         const lookupKeys = [key, ...memberKeys];
         const contactScope = parseConversationContactScopeQuery(req.query);
+        const mailboxHints = parseConversationMailboxHintQuery(req.query);
+        // Mailbox-hinten scopar truth-läsningen till trådens shard även när nyckeln
+        // saknar mailbox-prefix — undviker att läsa alla shards per trådöppning.
+        const scopeOptions = mailboxHints.length ? { ...contactScope, mailboxHints } : contactScope;
         const truthMessages = fetchSortedConversationMessages(
           ccoMailboxTruthStore,
           key,
           memberKeys,
-          contactScope
+          scopeOptions
         );
         const sorted = truthMessages.length
           ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore, contactScope)

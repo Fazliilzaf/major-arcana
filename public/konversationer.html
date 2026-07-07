@@ -3741,6 +3741,12 @@
           if (!scopedCustomerEmail && scopedContactReference) {
             params.set('contactReference', scopedContactReference);
           }
+          // Skicka med trådens mailbox som scoping-hint. Kontaktformulär-/rollup-
+          // nycklar bär inte alltid mailbox-prefix, och utan hint faller servern
+          // tillbaka till att läsa ALLA shards (combine+sort av hela storen) per
+          // trådöppning — det som gör att "Laddar från CCO-pipelinen" dröjer.
+          const scopedMailbox = normalizeText(thread.mailboxAddress || thread.mailboxId);
+          if (scopedMailbox) params.set('mailboxId', scopedMailbox);
           const queryString = params.toString() ? `?${params.toString()}` : '';
           const response = await fetch(
             `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages${queryString}`,
