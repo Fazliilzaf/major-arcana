@@ -710,6 +710,55 @@
       .msg.is-outgoing .msg-meta {
         justify-content: flex-end;
       }
+      /* Dubblett-markering: samma mail som kom in flera gånger fälls ihop till ett
+         meddelande, med en diskret utfällbar notis (mottogs N ggr → när/var). */
+      .msg-dup {
+        margin-top: 4px;
+        font-size: 9.5px;
+      }
+      .msg-dup > summary {
+        cursor: pointer;
+        list-style: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        width: fit-content;
+        padding: 2px 9px;
+        border-radius: 999px;
+        color: var(--cco-text-secondary);
+        font-weight: 700;
+        background: rgba(120, 105, 90, 0.08);
+        border: 1px solid rgba(120, 105, 90, 0.14);
+      }
+      .msg-dup > summary::-webkit-details-marker {
+        display: none;
+      }
+      .msg-dup > summary::before {
+        content: '⟳';
+        font-weight: 800;
+      }
+      .msg-dup[open] > summary {
+        margin-bottom: 4px;
+      }
+      .msg-dup-list {
+        margin: 0;
+        padding: 0 0 0 2px;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        color: var(--cco-text-secondary);
+        font-weight: 600;
+      }
+      .msg-dup-list li {
+        position: relative;
+        padding-left: 12px;
+      }
+      .msg-dup-list li::before {
+        content: '·';
+        position: absolute;
+        left: 3px;
+      }
       .msg-day {
         align-self: center;
         font-size: 9px;
@@ -3703,11 +3752,40 @@
                   ${renderMessageBubbleInner(message)}
                   ${renderMessageAttachments(message)}
                   <div class="msg-meta">${escapeHtml(from)} · ${escapeHtml(messageTimeLabel(message.time))} · ${escapeHtml(mailbox)}</div>
+                  ${renderMessageDuplicateNote(message)}
                 </div>
               </div>
             `;
           })
           .join('');
+      }
+
+      function duplicateFolderLabel(folderType) {
+        const folder = normalizeText(folderType).toLowerCase();
+        if (folder === 'inbox') return 'Inkorg';
+        if (folder === 'sent') return 'Skickat';
+        if (folder === 'drafts') return 'Utkast';
+        if (folder === 'deleted') return 'Borttaget';
+        return '';
+      }
+
+      // Identiska kopior (samma mail levererat/lagrat flera gånger) fälls ihop av
+      // servern till ett meddelande med duplicateCount + duplicates[]. Här visas en
+      // diskret utfällbar notis: "Mottogs N ggr" → när/var för varje kopia.
+      function renderMessageDuplicateNote(message) {
+        const count = Number(message && message.duplicateCount) || 1;
+        if (count <= 1) return '';
+        const copies = Array.isArray(message.duplicates) ? message.duplicates : [];
+        const rows = copies
+          .map((copy) => {
+            const when = messageTimeLabel(copy && copy.time) || '—';
+            const where = normalizeText(copy && copy.mailboxAddress);
+            const folder = duplicateFolderLabel(copy && copy.folderType);
+            const parts = [when, where, folder].filter(Boolean).map((part) => escapeHtml(part));
+            return `<li>${parts.join(' · ')}</li>`;
+          })
+          .join('');
+        return `<details class="msg-dup"><summary>Mottogs ${count} ggr</summary><ul class="msg-dup-list">${rows}</ul></details>`;
       }
 
       function renderThreadLoading(thread) {
