@@ -75,6 +75,31 @@ test('tre formulär-sändningar med OLIKA Message-ID men identiskt innehåll fä
   assert.equal(collapsed[0].duplicateCount, 3);
 });
 
+test('dubblett-spåret visar faktisk ankomsttid (receivedAt), inte sentAt', () => {
+  // Kollapsen nycklar på sändtid (time/sentAt, identisk för alla kopior) så de slås
+  // ihop, MEN spåret ska visa varje kopias faktiska ankomsttid (receivedAt), som i
+  // inkorgen (12:11, 12:11, 12:12) — inte den identiska sändtiden.
+  const base = {
+    from: 'Sami Bonyadi',
+    dir: 'incoming',
+    subject: 'Kontaktformulär',
+    bodyText: 'Jag tappar mycket hår.',
+    mailboxAddress: 'kons@hairtpclinic.com',
+    time: '2026-04-14T12:11:00.000Z',
+  };
+  const messages = [
+    { ...base, internetMessageId: '<a@x>', receivedAt: '2026-04-14T12:11:10.000Z' },
+    { ...base, internetMessageId: '<b@x>', receivedAt: '2026-04-14T12:11:40.000Z' },
+    { ...base, internetMessageId: '<c@x>', receivedAt: '2026-04-14T12:12:05.000Z' },
+  ];
+  const [rep] = collapseDuplicateMessages(messages);
+  assert.equal(rep.duplicateCount, 3);
+  assert.deepEqual(
+    rep.duplicates.map((d) => d.time),
+    ['2026-04-14T12:11:10.000Z', '2026-04-14T12:11:40.000Z', '2026-04-14T12:12:05.000Z']
+  );
+});
+
 test('två mail som är lika i början men skiljer sig senare fälls INTE ihop (missa ingen patientinfo)', () => {
   const shared = 'A'.repeat(500); // längre än 400 → tidigare trunkering hade slagit ihop dem
   const messages = [

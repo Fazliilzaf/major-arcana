@@ -3769,16 +3769,29 @@
         return '';
       }
 
+      // Kompakt datum + tid för dubblett-spåret, t.ex. "14 apr 12:11". Visar den
+      // faktiska ankomsttiden (receivedAt) så det stämmer med inkorgen.
+      function messageStampLabel(value) {
+        const iso = normalizeText(value);
+        if (!iso) return '';
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return iso;
+        const day = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+        return `${day} ${messageTimeLabel(iso)}`;
+      }
+
       // Identiska kopior (samma mail levererat/lagrat flera gånger) fälls ihop av
       // servern till ett meddelande med duplicateCount + duplicates[]. Här visas en
-      // diskret utfällbar notis: "Mottogs N ggr" → när/var för varje kopia.
+      // diskret utfällbar notis: "Mottogs N ggr" → när (datum+ankomsttid)/var per kopia.
       function renderMessageDuplicateNote(message) {
         const count = Number(message && message.duplicateCount) || 1;
         if (count <= 1) return '';
-        const copies = Array.isArray(message.duplicates) ? message.duplicates : [];
+        const copies = (Array.isArray(message.duplicates) ? message.duplicates : [])
+          .slice()
+          .sort((a, b) => String((a && a.time) || '').localeCompare(String((b && b.time) || '')));
         const rows = copies
           .map((copy) => {
-            const when = messageTimeLabel(copy && copy.time) || '—';
+            const when = messageStampLabel(copy && copy.time) || '—';
             const where = normalizeText(copy && copy.mailboxAddress);
             const folder = duplicateFolderLabel(copy && copy.folderType);
             const parts = [when, where, folder].filter(Boolean).map((part) => escapeHtml(part));
