@@ -201,6 +201,12 @@
   border: var(--card-border);
   box-shadow: var(--card-shadow);
 }
+.v11-rk [data-v11-rk-besok-sec] {
+  background: linear-gradient(180deg, #fff 0%, #f7f1ec 72px, #f7f1ec 100%);
+  border: var(--card-border);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
 .v11-rk .sec-label {
   font-size: 9.5px;
   font-weight: 800;
