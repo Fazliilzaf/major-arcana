@@ -97,6 +97,7 @@ function createCcoCommDraftRouter({
   requireAuth,
   commDraftStore = null,
   recipientAllowlistStore = null,
+  graphSendAdapter = null,
   executionGateway = null,
   openai = null,
   auditLog = null,
@@ -683,6 +684,148 @@ function createCcoCommDraftRouter({
         // Flaggan på: 2c förhandsvisar ändå bara — faktisk send är 2d:s ansvar.
         audit('ok', { dryRun: true, blocked: false });
         return res.json({ decision: 'preview_ok', dryRun: true, sent: false, preview });
+      } catch (error) {
+        return res.status(error.statusCode || 500).json({ error: error.message });
+      }
+    }
+  );
+
+  // ── POST /cco-comm/drafts/:draftId/send — kontrollerad live-send (steg 2d) ──
+  // Den ENDA vägen som kan skicka på riktigt. Den generiska /transition → sent
+  // förblir hårt blockerad. Grindar (alla måste passera): owner (mail.live_send,
+  // via middleware) · flaggan ARCANA_GRAPH_SEND_ENABLED på · en send-adapter
+  // wire:ad · approved-utkast · mottagare allowlistad (2a) · avsändar-brevlåda
+  // på ARCANA_GRAPH_SEND_ALLOWLIST. Varje försök loggas i audit (maskerad
+  // mottagare). Utan wire:ad adapter skickas inget ens med flaggan på.
+  router.post(
+    '/cco-comm/drafts/:draftId/send',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.live_send'),
+    jsonParser,
+    async (req, res) => {
+      const { maskAddress, isPlausibleEmail } = require('../ops/ccoRecipientAllowlistStore');
+      const draftId = text(req.params.draftId);
+      const to = text(req.body?.to).toLowerCase();
+      const senderMailbox = text(req.body?.senderMailbox).toLowerCase();
+
+      try {
+        const store = await ensureStore();
+        const draft = store.getDraft(draftId, { tenantId: text(req.auth?.tenantId) || null });
+        if (!draft) return res.status(404).json({ error: 'draft not found' });
+        const tenantId = draft.tenantId || text(req.auth?.tenantId) || null;
+
+        const audit = (result, detail) =>
+          auditLog?.append?.({
+            action: 'communication.draft.send',
+            actor: actorOf(req),
+            target: { kind: 'comm_draft', id: draftId, tenantId },
+            result,
+            detail: {
+              recipientMasked: maskAddress(to),
+              senderMailboxMasked: maskAddress(senderMailbox),
+              ...detail,
+            },
+          });
+
+        // 1) Flagga av (default) → hårt block. Inget lämnar systemet.
+        if (!graphSendEnabled()) {
+          audit('error', { reason: 'send_disabled' });
+          return res.status(403).json({
+            decision: 'blocked',
+            reason: 'send_disabled',
+            error: 'Live-utskick är avstängt (ARCANA_GRAPH_SEND_ENABLED=false).',
+          });
+        }
+        // 2) Ingen adapter wire:ad → skicka inget ens med flaggan på (503).
+        if (!graphSendAdapter || typeof graphSendAdapter.sendMail !== 'function') {
+          audit('error', { reason: 'no_adapter' });
+          return res.status(503).json({
+            decision: 'blocked',
+            reason: 'no_adapter',
+            error: 'Ingen send-adapter är konfigurerad.',
+          });
+        }
+        // 3) Utkastet måste vara godkänt.
+        if (draft.status !== 'approved') {
+          audit('error', { reason: 'not_approved', status: draft.status });
+          return res
+            .status(409)
+            .json({ error: 'send kräver approved utkast.', status: draft.status });
+        }
+        // 4) Mottagaradress giltig + aktivt allowlistad (2a).
+        if (!isPlausibleEmail(to)) {
+          audit('error', { reason: 'invalid_recipient' });
+          return res.status(400).json({ error: 'giltig mottagaradress (to) krävs.' });
+        }
+        const allowlist = await ensureAllowlistStore();
+        if (!allowlist.isAllowed(tenantId, to)) {
+          audit('error', { reason: 'recipient_not_allowlisted' });
+          return res.status(403).json({
+            decision: 'blocked',
+            reason: 'recipient_not_allowlisted',
+            error: 'Mottagaren är inte på allowlisten för utgående mail.',
+          });
+        }
+        // 5) Avsändar-brevlåda giltig + på sender-allowlisten (samma helper som 2c).
+        if (!isPlausibleEmail(senderMailbox)) {
+          audit('error', { reason: 'invalid_sender_mailbox' });
+          return res.status(400).json({ error: 'giltig senderMailbox krävs.' });
+        }
+        if (!senderMailboxAllowed(senderMailbox)) {
+          audit('error', { reason: 'sender_mailbox_not_allowlisted' });
+          return res.status(403).json({
+            decision: 'blocked',
+            reason: 'sender_mailbox_not_allowlisted',
+            error: 'Avsändar-brevlådan är inte allowlistad för send.',
+          });
+        }
+
+        // Alla grindar passerade → queue:a och skicka via adaptern.
+        const payload = {
+          from: senderMailbox,
+          to,
+          subject: draft.subject || '',
+          body: draft.body || '',
+          attachments: (draft.attachments || []).map((a) => ({
+            name: a.name,
+            contentType: a.contentType,
+            size: a.size,
+            storagePath: a.storagePath,
+          })),
+        };
+
+        try {
+          await store.transitionStatus(draftId, 'queued', { actor: actorOf(req), tenantId });
+          const result = await graphSendAdapter.sendMail(payload);
+          const sentDraft = await store.transitionStatus(draftId, 'sent', {
+            actor: actorOf(req),
+            tenantId,
+          });
+          const providerMessageId = result?.messageId || result?.id || null;
+          audit('ok', { sent: true, providerMessageId });
+          return res.json({ decision: 'sent', sent: true, draft: sentDraft, providerMessageId });
+        } catch (sendError) {
+          // Send misslyckades → markera failed (best-effort) och rapportera.
+          try {
+            await store.transitionStatus(draftId, 'failed', {
+              actor: actorOf(req),
+              tenantId,
+              reason: 'send_failed',
+            });
+          } catch (_e) {
+            /* status-övergången är sekundär — huvudfelet rapporteras nedan */
+          }
+          audit('error', {
+            reason: 'send_failed',
+            message: String(sendError?.message || sendError).slice(0, 200),
+          });
+          return res.status(502).json({
+            decision: 'failed',
+            sent: false,
+            error: 'Utskicket misslyckades hos leverantören.',
+          });
+        }
       } catch (error) {
         return res.status(error.statusCode || 500).json({ error: error.message });
       }
