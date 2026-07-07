@@ -590,7 +590,14 @@
       .msg-bubble {
         padding: 11px 13px;
         border-radius: 18px;
-        background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+        /* Ljus, nästan vit ton (ljusare än panel-kort-tonen) för hög kontrast mot
+           mailtexten. Gäller även HTML-mail via den transparenta iframen som lyser
+           igenom denna bakgrund. Ingen ny palett — ljusare variant av befintlig. */
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(250, 249, 247, 0.94) 100%
+        );
         box-shadow: var(--panel-card-shadow);
         border: 1px solid rgba(255, 255, 255, 0.6);
         font-size: 12.5px;

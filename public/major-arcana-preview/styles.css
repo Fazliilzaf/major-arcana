@@ -8887,14 +8887,17 @@
     max-width: min(86%, 560px);
     padding: 7px 10px;
     border-radius: 16px;
+    /* Ljus, nästan vit ton (samma som läsvyns mailbubblor) för hög kontrast mot
+       den mörka mailtexten — enhetlig bakgrund över CCO-ytorna. Ingen ny palett;
+       ljusare variant av befintlig ton. */
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.68) 0%,
-      rgba(248, 250, 255, 0.52) 100%
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(250, 249, 247, 0.94) 100%
     );
     box-shadow:
-      0 10px 22px rgba(96, 116, 174, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.56);
+      0 10px 22px rgba(56, 40, 28, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
     color: #2a2f38;
   }
 
