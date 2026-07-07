@@ -101,6 +101,33 @@ test('två mail som är lika i början men skiljer sig senare fälls INTE ihop (
   assert.equal(collapsed.length, 2, 'olika slut (viktig info) får inte slås ihop');
 });
 
+test('preview-only-rader med olika Message-ID fälls INTE ihop via innehållssignatur', () => {
+  const messages = [
+    {
+      from: 'Patient X',
+      dir: 'incoming',
+      subject: 'Kontaktformulär',
+      bodyText: 'Samma korta preview från Graph.',
+      bodyPreview: 'Samma korta preview från Graph.',
+      internetMessageId: '<preview-1@x>',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      time: '2026-04-14T12:11:00.000Z',
+    },
+    {
+      from: 'Patient X',
+      dir: 'incoming',
+      subject: 'Kontaktformulär',
+      bodyText: 'Samma korta preview från Graph.',
+      bodyPreview: 'Samma korta preview från Graph.',
+      internetMessageId: '<preview-2@x>',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      time: '2026-04-14T12:11:00.000Z',
+    },
+  ];
+  const collapsed = collapseDuplicateMessages(messages);
+  assert.equal(collapsed.length, 2, 'preview-only får inte räknas som full kroppsidentitet');
+});
+
 test('äkta separata mail (olika Message-ID) fälls INTE ihop', () => {
   const messages = [
     {

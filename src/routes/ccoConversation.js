@@ -678,17 +678,20 @@ function deriveInternetMessageId(message = {}) {
 }
 
 // Innehålls-signatur för att bara fälla ihop EXAKT identiska kopior: samma mailbox
-// + riktning + avsändare + ämne + minut + HELA kroppen. Detta fångar identiska
+// + riktning + avsändare + ämne + minut + verifierad hel kropp. Detta fångar identiska
 // kopior även när de har OLIKA Message-ID (t.ex. ett kontaktformulär som gör tre
-// separata sändningar med varsitt Message-ID men samma innehåll). HELA kroppen
+// separata sändningar med varsitt Message-ID men samma innehåll). Hela kroppen
 // jämförs (inte bara början) så två olika patient-mail ALDRIG slås ihop av misstag
 // — vi får aldrig missa patientinformation. Rollup-funktionen (samla alla kundens
 // trådar till en) är en separat mekanism uppströms och påverkas inte av detta.
 function duplicateContentSignature(message = {}) {
   const safe = asObject(message);
-  const body = normalizeBodyText(safe.bodyText || safe.body || safe.bodyPreview);
+  const body = normalizeBodyText(safe.bodyText || safe.body);
+  const preview = normalizeBodyText(safe.bodyPreview || safe.preview);
   const subject = normalizeText(safe.subject).toLowerCase();
-  if (!body && !subject) return '';
+  // Om body bara är samma korta preview har vi inte en verifierad hel kropp.
+  // Då får olika Message-ID inte fällas ihop via innehållssignatur.
+  if (!body || (preview && body.toLowerCase() === preview.toLowerCase())) return '';
   const parts = [
     normalizeEmail(safe.mailboxAddress || safe.mailboxId),
     normalizeText(safe.dir),
