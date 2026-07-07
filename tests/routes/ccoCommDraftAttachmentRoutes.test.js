@@ -150,3 +150,24 @@ test('fel tenant kan inte ladda upp (404, ingen läcka)', async () => {
     assert.equal(up.status, 404);
   });
 });
+
+test('upload validerar draftId före disk-write (path traversal skapar ingen fil)', async () => {
+  const { app, tempDir } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    const up = await uploadFile(baseUrl, '..%2Fevil-draft', {
+      bytes: Buffer.from('hej'),
+      type: 'image/png',
+      name: 'a.png',
+    });
+    assert.equal(up.status, 404);
+
+    await assert.rejects(
+      fs.stat(path.join(tempDir, 'evil-draft')),
+      (error) => error && error.code === 'ENOENT'
+    );
+    await assert.rejects(
+      fs.stat(path.join(tempDir, 'cco-comm-attachments', '..', 'evil-draft')),
+      (error) => error && error.code === 'ENOENT'
+    );
+  });
+});

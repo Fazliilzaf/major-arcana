@@ -403,6 +403,29 @@ function createCcoCommDraftRouter({
     const root = attachmentsRoot();
     return resolved === root || resolved.startsWith(root + nodePath.sep);
   }
+  function safeDraftAttachmentSegment(value) {
+    const safe = text(value);
+    if (!safe || safe === '.' || safe === '..' || safe.includes('/') || safe.includes('\\')) {
+      const e = new Error('draft not found');
+      e.statusCode = 404;
+      throw e;
+    }
+    return safe;
+  }
+  function assertDraftAcceptsAttachment(store, draftId, tenantId) {
+    const draft = store.getDraft(draftId, { tenantId });
+    if (!draft) {
+      const e = new Error('draft not found');
+      e.statusCode = 404;
+      throw e;
+    }
+    if (['sent', 'cancelled'].includes(draft.status)) {
+      const e = new Error('draft is ' + draft.status + ', cannot edit');
+      e.statusCode = 409;
+      throw e;
+    }
+    return draft;
+  }
 
   // POST — ladda upp en bilaga till ett utkast (multipart field: file).
   router.post(
@@ -415,7 +438,8 @@ function createCcoCommDraftRouter({
       let storagePath = null;
       try {
         const store = await ensureStore();
-        const draftId = text(req.params.draftId);
+        const tenantId = text(req.auth?.tenantId) || null;
+        const draftId = safeDraftAttachmentSegment(req.params.draftId);
         if (!req.file) {
           return res.status(400).json({ error: 'file krävs (multipart/form-data field: file).' });
         }
@@ -423,6 +447,7 @@ function createCcoCommDraftRouter({
         if (!ALLOWED_ATTACHMENT_TYPES.has(contentType)) {
           return res.status(415).json({ error: 'Otillåten filtyp.', contentType });
         }
+        assertDraftAcceptsAttachment(store, draftId, tenantId);
         const attachmentId = nodeCrypto.randomUUID();
         const sha256 = nodeCrypto.createHash('sha256').update(req.file.buffer).digest('hex');
         const dir = nodePath.join(attachmentsRoot(), draftId);
@@ -439,7 +464,7 @@ function createCcoCommDraftRouter({
             storagePath,
             sha256,
           },
-          { actor: actorOf(req), tenantId: text(req.auth?.tenantId) || null }
+          { actor: actorOf(req), tenantId }
         );
         return res.status(201).json({ attachment: result.attachment });
       } catch (error) {
