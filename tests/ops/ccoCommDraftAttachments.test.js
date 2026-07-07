@@ -39,6 +39,9 @@ test('addDraftAttachment lägger till metadata + audit, getDraftAttachment hämt
       size: 20480,
       storagePath: '/var/data/cco-comm-attachments/x/preop.pdf',
       sha256: 'abc',
+      contentBytes: 'SECRET_BASE64',
+      buffer: Buffer.from('SECRET_BUFFER'),
+      base64: 'SECRET_BASE64_ALIAS',
     },
     { actor: { userId: 'staff-1', role: 'STAFF' }, tenantId: 't1' }
   );
@@ -50,12 +53,22 @@ test('addDraftAttachment lägger till metadata + audit, getDraftAttachment hämt
   });
   assert.equal(fetched.name, 'preop.pdf');
   assert.equal(fetched.storagePath, '/var/data/cco-comm-attachments/x/preop.pdf');
+  assert.equal(fetched.contentBytes, undefined);
+  assert.equal(fetched.buffer, undefined);
+  assert.equal(fetched.base64, undefined);
+  fetched.name = 'muterad.pdf';
+  assert.equal(
+    store.getDraftAttachment(draft.draftId, attachment.attachmentId, { tenantId: 't1' }).name,
+    'preop.pdf'
+  );
 
   assert.ok(events.some((e) => e.action === 'communication.draft.attachment_added'));
 
   // Persisteras
   const reloaded = await createCcoCommDraftStore({ filePath });
   assert.equal(reloaded.getDraft(draft.draftId, { tenantId: 't1' }).attachments.length, 1);
+  const rawJson = await fs.readFile(filePath, 'utf8');
+  assert.doesNotMatch(rawJson, /SECRET_BASE64|SECRET_BUFFER|SECRET_BASE64_ALIAS/);
 });
 
 test('removeDraftAttachment tar bort bilagan + audit', async () => {
@@ -94,5 +107,80 @@ test('okänd bilaga → 404; fel tenant → 404 (ingen läcka)', async () => {
   await assert.rejects(
     () => store.addDraftAttachment(draft.draftId, { name: 'x' }, { tenantId: 'other' }),
     (e) => e.statusCode === 404
+  );
+});
+
+test('addDraftAttachment är idempotenssäker: dubblett-ID ger 409 och null-input kraschar inte', async () => {
+  const { store } = await makeStore();
+  const draft = await store.createDraft(
+    { tenantId: 't1', customerId: 'c1', channel: 'email' },
+    { actor: { userId: 'staff-1' } }
+  );
+  const first = await store.addDraftAttachment(
+    draft.draftId,
+    { attachmentId: 'att-1', name: 'första.pdf' },
+    { actor: { userId: 'staff-1' }, tenantId: 't1' }
+  );
+  assert.equal(first.attachment.attachmentId, 'att-1');
+  await assert.rejects(
+    () =>
+      store.addDraftAttachment(
+        draft.draftId,
+        { attachmentId: 'att-1', name: 'andra.pdf' },
+        { actor: { userId: 'staff-1' }, tenantId: 't1' }
+      ),
+    (e) => e.statusCode === 409
+  );
+
+  const nullInput = await store.addDraftAttachment(draft.draftId, null, {
+    actor: { userId: 'staff-1' },
+    tenantId: 't1',
+  });
+  assert.equal(nullInput.attachment.name, 'Bilaga');
+  assert.equal(nullInput.draft.attachments.length, 2);
+});
+
+test('sent/cancelled-utkast låser bilage-mutationer med 409', async () => {
+  const { store } = await makeStore();
+  const cancelled = await store.createDraft(
+    { tenantId: 't1', customerId: 'cancelled', channel: 'email' },
+    { actor: { userId: 'staff-1' } }
+  );
+  await store.transitionStatus(cancelled.draftId, 'cancelled', {
+    actor: { userId: 'staff-1' },
+    tenantId: 't1',
+  });
+  await assert.rejects(
+    () => store.addDraftAttachment(cancelled.draftId, { name: 'sen.pdf' }, { tenantId: 't1' }),
+    (e) => e.statusCode === 409
+  );
+
+  const sent = await store.createDraft(
+    { tenantId: 't1', customerId: 'sent', channel: 'email' },
+    { actor: { userId: 'author-1' } }
+  );
+  await store.addDraftAttachment(sent.draftId, { attachmentId: 'att-sent', name: 'klar.pdf' }, {
+    actor: { userId: 'author-1' },
+    tenantId: 't1',
+  });
+  await store.transitionStatus(sent.draftId, 'needs_approval', {
+    actor: { userId: 'author-1' },
+    tenantId: 't1',
+  });
+  await store.transitionStatus(sent.draftId, 'approved', {
+    actor: { userId: 'approver-2' },
+    tenantId: 't1',
+  });
+  await store.transitionStatus(sent.draftId, 'queued', {
+    actor: { userId: 'approver-2' },
+    tenantId: 't1',
+  });
+  await store.transitionStatus(sent.draftId, 'sent', {
+    actor: { userId: 'owner-1' },
+    tenantId: 't1',
+  });
+  await assert.rejects(
+    () => store.removeDraftAttachment(sent.draftId, 'att-sent', { tenantId: 't1' }),
+    (e) => e.statusCode === 409
   );
 });
