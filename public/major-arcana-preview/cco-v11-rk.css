@@ -1195,6 +1195,14 @@
   cursor: pointer;
 }
 
+html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .patient-master-card.v11-rail
+  > .v11-rail__close {
+  top: 28px;
+  right: max(12px, calc((100% - min(424px, 100%)) / 2 + 12px));
+}
+
 /* Live-embedding: facitmockupen ar 424px, men prod-railen ska nyttja kundytan. */
 @media (min-width: 1024px) {
   html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
@@ -1290,5 +1298,15 @@
     .v11-rk__shell {
     max-width: none;
     margin-inline: 0;
+  }
+
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+      [data-cco-mobile-shell="on"]
+    )
+    .preview-canvas[data-app-shell-view="customers"]
+    .patient-master-card.v11-rail
+    > .v11-rail__close {
+    top: 12px;
+    right: 12px;
   }
 }
