@@ -72,6 +72,23 @@ function j(baseUrl, method, route, { role = 'operator', user, body } = {}) {
   }).then(async (res) => ({ status: res.status, json: await res.json().catch(() => null) }));
 }
 
+async function withGraphSendEnv({ enabled, allowlist }, run) {
+  const prevEnabled = process.env.ARCANA_GRAPH_SEND_ENABLED;
+  const prevAllowlist = process.env.ARCANA_GRAPH_SEND_ALLOWLIST;
+  if (enabled === undefined) delete process.env.ARCANA_GRAPH_SEND_ENABLED;
+  else process.env.ARCANA_GRAPH_SEND_ENABLED = String(enabled);
+  if (allowlist === undefined) delete process.env.ARCANA_GRAPH_SEND_ALLOWLIST;
+  else process.env.ARCANA_GRAPH_SEND_ALLOWLIST = String(allowlist);
+  try {
+    await run();
+  } finally {
+    if (prevEnabled === undefined) delete process.env.ARCANA_GRAPH_SEND_ENABLED;
+    else process.env.ARCANA_GRAPH_SEND_ENABLED = prevEnabled;
+    if (prevAllowlist === undefined) delete process.env.ARCANA_GRAPH_SEND_ALLOWLIST;
+    else process.env.ARCANA_GRAPH_SEND_ALLOWLIST = prevAllowlist;
+  }
+}
+
 async function newApprovedDraft(baseUrl, { subject = 'Hej Anna', body = 'Svarstext' } = {}) {
   const created = await j(baseUrl, 'POST', '/cco-comm/drafts', {
     role: 'operator',
@@ -98,24 +115,45 @@ async function newApprovedDraft(baseUrl, { subject = 'Hej Anna', body = 'Svarste
 
 test('flagga av: 403 send_disabled men returnerar preview (dry-run, sent:false)', async () => {
   const { app, auditEvents } = await createFixture();
-  delete process.env.ARCANA_GRAPH_SEND_ENABLED;
-  await withServer(app, async (baseUrl) => {
-    const draftId = await newApprovedDraft(baseUrl);
-    const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send-preview`, {
-      role: 'operator',
-      body: { to: 'Anna@Mail.SE', senderMailbox: 'kons@hairtp.se' },
+  await withGraphSendEnv({ enabled: undefined, allowlist: 'kons@hairtp.se' }, async () => {
+    await withServer(app, async (baseUrl) => {
+      const draftId = await newApprovedDraft(baseUrl);
+      const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send-preview`, {
+        role: 'operator',
+        body: { to: 'Anna@Mail.SE', senderMailbox: 'kons@hairtp.se' },
+      });
+      assert.equal(res.status, 403);
+      assert.equal(res.json.decision, 'blocked');
+      assert.equal(res.json.reason, 'send_disabled');
+      assert.equal(res.json.dryRun, true);
+      assert.equal(res.json.sent, false);
+      assert.equal(res.json.preview.to, 'anna@mail.se');
+      assert.equal(res.json.preview.subject, 'Hej Anna');
+      assert.equal(res.json.preview.from, 'kons@hairtp.se');
+      const previews = auditEvents.filter((e) => e.action === 'communication.draft.send_preview');
+      assert.ok(previews.length >= 1);
+      assert.equal(previews.at(-1).detail.recipientMasked, 'an***@mail.se');
     });
-    assert.equal(res.status, 403);
-    assert.equal(res.json.decision, 'blocked');
-    assert.equal(res.json.reason, 'send_disabled');
-    assert.equal(res.json.dryRun, true);
-    assert.equal(res.json.sent, false);
-    assert.equal(res.json.preview.to, 'anna@mail.se');
-    assert.equal(res.json.preview.subject, 'Hej Anna');
-    assert.equal(res.json.preview.from, 'kons@hairtp.se');
-    const previews = auditEvents.filter((e) => e.action === 'communication.draft.send_preview');
-    assert.ok(previews.length >= 1);
-    assert.equal(previews.at(-1).detail.recipientMasked, 'an***@mail.se');
+  });
+});
+
+test('avsändar-mailbox utanför Graph-send-allowlisten → 403 före send_disabled', async () => {
+  const { app, auditEvents } = await createFixture();
+  await withGraphSendEnv({ enabled: undefined, allowlist: 'kons@hairtp.se' }, async () => {
+    await withServer(app, async (baseUrl) => {
+      const draftId = await newApprovedDraft(baseUrl);
+      const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send-preview`, {
+        role: 'operator',
+        body: { to: 'anna@mail.se', senderMailbox: 'spoof@hairtp.se' },
+      });
+      assert.equal(res.status, 403);
+      assert.equal(res.json.decision, 'blocked');
+      assert.equal(res.json.reason, 'sender_mailbox_not_allowlisted');
+      assert.equal(res.json.sent, undefined);
+      const previews = auditEvents.filter((e) => e.action === 'communication.draft.send_preview');
+      assert.equal(previews.at(-1).detail.reason, 'sender_mailbox_not_allowlisted');
+      assert.equal(previews.at(-1).detail.senderMailboxMasked, 'sp***@hairtp.se');
+    });
   });
 });
 
@@ -162,37 +200,34 @@ test('saknad/ogiltig mottagare → 400', async () => {
 
 test('flagga PÅ: 200 preview_ok men sent:false (2c skickar aldrig — det är 2d)', async () => {
   const { app } = await createFixture();
-  const prev = process.env.ARCANA_GRAPH_SEND_ENABLED;
-  process.env.ARCANA_GRAPH_SEND_ENABLED = 'true';
-  try {
+  await withGraphSendEnv({ enabled: true, allowlist: 'kons@hairtp.se' }, async () => {
     await withServer(app, async (baseUrl) => {
       const draftId = await newApprovedDraft(baseUrl);
       const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send-preview`, {
         role: 'operator',
-        body: { to: 'anna@mail.se' },
+        body: { to: 'anna@mail.se', senderMailbox: 'kons@hairtp.se' },
       });
       assert.equal(res.status, 200);
       assert.equal(res.json.decision, 'preview_ok');
       assert.equal(res.json.dryRun, true);
       assert.equal(res.json.sent, false);
+      assert.equal(res.json.preview.from, 'kons@hairtp.se');
     });
-  } finally {
-    if (prev === undefined) delete process.env.ARCANA_GRAPH_SEND_ENABLED;
-    else process.env.ARCANA_GRAPH_SEND_ENABLED = prev;
-  }
+  });
 });
 
 test('mail.read-roll (konsult saknar mail.send? nej — men saknad auth) nekas ej av misstag: konsult har mail.send', async () => {
   // konsult har mail.send → tillåts nå routen; blockeras sedan av flaggan (403 send_disabled).
   const { app } = await createFixture();
-  delete process.env.ARCANA_GRAPH_SEND_ENABLED;
-  await withServer(app, async (baseUrl) => {
-    const draftId = await newApprovedDraft(baseUrl);
-    const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send-preview`, {
-      role: 'konsult',
-      body: { to: 'anna@mail.se' },
+  await withGraphSendEnv({ enabled: undefined, allowlist: 'kons@hairtp.se' }, async () => {
+    await withServer(app, async (baseUrl) => {
+      const draftId = await newApprovedDraft(baseUrl);
+      const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send-preview`, {
+        role: 'konsult',
+        body: { to: 'anna@mail.se', senderMailbox: 'kons@hairtp.se' },
+      });
+      assert.equal(res.status, 403);
+      assert.equal(res.json.reason, 'send_disabled');
     });
-    assert.equal(res.status, 403);
-    assert.equal(res.json.reason, 'send_disabled');
   });
 });
