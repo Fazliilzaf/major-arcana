@@ -1467,12 +1467,17 @@ function createCcoConversationRouter({
         // Mailbox-hinten scopar truth-läsningen till trådens shard även när nyckeln
         // saknar mailbox-prefix — undviker att läsa alla shards per trådöppning.
         const scopeOptions = mailboxHints.length ? { ...contactScope, mailboxHints } : contactScope;
+        // Lättviktig fas-timing (diagnostik) för att lokalisera trådöppnings-
+        // latensen. hrtime → ms med 1 decimal. Klienten loggar server- vs nätverks-
+        // tid från timings-fältet nedan.
+        const tStart = process.hrtime.bigint();
         const truthMessages = fetchSortedConversationMessages(
           ccoMailboxTruthStore,
           key,
           memberKeys,
           scopeOptions
         );
+        const tTruth = process.hrtime.bigint();
         const sorted = truthMessages.length
           ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore, contactScope)
           : fetchSortedIngestionConversationMessagesForKeys(
@@ -1480,6 +1485,7 @@ function createCcoConversationRouter({
               lookupKeys,
               contactScope
             );
+        const tEnrich = process.hrtime.bigint();
         const messages = sorted.map((m) => {
           const safe = asObject(m);
           const from = deriveFromName(safe);
@@ -1519,11 +1525,21 @@ function createCcoConversationRouter({
             attachments,
           };
         });
+        const tMap = process.hrtime.bigint();
+        const toMs = (a, b) => Math.round((Number(b - a) / 1e6) * 10) / 10;
         return res.json({
           ok: true,
           conversationKey: key,
           messageCount: messages.length,
           messages,
+          timings: {
+            truthMs: toMs(tStart, tTruth),
+            enrichMs: toMs(tTruth, tEnrich),
+            mapMs: toMs(tEnrich, tMap),
+            totalMs: toMs(tStart, tMap),
+            usedIngestionFallback: truthMessages.length === 0,
+            truthCount: truthMessages.length,
+          },
         });
       } catch (err) {
         return res.status(500).json({
