@@ -65,3 +65,20 @@ test('avvisar bilagor (kastar) och anropar ALDRIG connectorn', async () => {
   );
   assert.equal(connector.calls.length, 0);
 });
+
+test('avvisar även sanningsvärda icke-array bilagor före connectorn', async () => {
+  const connector = fakeConnector();
+  const adapter = createCcoGraphSendAdapter(connector);
+  await assert.rejects(
+    () =>
+      adapter.sendMail({
+        from: 'kons@hairtp.se',
+        to: 'anna@mail.se',
+        subject: 'Hej',
+        body: 'Text',
+        attachments: { name: 'preop.pdf' },
+      }),
+    (e) => e.code === 'attachments_not_supported'
+  );
+  assert.equal(connector.calls.length, 0);
+});

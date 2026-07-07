@@ -23,7 +23,10 @@ function createCcoGraphSendAdapter(connector) {
   }
 
   async function sendMail({ from, to, subject, body, attachments } = {}) {
-    if (Array.isArray(attachments) && attachments.length > 0) {
+    const hasAttachments = Array.isArray(attachments)
+      ? attachments.length > 0
+      : attachments != null && attachments !== false;
+    if (hasAttachments) {
       // Defense-in-depth: routern ska ha blockerat detta före anrop, men om det
       // ändå händer skickar vi hellre inget än ett mail utan sina bilagor.
       const err = new Error('cco_send_attachments_unsupported');
