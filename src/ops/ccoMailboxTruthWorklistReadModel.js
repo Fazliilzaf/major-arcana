@@ -1033,27 +1033,28 @@ function resolveWorklistEvidenceFields(row = {}) {
   const timing = asObject(safe.timing);
   const conversation = asObject(safe.conversation);
   const state = asObject(safe.state);
-  const ingestion = asObject(state.ingestion || safe.ingestion);
+  const nestedIngestion = asObject(state.ingestion);
+  const flatIngestion = asObject(safe.ingestion);
   const customer = asObject(safe.customer);
 
   const conversationKey =
     normalizeText(safe.conversationKey) ||
-    normalizeText(safe.id) ||
     normalizeText(conversation.key) ||
-    normalizeText(conversation.conversationKey);
+    normalizeText(conversation.conversationKey) ||
+    normalizeText(safe.id);
 
   const mailboxId =
-    normalizeText(safe.mailboxId) ||
-    normalizeText(safe.ownershipMailbox) ||
     normalizeText(mailbox.mailboxId) ||
     normalizeText(mailbox.mailboxAddress) ||
-    normalizeText(mailbox.ownershipMailbox);
+    normalizeText(mailbox.ownershipMailbox) ||
+    normalizeText(safe.mailboxId) ||
+    normalizeText(safe.ownershipMailbox);
 
   const lastInboundAt =
-    normalizeText(safe.lastInboundAt) ||
     normalizeText(timing.lastInboundAt) ||
-    normalizeText(safe.latestMessageAt) ||
+    normalizeText(safe.lastInboundAt) ||
     normalizeText(timing.latestMessageAt) ||
+    normalizeText(safe.latestMessageAt) ||
     null;
 
   const needsReply =
@@ -1068,9 +1069,11 @@ function resolveWorklistEvidenceFields(row = {}) {
   );
 
   const customerMatch =
+    normalizeText(nestedIngestion.dominantStatus) ||
+    normalizeText(flatIngestion.dominantStatus) ||
     normalizeText(safe.customerMatchStatus) ||
-    normalizeText(ingestion.dominantStatus) ||
-    normalizeText(ingestion.matchStatus) ||
+    normalizeText(nestedIngestion.matchStatus) ||
+    normalizeText(flatIngestion.matchStatus) ||
     (hasCustomerIdentity ? 'MATCHED' : '') ||
     'UNKNOWN';
 
