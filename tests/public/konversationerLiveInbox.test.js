@@ -283,9 +283,11 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /messageBodyText\(message\)\)\.replace\(\/\\n\/g, '<br>'\)/);
   assert.match(html, /body: messageBodyText\(message\)/);
   assert.match(html, /function renderMessageAttachments\(message\)/);
-  assert.match(html, /attachment\.inlineUrl/);
-  assert.match(html, /attachment\.openUrl/);
-  assert.match(html, /attachment\.downloadUrl/);
+  assert.match(html, /function attachmentUrl\(attachment\)/);
+  assert.match(html, /attachment\?\.inlineUrl/);
+  assert.match(html, /attachment\?\.openUrl/);
+  assert.match(html, /attachment\?\.downloadUrl/);
+  assert.match(html, /const url = attachmentUrl\(item\)/);
   assert.match(html, /msg-attachment-preview/);
   assert.match(html, /target="_blank"/);
   assert.match(html, /msg-bubble--html msg-bubble-rich/);

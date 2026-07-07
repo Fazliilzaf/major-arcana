@@ -580,11 +580,11 @@
         width: 100%;
         height: 360px;
         border: 0;
-        /* Transparent så .msg-bubble:s panel-kort-ton lyser igenom (iframens
-           srcdoc-body är också transparent). Ger HTML-mail samma bakgrundston som
-           text-bubblorna i stället för en avvikande vit ruta. Panel-tonen är nära
-           vit, så mörk mailtext/signaturer förblir läsbara. */
-        background: transparent;
+        /* HTML-mail får en egen ren, ljus canvas (nära vit, matchar bubbeltonen) i
+           stället för genomskinlig — så signaturer/loggor alltid renderas läsbart,
+           även på den amber-färgade utgående-bubblan (annars kunde amber-tonen lysa
+           igenom och sänka kontrasten). Srcdoc-body har samma #fffdfb. */
+        background: #fffdfb;
         border-radius: inherit;
       }
       .msg-bubble {
@@ -632,6 +632,20 @@
         flex-wrap: wrap;
         gap: 6px;
         margin-top: 7px;
+      }
+      /* Tydlig "här finns bilagor/bilder"-etikett ovanför chipsen. */
+      .msg-attachments-head {
+        flex-basis: 100%;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: var(--cco-text-secondary);
+        margin-bottom: 1px;
+      }
+      /* Bilaga som inte kan öppnas just nu (t.ex. Graph-läsning av) — syns ändå. */
+      .msg-attachment--unavailable {
+        opacity: 0.62;
+        cursor: default;
       }
       .msg-attachment {
         display: inline-flex;
@@ -3502,7 +3516,7 @@
         const doc =
           '<!doctype html><html><head><meta charset="utf-8">' +
           '<base target="_blank">' +
-          '<style>body{margin:0;padding:10px 12px;font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#2b251f;background:transparent;word-break:break-word}img{max-width:100%;height:auto}</style>' +
+          '<style>body{margin:0;padding:10px 12px;font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#2b251f;background:#fffdfb;word-break:break-word}img{max-width:100%;height:auto}</style>' +
           '</head><body>' +
           html +
           '</body></html>';
@@ -3682,36 +3696,76 @@
         return `${value} B`;
       }
 
+      function attachmentUrl(attachment) {
+        return firstMailText(
+          attachment?.inlineUrl,
+          attachment?.openUrl,
+          attachment?.downloadUrl,
+          attachment?.url,
+          attachment?.href
+        );
+      }
+
+      function attachmentFilenameFromUrl(url) {
+        const fromUrl = normalizeText((url.split('/').pop() || '').split('?')[0]);
+        if (!fromUrl || !/\.\w{2,5}$/.test(fromUrl)) return '';
+        try {
+          return decodeURIComponent(fromUrl);
+        } catch {
+          return fromUrl;
+        }
+      }
+
+      function attachmentIsImage(attachment) {
+        const type = normalizeText(attachment?.contentType);
+        const name = normalizeText(attachment?.name) || attachmentFilenameFromUrl(attachmentUrl(attachment));
+        return /^image\//i.test(type) || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(name);
+      }
+
+      // Namn saknas ibland i metadatan. Härled ett vettigt namn ur URL:en, annars
+      // en generisk etikett — så en bilaga ALDRIG tappas bort (man ska alltid se
+      // att det finns en bilaga/bild).
+      function attachmentDisplayName(attachment) {
+        const name = normalizeText(attachment?.name);
+        if (name) return name;
+        const fromUrl = attachmentFilenameFromUrl(attachmentUrl(attachment));
+        if (fromUrl) return fromUrl;
+        return attachmentIsImage(attachment) ? 'Bild' : 'Bilaga';
+      }
+
       function renderMessageAttachments(message) {
         const attachments = Array.isArray(message?.attachments) ? message.attachments : [];
-        const visible = attachments.filter((attachment) => normalizeText(attachment?.name));
-        if (!visible.length) return '';
-        return `<div class="msg-attachments">${visible
+        if (!attachments.length) return '';
+        const total = attachments.length;
+        const imageCount = attachments.filter(attachmentIsImage).length;
+        const summary = [`📎 ${total} ${total === 1 ? 'bilaga' : 'bilagor'}`];
+        if (imageCount > 0) {
+          summary.push(`🖼 ${imageCount} ${imageCount === 1 ? 'bild' : 'bilder'}`);
+        }
+        const header = `<div class="msg-attachments-head">${escapeHtml(summary.join(' · '))}</div>`;
+        const chips = attachments
           .map((attachment) => {
-            const size = formatAttachmentSize(attachment.size);
-            const type = normalizeText(attachment.contentType);
+            const item = attachment && typeof attachment === 'object' ? attachment : {};
+            const size = formatAttachmentSize(item.size);
+            const type = normalizeText(item.contentType);
             const meta = [size, type].filter(Boolean).join(' · ');
-            const name = normalizeText(attachment.name);
-            const url = firstMailText(
-              attachment.inlineUrl,
-              attachment.openUrl,
-              attachment.downloadUrl,
-              attachment.url,
-              attachment.href
-            );
-            const imageLike =
-              /^image\//i.test(type) || /\.(png|jpe?g|gif|webp|svg)$/i.test(name || '');
+            const name = attachmentDisplayName(item);
+            const url = attachmentUrl(item);
+            const imageLike = attachmentIsImage(item);
             const safeUrl = isAllowedMailUrl(url, { image: imageLike }) ? url : '';
             if (imageLike && safeUrl) {
-              return `<a class="msg-attachment-preview" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}"><img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(name)}"><span>${escapeHtml(name)}</span></a>`;
+              return `<a class="msg-attachment-preview" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}"><img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(name)}" loading="lazy"><span>${escapeHtml(name)}</span></a>`;
             }
-            const inner = `📎 <span>${escapeHtml(name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}`;
+            const inner = `${imageLike ? '🖼' : '📎'} <span>${escapeHtml(name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}`;
             if (safeUrl) {
               return `<a class="msg-attachment" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}">${inner}</a>`;
             }
-            return `<div class="msg-attachment" title="${escapeHtml(meta || name)}">${inner}</div>`;
+            // Ingen nedladdningsbar URL (t.ex. Graph-läsning av): visa ändå att
+            // bilagan finns, som en icke-klickbar chip.
+            return `<div class="msg-attachment msg-attachment--unavailable" title="${escapeHtml(meta || name)} · går inte att öppna just nu">${inner}</div>`;
           })
-          .join('')}</div>`;
+          .join('');
+        return `<div class="msg-attachments">${header}${chips}</div>`;
       }
 
       function renderThreadMessages(thread, messages) {
