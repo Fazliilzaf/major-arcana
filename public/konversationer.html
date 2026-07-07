@@ -342,28 +342,60 @@
         margin-top: 4px;
         flex-wrap: wrap;
       }
+      /* Steg 2 av omjusteringen: tydligare, färgkodade statuschips i inkorgen (som
+         Steg-pills i Kundregistret) — större, starkare och med per-mailbox-färg. */
       .thread-tag {
-        padding: 1px 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
         border-radius: 999px;
-        font-size: 8px;
+        font-size: 9px;
         font-weight: 800;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.03em;
+        border: 1px solid transparent;
       }
       .thread-tag--urgent {
         background: var(--cco-status-danger-bg);
         color: var(--cco-status-danger);
+        border-color: rgba(185, 74, 74, 0.24);
       }
       .thread-tag--ai {
         background: var(--calendar-accent-soft);
         color: var(--calendar-accent);
+        border-color: rgba(200, 130, 30, 0.24);
       }
       .thread-tag--vip {
         background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
         color: var(--accent-studio);
+        border-color: rgba(187, 71, 121, 0.24);
       }
       .thread-tag--booking {
         background: var(--cco-status-info-bg);
         color: var(--cco-status-info);
+        border-color: rgba(74, 123, 168, 0.24);
+      }
+      /* Mailbox-chip: neutral men med en per-mailbox-färgad prick (samma färg som
+         radens vänsterkant), så man ser vilken inkorg tråden hör till. */
+      .thread-tag--mailbox {
+        background: rgba(255, 255, 255, 0.66);
+        color: var(--cco-text-secondary);
+        border-color: rgba(120, 105, 90, 0.18);
+      }
+      .thread-tag--mailbox::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--rail, var(--rail-info));
+      }
+      /* Oläst: starkare avsändare/ämne så olästa trådar sticker ut. */
+      .thread-unread .thread-from {
+        font-weight: 800;
+      }
+      .thread-unread .thread-subj {
+        color: var(--cco-color-brand);
+        font-weight: 700;
       }
       .thread-unread::after {
         content: '';
@@ -3990,7 +4022,7 @@
       <div class="thread-subj">${escapeHtml(t.subj)}</div>
       <div class="thread-preview">${escapeHtml(t.preview)}</div>
       <div class="thread-tags">
-        <span class="thread-tag thread-tag--booking">${escapeHtml(t.mailboxAddress || t.source)}</span>
+        <span class="thread-tag thread-tag--mailbox">${escapeHtml(t.mailboxAddress || t.source)}</span>
         ${t.tags ? t.tags.map((tag) => `<span class="thread-tag thread-tag--${escapeHtml(tag.kind)}">${escapeHtml(tag.label)}</span>`).join('') : ''}
       </div>
     </div>
