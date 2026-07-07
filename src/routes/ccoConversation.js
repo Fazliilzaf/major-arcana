@@ -762,12 +762,35 @@ function deriveInitials(name) {
  * primärnyckel — enkelnyckel gav "0 meddelanden"/halva tråden. memberKeys
  * (rollup.underlyingConversationKeys från UI:t) unioneras därför in utöver
  * alias-matchningen. Läser enbart lokala truth-storen. */
+/* Härleder klinik-mailbox-id (t.ex. kons@hairtpclinic.com) ur trådens lookup-
+ * nycklar — mailboxen är alltid prefixet före första kolon. Används för att
+ * scopa listMessages till RÄTT shard i stället för att ladda HELA storen (alla
+ * shards, ~alla mejl) per request. Det senare spikade heapen > 4 GB (Render-OOM,
+ * "Ran out of memory") för kontaktformulär-trådar med många memberKeys.
+ * Kund-e-post som inte matchar en shard hoppas över av storen. */
+function deriveMailboxIdsFromLookupKeys(keys = []) {
+  const ids = new Set();
+  for (const raw of asArray(keys)) {
+    const key = normalizeText(raw);
+    if (!key) continue;
+    const colon = key.indexOf(':');
+    const candidate = colon > 0 ? key.slice(0, colon) : key;
+    if (/^[^\s:@]+@[^\s:@]+\.[^\s:@]+$/.test(candidate)) {
+      ids.add(candidate.toLowerCase());
+    }
+  }
+  return [...ids];
+}
+
 function fetchSortedConversationMessages(store, key, memberKeys = [], options = {}) {
   if (!store || typeof store.listMessages !== 'function') return [];
   const safeMemberKeys = Array.isArray(memberKeys) ? memberKeys : [];
   const scopes = buildConversationLookupScopes([key, ...safeMemberKeys], options);
   if (!scopes.length) return [];
-  const all = store.listMessages({});
+  // Scopa till trådens mailbox(ar) så bara relevant shard laddas — inte hela
+  // storen. Utan träff (t.ex. bara rå id-nycklar) faller vi tillbaka till allt.
+  const mailboxIds = deriveMailboxIdsFromLookupKeys([key, ...safeMemberKeys]);
+  const all = store.listMessages(mailboxIds.length ? { mailboxIds } : {});
   const matches = all.filter((m) => conversationMessageMatchesScopes(asObject(m), scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
@@ -2848,7 +2871,6 @@ module.exports = {
   parseConversationContactScopeQuery,
   rewriteMailCidImageSources,
   deriveBody,
-  deriveBodyHtml,
   collectConversationAttachments,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
   evaluateConversationBulkItem,

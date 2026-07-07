@@ -70,6 +70,30 @@ test('enkel tråd: exakt nyckel ger samma resultat som förut', () => {
   assert.equal(sorted[1].graphMessageId, 'g-3');
 });
 
+test('OOM-skydd: listMessages scopas till trådens mailbox, inte hela storen', () => {
+  // fetchSortedConversationMessages laddade förr ALLA shards per request
+  // (store.listMessages({})) → heapen spikade > 4 GB (Render-OOM) för
+  // kontaktformulär-trådar med många memberKeys. Nu scopas den till mailboxen.
+  let received = null;
+  const spyStore = {
+    listMessages: (options) => {
+      received = options;
+      return MESSAGES;
+    },
+  };
+  fetchSortedConversationMessages(
+    spyStore,
+    'kons@hairtpclinic.com:AAQ123::contact-form:blend.bytyci@hotmail.com',
+    ['kons@hairtpclinic.com:AAMk456::contact-form-ref:blend']
+  );
+  assert.ok(received, 'listMessages ska anropas med options');
+  assert.deepEqual(
+    received.mailboxIds,
+    ['kons@hairtpclinic.com'],
+    'ska scopa till kons@-sharden, inte ladda alla shards'
+  );
+});
+
 test('rollup: primärnyckel + memberKeys unionerar HELA kundtråden i tidsordning', () => {
   // Radens nyckel är svarstrådens — kontaktformulärstråden är rollup-medlem.
   const sorted = fetchSortedConversationMessages(store, 'kons@hairtpclinic.com:conv-svar', [
