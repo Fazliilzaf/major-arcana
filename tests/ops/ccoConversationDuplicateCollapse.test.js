@@ -75,6 +75,32 @@ test('tre formulär-sändningar med OLIKA Message-ID men identiskt innehåll fä
   assert.equal(collapsed[0].duplicateCount, 3);
 });
 
+test('två mail som är lika i början men skiljer sig senare fälls INTE ihop (missa ingen patientinfo)', () => {
+  const shared = 'A'.repeat(500); // längre än 400 → tidigare trunkering hade slagit ihop dem
+  const messages = [
+    {
+      from: 'Patient X',
+      dir: 'incoming',
+      subject: 'Kontaktformulär',
+      bodyText: `${shared} Jag vill boka tid nästa vecka.`,
+      internetMessageId: '<x-1@x>',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      time: '2026-04-14T12:11:00.000Z',
+    },
+    {
+      from: 'Patient X',
+      dir: 'incoming',
+      subject: 'Kontaktformulär',
+      bodyText: `${shared} OBS: jag är allergisk mot lidokain.`,
+      internetMessageId: '<x-2@x>',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      time: '2026-04-14T12:11:00.000Z',
+    },
+  ];
+  const collapsed = collapseDuplicateMessages(messages);
+  assert.equal(collapsed.length, 2, 'olika slut (viktig info) får inte slås ihop');
+});
+
 test('äkta separata mail (olika Message-ID) fälls INTE ihop', () => {
   const messages = [
     {

@@ -677,17 +677,16 @@ function deriveInternetMessageId(message = {}) {
   );
 }
 
-// Signatur för att fälla ihop identiska KOPIOR av samma mail: samma RFC Message-ID,
-// eller — när det saknas — samma mailbox/riktning/minut/ämne/kropp. Skiljer äkta
-// separata mail (olika Message-ID/innehåll) från dubbletter som levererats eller
-// lagrats flera gånger (t.ex. kontaktformulär som skickar samma notis i flera ex).
-// Innehålls-signatur: samma mailbox + riktning + avsändare + ämne + kropp + minut.
-// Detta fångar identiska KOPIOR även när de har OLIKA Message-ID (t.ex. ett
-// kontaktformulär som gör tre separata sändningar med varsitt Message-ID men samma
-// innehåll). Kräver kropp/ämne för att inte slå ihop tomma platshållare.
+// Innehålls-signatur för att bara fälla ihop EXAKT identiska kopior: samma mailbox
+// + riktning + avsändare + ämne + minut + HELA kroppen. Detta fångar identiska
+// kopior även när de har OLIKA Message-ID (t.ex. ett kontaktformulär som gör tre
+// separata sändningar med varsitt Message-ID men samma innehåll). HELA kroppen
+// jämförs (inte bara början) så två olika patient-mail ALDRIG slås ihop av misstag
+// — vi får aldrig missa patientinformation. Rollup-funktionen (samla alla kundens
+// trådar till en) är en separat mekanism uppströms och påverkas inte av detta.
 function duplicateContentSignature(message = {}) {
   const safe = asObject(message);
-  const body = normalizeBodyText(safe.bodyText || safe.body || safe.bodyPreview).slice(0, 400);
+  const body = normalizeBodyText(safe.bodyText || safe.body || safe.bodyPreview);
   const subject = normalizeText(safe.subject).toLowerCase();
   if (!body && !subject) return '';
   const parts = [
