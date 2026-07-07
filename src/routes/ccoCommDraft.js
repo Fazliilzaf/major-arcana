@@ -857,6 +857,78 @@ function createCcoCommDraftRouter({
     }
   );
 
+  // ── Mottagar-allowlist (2a-storen) — hantering ──────────────────────────────
+  // Godkända mottagar-adresser (patientens to:) som live-send (2d) får skicka
+  // till. Läsning = mail.read; mutation = mail.live_send (owner) — samma ägar-
+  // beslut som själva utskicket, eftersom detta är "vem får vi mejla?".
+  // Svaren innehåller endast MASKERADE adresser (storen exponerar aldrig rått).
+
+  // GET /cco-comm/recipient-allowlist?includeInactive=1 — lista
+  router.get(
+    '/cco-comm/recipient-allowlist',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.read'),
+    async (req, res) => {
+      try {
+        const allowlist = await ensureAllowlistStore();
+        const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
+        const includeInactive = ['1', 'true', 'yes'].includes(
+          String(req.query?.includeInactive || '').toLowerCase()
+        );
+        const recipients = allowlist.listRecipients(tenantId, { includeInactive });
+        return res.json({ recipients });
+      } catch (error) {
+        return res.status(error.statusCode || 500).json({ error: error.message });
+      }
+    }
+  );
+
+  // POST /cco-comm/recipient-allowlist — lägg till/återaktivera (owner)
+  router.post(
+    '/cco-comm/recipient-allowlist',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.live_send'),
+    jsonParser,
+    async (req, res) => {
+      try {
+        const allowlist = await ensureAllowlistStore();
+        const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
+        const address = text(req.body?.address);
+        const note = text(req.body?.note);
+        const recipient = await allowlist.addRecipient(tenantId, address, {
+          actor: actorOf(req),
+          note,
+        });
+        return res.status(201).json({ recipient });
+      } catch (error) {
+        return res.status(error.statusCode || 400).json({ error: error.message });
+      }
+    }
+  );
+
+  // DELETE /cco-comm/recipient-allowlist/:address — ta bort (soft, owner)
+  router.delete(
+    '/cco-comm/recipient-allowlist/:address',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.live_send'),
+    async (req, res) => {
+      try {
+        const allowlist = await ensureAllowlistStore();
+        const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
+        const address = text(decodeURIComponent(req.params.address || ''));
+        const recipient = await allowlist.removeRecipient(tenantId, address, {
+          actor: actorOf(req),
+        });
+        return res.json({ removed: !!recipient, recipient: recipient || null });
+      } catch (error) {
+        return res.status(error.statusCode || 400).json({ error: error.message });
+      }
+    }
+  );
+
   return router;
 }
 
