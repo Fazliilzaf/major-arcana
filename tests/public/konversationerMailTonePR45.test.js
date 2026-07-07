@@ -18,11 +18,14 @@ const repoRoot = path.resolve(__dirname, '../..');
 const konv = fs.readFileSync(path.join(repoRoot, 'public', 'konversationer.html'), 'utf8');
 const route = fs.readFileSync(path.join(repoRoot, 'src', 'routes', 'ccoConversation.js'), 'utf8');
 
-test('PR45: HTML-mailbubblans iframe är transparent (delar panel-kort-tonen)', () => {
+test('PR45: HTML-mailbubblans iframe har en ren ljus canvas (signaturer alltid läsbara)', () => {
+  // Uppdaterad i PR48: iframen är inte längre transparent (amber utgående-bubbla
+  // kunde lysa igenom och sänka kontrasten på signaturer). Den har nu en egen
+  // solid, nära vit canvas (#fffdfb) så logga/signatur alltid renderas läsbart.
   const rule = konv.match(/\.msg-html-frame\s*\{[\s\S]*?\}/);
   assert.ok(rule, '.msg-html-frame-regeln ska finnas');
-  assert.match(rule[0], /background:\s*transparent/);
-  assert.doesNotMatch(rule[0], /background:\s*#fff/);
+  assert.match(rule[0], /background:\s*#fffdfb/);
+  assert.doesNotMatch(rule[0], /background:\s*transparent/);
 });
 
 test('PR45: messages-endpointen returnerar server-fas-timings', () => {

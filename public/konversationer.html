@@ -580,11 +580,11 @@
         width: 100%;
         height: 360px;
         border: 0;
-        /* Transparent så .msg-bubble:s panel-kort-ton lyser igenom (iframens
-           srcdoc-body är också transparent). Ger HTML-mail samma bakgrundston som
-           text-bubblorna i stället för en avvikande vit ruta. Panel-tonen är nära
-           vit, så mörk mailtext/signaturer förblir läsbara. */
-        background: transparent;
+        /* HTML-mail får en egen ren, ljus canvas (nära vit, matchar bubbeltonen) i
+           stället för genomskinlig — så signaturer/loggor alltid renderas läsbart,
+           även på den amber-färgade utgående-bubblan (annars kunde amber-tonen lysa
+           igenom och sänka kontrasten). Srcdoc-body har samma #fffdfb. */
+        background: #fffdfb;
         border-radius: inherit;
       }
       .msg-bubble {
@@ -3502,7 +3502,7 @@
         const doc =
           '<!doctype html><html><head><meta charset="utf-8">' +
           '<base target="_blank">' +
-          '<style>body{margin:0;padding:10px 12px;font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#2b251f;background:transparent;word-break:break-word}img{max-width:100%;height:auto}</style>' +
+          '<style>body{margin:0;padding:10px 12px;font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#2b251f;background:#fffdfb;word-break:break-word}img{max-width:100%;height:auto}</style>' +
           '</head><body>' +
           html +
           '</body></html>';
