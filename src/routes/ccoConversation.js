@@ -1013,20 +1013,42 @@ function fetchSortedIngestionConversationMessagesForKeys(store, keys = [], optio
   );
 }
 
-function buildIngestionMessageLookup(store) {
-  if (!storeCanReadIngestion(store)) return new Map();
+// Härled trådens mailbox(ar) ur truth-meddelandena så ingestion-läsningen kan
+// scopas till rätt shard i stället för att svepa hela korpusen.
+function deriveMailboxIdsFromConversationMessages(messages = []) {
+  const ids = new Set();
+  for (const message of asArray(messages)) {
+    const mailbox = deriveMailboxForMatch(message);
+    if (mailbox) ids.add(mailbox);
+  }
+  return ids;
+}
+
+// Läs + mappa ingestion-råmeddelanden EN gång, scopat till angivna mailbox(ar).
+// Råmeddelanden utan mailbox tas alltid med (säkerhet). Ersätter de tidigare
+// hela-korpus-passen som körde per trådöppning.
+function readScopedIngestionConversationMessages(store, mailboxIds = null) {
+  if (!storeCanReadIngestion(store)) return [];
+  const scope = mailboxIds instanceof Set && mailboxIds.size ? mailboxIds : null;
+  const out = [];
+  for (const raw of readIngestionRawMessages(store)) {
+    if (scope) {
+      const mailbox = deriveMailboxForMatch(raw);
+      if (mailbox && !scope.has(mailbox)) continue;
+    }
+    out.push(toConversationMessageFromRaw(raw));
+  }
+  return out;
+}
+
+function buildIngestionAliasLookup(conversationMessages = []) {
   const lookup = new Map();
-  getIngestionConversationMessages(store).forEach((message) => {
+  for (const message of conversationMessages) {
     buildConversationAliases(message).forEach((alias) => {
       if (alias && !lookup.has(alias)) lookup.set(alias, message);
     });
-  });
+  }
   return lookup;
-}
-
-function getIngestionConversationMessages(store) {
-  if (!storeCanReadIngestion(store)) return [];
-  return readIngestionRawMessages(store).map(toConversationMessageFromRaw);
 }
 
 function bodyTextLooksLikePreview(text = '', preview = '') {
@@ -1136,9 +1158,16 @@ function findScopedIngestionFallback(message = {}, rawMessages = [], options = {
 }
 
 function enrichConversationMessagesWithIngestion(messages, store, options = {}) {
-  const lookup = buildIngestionMessageLookup(store);
-  const rawMessages = getIngestionConversationMessages(store);
-  if (!lookup.size && !rawMessages.length) return messages;
+  if (!storeCanReadIngestion(store)) return messages;
+  // Scopa ingestion-läsningen till trådens mailbox(ar) och läs korpusen EN gång.
+  // Tidigare byggdes lookup + fallback över HELA ingestion-korpusen (två fulla
+  // pass + en O(M×N)-fallback) per trådöppning — synkront på event-loopen. Med
+  // en stor korpus blev det sekunders block ("Laddar från CCO-pipelinen" hängde
+  // ~30s). Peak-arbetet blir nu trådens shard, inte hela storen.
+  const mailboxIds = deriveMailboxIdsFromConversationMessages(messages);
+  const rawMessages = readScopedIngestionConversationMessages(store, mailboxIds);
+  if (!rawMessages.length) return messages;
+  const lookup = buildIngestionAliasLookup(rawMessages);
   const fallbackScope = deriveScopedIngestionFallbackScope(options);
   return messages.map((message) => {
     const rawFromAlias = [...buildConversationAliases(message)]

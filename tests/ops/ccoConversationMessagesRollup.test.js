@@ -832,6 +832,52 @@ test('kontaktformulär-preview berikas från scoped raw-store även när Graph-i
   assert.ok(enriched.bodyText.length > preview.length + 100);
 });
 
+test('ingestion-berikning scopas till trådens mailbox (ingen hela-korpus-svep)', () => {
+  // Perf-scoping: enrichment läser bara trådens mailbox-shard, inte hela storen.
+  // Ett råmeddelande i EN ANNAN mailbox får aldrig berika tråden (och skannas
+  // inte) — annars byggdes lookup + O(M×N)-fallback över hela korpusen per
+  // trådöppning, vilket blockade event-loopen i sekunder ("Laddar från CCO-
+  // pipelinen" hängde ~30s).
+  const preview = 'Kort preview från Graph';
+  const truthMessages = [
+    {
+      graphMessageId: 'graph-scope-1',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxConversationId: 'kons@hairtpclinic.com:conv-scope',
+      conversationId: 'conv-scope',
+      folderType: 'inbox',
+      receivedAt: '2026-07-05T12:00:00.000Z',
+      bodyPreview: preview,
+      bodyText: preview,
+      from: { address: 'kund@example.com' },
+    },
+  ];
+  const otherMailboxFullBody =
+    'Fel mailbox — denna text får ALDRIG läcka in i kons-tråden via berikning.';
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        // Samma Graph-id/alias men i en ANNAN mailbox — ska scopas bort.
+        wrongMailbox: {
+          graphMessageId: 'graph-scope-1',
+          mailboxId: 'info@hairtpclinic.com',
+          conversationId: 'conv-scope',
+          folderType: 'inbox',
+          receivedAt: '2026-07-05T12:00:00.000Z',
+          bodyPreview: preview,
+          bodyText: otherMailboxFullBody,
+          from: { address: 'kund@example.com' },
+        },
+      },
+    }),
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion(truthMessages, ingestionStore);
+
+  assert.doesNotMatch(String(enriched.bodyText || ''), /Fel mailbox/);
+  assert.equal(enriched.bodyText, preview);
+});
+
 test('cid-inlinebilder skrivs om till säkra attachment-URL:er', () => {
   const message = {
     mailboxId: 'kons@hairtpclinic.com',
