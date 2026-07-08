@@ -3425,6 +3425,19 @@
       'background:var(--studio,#bb4779);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.22)';
     fab.addEventListener('click', () => openComposeNewMail());
     document.body.appendChild(fab);
+    placeComposeFabBesideDocs(fab);
+  }
+
+  // Ställ "Nytt mail" JÄMTE "Alla dokument"-launchern (admin.html) istället för
+  // ovanpå den i samma hörn. Launchern kan mountas efter oss → försök igen kort.
+  function placeComposeFabBesideDocs(fab, tries = 0) {
+    const docs = document.getElementById('adminDocsLauncher');
+    if (docs) {
+      fab.style.bottom = '8px';
+      fab.style.right = docs.offsetWidth + 8 + 10 + 'px'; // launcher-bredd + dess right + gap
+    } else if (tries < 20) {
+      requestAnimationFrame(() => placeComposeFabBesideDocs(fab, tries + 1));
+    }
   }
 
   function actionButtonFromEvent(event) {
