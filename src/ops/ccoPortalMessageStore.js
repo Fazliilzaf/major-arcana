@@ -24,6 +24,8 @@ const crypto = require('node:crypto');
 
 const MAX_BODY = 8000; // portalmeddelanden är text, inte bilagor
 const DIRECTIONS = new Set(['inbound', 'outbound']);
+// Ursprungskanal. 'portal' = fri patient-portal, 'sms' = inkom via SMS-brygga.
+const CHANNELS = new Set(['portal', 'sms']);
 
 function nowIso() {
   return new Date().toISOString();
@@ -52,7 +54,7 @@ function cloneMessage(m = {}) {
   return {
     id: m.id,
     direction: m.direction,
-    channel: 'portal',
+    channel: m.channel || 'portal',
     body: m.body,
     author: m.author || null,
     createdAt: m.createdAt || null,
@@ -117,11 +119,14 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
     if (!body) throw new Error('body krävs.');
     if (body.length > MAX_BODY) throw new Error('body för långt.');
 
+    const channel = CHANNELS.has(normalizeText(input.channel))
+      ? normalizeText(input.channel)
+      : 'portal';
     return withLock(key, async () => {
       const message = {
         id: crypto.randomUUID(),
         direction,
-        channel: 'portal',
+        channel,
         body: body.slice(0, MAX_BODY),
         author: normalizeText(input.author) || null,
         createdAt: nowIso(),
@@ -134,7 +139,7 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
         actor: { role: 'system', userId: message.author },
         target: { kind: 'portal_message', id: message.id, tenantId: normalizeText(input.tenantId) },
         result: 'ok',
-        detail: { direction, chars: body.length },
+        detail: { direction, channel, chars: body.length },
       });
       return cloneMessage(message);
     });
