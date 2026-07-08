@@ -9,16 +9,21 @@ const ROOT = path.join(__dirname, '..', '..');
 const scriptPath = path.join(ROOT, 'scripts', 'verify-internalize-run-prod.js');
 const {
   ALIAS_HEURISTIC_NOTE,
+  SCAN_MODES,
   buildScanDescriptor,
   classifyOverallStatus,
+  createScanErrorLog,
   evaluateAliasGap,
   isClientoPatientId,
   isCcoViewUrl,
+  isRetryableHttpStatus,
   maskClientoPatientId,
   patientHasFileSignals,
+  resolveExitCode,
   resolvePatientId,
   shouldScanPatient,
   summarizeAliasHeuristic,
+  summarizeScanReliability,
 } = require('../../scripts/verify-internalize-run-prod');
 
 test('verify-internalize-run-prod script documents scan modes and direct node --json', () => {
@@ -28,6 +33,9 @@ test('verify-internalize-run-prod script documents scan modes and direct node --
   assert.match(script, /använd node direkt, inte npm run/);
   assert.match(script, /known_alias_heuristic/);
   assert.match(script, /collectAssetStoreAliases\/heuristik/);
+  assert.match(script, /scanReliability/);
+  assert.match(script, /UNRELIABLE/);
+  assert.match(script, /tokenRefresh/);
 });
 
 test('resolvePatientId prefers patientId over id', () => {
@@ -131,4 +139,53 @@ test('patientHasFileSignals accepts common list-card signals', () => {
   assert.equal(patientHasFileSignals({ fileSummary: { totalFiles: 3 } }), true);
   assert.equal(patientHasFileSignals({ hasJournalHistory: true }), true);
   assert.equal(patientHasFileSignals({}), false);
+});
+
+test('isRetryableHttpStatus covers transient prod failures', () => {
+  assert.equal(isRetryableHttpStatus(429), true);
+  assert.equal(isRetryableHttpStatus(502), true);
+  assert.equal(isRetryableHttpStatus(503), true);
+  assert.equal(isRetryableHttpStatus(401), false);
+  assert.equal(isRetryableHttpStatus(404), false);
+});
+
+test('summarizeScanReliability marks scan unreliable when errors and incomplete discovery', () => {
+  const errorLog = createScanErrorLog();
+  errorLog.assetApi.push({ patientId: 'pm-1', status: 502 });
+  const summary = summarizeScanReliability({
+    errorLog,
+    apiStats: { tokenRefreshes: 1, retriedRequests: 2 },
+    discoveryPass: false,
+    runPass: true,
+    expectedCount: 10,
+    assetsFound: 0,
+  });
+  assert.equal(summary.unreliable, true);
+  assert.equal(summary.authoritativeForNextBatch, false);
+  assert.equal(summary.totalErrors, 1);
+  assert.match(summary.note, /ensam gate/);
+});
+
+test('classifyOverallStatus returns UNRELIABLE when scan reliability is poor', () => {
+  assert.equal(
+    classifyOverallStatus({
+      runPass: true,
+      discoveryPass: false,
+      bundlePass: false,
+      downloadPass: false,
+      noDriveLinks: false,
+      assetsFound: 0,
+      expectedCount: 10,
+      aliasHeuristic: { count: 0, knownPattern: false },
+      scanReliability: { unreliable: true },
+    }),
+    'UNRELIABLE'
+  );
+});
+
+test('resolveExitCode distinguishes UNRELIABLE from FAIL', () => {
+  assert.equal(resolveExitCode({ overallPass: true, overallStatus: 'PASS' }), 0);
+  assert.equal(resolveExitCode({ overallPass: false, overallStatus: 'PARTIAL' }), 0);
+  assert.equal(resolveExitCode({ overallPass: false, overallStatus: 'UNRELIABLE' }), 2);
+  assert.equal(resolveExitCode({ overallPass: false, overallStatus: 'FAIL' }), 1);
 });
