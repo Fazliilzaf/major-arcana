@@ -605,7 +605,7 @@
   // Laddar svarstudio-v2.css/.html, binder trådens riktiga data och kopplar
   // kontrollerna till EXAKT samma sänd-endpoints som klassiska modalen (upp
   // till needs_approval). Live-send förblir serverspärrat.
-  const SVARSTUDIO_V2_ASSET_VERSION = '20260708a-svarstudio-cache';
+  const SVARSTUDIO_V2_ASSET_VERSION = '20260708b-dossier';
   let _svarstudioV2Assets = null;
   async function loadSvarstudioV2Assets() {
     if (_svarstudioV2Assets) return _svarstudioV2Assets;
@@ -1094,61 +1094,123 @@
     }
 
     // ── Kundkort/dossier (fas 1, steg 3) ─────────────────────────────────
-    // Hämtar "all info om kunden" från RBAC-endpointen och renderar den i
-    // kontext-rälsen. Rent tillägg: fel eller saknad data får ALDRIG störa
-    // Svarstudion. Journalinnehåll finns aldrig i svaret (bara antal).
-    function renderDossierCard(d) {
-      const ctxEl = $('.ctx');
-      if (!ctxEl || !d) return;
-      const esc = (s) =>
-        String(s == null ? '' : s).replace(
-          /[&<>"]/g,
-          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
-        );
-      const row = (label, value) =>
-        value == null || value === ''
-          ? ''
-          : '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;border-top:1px solid var(--line-soft)">' +
-            '<span style="color:var(--ink-3)">' +
-            esc(label) +
-            '</span><span style="font-weight:700;text-align:right">' +
-            esc(value) +
-            '</span></div>';
-      const bk = d.bookings || {};
-      const up = (bk.upcoming || [])[0];
-      const nextBooking = up
-        ? (up.service || 'Bokning') + (up.startsAt ? ' · ' + String(up.startsAt).slice(0, 10) : '')
-        : '';
-      const journalCount = (d.journal && d.journal.count) || 0;
-      const card = document.createElement('div');
-      card.className = 'block';
-      card.style.marginTop = '2px';
-      card.innerHTML =
-        '<div class="glabel" style="margin-bottom:4px">Kundkort</div>' +
-        row('Nästa bokning', nextBooking || '—') +
-        row('Bokningar', bk.count || 0) +
-        row('Ärenden', (d.cases || []).length) +
-        row('Trådar', (d.threads && d.threads.count) || 0) +
-        row('Journal', journalCount ? journalCount + ' (låst)' : '0');
-      ctxEl.appendChild(card);
+    // Hämtar "all info om kunden" från RBAC-endpointen. Journalinnehåll finns
+    // aldrig i svaret: Svarstudion visar bara metadata som antal + senaste datum.
+    function dossierCountLabel(count, singular, plural) {
+      const n = Math.max(0, Number(count) || 0);
+      return n + ' ' + (n === 1 ? singular : plural);
     }
-    (async () => {
-      if (!customerId) return;
-      try {
-        const url =
-          '/api/v1/cco/runtime/customer/' +
-          encodeURIComponent(customerId) +
-          '/dossier' +
-          (recipientEmail ? '?email=' + encodeURIComponent(recipientEmail) : '');
-        const r = await fetch(url, {
-          headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
-        });
-        const j = await r.json().catch(() => ({}));
-        if (r.ok && j && j.dossier) renderDossierCard(j.dossier);
-      } catch (_e) {
-        /* dossier är ett tillägg — fel får aldrig störa Svarstudion */
+    function dossierDateLabel(value) {
+      const raw = cleanText(value);
+      if (!raw) return '';
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return raw.slice(0, 16);
+      return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function renderDossierMini(dossier, note) {
+      const box = $('#customerDossier');
+      if (!box) return;
+      const body = box.querySelector('.dossier-mini__body');
+      if (!body) return;
+      body.innerHTML = '';
+      if (!dossier) {
+        body.appendChild(el('p', { class: 'dossier-mini__empty' }, note || 'Kundkort saknas.'));
+        return;
       }
-    })();
+      const name = cleanText(dossier.identity?.name);
+      const emails = Array.isArray(dossier.contact?.emails) ? dossier.contact.emails : [];
+      const phones = Array.isArray(dossier.contact?.phones) ? dossier.contact.phones : [];
+      if (name) setText('.kk-name', name);
+      if (emails[0] && kkLines[0]) kkLines[0].lastChild.textContent = ' ' + emails[0];
+      if (phones[0] && kkLines[1]) kkLines[1].lastChild.textContent = ' ' + phones[0];
+
+      const metrics = [
+        dossierCountLabel(dossier.bookings?.count, 'bokning', 'bokningar'),
+        dossierCountLabel((dossier.cases || []).length, 'ärende', 'ärenden'),
+        dossierCountLabel(dossier.threads?.count, 'tråd', 'trådar'),
+        dossierCountLabel(dossier.journal?.count, 'journalpost', 'journalposter'),
+      ];
+      const latestJournal = dossierDateLabel(dossier.journal?.latestAt);
+      body.appendChild(
+        el('div', { class: 'dossier-mini__metrics' }, metrics.map((m) => el('span', {}, m)))
+      );
+      body.appendChild(
+        el(
+          'p',
+          { class: 'dossier-mini__safe' },
+          latestJournal
+            ? 'Journal: endast metadata visas här · senaste ' + latestJournal
+            : 'Journal: endast metadata visas här.'
+        )
+      );
+      const nextBooking = Array.isArray(dossier.bookings?.upcoming)
+        ? dossier.bookings.upcoming[0]
+        : null;
+      const openCase = Array.isArray(dossier.cases) ? dossier.cases[0] : null;
+      const summaryBits = [
+        nextBooking
+          ? 'Nästa bokning: ' +
+            [nextBooking.service, dossierDateLabel(nextBooking.startsAt)].filter(Boolean).join(' · ')
+          : '',
+        openCase ? 'Senaste ärende: ' + [openCase.title, openCase.status].filter(Boolean).join(' · ') : '',
+        dossier.threads?.needsReply ? dossier.threads.needsReply + ' trådar behöver svar' : '',
+      ].filter(Boolean);
+      if (summaryBits.length) {
+        body.appendChild(
+          el(
+            'ul',
+            { class: 'dossier-mini__list' },
+            summaryBits.map((item) => el('li', {}, item))
+          )
+        );
+      }
+      const panel = $('#ctxPanel');
+      if (panel) {
+        panel.innerHTML =
+          '<b>Kundkort.</b> ' +
+          cleanText(
+            [
+              name || ctx.customerName || 'Vald kund',
+              metrics.join(' · '),
+              latestJournal ? 'senaste journalmetadata ' + latestJournal : '',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          );
+      }
+    }
+    async function loadDossierMini() {
+      const id = cleanText(customerId || ctx.customerId || recipientEmail || ctx.email);
+      if (!id) {
+        renderDossierMini(null, 'Välj en kundtråd för att läsa kundkort.');
+        return;
+      }
+      try {
+        const params = new URLSearchParams();
+        const email = firstCustomerEmailValue(recipientEmail, ctx.email, ctx.customerEmail);
+        if (email) params.set('email', email);
+        if (ctx.conversationKey) params.set('conversationKey', ctx.conversationKey);
+        const qs = params.toString();
+        const r = await fetch(
+          '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/dossier' + (qs ? '?' + qs : ''),
+          {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.dossier) throw new Error(j.error || 'kundkort saknas');
+        renderDossierMini(j.dossier);
+      } catch (_error) {
+        renderDossierMini(null, 'Kundkort kunde inte laddas just nu.');
+      }
+    }
+    renderDossierMini(null, 'Hämtar lokalt kundkort…');
+    loadDossierMini();
+    const qaDossier = $('.qa--dossier');
+    if (qaDossier) qaDossier.addEventListener('click', () => openPatientHub(ctx));
+    const qaSign = $('.qa--sign');
+    if (qaSign) qaSign.addEventListener('click', () => openSignaturer(ctx));
 
     // Initial render (modalen är redan monterad av openModal ovan)
     pressSig('Fazli Krasniqi');

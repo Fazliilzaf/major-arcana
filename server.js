@@ -13386,7 +13386,19 @@ process.once('SIGTERM', () => {
   // Kundkort/dossier — RBAC-grindad läs-endpoint (mail.read) som samlar "all info
   // om kunden" för Svarstudion ur app.locals-storarna. Journalinnehåll ingår aldrig.
   const { createCcoCustomerDossierRouter } = require('./src/routes/ccoCustomerDossier');
-  app.use('/api/v1', createCcoCustomerDossierRouter({ requireAuth: auth.requireAuth }));
+  app.use(
+    '/api/v1',
+    createCcoCustomerDossierRouter({
+      requireAuth: auth.requireAuth,
+      authStore,
+      config,
+      ccoMailboxTruthStore,
+      ccoMailIngestionStore,
+      ccoConversationNotesStore,
+      clientoBookingStore,
+      getCommDraftStore: () => app.locals.ccoCommDraftStore || null,
+    })
+  );
 
   app.use(
     '/api/v1',

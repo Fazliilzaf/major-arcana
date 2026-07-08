@@ -44,7 +44,7 @@ async function safe(label, warnings, fn, fallback) {
 }
 
 /**
- * @param {{tenantId?:string, customerId?:string, patientId?:string, email?:string}} ref
+ * @param {{tenantId?:string, customerId?:string, patientId?:string, email?:string, nowIso?:string}} ref
  * @param {{
  *   patientMasterStore?:object, journeyStore?:object, bookingStore?:object,
  *   caseStore?:object, threadStore?:object, journalStore?:object
@@ -52,8 +52,8 @@ async function safe(label, warnings, fn, fallback) {
  */
 async function buildCustomerDossier(ref = {}, stores = {}) {
   const tenantId = text(ref.tenantId) || 'hairtpclinic';
-  const patientId = text(ref.patientId) || text(ref.customerId);
-  const customerId = text(ref.customerId) || text(ref.patientId);
+  let patientId = text(ref.patientId) || text(ref.customerId);
+  let customerId = text(ref.customerId) || text(ref.patientId);
   const email = text(ref.email);
   const warnings = [];
 
@@ -85,9 +85,18 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
   // ── Patient-master: identitet + kontaktvägar ──────────────────────────
   if (stores.patientMasterStore?.getPatient) {
     const patient = await safe('patient_master', warnings, () =>
-      stores.patientMasterStore.getPatient({ tenantId, patientId, customerId })
+      stores.patientMasterStore.getPatient({ tenantId, patientId, customerId, email })
     );
     if (patient) {
+      const resolvedPatientId = text(patient.id) || text(patient.patientId);
+      if (resolvedPatientId) {
+        patientId = resolvedPatientId;
+        dossier.patientId = resolvedPatientId;
+        if (!customerId || customerId === email) {
+          customerId = resolvedPatientId;
+          dossier.customerId = resolvedPatientId;
+        }
+      }
       dossier.identity.name =
         text(patient.name) || text(patient.fullName) || text(patient.displayName) || null;
       const pnr = text(patient.personnummer);
@@ -99,7 +108,12 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
         patient.email,
         patient.primaryEmail
       );
-      dossier.contact.phones = firstStrings(patient.phones, patient.phone, patient.mobile);
+      dossier.contact.phones = firstStrings(
+        patient.phones,
+        patient.phone,
+        patient.mobile,
+        patient.primaryPhone
+      );
     }
   }
 
@@ -161,7 +175,7 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
     const cases = await safe(
       'cases',
       warnings,
-      () => stores.caseStore.listCasesForCustomer({ tenantId, patientId, customerId }),
+      () => stores.caseStore.listCasesForCustomer({ tenantId, patientId, customerId, email }),
       []
     );
     const list = Array.isArray(cases) ? cases : Array.isArray(cases?.cases) ? cases.cases : [];
