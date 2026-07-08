@@ -43,6 +43,11 @@ test('per-rad ålders-badge ("X utan svar") på obesvarade > 24 h', () => {
   assert.match(source, /: 'Obesvarad'/);
 });
 
+test('färgtrappa: gul (warning) 24–48 h, röd (urgent) 48 h+', () => {
+  assert.match(source, /\.thread-tag--warning\s*\{[\s\S]{0,80}--cco-status-warning/);
+  assert.match(source, /rowWaitingMs >= 48 \* 60 \* 60 \* 1000 \? 'urgent' : 'warning'/);
+});
+
 test('äldst-först-sortering + egen räknare i lane-listan', () => {
   assert.match(
     source,

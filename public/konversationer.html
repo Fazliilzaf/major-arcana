@@ -365,6 +365,10 @@
         background: var(--cco-status-danger-bg);
         color: var(--cco-status-danger);
       }
+      .thread-tag--warning {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
       .thread-tag--ai {
         background: var(--calendar-accent-soft);
         color: var(--calendar-accent);
@@ -3362,12 +3366,15 @@
         const rowIsWaiting =
           rowNeedsReply && (!rowWaitingSinceMs || rowWaitingMs >= 24 * 60 * 60 * 1000);
         const tags = [];
-        if (rowIsWaiting)
+        if (rowIsWaiting) {
+          // Färgtrappa: gul 24–48 h (warning), röd 48 h+ (danger).
+          const waitingKind =
+            rowWaitingSinceMs && rowWaitingMs >= 48 * 60 * 60 * 1000 ? 'urgent' : 'warning';
           tags.push({
-            kind: 'urgent',
+            kind: waitingKind,
             label: rowWaitingSinceMs ? formatWaitingAge(rowWaitingMs) + ' utan svar' : 'Obesvarad',
           });
-        else if (state.hasUnreadInbound || state.needsReply)
+        } else if (state.hasUnreadInbound || state.needsReply)
           tags.push({ kind: 'urgent', label: 'OLÄST' });
         if (String(row.lane || '').includes('book'))
           tags.push({ kind: 'booking', label: 'Bokning' });
