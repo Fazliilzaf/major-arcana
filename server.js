@@ -7216,6 +7216,11 @@ try {
       journalStore: {
         listAllEntries: async (args) => app.locals.ccoJournalStore?.listAllEntries?.(args) || [],
       },
+      // Olästa inbound portal-meddelanden → notis per kund (lazy från app.locals).
+      portalMessageStore: {
+        listUnreadInboundSummaries: () =>
+          app.locals.ccoPortalMessageStore?.listUnreadInboundSummaries?.() || [],
+      },
       readStore,
     });
     app.locals.ccoNotificationFeedStore = feedStore;

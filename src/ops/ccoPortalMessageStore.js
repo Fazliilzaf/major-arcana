@@ -185,7 +185,42 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
     ).length;
   }
 
-  return { appendMessage, listMessagesForCustomer, markInboundRead, countUnreadInbound };
+  /**
+   * Sammanfatta olästa inkommande per kund över ALLA kunder — för notis-feeden.
+   * Returnerar bara kunder med minst ett oläst inbound-meddelande.
+   * @returns {Array<{tenantId, customerId, unread, latestInboundAt, latestBody}>}
+   */
+  function listUnreadInboundSummaries() {
+    const out = [];
+    for (const [key, data] of Object.entries(state.customers || {})) {
+      const messages = Array.isArray(data?.messages) ? data.messages : [];
+      const unreadInbound = messages.filter((m) => m.direction === 'inbound' && !m.readAt);
+      if (unreadInbound.length === 0) continue;
+      const sep = key.indexOf('::');
+      const tenantId = sep >= 0 ? key.slice(0, sep) : '';
+      const customerId = sep >= 0 ? key.slice(sep + 2) : key;
+      const latest = unreadInbound
+        .slice()
+        .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+        .pop();
+      out.push({
+        tenantId,
+        customerId,
+        unread: unreadInbound.length,
+        latestInboundAt: latest?.createdAt || null,
+        latestBody: latest?.body || '',
+      });
+    }
+    return out;
+  }
+
+  return {
+    appendMessage,
+    listMessagesForCustomer,
+    markInboundRead,
+    countUnreadInbound,
+    listUnreadInboundSummaries,
+  };
 }
 
 module.exports = { createCcoPortalMessageStore, MAX_BODY };

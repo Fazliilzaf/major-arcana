@@ -77,6 +77,45 @@ test('isolering: olika kund/tenant blandas inte', async () => {
   assert.equal(store.listMessagesForCustomer({ tenantId: 'other', customerId: 'A' }).length, 0);
 });
 
+test('listUnreadInboundSummaries: en post per kund med oläst inbound', async () => {
+  const store = await createCcoPortalMessageStore({ filePath: tmpFile() });
+  // Kund A: 2 olästa inbound
+  await store.appendMessage({
+    tenantId: 'hairtpclinic',
+    customerId: 'A',
+    direction: 'inbound',
+    body: 'A1',
+  });
+  await store.appendMessage({
+    tenantId: 'hairtpclinic',
+    customerId: 'A',
+    direction: 'inbound',
+    body: 'A2 senast',
+  });
+  // Kund B: 1 inbound men LÄST → ska inte dyka upp
+  await store.appendMessage({
+    tenantId: 'hairtpclinic',
+    customerId: 'B',
+    direction: 'inbound',
+    body: 'B1',
+  });
+  await store.markInboundRead({ tenantId: 'hairtpclinic', customerId: 'B' });
+  // Kund C: bara outbound → ska inte dyka upp
+  await store.appendMessage({
+    tenantId: 'hairtpclinic',
+    customerId: 'C',
+    direction: 'outbound',
+    body: 'C-svar',
+  });
+
+  const summaries = store.listUnreadInboundSummaries();
+  assert.equal(summaries.length, 1);
+  assert.equal(summaries[0].customerId, 'A');
+  assert.equal(summaries[0].tenantId, 'hairtpclinic');
+  assert.equal(summaries[0].unread, 2);
+  assert.equal(summaries[0].latestBody, 'A2 senast'); // senaste inbound
+});
+
 test('persistens: ny store-instans läser samma fil', async () => {
   const file = tmpFile();
   const s1 = await createCcoPortalMessageStore({ filePath: file });
