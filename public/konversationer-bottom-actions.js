@@ -365,6 +365,7 @@
       { key: 'notiser', label: 'Notiser', open: () => openNotiser() },
       { key: 'skickat', label: 'Skickat', open: () => openSkickat() },
       { key: 'portalmetrics', label: 'Portal', open: () => openPortalMetrics() },
+      { key: 'nyttmail', label: '✉ Nytt mail', open: () => openComposeNewMail() },
       { key: 'patienthub', label: 'Dossier', open: () => openPatientHub() },
       { key: 'noshow', label: 'No-show', open: () => openNoShow() },
       { key: 'signaturer', label: 'Signering', open: () => openSignaturer() },
@@ -2787,6 +2788,117 @@
   // ─── PORTAL — adoptionsmätning ───────────────────────────────────────
   // Visar hur väl den fria portal-kanalen ersätter SMS/mail: volym, engagemang,
   // nudge-konvertering, aktiva länkar. Läser /portal-metrics (analytics.read_team).
+  // ─── NYTT MAIL → komponera till en ny mottagare ──────────────────────
+  // Skapar en enkel kontakt + ett needs_approval-utkast med vald sändkanal
+  // (kons@ via Graph / Resend). Skickar aldrig direkt — personal godkänner.
+  function openComposeNewMail() {
+    const body = el('div', {
+      style: 'padding:16px;overflow:auto;height:100%;background:#fff;border-radius:14px',
+    });
+    const field = (labelText, inputEl) =>
+      el('label', { style: 'display:block;margin-bottom:10px' }, [
+        el('div', { style: 'font-size:11px;color:#8a8174;margin-bottom:3px' }, labelText),
+        inputEl,
+      ]);
+    const inputStyle =
+      'width:100%;border:1px solid var(--line-soft,#e3dcd4);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;background:#fff;color:#2b251f';
+    const nameEl = el('input', { type: 'text', placeholder: 'Namn (valfritt)', style: inputStyle });
+    const emailEl = el('input', {
+      type: 'email',
+      placeholder: 'mottagare@example.com',
+      style: inputStyle,
+    });
+    const phoneEl = el('input', {
+      type: 'tel',
+      placeholder: 'Telefon (valfritt)',
+      style: inputStyle,
+    });
+    const channelEl = el('select', { style: inputStyle }, [
+      el('option', { value: 'graph' }, 'kons@ (vanligt mejl, kunden kan svara)'),
+      el('option', { value: 'resend' }, 'Resend (no-reply, svar till kons@)'),
+    ]);
+    const subjectEl = el('input', { type: 'text', placeholder: 'Ämne', style: inputStyle });
+    const bodyEl = el('textarea', {
+      placeholder: 'Skriv mailet…',
+      rows: '8',
+      style: inputStyle + ';resize:vertical;min-height:140px',
+    });
+    const status = el('div', { style: 'font-size:12px;margin-top:8px;min-height:16px' }, '');
+    const submit = el(
+      'button',
+      {
+        type: 'button',
+        style:
+          'border:0;border-radius:10px;padding:9px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--studio,#bb4779);color:#fff;margin-top:4px',
+      },
+      'Skapa utkast för godkännande'
+    );
+    submit.addEventListener('click', async () => {
+      const payload = {
+        recipientName: nameEl.value.trim(),
+        recipientEmail: emailEl.value.trim(),
+        recipientPhone: phoneEl.value.trim(),
+        channel: channelEl.value,
+        subject: subjectEl.value.trim(),
+        body: bodyEl.value.trim(),
+      };
+      if (!payload.recipientEmail || !payload.subject || !payload.body) {
+        status.textContent = 'Fyll i mottagare, ämne och text.';
+        status.style.color = '#b94a4a';
+        return;
+      }
+      submit.disabled = true;
+      status.textContent = 'Skapar utkast…';
+      status.style.color = '#8a8174';
+      try {
+        const r = await fetch('/api/v1/cco/runtime/compose-new-mail', {
+          method: 'POST',
+          headers: adminAuthHeaders({
+            'Content-Type': 'application/json',
+            'x-cco-role': ROLE,
+            'x-cco-tenant': TENANT,
+          }),
+          body: JSON.stringify(payload),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.status === 'prepared') {
+          status.textContent =
+            '✓ Utkast skapat (' +
+            (j.contactCreated ? 'ny kontakt, ' : '') +
+            'väntar på godkännande). Godkänn i Skickat/kön.';
+          status.style.color = '#4a8268';
+          subjectEl.value = '';
+          bodyEl.value = '';
+        } else {
+          status.textContent = 'Kunde inte skapa utkast: ' + (j.reason || j.error || 'okänt fel');
+          status.style.color = '#b94a4a';
+        }
+      } catch (_e) {
+        status.textContent = 'Nätverksfel — försök igen.';
+        status.style.color = '#b94a4a';
+      } finally {
+        submit.disabled = false;
+      }
+    });
+    body.appendChild(
+      el(
+        'p',
+        { style: 'font-size:12px;color:#8a8174;margin:0 0 14px' },
+        'Skicka ett nytt mail till en person som inte redan finns som tråd. En enkel ' +
+          'kontakt skapas och ett utkast läggs för godkännande — inget skickas direkt.'
+      )
+    );
+    body.appendChild(field('Mottagarens namn', nameEl));
+    body.appendChild(field('Mottagarens e-post', emailEl));
+    body.appendChild(field('Telefon', phoneEl));
+    body.appendChild(field('Skicka via', channelEl));
+    body.appendChild(field('Ämne', subjectEl));
+    body.appendChild(field('Meddelande', bodyEl));
+    body.appendChild(submit);
+    body.appendChild(status);
+    openModal({ title: '✉ Nytt mail', wide: true, tabs: panelTabs('nyttmail'), body });
+  }
+
   function openPortalMetrics() {
     const body = el('div', {
       style: 'padding:16px;overflow:auto;height:100%;background:#fff;border-radius:14px',
