@@ -1155,7 +1155,18 @@
         ? dossier.bookings.upcoming[0]
         : null;
       const openCase = Array.isArray(dossier.cases) ? dossier.cases[0] : null;
+      const journey = dossier.journey || null;
+      const journeyLabel = journey ? cleanText(journey.stepLabel || journey.step) : '';
+      const journeyBit = journeyLabel
+        ? 'Resa: ' +
+          journeyLabel +
+          (journey.sideState ? ' (' + cleanText(journey.sideState) + ')' : '') +
+          (journey.totalSteps
+            ? ' · ' + (journey.completedCount || 0) + '/' + journey.totalSteps + ' steg'
+            : '')
+        : '';
       const summaryBits = [
+        journeyBit,
         nextBooking
           ? 'Nästa bokning: ' +
             [nextBooking.service, dossierDateLabel(nextBooking.startsAt)]

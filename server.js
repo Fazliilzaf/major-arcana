@@ -13392,6 +13392,39 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Fylligare kundkort: exponera de kanoniska journey- och konversationstråd-
+  // storarna på app.locals så dossiern (och kund-360-vyn på rad ~4803) läser
+  // SAMMA populerade instans istället för en tom lazy-dubblett per läsare.
+  if (!app.locals.ccoCustomerJourneyStore) {
+    const { createCcoCustomerJourneyStore } = require('./src/ops/ccoCustomerJourneyStore');
+    app.locals.ccoCustomerJourneyStore = await createCcoCustomerJourneyStore({
+      filePath:
+        config.ccoCustomerJourneyStorePath ||
+        `${config.stateRoot || config.dataDir || './data'}/cco-customer-journey.json`,
+      auditLog: ccoAuditLog || null,
+    });
+  }
+  if (!app.locals.ccoConversationThreadStore) {
+    const { createCcoConversationThreadStore } = require('./src/ops/ccoConversationThreadStore');
+    app.locals.ccoConversationThreadStore = await createCcoConversationThreadStore({
+      filePath:
+        config.ccoConversationThreadStateStorePath ||
+        config.ccoConversationStateStorePath ||
+        `${config.stateRoot || config.dataDir || './data'}/cco-conversation-thread-state.json`,
+      mailboxTruthStore: ccoMailboxTruthStore || null,
+      mailIngestionStore: ccoMailIngestionStore || null,
+      conversationNotesStore: ccoConversationNotesStore || null,
+      commDraftStore: app.locals.ccoCommDraftStore || null,
+      historyMailboxIds: [
+        'kons@hairtpclinic.com',
+        'info@hairtpclinic.com',
+        'contact@hairtpclinic.com',
+        'egzona@hairtpclinic.com',
+        'fazli@hairtpclinic.com',
+      ],
+    });
+  }
+
   // Kundkort/dossier — RBAC-grindad läs-endpoint (mail.read) som samlar "all info
   // om kunden" för Svarstudion ur app.locals-storarna. Journalinnehåll ingår aldrig.
   const { createCcoCustomerDossierRouter } = require('./src/routes/ccoCustomerDossier');
