@@ -34,7 +34,26 @@ test('patient-notis live kräver BÅDE grind OCH resend-nyckel', () => {
 test('SMS-nudge live kräver grind + provider', () => {
   assert.equal(buildPortalReadiness({ CCO_SMS_LIVE: '1' }).smsNudge, 'off');
   assert.equal(
+    buildPortalReadiness({ CCO_SMS_LIVE: '1', SMS_PROVIDER: '46elks' }).smsNudge,
+    'off'
+  );
+  assert.equal(
     buildPortalReadiness({ CCO_SMS_LIVE: '1', ELKS_API_USERNAME: 'u' }).smsNudge,
+    'off'
+  );
+  assert.equal(
+    buildPortalReadiness({ CCO_SMS_LIVE: '1', ELKS_API_USERNAME: 'u', ELKS_API_PASSWORD: 'p' })
+      .smsNudge,
+    'live'
+  );
+  assert.equal(
+    buildPortalReadiness({
+      CCO_SMS_LIVE: '1',
+      SMS_PROVIDER: 'twilio',
+      TWILIO_ACCOUNT_SID: 'sid',
+      TWILIO_AUTH_TOKEN: 'tok',
+      TWILIO_FROM_NUMBER: '+4670',
+    }).smsNudge,
     'live'
   );
 });

@@ -26,8 +26,15 @@ function buildPortalReadiness(env = process.env) {
   const resendConfigured = has(env.RESEND_API_KEY);
 
   const smsNudgeGate = truthy(env.CCO_SMS_LIVE);
-  const smsProviderConfigured =
-    has(env.ELKS_API_USERNAME) || has(env.TWILIO_ACCOUNT_SID) || has(env.SMS_PROVIDER);
+  const smsProvider = String(env.SMS_PROVIDER || '')
+    .trim()
+    .toLowerCase();
+  const elksConfigured = has(env.ELKS_API_USERNAME) && has(env.ELKS_API_PASSWORD);
+  const twilioConfigured =
+    has(env.TWILIO_ACCOUNT_SID) && has(env.TWILIO_AUTH_TOKEN) && has(env.TWILIO_FROM_NUMBER);
+  let smsProviderConfigured = elksConfigured || twilioConfigured;
+  if (smsProvider === 'twilio') smsProviderConfigured = twilioConfigured;
+  if (smsProvider === '46elks') smsProviderConfigured = elksConfigured;
   const inboundSmsConfigured = has(env.ELKS_INBOUND_SECRET);
 
   const publicBaseUrlSet = has(env.PUBLIC_BASE_URL);
