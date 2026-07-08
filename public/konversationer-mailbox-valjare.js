@@ -131,7 +131,7 @@
       '.mbv-chev{font-size:8px;color:#84756b;transition:transform .15s ease}' +
       '.mbv-kicker.col .mbv-chev{transform:rotate(-90deg)}' +
       '.mbv-body[hidden]{display:none}' +
-      '.mbv-row{display:grid;grid-template-columns:3px 24px 1fr 16px;gap:7px;align-items:center;padding:7px 10px;border-radius:10px;cursor:pointer;transition:background .14s ease;margin-bottom:1px}' +
+      '.mbv-row{display:grid;grid-template-columns:3px 24px 1fr 16px;gap:9px;align-items:center;padding:6px 10px;border-radius:10px;cursor:pointer;transition:background .14s ease;margin-bottom:1px}' +
       '.mbv-row:hover{background:rgba(255,255,255,.6)}' +
       '.mbv-rail{width:3px;height:24px;border-radius:3px;background:var(--r,#84756b)}' +
       // Avatar: matcha CCO .wb-mbx-avatar (24px cirkel + inset-highlight + mjuk skugga)
@@ -141,18 +141,20 @@
       '.mbv-meta{font-size:10px;color:#84756b;margin-top:2px;font-variant-numeric:tabular-nums}' +
       '.mbv-meta .warnc{color:var(--cco-status-warning,#c8821e)}' +
       '.mbv-meta .errc{color:var(--cco-status-danger,#b94a4a);font-weight:700}' +
-      '.mbv-chk{width:15px;height:15px;border-radius:5px;border:1.5px solid rgba(132,117,107,.35);display:grid;place-items:center;color:#fff;font-size:10px;background:rgba(255,255,255,.6)}' +
-      '.mbv-row.on .mbv-chk,.mbv-row.part .mbv-chk{background:var(--accent-studio,#bb4779);border-color:var(--accent-studio,#bb4779)}' +
+      // Kryssruta: mjuk rosa bock på svag rosa ton (inte vit bock på klarrosa fylld ruta)
+      '.mbv-chk{width:16px;height:16px;border-radius:6px;border:1.5px solid rgba(132,117,107,.3);display:grid;place-items:center;color:transparent;font-size:10.5px;font-weight:800;background:transparent;transition:background .12s ease,border-color .12s ease}' +
+      '.mbv-row.on .mbv-chk,.mbv-row.part .mbv-chk{background:rgba(187,71,121,.13);border-color:rgba(187,71,121,.45);color:var(--accent-studio,#bb4779)}' +
       '.mbv-sep{height:1px;background:rgba(132,117,107,.14);margin:6px 2px}' +
-      // Kontroller (inkorg-headern)
-      '.mbv-ctl-lbl{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;margin:0 0 6px}' +
-      // Segment-container: matcha CCO .inbox-tabs (ljus translucent vit yta)
-      '.mbv-seg{display:inline-flex;background:rgba(255,255,255,.55);border-radius:10px;padding:3px;gap:3px}' +
-      '.mbv-seg button{appearance:none;font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.04em;border:0;background:transparent;cursor:pointer;color:var(--cco-text-secondary,#5d6470);padding:5px 12px;border-radius:8px;min-height:26px}' +
-      '.mbv-seg button.on{background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(244,238,232,.88));color:var(--cco-color-brand,#1d1e24);box-shadow:0 2px 6px rgba(56,40,28,.07),inset 0 1px 0 rgba(255,255,255,.92)}' +
-      '.mbv-scope{margin:6px 0 12px}' +
+      // Kontroller (inkorg-headern) — kompakt inline-toolbar, slimmade pills
+      '.mbv-unit{display:flex;align-items:center;gap:7px}' +
+      '.mbv-inlabel{font-size:10px;font-weight:700;color:#84756b;letter-spacing:.01em}' +
+      // Segment-container: matcha CCO .inbox-tabs (ljus translucent vit yta), tightare
+      '.mbv-seg{display:inline-flex;background:rgba(255,255,255,.5);border-radius:9px;padding:2px;gap:2px}' +
+      '.mbv-seg button{appearance:none;font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.01em;border:0;background:transparent;cursor:pointer;color:var(--cco-text-secondary,#5d6470);padding:0 9px;min-height:23px;border-radius:7px}' +
+      '.mbv-seg button.on{background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(244,238,232,.85));color:var(--cco-color-brand,#1d1e24);box-shadow:0 1px 4px rgba(56,40,28,.06),inset 0 1px 0 rgba(255,255,255,.9)}' +
+      '.mbv-scope{margin:2px 0 10px}' +
       '.mbv-scope-body[hidden]{display:none}' +
-      '.mbv-scope-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px}';
+      '.mbv-scope-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px}';
     document.head.appendChild(el('style', { id: 'ccoMbvStyle' }, css));
   }
 
@@ -310,8 +312,9 @@
             o.label
           )
         );
-        return el('div', {}, [
-          el('div', { class: 'mbv-ctl-lbl' }, label),
+        // Kompakt inline-enhet: liten gemen etikett bredvid slimmad segment-rad.
+        return el('div', { class: 'mbv-unit' }, [
+          el('span', { class: 'mbv-inlabel' }, label),
           el('div', { class: 'mbv-seg' }, buttons),
         ]);
       };
@@ -331,11 +334,11 @@
             }
           ),
           seg(
-            'Läsfönster',
+            'Fönster',
             [
-              { value: 30, label: '30 dgr' },
-              { value: 90, label: '90 dgr' },
-              { value: 365, label: '365 dgr' },
+              { value: 30, label: '30 d' },
+              { value: 90, label: '90 d' },
+              { value: 365, label: '365 d' },
             ],
             () => state.windowDays,
             (v) => {

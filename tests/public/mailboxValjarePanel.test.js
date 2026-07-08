@@ -38,9 +38,9 @@ test('folder-scope (Inkorg/Skickat/Utkast) + läsfönster (30/90/365)', () => {
   assert.match(source, /value: 'inbox', label: 'Inkorg'/);
   assert.match(source, /value: 'sent', label: 'Skickat'/);
   assert.match(source, /value: 'drafts', label: 'Utkast'/);
-  assert.match(source, /value: 30, label: '30 dgr'/);
-  assert.match(source, /value: 90, label: '90 dgr'/);
-  assert.match(source, /value: 365, label: '365 dgr'/);
+  assert.match(source, /value: 30, label: '30 d'/);
+  assert.match(source, /value: 90, label: '90 d'/);
+  assert.match(source, /value: 365, label: '365 d'/);
 });
 
 test('sticky val i localStorage + läser mailboxes-endpointen (data kommer senare)', () => {
@@ -74,11 +74,20 @@ test('design-finish matchar CCO: avatar-cirkel + skugga, segment-vit yta', () =>
     source,
     /\.mbv-av\{width:24px;height:24px;border-radius:999px;[^}]*box-shadow:inset 0 1px 0 rgba\(255,255,255,\.4\),0 2px 6px rgba\(56,40,28,\.2\)/
   );
-  // Segment-container = ljus translucent vit (som .inbox-tabs), radie 10px, gap 3px.
+  // Segment-container = ljus translucent vit (som .inbox-tabs), slimmad.
   assert.match(
     source,
-    /\.mbv-seg\{[^}]*background:rgba\(255,255,255,\.55\);border-radius:10px;padding:3px;gap:3px/
+    /\.mbv-seg\{[^}]*background:rgba\(255,255,255,\.5\);border-radius:9px;padding:2px;gap:2px/
   );
+});
+
+test('kompakt filter-toolbar (inline-etikett) + mjuk kryssruta', () => {
+  // Folder-scope/läsfönster som inline-enhet: liten gemen etikett bredvid segmentet.
+  assert.match(source, /\.mbv-unit\{display:flex;align-items:center/);
+  assert.match(source, /\.mbv-inlabel\{/);
+  assert.match(source, /class: 'mbv-unit'/);
+  // Kryssruta: mjuk rosa ton (inte klarrosa fylld ruta).
+  assert.match(source, /\.mbv-row\.on \.mbv-chk[^}]*background:rgba\(187,71,121,\.13\)/);
 });
 
 test('hopfällbara sektioner (sticky) + auto-sync utan manuell knapp', () => {
