@@ -28,8 +28,10 @@ test('lane-filtret använder threadIsWaiting', () => {
 });
 
 test('raden bär needsReply + waitingSinceMs (från senaste inkommande)', () => {
-  assert.match(source, /needsReply: state\.needsReply === true/);
-  assert.match(source, /waitingSinceMs: Date\.parse\(timing\.lastInboundAt/);
+  assert.match(source, /const rowNeedsReply = state\.needsReply === true/);
+  assert.match(source, /const rowWaitingSinceMs =\s*Date\.parse\(timing\.lastInboundAt/);
+  assert.match(source, /needsReply: rowNeedsReply/);
+  assert.match(source, /waitingSinceMs: rowWaitingSinceMs/);
 });
 
 test('per-rad ålders-badge ("X utan svar") på obesvarade > 24 h', () => {
