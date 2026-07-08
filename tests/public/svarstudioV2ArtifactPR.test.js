@@ -49,6 +49,22 @@ test('v2 återanvänder EXAKT sändkedjans endpoints (ingen ny sändväg)', () =
   assert.match(source, /saveDraftV2\('draft'\)/);
 });
 
+test('kundtext: aldrig streck, ingen egen avslutshälsning (finns i signaturen)', () => {
+  // sanitizern finns och körs på förvalt/genererat svar innan editorn
+  assert.match(source, /function sanitizeReplyText\(text\)/);
+  assert.match(source, /editor\.value = sanitizeReplyText\(variantText\[idx\] \|\| ''\)/);
+  // v2-varianterna får inte innehålla em/en-dash eller en egen sign-off
+  const vStart = source.indexOf('const variantText = [');
+  const vEnd = source.indexOf('];', vStart);
+  const variants = source.slice(vStart, vEnd);
+  assert.doesNotMatch(variants, /[—–]/);
+  assert.doesNotMatch(variants, /Varma hälsningar|Vänligen|Mvh/i);
+  // svarsmallarna (makron) använder inte streck som punktlista
+  const macroStart = source.indexOf('const bodies = {');
+  const macroEnd = source.indexOf('};', macroStart);
+  assert.doesNotMatch(source.slice(macroStart, macroEnd), /[—–]/);
+});
+
 test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {
   // v2-mount-blocket får aldrig skicka på riktigt
   const start = source.indexOf('async function mountSvarstudioV2(');
