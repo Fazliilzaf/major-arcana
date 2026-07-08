@@ -365,6 +365,10 @@
         background: var(--cco-status-danger-bg);
         color: var(--cco-status-danger);
       }
+      .thread-tag--warning {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
       .thread-tag--ai {
         background: var(--calendar-accent-soft);
         color: var(--calendar-accent);
@@ -2480,6 +2484,9 @@
         <div class="lane-row" data-lane="act-now">
           <span class="ico">🔥</span><span class="lbl">Agera nu</span><span class="ct">3</span>
         </div>
+        <div class="lane-row" data-lane="waiting">
+          <span class="ico">⏳</span><span class="lbl">Väntar</span><span class="ct">0</span>
+        </div>
         <div class="lane-row" data-lane="sprint">
           <span class="ico">⚡</span><span class="lbl">Sprint</span><span class="ct">12</span>
         </div>
@@ -3351,8 +3358,23 @@
             ? toContactFormReferenceScopedKey(primaryConversationKeyBase, contactReference)
             : primaryConversationKeyBase;
         const source = compactMailbox(mailboxAddress);
+        // "Väntar"-signal per rad: kunden skrev sist, obesvarat > 24 h → ålders-badge.
+        const rowNeedsReply = state.needsReply === true;
+        const rowWaitingSinceMs =
+          Date.parse(timing.lastInboundAt || timing.latestMessageAt || '') || 0;
+        const rowWaitingMs = rowWaitingSinceMs ? Date.now() - rowWaitingSinceMs : 0;
+        const rowIsWaiting =
+          rowNeedsReply && (!rowWaitingSinceMs || rowWaitingMs >= 24 * 60 * 60 * 1000);
         const tags = [];
-        if (state.hasUnreadInbound || state.needsReply)
+        if (rowIsWaiting) {
+          // Färgtrappa: gul 24–48 h (warning), röd 48 h+ (danger).
+          const waitingKind =
+            rowWaitingSinceMs && rowWaitingMs >= 48 * 60 * 60 * 1000 ? 'urgent' : 'warning';
+          tags.push({
+            kind: waitingKind,
+            label: rowWaitingSinceMs ? formatWaitingAge(rowWaitingMs) + ' utan svar' : 'Obesvarad',
+          });
+        } else if (state.hasUnreadInbound || state.needsReply)
           tags.push({ kind: 'urgent', label: 'OLÄST' });
         if (String(row.lane || '').includes('book'))
           tags.push({ kind: 'booking', label: 'Bokning' });
@@ -3391,6 +3413,9 @@
           customerPhone: normalizeText(customer.phone || customer.phoneNumber),
           tags,
           unread: state.hasUnreadInbound || state.needsReply,
+          // "Väntar"-lanen: kunden skrev sist och vi har inte svarat (oavsett läst).
+          needsReply: rowNeedsReply,
+          waitingSinceMs: rowWaitingSinceMs,
           lane: row.lane || 'all',
           live: true,
           active: index === 0,
@@ -3641,8 +3666,25 @@
         return true;
       }
 
+      // "Väntar" = obesvarad (kunden skrev sist) i mer än 24 h. Fångar även
+      // LÄSTA-men-obesvarade trådar (glömt att svara), över alla brevlådor.
+      const WAITING_MS = 24 * 60 * 60 * 1000;
+      // Kort ålder: timmar upp till 48 h, därefter dagar. "26 h" / "3 d".
+      function formatWaitingAge(ms) {
+        const hours = Math.floor(Math.max(0, ms) / 3600000);
+        if (hours < 48) return Math.max(1, hours) + ' h';
+        return Math.floor(hours / 24) + ' d';
+      }
+      function threadIsWaiting(thread) {
+        if (!thread || thread.needsReply !== true) return false;
+        const since = Number(thread.waitingSinceMs) || 0;
+        if (!since) return true; // saknar tidsstämpel → visa hellre än missa
+        return Date.now() - since >= WAITING_MS;
+      }
+
       function threadMatchesLane(thread, laneId) {
         if (!laneId || laneId === 'all') return true;
+        if (laneId === 'waiting') return threadIsWaiting(thread);
         if (laneId === 'act-now')
           return thread.unread === true || /act-now|review/i.test(thread.lane || '');
         return String(thread.lane || '').toLowerCase() === String(laneId).toLowerCase();
@@ -3665,6 +3707,8 @@
         if (allLaneCount) allLaneCount.textContent = String(all);
         const actNowCount = document.querySelector('.lane-row[data-lane="act-now"] .ct');
         if (actNowCount) actNowCount.textContent = String(unread);
+        const waitingCount = document.querySelector('.lane-row[data-lane="waiting"] .ct');
+        if (waitingCount) waitingCount.textContent = String(threads.filter(threadIsWaiting).length);
       }
 
       function setThreadHeader(thread, messageCount = null) {
@@ -4220,6 +4264,10 @@
         const visibleThreads = threads.filter(
           (thread) => threadMatchesTab(thread, activeTab) && threadMatchesLane(thread, activeLane)
         );
+        // "Väntar"-lanen: äldst obesvarad först, så inget ruttnar längst ner.
+        if (activeLane === 'waiting') {
+          visibleThreads.sort((a, b) => (a.waitingSinceMs || 0) - (b.waitingSinceMs || 0));
+        }
         updateInboxCounts(threads);
         if (!visibleThreads.length) {
           list.innerHTML =
