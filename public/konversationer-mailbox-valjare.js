@@ -131,10 +131,11 @@
       '.mbv-chev{font-size:8px;color:#84756b;transition:transform .15s ease}' +
       '.mbv-kicker.col .mbv-chev{transform:rotate(-90deg)}' +
       '.mbv-body[hidden]{display:none}' +
-      '.mbv-row{display:grid;grid-template-columns:3px 20px 1fr 16px;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;cursor:pointer;transition:background .14s ease;margin-bottom:1px}' +
+      '.mbv-row{display:grid;grid-template-columns:3px 24px 1fr 16px;gap:7px;align-items:center;padding:7px 10px;border-radius:10px;cursor:pointer;transition:background .14s ease;margin-bottom:1px}' +
       '.mbv-row:hover{background:rgba(255,255,255,.6)}' +
-      '.mbv-rail{width:3px;height:26px;border-radius:3px;background:var(--r,#84756b)}' +
-      '.mbv-av{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;background:var(--r,#84756b)}' +
+      '.mbv-rail{width:3px;height:24px;border-radius:3px;background:var(--r,#84756b)}' +
+      // Avatar: matcha CCO .wb-mbx-avatar (24px cirkel + inset-highlight + mjuk skugga)
+      '.mbv-av{width:24px;height:24px;border-radius:999px;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;background:var(--r,#84756b);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 6px rgba(56,40,28,.2)}' +
       '.mbv-name{font-size:11.5px;font-weight:700;color:#6b6258;line-height:1.2;letter-spacing:-.01em}' +
       '.mbv-row.on .mbv-name{color:#1d1e24;font-weight:800}' +
       '.mbv-meta{font-size:10px;color:#84756b;margin-top:2px;font-variant-numeric:tabular-nums}' +
@@ -145,7 +146,8 @@
       '.mbv-sep{height:1px;background:rgba(132,117,107,.14);margin:6px 2px}' +
       // Kontroller (inkorg-headern)
       '.mbv-ctl-lbl{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;margin:0 0 6px}' +
-      '.mbv-seg{display:inline-flex;background:rgba(132,117,107,.1);border-radius:9px;padding:3px;gap:2px}' +
+      // Segment-container: matcha CCO .inbox-tabs (ljus translucent vit yta)
+      '.mbv-seg{display:inline-flex;background:rgba(255,255,255,.55);border-radius:10px;padding:3px;gap:3px}' +
       '.mbv-seg button{appearance:none;font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.04em;border:0;background:transparent;cursor:pointer;color:var(--cco-text-secondary,#5d6470);padding:5px 12px;border-radius:8px;min-height:26px}' +
       '.mbv-seg button.on{background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(244,238,232,.88));color:var(--cco-color-brand,#1d1e24);box-shadow:0 2px 6px rgba(56,40,28,.07),inset 0 1px 0 rgba(255,255,255,.92)}' +
       '.mbv-scope{margin:6px 0 12px}' +
