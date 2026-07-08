@@ -124,11 +124,16 @@ Ingen ny live-send. Broker-credentials bakom env-gate (`BANKID_API_KEY` /
 (Väljer ni ändå direkt BankID-RP blir det i stället `start`/`collect` mot
 `orderRef` — tyngre, se leverantörsbeslutet ovan.)
 
-### 3. Nivå-2-payload
+### 3. Nivå-2-payload — BYGGD (offert)
 
-`GET /api/v1/cco-portal/me` (kräver nivå-2-cookie) → full portal-payload:
-`offerPlan` + journal-referens + bokningar + signeringsstatus. Läser samma
-`commercialCase.offerPlan` som PDF/signeringssida — ingen andra sanning.
+`GET /api/v1/cco-portal/me` (kräver nivå-2-cookie) returnerar nu även `offer`:
+`{ hasOffer, offerPlan, quoteStatus, signing: { status, canAccept, coolingOff } }`
+via `src/ops/ccoPortalCustomerPayload.js`. Läser samma `commercialCase.offerPlan`
+som PDF/signeringssida (`getPatientRegisterCase`) — ingen andra sanning.
+Signeringsstatus härleds: `preparing → cooling_off → ready_to_sign → signed`.
+
+Kvar (senare, bakom samma nivå-2): journal-referens + bokningar. Medicinskt
+innehåll först när det uttryckligen läggs till — inget läcker via nivå 1.
 
 ### 4. Signering återanvänder esign
 

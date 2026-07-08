@@ -30,6 +30,7 @@ const {
   isBankIdLive,
 } = require('../ops/ccoPortalBankIdSession');
 const { verifyCriiptoIdToken } = require('../ops/ccoCriiptoIdToken');
+const { buildLevelTwoPayload } = require('../ops/ccoPortalCustomerPayload');
 
 const STATE_COOKIE = 'cco_bankid_state';
 const SESSION_COOKIE = 'cco_portal_l2';
@@ -132,12 +133,16 @@ function createCcoPortalBankIdRouter({
   getAccessStore,
   patientMasterStore,
   getPatientMasterStore,
+  commercialStore,
+  getCommercialStore,
   env = process.env,
   baseUrl = process.env.PUBLIC_BASE_URL || '',
   sessionSecret,
   exchangeCode, // injicerbart för test; annars byggs Criipto-utbytet i live
 } = {}) {
   const router = express.Router();
+  const resolveCommercialStore = () =>
+    commercialStore || (getCommercialStore && getCommercialStore()) || null;
   const secret =
     text(sessionSecret) ||
     text(env.PORTAL_SESSION_SECRET) ||
@@ -249,20 +254,36 @@ function createCcoPortalBankIdRouter({
     return res.redirect(302, back);
   });
 
-  // ── GET me (nivå-2-status) ───────────────────────────────────────────────
-  router.get('/api/v1/cco-portal/me', (req, res) => {
+  // ── GET me (nivå-2-status + offert-payload) ──────────────────────────────
+  router.get('/api/v1/cco-portal/me', async (req, res) => {
     const cookies = parseCookies(req);
     const session = readCookie(cookies[SESSION_COOKIE], secret);
     if (!session || Number(session.exp) < Date.now() || !text(session.patientId)) {
       return res.status(401).json({ authenticated: false });
     }
+    const patientId = text(session.patientId);
+    const tenantId = text(session.tenantId) || 'hairtpclinic';
+
+    // Offert-payload (read-only) — samma offerPlan-källa som PDF/signeringssida.
+    let offer = null;
+    const store = resolveCommercialStore();
+    if (typeof store?.getPatientRegisterCase === 'function') {
+      try {
+        const commercialCase = await store.getPatientRegisterCase({ tenantId, patientId });
+        offer = buildLevelTwoPayload({ patientId, commercialCase });
+      } catch {
+        offer = null; // bryt aldrig auth-svaret på en offert-läsning
+      }
+    }
+
     return res.json({
       authenticated: true,
       level: 2,
-      patientId: session.patientId,
-      tenantId: session.tenantId || 'hairtpclinic',
+      patientId,
+      tenantId,
       expiresAt: new Date(Number(session.exp)).toISOString(),
       live: isBankIdLive(env),
+      offer,
     });
   });
 

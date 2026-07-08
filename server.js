@@ -13875,6 +13875,7 @@ process.once('SIGTERM', () => {
     createCcoPortalBankIdRouter({
       accessStore: portalAccessStore,
       getPatientMasterStore: () => app.locals.ccoPatientMasterStore || null,
+      getCommercialStore: () => app.locals.ccoCommercialStore || null,
       baseUrl: config.publicBaseUrl || process.env.PUBLIC_BASE_URL || '',
     })
   );

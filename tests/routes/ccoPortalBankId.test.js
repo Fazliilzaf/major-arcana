@@ -179,3 +179,50 @@ test('me → 401 vid manipulerad session-cookie (fel signatur)', async () => {
     assert.equal(res.status, 401);
   });
 });
+
+test('me returnerar offert-payload från commercial-store efter inloggning', async () => {
+  const commercialStore = {
+    getPatientRegisterCase: async ({ patientId }) =>
+      patientId === 'p-owner'
+        ? {
+            quoteStatus: 'sent',
+            coolingOffEndsAt: new Date(Date.now() - 86400000).toISOString(),
+            offerPlan: { method: 'DHI', treatmentLabel: 'DHI — Hårlinje' },
+            customerName: 'Ägare',
+          }
+        : null,
+  };
+  await withServer(
+    {
+      accessStore: accessStoreWith({ tok: { tenantId: 'hairtpclinic', customerId: 'p-owner' } }),
+      patientMasterStore: patientStoreWith([OWNER]),
+      commercialStore,
+      exchangeCode: async () => ({ ssn: '199001011234' }),
+      env: {
+        NODE_ENV: 'test',
+        CRIIPTO_DOMAIN: 'hairtp.criipto.id',
+        CRIIPTO_CLIENT_ID: 'urn:client',
+      },
+    },
+    async (base) => {
+      const login = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=tok`, {
+        redirect: 'manual',
+      });
+      const stateCookie = cookieFrom(login, 'cco_bankid_state');
+      const state = new URL(login.headers.get('location')).searchParams.get('state');
+      const cb = await fetch(`${base}/api/v1/cco-portal/bankid/callback?code=abc&state=${state}`, {
+        redirect: 'manual',
+        headers: { cookie: `cco_bankid_state=${stateCookie}` },
+      });
+      const sessionCookie = cookieFrom(cb, 'cco_portal_l2');
+      const me = await fetch(`${base}/api/v1/cco-portal/me`, {
+        headers: { cookie: `cco_portal_l2=${sessionCookie}` },
+      });
+      const body = await me.json();
+      assert.equal(body.offer.hasOffer, true);
+      assert.equal(body.offer.offerPlan.method, 'DHI');
+      assert.equal(body.offer.signing.status, 'ready_to_sign');
+      assert.equal(body.offer.signing.canAccept, true);
+    }
+  );
+});
