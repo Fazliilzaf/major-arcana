@@ -1093,6 +1093,63 @@
       if (panel) panel.innerHTML = '<b>★ AI-sammanfattning.</b> ' + cleanText(ctx.aiSummary);
     }
 
+    // ── Kundkort/dossier (fas 1, steg 3) ─────────────────────────────────
+    // Hämtar "all info om kunden" från RBAC-endpointen och renderar den i
+    // kontext-rälsen. Rent tillägg: fel eller saknad data får ALDRIG störa
+    // Svarstudion. Journalinnehåll finns aldrig i svaret (bara antal).
+    function renderDossierCard(d) {
+      const ctxEl = $('.ctx');
+      if (!ctxEl || !d) return;
+      const esc = (s) =>
+        String(s == null ? '' : s).replace(
+          /[&<>"]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+        );
+      const row = (label, value) =>
+        value == null || value === ''
+          ? ''
+          : '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;border-top:1px solid var(--line-soft)">' +
+            '<span style="color:var(--ink-3)">' +
+            esc(label) +
+            '</span><span style="font-weight:700;text-align:right">' +
+            esc(value) +
+            '</span></div>';
+      const bk = d.bookings || {};
+      const up = (bk.upcoming || [])[0];
+      const nextBooking = up
+        ? (up.service || 'Bokning') + (up.startsAt ? ' · ' + String(up.startsAt).slice(0, 10) : '')
+        : '';
+      const journalCount = (d.journal && d.journal.count) || 0;
+      const card = document.createElement('div');
+      card.className = 'block';
+      card.style.marginTop = '2px';
+      card.innerHTML =
+        '<div class="glabel" style="margin-bottom:4px">Kundkort</div>' +
+        row('Nästa bokning', nextBooking || '—') +
+        row('Bokningar', bk.count || 0) +
+        row('Ärenden', (d.cases || []).length) +
+        row('Trådar', (d.threads && d.threads.count) || 0) +
+        row('Journal', journalCount ? journalCount + ' (låst)' : '0');
+      ctxEl.appendChild(card);
+    }
+    (async () => {
+      if (!customerId) return;
+      try {
+        const url =
+          '/api/v1/cco/runtime/customer/' +
+          encodeURIComponent(customerId) +
+          '/dossier' +
+          (recipientEmail ? '?email=' + encodeURIComponent(recipientEmail) : '');
+        const r = await fetch(url, {
+          headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j && j.dossier) renderDossierCard(j.dossier);
+      } catch (_e) {
+        /* dossier är ett tillägg — fel får aldrig störa Svarstudion */
+      }
+    })();
+
     // Initial render (modalen är redan monterad av openModal ovan)
     pressSig('Fazli Krasniqi');
     const pressedMbx =

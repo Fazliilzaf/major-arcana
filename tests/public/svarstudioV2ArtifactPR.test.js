@@ -114,6 +114,17 @@ test('kundtext: aldrig streck, ingen egen avslutshälsning (finns i signaturen)'
   assert.doesNotMatch(source.slice(macroStart, macroEnd), /[—–]/);
 });
 
+test('kundkort/dossier: hämtas + renderas i kontext-rälsen, journal låst', () => {
+  // Hämtar dossiern från RBAC-endpointen
+  assert.match(source, /\/api\/v1\/cco-runtime\/customer|'\/api\/v1\/cco\/runtime\/customer\/'/);
+  assert.match(source, /function renderDossierCard\(d\)/);
+  assert.match(source, /Kundkort/);
+  // Journalen visas bara som antal (låst) — aldrig innehåll
+  assert.match(source, /journalCount \? journalCount \+ ' \(låst\)' : '0'/);
+  // Fel får aldrig störa Svarstudion
+  assert.match(source, /dossier är ett tillägg — fel får aldrig störa Svarstudion/);
+});
+
 test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {
   // v2-mount-blocket får aldrig skicka på riktigt
   const start = source.indexOf('async function mountSvarstudioV2(');
