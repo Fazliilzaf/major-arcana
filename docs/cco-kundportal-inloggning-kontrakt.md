@@ -161,6 +161,26 @@ Kopplingen:
   signerad) speglas det i kundportalens payload (steg 3 nedan) via samma
   `commercialCase`. Inget separat kund-status-system.
 
+### Personalportalen är REDAN kopplad (bygg inte om)
+
+Koden i `staff-portal.html` visar att personalsidan redan använder canonical
+`patientId` som kopplingsnyckel:
+
+- Deep-linkar `/major-arcana-preview/?view=customers&patientId=<uuid>` (+
+  `workspace=1`-variant) — samma canonical id som wiring-kontraktet #713.
+- Anropar personal-API per patientId: `customer-threads/` · `customer-photos/`
+  · `customer-followup-status/`.
+- Renderar redan konversation↔kund-matchstatus (`Bekräftad` = `confirmed`,
+  samt `suggested` / `conflict` / `none`) = resolverns
+  `matched` / `ambiguous` / `unmatched`.
+- `patientId` är primär, `customerId` bara fallback-alias.
+
+Återstår (Cursor/Codex, per #713): mata `conv-customer`-state från resolvern så
+`Bekräftad/Föreslagen/konflikt/okopplad` speglar `resolveConversationPatient`.
+Litet: personalportalens deep-link är kortformen `?view=customers&patientId=…`
+medan #713 anger fullformen `&v9=on&v11rail=on&v12workspace=on` — värt att ena
+formen med Codex så länkarna är konsekventa.
+
 ## Öppna beslut (till Cursor/Codex + Fazli)
 
 - **BankID-leverantör:** ingen finns idag (se nuläge ovan). Rekommendation:
