@@ -109,6 +109,7 @@
     "verify:customer-list-prod": "node ./scripts/verify-customer-list-prod.js",
     "verify:photo-review-prod": "node ./scripts/verify-photo-review-prod.js",
     "verify:import-review-prod": "node ./scripts/verify-import-review-prod.js",
+    "verify:internalize-run-prod": "node ./scripts/verify-internalize-run-prod.js",
     "verify:drive-import-review-prod": "node ./scripts/verify-drive-import-review-prod.js",
     "apply:drive-import-review-prod": "node ./scripts/apply-drive-import-review-prod.js",
     "pilot:drive-import-review-prod": "node ./scripts/pilot-drive-import-review-prod.js",
