@@ -104,6 +104,14 @@ journal-/medicinskt fält i denna payload.
 
 ### 2. BankID step-up (via OIDC-broker)
 
+> **Byggd söm (klar):** `src/ops/ccoPortalBankIdSession.js` +
+> `tests/ops/ccoPortalBankIdSession.test.js` (19 tester). Ger
+> `createAuthRequest` (Criipto authorize-URL), `verifyBankIdCallback`
+> (kodutbyte injicerat, personnummer → canonical `patientId`, enforce:ar att
+> pnr:ets patient är tokenägaren) och `createLevelTwoSession` (30-min TTL).
+> Ingen live-trafik: `isBankIdLive` = `BANKID_API_KEY` + `PORTAL_BANKID_LIVE=1`.
+> Cursor/Codex behöver bara montera route:erna nedan och persistera `state`.
+
 Med Criipto/Signicat blir detta ett OIDC-login, inte egen `start`/`collect`:
 
 `GET /api/v1/cco-portal/bankid/login` → redirect till brokerns authorize-URL.
