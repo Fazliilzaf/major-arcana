@@ -32,3 +32,11 @@ test('panelen visar besparings-proxy + nudge-konvertering', () => {
   // Fel får inte krascha panelen.
   assert.match(source, /Kunde inte läsa portal-statistik/);
 });
+
+test('panelen visar aktiveringsstatus (go-live-spegel)', () => {
+  assert.match(source, /'\/api\/v1\/cco\/runtime\/portal-readiness'/);
+  assert.match(source, /Aktivering/);
+  assert.match(source, /chip\('Patient-notis', r\.patientNotify\)/);
+  assert.match(source, /chip\('SMS-nudge', r\.smsNudge\)/);
+  assert.match(source, /chip\('Inbound-SMS', r\.inboundSms\)/);
+});

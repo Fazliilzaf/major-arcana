@@ -2850,6 +2850,47 @@
               '.'
           )
         );
+        // Aktiveringsstatus (go-live-spegel): visar vilka utskick som är skarpa.
+        try {
+          const rr = await fetch('/api/v1/cco/runtime/portal-readiness', {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          });
+          const rj = await rr.json().catch(() => ({}));
+          if (rr.ok && rj.readiness) {
+            const r = rj.readiness;
+            const chip = (label, state) => {
+              const live = state === 'live' || state === 'active';
+              return el(
+                'span',
+                {
+                  style:
+                    'display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 9px;border-radius:999px;margin:3px 6px 3px 0;' +
+                    (live
+                      ? 'background:rgba(74,130,104,.14);color:#4a8268'
+                      : 'background:#f2ece6;color:#8a8174'),
+                },
+                (live ? '● ' : '○ ') + label + ': ' + state
+              );
+            };
+            body.appendChild(
+              el(
+                'div',
+                { style: 'font-size:12px;font-weight:700;margin-top:16px;color:#2b251f' },
+                'Aktivering'
+              )
+            );
+            body.appendChild(
+              el('div', { style: 'margin-top:6px' }, [
+                chip('Patient-notis', r.patientNotify),
+                chip('SMS-nudge', r.smsNudge),
+                chip('Inbound-SMS', r.inboundSms),
+              ])
+            );
+          }
+        } catch (_r) {
+          /* readiness är ett tillägg — fel får inte störa panelen */
+        }
       } catch (e) {
         body.innerHTML = '';
         body.appendChild(

@@ -125,3 +125,23 @@ test('obehörig roll (personal) blockeras', async () => {
   });
   assert.equal(res.status, 403);
 });
+
+test('GET portal-readiness → 200 med aktiveringsstatus (settings.read)', async () => {
+  const app = await buildApp();
+  const res = await req(app, 'GET', '/api/v1/cco/runtime/portal-readiness', {
+    headers: { 'x-cco-role': 'owner' },
+  });
+  assert.equal(res.status, 200);
+  const json = JSON.parse(res.body);
+  assert.equal(json.ok, true);
+  assert.ok(['live', 'dry-run'].includes(json.readiness.patientNotify));
+  assert.ok(json.generatedAt);
+});
+
+test('portal-readiness: konsult blockeras (settings.read = owner/operator)', async () => {
+  const app = await buildApp();
+  const res = await req(app, 'GET', '/api/v1/cco/runtime/portal-readiness', {
+    headers: { 'x-cco-role': 'konsult' },
+  });
+  assert.equal(res.status, 403);
+});
