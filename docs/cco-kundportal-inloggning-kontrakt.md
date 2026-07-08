@@ -20,6 +20,37 @@ Regel: **medicinskt innehåll och signering kräver alltid nivå 2.** Magisk lä
 räcker bara för översikt + meddelande. Så tappar vi ingen på tröskeln (låg
 friktion att öppna), men trygghetsnivån är rätt för journal/plan.
 
+**Fallback för kunder utan BankID:** kan/vill kunden inte använda BankID stannar
+hen på nivå 1 (magisk länk) och personal verifierar identitet med en befintlig
+gratismetod (`in_person` · `manual_id_upload` · `selfie_match` i
+`patientIdentityVerification.js`). Signering sker då via dagens
+`offer-accept-public` med betänketid, inte BankID. Ingen låses ute.
+
+## BankID-leverantör — NULÄGE (viktigt)
+
+**Det finns ingen BankID-integration i repot idag.** Sömmen finns, men den är tom:
+
+- `patientIdentityVerification.js` listar `bankid_se` som _framtida betald
+  integration_ — den ytan aktiveras bara om `process.env.BANKID_API_KEY` är satt,
+  och **ingen kod anropar faktiskt BankID** (ingen `orderRef`/`autostart`/`collect`).
+- `cco-patient-offer-portal-v3.html`:s "Signera med Mobilt BankID" är **mockup-UI**.
+  Riktig signering idag = `offer-accept-public?token=` (formulär-POST, gate:ad av
+  betänketid) — inte BankID.
+- Inga spår av Criipto / Signicat / GrandID / Scrive / direkt BankID-RP.
+
+**Beslut som krävs innan bygge — välj leverantör:**
+
+| Alternativ                | Vad                              | Passar oss                                  |
+| ------------------------- | -------------------------------- | ------------------------------------------- |
+| **Criipto** (rek.)        | OIDC-broker för BankID/Freja     | Enklast, billigt vid låg volym, dev-vänligt |
+| **Signicat**              | OIDC-broker, enterprise          | Om ni vill ha större leverantör/SLA         |
+| **GrandID** (Svensk e-id) | Svensk broker                    | Vanlig i vård, svensk support               |
+| Direkt BankID-RP          | Eget avtal med bank + certifikat | Tyngst — undvik i första skedet             |
+
+Rekommendation: börja med **Criipto** (OIDC → vi slipper bli bank-RP). Sömmen
+`BANKID_API_KEY` blir då leverantörens client-credentials, och steg 2 nedan blir
+ett OIDC-login i stället för egen `start`/`collect`.
+
 ## Canonical identitet (icke förhandlingsbar)
 
 - Kundens canonical id = `patient.id` (heter `patientId` överallt i UI/API/URL).
@@ -71,15 +102,19 @@ Additivt, i ordning. Varje steg litet.
 Nivå-1-payload: `offerPlan` (översikt) + betänketid + meddelandekanal. **Inget**
 journal-/medicinskt fält i denna payload.
 
-### 2. BankID step-up
+### 2. BankID step-up (via OIDC-broker)
 
-`POST /api/v1/cco-portal/bankid/start` → startar BankID-ordersession.
-`POST /api/v1/cco-portal/bankid/collect` → pollar tills klar.
-Vid klar: slå personnummer → `patientId` via patient-mastern. Verifiera mot
-token-ägarens `patientId`. Sätt http-only session-cookie (kort TTL).
+Med Criipto/Signicat blir detta ett OIDC-login, inte egen `start`/`collect`:
 
-Ingen ny live-send. BankID-leverantör bakom env-gate (t.ex. `PORTAL_BANKID_LIVE`),
-dry-run/mock som default precis som övriga send-gates.
+`GET /api/v1/cco-portal/bankid/login` → redirect till brokerns authorize-URL.
+`GET /api/v1/cco-portal/bankid/callback` → byt code mot token, läs personnummer
+ur claims. Slå personnummer → `patientId` via patient-mastern. Verifiera mot
+token-ägarens `patientId`. Sätt http-only session-cookie (TTL 30 min inaktivitet).
+
+Ingen ny live-send. Broker-credentials bakom env-gate (`BANKID_API_KEY` /
+`PORTAL_BANKID_LIVE`), dry-run/mock som default precis som övriga send-gates.
+(Väljer ni ändå direkt BankID-RP blir det i stället `start`/`collect` mot
+`orderRef` — tyngre, se leverantörsbeslutet ovan.)
 
 ### 3. Nivå-2-payload
 
@@ -101,9 +136,37 @@ kan återanvändas som signeringsbevis (samma personnummer, samma order-referens
 - Aldrig personnummer, e-post eller cliento-alias i URL — bara opak token / cookie.
 - Session-cookie: http-only, secure, SameSite=Lax, kort TTL.
 
+## Två portaler — samma canonical id binder ihop dem
+
+Systemet har **två skilda portaler med skilda auth-modeller**. De "kopplas" inte
+via delad inloggning utan via samma canonical `patientId`.
+
+| Portal             | Fil / route                                       | Auth                                                                            | Vem      |
+| ------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------- | -------- |
+| **Kundportal**     | `cco-patient-offer-portal-v3.html`                | Magisk länk (nivå 1) + BankID (nivå 2) — _detta doc_                            | Kunden   |
+| **Personalportal** | `staff-portal.html` · `src/routes/staffPortal.js` | Finns redan: `requireAuth` + `authStore`, roller STAFF/OWNER/nurse/doctor/admin | Personal |
+
+Kopplingen:
+
+- **Delad nyckel = `patientId`.** Personal agerar på ett `commercialCase`
+  (skickar offert, godkänner plan) → kunden ser resultatet i sin portal. Samma
+  `offerPlan`, samma `patientId`, ingen andra sanning.
+- Personalportalen har redan `buildStaffPortalUrl(...)` och bygger
+  kund-arbetsposter — deep-linkar redan per case. Kundportalen är motsvarande
+  kund-vända yta av samma case.
+- **Blanda inte auth:** personalens roll-login (internt personalregister) och
+  kundens BankID/magisk länk är två system. En personal loggar aldrig in i
+  kundportalen med sin personalroll och vice versa.
+- Status-synk: när personal ändrar case-status (offert skickad, betänketid,
+  signerad) speglas det i kundportalens payload (steg 3 nedan) via samma
+  `commercialCase`. Inget separat kund-status-system.
+
 ## Öppna beslut (till Cursor/Codex + Fazli)
 
-- BankID-leverantör (Criipto / Signicat / Svensk BankID direkt) — vilken redan finns?
-- Nivå-2-sessionens TTL (förslag: 30 min inaktivitet).
+- **BankID-leverantör:** ingen finns idag (se nuläge ovan). Rekommendation:
+  **Criipto** (OIDC). Kräver Fazlis val + konto innan wiring.
+- **Nivå-2-sessionens TTL:** 30 min inaktivitet (beslutat).
+- **Magisk länk som fallback:** kunder utan BankID stannar på nivå 1 + personal
+  verifierar med gratismetod (beslutat).
 - Ska magisk länk kunna _stängas av_ helt för en viss kund (bara BankID)? — via
-  `revokeToken`.
+  `revokeToken` (öppet).
