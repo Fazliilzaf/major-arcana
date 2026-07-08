@@ -139,6 +139,25 @@ Signeringsstatus härleds: `preparing → cooling_off → ready_to_sign → sign
 encounterType, state }], upcomingCount, pastCount }` — bara kundvänliga fält,
   inga interna anteckningar/tilldelningar.
 
+### 3b. Frontend-klient — BYGGD (drop-in)
+
+`public/major-arcana-preview/app/cco-portal-level2.js` hämtar `/me` och renderar
+offert + journal-referens + bokningar; vid 401 visas "Logga in med BankID"
+(länkar till `/bankid/login?token=<token>`, token härleds ur `/portal-chat/<token>`
+eller `?token=`). Injicerar egen minimal CSS → ingen portal-CSS krävs.
+
+Inkluderas utan att röra portal-HTML:en (Cursor/Codex yta) — en container + ett
+script:
+
+```html
+<div data-cco-portal-level2></div>
+<script src="/major-arcana-preview/app/cco-portal-level2.js"></script>
+```
+
+Rena render-funktioner exporteras (UMD) och enhetstestas i node
+(`tests/public/ccoPortalLevel2.test.js`, inkl. XSS-escaping). Signera-knappen
+sätter `data-l2-accept` — koppla den till esign-flödet i steg 4.
+
 ### 4. Signering återanvänder esign
 
 Signera-knappen i nivå 2 pekar på befintlig

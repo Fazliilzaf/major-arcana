@@ -201,6 +201,13 @@ module.exports = [
     },
   },
   {
+    // Kundportalens nivå-2-klient: browser-modul med UMD-export för node-test.
+    files: ['public/major-arcana-preview/app/cco-portal-level2.js'],
+    languageOptions: {
+      globals: { module: 'readonly', require: 'readonly' },
+    },
+  },
+  {
     files: [
       'public/major-arcana-preview/app/components/arcana-thread-card.js',
       'public/major-arcana-preview/app/components/lit-switchover.js',
