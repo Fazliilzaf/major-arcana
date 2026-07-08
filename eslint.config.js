@@ -318,6 +318,7 @@ module.exports = [
       'public/cco-kunder-mobil-real.js',
       'public/cco-kunder-actions.js',
       'public/konversationer-bottom-actions.js',
+      'public/konversationer-mailbox-valjare.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
