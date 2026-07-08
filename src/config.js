@@ -16,7 +16,10 @@ const RENDER_RUNTIME_DEFAULTS = Object.freeze({
   ARCANA_GRAPH_FULL_TENANT: 'true',
   ARCANA_GRAPH_USER_SCOPE: 'all',
   ARCANA_STAFF_JOURNAL_OPEN_ACCESS: 'true',
-  PUBLIC_BASE_URL: 'https://arcana.hairtpclinic.se',
+  // Kanonisk kundvänd domän. `.se` CNAME:ar/redirectar hit (se
+  // defaultLegacyHostRedirects). BankID-callbacken och magiska länkar byggs ur
+  // denna — håll den på `.com` så hela kedjan delar origin (cookie sätts där).
+  PUBLIC_BASE_URL: 'https://arcana.hairtpclinic.com',
   ARCANA_BOOTSTRAP_MAILBOX_BACKFILL: 'true',
   ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS: '14',
   ARCANA_BOOTSTRAP_PREFERRED_MAILBOX: 'contact@hairtpclinic.com',

@@ -18,9 +18,12 @@ Byggt och klart:
    - **Domain** (t.ex. `hairtp.criipto.id`) → `CRIIPTO_DOMAIN`
    - **Client ID** (`urn:...`) → `CRIIPTO_CLIENT_ID`
    - **Client secret** → `CRIIPTO_CLIENT_SECRET`
-4. Registrera **Callback/redirect URI** exakt:
-   `https://<PUBLIC_BASE_URL>/api/v1/cco-portal/bankid/callback`
-   (t.ex. `https://arcana.hairtpclinic.se/api/v1/cco-portal/bankid/callback`).
+4. Registrera **Callback/redirect URI** exakt (ingen avslutande slash):
+   `https://arcana.hairtpclinic.com/api/v1/cco-portal/bankid/callback`
+   — måste matcha `PUBLIC_BASE_URL` byte-för-byte. Använd den kanoniska
+   `.com`-domänen: `.se` redirectar hit och en redirect på OIDC-callbacken kan
+   tappa `?code`/`?state`. Hela kedjan (magisk länk, login, callback, `/me`)
+   måste ligga på samma origin, annars skickas inte session-cookien.
 
 ## Steg 2 — Env
 
@@ -33,7 +36,7 @@ CRIIPTO_CLIENT_SECRET=<secret>
 BANKID_API_KEY=<valfri icke-tom markör som tänder live-gaten>
 PORTAL_BANKID_LIVE=1
 PORTAL_SESSION_SECRET=<lång slumpsträng för cookie-signering>
-PUBLIC_BASE_URL=https://arcana.hairtpclinic.se
+PUBLIC_BASE_URL=https://arcana.hairtpclinic.com
 ```
 
 Utan `PORTAL_BANKID_LIVE=1` görs inget skarpt anrop — sömmen svarar `dry_run`.
