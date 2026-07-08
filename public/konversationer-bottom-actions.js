@@ -605,12 +605,14 @@
   // Laddar svarstudio-v2.css/.html, binder trådens riktiga data och kopplar
   // kontrollerna till EXAKT samma sänd-endpoints som klassiska modalen (upp
   // till needs_approval). Live-send förblir serverspärrat.
+  const SVARSTUDIO_V2_ASSET_VERSION = '20260708a-svarstudio-cache';
   let _svarstudioV2Assets = null;
   async function loadSvarstudioV2Assets() {
     if (_svarstudioV2Assets) return _svarstudioV2Assets;
+    const cacheBust = '?v=' + SVARSTUDIO_V2_ASSET_VERSION;
     const [cssRes, htmlRes] = await Promise.all([
-      fetch('/svarstudio-v2.css'),
-      fetch('/svarstudio-v2.html'),
+      fetch('/svarstudio-v2.css' + cacheBust, { cache: 'no-store' }),
+      fetch('/svarstudio-v2.html' + cacheBust, { cache: 'no-store' }),
     ]);
     if (!cssRes.ok || !htmlRes.ok) throw new Error('svarstudio-v2 assets saknas');
     _svarstudioV2Assets = { css: await cssRes.text(), html: await htmlRes.text() };
