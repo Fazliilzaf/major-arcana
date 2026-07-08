@@ -13868,6 +13868,18 @@ process.once('SIGTERM', () => {
   );
   app.locals.patientPortalStore = patientPortalStore; // Beslut #2: exponera för staff-API
 
+  // Kundportalens BankID-inloggning (nivå 2, Criipto OIDC). Dry-run tills
+  // BANKID_API_KEY + PORTAL_BANKID_LIVE=1. Se docs/cco-kundportal-inloggning-kontrakt.md.
+  const { createCcoPortalBankIdRouter } = require('./src/routes/ccoPortalBankId');
+  app.use(
+    createCcoPortalBankIdRouter({
+      accessStore: portalAccessStore,
+      getPatientMasterStore: () => app.locals.ccoPatientMasterStore || null,
+      getCommercialStore: () => app.locals.ccoCommercialStore || null,
+      baseUrl: config.publicBaseUrl || process.env.PUBLIC_BASE_URL || '',
+    })
+  );
+
   const identityStorePath = config.stateRoot
     ? `${config.stateRoot}/cco-patient-identity.json`
     : './data/cco-patient-identity.json';
