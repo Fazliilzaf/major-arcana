@@ -3662,15 +3662,30 @@
   }
 
   // Ställ "Nytt mail" JÄMTE "Alla dokument"-launchern (admin.html) istället för
-  // ovanpå den i samma hörn. Launchern kan mountas efter oss → försök igen kort.
+  // ovanpå den i samma hörn. Robust: placera relativt launcherns FAKTISKA vänster-
+  // kant (getBoundingClientRect), inte offsetWidth (som kan vara 0 innan layout).
+  // Vänta tills launchern har en riktig bredd, och håll den rätt vid omflöde/resize.
+  function positionFabLeftOfDocs(fab, docs) {
+    const r = docs.getBoundingClientRect();
+    if (r.width <= 0) return false;
+    // FAB:ens högerkant hamnar 10px till vänster om launcherns vänsterkant.
+    fab.style.bottom = '8px';
+    fab.style.right = window.innerWidth - r.left + 10 + 'px';
+    return true;
+  }
   function placeComposeFabBesideDocs(fab, tries = 0) {
     const docs = document.getElementById('adminDocsLauncher');
-    if (docs) {
-      fab.style.bottom = '8px';
-      fab.style.right = docs.offsetWidth + 8 + 10 + 'px'; // launcher-bredd + dess right + gap
-    } else if (tries < 20) {
-      requestAnimationFrame(() => placeComposeFabBesideDocs(fab, tries + 1));
+    if (docs && positionFabLeftOfDocs(fab, docs)) {
+      // Håll placeringen rätt om launchern ändrar storlek eller fönstret resizas.
+      const reflow = () => positionFabLeftOfDocs(fab, docs);
+      if (typeof ResizeObserver === 'function' && !fab._docsObserver) {
+        fab._docsObserver = new ResizeObserver(reflow);
+        fab._docsObserver.observe(docs);
+      }
+      window.addEventListener('resize', reflow, { passive: true });
+      return;
     }
+    if (tries < 60) requestAnimationFrame(() => placeComposeFabBesideDocs(fab, tries + 1));
   }
 
   function actionButtonFromEvent(event) {
