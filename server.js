@@ -13453,6 +13453,12 @@ process.once('SIGTERM', () => {
   const { createCcoPortalAccessRouter } = require('./src/routes/ccoPortalAccess');
   app.use('/api/v1', createCcoPortalAccessRouter({ requireAuth: auth.requireAuth }));
 
+  // Portal-nudge (följdsteg): automatiserbar ingång som förbereder ett
+  // needs_approval-utkast med den magiska länken när en kund ännu inte är på
+  // portalen. Skickar aldrig själv — personal godkänner i vanliga kedjan.
+  const { createCcoPortalNudgeRouter } = require('./src/routes/ccoPortalNudge');
+  app.use('/api/v1', createCcoPortalNudgeRouter({ requireAuth: auth.requireAuth }));
+
   app.use(
     '/api/v1',
     createCcoPatientMasterRouter({
@@ -13714,8 +13720,28 @@ process.once('SIGTERM', () => {
       ? `${config.stateRoot}/cco-portal-access.json`
       : './data/cco-portal-access.json',
   });
+  // Idempotens för portal-länk-nudgen (en kund nudgas bara en gång).
+  const { createCcoPortalNudgeStore } = require('./src/ops/ccoPortalNudgeStore');
+  const portalNudgeStore = await createCcoPortalNudgeStore({
+    filePath: config.stateRoot
+      ? `${config.stateRoot}/cco-portal-nudge.json`
+      : './data/cco-portal-nudge.json',
+  });
   app.locals.ccoPortalMessageStore = portalMessageStore;
   app.locals.ccoPortalAccessStore = portalAccessStore;
+  app.locals.ccoPortalNudgeStore = portalNudgeStore;
+
+  // Comm-draft-storen skapas annars lazy vid första comm-draft-anropet. Skapa
+  // den eagert och dela på app.locals så portal-nudgen (och dossiern) alltid har
+  // den; comm-draft-routern återanvänder samma instans (ensureStore kollar locals).
+  if (!app.locals.ccoCommDraftStore) {
+    const { createCcoCommDraftStore } = require('./src/ops/ccoCommDraftStore');
+    app.locals.ccoCommDraftStore = await createCcoCommDraftStore({
+      filePath:
+        config.ccoCommDraftStorePath || `${config.stateRoot || './data'}/cco-comm-draft.json`,
+      auditLog: ccoAuditLog || null,
+    });
+  }
 
   app.use(
     '/api',
