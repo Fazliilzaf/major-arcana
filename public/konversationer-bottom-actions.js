@@ -990,7 +990,6 @@
         auditStudioEvent('studio.mailbox_selected', { mailboxId: state.mailboxId });
         updateMetaLine();
         renderLivePreview();
-        renderMailboxAvatar();
       },
     });
     for (const mb of mailboxes) {
@@ -1001,21 +1000,6 @@
       state.mailboxId = mailboxes[0].id;
       mailboxSelect.value = state.mailboxId;
     }
-    // Mailbox-avatar med rälsfärg (Kontakt teal / Fazli lila / Egzona guld).
-    const mailboxAvatar = el('span', { class: 'wb-mbx-avatar' }, '');
-    function renderMailboxAvatar() {
-      const mb = mailboxes.find((m) => m.id === state.mailboxId);
-      const label = cleanText((mb && (mb.name || mb.email || mb.id)) || state.mailboxId) || '?';
-      mailboxAvatar.textContent = label.slice(0, 1).toUpperCase();
-      const l = label.toLowerCase();
-      let tone = 'info';
-      if (l.includes('fazli')) tone = 'fazli';
-      else if (l.includes('egzona')) tone = 'egzona';
-      else if (l.includes('contact') || l.includes('kontakt') || l.includes('kons'))
-        tone = 'contact';
-      mailboxAvatar.className = 'wb-mbx-avatar wb-mbx-avatar--' + tone;
-    }
-    renderMailboxAvatar();
     replyBlock.appendChild(
       el('div', { class: 'wb-form-row' }, [
         el('label', { class: 'wb-field' }, [
@@ -1024,7 +1008,7 @@
         ]),
         el('label', { class: 'wb-field' }, [
           el('span', { class: 'wb-field-lbl' }, 'Från'),
-          el('div', { class: 'wb-mbx-row' }, [mailboxAvatar, mailboxSelect]),
+          mailboxSelect,
         ]),
       ])
     );
@@ -1254,8 +1238,6 @@
         onclick: () => {
           bodyArea.value = '[AI-utkast — administrativt, kräver godkännande]\n\n' + bodyArea.value;
           state.body = bodyArea.value;
-          wordCount.textContent = bodyArea.value.split(/\s+/).filter(Boolean).length + ' ord';
-          renderLivePreview();
           auditStudioEvent('studio.ai_draft_requested', { mode: 'administrative' });
           toast('★ AI-utkast — granska + godkänn');
         },

@@ -727,17 +727,6 @@
         background: linear-gradient(180deg, #fff5e6, #ffe3b8);
         color: #2a1d10;
       }
-      /* Poppig kanalaccent (artifact-design) — färgad inner-kant, rör inte geometrin */
-      .msg.is-incoming .msg-bubble {
-        box-shadow:
-          inset 3px 0 0 rgba(187, 71, 121, 0.5),
-          var(--panel-card-shadow);
-      }
-      .msg.is-outgoing .msg-bubble {
-        box-shadow:
-          inset 3px 0 0 rgba(200, 130, 30, 0.6),
-          var(--panel-card-shadow);
-      }
       .msg-meta {
         font-size: 9.5px;
         color: var(--cco-text-tertiary);
@@ -2073,42 +2062,6 @@
         line-height: 1.5;
         white-space: pre-wrap;
         color: var(--cco-color-brand);
-      }
-      /* Mailbox-avatar med rälsfärg (artifact-design) */
-      .wb-mbx-row {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-      }
-      .wb-mbx-row select {
-        flex: 1;
-        min-width: 0;
-      }
-      .wb-mbx-avatar {
-        flex-shrink: 0;
-        width: 24px;
-        height: 24px;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font:
-          800 10px Inter,
-          sans-serif;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.4),
-          0 2px 6px rgba(56, 40, 28, 0.2);
-        background: var(--rail-info);
-      }
-      .wb-mbx-avatar--contact {
-        background: var(--rail-contact);
-      }
-      .wb-mbx-avatar--fazli {
-        background: var(--rail-fazli);
-      }
-      .wb-mbx-avatar--egzona {
-        background: var(--rail-egzona);
       }
       .wb-chip-row-sect {
         display: flex;
