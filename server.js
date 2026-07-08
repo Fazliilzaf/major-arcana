@@ -13499,6 +13499,10 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Portal-adoptionsmätning (följdsteg): volym/engagemang/nudge-konvertering.
+  const { createCcoPortalMetricsRouter } = require('./src/routes/ccoPortalMetrics');
+  app.use('/api/v1', createCcoPortalMetricsRouter({ requireAuth: auth.requireAuth }));
+
   app.use(
     '/api/v1',
     createCcoPatientMasterRouter({

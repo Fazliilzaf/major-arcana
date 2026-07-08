@@ -101,7 +101,12 @@ async function createCcoPortalNudgeStore({ filePath } = {}) {
     });
   }
 
-  return { wasNudged, getNudge, recordNudge };
+  /** Antal förberedda nudgar (adoptionsmätning). */
+  function stats() {
+    return { prepared: Object.keys(state.nudges || {}).length };
+  }
+
+  return { wasNudged, getNudge, recordNudge, stats };
 }
 
 module.exports = { createCcoPortalNudgeStore };
