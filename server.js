@@ -13542,6 +13542,13 @@ process.once('SIGTERM', () => {
   const { createCcoPortalSmsNudgeRouter } = require('./src/routes/ccoPortalSmsNudge');
   app.use('/api/v1', createCcoPortalSmsNudgeRouter({ requireAuth: auth.requireAuth }));
 
+  // Inbound-SMS-webhook (tvåvägs-SMS): leverantören POST:ar hit när ett SMS kommer
+  // in. Svaret hamnar i kundens tråd (channel:'sms') → samma feed/Svarstudio som
+  // portal-meddelanden. Grindas av hemlig väg-token (ELKS_INBOUND_SECRET); saknas
+  // den → 404 (ej aktiverad). Publik route (hemligheten är grinden).
+  const { createCcoInboundSmsRouter } = require('./src/routes/ccoInboundSms');
+  app.use('/api', createCcoInboundSmsRouter({ getSecret: () => process.env.ELKS_INBOUND_SECRET }));
+
   app.use(
     '/api/v1',
     createCcoPatientMasterRouter({

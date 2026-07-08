@@ -24,6 +24,8 @@ const crypto = require('node:crypto');
 
 const MAX_BODY = 8000; // portalmeddelanden är text, inte bilagor
 const DIRECTIONS = new Set(['inbound', 'outbound']);
+// Ursprungskanal. 'portal' = fri patient-portal, 'sms' = inkom via SMS-brygga.
+const CHANNELS = new Set(['portal', 'sms']);
 
 function nowIso() {
   return new Date().toISOString();
@@ -45,19 +47,21 @@ async function writeJsonAtomic(filePath, data) {
   await fsp.rename(tmp, filePath);
 }
 function emptyState() {
-  return { customers: {}, version: 1, updatedAt: nowIso() };
+  return { customers: {}, sourceIndex: {}, version: 1, updatedAt: nowIso() };
 }
 
-function cloneMessage(m = {}) {
-  return {
+function cloneMessage(m = {}, extra = {}) {
+  const cloned = {
     id: m.id,
     direction: m.direction,
-    channel: 'portal',
+    channel: m.channel || 'portal',
     body: m.body,
     author: m.author || null,
     createdAt: m.createdAt || null,
     readAt: m.readAt || null,
   };
+  if (extra.deduped) cloned.deduped = true;
+  return cloned;
 }
 
 async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
@@ -65,6 +69,7 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const state = await readJson(filePath, emptyState());
   if (!state.customers || typeof state.customers !== 'object') state.customers = {};
+  if (!state.sourceIndex || typeof state.sourceIndex !== 'object') state.sourceIndex = {};
 
   let saveQueue = Promise.resolve();
   async function save() {
@@ -102,6 +107,14 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
     if (!Array.isArray(state.customers[key].messages)) state.customers[key].messages = [];
     return state.customers[key];
   }
+  function findBySourceKey(sourceKey) {
+    const source = normalizeText(sourceKey);
+    if (!source) return null;
+    const hit = state.sourceIndex[source];
+    if (!hit) return null;
+    const list = state.customers[hit.key]?.messages || [];
+    return list.find((message) => message.id === hit.messageId) || null;
+  }
 
   /**
    * Lägg till ett meddelande i kundens portal-logg.
@@ -117,24 +130,33 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
     if (!body) throw new Error('body krävs.');
     if (body.length > MAX_BODY) throw new Error('body för långt.');
 
-    return withLock(key, async () => {
+    const channel = CHANNELS.has(normalizeText(input.channel))
+      ? normalizeText(input.channel)
+      : 'portal';
+    const sourceKey = normalizeText(input.sourceKey).slice(0, 180);
+    const lockKey = sourceKey ? `source:${sourceKey}` : key;
+    return withLock(lockKey, async () => {
+      const existing = findBySourceKey(sourceKey);
+      if (existing) return cloneMessage(existing, { deduped: true });
       const message = {
         id: crypto.randomUUID(),
         direction,
-        channel: 'portal',
+        channel,
         body: body.slice(0, MAX_BODY),
         author: normalizeText(input.author) || null,
         createdAt: nowIso(),
         readAt: null,
       };
+      if (sourceKey) message.sourceKey = sourceKey;
       bucket(key).messages.push(message);
+      if (sourceKey) state.sourceIndex[sourceKey] = { key, messageId: message.id };
       await save();
       auditLog?.append?.({
         action: 'portal.message.append',
         actor: { role: 'system', userId: message.author },
         target: { kind: 'portal_message', id: message.id, tenantId: normalizeText(input.tenantId) },
         result: 'ok',
-        detail: { direction, chars: body.length },
+        detail: { direction, channel, chars: body.length },
       });
       return cloneMessage(message);
     });
