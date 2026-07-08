@@ -1141,13 +1141,31 @@
         state.body = bodyArea.value;
         wordCount.textContent = bodyArea.value.split(/\s+/).filter(Boolean).length + ' ord';
         renderLivePreview();
+        renderSigPreview();
       },
       'studio.signature_selected'
     );
+    // Signatur-live-render: visar vald signatur direkt (v9-uppgifter).
+    const sigWhoEl = el('span', { class: 'wb-sig-who' }, '');
+    const sigBodyEl = el('pre', { class: 'wb-sig-body' }, '');
+    function renderSigPreview() {
+      const sig = SIGNATURES.find((s) => s.id === state.signatureId);
+      sigWhoEl.textContent = sig ? sig.label : '—';
+      sigBodyEl.textContent = sig ? sig.text : 'Ingen signatur vald.';
+    }
+    renderSigPreview();
+    const sigPreview = el('div', { class: 'wb-sig-preview' }, [
+      el('div', { class: 'wb-sig-cap' }, [
+        el('span', {}, 'Signatur (bifogas i svaret) · '),
+        sigWhoEl,
+      ]),
+      sigBodyEl,
+    ]);
     replyBlock.appendChild(
       el('div', { class: 'wb-chip-row-sect', 'data-group': 'signatur' }, [
         el('span', { class: 'wb-section-kicker' }, 'Signatur'),
         sigChips,
+        sigPreview,
       ])
     );
 
