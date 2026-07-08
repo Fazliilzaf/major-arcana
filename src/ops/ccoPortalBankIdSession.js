@@ -51,9 +51,10 @@ function isBankIdLive(env = process.env) {
   return Boolean(text(env.BANKID_API_KEY)) && text(env.PORTAL_BANKID_LIVE) === '1';
 }
 
-/** Idura/Criipto acr_values — se docs.idura.app/verify/e-ids/swedish-bankid/ */
-const BANKID_ACR_QR = 'urn:grn:authn:se:bankid:qr';
+/** Idura/Criipto acr_values — hämtat från tenant OIDC discovery. */
+const BANKID_ACR_QR = 'urn:grn:authn:se:bankid:another-device:qr';
 const BANKID_ACR_SAME_DEVICE = 'urn:grn:authn:se:bankid:same-device';
+const BANKID_ACR_DEFAULT = 'urn:grn:authn:se:bankid';
 
 function isMobileUserAgent(userAgent) {
   return /iPhone|iPad|iPod|Android|Mobile/i.test(text(userAgent));
@@ -249,6 +250,7 @@ module.exports = {
   DEFAULT_SESSION_TTL_MS,
   BANKID_ACR_QR,
   BANKID_ACR_SAME_DEVICE,
+  BANKID_ACR_DEFAULT,
   isBankIdLive,
   isMobileUserAgent,
   resolveBankIdAcrValues,

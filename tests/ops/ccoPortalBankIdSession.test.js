@@ -47,7 +47,7 @@ test('createAuthRequest bygger Criipto authorize-URL med state+nonce', () => {
   assert.match(r.url, /scope=openid/);
   assert.ok(r.state && r.nonce && r.state !== r.nonce);
   assert.match(r.url, new RegExp(`state=${r.state}`));
-  assert.match(r.url, /acr_values=urn%3Agrn%3Aauthn%3Ase%3Abankid%3Aqr/);
+  assert.match(r.url, /acr_values=urn%3Agrn%3Aauthn%3Ase%3Abankid%3Aanother-device%3Aqr/);
 });
 
 test('resolveBankIdAcrValues: qr på desktop, same-device på mobil', () => {
