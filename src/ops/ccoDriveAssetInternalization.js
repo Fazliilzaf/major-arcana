@@ -696,6 +696,53 @@ async function internalizeDriveAssets({
 
 const UNKNOWN_MONTH_BUCKET = 'unknown_month';
 
+const PILOT_STRONG_DOCUMENT_DATE_SOURCES = Object.freeze([
+  'folder_iso',
+  'folder_month',
+  'filename_epoch',
+  'row',
+]);
+
+function resolveAllowedDocumentDateSources({
+  requireDocumentDateSource = false,
+  allowedDocumentDateSources = null,
+} = {}) {
+  const explicit = asArray(allowedDocumentDateSources)
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
+  if (explicit.length > 0) return explicit;
+  if (requireDocumentDateSource) return [...PILOT_STRONG_DOCUMENT_DATE_SOURCES];
+  return null;
+}
+
+function evaluatePilotWindowFailure(
+  previewSlice = [],
+  { allowedDocumentDateSources = null, requireCalendarClear = true } = {}
+) {
+  for (const preview of asArray(previewSlice)) {
+    if (requireCalendarClear && !preview.calendarBucketClear) {
+      return {
+        reason: 'unknown_month',
+        failingRemainingOffset: preview.remainingOffset,
+        monthFolder: preview.monthFolder,
+        documentDateSource: preview.documentDateSource,
+      };
+    }
+    if (
+      allowedDocumentDateSources &&
+      !allowedDocumentDateSources.includes(preview.documentDateSource)
+    ) {
+      return {
+        reason: 'weak_document_date_source',
+        failingRemainingOffset: preview.remainingOffset,
+        monthFolder: preview.monthFolder,
+        documentDateSource: preview.documentDateSource,
+      };
+    }
+  }
+  return null;
+}
+
 function buildInternalizeCandidatePreviewRow(row, remainingOffset) {
   const normalized = normalizeDriveAssetRow(row);
   const enc = parseFolderEncounter(normalized.originalDrivePath, normalized.originalFileName);
@@ -715,26 +762,94 @@ function buildInternalizeCandidatePreviewRow(row, remainingOffset) {
   };
 }
 
-function findConsecutivePilotWindow(remainingRows = [], windowSize = 10) {
+function findConsecutivePilotWindow(remainingRows = [], windowSize = 10, options = {}) {
+  const previewAll = asArray(remainingRows).map((row, index) =>
+    typeof row?.remainingOffset === 'number' && typeof row?.monthFolder === 'string'
+      ? row
+      : buildInternalizeCandidatePreviewRow(row, index)
+  );
+  return buildPilotWindowSearch(previewAll, windowSize, options).pilotWindow;
+}
+
+function buildPilotWindowSearch(previewAll = [], windowSize = 10, options = {}) {
   const size = Math.max(1, Number(windowSize) || 10);
-  const rows = asArray(remainingRows);
-  if (rows.length < size) return null;
-  for (let offset = 0; offset <= rows.length - size; offset += 1) {
-    let allClear = true;
-    for (let index = 0; index < size; index += 1) {
-      const monthFolder = extractMonthFolder(
-        normalizeDriveAssetRow(rows[offset + index]).originalDrivePath
-      );
-      if (monthFolder === UNKNOWN_MONTH_BUCKET) {
-        allClear = false;
-        break;
-      }
-    }
-    if (allClear) {
-      return { offset, size, calendarBucketClear: true };
-    }
+  const rows = asArray(previewAll);
+  const allowedDocumentDateSources = resolveAllowedDocumentDateSources(options);
+  const requireCalendarClear = options.requireCalendarClear !== false;
+  const maxSkipSamples = Math.max(1, Math.min(50, Number(options.maxSkipSamples) || 20));
+  const skipReasonCounts = { unknown_month: 0, weak_document_date_source: 0 };
+  const skippedSamples = [];
+  const windowsScanned = rows.length >= size ? Math.max(0, rows.length - size + 1) : 0;
+
+  if (rows.length < size) {
+    return {
+      pilotWindow: null,
+      search: {
+        allowedDocumentDateSources,
+        requireDocumentDateSource: Boolean(options.requireDocumentDateSource),
+        skipReasonCounts,
+        skippedSamples,
+        windowsScanned: 0,
+        matchedAtOffset: null,
+      },
+    };
   }
-  return null;
+
+  for (let offset = 0; offset <= rows.length - size; offset += 1) {
+    const slice = rows.slice(offset, offset + size);
+    const failure = evaluatePilotWindowFailure(slice, {
+      allowedDocumentDateSources,
+      requireCalendarClear,
+    });
+    if (failure) {
+      skipReasonCounts[failure.reason] += 1;
+      if (skippedSamples.length < maxSkipSamples) {
+        skippedSamples.push({
+          offset,
+          reason: failure.reason,
+          failingRemainingOffset: failure.failingRemainingOffset,
+          monthFolder: failure.monthFolder,
+          documentDateSource: failure.documentDateSource,
+        });
+      }
+      continue;
+    }
+    return {
+      pilotWindow: {
+        offset,
+        size,
+        calendarBucketClear: true,
+        documentDateSourceGate: allowedDocumentDateSources ? { allowedDocumentDateSources } : null,
+        documentDateSources: slice.map((preview) => preview.documentDateSource),
+        candidates: slice,
+      },
+      search: {
+        allowedDocumentDateSources,
+        requireDocumentDateSource: Boolean(options.requireDocumentDateSource),
+        skipReasonCounts,
+        skippedSamples,
+        windowsScanned,
+        matchedAtOffset: offset,
+      },
+    };
+  }
+
+  return {
+    pilotWindow: null,
+    search: {
+      allowedDocumentDateSources,
+      requireDocumentDateSource: Boolean(options.requireDocumentDateSource),
+      skipReasonCounts,
+      skippedSamples,
+      windowsScanned,
+      matchedAtOffset: null,
+    },
+  };
+}
+
+function matchesDocumentDateSourceGate(preview, allowedDocumentDateSources) {
+  if (!allowedDocumentDateSources || allowedDocumentDateSources.length === 0) return true;
+  return allowedDocumentDateSources.includes(preview.documentDateSource);
 }
 
 async function previewInternalizeCandidates({
@@ -744,9 +859,16 @@ async function previewInternalizeCandidates({
   offset = 0,
   limit = 10,
   excludeUnknownMonth = false,
+  requireDocumentDateSource = false,
+  allowedDocumentDateSources = null,
   pilotWindowSize = 10,
   includePilotWindow = true,
+  maxPilotWindowSkipSamples = 20,
 } = {}) {
+  const resolvedAllowedSources = resolveAllowedDocumentDateSources({
+    requireDocumentDateSource,
+    allowedDocumentDateSources,
+  });
   const inventory = await inventoryDriveAssets({ rows, assetStore, storage, sampleSize: 0 });
   const remainingRows = inventory.remainingRows || [];
   const previewAll = remainingRows.map((row, index) =>
@@ -755,31 +877,37 @@ async function previewInternalizeCandidates({
 
   let calendarClearRemaining = 0;
   let unknownMonthRemaining = 0;
+  let strongDateSourceRemaining = 0;
   for (const preview of previewAll) {
     if (preview.calendarBucketClear) calendarClearRemaining += 1;
     else unknownMonthRemaining += 1;
+    if (matchesDocumentDateSourceGate(preview, resolvedAllowedSources)) {
+      strongDateSourceRemaining += 1;
+    }
   }
 
   const browseOffset = Math.max(0, Number(offset) || 0);
   const browseLimit = Math.max(1, Number(limit) || 10);
-  const candidates = excludeUnknownMonth
-    ? previewAll
-        .filter((preview) => preview.calendarBucketClear)
-        .slice(browseOffset, browseOffset + browseLimit)
-    : previewAll.slice(browseOffset, browseOffset + browseLimit);
+  let browsePool = previewAll;
+  if (excludeUnknownMonth) {
+    browsePool = browsePool.filter((preview) => preview.calendarBucketClear);
+  }
+  if (resolvedAllowedSources) {
+    browsePool = browsePool.filter((preview) =>
+      matchesDocumentDateSourceGate(preview, resolvedAllowedSources)
+    );
+  }
+  const candidates = browsePool.slice(browseOffset, browseOffset + browseLimit);
 
-  const pilotWindowBase = includePilotWindow
-    ? findConsecutivePilotWindow(remainingRows, pilotWindowSize)
-    : null;
-  const pilotWindow = pilotWindowBase
-    ? {
-        ...pilotWindowBase,
-        candidates: previewAll.slice(
-          pilotWindowBase.offset,
-          pilotWindowBase.offset + pilotWindowBase.size
-        ),
-      }
-    : null;
+  const pilotSearch = includePilotWindow
+    ? buildPilotWindowSearch(previewAll, pilotWindowSize, {
+        requireDocumentDateSource,
+        allowedDocumentDateSources: resolvedAllowedSources,
+        maxSkipSamples: maxPilotWindowSkipSamples,
+      })
+    : { pilotWindow: null, search: null };
+  const pilotWindow = pilotSearch.pilotWindow;
+  const pilotWindowSearch = pilotSearch.search;
 
   return {
     generatedAt: nowIso(),
@@ -792,16 +920,24 @@ async function previewInternalizeCandidates({
       remaining: inventory.stats.remaining,
       calendarClearRemaining,
       unknownMonthRemaining,
+      strongDateSourceRemaining,
+      documentDateSourceGate: resolvedAllowedSources
+        ? { allowedDocumentDateSources: resolvedAllowedSources }
+        : null,
     },
     pilotWindow,
+    pilotWindowSearch,
     candidates,
     pagination: {
       offset: browseOffset,
       limit: browseLimit,
       excludeUnknownMonth,
+      requireDocumentDateSource,
+      allowedDocumentDateSources: resolvedAllowedSources,
       returned: candidates.length,
       totalRemaining: remainingRows.length,
       totalCalendarClear: calendarClearRemaining,
+      totalStrongDateSource: strongDateSourceRemaining,
     },
   };
 }
@@ -824,5 +960,9 @@ module.exports = {
   parseFolderEncounter,
   buildInternalizeCandidatePreviewRow,
   findConsecutivePilotWindow,
+  buildPilotWindowSearch,
+  evaluatePilotWindowFailure,
+  resolveAllowedDocumentDateSources,
+  PILOT_STRONG_DOCUMENT_DATE_SOURCES,
   previewInternalizeCandidates,
 };

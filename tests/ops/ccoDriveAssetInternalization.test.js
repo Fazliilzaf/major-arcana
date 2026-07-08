@@ -19,6 +19,7 @@ const {
   normalizeDriveAssetRow,
   previewInternalizeCandidates,
   findConsecutivePilotWindow,
+  buildPilotWindowSearch,
 } = require('../../src/ops/ccoDriveAssetInternalization');
 
 async function makeRig() {
@@ -485,6 +486,67 @@ test('previewInternalizeCandidates maskerar och hittar pilotWindow utan unknown_
     assert.equal(preview.pilotWindow.offset, 1);
     assert.equal(preview.pilotWindow.size, 2);
     assert.equal(preview.pilotWindow.candidates.length, 2);
+    assert.equal(preview.pilotWindowSearch.matchedAtOffset, 1);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('buildPilotWindowSearch hoppar weak_document_date_source tills folder_iso-fönster', async () => {
+  const rig = await makeRig();
+  try {
+    const rows = [
+      {
+        patientId: 'pat-1',
+        file: {
+          driveFileId: 'drive-weak-1',
+          fileName: 'Frisk.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/November 2023 Sukru/Frisk.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+      {
+        patientId: 'pat-2',
+        file: {
+          driveFileId: 'drive-weak-2',
+          fileName: 'Hals.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/November 2023 Sukru/Hals.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+      {
+        patientId: 'pat-3',
+        file: {
+          driveFileId: 'drive-iso-1',
+          fileName: 'Journal.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Januari 2025/2025-01-02 PRP 1/Journal.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+      {
+        patientId: 'pat-4',
+        file: {
+          driveFileId: 'drive-iso-2',
+          fileName: 'Plan.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Januari 2025/2025-01-03 PRP 2/Plan.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ];
+    const preview = await previewInternalizeCandidates({
+      rows,
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      pilotWindowSize: 2,
+      allowedDocumentDateSources: ['folder_iso'],
+      requireDocumentDateSource: true,
+    });
+    assert.equal(preview.pilotWindow.offset, 2);
+    assert.deepEqual(preview.pilotWindow.documentDateSources, ['folder_iso', 'folder_iso']);
+    assert.equal(preview.pilotWindowSearch.skipReasonCounts.weak_document_date_source, 2);
+    assert.equal(preview.pilotWindowSearch.skippedSamples[0].reason, 'weak_document_date_source');
+    assert.equal(preview.pilotWindowSearch.skippedSamples[0].offset, 0);
+    assert.equal(preview.stats.strongDateSourceRemaining, 2);
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });
   }
