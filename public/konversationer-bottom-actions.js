@@ -2791,58 +2791,182 @@
   // ─── NYTT MAIL → komponera till en ny mottagare ──────────────────────
   // Skapar en enkel kontakt + ett needs_approval-utkast med vald sändkanal
   // (kons@ via Graph / Resend). Skickar aldrig direkt — personal godkänner.
+  // Signaturer + snabbstart-mallar (kundtext utan streck, ingen fejk-dekor).
+  const COMPOSE_SIGS = {
+    fazli:
+      'Bästa hälsningar,\n\nFazli Krasniqi\nHårspecialist · Hårtransplantationer & PRP-injektioner\n031-88 11 66 · contact@hairtpclinic.com\nVasaplatsen 2, 411 34 Göteborg',
+    egzona:
+      'Bästa hälsningar,\n\nEgzona\nHair TP Clinic\n031-88 11 66 · contact@hairtpclinic.com\nVasaplatsen 2, 411 34 Göteborg',
+    ingen: '',
+  };
+  const COMPOSE_TEMPLATES = [
+    {
+      key: 'valkomst',
+      title: 'Välkomstmail',
+      hint: 'Varmt svar på ett första kontakt.',
+      subject: 'Välkommen till Hair TP Clinic',
+      body: 'Hej,\n\nTack för att du hört av dig till oss. Vi hjälper dig gärna vidare och svarar på dina frågor inför ett besök.\n\nBerätta gärna kort vad du är intresserad av, så återkommer vi med nästa steg.',
+    },
+    {
+      key: 'boka',
+      title: 'Boka konsultation',
+      hint: 'Erbjud en tid i lugn och ro.',
+      subject: 'Boka din konsultation',
+      body: 'Hej,\n\nVi vill gärna erbjuda dig en konsultation där vi går igenom dina möjligheter i lugn och ro.\n\nPassar någon tid den här veckan, eller föreslår du en egen?',
+    },
+    {
+      key: 'uppfoljning',
+      title: 'Uppföljning',
+      hint: 'Hör av dig efter tidigare kontakt.',
+      subject: 'Uppföljning från Hair TP Clinic',
+      body: 'Hej,\n\nVi ville bara höra hur det går och om du har några frågor sedan sist.\n\nHör gärna av dig om det är något vi kan hjälpa till med.',
+    },
+  ];
+
   function openComposeNewMail() {
-    const body = el('div', {
-      style: 'padding:16px;overflow:auto;height:100%;background:#fff;border-radius:14px',
+    const body = el('div', { class: 'cnm-wrap' });
+    body.appendChild(
+      el(
+        'style',
+        {},
+        '.cnm-wrap{padding:18px 20px;overflow:auto;height:100%;background:linear-gradient(180deg,#fdfbf9,#faf6f2);border-radius:14px;color:#2b251f}' +
+          '.cnm-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}' +
+          '@media(max-width:820px){.cnm-grid{grid-template-columns:1fr}}' +
+          '.cnm-label{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#8a8174;margin:14px 0 5px}' +
+          '.cnm-input{width:100%;box-sizing:border-box;border:1px solid #e7ded5;border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;background:#fff;color:#2b251f;transition:border-color .15s,box-shadow .15s}' +
+          '.cnm-input:focus{outline:0;border-color:#bb4779;box-shadow:0 0 0 3px rgba(187,71,121,.14)}' +
+          'textarea.cnm-input{resize:vertical;min-height:150px;line-height:1.55}' +
+          '.cnm-cards{display:flex;gap:8px;flex-wrap:wrap}' +
+          '.cnm-card{flex:1;min-width:150px;text-align:left;border:1px solid #efe6dc;border-radius:12px;padding:9px 12px;background:#fff;cursor:pointer;transition:border-color .15s,transform .1s,box-shadow .15s}' +
+          '.cnm-card:hover{border-color:#bb4779;transform:translateY(-1px);box-shadow:0 3px 10px rgba(187,71,121,.12)}' +
+          '.cnm-card b{display:block;font-size:12.5px}.cnm-card span{display:block;font-size:11px;color:#8a8174;margin-top:2px}' +
+          '.cnm-pills{display:flex;gap:6px;flex-wrap:wrap}' +
+          '.cnm-pill{border:1px solid #e7ded5;border-radius:999px;padding:5px 13px;font:inherit;font-size:12px;cursor:pointer;background:#fff;color:#6b6357}' +
+          '.cnm-pill.is-on{background:linear-gradient(135deg,#fce9f0,#f1cfdc);border-color:#e6a9c3;color:#bb4779;font-weight:700}' +
+          '.cnm-send{border:0;border-radius:999px;padding:11px 22px;font:inherit;font-size:14px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#c65389,#bb4779);color:#fff;box-shadow:0 3px 10px rgba(187,71,121,.3)}' +
+          '.cnm-send:disabled{opacity:.5;cursor:default}' +
+          '.cnm-secondary{border:1px solid #bb4779;border-radius:999px;padding:10px 18px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:#fff;color:#bb4779;margin-left:8px}' +
+          '.cnm-preview{border:1px solid #efe6dc;border-radius:14px;background:#fff;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.05)}' +
+          '.cnm-preview .pv-row{font-size:12px;color:#6b6357;margin-bottom:3px}' +
+          '.cnm-preview .pv-row b{color:#a89f92;font-weight:700;display:inline-block;min-width:46px}' +
+          '.cnm-preview .pv-body{white-space:pre-wrap;font-size:13.5px;line-height:1.6;margin:14px 0 0;color:#2b251f}' +
+          '.cnm-preview .pv-sig{white-space:pre-wrap;font-size:11.5px;color:#6b6357;border-top:1px solid #f0e8df;padding-top:10px;margin-top:12px}' +
+          '.cnm-wc{font-size:11px;color:#a89f92;margin-top:4px;text-align:right}' +
+          '.cnm-head{display:flex;align-items:center;justify-content:space-between}' +
+          '.cnm-live{font-size:10px;color:#bb4779;font-weight:800;letter-spacing:.04em}'
+      )
+    );
+
+    const label = (t) => el('div', { class: 'cnm-label' }, t);
+    const nameEl = el('input', {
+      class: 'cnm-input',
+      type: 'text',
+      placeholder: 'Namn (valfritt)',
     });
-    const field = (labelText, inputEl) =>
-      el('label', { style: 'display:block;margin-bottom:10px' }, [
-        el('div', { style: 'font-size:11px;color:#8a8174;margin-bottom:3px' }, labelText),
-        inputEl,
-      ]);
-    const inputStyle =
-      'width:100%;border:1px solid var(--line-soft,#e3dcd4);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;background:#fff;color:#2b251f';
-    const nameEl = el('input', { type: 'text', placeholder: 'Namn (valfritt)', style: inputStyle });
     const emailEl = el('input', {
+      class: 'cnm-input',
       type: 'email',
       placeholder: 'mottagare@example.com',
-      style: inputStyle,
     });
     const phoneEl = el('input', {
+      class: 'cnm-input',
       type: 'tel',
       placeholder: 'Telefon (valfritt)',
-      style: inputStyle,
     });
-    const channelEl = el('select', { style: inputStyle }, [
+    const channelEl = el('select', { class: 'cnm-input' }, [
       el('option', { value: 'graph' }, 'kons@ (vanligt mejl, kunden kan svara)'),
       el('option', { value: 'resend' }, 'Resend (no-reply, svar till kons@)'),
     ]);
-    const subjectEl = el('input', { type: 'text', placeholder: 'Ämne', style: inputStyle });
-    const bodyEl = el('textarea', {
-      placeholder: 'Skriv mailet…',
-      rows: '8',
-      style: inputStyle + ';resize:vertical;min-height:140px',
-    });
-    const status = el('div', { style: 'font-size:12px;margin-top:8px;min-height:16px' }, '');
+    const subjectEl = el('input', { class: 'cnm-input', type: 'text', placeholder: 'Ämne' });
+    const bodyEl = el('textarea', { class: 'cnm-input', placeholder: 'Skriv mailet…', rows: '9' });
+    const wc = el('div', { class: 'cnm-wc' }, '0 ord');
+    const status = el('div', { style: 'font-size:12px;margin-top:10px;min-height:16px' }, '');
+
+    // Signaturväljare (som i Svarstudion).
+    let sigKey = 'fazli';
+    const sigPills = ['fazli', 'egzona', 'ingen'].map((k) =>
+      el('button', { type: 'button', class: 'cnm-pill' + (k === sigKey ? ' is-on' : '') }, [
+        k === 'fazli' ? 'Fazli' : k === 'egzona' ? 'Egzona' : 'Ingen',
+      ])
+    );
+
+    // Live-förhandsvisning.
+    const pvTill = el('span', {}, '');
+    const pvFran = el('span', {}, '');
+    const pvAmne = el('span', {}, '');
+    const pvBody = el('div', { class: 'pv-body' }, '');
+    const pvSig = el('div', { class: 'pv-sig' }, '');
+    const preview = el('div', { class: 'cnm-preview' }, [
+      el('div', { class: 'pv-row' }, [el('b', {}, 'Till'), pvTill]),
+      el('div', { class: 'pv-row' }, [el('b', {}, 'Från'), pvFran]),
+      el('div', { class: 'pv-row' }, [el('b', {}, 'Ämne'), pvAmne]),
+      pvBody,
+      pvSig,
+    ]);
+
+    function updatePreview() {
+      pvTill.textContent = emailEl.value.trim() || 'mottagare@…';
+      pvFran.textContent =
+        channelEl.value === 'resend'
+          ? 'no-reply@hairtpclinic.com (svar till kons@hairtpclinic.com)'
+          : 'kons@hairtpclinic.com';
+      pvAmne.textContent = subjectEl.value.trim() || '(inget ämne)';
+      pvBody.textContent = bodyEl.value || 'Här visas mailet live medan du skriver…';
+      pvSig.textContent = COMPOSE_SIGS[sigKey] || '';
+      pvSig.style.display = COMPOSE_SIGS[sigKey] ? 'block' : 'none';
+      const words = bodyEl.value.trim() ? bodyEl.value.trim().split(/\s+/).length : 0;
+      wc.textContent = words + ' ord';
+    }
+    [emailEl, subjectEl, bodyEl, channelEl].forEach((elm) =>
+      elm.addEventListener('input', updatePreview)
+    );
+    channelEl.addEventListener('change', updatePreview);
+    sigPills.forEach((pill, i) =>
+      pill.addEventListener('click', () => {
+        sigKey = ['fazli', 'egzona', 'ingen'][i];
+        sigPills.forEach((p, j) => p.classList.toggle('is-on', i === j));
+        updatePreview();
+      })
+    );
+
+    // Snabbstart-kort (funktionella — fyller ämne + text, inte fejk-AI).
+    const cards = el(
+      'div',
+      { class: 'cnm-cards' },
+      COMPOSE_TEMPLATES.map((t) =>
+        el('button', { type: 'button', class: 'cnm-card' }, [
+          el('b', {}, t.title),
+          el('span', {}, t.hint),
+        ])
+      )
+    );
+    Array.from(cards.children).forEach((cardEl, i) =>
+      cardEl.addEventListener('click', () => {
+        const t = COMPOSE_TEMPLATES[i];
+        subjectEl.value = t.subject;
+        bodyEl.value = t.body;
+        updatePreview();
+      })
+    );
+
     const submit = el(
       'button',
-      {
-        type: 'button',
-        style:
-          'border:0;border-radius:10px;padding:9px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--studio,#bb4779);color:#fff;margin-top:4px',
-      },
+      { type: 'button', class: 'cnm-send' },
       'Skapa utkast för godkännande'
     );
     submit.addEventListener('click', async () => {
+      const sigText = COMPOSE_SIGS[sigKey] || '';
+      const bodyText = bodyEl.value.trim();
       const payload = {
         recipientName: nameEl.value.trim(),
         recipientEmail: emailEl.value.trim(),
         recipientPhone: phoneEl.value.trim(),
         channel: channelEl.value,
         subject: subjectEl.value.trim(),
-        body: bodyEl.value.trim(),
+        // Signaturen bifogas i själva texten så den går ut med mailet (som i förhandsvisningen).
+        body: bodyText + (sigText ? '\n\n' + sigText : ''),
       };
-      if (!payload.recipientEmail || !payload.subject || !payload.body) {
+      if (!payload.recipientEmail || !payload.subject || !bodyText) {
         status.textContent = 'Fyll i mottagare, ämne och text.';
         status.style.color = '#b94a4a';
         return;
@@ -2937,19 +3061,44 @@
     body.appendChild(
       el(
         'p',
-        { style: 'font-size:12px;color:#8a8174;margin:0 0 14px' },
+        { style: 'font-size:12px;color:#8a8174;margin:0 0 12px' },
         'Skicka ett nytt mail till en person som inte redan finns som tråd. En enkel ' +
-          'kontakt skapas och ett utkast läggs för godkännande — inget skickas direkt.'
+          'kontakt skapas och ett utkast läggs för godkännande. Inget skickas direkt.'
       )
     );
-    body.appendChild(field('Mottagarens namn', nameEl));
-    body.appendChild(field('Mottagarens e-post', emailEl));
-    body.appendChild(field('Telefon', phoneEl));
-    body.appendChild(field('Skicka via', channelEl));
-    body.appendChild(field('Ämne', subjectEl));
-    body.appendChild(field('Meddelande', bodyEl));
-    body.appendChild(submit);
-    body.appendChild(status);
+    body.appendChild(label('Snabbstart'));
+    body.appendChild(cards);
+
+    const leftCol = el('div', {}, [
+      label('Till'),
+      nameEl,
+      el('div', { style: 'height:8px' }),
+      emailEl,
+      el('div', { style: 'height:8px' }),
+      phoneEl,
+      label('Skicka via'),
+      channelEl,
+      label('Ämne'),
+      subjectEl,
+      label('Meddelande'),
+      bodyEl,
+      wc,
+      label('Signatur'),
+      el('div', { class: 'cnm-pills' }, sigPills),
+      el('div', { style: 'margin-top:18px;display:flex;align-items:center;flex-wrap:wrap' }, [
+        submit,
+      ]),
+      status,
+    ]);
+    const rightCol = el('div', {}, [
+      el('div', { class: 'cnm-head', style: 'margin:14px 0 6px' }, [
+        el('div', { class: 'cnm-label', style: 'margin:0' }, 'Så här blir mailet'),
+        el('span', { class: 'cnm-live' }, 'UPPDATERAS LIVE'),
+      ]),
+      preview,
+    ]);
+    body.appendChild(el('div', { class: 'cnm-grid' }, [leftCol, rightCol]));
+    updatePreview();
     openModal({ title: '✉ Nytt mail', wide: true, tabs: panelTabs('nyttmail'), body });
   }
 
@@ -3276,6 +3425,19 @@
       'background:var(--studio,#bb4779);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.22)';
     fab.addEventListener('click', () => openComposeNewMail());
     document.body.appendChild(fab);
+    placeComposeFabBesideDocs(fab);
+  }
+
+  // Ställ "Nytt mail" JÄMTE "Alla dokument"-launchern (admin.html) istället för
+  // ovanpå den i samma hörn. Launchern kan mountas efter oss → försök igen kort.
+  function placeComposeFabBesideDocs(fab, tries = 0) {
+    const docs = document.getElementById('adminDocsLauncher');
+    if (docs) {
+      fab.style.bottom = '8px';
+      fab.style.right = docs.offsetWidth + 8 + 10 + 'px'; // launcher-bredd + dess right + gap
+    } else if (tries < 20) {
+      requestAnimationFrame(() => placeComposeFabBesideDocs(fab, tries + 1));
+    }
   }
 
   function actionButtonFromEvent(event) {
