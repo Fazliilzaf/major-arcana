@@ -88,5 +88,5 @@ test('PR19: nivå 1/2-paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR19: konversationer.html cache-bustar efter no-show-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708a-svarstudio-cache/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708b-dossier/);
 });

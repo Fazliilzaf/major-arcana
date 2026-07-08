@@ -34,7 +34,7 @@ test('v2 monteras i isolerad shadow-DOM och laddar assets', () => {
   assert.match(source, /const USE_SVARSTUDIO_V2 = true/);
   assert.match(source, /async function mountSvarstudioV2\(/);
   assert.match(source, /attachShadow\(\{ mode: 'open' \}\)/);
-  assert.match(source, /SVARSTUDIO_V2_ASSET_VERSION = '20260708a-svarstudio-cache'/);
+  assert.match(source, /SVARSTUDIO_V2_ASSET_VERSION = '20260708b-dossier'/);
   assert.match(source, /fetch\('\/svarstudio-v2\.css' \+ cacheBust, \{ cache: 'no-store' \}\)/);
   assert.match(source, /fetch\('\/svarstudio-v2\.html' \+ cacheBust, \{ cache: 'no-store' \}\)/);
   // Öppnas före klassiska modalen, med fallback
@@ -112,6 +112,46 @@ test('kundtext: aldrig streck, ingen egen avslutshälsning (finns i signaturen)'
   const macroStart = source.indexOf('const bodies = {');
   const macroEnd = source.indexOf('};', macroStart);
   assert.doesNotMatch(source.slice(macroStart, macroEnd), /[—–]/);
+});
+
+test('kundkort/dossier: hämtas + renderas i fast kontext-yta, journal låst', () => {
+  // Hämtar dossiern från RBAC-endpointen
+  assert.match(source, /'\/api\/v1\/cco\/runtime\/customer\/'/);
+  assert.match(source, /function renderDossierMini\(dossier, note\)/);
+  assert.match(source, /cache: 'no-store'/);
+  assert.match(
+    source,
+    /headers: adminAuthHeaders\(\{ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT \}\)/
+  );
+  assert.match(htmlAsset, /id="customerDossier"/);
+  assert.match(cssAsset, /\.dossier-mini\s*\{/);
+  // Journalen visas bara som metadata — aldrig innehåll.
+  assert.match(source, /Journal: endast metadata visas här/);
+  assert.doesNotMatch(source, /journal\.body|journal\.note|entry\.body|entry\.note/);
+  // Fel får aldrig störa Svarstudion
+  assert.match(source, /Kundkort kunde inte laddas just nu/);
+});
+
+test('portal-chatt: läs inline + svara → outbound (aldrig live-send)', () => {
+  assert.match(source, /function renderPortalChat\(messages\)/);
+  assert.match(source, /async function loadPortalChat\(\)/);
+  assert.match(source, /Portal-chatt/);
+  // Läsning + klinik-svar mot portal-endpointsen
+  assert.match(source, /\/portal-messages'/);
+  assert.match(source, /'\/portal-message',\s*\{\s*method: 'POST'/);
+  // Portal-svar går ALDRIG via Graph/live-send
+  assert.doesNotMatch(source, /portal-message[\s\S]{0,200}\/send'/);
+});
+
+test('magisk länk (steg 5): knapp myntar token + infogar länken i det godkända mailet', () => {
+  // Knapp finns och kallar utfärdnings-endpointen (portal.write).
+  assert.match(source, /id="portalLinkBtn"/);
+  assert.match(source, /'\/portal-access',\s*\{\s*method: 'POST'/);
+  // Länken infogas i editorn → leverans sker i den kontrollerade mailkedjan.
+  assert.match(source, /editor\.value =[\s\S]{0,160}\+ line;/);
+  assert.match(source, /syncBodyFromEditor\(\)/);
+  // Utfärdningen får ALDRIG dra igång live-send.
+  assert.doesNotMatch(source, /portal-access[\s\S]{0,200}\/send'/);
 });
 
 test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {

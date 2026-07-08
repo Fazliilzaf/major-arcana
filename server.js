@@ -10376,6 +10376,15 @@ app.get('/portal/:token', (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'patient-portal.html'));
 });
 
+// ── Fas 2, steg 5: Clean URL för patient-portalens fria chatt-kanal.
+// /portal-chat/:token → patient-portal-chat.html. HTML:en läser token från path
+// och pratar med /api/patient-portal/:token/messages (magisk-länk-grindat).
+app.get('/portal-chat/:token', (req, res, next) => {
+  const token = req.params.token;
+  if (!token || token.length < 8) return next();
+  res.sendFile(path.join(__dirname, 'public', 'patient-portal-chat.html'));
+});
+
 // ── CCO Patient Portal Staff API (Beslut #2: wrap legacy createInvite med RBAC) ──
 try {
   const { attachRole, requirePermission } = require('./src/security/ccoRbac');
@@ -13383,6 +13392,34 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Kundkort/dossier — RBAC-grindad läs-endpoint (mail.read) som samlar "all info
+  // om kunden" för Svarstudion ur app.locals-storarna. Journalinnehåll ingår aldrig.
+  const { createCcoCustomerDossierRouter } = require('./src/routes/ccoCustomerDossier');
+  app.use(
+    '/api/v1',
+    createCcoCustomerDossierRouter({
+      requireAuth: auth.requireAuth,
+      authStore,
+      config,
+      ccoMailboxTruthStore,
+      ccoMailIngestionStore,
+      ccoConversationNotesStore,
+      clientoBookingStore,
+      getCommDraftStore: () => app.locals.ccoCommDraftStore || null,
+    })
+  );
+
+  // Staff-sidan av portal-kanalen: läs patientens portal-meddelanden + skicka
+  // klinik-svar (outbound). Storen ligger på app.locals (wire:ad ovan).
+  const { createCcoPortalMessagesRouter } = require('./src/routes/ccoPortalMessages');
+  app.use('/api/v1', createCcoPortalMessagesRouter({ requireAuth: auth.requireAuth }));
+
+  // Magisk-länk-utfärdning (Fas 2, steg 5): staff myntar/roterar/återkallar
+  // patientens portal-token och får den färdiga länken. Leverans sker i den
+  // kontrollerade mailkedjan — routern skickar inget själv.
+  const { createCcoPortalAccessRouter } = require('./src/routes/ccoPortalAccess');
+  app.use('/api/v1', createCcoPortalAccessRouter({ requireAuth: auth.requireAuth }));
+
   app.use(
     '/api/v1',
     createCcoPatientMasterRouter({
@@ -13630,6 +13667,23 @@ process.once('SIGTERM', () => {
     .load()
     .catch((err) => console.warn('[patient-portal] Load failed:', err?.message));
 
+  // Fas 2 — fri patient↔klinik-kanal (portal-meddelanden via magisk länk).
+  const { createCcoPortalMessageStore } = require('./src/ops/ccoPortalMessageStore');
+  const { createCcoPortalAccessStore } = require('./src/ops/ccoPortalAccessStore');
+  const portalMessageStore = await createCcoPortalMessageStore({
+    filePath: config.stateRoot
+      ? `${config.stateRoot}/cco-portal-messages.json`
+      : './data/cco-portal-messages.json',
+    auditLog: ccoAuditLog || null,
+  });
+  const portalAccessStore = await createCcoPortalAccessStore({
+    filePath: config.stateRoot
+      ? `${config.stateRoot}/cco-portal-access.json`
+      : './data/cco-portal-access.json',
+  });
+  app.locals.ccoPortalMessageStore = portalMessageStore;
+  app.locals.ccoPortalAccessStore = portalAccessStore;
+
   app.use(
     '/api',
     createPatientPortalRouter({
@@ -13637,6 +13691,8 @@ process.once('SIGTERM', () => {
       journalStore: ccoJournalStore || null,
       bookingCaseStore: ccoBookingCaseStore || null,
       journalPhotoStore: ccoJournalPhotoStore || null,
+      portalMessageStore,
+      portalAccessStore,
     })
   );
   app.locals.patientPortalStore = patientPortalStore; // Beslut #2: exponera för staff-API

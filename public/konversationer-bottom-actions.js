@@ -605,7 +605,7 @@
   // Laddar svarstudio-v2.css/.html, binder trådens riktiga data och kopplar
   // kontrollerna till EXAKT samma sänd-endpoints som klassiska modalen (upp
   // till needs_approval). Live-send förblir serverspärrat.
-  const SVARSTUDIO_V2_ASSET_VERSION = '20260708a-svarstudio-cache';
+  const SVARSTUDIO_V2_ASSET_VERSION = '20260708b-dossier';
   let _svarstudioV2Assets = null;
   async function loadSvarstudioV2Assets() {
     if (_svarstudioV2Assets) return _svarstudioV2Assets;
@@ -1092,6 +1092,294 @@
       const panel = $('#ctxPanel');
       if (panel) panel.innerHTML = '<b>★ AI-sammanfattning.</b> ' + cleanText(ctx.aiSummary);
     }
+
+    // ── Kundkort/dossier (fas 1, steg 3) ─────────────────────────────────
+    // Hämtar "all info om kunden" från RBAC-endpointen. Journalinnehåll finns
+    // aldrig i svaret: Svarstudion visar bara metadata som antal + senaste datum.
+    function dossierCountLabel(count, singular, plural) {
+      const n = Math.max(0, Number(count) || 0);
+      return n + ' ' + (n === 1 ? singular : plural);
+    }
+    function dossierDateLabel(value) {
+      const raw = cleanText(value);
+      if (!raw) return '';
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return raw.slice(0, 16);
+      return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function renderDossierMini(dossier, note) {
+      const box = $('#customerDossier');
+      if (!box) return;
+      const body = box.querySelector('.dossier-mini__body');
+      if (!body) return;
+      body.innerHTML = '';
+      if (!dossier) {
+        body.appendChild(el('p', { class: 'dossier-mini__empty' }, note || 'Kundkort saknas.'));
+        return;
+      }
+      const name = cleanText(dossier.identity?.name);
+      const emails = Array.isArray(dossier.contact?.emails) ? dossier.contact.emails : [];
+      const phones = Array.isArray(dossier.contact?.phones) ? dossier.contact.phones : [];
+      if (name) setText('.kk-name', name);
+      if (emails[0] && kkLines[0]) kkLines[0].lastChild.textContent = ' ' + emails[0];
+      if (phones[0] && kkLines[1]) kkLines[1].lastChild.textContent = ' ' + phones[0];
+
+      const portalCount = dossier.portal?.count || 0;
+      const portalUnread = dossier.portal?.unread || 0;
+      const metrics = [
+        dossierCountLabel(dossier.bookings?.count, 'bokning', 'bokningar'),
+        dossierCountLabel((dossier.cases || []).length, 'ärende', 'ärenden'),
+        dossierCountLabel(portalCount, 'portalmeddelande', 'portalmeddelanden') +
+          (portalUnread ? ' · ' + portalUnread + ' olästa' : ''),
+        dossierCountLabel(dossier.threads?.count, 'tråd', 'trådar'),
+        dossierCountLabel(dossier.journal?.count, 'journalpost', 'journalposter'),
+      ];
+      const latestJournal = dossierDateLabel(dossier.journal?.latestAt);
+      body.appendChild(
+        el(
+          'div',
+          { class: 'dossier-mini__metrics' },
+          metrics.map((m) => el('span', {}, m))
+        )
+      );
+      body.appendChild(
+        el(
+          'p',
+          { class: 'dossier-mini__safe' },
+          latestJournal
+            ? 'Journal: endast metadata visas här · senaste ' + latestJournal
+            : 'Journal: endast metadata visas här.'
+        )
+      );
+      const nextBooking = Array.isArray(dossier.bookings?.upcoming)
+        ? dossier.bookings.upcoming[0]
+        : null;
+      const openCase = Array.isArray(dossier.cases) ? dossier.cases[0] : null;
+      const summaryBits = [
+        nextBooking
+          ? 'Nästa bokning: ' +
+            [nextBooking.service, dossierDateLabel(nextBooking.startsAt)]
+              .filter(Boolean)
+              .join(' · ')
+          : '',
+        openCase
+          ? 'Senaste ärende: ' + [openCase.title, openCase.status].filter(Boolean).join(' · ')
+          : '',
+        dossier.threads?.needsReply ? dossier.threads.needsReply + ' trådar behöver svar' : '',
+      ].filter(Boolean);
+      if (summaryBits.length) {
+        body.appendChild(
+          el(
+            'ul',
+            { class: 'dossier-mini__list' },
+            summaryBits.map((item) => el('li', {}, item))
+          )
+        );
+      }
+      const panel = $('#ctxPanel');
+      if (panel) {
+        panel.innerHTML =
+          '<b>Kundkort.</b> ' +
+          cleanText(
+            [
+              name || ctx.customerName || 'Vald kund',
+              metrics.join(' · '),
+              latestJournal ? 'senaste journalmetadata ' + latestJournal : '',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          );
+      }
+    }
+    async function loadDossierMini() {
+      const id = cleanText(customerId || ctx.customerId || recipientEmail || ctx.email);
+      if (!id) {
+        renderDossierMini(null, 'Välj en kundtråd för att läsa kundkort.');
+        return;
+      }
+      try {
+        const params = new URLSearchParams();
+        const email = firstCustomerEmailValue(recipientEmail, ctx.email, ctx.customerEmail);
+        if (email) params.set('email', email);
+        if (ctx.conversationKey) params.set('conversationKey', ctx.conversationKey);
+        const qs = params.toString();
+        const r = await fetch(
+          '/api/v1/cco/runtime/customer/' +
+            encodeURIComponent(id) +
+            '/dossier' +
+            (qs ? '?' + qs : ''),
+          {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.dossier) throw new Error(j.error || 'kundkort saknas');
+        renderDossierMini(j.dossier);
+      } catch (_error) {
+        renderDossierMini(null, 'Kundkort kunde inte laddas just nu.');
+      }
+    }
+    renderDossierMini(null, 'Hämtar lokalt kundkort…');
+    loadDossierMini();
+
+    // ── Portal-chatt (Fas 2, steg 4b): läs + svara inline i den fria kanalen ──
+    // Rent tillägg i konversationsytan. Klinik-svar går till outbound-endpointen
+    // (mail.send), aldrig via Graph/live-send. Fel får aldrig störa Svarstudion.
+    function renderPortalChat(messages) {
+      const anchor = $('#rollup') || $('.msgs') || $('.main');
+      if (!anchor || !anchor.parentNode) return;
+      const esc = (s) =>
+        String(s == null ? '' : s).replace(
+          /[&<>"]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+        );
+      let panel = $('#portalChat');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'portalChat';
+        panel.className = 'block';
+        panel.style.marginTop = '10px';
+        anchor.parentNode.insertBefore(panel, anchor.nextSibling);
+      }
+      const bubbles =
+        (messages || [])
+          .map((m) => {
+            const out = m.direction === 'outbound';
+            return (
+              '<div style="display:flex;justify-content:' +
+              (out ? 'flex-end' : 'flex-start') +
+              ';margin:4px 0"><div style="max-width:78%;padding:7px 10px;border-radius:12px;font-size:12px;line-height:1.4;' +
+              (out
+                ? 'background:var(--rose-grad);color:var(--studio-ink)'
+                : 'background:var(--sunken);color:var(--ink)') +
+              '">' +
+              esc(m.body) +
+              '</div></div>'
+            );
+          })
+          .join('') ||
+        '<div style="font-size:11px;color:var(--ink-3);padding:4px 0">Inga portal-meddelanden än.</div>';
+      panel.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">' +
+        '<div class="glabel">★ Portal-chatt (fri kanal)</div>' +
+        '<button id="portalLinkBtn" type="button" title="Skapa en magisk länk och infoga den i svaret — kunden chattar då gratis i portalen istället för via SMS" ' +
+        'style="border:1px solid var(--line-soft);border-radius:8px;padding:4px 9px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:var(--field-bg);color:var(--studio)">🔗 Skapa portal-länk</button>' +
+        '</div>' +
+        '<div style="max-height:180px;overflow:auto">' +
+        bubbles +
+        '</div>' +
+        '<div style="display:flex;gap:6px;margin-top:6px">' +
+        '<input id="portalReplyInput" type="text" placeholder="Svara i portalen…" ' +
+        'style="flex:1;min-width:0;border:1px solid var(--line-soft);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;background:var(--field-bg);color:var(--ink)">' +
+        '<button id="portalReplyBtn" type="button" style="border:0;border-radius:8px;padding:6px 12px;' +
+        'font:inherit;font-size:12px;font-weight:700;cursor:pointer;background:var(--studio);color:#fff">Skicka</button>' +
+        '</div>';
+      // "Skapa portal-länk": myntar patientens magiska länk och INFOGAR den i
+      // svaret. Leveransen sker alltså i den kontrollerade mailkedjan (staff
+      // godkänner som vanligt) — vi skickar aldrig något direkt härifrån.
+      const linkBtn = panel.querySelector('#portalLinkBtn');
+      if (linkBtn) {
+        linkBtn.addEventListener('click', async () => {
+          linkBtn.disabled = true;
+          const original = linkBtn.textContent;
+          try {
+            const id = cleanText(customerId || ctx.customerId);
+            if (!id) return;
+            const r = await fetch(
+              '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-access',
+              {
+                method: 'POST',
+                headers: adminAuthHeaders({
+                  'Content-Type': 'application/json',
+                  'x-cco-role': ROLE,
+                  'x-cco-tenant': TENANT,
+                }),
+              }
+            );
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.url) {
+              const line =
+                'Du kan skriva till oss direkt i din trygga portal (inget SMS behövs): ' + j.url;
+              // Infoga i svaret så länken går ut i det godkända mailet.
+              if (typeof editor !== 'undefined' && editor) {
+                editor.value =
+                  (editor.value ? editor.value.replace(/\s*$/, '') + '\n\n' : '') + line;
+                syncBodyFromEditor();
+              }
+              try {
+                await navigator.clipboard?.writeText(j.url);
+              } catch (_c) {
+                /* clipboard valfritt */
+              }
+              linkBtn.textContent = '✓ Länk infogad';
+              setTimeout(() => {
+                linkBtn.textContent = original;
+              }, 2000);
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            linkBtn.disabled = false;
+          }
+        });
+      }
+      const btn = panel.querySelector('#portalReplyBtn');
+      const input = panel.querySelector('#portalReplyInput');
+      if (btn && input) {
+        btn.addEventListener('click', async () => {
+          const body = input.value.trim();
+          if (!body) return;
+          btn.disabled = true;
+          try {
+            const id = cleanText(customerId || ctx.customerId);
+            const r = await fetch(
+              '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-message',
+              {
+                method: 'POST',
+                headers: adminAuthHeaders({
+                  'Content-Type': 'application/json',
+                  'x-cco-role': ROLE,
+                  'x-cco-tenant': TENANT,
+                }),
+                body: JSON.stringify({ body }),
+              }
+            );
+            if (r.ok) {
+              input.value = '';
+              loadPortalChat();
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      }
+    }
+    async function loadPortalChat() {
+      const id = cleanText(customerId || ctx.customerId);
+      if (!id) return;
+      try {
+        const r = await fetch(
+          '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-messages',
+          {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.messages) renderPortalChat(j.messages);
+      } catch (_e) {
+        /* portal-chatt är ett tillägg — fel får aldrig störa Svarstudion */
+      }
+    }
+    loadPortalChat();
+
+    const qaDossier = $('.qa--dossier');
+    if (qaDossier) qaDossier.addEventListener('click', () => openPatientHub(ctx));
+    const qaSign = $('.qa--sign');
+    if (qaSign) qaSign.addEventListener('click', () => openSignaturer(ctx));
 
     // Initial render (modalen är redan monterad av openModal ovan)
     pressSig('Fazli Krasniqi');
