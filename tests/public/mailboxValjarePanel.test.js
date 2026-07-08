@@ -60,3 +60,18 @@ test('ingen ny färg: använder befintliga CCO-tokens', () => {
   assert.match(source, /--rail-contact/);
   assert.match(source, /--cco-status-danger/);
 });
+
+test('matchar CCO: neutralt mörk namntext, inte rosa-tvätt', () => {
+  // Namnet blir neutralt mörkt när valt (som lane-row.active), inte accent-rosa.
+  assert.match(source, /\.mbv-row\.on \.mbv-name\{color:#1d1e24/);
+  // Segmenterad aktiv = vit yta + brand-text (som inbox-tab.active), inte rosa text.
+  assert.match(source, /\.mbv-seg button\.on\{[^}]*color:var\(--cco-color-brand/);
+});
+
+test('hopfällbara sektioner (sticky) + auto-sync utan manuell knapp', () => {
+  assert.match(source, /function collapsibleKicker\(/);
+  assert.match(source, /collapsed: \{ mailboxes:/);
+  assert.match(source, /setInterval\(loadStatus/);
+  // "Synka nu"-knappen är borttagen — spegeln läses på schema.
+  assert.doesNotMatch(source, /Synka nu/);
+});
