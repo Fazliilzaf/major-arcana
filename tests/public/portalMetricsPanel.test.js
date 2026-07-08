@@ -39,6 +39,7 @@ test('panelen visar aktiveringsstatus (go-live-spegel)', () => {
   assert.match(source, /chip\('Patient-notis', r\.patientNotify\)/);
   assert.match(source, /chip\('SMS-nudge', r\.smsNudge\)/);
   assert.match(source, /chip\('Inbound-SMS', r\.inboundSms\)/);
+  assert.match(source, /chip\('Kompose-mail', r\.composeSend\)/);
   // Varnar visuellt när domänen inte är verifierad (live men sändningar failar).
   assert.match(source, /live_unverified/);
   assert.match(source, /domän ej verifierad/);

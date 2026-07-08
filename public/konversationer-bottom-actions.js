@@ -3056,6 +3056,7 @@
                 chip('Patient-notis', r.patientNotify),
                 chip('SMS-nudge', r.smsNudge),
                 chip('Inbound-SMS', r.inboundSms),
+                chip('Kompose-mail', r.composeSend),
               ])
             );
           }

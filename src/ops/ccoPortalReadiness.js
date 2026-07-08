@@ -37,17 +37,25 @@ function buildPortalReadiness(env = process.env) {
   if (smsProvider === '46elks') smsProviderConfigured = elksConfigured;
   const inboundSmsConfigured = has(env.ELKS_INBOUND_SECRET);
 
+  // Kompose-utskick (nytt mail). Egen grind + minst en kanal redo:
+  //   Resend-kanalen = RESEND_API_KEY finns; Graph-kanalen = ARCANA_GRAPH_SEND_ENABLED.
+  const composeGate = truthy(env.CCO_COMPOSE_SEND_LIVE) || sendLive;
+  const graphSendEnabled = truthy(env.ARCANA_GRAPH_SEND_ENABLED);
+  const composeAnyChannel = resendConfigured || graphSendEnabled;
+
   const publicBaseUrlSet = has(env.PUBLIC_BASE_URL);
 
   // "Effektivt" = grinden öppen OCH providern konfigurerad → skickar på riktigt.
   const patientNotifyLive = (portalNotifyGate || sendLive) && resendConfigured;
   const smsNudgeLive = smsNudgeGate && smsProviderConfigured;
+  const composeSendLive = composeGate && composeAnyChannel;
 
   return {
     // Sammanfattande status per funktion (det personalen/ops bryr sig om).
     patientNotify: patientNotifyLive ? 'live' : 'dry-run',
     smsNudge: smsNudgeLive ? 'live' : 'off',
     inboundSms: inboundSmsConfigured ? 'active' : 'off',
+    composeSend: composeSendLive ? 'live' : 'off',
     // Detaljer bakom varje status (bara booleans, inga hemligheter).
     detail: {
       mail: {
@@ -59,6 +67,11 @@ function buildPortalReadiness(env = process.env) {
         nudgeGate: smsNudgeGate,
         providerConfigured: smsProviderConfigured,
         inboundConfigured: inboundSmsConfigured,
+      },
+      compose: {
+        gate: composeGate,
+        resendChannel: resendConfigured,
+        graphChannel: graphSendEnabled,
       },
       publicBaseUrlSet,
     },

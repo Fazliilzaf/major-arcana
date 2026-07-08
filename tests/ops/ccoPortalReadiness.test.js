@@ -36,14 +36,8 @@ test('patient-notis live kräver BÅDE grind OCH resend-nyckel', () => {
 
 test('SMS-nudge live kräver grind + provider', () => {
   assert.equal(buildPortalReadiness({ CCO_SMS_LIVE: '1' }).smsNudge, 'off');
-  assert.equal(
-    buildPortalReadiness({ CCO_SMS_LIVE: '1', SMS_PROVIDER: '46elks' }).smsNudge,
-    'off'
-  );
-  assert.equal(
-    buildPortalReadiness({ CCO_SMS_LIVE: '1', ELKS_API_USERNAME: 'u' }).smsNudge,
-    'off'
-  );
+  assert.equal(buildPortalReadiness({ CCO_SMS_LIVE: '1', SMS_PROVIDER: '46elks' }).smsNudge, 'off');
+  assert.equal(buildPortalReadiness({ CCO_SMS_LIVE: '1', ELKS_API_USERNAME: 'u' }).smsNudge, 'off');
   assert.equal(
     buildPortalReadiness({ CCO_SMS_LIVE: '1', ELKS_API_USERNAME: 'u', ELKS_API_PASSWORD: 'p' })
       .smsNudge,
@@ -63,6 +57,24 @@ test('SMS-nudge live kräver grind + provider', () => {
 
 test('inbound-SMS active när hemligheten är satt', () => {
   assert.equal(buildPortalReadiness({ ELKS_INBOUND_SECRET: 's' }).inboundSms, 'active');
+});
+
+test('kompose-mail live kräver grind + minst en kanal (Resend eller Graph)', () => {
+  // Grind på men ingen kanal → off.
+  assert.equal(buildPortalReadiness({ CCO_COMPOSE_SEND_LIVE: '1' }).composeSend, 'off');
+  // Grind + Resend-nyckel → live.
+  assert.equal(
+    buildPortalReadiness({ CCO_COMPOSE_SEND_LIVE: '1', RESEND_API_KEY: 're_x' }).composeSend,
+    'live'
+  );
+  // Grind + Graph på → live (även utan Resend).
+  assert.equal(
+    buildPortalReadiness({ CCO_COMPOSE_SEND_LIVE: 'yes', ARCANA_GRAPH_SEND_ENABLED: 'true' })
+      .composeSend,
+    'live'
+  );
+  // Ingen grind → off.
+  assert.equal(buildPortalReadiness({ RESEND_API_KEY: 're_x' }).composeSend, 'off');
 });
 
 test('avslöjar ALDRIG hemligheter — bara booleans/status', () => {
