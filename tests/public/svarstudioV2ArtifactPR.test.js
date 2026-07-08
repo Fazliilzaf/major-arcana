@@ -40,22 +40,23 @@ test('v2 monteras i isolerad shadow-DOM och laddar assets', () => {
   assert.match(source, /const mounted = await mountSvarstudioV2\(/);
 });
 
-test('v2 använder samma breda CCO-popup-ram som övriga paneler', () => {
-  assert.match(source, /width:98vw;height:96vh;max-width:none/);
-  assert.doesNotMatch(source, /max-width:1320px/);
-  assert.match(cssAsset, /\.wrap\s*\{[\s\S]*width:\s*100%[\s\S]*height:\s*100%/);
-  assert.match(cssAsset, /\.studio\s*\{[\s\S]*border-radius:\s*0[\s\S]*box-shadow:\s*none/);
+test('v2 monteras i STANDARD-panelmodalen (samma ram + storlek som övriga)', () => {
+  // Ingen egen backdrop längre — v2 använder openModal(wide) precis som Notiser,
+  // Skickat, Makron m.fl. → identisk ram, storlek och stäng.
+  assert.match(source, /openModal\(\{\s*title: '★ Svarstudio',\s*wide: true,/);
+  assert.doesNotMatch(source, /class: 'svarstudio-v2-backdrop'/);
+  assert.doesNotMatch(source, /width:98vw;height:96vh/);
+  // Shadow-host fyller modalkroppen
+  assert.match(source, /width:100%;height:100%;overflow:hidden/);
 });
 
-test('v2 visar CCO-panelernas flikrad och inte demo-hero', () => {
-  assert.match(htmlAsset, /id="v2PanelTabs"/);
-  assert.match(source, /panelTabs\('svarstudio'\)\.forEach/);
-  assert.match(source, /button\.textContent = tab\.label/);
-  assert.match(source, /close\(\);\s*tab\.open\(\);/);
-  assert.match(cssAsset, /\.v2-panel-tabs\s*\{/);
-  assert.match(cssAsset, /\.v2-panel-tab\.is-active\s*\{/);
+test('v2 visar CCO-panelernas standard-flikrad och döljer artifactens egen chrome', () => {
+  // Flikraden kommer från openModal (samma .action-modal-tabs som övriga paneler)
+  assert.match(source, /tabs: panelTabs\('svarstudio'\)/);
+  // Artifactens egen rubrik/verktygsrad döljs så bara panelmodalens huvud syns
+  assert.match(source, /\['\.ov-bar', '\.phead', '\.foot'\]\.forEach/);
+  // Demo-hjälten finns inte i markupen
   assert.doesNotMatch(htmlAsset, /Ett svar, med hela kunden i rummet/);
-  assert.doesNotMatch(htmlAsset, /Alla kanaler för en kund samlas i en tråd/);
   assert.doesNotMatch(htmlAsset, /id="themeBtn"/);
 });
 
