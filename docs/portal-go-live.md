@@ -9,15 +9,22 @@ Se även: `src/ops/ccoPortalReplyNotification.js` (patient-notis), `src/ops/ccoP
 
 ## Grindar (säkerhetsmodell)
 
-| Grind                    | Styr                                      | Default      |
-| ------------------------ | ----------------------------------------- | ------------ |
-| `CCO_SEND_LIVE`          | ALLT mailutskick (globalt)                | av (dry-run) |
-| `CCO_PORTAL_NOTIFY_LIVE` | Endast patient-portal-notiser (finkornig) | av           |
-| `CCO_SMS_LIVE`           | Endast SMS-nudgen                         | av           |
+| Grind                       | Styr                                        | Default      |
+| --------------------------- | ------------------------------------------- | ------------ |
+| `CCO_SEND_LIVE`             | ALLT mailutskick (globalt)                  | av (dry-run) |
+| `CCO_PORTAL_NOTIFY_LIVE`    | Endast patient-portal-notiser (finkornig)   | av           |
+| `CCO_SMS_LIVE`              | Endast SMS-nudgen                           | av           |
+| `CCO_COMPOSE_SEND_LIVE`     | Endast kompose-utskick ("nytt mail")        | av           |
+| `ELKS_INBOUND_SECRET`       | Aktiverar inbound-SMS-webhooken (hemlighet) | ej satt      |
+| `ARCANA_GRAPH_SEND_ENABLED` | kons@/Graph-utskick (staff-svar + kompose)  | av           |
 
-Poängen: `CCO_PORTAL_NOTIFY_LIVE` låter portal-notiserna gå skarpt **utan** att öppna
-resten av mailutskicket. Även med grinden på skickas inget förrän en riktig mailer
-(`RESEND_API_KEY`) är konfigurerad.
+Poängen: varje finkornig grind låter en funktion gå skarpt **utan** att öppna resten
+av mailutskicket. Även med grinden på skickas inget förrän en riktig provider
+(`RESEND_API_KEY` för mail, ELKS/Twilio för SMS) är konfigurerad.
+
+Aktiveringsstatusen syns i **Portal-fliken → Aktivering-raden** i `/admin#cco`
+(eller `GET /api/v1/cco/runtime/portal-readiness`): Patient-notis, SMS-nudge,
+Inbound-SMS och Kompose-mail visas som live/off.
 
 ## Fas 0 — Resend + DNS
 
